@@ -447,11 +447,19 @@
 
     <!-- Vehicle Size Explainer screen -->
     <string name="vehicle_size_explainer_title">Cuéntanos sobre tu coche</string>
-    <string name="vehicle_size_explainer_subtitle">Solo necesitamos un dato esencial para que la app funcione: el tamaño.</string>
-    <string name="vehicle_size_explainer_card1_title">Tamaño: para emparejar plazas</string>
-    <string name="vehicle_size_explainer_card1_desc">Otros conductores buscan plazas que se ajusten al tamaño de su coche. Sin esto no podemos emparejaros.</string>
-    <string name="vehicle_size_explainer_card2_title">Marca y modelo son opcionales</string>
-    <string name="vehicle_size_explainer_card2_desc">Puedes añadirlos si quieres. Si no, nadie los verá.</string>
+    <string name="vehicle_size_explainer_subtitle">Antes de crear tu vehículo, te pediremos algunos datos. Algunos son opcionales.</string>
+    <string name="vehicle_size_explainer_card1_title">¿Qué tipo de vehículo es?</string>
+    <string name="vehicle_size_explainer_card1_desc">Elige coche, moto, scooter o bicicleta y dinos su marca y modelo.</string>
+    <string name="vehicle_size_explainer_card2_title">¿Qué forma y tamaño tiene?</string>
+    <string name="vehicle_size_explainer_card2_desc">Usamos la carrocería y el tamaño para emparejarte con plazas que encajen.</string>
+    <string name="vehicle_size_explainer_card3_title">¿Cómo debe aparecer?</string>
+    <string name="vehicle_size_explainer_card3_desc">Elige un color, un nombre opcional y si quieres mostrar la marca y el modelo en las plazas libres.</string>
+    <string name="vehicle_size_explainer_card4_title">¿Cómo podemos detectar tu aparcamiento?</string>
+    <string name="vehicle_size_explainer_card4_desc">Paparcar puede usar el GPS, los sensores de movimiento y, si está disponible, el Bluetooth de tu coche para reconocer cuándo te vas.</string>
+    <string name="vehicle_size_explainer_card5_title">Combustible y costes</string>
+    <string name="vehicle_size_explainer_card5_desc">Para vehículos con combustible, elige el tipo. El consumo y los precios nos ayudan a estimar tus costes.</string>
+    <string name="vehicle_size_explainer_card6_title">Etiqueta ambiental</string>
+    <string name="vehicle_size_explainer_card6_desc">Puedes añadir la etiqueta ambiental de tu vehículo. Es opcional y queda en sus datos.</string>
     <string name="vehicle_size_explainer_cta">Empezar</string>
 
     <string name="bt_config_title">Bluetooth del coche</string>

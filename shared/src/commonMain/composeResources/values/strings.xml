@@ -482,11 +482,19 @@
 
     <!-- Vehicle Size Explainer screen -->
     <string name="vehicle_size_explainer_title">Tell us about your car</string>
-    <string name="vehicle_size_explainer_subtitle">We just need one essential detail for the app to work: the size.</string>
-    <string name="vehicle_size_explainer_card1_title">Size: how we match parking spots</string>
-    <string name="vehicle_size_explainer_card1_desc">Other drivers look for spots that fit their car. Without this we can't match you.</string>
-    <string name="vehicle_size_explainer_card2_title">Brand and model are optional</string>
-    <string name="vehicle_size_explainer_card2_desc">You can add them if you want. If not, nobody sees them.</string>
+    <string name="vehicle_size_explainer_subtitle">Before we create your vehicle, we'll ask for a few details. Some are optional.</string>
+    <string name="vehicle_size_explainer_card1_title">What kind of vehicle is it?</string>
+    <string name="vehicle_size_explainer_card1_desc">Choose a car, motorcycle, scooter or bike, then tell us its brand and model.</string>
+    <string name="vehicle_size_explainer_card2_title">What shape and size is it?</string>
+    <string name="vehicle_size_explainer_card2_desc">We use the body type and size to match you with spots that fit.</string>
+    <string name="vehicle_size_explainer_card3_title">How should it appear?</string>
+    <string name="vehicle_size_explainer_card3_desc">Choose a colour, an optional nickname and whether to show its brand and model on free spots.</string>
+    <string name="vehicle_size_explainer_card4_title">How can we detect your parking?</string>
+    <string name="vehicle_size_explainer_card4_desc">Paparcar can use GPS, motion sensors and, if available, your car's Bluetooth to recognise when you drive away.</string>
+    <string name="vehicle_size_explainer_card5_title">Fuel and running costs</string>
+    <string name="vehicle_size_explainer_card5_desc">For fuel vehicles, choose the fuel type. Consumption and prices help us estimate your costs.</string>
+    <string name="vehicle_size_explainer_card6_title">Environmental label</string>
+    <string name="vehicle_size_explainer_card6_desc">You can add your vehicle's environmental label. It is optional and stays with your vehicle details.</string>
     <string name="vehicle_size_explainer_cta">Get started</string>
 
     <string name="bt_config_title">Bluetooth Car Key</string>

@@ -312,11 +312,19 @@
 
     <!-- Vehicle Size Explainer screen -->
     <string name="vehicle_size_explainer_title">Powiedz nam o swoim aucie</string>
-    <string name="vehicle_size_explainer_subtitle">Potrzebujemy tylko jednej ważnej informacji, żeby aplikacja działała: rozmiaru.</string>
-    <string name="vehicle_size_explainer_card1_title">Rozmiar: tak dopasowujemy miejsca</string>
-    <string name="vehicle_size_explainer_card1_desc">Inni kierowcy szukają miejsc pasujących do ich auta. Bez tej informacji nie możemy was połączyć.</string>
-    <string name="vehicle_size_explainer_card2_title">Marka i model są opcjonalne</string>
-    <string name="vehicle_size_explainer_card2_desc">Możesz je dodać, jeśli chcesz. Jeśli nie, nikt ich nie zobaczy.</string>
+    <string name="vehicle_size_explainer_subtitle">Zanim utworzymy pojazd, poprosimy o kilka informacji. Niektóre są opcjonalne.</string>
+    <string name="vehicle_size_explainer_card1_title">Jaki to typ pojazdu?</string>
+    <string name="vehicle_size_explainer_card1_desc">Wybierz samochód, motocykl, skuter lub rower, a następnie podaj markę i model.</string>
+    <string name="vehicle_size_explainer_card2_title">Jaki ma kształt i rozmiar?</string>
+    <string name="vehicle_size_explainer_card2_desc">Wykorzystujemy nadwozie i rozmiar, aby dopasować do Ciebie odpowiednie miejsca.</string>
+    <string name="vehicle_size_explainer_card3_title">Jak ma się wyświetlać?</string>
+    <string name="vehicle_size_explainer_card3_desc">Wybierz kolor, opcjonalną nazwę oraz czy marka i model mają być widoczne przy wolnych miejscach.</string>
+    <string name="vehicle_size_explainer_card4_title">Jak możemy wykryć Twoje parkowanie?</string>
+    <string name="vehicle_size_explainer_card4_desc">Paparcar może używać GPS, czujników ruchu i, jeśli jest dostępny, Bluetooth Twojego auta, aby rozpoznać wyjazd.</string>
+    <string name="vehicle_size_explainer_card5_title">Paliwo i koszty</string>
+    <string name="vehicle_size_explainer_card5_desc">W przypadku pojazdów spalinowych wybierz rodzaj paliwa. Spalanie i ceny pomagają oszacować koszty.</string>
+    <string name="vehicle_size_explainer_card6_title">Etykieta środowiskowa</string>
+    <string name="vehicle_size_explainer_card6_desc">Możesz dodać etykietę środowiskową pojazdu. Jest opcjonalna i pozostaje w jego danych.</string>
     <string name="vehicle_size_explainer_cta">Zaczynamy</string>
 
     <string name="bt_config_title">Klucz Bluetooth samochodu</string>

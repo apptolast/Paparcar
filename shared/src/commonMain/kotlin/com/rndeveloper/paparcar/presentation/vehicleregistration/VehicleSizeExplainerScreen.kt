@@ -19,7 +19,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.automirrored.rounded.Label
+import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.LocalGasStation
+import androidx.compose.material.icons.rounded.Sensors
 import androidx.compose.material.icons.rounded.Straighten
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -44,12 +48,19 @@ import paparcar.composeapp.generated.resources.vehicle_size_explainer_card1_desc
 import paparcar.composeapp.generated.resources.vehicle_size_explainer_card1_title
 import paparcar.composeapp.generated.resources.vehicle_size_explainer_card2_desc
 import paparcar.composeapp.generated.resources.vehicle_size_explainer_card2_title
+import paparcar.composeapp.generated.resources.vehicle_size_explainer_card3_desc
+import paparcar.composeapp.generated.resources.vehicle_size_explainer_card3_title
+import paparcar.composeapp.generated.resources.vehicle_size_explainer_card4_desc
+import paparcar.composeapp.generated.resources.vehicle_size_explainer_card4_title
+import paparcar.composeapp.generated.resources.vehicle_size_explainer_card5_desc
+import paparcar.composeapp.generated.resources.vehicle_size_explainer_card5_title
+import paparcar.composeapp.generated.resources.vehicle_size_explainer_card6_desc
+import paparcar.composeapp.generated.resources.vehicle_size_explainer_card6_title
 import paparcar.composeapp.generated.resources.vehicle_size_explainer_cta
 import paparcar.composeapp.generated.resources.vehicle_size_explainer_subtitle
 import paparcar.composeapp.generated.resources.vehicle_size_explainer_title
 
-private val TOP_CONTENT_PADDING     = 56.dp
-private val BOTTOM_CONTENT_PADDING  = 140.dp
+private val BOTTOM_CONTENT_PADDING  = 24.dp
 private val TITLE_ICON_SIZE         = 84.dp
 private val NODE_SIZE               = 32.dp
 private val NODE_ICON_SIZE          = 18.dp
@@ -59,22 +70,21 @@ private val CONNECTOR_WIDTH         = 2.dp
 fun VehicleSizeExplainerScreen(
     onContinue: () -> Unit,
 ) {
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .background(MaterialTheme.colorScheme.background)
+            .statusBarsPadding(),
     ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
+                .fillMaxWidth()
+                .weight(1f)
                 .padding(horizontal = PaparcarSpacing.xxxl)
-                .padding(top = TOP_CONTENT_PADDING, bottom = BOTTOM_CONTENT_PADDING)
+                .padding(bottom = BOTTOM_CONTENT_PADDING)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // New isometric vehicle pictogram (identity brand-green palette, no tint) — mirrors the
-            // onboarding heroes as the screen's visual anchor.
             VehicleIcon(
                 carbody = null,
                 size = VehicleSize.MEDIUM_SUV,
@@ -97,22 +107,45 @@ fun VehicleSizeExplainerScreen(
             Spacer(Modifier.height(PaparcarSpacing.xxl + PaparcarSpacing.md))
 
             ExplainerTimelineStep(
-                icon = Icons.Rounded.Straighten,
+                icon = Icons.Rounded.DirectionsCar,
                 title = stringResource(Res.string.vehicle_size_explainer_card1_title),
                 description = stringResource(Res.string.vehicle_size_explainer_card1_desc),
                 isLast = false,
             )
             ExplainerTimelineStep(
-                icon = Icons.Rounded.Lock,
+                icon = Icons.Rounded.Straighten,
                 title = stringResource(Res.string.vehicle_size_explainer_card2_title),
                 description = stringResource(Res.string.vehicle_size_explainer_card2_desc),
+                isLast = false,
+            )
+            ExplainerTimelineStep(
+                icon = Icons.Rounded.Edit,
+                title = stringResource(Res.string.vehicle_size_explainer_card3_title),
+                description = stringResource(Res.string.vehicle_size_explainer_card3_desc),
+                isLast = false,
+            )
+            ExplainerTimelineStep(
+                icon = Icons.Rounded.Sensors,
+                title = stringResource(Res.string.vehicle_size_explainer_card4_title),
+                description = stringResource(Res.string.vehicle_size_explainer_card4_desc),
+                isLast = false,
+            )
+            ExplainerTimelineStep(
+                icon = Icons.Rounded.LocalGasStation,
+                title = stringResource(Res.string.vehicle_size_explainer_card5_title),
+                description = stringResource(Res.string.vehicle_size_explainer_card5_desc),
+                isLast = false,
+            )
+            ExplainerTimelineStep(
+                icon = Icons.AutoMirrored.Rounded.Label,
+                title = stringResource(Res.string.vehicle_size_explainer_card6_title),
+                description = stringResource(Res.string.vehicle_size_explainer_card6_desc),
                 isLast = true,
             )
         }
 
         Column(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .padding(horizontal = PaparcarSpacing.xxl)
                 .navigationBarsPadding()

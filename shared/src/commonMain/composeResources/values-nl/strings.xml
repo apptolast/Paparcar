@@ -313,11 +313,19 @@
 
     <!-- Vehicle Size Explainer screen -->
     <string name="vehicle_size_explainer_title">Vertel ons over je auto</string>
-    <string name="vehicle_size_explainer_subtitle">We hebben maar één essentieel detail nodig om de app te laten werken: de grootte.</string>
-    <string name="vehicle_size_explainer_card1_title">Grootte: zo matchen we parkeerplekken</string>
-    <string name="vehicle_size_explainer_card1_desc">Andere bestuurders zoeken plekken die bij hun auto passen. Zonder deze info kunnen we jullie niet matchen.</string>
-    <string name="vehicle_size_explainer_card2_title">Merk en model zijn optioneel</string>
-    <string name="vehicle_size_explainer_card2_desc">Je kunt ze toevoegen als je wilt. Zo niet, niemand ziet ze.</string>
+    <string name="vehicle_size_explainer_subtitle">Voordat we je voertuig aanmaken, vragen we enkele gegevens. Sommige zijn optioneel.</string>
+    <string name="vehicle_size_explainer_card1_title">Welk type voertuig is het?</string>
+    <string name="vehicle_size_explainer_card1_desc">Kies auto, motor, scooter of fiets en geef het merk en model op.</string>
+    <string name="vehicle_size_explainer_card2_title">Welke vorm en grootte heeft het?</string>
+    <string name="vehicle_size_explainer_card2_desc">We gebruiken carrosserie en grootte om je te koppelen aan plekken die passen.</string>
+    <string name="vehicle_size_explainer_card3_title">Hoe moet het verschijnen?</string>
+    <string name="vehicle_size_explainer_card3_desc">Kies een kleur, een optionele naam en of merk en model op vrije plekken mogen staan.</string>
+    <string name="vehicle_size_explainer_card4_title">Hoe kunnen we je parkeren detecteren?</string>
+    <string name="vehicle_size_explainer_card4_desc">Paparcar kan gps, bewegingssensoren en, als het beschikbaar is, de Bluetooth van je auto gebruiken om te herkennen wanneer je wegrijdt.</string>
+    <string name="vehicle_size_explainer_card5_title">Brandstof en kosten</string>
+    <string name="vehicle_size_explainer_card5_desc">Voor voertuigen met brandstof kies je het type. Verbruik en prijzen helpen ons je kosten te schatten.</string>
+    <string name="vehicle_size_explainer_card6_title">Milieulabel</string>
+    <string name="vehicle_size_explainer_card6_desc">Je kunt het milieulabel van je voertuig toevoegen. Het is optioneel en blijft bij je voertuiggegevens.</string>
     <string name="vehicle_size_explainer_cta">Aan de slag</string>
 
     <string name="bt_config_title">Auto Bluetooth-sleutel</string>

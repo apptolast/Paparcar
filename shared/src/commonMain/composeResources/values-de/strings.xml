@@ -313,11 +313,19 @@
 
     <!-- Vehicle Size Explainer screen -->
     <string name="vehicle_size_explainer_title">Erzähl uns von deinem Auto</string>
-    <string name="vehicle_size_explainer_subtitle">Wir brauchen nur ein wichtiges Detail, damit die App funktioniert: die Größe.</string>
-    <string name="vehicle_size_explainer_card1_title">Größe: so finden wir passende Plätze</string>
-    <string name="vehicle_size_explainer_card1_desc">Andere Fahrer suchen Parkplätze, die zu ihrem Auto passen. Ohne diese Info können wir euch nicht zusammenbringen.</string>
-    <string name="vehicle_size_explainer_card2_title">Marke und Modell sind optional</string>
-    <string name="vehicle_size_explainer_card2_desc">Du kannst sie hinzufügen, wenn du willst. Wenn nicht, sieht sie niemand.</string>
+    <string name="vehicle_size_explainer_subtitle">Bevor wir dein Fahrzeug erstellen, fragen wir einige Angaben ab. Manche sind optional.</string>
+    <string name="vehicle_size_explainer_card1_title">Welcher Fahrzeugtyp ist es?</string>
+    <string name="vehicle_size_explainer_card1_desc">Wähle Auto, Motorrad, Roller oder Fahrrad und gib Marke und Modell an.</string>
+    <string name="vehicle_size_explainer_card2_title">Welche Form und Größe hat es?</string>
+    <string name="vehicle_size_explainer_card2_desc">Wir verwenden Karosserie und Größe, um dir passende Plätze zuzuordnen.</string>
+    <string name="vehicle_size_explainer_card3_title">Wie soll es angezeigt werden?</string>
+    <string name="vehicle_size_explainer_card3_desc">Wähle eine Farbe, einen optionalen Namen und ob Marke und Modell auf freien Plätzen angezeigt werden.</string>
+    <string name="vehicle_size_explainer_card4_title">Wie können wir dein Parken erkennen?</string>
+    <string name="vehicle_size_explainer_card4_desc">Paparcar kann GPS, Bewegungssensoren und, falls vorhanden, das Bluetooth deines Autos nutzen, um deine Abfahrt zu erkennen.</string>
+    <string name="vehicle_size_explainer_card5_title">Kraftstoff und Kosten</string>
+    <string name="vehicle_size_explainer_card5_desc">Bei Fahrzeugen mit Kraftstoff wählst du den Typ. Verbrauch und Preise helfen uns, deine Kosten zu schätzen.</string>
+    <string name="vehicle_size_explainer_card6_title">Umweltplakette</string>
+    <string name="vehicle_size_explainer_card6_desc">Du kannst die Umweltplakette deines Fahrzeugs hinzufügen. Sie ist optional und bleibt in den Fahrzeugdaten.</string>
     <string name="vehicle_size_explainer_cta">Loslegen</string>
 
     <string name="bt_config_title">Auto-Bluetooth-Schlüssel</string>

@@ -314,11 +314,19 @@
 
     <!-- Vehicle Size Explainer screen -->
     <string name="vehicle_size_explainer_title">Spune-ne despre mașina ta</string>
-    <string name="vehicle_size_explainer_subtitle">Avem nevoie doar de o informație esențială ca aplicația să funcționeze: dimensiunea.</string>
-    <string name="vehicle_size_explainer_card1_title">Dimensiune: cum potrivim locurile</string>
-    <string name="vehicle_size_explainer_card1_desc">Alți șoferi caută locuri potrivite pentru mașina lor. Fără această info nu vă putem potrivi.</string>
-    <string name="vehicle_size_explainer_card2_title">Marca și modelul sunt opționale</string>
-    <string name="vehicle_size_explainer_card2_desc">Le poți adăuga dacă vrei. Dacă nu, nu le vede nimeni.</string>
+    <string name="vehicle_size_explainer_subtitle">Înainte să creăm vehiculul, îți vom cere câteva detalii. Unele sunt opționale.</string>
+    <string name="vehicle_size_explainer_card1_title">Ce tip de vehicul este?</string>
+    <string name="vehicle_size_explainer_card1_desc">Alege mașină, motocicletă, scuter sau bicicletă, apoi spune-ne marca și modelul.</string>
+    <string name="vehicle_size_explainer_card2_title">Ce formă și dimensiune are?</string>
+    <string name="vehicle_size_explainer_card2_desc">Folosim tipul caroseriei și dimensiunea pentru a-ți potrivi locuri adecvate.</string>
+    <string name="vehicle_size_explainer_card3_title">Cum să apară?</string>
+    <string name="vehicle_size_explainer_card3_desc">Alege o culoare, un nume opțional și dacă marca și modelul să apară la locurile libere.</string>
+    <string name="vehicle_size_explainer_card4_title">Cum îți putem detecta parcarea?</string>
+    <string name="vehicle_size_explainer_card4_desc">Paparcar poate folosi GPS-ul, senzorii de mișcare și, dacă este disponibil, Bluetooth-ul mașinii pentru a recunoaște plecarea.</string>
+    <string name="vehicle_size_explainer_card5_title">Combustibil și costuri</string>
+    <string name="vehicle_size_explainer_card5_desc">Pentru vehiculele cu combustibil, alege tipul. Consumul și prețurile ne ajută să estimăm costurile.</string>
+    <string name="vehicle_size_explainer_card6_title">Eticheta de mediu</string>
+    <string name="vehicle_size_explainer_card6_desc">Poți adăuga eticheta de mediu a vehiculului. Este opțională și rămâne în datele lui.</string>
     <string name="vehicle_size_explainer_cta">Începe</string>
 
     <string name="bt_config_title">Cheie Bluetooth auto</string>
