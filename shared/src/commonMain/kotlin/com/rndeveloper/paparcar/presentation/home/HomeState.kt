@@ -293,6 +293,15 @@ data class HomeState(
      */
     val releasingReason: ParkingReleaseReason? = null,
     /**
+     * The session the release dialog is asking about; null = the dialog is closed. It lives here
+     * and not in the screen because the release ends it in the SAME atomic update that clears
+     * [releasingReason]. The screen used to close the dialog by watching `isReleasingParking` go
+     * true → false, and a release faster than a frame never showed the `true`: the dialog stayed
+     * open over a session that was already gone, and every further tap "did nothing".
+     * [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001]
+     */
+    val releaseDialogSessionId: String? = null,
+    /**
      * Non-null when moving an existing session; null when creating a new one.
      * When set, [addingParkingVehicleId] is ignored. [MULTI-PARKING-001]
      */

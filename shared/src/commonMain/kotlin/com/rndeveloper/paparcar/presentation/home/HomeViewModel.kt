@@ -190,7 +190,7 @@ class HomeViewModel(
         // keeps serving the cache). Sessions escalate to a snackbar; the rest log. [HOMEVM-CTRL-003]
         userParkingRepository.observeActiveSessions()
             .collectInto("activeSessions", notify = { e -> PaparcarError.Database.Unknown(e.message ?: "") }) {
-                copy(activeSessions = it)
+                withActiveSessions(it)
             }
         observeParkedVehicles().collectInto("parkedVehicles") { copy(parkedVehicles = it) }
         zoneRepository.observeZones().collectInto("zones") { copy(zones = it) }
@@ -374,6 +374,8 @@ class HomeViewModel(
             -> handleSpotIntent(intent)
 
             // Own parking sessions
+            is HomeIntent.OpenReleaseDialog,
+            is HomeIntent.DismissReleaseDialog,
             is HomeIntent.ReleaseParking,
             is HomeIntent.EnterAddParkingMode,
             is HomeIntent.ExitAddParkingMode,
@@ -1189,6 +1191,11 @@ class HomeViewModel(
 
     private fun handleParkingIntent(intent: HomeIntent) {
         when (intent) {
+            is HomeIntent.OpenReleaseDialog -> updateState { copy(releaseDialogSessionId = intent.sessionId) }
+            // While a release runs, its outcome owns the dialog. [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001]
+            is HomeIntent.DismissReleaseDialog -> updateState {
+                if (isReleasingParking) this else copy(releaseDialogSessionId = null)
+            }
             is HomeIntent.ReleaseParking -> releaseParking(intent.sessionId, intent.reason)
             is HomeIntent.EnterAddParkingMode -> updateState {
                 clearedModeFields().copy(
@@ -1253,11 +1260,23 @@ class HomeViewModel(
     }
 
     private fun releaseParking(sessionId: String, reason: ParkingReleaseReason) {
+        // One release at a time. The dialog's buttons disable only once the UI recomposes with
+        // `releasingReason`, so two taps inside one frame both reach here — and "publish" + "don't
+        // publish" racing each other would publish the spot while Room records it as unpublished.
+        // Intents run on the main thread and the flag is set synchronously below, so this check
+        // cannot be overtaken. [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001]
+        if (state.value.isReleasingParking) {
+            PaparcarLogger.d(TAG, "releaseParking: a release is already in flight — ignoring id=$sessionId")
+            return
+        }
         // Resolve the tapped card's session explicitly — no `?: userParking` fallback. With two
         // active sessions, ranking-first could release the wrong car's spot. [VEH-ACTIVE-FENCE-001]
         val target = state.value.activeSessions.firstOrNull { it.id == sessionId }
         if (target == null) {
             PaparcarLogger.w(TAG, "releaseParking: no active session for id=$sessionId — no-op")
+            // Close the dialog too: left open, it covers the snackbar and every further tap lands
+            // here again — the "nothing happens" loop. [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001]
+            updateState { copy(releaseDialogSessionId = null) }
             sendEffect(HomeEffect.ShowError(PaparcarError.Parking.ReleaseFailed))
             return
         }
@@ -1291,7 +1310,11 @@ class HomeViewModel(
                     // From Browse (every departure release) this is the same no-op plus the
                     // selection reset it already did.
                     // [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001]
-                    updateState { clearedModeFields().copy(releasingReason = null) }
+                    // The dialog closes in this same update — never inferred by the screen from a
+                    // transition it may not get to see. [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001]
+                    updateState {
+                        clearedModeFields().copy(releasingReason = null, releaseDialogSessionId = null)
+                    }
                     // The use case says whether a spot ACTUALLY went out — a zone session wider
                     // than the publish ceiling withholds it, and thanking the user for a plaza
                     // that never existed would be the lie the gate removes.
@@ -1299,7 +1322,9 @@ class HomeViewModel(
                     if (published) sendEffect(HomeEffect.SpotReported)
                 }
                 .onFailure { e ->
-                    updateState { copy(releasingReason = null) }
+                    // Closed on failure as well, as before: the error goes to the snackbar, which an
+                    // open dialog would cover. [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001]
+                    updateState { copy(releasingReason = null, releaseDialogSessionId = null) }
                     sendEffect(HomeEffect.ShowError(PaparcarError.Database.WriteError(e.message ?: "")))
                 }
         }

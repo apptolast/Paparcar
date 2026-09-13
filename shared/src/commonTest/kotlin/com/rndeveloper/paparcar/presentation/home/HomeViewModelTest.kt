@@ -795,10 +795,132 @@ class HomeViewModelTest {
         assertNull(vm.state.value.selection)
     }
 
+    // ── Release dialog lifecycle [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001] ────────────────────
+    // The dialog used to be screen state, closed when the screen SAW `isReleasingParking` flip
+    // true → false. A release faster than a frame never showed the `true`, the dialog stayed open over
+    // a session that no longer existed, and every further tap "did nothing". It is VM state now.
+
+    private fun releasableSession(id: String = "session-1") = UserParking(
+        id = id, userId = "user-1", vehicleId = "veh-1", location = location, isActive = true,
+    )
+
+    @Test
+    fun should_closeReleaseDialog_when_releaseFinishes_evenWithNoInFlightWindowToObserve() = runTest {
+        // Unconfined: the release runs to completion inside handleIntent — exactly the case a
+        // screen watching for the in-flight flag could never see.
+        val session = releasableSession()
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
+        vm = buildVm()
+
+        vm.handleIntent(HomeIntent.OpenReleaseDialog(session.id))
+        assertEquals(session.id, vm.state.value.releaseDialogSessionId)
+
+        vm.handleIntent(HomeIntent.ReleaseParking(session.id, ParkingReleaseReason.DEPARTURE_UNPUBLISHED))
+
+        assertNull(vm.state.value.releaseDialogSessionId)
+        assertEquals(1, parkingRepo.clearActiveParkingSessionCallCount)
+    }
+
+    @Test
+    fun should_closeReleaseDialog_when_releaseFails() = runTest {
+        val session = releasableSession()
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
+        parkingRepo.clearActiveParkingSessionResult = Result.failure(IllegalStateException("disk full"))
+        vm = buildVm()
+
+        vm.effect.test {
+            vm.handleIntent(HomeIntent.OpenReleaseDialog(session.id))
+            vm.handleIntent(HomeIntent.ReleaseParking(session.id, ParkingReleaseReason.DEPARTURE_PUBLISHED))
+
+            // Closed, so the snackbar carrying the error is not hidden behind it.
+            assertNull(vm.state.value.releaseDialogSessionId)
+            assertIs<HomeEffect.ShowError>(awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun should_runOnlyOneRelease_when_bothButtonsAreTappedWithinTheSameFrame() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        val session = releasableSession()
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
+        vm = buildVm()
+        advanceUntilIdle()
+
+        vm.handleIntent(HomeIntent.OpenReleaseDialog(session.id))
+        vm.handleIntent(HomeIntent.ReleaseParking(session.id, ParkingReleaseReason.DEPARTURE_PUBLISHED))
+        // Second tap before any recomposition could disable the buttons.
+        vm.handleIntent(HomeIntent.ReleaseParking(session.id, ParkingReleaseReason.DEPARTURE_UNPUBLISHED))
+        advanceUntilIdle()
+
+        assertEquals(1, parkingRepo.clearActiveParkingSessionCallCount)
+        assertEquals(1, reportScheduler.scheduleCallCount)
+        // The first answer is the one that counted: the spot went out AND Room says so.
+        assertEquals(true, parkingRepo.getSessionById(session.id)?.publishedSpot)
+        assertNull(vm.state.value.releaseDialogSessionId)
+    }
+
+    @Test
+    fun should_keepReleaseDialogOpen_when_dismissedWhileTheReleaseIsInFlight() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        val session = releasableSession()
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
+        vm = buildVm()
+        advanceUntilIdle()
+
+        vm.handleIntent(HomeIntent.OpenReleaseDialog(session.id))
+        vm.handleIntent(HomeIntent.ReleaseParking(session.id, ParkingReleaseReason.DEPARTURE_PUBLISHED))
+        vm.handleIntent(HomeIntent.DismissReleaseDialog)
+        assertEquals(session.id, vm.state.value.releaseDialogSessionId)
+
+        advanceUntilIdle()
+        assertNull(vm.state.value.releaseDialogSessionId)
+    }
+
+    @Test
+    fun should_closeReleaseDialog_when_dismissedWithNoReleaseRunning() = runTest {
+        val session = releasableSession()
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
+        vm = buildVm()
+
+        vm.handleIntent(HomeIntent.OpenReleaseDialog(session.id))
+        vm.handleIntent(HomeIntent.DismissReleaseDialog)
+
+        assertNull(vm.state.value.releaseDialogSessionId)
+        assertEquals(0, parkingRepo.clearActiveParkingSessionCallCount)
+    }
+
+    @Test
+    fun should_closeReleaseDialog_when_itsSessionIsClosedByAnotherPath() = runTest {
+        // A detected departure (or the safety net) closes the session while the user looks at the
+        // dialog: releasing it again can only fail, so the dialog has nothing left to offer.
+        val session = releasableSession()
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
+        vm = buildVm()
+        vm.handleIntent(HomeIntent.OpenReleaseDialog(session.id))
+
+        parkingRepo.clearActiveParkingSession(session.id, endedAtMs = 1L, publishedSpot = true)
+
+        assertNull(vm.state.value.releaseDialogSessionId)
+    }
+
+    @Test
+    fun should_keepReleaseDialogOpen_when_anotherCarsSessionCloses() = runTest {
+        val mine = releasableSession("session-mine")
+        val other = releasableSession("session-other").copy(vehicleId = "veh-2")
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(mine, other))
+        vm = buildVm()
+        vm.handleIntent(HomeIntent.OpenReleaseDialog(mine.id))
+
+        parkingRepo.clearActiveParkingSession(other.id, endedAtMs = 1L, publishedSpot = false)
+
+        assertEquals(mine.id, vm.state.value.releaseDialogSessionId)
+    }
+
     // ── SelectItem ────────────────────────────────────────────────────────────
 
     @Test
-    fun `should_set_selection_on_SelectItem`() = runTest {
+    fun should_set_selection_on_SelectItem() = runTest {
         vm.handleIntent(HomeIntent.SelectItem(HomeSelection.Spot("spot-42")))
         assertEquals(HomeSelection.Spot("spot-42"), vm.state.value.selection)
     }
