@@ -93,7 +93,17 @@ internal fun BrowsePeek(
     laneCount: Int?,
     /** Su carril está preguntando: la cápsula late. */
     laneLoading: Boolean,
+    /**
+     * The user has opened Browse at least once: from then on the COLLAPSED header also speaks for the
+     * lane instead of the parked car. A live trip still outranks it (see the driving branch).
+     * [HOME-PEEK-FOLLOWS-THE-LANE-ONCE-OPENED-001]
+     */
+    laneHeaderLatched: Boolean = false,
 ) {
+    // Whether this header speaks for the LANE: always when expanded, and collapsed too once Browse
+    // has been opened. [HOME-PEEK-FOLLOWS-THE-LANE-ONCE-OPENED-001]
+    val followsLane = showZoneHeader || laneHeaderLatched
+
     // ── Subject = the car being driven RIGHT NOW (monitored trip) ─────────────
     // Collapsed peek only. A live trip OUTRANKS any parked car — the vehicle being actively
     // monitored is the one standing in for the user, same hierarchy the readiness already follows
@@ -101,6 +111,10 @@ internal fun BrowsePeek(
     // APARCANDO… once it stops and the detector is confirming a spot — and the address follows the
     // moving car via the camera geocode. This is where the removed floating "monitoring" pill's
     // status now lives. [DET-STATUS-SHEET-001] [UI-BROWSE-DRIVING-OVER-PARKED-001]
+    //
+    // ⛔ Deliberately NOT released by `laneHeaderLatched`: a live trip (and the "did you park?"
+    // question it carries) is news, not the first-launch summary of your car — and collapsed, this
+    // eyebrow is the only place Home says it. [HOME-PEEK-FOLLOWS-THE-LANE-ONCE-OPENED-001]
     if (drivingMeta != null && !showZoneHeader) {
         val vehicleName = vehicleSummary(drivingVehicle) ?: stringResource(Res.string.home_vehicle_fallback_name)
         val isCandidate = drivingMeta.phase == DetectionPhase.Candidate
@@ -158,11 +172,13 @@ internal fun BrowsePeek(
         return
     }
 
-    // ── Subject = the parked car (collapsed peek only, no live trip) ──────────
+    // ── Subject = the parked car (collapsed peek, no live trip, Browse never opened) ──
     // Title/sub come from THE SESSION — static. The camera must never drag your parked
     // car around ("one car parked in two places"). Expanded browse hands the header to
     // the zone below: the car's info lives in its TUS VEHÍCULOS card. [UI-SHEET-004]
-    if (parking != null && !showZoneHeader) {
+    // Once Browse has been opened, the collapsed peek keeps the lane too.
+    // [HOME-PEEK-FOLLOWS-THE-LANE-ONCE-OPENED-001]
+    if (parking != null && !followsLane) {
         val vehicleName = vehicleSummary(parkingVehicle)
         val eyebrow = if (vehicleName != null) {
             stringResource(Res.string.home_peek_vehicle_parked_label, vehicleName)
@@ -218,7 +234,7 @@ internal fun BrowsePeek(
         return
     }
 
-    // ── Subject = the zone (no parked car, no live trip, or expanded browse) ──
+    // ── Subject = the lane (no parked car, no live trip, expanded browse, or Browse opened once) ──
     // Show skeleton when there is no displayable content — covers:
     //  • info still null (initial load before first geocode)
     //  • geocoding in flight with no previous content
@@ -253,7 +269,7 @@ internal fun BrowsePeek(
     // ⛔ El nombre del sujeto se toma de las MISMAS claves que rotulan su pestaña (`subject_*`), no
     // de unas nuevas: la cabecera y la pestaña que la produjo tienen que decir la misma palabra, y
     // dos juegos de strings para un nombre son dos sitios donde se puede escribir distinto.
-    val isSpotsLane = !showZoneHeader || nearbyLens == HomeNearbyLens.SPOTS
+    val isSpotsLane = !followsLane || nearbyLens == HomeNearbyLens.SPOTS
     val hasAny = (if (isSpotsLane) freeCount else laneCount ?: 0) > 0
 
     PapSheet(
@@ -278,8 +294,9 @@ internal fun BrowsePeek(
         ).uppercase(),
         eyebrowTone = if (hasAny) PapSheetEyebrowTone.Action else PapSheetEyebrowTone.Neutral,
         title = title,
-        // Collapsed with 0 spots: the sub is the activation hint; otherwise the address line.
-        subtitle = if (freeCount == 0 && !showZoneHeader) {
+        // Collapsed, on the spots lane, with 0 spots: the sub is the activation hint; otherwise the
+        // address line.
+        subtitle = if (isSpotsLane && freeCount == 0 && !showZoneHeader) {
             stringResource(Res.string.home_browse_hint_swipe_report)
         } else {
             secondaryLine

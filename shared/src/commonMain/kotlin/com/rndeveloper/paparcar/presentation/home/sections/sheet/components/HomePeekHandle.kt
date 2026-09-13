@@ -49,6 +49,8 @@ fun HomePeekHandle(
     slice: HomePeekSlice,
     /** True while the sheet sits beyond peek — expanded browse swaps to the zone header. [UI-SHEET-004] */
     browseShowsZoneHeader: Boolean = false,
+    /** Browse has been opened once — see [BrowsePeek]'s `laneHeaderLatched`. [HOME-PEEK-FOLLOWS-THE-LANE-ONCE-OPENED-001] */
+    browseLaneHeaderLatched: Boolean = false,
     onIntent: (HomeIntent) -> Unit = {},
     onAction: (HomeSheetAction) -> Unit = {},
 ) {
@@ -254,6 +256,7 @@ fun HomePeekHandle(
                         userGpsPoint = slice.userGpsPoint,
                         freeCount = slice.freeCount,
                         showZoneHeader = browseShowsZoneHeader,
+                        laneHeaderLatched = browseLaneHeaderLatched,
                         // [HOME-THE-WATCH-COMES-FIRST-AND-THE-HEADER-FOLLOWS-THE-LANE-001] Both
                         // resolved by the projection: the header never asks "are there parkings?"
                         // to pick a word or a figure.

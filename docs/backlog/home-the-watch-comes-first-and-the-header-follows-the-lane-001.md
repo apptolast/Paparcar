@@ -55,6 +55,10 @@ lista decía que no había ninguno*— aplicado ahora a la CABECERA: la lección
 aparcado) y ese es su trabajo — con el sheet cerrado es la única voz que tiene Home. La cabecera de
 zona solo existe con el sheet ABIERTO (`showZoneHeader`), y es esa la que pasa a seguir al carril.
 
+> ⚠️ **Superado** por [`home-peek-follows-the-lane-once-opened-001.md`](home-peek-follows-the-lane-once-opened-001.md)
+> (13-09-2026, issue #9): el coche aparcado solo encabeza el peek cerrado hasta la primera vez que se
+> abre Browse; después, plegado sigue al carril. El viaje vivo sigue ganando.
+
 ## Doctrina en juego
 
 - `A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001` — una sección responde de lo que estás mirando.

@@ -149,8 +149,9 @@ data class HomePeekSlice(
      * lane on car parks, a header counting free spots is two subjects' cifras 300 dp apart.
      * [HOME-THE-WATCH-COMES-FIRST-AND-THE-HEADER-FOLLOWS-THE-LANE-001]
      *
-     * ⛔ Only the EXPANDED header. Collapsed, the peek is the only voice Home has and its subject is
-     * your car — the live trip, else the parked one.
+     * Collapsed, the peek speaks for your car — the live trip, else the parked one — only until the
+     * user first opens Browse; from then on a collapsed peek keeps the lane too (a live trip still
+     * wins). [HOME-PEEK-FOLLOWS-THE-LANE-ONCE-OPENED-001]
      */
     val nearbyLens: HomeNearbyLens,
     /**

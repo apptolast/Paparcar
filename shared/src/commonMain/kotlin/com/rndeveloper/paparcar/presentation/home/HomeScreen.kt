@@ -89,6 +89,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.first
+import androidx.compose.runtime.saveable.rememberSaveable
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -488,6 +490,20 @@ private fun HomeContent(
                     derivedStateOf { sheetOffsetPx.value < (peekOffsetPx + positioning.halfOffsetPx) / 2f }
                 }
 
+                // [HOME-PEEK-FOLLOWS-THE-LANE-ONCE-OPENED-001] The parked car only headlines the
+                // collapsed peek until the user first opens Browse. From then on, collapsing keeps
+                // the header on the selected lane (spots / car parks / fuel) instead of flipping back
+                // to the car, whose info lives in its card. Saveable, so it survives a trip to another
+                // tab and process restore; only opened from PURE Browse counts — a marker tap's expand
+                // is a detail opening, not Browse. Any opening counts, the automatic ones included.
+                var browseLaneHeaderLatched by rememberSaveable { mutableStateOf(false) }
+                val currentIsPureBrowsePeek = rememberUpdatedState(isPureBrowsePeek)
+                LaunchedEffect(Unit) {
+                    if (browseLaneHeaderLatched) return@LaunchedEffect
+                    snapshotFlow { sheetBeyondPeek && currentIsPureBrowsePeek.value }.first { it }
+                    browseLaneHeaderLatched = true
+                }
+
                 // Reset-to-peek, list auto-expand and nav-progress hoisting — see
                 // HomeSheetPositioning.kt. [HOME-ATOMIZE-001 F2]
                 SheetTransitionEffects(
@@ -822,6 +838,7 @@ private fun HomeContent(
                     state = state,
                     frame = sheetFrame,
                     browseShowsZoneHeader = sheetBeyondPeek,
+                    browseLaneHeaderLatched = browseLaneHeaderLatched,
                     onIntent = onIntent,
                     uiController = uiController,
                     // A stepper press IS a marker tap — same lambda, so select + camera + sheet
@@ -1093,6 +1110,7 @@ private fun HomeSheetSection(
     state: HomeState,
     frame: HomeSheetFrame,
     browseShowsZoneHeader: Boolean,
+    browseLaneHeaderLatched: Boolean,
     onIntent: (HomeIntent) -> Unit,
     uiController: HomeUiController,
     onSelectSpot: (spotId: String) -> Unit,
@@ -1185,6 +1203,7 @@ private fun HomeSheetSection(
         browse = browse,
         frame = frame,
         browseShowsZoneHeader = browseShowsZoneHeader,
+        browseLaneHeaderLatched = browseLaneHeaderLatched,
         onIntent = onIntent,
         onAction = onAction,
         modifier = modifier,

@@ -77,6 +77,9 @@ internal fun HomeBottomSheet(
     /** Browse header subject swap: true while the sheet sits beyond peek (expanded browse
      *  shows the zone counter header instead of the parked car). [UI-SHEET-004] */
     browseShowsZoneHeader: Boolean,
+    /** The user has opened Browse once: the collapsed header stays on the lane, not the parked car.
+     *  [HOME-PEEK-FOLLOWS-THE-LANE-ONCE-OPENED-001] */
+    browseLaneHeaderLatched: Boolean = false,
     onIntent: (HomeIntent) -> Unit,
     onAction: (HomeSheetAction) -> Unit,
     modifier: Modifier = Modifier,
@@ -166,6 +169,7 @@ internal fun HomeBottomSheet(
                 HomePeekHandle(
                     slice = peek,
                     browseShowsZoneHeader = browseShowsZoneHeader,
+                    browseLaneHeaderLatched = browseLaneHeaderLatched,
                     onIntent = onIntent,
                     onAction = onAction,
                 )

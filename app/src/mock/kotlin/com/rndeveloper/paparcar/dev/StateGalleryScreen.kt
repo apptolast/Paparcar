@@ -324,8 +324,12 @@ private fun searchBar(
 }
 
 @Composable
-private fun peek(state: HomeState, showsZoneHeader: Boolean = false) =
-    HomePeekHandle(slice = state.toPeekSlice(), browseShowsZoneHeader = showsZoneHeader)
+private fun peek(state: HomeState, showsZoneHeader: Boolean = false, laneHeaderLatched: Boolean = false) =
+    HomePeekHandle(
+        slice = state.toPeekSlice(),
+        browseShowsZoneHeader = showsZoneHeader,
+        browseLaneHeaderLatched = laneHeaderLatched,
+    )
 
 /** Renders the expanded Home sheet (spots list + own-parking card) via homeSheetItems. */
 @Composable
@@ -930,6 +934,26 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         userGpsPoint = sampleGps,
                         nearbySpots = FakeData.nearbySpots,
                     ),
+                )
+            },
+            // Browse ya se abrió una vez: plegado, la cabecera sigue en el CARRIL elegido aunque haya
+            // coche aparcado. [HOME-PEEK-FOLLOWS-THE-LANE-ONCE-OPENED-001]
+            Variant("PapSheet · plegado tras abrir (carril PARKINGS, coche aparcado)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                        vehicles = listOf(FakeData.vehicleSedan),
+                        activeSessions = listOf(FakeData.activeSession.copy(vehicleId = FakeData.vehicleSedan.id)),
+                        userGpsPoint = sampleGps,
+                        nearbySpots = FakeData.nearbySpots,
+                        nearbyLens = HomeNearbyLens.PARKINGS,
+                        parkings = HomeParkingsSlice(
+                            parkings = galleryParkings,
+                            anchorLat = sampleGps.latitude,
+                            anchorLon = sampleGps.longitude,
+                        ),
+                    ),
+                    laneHeaderLatched = true,
                 )
             },
             // Expanded browse with a parked car: the header hands over to the ZONE — the car's
