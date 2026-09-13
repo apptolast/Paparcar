@@ -25,3 +25,19 @@ private fun OnboardingDarkPreview() {
         OnboardingScreen(onComplete = {})
     }
 }
+
+@Preview(name = "Onboarding · What it does for you", showBackground = true, showSystemUi = true)
+@Composable
+private fun OnboardingValuePagePreview() {
+    PaparcarTheme(darkTheme = false) {
+        OnboardingScreen(onComplete = {}, initialPage = 1)
+    }
+}
+
+@Preview(name = "Onboarding · What it does for you · small phone", showBackground = true, widthDp = 360, heightDp = 640)
+@Composable
+private fun OnboardingValuePageSmallPreview() {
+    PaparcarTheme(darkTheme = false) {
+        OnboardingScreen(onComplete = {}, initialPage = 1)
+    }
+}

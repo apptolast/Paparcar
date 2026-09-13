@@ -54,14 +54,16 @@
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Bun venit la Paparcar</string>
-    <string name="onboarding_page1_subtitle">Comunitatea care eliberează locuri de parcare. Când pleci tu, alții găsesc locul tău. Când pleacă alții, tu găsești locul lor.</string>
-    <string name="onboarding_page2_title">Cum funcționează</string>
-    <string name="onboarding_step1_title">Detectăm conducerea</string>
-    <string name="onboarding_step1_desc">Aplicația detectează când urci în mașină</string>
-    <string name="onboarding_step2_title">Detectăm parcarea</string>
-    <string name="onboarding_step2_desc">Când parchezi, salvăm silențios parcarea ta</string>
-    <string name="onboarding_step3_title">Partajăm locul</string>
-    <string name="onboarding_step3_desc">Când pleci, locul tău devine disponibil pentru alții din apropiere</string>
+    <string name="onboarding_page1_subtitle">Paparcar are grijă de mașina ta: reține unde parchezi, îți transformă drumurile în cifre și, când pleci, eliberează locul pentru cei care caută în apropiere.</string>
+    <string name="onboarding_page2_title">Ce face pentru tine</string>
+    <string name="onboarding_step1_title">Detectare automată</string>
+    <string name="onboarding_step1_desc">Recunoaște singură drumurile și parcările tale și îți arată cheltuielile, CO₂ și obiceiurile</string>
+    <string name="onboarding_step2_title">Parcarea ta, salvată</string>
+    <string name="onboarding_step2_desc">Îți găsești mașina fără să te gândești și vezi unde ai parcat</string>
+    <string name="onboarding_step3_title">Un loc pentru altcineva</string>
+    <string name="onboarding_step3_desc">Când pleci, locul apare liber pentru cei care caută în apropiere</string>
+    <string name="onboarding_step4_title">Și parcări publice și carburant</string>
+    <string name="onboarding_step4_desc">Harta îți arată și parcările publice și prețul carburantului din apropiere</string>
     <string name="onboarding_cta_next">Înainte</string>
     <string name="onboarding_cta_start">Începe</string>
 

@@ -52,14 +52,16 @@
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Bem-vindo ao Paparcar</string>
-    <string name="onboarding_page1_subtitle">A comunidade que liberta lugares de estacionamento. Quando sai, os outros encontram o seu. Quando os outros saem, você encontra o deles.</string>
-    <string name="onboarding_page2_title">Como funciona</string>
-    <string name="onboarding_step1_title">Detetamos a condução</string>
-    <string name="onboarding_step1_desc">A app deteta quando entra no carro</string>
-    <string name="onboarding_step2_title">Detetamos o estacionamento</string>
-    <string name="onboarding_step2_desc">Quando estaciona, guardamos silenciosamente o seu estacionamento</string>
-    <string name="onboarding_step3_title">Partilhamos o lugar</string>
-    <string name="onboarding_step3_desc">Quando sai, o seu lugar fica disponível para outros próximos</string>
+    <string name="onboarding_page1_subtitle">O Paparcar cuida do teu carro: guarda onde estacionas, transforma as tuas viagens em números e, quando sais, liberta o lugar para quem procura perto.</string>
+    <string name="onboarding_page2_title">O que faz por ti</string>
+    <string name="onboarding_step1_title">Deteção automática</string>
+    <string name="onboarding_step1_desc">Deteta sozinha as tuas viagens e estacionamentos e mostra-te gastos, CO₂ e hábitos</string>
+    <string name="onboarding_step2_title">O teu estacionamento, guardado</string>
+    <string name="onboarding_step2_desc">Encontra o carro sem pensar e revê onde estacionaste</string>
+    <string name="onboarding_step3_title">Um lugar para outra pessoa</string>
+    <string name="onboarding_step3_desc">Quando sais, o lugar aparece livre para quem procura perto</string>
+    <string name="onboarding_step4_title">Também parques e combustível</string>
+    <string name="onboarding_step4_desc">O mapa mostra-te parques de estacionamento públicos e o preço do combustível perto de ti</string>
     <string name="onboarding_cta_next">Seguinte</string>
     <string name="onboarding_cta_start">Começar</string>
 

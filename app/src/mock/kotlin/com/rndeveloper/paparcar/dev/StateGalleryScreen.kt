@@ -2278,6 +2278,8 @@ private val galleryGroups: List<ScreenGroup> = listOf(
         "Onboarding",
         listOf(
             Variant("Onboarding") { OnboardingScreen(onComplete = {}) },
+            // [ONBOARDING-SELLS-THE-NEW-PRODUCT-001] La página de valor, con sus cuatro tarjetas.
+            Variant("Onboarding · qué hace por ti") { OnboardingScreen(onComplete = {}, initialPage = 1) },
         ),
     ),
     // [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] The guided checklist walked through every

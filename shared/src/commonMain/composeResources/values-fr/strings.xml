@@ -52,14 +52,16 @@
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Bienvenue sur Paparcar</string>
-    <string name="onboarding_page1_subtitle">La communauté qui libère les places de parking. Quand vous partez, les autres trouvent la vôtre. Quand les autres partent, vous trouvez la leur.</string>
-    <string name="onboarding_page2_title">Comment ça marche</string>
-    <string name="onboarding_step1_title">Nous détectons la conduite</string>
-    <string name="onboarding_step1_desc">L'app détecte quand vous montez en voiture</string>
-    <string name="onboarding_step2_title">Nous détectons le stationnement</string>
-    <string name="onboarding_step2_desc">Quand vous vous garez, nous enregistrons silencieusement votre stationnement</string>
-    <string name="onboarding_step3_title">Nous partageons la place</string>
-    <string name="onboarding_step3_desc">Quand vous partez, votre place devient disponible pour les autres à proximité</string>
+    <string name="onboarding_page1_subtitle">Paparcar veille sur votre voiture : il enregistre où vous vous garez, transforme vos trajets en chiffres et, quand vous partez, libère la place pour ceux qui cherchent à côté.</string>
+    <string name="onboarding_page2_title">Ce qu'il fait pour vous</string>
+    <string name="onboarding_step1_title">Détection automatique</string>
+    <string name="onboarding_step1_desc">Repère seule vos trajets et stationnements, et vous montre dépenses, CO₂ et habitudes</string>
+    <string name="onboarding_step2_title">Votre stationnement, enregistré</string>
+    <string name="onboarding_step2_desc">Retrouvez votre voiture sans y penser et revoyez où vous vous êtes garé</string>
+    <string name="onboarding_step3_title">Une place pour quelqu'un d'autre</string>
+    <string name="onboarding_step3_desc">Quand vous partez, la place apparaît libre pour ceux qui cherchent à côté</string>
+    <string name="onboarding_step4_title">Parkings et carburant aussi</string>
+    <string name="onboarding_step4_desc">La carte vous montre aussi les parkings publics et le prix du carburant près de vous</string>
     <string name="onboarding_cta_next">Suivant</string>
     <string name="onboarding_cta_start">Commencer</string>
 

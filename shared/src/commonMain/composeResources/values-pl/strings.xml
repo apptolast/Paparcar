@@ -52,14 +52,16 @@
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Witaj w Paparcar</string>
-    <string name="onboarding_page1_subtitle">Społeczność, która zwalnia miejsca parkingowe. Kiedy Ty wyjeżdżasz, inni znajdą Twoje. Kiedy inni wyjeżdżają, Ty znajdziesz ich.</string>
-    <string name="onboarding_page2_title">Jak to działa</string>
-    <string name="onboarding_step1_title">Wykrywamy jazdę</string>
-    <string name="onboarding_step1_desc">Aplikacja wykrywa, gdy wsiadasz do samochodu</string>
-    <string name="onboarding_step2_title">Wykrywamy parkowanie</string>
-    <string name="onboarding_step2_desc">Gdy parkujesz, cicho zapisujemy Twoje parkowanie</string>
-    <string name="onboarding_step3_title">Udostępniamy miejsce</string>
-    <string name="onboarding_step3_desc">Gdy wyjeżdżasz, Twoje miejsce staje się dostępne dla innych w pobliżu</string>
+    <string name="onboarding_page1_subtitle">Paparcar dba o Twój samochód: zapamiętuje, gdzie parkujesz, zamienia Twoje przejazdy w liczby, a gdy odjeżdżasz, zwalnia miejsce dla kierowców w pobliżu.</string>
+    <string name="onboarding_page2_title">Co robi dla Ciebie</string>
+    <string name="onboarding_step1_title">Automatyczne wykrywanie</string>
+    <string name="onboarding_step1_desc">Samo rozpoznaje przejazdy i parkowania, a potem pokazuje wydatki, CO₂ i nawyki</string>
+    <string name="onboarding_step2_title">Twoje parkowanie, zapisane</string>
+    <string name="onboarding_step2_desc">Znajdź samochód bez zastanawiania się i sprawdź, gdzie parkowałeś</string>
+    <string name="onboarding_step3_title">Miejsce dla kogoś innego</string>
+    <string name="onboarding_step3_desc">Gdy odjeżdżasz, miejsce pojawia się jako wolne dla kierowców w pobliżu</string>
+    <string name="onboarding_step4_title">Także parkingi i paliwo</string>
+    <string name="onboarding_step4_desc">Mapa pokazuje też publiczne parkingi i ceny paliwa w pobliżu</string>
     <string name="onboarding_cta_next">Dalej</string>
     <string name="onboarding_cta_start">Rozpocznij</string>
 
