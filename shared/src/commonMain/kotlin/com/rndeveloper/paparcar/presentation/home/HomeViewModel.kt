@@ -1165,6 +1165,11 @@ class HomeViewModel(
                         mode = HomeMode.AddingZone,
                         pinCameraLat = intent.lat,
                         pinCameraLon = intent.lon,
+                        // While the checklist is asking for a private zone, the zone being added IS
+                        // that one: start it private (the switch stays in the user's hands).
+                        // [FIRST-STEPS-A-PRIVATE-GARAGE-IS-A-PRIVATE-ZONE-001]
+                        addingZoneIsPrivate = firstSteps.isVisible &&
+                            firstSteps.current == FirstStep.PRIVATE_ZONE,
                     )
                 }
                 // Same centre, wider frame: sizing a zone means seeing its whole circle,

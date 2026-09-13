@@ -913,6 +913,15 @@
     <string name="first_steps_explain_explore_fuel_title">Stations-service</string>
     <string name="first_steps_explain_explore_fuel_body">Où faire le plein et à combien était le litre, avec l'heure de mesure de chaque prix.</string>
     <string name="first_steps_explain_explore_note">Aucune des deux ne vient de la communauté : ce sont des données publiques, donc présentes dès le premier jour, et gratuites pour tout le monde.</string>
+    <string name="first_steps_zone_title">Protégez votre garage</string>
+    <string name="first_steps_zone_sub">Si vous vous garez dans un garage privé, ajoutez-y une zone privée : en partant, nous ne publierons pas de place libre.</string>
+    <string name="first_steps_zone_cta">Ajouter une zone privée</string>
+    <string name="first_steps_zone_no_garage">Je n'en ai pas</string>
+    <string name="first_steps_explain_zone_title">Votre garage n'est pas une place libre</string>
+    <string name="first_steps_explain_zone_body">Quand vous partez, Paparcar libère votre place pour quelqu'un d'autre. Dans un garage privé (chez vous, au travail), personne d'autre ne peut l'utiliser.</string>
+    <string name="first_steps_explain_zone_way_title">Ajoutez une zone privée</string>
+    <string name="first_steps_explain_zone_way_body">Placez une zone sur votre garage et activez «Zone privée». Les stationnements à l'intérieur ne sont pas publiés quand vous partez.</string>
+    <string name="first_steps_explain_zone_note">Elle s'applique aux stationnements marqués après sa création. Pas de garage privé ? Répondez «Je n'en ai pas» et l'étape est faite.</string>
     <string name="paywall_free_nearby">Parkings et prix du carburant</string>
     <string name="paywall_plus_nearby">Pareil : regarder est toujours gratuit</string>
 </resources>

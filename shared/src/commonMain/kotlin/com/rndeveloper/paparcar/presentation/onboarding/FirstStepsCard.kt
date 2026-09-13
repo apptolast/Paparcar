@@ -16,6 +16,7 @@ import androidx.compose.material.icons.rounded.BatteryAlert
 import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Explore
+import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.SensorsOff
@@ -81,6 +82,10 @@ import paparcar.composeapp.generated.resources.first_steps_watch_on_sub
 import paparcar.composeapp.generated.resources.first_steps_watch_on_title
 import paparcar.composeapp.generated.resources.first_steps_watch_sub
 import paparcar.composeapp.generated.resources.first_steps_watch_title
+import paparcar.composeapp.generated.resources.first_steps_zone_cta
+import paparcar.composeapp.generated.resources.first_steps_zone_no_garage
+import paparcar.composeapp.generated.resources.first_steps_zone_sub
+import paparcar.composeapp.generated.resources.first_steps_zone_title
 import paparcar.composeapp.generated.resources.home_det_producer_cta
 import paparcar.composeapp.generated.resources.home_det_watching_fortify_cta
 import paparcar.composeapp.generated.resources.vehicle_registration_bt_cta
@@ -123,6 +128,9 @@ fun FirstStepsCard(
     onDeferStep: (FirstStep) -> Unit = {},
     /** Tap on a postponed step: it becomes the current ask again. */
     onResumeStep: (FirstStep) -> Unit = {},
+    /** The step's explicit "no" answer (see [FirstStepCopy.noAnswer]) — it closes the step.
+     *  [FIRST-STEPS-A-PRIVATE-GARAGE-IS-A-PRIVATE-ZONE-001] */
+    onAnswerNoStep: (FirstStep) -> Unit = {},
     /** Whether a position is already known. CTAs that need one stay disabled until it arrives —
      *  Home fills in over the first seconds and the GPS fix is the last thing to land.
      *  [UI-HOME-MUST-NOT-OFFER-WHAT-IT-CANNOT-DO-YET-001] */
@@ -157,6 +165,7 @@ fun FirstStepsCard(
                         hasLocation = hasLocation,
                         onStart = { onStartStep(step) },
                         onDefer = { onDeferStep(step) },
+                        onAnswerNo = { onAnswerNoStep(step) },
                         onResume = { onResumeStep(step) },
                         onOpen = { onOpenStep(step) },
                     )
@@ -222,6 +231,7 @@ private fun StepRow(
     hasLocation: Boolean,
     onStart: () -> Unit,
     onDefer: () -> Unit,
+    onAnswerNo: () -> Unit,
     onResume: () -> Unit,
     onOpen: () -> Unit,
 ) {
@@ -299,6 +309,15 @@ private fun StepRow(
                 // tutorial. Quiet on purpose — an invitation with an exit, not two competing CTAs.
                 // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001]
                 when {
+                    // A step with a real second ANSWER (not a postponement) offers it here.
+                    // [FIRST-STEPS-A-PRIVATE-GARAGE-IS-A-PRIVATE-ZONE-001]
+                    copy.noAnswer != null -> TextButton(onClick = onAnswerNo) {
+                        Text(
+                            text = stringResource(copy.noAnswer),
+                            style = PaparcarType.current.cta,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     copy.asksForPermission -> TextButton(onClick = onDefer) {
                         Text(
                             text = stringResource(Res.string.first_steps_not_yet),
@@ -438,6 +457,12 @@ private data class FirstStepCopy(
      * accept a tap it cannot honour.
      */
     val needsLocation: Boolean = false,
+    /**
+     * The step's second ANSWER, when "no" is a legitimate way to finish it — not a postponement.
+     * Only [FirstStep.PRIVATE_ZONE] has one: not everyone has a private garage.
+     * [FIRST-STEPS-A-PRIVATE-GARAGE-IS-A-PRIVATE-ZONE-001]
+     */
+    val noAnswer: StringResource? = null,
 )
 
 private fun FirstStep.copy(
@@ -453,6 +478,16 @@ private fun FirstStep.copy(
         cta = Res.string.first_steps_park_cta,
         icon = Icons.Rounded.AddLocationAlt,
         needsLocation = true,
+    )
+    // The padlock is the private-zone switch's own glyph in the add-zone form, so the step and the
+    // control it leads to read as one thing. [FIRST-STEPS-A-PRIVATE-GARAGE-IS-A-PRIVATE-ZONE-001]
+    FirstStep.PRIVATE_ZONE -> FirstStepCopy(
+        title = Res.string.first_steps_zone_title,
+        subtitle = Res.string.first_steps_zone_sub,
+        cta = Res.string.first_steps_zone_cta,
+        icon = Icons.Rounded.Lock,
+        needsLocation = true,
+        noAnswer = Res.string.first_steps_zone_no_garage,
     )
     // The eye is the app's established "we are watching this car" glyph (the Watching story row).
     //

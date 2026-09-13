@@ -49,6 +49,10 @@ sealed interface HomeSheetAction {
     /** "Report a free spot" CTA — enter Reporting mode centred on the current camera. */
     data object RequestReportMode : HomeSheetAction
 
+    /** The checklist's "Add private zone" — enter AddingZone centred on the current camera, the same
+     *  entry the header's add-zone chip uses. [FIRST-STEPS-A-PRIVATE-GARAGE-IS-A-PRIVATE-ZONE-001] */
+    data object RequestAddZone : HomeSheetAction
+
     /** Fly the map camera to a coordinate (row tap, parking row tap…). */
     data class MoveCamera(val lat: Double, val lon: Double) : HomeSheetAction
 

@@ -1167,6 +1167,9 @@ private fun HomeSheetSection(
             HomeSheetAction.RequestReportMode -> pinStartPoint(uiController, state)?.let { (lat, lon) ->
                 onIntent(HomeIntent.EnterReportMode(lat = lat, lon = lon))
             }
+            HomeSheetAction.RequestAddZone -> pinStartPoint(uiController, state)?.let { (lat, lon) ->
+                onIntent(HomeIntent.EnterAddZoneMode(lat = lat, lon = lon))
+            }
             is HomeSheetAction.MoveCamera -> uiController.goToPlace(action.lat, action.lon)
             is HomeSheetAction.NavigateExternal ->
                 onNavigateExternal(action.lat, action.lon, action.walking)

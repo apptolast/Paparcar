@@ -142,6 +142,9 @@ fun LazyListScope.homeSheetItems(
                                 targetVehicleId = coldStartVehicleId,
                             ),
                         )
+                        // [FIRST-STEPS-A-PRIVATE-GARAGE-IS-A-PRIVATE-ZONE-001] The app's own add-zone
+                        // flow; the zone starts private while this step is the ask.
+                        FirstStep.PRIVATE_ZONE -> onAction(HomeSheetAction.RequestAddZone)
                         // [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001] Two faces here too.
                         // With detection healthy the step only DESCRIBES and renders no CTA, so this
                         // is unreachable and it completes by observing the honest watch line below.
@@ -195,6 +198,9 @@ fun LazyListScope.homeSheetItems(
                 // "Not yet" — the step stops being the ask without pretending it was done.
                 // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001]
                 onDeferStep = { step -> onIntent(HomeIntent.DeferFirstStep(step)) },
+                // "I don't have a garage" answers the private-zone step: banked as done, because it
+                // is the answer the step asks for. [FIRST-STEPS-A-PRIVATE-GARAGE-IS-A-PRIVATE-ZONE-001]
+                onAnswerNoStep = { step -> onIntent(HomeIntent.CompleteFirstStep(step)) },
                 onResumeStep = { step -> onIntent(HomeIntent.ResumeFirstStep(step)) },
                 // Sin posicion no se puede ni marcar un aparcamiento ni avisar de una plaza: esos
                 // CTA esperan al primer fix en vez de aceptar un toque que no pueden cumplir.

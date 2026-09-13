@@ -914,6 +914,15 @@
     <string name="first_steps_explain_explore_fuel_title">Tankstellen</string>
     <string name="first_steps_explain_explore_fuel_body">Wo du tanken kannst und was der Liter gekostet hat, mit der Uhrzeit jeder Messung.</string>
     <string name="first_steps_explain_explore_note">Beides kommt nicht aus der Community: es sind öffentliche Daten, also vom ersten Tag an da, und für alle kostenlos.</string>
+    <string name="first_steps_zone_title">Schütze deine Garage</string>
+    <string name="first_steps_zone_sub">Wenn du in einer privaten Garage parkst, lege dort eine Private Zone an: Beim Wegfahren veröffentlichen wir keinen freien Platz.</string>
+    <string name="first_steps_zone_cta">Private Zone anlegen</string>
+    <string name="first_steps_zone_no_garage">Habe ich nicht</string>
+    <string name="first_steps_explain_zone_title">Deine Garage ist kein freier Platz</string>
+    <string name="first_steps_explain_zone_body">Wenn du wegfährst, gibt Paparcar deinen Platz für jemand anderen frei. In einer privaten Garage (zu Hause, bei der Arbeit) kann ihn niemand sonst nutzen.</string>
+    <string name="first_steps_explain_zone_way_title">Lege eine Private Zone an</string>
+    <string name="first_steps_explain_zone_way_body">Setze eine Zone über deine Garage und aktiviere «Private Zone». Parkvorgänge darin werden beim Wegfahren nicht veröffentlicht.</string>
+    <string name="first_steps_explain_zone_note">Sie gilt für Parkvorgänge, die du nach dem Anlegen markierst. Keine private Garage? Antworte «Habe ich nicht» und der Schritt ist erledigt.</string>
     <string name="paywall_free_nearby">Parkhäuser und Kraftstoffpreise</string>
     <string name="paywall_plus_nearby">Dasselbe: Schauen ist immer kostenlos</string>
 </resources>

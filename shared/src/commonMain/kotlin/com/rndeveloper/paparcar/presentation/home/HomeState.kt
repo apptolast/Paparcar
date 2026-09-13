@@ -504,6 +504,9 @@ data class HomeState(
                 isReliabilityReduced = showBatteryOptimizationNudge,
             ),
             deferred = firstStepsDeferred,
+            // [FIRST-STEPS-A-PRIVATE-GARAGE-IS-A-PRIVATE-ZONE-001] The zone the step asks for, read
+            // from the same list the header chips render.
+            hasPrivateZone = zones.any { it.isPrivate },
         )
 
     /** The vehicle the watch works for: the flagged active one, else the only sensible fallback —

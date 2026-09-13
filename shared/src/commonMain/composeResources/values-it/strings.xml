@@ -913,6 +913,15 @@
     <string name="first_steps_explain_explore_fuel_title">Distributori</string>
     <string name="first_steps_explain_explore_fuel_body">Dove fare rifornimento e quanto costava il litro, con l'ora in cui ogni prezzo è stato misurato.</string>
     <string name="first_steps_explain_explore_note">Nessuno dei due viene dalla comunità: sono dati pubblici, quindi ci sono dal primo giorno, e gratis per tutti.</string>
+    <string name="first_steps_zone_title">Proteggi il tuo garage</string>
+    <string name="first_steps_zone_sub">Se parcheggi in un garage privato, aggiungi lì una zona privata: quando esci non pubblicheremo un posto libero.</string>
+    <string name="first_steps_zone_cta">Aggiungi zona privata</string>
+    <string name="first_steps_zone_no_garage">Non ho un garage</string>
+    <string name="first_steps_explain_zone_title">Il tuo garage non è un posto libero</string>
+    <string name="first_steps_explain_zone_body">Quando te ne vai, Paparcar libera il tuo posto per qualcun altro. In un garage privato (casa tua, il lavoro) nessun altro può usarlo.</string>
+    <string name="first_steps_explain_zone_way_title">Aggiungi una zona privata</string>
+    <string name="first_steps_explain_zone_way_body">Metti una zona sul tuo garage e attiva «Zona privata». I parcheggi al suo interno non vengono pubblicati quando esci.</string>
+    <string name="first_steps_explain_zone_note">Vale per i parcheggi che segni dopo averla creata. Nessun garage privato? Rispondi «Non ho un garage» e il passo è fatto.</string>
     <string name="paywall_free_nearby">Parcheggi pubblici e prezzi del carburante</string>
     <string name="paywall_plus_nearby">Lo stesso: guardare è sempre gratis</string>
 </resources>

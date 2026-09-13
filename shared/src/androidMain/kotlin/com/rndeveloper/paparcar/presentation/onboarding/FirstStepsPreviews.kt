@@ -30,6 +30,7 @@ private fun Preview(
     reinforcement: WatchReinforcement = WatchReinforcement.NONE,
     deferred: Set<FirstStep> = emptySet(),
     hasExploredNearby: Boolean = false,
+    hasPrivateZone: Boolean = true,
 ) {
     PaparcarTheme(darkTheme = dark) {
         Box(
@@ -50,6 +51,7 @@ private fun Preview(
                     // having been into a complement's lane. Fed through the resolver like every
                     // other one, so a preview cannot show it closed for the wrong reason.
                     hasExploredNearby = hasExploredNearby,
+                    hasPrivateZone = hasPrivateZone,
                     reinforcement = reinforcement,
                     deferred = deferred,
                 ),
@@ -170,3 +172,9 @@ private fun FirstStepsStep1DarkPreview() = Preview(done = emptySet(), dark = tru
 )
 @Composable
 private fun FirstStepsCompleteDarkPreview() = Preview(done = FirstStep.entries.toSet(), dark = true)
+
+// [FIRST-STEPS-A-PRIVATE-GARAGE-IS-A-PRIVATE-ZONE-001] The private-garage step as the current ask.
+@Preview(name = "First steps · private zone", showBackground = true)
+@Composable
+private fun FirstStepsPrivateZonePreview() =
+    Preview(done = setOf(FirstStep.MARK_PARKING), dark = false, hasPrivateZone = false)

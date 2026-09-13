@@ -893,6 +893,15 @@
     <string name="first_steps_explain_explore_fuel_title">Tankstations</string>
     <string name="first_steps_explain_explore_fuel_body">Waar je kunt tanken en wat de liter kostte, met het tijdstip van elke meting.</string>
     <string name="first_steps_explain_explore_note">Geen van beide komt van de community: het is publieke data, dus vanaf dag één aanwezig, en gratis voor iedereen.</string>
+    <string name="first_steps_zone_title">Bescherm je garage</string>
+    <string name="first_steps_zone_sub">Parkeer je in een privégarage? Voeg daar een privézone toe: als je vertrekt, publiceren we geen vrije plek.</string>
+    <string name="first_steps_zone_cta">Privézone toevoegen</string>
+    <string name="first_steps_zone_no_garage">Heb ik niet</string>
+    <string name="first_steps_explain_zone_title">Je garage is geen vrije plek</string>
+    <string name="first_steps_explain_zone_body">Als je wegrijdt, geeft Paparcar je plek vrij voor iemand anders. In een privégarage (thuis, op het werk) kan niemand anders hem gebruiken.</string>
+    <string name="first_steps_explain_zone_way_title">Voeg een privézone toe</string>
+    <string name="first_steps_explain_zone_way_body">Leg een zone over je garage en zet «Privézone» aan. Parkeerbeurten daarbinnen worden niet gepubliceerd als je vertrekt.</string>
+    <string name="first_steps_explain_zone_note">Dit geldt voor parkeerplaatsen die je markeert nadat je de zone hebt gemaakt. Geen privégarage? Antwoord «Heb ik niet» en de stap is klaar.</string>
     <string name="paywall_free_nearby">Parkeergarages en brandstofprijzen</string>
     <string name="paywall_plus_nearby">Hetzelfde: kijken is altijd gratis</string>
     <!-- Notification surface - MIRRORED from app/src/main/res (Android stays the live source until it migrates to composeResources); parity enforced by NotificationCopyParityTest [IOS-NOTIF-A-SURFACE-THAT-SPEAKS-ONE-LANGUAGE-001] -->

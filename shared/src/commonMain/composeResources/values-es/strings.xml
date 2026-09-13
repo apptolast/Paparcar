@@ -909,6 +909,15 @@
     <string name="first_steps_explain_explore_fuel_title">Gasolineras</string>
     <string name="first_steps_explain_explore_fuel_body">Dónde repostar y a cuánto salió el litro, con la hora a la que se midió cada precio.</string>
     <string name="first_steps_explain_explore_note">Ninguna de las dos viene de la comunidad: son datos públicos, así que están desde el primer día, y gratis para todo el mundo.</string>
+    <string name="first_steps_zone_title">Protege tu garaje</string>
+    <string name="first_steps_zone_sub">Si aparcas en un garaje privado, añade ahí una zona privada: al salir de ella no publicaremos una plaza libre.</string>
+    <string name="first_steps_zone_cta">Añadir zona privada</string>
+    <string name="first_steps_zone_no_garage">No tengo garaje</string>
+    <string name="first_steps_explain_zone_title">Tu garaje no es una plaza libre</string>
+    <string name="first_steps_explain_zone_body">Cuando te vas, Paparcar libera tu sitio para otra persona. En un garaje privado (tu casa, tu trabajo) nadie más puede usarlo.</string>
+    <string name="first_steps_explain_zone_way_title">Añade una zona privada</string>
+    <string name="first_steps_explain_zone_way_body">Coloca una zona sobre tu garaje y activa «Zona privada». Los aparcamientos dentro de ella no se publican al salir.</string>
+    <string name="first_steps_explain_zone_note">Se aplica a los aparcamientos que marques después de crearla. ¿No tienes garaje privado? Responde «No tengo garaje» y el paso queda hecho.</string>
     <string name="paywall_free_nearby">Parkings y precio del combustible</string>
     <string name="paywall_plus_nearby">Lo mismo: mirar siempre es gratis</string>
 </resources>

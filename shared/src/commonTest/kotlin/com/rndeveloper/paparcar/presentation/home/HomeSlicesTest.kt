@@ -769,15 +769,15 @@ class HomeSlicesTest {
 
     @Test
     fun should_advance_the_anchor_to_the_next_step_once_the_car_is_marked() {
-        // With detection healthy, marking the car also settles the watch step, so the next thing to
-        // teach is the community one. Either way the anchor MOVED, which is what opens the sheet
-        // again. [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001]
+        // Marking the car makes the private-garage step the next thing to teach (it comes before the
+        // watch step). Either way the anchor MOVED, which is what opens the sheet again.
+        // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] [FIRST-STEPS-A-PRIVATE-GARAGE-IS-A-PRIVATE-ZONE-001]
         val slice = newUser()
             .copy(activeSessions = listOf(session("s-1", "veh-A")))
             .toBrowseListSlice()
 
         assertEquals(
-            FirstStep.FIND_SPOT.name,
+            FirstStep.PRIVATE_ZONE.name,
             slice.firstStepsCue,
             "a new step is new to teach — that is exactly when the sheet opens again",
         )

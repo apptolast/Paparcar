@@ -927,6 +927,15 @@
     <string name="first_steps_explain_explore_fuel_title">Stacje paliw</string>
     <string name="first_steps_explain_explore_fuel_body">Gdzie zatankować i ile kosztował litr, z godziną pomiaru każdej ceny.</string>
     <string name="first_steps_explain_explore_note">Żadne z nich nie pochodzi od społeczności: to dane publiczne, więc są od pierwszego dnia, i za darmo dla wszystkich.</string>
+    <string name="first_steps_zone_title">Chroń swój garaż</string>
+    <string name="first_steps_zone_sub">Jeśli parkujesz w prywatnym garażu, dodaj tam strefę prywatną: gdy wyjedziesz, nie opublikujemy wolnego miejsca.</string>
+    <string name="first_steps_zone_cta">Dodaj strefę prywatną</string>
+    <string name="first_steps_zone_no_garage">Nie mam garażu</string>
+    <string name="first_steps_explain_zone_title">Twój garaż to nie wolne miejsce</string>
+    <string name="first_steps_explain_zone_body">Gdy odjeżdżasz, Paparcar zwalnia twoje miejsce dla kogoś innego. W prywatnym garażu (dom, praca) nikt inny nie może z niego skorzystać.</string>
+    <string name="first_steps_explain_zone_way_title">Dodaj strefę prywatną</string>
+    <string name="first_steps_explain_zone_way_body">Umieść strefę nad garażem i włącz «Strefa prywatna». Parkowania w jej obrębie nie są publikowane po wyjeździe.</string>
+    <string name="first_steps_explain_zone_note">Dotyczy parkowań oznaczonych po jej utworzeniu. Nie masz prywatnego garażu? Odpowiedz «Nie mam garażu» i krok jest zrobiony.</string>
     <string name="paywall_free_nearby">Parkingi i ceny paliwa</string>
     <string name="paywall_plus_nearby">To samo: patrzeć zawsze można za darmo</string>
 </resources>

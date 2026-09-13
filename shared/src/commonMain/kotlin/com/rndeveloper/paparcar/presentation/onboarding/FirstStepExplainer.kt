@@ -13,6 +13,7 @@ import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.Explore
 import androidx.compose.material.icons.rounded.LocalGasStation
 import androidx.compose.material.icons.rounded.LocalParking
+import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.Sensors
 import androidx.compose.material.icons.rounded.Verified
@@ -69,6 +70,11 @@ import paparcar.composeapp.generated.resources.first_steps_explain_watch_manual_
 import paparcar.composeapp.generated.resources.first_steps_explain_watch_manual_title
 import paparcar.composeapp.generated.resources.first_steps_explain_watch_note
 import paparcar.composeapp.generated.resources.first_steps_explain_watch_title
+import paparcar.composeapp.generated.resources.first_steps_explain_zone_body
+import paparcar.composeapp.generated.resources.first_steps_explain_zone_note
+import paparcar.composeapp.generated.resources.first_steps_explain_zone_title
+import paparcar.composeapp.generated.resources.first_steps_explain_zone_way_body
+import paparcar.composeapp.generated.resources.first_steps_explain_zone_way_title
 
 /**
  * The explainer behind a first step — opened by TAPPING the step's row, on its OWN surface.
@@ -136,6 +142,23 @@ internal fun FirstStep.explainerCopy(): ExplainerCopy = when (this) {
         ),
         note = null,
         icon = Icons.Rounded.AddLocationAlt,
+    )
+
+    // The exception to "leaving frees your space": a garage nobody else can enter. The note is what
+    // keeps the page honest — the zone protects the parkings marked after it exists, and "no garage"
+    // is a real answer. [FIRST-STEPS-A-PRIVATE-GARAGE-IS-A-PRIVATE-ZONE-001]
+    FirstStep.PRIVATE_ZONE -> ExplainerCopy(
+        title = Res.string.first_steps_explain_zone_title,
+        body = Res.string.first_steps_explain_zone_body,
+        ways = listOf(
+            ExplainerWay(
+                title = Res.string.first_steps_explain_zone_way_title,
+                body = Res.string.first_steps_explain_zone_way_body,
+                icon = Icons.Rounded.Lock,
+            ),
+        ),
+        note = Res.string.first_steps_explain_zone_note,
+        icon = Icons.Rounded.Lock,
     )
 
     // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] Its own page. It borrowed the watch

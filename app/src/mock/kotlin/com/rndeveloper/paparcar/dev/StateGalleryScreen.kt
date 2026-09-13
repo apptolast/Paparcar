@@ -204,6 +204,9 @@ private fun firstStepsCard(
     reinforcement: WatchReinforcement = WatchReinforcement.NONE,
     deferred: Set<FirstStep> = emptySet(),
     hasExploredNearby: Boolean = false,
+    // Por defecto con zona privada, para que las variantes de los OTROS pasos sigan enseñando su paso.
+    // [FIRST-STEPS-A-PRIVATE-GARAGE-IS-A-PRIVATE-ZONE-001]
+    hasPrivateZone: Boolean = true,
 ) {
     FirstStepsCard(
         progress = resolveFirstSteps(
@@ -223,6 +226,7 @@ private fun firstStepsCard(
             // en un carril complementario, asi que la galeria lo ejercita por su senal real y no
             // metiendolo a mano en `done`.
             hasExploredNearby = hasExploredNearby,
+            hasPrivateZone = hasPrivateZone,
         ),
         onStartStep = {},
         onDismiss = {},
@@ -2258,7 +2262,12 @@ private val galleryGroups: List<ScreenGroup> = listOf(
         "Primeros pasos (checklist)",
         listOf(
             Variant("Paso 1 · marcar aparcamiento", Placement.Surface) {
-                firstStepsCard(done = emptySet())
+                firstStepsCard(done = emptySet(), hasPrivateZone = false)
+            },
+            // [FIRST-STEPS-A-PRIVATE-GARAGE-IS-A-PRIVATE-ZONE-001] El garaje privado, con sus dos
+            // respuestas: «Añadir zona privada» y «No tengo garaje».
+            Variant("Paso 2 · zona privada (garaje)", Placement.Surface) {
+                firstStepsCard(done = setOf(FirstStep.MARK_PARKING), hasPrivateZone = false)
             },
             Variant("Paso 2 · con deteccion · solo explica", Placement.Surface) {
                 firstStepsCard(done = setOf(FirstStep.MARK_PARKING))

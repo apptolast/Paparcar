@@ -17,6 +17,22 @@ enum class FirstStep {
     /** Mark where the car is left. Creates the session, the fence and the watch. */
     MARK_PARKING,
 
+    /**
+     * Protect a private garage with a private zone, so leaving it never publishes a free spot.
+     * [FIRST-STEPS-A-PRIVATE-GARAGE-IS-A-PRIVATE-ZONE-001]
+     *
+     * SECOND, right after the parking exists: a private zone only protects the parkings confirmed
+     * after it exists (`ConfirmParkingUseCase` matches it at park time), and [UNDERSTAND_WATCH] is
+     * about to explain that leaving frees your space — this step is the exception to that sentence,
+     * so it has to be in place before it.
+     *
+     * An ACT, and REQUIRED like [MARK_PARKING], but answerable two ways, because not everyone has a
+     * garage: a private zone that really exists, or the explicit answer "I don't have one" — which
+     * the checklist banks as done, since it IS the measured answer to the only question the step
+     * asks. Reading about it does neither.
+     */
+    PRIVATE_ZONE,
+
     /** See that the app is actually watching that parking, and learn what happens on departure. */
     UNDERSTAND_WATCH,
 
@@ -308,6 +324,9 @@ data class FirstStepsProgress(
  *   which asks whether a REAL parking is covered right now: with detection healthy but no car
  *   marked, there is nothing to watch and still nothing to fix.
  *   [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
+ * @param hasPrivateZone at least one of the user's zones is private → [FirstStep.PRIVATE_ZONE]. The
+ *   "I don't have a garage" answer is banked straight into [done] by the caller.
+ *   [FIRST-STEPS-A-PRIVATE-GARAGE-IS-A-PRIVATE-ZONE-001]
  * @param hasExploredNearby the user has already been into a complement's lane — car parks or fuel —
  *   which is what [FirstStep.EXPLORE_NEARBY] is about. ⛔ Read from the SAME persisted set that
  *   decides whether a lane still owes its provenance line (`introducedComplements`), never from a
@@ -325,9 +344,11 @@ fun resolveFirstSteps(
     hasExploredNearby: Boolean = false,
     reinforcement: WatchReinforcement = WatchReinforcement.NONE,
     deferred: Set<FirstStep> = emptySet(),
+    hasPrivateZone: Boolean = false,
 ): FirstStepsProgress {
     val live = buildSet {
         if (hasActiveSession) add(FirstStep.MARK_PARKING)
+        if (hasPrivateZone) add(FirstStep.PRIVATE_ZONE)
         // "Understanding the watch" is a car of yours BEING WATCHED — a marked parking plus
         // detection running. Two deliberate changes from what this used to be
         // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001]:

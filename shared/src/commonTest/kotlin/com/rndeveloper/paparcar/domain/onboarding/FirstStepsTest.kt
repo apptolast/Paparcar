@@ -22,6 +22,9 @@ class FirstStepsTest {
         hasExploredNearby: Boolean = false,
         reinforcement: WatchReinforcement = WatchReinforcement.NONE,
         deferred: Set<FirstStep> = emptySet(),
+        // True by default so every test about ANOTHER step keeps asserting that step: the private-zone
+        // step has its own tests below. [FIRST-STEPS-A-PRIVATE-GARAGE-IS-A-PRIVATE-ZONE-001]
+        hasPrivateZone: Boolean = true,
     ) = resolveFirstSteps(
         // ⛔ NAMED, not positional. This helper passed nine arguments by position, so inserting a
         // parameter in the middle silently re-bound every one after it — here it failed to compile
@@ -37,11 +40,12 @@ class FirstStepsTest {
         hasExploredNearby = hasExploredNearby,
         reinforcement = reinforcement,
         deferred = deferred,
+        hasPrivateZone = hasPrivateZone,
     )
 
     @Test
     fun should_askForTheFirstStep_when_nothingHasHappenedYet() {
-        val progress = resolve()
+        val progress = resolve(hasPrivateZone = false)
         assertEquals(FirstStep.MARK_PARKING, progress.current)
         assertTrue(progress.done.isEmpty())
         assertTrue(progress.isVisible)
@@ -102,7 +106,7 @@ class FirstStepsTest {
     @Test
     fun should_stillAskToMarkParking_when_aSpotWasTouchedFirst() {
         // Out-of-order progress banks step 3 but does NOT skip step 1 — nothing is watching the car.
-        val progress = resolve(hasTouchedSpots = true)
+        val progress = resolve(hasTouchedSpots = true, hasPrivateZone = false)
         assertEquals(FirstStep.MARK_PARKING, progress.current)
         assertEquals(setOf(FirstStep.FIND_SPOT), progress.done)
     }
@@ -225,14 +229,14 @@ class FirstStepsTest {
     fun should_notOfferTheFortifyStep_when_thereIsNothingToReinforce() {
         val progress = resolve(reinforcement = WatchReinforcement.NONE)
         assertFalse(FirstStep.FORTIFY_WATCH in progress.applicable)
-        assertEquals(4, progress.total, "a user with nothing to fix has four steps, not five")
+        assertEquals(5, progress.total, "a user with nothing to fix has five steps, not six")
     }
 
     @Test
     fun should_offerTheFortifyStep_when_theWatchCanBeMadeSolid() {
         val progress = resolve(reinforcement = WatchReinforcement.BATTERY)
         assertTrue(FirstStep.FORTIFY_WATCH in progress.applicable)
-        assertEquals(5, progress.total)
+        assertEquals(6, progress.total)
     }
 
     @Test
@@ -245,7 +249,7 @@ class FirstStepsTest {
             reinforcement = WatchReinforcement.NONE,
         )
         assertFalse(FirstStep.FORTIFY_WATCH in progress.applicable)
-        assertEquals(4, progress.total)
+        assertEquals(5, progress.total)
     }
 
     @Test
@@ -400,8 +404,8 @@ class FirstStepsTest {
         val progress = resolve(
             done = setOf(FirstStep.MARK_PARKING, FirstStep.UNDERSTAND_WATCH, FirstStep.FIND_SPOT),
         )
-        assertEquals(3, progress.doneCount)
-        assertEquals(4, progress.total)
+        assertEquals(4, progress.doneCount)
+        assertEquals(5, progress.total)
     }
 
     @Test
@@ -422,6 +426,47 @@ class FirstStepsTest {
         assertFalse(FirstStep.MARK_PARKING.completesOnEngage)
         assertFalse(FirstStep.UNDERSTAND_WATCH.completesOnEngage)
         assertFalse(FirstStep.FORTIFY_WATCH.completesOnEngage)
+        assertFalse(FirstStep.PRIVATE_ZONE.completesOnEngage)
+    }
+
+    // ── The private garage is a private zone ──
+    // [FIRST-STEPS-A-PRIVATE-GARAGE-IS-A-PRIVATE-ZONE-001]
+
+    @Test
+    fun should_askForThePrivateZone_rightAfterTheParkingExists() {
+        val progress = resolve(hasActiveSession = true, hasPrivateZone = false)
+        assertEquals(FirstStep.PRIVATE_ZONE, progress.current)
+        assertEquals(FirstStepsOwnership.NOTHING, progress.owns)
+    }
+
+    @Test
+    fun should_completeThePrivateZone_when_aPrivateZoneExists() {
+        val progress = resolve(hasActiveSession = true, hasPrivateZone = true, isAutoDetectionStopped = true)
+        assertTrue(FirstStep.PRIVATE_ZONE in progress.done)
+        assertEquals(FirstStep.UNDERSTAND_WATCH, progress.current)
+    }
+
+    @Test
+    fun should_completeThePrivateZone_when_theUserAnsweredTheyHaveNoGarage() {
+        // "I don't have one" is banked into the latch by the caller: it is the answer, not a deferral.
+        val progress = resolve(
+            done = setOf(FirstStep.PRIVATE_ZONE),
+            hasActiveSession = true,
+            hasPrivateZone = false,
+            isAutoDetectionStopped = true,
+        )
+        assertTrue(FirstStep.PRIVATE_ZONE in progress.done)
+        assertEquals(FirstStep.UNDERSTAND_WATCH, progress.current)
+    }
+
+    @Test
+    fun should_notBeComplete_when_onlyThePrivateZoneIsMissing() {
+        val progress = resolve(
+            done = FirstStep.entries.toSet() - FirstStep.PRIVATE_ZONE,
+            hasPrivateZone = false,
+        )
+        assertEquals(FirstStep.PRIVATE_ZONE, progress.current)
+        assertFalse(progress.isComplete)
     }
 
     @Test
