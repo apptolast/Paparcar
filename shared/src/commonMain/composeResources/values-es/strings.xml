@@ -669,7 +669,6 @@
     <string name="first_steps_eyebrow">Primeros pasos</string>
     <string name="first_steps_progress">%1$d de %2$d</string>
     <string name="first_steps_skip">Saltar</string>
-    <string name="first_steps_required">Obligatorio</string>
     <string name="first_steps_show_where">Muéstrame dónde</string>
     <string name="first_steps_how_it_works">Cómo funciona</string>
     <string name="first_steps_done_cta">Hecho</string>

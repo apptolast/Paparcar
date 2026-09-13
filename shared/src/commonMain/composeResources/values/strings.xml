@@ -706,7 +706,6 @@
     <string name="first_steps_eyebrow">First steps</string>
     <string name="first_steps_progress">%1$d of %2$d</string>
     <string name="first_steps_skip">Skip</string>
-    <string name="first_steps_required">Required</string>
     <string name="first_steps_show_where">Show me where</string>
     <string name="first_steps_how_it_works">How it works</string>
     <string name="first_steps_done_cta">Done</string>

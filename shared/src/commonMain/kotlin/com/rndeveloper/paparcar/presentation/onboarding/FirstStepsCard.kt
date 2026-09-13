@@ -38,7 +38,6 @@ import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.domain.onboarding.FirstStepsProgress
 import com.rndeveloper.paparcar.domain.onboarding.WatchAsk
 import com.rndeveloper.paparcar.domain.onboarding.WatchReinforcement
-import com.rndeveloper.paparcar.ui.components.PapBadge
 import com.rndeveloper.paparcar.ui.components.PapButtonSize
 import com.rndeveloper.paparcar.ui.components.PapIconTile
 import com.rndeveloper.paparcar.ui.components.PapIconTileSize
@@ -72,7 +71,6 @@ import paparcar.composeapp.generated.resources.first_steps_park_cta
 import paparcar.composeapp.generated.resources.first_steps_park_sub
 import paparcar.composeapp.generated.resources.first_steps_park_title
 import paparcar.composeapp.generated.resources.first_steps_progress
-import paparcar.composeapp.generated.resources.first_steps_required
 import paparcar.composeapp.generated.resources.first_steps_show_where
 import paparcar.composeapp.generated.resources.first_steps_skip
 import paparcar.composeapp.generated.resources.first_steps_spot_cta
@@ -275,24 +273,12 @@ private fun StepRow(
             // affordances, and a word here would compete with the step's actual action.
             // [UI-LIST-ITEM-001]
             trailing = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Said on the row itself, so "required" is never something the user discovers by
-                    // looking for a Skip that is not there. [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001]
-                    if (step.isRequired && !isDone) {
-                        PapBadge(
-                            label = stringResource(Res.string.first_steps_required).uppercase(),
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                            textStyle = PaparcarType.current.badge,
-                        )
-                    }
-                    IconButton(onClick = onOpen, modifier = Modifier.size(HELP_TOUCH_DP.dp)) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.HelpOutline,
-                            contentDescription = stringResource(Res.string.first_steps_how_it_works),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                IconButton(onClick = onOpen, modifier = Modifier.size(HELP_TOUCH_DP.dp)) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.HelpOutline,
+                        contentDescription = stringResource(Res.string.first_steps_how_it_works),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             },
             contentPadding = PaddingValues(

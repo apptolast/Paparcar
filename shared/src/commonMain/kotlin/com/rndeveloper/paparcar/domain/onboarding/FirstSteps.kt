@@ -103,8 +103,9 @@ enum class FirstStep {
     val completesOnEngage: Boolean get() = this == FIND_SPOT || this == EXPLORE_NEARBY
 
     /**
-     * A step the tutorial cannot be finished without — said on its row, and while one is pending the
-     * checklist offers no "Skip". [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001]
+     * A step the tutorial cannot be finished without: while one is pending the checklist offers no
+     * "Skip". No badge says so — being the steps the checklist opens with, and the only ones without a
+     * way around them, makes it understood (review of #25). [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001]
      *
      * Only the two that protect the user's own car: [MARK_PARKING] arms everything else, and
      * [PRIVATE_ZONE] is what keeps a private garage from being published. Every other step already
