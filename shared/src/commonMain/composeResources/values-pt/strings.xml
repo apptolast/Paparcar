@@ -60,8 +60,8 @@
     <string name="onboarding_step2_desc">Encontra o carro sem pensar e revê onde estacionaste</string>
     <string name="onboarding_step3_title">Um lugar para outra pessoa</string>
     <string name="onboarding_step3_desc">Quando sais, o lugar aparece livre para quem procura perto</string>
-    <string name="onboarding_step4_title">Também parques e combustível</string>
-    <string name="onboarding_step4_desc">O mapa mostra-te parques de estacionamento públicos e o preço do combustível perto de ti</string>
+    <string name="onboarding_page3_title">Parques e combustível perto de ti</string>
+    <string name="onboarding_page3_subtitle">O mapa também te mostra os parques de estacionamento públicos e os postos à tua volta. Em alguns países, com o preço do combustível em tempo real, de fontes oficiais.</string>
     <string name="onboarding_cta_next">Seguinte</string>
     <string name="onboarding_cta_start">Começar</string>
 

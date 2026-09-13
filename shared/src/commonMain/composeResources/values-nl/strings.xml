@@ -61,8 +61,8 @@
     <string name="onboarding_step2_desc">Vind je auto zonder nadenken en kijk terug waar je hebt geparkeerd</string>
     <string name="onboarding_step3_title">Een plek voor een ander</string>
     <string name="onboarding_step3_desc">Als je vertrekt, verschijnt de plek als vrij voor wie in de buurt zoekt</string>
-    <string name="onboarding_step4_title">Ook parkeergarages en brandstof</string>
-    <string name="onboarding_step4_desc">De kaart toont je ook openbare parkeergarages en brandstofprijzen bij jou in de buurt</string>
+    <string name="onboarding_page3_title">Parkeergarages en brandstof dichtbij</string>
+    <string name="onboarding_page3_subtitle">De kaart toont je ook openbare parkeergarages en tankstations om je heen. In sommige landen met brandstofprijzen in realtime uit officiële bronnen.</string>
     <string name="onboarding_cta_next">Volgende</string>
     <string name="onboarding_cta_start">Aan de slag</string>
 

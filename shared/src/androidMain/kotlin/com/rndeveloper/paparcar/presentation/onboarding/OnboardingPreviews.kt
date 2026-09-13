@@ -41,3 +41,24 @@ private fun OnboardingValuePageSmallPreview() {
         OnboardingScreen(onComplete = {}, initialPage = 1)
     }
 }
+
+@Preview(name = "Onboarding · Car parks and fuel", showBackground = true, showSystemUi = true)
+@Composable
+private fun OnboardingNearbyPagePreview() {
+    PaparcarTheme(darkTheme = false) {
+        OnboardingScreen(onComplete = {}, initialPage = 2)
+    }
+}
+
+@Preview(
+    name = "Onboarding · Car parks and fuel · Dark",
+    showBackground = true,
+    showSystemUi = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+private fun OnboardingNearbyPageDarkPreview() {
+    PaparcarTheme(darkTheme = true) {
+        OnboardingScreen(onComplete = {}, initialPage = 2)
+    }
+}

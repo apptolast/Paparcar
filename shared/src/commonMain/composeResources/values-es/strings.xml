@@ -85,8 +85,8 @@
     <string name="onboarding_step2_desc">Encuentra tu coche sin pensar y repasa dónde has aparcado</string>
     <string name="onboarding_step3_title">Una plaza para otro</string>
     <string name="onboarding_step3_desc">Cuando te vas, la plaza aparece libre para quien busca cerca</string>
-    <string name="onboarding_step4_title">También parkings y gasolineras</string>
-    <string name="onboarding_step4_desc">El mapa te enseña parkings públicos y el precio del combustible cerca de ti</string>
+    <string name="onboarding_page3_title">Parkings y gasolineras cerca</string>
+    <string name="onboarding_page3_subtitle">El mapa también te enseña los parkings públicos y las gasolineras de tu alrededor. En algunos países, con el precio del combustible en tiempo real, de fuentes oficiales.</string>
     <string name="onboarding_cta_next">Siguiente</string>
     <string name="onboarding_cta_start">Empezar</string>
 

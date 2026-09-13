@@ -60,8 +60,8 @@
     <string name="onboarding_step2_desc">Znajdź samochód bez zastanawiania się i sprawdź, gdzie parkowałeś</string>
     <string name="onboarding_step3_title">Miejsce dla kogoś innego</string>
     <string name="onboarding_step3_desc">Gdy odjeżdżasz, miejsce pojawia się jako wolne dla kierowców w pobliżu</string>
-    <string name="onboarding_step4_title">Także parkingi i paliwo</string>
-    <string name="onboarding_step4_desc">Mapa pokazuje też publiczne parkingi i ceny paliwa w pobliżu</string>
+    <string name="onboarding_page3_title">Parkingi i stacje w pobliżu</string>
+    <string name="onboarding_page3_subtitle">Mapa pokazuje też publiczne parkingi i stacje paliw wokół ciebie. W niektórych krajach z cenami paliwa w czasie rzeczywistym z oficjalnych źródeł.</string>
     <string name="onboarding_cta_next">Dalej</string>
     <string name="onboarding_cta_start">Rozpocznij</string>
 

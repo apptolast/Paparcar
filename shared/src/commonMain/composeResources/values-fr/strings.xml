@@ -60,8 +60,8 @@
     <string name="onboarding_step2_desc">Retrouvez votre voiture sans y penser et revoyez où vous vous êtes garé</string>
     <string name="onboarding_step3_title">Une place pour quelqu'un d'autre</string>
     <string name="onboarding_step3_desc">Quand vous partez, la place apparaît libre pour ceux qui cherchent à côté</string>
-    <string name="onboarding_step4_title">Parkings et carburant aussi</string>
-    <string name="onboarding_step4_desc">La carte vous montre aussi les parkings publics et le prix du carburant près de vous</string>
+    <string name="onboarding_page3_title">Parkings et carburant à proximité</string>
+    <string name="onboarding_page3_subtitle">La carte vous montre aussi les parkings publics et les stations-service autour de vous. Dans certains pays, avec le prix du carburant en temps réel, de sources officielles.</string>
     <string name="onboarding_cta_next">Suivant</string>
     <string name="onboarding_cta_start">Commencer</string>
 

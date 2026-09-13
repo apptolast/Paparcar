@@ -69,7 +69,16 @@ Mismas dos páginas, mismo `OnboardingScreen`, sin ViewModel nuevo:
 | Paywall `TIER_ROWS` | exento — ya dice que parkings y combustible son free |
 | `docs/release/play-listing/*` | fuera de alcance — la ficha de Play debería contar lo mismo; follow-up |
 
-## Decisiones de la revisión (13-09-2026)
+## Decisiones de la revisión (13-09-2026, segunda ronda)
+- **Tercera página para parkings y gasolineras**, con su ilustración, título y descripción, que además
+  dice que en algunos países el precio del combustible llega en tiempo real. La cuarta tarjeta sale de
+  la página 2 (queda con tres). Ilustración nueva `illus_onb_nearby(_dark)` (Nivel 3, solo `path`):
+  edificio con su P (el mismo `CarParkMark` del carril), surtidor y etiqueta de precio con punto «en
+  vivo». Keys: `onboarding_page3_title/subtitle` (×9) sustituyen a `onboarding_step4_*`.
+- Esto revisa conscientemente la regla «nada de página de catálogo» de
+  [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001]: lo pide producto, y es UNA promesa (no un catálogo).
+
+## Decisiones de la revisión (13-09-2026, primera ronda)
 - El copy propuesto y la estructura de 2 páginas se quedan como están en este PR.
 - Propuesta en la revisión: llevar parkings y gasolineras a una página de onboarding propia con
   ilustración diseñada para ello. **Aplazada** («por ahora no hacen falta estos cambios»); si se

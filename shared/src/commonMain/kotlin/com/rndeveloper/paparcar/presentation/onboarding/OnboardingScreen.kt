@@ -40,7 +40,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.components.PapCard
 import com.rndeveloper.paparcar.ui.components.PapPrimaryButton
-import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.illustrations.OnboardingHero
 import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
@@ -59,14 +58,18 @@ import paparcar.composeapp.generated.resources.onboarding_step2_desc
 import paparcar.composeapp.generated.resources.onboarding_step2_title
 import paparcar.composeapp.generated.resources.onboarding_step3_desc
 import paparcar.composeapp.generated.resources.onboarding_step3_title
-import paparcar.composeapp.generated.resources.onboarding_step4_desc
-import paparcar.composeapp.generated.resources.onboarding_step4_title
+import paparcar.composeapp.generated.resources.onboarding_page3_subtitle
+import paparcar.composeapp.generated.resources.onboarding_page3_title
 
-// Two pages of VALUE — what Paparcar is + what it does for you. [ONBOARDING-SELLS-THE-NEW-PRODUCT-001]
+// Three pages of VALUE — what Paparcar is, what it does for your car, and what else the map answers
+// (car parks and fuel). [ONBOARDING-SELLS-THE-NEW-PRODUCT-001]
+// The complements got their own page at the review's request: as a fourth card they read as a
+// footnote to the car, and they are a different promise — data from third parties, with fuel prices
+// in real time in some countries — that needs its own picture and its own sentence.
 // The old page 3 ("Why we need your permissions", padlock hero) made the last thing a new user saw
 // before the app a security lecture; its background-location disclosure now lives where background
 // is actually requested (the "activate detection" visit). [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
-private const val PAGE_COUNT                 = 2
+private const val PAGE_COUNT                 = 3
 private const val DOT_ANIM_MS                = 300
 private val       PAGE_CONTENT_BOTTOM_CLEARANCE = 140.dp
 private val       HERO_ILLUSTRATION_W        = 140.dp
@@ -95,7 +98,8 @@ fun OnboardingScreen(
         ) { page ->
             when (page) {
                 0 -> OnboardingPage1()
-                else -> OnboardingPage2()
+                1 -> OnboardingPage2()
+                else -> OnboardingPage3()
             }
         }
 
@@ -166,7 +170,7 @@ private fun OnboardingPage1() {
 
 @Composable
 private fun OnboardingPage2() = BoxWithConstraints(Modifier.fillMaxSize()) {
-    // A hero and four cards do not fit a small phone above the pinned CTA, so the page scrolls — and
+    // A hero and three cards can outgrow a small phone above the pinned CTA, so the page scrolls — and
     // still centres when it fits, because the column is at least one viewport tall.
     // [ONBOARDING-SELLS-THE-NEW-PRODUCT-001]
     val viewportHeight = maxHeight
@@ -193,11 +197,11 @@ private fun OnboardingPage2() = BoxWithConstraints(Modifier.fillMaxSize()) {
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(PaparcarSpacing.xxl + PaparcarSpacing.md))
-        // [ONBOARDING-SELLS-THE-NEW-PRODUCT-001] Cuatro tarjetas de VALOR, no de mecánica: la
+        // [ONBOARDING-SELLS-THE-NEW-PRODUCT-001] Tres tarjetas de VALOR, no de mecánica: la
         // detección como servicio (tus trayectos y aparcamientos convertidos en cifras), tu
-        // aparcamiento guardado, la plaza que liberas y — como complemento, nunca como producto —
-        // parkings y gasolineras. Los glifos 1-3 conservan su significado; su frase cambia de «cómo
-        // funciona por dentro» a «qué ganas».
+        // aparcamiento guardado y la plaza que liberas. Parkings y gasolineras tienen su propia
+        // página (la 3). Los glifos conservan su significado; su frase cambia de «cómo funciona por
+        // dentro» a «qué ganas».
         //
         // [UI-ONBOARDING-STEP-ICONS-SAY-WHAT-THE-APP-SAYS-001] Los tres glifos NO se eligen por
         // parecido con el título, sino por el significado que ya tienen dentro de la app: esta
@@ -230,15 +234,46 @@ private fun OnboardingPage2() = BoxWithConstraints(Modifier.fillMaxSize()) {
             title = stringResource(Res.string.onboarding_step3_title),
             desc = stringResource(Res.string.onboarding_step3_desc),
         )
+    }
+}
+
+/**
+ * The map's complements: public car parks and fuel stations, with real-time fuel prices where a
+ * country publishes them. [ONBOARDING-SELLS-THE-NEW-PRODUCT-001]
+ *
+ * Same anatomy as page 1 — hero, title, one sentence — because it is a promise, not a list of steps.
+ * ⛔ The copy names car parks («parkings públicos», never «plazas») and fuel, and says «in some
+ * countries» for the prices: the fuel lane has sources for some countries only, and the sentence must
+ * not promise a price the map cannot show. [COPY-SPOT-IS-NOT-A-PARKING-001]
+ */
+@Composable
+private fun OnboardingPage3() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .padding(horizontal = PaparcarSpacing.xxxl)
+            .padding(top = PaparcarSpacing.huge, bottom = PAGE_CONTENT_BOTTOM_CLEARANCE),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        OnboardingHero(
+            hero = OnboardingHero.NEARBY,
+            modifier = Modifier.size(HERO_ILLUSTRATION_W, HERO_ILLUSTRATION_H),
+        )
+        Spacer(Modifier.height(PaparcarSpacing.sm))
+        Text(
+            text = stringResource(Res.string.onboarding_page3_title),
+            style = PaparcarType.current.heroTitle,
+            color = PapColor.actionText,
+            textAlign = TextAlign.Center,
+        )
         Spacer(Modifier.height(PaparcarSpacing.lg))
-        OnboardingStep(
-            // El edificio con su P de `PaparcarIcons.CarParkMark`: el MISMO glifo que lleva el carril
-            // de parkings en el sheet de Home, el único dueño legítimo de la P. Una tarjeta, no una
-            // página: los complementos se presentan de pasada y su carril se explica la primera vez
-            // que se abre [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001].
-            icon = PaparcarIcons.CarParkMark,
-            title = stringResource(Res.string.onboarding_step4_title),
-            desc = stringResource(Res.string.onboarding_step4_desc),
+        Text(
+            text = stringResource(Res.string.onboarding_page3_subtitle),
+            style = PaparcarType.current.subtitle,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
         )
     }
 }
