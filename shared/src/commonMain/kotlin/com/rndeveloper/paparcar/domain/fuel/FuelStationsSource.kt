@@ -12,7 +12,15 @@ package com.rndeveloper.paparcar.domain.fuel
 data class FuelStationsQuery(
     val latitude: Double,
     val longitude: Double,
-    /** ISO 3166-1 alpha-2. Empty when the lookup failed — which routes straight to the fallback. */
+    /**
+     * ISO 3166-1 alpha-2. **Empty means we could not name the country**, which is a different thing
+     * from a country nobody covers — see the registry, which marks the first as a substitute and
+     * the second as the answer. [FUEL-AN-UNKNOWN-COUNTRY-IS-NOT-A-COUNTRY-WITHOUT-PRICES-001]
+     *
+     * ⛔ This line used to read *"Empty when the lookup failed — which routes straight to the
+     * fallback"*, describing the symptom as if it were the design: it does route to the fallback,
+     * and the whole bug was that nothing downstream could tell why.
+     */
     val countryCode: String,
     /** Province/region as a geocoder wrote it. Null is normal; only some sources need it. */
     val regionName: String? = null,

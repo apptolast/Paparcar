@@ -4,7 +4,9 @@ import android.content.Context
 import android.location.Address
 import android.location.Geocoder
 import android.os.Build
+import com.rndeveloper.paparcar.domain.geocoder.GeocodeUnanswered
 import com.rndeveloper.paparcar.domain.geocoder.GeocoderDataSource
+import com.rndeveloper.paparcar.domain.geocoder.geocodeAnswer
 import com.rndeveloper.paparcar.domain.model.AddressInfo
 import com.rndeveloper.paparcar.domain.model.SearchResult
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +20,7 @@ import java.net.URL
 import java.net.URLEncoder
 import java.util.Locale
 import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 // ── Photon (Komoot) — autocomplete API ───────────────────────────────────────
 
@@ -59,6 +62,14 @@ private val photonJson = Json { ignoreUnknownKeys = true }
 
 class AndroidGeocoderDataSourceImpl(private val context: Context) : GeocoderDataSource {
 
+    /**
+     * ⛔ A failure is a FAILURE. This used to end in
+     * `?: AddressInfo(street = null, city = null, region = null, country = null)`, so a geocoder
+     * that could not answer handed back an address with nothing in it, as a success — and the
+     * platform geocoder not answering is not an edge case: it leans on a Play-services component
+     * that is regularly mute for the first seconds after a fresh install, which is exactly when a
+     * new user opens the map. [FUEL-AN-UNKNOWN-COUNTRY-IS-NOT-A-COUNTRY-WITHOUT-PRICES-001]
+     */
     override suspend fun getAddress(lat: Double, lon: Double): Result<AddressInfo> =
         runCatching {
             val geocoder = Geocoder(context, Locale.getDefault())
@@ -67,10 +78,16 @@ class AndroidGeocoderDataSourceImpl(private val context: Context) : GeocoderData
             } else {
                 fetchAddressLegacy(geocoder, lat, lon)
             }
-            address?.toAddressInfo()
-                ?: AddressInfo(street = null, city = null, region = null, country = null)
+            // The one place both platforms decide what counts as an answer.
+            geocodeAnswer(address?.toAddressInfo()).getOrThrow()
         }
 
+    /**
+     * ⛔ `onError` RAISES. Resuming with null here is what made an error indistinguishable from
+     * "this point has no address" — two different things, and only one of them is an answer. The
+     * platform's own message travels with it, because "we could not ask" is a line a log has to be
+     * able to show. [FUEL-AN-UNKNOWN-COUNTRY-IS-NOT-A-COUNTRY-WITHOUT-PRICES-001]
+     */
     private suspend fun fetchAddressApi33(
         geocoder: Geocoder,
         lat: Double,
@@ -82,7 +99,9 @@ class AndroidGeocoderDataSourceImpl(private val context: Context) : GeocoderData
             }
 
             override fun onError(errorMessage: String?) {
-                cont.resume(null)
+                cont.resumeWithException(
+                    GeocodeUnanswered(errorMessage ?: "The platform geocoder reported an error"),
+                )
             }
         })
     }

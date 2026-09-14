@@ -2,12 +2,15 @@
 
 package com.rndeveloper.paparcar.location
 
+import com.rndeveloper.paparcar.domain.geocoder.GeocodeUnanswered
 import com.rndeveloper.paparcar.domain.geocoder.GeocoderDataSource
+import com.rndeveloper.paparcar.domain.geocoder.geocodeAnswer
 import com.rndeveloper.paparcar.domain.model.AddressInfo
 import com.rndeveloper.paparcar.domain.model.SearchResult
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import platform.CoreLocation.CLGeocoder
 import platform.CoreLocation.CLLocation
 import platform.CoreLocation.CLPlacemark
@@ -29,9 +32,15 @@ class IosGeocoderDataSourceImpl : GeocoderDataSource {
 
     private val geocoder = CLGeocoder()
 
+    /**
+     * ⛔ Same rule as Android's, decided in the same function, because this file carried the same
+     * bug written the same way: `NSError` resumed with null and the null became
+     * `AddressInfo(null, null, null, null)` — a mute lookup handed upwards as a place.
+     * [FUEL-AN-UNKNOWN-COUNTRY-IS-NOT-A-COUNTRY-WITHOUT-PRICES-001]
+     */
     override suspend fun getAddress(lat: Double, lon: Double): Result<AddressInfo> = runCatching {
         val placemark = reverseGeocode(lat, lon)
-        placemark?.toAddressInfo() ?: AddressInfo(null, null, null, null)
+        geocodeAnswer(placemark?.toAddressInfo()).getOrThrow()
     }
 
     override suspend fun searchByName(query: String, maxResults: Int): Result<List<SearchResult>> =
@@ -44,8 +53,10 @@ class IosGeocoderDataSourceImpl : GeocoderDataSource {
         suspendCancellableCoroutine { cont ->
             val location = CLLocation(latitude = lat, longitude = lon)
             geocoder.reverseGeocodeLocation(location) { placemarks: List<*>?, error: NSError? ->
+                // ⛔ RAISES, like Android's onError: an NSError is "we could not ask", never "this
+                // point has no address". [FUEL-AN-UNKNOWN-COUNTRY-IS-NOT-A-COUNTRY-WITHOUT-PRICES-001]
                 if (error != null) {
-                    cont.resume(null)
+                    cont.resumeWithException(GeocodeUnanswered(error.localizedDescription))
                 } else {
                     cont.resume(placemarks?.filterIsInstance<CLPlacemark>()?.firstOrNull())
                 }

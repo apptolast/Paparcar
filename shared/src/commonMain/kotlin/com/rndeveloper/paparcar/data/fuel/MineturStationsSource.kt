@@ -67,8 +67,15 @@ class MineturStationsSource(
             val fromTown = town?.let { parse(fetch("$BASE/EstacionesTerrestres/FiltroMunicipio/${it.municipalityId}"), query) }
             if (fromTown != null && fromTown.stations.isNotEmpty()) return@runCatching fromTown
 
+            // ⛔ Mismo error que la vía de municipios de arriba, en el mismo fichero y sin cazar:
+            // `provinces()` es un ARGUMENTO, así que se evaluaba SIEMPRE — con `regionName` a null,
+            // `idFor` devuelve null sin mirar nada y el catálogo de las 52 provincias ya se había
+            // descargado para nada. Y `regionName` a null es justo lo que deja un geocode mudo, o
+            // sea que la vía que menos puede permitirse un viaje de red era la que lo pagaba.
+            // [FUEL-AN-UNKNOWN-COUNTRY-IS-NOT-A-COUNTRY-WITHOUT-PRICES-001]
+            val region = query.regionName?.takeIf { it.isNotBlank() }
             val provinceId = town?.provinceId?.takeIf { it.isNotEmpty() }
-                ?: SpanishProvinces.idFor(query.regionName, provinces())
+                ?: region?.let { SpanishProvinces.idFor(it, provinces()) }
                 ?: throw IllegalStateException(
                     "No Spanish town matches '${query.cityName}' and no province matches '${query.regionName}'",
                 )

@@ -2545,6 +2545,69 @@ class HomeViewModelTest {
         assertEquals(trasAbrir, fuelSource.askCount)
     }
 
+    // ── A substitute answer does not seal the ground ─────────────────────────
+    // [FUEL-AN-UNKNOWN-COUNTRY-IS-NOT-A-COUNTRY-WITHOUT-PRICES-001]
+
+    @Test
+    fun `should_askAgainAtItsAnchor_when_theAnswerOnShowIsASubstitute`() = runTest(testDispatcher) {
+        // The forecourts are real, but they came from the worldwide feed because the national one
+        // could not be used — usually a geocoder that had not woken up yet, which is a moment long.
+        // Measured on a fresh Play Store install in Spain: the anchor stamped on that attempt held
+        // the whole area, and panning under 2,5 km never asked again, so the rows stayed priceless
+        // until the user drove out of the zone.
+        fuelSource.result = FuelStationsResult(listOf(spyStation()), didFallBack = true)
+        saveActiveCar(fuelType = com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE)
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.FUEL))
+        advanceUntilIdle()
+        val afterOpening = fuelSource.askCount
+        val anchor = vm.state.value.fuel.anchorLat to vm.state.value.fuel.anchorLon
+        assertTrue(vm.state.value.fuel.didFallBack, "the lane is showing a substitute")
+
+        // The SAME ~1 km pan that `should_stayQuiet_when_theCameraBarelyMoved_orTheLayerIsOff`
+        // proves is not a new question. On a substitute it is a re-ask.
+        vm.handleIntent(
+            HomeIntent.CameraPositionChanged(lat = anchor.first!! + 0.01, lon = anchor.second!!),
+        )
+        advanceUntilIdle()
+
+        assertEquals(afterOpening + 1, fuelSource.askCount, "a substitute is asked again")
+        // ⛔ AT THE ANCHOR, not at the camera — same coordinates, so the same cache key, so no
+        // network while the situation is unchanged. Asking at the camera instead would mint a new
+        // key every 110 m of panning and put one Overpass request behind every camera settle.
+        assertEquals(anchor.first, fuelSource.lastQuery?.latitude, "re-asked where the answer is about")
+        assertEquals(anchor.second, fuelSource.lastQuery?.longitude)
+        assertEquals(anchor, vm.state.value.fuel.anchorLat to vm.state.value.fuel.anchorLon)
+    }
+
+    @Test
+    fun `should_stopReAsking_when_theSubstituteBecomesARealAnswer`() = runTest(testDispatcher) {
+        // The re-ask exists to catch the moment the situation changes; once it has, the lane goes
+        // back to the ordinary rule — a pan under half the radius owes the server nothing.
+        fuelSource.result = FuelStationsResult(listOf(spyStation()), didFallBack = true)
+        saveActiveCar(fuelType = com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE)
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.FUEL))
+        advanceUntilIdle()
+        val anchor = vm.state.value.fuel.anchorLat!! to vm.state.value.fuel.anchorLon!!
+
+        // The geocoder wakes up: the national feed answers, and the substitute is gone.
+        fuelSource.result = FuelStationsResult(listOf(spyStation()), didFallBack = false)
+        vm.handleIntent(HomeIntent.CameraPositionChanged(lat = anchor.first + 0.01, lon = anchor.second))
+        advanceUntilIdle()
+        val afterRecovery = fuelSource.askCount
+        assertTrue(!vm.state.value.fuel.didFallBack)
+
+        vm.handleIntent(HomeIntent.CameraPositionChanged(lat = anchor.first + 0.015, lon = anchor.second))
+        advanceUntilIdle()
+
+        assertEquals(afterRecovery, fuelSource.askCount, "a real answer settles the ground again")
+    }
+
     @Test
     fun `should_pruneAnOrphanedStationSelection_when_theViewportMovesOn`() = runTest(testDispatcher) {
         fuelSource.result = FuelStationsResult(listOf(spyStation("st1")))

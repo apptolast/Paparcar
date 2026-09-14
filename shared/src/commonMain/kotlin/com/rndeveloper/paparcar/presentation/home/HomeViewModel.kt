@@ -798,10 +798,37 @@ class HomeViewModel(
                     !ParkingZoneGrid.sameZone(anchorLat, anchorLon, lat, lon)
             else -> ViewportRefetch.shouldRefetch(anchorLat, anchorLon, lat, lon, radius)
         }
-        if (!moved && !questionChanged) return
+        // ⛔ A SUBSTITUTE answer does not settle the question, so it does not seal the ground.
+        // [FUEL-AN-UNKNOWN-COUNTRY-IS-NOT-A-COUNTRY-WITHOUT-PRICES-001]
+        //
+        // The rows on show are real forecourts — they stay — but they came from the worldwide feed
+        // because the national one could not be used, and the reason is usually a moment long: a
+        // geocoder that had not woken up yet. Without this, the anchor stamped on that attempt held
+        // the whole area, and panning under 2,5 km (half the 5 km radius) never asked again — the
+        // user was left with priceless rows until they drove out of the zone. Measured on a fresh
+        // Play Store install in Spain.
+        val provisional = subject == HomeNearbyLens.FUEL && s.fuel.didFallBack
+        if (!moved && !questionChanged && !provisional) return
 
         when (subject) {
-            HomeNearbyLens.FUEL -> fetchFuelStations(lat, lon)
+            // ⛔ The re-ask goes to the ANCHOR, not to where the camera drifted to, and that is what
+            // makes it free to repeat. The question has not changed — the camera has not left the
+            // area the answer is about — so asking at the anchor reproduces the same cache key
+            // (`locationCacheKey`: coordinates, radius, country, region) and `CachingFuelStations
+            // Source` serves it from memory for 15 minutes without touching the network.
+            //
+            // The moment the situation DOES change, the key changes with it: a geocoder that has
+            // woken up puts a country in the query, the cache misses, and the Ministry answers with
+            // prices. So there is no retry counter and no cooldown to tune — the cost is paid only
+            // when there is something new to learn.
+            HomeNearbyLens.FUEL -> {
+                val reAskingSubstitute = provisional && !moved && !questionChanged
+                if (reAskingSubstitute && anchorLat != null && anchorLon != null) {
+                    fetchFuelStations(anchorLat, anchorLon)
+                } else {
+                    fetchFuelStations(lat, lon)
+                }
+            }
             HomeNearbyLens.PARKINGS -> fetchPublicParkings(lat, lon)
             HomeNearbyLens.SPOTS -> Unit
         }
@@ -915,7 +942,13 @@ class HomeViewModel(
             ensureActive()
             result
                 .onSuccess { nearby ->
-                    PaparcarLogger.d(TAG, "fuel: ${nearby.stations.size} stations around $lat,$lon")
+                    PaparcarLogger.d(
+                        TAG,
+                        "fuel: ${nearby.stations.size} stations around $lat,$lon" +
+                            // ⛔ Which feed answered was not logged anywhere, and that is how a
+                            // country reported as "publishes no prices" went unexamined for days.
+                            (if (nearby.didFallBack) " (substitute: the national feed was not used)" else ""),
+                    )
                     updateState {
                         copy(
                             fuel = fuel.copy(

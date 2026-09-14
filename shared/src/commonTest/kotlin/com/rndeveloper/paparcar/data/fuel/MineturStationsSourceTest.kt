@@ -151,6 +151,21 @@ class MineturStationsSourceTest {
     }
 
     @Test
+    fun `should_notFetchTheProvinceCatalogue_when_thereIsNoRegionToLookUp`() = runTest {
+        // ⛔ El MISMO fallo que el de arriba, tres líneas más abajo y sin cazar: `provinces()` es un
+        // argumento de `idFor`, así que se evaluaba aunque `regionName` fuese null — 52 provincias
+        // descargadas para devolver null acto seguido. Y sin región ni ciudad es justo lo que deja
+        // un geocode mudo: la vía que menos se puede permitir un viaje de red era la que lo pagaba.
+        // [FUEL-AN-UNKNOWN-COUNTRY-IS-NOT-A-COUNTRY-WITHOUT-PRICES-001]
+        val result = source().stationsNear(
+            FuelStationsQuery(36.5297, -6.2924, countryCode = "ES", regionName = null),
+        )
+
+        assertTrue(result.isFailure, "with nothing to key on, the ministry cannot be asked")
+        assertTrue(asked.isEmpty(), "nothing at all should have been downloaded: $asked")
+    }
+
+    @Test
     fun `should_keepOnlyWhatIsWithinRadius_nearestFirst`() = runTest {
         val result = source()
             .stationsNear(cadiz())

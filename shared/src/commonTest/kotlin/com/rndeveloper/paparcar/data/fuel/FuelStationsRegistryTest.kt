@@ -10,6 +10,7 @@ import com.rndeveloper.paparcar.domain.model.Money
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /** Which source answers, and — the part with teeth — when one hands over. [FUEL-STATIONS-LIST-001] */
@@ -85,6 +86,38 @@ class FuelStationsRegistryTest {
 
         assertTrue(result.stations.isEmpty())
         assertEquals(0, fallback.calls, "an empty national answer is an answer, not a failure")
+    }
+
+    // ── An unknown country is not a country without prices ───────────────────────────────────────
+    // [FUEL-AN-UNKNOWN-COUNTRY-IS-NOT-A-COUNTRY-WITHOUT-PRICES-001]
+    //
+    // ⛔ These two run the SAME line of code and the difference between them IS the ticket: one is a
+    // verdict we are entitled to, the other is a guess about a whole country. They sit adjacent so
+    // that collapsing them back into one takes one of the two down with it.
+
+    @Test
+    fun `should_markTheFallbackAsASubstitute_whenTheCountryCouldNotBeNamed`() = runTest {
+        // A mute reverse geocode leaves the country empty. This may well be Spain, with the
+        // Ministry serving prices for that very street — so the lane must say "the official prices
+        // did not load", never "this country publishes none".
+        val es = spain(listOf(station("ES1", priced = true)))
+        val result = FuelStationsRegistry(listOf(es), osm("OSM1"))
+            .stationsNear(query("")).getOrThrow()
+
+        assertEquals(listOf("OSM1"), result.stations.map { it.id })
+        assertTrue(result.didFallBack, "an unnamed country gets a SUBSTITUTE, not an answer")
+        assertEquals(0, es.calls, "nothing routes to a national feed we did not choose")
+    }
+
+    @Test
+    fun `should_notMarkTheFallback_whereTheCountryIsKnownAndHasNoFeed`() = runTest {
+        // Japan is named and genuinely uncovered: the fallback IS the answer, and the lane may say
+        // that these prices are not published. Marking this one would cry wolf everywhere on earth.
+        val es = spain(listOf(station("ES1")))
+        val result = FuelStationsRegistry(listOf(es), osm("OSM1"))
+            .stationsNear(query("JP")).getOrThrow()
+
+        assertFalse(result.didFallBack, "a covered-by-nobody country is an answer, not a substitute")
     }
 
     @Test

@@ -28,7 +28,21 @@ class FuelStationsRegistry(
 
     override suspend fun stationsNear(query: FuelStationsQuery): Result<FuelStationsResult> {
         val preferred = national.firstOrNull { it.covers(query.countryCode) }
-            ?: return fallback.stationsNear(query)
+            ?: return fallback.stationsNear(query).map {
+                // ⛔ TWO cases lived in this one line, and only one of them is a verdict we are
+                // entitled to. [FUEL-AN-UNKNOWN-COUNTRY-IS-NOT-A-COUNTRY-WITHOUT-PRICES-001]
+                //
+                //  · A country we KNOW and do not cover — Denmark — genuinely publishes nothing we
+                //    can read. The fallback IS the answer, and the lane may say so.
+                //  · A country we could not NAME (the lookup was mute, so `countryCode` is empty)
+                //    might be Spain, with the Ministry serving prices for that very street. The
+                //    fallback is a SUBSTITUTE, and it is marked as one so the lane says "the
+                //    official prices did not load" instead of pronouncing on a whole country.
+                //
+                // Measured: on a fresh Play Store install the platform geocoder is mute for the
+                // first seconds, and Spain was told it does not publish fuel prices.
+                if (query.countryCode.isBlank()) it.copy(didFallBack = true) else it
+            }
 
         // ⛔ An EMPTY list from a national feed is a real answer — there is nothing within the radius
         // — so only a FAILURE hands over. Retrying a valid "none" against OSM would quietly turn a
