@@ -87,6 +87,9 @@ import com.rndeveloper.paparcar.ui.theme.PapInk
 import com.rndeveloper.paparcar.ui.theme.PapOutlineVariantLight
 import com.rndeveloper.paparcar.ui.theme.zoneIdentityColor
 import kotlinx.coroutines.launch
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 /**
  * Paparcar map markers — three-marker family with distinct shapes per role.
@@ -1037,12 +1040,16 @@ private const val SPOT_PUCK_CENTER_Y = 34f // puck circle centre Y (viewBox unit
  * del mismo mundo. El sujeto pasa a ser el anillo de radio que dibuja [PaparcarMapView] como
  * círculo nativo, que es quien lleva el color y quien ya decía el área [ZONE-AREA-001].
  *
- * ### El halo, y por qué se pinta nueve veces
+ * ### El halo, y por qué se pinta trece veces
  * Un texto puede llevar contorno (`TextStyle.drawStyle`), pero un [Icon] no: un `ImageVector` no se
- * puede trazar. Dibujar el rótulo ENTERO en color papel bajo sus ocho vecinos y el de verdad
- * encima le da a glifo y nombre el MISMO casing, que es lo que hace que se lean como un solo
- * objeto dibujado por el mapa y no como dos cosas pegadas. Son nueve composiciones de una fila
- * diminuta dentro de un bitmap que kmpmaps cachea por `contentId`: se pagan una vez, no por frame.
+ * puede trazar. Dibujar el rótulo ENTERO en color papel bajo sus vecinos y el de verdad encima le
+ * da a glifo y nombre el MISMO casing, que es lo que hace que se lean como un solo objeto dibujado
+ * por el mapa y no como dos cosas pegadas. Son trece composiciones de una fila diminuta dentro de
+ * un bitmap que kmpmaps cachea por `contentId`: se pagan una vez, no por frame.
+ *
+ * Los vecinos van repartidos por una CIRCUNFERENCIA ([ZONE_HALO_OFFSETS]), no por las esquinas de
+ * un cuadrado: un casing sólo mide lo mismo en todas las direcciones si el vecindario es isótropo,
+ * y con las diagonales a √2 el glifo perdía la punta. [UI-A-HALO-MUST-FOLLOW-THE-GLYPH-NOT-ITS-BOX-001]
  *
  * @param name nombre de la zona. Se pinta sólo si [showName]; vacío ⇒ sólo el glifo.
  * @param icon icono preset de la zona (resuelto desde `zone.iconKey`).
@@ -1153,13 +1160,26 @@ private val ZONE_LABEL_LOCK_GAP   = 2.dp
 private val ZONE_LABEL_MAX_TEXT_W = 96.dp
 private val ZONE_LABEL_TEXT_SP    = 12.sp
 
-// Grosor del halo de papel. Las ocho direcciones (no cuatro): en diagonal el hueco entre dos
-// pasadas ortogonales deja pasar la tesela, y eso se ve como un borde sucio a tamaño de marcador.
+// Grosor del halo de papel. Más de cuatro direcciones: en diagonal el hueco entre dos pasadas
+// ortogonales deja pasar la tesela, y eso se ve como un borde sucio a tamaño de marcador.
 private val ZONE_LABEL_HALO = 1.5.dp
-private val ZONE_HALO_OFFSETS = listOf(
-    -1f to 0f, 1f to 0f, 0f to -1f, 0f to 1f,
-    -1f to -1f, -1f to 1f, 1f to -1f, 1f to 1f,
-)
+
+// ⛔ Las direcciones van sobre una CIRCUNFERENCIA de radio 1, no sobre las esquinas de un cuadrado.
+// Con `(±1,±1)` las cuatro diagonales caían a √2 (un 41% más lejos que las ortogonales), así que la
+// unión de las copias no era el glifo engordado sino el glifo DILATADO POR UN CUADRADO — y dilatar
+// una punta con un cuadrado la convierte en una barra plana. En el nombre no se veía (el texto no
+// tiene puntas); en el glifo de la zona el pin perdía el pico y se leía como un marcador recortado.
+// Radio constante = mismo casing en todas las direcciones, que es lo que este halo prometía, y
+// ninguna copia se sale del `padding(ZONE_LABEL_HALO)` que le reserva el hueco.
+// Doce y no ocho: sobre la circunferencia, ocho dejan huecos de 45° y el casing se ve poligonal a
+// tamaño de marcador. Son doce composiciones de una fila diminuta dentro de un bitmap que kmpmaps
+// cachea por `contentId`: se pagan una vez, no por frame.
+// [UI-A-HALO-MUST-FOLLOW-THE-GLYPH-NOT-ITS-BOX-001]
+private const val ZONE_HALO_DIRECTIONS = 12
+private val ZONE_HALO_OFFSETS: List<Pair<Float, Float>> = List(ZONE_HALO_DIRECTIONS) { i ->
+    val angle = 2.0 * PI * i / ZONE_HALO_DIRECTIONS
+    cos(angle).toFloat() to sin(angle).toFloat()
+}
 
 // ─── Fuel-station layer ──────────────────────────────────────────────────────
 
