@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.presentation.home.sections.sheet.components
 
+import com.rndeveloper.paparcar.ui.components.papGuideHighlight
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateDpAsState
@@ -167,13 +168,15 @@ fun AddZoneChip(
     onAddZone: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    /** A checklist step is pointing at this chip. [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001] */
+    highlighted: Boolean = false,
 ) {
     val cs = MaterialTheme.colorScheme
     GlassSurface(
         onClick = onAddZone,
         shape = RoundedCornerShape(ZONE_CHIP_RADIUS_DP.dp),
         shadowElevation = MAP_FLOATING_SHADOW_DP.dp,
-        modifier = modifier,
+        modifier = modifier.papGuideHighlight(highlighted, RoundedCornerShape(ZONE_CHIP_RADIUS_DP.dp)),
     ) {
         Row(
             // `heightIn`, not `height`: COLLAPSED it must be exactly the row's height, but expanded

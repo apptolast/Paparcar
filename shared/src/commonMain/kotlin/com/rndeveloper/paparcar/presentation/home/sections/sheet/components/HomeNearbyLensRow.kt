@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.presentation.home.sections.sheet.components
 
+import com.rndeveloper.paparcar.ui.components.papGuideHighlight
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -73,6 +74,9 @@ internal fun HomeNearbyLensRow(
     parkingsCount: Int,
     onSelect: (HomeNearbyLens) -> Unit,
     modifier: Modifier = Modifier,
+    /** Tabs a checklist step is pointing at — outlined, never selected for the user.
+     *  [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001] */
+    highlighted: Set<HomeNearbyLens> = emptySet(),
 ) {
     // El divisor viaja DENTRO de la fila, no como un item suelto debajo: esta fila es un
     // `stickyHeader`, así que un divisor puesto fuera se quedaría atrás mientras la fila flota sobre
@@ -90,6 +94,7 @@ internal fun HomeNearbyLensRow(
                 count = spotCount,
                 lens = lens,
                 onSelect = onSelect,
+                highlighted = highlighted,
                 modifier = Modifier.weight(1f),
             )
             LensTab(
@@ -99,6 +104,7 @@ internal fun HomeNearbyLensRow(
                 count = parkingsCount,
                 lens = lens,
                 onSelect = onSelect,
+                highlighted = highlighted,
                 modifier = Modifier.weight(1f),
             )
             LensTab(
@@ -108,6 +114,7 @@ internal fun HomeNearbyLensRow(
                 count = fuelCount,
                 lens = lens,
                 onSelect = onSelect,
+                highlighted = highlighted,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -135,6 +142,7 @@ private fun LensTab(
     count: Int,
     lens: HomeNearbyLens,
     onSelect: (HomeNearbyLens) -> Unit,
+    highlighted: Set<HomeNearbyLens>,
     modifier: Modifier = Modifier,
 ) {
     val selected = lens == subject
@@ -163,6 +171,7 @@ private fun LensTab(
 
     Column(
         modifier = modifier
+            .papGuideHighlight(subject in highlighted, RoundedCornerShape(GUIDE_HIGHLIGHT_RADIUS_DP.dp))
             .selectable(
                 selected = selected,
                 role = Role.Tab,
@@ -233,3 +242,6 @@ private const val COUNT_H_PADDING_DP = 5
 private const val COUNT_V_PADDING_DP = 1
 /** The count sits on its own tinted pill — the same colour as its tab, faded to a background. */
 private const val COUNT_BG_ALPHA = 0.16f
+
+// Corner of the tutorial's outline around a tab. [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001]
+private const val GUIDE_HIGHLIGHT_RADIUS_DP = 12

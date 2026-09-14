@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.presentation.home.sections.sheet
 
+import com.rndeveloper.paparcar.presentation.home.model.FirstStepGuide
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.foundation.clickable
@@ -73,6 +74,8 @@ internal fun HomeBottomSheet(
     peek: HomePeekSlice,
     browse: HomeBrowseListSlice,
     frame: HomeSheetFrame,
+    /** The control a checklist step is pointing at, if any. [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001] */
+    firstStepGuide: FirstStepGuide? = null,
     /** Browse header subject swap: true while the sheet sits beyond peek (expanded browse
      *  shows the zone counter header instead of the parked car). [UI-SHEET-004] */
     browseShowsZoneHeader: Boolean,
@@ -205,6 +208,7 @@ internal fun HomeBottomSheet(
                         onIntent = onIntent,
                         onAction = onAction,
                         rowsScroll = frame.rowsScroll,
+                        firstStepGuide = firstStepGuide,
                     )
                 }
             }

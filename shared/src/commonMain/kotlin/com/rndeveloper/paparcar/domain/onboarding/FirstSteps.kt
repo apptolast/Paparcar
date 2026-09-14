@@ -101,6 +101,19 @@ enum class FirstStep {
      * A new step has to declare which kind it is HERE, not inherit one from a `when` elsewhere.
      */
     val completesOnEngage: Boolean get() = this == FIND_SPOT || this == EXPLORE_NEARBY
+
+    /**
+     * A step the tutorial cannot be finished without: while one is pending the checklist offers no
+     * "Skip". No badge says so — being the steps the checklist opens with, and the only ones without a
+     * way around them, makes it understood (review of #25). [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001]
+     *
+     * Only the two that protect the user's own car: [MARK_PARKING] arms everything else, and
+     * [PRIVATE_ZONE] is what keeps a private garage from being published. Every other step already
+     * has a way to finish it without using the feature — knowledge steps close on engaging, and the
+     * permission steps carry "Not yet". Required never means blocking: the app works around the
+     * checklist, and the private-zone step can be answered "I don't have one".
+     */
+    val isRequired: Boolean get() = this == MARK_PARKING || this == PRIVATE_ZONE
 }
 
 /**
@@ -276,6 +289,10 @@ data class FirstStepsProgress(
     /** True when the checklist has run out of things to ASK but something was left deferred: the
      *  closing card has to say so instead of "you're all set". */
     val hasDeferrals: Boolean get() = applicable.any { it in deferred && it !in done }
+
+    /** A required step is still open — the checklist hides its "Skip" until there is none.
+     *  [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001] */
+    val hasPendingRequired: Boolean get() = applicable.any { it.isRequired && it !in done }
 
     /**
      * Which detection-surface row the checklist is speaking for right now — see

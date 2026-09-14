@@ -709,6 +709,7 @@
     <string name="first_steps_eyebrow">First steps</string>
     <string name="first_steps_progress">%1$d of %2$d</string>
     <string name="first_steps_skip">Skip</string>
+    <string name="first_steps_show_where">Show me where</string>
     <string name="first_steps_how_it_works">How it works</string>
     <string name="first_steps_done_cta">Done</string>
     <string name="first_steps_complete_title">You're all set</string>
@@ -734,7 +735,6 @@
     <string name="first_steps_spot_cta">See spots</string>
     <string name="first_steps_spot_report_title">Seen a free spot? Report it</string>
     <string name="first_steps_spot_report_sub">A space someone else left — not your own parking. Mark it and nearby drivers see it.</string>
-    <string name="first_steps_spot_report_cta">Report a spot</string>
     <string name="first_steps_spotlight_caption">The pin stays put — drag the MAP until it sits on your car, then confirm below.</string>
     <string name="settings_replay_first_steps">Replay the first steps</string>
     <string name="settings_replay_first_steps_done">First steps are back on Home</string>
@@ -958,7 +958,6 @@
     <string name="first_steps_explain_explore_note">Neither one comes from the community: both are public data, so they are there from day one, and free for everyone.</string>
     <string name="first_steps_zone_title">Protect your garage</string>
     <string name="first_steps_zone_sub">If you park in a private garage, add a private zone there: when you leave it, we will not publish a free spot.</string>
-    <string name="first_steps_zone_cta">Add private zone</string>
     <string name="first_steps_zone_no_garage">I don't have one</string>
     <string name="first_steps_explain_zone_title">Your garage is not a free spot</string>
     <string name="first_steps_explain_zone_body">When you drive away, Paparcar frees your space for someone else. In a private garage (your home, your work) nobody else can use it.</string>

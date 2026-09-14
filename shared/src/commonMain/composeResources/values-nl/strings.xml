@@ -677,6 +677,7 @@
     <string name="first_steps_eyebrow">Eerste stappen</string>
     <string name="first_steps_progress">%1$d van %2$d</string>
     <string name="first_steps_skip">Overslaan</string>
+    <string name="first_steps_show_where">Laat zien waar</string>
     <string name="first_steps_how_it_works">Hoe het werkt</string>
     <string name="first_steps_done_cta">Klaar</string>
     <string name="first_steps_complete_title">Je bent er klaar voor</string>
@@ -702,7 +703,6 @@
     <string name="first_steps_spot_cta">Plekken bekijken</string>
     <string name="first_steps_spot_report_title">Zie je een vrije plek? Meld hem</string>
     <string name="first_steps_spot_report_sub">Een plek die iemand anders achterliet, niet je eigen parkeerplaats. Markeer hem en bestuurders in de buurt zien hem.</string>
-    <string name="first_steps_spot_report_cta">Plek melden</string>
     <string name="first_steps_spotlight_caption">De speld blijft staan: sleep de KAART tot hij op je auto ligt en bevestig hieronder.</string>
     <string name="settings_replay_first_steps">Eerste stappen opnieuw bekijken</string>
     <string name="settings_replay_first_steps_done">De eerste stappen staan weer op Home</string>
@@ -898,7 +898,6 @@
     <string name="first_steps_explain_explore_note">Geen van beide komt van de community: het is publieke data, dus vanaf dag één aanwezig, en gratis voor iedereen.</string>
     <string name="first_steps_zone_title">Bescherm je garage</string>
     <string name="first_steps_zone_sub">Parkeer je in een privégarage? Voeg daar een privézone toe: als je vertrekt, publiceren we geen vrije plek.</string>
-    <string name="first_steps_zone_cta">Privézone toevoegen</string>
     <string name="first_steps_zone_no_garage">Heb ik niet</string>
     <string name="first_steps_explain_zone_title">Je garage is geen vrije plek</string>
     <string name="first_steps_explain_zone_body">Als je wegrijdt, geeft Paparcar je plek vrij voor iemand anders. In een privégarage (thuis, op het werk) kan niemand anders hem gebruiken.</string>

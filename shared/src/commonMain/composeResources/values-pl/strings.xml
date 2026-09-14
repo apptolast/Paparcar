@@ -688,6 +688,7 @@
     <string name="first_steps_eyebrow">Pierwsze kroki</string>
     <string name="first_steps_progress">%1$d z %2$d</string>
     <string name="first_steps_skip">Pomiń</string>
+    <string name="first_steps_show_where">Pokaż gdzie</string>
     <string name="first_steps_how_it_works">Jak to działa</string>
     <string name="first_steps_done_cta">Gotowe</string>
     <string name="first_steps_complete_title">Wszystko gotowe</string>
@@ -713,7 +714,6 @@
     <string name="first_steps_spot_cta">Zobacz miejsca</string>
     <string name="first_steps_spot_report_title">Widzisz wolne miejsce? Zgłoś je</string>
     <string name="first_steps_spot_report_sub">Miejsce, które zostawił ktoś inny, nie twoje parkowanie. Zaznacz je, a kierowcy w pobliżu je zobaczą.</string>
-    <string name="first_steps_spot_report_cta">Zgłoś miejsce</string>
     <string name="first_steps_spotlight_caption">Pinezka stoi w miejscu: przeciągaj MAPĘ, aż znajdzie się na twoim samochodzie, i potwierdź poniżej.</string>
     <string name="settings_replay_first_steps">Powtórz pierwsze kroki</string>
     <string name="settings_replay_first_steps_done">Pierwsze kroki znów są na ekranie głównym</string>
@@ -932,7 +932,6 @@
     <string name="first_steps_explain_explore_note">Żadne z nich nie pochodzi od społeczności: to dane publiczne, więc są od pierwszego dnia, i za darmo dla wszystkich.</string>
     <string name="first_steps_zone_title">Chroń swój garaż</string>
     <string name="first_steps_zone_sub">Jeśli parkujesz w prywatnym garażu, dodaj tam strefę prywatną: gdy wyjedziesz, nie opublikujemy wolnego miejsca.</string>
-    <string name="first_steps_zone_cta">Dodaj strefę prywatną</string>
     <string name="first_steps_zone_no_garage">Nie mam garażu</string>
     <string name="first_steps_explain_zone_title">Twój garaż to nie wolne miejsce</string>
     <string name="first_steps_explain_zone_body">Gdy odjeżdżasz, Paparcar zwalnia twoje miejsce dla kogoś innego. W prywatnym garażu (dom, praca) nikt inny nie może z niego skorzystać.</string>
