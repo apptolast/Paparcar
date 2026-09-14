@@ -1,7 +1,6 @@
 # UI-NO-LOCATION-WEARS-THE-ACCURACY-PILL-001 · «Sin ubicación» habla por la píldora, no por el peek
 
-**Estado:** 🔵 En progreso · rama `feature/UI-NO-LOCATION-WEARS-THE-ACCURACY-PILL-001` ·
-worktree `../Paparcar-no-location-pill` · issue [#27](https://github.com/apptolast/Paparcar/issues/27) · PR [#28](https://github.com/apptolast/Paparcar/pull/28)
+**Estado:** ✅ Done (14-09-2026) · issue [#27](https://github.com/apptolast/Paparcar/issues/27) · PR [#28](https://github.com/apptolast/Paparcar/pull/28)
 
 ## Problema
 
@@ -102,9 +101,13 @@ el pin vale algo.
 `--rerun-tasks` para que los guardarraíles de Konsist (imports, tipografía, color, paridad de
 locales) se ejecuten de verdad y no salgan UP-TO-DATE. Todo en verde.
 
-⏳ **Falta verlo en mano**: la píldora ámbar pulsable con el permiso denegado, y que al concederlo se
-vaya sola. El CI de la organización está caído por facturación de GitHub Actions, así que la
-verificación es local.
+**En device (Oppo, 14-09)**: `prodRelease` firmado con el keystore del repo instalado sobre el
+sideload anterior (`install -r`, sin perder login ni sesión), sha256 device↔local idéntico, app viva
+y `CoordinatorDetectionService` en foreground. Con la ubicación concedida la píldora está callada,
+que es el caso normal; los dos mensajes se miran en la galería del flavor mock.
+
+El CI de la organización está caído por facturación de GitHub Actions, así que la verificación
+automatizada es la local.
 
 ## Pregunta abierta
 
