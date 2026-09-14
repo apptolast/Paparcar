@@ -77,6 +77,22 @@ class RunDepartureCheckUseCase(
     private val nowMs: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
     /**
+     * @param triggerAtMs  when this trigger fired / was handled. Feeds the independence gate —
+     *        the fix sampled to RESOLVE a trigger may not also corroborate it
+     *        ([DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001]) — so it is a fact about OUR scheduler
+     *        and `now` is the right answer for it.
+     * @param departedAtMs the instant the car was MEASURED to leave, or **null when nothing
+     *        measured it**. The ONLY input to the freed-spot freshness gate.
+     *        [DET-AN-EXIT-IS-DATED-BY-THE-FIX-THAT-CROSSED-IT-001] This used to be the same value
+     *        as [triggerAtMs] — one parameter answering two different questions, which coincide
+     *        only while triggers arrive on time. On a delayed delivery (Doze, OEM freeze) the
+     *        trigger's clock impersonated the departure's, the age came out as zero and a plaza
+     *        freed hours earlier was advertised as fresh.
+     *
+     *        **Deliberately has no default**, like [ProcessConfirmedDepartureUseCase]'s
+     *        `publishSpot` and for the same reason: a default would answer "it just happened"
+     *        forever, in silence. [DET-A-DOUBT-FIELD-MUST-NOT-DEFAULT-TO-CERTAINTY-001]
+     *        ⛔ Never pass `?: nowMs` — null already means the right thing downstream.
      * @param attempt      0-based attempt counter from the scheduler (WorkManager's `runAttemptCount`).
      * @param preconfirmed true when the parked-state reconcile already PROVED the departure
      *        (fresh anchor + step budget: displacement without the steps to walk it). The trip is
@@ -86,7 +102,8 @@ class RunDepartureCheckUseCase(
      */
     suspend operator fun invoke(
         geofenceId: String,
-        exitTimestampMs: Long,
+        triggerAtMs: Long,
+        departedAtMs: Long?,
         attempt: Int,
         preconfirmed: Boolean = false,
     ): DepartureCheckOutcome {
@@ -113,7 +130,7 @@ class RunDepartureCheckUseCase(
 
             val decision = detectParkingDeparture(
                 geofenceId = geofenceId,
-                exitTimestampMs = exitTimestampMs,
+                triggerAtMs = triggerAtMs,
                 currentFix = fix,
             )
             // [DET-DEPART-PROOF-001] Carry the inconclusive reason into the verdict label so the
@@ -136,7 +153,7 @@ class RunDepartureCheckUseCase(
                         source = "worker",
                         attempt = attempt,
                         speedKmh = speedKmh,
-                        enterAgeMs = departureEventBus.lastVehicleEnteredAt?.let { exitTimestampMs - it },
+                        enterAgeMs = departureEventBus.lastVehicleEnteredAt?.let { triggerAtMs - it },
                     )
                 )
             }
@@ -198,11 +215,19 @@ class RunDepartureCheckUseCase(
         // [DET-WATCHDOG-DEPARTURE-KNOWS-NO-HOUR-001] The rule moved out to `freedSpotIsStillThere`
         // unchanged: this used to be the ONLY caller that asked it, and the watchdog close — which
         // holds no exit instant at all — published on the default instead.
+        //
+        // [DET-AN-EXIT-IS-DATED-BY-THE-FIX-THAT-CROSSED-IT-001] …and it asks it about
+        // [departedAtMs], not about the trigger's own clock. It used to read `exitTimestampMs`,
+        // which every producer filled with `System.currentTimeMillis()` — so the age was zero by
+        // construction and this gate, written precisely for "a departure recovered long after the
+        // fact", could not fire on the lane it was written for. The two readings differ only when
+        // the trigger arrived late, which is exactly when the answer matters.
         val now = nowMs()
-        val exitAgeMs = now - exitTimestampMs
-        val publishSpot = freedSpotIsStillThere(exitAtMs = exitTimestampMs, nowMs = now, config = config)
+        val exitAgeMs = departedAtMs?.let { now - it }
+        val publishSpot = freedSpotIsStillThere(exitAtMs = departedAtMs, nowMs = now, config = config)
         if (!publishSpot) {
-            PaparcarLogger.d(TAG, "stale departure (age=${exitAgeMs / 60_000}min) — clearing WITHOUT publishing (geof=${geofenceId.take(8)})")
+            val why = exitAgeMs?.let { "age=${it / 60_000}min" } ?: "hour unknown"
+            PaparcarLogger.d(TAG, "stale departure ($why) — clearing WITHOUT publishing (geof=${geofenceId.take(8)})")
         }
 
         // [DET-A-JUST-DEPARTED-CAR-IS-NOT-NO-SESSION-001] A measured departure with nobody following

@@ -37,11 +37,27 @@ class DepartureDetectionWorker(
         val geofenceId = inputData.getString(KEY_GEOFENCE_ID)
             ?: return Result.success()
 
-        val exitTimestampMs = inputData.getLong(KEY_EXIT_TIMESTAMP, -1L)
+        // When this trigger fired. A missing key legitimately reads as "now": the trigger IS firing
+        // now, and this value only anchors the independence gate.
+        val triggerAtMs = inputData.getLong(KEY_TRIGGER_AT, -1L)
             .takeIf { it > 0L } ?: Clock.System.now().toEpochMilliseconds()
+        // [DET-AN-EXIT-IS-DATED-BY-THE-FIX-THAT-CROSSED-IT-001] When the car was MEASURED to leave.
+        // ⛔ A missing key reads as NULL, never as `now`. This line used to be the same `?: now` as
+        // the one above, which is how "we do not know the hour" became "it just happened" — and a
+        // plaza freed hours ago got advertised as fresh. `null` is carried to the freshness gate,
+        // which already reads it as "an unknown hour is not a recent hour" and declines to publish.
+        val departedAtMs = inputData.getLong(KEY_DEPARTED_AT, -1L).takeIf { it > 0L }
         val preconfirmed = inputData.getBoolean(KEY_PRECONFIRMED, false)
 
-        return when (val outcome = runDepartureCheck(geofenceId, exitTimestampMs, attempt = runAttemptCount, preconfirmed = preconfirmed)) {
+        return when (
+            val outcome = runDepartureCheck(
+                geofenceId,
+                triggerAtMs = triggerAtMs,
+                departedAtMs = departedAtMs,
+                attempt = runAttemptCount,
+                preconfirmed = preconfirmed,
+            )
+        ) {
             DepartureCheckOutcome.Retry,
             DepartureCheckOutcome.ProcessFailedRetry -> Result.retry()
             DepartureCheckOutcome.Dismissed -> {
@@ -82,25 +98,45 @@ class DepartureDetectionWorker(
         const val TAG = "DepartureDetectionWorker"
         private const val DIAG = "PARKDIAG/Depart"
         private const val KEY_GEOFENCE_ID = "geofence_id"
-        private const val KEY_EXIT_TIMESTAMP = "exit_timestamp_ms"
+        /** When the trigger FIRED (our scheduler's clock) — anchors the independence gate. */
+        private const val KEY_TRIGGER_AT = "exit_timestamp_ms"
+        /** [DET-AN-EXIT-IS-DATED-BY-THE-FIX-THAT-CROSSED-IT-001] When the car was MEASURED to leave,
+         *  or [NO_MEASURED_DEPARTURE] when nothing measured it. Distinct from [KEY_TRIGGER_AT]
+         *  because they answer different questions and coincide only while triggers arrive on time. */
+        private const val KEY_DEPARTED_AT = "departed_at_ms"
         /** Departure already proven by the parked-state reconcile (step budget) — the check must
          *  not re-decide by live speed, only process. [DET-RECONCILE-001] */
         private const val KEY_PRECONFIRMED = "preconfirmed"
+
+        /** Sentinel for "no measured departure instant": `workData` has no nullable Long, and a
+         *  key simply left out would read back as the `getLong` default — the same silent
+         *  "absent means fine" that this ticket exists to kill. Written explicitly, read back as
+         *  null by `takeIf { it > 0L }`. Same trick as `ReportSpotWorker`'s NaN for floats. */
+        private const val NO_MEASURED_DEPARTURE = -1L
 
         /** Backoff for [DepartureCheckOutcome.Retry] — with EXPONENTIAL 15s the inconclusive
          *  retries fire at ~15s/30s/60s (see [RunDepartureCheckUseCase.MAX_INCONCLUSIVE_ATTEMPTS]). */
         private const val INITIAL_BACKOFF_SECONDS = 15L
 
+        /**
+         * @param triggerAtMs  when this trigger fired — `System.currentTimeMillis()` at the intake.
+         * @param departedAtMs the MEASURED instant the car left, or null. Callers derive it through
+         *   [com.rndeveloper.paparcar.domain.detection.measuredDepartureAtMs]. **No default**: every
+         *   dispatch site must answer, because the one that did not is the one that published
+         *   ghosts. [DET-A-DOUBT-FIELD-MUST-NOT-DEFAULT-TO-CERTAINTY-001]
+         */
         fun buildRequest(
             geofenceId: String,
-            exitTimestampMs: Long,
+            triggerAtMs: Long,
+            departedAtMs: Long?,
             preconfirmed: Boolean = false,
         ): OneTimeWorkRequest =
             OneTimeWorkRequestBuilder<DepartureDetectionWorker>()
                 .setInputData(
                     workDataOf(
                         KEY_GEOFENCE_ID to geofenceId,
-                        KEY_EXIT_TIMESTAMP to exitTimestampMs,
+                        KEY_TRIGGER_AT to triggerAtMs,
+                        KEY_DEPARTED_AT to (departedAtMs ?: NO_MEASURED_DEPARTURE),
                         KEY_PRECONFIRMED to preconfirmed,
                     )
                 )

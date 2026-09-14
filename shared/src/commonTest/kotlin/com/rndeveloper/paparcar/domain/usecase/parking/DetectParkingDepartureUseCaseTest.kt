@@ -50,7 +50,7 @@ class DetectParkingDepartureUseCaseTest {
         val repo = FakeUserParkingRepository()  // empty → getActiveSession() = null
         val useCase = buildUseCase(repo = repo)
 
-        val result = useCase(geofenceId = "session-1", exitTimestampMs = exitTimestamp, currentFix = null)
+        val result = useCase(geofenceId = "session-1", triggerAtMs = exitTimestamp, currentFix = null)
 
         assertIs<DepartureDecision.Rejected>(result)
     }
@@ -62,7 +62,7 @@ class DetectParkingDepartureUseCaseTest {
         val repo = FakeUserParkingRepository(activeSession)
         val useCase = buildUseCase(repo = repo)
 
-        val result = useCase(geofenceId = "other-geofence", exitTimestampMs = exitTimestamp, currentFix = null)
+        val result = useCase(geofenceId = "other-geofence", triggerAtMs = exitTimestamp, currentFix = null)
 
         assertIs<DepartureDecision.Rejected>(result)
     }
@@ -75,7 +75,7 @@ class DetectParkingDepartureUseCaseTest {
         val bus = FakeDepartureEventBus(initialTimestamp = null)
         val useCase = buildUseCase(repo = repo, bus = bus)
 
-        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = exitTimestamp, currentFix = null)
+        val result = useCase(geofenceId = activeSession.geofenceId!!, triggerAtMs = exitTimestamp, currentFix = null)
 
         assertIs<DepartureDecision.Inconclusive>(result)
     }
@@ -86,7 +86,7 @@ class DetectParkingDepartureUseCaseTest {
         val bus = FakeDepartureEventBus(initialTimestamp = null)
         val useCase = buildUseCase(repo = repo, bus = bus)
 
-        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = exitTimestamp, currentFix = fix(speedBelowThreshold))
+        val result = useCase(geofenceId = activeSession.geofenceId!!, triggerAtMs = exitTimestamp, currentFix = fix(speedBelowThreshold))
 
         assertIs<DepartureDecision.Inconclusive>(result)
     }
@@ -99,7 +99,7 @@ class DetectParkingDepartureUseCaseTest {
 
         val result = useCase(
             geofenceId = activeSession.geofenceId!!,
-            exitTimestampMs = exitTimestamp,
+            triggerAtMs = exitTimestamp,
             currentFix = fix(speedAboveThreshold, timestamp = independentTimestamp),
         )
 
@@ -120,7 +120,7 @@ class DetectParkingDepartureUseCaseTest {
 
         val result = useCase(
             geofenceId = activeSession.geofenceId!!,
-            exitTimestampMs = exitTimestamp,
+            triggerAtMs = exitTimestamp,
             currentFix = fix(speedAboveThreshold, timestamp = exitTimestamp),
         )
 
@@ -139,7 +139,7 @@ class DetectParkingDepartureUseCaseTest {
 
         val result = useCase(
             geofenceId = activeSession.geofenceId!!,
-            exitTimestampMs = exitTimestamp,
+            triggerAtMs = exitTimestamp,
             currentFix = fix(speedAboveThreshold, timestamp = independentTimestamp - 1L),
         )
 
@@ -157,7 +157,7 @@ class DetectParkingDepartureUseCaseTest {
 
         val result = useCase(
             geofenceId = activeSession.geofenceId!!,
-            exitTimestampMs = exitTimestamp,
+            triggerAtMs = exitTimestamp,
             currentFix = fix(speedBelowThreshold, timestamp = exitTimestamp),
         )
 
@@ -175,7 +175,7 @@ class DetectParkingDepartureUseCaseTest {
 
         val result = useCase(
             geofenceId = activeSession.geofenceId!!,
-            exitTimestampMs = exitTimestamp,
+            triggerAtMs = exitTimestamp,
             currentFix = fix(speedAboveThreshold, accuracyM = 100f),
         )
 
@@ -192,7 +192,7 @@ class DetectParkingDepartureUseCaseTest {
 
         val result = useCase(
             geofenceId = activeSession.geofenceId!!,
-            exitTimestampMs = exitTimestamp,
+            triggerAtMs = exitTimestamp,
             currentFix = fix(speedAboveThreshold, timestamp = independentTimestamp),
         )
 
@@ -209,7 +209,7 @@ class DetectParkingDepartureUseCaseTest {
         val bus = FakeDepartureEventBus(initialTimestamp = exitTimestamp - 60_000L)
         val useCase = buildUseCase(repo = repo, bus = bus)
 
-        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = exitTimestamp, currentFix = null)
+        val result = useCase(geofenceId = activeSession.geofenceId!!, triggerAtMs = exitTimestamp, currentFix = null)
 
         val inconclusive = assertIs<DepartureDecision.Inconclusive>(result)
         assertEquals(false, inconclusive.admissibleBoarding)
@@ -224,7 +224,7 @@ class DetectParkingDepartureUseCaseTest {
         val bus = FakeDepartureEventBus(initialTimestamp = exitTimestamp - 60_000L)
         val useCase = buildUseCase(repo = repo, bus = bus)
 
-        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = exitTimestamp, currentFix = farFix(speedBelowThreshold))
+        val result = useCase(geofenceId = activeSession.geofenceId!!, triggerAtMs = exitTimestamp, currentFix = farFix(speedBelowThreshold))
 
         val inconclusive = assertIs<DepartureDecision.Inconclusive>(result)
         assertEquals(true, inconclusive.admissibleBoarding)
@@ -241,7 +241,7 @@ class DetectParkingDepartureUseCaseTest {
 
         val result = useCase(
             geofenceId = activeSession.geofenceId!!,
-            exitTimestampMs = exitTimestamp,
+            triggerAtMs = exitTimestamp,
             // ~100 m from the car (0.0009° lat), stationary, good accuracy — comfortably
             // inside any fence-radius + pedestrian-reach envelope.
             currentFix = fix(0f, accuracyM = 12f, latitude = 40.4009),
@@ -260,7 +260,7 @@ class DetectParkingDepartureUseCaseTest {
         val bus = FakeDepartureEventBus(initialTimestamp = exitTimestamp + 60_000L) // 1 min AFTER exit
         val useCase = buildUseCase(repo = repo, bus = bus)
 
-        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = exitTimestamp, currentFix = null)
+        val result = useCase(geofenceId = activeSession.geofenceId!!, triggerAtMs = exitTimestamp, currentFix = null)
 
         assertIs<DepartureDecision.Rejected>(result)
     }
@@ -276,7 +276,7 @@ class DetectParkingDepartureUseCaseTest {
         val bus = FakeDepartureEventBus(initialTimestamp = staleTimestamp)
         val useCase = buildUseCase(repo = repo, bus = bus)
 
-        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = lateExitTimestamp, currentFix = null)
+        val result = useCase(geofenceId = activeSession.geofenceId!!, triggerAtMs = lateExitTimestamp, currentFix = null)
 
         assertIs<DepartureDecision.Rejected>(result)
     }
@@ -293,7 +293,7 @@ class DetectParkingDepartureUseCaseTest {
         val bus = FakeDepartureEventBus(initialTimestamp = parkedAt - 60_000L) // inbound trip's boarding
         val useCase = buildUseCase(repo = repo, bus = bus)
 
-        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = exitTimestamp, currentFix = null)
+        val result = useCase(geofenceId = activeSession.geofenceId!!, triggerAtMs = exitTimestamp, currentFix = null)
 
         val inconclusive = assertIs<DepartureDecision.Inconclusive>(result)
         assertEquals(false, inconclusive.admissibleBoarding)
@@ -310,7 +310,7 @@ class DetectParkingDepartureUseCaseTest {
 
         val result = useCase(
             geofenceId = activeSession.geofenceId!!,
-            exitTimestampMs = exitTimestamp,
+            triggerAtMs = exitTimestamp,
             currentFix = fix(speedAboveThreshold, timestamp = independentTimestamp),
         )
 

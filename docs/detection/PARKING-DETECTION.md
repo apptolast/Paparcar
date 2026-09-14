@@ -8132,3 +8132,68 @@ respuesta con la que llegó el coche en vez de con la que vale ahora.
 la mitad «zona privada» de la app era **inalcanzable en todo el set de pruebas**. Ahora es
 scenario-aware (`MockScenario.parkedInPrivateZone`, con su interruptor en el Dev Catalog) y guarda
 de verdad lo que se crea dentro de la app.
+
+### DET-AN-EXIT-IS-DATED-BY-THE-FIX-THAT-CROSSED-IT-001 — una salida se data por el fix que cruzó la valla, no por el instante en que nos enteramos
+
+**Síntoma (user, 14-09-2026).** *«Se han subido spots de Fernando al mapa bastante rato después de
+haberse marchado… no deberían subirse plazas libres a usuarios 2 horas después»*. Usuario real
+(vehículo emparejado por BT), sin gate de diagnósticos: la hora real de esa salida **no se pudo
+datar** — el gate se activó ese mismo día para el próximo viaje. No hizo falta.
+
+**El gate que no podía dispararse.** `freedSpotIsStillThere` existe desde [DET-RECONCILE-001]
+precisamente para esto: 10 minutos de antigüedad máxima para que una plaza liberada se anuncie. Lo
+alimentábamos con `System.currentTimeMillis()` en **todos** sus productores, así que la edad valía
+cero por construcción y el gate era inalcanzable en el carril de la geocerca. Solo atrapaba el
+retraso de *WorkManager* entre encolar y correr; nunca el retraso del *trigger*, que es el modo de
+fallo dominante en un móvil sin exención de batería — o sea, en cualquier usuario real.
+
+La rama peor era `staleExits`: el EXIT entregado **lejos**, cuyo propio comentario dice que eso huele
+a entrega retrasada del sistema (*«the car is moving + OEM lag»*). El caso «nos hemos enterado tarde»
+estaba identificado, comentado… y fechado como si acabara de ocurrir.
+
+**Causa raíz: un parámetro contestando a dos preguntas.** `exitTimestampMs` viajaba por toda la
+cadena de salida respondiendo a dos hechos distintos:
+
+- *¿Cuándo se disparó este trigger?* — ancla de la puerta de independencia
+  ([DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001]): el fix que resuelve un trigger no puede además
+  corroborarlo. Quiere el instante del **manejo**, y `now` es la respuesta correcta.
+- *¿Cuándo se fue el coche?* — única entrada del gate de frescura. Quiere el instante **medido**.
+
+Coinciden mientras los triggers llegan a su hora, y entonces nadie nota nada. Cuando llegan tarde, la
+primera respuesta se hace pasar por la segunda. ⚠️ Por eso **no valía** cambiar el significado del
+campo: si `exitTimestampMs` pasara a ser el cruce medido, la puerta de eco quedaría trivialmente
+satisfecha en toda entrega tardía y aceptaría el fix del propio trigger como prueba independiente,
+reabriendo [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001]. Son dos hechos y necesitan dos campos.
+
+**Fix.** `triggerAtMs` (el de siempre, renombrado a lo que es, alimenta la puerta de eco) y
+`departedAtMs: Long?` (el instante MEDIDO, o null; única entrada del gate de frescura, **sin valor
+por defecto** — [DET-A-DOUBT-FIELD-MUST-NOT-DEFAULT-TO-CERTAINTY-001]). El predicado compartido
+`measuredDepartureAtMs(candidateAtMs, sessionStartMs, nowMs)` vive en `domain/detection/` con el
+resto de la política pura y rechaza dos cosas: evidencia anterior a la sesión (`isAdmissibleEvidence`,
+[DET-SESSION-BIRTH-001]) y un instante en el futuro — un reloj de proveedor desviado no puede
+rejuvenecer una plaza.
+
+**La señal ya la teníamos y no se leía.** `event.triggeringLocation` se usa en cinco sitios del
+carril del EXIT para `latitude`/`longitude`/`accuracy`, y **`.time` no se leía en ninguno**. El único
+sitio donde aparecía el instante del cruce era una línea de log de `GeofenceExitWitnessReceiver`
+(`fixAge = now - it.time`): la app llevaba imprimiendo el número que necesitaba y decidiendo sin él.
+Lo mismo con `SafetyNetAction.tripStartedAtMs`, que el evaluador ya calculaba bien (sello del ancla /
+boarding AR) y el despachador tiraba con un `?: now`.
+
+**⛔ Prohibido `?: now` sobre un instante de salida.** Ese laundering de «no lo sé» a «acaba de
+pasar» estaba en cuatro sitios (`ParkingSafetyNetWorker`, `DepartureDetectionWorker` y sus dos
+gemelos de `IosDetectionController`) y contradecía por escrito la doctrina que el propio
+`FreedSpotIsStillThere.kt` enuncia: *una hora desconocida no es una hora reciente*.
+
+**Riesgo del fix acompañante.** Ninguna puerta pasa a publicar más que antes: el cambio solo puede
+CALLAR publicaciones que antes salían. Eso es el lado seguro del fallo asimétrico, y el coste
+asumido es perder alguna plaza real cuyo cruce no quedó medido — un falso negativo, que es el que
+elegimos. Tres tests nuevos fijan las dos direcciones: trigger fresco + salida de hace 2 h → no
+publica (el caso reportado); trigger tardío + salida medida hace 2 min → **sí** publica; hora
+desconocida → no publica.
+
+**Fuera de alcance, con ticket propio.** `DET-A-BT-CONNECT-IS-A-DEPARTURE-001`: el carril Bluetooth
+**no tiene puerta de salida** — el CONNECT del coche emparejado solo sella `BtConnectionStore` y
+apaga el servicio, así que toda salida de un usuario BT se procesa por el carril del Coordinator,
+que es este. Y `SPOT-A-PROMOTION-INHERITS-THE-AGE-OF-ITS-DEPARTURE-001`: la promoción de una salida
+deducida republica con TTL completo de 2 h sin preguntar la edad de `deducedAtMs`.

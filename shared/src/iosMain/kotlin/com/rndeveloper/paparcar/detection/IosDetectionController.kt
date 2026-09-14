@@ -10,6 +10,7 @@ import com.rndeveloper.paparcar.domain.detection.ArrivalResolutionRecord
 import com.rndeveloper.paparcar.domain.detection.ServicePresence
 import com.rndeveloper.paparcar.domain.detection.TripContext
 import com.rndeveloper.paparcar.domain.detection.coordinatorMayArm
+import com.rndeveloper.paparcar.domain.detection.measuredDepartureAtMs
 import com.rndeveloper.paparcar.domain.detection.ParkingStrategyResolver
 import com.rndeveloper.paparcar.domain.detection.reconcileFences
 import com.rndeveloper.paparcar.domain.detection.sentry.isArmSuppressedByUserStop
@@ -426,7 +427,18 @@ class IosDetectionController(
             // first iOS writer here.)
             exitDeliveryRecords.record(target.geofenceId, clock())
         }
-        launchDepartureLadder(target.geofenceId, exitAtMs = event.timestamp)
+        // [DET-AN-EXIT-IS-DATED-BY-THE-FIX-THAT-CROSSED-IT-001] Two instants, not one: the ladder
+        // fires NOW (that anchors the independence gate) but the freed plaza is dated by the
+        // region event's own stamp — the closest thing this platform has to the fix that crossed.
+        launchDepartureLadder(
+            target.geofenceId,
+            triggerAtMs = clock(),
+            departedAtMs = measuredDepartureAtMs(
+                candidateAtMs = event.timestamp,
+                sessionStartMs = target.session.location.timestamp,
+                nowMs = clock(),
+            ),
+        )
 
         if (!coordinatorMayArm(strategyResolver.resolve(), DetectionTrigger.GEOFENCE_EXIT)) return
 
@@ -449,7 +461,7 @@ class IosDetectionController(
         val now = clock()
         val fresh = getOneLocation(maxAgeMs = config.freshFixMaxAgeMs)
         val evidence = inherited ?: verifyDepartureEvidence(
-            exitTimestampMs = now,
+            triggerAtMs = now,
             currentSpeedKmh = fresh?.speed?.times(MPS_TO_KMH),
             currentAccuracyM = fresh?.accuracy,
             currentFixTimestampMs = fresh?.timestamp,
@@ -469,11 +481,16 @@ class IosDetectionController(
 
     // ── The departure ladder — the freed spot gets published [IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001] ──
 
-    private fun launchDepartureLadder(geofenceId: String, exitAtMs: Long, preconfirmed: Boolean = false) {
+    private fun launchDepartureLadder(
+        geofenceId: String,
+        triggerAtMs: Long,
+        departedAtMs: Long?,
+        preconfirmed: Boolean = false,
+    ) {
         departureLadders.remove(geofenceId)?.cancel()
         departureLadders[geofenceId] = scope.launch {
             try {
-                runDepartureLadder(geofenceId, exitAtMs, preconfirmed)
+                runDepartureLadder(geofenceId, triggerAtMs, departedAtMs, preconfirmed)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Throwable) {
@@ -488,11 +505,24 @@ class IosDetectionController(
      *  differences vs Android, stated because each is a decision: `ProcessFailedRetry` gets an
      *  EXPLICIT cap (Android leans on WorkManager's implicit max-run-attempts), and a Dismissed
      *  fence is only logged — the fence-poison → cure repair is the safety-net mesh's job (F2.4). */
-    private suspend fun runDepartureLadder(geofenceId: String, exitAtMs: Long, preconfirmed: Boolean) {
+    private suspend fun runDepartureLadder(
+        geofenceId: String,
+        triggerAtMs: Long,
+        departedAtMs: Long?,
+        preconfirmed: Boolean,
+    ) {
         var processFailures = 0
         var attempt = 0
         while (true) {
-            when (val outcome = runDepartureCheck(geofenceId, exitAtMs, attempt, preconfirmed = preconfirmed)) {
+            when (
+                val outcome = runDepartureCheck(
+                    geofenceId,
+                    triggerAtMs = triggerAtMs,
+                    departedAtMs = departedAtMs,
+                    attempt = attempt,
+                    preconfirmed = preconfirmed,
+                )
+            ) {
                 DepartureCheckOutcome.Retry -> {
                     delay(LADDER_DELAYS_MS[attempt.coerceAtMost(LADDER_DELAYS_MS.lastIndex)])
                     attempt++
@@ -666,8 +696,15 @@ class IosDetectionController(
             action.geofenceId,
             OpenDepartureAdjudication(openedAtMs = nowMs, preconfirmed = action.preconfirmed),
         )
-        val exitAtMs = action.tripStartedAtMs ?: nowMs
-        launchDepartureLadder(action.geofenceId, exitAtMs, preconfirmed = action.preconfirmed)
+        // [DET-AN-EXIT-IS-DATED-BY-THE-FIX-THAT-CROSSED-IT-001] ⛔ No `?: nowMs`: the evaluator
+        // returning null means it could not date this departure, and saying "just now" on its
+        // behalf is what advertised long-gone plazas as fresh. Mirrors the Android worker.
+        launchDepartureLadder(
+            action.geofenceId,
+            triggerAtMs = nowMs,
+            departedAtMs = action.tripStartedAtMs,
+            preconfirmed = action.preconfirmed,
+        )
         // Hand the REST of the trip to live detection [DET-ARRIVAL-HANDOFF-001] — through the
         // handoff door, never the manual one. With no witness slot on iOS `backfillBounded` is
         // never true, so the arrival is either followed live (this arm) or asked about — a

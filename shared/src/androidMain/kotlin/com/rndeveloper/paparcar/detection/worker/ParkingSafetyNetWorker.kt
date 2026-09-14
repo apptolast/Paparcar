@@ -511,7 +511,14 @@ class ParkingSafetyNetWorker(
                     // dates it (anchor seal, or the AR boarding when that was the proof) so the
                     // freshness gate measures the real age of the freed spot, not the age of
                     // this wake-up. [DET-EXIT-TRUST-001]
-                    val exitAtMs = action.tripStartedAtMs ?: now
+                    //
+                    // [DET-AN-EXIT-IS-DATED-BY-THE-FIX-THAT-CROSSED-IT-001] ⛔ The `?: now` that
+                    // used to close this line undid exactly what the comment above promises: the
+                    // evaluator says "I could not date this departure" with a null, and the
+                    // dispatcher answered "then say it just happened". A live dispatch is not a
+                    // proof of hour either — the phone being at driving speed now says the car is
+                    // moving now, never when it left the plaza. Null travels as null.
+                    val departedAtMs = action.tripStartedAtMs
                     PaparcarLogger.d(
                         DIAG,
                         "▶ far with vehicle evidence — dispatching departure geofence=${action.geofenceId} " +
@@ -522,7 +529,8 @@ class ParkingSafetyNetWorker(
                         ExistingWorkPolicy.REPLACE,
                         DepartureDetectionWorker.buildRequest(
                             geofenceId = action.geofenceId,
-                            exitTimestampMs = exitAtMs,
+                            triggerAtMs = now,
+                            departedAtMs = departedAtMs,
                             preconfirmed = action.preconfirmed,
                         ),
                     )

@@ -55,11 +55,14 @@ class VerifyDepartureEvidenceUseCase(
     }
 
     /**
-     * @param exitTimestampMs  Epoch-ms of the geofence exit event.
+     * @param triggerAtMs  Epoch-ms of when the trigger FIRED / was handled — a fact about our own
+     *        scheduler. Anchors the independence gate and nothing else; the hour the car left is a
+     *        separate fact and lives in `departedAtMs`.
+     *        [DET-AN-EXIT-IS-DATED-BY-THE-FIX-THAT-CROSSED-IT-001]
      * @param currentSpeedKmh  Speed (km/h) sampled when handling the exit, or null if unavailable.
      * @param currentAccuracyM Horizontal accuracy (m) of that sample, or null if unavailable.
      * @param currentFixTimestampMs Epoch-ms the sample was taken. A sample contemporaneous with
-     *        [exitTimestampMs] is the trigger echoing itself, never proof of it; null (no fix)
+     *        [triggerAtMs] is the trigger echoing itself, never proof of it; null (no fix)
      *        fails closed the same way. [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001]
      * @param sessionStartMs   Epoch-ms the exiting session began, or null when unknown. A boarding
      *        that PREDATES the session is the inbound trip's boarding (or an OEM re-delivery of
@@ -72,7 +75,7 @@ class VerifyDepartureEvidenceUseCase(
      *        positional slack of the pedestrian-reach bound.
      */
     operator fun invoke(
-        exitTimestampMs: Long,
+        triggerAtMs: Long,
         currentSpeedKmh: Float?,
         currentAccuracyM: Float? = null,
         currentFixTimestampMs: Long? = null,
@@ -86,7 +89,7 @@ class VerifyDepartureEvidenceUseCase(
                 speedKmh = currentSpeedKmh,
                 accuracyM = currentAccuracyM,
                 fixTimestampMs = currentFixTimestampMs,
-                eventTimestampMs = exitTimestampMs,
+                eventTimestampMs = triggerAtMs,
             )
         ) {
             DepartureSpeedVerdict.Independent -> {
@@ -102,7 +105,7 @@ class VerifyDepartureEvidenceUseCase(
                 TAG,
                 "credible driving speed NOT admissible as arm evidence — sample is the exit's own " +
                     "echo (speedKmh=$currentSpeedKmh acc=$currentAccuracyM fix.ts=$currentFixTimestampMs " +
-                    "exit.ts=$exitTimestampMs gap=${currentFixTimestampMs?.minus(exitTimestampMs)}ms " +
+                    "exit.ts=$triggerAtMs gap=${currentFixTimestampMs?.minus(triggerAtMs)}ms " +
                     "< ${config.departureProofMinGapMs}ms) [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001]",
             )
             DepartureSpeedVerdict.NotDriving -> Unit
@@ -110,7 +113,7 @@ class VerifyDepartureEvidenceUseCase(
 
         val enteredAt = departureEventBus.lastVehicleEnteredAt
             ?.takeIf { isAdmissibleEvidence(it, sessionStartMs) }
-        val enterToExitMs = enteredAt?.let { exitTimestampMs - it }
+        val enterToExitMs = enteredAt?.let { triggerAtMs - it }
         if (enterToExitMs != null && enterToExitMs in 0..config.vehicleEnterWindowMs) {
             // [DET-RIDE-PROOF-001] The ENTER is a nomination; the corroboration is displacement
             // beyond pedestrian reach since the boarding. A phantom ENTER while walking (field

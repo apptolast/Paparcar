@@ -96,7 +96,14 @@ class DetectParkingDepartureUseCase(
 
     /**
      * @param geofenceId        ID of the geofence that fired the exit transition.
-     * @param exitTimestampMs   Epoch-ms of the geofence exit event.
+     * @param triggerAtMs   Epoch-ms of when the exit trigger FIRED / was handled — a fact about our
+     *        own scheduler, not about the car. It anchors the independence gate below, which is the
+     *        only thing it is for. ⛔ Not the hour the car left: that one is [departedAtMs] in
+     *        [RunDepartureCheckUseCase] and it is the freshness gate's business, never this one's.
+     *        Feeding a measured (older) crossing instant in here would make every late-delivered
+     *        exit pass the independence gate trivially — the fix that resolved the trigger would
+     *        "corroborate" it — reopening [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001].
+     *        [DET-AN-EXIT-IS-DATED-BY-THE-FIX-THAT-CROSSED-IT-001]
      * @param currentFix        The freshly sampled fix, or null if unavailable. Travels WHOLE:
      *        speed without credible accuracy is NOT movement evidence — a single acc=100 m cache
      *        jump faked 21.6 km/h on a motionless phone and confirmed a departure (field
@@ -107,7 +114,7 @@ class DetectParkingDepartureUseCase(
      */
     suspend operator fun invoke(
         geofenceId: String,
-        exitTimestampMs: Long,
+        triggerAtMs: Long,
         currentFix: GpsPoint?,
     ): DepartureDecision {
         val currentSpeedKmh = currentFix?.speed?.times(KMH_PER_MPS)
@@ -155,14 +162,14 @@ class DetectParkingDepartureUseCase(
             speedKmh = currentSpeedKmh,
             accuracyM = currentAccuracyM,
             fixTimestampMs = currentFix?.timestamp,
-            eventTimestampMs = exitTimestampMs,
+            eventTimestampMs = triggerAtMs,
         )
         val speedConfirmsMovement = speedVerdict == DepartureSpeedVerdict.Independent
         val inconclusiveReason = if (speedVerdict == DepartureSpeedVerdict.Echo) {
             PaparcarLogger.w(
                 TAG,
                 "credible driving speed REJECTED as exit echo — fix.ts=${currentFix?.timestamp} " +
-                    "exit.ts=$exitTimestampMs gap=${currentFix?.timestamp?.minus(exitTimestampMs)}ms " +
+                    "exit.ts=$triggerAtMs gap=${currentFix?.timestamp?.minus(triggerAtMs)}ms " +
                     "< ${config.departureProofMinGapMs}ms [DET-DEPART-PROOF-001]",
             )
             REASON_EXIT_ECHO
@@ -176,7 +183,7 @@ class DetectParkingDepartureUseCase(
             // receiver converts elapsedRealTimeNanos → epoch), so an ENTER stamped after the exit
             // is a vehicle boarded OUTSIDE the radius (bus/taxi after walking out) — not evidence
             // that the user drove their car away. [DET-SOLID-001]
-            val enterToExitMs = exitTimestampMs - vehicleEnteredAt
+            val enterToExitMs = triggerAtMs - vehicleEnteredAt
             if (enterToExitMs !in 0..config.vehicleEnterWindowMs) {
                 // From a previous trip (too old) or from AFTER the exit — ignore it.
                 PaparcarLogger.w(TAG, "departure rejected: IN_VEHICLE_ENTER outside window — enterToExit=${enterToExitMs}ms window=${config.vehicleEnterWindowMs}ms geofenceId=$geofenceId")
@@ -202,7 +209,7 @@ class DetectParkingDepartureUseCase(
                         session.location.latitude,
                         session.location.longitude,
                     ),
-                    elapsedMs = (currentFix.timestamp.takeIf { it > vehicleEnteredAt } ?: exitTimestampMs) - vehicleEnteredAt,
+                    elapsedMs = (currentFix.timestamp.takeIf { it > vehicleEnteredAt } ?: triggerAtMs) - vehicleEnteredAt,
                     fenceRadiusMeters = config.geofenceRadiusFor(session.sizeCategory, session.location.accuracy),
                     accuracyMeters = currentFix.accuracy,
                 )

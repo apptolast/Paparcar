@@ -25,6 +25,7 @@ import com.rndeveloper.paparcar.domain.detection.ArmEvidence
 import com.rndeveloper.paparcar.domain.detection.DepartureProof
 import com.rndeveloper.paparcar.domain.detection.DetectionTrigger
 import com.rndeveloper.paparcar.domain.detection.freedSpotIsStillThere
+import com.rndeveloper.paparcar.domain.detection.measuredDepartureAtMs
 import com.rndeveloper.paparcar.domain.detection.sentry.TriggerDisposition
 import com.rndeveloper.paparcar.domain.detection.coordinatorMayArm
 import com.rndeveloper.paparcar.domain.detection.sentry.isArmSuppressedByUserStop
@@ -688,6 +689,30 @@ class CoordinatorDetectionService : LifecycleService() {
     }
 
     /**
+     * [DET-AN-EXIT-IS-DATED-BY-THE-FIX-THAT-CROSSED-IT-001] When the car actually crossed this
+     * fence, according to the fix that made Play Services fire the transition — or null when that
+     * fix is missing or cannot be believed for this session.
+     *
+     * Pure translation of an Android [android.location.Location] into the shared predicate: the
+     * DECISION (admissible for this session? not in the future?) lives in
+     * [measuredDepartureAtMs], commonMain and tested; the service only unwraps the platform type.
+     *
+     * `triggeringLocation.time` was already being read on this lane — for latitude, longitude and
+     * accuracy — while `.time` went unread in all five of its usages. The only place the crossing
+     * instant appeared at all was a log line in `GeofenceExitWitnessReceiver` (`fixAge = now -
+     * it.time`): the app has been printing the number it needed and deciding without it.
+     */
+    private fun exitCrossedAtMs(
+        triggerLoc: android.location.Location?,
+        session: UserParking,
+        nowMs: Long,
+    ): Long? = measuredDepartureAtMs(
+        candidateAtMs = triggerLoc?.time?.takeIf { it > 0L },
+        sessionStartMs = session.location.timestamp,
+        nowMs = nowMs,
+    )
+
+    /**
      * [DET-AR-REARM-001] Watchdog "I've left" tap: the user confirmed a departure the geofence EXIT
      * missed. Closes the session for the given geofence via [ProcessConfirmedDepartureUseCase]
      * (clear session + remove geofence + unregister AR arming), dismisses the prompt, tears down.
@@ -811,12 +836,16 @@ class CoordinatorDetectionService : LifecycleService() {
         // 3a. Fast path: dispatch departure (speed-gated release) ONLY for the departing
         //     vehicle(s). Emitting the in-process Exited event only for the departing geofence
         //     keeps any UI observer from clearing the still-parked inactive car.
-        for ((id, _) in boundaryExits) {
+        for ((id, session) in boundaryExits) {
             geofenceEventBus.emit(GeofenceEvent.Exited(geofenceId = id, timestamp = now))
             WorkManager.getInstance(this@CoordinatorDetectionService).enqueueUniqueWork(
                 "${DepartureDetectionWorker.TAG}_$id",
                 ExistingWorkPolicy.REPLACE,
-                DepartureDetectionWorker.buildRequest(geofenceId = id, exitTimestampMs = now),
+                DepartureDetectionWorker.buildRequest(
+                    geofenceId = id,
+                    triggerAtMs = now,
+                    departedAtMs = exitCrossedAtMs(triggerLoc, session, now),
+                ),
             )
         }
 
@@ -841,15 +870,25 @@ class CoordinatorDetectionService : LifecycleService() {
             if (isDebugBuild) {
                 notificationPort.showDebug("Aviso de salida entregado LEJOS de la plaza ($detail): huele a entrega retrasada del sistema → compruebo ahora tu velocidad real; la plaza NO se libera todavía")
             }
-            for ((id, _) in staleExits) {
+            for ((id, session) in staleExits) {
                 ParkingSafetyNetWorker.recordStaleExitDelivery(this@CoordinatorDetectionService, id, now)
                 // Same machinery as the boundary path (speed-gated, retries, corroborated
                 // fall-through) — only the in-process Exited emission is withheld so UI
                 // observers don't clear a session the live check may yet dismiss.
+                //
+                // [DET-AN-EXIT-IS-DATED-BY-THE-FIX-THAT-CROSSED-IT-001] THIS is the branch the
+                // ticket was opened on. "Delivered far" is, by this lane's own reading two lines
+                // up, the signature of an OEM-delayed delivery — and it dispatched with
+                // `exitTimestampMs = now`, so the freshness gate measured an age of zero and
+                // published whatever the fence had been holding. The crossing fix knows better.
                 WorkManager.getInstance(this@CoordinatorDetectionService).enqueueUniqueWork(
                     "${DepartureDetectionWorker.TAG}_$id",
                     ExistingWorkPolicy.REPLACE,
-                    DepartureDetectionWorker.buildRequest(geofenceId = id, exitTimestampMs = now),
+                    DepartureDetectionWorker.buildRequest(
+                        geofenceId = id,
+                        triggerAtMs = now,
+                        departedAtMs = exitCrossedAtMs(triggerLoc, session, now),
+                    ),
                 )
             }
             ParkingSafetyNetWorker.enqueueCheckNow(
@@ -938,7 +977,7 @@ class CoordinatorDetectionService : LifecycleService() {
                 val exitFix = runCatching { getOneLocation(maxAgeMs = detectionConfig.freshFixMaxAgeMs) }.getOrNull()
                 val speedKmh = exitFix?.speed?.times(KMH_PER_MPS)
                 val armEvidence = verifyDepartureEvidence(
-                    exitTimestampMs = now,
+                    triggerAtMs = now,
                     currentSpeedKmh = speedKmh,
                     currentAccuracyM = exitFix?.accuracy,
                     // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] The sample's own clock: a fix
@@ -1139,7 +1178,7 @@ class CoordinatorDetectionService : LifecycleService() {
                 // a coordinator armed with whatever evidence the verifier grants NOW.
                 val speedKmh = fix?.speed?.times(KMH_PER_MPS)
                 val armEvidence = verifyDepartureEvidence(
-                    exitTimestampMs = now,
+                    triggerAtMs = now,
                     currentSpeedKmh = speedKmh,
                     currentAccuracyM = fix?.accuracy,
                     // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] Same rule as the EXIT lane: the
@@ -1162,7 +1201,20 @@ class CoordinatorDetectionService : LifecycleService() {
                 WorkManager.getInstance(this@CoordinatorDetectionService).enqueueUniqueWork(
                     "${DepartureDetectionWorker.TAG}_${decision.geofenceId}",
                     ExistingWorkPolicy.REPLACE,
-                    DepartureDetectionWorker.buildRequest(geofenceId = decision.geofenceId, exitTimestampMs = now),
+                    DepartureDetectionWorker.buildRequest(
+                        geofenceId = decision.geofenceId,
+                        triggerAtMs = now,
+                        // [DET-AN-EXIT-IS-DATED-BY-THE-FIX-THAT-CROSSED-IT-001] On this lane the
+                        // boarding IS the departure, and AR stamps it with its own true time — the
+                        // same instant `lagMs` above is measured against. A transition delivered
+                        // ~2 min late (the ordinary case for AR) no longer dates the freed plaza
+                        // to the moment we happened to receive it.
+                        departedAtMs = measuredDepartureAtMs(
+                            candidateAtMs = trueEpochMs,
+                            sessionStartMs = session.location.timestamp,
+                            nowMs = now,
+                        ),
+                    ),
                 )
                 cancelDetectionJob()
                 startParkingDetection(

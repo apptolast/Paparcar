@@ -59,7 +59,7 @@ class RunDepartureCheckUseCaseTest {
     fun should_dismiss_when_no_active_session_matches() = runTest {
         val env = Env(repo = FakeUserParkingRepository())
 
-        val outcome = env.useCase("geo-1", exitTimestamp, attempt = 0)
+        val outcome = env.useCase("geo-1", exitTimestamp, departedAtMs = exitTimestamp, attempt = 0)
 
         assertIs<DepartureCheckOutcome.Dismissed>(outcome)
         assertEquals(0, env.listener.notifyCount)
@@ -70,7 +70,7 @@ class RunDepartureCheckUseCaseTest {
         // Session active, no AR ENTER, no GPS speed sample → Inconclusive.
         val env = Env()
 
-        val outcome = env.useCase("geo-1", exitTimestamp, attempt = 0)
+        val outcome = env.useCase("geo-1", exitTimestamp, departedAtMs = exitTimestamp, attempt = 0)
 
         assertIs<DepartureCheckOutcome.Retry>(outcome)
         assertEquals(0, env.listener.notifyCount)
@@ -86,6 +86,7 @@ class RunDepartureCheckUseCaseTest {
         val outcome = env.useCase(
             "geo-1",
             exitTimestamp,
+            departedAtMs = exitTimestamp,
             attempt = RunDepartureCheckUseCase.MAX_INCONCLUSIVE_ATTEMPTS,
         )
 
@@ -110,7 +111,7 @@ class RunDepartureCheckUseCaseTest {
         // rejection (no session for this fence, or an ENTER from a previous trip). Same duty.
         val env = Env(repo = FakeUserParkingRepository())
 
-        val outcome = env.useCase("geo-1", exitTimestamp, attempt = 0)
+        val outcome = env.useCase("geo-1", exitTimestamp, departedAtMs = exitTimestamp, attempt = 0)
 
         assertIs<DepartureCheckOutcome.Dismissed>(outcome)
         assertEquals(listOf("geo-1"), env.listener.dismissedGeofenceIds)
@@ -123,7 +124,7 @@ class RunDepartureCheckUseCaseTest {
         // only nominates; without measured movement the attempt retries and releases nothing.
         val env = Env(bus = FakeDepartureEventBus(initialTimestamp = exitTimestamp - 60_000L))
 
-        val outcome = env.useCase("geo-1", exitTimestamp, attempt = 0)
+        val outcome = env.useCase("geo-1", exitTimestamp, departedAtMs = exitTimestamp, attempt = 0)
 
         assertIs<DepartureCheckOutcome.Retry>(outcome)
         assertEquals(0, env.listener.notifyCount)
@@ -139,7 +140,7 @@ class RunDepartureCheckUseCaseTest {
         val env = Env(repo = repo, bus = FakeDepartureEventBus(initialTimestamp = exitTimestamp - 60_000L))
         launch { env.locationSource.emitBalanced(currentFix(speedMps = 8f, accuracy = 10f)) }
 
-        val outcome = env.useCase("geo-1", exitTimestamp, attempt = 0)
+        val outcome = env.useCase("geo-1", exitTimestamp, departedAtMs = exitTimestamp, attempt = 0)
 
         assertIs<DepartureCheckOutcome.ProcessFailedRetry>(outcome)
     }
@@ -148,7 +149,7 @@ class RunDepartureCheckUseCaseTest {
     fun should_log_a_worker_verdict_per_attempt() = runTest {
         val env = Env()
 
-        env.useCase("geo-1", exitTimestamp, attempt = 1)
+        env.useCase("geo-1", exitTimestamp, departedAtMs = exitTimestamp, attempt = 1)
 
         val verdict = env.logger.events.filterIsInstance<DetectionEvent.DepartureVerdict>().single()
         assertEquals("geo-1", verdict.sessionId)
@@ -226,7 +227,7 @@ class RunDepartureCheckUseCaseTest {
         val env = Env()
         launch { env.locationSource.emitBalanced(currentFix(speedMps = 6f, accuracy = 100f)) }
 
-        val outcome = env.useCase("geo-1", exitTimestamp, attempt = 0)
+        val outcome = env.useCase("geo-1", exitTimestamp, departedAtMs = exitTimestamp, attempt = 0)
 
         assertIs<DepartureCheckOutcome.Retry>(outcome)
         assertEquals(0, env.listener.notifyCount)
@@ -239,7 +240,7 @@ class RunDepartureCheckUseCaseTest {
         val env = Env()
         launch { env.locationSource.emitBalanced(currentFix(speedMps = 8f, accuracy = 10f)) }
 
-        val outcome = env.useCase("geo-1", exitTimestamp, attempt = 0)
+        val outcome = env.useCase("geo-1", exitTimestamp, departedAtMs = exitTimestamp, attempt = 0)
 
         assertIs<DepartureCheckOutcome.Processed>(outcome)
         assertEquals(1, env.spotScheduler.scheduleCallCount, "freed spot published")
@@ -256,7 +257,7 @@ class RunDepartureCheckUseCaseTest {
         val env = Env()
         launch { env.locationSource.emitBalanced(currentFix(speedMps = 8f, accuracy = 10f)) }
 
-        val outcome = env.useCase("geo-1", exitTimestamp, attempt = 0)
+        val outcome = env.useCase("geo-1", exitTimestamp, departedAtMs = exitTimestamp, attempt = 0)
 
         val processed = assertIs<DepartureCheckOutcome.Processed>(outcome)
         val handoff = assertNotNull(processed.followTrip, "a measured departure with no live session hands over a follower")
@@ -272,7 +273,7 @@ class RunDepartureCheckUseCaseTest {
         val env = Env(runtime = StaticDetectionRuntimeState(running = true))
         launch { env.locationSource.emitBalanced(currentFix(speedMps = 8f, accuracy = 10f)) }
 
-        val outcome = env.useCase("geo-1", exitTimestamp, attempt = 0)
+        val outcome = env.useCase("geo-1", exitTimestamp, departedAtMs = exitTimestamp, attempt = 0)
 
         val processed = assertIs<DepartureCheckOutcome.Processed>(outcome)
         assertNull(processed.followTrip, "a trip already followed needs no second follower")
@@ -284,7 +285,7 @@ class RunDepartureCheckUseCaseTest {
         // destination and nothing was measured NOW. Arming a follower would chase a finished trip.
         val env = Env()
 
-        val outcome = env.useCase("geo-1", exitTimestamp, attempt = 0, preconfirmed = true)
+        val outcome = env.useCase("geo-1", exitTimestamp, departedAtMs = exitTimestamp, attempt = 0, preconfirmed = true)
 
         val processed = assertIs<DepartureCheckOutcome.Processed>(outcome)
         assertNull(processed.followTrip, "a deduced departure measured nothing to follow")
@@ -301,6 +302,7 @@ class RunDepartureCheckUseCaseTest {
         val outcome = env.useCase(
             "geo-1",
             exitTimestamp,
+            departedAtMs = exitTimestamp,
             attempt = RunDepartureCheckUseCase.MAX_INCONCLUSIVE_ATTEMPTS,
         )
 
@@ -324,7 +326,7 @@ class RunDepartureCheckUseCaseTest {
             )
         }
 
-        val outcome = env.useCase("geo-1", exitTimestamp, attempt = 0)
+        val outcome = env.useCase("geo-1", exitTimestamp, departedAtMs = exitTimestamp, attempt = 0)
 
         assertIs<DepartureCheckOutcome.Retry>(outcome)
         assertEquals(0, env.spotScheduler.scheduleCallCount, "no phantom spot published")
@@ -342,7 +344,7 @@ class RunDepartureCheckUseCaseTest {
         // and eventually dismiss. Preconfirmed must skip straight to processing.
         val env = Env()
 
-        val outcome = env.useCase("geo-1", exitTimestamp, attempt = 0, preconfirmed = true)
+        val outcome = env.useCase("geo-1", exitTimestamp, departedAtMs = exitTimestamp, attempt = 0, preconfirmed = true)
 
         assertIs<DepartureCheckOutcome.Processed>(outcome)
         assertEquals(1, env.listener.notifyCount)
@@ -376,6 +378,7 @@ class RunDepartureCheckUseCaseTest {
         val outcome = env.useCase(
             "geo-1",
             exitTimestamp,
+            departedAtMs = exitTimestamp,
             attempt = RunDepartureCheckUseCase.MAX_INCONCLUSIVE_ATTEMPTS,
         )
 
@@ -397,6 +400,7 @@ class RunDepartureCheckUseCaseTest {
         val outcome = env.useCase(
             "geo-1",
             exitTimestamp,
+            departedAtMs = exitTimestamp,
             attempt = RunDepartureCheckUseCase.MAX_INCONCLUSIVE_ATTEMPTS,
         )
 
@@ -419,6 +423,7 @@ class RunDepartureCheckUseCaseTest {
         val outcome = env.useCase(
             "geo-1",
             exitTimestamp,
+            departedAtMs = exitTimestamp,
             attempt = RunDepartureCheckUseCase.MAX_INCONCLUSIVE_ATTEMPTS,
         )
 
@@ -438,7 +443,7 @@ class RunDepartureCheckUseCaseTest {
             bus = FakeDepartureEventBus(initialTimestamp = staleExitTimestamp - 60_000L),
         )
 
-        val outcome = env.useCase("geo-1", staleExitTimestamp, attempt = 0, preconfirmed = true)
+        val outcome = env.useCase("geo-1", staleExitTimestamp, departedAtMs = staleExitTimestamp, attempt = 0, preconfirmed = true)
 
         assertIs<DepartureCheckOutcome.Processed>(outcome)
         assertEquals(0, env.spotScheduler.scheduleCallCount, "no ghost spot published")
@@ -448,5 +453,81 @@ class RunDepartureCheckUseCaseTest {
         // finishes the job.
         assertNotNull(env.repo.getActiveSession(), "a stale deduction does not take the car either")
         assertNotNull(env.repo.provisionalDepartures["geo-1"], "pending deduction is marked")
+    }
+
+    // ── [DET-AN-EXIT-IS-DATED-BY-THE-FIX-THAT-CROSSED-IT-001] the two clocks ────────────────────
+
+    @Test
+    fun should_clear_without_publishing_when_the_trigger_is_fresh_but_the_car_left_hours_ago() = runTest {
+        // THE reported bug (14-09-2026, Fernando): the geofence EXIT was handled at 12:05 for a car
+        // that had left at 10:00. Every producer dated the departure with the instant it processed
+        // the event, so the age came out as ZERO and the freshness gate — written for exactly this —
+        // published a plaza that had been taken two hours earlier, with a fresh `reportedAt` and a
+        // full 2 h TTL on top.
+        //
+        // The trigger IS fresh (it is firing now, and that is what the independence gate cares
+        // about); the DEPARTURE is not. Two clocks, two answers.
+        val leftAtMs = exitTimestamp - 2 * 60 * 60_000L // the car left 2 h ago
+        val env = Env(
+            repo = FakeUserParkingRepository(initialSession = activeSession(parkedAtMs = leftAtMs - 60 * 60_000L)),
+            bus = FakeDepartureEventBus(initialTimestamp = leftAtMs - 60_000L),
+        )
+
+        val outcome = env.useCase(
+            "geo-1",
+            exitTimestamp, // handled NOW — a delayed delivery still fires [DET-RECONCILE-001]
+            departedAtMs = leftAtMs,
+            attempt = 0,
+            preconfirmed = true,
+        )
+
+        assertIs<DepartureCheckOutcome.Processed>(outcome)
+        assertEquals(0, env.spotScheduler.scheduleCallCount, "no ghost spot for a 2 h old departure")
+    }
+
+    @Test
+    fun should_publish_when_the_trigger_is_late_but_the_measured_departure_is_recent() = runTest {
+        // The other half, and the reason this is a SPLIT and not a stricter gate: a delivery that
+        // lagged a couple of minutes must still publish. What decides is the measured hour of the
+        // departure, never how long our own scheduler took to get to it.
+        val leftAtMs = exitTimestamp - 2 * 60_000L // measured 2 min ago, well inside the 10 min gate
+        val env = Env(
+            repo = FakeUserParkingRepository(initialSession = activeSession(parkedAtMs = leftAtMs - 60 * 60_000L)),
+            bus = FakeDepartureEventBus(initialTimestamp = leftAtMs - 30_000L),
+        )
+
+        val outcome = env.useCase(
+            "geo-1",
+            exitTimestamp,
+            departedAtMs = leftAtMs,
+            attempt = 0,
+            preconfirmed = true,
+        )
+
+        assertIs<DepartureCheckOutcome.Processed>(outcome)
+        assertEquals(1, env.spotScheduler.scheduleCallCount, "a recently freed plaza still goes out")
+    }
+
+    @Test
+    fun should_clear_without_publishing_when_the_departure_hour_is_unknown() = runTest {
+        // "An unknown hour is not a recent hour." Nothing measured this departure — the safety net
+        // dispatched with no anchor seal and no AR boarding — so `departedAtMs` is null and travels
+        // as null. It used to be laundered into `now` by a `?: now` at the dispatcher, which is the
+        // same bug wearing different clothes.
+        val env = Env(
+            repo = FakeUserParkingRepository(initialSession = activeSession()),
+            bus = FakeDepartureEventBus(initialTimestamp = exitTimestamp - 60_000L),
+        )
+
+        val outcome = env.useCase(
+            "geo-1",
+            exitTimestamp,
+            departedAtMs = null,
+            attempt = 0,
+            preconfirmed = true,
+        )
+
+        assertIs<DepartureCheckOutcome.Processed>(outcome)
+        assertEquals(0, env.spotScheduler.scheduleCallCount, "an undated departure advertises nothing")
     }
 }
