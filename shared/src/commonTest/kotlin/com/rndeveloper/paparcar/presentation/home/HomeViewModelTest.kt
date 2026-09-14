@@ -2519,16 +2519,22 @@ class HomeViewModelTest {
         locationDataSource.emitHighAccuracy(location)
         advanceUntilIdle()
 
-        // Layer OFF: panning asks nobody.
+        // El calentamiento de entrada ya preguntó una vez por el carril oculto.
+        val trasCalentar = fuelSource.askCount
+        assertEquals(1, trasCalentar)
+
+        // Capa apagada: panear no pregunta a nadie.
         vm.handleIntent(HomeIntent.CameraPositionChanged(lat = OTRO_BARRIO_LAT, lon = OTRO_BARRIO_LON))
         advanceUntilIdle()
-        assertEquals(0, fuelSource.askCount)
+        assertEquals(trasCalentar, fuelSource.askCount)
 
+        // Abrirla SÍ pregunta, porque la cámara se fue a otro barrio mientras estaba oculta.
         vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.FUEL))
         advanceUntilIdle()
-        assertEquals(1, fuelSource.askCount)
+        assertEquals(trasCalentar + 1, fuelSource.askCount)
 
         // A nervous ~1 km pan is not a new question.
+        val trasAbrir = fuelSource.askCount
         vm.handleIntent(
             HomeIntent.CameraPositionChanged(
                 lat = fuelSource.lastQuery!!.latitude + 0.01,
@@ -2536,7 +2542,7 @@ class HomeViewModelTest {
             ),
         )
         advanceUntilIdle()
-        assertEquals(1, fuelSource.askCount)
+        assertEquals(trasAbrir, fuelSource.askCount)
     }
 
     @Test
@@ -2602,13 +2608,20 @@ class HomeViewModelTest {
         // with the anchor advancing on the ATTEMPT, Paris stayed empty and no pan short of
         // kilometres would retry. Asks only fire on camera events, so nothing is being hammered.
         saveActiveCar(fuelType = com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE)
+        // ⛔ El fallo se arma ANTES del primer fix: desde el calentamiento de entrada, la PRIMERA
+        // pregunta del carril ya no es la del usuario abriéndolo, es la de la precarga — y es esa la
+        // que este test necesita que fracase. [HOME-THE-THREE-LANES-WARM-UP-ONCE-ON-ENTRY-001]
+        fuelSource.failNext = true
         permissions.emit(FakePermissionManager.allGranted())
         locationDataSource.emitHighAccuracy(location)
         advanceUntilIdle()
+        assertEquals(1, fuelSource.askCount)
+        // Un fallo no deja ancla, así que abrir el carril vuelve a preguntar por el mismo sitio —
+        // y esa también falla, que es el estado que el paneo de abajo tiene que rescatar.
         fuelSource.failNext = true
         vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.FUEL))
         advanceUntilIdle()
-        assertEquals(1, fuelSource.askCount)
+        assertEquals(2, fuelSource.askCount)
         // Asertado sobre el MAPA — lo que el usuario ve: "hay o no hay pines" es el contrato.
         // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
         assertTrue(vm.state.value.toMapSlice().fuelStations.isEmpty())
@@ -2620,8 +2633,89 @@ class HomeViewModelTest {
         )
         advanceUntilIdle()
 
-        assertEquals(2, fuelSource.askCount)
+        assertEquals(3, fuelSource.askCount)
         assertEquals(1, vm.state.value.toMapSlice().fuelStations.size)
+    }
+
+    // ── Los tres carriles se calientan al entrar ─────────────────────────────
+    // [HOME-THE-THREE-LANES-WARM-UP-ONCE-ON-ENTRY-001]
+
+    @Test
+    fun `should_fillBothHiddenLanes_when_homeOpens`() = runTest(testDispatcher) {
+        fuelSource.result = FuelStationsResult(listOf(spyStation()))
+        parkingsSource.result = Result.success(listOf(spyParking()))
+        saveActiveCar(fuelType = com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE)
+
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+
+        // La lente sigue en plazas: nadie ha abierto nada, y sin embargo los otros dos ya tienen
+        // respuesta esperando.
+        assertEquals(HomeNearbyLens.SPOTS, vm.state.value.nearbyLens)
+        assertEquals(1, fuelSource.askCount)
+        assertEquals(1, parkingsSource.askCount)
+        assertEquals(1, vm.state.value.fuel.stations.size)
+        assertEquals(1, vm.state.value.parkings.parkings.size)
+    }
+
+    /** El objetivo del ticket, dicho como lo vive el usuario: pulsar y que ya esté. */
+    @Test
+    fun `should_showTheAnswerWithoutAskingAgain_when_theUserOpensALaneAfterTheWarmUp`() =
+        runTest(testDispatcher) {
+            parkingsSource.result = Result.success(listOf(spyParking()))
+            permissions.emit(FakePermissionManager.allGranted())
+            locationDataSource.emitHighAccuracy(location)
+            advanceUntilIdle()
+            val trasCalentar = parkingsSource.askCount
+
+            vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
+            advanceUntilIdle()
+
+            assertEquals(trasCalentar, parkingsSource.askCount, "abrir el carril no vuelve a preguntar")
+            assertTrue(!vm.state.value.parkings.isLoading, "y no hay spinner que esperar")
+            assertEquals(1, vm.state.value.toBrowseListSlice().parkings.parkings.size)
+        }
+
+    @Test
+    fun `should_warmUpOnlyOnce_when_moreFixesArrive`() = runTest(testDispatcher) {
+        // ⛔ El calentamiento es de ENTRADA, no de cada fix. Un fix por segundo multiplicando
+        // peticiones es la tormenta que dejó a esta máquina fuera de Overpass el 09-09.
+        parkingsSource.result = Result.success(listOf(spyParking()))
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+        val trasCalentar = parkingsSource.askCount
+
+        repeat(5) {
+            locationDataSource.emitHighAccuracy(location)
+            advanceUntilIdle()
+        }
+
+        assertEquals(trasCalentar, parkingsSource.askCount)
+    }
+
+    @Test
+    fun `should_askOneLaneAtATime_when_warmingUp`() = runTest(testDispatcher) {
+        // ⛔ El presupuesto de Overpass es UNA pregunta a la vez (OverpassQuota): el servidor da 2
+        // por IP y una IP es un operador entero de usuarios. Lanzar los dos carriles a la vez
+        // pondría al segundo en una cola que abandona a los 10 s — un calentamiento que falla de
+        // forma fiable es peor que ninguno, porque además deja al carril creyendo que ya preguntó.
+        saveActiveCar(fuelType = com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE)
+        val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
+        fuelSource.holdNextUntil = gate
+
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+
+        assertEquals(1, fuelSource.askCount, "el primer carril ya preguntó")
+        assertEquals(0, parkingsSource.askCount, "y el segundo espera su turno, no se solapa")
+
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(1, parkingsSource.askCount, "al soltarse el primero, entra el segundo")
     }
 
     /** Counts the questions actually asked — what separates an honest empty from a fabricated one. */
@@ -2631,10 +2725,16 @@ class HomeViewModelTest {
         var lastQuery: FuelStationsQuery? = null
         /** One-shot failure — the transient-outage case. */
         var failNext = false
+        /** One-shot hold, so a test can watch what happens WHILE an ask is in flight. */
+        var holdNextUntil: kotlinx.coroutines.CompletableDeferred<Unit>? = null
         override fun covers(countryCode: String) = true
         override suspend fun stationsNear(query: FuelStationsQuery): Result<FuelStationsResult> {
             askCount++
             lastQuery = query
+            holdNextUntil?.let { gate ->
+                holdNextUntil = null
+                gate.await()
+            }
             if (failNext) {
                 failNext = false
                 return Result.failure(IllegalStateException("Overpass answered 504"))
@@ -2796,9 +2896,11 @@ class HomeViewModelTest {
         permissions.emit(FakePermissionManager.allGranted())
         locationDataSource.emitHighAccuracy(location)
         advanceUntilIdle()
+        // La primera la hizo el calentamiento de entrada, y falló; abrir el carril reintenta.
+        assertEquals(1, parkingsSource.askCount, "el calentamiento ya preguntó, y falló")
         vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
         advanceUntilIdle()
-        assertEquals(1, parkingsSource.askCount)
+        assertEquals(2, parkingsSource.askCount)
         assertEquals(null, vm.state.value.parkings.anchorLat, "a failed ask keeps no anchor")
 
         parkingsSource.result = Result.success(listOf(spyParking()))
@@ -2806,13 +2908,13 @@ class HomeViewModelTest {
             locationDataSource.emitHighAccuracy(location)
             advanceUntilIdle()
         }
-        assertEquals(1, parkingsSource.askCount, "a fix is not a reason to ask again")
+        assertEquals(2, parkingsSource.askCount, "a fix is not a reason to ask again")
 
         // A camera nudge far too small to count as a new area retries the SAME place.
         vm.handleIntent(HomeIntent.CameraPositionChanged(location.latitude + 0.0005, location.longitude))
         advanceUntilIdle()
 
-        assertEquals(2, parkingsSource.askCount)
+        assertEquals(3, parkingsSource.askCount)
         assertEquals(1, vm.state.value.toMapSlice().publicParkings.size)
         assertEquals(1, vm.state.value.toBrowseListSlice().parkings.parkings.size)
     }
@@ -2823,15 +2925,19 @@ class HomeViewModelTest {
     fun `should_answerForTheLatestPlace_when_theCameraSettlesWhileAnAskIsInFlight`() = runTest(testDispatcher) {
         // ⛔ THE reported bug: a pan while Overpass was still answering was DROPPED behind the
         // in-flight ask, so the store stayed on the previous area. Latest wins, like the spots.
-        permissions.emit(FakePermissionManager.allGranted())
-        locationDataSource.emitHighAccuracy(location)
-        advanceUntilIdle()
+        // ⛔ El gate se arma ANTES del primer fix: desde el calentamiento de entrada, la petición
+        // que puede quedarse en vuelo es la de la precarga, no la de abrir el carril — abrirlo ya no
+        // pregunta porque el ancla se fija en el INTENTO.
+        // [HOME-THE-THREE-LANES-WARM-UP-ONCE-ON-ENTRY-001]
         val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
         parkingsSource.holdNextUntil = gate
         parkingsSource.result = Result.success(listOf(spyParking("aqui")))
-        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
         advanceUntilIdle()
         assertTrue(vm.state.value.parkings.isLoading, "the first ask is still flying")
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
+        advanceUntilIdle()
 
         parkingsSource.result = Result.success(listOf(spyParkingLejos("alli")))
         vm.handleIntent(HomeIntent.CameraPositionChanged(LEJOS_LAT, LEJOS_LON))
@@ -2839,7 +2945,7 @@ class HomeViewModelTest {
         gate.complete(Unit)
         advanceUntilIdle()
 
-        assertEquals(2, parkingsSource.askCount)
+        assertEquals(2, parkingsSource.askCount, "la que se quedó en vuelo, y la nueva")
         val parkings = vm.state.value.parkings
         assertEquals(LEJOS_LAT, parkings.anchorLat)
         assertTrue(!parkings.isLoading)
@@ -2968,19 +3074,28 @@ class HomeViewModelTest {
 
     @Test
     fun `should_notRefetch_when_theLaneIsElsewhere`() = runTest(testDispatcher) {
-        // ⛔ Sigue valiendo la regla que sostiene todo esto: un sujeto que no está a la vista no
-        // descarga NADA. Antes lo decía el pliegue; ahora lo dice la lente, que arranca en plazas.
-        // Un usuario que solo mueve el mapa no paga peticiones por una lista que nunca abrió.
+        // ⛔ La regla se ESTRECHA, no desaparece, y el matiz es todo:
+        // antes — «un sujeto que no está a la vista no descarga NADA»
+        // ahora — «…no descarga nada CUANDO LA CÁMARA SE MUEVE».
+        // El calentamiento de entrada llena el carril UNA vez para que el primer toque sea
+        // instantáneo [HOME-THE-THREE-LANES-WARM-UP-ONCE-ON-ENTRY-001]; a partir de ahí un usuario
+        // que solo arrastra el mapa sigue sin pagar peticiones por una lista que nunca abrió, que es
+        // lo que este test existe para proteger.
         parkingsSource.result = Result.success(listOf(spyParking()))
         permissions.emit(FakePermissionManager.allGranted())
         locationDataSource.emitHighAccuracy(location)
         advanceUntilIdle()
-        assertEquals(0, parkingsSource.askCount)
+        val trasCalentar = parkingsSource.askCount
+        assertEquals(1, trasCalentar, "el calentamiento pregunta UNA vez, al entrar")
 
         vm.handleIntent(HomeIntent.CameraPositionChanged(LEJOS_LAT, LEJOS_LON))
         advanceUntilIdle()
 
-        assertEquals(0, parkingsSource.askCount, "otro carril no pregunta ni aunque la cámara viaje")
+        assertEquals(
+            trasCalentar,
+            parkingsSource.askCount,
+            "otro carril no pregunta ni aunque la cámara viaje",
+        )
     }
 
     @Test

@@ -647,6 +647,17 @@ class HomeViewModel(
         /** The user entered the lane: a question with no answer yet, or a stale one, is asked. */
         ENTER,
 
+        /**
+         * Home opened and we are warming a lane the user has **not** opened, once.
+         * [HOME-THE-THREE-LANES-WARM-UP-ONCE-ON-ENTRY-001]
+         *
+         * Same semantics as [ENTER] — it is a first ask, not a retry — and kept as its own value
+         * because it is the only trigger that fires for a lane that is not on screen. A log that
+         * cannot tell "the user opened fuel" from "we warmed fuel" cannot explain a request nobody
+         * asked for.
+         */
+        WARM_UP,
+
         /** The camera settled: the question moves with it, past half the radius. */
         CAMERA,
 
@@ -666,6 +677,47 @@ class HomeViewModel(
     // store on the previous area until the camera happened to move again.
     private var fuelJob: Job? = null
     private var parkingsJob: Job? = null
+
+    /** ⛔ Once per Home, never per fix. [HOME-THE-THREE-LANES-WARM-UP-ONCE-ON-ENTRY-001] */
+    private var warmUpJob: Job? = null
+    private var hasWarmedUpLanes = false
+
+    /**
+     * Fills the lanes the user has not opened, so that pressing Fuel or Car parks shows an answer
+     * instead of a spinner. [HOME-THE-THREE-LANES-WARM-UP-ONCE-ON-ENTRY-001]
+     *
+     * ⛔ **Once, on entry — never on a pan.** The rule this narrows is real and stays in force for
+     * everything else: *a lane that is not on screen downloads nothing when the camera moves*. A user
+     * who only drags the map still pays no requests for a list they never opened. What changes is the
+     * single warm-up at the start, which is what makes the first lane switch instant.
+     *
+     * ⛔ **Sequential, and that is not a style choice.** The Overpass budget is ONE ask at a time
+     * ([com.rndeveloper.paparcar.data.overpass.OverpassQuota]) because the server grants 2 per IP and
+     * an IP is a whole carrier's worth of users. Firing both lanes at once would put the second in a
+     * queue it gives up on after 10 s — a warm-up that reliably fails is worse than none, because it
+     * also teaches the lane it already asked.
+     *
+     * Spots are not in here: they come from Firestore and are already loaded by the default lens.
+     */
+    private fun warmUpHiddenLanes() {
+        if (hasWarmedUpLanes) return
+        val centre = viewportCentreOrGps() ?: return
+        hasWarmedUpLanes = true
+
+        warmUpJob = viewModelScope.launch {
+            HomeNearbyLens.entries
+                .filter { it != HomeNearbyLens.SPOTS && it != state.value.nearbyLens }
+                .forEach { lens ->
+                    refreshNearby(lens, NearbyTrigger.WARM_UP, centre)
+                    // Wait for the answer before asking the next question — see above.
+                    when (lens) {
+                        HomeNearbyLens.FUEL -> fuelJob?.join()
+                        HomeNearbyLens.PARKINGS -> parkingsJob?.join()
+                        HomeNearbyLens.SPOTS -> Unit
+                    }
+                }
+        }
+    }
 
     /**
      * The one decision about whether [subject]'s store must ask, stay, or empty itself.
@@ -786,9 +838,19 @@ class HomeViewModel(
         }
     }
 
-    /** Debounced camera-settle trigger — a nervous pan is not a question. Only the lane on show asks:
-     *  a subject nobody is looking at downloads nothing. */
+    /**
+     * Debounced camera-settle trigger — a nervous pan is not a question. Only the lane on show asks:
+     * **a subject nobody is looking at downloads nothing when the camera moves.**
+     *
+     * ⛔ That sentence used to end at "downloads nothing", and the tail is the whole difference. The
+     * one-off warm-up below fills the hidden lanes ONCE, so the first switch to Fuel or Car parks is
+     * instant; every pan after that still costs a hidden lane exactly nothing.
+     * [HOME-THE-THREE-LANES-WARM-UP-ONCE-ON-ENTRY-001]
+     */
     private fun scheduleNearbyRefresh(lat: Double, lon: Double) {
+        // Without location permission there is no fix to warm from, and the camera is the only thing
+        // that ever says where the user is looking. Idempotent, so the pans that follow cost nothing.
+        warmUpHiddenLanes()
         val lens = state.value.nearbyLens
         if (lens == HomeNearbyLens.SPOTS) return
         nearbyCameraJob?.cancel()
@@ -1509,6 +1571,10 @@ class HomeViewModel(
                 // out of its follow range. ⛔ Never a retry of a failed ask: see NearbyTrigger.FIX.
                 // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
                 refreshNearby(state.value.nearbyLens, NearbyTrigger.FIX)
+                // The first fix is also the first moment Home knows WHERE to warm the other lanes.
+                // Guarded inside, so the fixes that follow cost nothing.
+                // [HOME-THE-THREE-LANES-WARM-UP-ONCE-ON-ENTRY-001]
+                warmUpHiddenLanes()
                 geocodeUserLocation(location.latitude, location.longitude)
                 if (state.value.cameraAddressAndPlace == null) {
                     geocodeCameraLocation(location.latitude, location.longitude)
