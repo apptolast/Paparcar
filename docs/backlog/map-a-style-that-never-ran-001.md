@@ -167,7 +167,29 @@ CENTRO, EL PÓPULO, Jardines Clara Campoamor.
 | `MapTypeToggle` KDoc | reescrito: describía TERRAIN con la definición de NORMAL |
 | `AppPreferences.kt:153` KDoc | vocabulario persistido actualizado |
 | `MapType.HYBRID` (la otra mitad del toggle) | **exento**: es imagen aérea, el JSON no le aplica ni le hace falta |
-| `DARK_MAP_STYLE` | sin cambios — correcto desde siempre, solo que nunca se ejecutó |
+| `DARK_MAP_STYLE` | sin cambios **aquí** — y al verlo por primera vez resultó no gustar: lo repinta `MAP-THE-DARK-MAP-KEEPS-ITS-NIGHT-BLUE-001` |
+| Edificios (`isBuildingEnabled`) | **verificado, no hay que tocar nada** — ver abajo |
+
+## Verificado después del merge: los edificios no salen
+
+Quedó abierto si `NORMAL` traería huellas de edificio, porque enciende una capa que en TERRAIN no se
+dibujaba (`isBuildingEnabled` viene a `true` en kmp-maps y nadie lo pone a `false`). Medido en el
+Oppo sobre la **Plaza de la Catedral de Cádiz** —casco antiguo, manzanas pegadas: el peor caso que
+se me ocurrió— al **zoom máximo** (el tope es 20):
+
+| | Suelo | Calles | Resto |
+|---|---|---|---|
+| Claro | `#cdd8ea` **91,08 %** | `#ffffff` 2,94 % | nada por encima del 0,3 % |
+| Oscuro | `#1c2a40` **91,47 %** | `#31435e` 3,07 % | nada por encima del 0,3 % |
+
+Ni un polígono. Los residuos por debajo del 0,3 % son antialiasing de etiquetas: unas huellas de
+edificio en un casco antiguo a ese zoom ocuparían decenas de puntos porcentuales, no décimas.
+
+Dos cosas empujan en la misma dirección, aunque lo afirmado aquí es lo medido y no el mecanismo: la
+regla raíz `{"elementType":"geometry"}` pinta también `landscape.man_made` —donde caen las huellas—
+del color del suelo; y la extrusión 3D necesita cámara inclinada, que está desactivada en toda la
+app a propósito (`rotateEnabled = false`, `togglePitchEnabled = false`) para que el mapa sea siempre
+cenital y el puck no se despegue de su coordenada. **No hay que apagar `isBuildingEnabled`.**
 
 ## Tickets que esto cierra o mueve
 
