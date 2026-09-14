@@ -829,7 +829,8 @@
     <string name="stats_plus_row_subtitle">Gratis zie je je laatste %1$d dagen; met Plus elke periode</string>
     <string name="stats_empty_first_trip">Wachten op je eerste rit</string>
     <string name="stats_empty_period">Geen parkeerbeurten in deze periode</string>
-    <string name="stats_empty_sub">Je cijfers verschijnen hier zodra je parkeert.</string>
+    <string name="stats_empty_no_measured_trip">Nog geen gemeten ritten</string>
+    <string name="stats_empty_sub">Je cijfers verschijnen hier zodra we een rit meten.</string>
     <string name="stats_empty_turn_on_detection">Zet automatische detectie aan zodat je ritten en parkeerbeurten worden gemeten.</string>
     <!-- Vehicle state line (STATS-UI-001) -->
     <string name="vehicle_state_parked">Geparkeerd · %1$s</string>

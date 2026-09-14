@@ -850,7 +850,8 @@
     <string name="stats_plus_row_subtitle">Kostenlos siehst du die letzten %1$d Tage; mit Plus jeden Zeitraum</string>
     <string name="stats_empty_first_trip">Warten auf deine erste Fahrt</string>
     <string name="stats_empty_period">Keine Parkvorgänge in diesem Zeitraum</string>
-    <string name="stats_empty_sub">Deine Zahlen erscheinen hier, sobald du parkst.</string>
+    <string name="stats_empty_no_measured_trip">Noch keine gemessene Fahrt</string>
+    <string name="stats_empty_sub">Deine Zahlen erscheinen hier, sobald wir eine Fahrt messen.</string>
     <string name="stats_empty_turn_on_detection">Aktiviere die automatische Erkennung, damit deine Fahrten und Parkvorgänge gemessen werden.</string>
     <!-- Vehicle state line (STATS-UI-001) -->
     <string name="vehicle_state_parked">Geparkt · %1$s</string>

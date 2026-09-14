@@ -55,6 +55,7 @@ import paparcar.composeapp.generated.resources.stats_empty_turn_on_detection
 import paparcar.composeapp.generated.resources.stats_empty_sub
 import paparcar.composeapp.generated.resources.stats_empty_period
 import paparcar.composeapp.generated.resources.stats_empty_first_trip
+import paparcar.composeapp.generated.resources.stats_empty_no_measured_trip
 import paparcar.composeapp.generated.resources.history_filter_last_7_days
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_day_full_fri
@@ -136,21 +137,26 @@ internal fun VehicleStatsBlock(
      *  [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001] */
     isAutoDetectionOn: Boolean = true,
 ) {
-    // [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001] A period without a single parking has no figures
-    // to show — only "0 spots shared", which read as a verdict on a car that simply has not been
-    // measured yet. The card says what is true instead: waiting for the first trip (or for one in this
-    // period), and how to get there when detection is off.
-    if (stats.parkings == 0) {
+    // [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001] A period with nothing MEASURED in it has no
+    // figures to show — only "0 spots shared", which reads as a verdict on a car that simply has not
+    // been measured yet. The card says what is true instead: waiting for the first trip (or for one
+    // in this period), and how to get there when detection is off.
+    //
+    // ⛔ The gate is the FIGURES, not the session count (user, 14-09). Counting parkings let the
+    // tutorial's own parking — one manual session, no route, nothing ended — open the card on the
+    // very zero this ticket exists to remove, because SPOTS_SHARED is added unconditionally. What
+    // makes a card is a figure somebody measured; a lone "0 spots shared" is not one.
+    if (!hasMeasuredFigures(stats)) {
         EmptyStatsCard(
             periodLabel = periodLabel,
             neverParked = lifetimeParkings == 0,
+            parkedInPeriod = stats.parkings > 0,
             isAutoDetectionOn = isAutoDetectionOn,
             modifier = modifier,
         )
         return
     }
     val tiles = statTiles(stats)
-    if (tiles.isEmpty()) return
 
     Column(modifier = modifier.fillMaxWidth()) {
         PapOutlinedCard(modifier = Modifier.fillMaxWidth(), shape = PapShapes.card) {
@@ -273,15 +279,25 @@ private fun StatTileGrid(tiles: List<StatTileData>) {
 /** Where a Plus user goes for the whole picture. A plain row: the card is already theirs. */
 
 /**
- * The figures card of a period with no parking in it. [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
+ * The figures card of a period with nothing measured in it.
+ * [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
  *
- * Same card and title as the figures would have, so the section does not jump when the first parking
+ * Same card and title as the figures would have, so the section does not jump when the first figure
  * lands. It never shows a zero.
+ *
+ * Three different truths, three sentences — the card says the one that actually holds:
+ * - nothing ever ended → waiting for the first trip;
+ * - history exists but this period is empty → no parkings in this period;
+ * - parked in this period, nothing measured yet → no measured trips yet. ⛔ This third one is why
+ *   the sentence cannot be picked by `neverParked` alone: telling someone who parked yesterday that
+ *   there are «no parkings in this period» is a lie the card would be making about its own data.
  */
 @Composable
 private fun EmptyStatsCard(
     periodLabel: String,
     neverParked: Boolean,
+    /** At least one session falls in this period, measured or not. */
+    parkedInPeriod: Boolean,
     isAutoDetectionOn: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -303,7 +319,11 @@ private fun EmptyStatsCard(
             ) {
                 Text(
                     text = stringResource(
-                        if (neverParked) Res.string.stats_empty_first_trip else Res.string.stats_empty_period,
+                        when {
+                            neverParked -> Res.string.stats_empty_first_trip
+                            parkedInPeriod -> Res.string.stats_empty_no_measured_trip
+                            else -> Res.string.stats_empty_period
+                        },
                     ),
                     style = PaparcarType.current.rowTitle,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -469,6 +489,18 @@ internal fun statTileKeys(stats: PeriodStats): List<StatTileKey> = buildList {
     // Spots shared: 0 IS information (you never freed one), so it shows whenever the block does.
     add(StatTileKey.SPOTS_SHARED)
 }
+
+/**
+ * Whether the period holds a figure somebody MEASURED — the one condition that earns the figures
+ * card. [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
+ *
+ * `SPOTS_SHARED` does not count: it is added unconditionally precisely because its zero is an answer
+ * when it stands NEXT to other figures. Alone in the grid it stops being an answer and becomes the
+ * verdict «0 plazas cedidas» on a car that has not driven anywhere yet — which is what the tutorial's
+ * manual parking produced (user, 14-09): one session, no route, nothing ended.
+ */
+internal fun hasMeasuredFigures(stats: PeriodStats): Boolean =
+    statTileKeys(stats).any { it != StatTileKey.SPOTS_SHARED }
 
 @Composable
 internal fun statTiles(stats: PeriodStats): List<StatTileData> {

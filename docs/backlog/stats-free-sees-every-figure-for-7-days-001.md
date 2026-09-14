@@ -71,3 +71,27 @@ el eje que la regla anterior.
 4. Añadido el chip «Últimos 7 días» además de «Esta semana». Hecho.
 5. Sin viajes: «Esperando a tu primer viaje» y, con la detección apagada, la invitación a activarla,
    en lugar de «0 PLAZAS CEDIDAS». Hecho.
+
+## Segunda revisión (14-09-2026) — el cero volvía con UN aparcamiento
+
+El punto 5 se cerró contando aparcamientos (`stats.parkings == 0`), y el tutorial deja exactamente
+uno: una sesión manual, sin ruta y sin cerrar. Con ella la card se abría y dentro no quedaba más que
+`SPOTS_SHARED` —que se añade SIEMPRE— o sea el mismísimo «0 PLAZAS CEDIDAS» que este ticket existía
+para quitar. Cualquier usuario nuevo lo veía al entrar en Actividad por primera vez.
+
+**El gate son las CIFRAS, no las sesiones.** `hasMeasuredFigures(stats)`: hay card cuando existe al
+menos una clave distinta de `SPOTS_SHARED`. Tampoco vale «sesiones terminadas» — el trayecto que te
+trajo hasta donde estás aparcado ya está medido, así que una sesión ABIERTA con ruta sí tiene cifras.
+
+`SPOTS_SHARED` sigue añadiéndose siempre: su cero es una respuesta **al lado de** otras cifras. Solo
+en la grid vacía dejaba de ser respuesta para volverse veredicto sobre un coche que no ha ido a
+ningún sitio todavía.
+
+Tercera frase para no mentir: si hubo aparcamientos en el periodo pero nada medido, «Todavía sin
+trayectos medidos» (`stats_empty_no_measured_trip`, ×9) — decirle «Sin aparcamientos en este
+periodo» a quien aparcó ayer sería una mentira de la card sobre sus propios datos. Y el subtítulo
+pasa de «en cuanto aparques» a «en cuanto midamos un trayecto»: aparcar sin trayecto medido es
+justamente lo que no produce cifras.
+
+Galería: variante **«Panel de cifras → Solo el aparcamiento del tutorial»**, el caso que se coló.
+El vacío que había cubría la lista VACÍA, que no es donde estaba el fallo.

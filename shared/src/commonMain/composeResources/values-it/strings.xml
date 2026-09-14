@@ -849,7 +849,8 @@
     <string name="stats_plus_row_subtitle">Gratis vedi gli ultimi %1$d giorni; con Plus, il periodo che vuoi</string>
     <string name="stats_empty_first_trip">In attesa del tuo primo viaggio</string>
     <string name="stats_empty_period">Nessun parcheggio in questo periodo</string>
-    <string name="stats_empty_sub">Le tue cifre appariranno qui appena parcheggi.</string>
+    <string name="stats_empty_no_measured_trip">Ancora nessun viaggio misurato</string>
+    <string name="stats_empty_sub">Le tue cifre appariranno qui appena misuriamo un viaggio.</string>
     <string name="stats_empty_turn_on_detection">Attiva il rilevamento automatico per misurare i tuoi viaggi e parcheggi.</string>
     <!-- Vehicle state line (STATS-UI-001) -->
     <string name="vehicle_state_parked">Parcheggiato · %1$s</string>

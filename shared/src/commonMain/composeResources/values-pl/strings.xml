@@ -863,7 +863,8 @@
     <string name="stats_plus_row_subtitle">Za darmo widzisz ostatnie %1$d dni; z Plus dowolny okres</string>
     <string name="stats_empty_first_trip">Czekamy na twój pierwszy przejazd</string>
     <string name="stats_empty_period">Brak parkowań w tym okresie</string>
-    <string name="stats_empty_sub">Twoje liczby pojawią się tu, gdy tylko zaparkujesz.</string>
+    <string name="stats_empty_no_measured_trip">Brak zmierzonych przejazdów</string>
+    <string name="stats_empty_sub">Twoje liczby pojawią się tu, gdy tylko zmierzymy przejazd.</string>
     <string name="stats_empty_turn_on_detection">Włącz automatyczne wykrywanie, aby mierzyć twoje przejazdy i parkowania.</string>
     <!-- Vehicle state line (STATS-UI-001) -->
     <string name="vehicle_state_parked">Zaparkowany · %1$s</string>

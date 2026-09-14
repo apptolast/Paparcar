@@ -849,7 +849,8 @@
     <string name="stats_plus_row_subtitle">Gratuit : vos %1$d derniers jours ; avec Plus, la période de votre choix</string>
     <string name="stats_empty_first_trip">En attente de votre premier trajet</string>
     <string name="stats_empty_period">Aucun stationnement sur cette période</string>
-    <string name="stats_empty_sub">Vos chiffres apparaîtront ici dès que vous vous garerez.</string>
+    <string name="stats_empty_no_measured_trip">Aucun trajet mesuré pour l'instant</string>
+    <string name="stats_empty_sub">Vos chiffres apparaîtront ici dès que nous mesurons un trajet.</string>
     <string name="stats_empty_turn_on_detection">Activez la détection automatique pour que vos trajets et stationnements soient mesurés.</string>
     <!-- Vehicle state line (STATS-UI-001) -->
     <string name="vehicle_state_parked">Stationné · %1$s</string>

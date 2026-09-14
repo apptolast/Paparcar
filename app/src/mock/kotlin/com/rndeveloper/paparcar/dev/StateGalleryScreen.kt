@@ -1596,6 +1596,18 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     onIntent = {},
                 )
             },
+            // ⛔ El caso que se coló en produccion: recien instalada, el tutorial deja UN
+            // aparcamiento —manual, sin ruta, sin cerrar— y con eso la tarjeta se abria para
+            // enseñar «0 PLAZAS CEDIDAS» y nada mas. Sin esta variante el estado vacio de la
+            // galeria solo cubria la lista VACIA, que no es donde estaba el fallo (user, 14-09).
+            // [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
+            Variant("Solo el aparcamiento del tutorial") {
+                StatsContent(
+                    state = statsPanelState(sessions = listOf(FakeData.activeSession)),
+                    onNavigateBack = {},
+                    onIntent = {},
+                )
+            },
             Variant("Sin resolver (skeleton)") {
                 StatsContent(state = StatsState(), onNavigateBack = {}, onIntent = {})
             },

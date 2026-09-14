@@ -27,9 +27,11 @@ class VehicleStatsBlockTest {
         knownCount: Int = 0,
         autoCount: Int = 0,
         spotsReleased: Int = 0,
+        parkings: Int = 10,
+        endedParkings: Int = 10,
     ) = PeriodStats(
-        parkings = 10,
-        endedParkings = 10,
+        parkings = parkings,
+        endedParkings = endedParkings,
         distance = null,
         fuelLiters = fuelLiters,
         energyKwh = energyKwh,
@@ -82,6 +84,29 @@ class VehicleStatsBlockTest {
     @Test
     fun `should_keepSpotsShared_when_itIsZero_becauseZeroIsAnAnswer`() {
         assertTrue(StatTileKey.SPOTS_SHARED in statTileKeys(stats(spotsReleased = 0)))
+    }
+
+    /**
+     * ⛔ La tarjeta la gana una cifra MEDIDA, no un aparcamiento contado (user, 14-09).
+     * [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
+     *
+     * El aparcamiento del tutorial —una sesión manual, sin ruta, sin cerrar— hacía `parkings == 1`
+     * y con eso bastaba para abrir la tarjeta. Dentro no quedaba más que `SPOTS_SHARED`, o sea el
+     * mismísimo «0 PLAZAS CEDIDAS» que este ticket existe para quitar. Con 1 aparcamiento sin medir
+     * la tarjeta tiene que decir lo mismo que con 0.
+     */
+    @Test
+    fun `should_haveNoFiguresToShow_when_theOnlyParkingMeasuredNothing`() {
+        assertFalse(hasMeasuredFigures(stats(parkings = 1, endedParkings = 0, spotsReleased = 0)))
+        assertFalse(hasMeasuredFigures(stats(parkings = 0, endedParkings = 0)), "y con cero, igual")
+    }
+
+    @Test
+    fun `should_haveFiguresToShow_when_anythingWasMeasured`() {
+        // Una sesión que sí llevó trayecto: hay litros, hay tarjeta. La sesión puede seguir ABIERTA
+        // —el trayecto que te trajo hasta aquí ya está medido—, así que el gate no puede ser
+        // "sesiones terminadas" tampoco.
+        assertTrue(hasMeasuredFigures(stats(parkings = 1, endedParkings = 0, fuelLiters = 6.5)))
     }
 
     @Test

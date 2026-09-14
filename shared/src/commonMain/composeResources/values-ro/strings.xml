@@ -863,7 +863,8 @@
     <string name="stats_plus_row_subtitle">Gratuit vezi ultimele %1$d zile; cu Plus, orice perioadă</string>
     <string name="stats_empty_first_trip">Așteptăm primul tău drum</string>
     <string name="stats_empty_period">Nicio parcare în această perioadă</string>
-    <string name="stats_empty_sub">Cifrele tale apar aici imediat ce parchezi.</string>
+    <string name="stats_empty_no_measured_trip">Încă niciun drum măsurat</string>
+    <string name="stats_empty_sub">Cifrele tale apar aici imediat ce măsurăm un drum.</string>
     <string name="stats_empty_turn_on_detection">Activează detectarea automată ca să-ți măsurăm drumurile și parcările.</string>
     <!-- Vehicle state line (STATS-UI-001) -->
     <string name="vehicle_state_parked">Parcat · %1$s</string>
