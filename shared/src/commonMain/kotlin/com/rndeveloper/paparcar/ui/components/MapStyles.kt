@@ -57,26 +57,39 @@ internal const val LIGHT_MAP_STYLE = """[
   {"featureType":"water","elementType":"labels.text.fill","stylers":[{"color":"#4f5b74"}]}
 ]"""
 
+// Azul de noche, no gris neutro. Estos valores NO están elegidos a ojo: están muestreados píxel a
+// píxel del tema oscuro nativo de Google sobre el Oppo, en la captura previa al arreglo del tipo de
+// mapa — o sea del mapa real que la app llevaba meses enseñando, no de una imitación de memoria.
+//
+// El gris `#212121` que había aquí era lo que este fichero pedía desde siempre, y nadie lo había
+// visto nunca porque nunca llegó a ejecutarse. Visto, convierte el plano nocturno en una
+// radiografía: un mapa de noche es un plano bajo luz de noche, y el azul es lo que lo hace leer
+// como tal. Además mide mejor — contra la hoja del peek `#131A24`, `#1c2a40` da 1,21:1 frente al
+// 1,09:1 del gris, el mismo eje que motivó repintar el tema claro.
+//
+// ⛔ Lo que NO vuelve son los POI: `labels.icon` y `transit` siguen apagados. Se recupera el TONO,
+// no las píldoras de Google. [MAP-THE-DARK-MAP-KEEPS-ITS-NIGHT-BLUE-001]
 internal const val DARK_MAP_STYLE = """[
-  {"elementType":"geometry","stylers":[{"color":"#212121"}]},
+  {"elementType":"geometry","stylers":[{"color":"#1c2a40"}]},
   {"elementType":"labels.icon","stylers":[{"visibility":"off"}]},
-  {"elementType":"labels.text.fill","stylers":[{"color":"#757575"}]},
-  {"elementType":"labels.text.stroke","stylers":[{"color":"#212121"}]},
-  {"featureType":"administrative","elementType":"geometry","stylers":[{"color":"#757575"}]},
-  {"featureType":"administrative.country","elementType":"labels.text.fill","stylers":[{"color":"#9e9e9e"}]},
+  {"elementType":"labels.text.fill","stylers":[{"color":"#9dabc4"}]},
+  {"elementType":"labels.text.stroke","stylers":[{"color":"#1c2a40"}]},
+  {"featureType":"administrative","elementType":"geometry","stylers":[{"color":"#6b7a93"}]},
+  {"featureType":"administrative.country","elementType":"labels.text.fill","stylers":[{"color":"#aebbd1"}]},
   {"featureType":"administrative.land_parcel","stylers":[{"visibility":"off"}]},
-  {"featureType":"administrative.locality","elementType":"labels.text.fill","stylers":[{"color":"#bdbdbd"}]},
-  {"featureType":"poi","elementType":"labels.text.fill","stylers":[{"color":"#757575"}]},
-  {"featureType":"poi.park","elementType":"geometry","stylers":[{"color":"#181818"}]},
-  {"featureType":"poi.park","elementType":"labels.text.fill","stylers":[{"color":"#616161"}]},
-  {"featureType":"poi.park","elementType":"labels.text.stroke","stylers":[{"color":"#1b1b1b"}]},
-  {"featureType":"road","elementType":"geometry.fill","stylers":[{"color":"#2c2c2c"}]},
-  {"featureType":"road","elementType":"labels.text.fill","stylers":[{"color":"#8a8a8a"}]},
-  {"featureType":"road.arterial","elementType":"geometry","stylers":[{"color":"#373737"}]},
-  {"featureType":"road.highway","elementType":"geometry","stylers":[{"color":"#3c3c3c"}]},
-  {"featureType":"road.highway.controlled_access","elementType":"geometry","stylers":[{"color":"#4e4e4e"}]},
-  {"featureType":"road.local","elementType":"labels.text.fill","stylers":[{"color":"#616161"}]},
+  {"featureType":"administrative.locality","elementType":"labels.text.fill","stylers":[{"color":"#c3cfe2"}]},
+  {"featureType":"poi","elementType":"geometry","stylers":[{"color":"#20304a"}]},
+  {"featureType":"poi","elementType":"labels.text.fill","stylers":[{"color":"#8b9ab3"}]},
+  {"featureType":"poi.park","elementType":"geometry","stylers":[{"color":"#196453"}]},
+  {"featureType":"poi.park","elementType":"labels.text.fill","stylers":[{"color":"#8aa89b"}]},
+  {"featureType":"poi.park","elementType":"labels.text.stroke","stylers":[{"color":"#14402f"}]},
+  {"featureType":"road","elementType":"geometry.fill","stylers":[{"color":"#31435e"}]},
+  {"featureType":"road","elementType":"labels.text.fill","stylers":[{"color":"#a8b6cd"}]},
+  {"featureType":"road.arterial","elementType":"geometry","stylers":[{"color":"#354d68"}]},
+  {"featureType":"road.highway","elementType":"geometry","stylers":[{"color":"#3e5a77"}]},
+  {"featureType":"road.highway.controlled_access","elementType":"geometry","stylers":[{"color":"#496787"}]},
+  {"featureType":"road.local","elementType":"labels.text.fill","stylers":[{"color":"#8b9ab3"}]},
   {"featureType":"transit","stylers":[{"visibility":"off"}]},
-  {"featureType":"water","elementType":"geometry","stylers":[{"color":"#000000"}]},
-  {"featureType":"water","elementType":"labels.text.fill","stylers":[{"color":"#3d3d3d"}]}
+  {"featureType":"water","elementType":"geometry","stylers":[{"color":"#144a57"}]},
+  {"featureType":"water","elementType":"labels.text.fill","stylers":[{"color":"#7f9fa8"}]}
 ]"""
