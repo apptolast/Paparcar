@@ -154,6 +154,26 @@ class CoordinatorDetectionService : LifecycleService() {
     // belt-and-braces against potential cross-thread reads from diagnostic code. [audit C-2]
     @Volatile private var detectionJob: Job? = null
 
+    /**
+     * [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001] The BT-started trip RECORDER — a separate slot from
+     * [detectionJob] on purpose: it has no decision authority (no evaluators, no runtime state, no
+     * pin), so it must neither satisfy the "already active" guards that debounce arm triggers nor
+     * hold the pending-detection machinery. It only feeds [drivingRouteStore], so the BT lane's
+     * confirm finds a MEASURED route. Cancelled whenever a real detection job launches (the
+     * coordinator's own taps take over feeding — never two GPS requests from this service at once).
+     */
+    @Volatile private var btTrackingJob: Job? = null
+
+    /** Vehicle whose ACL CONNECT asked for tracking while a detection job was still running — the
+     *  idle epilogue starts the recorder once that job ends, if the car is still connected. */
+    private var btTrackingPendingVehicleId: String? = null
+
+    /** [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001] The recorder itself is pure/common; the service
+     *  only hosts its job and hands it the same two streams the detection job taps. */
+    private val tripTracker by lazy {
+        com.rndeveloper.paparcar.domain.detection.TripTracker(drivingRouteStore) { System.currentTimeMillis() }
+    }
+
     /** [DET-RESIDENT-FGS-001 · F3] Alive only while resident in SENTRY — see [watchSentryPreconditions]. */
     private var sentryWatchJob: Job? = null
 
@@ -356,6 +376,21 @@ class CoordinatorDetectionService : LifecycleService() {
             ACTION_BT_OVERRIDE -> {
                 PaparcarLogger.d(DIAG, "  → BT_OVERRIDE (${intent.getStringExtra(EXTRA_BT_OVERRIDE_REASON)}) — Bluetooth supersedes, aborting session")
                 cancelDetectionJob()
+            }
+            // [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001] The paired car's ACL CONNECT asks for the
+            // trip RECORDER — no arming, no decision, only route points, so the BT lane's confirm
+            // gets a measured route instead of none. When a detection job still runs (the
+            // arbitration override travels ahead of this intent and cancels synchronously, but a
+            // MANUAL session may legitimately survive), the wish parks in
+            // [btTrackingPendingVehicleId] and the idle epilogue honours it.
+            ACTION_BT_TRIP_START -> handleBtTripStart(intent.getStringExtra(EXTRA_BT_TRIP_VEHICLE_ID))
+            // The car's ACL DISCONNECT: the ride is over — stop recording. The store is NOT
+            // touched: the BT hunt's confirm consumes it (encodeFreshRoute), and the 20-min
+            // new-trip gap segments any leftovers of an unconfirmed stop.
+            ACTION_BT_TRIP_STOP -> {
+                PaparcarLogger.d(DIAG, "  → BT_TRIP_STOP — cancelling the trip recorder")
+                btTrackingPendingVehicleId = null
+                cancelBtTrackingJob()
             }
             // [DET-B-01] Unknown action: we already promoted to satisfy the 5 s window; the
             // epilogue below tears down if idle instead of leaving the FGS notification hanging.
@@ -1447,6 +1482,74 @@ class CoordinatorDetectionService : LifecycleService() {
         detectionJob = null
     }
 
+    /** Cancels the BT trip recorder (if any) and nulls the slot. Main-thread only.
+     *  [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001] */
+    private fun cancelBtTrackingJob() {
+        btTrackingJob?.cancel()
+        btTrackingJob = null
+    }
+
+    /** [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001] ACL CONNECT → record this ride (or park the wish
+     *  until the running detection job ends). */
+    private fun handleBtTripStart(vehicleId: String?) {
+        if (vehicleId == null) {
+            PaparcarLogger.d(DIAG, "  ⊘ BT_TRIP_START without a vehicle id — ignored")
+            return
+        }
+        if (detectionJob?.isActive == true) {
+            // A MANUAL session may legitimately outlive the arbitration override. The coordinator's
+            // own taps are feeding the route store right now; the epilogue starts the recorder when
+            // that job ends — if the car is still connected.
+            PaparcarLogger.d(DIAG, "  → BT_TRIP_START parked — detection job active; epilogue will honour it")
+            btTrackingPendingVehicleId = vehicleId
+            return
+        }
+        startBtTracking(vehicleId)
+    }
+
+    /**
+     * Launches the trip RECORDER: the same two taps the detection job uses (adaptive primary +
+     * passive piggyback [ROUTE-PASSIVE-FILL-001]) feeding [drivingRouteStore], hosted by the
+     * sentinel FGS, with zero decision authority. Returns normally only on the garage null-trip
+     * shutoff ([BtTripShutoff]); a real ride records until DISCONNECT stops it or a detection job
+     * supersedes it. [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001]
+     */
+    private fun startBtTracking(vehicleId: String) {
+        if (btTrackingJob?.isActive == true) {
+            PaparcarLogger.d(DIAG, "  ↻ BT_TRIP_START ignored — recorder already running")
+            return
+        }
+        btTrackingPendingVehicleId = null
+        PaparcarLogger.d(DIAG, "  ▶ trip recorder starting (vehicle=$vehicleId) [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001]")
+        // Foreground work is happening — same presence a detection job stamps. The epilogue
+        // re-decides (sentry / stop) when the recorder ends.
+        detectionRuntime.setPresence(ServicePresence.Active)
+        btTrackingJob = lifecycleScope.launch {
+            try {
+                tripTracker.track(
+                    primary = observeAdaptiveLocation(),
+                    passive = locationDataSource.observePassiveLocation(),
+                )
+                // Normal return = null trip (garage radio): sampling shut itself off.
+                PaparcarLogger.d(DIAG, "  ■ trip recorder ended — null trip")
+            } catch (e: CancellationException) {
+                PaparcarLogger.d(DIAG, "  ■ trip recorder cancelled: ${e.message}")
+                throw e
+            } catch (e: Exception) {
+                PaparcarLogger.e(DIAG, "  ✗ trip recorder error", e)
+            }
+        }
+        val startedJob = btTrackingJob!!
+        startedJob.invokeOnCompletion {
+            // Same completion pattern as the detection job [DET-ENDED-VETO-RACE-001]: the teardown
+            // question is asked through the serialized intake, never from inside the job.
+            if (btTrackingJob === startedJob) {
+                btTrackingJob = null
+                intake.trySend(Command.DetectionEnded(lastStartId))
+            }
+        }
+    }
+
     /**
      * [DET-INTAKE-001] Stops the service only when (a) no detection job is running AND (b)
      * [startId] is still the newest start command delivered (`stopSelfResult` — the framework
@@ -1459,6 +1562,8 @@ class CoordinatorDetectionService : LifecycleService() {
      */
     private fun stopIfIdle(reason: String, startId: Int) {
         if (detectionJob?.isActive == true) return
+        // [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001] A live trip recorder owns the FGS too.
+        if (btTrackingJob?.isActive == true) return
         // [DET-RESIDENT-FGS-001 · F2] Error-path teardown is still a DELIBERATE stop — drop any
         // residency stamp so the kill detector never reads this as an OS kill.
         sentryWatchJob?.cancel()
@@ -1481,6 +1586,21 @@ class CoordinatorDetectionService : LifecycleService() {
     private suspend fun resolveIdleEpilogue(reason: String, startId: Int) {
         // (a) A running job owns the service — never tear down under it. Same guard as stopIfIdle.
         if (detectionJob?.isActive == true) return
+        // [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001] A live trip recorder owns the service exactly
+        // like a detection job: no teardown and no sentry decision while it records.
+        if (btTrackingJob?.isActive == true) return
+        // A CONNECT that arrived while a detection job ran parked its wish here; honour it now the
+        // job is over — IF the car is still on its ride. A stale wish (disconnected meanwhile) is
+        // dropped so it can never start a recorder for a parked car. After a null-trip shutoff the
+        // pending is already consumed, so the epilogue cannot loop the recorder back on.
+        btTrackingPendingVehicleId?.let { pending ->
+            btTrackingPendingVehicleId = null
+            if (pending in com.rndeveloper.paparcar.bluetooth.BtConnectionStore.connectedVehicleIds(this)) {
+                PaparcarLogger.d(DIAG, "  ▶ honouring parked BT_TRIP_START (vehicle=$pending)")
+                startBtTracking(pending)
+                return
+            }
+        }
         val parkedSessions = runCatching {
             userParkingRepository.observeActiveSessions().firstOrNull().orEmpty()
         }.getOrElse { emptyList() }
@@ -1811,6 +1931,14 @@ class CoordinatorDetectionService : LifecycleService() {
                 return
             }
         }
+        // [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001] A real detection job supersedes the trip
+        // recorder: the coordinator's own taps feed the route store from here on, and this service
+        // never holds two GPS requests at once. (During BT ownership the strategy gate above
+        // already refused automatic arms — this is for MANUAL, which outranks the resolver.)
+        if (btTrackingJob?.isActive == true) {
+            PaparcarLogger.d(DIAG, "  ■ trip recorder superseded by arm (trigger=$trigger) — coordinator taps take over")
+        }
+        cancelBtTrackingJob()
         logTrigger(trigger.name, TriggerDisposition.ARMED, detail = detail, geofenceId = armingGeofenceId)
         logArmTrigger(trigger, detail)
         // [DET-SENTRY-COOLDOWN-001] Remember what armed this session; the teardown epilogue folds
@@ -2161,6 +2289,7 @@ class CoordinatorDetectionService : LifecycleService() {
 
     override fun onDestroy() {
         PaparcarLogger.d(DIAG, "■ Service onDestroy — cancelling detectionJob")
+        btTrackingJob?.cancel() // [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001]
         detectionJob?.cancel()
         detectionRuntime.setRunning(false) // [DET-READY-001c] service gone → detection idle
         detectionRuntime.setPresence(ServicePresence.Dead) // [DET-RESIDENT-FGS-001] process gone
@@ -2266,6 +2395,15 @@ class CoordinatorDetectionService : LifecycleService() {
         // [DET-TIERS-001] Bluetooth arbitration override: the BT receiver decided a paired-car edge
         // must supersede the running coordinator session; the service aborts it. Reason is for the log.
         const val ACTION_BT_OVERRIDE = "com.rndeveloper.paparcar.ACTION_BT_OVERRIDE"
+
+        /** [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001] The paired car's ACL CONNECT → start the trip
+         *  RECORDER (route points only, zero decision authority). Extra: [EXTRA_BT_TRIP_VEHICLE_ID]. */
+        const val ACTION_BT_TRIP_START = "com.rndeveloper.paparcar.ACTION_BT_TRIP_START"
+
+        /** The car's ACL DISCONNECT → stop the recorder; the BT hunt's confirm consumes the store. */
+        const val ACTION_BT_TRIP_STOP = "com.rndeveloper.paparcar.ACTION_BT_TRIP_STOP"
+
+        const val EXTRA_BT_TRIP_VEHICLE_ID = "extra_bt_trip_vehicle_id"
         const val EXTRA_BT_OVERRIDE_REASON = "com.rndeveloper.paparcar.EXTRA_BT_OVERRIDE_REASON"
 
         // [DET-G-01] Geofence-exit delivered directly to the service via getForegroundService so

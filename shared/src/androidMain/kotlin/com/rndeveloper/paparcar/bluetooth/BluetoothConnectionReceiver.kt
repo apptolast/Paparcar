@@ -155,6 +155,15 @@ class BluetoothConnectionReceiver : BroadcastReceiver(), KoinComponent {
                         // connection state the strategy resolver reads, so detection falls back to the
                         // Coordinator for the next (possibly non-BT) car.
                         BtConnectionStore.markDisconnected(context, pairedVehicle.id)
+                        // [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001] The ride is over → stop the trip
+                        // recorder. Plain startService (same window/precedent as the CONNECT work
+                        // below): if the sentinel is dead there is no recorder to stop and the
+                        // intake's epilogue tears the brief start back down.
+                        context.startService(
+                            Intent(context, CoordinatorDetectionService::class.java).apply {
+                                this.action = CoordinatorDetectionService.ACTION_BT_TRIP_STOP
+                            },
+                        )
                         val serviceIntent = Intent(context, BluetoothDetectionService::class.java).apply {
                             this.action = BluetoothDetectionService.ACTION_BT_DISCONNECTED
                             putExtra(BluetoothDetectionService.EXTRA_DEVICE_ADDRESS, deviceAddress)
@@ -229,6 +238,25 @@ class BluetoothConnectionReceiver : BroadcastReceiver(), KoinComponent {
                         } else {
                             context.startService(serviceIntent)
                         }
+
+                        // [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001] …and start the trip RECORDER in
+                        // the sentinel: the CONNECT nominates nothing and arms nothing — it turns on
+                        // a recorder with zero decision authority, so the ride this connect begins
+                        // ends with a MEASURED route on its BT-confirmed park. Ordered AFTER the
+                        // arbitration override above (the intake serializes and cancelDetectionJob
+                        // is synchronous), so the recorder always meets a service whose superseded
+                        // session is already gone. startForegroundService: recording is
+                        // long-running, ACL broadcasts are exempt from the background FGS-start
+                        // restriction, and the sentinel promotes itself for every action. The
+                        // garage-radio case is bounded by the recorder's own null-trip shutoff
+                        // (BtTripShutoff), never by this receiver guessing.
+                        ContextCompat.startForegroundService(
+                            context,
+                            Intent(context, CoordinatorDetectionService::class.java).apply {
+                                this.action = CoordinatorDetectionService.ACTION_BT_TRIP_START
+                                putExtra(CoordinatorDetectionService.EXTRA_BT_TRIP_VEHICLE_ID, pairedVehicle.id)
+                            },
+                        )
                     }
                 }
             } catch (e: Throwable) {

@@ -8333,3 +8333,49 @@ conducción a 18–90 km/h (el sentinel no muestrea en reposo); la cifra real la
 BATT-A-COST-IS-MEASURED-NOT-DECLARED-001 (fase 5). Detección: más evidencia medida en la banda de
 conducción — la dirección segura del fallo asimétrico. Gate de campo no bloqueante: p90 de
 espaciado urbano < 150 m en un viaje real.
+
+### TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001 — el enganche BT enciende un grabador, y el pin BT gana su ruta medida (commit pending)
+
+**Contexto.** Fase 3 del pivote trayectos-como-producto, y la **vía B** del hueco que
+`EnrichParkingSessionWorker` documenta desde agosto (*"BT drives should get a MEASURED route —
+separate gap"*, `det-a-bt-drive-leaves-no-trace-001.md`): el carril BT despierta en el destino,
+así que sus sesiones —las del carril determinista, el que mejor detecta— no llevaban ni
+`routePolyline` ni `routeDistanceMeters`.
+
+**Cambio.** El ACL CONNECT del MAC emparejado ahora arranca un **grabador** (`TripTracker`,
+commonMain) alojado en el sentinel (`CoordinatorDetectionService`, acciones nuevas
+`ACTION_BT_TRIP_START/STOP` por el intake [DET-INTAKE-001]): los mismos dos taps que el job de
+detección (stream adaptativo + pasivo [ROUTE-PASSIVE-FILL-001]) alimentando `DrivingRouteStore`.
+Al confirmar el pin la caza de siempre, `ConfirmParkingUseCase.encodeFreshRoute` —convergencia
+común, sin tocar— encuentra el store lleno y adjunta la ruta **MEDIDA** (frescura 30 min ≫ los
+minutos de la caza; `endAtAnchor` remata la línea en el pin).
+
+**Doctrina, reforzada.** El CONNECT *nomina* un grabador, no una decisión: `TripTracker` no
+puntúa, no arma, no confirma y **no toca `DetectionRuntimeState`** — la máquina de estados de
+detección ve un viaje BT exactamente igual que ayer. El carril BT no cambia una línea de su
+decisión. `detectionPath` sigue siendo `"bt"` — no hay camino nuevo de confirmación, solo un dato
+medido que antes faltaba.
+
+**El garaje.** Radio encendida sin conducir: `BtTripShutoff` (puro, commonMain) apaga el muestreo
+tras 10 min sin ningún fix a velocidad de conducción NI desplazamiento >150 m del primer fix. Con
+reloj **inyectado**, no timestamps de fixes: un garaje subterráneo sin GPS también se apaga —
+el silencio no es coartada. El `speed` declarado solo se usa en la dirección en que no miente
+(probar movimiento, nunca reposo).
+
+**Convivencias auditadas.** (a) Teardown: `resolveIdleEpilogue`/`stopIfIdle` ganan el guard del
+`btTrackingJob` — un grabador vivo posee el FGS como un job de detección, y el epílogo re-decide
+al terminar. (b) Armados: el grabador vive en OTRO slot — jamás satisface los guards
+`detectionJob?.isActive` que debouncean triggers; un arm real (en la práctica solo MANUAL: el
+strategy gate ya rehúsa armados automáticos bajo dominio BT) **cancela el grabador** y sus taps
+toman el relevo — nunca dos requests GPS del servicio a la vez. (c) Arbitraje [DET-TIERS-001]: el
+override viaja delante del START en el intake serializado y `cancelDetectionJob` es síncrono; si
+una sesión MANUAL sobrevive, el deseo queda en `btTrackingPendingVehicleId` y el epílogo lo honra
+si el coche sigue enganchado. (d) La vigilancia de salida del CONNECT
+[DET-A-BT-CONNECT-IS-A-DEPARTURE-001] convive: dura ≤5 min acotados en otro servicio; FLP funde
+las requests. (e) Tras un null-trip NO se re-arranca hasta el siguiente CONNECT — sin bucle.
+
+**Riesgo del fix acompañante.** Batería: un viaje BT ahora cuesta lo que un viaje Coordinator
+(antes costaba ~nada) — es el precio del producto, acotado en el garaje por el shutoff. Ningún
+evaluador consume nada nuevo. La notificación FGS reutiliza la de detección (verdad: la detección
+automática está activa vía BT). Campo pendiente (gate de fase 4, no de este merge): un viaje BT
+real termina con `routePolyline` en su sesión.
