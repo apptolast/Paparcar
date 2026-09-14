@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.data.parkings
 
+import com.rndeveloper.paparcar.domain.parkings.ParkingZoneGrid
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingsQuery
 import com.rndeveloper.paparcar.domain.parkings.FeeInfo
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingKind
@@ -139,10 +140,10 @@ class OsmPublicParkingParserTest {
         // across the street is as likely to be dropped as the one at the edge. Sorting afterwards
         // cannot recover what never arrived.
         //
-        // Measured against the live endpoint on 14-09-2026 at r=3.000 m: 259 elements around Puerta
-        // del Sol and ~250 around central Málaga. The cap has to clear that, or widening the reach
-        // makes dense cities worse while looking better in a village.
-        val densestMeasuredCity = 259
+        // Measured against the live endpoint on 14-09-2026 at the ZONE reach (5.200 m): 681 elements
+        // around Puerta del Sol and 571 around central Málaga. The cap has to clear that, or
+        // widening the reach makes dense cities worse while looking better in a village.
+        val densestMeasuredCity = 681
 
         assertTrue(
             OsmPublicParkingParser.MAX_RESULTS > densestMeasuredCity,
@@ -154,11 +155,11 @@ class OsmPublicParkingParserTest {
     @Test
     fun `should_carryTheCapIntoTheQuery_soTheServerIsTheOneThatStopsSending`() {
         val query = OsmPublicParkingParser
-            .buildQuery(40.4168, -3.7038, PublicParkingsQuery.DEFAULT_RADIUS_METERS, 20)
+            .buildQuery(40.4168, -3.7038, ParkingZoneGrid.ZONE_RADIUS_METERS, 20)
 
         assertTrue(query.contains("out center ${OsmPublicParkingParser.MAX_RESULTS};"), query)
         assertTrue(
-            query.contains("around:${PublicParkingsQuery.DEFAULT_RADIUS_METERS},"),
+            query.contains("around:${ParkingZoneGrid.ZONE_RADIUS_METERS},"),
             "the query must ask for the radius the domain declares, not a copy of it: $query",
         )
     }

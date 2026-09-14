@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.domain.usecase.parkings
 
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsQuery
+import com.rndeveloper.paparcar.domain.parkings.ParkingZoneGrid
 import com.rndeveloper.paparcar.domain.geocoder.GeocoderDataSource
 import com.rndeveloper.paparcar.domain.model.AddressInfo
 import com.rndeveloper.paparcar.domain.model.SearchResult
@@ -124,9 +125,12 @@ class GetNearbyPublicParkingsUseCaseTest {
 
         GetNearbyPublicParkingsUseCase(source, FakeGeocoder(madrid)).invoke(SOL_LAT, SOL_LON)
 
-        assertEquals(3_000, source.seen?.radiusMeters)
+        // ⛔ The request now goes out for the ZONE, so the radius on the wire is the zone's reach,
+        // not the display radius. What must NOT move is what the driver is shown — see the test
+        // below. [PARKINGS-A-ZONE-IS-ASKED-ONCE-AND-PANNED-FOR-FREE-001]
+        assertEquals(ParkingZoneGrid.ZONE_RADIUS_METERS, source.seen?.radiusMeters)
         assertTrue(
-            source.seen!!.radiusMeters < FuelStationsQuery.DEFAULT_RADIUS_METERS,
+            PublicParkingsQuery.DEFAULT_RADIUS_METERS < FuelStationsQuery.DEFAULT_RADIUS_METERS,
             "a car park at the refuel radius is not an option, it is a different trip",
         )
     }

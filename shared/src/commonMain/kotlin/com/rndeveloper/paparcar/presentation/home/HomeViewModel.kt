@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.presentation.home
 
+import com.rndeveloper.paparcar.domain.parkings.ParkingZoneGrid
 import com.swmansion.kmpmaps.core.MapType
 import com.rndeveloper.paparcar.isDebugBuild
 import com.rndeveloper.paparcar.domain.ActivityRecognitionManager
@@ -735,7 +736,16 @@ class HomeViewModel(
         if (trigger == NearbyTrigger.FIX && !wasAwaitingCentre && !wasTooFar) return
         nearbyAwaitingCentre -= subject
 
-        val moved = ViewportRefetch.shouldRefetch(anchorLat, anchorLon, lat, lon, radius)
+        // ⛔ Car parks re-ask by ZONE, not by distance. Panning inside the zone owes the server
+        // nothing — the answer already covers it — so the question is "am I still in the same
+        // zone", never "how far have I drifted".
+        // [PARKINGS-A-ZONE-IS-ASKED-ONCE-AND-PANNED-FOR-FREE-001]
+        val moved = when (subject) {
+            HomeNearbyLens.PARKINGS ->
+                anchorLat == null || anchorLon == null ||
+                    !ParkingZoneGrid.sameZone(anchorLat, anchorLon, lat, lon)
+            else -> ViewportRefetch.shouldRefetch(anchorLat, anchorLon, lat, lon, radius)
+        }
         if (!moved && !questionChanged) return
 
         when (subject) {

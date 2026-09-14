@@ -85,6 +85,7 @@ import com.rndeveloper.paparcar.domain.model.AddressInfo
 import com.rndeveloper.paparcar.domain.model.SearchResult
 import com.rndeveloper.paparcar.domain.usecase.fuel.GetNearbyFuelStationsUseCase
 import com.rndeveloper.paparcar.domain.parkings.PublicParking
+import com.rndeveloper.paparcar.domain.parkings.ParkingZoneGrid
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingKind
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingsQuery
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingsResult
@@ -2644,14 +2645,27 @@ class HomeViewModelTest {
 
     // ── Public parkings [PARKINGS-ON-THE-MAP-001] ────────────────────────────
 
-    private fun spyParking(id: String = "osm/node/1") = PublicParking(
+    /**
+     * ⛔ Lleva coordenadas desde [PARKINGS-A-ZONE-IS-ASKED-ONCE-AND-PANNED-FOR-FREE-001]: el caso de
+     * uso ahora descarta lo que cae fuera del radio de PANTALLA, así que un fixture plantado en Sol
+     * mientras la cámara viaja 7,8 km deja de aparecer — y debe dejar de aparecer. Un parking que no
+     * se puede ver desde donde miras no es una fila, es un error que antes nadie filtraba.
+     */
+    private fun spyParking(
+        id: String = "osm/node/1",
+        latitude: Double = 40.4157,
+        longitude: Double = -3.7028,
+    ) = PublicParking(
         id = id,
         name = "Parking Benavente",
         operator = null,
         kind = PublicParkingKind.UNDERGROUND,
-        latitude = 40.4157,
-        longitude = -3.7028,
+        latitude = latitude,
+        longitude = longitude,
     )
+
+    /** El mismo fixture, pero donde se para la cámara en los tests de paneo. */
+    private fun spyParkingLejos(id: String) = spyParking(id, LEJOS_LAT, LEJOS_LON)
 
     @Test
     fun `should_loadParkings_andPersistTheChoice_when_theLayerTurnsOn`() = runTest(testDispatcher) {
@@ -2819,7 +2833,7 @@ class HomeViewModelTest {
         advanceUntilIdle()
         assertTrue(vm.state.value.parkings.isLoading, "the first ask is still flying")
 
-        parkingsSource.result = Result.success(listOf(spyParking("alli")))
+        parkingsSource.result = Result.success(listOf(spyParkingLejos("alli")))
         vm.handleIntent(HomeIntent.CameraPositionChanged(LEJOS_LAT, LEJOS_LON))
         advanceUntilIdle()
         gate.complete(Unit)
@@ -2894,7 +2908,7 @@ class HomeViewModelTest {
             vm.state.value.toMapSlice().publicParkings.map { it.parking.id },
         )
         assertSame()
-        parkingsSource.result = Result.success(listOf(spyParking("c")))
+        parkingsSource.result = Result.success(listOf(spyParkingLejos("c")))
         vm.handleIntent(HomeIntent.CameraPositionChanged(LEJOS_LAT, LEJOS_LON))
         advanceUntilIdle()
         assertSame()
@@ -2922,8 +2936,11 @@ class HomeViewModelTest {
         vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
         advanceUntilIdle()
 
-        assertEquals(LEJOS_LAT, parkingsSource.seen?.latitude)
-        assertEquals(LEJOS_LON, parkingsSource.seen?.longitude)
+        val zona = ParkingZoneGrid.zoneOf(LEJOS_LAT, LEJOS_LON)
+        assertEquals(zona.centreLatitude, parkingsSource.seen?.latitude)
+        assertEquals(zona.centreLongitude, parkingsSource.seen?.longitude)
+        // …y esa zona es la de la CÁMARA, que es el bug que este test existe para impedir.
+        assertTrue(!ParkingZoneGrid.sameZone(LEJOS_LAT, LEJOS_LON, location.latitude, location.longitude))
     }
 
     @Test
@@ -2940,7 +2957,13 @@ class HomeViewModelTest {
         advanceUntilIdle()
 
         assertEquals(tras + 1, parkingsSource.askCount, "la sección abierta viaja con la cámara")
-        assertEquals(LEJOS_LAT, parkingsSource.seen?.latitude)
+        // ⛔ Se pregunta por la ZONA de la cámara, no por su coordenada exacta — eso es lo que hace
+        // que panear dentro de la zona no cueste peticiones.
+        // [PARKINGS-A-ZONE-IS-ASKED-ONCE-AND-PANNED-FOR-FREE-001]
+        assertEquals(
+            ParkingZoneGrid.zoneOf(LEJOS_LAT, LEJOS_LON).centreLatitude,
+            parkingsSource.seen?.latitude,
+        )
     }
 
     @Test

@@ -155,15 +155,22 @@ object OsmPublicParkingParser {
      * the street as likely to go as the one at the edge. Widening the reach while keeping the cap
      * would have made dense cities *worse* while looking better in a village.
      *
-     * 300 clears the measured worst case with room, at roughly 100 KB a request. Past it the answer
-     * is still honest rather than silently short — see below.
+     * It was raised to 300 for a 3 km disc, and raised again when the lane started asking by zone:
+     * a zone reaches 5.200 m so that a driver at a cell corner still sees 3 km around themselves,
+     * and at that reach the same measurement gives **681 elements around Puerta del Sol** (238 KB)
+     * and 571 around Málaga (269 KB). [PARKINGS-A-ZONE-IS-ASKED-ONCE-AND-PANNED-FOR-FREE-001]
+     *
+     * 1.000 clears that with room. It is a heavy answer for one request and a cheap one for what it
+     * buys: a zone is fetched **once** and then every pan inside it is free for thirty days — about
+     * 2,6 MB to cover a whole city for a month, against 5,8 MB with smaller zones asked more often.
+     * Past the cap the answer is still honest rather than silently short — see below.
      *
      * Visible beyond this file because the disk cache has to know it: a response that came back AT
      * the cap was truncated, so the area it can honestly claim to have seen ends at its farthest
      * element rather than at the radius it asked for.
      * [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]
      */
-    internal const val MAX_RESULTS = 300
+    internal const val MAX_RESULTS = 1_000
 
     private const val MIN_CLEARANCE_M = 1.4
     private const val MAX_CLEARANCE_M = 6.0

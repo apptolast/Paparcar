@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.domain.usecase.parkings
 
+import com.rndeveloper.paparcar.domain.parkings.ParkingZoneGrid
 import com.rndeveloper.paparcar.domain.geocoder.GeocoderDataSource
 import com.rndeveloper.paparcar.domain.parkings.FeeInfo
 import com.rndeveloper.paparcar.domain.parkings.PublicParking
@@ -41,19 +42,32 @@ class GetNearbyPublicParkingsUseCase(
     private val geocoder: GeocoderDataSource,
 ) {
 
+    /**
+     * ⛔ **Asked about the ZONE, answered about YOU.**
+     * [PARKINGS-A-ZONE-IS-ASKED-ONCE-AND-PANNED-FOR-FREE-001]
+     *
+     * The request goes out for the zone's centre and its whole reach, so that panning within the
+     * zone produces a byte-identical query — a cache hit on our disk and, failing that, on Overpass's
+     * own. The ANSWER is still about the caller: distances are measured from where they actually are,
+     * and anything past the display radius is dropped here rather than drawn kilometres away.
+     *
+     * Those two are separate on purpose. Sharing one radius would either shrink the zone (and lose
+     * the caching) or widen the list (and put a car park 5 km away in it, which is a different trip).
+     */
     suspend operator fun invoke(
         latitude: Double,
         longitude: Double,
         radiusMeters: Int = PublicParkingsQuery.DEFAULT_RADIUS_METERS,
     ): Result<NearbyPublicParkings> {
+        val zone = ParkingZoneGrid.zoneOf(latitude, longitude)
         val address = geocoder.getAddress(latitude, longitude).getOrNull()
 
         val query = PublicParkingsQuery(
-            latitude = latitude,
-            longitude = longitude,
+            latitude = zone.centreLatitude,
+            longitude = zone.centreLongitude,
             countryCode = address?.countryCode.orEmpty(),
             regionName = address?.province ?: address?.region,
-            radiusMeters = radiusMeters,
+            radiusMeters = ParkingZoneGrid.ZONE_RADIUS_METERS,
         )
 
         return parkings.parkingsNear(query).map { found ->
@@ -66,6 +80,7 @@ class GetNearbyPublicParkingsUseCase(
                             distanceMeters = haversineMeters(latitude, longitude, it.latitude, it.longitude),
                         )
                     }
+                    .filter { it.distanceMeters <= radiusMeters }
                     .sortedBy { it.distanceMeters },
                 // Carried through untouched: the filtering above changes WHICH car parks are worth
                 // showing, never when the app last managed to ask.
