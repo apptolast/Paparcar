@@ -17,12 +17,27 @@ data class PublicParkingsQuery(
 ) {
     companion object {
         /**
-         * ⛔ Deliberately **not** the fuel radius (5 km). You drive to a forecourt that is "on the
-         * way", but you park at your DESTINATION: a car park 5 km away is not an option, it is a
-         * different trip. It is also a volume problem — 300 elements came back within 1 km of
-         * central Málaga, capped by the query itself.
+         * ⛔ Still **not** the fuel radius (5 km). You drive to a forecourt that is "on the way",
+         * but you park at your DESTINATION: a car park 5 km away is not an option, it is a
+         * different trip.
+         *
+         * It was 1.500 m, which turned out to be too tight to be useful, and the reason it could not
+         * simply be raised is the one [PARKINGS-A-CAPPED-ANSWER-MUST-NOT-DROP-THE-NEAREST-001]
+         * exists for — see `OsmPublicParkingParser.MAX_RESULTS`. Measured on 14-09-2026:
+         *
+         * | Zona | r=3 km | r=5 km |
+         * |---|---|---|
+         * | Madrid Sol | 259 elementos | 641 |
+         * | Málaga centro | ~250 | 557 |
+         *
+         * 3 km is where two things meet. It covers a destination and its surroundings at about
+         * 100 KB a request, and — because `ViewportRefetch` re-asks after HALF the radius — it
+         * doubles the panning distance that triggers a new request, from 750 m to 1.500 m. Against a
+         * public service that allows **2 asks per IP** that is not a side effect, it is half the
+         * reason: fewer, larger answers beat many small ones when the budget is requests rather than
+         * bytes. [OVERPASS-A-MIRROR-WALK-MUST-OUTLIVE-THE-SERVER-IT-ASKS-001]
          */
-        const val DEFAULT_RADIUS_METERS = 1_500
+        const val DEFAULT_RADIUS_METERS = 3_000
     }
 }
 

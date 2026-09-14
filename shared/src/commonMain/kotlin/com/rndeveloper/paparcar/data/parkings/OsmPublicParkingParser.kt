@@ -140,14 +140,30 @@ object OsmPublicParkingParser {
     private val CLOSED_ACCESS_PATTERN = CLOSED_ACCESS.joinToString("|", prefix = "^(", postfix = ")$")
 
     /**
-     * A ceiling on the payload, not on the map: the nearest ones are what a driver acts on.
+     * A ceiling on the payload, not on the map.
+     *
+     * ⛔ **`out center N` cuts by element id, NOT by distance** — and that is the whole reason this
+     * number had to move together with the radius.
+     * [PARKINGS-A-CAPPED-ANSWER-MUST-NOT-DROP-THE-NEAREST-001]
+     *
+     * The old comment said "the nearest ones are what a driver acts on", which described what the
+     * app does AFTER parsing (`OsmPublicParkingsSource` sorts by distance) and not what the server
+     * does before sending. Overpass truncates in iteration order, so a capped answer is an
+     * **arbitrary** subset of the disc. At 1.500 m that was mostly harmless. Measured on 14-09-2026,
+     * at 3.000 m it would not be: **259 elements around Puerta del Sol** and ~250 around central
+     * Málaga, against a cap of 80 — two out of three car parks dropped at random, and the one across
+     * the street as likely to go as the one at the edge. Widening the reach while keeping the cap
+     * would have made dense cities *worse* while looking better in a village.
+     *
+     * 300 clears the measured worst case with room, at roughly 100 KB a request. Past it the answer
+     * is still honest rather than silently short — see below.
      *
      * Visible beyond this file because the disk cache has to know it: a response that came back AT
      * the cap was truncated, so the area it can honestly claim to have seen ends at its farthest
      * element rather than at the radius it asked for.
      * [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]
      */
-    internal const val MAX_RESULTS = 80
+    internal const val MAX_RESULTS = 300
 
     private const val MIN_CLEARANCE_M = 1.4
     private const val MAX_CLEARANCE_M = 6.0

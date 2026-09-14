@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.data.parkings
 
+import com.rndeveloper.paparcar.domain.parkings.PublicParkingsQuery
 import com.rndeveloper.paparcar.domain.parkings.FeeInfo
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingKind
 import kotlin.test.Test
@@ -128,6 +129,38 @@ class OsmPublicParkingParserTest {
         val query = OsmPublicParkingParser.buildQuery(40.0704, -2.1374, 1_500, 20)
         assertTrue(query.contains("[!parking]"), query)
         assertTrue(query.count { it == '(' } >= 1 && query.contains(");"), "must be a union: $query")
+    }
+
+    @Test
+    fun `should_keepTheCapAboveTheDensestMeasuredCity_soTruncationCannotDropTheNearest`() {
+        // ⛔ The invariant of [PARKINGS-A-CAPPED-ANSWER-MUST-NOT-DROP-THE-NEAREST-001], and the
+        // reason the radius could not be raised on its own: `out center N` truncates by element id,
+        // NOT by distance, so a capped answer is an ARBITRARY subset of the disc — the car park
+        // across the street is as likely to be dropped as the one at the edge. Sorting afterwards
+        // cannot recover what never arrived.
+        //
+        // Measured against the live endpoint on 14-09-2026 at r=3.000 m: 259 elements around Puerta
+        // del Sol and ~250 around central Málaga. The cap has to clear that, or widening the reach
+        // makes dense cities worse while looking better in a village.
+        val densestMeasuredCity = 259
+
+        assertTrue(
+            OsmPublicParkingParser.MAX_RESULTS > densestMeasuredCity,
+            "a cap of ${OsmPublicParkingParser.MAX_RESULTS} truncates Madrid at " +
+                "${PublicParkingsQuery.DEFAULT_RADIUS_METERS} m, and truncation here is random",
+        )
+    }
+
+    @Test
+    fun `should_carryTheCapIntoTheQuery_soTheServerIsTheOneThatStopsSending`() {
+        val query = OsmPublicParkingParser
+            .buildQuery(40.4168, -3.7038, PublicParkingsQuery.DEFAULT_RADIUS_METERS, 20)
+
+        assertTrue(query.contains("out center ${OsmPublicParkingParser.MAX_RESULTS};"), query)
+        assertTrue(
+            query.contains("around:${PublicParkingsQuery.DEFAULT_RADIUS_METERS},"),
+            "the query must ask for the radius the domain declares, not a copy of it: $query",
+        )
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.domain.usecase.parkings
 
+import com.rndeveloper.paparcar.domain.fuel.FuelStationsQuery
 import com.rndeveloper.paparcar.domain.geocoder.GeocoderDataSource
 import com.rndeveloper.paparcar.domain.model.AddressInfo
 import com.rndeveloper.paparcar.domain.model.SearchResult
@@ -116,13 +117,18 @@ class GetNearbyPublicParkingsUseCaseTest {
 
     @Test
     fun `should_askWithinTheDestinationRadius_notTheRefuelRadius`() = runTest {
-        // You drive to a forecourt that is on the way; you park at your destination. 5 km of car
-        // parks is not a list, and 300 elements came back within 1 km of central Málaga.
+        // You drive to a forecourt that is on the way; you park at your destination — so this stays
+        // well under the 5 km the fuel lane uses, even after widening.
+        // [PARKINGS-A-CAPPED-ANSWER-MUST-NOT-DROP-THE-NEAREST-001]
         val source = FakeSource(Result.success(emptyList()))
 
         GetNearbyPublicParkingsUseCase(source, FakeGeocoder(madrid)).invoke(SOL_LAT, SOL_LON)
 
-        assertEquals(1_500, source.seen?.radiusMeters)
+        assertEquals(3_000, source.seen?.radiusMeters)
+        assertTrue(
+            source.seen!!.radiusMeters < FuelStationsQuery.DEFAULT_RADIUS_METERS,
+            "a car park at the refuel radius is not an option, it is a different trip",
+        )
     }
 
     @Test
