@@ -14,17 +14,19 @@ import com.rndeveloper.paparcar.domain.model.GpsPoint
  *
  * Fed only by the service (single active tracked trip → a single buffer, no per-vehicle key). The
  * buffer self-segments by a long time-gap between fixes so a fresh trip never inherits the previous
- * one's tail, and is cleared explicitly when a trip terminates. Platform-backed (SharedPreferences on
- * Android); null where no platform store is wired (iOS today).
+ * one's tail, and is cleared explicitly when a trip terminates. Room-backed
+ * (`trip_route_points`, one row per admitted fix — O(1) per tick) and UNCAPPED: a long drive keeps
+ * its origin, which the old per-platform single-blob stores' 500-point sliding cap made impossible.
+ * One common implementation serves both platforms. [TRIP-A-LONG-DRIVE-KEEPS-ITS-ORIGIN-001]
  */
 interface DrivingRouteStore {
     /** Append a tracked driving fix. A long silence since the last point starts a new trip; a fix
      *  that barely moved is decimated away. */
-    fun append(point: GpsPoint)
+    suspend fun append(point: GpsPoint)
 
     /** The current trip's recorded route (empty when none). */
-    fun points(): List<GpsPoint>
+    suspend fun points(): List<GpsPoint>
 
     /** Drop the recorded route — the trip terminated (park confirmed or aborted). */
-    fun clear()
+    suspend fun clear()
 }

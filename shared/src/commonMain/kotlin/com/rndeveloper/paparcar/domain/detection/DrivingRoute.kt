@@ -9,10 +9,6 @@ import com.rndeveloper.paparcar.domain.util.haversineMeters
  */
 object DrivingRoute {
 
-    /** Sliding cap: a very long drive drops its oldest points. A few hundred points draw a smooth
-     *  line and keep the persisted blob a few KB. */
-    const val MAX_POINTS = 500
-
     /** A fix nearer than this to the last kept one carries no new shape — decimated away. Bounds the
      *  point count when the car crawls or idles, and smooths GPS jitter. */
     const val MIN_POINT_DISTANCE_M = 12.0
@@ -40,21 +36,50 @@ object DrivingRoute {
     const val MAX_ANCHOR_APPEND_METERS = 5_000.0
 
     /**
-     * Returns the route after adding [point]. Returns [current] unchanged (same reference) when the
-     * fix is decimated away, so a caller can skip persisting on no-op ticks.
+     * The per-point admission verdict — the SINGLE accumulation rule, stated against the last KEPT
+     * point alone so a store can apply it in O(1) per fix (one row insert) instead of rewriting the
+     * whole route. [TRIP-A-LONG-DRIVE-KEEPS-ITS-ORIGIN-001]
      */
-    fun append(current: List<GpsPoint>, point: GpsPoint): List<GpsPoint> {
-        if (point.accuracy > HOPELESS_ACCURACY_METERS) return current // [ROUTE-FIX-ACCURACY-001]
-        val last = current.lastOrNull() ?: return listOf(point)
+    enum class Admission {
+        /** Hopelessly inaccurate — measures nothing drawable, never enters. [ROUTE-FIX-ACCURACY-001] */
+        REJECT,
+
+        /** Barely moved since the last kept point — no new shape, skip persisting. */
+        DECIMATE,
+
+        /** A long silence ended: the previous trip is over, this fix STARTS a fresh route. */
+        RESET,
+
+        /** A genuine new vertex of the current trip. */
+        APPEND,
+    }
+
+    /** The admission verdict for [point] given the [last] kept point (null = empty route). */
+    fun admit(last: GpsPoint?, point: GpsPoint): Admission {
+        if (point.accuracy > HOPELESS_ACCURACY_METERS) return Admission.REJECT // [ROUTE-FIX-ACCURACY-001]
+        last ?: return Admission.APPEND
         if (point.timestamp > 0L && last.timestamp > 0L &&
             point.timestamp - last.timestamp > NEW_TRIP_GAP_MS
         ) {
-            return listOf(point)
+            return Admission.RESET
         }
         val moved = haversineMeters(last.latitude, last.longitude, point.latitude, point.longitude)
-        if (moved < MIN_POINT_DISTANCE_M) return current
-        return (current + point).takeLast(MAX_POINTS)
+        return if (moved < MIN_POINT_DISTANCE_M) Admission.DECIMATE else Admission.APPEND
     }
+
+    /**
+     * Returns the route after adding [point]. Returns [current] unchanged (same reference) when the
+     * fix is decimated away, so a caller can skip persisting on no-op ticks. Expressed over [admit]
+     * so the list form and a per-row store cannot diverge. Uncapped since
+     * [TRIP-A-LONG-DRIVE-KEEPS-ITS-ORIGIN-001]: a long drive must keep its origin — the old
+     * 500-point sliding cap existed to bound the single-blob persistence this rule no longer assumes.
+     */
+    fun append(current: List<GpsPoint>, point: GpsPoint): List<GpsPoint> =
+        when (admit(current.lastOrNull(), point)) {
+            Admission.REJECT, Admission.DECIMATE -> current
+            Admission.RESET -> listOf(point)
+            Admission.APPEND -> current + point
+        }
 
     /**
      * The stored route is the DRIVING route — invariant: it ends at the parking anchor, never at

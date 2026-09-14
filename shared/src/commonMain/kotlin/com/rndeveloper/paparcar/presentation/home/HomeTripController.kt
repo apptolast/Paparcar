@@ -303,7 +303,7 @@ class HomeTripController(
      * leaves its route until a genuine-new-trip gap-reset, and that stale route must not be drawn on
      * the next trip. A real in-progress trip's last fix is seconds/minutes old. [DET-ROUTE-TRACK-001]
      */
-    private fun freshRecordedRoute(): List<GpsPoint> {
+    private suspend fun freshRecordedRoute(): List<GpsPoint> {
         val points = drivingRouteStore?.points().orEmpty()
         val last = points.lastOrNull() ?: return emptyList()
         val ageMs = kotlin.time.Clock.System.now().toEpochMilliseconds() - last.timestamp

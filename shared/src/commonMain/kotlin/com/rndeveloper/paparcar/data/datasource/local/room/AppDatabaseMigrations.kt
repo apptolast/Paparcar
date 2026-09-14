@@ -147,4 +147,27 @@ private val MIGRATION_6_7 = object : Migration(6, 7) {
     }
 }
 
-val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+/**
+ * v8 [TRIP-A-LONG-DRIVE-KEEPS-ITS-ORIGIN-001]: the live trip's driven route moves from the
+ * per-platform single-blob stores (SharedPreferences / NSUserDefaults, 500-point sliding cap) into
+ * Room — one row per admitted fix, uncapped, so a long drive keeps its origin and each tick costs
+ * one insert instead of a full-list rewrite.
+ *
+ * Nothing is back-filled: the table holds only the trip in progress, and a device that upgrades
+ * mid-trip simply starts recording from its next fix (the backdated origin in the trip controller
+ * covers the drawn line, exactly as it covers a process death today). The orphaned blob files stay
+ * behind (~KB) — deliberately not worth a cleanup pass.
+ */
+private val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "CREATE TABLE IF NOT EXISTS `trip_route_points` (" +
+                "`seq` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`latitude` REAL NOT NULL, `longitude` REAL NOT NULL, " +
+                "`accuracy` REAL NOT NULL, `timestamp` INTEGER NOT NULL, " +
+                "`speed` REAL NOT NULL, `provider` TEXT, `satelliteCount` INTEGER)"
+        )
+    }
+}
+
+val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)

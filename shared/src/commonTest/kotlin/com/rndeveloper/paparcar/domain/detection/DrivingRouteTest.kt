@@ -100,15 +100,47 @@ class DrivingRouteTest {
         assertEquals(drive + anchor, DrivingRoute.endAtAnchor(drive, anchor))
     }
 
+    // ── Uncapped: a long drive keeps its origin [TRIP-A-LONG-DRIVE-KEEPS-ITS-ORIGIN-001] ────
+
     @Test
-    fun `should cap the route to MAX_POINTS dropping the oldest`() {
+    fun `should keep every admitted point of a long drive including its origin`() {
         var route = emptyList<GpsPoint>()
-        // Each fix ~110 m apart and 5 s apart so none is decimated or gap-reset.
-        for (i in 0..DrivingRoute.MAX_POINTS + 50) {
+        // 601 fixes ~110 m and 5 s apart — beyond the retired 500-point sliding cap, none
+        // decimated or gap-reset. The route used to silently drop its OLDEST points here.
+        for (i in 0..600) {
             route = DrivingRoute.append(route, p(40.0 + i * 0.001, -3.0, 1_000L + i * 5_000L))
         }
-        assertEquals(DrivingRoute.MAX_POINTS, route.size)
-        // The oldest points fell off the tail — the last is the most recent.
-        assertEquals(40.0 + (DrivingRoute.MAX_POINTS + 50) * 0.001, route.last().latitude, 1e-9)
+        assertEquals(601, route.size)
+        assertEquals(40.0, route.first().latitude, 1e-9, "the origin must survive a long drive")
+        assertEquals(40.0 + 600 * 0.001, route.last().latitude, 1e-9)
+    }
+
+    // ── Per-point admission verdict [TRIP-A-LONG-DRIVE-KEEPS-ITS-ORIGIN-001] ────────────────
+    // The list form above is expressed over admit(), so these pin the verdicts a per-row store
+    // (RoomDrivingRouteStore) acts on — one shared rule, no second copy to drift.
+
+    @Test
+    fun `should admit the first fix of an empty route as APPEND`() {
+        assertEquals(DrivingRoute.Admission.APPEND, DrivingRoute.admit(null, p(40.0, -3.0, 1_000L)))
+    }
+
+    @Test
+    fun `should reject a hopeless-accuracy fix regardless of the last point`() {
+        val junk = GpsPoint(40.001, -3.0, DrivingRoute.HOPELESS_ACCURACY_METERS + 1f, 6_000L, 0f)
+        assertEquals(DrivingRoute.Admission.REJECT, DrivingRoute.admit(null, junk))
+        assertEquals(DrivingRoute.Admission.REJECT, DrivingRoute.admit(p(40.0, -3.0, 1_000L), junk))
+    }
+
+    @Test
+    fun `should decimate a fix that barely moved from the last kept point`() {
+        val verdict = DrivingRoute.admit(p(40.0, -3.0, 1_000L), p(40.00001, -3.0, 6_000L))
+        assertEquals(DrivingRoute.Admission.DECIMATE, verdict)
+    }
+
+    @Test
+    fun `should reset after a new-trip gap even when the fix barely moved`() {
+        val last = p(40.0, -3.0, 1_000L)
+        val afterGap = p(40.00001, -3.0, 1_000L + DrivingRoute.NEW_TRIP_GAP_MS + 1)
+        assertEquals(DrivingRoute.Admission.RESET, DrivingRoute.admit(last, afterGap))
     }
 }

@@ -133,13 +133,14 @@ val mockModule = module {
     single<com.rndeveloper.paparcar.domain.service.WidgetPinRequester> {
         com.rndeveloper.paparcar.widget.ParkedWidgetPinner(androidContext())
     }
-    // El almacén de la ruta conducida vive en androidDetectionModule, que el arranque mock NO carga
-    // — así que `HomeTripController` moría al resolverse en cuanto un viaje se ponía en marcha.
-    // Lo destapó el verify del grafo mock, no una pasada a mano. Va el REAL, como el pinner del
-    // widget: son SharedPreferences y un contexto, y con el falso el sim de conducción no
-    // redibujaría su propia ruta. [DET-ROUTE-TRACK-001] [MOCK-A-SECOND-GRAPH-NEEDS-A-SECOND-VERIFY-001]
+    // El almacén de la ruta conducida vive en dataModule, que el arranque mock NO carga — así que
+    // `HomeTripController` moría al resolverse en cuanto un viaje se ponía en marcha. Lo destapó el
+    // verify del grafo mock, no una pasada a mano. Va el REAL, como el pinner del widget: desde
+    // [TRIP-A-LONG-DRIVE-KEEPS-ITS-ORIGIN-001] es Room sobre la base in-memory del mock, y con un
+    // falso el sim de conducción no redibujaría su propia ruta.
+    // [DET-ROUTE-TRACK-001] [MOCK-A-SECOND-GRAPH-NEEDS-A-SECOND-VERIFY-001]
     single<com.rndeveloper.paparcar.domain.detection.ports.DrivingRouteStore> {
-        com.rndeveloper.paparcar.detection.DrivingRouteStoreImpl(androidContext())
+        com.rndeveloper.paparcar.data.detection.RoomDrivingRouteStore(dao = get())
     }
     single<ReportSpotScheduler> { FakeReportSpotScheduler() }
     single<com.rndeveloper.paparcar.domain.detection.ports.ManualParkingDetection> {
@@ -229,6 +230,7 @@ val mockModule = module {
     single { get<AppDatabase>().spotDao() }
     single { get<AppDatabase>().zoneDao() }
     single { get<AppDatabase>().geocoderCacheDao() }
+    single { get<AppDatabase>().tripRoutePointDao() }
 
     // Local datasources
     single<LocalAddressAndPlaceDataSource> { RoomLocalAddressAndPlaceDataSource(get()) }

@@ -160,6 +160,13 @@ val dataModule = module {
     single { get<AppDatabase>().publicParkingCacheDao() }
     single { get<AppDatabase>().osmCoverageDao() }
     single { get<AppDatabase>().fuelStationCacheDao() }
+    single { get<AppDatabase>().tripRoutePointDao() }
+
+    // Driving route of the live trip — ONE Room-backed impl for both platforms, replacing the
+    // SharedPreferences/NSUserDefaults twins. [TRIP-A-LONG-DRIVE-KEEPS-ITS-ORIGIN-001]
+    single<com.rndeveloper.paparcar.domain.detection.ports.DrivingRouteStore> {
+        com.rndeveloper.paparcar.data.detection.RoomDrivingRouteStore(dao = get())
+    }
 
     // Local datasources
     single<LocalAddressAndPlaceDataSource> { RoomLocalAddressAndPlaceDataSource(get()) }

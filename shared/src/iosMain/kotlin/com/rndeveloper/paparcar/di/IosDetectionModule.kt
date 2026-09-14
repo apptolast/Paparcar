@@ -23,14 +23,11 @@ val iosDetectionModule = module {
     single<ActivityRecognitionManager> { IosActivityRecognitionManagerImpl(get(), get()) }
     single<StepDetectorSource> { IosStepDetectorSource() }
     single<GeofenceEventBus> { SharedFlowGeofenceEventBus() }
-    // [IOS-A-PARITY-TAIL-001] The trip-memory twins (NSUserDefaults). With these bound, the
-    // commonMain getOrNull() seams in DomainModule/PresentationModule/DetectionModule light up:
-    // one-shot fixes leave breadcrumbs and confirmed sessions carry their routePolyline.
+    // [IOS-A-PARITY-TAIL-001] The trip-trail twin (NSUserDefaults). With it bound, the commonMain
+    // getOrNull() seams light up: one-shot fixes leave breadcrumbs. The driving-route store is no
+    // longer a platform twin — Room-backed in DataModule. [TRIP-A-LONG-DRIVE-KEEPS-ITS-ORIGIN-001]
     single<com.rndeveloper.paparcar.domain.detection.ports.TripTrail> {
         com.rndeveloper.paparcar.detection.IosTripTrail()
-    }
-    single<com.rndeveloper.paparcar.domain.detection.ports.DrivingRouteStore> {
-        com.rndeveloper.paparcar.detection.IosDrivingRouteStore()
     }
     single<GeofenceManager> { IosGeofenceManagerImpl(get()) }
     single<DepartureEventBus> { IosDepartureEventBusImpl() }

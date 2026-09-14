@@ -72,17 +72,13 @@ val androidDetectionModule = module {
         com.rndeveloper.paparcar.detection.TripTrailImpl(androidContext())
     }
 
-    // --- Driving route: the dense tracked route persisted so the drawn line survives background /
-    // cold-start mid-trip; fed by the service, restored by the trip controller [DET-ROUTE-TRACK-001] ---
     // [DET-A-BT-CONNECT-KNOWS-WHERE-THE-CAR-IS-001] The paired car's CONNECT stamp, read by the
     // departure processor to know whether the session still knows where its car is.
     single<com.rndeveloper.paparcar.domain.detection.ports.BtConnectStampReader> {
         com.rndeveloper.paparcar.bluetooth.AndroidBtConnectStampReader(androidContext())
     }
 
-    single<com.rndeveloper.paparcar.domain.detection.ports.DrivingRouteStore> {
-        com.rndeveloper.paparcar.detection.DrivingRouteStoreImpl(androidContext())
-    }
+    // DrivingRouteStore moved to DataModule (Room-backed, common). [TRIP-A-LONG-DRIVE-KEEPS-ITS-ORIGIN-001]
 
     // --- Departure-watch resurrection: rebuild the resident SENTRY watcher from a foreground moment
     // (visible Activity / "Reactivate" tap). Same gate as the service's idle epilogue. [DET-WATCH-REACTIVATE-001] ---

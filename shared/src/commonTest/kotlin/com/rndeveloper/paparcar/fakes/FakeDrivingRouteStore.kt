@@ -10,13 +10,13 @@ class FakeDrivingRouteStore(initial: List<GpsPoint> = emptyList()) : DrivingRout
 
     private var route: List<GpsPoint> = initial
 
-    override fun append(point: GpsPoint) {
+    override suspend fun append(point: GpsPoint) {
         route = DrivingRoute.append(route, point)
     }
 
-    override fun points(): List<GpsPoint> = route
+    override suspend fun points(): List<GpsPoint> = route
 
-    override fun clear() {
+    override suspend fun clear() {
         route = emptyList()
     }
 }

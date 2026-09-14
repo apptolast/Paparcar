@@ -8264,3 +8264,35 @@ tiene; un segundo guard aquí sería duplicar una carrera que ya se gana por con
 disparar igual, `REPLACE` por `geofenceId` colapsa los dos despachos en uno. Lo que añade es un
 testigo NUESTRO del arranque, con GPS activo, que no depende de Play Services. El coste es un FGS
 acotado a `btDepartureWatchTimeoutMs` (5 min) y solo cuando hay plaza que vigilar.
+
+### TRIP-A-LONG-DRIVE-KEEPS-ITS-ORIGIN-001 — la ruta del viaje en curso vive en Room y deja de perder su origen (commit pending)
+
+**Qué cambia.** El almacén de la ruta en curso ([DET-ROUTE-TRACK-001]) deja de ser un blob por
+plataforma (SharedPreferences en Android, NSUserDefaults en iOS — los gemelos de
+[IOS-A-PARITY-TAIL-001]) y pasa a ser **una tabla Room común** (`trip_route_points`, v8,
+`RoomDrivingRouteStore` en commonMain). Motivo de producto: el trayecto pasa a ser producto
+principal (plan 2026-09-14), y el diseño anterior tenía dos techos estructurales que se sostenían
+mutuamente: el **tope deslizante de 500 puntos** (un viaje largo tiraba sus puntos más viejos — el
+ORIGEN) y la **escritura O(n²)** (cada fix admitido reserializaba la lista entera). Una fila por fix
+quita los dos a la vez: append O(1) y ruta sin tope.
+
+**Qué NO cambia — y es lo que protege los guards.** La regla de acumulación sigue siendo pura y
+común (`DrivingRoute`): gate de accuracy 100 m [ROUTE-FIX-ACCURACY-001], decimación 12 m,
+auto-segmentación por gap de 20 min, `endAtAnchor` [ROUTE-END-AT-CAR-001]. Ahora se expresa como
+veredicto por punto (`DrivingRoute.admit`: REJECT · DECIMATE · RESET · APPEND) y la forma de lista
+se deriva de él, de modo que el store por filas y los tests de lista no pueden divergir. Los taps
+del servicio (adaptativo + pasivo [ROUTE-PASSIVE-FILL-001]) y el flujo de confirmación
+(`encodeFreshRoute` → `clear()`) quedan idénticos; el puerto pasa a `suspend`.
+
+**Renacer de proceso.** El store cachea el último punto admitido y lo rehidrata de la tabla al
+primer uso: un proceso renacido a mitad de viaje sigue decimando contra lo que persistió el
+muerto, con el origen intacto (testado en `RoomDrivingRouteStoreTest`).
+
+**Migración.** `MIGRATION_7_8` (CREATE TABLE, nada que rellenar) con testigo de ida y vuelta en
+`AppDatabaseV1BaselineTest`. Un device que actualiza a mitad de viaje empieza a grabar en su
+siguiente fix; el origen retrodatado del trip controller cubre el dibujo, igual que cubre hoy una
+muerte de proceso. Los blobs huérfanos (~KB) se quedan atrás a propósito.
+
+**Riesgo.** Ninguno sobre la decisión de aparcamiento: este almacén no alimenta ningún evaluador —
+solo el dibujo de la ruta y el `routePolyline` de la sesión. El único comportamiento retirado es el
+propio tope (pérdida silenciosa del origen), que ningún consumidor deseaba.

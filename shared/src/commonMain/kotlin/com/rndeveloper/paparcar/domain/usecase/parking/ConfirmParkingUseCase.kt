@@ -451,7 +451,7 @@ class ConfirmParkingUseCase(
      * the store recorded after the anchor's fix are the user's walk away from the parked car, not
      * the drive, and the anchor caps the line as its final vertex — see [DrivingRoute.endAtAnchor].
      */
-    private fun encodeFreshRoute(nowMs: Long, origin: GpsPoint?, anchor: GpsPoint): String? {
+    private suspend fun encodeFreshRoute(nowMs: Long, origin: GpsPoint?, anchor: GpsPoint): String? {
         val recorded = drivingRouteStore?.points().orEmpty()
         val lastRecorded = recorded.lastOrNull() ?: return null
         val fresh = recorded.size >= 2 && lastRecorded.timestamp > 0L &&

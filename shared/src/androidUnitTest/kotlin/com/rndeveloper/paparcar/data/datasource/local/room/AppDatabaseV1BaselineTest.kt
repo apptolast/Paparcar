@@ -185,6 +185,21 @@ class AppDatabaseV1BaselineTest {
         val cachedStation = db.fuelStationCacheDao()
             .getInBoundingBox(36.60, 36.61, -6.28, -6.27)
         val cachedFuels = db.fuelStationCacheDao().getFuelsFor(listOf("es-minetur|1234"))
+        // …and MIGRATION_7_8's witness [TRIP-A-LONG-DRIVE-KEEPS-ITS-ORIGIN-001]: a trip route point
+        // must round-trip through the migrated file — hand-written DDL, so "created without
+        // throwing" and "the schema Room expects" stay two different claims here too.
+        db.tripRoutePointDao().insert(
+            TripRoutePointEntity(
+                latitude = 36.6084,
+                longitude = -6.2781,
+                accuracy = 5.0f,
+                timestamp = 1_788_204_119_405,
+                speed = 8.3f,
+                provider = "gps",
+                satelliteCount = 17,
+            ),
+        )
+        val routePoints = db.tripRoutePointDao().getAllOrdered()
         db.close()
 
         assertEquals(1, rows.size, "an untouched schema must not cost the user their parked session")
@@ -226,6 +241,12 @@ class AppDatabaseV1BaselineTest {
             cachedFuels.single().reportedAtMs,
             "a stored price keeps its own hour, which is what makes storing it honest at all",
         )
+        assertEquals(
+            8.3f,
+            routePoints.singleOrNull()?.speed,
+            "the 7→8 migration must create trip_route_points with the columns Room expects",
+        )
+        assertEquals("gps", routePoints.single().provider, "provenance must survive the file")
         assertEquals(PAPARCAR_DB_VERSION, readUserVersion(name))
     }
 
