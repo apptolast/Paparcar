@@ -1,6 +1,6 @@
 # STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001 · Free ve todas las cifras de su coche, de los últimos 7 días
 
-**Estado:** 🟡 En revisión · rama `feature/STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001` ·
+**Estado:** ✅ Done (14-09-2026) · PR [#22](https://github.com/apptolast/Paparcar/pull/22) ·
 GitHub issue [#14](https://github.com/apptolast/Paparcar/issues/14)
 
 ## Problema
