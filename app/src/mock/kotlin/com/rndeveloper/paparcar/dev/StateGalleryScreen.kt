@@ -60,7 +60,7 @@ import com.rndeveloper.paparcar.presentation.home.HomeMode
 import com.rndeveloper.paparcar.presentation.home.HomeSelection
 import com.rndeveloper.paparcar.presentation.home.HomeState
 import com.rndeveloper.paparcar.presentation.home.model.FirstStepGuide
-import com.rndeveloper.paparcar.presentation.home.sections.map.components.HomeGpsAccuracyPill
+import com.rndeveloper.paparcar.presentation.home.sections.map.components.HomeLocationPill
 import com.rndeveloper.paparcar.presentation.home.sections.header.components.HomeSearchBar
 import com.rndeveloper.paparcar.presentation.home.model.DetectionStory
 import com.rndeveloper.paparcar.presentation.home.model.ParkedWatchBadge
@@ -687,16 +687,31 @@ private fun markersShowcase() {
         // de los FABs, y solo habla cuando el fix es malo de verdad (> 50 m). En device puede pasar
         // semanas sin verse, que es justo por qué llevaba tanto tiempo sin que nadie la mirara.
         // Aquí está su único nivel y su entrada. [UI-A-WARNING-COSTS-NOTHING-WHEN-SILENT-001]
-        MarkerSectionLabel("Precisión GPS — 30 m no dice nada · 120 m avisa")
+        MarkerSectionLabel("Ubicación — 30 m no dice nada · 120 m avisa")
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            HomeGpsAccuracyPill(accuracy = 30f)
-            HomeGpsAccuracyPill(accuracy = 120f)
+            HomeLocationPill(locationMissing = false, accuracy = 30f, onFixLocation = {})
+            HomeLocationPill(locationMissing = false, accuracy = 120f, onFixLocation = {})
         }
-        MarkerSectionLabel("Precisión GPS — pulsa para verla entrar y salir por la izquierda")
+        // El segundo mensaje de la misma píldora, y el que trae su propio color: sin ubicación es
+        // ÁMBAR («pendiente y lo puedes arreglar»), no rojo, y es lo único pulsable de las dos.
+        // Venía de ser un badge en el peek, donde se comía el ancho del nombre y la dirección
+        // (issue #27). [UI-NO-LOCATION-WEARS-THE-ACCURACY-PILL-001]
+        MarkerSectionLabel("Ubicación — sin ubicación (ámbar, pulsable) vs fix pobre (rojo)")
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            HomeLocationPill(locationMissing = true, accuracy = null, onFixLocation = {})
+            // ⛔ Sin ubicación MANDA: con los dos a la vez sigue saliendo el ámbar, porque sin fix
+            // no hay metros que contar.
+            HomeLocationPill(locationMissing = true, accuracy = 120f, onFixLocation = {})
+        }
+        MarkerSectionLabel("Ubicación — pulsa para verla entrar y salir por la izquierda")
         var gpsDegraded by remember { mutableStateOf(true) }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TextButton(onClick = { gpsDegraded = !gpsDegraded }) { Text("Alternar") }
-            HomeGpsAccuracyPill(accuracy = if (gpsDegraded) 120f else 8f)
+            HomeLocationPill(
+                locationMissing = false,
+                accuracy = if (gpsDegraded) 120f else 8f,
+                onFixLocation = {},
+            )
         }
         MarkerSectionLabel("Pin central · Report (reposo · elevado)")
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
