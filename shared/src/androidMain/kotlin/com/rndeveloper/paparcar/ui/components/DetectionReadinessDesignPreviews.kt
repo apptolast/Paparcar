@@ -25,7 +25,6 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.Explore
-import androidx.compose.material.icons.rounded.LocalParking
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -131,7 +130,7 @@ private fun visualFor(state: DesignState): RVisual = when (state) {
     )
 
     DesignState.AwaitingFirstPark -> RVisual(
-        icon = Icons.Rounded.LocalParking,
+        icon = Icons.Rounded.DirectionsCar,
         tint = PapCarBlueDark,
         title = "Where's your car?",
         subtitle = "Mark your spot to start automating parking",
@@ -153,7 +152,7 @@ private fun visualFor(state: DesignState): RVisual = when (state) {
     )
 
     DesignState.Parked -> RVisual(
-        icon = Icons.Rounded.LocalParking,
+        icon = Icons.Rounded.DirectionsCar,
         tint = PapGreen,
         title = "Parked & protected",
         subtitle = "Watching for departure — handled by the existing parked-car card",

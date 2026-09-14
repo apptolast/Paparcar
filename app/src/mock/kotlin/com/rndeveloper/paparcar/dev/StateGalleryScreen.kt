@@ -25,9 +25,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.LocalParking
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -138,6 +138,8 @@ import com.rndeveloper.paparcar.ui.components.ParkingCenterPin
 import com.rndeveloper.paparcar.ui.components.ReportCenterPin
 import com.rndeveloper.paparcar.ui.components.ZoneCenterPin
 import com.rndeveloper.paparcar.ui.components.ZoneMarker
+import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
+import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarTheme
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import com.rndeveloper.paparcar.domain.detection.DetectionPath
@@ -725,9 +727,9 @@ private fun markersShowcase() {
         }
         MarkerSectionLabel("Pin central · Zona (reposo · elevado · privada)")
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-            CenterPinSlot { ZoneCenterPin(icon = Icons.Rounded.LocalParking, cameraMoving = false, isPrivate = false) }
-            CenterPinSlot { ZoneCenterPin(icon = Icons.Rounded.LocalParking, cameraMoving = true, isPrivate = false) }
-            CenterPinSlot { ZoneCenterPin(icon = Icons.Rounded.LocalParking, cameraMoving = false, isPrivate = true) }
+            CenterPinSlot { ZoneCenterPin(icon = zoneIconFor(ZoneIcon.HOME), cameraMoving = false, isPrivate = false) }
+            CenterPinSlot { ZoneCenterPin(icon = zoneIconFor(ZoneIcon.HOME), cameraMoving = true, isPrivate = false) }
+            CenterPinSlot { ZoneCenterPin(icon = zoneIconFor(ZoneIcon.HOME), cameraMoving = false, isPrivate = true) }
         }
         Spacer(Modifier.height(24.dp))
     }
@@ -2707,6 +2709,26 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     PublicParkingMarker(selected = false)
                     PublicParkingMarker(selected = true)
+                }
+            },
+            // ⛔ La P se juzga PEQUEÑA. A 46 dp cualquier dibujo aguanta; donde su ojo se cierra
+            // es a 18 dp —la pestaña de carril— y ese es el tamaño al que más gente la ve. Una
+            // variante que solo la enseñe grande no vigila nada, que es justo lo que dejó pasar la
+            // casita que estuvo aquí un día. [UI-THE-CAR-PARK-WEARS-OUR-OWN-P-001]
+            // [DEV-A-GALLERY-VARIANT-MUST-EXERCISE-ITS-CASE-001]
+            Variant("Nuestra P, de 46 dp a 18 dp", Placement.Surface) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    listOf(46.dp, 32.dp, 24.dp, 18.dp).forEach { glyphSize ->
+                        Icon(
+                            imageVector = PaparcarIcons.CarParkMark,
+                            contentDescription = null,
+                            tint = PapColor.actionText,
+                            modifier = Modifier.size(glyphSize),
+                        )
+                    }
                 }
             },
         ),

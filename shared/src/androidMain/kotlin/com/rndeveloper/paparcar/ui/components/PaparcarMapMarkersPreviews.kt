@@ -17,7 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.LocalParking
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.domain.model.VehicleSize
@@ -172,10 +171,10 @@ private fun MarkersShowcase() {
 
         SectionLabel("Centre pin · Zone (rest · lifted · private)")
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-            CenterPinSlot { ZoneCenterPin(icon = Icons.Rounded.LocalParking, cameraMoving = false, isPrivate = false) }
-            CenterPinSlot { ZoneCenterPin(icon = Icons.Rounded.LocalParking, cameraMoving = true, isPrivate = false) }
+            CenterPinSlot { ZoneCenterPin(icon = zoneIconFor(ZoneIcon.HOME), cameraMoving = false, isPrivate = false) }
+            CenterPinSlot { ZoneCenterPin(icon = zoneIconFor(ZoneIcon.HOME), cameraMoving = true, isPrivate = false) }
             // The private leg must match the ring it is dragged over, not the brand. [UI-A-PRIVATE-ZONE-IS-PRIVATE-ON-EVERY-SURFACE-001]
-            CenterPinSlot { ZoneCenterPin(icon = Icons.Rounded.LocalParking, cameraMoving = false, isPrivate = true) }
+            CenterPinSlot { ZoneCenterPin(icon = zoneIconFor(ZoneIcon.HOME), cameraMoving = false, isPrivate = true) }
         }
     }
 }

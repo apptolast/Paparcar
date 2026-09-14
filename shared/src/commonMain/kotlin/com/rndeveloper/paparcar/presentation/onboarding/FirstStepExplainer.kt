@@ -12,7 +12,6 @@ import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.Explore
 import androidx.compose.material.icons.rounded.LocalGasStation
-import androidx.compose.material.icons.rounded.LocalParking
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.Sensors
@@ -35,6 +34,7 @@ import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
 import com.rndeveloper.paparcar.ui.components.PapIconTile
 import com.rndeveloper.paparcar.ui.components.PapListItem
+import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -245,9 +245,10 @@ internal fun FirstStep.explainerCopy(): ExplainerCopy = when (this) {
             ExplainerWay(
                 title = Res.string.first_steps_explain_explore_parkings_title,
                 body = Res.string.first_steps_explain_explore_parkings_body,
-                // The "P" belongs to the public car park as a POI, and here it is exactly that —
-                // the subject of its own line, not the badge of a step about two subjects.
-                icon = Icons.Rounded.LocalParking,
+                // The "P" belongs to the public car park, and here it is exactly that — the subject
+                // of its own line, not the badge of a step about two subjects. Es NUESTRA P, la
+                // misma que el marcador del mapa y la fila. [UI-THE-CAR-PARK-WEARS-OUR-OWN-P-001]
+                icon = PaparcarIcons.CarParkMark,
             ),
             ExplainerWay(
                 title = Res.string.first_steps_explain_explore_fuel_title,

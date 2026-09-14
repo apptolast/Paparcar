@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.LocalParking
 import androidx.compose.material.icons.rounded.Navigation
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.MaterialTheme
@@ -27,6 +26,7 @@ import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapS
 import com.rndeveloper.paparcar.presentation.util.distanceMeters
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
+import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -72,7 +72,9 @@ internal fun PublicParkingPeek(
     val title = parking.displayName ?: kindLabel
 
     PapSheet(
-        lead = PapSheetLead.GenericIcon(Icons.Rounded.LocalParking),
+        // La misma P que el marcador que acabas de tocar: un parking público se dibuja igual en el
+        // mapa, en la fila, en la pestaña y aquí. [UI-THE-CAR-PARK-WEARS-OUR-OWN-P-001]
+        lead = PapSheetLead.GenericIcon(PaparcarIcons.CarParkMark),
         eyebrow = stringResource(Res.string.parking_peek_eyebrow).uppercase(),
         eyebrowTone = PapSheetEyebrowTone.Action,
         title = title,

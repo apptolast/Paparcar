@@ -21,8 +21,8 @@ import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.EditLocationAlt
 import androidx.compose.material.icons.rounded.Group
-import androidx.compose.material.icons.rounded.LocalParking
 import androidx.compose.material.icons.rounded.Navigation
+import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -170,7 +170,7 @@ private fun CurrentSpotModal() {
         label = "High",
         title = "Calle Serrano, 41",
         accentColor = accent,
-        leadingIcon = Icons.Rounded.LocalParking,
+        leadingIcon = PaparcarIcons.CommunitySpot,
         content = {
             CompatRow("Fits medium car")
             Spacer(Modifier.height(8.dp))
@@ -246,7 +246,7 @@ private fun ProposedSpotModal() {
         label = "High",
         title = "Calle Serrano, 41",
         accentColor = accent,
-        leadingIcon = Icons.Rounded.LocalParking,
+        leadingIcon = PaparcarIcons.CommunitySpot,
         content = {
             CompatRow("Fits medium car")
             Spacer(Modifier.height(8.dp))

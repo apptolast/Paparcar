@@ -217,9 +217,9 @@ private fun OnboardingPage2() = BoxWithConstraints(Modifier.fillMaxSize()) {
         Spacer(Modifier.height(PaparcarSpacing.lg))
         OnboardingStep(
             // Tu aparcamiento se dibuja con TU COCHE en toda la app (FAB de Home, FAB del
-            // historial, fila de pregunta). Aquí había una "P", que es `PaparcarIcons.ParkingPlace`
-            // = la categoría de POI "parking público": el único sitio de la app donde el
-            // aparcamiento se dibujaba como señalética, justo sobre el paso que habla de lo TUYO.
+            // historial, fila de pregunta). Aquí había una "P", que es `PaparcarIcons.CarParkMark`
+            // = el parking público: el único sitio de la app donde el aparcamiento se dibujaba como
+            // señalética, justo sobre el paso que habla de lo TUYO.
             icon = Icons.Rounded.DirectionsCar,
             title = stringResource(Res.string.onboarding_step2_title),
             desc = stringResource(Res.string.onboarding_step2_desc),

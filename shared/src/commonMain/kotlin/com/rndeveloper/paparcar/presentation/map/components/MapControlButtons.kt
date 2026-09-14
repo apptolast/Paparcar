@@ -35,9 +35,11 @@ import paparcar.composeapp.generated.resources.map_cd_my_location
  * A column that reorders itself between two maps makes the user re-find the same three buttons.
  * [UI-HISTORY-MAP-FABS-MUST-MATCH-HOME-001]
  *
- * ⛔ The recenter button is NOT a "P": `Icons.Rounded.LocalParking` is already spoken for as
- * [com.rndeveloper.paparcar.ui.icons.PaparcarIcons.ParkingPlace], the POI category for a public car
- * park. On this map it read as "there is a car park here" instead of "take me back to this parking".
+ * ⛔ The recenter button is NOT a "P": la P está adjudicada al parking público —
+ * [com.rndeveloper.paparcar.ui.icons.PaparcarIcons.CarParkMark], que desde
+ * [UI-THE-CAR-PARK-WEARS-OUR-OWN-P-001] es la única de la app y la lleva tanto la capa del mapa como
+ * la categoría de POI. On this map it read as "there is a car park here" instead of "take me back to
+ * this parking".
  *
  * It carries no identity colour: which car this was is the sheet's job (its eyebrow already wears
  * the watch colour), and a closed session has no live tier to announce. [UI-COLOR-DOCTRINE-001]

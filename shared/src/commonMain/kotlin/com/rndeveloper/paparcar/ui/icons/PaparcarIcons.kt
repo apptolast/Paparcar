@@ -16,7 +16,6 @@ import androidx.compose.material.icons.rounded.LocalCafe
 import androidx.compose.material.icons.rounded.LocalGasStation
 import androidx.compose.material.icons.rounded.LocalHospital
 import androidx.compose.material.icons.rounded.LocalMall
-import androidx.compose.material.icons.rounded.LocalParking
 import androidx.compose.material.icons.rounded.LocalPharmacy
 import androidx.compose.material.icons.rounded.Place
 import androidx.compose.material.icons.rounded.Restaurant
@@ -30,7 +29,6 @@ import androidx.compose.material.icons.rounded.LocalCafe
 import androidx.compose.material.icons.rounded.LocalGasStation
 import androidx.compose.material.icons.rounded.LocalHospital
 import androidx.compose.material.icons.rounded.LocalMall
-import androidx.compose.material.icons.rounded.LocalParking
 import androidx.compose.material.icons.rounded.LocalPharmacy
 import androidx.compose.material.icons.rounded.Place
 import androidx.compose.material.icons.rounded.Restaurant
@@ -38,11 +36,8 @@ import androidx.compose.material.icons.rounded.School
 import androidx.compose.material.icons.rounded.ShoppingCart
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.vector.path
+import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.model.PlaceCategory
 import com.rndeveloper.paparcar.domain.model.VehicleSize
@@ -70,7 +65,8 @@ import com.rndeveloper.paparcar.domain.model.VehicleType
  *
  * Stylistic conventions for the custom set:
  *  - 24 × 24 dp viewport, matching Material outlined defaults.
- *  - Filled silhouettes (no stroke) with `EvenOdd` fill for inner cut-outs.
+ *  - Filled silhouettes (no stroke); los huecos salen del SENTIDO de dibujo (winding no-cero), no de
+ *    `EvenOdd` — ver el ⛔ de [PaparcarIcons.CarParkMark].
  *  - Black fill on the path; the host `Icon` composable retints to
  *    `LocalContentColor` (or an explicit `tint =`) at render time.
  */
@@ -84,7 +80,6 @@ object PaparcarIcons {
     val Cafe: ImageVector get() = Icons.Rounded.LocalCafe
     val Pharmacy: ImageVector get() = Icons.Rounded.LocalPharmacy
     val Hospital: ImageVector get() = Icons.Rounded.LocalHospital
-    val ParkingPlace: ImageVector get() = Icons.Rounded.LocalParking
     /**
      * A free spot of the community — the hand + heart of a spot someone GAVE, the same glyph the
      * stats tile uses for "spots shared". One glyph for the whole life of a spot: the lane tab, the
@@ -97,6 +92,9 @@ object PaparcarIcons {
     val School: ImageVector get() = Icons.Rounded.School
     val Gym: ImageVector get() = Icons.Rounded.FitnessCenter
     val PlaceGeneric: ImageVector get() = Icons.Rounded.Place
+    // ⛔ Aquí NO hay un `ParkingPlace` de Material: el parking público —capa del mapa y categoría de
+    // POI, que son el mismo `amenity=parking` de Overpass— lo dibuja [CarParkMark], nuestra P. Había
+    // dos P en la app y ninguna era nuestra. [UI-THE-CAR-PARK-WEARS-OUR-OWN-P-001]
 
     // ── Vehicle types (high-level taxonomy, independent of size) ─────────────
     // Used in registration/edit to pick the user's vehicle category. Drives
@@ -107,89 +105,42 @@ object PaparcarIcons {
     val VehicleBike: ImageVector get() = Icons.AutoMirrored.Rounded.DirectionsBike
 
 
-    /**
-     * Top-down view of an empty parking bay: a portrait rounded rectangle with
-     * two vertical lane-marking lines inside.
-     *
-     * Used both in the spot list rows and as the map-marker icon for community
-     * spots, distinguishing them from the user's own car ([DirectionsCar]).
-     *
-     * Viewport: 24 × 24 dp
-     * Outer rect: 5.5,2 → 18.5,22  (rx = 3)
-     * Lane lines: x = 9 and x = 15, from y = 6.5 to y = 17.5
-     */
-    val ParkingBay: ImageVector by lazy {
-        ImageVector.Builder(
-            name = "ParkingBay",
-            defaultWidth = 24.dp,
-            defaultHeight = 24.dp,
-            viewportWidth = 24f,
-            viewportHeight = 24f,
-        ).apply {
-
-            // ── Outer bay outline ─────────────────────────────────────────────
-            // Portrait rounded rectangle — the boundary of the parking space.
-            path(
-                fill = SolidColor(Color.Transparent),
-                stroke = SolidColor(Color.Black),
-                strokeLineWidth = 2f,
-                strokeLineCap = StrokeCap.Round,
-                strokeLineJoin = StrokeJoin.Round,
-            ) {
-                moveTo(7f, 2f)
-                lineTo(17f, 2f)
-                curveTo(18.66f, 2f, 20f, 3.34f, 20f, 5f)
-                lineTo(20f, 19f)
-                curveTo(20f, 20.66f, 18.66f, 22f, 17f, 22f)
-                lineTo(7f, 22f)
-                curveTo(5.34f, 22f, 4f, 20.66f, 4f, 19f)
-                lineTo(4f, 5f)
-                curveTo(4f, 3.34f, 5.34f, 2f, 7f, 2f)
-                close()
-            }
-
-            // ── Left lane marking ─────────────────────────────────────────────
-            // Vertical line at ~1/3 of the bay width from the left wall.
-            path(
-                fill = SolidColor(Color.Transparent),
-                stroke = SolidColor(Color.Black),
-                strokeLineWidth = 1.6f,
-                strokeLineCap = StrokeCap.Round,
-            ) {
-                moveTo(9f, 6.5f)
-                lineTo(9f, 17.5f)
-            }
-
-            // ── Right lane marking ────────────────────────────────────────────
-            // Vertical line at ~2/3 of the bay width from the left wall.
-            path(
-                fill = SolidColor(Color.Transparent),
-                stroke = SolidColor(Color.Black),
-                strokeLineWidth = 1.6f,
-                strokeLineCap = StrokeCap.Round,
-            ) {
-                moveTo(15f, 6.5f)
-                lineTo(15f, 17.5f)
-            }
-
-        }.build()
-    }
-
     // ── Marcas de infraestructura "cerca de ti" ──────────────────────────────
     // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
     //
     // Las superficies de infraestructura usan el MISMO lenguaje que las marcas que ya tiene la app
-    // —los pictogramas de coche—: silueta RELLENA con sus huecos por `EvenOdd`, viewport 24×24, un solo path para que
-    // el `Icon` anfitrión las tiña. ⛔ No son Material: estos tres no son plumbing de UI, son los
-    // productos que la app enseña, y con glifos genéricos las pestañas se leían como un filtro más.
+    // —los pictogramas de coche—: silueta RELLENA, viewport 24×24, un solo path para que el `Icon`
+    // anfitrión las tiña. ⛔ El parking público no es plumbing de UI, es un producto que la app
+    // enseña, y con un glifo genérico las pestañas se leían como un filtro más.
     //
-    // ⛔ Y no se dibujan las tres cosas "en general": se dibuja lo que cada una es en Paparcar —
-    // la plaza es el HUECO entre dos marcas viales (lo que se libera al irte), el parking público es
-    // una instalación con su P (se entra con el coche), y la gasolinera es su surtidor.
+    // Queda UNA marca propia, [CarParkMark]. Las otras dos que este bloque anunciaba ya no existen y
+    // el comentario las siguió prometiendo un tiempo: la plaza dibujada como HUECO entre marcas
+    // viales (`ParkingBay`) se retiró sin un solo call site cuando la plaza pasó a la mano + corazón
+    // [SPOT-ICON-IS-THE-GIVEN-SPOT-HAND-HEART-001], y la gasolinera nunca dejó de ser
+    // `Icons.Rounded.LocalGasStation`. [UI-THE-CAR-PARK-WEARS-OUR-OWN-P-001]
 
     /**
-     * Parking público: instalación con su P, reservada para esta infraestructura.
-     * [COPY-SPOT-IS-NOT-A-PARKING-001]
+     * Parking público: **nuestra P**. Es la letra rellena que los pucks de plaza llevaron hasta que
+     * la plaza pasó a la mano + corazón [SPOT-ICON-IS-THE-GIVEN-SPOT-HAND-HEART-001], y desde
+     * entonces estaba libre. No es la P de Material ni un edificio en miniatura: es la ÚNICA P de la
+     * app, y es del parking público en todas sus superficies — marcador del mapa, fila de lista,
+     * pestaña de carril, peek y la categoría de POI `PlaceCategory.PARKING`, que es el mismo
+     * `amenity=parking` de Overpass. [UI-THE-CAR-PARK-WEARS-OUR-OWN-P-001] [COPY-SPOT-IS-NOT-A-PARKING-001]
+     *
+     * Sustituye al volumen-con-P que vivió un día (13→14-09-2026): en un marcador sólo hay hueco
+     * para UNA idea, y "instalación, no plaza" ya lo dice la SILUETA del puck —cuerpo de papel con
+     * borde verde, frente al puck relleno de frescura de una plaza—. La casita repetía con tinta lo
+     * que la forma ya había resuelto, y lo pagaba justo donde más se mira: a 18 dp en la pestaña de
+     * carril y al 60 % en el mapa, el volumen se comía la letra.
+     *
+     * El dibujo es [GLYPH_P_PATH] intacto, en su rejilla original de 48; el grupo sólo lleva su
+     * TINTA al cuadrado de 24 del set. La caja es propiedad del icono, no del call site: nadie
+     * tiene que escalarlo al pintarlo, y por eso no se reescribieron los números del path —
+     * corregir una letra a mano es como se pierde una letra.
+     *
+     * ⛔ Relleno por winding NO-CERO (el defecto), nunca `EvenOdd`: el ojo es una elipse dibujada al
+     * revés que el bol, y el asta lo pisa por delante en el mismo sentido. Con `EvenOdd` el asta
+     * abriría un segundo hueco donde cruza el bol y la P se partiría en dos.
      */
     val CarParkMark: ImageVector by lazy {
         ImageVector.Builder(
@@ -198,37 +149,35 @@ object PaparcarIcons {
             defaultHeight = 24.dp,
             viewportWidth = 24f,
             viewportHeight = 24f,
-        ).apply {
-            path(fill = SolidColor(Color.Black), pathFillType = PathFillType.EvenOdd) {
-                // Volumen del edificio, con el techo en voladizo hacia la entrada.
-                moveTo(4f, 6f)
-                lineTo(12f, 2.5f)
-                lineTo(20f, 6f)
-                lineTo(20f, 20.5f)
-                curveTo(20f, 21.05f, 19.55f, 21.5f, 19f, 21.5f)
-                lineTo(5f, 21.5f)
-                curveTo(4.45f, 21.5f, 4f, 21.05f, 4f, 20.5f)
-                close()
-                // Asta de la P.
-                moveTo(9.6f, 7.6f)
-                lineTo(11.9f, 7.6f)
-                curveTo(14.1f, 7.6f, 15.3f, 8.9f, 15.3f, 10.9f)
-                curveTo(15.3f, 12.9f, 14.1f, 14.2f, 11.9f, 14.2f)
-                lineTo(11.5f, 14.2f)
-                lineTo(11.5f, 18f)
-                lineTo(9.6f, 18f)
-                close()
-                // Ojo de la P — devuelto a relleno por winding par/impar.
-                moveTo(11.5f, 9.3f)
-                lineTo(11.9f, 9.3f)
-                curveTo(12.9f, 9.3f, 13.4f, 9.9f, 13.4f, 10.9f)
-                curveTo(13.4f, 11.9f, 12.9f, 12.5f, 11.9f, 12.5f)
-                lineTo(11.5f, 12.5f)
-                close()
-            }
-        }.build()
+        )
+            .addGroup(scaleX = P_SCALE, scaleY = P_SCALE, translationX = P_DX, translationY = P_DY)
+            .addPath(
+                pathData = PathParser().parsePathString(GLYPH_P_PATH).toNodes(),
+                fill = SolidColor(Color.Black),
+            )
+            .clearGroup()
+            .build()
     }
 
+    // Filled Fredoka "P" with a counter (nonzero winding gives the hole) — asta, bol y ojo, en una
+    // rejilla de 48. Es el glifo que llevaban los pucks de plaza hasta
+    // [SPOT-ICON-IS-THE-GIVEN-SPOT-HAND-HEART-001]; vuelve tal cual, sin tocar un número.
+    private const val GLYPH_P_PATH =
+        "M11.46 11.08 a6.08 6.08 0 0 1 12.16 0 L23.62 36.92 a6.08 6.08 0 0 1 -12.16 0 Z " +
+            "M11.46 17.16 a14.06 12.16 0 1 1 28.12 0 a14.06 12.16 0 1 1 -28.12 0 Z " +
+            "M19.33 17.16 a6.19 5.35 0 1 0 12.37 0 a6.19 5.35 0 1 0 -12.37 0 Z"
+
+    // La tinta de [GLYPH_P_PATH] ocupa x 11.46–39.58, y 5–43 de su rejilla de 48 (el asta aporta las
+    // dos semicircunferencias de los extremos, el bol el ancho). Estos números la llevan a una
+    // mancha de 20 centrada en el cuadro de 24 — la misma que tienen los glifos Material del set, que
+    // es lo que hace que la P no cante al lado de un surtidor en la misma fila.
+    private const val P_INK_HEIGHT = 38f    // 43 − 5
+    private const val P_INK_CENTER_X = 25.52f  // (11.46 + 39.58) / 2
+    private const val P_INK_CENTER_Y = 24f     // (5 + 43) / 2
+    private const val P_TARGET_HEIGHT = 20f    // alto de la mancha dentro del cuadro de 24
+    private const val P_SCALE = P_TARGET_HEIGHT / P_INK_HEIGHT
+    private const val P_DX = 12f - P_INK_CENTER_X * P_SCALE
+    private const val P_DY = 12f - P_INK_CENTER_Y * P_SCALE
 }
 
 // ─── Domain → icon mappers ────────────────────────────────────────────────────
@@ -277,7 +226,9 @@ val PlaceCategory.icon: ImageVector
         PlaceCategory.CAFE        -> PaparcarIcons.Cafe
         PlaceCategory.PHARMACY    -> PaparcarIcons.Pharmacy
         PlaceCategory.HOSPITAL    -> PaparcarIcons.Hospital
-        PlaceCategory.PARKING     -> PaparcarIcons.ParkingPlace
+        // El mismo `amenity=parking` que pinta la capa de parkings del mapa, así que el mismo glifo:
+        // una P, la nuestra. [UI-THE-CAR-PARK-WEARS-OUR-OWN-P-001]
+        PlaceCategory.PARKING     -> PaparcarIcons.CarParkMark
         PlaceCategory.BANK        -> PaparcarIcons.Bank
         PlaceCategory.HOTEL       -> PaparcarIcons.Hotel
         PlaceCategory.SCHOOL      -> PaparcarIcons.School
