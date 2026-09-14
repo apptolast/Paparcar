@@ -198,6 +198,7 @@ class SplashViewModel(
         lastAuthState = state
         val session = state.session
         PaparcarLogger.i(TAG, "[step 1/3] auth Authenticated — userId=${session.userId}")
+        PaparcarLogger.i(AUTH_DIAG, "authenticated — starting bootstrap, online=${connectivityObserver.status.value}")
         CrashReporter.setUserId(session.userId)
 
         // Bind the store identity to this uid so the Plus subscription follows the ACCOUNT.
@@ -316,6 +317,7 @@ class SplashViewModel(
 
     /** Single exit point for any fatal bootstrap failure: sign out and notify UI. */
     private suspend fun abortBootstrap() {
+        PaparcarLogger.w(AUTH_DIAG, "bootstrap aborted — signing out (the cause is the ERROR line above)")
         _state.value = SplashState(bootstrapFailure = BootstrapFailure.Fatal)
         // Misma puerta que el logout de Ajustes: una salida forzada deja el móvil igual de expuesto
         // que una voluntaria. [PRIV-A-SIGNED-OUT-PHONE-STILL-HEARS-THE-LAST-ACCOUNT-001]
@@ -348,6 +350,7 @@ class SplashViewModel(
 
     private companion object {
         const val TAG = "SplashViewModel"
+        const val AUTH_DIAG = "AUTHDIAG/Splash"
 
         /** Lo que se espera a invalidar un token al caducar la sesión. Nadie está mirando esta
          *  pantalla esperándolo, así que la red mala no puede convertirlo en un arranque colgado. */

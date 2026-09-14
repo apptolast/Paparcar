@@ -15,6 +15,8 @@ import com.rndeveloper.paparcar.push.IosPushRegistry
 import com.rndeveloper.paparcar.push.PushMessageHandler
 import com.rndeveloper.paparcar.push.SharedCarMemberSync
 import com.rndeveloper.paparcar.push.ZoneAlertSubscriptionSync
+import io.github.aakira.napier.DebugAntilog
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -42,6 +44,10 @@ object PaparcarIosBootstrap {
     fun ensureStarted() {
         if (started) return
         started = true
+        // Without an antilog every PaparcarLogger line on iOS was dropped — including the exception
+        // behind "Couldn't load your account". Debug binaries only, like DebugAntilog on Android;
+        // it prints to the Xcode console. [IOS-APPLE-SIGN-IN-ON-BASELOGIN-3-001]
+        if (isDebugBuild) Napier.base(DebugAntilog())
         // Start Koin via the BaseLogin initializer so the library's auth modules are registered
         // alongside the app modules — mirrors PaparcarApp on Android. The Swift handlers behind the
         // Google and Apple buttons are installed by AppDelegate before this runs.
