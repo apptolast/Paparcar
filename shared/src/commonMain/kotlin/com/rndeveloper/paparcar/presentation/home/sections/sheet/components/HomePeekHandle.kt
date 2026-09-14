@@ -262,11 +262,6 @@ fun HomePeekHandle(
                         nearbyLens = slice.nearbyLens,
                         laneCount = slice.laneCount,
                         laneLoading = slice.laneLoading,
-                        onFixLocation = if (slice.showsLocationWarning) {
-                            { onAction(HomeSheetAction.OpenCorePermissions) }
-                        } else {
-                            null
-                        },
                     )
                 }
             }

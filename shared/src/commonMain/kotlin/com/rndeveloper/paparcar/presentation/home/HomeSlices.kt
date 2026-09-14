@@ -84,6 +84,11 @@ data class HomeFabsSlice(
      *  is drawn and the band's visibility is the one it must follow: the header hides for every pin
      *  mode, which is when the warning matters most. [UI-A-WARNING-COSTS-NOTHING-WHEN-SILENT-001] */
     val gpsAccuracy: Float?,
+    /** There is no location at all (permission or GPS) — see [warnsLocationMissing]. Same pill, and
+     *  it rides in this slice for the same reason as [gpsAccuracy]: it is drawn here. It used to be
+     *  a badge in the peek, where it ate the width the header needs to NAME things.
+     *  [UI-NO-LOCATION-WEARS-THE-ACCURACY-PILL-001] */
+    val locationMissing: Boolean,
 )
 
 /** What the map tile layer sees. [addParkingVehicle] is the vehicle being
@@ -255,11 +260,6 @@ data class HomePeekSlice(
     val selectedSpot: Spot?
         get() = (selection as? HomeSelection.Spot)
             ?.let { sel -> nearbySpots.firstOrNull { it.id == sel.id } }
-
-    /** The browse header wears the location WARNING badge — see [warnsLocationMissing].
-     *  [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001] */
-    val showsLocationWarning: Boolean
-        get() = detectionUiState.warnsLocationMissing
 
     val isParkingSelected: Boolean
         get() = selectedSession != null
@@ -439,6 +439,10 @@ internal fun HomeState.toFabsSlice() = HomeFabsSlice(
             ?: VehicleMonitoringStatus.Inactive
     },
     gpsAccuracy = userGpsPoint?.accuracy,
+    // The same single source the amber list row and the sheet's auto-open read, so none of the
+    // three can disagree about whether Home has a location.
+    // [UI-NO-LOCATION-WEARS-THE-ACCURACY-PILL-001] [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
+    locationMissing = detectionUiState.warnsLocationMissing,
 )
 
 internal fun HomeState.toMapSlice() = HomeMapSlice(

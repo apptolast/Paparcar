@@ -1091,26 +1091,28 @@ class HomeSlicesTest {
         )
     }
 
-    // ── Sin ubicación: badge de aviso, nunca bloqueo ─────────────────────────
+    // ── Sin ubicación: aviso, nunca bloqueo ──────────────────────────────────
     // [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
+    // El aviso viaja ahora en el slice de los FABs, que es donde se dibuja: la píldora del mapa.
+    // [UI-NO-LOCATION-WEARS-THE-ACCURACY-PILL-001]
 
     @Test
     fun should_showTheLocationWarning_when_locationIsMissing() {
         val blocked = HomeState(
             detectionReadiness = DetectionReadiness.Blocked(setOf(RequiredPermission.FOREGROUND_LOCATION)),
         )
-        assertTrue(blocked.toPeekSlice().showsLocationWarning)
+        assertTrue(blocked.toFabsSlice().locationMissing)
     }
 
     @Test
     fun should_notShowTheLocationWarning_when_onlyProducerPermissionsAreMissing() {
         // Background location / activity recognition is the detection upsell, not "no location":
-        // the peek stays clean and the list's calm row sells it.
+        // the map stays clean and the list's calm row sells it.
         val producerOnly = HomeState(
             detectionReadiness = DetectionReadiness.Blocked(setOf(RequiredPermission.BACKGROUND_LOCATION)),
         )
-        assertFalse(producerOnly.toPeekSlice().showsLocationWarning)
+        assertFalse(producerOnly.toFabsSlice().locationMissing)
         // Nor without a car: the default state has no vehicle, so there is nothing to warn about.
-        assertFalse(HomeState().toPeekSlice().showsLocationWarning)
+        assertFalse(HomeState().toFabsSlice().locationMissing)
     }
 }

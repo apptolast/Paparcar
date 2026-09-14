@@ -1,6 +1,6 @@
 package com.rndeveloper.paparcar.presentation.home.sections.map
 
-import com.rndeveloper.paparcar.presentation.home.sections.map.components.HomeGpsAccuracyPill
+import com.rndeveloper.paparcar.presentation.home.sections.map.components.HomeLocationPill
 import com.rndeveloper.paparcar.presentation.home.sections.map.components.HomeMapFabColumn
 
 import androidx.compose.animation.AnimatedVisibility
@@ -175,7 +175,7 @@ internal fun HomeMapFabsLayer(
 }
 
 /**
- * Start-edge lane of the same band: the GPS pill, on the floor the FAB column stands on.
+ * Start-edge lane of the same band: the location pill, on the floor the FAB column stands on.
  *
  * It shares the band's [visible] gate rather than the header's, which is the point of moving it
  * here — the header hides itself for every selection and every pin mode, so the warning used to
@@ -183,13 +183,19 @@ internal fun HomeMapFabsLayer(
  * the band's offset, passed in by the caller as ONE lambda, so the two lanes cannot drift apart.
  * [UI-A-WARNING-COSTS-NOTHING-WHEN-SILENT-001]
  *
+ * Since [UI-NO-LOCATION-WEARS-THE-ACCURACY-PILL-001] this lane also carries the missing-location
+ * warning that used to be a badge in the peek's trailing slot, so Home has ONE voice about the
+ * location it is working with.
+ *
  * The pill runs its own enter/exit inside (it is silent almost always), so this layer only fades
  * with the band — no second slide stacked on the first.
  */
 @Composable
 internal fun HomeMapGpsLane(
+    locationMissing: Boolean,
     accuracy: Float?,
     visible: Boolean,
+    onFixLocation: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     AnimatedVisibility(
@@ -198,8 +204,10 @@ internal fun HomeMapGpsLane(
         exit = fadeOut(PapMotion.medium()),
         modifier = modifier,
     ) {
-        HomeGpsAccuracyPill(
+        HomeLocationPill(
+            locationMissing = locationMissing,
             accuracy = accuracy,
+            onFixLocation = onFixLocation,
             modifier = Modifier.padding(start = MAP_FLOATING_SIDE_INSET_DP.dp),
         )
     }

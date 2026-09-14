@@ -551,7 +551,7 @@
     <string name="home_det_core_title">Standort aktivieren</string>
     <string name="home_det_core_sub">Paparcar braucht ihn dafür</string>
     <string name="home_det_core_cta">Aktivieren</string>
-    <string name="home_location_off_badge">Kein Standort</string>
+    <string name="home_location_off_pill">Kein Standort</string>
     <string name="home_det_producer_title">Erkennung aktivieren</string>
     <string name="home_det_producer_sub">Merkt sich dein Parken, gibt den Platz frei</string>
     <string name="home_det_producer_cta">Aktivieren</string>

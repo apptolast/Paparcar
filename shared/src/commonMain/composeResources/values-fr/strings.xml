@@ -550,7 +550,7 @@
     <string name="home_det_core_title">Activez la localisation</string>
     <string name="home_det_core_sub">Paparcar en a besoin pour fonctionner</string>
     <string name="home_det_core_cta">Activer</string>
-    <string name="home_location_off_badge">Sans localisation</string>
+    <string name="home_location_off_pill">Sans localisation</string>
     <string name="home_det_producer_title">Activez la détection</string>
     <string name="home_det_producer_sub">Retient où vous êtes garé, libère la place</string>
     <string name="home_det_producer_cta">Activer</string>

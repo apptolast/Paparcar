@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.LocationOff
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -30,7 +29,6 @@ import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheet
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetEyebrowTone
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetLead
-import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetTrailing
 import com.rndeveloper.paparcar.presentation.util.PlaceLine
 import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.presentation.util.compactRelativeTimeText
@@ -53,7 +51,6 @@ import paparcar.composeapp.generated.resources.home_browse_parked_ago
 import paparcar.composeapp.generated.resources.home_browse_parked_meta
 import paparcar.composeapp.generated.resources.home_det_ask_eyebrow
 import paparcar.composeapp.generated.resources.home_det_monitoring
-import paparcar.composeapp.generated.resources.home_location_off_badge
 import paparcar.composeapp.generated.resources.home_peek_car_parked_label
 import paparcar.composeapp.generated.resources.home_peek_vehicle_parked_label
 import paparcar.composeapp.generated.resources.home_peek_vehicle_status
@@ -103,22 +100,15 @@ internal fun BrowsePeek(
      * [HOME-PEEK-FOLLOWS-THE-LANE-ONCE-OPENED-001]
      */
     laneHeaderLatched: Boolean = false,
-    /** Non-null while Home warns that location is missing (`warnsLocationMissing`): every browse
-     *  header wears the warning badge, and tapping it runs this. [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001] */
-    onFixLocation: (() -> Unit)? = null,
 ) {
     // Whether this header speaks for the LANE: always when expanded, and collapsed too once Browse
     // has been opened. [HOME-PEEK-FOLLOWS-THE-LANE-ONCE-OPENED-001]
     val followsLane = showZoneHeader || laneHeaderLatched
-    // One badge for the three subjects below — the car on the move, the parked car and the zone:
-    // missing location is true of all of them.
-    val locationWarning = onFixLocation?.let { onClick ->
-        PapSheetTrailing.Warning(
-            label = stringResource(Res.string.home_location_off_badge).uppercase(),
-            icon = Icons.Rounded.LocationOff,
-            onClick = onClick,
-        )
-    }
+    // ⛔ The missing-location warning is NOT here any more. It was a trailing badge on all three
+    // subjects, and «SIN UBICACIÓN» in caps ate the width this header needs to NAME things — the
+    // car, the address, the lane. It now lives in the map's location pill, which was standing
+    // silent at exactly that moment: without a fix there is no accuracy to report.
+    // [UI-NO-LOCATION-WEARS-THE-ACCURACY-PILL-001]
 
     // ── Subject = the car being driven RIGHT NOW (monitored trip) ─────────────
     // Collapsed peek only. A live trip OUTRANKS any parked car — the vehicle being actively
@@ -183,7 +173,6 @@ internal fun BrowsePeek(
             subtitle = secondaryLine,
             // No free-spots pill in the collapsed peek: the count already reads once the sheet is
             // expanded (spots section header), so a trailing pill here just duplicates it.
-            trailing = locationWarning,
         )
         return
     }
@@ -245,7 +234,6 @@ internal fun BrowsePeek(
             subtitle = subtitle,
             // No free-spots pill in the collapsed peek: the count already reads once the sheet is
             // expanded (spots section header), so a trailing pill here just duplicates it.
-            trailing = locationWarning,
         )
         return
     }
@@ -317,7 +305,6 @@ internal fun BrowsePeek(
         } else {
             secondaryLine
         },
-        trailing = locationWarning,
     )
 }
 

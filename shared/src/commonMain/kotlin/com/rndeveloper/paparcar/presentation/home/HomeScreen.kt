@@ -154,6 +154,11 @@ private const val NAVIGATE_ZOOM = 15f
 private const val FIRST_STEP_GUIDE_MS = 6_000L
 private const val ZONE_EDITING_ZOOM = 14f
 
+/** Which tier the permissions screen opens focused on. Two callers since the location warning moved
+ *  from the peek badge to the map pill, and they have to land on the SAME place.
+ *  [UI-NO-LOCATION-WEARS-THE-ACCURACY-PILL-001] [DET-TOGGLE-001] */
+private const val CORE_PERMISSIONS_FOCUS = "core"
+
 // Sheet snap geometry, transition effects and the snap spec live in
 // sections/sheet/HomeSheetPositioning.kt. [HOME-ATOMIZE-001 F2]
 
@@ -810,12 +815,19 @@ private fun HomeContent(
                         .statusBarsPadding(),
                 )
 
-                // ── FAB band · start-edge lane: the GPS warning ──────────────
+                // ── FAB band · start-edge lane: the location warning ─────────
                 // Same floor and same gate as the column opposite it. Silent — and taking no
-                // space at all — while the fix is good enough to park on, which is nearly always.
-                // [UI-A-WARNING-COSTS-NOTHING-WHEN-SILENT-001]
+                // space at all — while there is a fix good enough to park on, which is nearly
+                // always. [UI-A-WARNING-COSTS-NOTHING-WHEN-SILENT-001]
+                // Home's ONE voice about the location: no fix at all, or a fix too coarse to
+                // trust. [UI-NO-LOCATION-WEARS-THE-ACCURACY-PILL-001]
                 HomeMapGpsLane(
+                    locationMissing = fabsSlice.locationMissing,
                     accuracy = fabsSlice.gpsAccuracy,
+                    // The pill inherits the badge's action, not just its words: tapping it lands on
+                    // the same permission flow. A warning nobody can act on turns a fixable problem
+                    // into a complaint. [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
+                    onFixLocation = { onActivateDetection(CORE_PERMISSIONS_FOCUS) },
                     visible = fabsVisible,
                     modifier = Modifier
                         .align(Alignment.BottomStart)
@@ -1218,7 +1230,7 @@ private fun HomeSheetSection(
                 onNavigateExternal(action.lat, action.lon, action.walking)
             // Only the CORE tier routes here (Inactive uses the unified EnableAutoDetection
             // intent). Focus the permissions screen on the essential tier. [DET-TOGGLE-001]
-            HomeSheetAction.OpenCorePermissions -> onActivateDetection("core")
+            HomeSheetAction.OpenCorePermissions -> onActivateDetection(CORE_PERMISSIONS_FOCUS)
             HomeSheetAction.AddVehicle -> onAddVehicle()
             // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] Same destination Settings uses.
             is HomeSheetAction.LinkVehicleBluetooth -> onLinkVehicleBluetooth(action.vehicleId)
