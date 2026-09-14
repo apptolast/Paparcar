@@ -1,6 +1,6 @@
 # SPOT-ICON-IS-THE-GIVEN-SPOT-HAND-HEART-001 · La plaza libre se dibuja con la mano + corazón de «plaza cedida»
 
-**Estado:** 🟡 En revisión · rama `feature/SPOT-ICON-IS-THE-GIVEN-SPOT-HAND-HEART-001` ·
+**Estado:** ✅ Done — en master (PR [#21](https://github.com/apptolast/Paparcar/pull/21), aprobado sin cambios) ·
 GitHub issue [#15](https://github.com/apptolast/Paparcar/issues/15)
 
 ## Problema
@@ -46,7 +46,8 @@ suelto dentro de `CommunitySpotOverlay` (puck del mapa, lista, peek, pin de repo
 | `Icons.Rounded.Person` en auth, ajustes y permisos | exentos — es el usuario, no una plaza |
 | Clúster de plazas | exento — solo cifra |
 
-## Preguntas abiertas
+## Preguntas que quedaron sin respuesta
+El PR se aprobó sin contestarlas; se conserva el comportamiento implementado.
 1. ¿«Todas sus partes» incluye también el **megáfono** del badge del puck? Lo he mantenido: indica
    «anunciada», y el megáfono sigue siendo el icono de la acción de avisar.
 2. El onboarding (tarjeta «Una plaza para otro») y el checklist usan el megáfono para la acción; no

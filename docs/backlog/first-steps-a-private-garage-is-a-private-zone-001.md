@@ -1,6 +1,6 @@
 # FIRST-STEPS-A-PRIVATE-GARAGE-IS-A-PRIVATE-ZONE-001 · El tutorial enseña a proteger el garaje con una zona privada
 
-**Estado:** 🟡 En revisión · rama `feature/FIRST-STEPS-A-PRIVATE-GARAGE-IS-A-PRIVATE-ZONE-001` ·
+**Estado:** ✅ Done — en master (PR [#24](https://github.com/apptolast/Paparcar/pull/24), aprobado sin cambios) ·
 GitHub issue [#16](https://github.com/apptolast/Paparcar/issues/16)
 
 ## Problema
@@ -52,10 +52,12 @@ presenta: el checklist enseña que al irte tu aparcamiento libera una plaza y nu
 | Galería / previews | default con zona; variante y preview nuevos |
 | `ReleaseActiveParkingSessionUseCase` | **no cambiado** — ver pregunta 1 |
 
-## Preguntas abiertas
+## Preguntas que quedaron sin respuesta
+El PR se aprobó sin contestarlas; se conserva el comportamiento implementado.
 1. **Hueco encontrado**: la liberación MANUAL («Me voy → publicar») no mira `privateZoneId` y publica
    la plaza aunque el aparcamiento esté en zona privada; solo las salidas automáticas lo respetan.
    El copy del paso habla de «al salir» en general. ¿Lo corregimos (no publicar, o avisar en el
-   diálogo) en un ticket aparte?
+   diálogo) en un ticket aparte? → Apuntado en
+   [`park-a-manual-release-must-respect-the-private-zone-001.md`](park-a-manual-release-must-respect-the-private-zone-001.md).
 2. Una zona creada con el coche ya aparcado dentro no protege ESE aparcamiento (se evalúa al
    confirmar). La nota del explicador lo dice. ¿Queremos re-evaluar la sesión activa al crear la zona?

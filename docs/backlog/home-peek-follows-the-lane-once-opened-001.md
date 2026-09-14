@@ -1,6 +1,6 @@
 # HOME-PEEK-FOLLOWS-THE-LANE-ONCE-OPENED-001 · Tras abrir Browse, el peek plegado sigue a la pestaña
 
-**Estado:** 🟡 En revisión · rama `feature/HOME-PEEK-FOLLOWS-THE-LANE-ONCE-OPENED-001` ·
+**Estado:** ✅ Done — en master (PR [#23](https://github.com/apptolast/Paparcar/pull/23), aprobado sin cambios) ·
 GitHub issue [#9](https://github.com/apptolast/Paparcar/issues/9)
 
 ## Problema
@@ -45,7 +45,8 @@ Revierte a propósito la regla «⛔ Plegado NO cambia» de
 | `sheetAtPeekLevel`, nav progress, FABs | sin cambio (otro umbral) |
 | Doc `home-the-watch-comes-first…` + KDoc `nearbyLens` | marcados como superados |
 
-## Preguntas abiertas
+## Preguntas que quedaron sin respuesta
+El PR se aprobó sin contestarlas; se conserva el comportamiento implementado.
 1. **Viaje en curso**: lo he dejado ganando al carril en el peek plegado (lleva la pregunta de
    aparcamiento). ¿O también debe ceder a la pestaña tras abrir el sheet?
 2. «La primera vez que iniciamos home» = hasta la primera apertura en esta sesión de la app (se
