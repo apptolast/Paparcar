@@ -204,6 +204,26 @@ class HomeUiController {
     }
 
     /**
+     * Y cuando NO hay coche aparcado tampoco: una ZONA guardada. [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
+     *
+     * ⛔ **Sin esto Home abre en (0, 0), el Golfo de Guinea.** La semilla del mapa es
+     * `cameraTarget ?: initialCamera ?: userLocation ?: Coordinates(0,0)` y Home nunca pasa
+     * `initialCamera`, así que sin fix y sin sesión no queda nadie que mueva la cámara: el usuario
+     * abre la app en mitad del Atlántico, y con ella todo lo que cuelga de la cámara — plazas,
+     * parkings y gasolineras se preguntan por el sitio que miras, y ese sitio no era ninguno.
+     *
+     * Una zona es lo más parecido a «donde vivo» que la app tiene sin medir nada: la declaró el
+     * usuario. Consume el mismo one-shot que las otras dos entradas, así que si el fix llega después
+     * la cámara ya no salta. Sin zonas no hay nada honesto que inventar — ahí manda el buscador, y
+     * los tres carriles dicen que todavía no han podido preguntar.
+     */
+    fun centerOnZoneWithoutLocation(zone: Pair<Double, Double>) {
+        if (centeredOnUser || userMovedCameraManually || pinPlacementActive) return
+        centeredOnUser = true
+        setTarget(zone.first, zone.second, zoom = FOCUS_SEARCH_ZOOM)
+    }
+
+    /**
      * [UI-THE-ASK-IS-A-CAMERA-SUBJECT-001] The place an open "did you park?" question is about, framed
      * as a camera subject of its own. Once per QUESTION, keyed by its post timestamp — the same
      * identity and the same "once" the sheet's auto-open already uses, so the sheet and the map can

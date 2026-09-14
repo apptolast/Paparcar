@@ -37,6 +37,9 @@ fun HomeFuelStationRow(
     /** Non-null → the row opens the station's peek, the same one its map capsule opens.
      *  [FUEL-STATIONS-MAP-AND-PEEK-001] */
     onClick: (() -> Unit)? = null,
+    /** Whether that distance is a distance TO THE USER. See [subtitleFor].
+     *  [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001] */
+    hasFix: Boolean = true,
 ) {
     // A source can hold a forecourt with no name — France's official feed carries none at all, and
     // 1 in 25 OSM entries has neither name nor brand. Where it cannot name itself it is placed
@@ -55,7 +58,7 @@ fun HomeFuelStationRow(
         contentPadding = PaddingValues(0.dp),
         titleStyle = PaparcarType.current.rowName,
         titleMaxLines = 1,
-        subtitle = subtitleFor(station, title),
+        subtitle = subtitleFor(station, title, hasFix),
         subtitleMaxLines = 1,
         leading = {
             // ⛔ VERDE, no neutro (user, 10-09, viéndolo en el Oppo). El barrido de
@@ -77,13 +80,22 @@ fun HomeFuelStationRow(
  * with no name is titled by its address, and comparing to the null name let that same address come
  * back as its own subtitle — "Carretera de Burgos km 14 / 3,1 km · Carretera de Burgos km 14",
  * caught on device. Whatever the title spent, the subtitle cannot spend again.
+ *
+ * ⛔ **Sin fix no hay distancia que rotular**, por la misma razón que en la fila de parking:
+ * `distanceMeters` se mide desde el punto por el que se PREGUNTÓ — tú con ubicación, el centro del
+ * mapa sin ella — y desde que el carril responde también sin permiso eso dejaría de ser una ventana
+ * de dos segundos para ser el estado normal. El precio y el sitio no dependen de dónde estés.
+ * [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
  */
 @Composable
-private fun subtitleFor(station: NearbyFuelStation, title: String): String {
-    val distance = formatDistance(station.distanceMeters.toFloat())
+private fun subtitleFor(station: NearbyFuelStation, title: String, hasFix: Boolean): String? {
+    val distance = if (hasFix) formatDistance(station.distanceMeters.toFloat()) else null
     val where = listOfNotNull(station.station.address, station.station.town)
         .firstOrNull { it != title }
-    return if (where != null) "$distance · $where" else distance
+    return when {
+        distance != null && where != null -> "$distance · $where"
+        else -> distance ?: where
+    }
 }
 
 /**
@@ -115,6 +127,7 @@ fun HomeFuelStationRows(
     stations: List<NearbyFuelStation>,
     modifier: Modifier = Modifier,
     onStationClick: ((String) -> Unit)? = null,
+    hasFix: Boolean = true,
 ) {
     Column(modifier = modifier) {
         stations.forEachIndexed { index, station ->
@@ -122,6 +135,7 @@ fun HomeFuelStationRows(
                 station = station,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 onClick = onStationClick?.let { cb -> { cb(station.station.id) } },
+                hasFix = hasFix,
             )
             if (index < stations.lastIndex) {
                 PapDivider(modifier = Modifier.padding(start = 70.dp, end = 16.dp))

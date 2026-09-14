@@ -85,8 +85,15 @@ internal fun HomeHeaderSection(
                 onTypeSelected = onMapTypeSelected,
             )
         }
+        // ⛔ Las zonas NO dependen del permiso de ubicación: una zona es un sitio TUYO que ya has
+        // declarado — «donde vivo», «el trabajo» —, no tu posición de ahora. Y sin ubicación es
+        // justo cuando más falta hace poder saltar a una: es la única forma que le queda a la app de
+        // llevarte a un sitio que conoces. [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
+        //
+        // Se conserva el AnimatedVisibility —y no se sustituye por un `if`— porque la fila sigue
+        // teniendo dos caras (con zonas / invitación) y entra y sale con la cabecera.
         AnimatedVisibility(
-            visible = slice.hasCorePermissions,
+            visible = true,
             // Chips hang under the search bar → grow/collapse from the top edge.
             enter = fadeIn(PapMotion.medium()) + expandVertically(PapMotion.medium(), expandFrom = Alignment.Top),
             exit = fadeOut(PapMotion.medium()) + shrinkVertically(PapMotion.medium(), shrinkTowards = Alignment.Top),

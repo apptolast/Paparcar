@@ -28,7 +28,7 @@ import androidx.compose.runtime.MutableFloatState
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.rndeveloper.paparcar.presentation.home.model.warnsLocationMissing
+import com.rndeveloper.paparcar.presentation.home.model.homeHasNoLocation
 import com.rndeveloper.paparcar.presentation.permissions.rememberRequestFineLocationAction
 import com.rndeveloper.paparcar.presentation.util.MapForegroundEffect
 import androidx.compose.runtime.State
@@ -1026,11 +1026,24 @@ private fun HomeCameraEffects(
     // [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001] No location at all (permission denied or GPS
     // off) and no fix in hand, but a car is parked: the initial focus above will never fire, so fly to
     // the car instead. A live trip owns the camera. One-shot inside the controller.
-    val locationUnavailable = !state.hasCorePermissions || state.detectionUiState.warnsLocationMissing
+    // ⛔ The SAME verdict the map's pill states — this line used to spell those two terms out a
+    // second time. [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
+    val locationUnavailable = homeHasNoLocation(state.hasCorePermissions, state.detectionUiState)
     LaunchedEffect(state.userParking?.id, locationUnavailable) {
         val parking = state.userParking ?: return@LaunchedEffect
         if (!locationUnavailable || state.userGpsPoint != null || drivingPuck.value != null) return@LaunchedEffect
         uiController.centerOnParkingWithoutLocation(parking.location.latitude to parking.location.longitude)
+    }
+
+    // Y sin coche aparcado, una zona guardada — si no, Home abre en (0, 0) y todo lo que se pregunta
+    // POR LA CÁMARA (plazas, parkings, gasolineras) se queda sin sitio por el que preguntar. El
+    // controller lleva el one-shot, así que el coche de arriba siempre gana si existe.
+    // [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
+    LaunchedEffect(state.zones.firstOrNull()?.id, state.userParking?.id, locationUnavailable) {
+        if (!locationUnavailable || state.userParking != null) return@LaunchedEffect
+        if (state.userGpsPoint != null || drivingPuck.value != null) return@LaunchedEffect
+        val zone = state.zones.firstOrNull() ?: return@LaunchedEffect
+        uiController.centerOnZoneWithoutLocation(zone.lat to zone.lon)
     }
 
     // Re-frame the car once if its session loads just after the first GPS fix (common race), unless

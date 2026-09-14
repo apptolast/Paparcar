@@ -105,11 +105,16 @@ val DetectionUiState.isDetectionStopped: Boolean
     get() = this == DetectionUiState.Inactive || this == DetectionUiState.BlockedCore
 
 /**
- * Home warns that location is missing (permission or GPS) — the header badge, the amber list row and
- * the sheet's auto-open after a refused first ask all read THIS, so they cannot disagree.
+ * The WATCH is blocked for want of location (permission or GPS) — the amber list row and the sheet's
+ * auto-open after a refused first ask read THIS, so they cannot disagree.
  *
- * `BlockedCore` only exists with a registered car and detection on: with no car there is nothing to
- * warn about, and Home simply lives without location. [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
+ * `BlockedCore` only exists with a registered car and detection on: with no car there is no watch to
+ * block, and both consumers are right to stay quiet — the row would have nothing to offer and the
+ * sheet nothing to open onto. [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
+ *
+ * ⛔ **This is no longer what the map's pill says.** «No location» is a fact about the phone, true
+ * with or without a car, and it has its own verdict: [homeHasNoLocation], which reads this one as
+ * its GPS-off half. [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
  */
 val DetectionUiState.warnsLocationMissing: Boolean
     get() = this == DetectionUiState.BlockedCore

@@ -1433,9 +1433,12 @@ class HomeViewModel(
 
         spots.updates.collectSafely("spots") { update ->
             when (update) {
-                is SpotsUpdate.Data -> updateState { applyNewSpots(update.spots) }
+                is SpotsUpdate.Data -> updateState { applyNewSpots(update.spots).copy(spotsUnasked = false) }
                 is SpotsUpdate.Error ->
                     sendEffect(HomeEffect.ShowError(PaparcarError.Network.Unknown(update.message)))
+                // Sin centro no se ha preguntado, y el carril tiene que decir eso y no «no hay
+                // plazas». [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
+                SpotsUpdate.Unasked -> updateState { applyNewSpots(emptyList()).copy(spotsUnasked = true) }
             }
         }
     }

@@ -33,6 +33,7 @@
     <string name="common_directions">Como chegar</string>
     <string name="home_navigate_to_vehicle_cd">Como chegar ao carro</string>
     <string name="home_empty_title">Ainda não há lugares reportados</string>
+    <string name="home_spots_unasked">Procura uma rua ou ativa a localização para veres os lugares livres aí.</string>
     <string name="home_empty_subtitle">Seja o primeiro a reportar um</string>
     <string name="home_address_unknown">Localização desconhecida</string>
     <string name="location_fallback_spot">Lugar no mapa</string>
@@ -237,6 +238,7 @@
 
     <!-- Home Reporting mode -->
     <string name="home_report_subtitle">Um lugar livre que viu e quer partilhar com outros.</string>
+    <string name="home_report_needs_location">Ativa a localização para avisar: um lugar só é fiável se estavas ao lado.</string>
     <string name="home_report_fab_cd">Reportar um lugar livre</string>
 
     <!-- Home Zones — locais habituais -->

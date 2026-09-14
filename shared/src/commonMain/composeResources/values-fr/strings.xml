@@ -33,6 +33,7 @@
     <string name="common_directions">Itinéraire</string>
     <string name="home_navigate_to_vehicle_cd">Itinéraire jusqu&#8217;à la voiture</string>
     <string name="home_empty_title">Aucune place signalée pour le moment</string>
+    <string name="home_spots_unasked">Cherchez une rue ou activez la localisation pour voir les places libres là-bas.</string>
     <string name="home_empty_subtitle">Soyez le premier à en signaler une</string>
     <string name="home_address_unknown">Emplacement inconnu</string>
     <string name="location_fallback_spot">Place sur la carte</string>
@@ -237,6 +238,7 @@
 
     <!-- Home Reporting mode -->
     <string name="home_report_subtitle">Une place libre que vous avez vue et souhaitez partager.</string>
+    <string name="home_report_needs_location">Activez la localisation pour signaler : une place n'est fiable que si vous étiez à côté.</string>
     <string name="home_report_fab_cd">Signaler une place libre</string>
 
     <!-- Home Zones — lieux habituels -->

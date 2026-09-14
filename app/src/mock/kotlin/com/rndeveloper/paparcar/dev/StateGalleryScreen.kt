@@ -1468,6 +1468,32 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Sheet · spots primero (sin coche)") {
                 sheet(HomeState(hasCorePermissions = true, userGpsPoint = sampleGps, nearbySpots = FakeData.nearbySpots))
             },
+            // ⛔ Sin permiso de ubicación el sheet YA NO se vacía: la tira de coches sigue (no tocan
+            // la ubicación) y el carril responde por el sitio que miras. Lo único que cambia es que
+            // la tarjeta de avisar queda deshabilitada DICIENDO por qué: un aviso comunitario sólo
+            // es fiable si sabemos que estabas cerca. [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
+            Variant("Sheet · sin permiso de ubicación, con coche") {
+                sheet(
+                    HomeState(
+                        hasCorePermissions = false,
+                        vehicles = listOf(FakeData.vehicleSedan),
+                        nearbySpots = FakeData.nearbySpots,
+                        detectionReadiness = DetectionReadiness.Blocked(setOf(RequiredPermission.FOREGROUND_LOCATION)),
+                    ),
+                )
+            },
+            // El usuario recién llegado que pulsa «No permitir» y aún no tiene coche: antes veía un
+            // mapa mudo y un sheet vacío — ni contenido ni motivo.
+            Variant("Sheet · sin permiso de ubicación, sin coche") {
+                sheet(HomeState(hasCorePermissions = false, nearbySpots = FakeData.nearbySpots))
+            },
+            // ⛔ Todavía NADIE ha preguntado: ni fix ni un mapa llevado a ningún sitio, así que no hay
+            // centro de consulta. La lista está vacía porque no se ha mirado, y el carril dice eso —
+            // «no hay plazas libres cerca» sería un veredicto sobre un sitio que nadie ha visto.
+            // [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
+            Variant("Sheet · plazas sin preguntar (sin centro)") {
+                sheet(HomeState(hasCorePermissions = false, nearbySpots = emptyList(), spotsUnasked = true))
+            },
             // Driving chip: the monitored vehicle's trip is in progress (drivingPuck.vehicleId == its
             // id, no active session) → chip shows "Conduciendo" + radar halo, floated first. [CHIP-DRIVING-001]
             Variant("Sheet · coche conduciendo (driving)") {

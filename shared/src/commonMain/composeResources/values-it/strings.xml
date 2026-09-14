@@ -33,6 +33,7 @@
     <string name="common_directions">Indicazioni</string>
     <string name="home_navigate_to_vehicle_cd">Indicazioni per l&#8217;auto</string>
     <string name="home_empty_title">Ancora nessun posto segnalato</string>
+    <string name="home_spots_unasked">Cerca una via o attiva la posizione per vedere i posti liberi lì.</string>
     <string name="home_empty_subtitle">Sii il primo a segnalarne uno</string>
     <string name="home_address_unknown">Posizione sconosciuta</string>
     <string name="location_fallback_spot">Posto sulla mappa</string>
@@ -237,6 +238,7 @@
 
     <!-- Home Reporting mode -->
     <string name="home_report_subtitle">Un posto libero che hai visto e vuoi condividere con altri.</string>
+    <string name="home_report_needs_location">Attiva la posizione per segnalare: un posto è affidabile solo se eri lì accanto.</string>
     <string name="home_report_fab_cd">Segnala un posto libero</string>
 
     <!-- Home Zones — luoghi abituali -->

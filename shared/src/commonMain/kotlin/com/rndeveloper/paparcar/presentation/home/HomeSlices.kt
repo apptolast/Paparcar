@@ -20,7 +20,7 @@ import com.rndeveloper.paparcar.domain.detection.shouldShowParkNudgeBanner
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.domain.onboarding.FirstStepsProgress
 import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
-import com.rndeveloper.paparcar.presentation.home.model.warnsLocationMissing
+import com.rndeveloper.paparcar.presentation.home.model.homeHasNoLocation
 import com.rndeveloper.paparcar.presentation.home.model.DetectionUiState
 import com.rndeveloper.paparcar.presentation.home.model.ParkedWatchBadge
 import com.rndeveloper.paparcar.presentation.util.PlaceLine
@@ -57,7 +57,6 @@ data class HomeHeaderSlice(
     val isSearching: Boolean,
     val searchNoResults: Boolean,
     val mapType: MapType,
-    val hasCorePermissions: Boolean,
     val zones: List<Zone>,
 )
 
@@ -84,7 +83,7 @@ data class HomeFabsSlice(
      *  is drawn and the band's visibility is the one it must follow: the header hides for every pin
      *  mode, which is when the warning matters most. [UI-A-WARNING-COSTS-NOTHING-WHEN-SILENT-001] */
     val gpsAccuracy: Float?,
-    /** There is no location at all (permission or GPS) — see [warnsLocationMissing]. Same pill, and
+    /** There is no location at all (permission or GPS) — see [homeHasNoLocation]. Same pill, and
      *  it rides in this slice for the same reason as [gpsAccuracy]: it is drawn here. It used to be
      *  a badge in the peek, where it ate the width the header needs to NAME things.
      *  [UI-NO-LOCATION-WEARS-THE-ACCURACY-PILL-001] */
@@ -346,6 +345,9 @@ data class HomeBrowseListSlice(
     val filteredSpots: List<Spot>,
     /** True when the UNFILTERED nearby list is non-empty (drives the filter bar + empty states). */
     val hasAnySpots: Boolean,
+    /** Nadie ha preguntado por las plazas todavía — no hay centro de consulta. El carril lo DICE en
+     *  vez de dar por vacío un sitio que no ha mirado. [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001] */
+    val spotsUnasked: Boolean,
     /** One entry per registered vehicle, joined to its active session — materialised once. */
     val vehicleCards: List<VehicleCard>,
     val userGpsPoint: GpsPoint?,
@@ -379,10 +381,16 @@ data class HomeBrowseListSlice(
     val nearbyIntro: NearbyComplement?,
 ) {
     /**
-     * Whether the guided checklist is actually ON SCREEN — visibility AND the two conditions that
-     * make it make sense. No vehicle means there is nothing to mark, and `DetectionStory.NoVehicle`
-     * already owns that ask with the right CTA; no core permissions means the app cannot do any of
-     * the three things the checklist teaches.
+     * Whether the guided checklist is actually ON SCREEN — visibility AND the condition that makes
+     * it make sense: there has to be a car. With none there is nothing to mark, and
+     * `DetectionStory.NoVehicle` already owns that ask with the right CTA.
+     *
+     * ⛔ **The CORE permission is NOT a condition.** It was, on the premise that without location the
+     * app "cannot do any of the three things the checklist teaches" — and that premise was wrong for
+     * all three: marking a parking starts from the camera, the nearby lane answers about the place
+     * you are looking at, and the two steps that used to open flows now only POINT at them
+     * [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001]. Hiding the tutorial was reserved for exactly the user
+     * who had never seen it. [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
      *
      * Resolved HERE, not at the render site, because three surfaces ask the same question: the card
      * itself, the cold-start detection row standing down for it, and the sheet opening itself on it.
@@ -390,7 +398,7 @@ data class HomeBrowseListSlice(
      * is not there. [ONBOARDING-FIRST-STEPS-MUST-BE-READABLE-AND-FOUND-001]
      */
     val showsFirstSteps: Boolean
-        get() = firstSteps.isVisible && hasCorePermissions && vehicleCards.isNotEmpty()
+        get() = firstSteps.isVisible && vehicleCards.isNotEmpty()
 
     /**
      * WHAT the checklist has to show right now, as a key — or null when it is not on screen.
@@ -421,7 +429,6 @@ internal fun HomeState.toHeaderSlice() = HomeHeaderSlice(
     isSearching = isSearching,
     searchNoResults = searchNoResults,
     mapType = mapType,
-    hasCorePermissions = hasCorePermissions,
     zones = zones,
 )
 
@@ -439,10 +446,12 @@ internal fun HomeState.toFabsSlice() = HomeFabsSlice(
             ?: VehicleMonitoringStatus.Inactive
     },
     gpsAccuracy = userGpsPoint?.accuracy,
-    // The same single source the amber list row and the sheet's auto-open read, so none of the
-    // three can disagree about whether Home has a location.
-    // [UI-NO-LOCATION-WEARS-THE-ACCURACY-PILL-001] [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
-    locationMissing = detectionUiState.warnsLocationMissing,
+    // ⛔ Not the watch's block — the PHONE's absence of a position, which is true with or without a
+    // registered car. The pill used to read `warnsLocationMissing`, and that left the one user who
+    // most needs the sentence (just refused the permission, no car yet) looking at a Home that never
+    // said why it did not know where they were.
+    // [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001] [UI-NO-LOCATION-WEARS-THE-ACCURACY-PILL-001]
+    locationMissing = homeHasNoLocation(hasCorePermissions, detectionUiState),
 )
 
 internal fun HomeState.toMapSlice() = HomeMapSlice(
@@ -581,6 +590,7 @@ fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
     // The filter bar and the empty state ask "is there anything on offer at all" — resolved by
     // [spotsOnOffer], the same list the checklist's third step consults before offering to show any.
     hasAnySpots = spotsOnOffer.isNotEmpty(),
+    spotsUnasked = spotsUnasked,
     vehicleCards = vehicles.map { v ->
         VehicleCard(vehicle = v, session = activeSessions.firstOrNull { it.vehicleId == v.id })
     },

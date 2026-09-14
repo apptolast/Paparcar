@@ -34,6 +34,7 @@
     <string name="common_directions">Route</string>
     <string name="home_navigate_to_vehicle_cd">Route zum Auto</string>
     <string name="home_empty_title">Noch keine Plätze gemeldet</string>
+    <string name="home_spots_unasked">Suche eine Straße oder aktiviere den Standort, um die freien Plätze dort zu sehen.</string>
     <string name="home_empty_subtitle">Sei der Erste, der einen meldet</string>
     <string name="home_address_unknown">Unbekannter Standort</string>
     <string name="location_fallback_spot">Platz auf der Karte</string>
@@ -238,6 +239,7 @@
 
     <!-- Home Reporting mode -->
     <string name="home_report_subtitle">Ein freier Stellplatz, den du gesehen hast und teilen m&#xF6;chtest.</string>
+    <string name="home_report_needs_location">Standort aktivieren, um zu melden: Ein Platz ist nur verlässlich, wenn du daneben standest.</string>
     <string name="home_report_fab_cd">Freien Stellplatz melden</string>
 
     <!-- Home Zones — gewohnte Orte -->

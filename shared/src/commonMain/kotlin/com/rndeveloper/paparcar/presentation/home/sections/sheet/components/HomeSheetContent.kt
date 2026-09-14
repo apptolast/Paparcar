@@ -98,8 +98,17 @@ fun LazyListScope.homeSheetItems(
 ) {
     val filteredSpots = slice.filteredSpots
     val vehicleCards = slice.vehicleCards
-    val showPersonalBlocks = slice.hasCorePermissions && vehicleCards.isNotEmpty()
-    val showFilterBar = slice.hasCorePermissions && slice.hasAnySpots
+    // ⛔ Ni este bloque ni el carril preguntan ya por el permiso de ubicación, y esa es la decisión
+    // entera de [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]: el permiso de primer plano responde a
+    // «¿dónde estoy YO?», no a «¿qué hay AHÍ?». Tus coches no tocan la ubicación por ningún lado, y
+    // el carril se pregunta desde la CÁMARA (`viewportCentreOrGps`), no desde el fix.
+    //
+    // Lo que había antes vaciaba medio Home —tira de coches, carril, filtros, tarjeta de avisar—
+    // justo para el usuario que acaba de pulsar «No permitir», que es a quien hay que convencer de
+    // lo contrario. Y sin coche registrado ni siquiera quedaba el aviso que lo explicara: se iba
+    // el contenido y el motivo a la vez.
+    val showPersonalBlocks = vehicleCards.isNotEmpty()
+    val showFilterBar = slice.hasAnySpots
 
     // ── 0. Qué se renderiza aquí, y en qué orden ──────────────────────────────────────────────
     // ⛔ Este comentario decía «Detection story surface — under the address header, above vehicles»
@@ -198,10 +207,6 @@ fun LazyListScope.homeSheetItems(
                 // is the answer the step asks for. [FIRST-STEPS-A-PRIVATE-GARAGE-IS-A-PRIVATE-ZONE-001]
                 onAnswerNoStep = { step -> onIntent(HomeIntent.CompleteFirstStep(step)) },
                 onResumeStep = { step -> onIntent(HomeIntent.ResumeFirstStep(step)) },
-                // Sin posicion no se puede ni marcar un aparcamiento ni avisar de una plaza: esos
-                // CTA esperan al primer fix en vez de aceptar un toque que no pueden cumplir.
-                // [UI-HOME-MUST-NOT-OFFER-WHAT-IT-CANNOT-DO-YET-001]
-                hasLocation = slice.userGpsPoint != null,
                 // [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] Every row opens its explainer, done ones
                 // included — that is what makes replaying the checklist from Settings worth
                 // something once the live state already ticks all three.
@@ -322,30 +327,31 @@ fun LazyListScope.homeSheetItems(
     }
 
     // ── 3. The nearby LANE: the chip row that picks a subject, and that subject's list ───────
-    // Hidden entirely without CORE: "nearby" is meaningless with no location, and the amber
-    // Blocked·CORE row above (plus the peek's warning badge) is already the "turn on location"
-    // prompt — no need for the old HomePermissionsCard duplicating it. [DET-READY-001i]
-    // [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
-    if (slice.hasCorePermissions) {
-        // ⛔ El corte entre LO MIO y LO DE AQUI. Sin el, la tira de coches y la fila de pestanas se
-        // tocaban y el sheet se leia como una sola lista larga: el bloque fijo dejaba de parecer un
-        // bloque. [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
-        item("mine_lane_split") {
-            PapSectionHeader(
-                title = stringResource(Res.string.home_nearby_section_header),
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 8.dp),
-            )
-        }
-        nearbyLane(
-            slice = slice,
-            onIntent = onIntent,
-            onAction = onAction,
-            filteredSpots = filteredSpots,
-            showFilterBar = showFilterBar,
-            rowsScroll = rowsScroll,
-            firstStepGuide = firstStepGuide,
+    // ⛔ Ya NO se esconde sin CORE. La premisa era «"cerca" no significa nada sin ubicación», y el
+    // propio código la desmiente: el carril se ancla a la CÁMARA (`viewportCentreOrGps`),
+    // `isWorthAsking` devuelve true sin GPS y `NearbyOrdering` ya ordena sin `user`. Lo que la falta
+    // de fix quita no es la respuesta —qué hay donde miras— sino UNA línea de cada fila: a cuánto
+    // está DE TI. Eso es lo que se calla, y nada más.
+    // [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001] [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
+    //
+    // ⛔ El corte entre LO MIO y LO DE AQUI. Sin el, la tira de coches y la fila de pestanas se
+    // tocaban y el sheet se leia como una sola lista larga: el bloque fijo dejaba de parecer un
+    // bloque. [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
+    item("mine_lane_split") {
+        PapSectionHeader(
+            title = stringResource(Res.string.home_nearby_section_header),
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 8.dp),
         )
     }
+    nearbyLane(
+        slice = slice,
+        onIntent = onIntent,
+        onAction = onAction,
+        filteredSpots = filteredSpots,
+        showFilterBar = showFilterBar,
+        rowsScroll = rowsScroll,
+        firstStepGuide = firstStepGuide,
+    )
 }
 
 /**
@@ -516,6 +522,9 @@ private fun LazyListScope.nearbyLane(
                 // [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] Whether THIS lane is the one being
                 // introduced — the slice carries the complement, so the comparison is the lane's.
                 isIntroducing = slice.nearbyIntro == NearbyComplement.CAR_PARKS,
+                // Sin fix la fila se calla la distancia: se midió desde la cámara, no desde ti.
+                // [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
+                hasFix = slice.userGpsPoint != null,
             )
         }
 
@@ -526,6 +535,7 @@ private fun LazyListScope.nearbyLane(
                     onAction(HomeSheetAction.SelectFuelStation(stationId))
                 },
                 isIntroducing = slice.nearbyIntro == NearbyComplement.FUEL,
+                hasFix = slice.userGpsPoint != null,
             )
         }
     }
@@ -562,7 +572,7 @@ private fun LazyListScope.spotsLane(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                 )
             }
-        filteredSpots.isEmpty() -> item("empty") { HomeEmptySpots() }
+        filteredSpots.isEmpty() -> item("empty") { HomeEmptySpots(unasked = slice.spotsUnasked) }
         else -> itemsIndexed(filteredSpots, key = { _, spot -> spot.id }) { index, spot ->
             Column {
                 HomeSpotRow(
@@ -583,17 +593,24 @@ private fun LazyListScope.spotsLane(
     // El estado vacio ya no lleva CTA propio (es una linea), asi que la tarjeta de avisar se
     // muestra SIEMPRE: antes se suprimia justo cuando mas falta hacia, para no duplicar el boton que
     // vivia dentro de la caja discontinua. [UI-ONE-SKELETON-ONE-EMPHASIS-ONE-GREEN-001]
-    if (slice.hasCorePermissions) {
-        item("report_spot_cta") {
-            HomeReportSpotCard(
-                onReport = { onAction(HomeSheetAction.RequestReportMode) },
-                // Sin sitio del que partir no se entra en modo reporte, asi que tampoco se ofrece.
-                // [SPOT-A-REPORT-WITHOUT-A-PLACE-MUST-NOT-HAPPEN-001]
-                enabled = slice.userGpsPoint != null,
-                highlighted = firstStepGuide == FirstStepGuide.REPORT_SPOT_CARD,
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
-            )
-        }
+    item("report_spot_cta") {
+        HomeReportSpotCard(
+            onReport = { onAction(HomeSheetAction.RequestReportMode) },
+            // ⛔ El ÚNICO gate por ubicación que sobrevive en este sheet, y por una razón que no es
+            // la de los demás: **la única fiabilidad que tiene un aviso comunitario es que sepamos
+            // que estabas cerca.** Un aparcamiento es tuyo y lo verifica quien lo pone; una plaza se
+            // publica a desconocidos que van a conducir hasta ella. Sin fix no podemos afirmar que
+            // la viste — solo que alguien arrastró un pin sobre un mapa.
+            //
+            // Es la doctrina de detección —el evento NOMINA, solo lo MEDIDO confirma; mejor falso
+            // negativo que plaza fantasma— aplicada al reporte manual. Y por eso la tarjeta se
+            // queda a la vista DICIENDO por qué no puede: esconderla dejaba al usuario sin la
+            // acción y sin el motivo. [SPOT-A-REPORT-WITHOUT-A-PLACE-MUST-NOT-HAPPEN-001]
+            // [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
+            enabled = slice.userGpsPoint != null,
+            highlighted = firstStepGuide == FirstStepGuide.REPORT_SPOT_CARD,
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
+        )
     }
 }
 

@@ -21,6 +21,15 @@ sealed interface SpotsUpdate {
     data class Data(val spots: List<Spot>) : SpotsUpdate
     /** The spots stream failed — the VM surfaces it as a snackbar effect. A [Data] (empty) follows. */
     data class Error(val message: String) : SpotsUpdate
+
+    /**
+     * ⛔ **Nobody has asked yet** — there is no query centre: no fix, and no camera the user has
+     * pointed anywhere. NOT the same thing as an empty answer, and the difference is the whole
+     * reason this exists: «no free spots nearby» is a verdict about the world, and we have not
+     * looked. Same rule the complement lanes already follow.
+     * [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001] [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
+     */
+    data object Unasked : SpotsUpdate
 }
 
 /**
@@ -47,15 +56,22 @@ class HomeSpotsController(
     // user pans the map past SPOT_CAMERA_PAN_THRESHOLD_METERS in Browse mode.
     private val spotQueryCenter = MutableStateFlow<GpsPoint?>(null)
 
-    /** Cold flow of nearby-spot updates for the current (permission-gated, deduped) query centre. */
+    /**
+     * Cold flow of nearby-spot updates for the current (deduped) query centre.
+     *
+     * ⛔ **Ya no lo bloquea el permiso de ubicación.** Lo hacía, y el efecto era que sin permiso el
+     * carril de plazas decía «no hay plazas cerca» sin haber preguntado NUNCA — panearas donde
+     * panearas, porque el centro solo se sembraba desde un fix. El centro de consulta no es la
+     * posición del usuario: es el punto del mapa que está mirando, y preguntar por él no necesita
+     * ningún permiso. Sin centro se emite [SpotsUpdate.Unasked], que no es una lista vacía.
+     * [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
+     */
     val updates: Flow<SpotsUpdate> =
-        combine(permissionManager.permissionState, spotQueryCenter) { perm, center ->
-            if (perm.hasCorePermissions) center else null
-        }
+        spotQueryCenter
             .distinctUntilChanged { old, new -> old.closeEnoughTo(new) }
             .flatMapLatest { center ->
                 if (center == null) {
-                    flowOf<SpotsUpdate>(SpotsUpdate.Data(emptyList()))
+                    flowOf<SpotsUpdate>(SpotsUpdate.Unasked)
                 } else {
                     observeNearbySpots(center, ObserveNearbySpotsUseCase.DEFAULT_SEARCH_RADIUS_METERS)
                         .map<List<Spot>, SpotsUpdate> { spots -> SpotsUpdate.Data(spots) }
@@ -79,23 +95,38 @@ class HomeSpotsController(
     /**
      * Browse-mode pan handler: if the user has panned more than [SPOT_CAMERA_PAN_THRESHOLD_METERS] from
      * the current spot query centre, move the centre to the new camera position so the nearby-spots
-     * query rebuilds against where the user is actually looking. Only relevant once the centre has been
-     * seeded by the first GPS fix.
+     * query rebuilds against where the user is actually looking.
+     *
+     * ⛔ **También SIEMBRA el centro cuando no hay ninguno.** Antes salía con `false` mientras el
+     * centro fuese nulo, o sea: sin fix, la consulta no arrancaba jamás por mucho que el usuario
+     * llevase el mapa a su calle. El fix ya no es la única forma de decirle a la app de qué sitio
+     * estás hablando — buscar una dirección o arrastrar el mapa también lo dicen.
+     * [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
+     *
+     * ⛔ (0, 0) no es un sitio, es el Golfo de Guinea: la coordenada que un mapa reporta antes de
+     * tener cámara. Sembrar ahí pediría las plazas del Atlántico. Mismo filtro que
+     * `ViewportRefetch.isWorthAsking` y `viewportCentreOrGps`.
      *
      * @return true when the centre was moved — the VM flips `isSpotQueryCenteredOnUser` off in that case.
      */
     fun maybeRecenterOnPan(lat: Double, lon: Double): Boolean {
-        val current = spotQueryCenter.value ?: return false
+        if (lat == 0.0 && lon == 0.0) return false
+        val current = spotQueryCenter.value
+            ?: return true.also { spotQueryCenter.value = cameraPoint(lat, lon) }
         if (haversineMeters(current.latitude, current.longitude, lat, lon) <= SPOT_CAMERA_PAN_THRESHOLD_METERS) return false
-        spotQueryCenter.value = GpsPoint(
-            latitude = lat,
-            longitude = lon,
-            accuracy = 0f,
-            timestamp = Clock.System.now().toEpochMilliseconds(),
-            speed = 0f,
-        )
+        spotQueryCenter.value = cameraPoint(lat, lon)
         return true
     }
+
+    /** Un punto de CÁMARA disfrazado de fix: sin precisión ni velocidad, porque no es una medición
+     *  del teléfono — es el sitio del que el usuario está preguntando. */
+    private fun cameraPoint(lat: Double, lon: Double) = GpsPoint(
+        latitude = lat,
+        longitude = lon,
+        accuracy = 0f,
+        timestamp = Clock.System.now().toEpochMilliseconds(),
+        speed = 0f,
+    )
 
     // Two nullable GpsPoints are "close enough" if both are null, or both non-null
     // and within SPOT_RESUBSCRIBE_THRESHOLD_METERS of each other.

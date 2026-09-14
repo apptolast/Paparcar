@@ -514,6 +514,27 @@ private fun HomeSheetContentWithParkingAndSpotsLightPreview() {
     }
 }
 
+/**
+ * ⛔ Sin permiso de ubicación el sheet ya NO se vacía: la tira de coches sigue (no toca la
+ * ubicación) y el carril responde por el sitio que se mira. La tarjeta de avisar queda
+ * deshabilitada, y su subtítulo cambia para decir por qué — un aviso comunitario solo es fiable si
+ * sabemos que estabas cerca. Sin fix, además, las filas de parking y gasolinera se callan la
+ * distancia. [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
+ */
+@Preview(name = "A — Sheet: sin permiso de ubicación (claro)", showBackground = true, heightDp = 600)
+@Composable
+private fun HomeSheetContentWithoutLocationPreview() {
+    PaparcarTheme(darkTheme = false) {
+        PreviewSheet(
+            state = HomeState(
+                hasCorePermissions = false,
+                vehicles = listOf(FakeData.vehicleSedan),
+                nearbySpots = FakeData.nearbySpots,
+            ),
+        )
+    }
+}
+
 @Preview(name = "A — Sheet: sin coche, spots primero (oscuro)", showBackground = true,
     uiMode = Configuration.UI_MODE_NIGHT_YES, heightDp = 600)
 @Composable

@@ -34,6 +34,7 @@
     <string name="common_directions">Route</string>
     <string name="home_navigate_to_vehicle_cd">Route naar je auto</string>
     <string name="home_empty_title">Nog geen plekken gemeld</string>
+    <string name="home_spots_unasked">Zoek een straat of zet locatie aan om de vrije plekken daar te zien.</string>
     <string name="home_empty_subtitle">Wees de eerste die er een meldt</string>
     <string name="home_address_unknown">Onbekende locatie</string>
     <string name="location_fallback_spot">Plek op de kaart</string>
@@ -238,6 +239,7 @@
 
     <!-- Home Reporting mode -->
     <string name="home_report_subtitle">Een vrije plek die je hebt gezien en wilt delen.</string>
+    <string name="home_report_needs_location">Zet locatie aan om te melden: een plek is alleen betrouwbaar als je ernaast stond.</string>
     <string name="home_report_fab_cd">Vrije plek melden</string>
 
     <!-- Home Zones — vaste plekken -->

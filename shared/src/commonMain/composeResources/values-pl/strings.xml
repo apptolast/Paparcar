@@ -33,6 +33,7 @@
     <string name="common_directions">Trasa</string>
     <string name="home_navigate_to_vehicle_cd">Trasa do auta</string>
     <string name="home_empty_title">Nie zgłoszono jeszcze żadnych miejsc</string>
+    <string name="home_spots_unasked">Wyszukaj ulicę lub włącz lokalizację, aby zobaczyć wolne miejsca w tym rejonie.</string>
     <string name="home_empty_subtitle">Bądź pierwszym, który je zgłosi</string>
     <string name="home_address_unknown">Nieznana lokalizacja</string>
     <string name="location_fallback_spot">Miejsce na mapie</string>
@@ -237,6 +238,7 @@
 
     <!-- Home Reporting mode -->
     <string name="home_report_subtitle">Wolne miejsce, kt&#xF3;re widzia&#x0142;e&#x015B; i chcesz udost&#x0119;pni&#x0107; innym.</string>
+    <string name="home_report_needs_location">Włącz lokalizację, aby zgłosić: miejsce jest wiarygodne tylko wtedy, gdy byłeś obok.</string>
     <string name="home_report_fab_cd">Zg&#x0142;o&#x015B; wolne miejsce</string>
 
     <!-- Home Zones — sta&#x0142;e miejsca -->

@@ -52,6 +52,9 @@ fun HomeFuelLane(
     /** First visit: the lane says where the prices come from, above whatever else it has to say.
      *  [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] */
     isIntroducing: Boolean = false,
+    /** Whether Home has a position at all: without one the rows drop the distance, which is the one
+     *  thing they say ABOUT THE USER. [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001] */
+    hasFix: Boolean = true,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         // ⛔ ABOVE the five sentences below, the fuel-less one included: "your car has no fuel type"
@@ -106,6 +109,7 @@ fun HomeFuelLane(
                 HomeFuelStationRows(
                     stations = slice.stations,
                     onStationClick = onStationClick,
+                    hasFix = hasFix,
                 )
                 // A price with no hour beside it is a price nobody can weigh — this whole phase
                 // exists because a proxy of the same data ran twelve hours behind.

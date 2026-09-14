@@ -51,6 +51,7 @@
     <string name="common_directions">Cómo llegar</string>
     <string name="home_navigate_to_vehicle_cd">Cómo llegar al coche</string>
     <string name="home_empty_title">Aún no hay plazas reportadas</string>
+    <string name="home_spots_unasked">Busca una calle o activa la ubicación para ver las plazas libres de ahí.</string>
     <string name="home_empty_subtitle">Sé el primero en avisar de una</string>
     <!-- Header de browse (PapSheet): eyebrow de zona + subtítulo aparcado + hint sin plazas. [UI-SHEET-001] -->
     <string name="home_browse_eyebrow_zone">Tu zona</string>
@@ -319,6 +320,7 @@
 
     <!-- Modo Reporting en Home -->
     <string name="home_report_subtitle">Una plaza libre que has visto y quieres compartir.</string>
+    <string name="home_report_needs_location">Activa la ubicación para avisar: una plaza solo es fiable si estabas al lado.</string>
     <string name="home_report_fab_cd">Avisar plaza libre</string>
     <!-- Copy refrescada para la card del modo Avisar (diseño v1) -->
     <string name="home_report_header_label">Avisar plaza libre</string>

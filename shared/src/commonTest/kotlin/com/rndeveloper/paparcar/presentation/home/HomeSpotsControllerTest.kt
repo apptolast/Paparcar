@@ -79,14 +79,27 @@ class HomeSpotsControllerTest {
     // ── Permission gate + fetch ─────────────────────────────────────────────────
 
     @Test
-    fun `should_emit_empty_spots_when_permissions_are_denied_even_with_a_centre`() = runTest {
+    fun `should_emit_nearby_spots_without_the_location_permission_when_a_centre_is_set`() = runTest {
         spotRepo.spots = listOf(spot("s1"))
         val controller = startController()
 
         controller.updateQueryCenter(center)
 
-        // No CORE permission → the centre is masked to null → an empty list flows down the same pipe.
-        assertEquals(emptyList(), lastSpots())
+        // ⛔ Esto devolvía lista VACÍA: el permiso enmascaraba el centro a null. El efecto en mano
+        // era que sin permiso el carril decía «no hay plazas cerca» sin haber preguntado nunca,
+        // panearas donde panearas. El centro de consulta no es la posición del usuario — es el sitio
+        // del mapa por el que pregunta. [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
+        assertEquals(1, lastSpots()?.size)
+    }
+
+    @Test
+    fun `should_say_unasked_when_there_is_no_centre_at_all`() = runTest {
+        spotRepo.spots = listOf(spot("s1"))
+        startController()
+
+        // Sin centro no se ha preguntado, y eso NO es una lista vacía: «no hay plazas» sería un
+        // veredicto sobre un sitio que nadie ha mirado.
+        assertTrue(received.lastOrNull() is SpotsUpdate.Unasked)
     }
 
     @Test
@@ -116,10 +129,25 @@ class HomeSpotsControllerTest {
     // ── Pan / recenter threshold ────────────────────────────────────────────────
 
     @Test
-    fun `should_not_recenter_on_pan_when_no_centre_is_seeded`() = runTest {
+    fun `should_seed_the_centre_on_pan_when_there_is_none`() = runTest {
+        spotRepo.spots = listOf(spot("s1"))
         val controller = startController()
 
-        assertFalse(controller.maybeRecenterOnPan(41.0, -4.0))
+        // ⛔ Antes salía con `false` mientras el centro fuese nulo: sin fix, la consulta no arrancaba
+        // JAMÁS por mucho que el usuario llevase el mapa a su calle. Buscar una dirección o arrastrar
+        // el mapa dicen de qué sitio hablas igual que un fix. [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
+        assertTrue(controller.maybeRecenterOnPan(41.0, -4.0))
+        assertEquals(1, lastSpots()?.size)
+    }
+
+    @Test
+    fun `should_not_seed_the_centre_at_the_gulf_of_guinea`() = runTest {
+        val controller = startController()
+
+        // (0, 0) no es un sitio: es lo que un mapa reporta antes de tener cámara. Sembrar ahí
+        // pediría las plazas del Atlántico. Mismo filtro que `viewportCentreOrGps`.
+        assertFalse(controller.maybeRecenterOnPan(0.0, 0.0))
+        assertTrue(received.lastOrNull() is SpotsUpdate.Unasked)
     }
 
     @Test

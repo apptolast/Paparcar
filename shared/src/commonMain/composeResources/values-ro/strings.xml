@@ -35,6 +35,7 @@
     <!-- Romanian takes "de" from 20 up (20 de locuri), not below it (3 locuri). What used to sit in
          `other` was the few form, so counts of 20+ read wrong. [I18N-PLURAL-CATEGORIES-FOLLOW-THE-LANGUAGE-NOT-ENGLISH-001] -->
     <string name="home_empty_title">Niciun loc anunțat încă</string>
+    <string name="home_spots_unasked">Caută o stradă sau activează locația ca să vezi locurile libere de acolo.</string>
     <string name="home_empty_subtitle">Fii primul care raportează unul</string>
     <string name="home_address_unknown">Locație necunoscută</string>
     <string name="location_fallback_spot">Loc pe hartă</string>
@@ -239,6 +240,7 @@
 
     <!-- Home Reporting mode -->
     <string name="home_report_subtitle">Un loc liber pe care l-ai v&#xE3;zut &#x219;i vrei s&#x103;-l &#xEE;mp&#x103;rt&#x103;&#x219;e&#x219;ti.</string>
+    <string name="home_report_needs_location">Activează locația pentru a anunța: un loc e de încredere doar dacă erai lângă el.</string>
     <string name="home_report_fab_cd">Raporteaz&#x103; un loc liber</string>
 
     <!-- Home Zones — locuri obi&#x219;nuite -->

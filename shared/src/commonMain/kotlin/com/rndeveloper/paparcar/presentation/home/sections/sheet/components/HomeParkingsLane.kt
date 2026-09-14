@@ -33,6 +33,9 @@ fun HomeParkingsLane(
     /** First visit: the lane says where its data comes from, above whatever else it has to say.
      *  [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] */
     isIntroducing: Boolean = false,
+    /** Whether Home has a position at all: without one the rows drop the distance, which is the one
+     *  thing they say ABOUT THE USER. [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001] */
+    hasFix: Boolean = true,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         // ⛔ ABOVE the rows and above every other sentence, including the failure one: "we could not
@@ -60,6 +63,7 @@ fun HomeParkingsLane(
             else -> HomePublicParkingRows(
                 parkings = slice.parkings,
                 onParkingClick = onParkingClick,
+                hasFix = hasFix,
             )
         }
 

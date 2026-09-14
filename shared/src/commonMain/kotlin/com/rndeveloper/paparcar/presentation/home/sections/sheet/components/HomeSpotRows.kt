@@ -73,6 +73,8 @@ import paparcar.composeapp.generated.resources.home_filter_empty_clear
 import paparcar.composeapp.generated.resources.home_filter_empty_subtitle
 import paparcar.composeapp.generated.resources.home_filter_empty_title
 import paparcar.composeapp.generated.resources.home_report_fab_cd
+import paparcar.composeapp.generated.resources.home_report_needs_location
+import paparcar.composeapp.generated.resources.home_spots_unasked
 import paparcar.composeapp.generated.resources.home_report_subtitle
 import paparcar.composeapp.generated.resources.home_spot_freshness_fresh
 import paparcar.composeapp.generated.resources.home_spot_freshness_stale
@@ -276,6 +278,15 @@ private fun SpotMetaRow(spot: Spot, distanceM: Float?) {
 @Composable
 internal fun HomeEmptySpots(
     modifier: Modifier = Modifier,
+    /**
+     * ⛔ True cuando NO se ha preguntado: sin ubicación y sin que el mapa se haya llevado a ningún
+     * sitio, no hay centro de consulta. «No hay plazas libres cerca» sería entonces un veredicto
+     * sobre un sitio que nadie ha mirado — el mismo pecado que los carriles de parkings y
+     * gasolineras ya tenían prohibido. Aquí la frase dice qué falta y cómo arreglarlo: buscar una
+     * dirección vale tanto como activar la ubicación.
+     * [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001] [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+     */
+    unasked: Boolean = false,
 ) {
     // Una LINEA, no una caja.
     //
@@ -286,7 +297,7 @@ internal fun HomeEmptySpots(
     // debajo - y esa tarjeta ahora se muestra tambien en vacio, porque este estado dejo de tener
     // un CTA que la duplicara. [UI-ONE-SKELETON-ONE-EMPHASIS-ONE-GREEN-001]
     Text(
-        text = stringResource(Res.string.home_empty_title),
+        text = stringResource(if (unasked) Res.string.home_spots_unasked else Res.string.home_empty_title),
         style = PaparcarType.current.caption,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         textAlign = TextAlign.Center,
@@ -344,12 +355,18 @@ internal fun HomeReportSpotCard(
     ) {
         PapListItem(
             title = stringResource(Res.string.home_report_fab_cd),
-            subtitle = stringResource(Res.string.home_report_subtitle),
+            // ⛔ Deshabilitada, la tarjeta DICE por qué. Un control apagado y mudo se lee como una
+            // app rota; este tiene una razón que además el usuario puede resolver, y la frase la
+            // nombra entera: causa, consecuencia y remedio. [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
+            subtitle = stringResource(
+                if (enabled) Res.string.home_report_subtitle else Res.string.home_report_needs_location,
+            ),
             titleStyle = PaparcarType.current.rowTitle,
             titleMaxLines = 1,
             subtitleStyle = PaparcarType.current.label,
             subtitleColor = MaterialTheme.colorScheme.onSurface.copy(alpha = PRIMARY_CARD_SUBTITLE_ALPHA),
-            subtitleMaxLines = 1,
+            // La razón no cabe en una línea, y recortarla la dejaría diciendo la mitad.
+            subtitleMaxLines = if (enabled) 1 else 2,
             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp),
             gap = 12.dp,
             leading = {

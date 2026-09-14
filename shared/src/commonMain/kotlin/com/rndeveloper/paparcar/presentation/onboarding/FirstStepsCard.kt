@@ -132,10 +132,6 @@ fun FirstStepsCard(
     /** The step's explicit "no" answer (see [FirstStepCopy.noAnswer]) — it closes the step.
      *  [FIRST-STEPS-A-PRIVATE-GARAGE-IS-A-PRIVATE-ZONE-001] */
     onAnswerNoStep: (FirstStep) -> Unit = {},
-    /** Whether a position is already known. CTAs that need one stay disabled until it arrives —
-     *  Home fills in over the first seconds and the GPS fix is the last thing to land.
-     *  [UI-HOME-MUST-NOT-OFFER-WHAT-IT-CANNOT-DO-YET-001] */
-    hasLocation: Boolean = true,
 ) {
     PapOutlinedCard(modifier = modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(vertical = CARD_V_PAD_DP.dp)) {
@@ -163,7 +159,6 @@ fun FirstStepsCard(
                         findSpotAsk = progress.findSpotAsk,
                         watchAsk = progress.watchAsk,
                         reinforcement = progress.reinforcement,
-                        hasLocation = hasLocation,
                         onStart = { onStartStep(step) },
                         onDefer = { onDeferStep(step) },
                         onAnswerNo = { onAnswerNoStep(step) },
@@ -237,7 +232,6 @@ private fun StepRow(
     findSpotAsk: FindSpotAsk,
     watchAsk: WatchAsk,
     reinforcement: WatchReinforcement,
-    hasLocation: Boolean,
     onStart: () -> Unit,
     onDefer: () -> Unit,
     onAnswerNo: () -> Unit,
@@ -311,14 +305,15 @@ private fun StepRow(
                 verticalArrangement = Arrangement.spacedBy(CTA_GAP_DP.dp),
                 itemVerticalAlignment = Alignment.CenterVertically,
             ) {
+                // ⛔ Ningún paso espera ya a un fix: los dos que abrían un flujo ahora SEÑALAN dónde
+                // está el control [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001], y el que sí actúa —marcar
+                // el aparcamiento— arranca el pin en la cámara. Un checklist que se apaga solo es
+                // justo lo que no puede pasarle al usuario que acaba de decir «No permitir».
+                // [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
                 PapPrimaryButton(
                     label = stringResource(cta),
                     onClick = onStart,
                     size = PapButtonSize.Compact,
-                    // Not hidden, DISABLED: a button that vanishes and comes back reads as a glitch,
-                    // and the step still has to say what it is going to ask of you.
-                    // [UI-HOME-MUST-NOT-OFFER-WHAT-IT-CANNOT-DO-YET-001]
-                    enabled = hasLocation || !copy.needsLocation,
                 )
                 // The way out, next to the way in. Only steps that ASK FOR A PERMISSION carry it:
                 // marking your parking or meeting the community are things the app can keep asking
@@ -465,16 +460,6 @@ private data class FirstStepCopy(
      */
     val asksForPermission: Boolean = false,
     /**
-     * This CTA cannot do anything without a position. [UI-HOME-MUST-NOT-OFFER-WHAT-IT-CANNOT-DO-YET-001]
-     *
-     * Home fills in over the first seconds — preferences, vehicles, permissions, and the GPS fix
-     * last of all — and a button pressed before its data arrives does not fail loudly: marking a
-     * parking with no fix enters pin mode with no centre, and entering report mode with neither
-     * camera nor GPS falls back to `0.0, 0.0`. Better to look unavailable for a moment than to
-     * accept a tap it cannot honour.
-     */
-    val needsLocation: Boolean = false,
-    /**
      * The step's second ANSWER, when "no" is a legitimate way to finish it — not a postponement.
      * Only [FirstStep.PRIVATE_ZONE] has one: not everyone has a private garage.
      * [FIRST-STEPS-A-PRIVATE-GARAGE-IS-A-PRIVATE-ZONE-001]
@@ -489,12 +474,18 @@ private fun FirstStep.copy(
 ): FirstStepCopy = when (this) {
     // Same glyph as the cold-start detection row this step replaces while the checklist is up, so
     // the two surfaces read as one instruction rather than two. [UX-DETECTION-STORY-001]
+    //
+    // ⛔ Este paso NO espera a un fix. Lo hacía —era el único `needsLocation` del checklist— sobre
+    // la idea de que sin posición el pin entra «sin centro»; pero el pin arranca en la CÁMARA
+    // (`pinStartPoint`), o sea en el sitio que el usuario está mirando, y sin ubicación no hay
+    // detección automática: marcar a mano es entonces la ÚNICA forma de que la app sirva de algo.
+    // Apagarlo justo ahí era apagar el primer paso precisamente para quien más lo necesita.
+    // [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
     FirstStep.MARK_PARKING -> FirstStepCopy(
         title = Res.string.first_steps_park_title,
         subtitle = Res.string.first_steps_park_sub,
         cta = Res.string.first_steps_park_cta,
         icon = Icons.Rounded.AddLocationAlt,
-        needsLocation = true,
     )
     // The padlock is the private-zone switch's own glyph in the add-zone form, so the step and the
     // control it leads to read as one thing. [FIRST-STEPS-A-PRIVATE-GARAGE-IS-A-PRIVATE-ZONE-001]

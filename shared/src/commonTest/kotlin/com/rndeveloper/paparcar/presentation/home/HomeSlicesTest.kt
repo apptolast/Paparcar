@@ -26,6 +26,7 @@ import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -746,11 +747,16 @@ class HomeSlicesTest {
     }
 
     @Test
-    fun should_hide_the_checklist_without_core_permissions() {
+    fun should_keep_the_checklist_without_core_permissions() {
+        // ⛔ Se escondía, sobre la premisa de que sin ubicación la app no puede hacer ninguna de las
+        // tres cosas que el checklist enseña. Falso en las tres: marcar el aparcamiento arranca en
+        // la cámara, el carril responde por el sitio que miras, y los dos pasos que abrían un flujo
+        // ahora solo SEÑALAN dónde está el control. Quedaba escondido justo para quien no lo ha
+        // visto nunca. [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
         val slice = newUser(hasCorePermissions = false).toBrowseListSlice()
 
-        assertFalse(slice.showsFirstSteps)
-        assertNull(slice.firstStepsCue)
+        assertTrue(slice.showsFirstSteps)
+        assertNotNull(slice.firstStepsCue)
     }
 
     @Test
@@ -1099,9 +1105,21 @@ class HomeSlicesTest {
     @Test
     fun should_showTheLocationWarning_when_locationIsMissing() {
         val blocked = HomeState(
+            hasCorePermissions = true,
             detectionReadiness = DetectionReadiness.Blocked(setOf(RequiredPermission.FOREGROUND_LOCATION)),
         )
+        // Permiso concedido y los servicios apagados: el bloqueo de la vigilancia es la ÚNICA vía
+        // por la que la app se entera de que el GPS está off.
         assertTrue(blocked.toFabsSlice().locationMissing)
+    }
+
+    @Test
+    fun should_showTheLocationWarning_when_thePermissionIsMissingAndThereIsNoCar() {
+        // ⛔ La píldora leía el bloqueo de la VIGILANCIA, que no existe sin coche registrado — así
+        // que el usuario que acababa de pulsar «No permitir» y aún no tenía coche veía un Home que
+        // nunca decía por qué no sabía dónde estaba. Es justo la persona a la que va la frase.
+        // [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
+        assertTrue(HomeState().toFabsSlice().locationMissing)
     }
 
     @Test
@@ -1109,10 +1127,11 @@ class HomeSlicesTest {
         // Background location / activity recognition is the detection upsell, not "no location":
         // the map stays clean and the list's calm row sells it.
         val producerOnly = HomeState(
+            hasCorePermissions = true,
             detectionReadiness = DetectionReadiness.Blocked(setOf(RequiredPermission.BACKGROUND_LOCATION)),
         )
         assertFalse(producerOnly.toFabsSlice().locationMissing)
-        // Nor without a car: the default state has no vehicle, so there is nothing to warn about.
-        assertFalse(HomeState().toFabsSlice().locationMissing)
+        // Ni con todo concedido y nada bloqueado.
+        assertFalse(HomeState(hasCorePermissions = true).toFabsSlice().locationMissing)
     }
 }

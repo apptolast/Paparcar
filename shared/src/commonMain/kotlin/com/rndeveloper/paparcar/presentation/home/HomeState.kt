@@ -124,6 +124,16 @@ data class HomeState(
     val sizeFilter: VehicleSize? = null,
     /** False when the user has panned the map away from their GPS position, driving the recenter FAB. */
     val isSpotQueryCenteredOnUser: Boolean = true,
+    /**
+     * ⛔ **Nadie ha preguntado todavía**: ni hay fix ni el usuario ha llevado el mapa a ningún sitio,
+     * así que no hay centro de consulta. La lista está vacía porque no se ha mirado, no porque no
+     * haya nada — y el carril dice una cosa muy distinta en cada caso.
+     *
+     * Por defecto `false` (= preguntado) para que un estado construido a mano en tests, previews o
+     * galería siga significando lo que significaba: una respuesta vacía de verdad.
+     * [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001] [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+     */
+    val spotsUnasked: Boolean = false,
 
     // ── Selection ─────────────────────────────────────────────────────────────
 

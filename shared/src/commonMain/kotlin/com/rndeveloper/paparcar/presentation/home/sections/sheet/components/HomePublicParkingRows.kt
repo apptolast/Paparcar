@@ -39,6 +39,9 @@ fun HomePublicParkingRow(
     parking: NearbyPublicParking,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
+    /** Whether that distance is a distance TO THE USER. See [subtitleFor].
+     *  [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001] */
+    hasFix: Boolean = true,
 ) {
     val kindLabel = publicParkingKindLabel(parking.parking.kind)
     val title = parking.parking.displayName ?: kindLabel
@@ -51,7 +54,7 @@ fun HomePublicParkingRow(
         contentPadding = PaddingValues(0.dp),
         titleStyle = PaparcarType.current.rowName,
         titleMaxLines = 1,
-        subtitle = subtitleFor(parking, kindLabel, title),
+        subtitle = subtitleFor(parking, kindLabel, title, hasFix),
         subtitleMaxLines = 1,
         leading = {
             // ⛔ VERDE, no neutro (user, 10-09, viéndolo en el Oppo). El barrido de
@@ -69,15 +72,27 @@ fun HomePublicParkingRow(
 /**
  * Distance first — it is what decides between two car parks — then the kind, but only when the title
  * did not already spend it. Whatever the title said, the subtitle does not repeat.
+ *
+ * ⛔ **Sin fix no hay distancia que rotular.** `distanceMeters` se mide desde el punto por el que se
+ * PREGUNTÓ: con ubicación eres tú, sin ella es el centro del mapa. Mientras eso duraba los primeros
+ * segundos de un arranque en frío era un mal menor; desde que el carril responde también sin permiso
+ * [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001] sería permanente, y «a 300 m» de un punto donde no hay
+ * nadie es una frase falsa sostenida en el tiempo. Se calla exactamente eso — nombre, tipo y tarifa
+ * siguen siendo verdad. Es lo que la fila de plaza ya hacía con su `userLocation` nulo.
  */
 @Composable
 private fun subtitleFor(
     parking: NearbyPublicParking,
     kindLabel: String,
     title: String,
-): String {
-    val distance = formatDistance(parking.distanceMeters.toFloat())
-    return if (kindLabel != title) "$distance · $kindLabel" else distance
+    hasFix: Boolean,
+): String? {
+    val distance = if (hasFix) formatDistance(parking.distanceMeters.toFloat()) else null
+    val kind = kindLabel.takeIf { it != title }
+    return when {
+        distance != null && kind != null -> "$distance · $kind"
+        else -> distance ?: kind
+    }
 }
 
 /**
@@ -110,6 +125,7 @@ fun HomePublicParkingRows(
     parkings: List<NearbyPublicParking>,
     modifier: Modifier = Modifier,
     onParkingClick: ((String) -> Unit)? = null,
+    hasFix: Boolean = true,
 ) {
     Column(modifier = modifier) {
         parkings.forEachIndexed { index, parking ->
@@ -117,6 +133,7 @@ fun HomePublicParkingRows(
                 parking = parking,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 onClick = onParkingClick?.let { cb -> { cb(parking.parking.id) } },
+                hasFix = hasFix,
             )
             if (index < parkings.lastIndex) {
                 PapDivider(modifier = Modifier.padding(start = 70.dp, end = 16.dp))
