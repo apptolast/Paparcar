@@ -823,16 +823,9 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Vigilando (BT armado, sin sesión)", Placement.Surface) {
                 detectionSurface(DetectionStory.Watching("Škoda Kamiq", isParked = false, watch = VehicleWatch.Bluetooth))
             },
-            Variant("Conduciendo (detección activa → verde)", Placement.Surface) {
-                detectionSurface(DetectionStory.Driving("Škoda Kamiq", isCandidate = false))
-            },
-            // [UI-COLOR-DOCTRINE-001] La fila viste el color del MÉTODO del coche: BT → azul.
-            Variant("Conduciendo (BT → azul)", Placement.Surface) {
-                detectionSurface(DetectionStory.Driving("Škoda Kamiq", isCandidate = false, watch = VehicleWatch.Bluetooth))
-            },
-            Variant("Aparcando… (candidate)", Placement.Surface) {
-                detectionSurface(DetectionStory.Driving("Škoda Kamiq", isCandidate = true))
-            },
+            // Un viaje vivo ya NO tiene fila en esta superficie: lo cuenta la card del coche con
+            // su «Parar» — véanse los variants de sheet «coche candidato» y «chips 2+ con uno en
+            // ruta». [HOME-A-DRIVE-IS-ONE-NEWS-AND-THE-CARD-CARRIES-THE-STOP-001]
         ),
     ),
     ScreenGroup(

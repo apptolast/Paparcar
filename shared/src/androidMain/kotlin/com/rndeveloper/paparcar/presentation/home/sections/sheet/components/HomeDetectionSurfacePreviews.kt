@@ -39,9 +39,8 @@ private val stories = listOf(
         "Škoda Kamiq", isParked = true, watch = VehicleWatch.Assisted, watchBadge = ParkedWatchBadge.WATCH_INTERRUPTED,
     ),
     "Watching · BT armed" to DetectionStory.Watching("Škoda Kamiq", isParked = false, watch = VehicleWatch.Bluetooth),
-    "Driving" to DetectionStory.Driving("Škoda Kamiq", isCandidate = false),
-    "Driving · BT" to DetectionStory.Driving("Škoda Kamiq", isCandidate = false, watch = VehicleWatch.Bluetooth),
-    "Candidate" to DetectionStory.Driving("Škoda Kamiq", isCandidate = true),
+    // A live trip has no story here: the vehicle card tells it (see HomeSheetPreviews' driving
+    // chips), stop CTA included. [HOME-A-DRIVE-IS-ONE-NEWS-AND-THE-CARD-CARRIES-THE-STOP-001]
 )
 
 @Composable

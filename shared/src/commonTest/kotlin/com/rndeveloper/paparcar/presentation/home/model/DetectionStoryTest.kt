@@ -1,13 +1,11 @@
 package com.rndeveloper.paparcar.presentation.home.model
 
-import com.rndeveloper.paparcar.domain.detection.DetectionPhase
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.domain.onboarding.FirstStepsOwnership
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleSize
-import com.rndeveloper.paparcar.presentation.home.DrivingMeta
 import com.rndeveloper.paparcar.presentation.home.VehicleCard
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import kotlin.test.Test
@@ -51,57 +49,32 @@ class DetectionStoryTest {
     @Test
     fun should_passThrough_the_four_action_states() {
         val cards = listOf(activeCard)
-        assertEquals(DetectionStory.BlockedCore, resolveDetectionStory(DetectionUiState.BlockedCore, null, cards))
-        assertEquals(DetectionStory.NoVehicle, resolveDetectionStory(DetectionUiState.NoVehicle, null, cards))
-        assertEquals(DetectionStory.Inactive, resolveDetectionStory(DetectionUiState.Inactive, null, cards))
+        assertEquals(DetectionStory.BlockedCore, resolveDetectionStory(DetectionUiState.BlockedCore, cards))
+        assertEquals(DetectionStory.NoVehicle, resolveDetectionStory(DetectionUiState.NoVehicle, cards))
+        assertEquals(DetectionStory.Inactive, resolveDetectionStory(DetectionUiState.Inactive, cards))
         assertEquals(
             DetectionStory.AwaitingFirstPark,
-            resolveDetectionStory(DetectionUiState.AwaitingFirstPark, null, cards),
+            resolveDetectionStory(DetectionUiState.AwaitingFirstPark, cards),
         )
     }
 
     @Test
-    fun should_tell_driving_with_the_trips_own_vehicle_name() {
-        val story = resolveDetectionStory(
-            uiState = DetectionUiState.Monitoring,
-            drivingMeta = DrivingMeta(vehicleId = "v-other", phase = DetectionPhase.Driving),
-            vehicleCards = listOf(activeCard, otherCard),
-        )
-        // The Ibiza is neither active nor BT-paired, so its watch method is Off — and the story
-        // carries that truthfully. Before the model carried VehicleWatch this projected to
-        // `viaBluetooth = false` and the row silently wore the assisted green while the garage
-        // painted the same car grey. [UI-SEVEN-STRAYS-FROM-THE-CANON-001]
+    fun should_hideTheLiveTrip_because_theVehicleCardTellsItWholeAndCarriesTheStop() {
+        // A live trip has NO story here any more: the vehicle card already tells it (halo, identity
+        // border, route glyph, "En ruta · place") and carries the stop CTA — and the old driving
+        // story could only ever render when that card was on screen, because it needed a card to
+        // name. Two surfaces with the same news is the duplication this projection prevents.
+        // [HOME-A-DRIVE-IS-ONE-NEWS-AND-THE-CARD-CARRIES-THE-STOP-001]
         assertEquals(
-            DetectionStory.Driving(vehicleName = "Seat Ibiza", isCandidate = false, watch = VehicleWatch.Off),
-            story,
+            DetectionStory.Hidden,
+            resolveDetectionStory(DetectionUiState.Monitoring, listOf(activeCard, otherCard)),
         )
-    }
-
-    @Test
-    fun should_flag_candidate_when_the_trip_is_confirming_a_spot() {
-        val story = resolveDetectionStory(
-            uiState = DetectionUiState.Monitoring,
-            drivingMeta = DrivingMeta(vehicleId = "v-active", phase = DetectionPhase.Candidate),
-            vehicleCards = listOf(activeCard),
-        )
-        assertEquals(DetectionStory.Driving(vehicleName = "Skoda Kamiq", isCandidate = true), story)
-    }
-
-    @Test
-    fun should_fall_back_to_the_active_vehicle_when_the_trip_has_no_resolved_vehicle() {
-        val story = resolveDetectionStory(
-            uiState = DetectionUiState.Monitoring,
-            drivingMeta = DrivingMeta(vehicleId = null, phase = DetectionPhase.Driving),
-            vehicleCards = listOf(otherCard, activeCard),
-        )
-        assertEquals(DetectionStory.Driving(vehicleName = "Skoda Kamiq", isCandidate = false), story)
     }
 
     @Test
     fun should_watch_the_active_vehicle_when_parked() {
         val story = resolveDetectionStory(
             uiState = DetectionUiState.Parked,
-            drivingMeta = null,
             vehicleCards = listOf(otherCard, activeParkedCard),
         )
         assertEquals(
@@ -117,7 +90,6 @@ class DetectionStoryTest {
         val btCard = VehicleCard(vehicle("v-active", isActive = true, bluetoothDeviceId = "AA:BB"), session = null)
         val story = resolveDetectionStory(
             uiState = DetectionUiState.ArmedBluetooth,
-            drivingMeta = null,
             vehicleCards = listOf(btCard, otherCard),
         )
         assertEquals(
@@ -127,29 +99,10 @@ class DetectionStoryTest {
     }
 
     @Test
-    fun should_colour_the_driving_story_with_the_trip_vehicles_bt_method() {
-        // A BT-watched car driving keeps its blue identity in the detection row. [UI-COLOR-DOCTRINE-001]
-        val btOther = VehicleCard(
-            vehicle("v-other", brand = "Seat", model = "Ibiza", bluetoothDeviceId = "AA:BB"),
-            session = null,
-        )
-        val story = resolveDetectionStory(
-            uiState = DetectionUiState.Monitoring,
-            drivingMeta = DrivingMeta(vehicleId = "v-other", phase = DetectionPhase.Driving),
-            vehicleCards = listOf(activeCard, btOther),
-        )
-        assertEquals(
-            DetectionStory.Driving(vehicleName = "Seat Ibiza", isCandidate = false, watch = VehicleWatch.Bluetooth),
-            story,
-        )
-    }
-
-    @Test
     fun should_carry_fragile_watch_badge_when_setup_is_fragile() {
         // [DET-WATCH-HONEST-001] The parked line stays "watching" but warns + offers the exemption.
         val story = resolveDetectionStory(
             uiState = DetectionUiState.Parked,
-            drivingMeta = null,
             vehicleCards = listOf(activeParkedCard),
             parkedWatchBadge = ParkedWatchBadge.WATCHING_FRAGILE,
         )
@@ -167,7 +120,6 @@ class DetectionStoryTest {
         // [DET-WATCH-HONEST-001] The OS killed the watcher → degrade to a "reactivate" ask, not a lie.
         val story = resolveDetectionStory(
             uiState = DetectionUiState.Parked,
-            drivingMeta = null,
             vehicleCards = listOf(activeParkedCard),
             parkedWatchBadge = ParkedWatchBadge.WATCH_INTERRUPTED,
         )
@@ -187,7 +139,6 @@ class DetectionStoryTest {
         // than a lie. [UX-DETECTION-STORY-001]
         val story = resolveDetectionStory(
             uiState = DetectionUiState.Parked,
-            drivingMeta = null,
             vehicleCards = listOf(otherCard),
         )
         assertEquals(DetectionStory.Hidden, story)
@@ -197,7 +148,7 @@ class DetectionStoryTest {
     fun should_hide_when_silent() {
         assertEquals(
             DetectionStory.Hidden,
-            resolveDetectionStory(DetectionUiState.Silent, null, listOf(activeCard)),
+            resolveDetectionStory(DetectionUiState.Silent, listOf(activeCard)),
         )
     }
 
@@ -209,7 +160,6 @@ class DetectionStoryTest {
         // thing the user could do was invisible.
         val story = resolveDetectionStory(
             uiState = DetectionUiState.Monitoring,
-            drivingMeta = DrivingMeta(vehicleId = "v-active", phase = DetectionPhase.Candidate),
             vehicleCards = listOf(activeCard),
             promptWindow = window("Škoda Kamiq"),
         )
@@ -223,7 +173,7 @@ class DetectionStoryTest {
         assertEquals(
             DetectionStory.AwaitingAnswer(window(null)),
             resolveDetectionStory(
-                DetectionUiState.Monitoring, null, listOf(activeCard), promptWindow = window(null),
+                DetectionUiState.Monitoring, listOf(activeCard), promptWindow = window(null),
             ),
         )
     }
@@ -233,7 +183,6 @@ class DetectionStoryTest {
         // A live question with a deadline outranks a deadline-less one.
         val story = resolveDetectionStory(
             uiState = DetectionUiState.AwaitingFirstPark,
-            drivingMeta = null,
             vehicleCards = listOf(activeCard),
             promptWindow = window("Škoda Kamiq"),
             showParkNudge = true,
@@ -256,7 +205,7 @@ class DetectionStoryTest {
         ).forEach { state ->
             assertEquals(
                 DetectionStory.PendingAsk,
-                resolveDetectionStory(state, null, listOf(activeParkedCard), showParkNudge = true),
+                resolveDetectionStory(state, listOf(activeParkedCard), showParkNudge = true),
                 "the pending nudge must outrank $state",
             )
         }
@@ -268,7 +217,7 @@ class DetectionStoryTest {
         assertEquals(
             DetectionStory.BlockedCore,
             resolveDetectionStory(
-                DetectionUiState.BlockedCore, null, listOf(activeCard),
+                DetectionUiState.BlockedCore, listOf(activeCard),
                 promptWindow = window("Škoda Kamiq"), showParkNudge = true,
             ),
         )
@@ -279,7 +228,7 @@ class DetectionStoryTest {
         // Guard against the questions leaking into the happy path: no window, no nudge, no change.
         assertEquals(
             DetectionStory.Watching("Skoda Kamiq", isParked = true, watch = VehicleWatch.Assisted),
-            resolveDetectionStory(DetectionUiState.Parked, null, listOf(activeParkedCard)),
+            resolveDetectionStory(DetectionUiState.Parked, listOf(activeParkedCard)),
         )
     }
 
@@ -291,7 +240,7 @@ class DetectionStoryTest {
         assertEquals(
             DetectionStory.Hidden,
             resolveDetectionStory(
-                DetectionUiState.AwaitingFirstPark, null, listOf(activeCard),
+                DetectionUiState.AwaitingFirstPark, listOf(activeCard),
                 firstStepsOwns = FirstStepsOwnership.COLD_START,
             ),
         )
@@ -304,20 +253,20 @@ class DetectionStoryTest {
         val cards = listOf(activeCard)
         assertEquals(
             DetectionStory.BlockedCore,
-            resolveDetectionStory(DetectionUiState.BlockedCore, null, cards, firstStepsOwns = FirstStepsOwnership.COLD_START),
+            resolveDetectionStory(DetectionUiState.BlockedCore, cards, firstStepsOwns = FirstStepsOwnership.COLD_START),
         )
         assertEquals(
             DetectionStory.NoVehicle,
-            resolveDetectionStory(DetectionUiState.NoVehicle, null, cards, firstStepsOwns = FirstStepsOwnership.COLD_START),
+            resolveDetectionStory(DetectionUiState.NoVehicle, cards, firstStepsOwns = FirstStepsOwnership.COLD_START),
         )
         assertEquals(
             DetectionStory.Inactive,
-            resolveDetectionStory(DetectionUiState.Inactive, null, cards, firstStepsOwns = FirstStepsOwnership.COLD_START),
+            resolveDetectionStory(DetectionUiState.Inactive, cards, firstStepsOwns = FirstStepsOwnership.COLD_START),
         )
         assertEquals(
             DetectionStory.Watching("Skoda Kamiq", isParked = true, watch = VehicleWatch.Assisted),
             resolveDetectionStory(
-                DetectionUiState.Parked, null, listOf(activeParkedCard),
+                DetectionUiState.Parked, listOf(activeParkedCard),
                 firstStepsOwns = FirstStepsOwnership.COLD_START,
             ),
         )
@@ -330,14 +279,14 @@ class DetectionStoryTest {
         assertEquals(
             DetectionStory.AwaitingAnswer(window("Škoda Kamiq")),
             resolveDetectionStory(
-                DetectionUiState.AwaitingFirstPark, null, listOf(activeCard),
+                DetectionUiState.AwaitingFirstPark, listOf(activeCard),
                 promptWindow = window("Škoda Kamiq"), firstStepsOwns = FirstStepsOwnership.COLD_START,
             ),
         )
         assertEquals(
             DetectionStory.PendingAsk,
             resolveDetectionStory(
-                DetectionUiState.AwaitingFirstPark, null, listOf(activeCard),
+                DetectionUiState.AwaitingFirstPark, listOf(activeCard),
                 showParkNudge = true, firstStepsOwns = FirstStepsOwnership.COLD_START,
             ),
         )
@@ -349,7 +298,7 @@ class DetectionStoryTest {
         assertEquals(
             DetectionStory.AwaitingFirstPark,
             resolveDetectionStory(
-                DetectionUiState.AwaitingFirstPark, null, listOf(activeCard),
+                DetectionUiState.AwaitingFirstPark, listOf(activeCard),
                 firstStepsOwns = FirstStepsOwnership.NOTHING,
             ),
         )
@@ -363,7 +312,7 @@ class DetectionStoryTest {
         assertEquals(
             DetectionStory.Hidden,
             resolveDetectionStory(
-                DetectionUiState.Inactive, null, listOf(activeCard),
+                DetectionUiState.Inactive, listOf(activeCard),
                 firstStepsOwns = FirstStepsOwnership.DETECTION_OFF,
             ),
         )
@@ -376,14 +325,14 @@ class DetectionStoryTest {
         assertEquals(
             DetectionStory.AwaitingFirstPark,
             resolveDetectionStory(
-                DetectionUiState.AwaitingFirstPark, null, listOf(activeCard),
+                DetectionUiState.AwaitingFirstPark, listOf(activeCard),
                 firstStepsOwns = FirstStepsOwnership.DETECTION_OFF,
             ),
         )
         assertEquals(
             DetectionStory.Inactive,
             resolveDetectionStory(
-                DetectionUiState.Inactive, null, listOf(activeCard),
+                DetectionUiState.Inactive, listOf(activeCard),
                 firstStepsOwns = FirstStepsOwnership.COLD_START,
             ),
         )
@@ -401,7 +350,7 @@ class DetectionStoryTest {
                 watchBadge = ParkedWatchBadge.WATCH_INTERRUPTED,
             ),
             resolveDetectionStory(
-                DetectionUiState.Parked, null, listOf(activeParkedCard),
+                DetectionUiState.Parked, listOf(activeParkedCard),
                 parkedWatchBadge = ParkedWatchBadge.WATCH_INTERRUPTED,
                 firstStepsOwns = FirstStepsOwnership.DETECTION_OFF,
             ),

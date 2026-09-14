@@ -208,8 +208,10 @@ private fun OnboardingPage2() = BoxWithConstraints(Modifier.fillMaxSize()) {
         // pantalla es la primera vez que el usuario los ve, y los volverá a encontrar en Home
         // queriendo decir lo mismo. La flecha se mueve, el coche descansa, el megáfono avisa.
         OnboardingStep(
-            // El glifo de `DetectionStory.Driving` en HomeDetectionSurface: "este coche circula
-            // ahora". El coche quieto no dice conducir — y aquí ya está adjudicado al paso 2.
+            // "Este coche circula ahora". El coche quieto no dice conducir — y aquí ya está
+            // adjudicado al paso 2. (En Home el viaje vivo lo dibuja hoy la card del coche con su
+            // glifo de ruta [HOME-A-DRIVE-IS-ONE-NEWS-AND-THE-CARD-CARRIES-THE-STOP-001]; la flecha
+            // sigue siendo el símbolo de "en movimiento" del vocabulario de la app.)
             icon = Icons.Rounded.Navigation,
             title = stringResource(Res.string.onboarding_step1_title),
             desc = stringResource(Res.string.onboarding_step1_desc),

@@ -264,7 +264,8 @@ private fun HomeVehicleCardUnmarkedDarkPreview() {
 }
 
 // Driving state — live "Conduciendo" card with radar halo (animation only runs in interactive
-// preview / on device; static render shows the blue border + label). [CHIP-DRIVING-001]
+// preview / on device; static render shows the blue border + label), and the inline «Parar» pill
+// at the foot's trailing edge. [CHIP-DRIVING-001] [HOME-A-DRIVE-IS-ONE-NEWS-AND-THE-CARD-CARRIES-THE-STOP-001]
 @Preview(name = "A — HomeVehicleCard: driving (claro)", showBackground = true)
 @Composable
 private fun HomeVehicleCardDrivingLightPreview() {
@@ -274,6 +275,7 @@ private fun HomeVehicleCardDrivingLightPreview() {
                 card = VehicleCard(vehicle = FakeData.vehicleSedan, session = null),
                 isDriving = true,
                 drivingPlace = PREVIEW_DRIVING_PLACE,
+                onStopTrip = {},
                 onClick = {},
             )
         }
@@ -328,6 +330,7 @@ private fun HomeVehicleChipStatesLightPreview() {
                 card = VehicleCard(vehicle = FakeData.vehicleSedan, session = null),
                 isDriving = true,
                 drivingPlace = PREVIEW_DRIVING_PLACE,
+                onStopTrip = {},
                 onClick = {},
             )
         }
@@ -352,6 +355,7 @@ private fun HomeDrivingRouteGlyphDarkPreview() {
                 card = VehicleCard(vehicle = FakeData.vehicleSedan, session = null),
                 isDriving = true,
                 drivingPlace = PREVIEW_DRIVING_PLACE,
+                onStopTrip = {},
                 onClick = {},
             )
             Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
@@ -359,6 +363,7 @@ private fun HomeDrivingRouteGlyphDarkPreview() {
                     card = VehicleCard(vehicle = FakeData.vehicleCorolla, session = null),
                     isDriving = true,
                     drivingPlace = PREVIEW_DRIVING_PLACE,
+                    onStopTrip = {},
                     onClick = {},
                 )
                 // Candidate phase: same glyph, the words swap to "Aparcando…". No geocode yet →
@@ -367,6 +372,7 @@ private fun HomeDrivingRouteGlyphDarkPreview() {
                     card = VehicleCard(vehicle = FakeData.vehicleSedan, session = null),
                     isDriving = true,
                     isCandidate = true,
+                    onStopTrip = {},
                     onClick = {},
                 )
             }

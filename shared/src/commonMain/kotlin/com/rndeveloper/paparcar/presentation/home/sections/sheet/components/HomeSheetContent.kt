@@ -223,7 +223,7 @@ fun LazyListScope.homeSheetItems(
     }
 
     val detectionStory = resolveDetectionStory(
-        slice.detectionUiState, slice.drivingMeta, vehicleCards, slice.parkedWatchBadge,
+        slice.detectionUiState, vehicleCards, slice.parkedWatchBadge,
         promptWindow = slice.promptWindow,
         showParkNudge = slice.showParkNudge,
         // One voice: whichever of this surface's asks the checklist is currently making, THAT row
@@ -261,9 +261,6 @@ fun LazyListScope.homeSheetItems(
                 // [DET-G-01b] "I'm driving" declares THIS car and arms detection for it. [VEH-ACTIVE-FENCE-001]
                 onStartDrivingDetection = { onIntent(HomeIntent.StartDrivingDetection(vehicleId = coldStartVehicleId)) },
                 onActivateDetection = { onIntent(HomeIntent.EnableAutoDetection) }, // [DET-TOGGLE-001]
-                // "Parar detección" on the live-trip row — ends THIS trip, leaves the feature on.
-                // [DET-STOP-BUTTON-001]
-                onStopDetection = { onIntent(HomeIntent.StopDetection) },
                 // Fragile watch → fortify it with the battery exemption. [DET-WATCH-HONEST-001]
                 onRequestBatteryExemption = { onIntent(HomeIntent.RequestBatteryExemption) },
                 // Interrupted watch → rebuild the watcher itself. [DET-WATCH-REACTIVATE-001]
@@ -430,6 +427,10 @@ private fun LazyListScope.vehiclesSection(
                 // Already null unless a trip is live, so the card reads it only when it applies.
                 // [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001]
                 drivingPlace = slice.drivingPlace,
+                // "Parar" — ends THIS trip, leaves the feature on. Lives on the card because the
+                // card is the one surface telling the trip. [DET-STOP-BUTTON-001]
+                // [HOME-A-DRIVE-IS-ONE-NEWS-AND-THE-CARD-CARRIES-THE-STOP-001]
+                onStopTrip = { onIntent(HomeIntent.StopDetection) },
                 userLocation = userLocation,
                 onClick = cardClick(card),
                 modifier = Modifier.padding(horizontal = 16.dp),
@@ -454,6 +455,8 @@ private fun LazyListScope.vehiclesSection(
                         // One trip at a time, and the chip only reads it while it IS that trip.
                         // [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001]
                         drivingPlace = slice.drivingPlace,
+                        // Same stop as the single-vehicle card's. [DET-STOP-BUTTON-001]
+                        onStopTrip = { onIntent(HomeIntent.StopDetection) },
                         onClick = onCardClick,
                     )
                 }

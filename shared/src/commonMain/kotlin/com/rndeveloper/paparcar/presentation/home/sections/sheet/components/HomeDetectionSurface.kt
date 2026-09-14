@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.presentation.home.sections.sheet.components
 
+import com.rndeveloper.paparcar.ui.components.PapCtaPill
 import com.rndeveloper.paparcar.ui.components.PapIconTile
 import com.rndeveloper.paparcar.ui.components.PapListItem
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
@@ -17,38 +18,27 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AddLocationAlt
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.LocationOff
-import androidx.compose.material.icons.rounded.LocationSearching
-import androidx.compose.material.icons.rounded.Navigation
 import androidx.compose.material.icons.automirrored.rounded.NotListedLocation
 import androidx.compose.material.icons.rounded.SensorsOff
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.presentation.home.model.DetectionStory
 import com.rndeveloper.paparcar.presentation.home.model.ParkedWatchBadge
 import com.rndeveloper.paparcar.presentation.util.formatClockTime
 import com.rndeveloper.paparcar.ui.theme.PapBorders
-import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
-import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_det_awaiting_cta_primary
@@ -61,14 +51,9 @@ import paparcar.composeapp.generated.resources.home_det_ask_sub_at
 import paparcar.composeapp.generated.resources.home_det_ask_sub_at_place
 import paparcar.composeapp.generated.resources.home_det_ask_title
 import paparcar.composeapp.generated.resources.home_det_ask_title_vehicle
-import paparcar.composeapp.generated.resources.home_det_candidate_sub
-import paparcar.composeapp.generated.resources.home_det_candidate_title
 import paparcar.composeapp.generated.resources.home_det_core_cta
 import paparcar.composeapp.generated.resources.home_det_core_sub
 import paparcar.composeapp.generated.resources.home_det_core_title
-import paparcar.composeapp.generated.resources.home_det_driving_stop_cta
-import paparcar.composeapp.generated.resources.home_det_driving_sub
-import paparcar.composeapp.generated.resources.home_det_driving_title
 import paparcar.composeapp.generated.resources.home_det_novehicle_cta
 import paparcar.composeapp.generated.resources.home_det_novehicle_sub
 import paparcar.composeapp.generated.resources.home_det_novehicle_title
@@ -94,9 +79,10 @@ import paparcar.composeapp.generated.resources.home_nudge_title
  *
  * Renders the one [DetectionStory] resolved by `resolveDetectionStory`: the action stories keep the
  * loud accent-bar row (severity-adaptive: amber CORE warning, calm amber upsells, brand-green
- * questions and cold start); [DetectionStory.Driving] and [DetectionStory.Watching] render a
- * discreet one-line status — the happy path speaks instead of going mute. [DetectionStory.Hidden]
- * renders nothing.
+ * questions and cold start); [DetectionStory.Watching] renders a discreet one-line status — the
+ * happy path speaks instead of going mute. [DetectionStory.Hidden] renders nothing. A live trip is
+ * told by the vehicle card, stop CTA included, never here.
+ * [HOME-A-DRIVE-IS-ONE-NEWS-AND-THE-CARD-CARRIES-THE-STOP-001]
  *
  * This composable renders; it does NOT arbitrate. Which story wins — including the two pending
  * questions, [DetectionStory.AwaitingAnswer] and [DetectionStory.PendingAsk] — is decided by the
@@ -111,9 +97,6 @@ fun HomeDetectionSurface(
     onStartDrivingDetection: () -> Unit,
     onActivateDetection: () -> Unit,
     modifier: Modifier = Modifier,
-    /** [DET-STOP-BUTTON-001] "Parar detección" on the live-trip row — the user's way out of a trip
-     *  they don't want followed. Default no-op so previews/callers that don't wire it don't break. */
-    onStopDetection: () -> Unit = {},
     /**
      * Whether the cold-start row offers the secondary "I'm driving" action. Off until the manual
      * Coordinator arming (DET-G-01b) exists — there is no infra to honour it yet. [DET-READY-001h]
@@ -271,34 +254,9 @@ fun HomeDetectionSurface(
             modifier = modifier,
         )
 
-        // Happy-path story: same card skeleton as the action rows. The row wears the trip vehicle's
-        // identity colour; motion is the radar halo on the chip, not a new hue.
-        // [UX-DETECTION-STORY-001] [UI-COLOR-DOCTRINE-001]
-        //
-        // Its single CTA is the way OUT of a trip the user doesn't want followed — the only state
-        // where stopping means anything, and the exact row that claims to be following them.
-        // [DET-STOP-BUTTON-001]
-        is DetectionStory.Driving -> ActionRow(
-            tone = identityTone(story.watch),
-            icon = if (story.isCandidate) Icons.Rounded.LocationSearching else Icons.Rounded.Navigation,
-            title = stringResource(
-                if (story.isCandidate) Res.string.home_det_candidate_title else Res.string.home_det_driving_title,
-                story.vehicleName,
-            ),
-            subtitle = stringResource(
-                if (story.isCandidate) Res.string.home_det_candidate_sub else Res.string.home_det_driving_sub,
-            ),
-            primaryLabel = stringResource(Res.string.home_det_driving_stop_cta),
-            onPrimary = onStopDetection,
-            // INLINE trailing pill, not stacked: a four-letter CTA does not earn a full-width band,
-            // and the title it "steals width from" is allowed to wrap — two lines of car name cost
-            // less than a whole button row. Measured across the 9 locales before flipping: the CTA
-            // tops out at 9 chars (PL "Zatrzymaj") and the subtitle at 35, both fine at the reduced
-            // width. The alert watch rows below KEEP stacking for a measured reason too: their
-            // subtitles run to 78/126 chars and would not survive the inline cut.
-            // [UI-DET-STOP-BELONGS-BESIDE-THE-STORY-001]
-            modifier = modifier,
-        )
+        // A LIVE TRIP renders nothing here: the vehicle card tells it whole and carries the stop
+        // CTA, so the projection never emits a driving story any more.
+        // [HOME-A-DRIVE-IS-ONE-NEWS-AND-THE-CARD-CARRIES-THE-STOP-001]
 
         // Honest watch line: the vehicle's identity colour + no CTA only when the watch is genuinely
         // live; amber warning with an "activate" CTA when fragile; error "reactivate" when the OS
@@ -456,7 +414,7 @@ private fun ActionRow(
                 // lines instead of truncating). Filled on error, tonal otherwise. [DET-READY-001h]
                 trailing = if (secondaryLabel == null && primaryLabel != null && !primaryStacksBelow) {
                     {
-                        CtaPill(
+                        PapCtaPill(
                             label = primaryLabel,
                             container = if (tone.isError) tone.accent else tone.container,
                             content = if (tone.isError) tone.onAccent else tone.onContainer,
@@ -483,7 +441,7 @@ private fun ActionRow(
                 // For the alert watch rows (fragile / interrupted). [DET-WATCH-HONEST-001]
                 // `primaryLabel != null` lo garantiza ya el guard de arriba — el compilador lo dice.
                 if (secondaryLabel == null && primaryStacksBelow) {
-                    CtaPill(
+                    PapCtaPill(
                         label = primaryLabel,
                         container = if (tone.isError) tone.accent else tone.container,
                         content = if (tone.isError) tone.onAccent else tone.onContainer,
@@ -498,7 +456,7 @@ private fun ActionRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(CONTENT_GAP_SM_DP.dp),
                     ) {
-                        CtaPill(
+                        PapCtaPill(
                             label = secondaryLabel,
                             // A refusal wears no brand colour: green is action, and declining is
                             // not the action we are offering. [UI-COLOR-DOCTRINE-001]
@@ -516,7 +474,7 @@ private fun ActionRow(
                             modifier = Modifier.weight(1f),
                             fillWidth = true,
                         )
-                        CtaPill(
+                        PapCtaPill(
                             label = primaryLabel,
                             container = tone.accent,
                             content = tone.onAccent,
@@ -547,53 +505,13 @@ private fun IconTile(icon: ImageVector, tone: Tone) {
     )
 }
 
-@Composable
-private fun CtaPill(
-    label: String,
-    container: Color,
-    content: Color,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    /** Fill the available width and centre the label — used by stacked (full-width) CTAs. */
-    fillWidth: Boolean = false,
-) {
-    Surface(
-        shape = PapShapes.chip,
-        color = container,
-        onClick = onClick,
-        modifier = modifier,
-    ) {
-        Box(
-            modifier = Modifier
-                .then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
-                .height(CTA_HEIGHT_DP.dp)
-                .padding(horizontal = CTA_PADDING_DP.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = label,
-                style = PaparcarType.current.cta,
-                color = content,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-
 private const val ACCENT_BAR_DP = 4
-private const val TILE_DP = 42
-private const val TILE_RADIUS_DP = 13
-private const val TILE_ICON_DP = 22
 private const val TILE_TINT_ALPHA = 0.16f
 private const val CONTENT_START_DP = 14
 private const val CONTENT_END_DP = 14
 private const val CONTENT_VERTICAL_DP = 12
-private const val CONTENT_GAP_DP = 13
 private const val CONTENT_GAP_SM_DP = 8
 private const val CTA_ROW_GAP_DP = 12
-private const val CTA_HEIGHT_DP = 40
-private const val CTA_PADDING_DP = 16
 private const val BORDER_DP = 1
 private const val ERROR_BORDER_ALPHA = 0.6f
 // Tonal container for the car-blue info tone — accent at low alpha, same language as the watch badge.

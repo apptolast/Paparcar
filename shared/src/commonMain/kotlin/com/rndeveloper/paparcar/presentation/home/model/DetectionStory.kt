@@ -1,11 +1,9 @@
 package com.rndeveloper.paparcar.presentation.home.model
 
-import com.rndeveloper.paparcar.domain.detection.DetectionPhase
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.domain.model.displayName
 import com.rndeveloper.paparcar.domain.model.monitoringStatus
 import com.rndeveloper.paparcar.domain.onboarding.FirstStepsOwnership
-import com.rndeveloper.paparcar.presentation.home.DrivingMeta
 import com.rndeveloper.paparcar.presentation.home.VehicleCard
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import com.rndeveloper.paparcar.ui.theme.watch
@@ -17,9 +15,15 @@ import com.rndeveloper.paparcar.ui.theme.watch
  *
  * Exactly one story at a time, resolved by [resolveDetectionStory] with a fixed precedence
  * (urgent → quiet): [BlockedCore] → [AwaitingAnswer] → [PendingAsk] → [NoVehicle] → [Inactive] →
- * [AwaitingFirstPark] → [Driving] → [Watching] → [Hidden]. The action stories keep the loud
- * accent-bar row; [Driving] and [Watching] render a discreet one-line status (no card) so the happy
- * path finally has a voice.
+ * [AwaitingFirstPark] → [Watching] → [Hidden]. The action stories keep the loud accent-bar row;
+ * [Watching] renders a discreet one-line status so the happy path has a voice.
+ *
+ * A LIVE TRIP has no story here any more: the vehicle card already tells it whole — radar halo,
+ * identity border, route glyph, "En ruta · place" — and carries the stop CTA, and a trip can only
+ * be narrated when that card is on screen (`drivingStory` needed a card to name). Two surfaces
+ * telling the same news is the duplication this projection exists to prevent, the same reason the
+ * calm watch line stands down. [HOME-A-DRIVE-IS-ONE-NEWS-AND-THE-CARD-CARRIES-THE-STOP-001]
+ * [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
  *
  * [DET-ASK-STATE-001] The two stories where the app is WAITING ON THE USER — [AwaitingAnswer] and
  * [PendingAsk] — sit at the top together, and both are resolved HERE. Until this ticket the nudge
@@ -72,16 +76,6 @@ sealed interface DetectionStory {
      */
     data object AwaitingFirstPark : DetectionStory
 
-    /** A trip is being followed right now. [isCandidate] = stopped, confirming the spot.
-     *  [watch] = the trip vehicle's watch method, the one axis that owns its identity colour —
-     *  carried whole (not projected to a Boolean) so the surface can read the single resolver.
-     *  [UI-COLOR-DOCTRINE-001] */
-    data class Driving(
-        val vehicleName: String,
-        val isCandidate: Boolean,
-        val watch: VehicleWatch = VehicleWatch.Assisted,
-    ) : DetectionStory
-
     /**
      * Discreet happy line — detection is armed and covering the ACTIVE vehicle. Only the active
      * vehicle earns this story: it is the one the Coordinator works for (strategy gate
@@ -104,12 +98,11 @@ sealed interface DetectionStory {
 }
 
 /**
- * Pure projection (state × trip meta × vehicles) → the one [DetectionStory] to render.
+ * Pure projection (state × vehicles) → the one [DetectionStory] to render.
  * Lives here — not in the composable — so the precedence is unit-testable. [UX-DETECTION-STORY-001]
  */
 fun resolveDetectionStory(
     uiState: DetectionUiState,
-    drivingMeta: DrivingMeta?,
     vehicleCards: List<VehicleCard>,
     // Honest watch health for the parked case — WATCHING when genuinely live, else fragile/interrupted.
     // Null (default) keeps the healthy "Vigilando" line, so callers that don't wire it don't regress.
@@ -162,18 +155,6 @@ fun resolveDetectionStory(
     firstStepsOwns: FirstStepsOwnership = FirstStepsOwnership.NOTHING,
 ): DetectionStory {
     val activeCard = vehicleCards.firstOrNull { it.vehicle.isActive }
-
-    fun drivingStory(): DetectionStory {
-        // Name the trip's own vehicle when the detector resolved it; fall back to the active one.
-        val card = vehicleCards.firstOrNull { it.vehicle.id == drivingMeta?.vehicleId } ?: activeCard
-        val name = card?.vehicle?.displayName()?.takeIf { it.isNotBlank() }
-            ?: return DetectionStory.Hidden
-        return DetectionStory.Driving(
-            vehicleName = name,
-            isCandidate = drivingMeta?.phase == DetectionPhase.Candidate,
-            watch = card.vehicle.monitoringStatus().watch(),
-        )
-    }
 
     fun watchingStory(isParked: Boolean, badge: ParkedWatchBadge): DetectionStory {
         // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] The fortify step says what the
@@ -237,7 +218,14 @@ fun resolveDetectionStory(
             } else {
                 DetectionStory.AwaitingFirstPark
             }
-        DetectionUiState.Monitoring -> drivingStory()
+        // ⛔ Un viaje vivo NO tiene fila aquí. La card del coche lo cuenta entero (halo, borde de
+        // identidad, glifo de ruta, «En ruta · lugar») y lleva el «Parar» — y la historia solo
+        // podía pintarse cuando esa card estaba en pantalla, porque necesitaba una card a la que
+        // ponerle nombre. Dos superficies con la misma noticia es el duplicado que esta proyección
+        // existe para impedir. Las preguntas (AwaitingAnswer / PendingAsk) siguen ganando arriba:
+        // apartarse de narrar no es apartarse de preguntar.
+        // [HOME-A-DRIVE-IS-ONE-NEWS-AND-THE-CARD-CARRIES-THE-STOP-001]
+        DetectionUiState.Monitoring -> DetectionStory.Hidden
         // Honest: the parked line reflects whether the watch is really live. [DET-WATCH-HONEST-001]
         DetectionUiState.Parked ->
             watchingStory(isParked = true, badge = parkedWatchBadge ?: ParkedWatchBadge.WATCHING)

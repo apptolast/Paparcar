@@ -583,13 +583,9 @@
     <string name="home_det_watch_interrupted_title">Supraveghere imediată pusă pe pauză pentru %1$s</string>
     <string name="home_det_watch_interrupted_sub">Telefonul a pus-o pe pauză. Verificăm în continuare în fundal, dar plecarea ta poate fi detectată târziu.</string>
     <string name="home_det_watch_interrupted_cta">Reactivează</string>
-    <string name="home_det_driving_title">Conduci %1$s</string>
-    <string name="home_det_driving_sub">Vom detecta unde parchezi</string>
     <!-- [DET-STOP-BUTTON-001] -->
     <string name="home_det_driving_stop_cta">Oprește</string>
     <string name="home_det_trip_stopped_msg">Detectare oprită. Această călătorie nu va fi salvată ca parcare — apasă „Conduc acum” când vrei să reiei.</string>
-    <string name="home_det_candidate_title">Parchezi %1$s?</string>
-    <string name="home_det_candidate_sub">Confirmăm parcarea…</string>
     <string name="home_det_awaiting_cta_primary">Marchează parcarea</string>
     <string name="home_det_awaiting_cta_secondary">Conduc acum</string>
     <!-- [DET-ASK-STATE-001] -->

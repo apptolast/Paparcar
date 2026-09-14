@@ -1429,7 +1429,7 @@ ESCALERA_HC --trip_proven--> estampa witnessDistanceMeters/witnessAgeMs (auditor
 ```
 NOTIF_FGS("Parar detección") --PendingIntent broadcast--> ParkingConfirmationReceiver(ACTION_USER_STOP) [AppNotificationManagerImpl:298-309]
 ParkingConfirmationReceiver --startForegroundService--> CDS intake ACTION_USER_STOP [PCR:35-42, 54, 58-61; CDS:284]
-HOME_ROW_CTA(DetectionStory.Driving, stacked) --HomeIntent.StopDetection--> HomeViewModel --ManualParkingDetection.stopByUser() (comando PROPIO, no el stop() de DET-MANUAL-CANCEL-001)--> startService(ACTION_USER_STOP) [HomeDetectionSurface:210-211; HomeIntent:61; HomeViewModel:612-615 (+ Effect.TripDetectionStopped, HomeEffect:37); ManualParkingDetectionImpl:37-42]
+CARD_STOP_PILL(«Parar» en HomeVehicleCard/Chip en ruta) --HomeIntent.StopDetection--> HomeViewModel --ManualParkingDetection.stopByUser() (comando PROPIO, no el stop() de DET-MANUAL-CANCEL-001)--> startService(ACTION_USER_STOP) [HomeParkingRow (onStopTrip); HomeIntent:61; HomeViewModel:612-615 (+ Effect.TripDetectionStopped, HomeEffect:37); ManualParkingDetectionImpl:37-42] (antes vivía en la fila DetectionStory.Driving, retirada por HOME-A-DRIVE-IS-ONE-NEWS-AND-THE-CARD-CARRIES-THE-STOP-001)
 CDS.handleUserStop --sesión viva--> CPD.onUserStoppedDetection (outcome stopped_by_user + DROP hold + dismiss + reset) → UserStopStore.stamp → cancelDetectionJob [CDS:375-391; CPD:1503-1508]
 CDS.handleUserStop --sin sesión viva (stale tap)--> dismiss, SIN quiet period [CDS:376-380]
 ARM_AUTOMÁTICO --isArmSuppressedByUserStop--> REFUSED + DetectionEvent.Decision(ARM_SUPPRESSED_USER_STOP) [CDS:1254-1264, 1474-1494; UserStopQuietPeriod.kt:31-39]

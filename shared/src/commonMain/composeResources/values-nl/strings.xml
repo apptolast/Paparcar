@@ -574,13 +574,9 @@
     <string name="home_det_watch_interrupted_title">Directe bewaking gepauzeerd voor je %1$s</string>
     <string name="home_det_watch_interrupted_sub">Je telefoon pauzeerde die. We blijven op de achtergrond controleren, maar je vertrek kan laat worden opgemerkt.</string>
     <string name="home_det_watch_interrupted_cta">Heractiveren</string>
-    <string name="home_det_driving_title">Onderweg met je %1$s</string>
-    <string name="home_det_driving_sub">We detecteren waar je parkeert</string>
     <!-- [DET-STOP-BUTTON-001] -->
     <string name="home_det_driving_stop_cta">Stoppen</string>
     <string name="home_det_trip_stopped_msg">Detectie gestopt. Deze rit wordt niet als parkeerplaats opgeslagen — tik op ‘Ik rij nu’ wanneer je weer wilt starten.</string>
-    <string name="home_det_candidate_title">Parkeer je je %1$s?</string>
-    <string name="home_det_candidate_sub">Parkeerplaats wordt bevestigd…</string>
     <string name="home_det_awaiting_cta_primary">Parkeerplaats markeren</string>
     <string name="home_det_awaiting_cta_secondary">Ik rij nu</string>
     <!-- [DET-ASK-STATE-001] -->

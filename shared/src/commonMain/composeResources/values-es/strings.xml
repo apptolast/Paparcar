@@ -609,13 +609,9 @@
     <string name="home_det_watch_interrupted_title">Vigilancia inmediata en pausa de tu %1$s</string>
     <string name="home_det_watch_interrupted_sub">Tu móvil la pausó. Seguimos comprobando en segundo plano, pero tu salida puede detectarse tarde.</string>
     <string name="home_det_watch_interrupted_cta">Reactivar</string>
-    <string name="home_det_driving_title">Conduciendo tu %1$s</string>
-    <string name="home_det_driving_sub">Detectaremos dónde aparcas</string>
     <!-- [DET-STOP-BUTTON-001] -->
     <string name="home_det_driving_stop_cta">Parar</string>
     <string name="home_det_trip_stopped_msg">Detección parada. Este viaje no se guardará como aparcamiento; pulsa «Voy conduciendo» cuando quieras volver.</string>
-    <string name="home_det_candidate_title">¿Aparcando tu %1$s?</string>
-    <string name="home_det_candidate_sub">Confirmando tu aparcamiento…</string>
     <string name="home_det_awaiting_cta_primary">Marcar mi aparcamiento</string>
     <string name="home_det_awaiting_cta_secondary">Voy conduciendo</string>
     <!-- [DET-ASK-STATE-001] -->

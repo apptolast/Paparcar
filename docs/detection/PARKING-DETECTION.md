@@ -4827,7 +4827,11 @@ function next to `SentryWakeCooldown.kt`, per DET-VERDICT-NOT-PREDICATE-001):
 - **The surfaces.** A CTA on the `DetectionStory.Driving` row (the row that claims to be following
   you) and an action on the foreground-service notification (the phone is locked in a pocket — that
   is where the user actually sees detection running), routed through the existing
-  `ParkingConfirmationReceiver`.
+  `ParkingConfirmationReceiver`. *(Update
+  [HOME-A-DRIVE-IS-ONE-NEWS-AND-THE-CARD-CARRIES-THE-STOP-001]: the `Driving` row no longer exists —
+  the vehicle card/chip tells the live trip and carries the in-app «Parar» pill; the principle is
+  unchanged, the stop still lives on the surface that claims to be following you. The notification
+  action is untouched.)*
 
 **Scope, deliberately narrow.** Only arming sleeps. A geofence EXIT delivered during the quiet
 period still releases the spot (its dispatch runs upstream of the arm gate); the safety net keeps

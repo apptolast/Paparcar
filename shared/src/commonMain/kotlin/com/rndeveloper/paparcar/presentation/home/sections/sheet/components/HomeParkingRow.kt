@@ -48,6 +48,7 @@ import com.rndeveloper.paparcar.presentation.util.placeLineText
 import com.rndeveloper.paparcar.presentation.util.relativeTimeText
 import com.rndeveloper.paparcar.ui.components.DrivingRadarHalo
 import com.rndeveloper.paparcar.ui.components.DrivingRouteGlyph
+import com.rndeveloper.paparcar.ui.components.PapCtaPill
 import com.rndeveloper.paparcar.ui.components.UnmarkedParkingIcon
 import com.rndeveloper.paparcar.ui.components.VehicleGlyph
 import com.rndeveloper.paparcar.ui.components.VehicleIdentityHeader
@@ -67,6 +68,7 @@ import paparcar.composeapp.generated.resources.home_vehicle_card_parked_at
 import paparcar.composeapp.generated.resources.home_vehicle_card_parked_meta
 import paparcar.composeapp.generated.resources.home_vehicle_chip_mark_parking
 import paparcar.composeapp.generated.resources.home_det_awaiting_sub
+import paparcar.composeapp.generated.resources.home_det_driving_stop_cta
 import paparcar.composeapp.generated.resources.home_det_monitoring
 import paparcar.composeapp.generated.resources.home_vehicle_chip_status_candidate
 import paparcar.composeapp.generated.resources.home_vehicle_chip_unmarked
@@ -95,6 +97,11 @@ internal fun HomeVehicleChip(
     /** Where the trip is right now, resolved by the slice from the car's OWN geocode. Only read
      *  while [isDriving]; null until the first geocode lands. [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001] */
     drivingPlace: PlaceLine? = null,
+    /** [DET-STOP-BUTTON-001] The way OUT of a trip the user doesn't want followed. It lives here
+     *  because this chip is now the ONE surface that claims to be following them — the detection
+     *  story stood down. Only read while [isDriving].
+     *  [HOME-A-DRIVE-IS-ONE-NEWS-AND-THE-CARD-CARRIES-THE-STOP-001] */
+    onStopTrip: (() -> Unit)? = null,
 ) {
     val vehicle = card.vehicle
     val session = card.session
@@ -224,6 +231,23 @@ internal fun HomeVehicleChip(
                     }
                 }
             }
+
+            // «Parar» — stacked full-width because the compact foot has no inline room, and only on
+            // the chip that IS the trip. Tonal in the vehicle's identity colour: stopping is an act
+            // on this car's watch, not a brand action and not an error. [DET-STOP-BUTTON-001]
+            // [HOME-A-DRIVE-IS-ONE-NEWS-AND-THE-CARD-CARRIES-THE-STOP-001] [UI-COLOR-DOCTRINE-001]
+            if (isDriving && onStopTrip != null) {
+                Spacer(Modifier.height(CHIP_FOOT_GAP_DP.dp))
+                PapCtaPill(
+                    label = stringResource(Res.string.home_det_driving_stop_cta),
+                    container = accent.copy(alpha = STOP_PILL_TINT_ALPHA),
+                    content = accent,
+                    onClick = onStopTrip,
+                    modifier = Modifier.fillMaxWidth(),
+                    fillWidth = true,
+                    height = STOP_PILL_HEIGHT_DP.dp,
+                )
+            }
         }
     }
 }
@@ -248,6 +272,10 @@ internal fun HomeVehicleCard(
     /** Where the trip is right now — same subject and same resolver as the chip's and the peek's.
      *  Only read while [isDriving]. [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001] */
     drivingPlace: PlaceLine? = null,
+    /** [DET-STOP-BUTTON-001] Same stop as the chip's: the way out of a followed trip, on the one
+     *  surface that claims to be following it. Only read while [isDriving].
+     *  [HOME-A-DRIVE-IS-ONE-NEWS-AND-THE-CARD-CARRIES-THE-STOP-001] */
+    onStopTrip: (() -> Unit)? = null,
 ) {
     val vehicle = card.vehicle
     val session = card.session
@@ -353,24 +381,47 @@ internal fun HomeVehicleCard(
                         // WHERE the trip is rides on the same line now, after the state, instead of
                         // costing a second one. [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001]
                         isDriving -> {
-                            Text(
-                                text = stringResource(
-                                    if (isCandidate) Res.string.home_vehicle_chip_status_candidate
-                                    else Res.string.home_det_monitoring,
-                                ),
-                                style = PaparcarType.current.caption,
-                                color = cs.onSurface.copy(alpha = rememberDrivingStatePulse()),
-                                maxLines = 1,
-                            )
-                            // No geocode yet → no place at all. A line that says "unknown address"
-                            // spends its width saying nothing.
-                            placeLineText(drivingPlace)?.let { place ->
+                            // The texts share an inner row that claims the leftover width, so the
+                            // stop pill sits at the trailing edge and a long street can never push
+                            // it off. [HOME-A-DRIVE-IS-ONE-NEWS-AND-THE-CARD-CARRIES-THE-STOP-001]
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
                                 Text(
-                                    text = "· $place",
+                                    text = stringResource(
+                                        if (isCandidate) Res.string.home_vehicle_chip_status_candidate
+                                        else Res.string.home_det_monitoring,
+                                    ),
                                     style = PaparcarType.current.caption,
-                                    color = cs.onSurfaceVariant,
+                                    color = cs.onSurface.copy(alpha = rememberDrivingStatePulse()),
                                     maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                // No geocode yet → no place at all. A line that says "unknown address"
+                                // spends its width saying nothing.
+                                placeLineText(drivingPlace)?.let { place ->
+                                    Text(
+                                        text = "· $place",
+                                        style = PaparcarType.current.caption,
+                                        color = cs.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f, fill = false),
+                                    )
+                                }
+                            }
+                            // «Parar» INLINE: this foot has the width the chip's lacks, and a
+                            // four-letter CTA does not earn a full-width band (measured for the
+                            // story row it replaces). [UI-DET-STOP-BELONGS-BESIDE-THE-STORY-001]
+                            // [DET-STOP-BUTTON-001]
+                            if (onStopTrip != null) {
+                                PapCtaPill(
+                                    label = stringResource(Res.string.home_det_driving_stop_cta),
+                                    container = accent.copy(alpha = STOP_PILL_TINT_ALPHA),
+                                    content = accent,
+                                    onClick = onStopTrip,
+                                    height = STOP_PILL_HEIGHT_DP.dp,
                                 )
                             }
                         }
@@ -518,3 +569,8 @@ private const val CARD_FOOT_ICON_DP = 18
 private const val FOOT_ICON_BOX_ALPHA = 0.15f
 private const val BORDER_DP = 1
 private const val DRIVING_BORDER_DP = 1.5f // thicker live-blue border while driving [CHIP-DRIVING-001]
+// The stop pill: shorter than the story rows' 40dp CTA so the foot keeps its height, tonal in the
+// identity colour — same container language as the detection surface's identity tone.
+// [DET-STOP-BUTTON-001] [HOME-A-DRIVE-IS-ONE-NEWS-AND-THE-CARD-CARRIES-THE-STOP-001]
+private const val STOP_PILL_HEIGHT_DP = 34
+private const val STOP_PILL_TINT_ALPHA = 0.16f

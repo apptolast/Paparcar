@@ -574,13 +574,9 @@
     <string name="home_det_watch_interrupted_title">Sofort-Überwachung für dein %1$s pausiert</string>
     <string name="home_det_watch_interrupted_sub">Dein Handy hat sie pausiert. Wir prüfen weiter im Hintergrund, aber deine Ausfahrt wird vielleicht spät erkannt.</string>
     <string name="home_det_watch_interrupted_cta">Reaktivieren</string>
-    <string name="home_det_driving_title">Unterwegs mit deinem %1$s</string>
-    <string name="home_det_driving_sub">Wir erkennen, wo du parkst</string>
     <!-- [DET-STOP-BUTTON-001] -->
     <string name="home_det_driving_stop_cta">Stoppen</string>
     <string name="home_det_trip_stopped_msg">Erkennung gestoppt. Diese Fahrt wird nicht als Parkplatz gespeichert – tippe auf „Ich fahre gerade“, wenn du sie wieder starten willst.</string>
-    <string name="home_det_candidate_title">Parkst du deinen %1$s?</string>
-    <string name="home_det_candidate_sub">Parkplatz wird bestätigt…</string>
     <string name="home_det_awaiting_cta_primary">Parkplatz markieren</string>
     <string name="home_det_awaiting_cta_secondary">Ich fahre gerade</string>
     <!-- [DET-ASK-STATE-001] -->
