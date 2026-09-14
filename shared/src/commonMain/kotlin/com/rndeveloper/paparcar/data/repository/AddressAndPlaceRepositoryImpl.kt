@@ -1,5 +1,7 @@
 package com.rndeveloper.paparcar.data.repository
 
+import com.rndeveloper.paparcar.data.overpass.OverpassWalkPatience
+import com.rndeveloper.paparcar.data.overpass.OverpassQuota
 import com.rndeveloper.paparcar.domain.geocoder.GeocoderDataSource
 import com.rndeveloper.paparcar.domain.geocoder.LocalAddressAndPlaceDataSource
 import com.rndeveloper.paparcar.domain.model.AddressAndPlace
@@ -124,21 +126,46 @@ class AddressAndPlaceRepositoryImpl(
         }
     }
 
-    private companion object {
+    /**
+     * ⛔ `internal` y no `private`: [PHASE2_TIMEOUT_MS] se deriva de dos constantes de otro paquete y
+     * la única forma de que esa derivación tenga testigo es que el test pueda leerla. Es el mismo
+     * motivo por el que `OverpassWalkPatience` y `OsmPublicParkingParser.MAX_RESULTS` son internal:
+     * un número que nadie puede citar es un número que nadie puede comprobar.
+     * [OVERPASS-THE-QUOTAS-WAIT-IS-PART-OF-THE-WALK-001]
+     */
+    internal companion object {
         /** Phase 1 is a local/GMS lookup — healthy answers arrive in well under a second. */
         const val PHASE1_TIMEOUT_MS = 5_000L
         /**
-         * Safety net ABOVE Overpass's own budget — and *above the whole mirror walk*, not one
-         * request. [OVERPASS-A-SINGLE-MIRROR-HAS-NO-FAILOVER-001]
+         * Safety net ABOVE the whole Overpass ask, not one request.
+         * [OVERPASS-A-SINGLE-MIRROR-HAS-NO-FAILOVER-001]
+         * [OVERPASS-THE-QUOTAS-WAIT-IS-PART-OF-THE-WALK-001]
          *
-         * ⛔ Este número tiene que quedar por encima de `OverpassEndpoints.ALL.size` × el
-         * `requestTimeoutMillis` de `fuelHttpClient()` (3 × 25 s). Valía 20 s cuando la vía hablaba
-         * con UN espejo; dejarlo ahí habría cortado el failover a mitad del segundo y el tercero no
-         * se habría preguntado nunca — el arreglo entero, invisible desde aquí.
+         * ⛔ **Derivado, no carvado** — y esta es la segunda vez que hace falta decirlo en este
+         * carril. Valía 20 s cuando la vía hablaba con UN espejo, y cortaba el failover a mitad del
+         * segundo. Se subió a 80 s "por encima de `OverpassEndpoints.ALL.size` × 25 s (3 × 25)", que
+         * el 14-09-2026 dejó de describir el código por **tres** motivos a la vez: los espejos
+         * pasaron a 2, la caminata dejó de costar N × 25 s para estar acotada por
+         * [OverpassWalkPatience.WALK_CEILING_MS], y apareció un término que ese cálculo no tenía —
+         * la espera del cupo. El número seguía siendo seguro por casualidad, no por diseño.
+         *
+         * Ahora se suma de sus dos piezas reales, así que mover cualquiera de ellas mueve esto:
+         *
+         *     esperar turno  +  la caminata entera  +  holgura
          *
          * Que sea largo no lo paga nadie mirando: la fase 1 ya emitió, y esto es enriquecimiento
          * de fondo (un worker con reintentos) cuyo fallo se limita a no sellar la celda.
          */
-        const val PHASE2_TIMEOUT_MS = 80_000L
+        val PHASE2_TIMEOUT_MS: Long =
+            OverpassQuota.WAIT_CEILING_MS + OverpassWalkPatience.WALK_CEILING_MS + PHASE2_SLACK_MS
+
+        /**
+         * Lo que se le concede al resto: parsear, y el salto entre hilos al volver.
+         *
+         * ⛔ No es margen para que Overpass tarde más — eso ya lo acotan las dos piezas de arriba.
+         * Es para que un timeout jamás se dispare por un retraso NUESTRO, que se leería como "el
+         * servidor no contestó" y mandaría a alguien a mirar la red.
+         */
+        private const val PHASE2_SLACK_MS = 10_000L
     }
 }

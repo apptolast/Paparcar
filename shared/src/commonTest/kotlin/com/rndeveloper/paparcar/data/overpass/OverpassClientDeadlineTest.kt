@@ -1,3 +1,5 @@
+@file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+
 package com.rndeveloper.paparcar.data.overpass
 
 import io.ktor.client.HttpClient
@@ -9,6 +11,11 @@ import io.ktor.client.plugins.HttpTimeoutCapability
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -149,6 +156,60 @@ class OverpassClientDeadlineTest {
 
         assertEquals(listOf("first", "second"), asked, "a stale 200 must not end the walk")
         assertEquals(healthy, result.getOrNull(), "the fresh mirror's answer is the one that wins")
+    }
+
+    /**
+     * ⛔ El camino que el cupo estrenó y que nadie ejecutaba.
+     * [OVERPASS-THE-QUOTAS-WAIT-IS-PART-OF-THE-WALK-001]
+     *
+     * Importa más de lo que parece por quién lo consume: `AddressAndPlaceRepositoryImpl` **sella la
+     * celda 30 días** cuando la búsqueda de POI contesta bien (`poiChecked = true`). Si quedarse sin
+     * turno se colase como "pregunté y no hay nada", una tanda de carriles pisándose enseñaría a la
+     * caché que tu propia calle no tiene ningún sitio, durante un mes. Por eso no basta con que hoy
+     * devuelva `failure`: hace falta que alguien lo compruebe.
+     */
+    @Test
+    fun should_failWithoutAskingAnybody_when_anotherLaneHoldsTheOnlySlot() = runTest {
+        val asked = mutableListOf<String>()
+        val engine = MockEngine { request ->
+            asked += request.url.host
+            respond(healthy, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        // Un cupo cuyo único permiso ya está tomado y que no se suelta dentro de la espera.
+        val busy = OverpassQuota(permits = 1)
+        backgroundScope.launch { busy.withSlot { awaitCancellation() } }
+        runCurrent()
+
+        val result = OverpassClient(clientOf(engine), endpoints, busy) { nowStartMs }
+            .fetch(query, "test")
+
+        assertTrue(result.isFailure, "sin turno NO se inventa una respuesta vacía")
+        assertTrue(asked.isEmpty(), "y no se molesta a ningún espejo: nunca salió la petición")
+        assertTrue(
+            result.exceptionOrNull()?.message?.contains("slot") == true,
+            "el motivo tiene que decir que fue el cupo, no un fallo del servidor: " +
+                "${result.exceptionOrNull()?.message}",
+        )
+    }
+
+    /** Y en cuanto el carril de delante suelta, el siguiente pasa: el cupo retrasa, no condena. */
+    @Test
+    fun should_answerNormally_when_theSlotComesFreeInTime() = runTest {
+        val engine = MockEngine {
+            respond(healthy, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        val quota = OverpassQuota(permits = 1)
+        val gate = CompletableDeferred<Unit>()
+        backgroundScope.launch { quota.withSlot { gate.await() } }
+        runCurrent()
+        val waiter = backgroundScope.async {
+            OverpassClient(clientOf(engine), endpoints, quota) { nowStartMs }.fetch(query, "test")
+        }
+
+        // Se suelta MUY por debajo del techo de espera: el cupo retrasa, no condena.
+        gate.complete(Unit)
+
+        assertTrue(waiter.await().isSuccess)
     }
 
     @Test
