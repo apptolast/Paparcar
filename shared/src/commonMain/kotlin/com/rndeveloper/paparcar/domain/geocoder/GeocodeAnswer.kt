@@ -35,12 +35,3 @@ fun geocodeAnswer(address: AddressInfo?): Result<AddressInfo> = when {
     address.isBlank -> Result.failure(GeocodeUnanswered("The geocoder returned an empty address"))
     else -> Result.success(address)
 }
-
-/**
- * Nothing that names a place. Deliberately reads EVERY field rather than a chosen few: the
- * enumeration of "the fields that matter" is exactly what let `countryCode` fall out of four write
- * paths in [FUEL-A-PARKING-WITHOUT-A-COUNTRY-HAS-NO-PRICE-001].
- */
-private val AddressInfo.isBlank: Boolean
-    get() = listOf(street, city, region, country, countryCode, province)
-        .all { it.isNullOrBlank() }

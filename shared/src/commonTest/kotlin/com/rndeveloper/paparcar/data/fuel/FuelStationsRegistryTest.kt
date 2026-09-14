@@ -121,6 +121,32 @@ class FuelStationsRegistryTest {
     }
 
     @Test
+    fun `should_routeToTheSourceThatClaimsThePoint_whenNobodyNamedTheCountry`() = runTest {
+        // [FUEL-A-POSTCODE-IS-THE-PROVINCE-ID-001] Una fuente puede reconocer el punto aunque el
+        // país venga vacío. El registro no sabe geografía: pregunta, y la fuente contesta por la
+        // suya. Sin esto, un geocode mudo dejaba al usuario con el feed sin precios EN España.
+        val claiming = object : FuelStationsSource {
+            var calls = 0
+            override fun covers(countryCode: String) = countryCode.equals("ES", ignoreCase = true)
+            override fun claims(query: FuelStationsQuery) = covers(query.countryCode) ||
+                (query.countryCode.isBlank() && query.latitude < 44.0)
+            override suspend fun stationsNear(query: FuelStationsQuery): Result<FuelStationsResult> {
+                calls++
+                return Result.success(FuelStationsResult(listOf(station("ES1", priced = true))))
+            }
+        }
+        val fallback = osm("OSM1")
+
+        val result = FuelStationsRegistry(listOf(claiming), fallback)
+            .stationsNear(query("")).getOrThrow()
+
+        assertEquals(listOf("ES1"), result.stations.map { it.id })
+        assertEquals(1, claiming.calls)
+        assertEquals(0, fallback.calls, "el fallback no se toca cuando alguien reclama el punto")
+        assertFalse(result.didFallBack, "esto no es un sustituto: contestó el feed nacional")
+    }
+
+    @Test
     fun `should_failLoudly_whenBothTheFeedAndTheFallbackAreDown`() = runTest {
         val es = FakeSource("ES", Result.failure(IllegalStateException("503")))
         val down = FakeSource(null, Result.failure(IllegalStateException("no network")))

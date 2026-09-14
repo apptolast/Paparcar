@@ -87,6 +87,8 @@ class IosGeocoderDataSourceImpl : GeocoderDataSource {
         // Same semantics as Android's subAdminArea: the level below the region, Spain's province.
         // [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
         province = subAdministrativeArea,
+        // El gemelo de `Address.postalCode`. [FUEL-A-POSTCODE-IS-THE-PROVINCE-ID-001]
+        postalCode = postalCode,
     )
 
     private fun CLPlacemark.toSearchResult(): SearchResult? {

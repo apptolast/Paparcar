@@ -95,6 +95,9 @@ class GetNearbyFuelStationsUseCase(
             // «Andalucía». A source that needs a province can get one from the town; nothing can
             // get one from a region that is not one.
             cityName = address?.city,
+            // [FUEL-A-POSTCODE-IS-THE-PROVINCE-ID-001] La tercera mitad de lo mismo: el postal ya
+            // venía en la respuesta del geocoder y se tiraba en la frontera del dominio.
+            postalCode = address?.postalCode,
             radiusMeters = radiusMeters,
         )
 

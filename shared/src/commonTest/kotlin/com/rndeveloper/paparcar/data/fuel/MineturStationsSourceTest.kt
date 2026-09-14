@@ -60,6 +60,8 @@ class MineturStationsSourceTest {
         stationsStatus: HttpStatusCode = HttpStatusCode.OK,
         /** Lets a test make the TOWN answer empty while the province still has stations. */
         townStations: String? = null,
+        /** Y su espejo: una PROVINCIA que contesta vacía. [FUEL-A-POSTCODE-IS-THE-PROVINCE-ID-001] */
+        provinceStations: String? = null,
     ): MineturStationsSource {
         val engine = MockEngine { request ->
             val url = request.url.toString()
@@ -81,7 +83,11 @@ class MineturStationsSourceTest {
                     headersOf(HttpHeaders.ContentType, "application/json"),
                 )
                 else -> respond(
-                    if (stationsStatus == HttpStatusCode.OK) stationsJson else "",
+                    when {
+                        stationsStatus != HttpStatusCode.OK -> ""
+                        provinceStations != null -> provinceStations
+                        else -> stationsJson
+                    },
                     stationsStatus,
                     headersOf(HttpHeaders.ContentType, "application/json"),
                 )
@@ -154,15 +160,101 @@ class MineturStationsSourceTest {
     fun `should_notFetchTheProvinceCatalogue_when_thereIsNoRegionToLookUp`() = runTest {
         // ⛔ El MISMO fallo que el de arriba, tres líneas más abajo y sin cazar: `provinces()` es un
         // argumento de `idFor`, así que se evaluaba aunque `regionName` fuese null — 52 provincias
-        // descargadas para devolver null acto seguido. Y sin región ni ciudad es justo lo que deja
-        // un geocode mudo: la vía que menos se puede permitir un viaje de red era la que lo pagaba.
+        // descargadas para devolver null acto seguido.
         // [FUEL-AN-UNKNOWN-COUNTRY-IS-NOT-A-COUNTRY-WITHOUT-PRICES-001]
+        //
+        // ⚠️ El punto es PARÍS y no Cádiz como cuando se escribió, y el motivo importa: desde
+        // [FUEL-A-POSTCODE-IS-THE-PROVINCE-ID-001] un punto español sin ciudad ni región ya no es un
+        // callejón — lo rescatan las coordenadas, que es justo la gracia de aquel ticket. Lo que
+        // este test vigila no era el callejón sino la DESCARGA inútil, así que hace falta un punto
+        // que ninguna clave pueda resolver. Fuera de España no hay caja que valga, y la pregunta
+        // sigue siendo la misma: sin región que buscar, el catálogo no se toca.
         val result = source().stationsNear(
-            FuelStationsQuery(36.5297, -6.2924, countryCode = "ES", regionName = null),
+            FuelStationsQuery(48.8566, 2.3522, countryCode = "ES", regionName = null),
         )
 
         assertTrue(result.isFailure, "with nothing to key on, the ministry cannot be asked")
         assertTrue(asked.isEmpty(), "nothing at all should have been downloaded: $asked")
+    }
+
+    @Test
+    fun `should_askByPostalCode_before_theRegionName_andWithoutAnyCatalogue`() = runTest {
+        // [FUEL-A-POSTCODE-IS-THE-PROVINCE-ID-001] «Andalucía» es el caso que costó dos tickets: no
+        // es una provincia, así que el camino por nombre no puede resolverla. El postal sí, y sin
+        // descargar catálogo ninguno — porque no empareja nombres, hace aritmética.
+        val result = source().stationsNear(
+            cadiz().copy(regionName = "Andalucía", cityName = null, postalCode = "11500"),
+        )
+
+        assertTrue(result.isSuccess)
+        assertTrue(asked.any { it.endsWith("/FiltroProvincia/11") }, "asked: ${'$'}asked")
+        assertTrue(asked.none { it.contains("/Listados/") }, "el postal no necesita catálogo: ${'$'}asked")
+    }
+
+    @Test
+    fun `should_ignoreAPostalCodeThatIsNotSpanish_andFallBackToTheName`() = runTest {
+        // Un postal extranjero no puede secuestrar el enrutado: se descarta por su forma y manda la
+        // clave de siempre. Aquí la región SÍ es una provincia, así que contesta esa.
+        val result = source().stationsNear(cadiz().copy(cityName = null, postalCode = "75001"))
+
+        assertTrue(result.isSuccess)
+        assertTrue(asked.any { it.endsWith("/Listados/Provincias/") }, "asked: ${'$'}asked")
+        assertTrue(asked.any { it.endsWith("/FiltroProvincia/11") }, "asked: ${'$'}asked")
+    }
+
+    // ── La tercera clave: las coordenadas ────────────────────────────────────
+    // [FUEL-A-POSTCODE-IS-THE-PROVINCE-ID-001]
+
+    @Test
+    fun `should_askByCoordinates_when_thereIsNeitherTownNorRegion`() = runTest {
+        // Lo que deja un geocode mudo: ni ciudad, ni región, ni país. Antes esto no se podía
+        // preguntar y el usuario se quedaba sin precios en un país que los publica; ahora el punto
+        // se reconoce solo. El Puerto de Santa María → provincia 11.
+        val result = source().stationsNear(
+            FuelStationsQuery(36.5297, -6.2924, countryCode = "", regionName = null),
+        )
+
+        assertTrue(result.isSuccess, "las coordenadas son clave suficiente: ${'$'}asked")
+        assertTrue(asked.any { it.endsWith("/FiltroProvincia/11") }, "asked: ${'$'}asked")
+        // Y sin catálogos: la clave numérica no empareja nombres, así que no hay nada que descargar.
+        assertTrue(asked.none { it.contains("/Listados/") }, "asked: ${'$'}asked")
+    }
+
+    @Test
+    fun `should_claimTheQuery_onlyWhenNobodyNamedTheCountry`() = runTest {
+        val source = source()
+        // País desconocido + punto español: lo reclama, que es el caso que existe para arreglar.
+        assertTrue(source.claims(FuelStationsQuery(36.5297, -6.2924, countryCode = "")))
+        // ⛔ Pero NO corrige a quien sí contestó: una caja envolvente rebosa por las fronteras, y
+        // «PT» es una respuesta, no un hueco.
+        assertFalse(source.claims(FuelStationsQuery(36.5297, -6.2924, countryCode = "PT")))
+        // Y fuera de España no reclama nada aunque nadie haya dicho el país.
+        assertFalse(source.claims(FuelStationsQuery(48.8566, 2.3522, countryCode = "")))
+    }
+
+    @Test
+    fun `should_failLoudly_when_aGuessedProvinceAnswersEmpty`() = runTest {
+        // ⛔ EL testigo del ticket. Una provincia adivinada por coordenadas acierta el 94,6 %; el
+        // resto son puntos de frontera donde se pregunta a la provincia de al lado. Devolver esa
+        // lista vacía diría «no hay ninguna gasolinera a 5 km» — la clase de frase que este código
+        // existe para no decir. Fallar manda al registro al feed sin precios, que es lo que había
+        // antes de poder adivinar: no se pierde nada y no se miente.
+        val result = source(townStations = null, provinceStations = "{\"ListaEESSPrecio\": []}")
+            .stationsNear(FuelStationsQuery(36.5297, -6.2924, countryCode = "", regionName = null))
+
+        assertTrue(result.isFailure, "un vacío desde una provincia adivinada no es un veredicto")
+    }
+
+    @Test
+    fun `should_trustAnEmptyAnswer_when_theProvinceWasNamed`() = runTest {
+        // La otra mitad de la regla, y va adosada: con provincia NOMBRADA el vacío sí es respuesta
+        // — lo dice quien sabe dónde está. Sin este par, la regla de arriba podría convertirse en
+        // «un vacío nunca es respuesta» y Cádiz dejaría de poder decir que no hay nada cerca.
+        val result = source(townStations = null, provinceStations = "{\"ListaEESSPrecio\": []}")
+            .stationsNear(cadiz())
+
+        assertTrue(result.isSuccess)
+        assertTrue(result.getOrThrow().stations.isEmpty())
     }
 
     @Test

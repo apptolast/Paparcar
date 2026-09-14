@@ -63,6 +63,7 @@ class ParkingAddressSurvivesEnrichmentTest {
             country = FULL_ADDRESS.country,
             countryCode = FULL_ADDRESS.countryCode,
             province = FULL_ADDRESS.province,
+            postalCode = FULL_ADDRESS.postalCode,
             placeInfoName = null,
             placeInfoCategory = null,
             now = 1L,
@@ -97,6 +98,7 @@ class ParkingAddressSurvivesEnrichmentTest {
             country = FULL_ADDRESS.country,
             countryCode = FULL_ADDRESS.countryCode,
             province = FULL_ADDRESS.province,
+            postalCode = FULL_ADDRESS.postalCode,
             placeInfoName = null,
             placeInfoCategory = null,
             now = 1L,
@@ -168,6 +170,7 @@ class ParkingAddressSurvivesEnrichmentTest {
             country = "España",
             countryCode = "es",
             province = "Madrid",
+            postalCode = "28013",
         )
     }
 }

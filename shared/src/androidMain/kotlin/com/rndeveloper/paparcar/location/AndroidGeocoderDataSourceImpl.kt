@@ -159,5 +159,9 @@ class AndroidGeocoderDataSourceImpl(private val context: Context) : GeocoderData
         // level the fuel feed routes on. Measured on device: Sol geocodes to
         // adminArea="Comunidad de Madrid". [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
         province = subAdminArea,
+        // Medido en 12 puntos el 14-09-2026: llega en 12/12, incluidos autovía, isla y las dos
+        // ciudades autónomas — donde `subAdminArea` NO llega.
+        // [FUEL-A-POSTCODE-IS-THE-PROVINCE-ID-001]
+        postalCode = postalCode,
     )
 }

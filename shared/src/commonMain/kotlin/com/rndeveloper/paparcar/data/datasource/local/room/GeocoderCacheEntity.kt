@@ -17,6 +17,8 @@ data class GeocoderCacheEntity(
     val addressCountry: String?,
     val addressCountryCode: String?,
     val addressProvince: String?,
+    /** [FUEL-A-POSTCODE-IS-THE-PROVINCE-ID-001] */
+    val addressPostalCode: String? = null,
     val placeInfoName: String?,
     val placeInfoCategory: String?,
     val cachedAt: Long,

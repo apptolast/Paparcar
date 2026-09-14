@@ -112,6 +112,7 @@ class AppDatabaseV1BaselineTest {
             country = "España",
             countryCode = "es",
             province = "Madrid",
+            postalCode = "28013",
             placeInfoName = null,
             placeInfoCategory = null,
             now = 1L,

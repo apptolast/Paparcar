@@ -24,6 +24,8 @@ data class SpotEntity(
     val addressCountry: String? = null,
     val addressCountryCode: String? = null,
     val addressProvince: String? = null,
+    /** [FUEL-A-POSTCODE-IS-THE-PROVINCE-ID-001] */
+    val addressPostalCode: String? = null,
     val geohash: String? = null,
     val placeInfoName: String? = null,
     val placeInfoCategory: String? = null,

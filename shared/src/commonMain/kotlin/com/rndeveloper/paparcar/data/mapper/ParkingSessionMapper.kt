@@ -65,19 +65,15 @@ fun UserParkingEntity.toDomain(): UserParking = UserParking(
  * as the four write paths this ticket swept: somebody enumerated a subset of the address and the
  * subset became the definition.
  */
-private fun UserParkingEntity.addressOrNull(): AddressInfo? =
-    if (addressStreet != null || addressCity != null || addressRegion != null ||
-        addressCountry != null || addressCountryCode != null
-    ) {
-        AddressInfo(
-            street = addressStreet,
-            city = addressCity,
-            region = addressRegion,
-            country = addressCountry,
-            countryCode = addressCountryCode,
-            province = addressProvince,
-        )
-    } else null
+private fun UserParkingEntity.addressOrNull(): AddressInfo? = AddressInfo(
+    street = addressStreet,
+    city = addressCity,
+    region = addressRegion,
+    country = addressCountry,
+    countryCode = addressCountryCode,
+    province = addressProvince,
+    postalCode = addressPostalCode,
+).takeUnless { it.isBlank }
 
 private fun UserParkingEntity.placeInfoOrNull(): PlaceInfo? {
     val name = placeInfoName ?: return null
@@ -109,6 +105,7 @@ fun UserParking.toEntity(updatedAt: Long = 0, pendingSync: Boolean = false): Use
     addressCountry = address?.country,
     addressCountryCode = address?.countryCode,
     addressProvince = address?.province,
+    addressPostalCode = address?.postalCode,
     placeInfoName = placeInfo?.name,
     placeInfoCategory = placeInfo?.category?.name,
     detectionReliability = detectionReliability,
@@ -214,6 +211,7 @@ fun ParkingHistoryDto.toEntity() = UserParkingEntity(
     addressCountry = address?.country,
     addressCountryCode = address?.countryCode,
     addressProvince = address?.province,
+    addressPostalCode = address?.postalCode,
     placeInfoName = placeInfo?.name,
     placeInfoCategory = placeInfo?.category,
     detectionReliability = detectionReliability,
@@ -254,6 +252,7 @@ fun AddressInfo.toAddressDto() = AddressDto(
     country = country,
     countryCode = countryCode,
     province = province,
+    postalCode = postalCode,
 )
 
 fun PlaceInfo.toPlaceInfoDto() = PlaceInfoDto(

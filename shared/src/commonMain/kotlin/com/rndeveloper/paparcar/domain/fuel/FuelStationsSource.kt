@@ -33,6 +33,12 @@ data class FuelStationsQuery(
      * peek prints under the street, so if there is an address there is a town.
      */
     val cityName: String? = null,
+    /**
+     * Código postal, cuando la dirección lo trajo. La clave MENOS frágil de las que sirven para
+     * enrutar: en España sus dos primeros dígitos SON el id de provincia del ministerio, así que no
+     * hay nombre que emparejar. [FUEL-A-POSTCODE-IS-THE-PROVINCE-ID-001]
+     */
+    val postalCode: String? = null,
     val radiusMeters: Int = DEFAULT_RADIUS_METERS,
 ) {
     companion object {
@@ -71,6 +77,23 @@ interface FuelStationsSource {
 
     /** True when this source can answer for [countryCode] (ISO 3166-1 alpha-2, any case). */
     fun covers(countryCode: String): Boolean
+
+    /**
+     * True when this source claims this query — el país, y si no lo hay, lo que la propia fuente
+     * sepa del punto. [FUEL-A-POSTCODE-IS-THE-PROVINCE-ID-001]
+     *
+     * Existe porque [covers] solo sabe de un código de país, y **el país es justo lo que falta**
+     * cuando la búsqueda de dirección no contesta: ahí ninguna fuente nacional reclamaba nada y el
+     * usuario se quedaba sin precios en un país que los publica.
+     *
+     * ⛔ Reclamar por coordenadas es un derecho de la FUENTE, no del registro: quien sabe hasta
+     * dónde llega su país es quien lo sirve. El registro pregunta y no adivina — si esto viviera
+     * ahí, la geografía de ocho países acabaría dentro de un `when`.
+     *
+     * Por defecto es exactamente [covers]: una fuente que no sepa nada de coordenadas no tiene que
+     * escribir nada.
+     */
+    fun claims(query: FuelStationsQuery): Boolean = covers(query.countryCode)
 
     /**
      * Stations matching [query], nearest first.

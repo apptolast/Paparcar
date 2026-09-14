@@ -170,4 +170,22 @@ private val MIGRATION_7_8 = object : Migration(7, 8) {
     }
 }
 
-val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+/**
+ * El código postal, en las TRES tablas que guardan una dirección.
+ * [FUEL-A-POSTCODE-IS-THE-PROVINCE-ID-001]
+ *
+ * ⛔ Las tres, y no solo la que hacía falta para los precios: *una dirección viaja entera*
+ * ([FUEL-A-PARKING-WITHOUT-A-COUNTRY-HAS-NO-PRICE-001]). Decidir tabla por tabla quién «necesita»
+ * el campo es la forma exacta que tenía el fallo que aquel ticket cerró.
+ *
+ * Gemela de la de `province` en [MIGRATION_5_6], que añadió las mismas tres columnas.
+ */
+private val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("ALTER TABLE `parking_sessions` ADD COLUMN `addressPostalCode` TEXT")
+        connection.execSQL("ALTER TABLE `cached_spots` ADD COLUMN `addressPostalCode` TEXT")
+        connection.execSQL("ALTER TABLE `geocoder_cache` ADD COLUMN `addressPostalCode` TEXT")
+    }
+}
+
+val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)

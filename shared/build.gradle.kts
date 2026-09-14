@@ -226,6 +226,22 @@ kotlin {
             implementation(libs.ktor.client.mock)
         }
 
+        // ── androidInstrumentedTest ───────────────────────────────────────────
+        // ⛔ EXISTE SOLO PARA MEDIR, y su única inquilina es una sonda, no un test:
+        // `PlatformGeocoderPostcodeProbe`. La pregunta que responde —¿el `Geocoder` de plataforma
+        // rellena `postalCode` en España?— no la puede contestar Robolectric, porque ahí no hay
+        // backend de red detrás del geocoder. Va en :shared y no en :app a propósito: un módulo
+        // librería instala SOLO su APK de test, así que no reemplaza la Paparcar que haya en el
+        // móvil ni interrumpe un field-test. [FUEL-A-POSTCODE-IS-THE-PROVINCE-ID-001]
+        getByName("androidInstrumentedTest") {
+            dependencies {
+                implementation(libs.kotlin.test.junit)
+                implementation(libs.junit)
+                implementation(libs.androidx.test.junit)
+                implementation(libs.androidx.espresso.core)
+            }
+        }
+
         // ── androidUnitTest ───────────────────────────────────────────────────
         getByName("androidUnitTest") {
             dependencies {
@@ -253,6 +269,8 @@ extensions.configure<LibraryExtension> {
 
     defaultConfig {
         minSdk = libs.versions.android.minSdk.get().toInt()
+        // Solo para la sonda de arriba. [FUEL-A-POSTCODE-IS-THE-PROVINCE-ID-001]
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     compileOptions {

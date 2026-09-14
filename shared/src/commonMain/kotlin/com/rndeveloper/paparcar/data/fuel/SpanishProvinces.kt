@@ -40,6 +40,33 @@ object SpanishProvinces {
         regionName?.let { provinces[normalise(it)] }
 
     /**
+     * El id de provincia que ya lleva dentro un código postal español, o null.
+     * [FUEL-A-POSTCODE-IS-THE-PROVINCE-ID-001]
+     *
+     * Los ids del ministerio son los **códigos INE** —verificado en vivo contra
+     * `/Listados/Provincias/` el 14-09-2026: 52 filas, ids `01`…`52`— y los códigos INE son por
+     * construcción los **dos primeros dígitos del código postal**. Así que esto no es una
+     * heurística ni una tabla que mantener: es cómo está hecho el sistema postal español.
+     *
+     * ⛔ No necesita el catálogo. Es la única de las tres claves que no descarga nada y la única que
+     * no empareja NOMBRES — ni acentos, ni «Puerto de Santa María (El)», ni comunidades autónomas
+     * donde debería ir una provincia.
+     *
+     * Valida la forma antes de creérselo: cinco dígitos y un prefijo dentro de `01`..`52`. Un postal
+     * extranjero (o un campo con basura) no puede convertirse en una provincia española por
+     * accidente.
+     */
+    fun idFromPostalCode(postalCode: String?): String? {
+        val digits = postalCode?.trim()?.takeIf { it.length == POSTAL_CODE_LENGTH && it.all(Char::isDigit) }
+            ?: return null
+        return digits.take(2).takeIf { it.toInt() in FIRST_PROVINCE..LAST_PROVINCE }
+    }
+
+    private const val POSTAL_CODE_LENGTH = 5
+    private const val FIRST_PROVINCE = 1
+    private const val LAST_PROVINCE = 52
+
+    /**
      * Case and accents removed, because "Cádiz", "CÁDIZ" and "Cadiz" are one province and only one
      * of those three spellings is going to reach us on any given day. Explicit character mapping
      * rather than a locale-aware fold: this runs on Android and on iOS, and the two do not agree

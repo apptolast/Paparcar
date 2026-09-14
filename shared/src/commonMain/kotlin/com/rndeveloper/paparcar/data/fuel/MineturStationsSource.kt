@@ -38,18 +38,35 @@ class MineturStationsSource(
     override fun covers(countryCode: String): Boolean = countryCode.uppercase() == COUNTRY
 
     /**
-     * TWO keys, tried in order, because the one we used to insist on is the one a phone often does
-     * not have. [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
+     * España también se reconoce **por coordenadas** cuando nadie ha podido nombrar el país.
+     * [FUEL-A-POSTCODE-IS-THE-PROVINCE-ID-001]
+     *
+     * ⛔ Solo cuando el país viene VACÍO. Si el geocoder dijo «PT», dijo PT: una caja envolvente
+     * rebosa por las fronteras y no está aquí para corregir a quien sí contestó, sino para dar una
+     * respuesta donde no había ninguna.
+     */
+    override fun claims(query: FuelStationsQuery): Boolean = when {
+        covers(query.countryCode) -> true
+        query.countryCode.isNotBlank() -> false
+        else -> SpanishProvinceBounds.idFor(query.latitude, query.longitude) != null
+    }
+
+    /**
+     * TRES claves, en orden, porque la que se exigía al principio es la que un móvil muchas veces no
+     * tiene. [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
      *
      * 1. **The town.** Precise and smaller: `FiltroMunicipio` returns one municipality instead of a
      *    whole province. It is also the field an address always carries.
      * 2. **The province**, from the town's own row when we found one, else from `regionName` as
      *    before — the wider net for a town the ministry spells in a way we did not match.
+     * 3. **Las coordenadas** ([SpanishProvinceBounds]), que es la única clave que no depende de que
+     *    nadie conteste. Va la última a propósito: acierta el 94,6 % y las otras dos, cuando están,
+     *    no fallan. [FUEL-A-POSTCODE-IS-THE-PROVINCE-ID-001]
      *
-     * ⛔ Only when BOTH fail does this throw, and only then does the registry fall back to a feed
-     * with no prices. Measured on a real phone the old single key produced the opposite: «Andalucía»
-     * is not a province, so Spain — a country that publishes prices for that exact street, stamped
-     * the same afternoon — was reported as a country that publishes none.
+     * ⛔ Only when the THREE fail does this throw, and only then does the registry fall back to a
+     * feed with no prices. Measured on a real phone the old single key produced the opposite:
+     * «Andalucía» is not a province, so Spain — a country that publishes prices for that exact
+     * street, stamped the same afternoon — was reported as a country that publishes none.
      */
     override suspend fun stationsNear(query: FuelStationsQuery): Result<FuelStationsResult> =
         runCatching {
@@ -74,13 +91,41 @@ class MineturStationsSource(
             // sea que la vía que menos puede permitirse un viaje de red era la que lo pagaba.
             // [FUEL-AN-UNKNOWN-COUNTRY-IS-NOT-A-COUNTRY-WITHOUT-PRICES-001]
             val region = query.regionName?.takeIf { it.isNotBlank() }
-            val provinceId = town?.provinceId?.takeIf { it.isNotEmpty() }
+            val named = town?.provinceId?.takeIf { it.isNotEmpty() }
+                // ⛔ El código postal, ANTES que el nombre de región y sin descargar catálogo
+                // ninguno: los ids del ministerio son los códigos INE, o sea los dos primeros
+                // dígitos del postal. No empareja nombres, así que no le afectan ni los acentos ni
+                // los artículos ni que el geocoder escriba la comunidad donde va la provincia.
+                // Y es la ÚNICA clave que existe en Ceuta y Melilla, donde `subAdminArea` no llega.
+                // [FUEL-A-POSTCODE-IS-THE-PROVINCE-ID-001]
+                ?: SpanishProvinces.idFromPostalCode(query.postalCode)
                 ?: region?.let { SpanishProvinces.idFor(it, provinces()) }
+            // La tercera clave. [FUEL-A-POSTCODE-IS-THE-PROVINCE-ID-001]
+            val guessed = named ?: SpanishProvinceBounds.idFor(query.latitude, query.longitude)
+            val provinceId = guessed
                 ?: throw IllegalStateException(
-                    "No Spanish town matches '${query.cityName}' and no province matches '${query.regionName}'",
+                    "No Spanish town matches '${query.cityName}', no province matches " +
+                        "'${query.regionName}' and (${query.latitude}, ${query.longitude}) is in none",
                 )
 
-            parse(fetch("$BASE/EstacionesTerrestres/FiltroProvincia/$provinceId"), query)
+            val fromProvince = parse(fetch("$BASE/EstacionesTerrestres/FiltroProvincia/$provinceId"), query)
+
+            // ⛔ **Una provincia ADIVINADA no puede dictar un veredicto.** Si la provincia salió de
+            // las coordenadas y la respuesta viene vacía, lo más probable no es que no haya
+            // gasolineras: es que hemos preguntado a la provincia de al lado — medido, le pasa al
+            // 4,6 % de los puntos, todos de frontera. Devolver esa lista vacía diría «no hay ninguna
+            // a 5 km», que es exactamente la clase de frase que este código existe para no decir.
+            // Fallar manda al registro al feed sin precios, que es lo que había ANTES de poder
+            // adivinar nada: no se pierde nada, no se miente.
+            //
+            // Con provincia NOMBRADA el vacío sí es respuesta, y se respeta: lo dice quien sabe
+            // dónde está. [FUEL-A-POSTCODE-IS-THE-PROVINCE-ID-001]
+            if (named == null && fromProvince.stations.isEmpty()) {
+                throw IllegalStateException(
+                    "Province $provinceId was guessed from coordinates and answered empty",
+                )
+            }
+            fromProvince
         }
 
     private fun parse(body: String, query: FuelStationsQuery) = FuelStationsResult(

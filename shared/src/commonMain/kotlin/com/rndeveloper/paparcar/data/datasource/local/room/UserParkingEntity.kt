@@ -22,6 +22,8 @@ data class UserParkingEntity(
     val addressCountry: String? = null,
     val addressCountryCode: String? = null,
     val addressProvince: String? = null,
+    /** [FUEL-A-POSTCODE-IS-THE-PROVINCE-ID-001] */
+    val addressPostalCode: String? = null,
     // PlaceInfo — name + PlaceCategory enum name (e.g. "FUEL")
     val placeInfoName: String? = null,
     val placeInfoCategory: String? = null,

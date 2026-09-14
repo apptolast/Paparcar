@@ -10,6 +10,8 @@ data class AddressDto(
     val country: String? = null,
     val countryCode: String? = null,
     val province: String? = null,
+    /** [FUEL-A-POSTCODE-IS-THE-PROVINCE-ID-001] */
+    val postalCode: String? = null,
 )
 
 @Serializable

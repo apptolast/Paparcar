@@ -27,7 +27,11 @@ class FuelStationsRegistry(
     override fun covers(countryCode: String): Boolean = true
 
     override suspend fun stationsNear(query: FuelStationsQuery): Result<FuelStationsResult> {
-        val preferred = national.firstOrNull { it.covers(query.countryCode) }
+        // `claims`, no `covers`: una fuente puede reconocer el punto aunque nadie sepa el país —
+        // que es justo lo que pasa cuando la búsqueda de dirección no contesta. El registro sigue
+        // sin saber geografía: pregunta a cada fuente por la suya.
+        // [FUEL-A-POSTCODE-IS-THE-PROVINCE-ID-001]
+        val preferred = national.firstOrNull { it.claims(query) }
             ?: return fallback.stationsNear(query).map {
                 // ⛔ TWO cases lived in this one line, and only one of them is a verdict we are
                 // entitled to. [FUEL-AN-UNKNOWN-COUNTRY-IS-NOT-A-COUNTRY-WITHOUT-PRICES-001]

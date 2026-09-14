@@ -25,9 +25,13 @@ fun SpotDto.toDomain(): Spot = Spot(
         speed = speed,
     ),
     reportedBy = reportedBy,
+    // ⛔ `isBlank` TAMBIÉN aquí, que era el cuarto lector y el único sin la regla: un documento
+    // antiguo de Firestore con un objeto `address` a nulos volvía como una `AddressInfo` que no
+    // nombra nada, y aguas abajo `address != null` decía que sí había dirección.
+    // [FUEL-A-POSTCODE-IS-THE-PROVINCE-ID-001]
     address = address?.let {
-        AddressInfo(street = it.street, city = it.city, region = it.region, country = it.country, countryCode = it.countryCode, province = it.province)
-    },
+        AddressInfo(street = it.street, city = it.city, region = it.region, country = it.country, countryCode = it.countryCode, province = it.province, postalCode = it.postalCode)
+    }?.takeUnless { it.isBlank },
     placeInfo = placeInfo?.let { dto ->
         dto.category.toEnumOrNull<PlaceCategory>()?.let { PlaceInfo(dto.name, it) }
     },
@@ -61,6 +65,7 @@ fun Spot.toDto(): SpotDto = SpotDto(
             country = it.country,
             countryCode = it.countryCode,
             province = it.province,
+            postalCode = it.postalCode,
         )
     },
     countryCode = address?.countryCode,
@@ -95,6 +100,7 @@ fun SpotDto.toEntity(): SpotEntity = SpotEntity(
     addressCountry = address?.country,
     addressCountryCode = address?.countryCode,
     addressProvince = address?.province,
+    addressPostalCode = address?.postalCode,
     geohash = geohash,
     placeInfoName = placeInfo?.name,
     placeInfoCategory = placeInfo?.category,
@@ -120,14 +126,18 @@ fun SpotEntity.toDomain(): Spot = Spot(
         speed = speed,
     ),
     reportedBy = reportedBy,
-    // ⛔ El país y la provincia CUENTAN. [FUEL-A-PARKING-WITHOUT-A-COUNTRY-HAS-NO-PRICE-001]
-    // Tercera copia de la misma condición incompleta (las otras dos: `addressOrNull` y
-    // `ReportSpotWorker.toAddressInfo`). Una fila con solo esos campos se leía como "sin dirección".
-    address = if (addressStreet != null || addressCity != null || addressRegion != null ||
-        addressCountry != null || addressCountryCode != null || addressProvince != null
-    )
-        AddressInfo(street = addressStreet, city = addressCity, region = addressRegion, country = addressCountry, countryCode = addressCountryCode, province = addressProvince)
-    else null,
+    // ⛔ La pregunta «¿hay dirección aquí?» vive en `AddressInfo.isBlank` y en ningún otro sitio.
+    // [FUEL-A-POSTCODE-IS-THE-PROVINCE-ID-001] Esto era una de TRES copias que enumeraban campos a
+    // mano y discrepaban entre sí. [FUEL-A-PARKING-WITHOUT-A-COUNTRY-HAS-NO-PRICE-001]
+    address = AddressInfo(
+        street = addressStreet,
+        city = addressCity,
+        region = addressRegion,
+        country = addressCountry,
+        countryCode = addressCountryCode,
+        province = addressProvince,
+        postalCode = addressPostalCode,
+    ).takeUnless { it.isBlank },
     placeInfo = placeInfoName?.let { name ->
         placeInfoCategory.toEnumOrNull<PlaceCategory>()?.let { PlaceInfo(name, it) }
     },
