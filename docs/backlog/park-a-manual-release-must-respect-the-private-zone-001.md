@@ -1,7 +1,22 @@
 # PARK-A-MANUAL-RELEASE-MUST-RESPECT-THE-PRIVATE-ZONE-001 · Liberar a mano un aparcamiento en zona privada no debería publicar la plaza
 
-**Estado:** 🔵 Pendiente · sin rama · seguimiento de
-[`first-steps-a-private-garage-is-a-private-zone-001.md`](first-steps-a-private-garage-is-a-private-zone-001.md) (PR #24)
+**Estado:** ✅ **Done — cerrado el 14-09-2026 por
+[`spot-a-private-zone-decides-the-publication-not-a-button-001.md`](spot-a-private-zone-decides-the-publication-not-a-button-001.md)**,
+que se abrió sin haber encontrado ESTA ficha (⛔ grep al backlog antes de abrir ticket). Seguimiento de
+[`first-steps-a-private-garage-is-a-private-zone-001.md`](first-steps-a-private-garage-is-a-private-zone-001.md) (PR #24).
+
+> ## Cómo se resolvió
+>
+> - **Opción 1** de las dos de abajo, con el matiz de que el diálogo no se queda en «Solo liberar»:
+>   se colapsa a **un único botón «Me voy»**, y el cuerpo dice si la salida libera plaza o no y por
+>   qué. La elección por salida desaparece porque es una propiedad del SITIO, y esa ya se responde
+>   una vez —en la zona— y se recuerda.
+> - **La doctrina que esta ficha pedía, cumplida**: la regla vive en `SpotReleasePolicy.shapeFor(…)`
+>   y no repetida en cada caso de uso.
+> - **El «Relacionado» (zona creada con el coche ya aparcado), resuelto sin re-evaluar la sesión.**
+>   La pregunta pasó del momento de APARCAR al de PUBLICAR, así que una zona nueva protege sola y
+>   una borrada deja de proteger sola — sin ninguna pasada sobre las sesiones activas al crear /
+>   editar / mover / redimensionar / borrar zonas, que habría sido una segunda fuente de verdad.
 
 ## Problema
 Una zona privada evita publicar la plaza al salir: `ConfirmParkingUseCase` guarda `privateZoneId` al
