@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.data.fuel
 
+import com.rndeveloper.paparcar.data.overpass.freshBase
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsQuery
 import com.rndeveloper.paparcar.domain.model.FuelType
 import io.ktor.client.HttpClient
@@ -63,7 +64,7 @@ class FranceFuelStationsSourceTest {
     private val osmJson = """
         {
           "version": 0.6,
-          "osm3s": { "timestamp_osm_base": "2026-09-09T21:00:00Z" },
+          "osm3s": { "timestamp_osm_base": "${freshBase()}" },
           "elements": [
             { "type": "node", "id": 1, "lat": 43.6161, "lon": 1.4211,
               "tags": { "amenity": "fuel", "brand": "TotalEnergies",
@@ -206,7 +207,7 @@ class FranceFuelStationsSourceTest {
             // has no way to check.
             val conflicting = """
                 {
-                  "osm3s": { "timestamp_osm_base": "2026-09-09T21:00:00Z" },
+                  "osm3s": { "timestamp_osm_base": "${freshBase()}" },
                   "elements": [
                     { "type": "node", "id": 1, "lat": 43.6161, "lon": 1.4211,
                       "tags": { "brand": "TotalEnergies",
@@ -226,7 +227,7 @@ class FranceFuelStationsSourceTest {
         // A forecourt mapped as both a node and a way is one station said twice, not a conflict.
         val agreeing = """
             {
-              "osm3s": { "timestamp_osm_base": "2026-09-09T21:00:00Z" },
+              "osm3s": { "timestamp_osm_base": "${freshBase()}" },
               "elements": [
                 { "type": "node", "id": 1, "lat": 43.6161, "lon": 1.4211,
                   "tags": { "brand": "TotalEnergies", "ref:FR:prix-carburants": "31200022" } },
@@ -247,7 +248,7 @@ class FranceFuelStationsSourceTest {
         // own coordinate is p90 = 134 m out — so it only catches the genuinely absurd.
         val faraway = """
             {
-              "osm3s": { "timestamp_osm_base": "2026-09-09T21:00:00Z" },
+              "osm3s": { "timestamp_osm_base": "${freshBase()}" },
               "elements": [
                 { "type": "node", "id": 1, "lat": 43.7000, "lon": 1.5000,
                   "tags": { "brand": "Esso", "ref:FR:prix-carburants": "31200022" } }

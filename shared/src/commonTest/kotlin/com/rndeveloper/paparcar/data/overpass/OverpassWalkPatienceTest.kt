@@ -8,60 +8,91 @@ import kotlin.test.assertTrue
 
 /**
  * The arithmetic of the walk, on its own. [OVERPASS-A-FAILOVER-MUST-HAVE-A-DEADLINE-001]
+ * [OVERPASS-A-MIRROR-WALK-MUST-OUTLIVE-THE-SERVER-IT-ASKS-001]
  */
 class OverpassWalkPatienceTest {
 
     private val carParksBudgetMs = 20_000L
 
     @Test
-    fun should_giveAQuietMirrorOnlyItsTurn_when_thereIsSomebodyElseToAsk() {
+    fun should_shareTheWalkEvenly_when_twoMirrorsAreLeft() {
         val attempt = assertNotNull(
-            OverpassWalkPatience.attempt(spentMs = 0, serverBudgetMs = carParksBudgetMs, isLast = false),
+            OverpassWalkPatience.attempt(spentMs = 0, serverBudgetMs = carParksBudgetMs, mirrorsLeft = 2),
         )
 
-        // The whole point: `private.coffee` held the socket open and said nothing for over a minute.
-        // It gets eight seconds of silence, not twenty-five.
-        assertEquals(OverpassWalkPatience.QUIET_MIRROR_MS, attempt.firstByteMs)
-        // …while a mirror that IS streaming keeps the patience the server itself was granted.
+        // Half of the 30 s ceiling — which is the live list's shape today.
+        assertEquals(15_000L, attempt.firstByteMs)
+        // …while the whole call still gets the patience the server itself was granted.
         assertEquals(carParksBudgetMs + OverpassWalkPatience.NETWORK_GRACE_MS, attempt.requestMs)
+    }
+
+    @Test
+    fun should_neverCutBelowTheSlowestMeasuredAnswer_when_theListIsLongEnoughToSqueezeTheShare() {
+        // Three mirrors would divide into 10 s each, and Málaga answered 200 at 7,72 s over FIBRE —
+        // a phone pays more. The floor is what stops a longer list from silently going back to the
+        // 8 s guillotine this ticket exists to remove.
+        val attempt = assertNotNull(
+            OverpassWalkPatience.attempt(spentMs = 0, serverBudgetMs = carParksBudgetMs, mirrorsLeft = 3),
+        )
+
+        assertEquals(OverpassWalkPatience.SLOWEST_MEASURED_ANSWER_MS, attempt.firstByteMs)
+        assertTrue(
+            attempt.firstByteMs > 8_000L,
+            "8 s was the old cut and it threw away answers that were on their way",
+        )
     }
 
     @Test
     fun should_giveTheLastMirrorEveryThingLeft_when_nobodyRemainsToFailOverTo() {
         val attempt = assertNotNull(
-            OverpassWalkPatience.attempt(spentMs = 16_000, serverBudgetMs = carParksBudgetMs, isLast = true),
+            OverpassWalkPatience.attempt(spentMs = 24_000, serverBudgetMs = carParksBudgetMs, mirrorsLeft = 1),
         )
 
-        // 30 s ceiling − 16 s already spent: patience is free when there is no next server, but it
+        // 30 s ceiling − 24 s already spent. Patience is free when there is no next server, but it
         // is still the WALK's remaining time, never a fresh 25 s.
-        assertEquals(14_000L, attempt.requestMs)
-        assertEquals(14_000L, attempt.firstByteMs, "the last mirror's silence is worth waiting on")
+        assertEquals(6_000L, attempt.requestMs)
+        assertEquals(6_000L, attempt.firstByteMs, "the last mirror's silence is worth waiting on")
+    }
+
+    @Test
+    fun should_handTheWholeServerBudget_when_thereIsOnlyOneMirrorInTheList() {
+        val attempt = assertNotNull(
+            OverpassWalkPatience.attempt(spentMs = 0, serverBudgetMs = carParksBudgetMs, mirrorsLeft = 1),
+        )
+
+        assertEquals(
+            carParksBudgetMs + OverpassWalkPatience.NETWORK_GRACE_MS,
+            attempt.firstByteMs,
+            "with nobody to fail over to, cutting the only server short buys nothing",
+        )
     }
 
     @Test
     fun should_stopAsking_when_theBudgetCannotFundARealTry() {
         assertNull(
-            OverpassWalkPatience.attempt(spentMs = 28_500, serverBudgetMs = carParksBudgetMs, isLast = true),
+            OverpassWalkPatience.attempt(spentMs = 28_500, serverBudgetMs = carParksBudgetMs, mirrorsLeft = 1),
             "asking with 1,5 s left is theatre: the answer could not arrive before the walk is over",
         )
     }
 
     @Test
     fun should_neverExceedTheWalkCeiling_when_everyMirrorIsSilent() {
-        // Three silent mirrors, each spending exactly what it was given.
+        // Every mirror in the live list burns exactly the patience it was handed.
+        val mirrors = OverpassEndpoints.ALL.size
         var spent = 0L
         var asked = 0
         while (true) {
-            val attempt = OverpassWalkPatience.attempt(spent, carParksBudgetMs, isLast = asked == 2) ?: break
+            val attempt = OverpassWalkPatience
+                .attempt(spent, carParksBudgetMs, mirrorsLeft = mirrors - asked) ?: break
             spent += attempt.firstByteMs
             asked++
             if (asked > 10) break
         }
 
-        assertEquals(3, asked, "all three mirrors get asked before the budget runs out")
+        assertEquals(mirrors, asked, "every configured mirror gets asked before the budget runs out")
         assertTrue(
             spent <= OverpassWalkPatience.WALK_CEILING_MS,
-            "three mirrors cost $spent ms; the old walk cost 75 s and that is the bug",
+            "$mirrors mirrors cost $spent ms; the old walk cost 75 s and that is the bug",
         )
     }
 

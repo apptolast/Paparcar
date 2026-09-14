@@ -17,6 +17,7 @@ import kotlin.test.assertTrue
 /**
  * The walk's deadline, driven by the mirror that caused it.
  * [OVERPASS-A-FAILOVER-MUST-HAVE-A-DEADLINE-001]
+ * [OVERPASS-A-MIRROR-WALK-MUST-OUTLIVE-THE-SERVER-IT-ASKS-001]
  *
  * ⛔ Time here is a FAKE CLOCK, not `delay`: a socket that goes quiet is an engine-level event that
  * `MockEngine` cannot stage, so staging it with sleeps would test the test. What is provable — and
@@ -27,42 +28,72 @@ class OverpassClientDeadlineTest {
 
     private val endpoints = listOf("https://first/api", "https://second/api", "https://third/api")
 
+    /** The live list's shape since the two dead mirrors were measured out. */
+    private val livePair = listOf("https://first/api", "https://second/api")
+
     /** Car parks and stations both declare this; the POI lookup declares 8. */
     private val query = "[out:json][timeout:20];nwr(around:1500,40.42,-3.70)[amenity=parking];out center 80;"
 
+    /** 2026-09-14T09:00:00Z — the morning the mirrors were measured. */
+    private val nowStartMs = 1_789_376_400_000L
+
     private val healthy = """
-        {"version":0.6,"osm3s":{"timestamp_osm_base":"2026-09-10T16:49:26Z"},"elements":[]}
+        {"version":0.6,"osm3s":{"timestamp_osm_base":"2026-09-14T08:54:36Z"},"elements":[]}
+    """.trimIndent()
+
+    /** What `overpass.private.coffee` served on 14-09-2026: a real date, 105 days old. */
+    private val stale = """
+        {"version":0.6,"osm3s":{"timestamp_osm_base":"2026-06-01T08:52:28Z"},"elements":[]}
     """.trimIndent()
 
     private fun clientOf(engine: MockEngine) = HttpClient(engine) { install(HttpTimeout) }
 
     @Test
-    fun should_handAQuietMirrorEightSeconds_andTheLastOneWhatIsLeft() = runTest {
+    fun should_splitTheWalkBetweenTheTwoLiveMirrors_when_bothGoQuiet() = runTest {
         val patience = mutableListOf<Pair<String, Long?>>()
-        // Each silent mirror burns exactly the patience it was handed, which is what the walk then
-        // has to subtract from what it gives the next one.
-        var now = 0L
+        var now = nowStartMs
         val engine = MockEngine { request ->
-            patience += request.url.host to
-                request.getCapabilityOrNull(HttpTimeoutCapability)?.socketTimeoutMillis
-            now += OverpassWalkPatience.QUIET_MIRROR_MS
+            val handed = request.getCapabilityOrNull(HttpTimeoutCapability)?.socketTimeoutMillis
+            patience += request.url.host to handed
+            // Each silent mirror burns exactly the patience it was handed.
+            now += handed ?: 0L
             respondError(HttpStatusCode.GatewayTimeout)
         }
 
-        val result = OverpassClient(clientOf(engine), endpoints) { now }.fetch(query, "test")
+        val result = OverpassClient(clientOf(engine), livePair) { now }.fetch(query, "test")
 
         assertEquals<List<Pair<String, Long?>>>(
-            listOf("first" to 8_000L, "second" to 8_000L, "third" to 14_000L),
+            listOf("first" to 15_000L, "second" to 15_000L),
             patience,
-            "a quiet mirror gets its turn; the last one inherits the rest of the walk",
+            "two mirrors split the 30 s ceiling; neither is cut at the old 8 s",
         )
-        assertTrue(result.isFailure, "three refusals are a failure, never an empty answer")
+        assertTrue(result.isFailure, "two refusals are a failure, never an empty answer")
+    }
+
+    @Test
+    fun should_rebalanceWithoutAnyoneEditingANumber_when_aThirdMirrorIsAdded() = runTest {
+        // ⛔ The regression that produced this ticket: the list rotted while the cut stayed at 8 s.
+        // The share is derived, so a longer list re-divides itself — floored at what a real answer
+        // was measured to need.
+        val patience = mutableListOf<Long?>()
+        var now = nowStartMs
+        val engine = MockEngine { request ->
+            val handed = request.getCapabilityOrNull(HttpTimeoutCapability)?.socketTimeoutMillis
+            patience += handed
+            now += handed ?: 0L
+            respondError(HttpStatusCode.GatewayTimeout)
+        }
+
+        OverpassClient(clientOf(engine), endpoints) { now }.fetch(query, "test")
+
+        assertEquals<List<Long?>>(listOf(12_000L, 12_000L, 6_000L), patience)
+        assertEquals(30_000L, patience.filterNotNull().sum(), "and the whole walk still fits the ceiling")
     }
 
     @Test
     fun should_stopAskingAndSaySo_when_theBudgetIsSpentBeforeTheListEnds() = runTest {
         val asked = mutableListOf<String>()
-        var now = 0L
+        var now = nowStartMs
         val engine = MockEngine { request ->
             asked += request.url.host
             // A mirror that burns the whole ceiling on its own — what a 60 s silence looked like.
@@ -85,7 +116,7 @@ class OverpassClientDeadlineTest {
     fun should_keepTheFailoverWhole_when_anEarlyMirrorRefuses() = runTest {
         // ⛔ The regression this ticket must not cause: a deadline that eats the failover.
         val asked = mutableListOf<String>()
-        var now = 0L
+        var now = nowStartMs
         val engine = MockEngine { request ->
             asked += request.url.host
             now += 2_000
@@ -103,10 +134,28 @@ class OverpassClientDeadlineTest {
     }
 
     @Test
+    fun should_passTheTurnOn_when_aMirrorAnswers200AboutLastQuarter() = runTest {
+        // The exact shape of the old first fallback: HTTP 200, parseable date, 105 days behind.
+        val asked = mutableListOf<String>()
+        var now = nowStartMs
+        val engine = MockEngine { request ->
+            asked += request.url.host
+            now += 2_000
+            val body = if (request.url.host == "first") stale else healthy
+            respond(body, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+
+        val result = OverpassClient(clientOf(engine), endpoints) { now }.fetch(query, "test")
+
+        assertEquals(listOf("first", "second"), asked, "a stale 200 must not end the walk")
+        assertEquals(healthy, result.getOrNull(), "the fresh mirror's answer is the one that wins")
+    }
+
+    @Test
     fun should_askWithTheBudgetTheQueryDeclared_when_itIsTheShortOne() = runTest {
         // The POI lookup asks the server for 8 s; the client must not wait on 20.
         val requestBudgets = mutableListOf<Long?>()
-        var now = 0L
+        var now = nowStartMs
         val engine = MockEngine { request ->
             requestBudgets += request.getCapabilityOrNull(HttpTimeoutCapability)?.requestTimeoutMillis
             now += 1_000

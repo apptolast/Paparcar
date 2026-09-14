@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.data.places
 
+import com.rndeveloper.paparcar.data.overpass.freshBase
 import com.rndeveloper.paparcar.domain.model.PlaceCategory
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
@@ -99,7 +100,8 @@ class OverpassPlacesDataSourceTest {
     private companion object {
         const val LAT = 40.4168
         const val LON = -3.7038
-        const val HEALTHY_BASE = "2026-09-10T12:48:02Z"
+        /** ⛔ Derived, never carved: a carved date silently ages into a STALE mirror. */
+        val HEALTHY_BASE: String get() = freshBase()
         val MIRRORS = listOf("https://first/api", "https://second/api", "https://third/api")
     }
 }

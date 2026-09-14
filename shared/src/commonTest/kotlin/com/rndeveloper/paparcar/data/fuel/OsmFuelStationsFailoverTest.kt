@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.data.fuel
 
+import com.rndeveloper.paparcar.data.overpass.freshBase
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsQuery
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
@@ -23,7 +24,7 @@ class OsmFuelStationsFailoverTest {
 
     /** A healthy answer: real base timestamp + one station. */
     private fun healthy(name: String = "Repsol") = """
-        {"version":0.6,"osm3s":{"timestamp_osm_base":"2026-07-15T15:22:01Z"},
+        {"version":0.6,"osm3s":{"timestamp_osm_base":"${freshBase()}"},
          "elements":[{"type":"node","id":1,"lat":40.42,"lon":-3.70,"tags":{"brand":"$name"}}]}
     """.trimIndent()
 
@@ -34,7 +35,7 @@ class OsmFuelStationsFailoverTest {
 
     /** A legitimate "nothing here" from a healthy server — the middle of nowhere. */
     private val honestlyEmpty = """
-        {"version":0.6,"osm3s":{"timestamp_osm_base":"2026-07-15T15:22:01Z"},"elements":[]}
+        {"version":0.6,"osm3s":{"timestamp_osm_base":"${freshBase()}"},"elements":[]}
     """.trimIndent()
 
     private val query = FuelStationsQuery(40.4168, -3.7038, countryCode = "FR")

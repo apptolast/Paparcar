@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.data.fuel
 
+import com.rndeveloper.paparcar.data.overpass.freshBase
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsQuery
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -33,7 +34,7 @@ class FuelHttpClientTest {
                 // With the base timestamp a healthy server publishes — without it the source now
                 // (rightly) rejects the answer and moves on.
                 // [OSM-ONE-MIRROR-IS-A-SINGLE-POINT-OF-FAILURE-001]
-                content = """{"osm3s":{"timestamp_osm_base":"2026-07-15T15:22:01Z"},"elements":[]}""",
+                content = """{"osm3s":{"timestamp_osm_base":"${freshBase()}"},"elements":[]}""",
                 status = HttpStatusCode.OK,
                 headers = headersOf(HttpHeaders.ContentType, "application/json"),
             )
