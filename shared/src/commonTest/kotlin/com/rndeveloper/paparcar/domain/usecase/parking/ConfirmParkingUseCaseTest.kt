@@ -692,6 +692,30 @@ class ConfirmParkingUseCaseTest {
     }
 
     @Test
+    fun `should carry what armed the attempt so the productive system is countable`() = runTest {
+        // [DET-EVERY-TRIGGER-REPORTS-WHAT-IT-PRODUCED-001] The path says how the pin was CONFIRMED;
+        // on its own it cannot answer "which system is productive", because the same path is reached
+        // from different triggers. The pin has persisted both labels since DET-PIN-PROVENANCE-001 —
+        // this asserts the counted fact carries the same pair, so the population-wide number and a
+        // single device's history group on the same strings.
+        val tracker = FakeAnalyticsTracker()
+        val useCase = buildUseCase(tracker = tracker)
+
+        val saved = useCase(
+            location,
+            detectionReliability = 0.9f,
+            detectionPath = "steps+egress",
+            armEvidence = ArmLabel.BT_RIDE,
+            sealPoint = null,
+        ).getOrNull()
+
+        assertNotNull(saved)
+        val event = tracker.events.filterIsInstance<AnalyticsEvent.ParkingSessionStarted>().single()
+        assertEquals(ArmLabel.BT_RIDE.persisted, event.armEvidence)
+        assertEquals(saved.armEvidence, event.armEvidence, "the counted label and the persisted one must be the same string")
+    }
+
+    @Test
     fun `should emit no analytics when the confirm aborts before saving`() = runTest {
         val tracker = FakeAnalyticsTracker()
         val useCase = buildUseCase(auth = FakeAuthRepository(initialSession = null), tracker = tracker)

@@ -21,6 +21,8 @@ import com.rndeveloper.paparcar.detection.worker.DeclinedBoardingRelookWorker
 import com.rndeveloper.paparcar.detection.worker.DepartureDetectionWorker
 import com.rndeveloper.paparcar.detection.worker.ParkingSafetyNetWorker
 import com.rndeveloper.paparcar.domain.detection.CoordinatorParkingDetector
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsTracker
 import com.rndeveloper.paparcar.domain.detection.ArmEvidence
 import com.rndeveloper.paparcar.domain.detection.DepartureProof
 import com.rndeveloper.paparcar.domain.detection.DetectionTrigger
@@ -104,6 +106,10 @@ class CoordinatorDetectionService : LifecycleService() {
     private val vehicleRepository: VehicleRepository by inject()
     private val revertParking: RevertParkingUseCase by inject() // [REFACTOR-300]
     private val processConfirmedDeparture: ProcessConfirmedDepartureUseCase by inject() // [DET-AR-REARM-001]
+    // [DET-EVERY-TRIGGER-REPORTS-WHAT-IT-PRODUCED-001] The population-wide half of the trigger
+    // ledger. Non-nullable: Koin binds NoOpAnalyticsTracker in the mock flavor, so "no sink" is
+    // already expressed by the binding and an optional here would only hide a wiring mistake.
+    private val analyticsTracker: AnalyticsTracker by inject()
     private val geofenceEventBus: GeofenceEventBus by inject() // [DET-G-01]
     private val strategyResolver: ParkingStrategyResolver by inject() // [DET-G-01]
     private val detectionRuntime: MutableDetectionRuntimeState by inject() // [DET-READY-001c]
@@ -2027,6 +2033,16 @@ class CoordinatorDetectionService : LifecycleService() {
         geofenceId: String? = null,
     ) {
         val now = System.currentTimeMillis()
+        // [DET-EVERY-TRIGGER-REPORTS-WHAT-IT-PRODUCED-001] The same fact, to the two populations
+        // that answer different questions: the opted-in device's replay trace (below) and the
+        // anonymous population-wide counter (here). Emitted from THIS door and only this one — the
+        // whole value of the lane is that no branch gets to publish its own variant, and a second
+        // account of the same trigger would make the two disagree.
+        //
+        // This is the DENOMINATOR. `parking_session_started` already counted the parks; nothing
+        // counted the attempts, so no rate could be computed for the install base — only for the
+        // three users with diagnostics on. Fire-and-forget, no location: a trigger is not a place.
+        analyticsTracker.track(AnalyticsEvent.TriggerFired(trigger = trigger, disposition = disposition))
         lifecycleScope.launch {
             runCatching {
                 detectionEventLogger.log(

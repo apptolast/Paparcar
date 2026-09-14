@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.domain.analytics
 
+import com.rndeveloper.paparcar.domain.detection.sentry.TriggerDisposition
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.SpotType
 
@@ -34,6 +35,31 @@ sealed class AnalyticsEvent {
         val spotType: SpotType,
         /** Confirmation path that placed the pin ("steps+egress", "bt", "manual", …). */
         val detectionPath: String?,
+        /** [DET-EVERY-TRIGGER-REPORTS-WHAT-IT-PRODUCED-001] What ARMED the attempt that ended in
+         *  this pin ("GEOFENCE_EXIT", "AR_VEHICLE_ENTER", "BT", "MANUAL", …). The path says how it
+         *  was confirmed; without this, "which trigger is productive" cannot be answered — two
+         *  pins on the same path can come from completely different systems. */
+        val armEvidence: String?,
+    ) : AnalyticsEvent()
+
+    /**
+     * [DET-EVERY-TRIGGER-REPORTS-WHAT-IT-PRODUCED-001] A trigger reached detection and this is what
+     * became of it at the door — **the denominator**.
+     *
+     * The successes were already countable ([ParkingSessionStarted], [SpotReleased]); the attempts
+     * were not, so every rate had a numerator and no denominator. The per-device version of this
+     * fact has existed since [DET-EVERY-TRIGGER-LEAVES-A-TRACE-001]
+     * (`DetectionEvent.Trigger`) but only reaches the handful of opted-in diagnostics users, which
+     * cannot say which system is productive across the install base.
+     *
+     * ⛔ **No location, by construction.** A trigger firing is not a place, and keeping it that way
+     * is what makes this event add no new data TYPE to the Play Data Safety declaration.
+     */
+    data class TriggerFired(
+        /** The lane: `GEOFENCE_EXIT`, `AR_VEHICLE_ENTER`, `BT_DISCONNECT`, `SIGMOTION`, … */
+        val trigger: String,
+        /** What became of it — the same vocabulary the on-device ledger uses, so the two agree. */
+        val disposition: TriggerDisposition,
     ) : AnalyticsEvent()
 
     /** A parking session stopped being active, for [reason]. */
@@ -42,7 +68,18 @@ sealed class AnalyticsEvent {
         val reason: SessionEndReason,
     ) : AnalyticsEvent()
 
-    /** A community spot was published from a departure or a manual release. */
+    /**
+     * A community spot was published from a departure or a manual release.
+     *
+     * ⛔ [DET-EVERY-TRIGGER-REPORTS-WHAT-IT-PRODUCED-001] **Carries no productivity dimension, and
+     * that is a finding rather than an omission.** A departure is the other thing this app
+     * "achieves", so it belongs in the same measurement — but there is nothing honest to stamp on
+     * it yet: `detectionPath` and `armEvidence` describe how the PIN was placed, never how the
+     * departure was detected, and passing them here would label the plaza with the provenance of
+     * the arrival that preceded it. The departure's own provenance does not exist as a persisted
+     * label anywhere (the raw material is `DepartureProof`, `preconfirmed` and the dispatching
+     * trigger). Giving it one is `DET-A-DEPARTURE-HAS-NO-PROVENANCE-001`.
+     */
     data class SpotReleased(
         val location: GpsPoint,
     ) : AnalyticsEvent()

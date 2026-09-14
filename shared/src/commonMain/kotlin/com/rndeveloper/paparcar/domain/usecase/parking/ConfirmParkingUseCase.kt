@@ -344,6 +344,11 @@ class ConfirmParkingUseCase(
                 location = gpsPoint,
                 spotType = resolvedSpotType,
                 detectionPath = detectionPath,
+                // [DET-EVERY-TRIGGER-REPORTS-WHAT-IT-PRODUCED-001] The same label the pin persists,
+                // so the population-wide count and a single device's `parkingHistory` group on the
+                // same string. This use case is where both strategies converge, which is why the
+                // productivity of BT and of the Coordinator can be compared at all from one event.
+                armEvidence = armEvidence?.persisted,
             )
         )
 
