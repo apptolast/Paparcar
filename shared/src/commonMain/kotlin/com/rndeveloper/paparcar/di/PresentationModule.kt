@@ -66,8 +66,37 @@ val presentationModule = module {
         )
     }
     viewModelOf(::ParkingHistoryViewModel)
-    viewModelOf(::PaywallViewModel)
-    viewModelOf(::SettingsViewModel)
+    // Explicit for the same reason as SettingsViewModel below: the analytics tracker is a nullable
+    // parameter, and viewModelOf would resolve it with get(). The reason rides parametersOf.
+    viewModel { params ->
+        PaywallViewModel(
+            observeIsPlus = get(),
+            getPlusOffers = get(),
+            purchasePlus = get(),
+            restorePurchases = get(),
+            reason = params.get(),
+            analyticsTracker = getOrNull(),
+        )
+    }
+    // Explicit, not viewModelOf: `viewModelOf` resolves EVERY constructor parameter with get(), a
+    // nullable one included, so the widget door — bound only by :app on Android — crashed Settings on
+    // iOS with NoDefinitionFoundException. getOrNull() is what makes the parameter optional.
+    // [IOS-APPLE-SIGN-IN-ON-BASELOGIN-3-001]
+    viewModel {
+        SettingsViewModel(
+            prefs = get(),
+            authRepository = get(),
+            userProfileRepository = get(),
+            deleteAccountUseCase = get(),
+            setFirstStepsDismissed = get(),
+            permissionManager = get(),
+            vehicleRepository = get(),
+            observeDetectionReliability = get(),
+            sendDiagnosticsReport = get(),
+            observeIsPlus = get(),
+            widgetPinRequester = getOrNull(),
+        )
+    }
     viewModelOf(::LicensesViewModel)
     viewModelOf(::PermissionsViewModel)
     // Constructor explícito (no `viewModelOf`): el último parámetro es la unidad del surtidor, que
