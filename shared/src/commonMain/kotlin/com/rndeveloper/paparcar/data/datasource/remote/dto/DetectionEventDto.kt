@@ -114,6 +114,12 @@ data class DetectionEventDto(
     // EVERY event that carries a location and not only with LOCATION_FIX — the accuracy of the fix a
     // decision was taken on is already there; what was missing was which world produced it.
     val fixSource: String? = null,
+    // [BATT-A-COST-IS-MEASURED-NOT-DECLARED-001] µAh a GPS-holding job consumed, from the platform
+    // fuel gauge. A NEW column for the same reason `fixSource` was one: no existing column can
+    // honestly carry a charge quantity (`stepsDelta` counts steps, `gapMs`/`sessionAgeMs` are
+    // times). The rest of the BATTERY event rides existing columns: duration on `sessionAgeMs`,
+    // the honesty verdict on `success`, the job lane on `source`.
+    val deltaMicroAh: Long? = null,
 )
 
 /** Canonical wire discriminator for each event subtype. */
@@ -143,6 +149,7 @@ fun DetectionEvent.typeName(): String = when (this) {
     is DetectionEvent.ForceStopConfirmed -> "FORCE_STOP_CONFIRMED"
     is DetectionEvent.ProcessDeath -> "PROCESS_DEATH"
     is DetectionEvent.Sentry -> "SENTRY"
+    is DetectionEvent.Battery -> "BATTERY"
 }
 
 fun DetectionEvent.SessionStarted.toSessionDto(): DetectionSessionDto = DetectionSessionDto(
@@ -258,5 +265,14 @@ fun DetectionEvent.toDto(): DetectionEventDto {
         // [DET-RESIDENT-FGS-001 · F2] Reuses existing columns on purpose (no serializer surface
         // change): the waking/entering signal rides in `source`, time-in-SENTRY in `sessionAgeMs`.
         is DetectionEvent.Sentry -> base.copy(event = event, source = signal, gapMs = gapMs, sessionAgeMs = residencyMs)
+        // [BATT-A-COST-IS-MEASURED-NOT-DECLARED-001] The charge delta gets the one NEW column (see
+        // its declaration); the span rides `sessionAgeMs` ("how long X lived"), the honesty verdict
+        // rides `success`, the job lane rides `source`.
+        is DetectionEvent.Battery -> base.copy(
+            deltaMicroAh = deltaMicroAh,
+            sessionAgeMs = durationMs,
+            success = clean,
+            source = source,
+        )
     }
 }

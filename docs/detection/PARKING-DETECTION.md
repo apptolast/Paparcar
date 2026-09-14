@@ -8417,3 +8417,31 @@ candidato). Este ticket aporta lo único que faltaba: el testigo del viaje.
 confirmación (`detectionPath` intacto); verdicts remotos nuevos: `bt_gps_timeout_ride_ask`.
 Sin carrera con el store: el STOP del grabador viaja en el mismo broadcast del disconnect y la
 lectura es previa al confirm que lo limpia.
+
+### BATT-A-COST-IS-MEASURED-NOT-DECLARED-001 — el coste de cada job con GPS se mide, no se declara (commit pending)
+
+**Contexto.** Fase 5 del pivote: el escalón Cruise y el grabador BT gastan batería a propósito, y
+todas las cifras manejadas eran estimaciones de literatura. Regla del user: al usuario solo cifras
+MEDIDAS; para calibrar los perfiles hace falta el coste real por viaje en la flota.
+
+**Cambio — instrumentación pura, cero decisiones tocadas.** `TripBatteryGauge` (puro, commonMain)
+bracketa los DOS jobs con GPS (`detectionJob` y `btTrackingJob`) con muestras del fuel gauge
+(`BatteryMeter`, impl Android `BATTERY_PROPERTY_CHARGE_COUNTER`). `settle` produce
+`Cost(deltaMicroAh?, clean, durationMs)` donde **`clean` es el veredicto de honestidad**: contador
+presente en ambos extremos, sin carga en ninguno, delta ≥ 0 (negativo = enchufe a mitad sin ver) y
+≥ 60 s (bajo eso manda el ruido ±1-2 % del gauge). Una cifra sucia se registra igual (es dato) pero
+jamás alimentará la línea de Ajustes — que queda FUERA a propósito hasta tener corpus medido.
+
+**Telemetría.** Evento `BATTERY` bajo el ledger diario (patrón `logTrigger`; el coste es del
+RUNTIME del servicio, no de ninguna decisión — el coordinator ni se entera). Wire: UNA columna
+nueva `deltaMicroAh` (precedente `fixSource`: ninguna existente lleva carga con honestidad); el
+resto monta columnas existentes (`sessionAgeMs`=duración, `success`=clean, `source`=carril). Sin
+deserializador manual que tocar (write-only, verificado por grep); el `when` exhaustivo de `toDto`
+forzó la rama. Línea PARKDIAG `🔋` siempre.
+
+**Protocolo A/B del rig** (calibración manual): en el doc del ticket —
+`batterystats --reset` → viaje → `--charged` + contraste con el evento BATTERY; Perfetto/ODPM en
+Pixel como patrón oro; comparar agregados, nunca viajes sueltos.
+
+**Riesgo.** Ninguno sobre detección: `runCatching` en cada lectura, un fallo de medición loguea y
+no toca el job; sin instrumento → ausencia, nunca invención.

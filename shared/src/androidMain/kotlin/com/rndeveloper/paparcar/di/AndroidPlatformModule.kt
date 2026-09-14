@@ -43,6 +43,10 @@ val androidPlatformModule = module {
     single<com.rndeveloper.paparcar.domain.location.ChargingStateSource> {
         com.rndeveloper.paparcar.location.AndroidChargingStateSource(androidContext())
     }
+    // The measuring instrument bracketing GPS-holding jobs. [BATT-A-COST-IS-MEASURED-NOT-DECLARED-001]
+    single<com.rndeveloper.paparcar.domain.detection.ports.BatteryMeter> {
+        com.rndeveloper.paparcar.location.AndroidBatteryMeter(androidContext())
+    }
     single<GeocoderDataSource> { AndroidGeocoderDataSourceImpl(androidContext()) }
     // ⛔ Places y carreteras NO están aquí: los dos hablan con Overpass, y una implementación por
     // plataforma es lo que dejó a tres vías usando un solo espejo sin failover. Viven en commonMain

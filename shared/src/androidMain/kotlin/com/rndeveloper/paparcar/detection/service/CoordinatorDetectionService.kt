@@ -174,6 +174,10 @@ class CoordinatorDetectionService : LifecycleService() {
         com.rndeveloper.paparcar.domain.detection.TripTracker(drivingRouteStore) { System.currentTimeMillis() }
     }
 
+    /** [BATT-A-COST-IS-MEASURED-NOT-DECLARED-001] The fuel-gauge instrument bracketing both
+     *  GPS-holding jobs — the figures the field calibrates the sampling tiers against. */
+    private val batteryMeter: com.rndeveloper.paparcar.domain.detection.ports.BatteryMeter by inject()
+
     /** [DET-RESIDENT-FGS-001 · F3] Alive only while resident in SENTRY — see [watchSentryPreconditions]. */
     private var sentryWatchJob: Job? = null
 
@@ -1524,6 +1528,11 @@ class CoordinatorDetectionService : LifecycleService() {
         // Foreground work is happening — same presence a detection job stamps. The epilogue
         // re-decides (sentry / stop) when the recorder ends.
         detectionRuntime.setPresence(ServicePresence.Active)
+        // [BATT-A-COST-IS-MEASURED-NOT-DECLARED-001] The recorder's cost is measured too — the BT
+        // lane used to cost ~nothing, and what the pivot spends must be a figure, not a feeling.
+        val batteryStart = runCatching {
+            com.rndeveloper.paparcar.domain.detection.TripBatteryGauge.sample(batteryMeter, System.currentTimeMillis())
+        }.getOrNull()
         btTrackingJob = lifecycleScope.launch {
             try {
                 tripTracker.track(
@@ -1537,6 +1546,8 @@ class CoordinatorDetectionService : LifecycleService() {
                 throw e
             } catch (e: Exception) {
                 PaparcarLogger.e(DIAG, "  ✗ trip recorder error", e)
+            } finally {
+                logBatteryCost(batteryStart, source = "bt_recorder") // [BATT-A-COST-IS-MEASURED-NOT-DECLARED-001]
             }
         }
         val startedJob = btTrackingJob!!
@@ -1964,6 +1975,11 @@ class CoordinatorDetectionService : LifecycleService() {
         val armedAt = System.currentTimeMillis()
         val armId = armedAt.toString()
         com.rndeveloper.paparcar.detection.PendingDetectionStore.arm(applicationContext, armId, armedAt, trigger.name)
+        // [BATT-A-COST-IS-MEASURED-NOT-DECLARED-001] What this session COSTS is measured, not
+        // declared: bracket the job with fuel-gauge samples. Never allowed to affect the job.
+        val batteryStart = runCatching {
+            com.rndeveloper.paparcar.domain.detection.TripBatteryGauge.sample(batteryMeter, armedAt)
+        }.getOrNull()
         detectionJob = lifecycleScope.launch {
             val thisJob = coroutineContext[Job]
 
@@ -2092,6 +2108,7 @@ class CoordinatorDetectionService : LifecycleService() {
                 heartbeat.cancel()
                 passiveRouteTap.cancel() // [ROUTE-PASSIVE-FILL-001] the piggyback listener dies with the session
                 com.rndeveloper.paparcar.detection.PendingDetectionStore.clear(applicationContext, armId)
+                logBatteryCost(batteryStart, source = "coordinator") // [BATT-A-COST-IS-MEASURED-NOT-DECLARED-001]
                 // Skip teardown when this job has been superseded by a newer detection job
                 // (START_TRACKING / IN_VEHICLE_ENTER replacement). Stopping here would
                 // destroy the service after the replacement coordinator was just launched,
@@ -2154,6 +2171,46 @@ class CoordinatorDetectionService : LifecycleService() {
      * Emitting is a side effect, which is why it lives in the service; the *vocabulary* is a pure
      * domain enum, which is why the disposition is not a string literal at the call site.
      */
+    /**
+     * [BATT-A-COST-IS-MEASURED-NOT-DECLARED-001] Settle a job's fuel-gauge bracket and report it —
+     * to parkdiag (always) and to the daily ledger (fire-and-forget, `logTrigger`'s pattern). The
+     * cost belongs to the service's RUNTIME, not to any decision, so it files out-of-session and
+     * never touches the coordinator. A failure to measure logs and changes nothing.
+     */
+    private fun logBatteryCost(
+        start: com.rndeveloper.paparcar.domain.detection.TripBatteryGauge.Sample?,
+        source: String,
+    ) {
+        start ?: return // no instrument on this device — absent, never invented
+        val now = System.currentTimeMillis()
+        val cost = runCatching {
+            com.rndeveloper.paparcar.domain.detection.TripBatteryGauge.settle(
+                start,
+                com.rndeveloper.paparcar.domain.detection.TripBatteryGauge.sample(batteryMeter, now),
+            )
+        }.getOrNull() ?: return
+        val mAh = cost.deltaMicroAh?.let { it / 1000.0 }
+        PaparcarLogger.i(
+            DIAG,
+            "🔋 $source job cost: ${mAh?.let { "%.1f mAh".format(it) } ?: "unmeasured"} over " +
+                "${cost.durationMs / 1000}s (clean=${cost.clean}) [BATT-A-COST-IS-MEASURED-NOT-DECLARED-001]",
+        )
+        lifecycleScope.launch {
+            runCatching {
+                detectionEventLogger.log(
+                    com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent.Battery(
+                        sessionId = triggerLedgerSessionId(now),
+                        timestampMs = now,
+                        deltaMicroAh = cost.deltaMicroAh,
+                        durationMs = cost.durationMs,
+                        clean = cost.clean,
+                        source = source,
+                    ),
+                )
+            }.onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ battery-cost log failed: ${e.message}") }
+        }
+    }
+
     private fun logTrigger(
         trigger: String,
         disposition: TriggerDisposition,

@@ -414,6 +414,33 @@ sealed interface DetectionEvent {
         override val location: GpsPoint? = null,
     ) : DetectionEvent
 
+    /**
+     * [BATT-A-COST-IS-MEASURED-NOT-DECLARED-001] What a GPS-holding job actually COST, measured by
+     * the platform fuel gauge (charge-counter delta over the job's span). One event per ended job
+     * — the detection session or the BT trip recorder — filed under the daily trigger ledger
+     * (out-of-session convention above): the cost belongs to the service's runtime, not to any
+     * decision, so it deliberately does not touch the session document or the coordinator.
+     *
+     * [clean] is the honesty verdict (no charging at either end, non-negative delta, counter
+     * present, span ≥ the noise floor): only clean figures may ever feed a user-facing number —
+     * the user is shown measured costs or nothing, never estimates. A dirty figure still ships:
+     * it is data, and the fleet analysis can filter on the flag.
+     *
+     * @property deltaMicroAh µAh consumed (positive = discharge), null when the device's fuel
+     *   gauge answered nothing — absent, never invented.
+     * @property source which job: "coordinator" (detection session) or "bt_recorder" (trip
+     *   recorder [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001]).
+     */
+    data class Battery(
+        override val sessionId: String,
+        override val timestampMs: Long,
+        val deltaMicroAh: Long?,
+        val durationMs: Long,
+        val clean: Boolean,
+        val source: String,
+        override val location: GpsPoint? = null,
+    ) : DetectionEvent
+
     /** [DET-RESIDENT-FGS-001] Resident-SENTRY lifecycle telemetry: the service [event]ed the
      *  resident idle watcher ([ENTERED] after a park, with the epilogue reason as [signal]), handed
      *  it over to a live tracking job ([WOKE], with the arm trigger as [signal]), or was found dead
