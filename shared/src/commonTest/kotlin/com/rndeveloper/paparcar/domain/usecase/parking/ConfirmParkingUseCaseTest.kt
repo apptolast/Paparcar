@@ -748,6 +748,34 @@ class ConfirmParkingUseCaseTest {
     }
 
     @Test
+    fun `should stamp the measured search time when a fresh route attached`() = runTest {
+        // [TRIP-THE-SEARCH-FOR-A-SPOT-IS-MEASURED-001] Far (~2 km) at t-600s, re-entered the 300 m
+        // radius at t-302s, parked at t-2s → 300 s of hunting, measured from the route's own clocks.
+        val now = Clock.System.now().toEpochMilliseconds()
+        val anchor = GpsPoint(40.416775, -3.703790, 8f, now - 2_000, 0f)
+        val route = listOf(
+            GpsPoint(40.4350, -3.7038, 5f, now - 600_000, 0f),
+            GpsPoint(40.4190, -3.7038, 5f, now - 302_000, 0f),
+            GpsPoint(40.4172, -3.7038, 5f, now - 60_000, 0f),
+        )
+        val useCase = buildUseCase(routeStore = FakeDrivingRouteStore(initial = route))
+
+        val saved = useCase(anchor, detectionReliability = 0.9f, sealPoint = null).getOrNull()
+        assertNotNull(saved)
+        assertNotNull(saved.routePolyline, "the measure is gated on the route attaching")
+        assertEquals(300_000L, saved.searchTimeMs)
+    }
+
+    @Test
+    fun `should leave the search time absent when no route attached`() = runTest {
+        val useCase = buildUseCase(routeStore = FakeDrivingRouteStore())
+
+        val saved = useCase(location, detectionReliability = 0.9f, sealPoint = null).getOrNull()
+        assertNotNull(saved)
+        assertNull(saved.searchTimeMs, "no measured route -> no figure, never 0")
+    }
+
+    @Test
     fun `should not attach a stale route left over from a previous aborted trip`() = runTest {
         val old = Clock.System.now().toEpochMilliseconds() - 60 * 60_000L // 1 h ago
         val stale = listOf(

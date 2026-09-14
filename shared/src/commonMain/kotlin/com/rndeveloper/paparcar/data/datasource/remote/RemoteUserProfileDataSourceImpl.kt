@@ -236,6 +236,7 @@ class RemoteUserProfileDataSourceImpl(
                 // Close provenance + route length. Defensive: absent on docs written before
                 // VEH-STATS-SAY-SOMETHING-USEFUL-001 (distance self-heals in the inbound mapper).
                 routeDistanceMeters = runCatching { get<Double?>(FIELD_ROUTE_DISTANCE_METERS)?.toFloat() }.getOrNull(),
+                searchTimeMs = runCatching { get<Long?>(FIELD_SEARCH_TIME_MS) }.getOrNull(),
                 endedAtMs = runCatching { get<Long?>(FIELD_ENDED_AT_MS) }.getOrNull()
                     ?: runCatching { get<Double?>(FIELD_ENDED_AT_MS)?.toLong() }.getOrNull(),
                 publishedSpot = runCatching { get<Boolean?>(FIELD_PUBLISHED_SPOT) }.getOrNull() ?: false,
@@ -318,6 +319,7 @@ class RemoteUserProfileDataSourceImpl(
         const val FIELD_ROUTE_INFERRED_RESOLUTION = "routeInferredResolution"
         // Close provenance + route length. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
         const val FIELD_ROUTE_DISTANCE_METERS = "routeDistanceMeters"
+        const val FIELD_SEARCH_TIME_MS = "searchTimeMs"
         const val FIELD_ENDED_AT_MS = "endedAtMs"
         const val FIELD_PUBLISHED_SPOT = "publishedSpot"
         const val FIELD_RETRACTED_AT_MS = "retractedAtMs"

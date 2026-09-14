@@ -8,6 +8,7 @@ import com.rndeveloper.paparcar.domain.analytics.AnalyticsTracker
 import com.rndeveloper.paparcar.domain.detection.ArmLabel
 import com.rndeveloper.paparcar.domain.detection.assertionBlocksRelocation
 import com.rndeveloper.paparcar.domain.detection.DrivingRoute
+import com.rndeveloper.paparcar.domain.detection.ParkingSearchTime
 import com.rndeveloper.paparcar.domain.detection.ports.DrivingRouteStore
 import com.rndeveloper.paparcar.domain.detection.fence.VehicleFenceOwnershipPolicy
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
@@ -306,7 +307,15 @@ class ConfirmParkingUseCase(
             userParkingRepository.getActiveSessionByVehicle(resolvedVehicleId)
                 ?: userParkingRepository.getPreviousSession(resolvedVehicleId, gpsPoint.timestamp)
             )?.location
-        val routePolyline = encodeFreshRoute(nowMs = gpsPoint.timestamp, origin = routeOrigin, anchor = location)
+        // Read the recorded route ONCE: the polyline encode and the search-time measure below both
+        // testify from this same list. [TRIP-THE-SEARCH-FOR-A-SPOT-IS-MEASURED-001]
+        val recordedRoute = drivingRouteStore?.points().orEmpty()
+        val routePolyline = encodeFreshRoute(
+            recorded = recordedRoute, nowMs = gpsPoint.timestamp, origin = routeOrigin, anchor = location,
+        )
+        // Measurable exactly once — the stored polyline carries no clocks. Gated on the route
+        // actually attaching: a route too stale to attach cannot time the search either.
+        val searchTimeMs = routePolyline?.let { ParkingSearchTime.measure(recordedRoute, anchor = location) }
 
         val session = UserParking(
             id = sessionId,
@@ -327,6 +336,7 @@ class ConfirmParkingUseCase(
             detectionPath = detectionPath,
             zoneRadiusMeters = zoneRadiusMeters,
             routePolyline = routePolyline,
+            searchTimeMs = searchTimeMs, // [TRIP-THE-SEARCH-FOR-A-SPOT-IS-MEASURED-001]
         )
 
         PaparcarLogger.d(DIAG, "  → saveNewParkingSession BEFORE sessionId=$sessionId")
@@ -451,8 +461,7 @@ class ConfirmParkingUseCase(
      * the store recorded after the anchor's fix are the user's walk away from the parked car, not
      * the drive, and the anchor caps the line as its final vertex — see [DrivingRoute.endAtAnchor].
      */
-    private suspend fun encodeFreshRoute(nowMs: Long, origin: GpsPoint?, anchor: GpsPoint): String? {
-        val recorded = drivingRouteStore?.points().orEmpty()
+    private fun encodeFreshRoute(recorded: List<GpsPoint>, nowMs: Long, origin: GpsPoint?, anchor: GpsPoint): String? {
         val lastRecorded = recorded.lastOrNull() ?: return null
         val fresh = recorded.size >= 2 && lastRecorded.timestamp > 0L &&
             (nowMs - lastRecorded.timestamp) in 0..ROUTE_FRESHNESS_MS

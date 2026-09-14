@@ -97,6 +97,12 @@ data class UserParking(
      *  hot path. Null when there is no route (BT/legacy) — a missing distance is "unknown", never
      *  0. Synced. [VEH-STATS-SAY-SOMETHING-USEFUL-001] */
     val routeDistanceMeters: Float? = null,
+    /** Time this trip spent LOOKING for a spot (ms) — measured at confirm from the recorded
+     *  route's clocks (the stored polyline has none, so the figure is measurable exactly once) by
+     *  [com.rndeveloper.paparcar.domain.detection.ParkingSearchTime]. Stamped only when a fresh
+     *  measured route was attached; null = unmeasurable (short hop, no route, legacy) — never 0.
+     *  Synced. [TRIP-THE-SEARCH-FOR-A-SPOT-IS-MEASURED-001] */
+    val searchTimeMs: Long? = null,
     /** Epoch-ms when this session ENDED (isActive flipped false) — the moment the departure was
      *  committed, or the real deduced-departure instant when a promotion finalizes one. Null while
      *  active and on legacy rows closed before this field existed. Synced.

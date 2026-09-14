@@ -7,7 +7,7 @@ import androidx.room.RoomDatabaseConstructor
 
 /** The declared schema version — single source for the annotation and the tests that pin what an
  *  opened file must end up at. [DB-A-NEW-COLUMN-NEEDS-ITS-MIGRATION-001] */
-const val PAPARCAR_DB_VERSION = 9  // v9: an address carries its postcode [FUEL-A-POSTCODE-IS-THE-PROVINCE-ID-001] — MIGRATION_8_9 in ALL_MIGRATIONS
+const val PAPARCAR_DB_VERSION = 10  // v10: a parking remembers how long the spot took to find [TRIP-THE-SEARCH-FOR-A-SPOT-IS-MEASURED-001] — MIGRATION_9_10 in ALL_MIGRATIONS
 
 @Database(
     entities = [

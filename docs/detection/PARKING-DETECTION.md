@@ -8445,3 +8445,25 @@ Pixel como patrón oro; comparar agregados, nunca viajes sueltos.
 
 **Riesgo.** Ninguno sobre detección: `runCatching` en cada lectura, un fallo de medición loguea y
 no toca el job; sin instrumento → ausencia, nunca invención.
+
+### TRIP-THE-SEARCH-FOR-A-SPOT-IS-MEASURED-001 — el tiempo buscando plaza se mide en el confirm, una sola vez (commit pending)
+
+**Qué añade.** La métrica estrella del pivote ocupaba asiento reservado (`PeriodStats.searchTimeMs`,
+null fijo desde su declaración). Ahora `ParkingSearchTime` (puro, junto a `DrivingRoute` — consume
+los mismos puntos crudos) la mide EN EL CONFIRM: *la búsqueda empieza la ÚLTIMA vez que el viaje
+estuvo a >300 m del ancla final y termina en el ancla* ("last time far", nunca "first time near" —
+una calle de paso que roza el destino al SALIR no arranca el reloj). Directo ≈ 30-60 s de suelo
+documentado; cada vuelta a la manzana suma entera. Nulls honestos: nunca salió del radio (viaje
+corto), sin relojes, o fuera de [0, 45 min].
+
+**Por qué en el confirm y en ningún otro sitio**: el polyline guardado no lleva timestamps — la
+cifra es medible exactamente una vez, mientras los puntos de `DrivingRouteStore` aún tienen reloj.
+Como `routeDistanceMeters`: se mide cuando el dato existe y se estampa (`UserParking.searchTimeMs`,
+Room v10 + Firestore). Gated en que la ruta se adjuntara (misma frescura). El ancla que cierra el
+reloj es `location` con SU timestamp original (el fin medido de la conducción), no el reloj del
+confirm — el hold/paseo no se cobran como búsqueda. Un ancla sin timestamp (manual) → null.
+
+**Ninguna decisión tocada.** `encodeFreshRoute` solo cambió de firma (la lista se lee una vez y
+alimenta a los dos). Los 53 tests del confirm pasan sin cambiar ningún veredicto. Lector completo
+en la misma tarea: suma en `ComputePeriodStatsUseCase` (coste del periodo, no media) → tile
+`SEARCH_TIME` en el bloque de stats, 9 locales.

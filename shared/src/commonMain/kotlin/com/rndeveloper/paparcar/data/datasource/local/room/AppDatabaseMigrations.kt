@@ -188,4 +188,15 @@ private val MIGRATION_8_9 = object : Migration(8, 9) {
     }
 }
 
-val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+/**
+ * v10 [TRIP-THE-SEARCH-FOR-A-SPOT-IS-MEASURED-001]: a parking remembers how long the spot took to
+ * find. Measured once at confirm from the recorded route's clocks (the stored polyline has none);
+ * nothing is back-filled — a pre-v10 row is honestly "unmeasured", never 0.
+ */
+private val MIGRATION_9_10 = object : Migration(9, 10) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("ALTER TABLE `parking_sessions` ADD COLUMN `searchTimeMs` INTEGER")
+    }
+}
+
+val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)

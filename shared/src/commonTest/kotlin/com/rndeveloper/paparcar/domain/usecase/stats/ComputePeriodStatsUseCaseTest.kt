@@ -42,6 +42,7 @@ class ComputePeriodStatsUseCaseTest {
         active: Boolean = false,
         parkedForHours: Long = 2,
         street: String? = null,
+        searchTimeMs: Long? = null,
     ) = UserParking(
         id = "s-$ageDays-$vehicleId-$active",
         userId = "u-1",
@@ -51,6 +52,7 @@ class ComputePeriodStatsUseCaseTest {
         routeDistanceMeters = distanceMeters,
         endedAtMs = if (active) null else nowMs - ageDays * dayMs + parkedForHours * 3_600_000L,
         address = street?.let { AddressInfo(street = it, city = "Madrid", region = null, country = "ES") },
+        searchTimeMs = searchTimeMs,
     )
 
     // ── Energy ───────────────────────────────────────────────────────────────
@@ -214,5 +216,22 @@ class ComputePeriodStatsUseCaseTest {
         assertEquals(2, free?.parkings)
         assertNotEquals(plus?.fuelLiters, free?.fuelLiters)
         assertTrue(free?.fuelLiters!! < plus?.fuelLiters!!)
+    }
+
+    // ── Search time [TRIP-THE-SEARCH-FOR-A-SPOT-IS-MEASURED-001] ─────────────
+
+    @Test
+    fun `should_sumTheSearchTime_when_sessionsMeasuredIt_andStayNullOtherwise`() {
+        val withMeasure = compute(
+            sessions = listOf(
+                session(1, searchTimeMs = 120_000L),
+                session(2, searchTimeMs = 60_000L),
+                session(3), // unmeasured contributes nothing — absent, never 0
+            ),
+        )
+        assertEquals(180_000L, withMeasure?.searchTimeMs, "time LOST is a sum, not an average")
+
+        val without = compute(sessions = listOf(session(1), session(2)))
+        assertNull(without?.searchTimeMs, "no measured session -> no figure, never 0")
     }
 }

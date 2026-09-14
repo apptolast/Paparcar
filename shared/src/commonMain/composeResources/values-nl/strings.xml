@@ -809,6 +809,7 @@
     <string name="stats_tile_cost">kosten ong.</string>
     <string name="stats_tile_co2">CO₂ ong.</string>
     <string name="stats_tile_avg_duration">gem. duur</string>
+    <string name="stats_tile_search_time">plek zoeken</string>
     <string name="stats_tile_peak_hour">piekuur</string>
     <string name="stats_tile_usual_day">vaste dag</string>
     <string name="stats_tile_favorite_street">vaste straat</string>

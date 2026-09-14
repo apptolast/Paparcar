@@ -843,6 +843,7 @@
     <string name="stats_tile_cost">cost aprox.</string>
     <string name="stats_tile_co2">CO₂ aprox.</string>
     <string name="stats_tile_avg_duration">durată medie</string>
+    <string name="stats_tile_search_time">căutare loc</string>
     <string name="stats_tile_peak_hour">ora de vârf</string>
     <string name="stats_tile_usual_day">ziua obișnuită</string>
     <string name="stats_tile_favorite_street">strada obișnuită</string>

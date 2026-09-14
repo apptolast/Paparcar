@@ -20,6 +20,7 @@ import androidx.compose.material.icons.rounded.HourglassBottom
 import androidx.compose.material.icons.rounded.Payments
 import androidx.compose.material.icons.rounded.Place
 import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.TravelExplore
 import androidx.compose.material.icons.rounded.VolunteerActivism
 import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.material3.Icon
@@ -79,6 +80,7 @@ import paparcar.composeapp.generated.resources.stats_plus_row_subtitle
 import paparcar.composeapp.generated.resources.stats_plus_row_title
 import paparcar.composeapp.generated.resources.stats_tile_auto_detected
 import paparcar.composeapp.generated.resources.stats_tile_avg_duration
+import paparcar.composeapp.generated.resources.stats_tile_search_time
 import paparcar.composeapp.generated.resources.stats_tile_co2
 import paparcar.composeapp.generated.resources.stats_tile_energy
 import paparcar.composeapp.generated.resources.stats_tile_fuel
@@ -447,8 +449,8 @@ internal data class StatTileData(
  * can reach.
  */
 internal enum class StatTileKey {
-    COST, FUEL, ENERGY, CO2, AVG_DURATION, PEAK_HOUR, USUAL_DAY, USUAL_STREET, AUTO_DETECTED,
-    SPOTS_SHARED
+    COST, FUEL, ENERGY, CO2, SEARCH_TIME, AVG_DURATION, PEAK_HOUR, USUAL_DAY, USUAL_STREET,
+    AUTO_DETECTED, SPOTS_SHARED
 }
 
 /**
@@ -462,6 +464,8 @@ private fun StatTileKey.icon(): ImageVector = when (this) {
     StatTileKey.FUEL -> Icons.Rounded.LocalGasStation
     StatTileKey.ENERGY -> Icons.Rounded.ElectricBolt
     StatTileKey.CO2 -> Icons.Rounded.Cloud
+    // The roaming magnifier: time spent hunting the spot. [TRIP-THE-SEARCH-FOR-A-SPOT-IS-MEASURED-001]
+    StatTileKey.SEARCH_TIME -> Icons.Rounded.TravelExplore
     StatTileKey.AVG_DURATION -> Icons.Rounded.HourglassBottom
     StatTileKey.PEAK_HOUR -> Icons.Rounded.Schedule
     StatTileKey.USUAL_DAY -> Icons.Rounded.Event
@@ -480,6 +484,9 @@ internal fun statTileKeys(stats: PeriodStats): List<StatTileKey> = buildList {
     if (stats.fuelLiters != null) add(StatTileKey.FUEL)
     if (stats.energyKwh != null) add(StatTileKey.ENERGY)
     if (stats.co2Kg != null) add(StatTileKey.CO2)
+    // Time LOST hunting is a cost of the period, like fuel — it reads with the money block.
+    // [TRIP-THE-SEARCH-FOR-A-SPOT-IS-MEASURED-001]
+    if (stats.searchTimeMs != null) add(StatTileKey.SEARCH_TIME)
     if (stats.avgParkedDurationMs != null) add(StatTileKey.AVG_DURATION)
     if (stats.peakHourBucket != null) add(StatTileKey.PEAK_HOUR)
     if (stats.mostActiveDayOfWeek != null) add(StatTileKey.USUAL_DAY)
@@ -564,6 +571,15 @@ internal fun statTiles(stats: PeriodStats): List<StatTileData> {
                 animated = StatTileNumber(requireNotNull(stats.co2Kg)) { v ->
                     kgTemplate.replace(NUMBER_SLOT, formatDecimal(v))
                 },
+            )
+            StatTileKey.SEARCH_TIME -> StatTileData(
+                icon = icon,
+                value = durationText(requireNotNull(stats.searchTimeMs)),
+                label = stringResource(Res.string.stats_tile_search_time),
+                delta = percentDelta(
+                    requireNotNull(stats.searchTimeMs).toDouble(),
+                    stats.previous?.searchTimeMs?.toDouble(),
+                ),
             )
             StatTileKey.AVG_DURATION -> StatTileData(
                 icon = icon,

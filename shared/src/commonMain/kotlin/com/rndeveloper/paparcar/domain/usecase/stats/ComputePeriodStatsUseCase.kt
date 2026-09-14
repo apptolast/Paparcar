@@ -159,7 +159,10 @@ class ComputePeriodStatsUseCase {
                 0
             },
             detectionKnownCount = if (shareSignificant) known.size else 0,
-            searchTimeMs = null,
+            // The pitch's flagship figure: time LOST hunting in the period — a sum, not an
+            // average, because it is a cost. Sessions without the measure contribute nothing
+            // (absent, never 0). [TRIP-THE-SEARCH-FOR-A-SPOT-IS-MEASURED-001]
+            searchTimeMs = sessions.mapNotNull { it.searchTimeMs }.takeIf { it.isNotEmpty() }?.sum(),
             // The previous period never nests its own previous — one step back is the comparison.
             previous = previousSessions?.let {
                 invoke(

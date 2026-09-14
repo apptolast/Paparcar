@@ -825,6 +825,7 @@
     <string name="stats_tile_cost">gasto aprox.</string>
     <string name="stats_tile_co2">CO₂ aprox.</string>
     <string name="stats_tile_avg_duration">duración media</string>
+    <string name="stats_tile_search_time">buscando plaza</string>
     <string name="stats_tile_peak_hour">hora punta</string>
     <string name="stats_tile_usual_day">día habitual</string>
     <string name="stats_tile_favorite_street">calle habitual</string>

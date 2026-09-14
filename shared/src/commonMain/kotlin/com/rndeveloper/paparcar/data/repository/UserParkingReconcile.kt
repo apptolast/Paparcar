@@ -45,6 +45,7 @@ fun reconcileParkingSessions(
             // Close provenance + route length ARE synced, but a legacy remote doc predating the
             // fields must not erase what this device already knows. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
             routeDistanceMeters = r.routeDistanceMeters ?: l?.routeDistanceMeters,
+            searchTimeMs = r.searchTimeMs ?: l?.searchTimeMs,
             endedAtMs = r.endedAtMs ?: l?.endedAtMs,
             publishedSpot = r.publishedSpot || l?.publishedSpot == true,
             // [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] A withdrawal is never un-done by a

@@ -155,6 +155,7 @@ object FakeData {
         publishedSpot = true,
         endedAtMs = now - 3_600_000L,
         routeDistanceMeters = 3_400f,
+        searchTimeMs = 4 * 60_000L, // [TRIP-THE-SEARCH-FOR-A-SPOT-IS-MEASURED-001]
     )
     private val endedToday2 = UserParking(
         id = "s_t2",
@@ -189,6 +190,7 @@ object FakeData {
         publishedSpot = true,
         endedAtMs = now - 86_400_000L - 7_200_000L,
         routeDistanceMeters = 6_800f,
+        searchTimeMs = 7 * 60_000L,
     )
     // Ungeocoded close — offline when it ended, so neither address nor POI ever resolved:
     // exercises the human fallback title, never raw coordinates. [UI-LOCATION-FALLBACK-SPEAKS-HUMAN-001]

@@ -843,6 +843,7 @@
     <string name="stats_tile_cost">koszt ok.</string>
     <string name="stats_tile_co2">CO₂ ok.</string>
     <string name="stats_tile_avg_duration">śr. czas postoju</string>
+    <string name="stats_tile_search_time">szukanie miejsca</string>
     <string name="stats_tile_peak_hour">godzina szczytu</string>
     <string name="stats_tile_usual_day">zwykły dzień</string>
     <string name="stats_tile_favorite_street">zwykła ulica</string>

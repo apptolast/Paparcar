@@ -201,6 +201,27 @@ class AppDatabaseV1BaselineTest {
             ),
         )
         val routePoints = db.tripRoutePointDao().getAllOrdered()
+        // …and MIGRATION_9_10's witness [TRIP-THE-SEARCH-FOR-A-SPOT-IS-MEASURED-001]: a session
+        // written WITH the search-time figure must round-trip through the migrated file — the
+        // column has to exist AND be readable, not merely not-throw.
+        db.parkingSessionDao().insert(
+            UserParkingEntity(
+                id = "pin-search-witness",
+                userId = "user-bench",
+                latitude = 36.6084,
+                longitude = -6.2781,
+                accuracy = 5.0f,
+                timestamp = 1_788_204_119_405,
+                isActive = false,
+                routeSnapped = false,
+                publishedSpot = false,
+                updatedAt = 2L,
+                pendingSync = false,
+                searchTimeMs = 187_000L,
+            ),
+        )
+        val searchWitness = db.parkingSessionDao().getByUser("user-bench")
+            .firstOrNull { it.id == "pin-search-witness" }
         db.close()
 
         assertEquals(1, rows.size, "an untouched schema must not cost the user their parked session")
@@ -248,6 +269,11 @@ class AppDatabaseV1BaselineTest {
             "the 7→8 migration must create trip_route_points with the columns Room expects",
         )
         assertEquals("gps", routePoints.single().provider, "provenance must survive the file")
+        assertEquals(
+            187_000L,
+            searchWitness?.searchTimeMs,
+            "the 9→10 migration must add searchTimeMs, and the write path must fill it",
+        )
         assertEquals(PAPARCAR_DB_VERSION, readUserVersion(name))
     }
 

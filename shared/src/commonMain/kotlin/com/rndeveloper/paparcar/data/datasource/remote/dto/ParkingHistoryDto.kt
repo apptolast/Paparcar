@@ -57,6 +57,9 @@ data class ParkingHistoryDto(
     /** Haversine length (meters) of [routePolyline]. Null on legacy docs — the inbound mapper
      *  recomputes it from the polyline (self-healing). [VEH-STATS-SAY-SOMETHING-USEFUL-001] */
     val routeDistanceMeters: Float? = null,
+    /** Search-for-a-spot time (ms) — measured once at confirm (the polyline carries no clocks), so
+     *  it syncs or it is lost. [TRIP-THE-SEARCH-FOR-A-SPOT-IS-MEASURED-001] */
+    val searchTimeMs: Long? = null,
     /** Epoch-ms when the session ended (isActive → false). Null on legacy docs / active sessions.
      *  [VEH-STATS-SAY-SOMETHING-USEFUL-001] */
     val endedAtMs: Long? = null,
