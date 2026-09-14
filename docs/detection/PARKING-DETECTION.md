@@ -4335,6 +4335,11 @@ MAC, so making it active buys it nothing and costs the coordinator's car its onl
 
 **Fix.** `ParkingReleaseReason` (commonMain domain model) replaces the boolean: `publishesSpot` +
 `isDeparture` — `DEPARTURE_PUBLISHED`, `DEPARTURE_UNPUBLISHED`, `RECORD_DELETED` (publishes nothing,
+> ⚠️ **Superado por SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001** (final de este
+> documento): hoy son DOS — `DEPARTURE` y `RECORD_DELETED` — y `publishesSpot` se llama `offersSpot`,
+> porque la política puede negar la publicación que el usuario ofrece. Lo de abajo describe el estado
+> de entonces.
+
 declares nothing, still removes the session's fence). The intent has no default, so a new call site
 must state its motive. The verdict itself composes motive and car in the policy that already owns
 this asymmetry: `VehicleFenceOwnershipPolicy.shouldDeclareActiveOnRelease(reason, isBtPaired) =
@@ -8049,3 +8054,81 @@ algún día un caller nuevo necesitara despachar sin permisos (p. ej. para provo
 permiso revocado), debe leer el gap crudo como hace `home-cta`. Servicios de vida corta
 (`BluetoothDetectionService`) quedan exentos del re-post: re-promocionan en cada arranque y viven
 minutos, no horas.
+
+---
+
+### SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001 — la zona privada se pregunta al PUBLICAR, no al aparcar, y el diálogo deja de preguntar lo que decide el sitio
+
+**Síntoma.** Aparcar dentro de una zona privada, abrir el peek del aparcamiento, «Me voy» →
+«Liberar plaza»: la plaza del garaje salía a la comunidad. Y ese era el botón **primario**.
+
+**El hueco, y por qué la suite verde no lo vio.** El invariante *«una plaza en zona privada no se
+publica»* vivía como un término suelto, `session.privateZoneId == null`, **copiado** en tres de las
+cuatro puertas a la comunidad (`ProcessConfirmedDeparture`, `FinalizeDeducedDeparture`,
+`RetractDeducedDeparture`) y simplemente ausente en la cuarta, `ReleaseActiveParkingSessionUseCase`.
+Estaba catalogado sin adjudicar en `07-duplicacion.md` §5.1 con la incógnita anotada — *«NO
+VERIFICADO si la UI esconde el botón para sesiones HOME_GEOFENCE»*. **No lo escondía.**
+
+El testigo de cómo sobrevivió está en su propio test: `ReleaseActiveParkingSessionUseCaseTest` tenía
+tests de «zona» desde SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001… pero de `zoneRadiusMeters`, el círculo
+de duda del honest-close. Dos conceptos distintos con la misma palabra en el mismo fichero, y una
+suite que parecía haber mirado.
+
+**El segundo fallo, más profundo: el sello.** `privateZoneId` se estampaba UNA vez, en
+`ConfirmParkingUseCase`, contra las zonas del instante de aparcar. Nadie lo revisaba nunca más, así
+que fallaba simétrico: una zona **creada** con el coche ya aparcado no protegía ese aparcamiento, y
+una zona **borrada** (o pasada a pública) después seguía silenciándolo para siempre.
+
+**Fix — el momento, no la deduplicación.** La pregunta pasa a contestarse en el único instante en
+que se actúa sobre ella: al publicar. `SpotReleasePolicy.shapeFor(location, zoneRadiusMeters,
+detectionReliability, privateZones)` —la función que ya decidía la FORMA de la plaza liberada— es
+ahora también la que decide si sale alguna, leyendo `ZoneRepository.getPrivateZonesSnapshot()` en
+cada puerta. `Shape.Withheld` pasa de `data object` a `data class` con
+`WithholdReason { PRIVATE_ZONE, AREA_TOO_WIDE }`: el motivo lo leen el log, el diálogo y el
+historial, y el cambio de tipo es lo que hizo al compilador enumerar las cuatro puertas del barrido.
+El `ZoneRepository` va **sin nullable** en las cuatro (a diferencia de todo colaborador opcional de
+alrededor): un lector ausente significaría «no retengas nada» — el bug otra vez, en silencio.
+
+Con eso no hace falta ninguna pasada de re-evaluación al crear/editar/mover/redimensionar/borrar
+zonas sobre todas las sesiones activas, que habría sido una segunda fuente de verdad compitiendo con
+la primera. `privateZoneId` sobrevive como **provenance** (en qué zona llegó el coche) y como origen
+del `SpotType.HOME_GEOFENCE`, que es el único rastro SINCRONIZADO de «aparcó en casa» — el sello es
+local y nunca viaja en `ParkingHistoryDto`.
+
+⚠️ **Limitación asumida.** `RetractDeducedDeparture` no pregunta «¿es privada?» sino «¿hay documento
+que retirar?», y usa la zona como *proxy*. Con el gate en vivo el proxy puede divergir si las zonas
+cambian entre la publicación provisional y la retractación — ventana acotada por
+`PROVISIONAL_SPOT_TTL_MS` (12 min), y falla por el lado barato: una plaza publicada *antes* de que
+la zona existiera expira por TTL en vez de retirarse antes. Cerrarlo de verdad exigiría un campo
+durable «esta deducción publicó» (Room v8 + DTO + serializadores), cola desproporcionada para 12
+minutos.
+
+**Un solo botón.** `ParkingReleaseReason` pierde `DEPARTURE_UNPUBLISHED` y queda en `DEPARTURE` +
+`RECORD_DELETED`; `publishesSpot` se renombra a **`offersSpot`** — es la INTENCIÓN del usuario, y la
+política todavía puede negarla (misma distinción que tuvo que aprender el maestro de detección en
+DET-TOGGLE-A-SWITCH-THAT-CANNOT-RUN-IS-NOT-ON-001). «Liberar y avisar» / «Solo liberar» preguntaba
+**por salida**, con el coche arrancado, algo que es propiedad del SITIO y por tanto durable: dicho de
+un garaje, había que repetirlo cada vez que salías de él. La respuesta por sitio ya existe y es la
+zona privada. El diálogo ahora **dice** en vez de preguntar: «Al irte, tu aparcamiento libera una
+plaza» o, dentro de una zona, «Aparcaste en *X*, una zona privada: al irte no se publica ninguna
+plaza». Publicar nada en silencio bajo un botón que promete una plaza era la alternativa.
+
+**El historial separa los dos ejes.** `ParkingDetectionSource` pierde `PrivateZone`: no era una
+fuente. Contestaba DÓNDE está el coche en el enum que contesta QUIÉN puso el pin, y siendo un enum
+solo podía hacerlo **sustituyendo** la respuesta real — un aparcamiento en tu garaje dejaba de decir
+si lo detectó el Bluetooth o el coordinador, que es la pregunta para la que esa fila existe
+[UI-HISTORY-IDENTITY-AND-SOURCE-001]. Y como se derivaba de `spotType == HOME_GEOFENCE`, que
+`ConfirmParking` solo asigna a pines AUTO_DETECTED, un pin puesto **a mano** dentro de una zona
+privada leía «Manual» y no mencionaba la zona, aunque llevaba `privateZoneId` igual. Ahora
+`HOME_GEOFENCE` lee su estrategia del `detectionPath` como cualquier otro pin automático, y una fila
+propia dice el sitio y la consecuencia: «*Garaje* · zona privada — no se publicó plaza», resuelta en
+vivo contra las zonas actuales (la única forma que funciona en un segundo móvil).
+
+**Alcance del barrido.** `ParkedVehicleSummary.privateZoneId` se borra: viajaba a la capa de mapa y
+**no lo leía nadie**: un veredicto sellado ofrecido a la UI es una invitación a decidir con la
+respuesta con la que llegó el coche en vez de con la que vale ahora.
+
+**Mock.** `FakeZoneRepository` del sabor mock era `emptyList()` fijo en todos sus miembros, así que
+la mitad «zona privada» de la app era **inalcanzable en todo el set de pruebas**. Ahora es
+scenario-aware (`MockScenario.parkedInPrivateZone`, con su interruptor en el Dev Catalog) y guarda
+de verdad lo que se crea dentro de la app.

@@ -155,13 +155,7 @@ class VehicleFenceOwnershipPolicyTest {
         // The coordinator's car has no identity but the active flag — leaving in it IS the claim.
         assertTrue(
             VehicleFenceOwnershipPolicy.shouldDeclareActiveOnRelease(
-                reason = ParkingReleaseReason.DEPARTURE_PUBLISHED,
-                releasedVehicleIsBtPaired = false,
-            ),
-        )
-        assertTrue(
-            VehicleFenceOwnershipPolicy.shouldDeclareActiveOnRelease(
-                reason = ParkingReleaseReason.DEPARTURE_UNPUBLISHED,
+                reason = ParkingReleaseReason.DEPARTURE,
                 releasedVehicleIsBtPaired = false,
             ),
         )
@@ -173,7 +167,7 @@ class VehicleFenceOwnershipPolicyTest {
         // Focus. The MAC already identifies the Kamiq; the flag is the Focus's only identity.
         assertFalse(
             VehicleFenceOwnershipPolicy.shouldDeclareActiveOnRelease(
-                reason = ParkingReleaseReason.DEPARTURE_PUBLISHED,
+                reason = ParkingReleaseReason.DEPARTURE,
                 releasedVehicleIsBtPaired = true,
             ),
         )

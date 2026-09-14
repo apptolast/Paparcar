@@ -180,7 +180,7 @@ val detectionModule = module {
     single<com.rndeveloper.paparcar.domain.detection.DepartureConfirmationListener> { get<CoordinatorParkingDetector>() }
 
     // ── Parking session lifecycle ─────────────────────────────────────────────────────────────
-    factory { ReleaseActiveParkingSessionUseCase(reportSpotReleased = get(), userParkingRepository = get(), geofenceService = get(), detectionEventLogger = get(), analyticsTracker = get()) }
+    factory { ReleaseActiveParkingSessionUseCase(reportSpotReleased = get(), userParkingRepository = get(), geofenceService = get(), detectionEventLogger = get(), zoneRepository = get(), analyticsTracker = get()) }
     // [VEH-ACTIVE-FENCE-001 · 2c] Active-vehicle declaration + geofence swap.
     factory { SwapActiveVehicleFencesUseCase(userParkingRepository = get(), vehicleRepository = get(), geofenceService = get(), config = get()) }
     factory { DeclareActiveVehicleUseCase(vehicleRepository = get(), swapFences = get()) }
@@ -238,6 +238,10 @@ val detectionModule = module {
             // this is the other door out to the community.
             btConnectStamps = getOrNull(),
             config = get(),
+            // [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] `get()`, never
+            // `getOrNull()`: an absent zone reader would mean "withhold nothing" and promote a
+            // private garage's plaza to the full lifetime.
+            zoneRepository = get(),
         )
     } bind FinalizeDeducedDeparture::class
     // [DET-HANDOFF-NOT-MANUAL-001 §B.3] Withdraws that same provisional spot when the trip ends
@@ -247,6 +251,7 @@ val detectionModule = module {
             userParkingRepository = get(),
             spotRepository = get(),
             detectionEventLogger = get(),
+            zoneRepository = get(),
         )
     } bind RetractDeducedDeparture::class
     factory {
@@ -262,6 +267,9 @@ val detectionModule = module {
             // exists where there is a Bluetooth lane. Absent = no stamp = "cannot know", which the
             // rule already treats as "publish as before".
             btConnectStamps = getOrNull(),
+            // [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] The publish gate's
+            // zone reader — required, so no door can lose it.
+            zoneRepository = get(),
         )
     }
     factory {

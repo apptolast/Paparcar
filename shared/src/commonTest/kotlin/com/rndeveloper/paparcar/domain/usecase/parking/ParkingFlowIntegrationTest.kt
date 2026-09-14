@@ -82,6 +82,7 @@ class ParkingFlowIntegrationTest {
         userParkingRepository = parkingRepo,
         geofenceService = com.rndeveloper.paparcar.fakes.FakeGeofenceManager(),
         detectionEventLogger = com.rndeveloper.paparcar.domain.diagnostics.NoOpDetectionEventLogger(),
+        zoneRepository = com.rndeveloper.paparcar.fakes.FakeZoneRepository(),
     )
 
     // ── Happy path ────────────────────────────────────────────────────────────

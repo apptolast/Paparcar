@@ -449,6 +449,20 @@ private fun history(
 // History detail sheet — map-free surface, bottom-anchored like on the real screen. Showcases the
 // real detection label (auto/manual/home), the real vehicle pictogram + the timeline stepper
 // (‹ older / › newer). [HISTORY-DETAIL-002]
+/** Una zona privada dibujada sobre [session], para las variantes de zona privada del detalle.
+ *  [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] */
+private fun privateZoneOver(session: UserParking) = Zone(
+    id = "zone-garage",
+    userId = session.userId,
+    name = "Garaje",
+    lat = session.location.latitude,
+    lon = session.location.longitude,
+    iconKey = "HOME",
+    createdAt = 0L,
+    radiusMeters = 50f,
+    isPrivate = true,
+)
+
 @Composable
 private fun parkingDetailSheet(
     session: UserParking,
@@ -457,11 +471,15 @@ private fun parkingDetailSheet(
     hasNewer: Boolean = true,
     canWithdraw: Boolean = false,
     withdrawing: Boolean = false,
+    /** [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] Empty = the park freed a
+     *  plaza. Non-empty and covering the session = the private-zone row appears. */
+    privateZones: List<Zone> = emptyList(),
 ) {
     Box(Modifier.fillMaxSize()) {
         HistoryDetailSheet(
             focused = FocusedParking.Resolved(session),
             vehicle = vehicle,
+            privateZones = privateZones,
             hasOlder = hasOlder,
             hasNewer = hasNewer,
             onOlder = {},
@@ -483,6 +501,7 @@ private fun parkingDetailSheetFace(focused: FocusedParking) {
         HistoryDetailSheet(
             focused = focused,
             vehicle = null,
+            privateZones = emptyList(),
             hasOlder = false,
             hasNewer = false,
             onOlder = {},
@@ -881,10 +900,28 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     vehicle = FakeData.vehicleSedan,
                 )
             },
-            Variant("Geocerca de casa · furgoneta") {
+            // [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] Los DOS ejes a la
+            // vez, que antes se pisaban: la fila de detección dice QUIÉN puso el pin y la nueva
+            // dice DÓNDE está y qué pasó por estarlo. Esta ficha decía solo «Zona privada», sin
+            // estrategia y sin consecuencia.
+            Variant("Zona privada · asistido · furgoneta") {
                 parkingDetailSheet(
-                    session = FakeData.endedSessions[2].copy(spotType = SpotType.HOME_GEOFENCE),
+                    session = FakeData.endedSessions[2].copy(
+                        spotType = SpotType.HOME_GEOFENCE,
+                        detectionPath = DetectionPath.StepsEgress.label,
+                    ),
                     vehicle = FakeData.vehicleVan,
+                    privateZones = listOf(privateZoneOver(FakeData.endedSessions[2])),
+                )
+            },
+            // El caso que NO se veía: un pin puesto a mano dentro de la zona conserva
+            // MANUAL_REPORT, así que nunca llegaba a decir que estaba en una zona privada — y sí
+            // que su salida no publicaría plaza.
+            Variant("Zona privada · pin manual") {
+                parkingDetailSheet(
+                    session = FakeData.endedSessions[2].copy(spotType = SpotType.MANUAL_REPORT),
+                    vehicle = FakeData.vehicleVan,
+                    privateZones = listOf(privateZoneOver(FakeData.endedSessions[2])),
                 )
             },
             Variant("Moto · manual") {

@@ -27,7 +27,7 @@ class RetractDeducedDepartureUseCaseTest {
         id = id,
         userId = "user-42",
         vehicleId = vehicleId,
-        location = GpsPoint(40.4, -3.7, 8f, 1_000_000L, 0f),
+        location = GpsPoint(SESSION_LAT, SESSION_LON, 8f, 1_000_000L, 0f),
         geofenceId = id,
         isActive = true,
         privateZoneId = privateZoneId,
@@ -75,10 +75,22 @@ class RetractDeducedDepartureUseCaseTest {
 
     @Test
     fun should_not_withdraw_anything_for_a_private_zone_because_nothing_was_ever_published() = runTest {
-        val parkings = FakeUserParkingRepository(initialSession = session(privateZoneId = "zone-1"))
+        // [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] Set up by the user HAVING
+        // the zone, not by the session's stamp — the proxy for "nothing was published" has to read
+        // the same zone list the publish decision read.
+        val parkings = FakeUserParkingRepository(initialSession = session())
         val spots = FakeSpotRepository()
+        val zones = com.rndeveloper.paparcar.fakes.FakeZoneRepository().apply {
+            this.zones = listOf(
+                com.rndeveloper.paparcar.domain.model.Zone(
+                    id = "zone-1", userId = "user-42", name = "Garaje",
+                    lat = SESSION_LAT, lon = SESSION_LON, iconKey = "HOME",
+                    createdAt = 0L, radiusMeters = 50f, isPrivate = true,
+                )
+            )
+        }
 
-        assertEquals(0, buildUseCase(parkings, spots)())
+        assertEquals(0, buildUseCase(parkings, spots, zones)())
         assertTrue(spots.retractedSpotIds.isEmpty())
     }
 
@@ -110,6 +122,7 @@ class RetractDeducedDepartureUseCaseTest {
             userParkingRepository = parkings,
             spotRepository = spots,
             detectionEventLogger = FakeDetectionEventLogger(),
+            zoneRepository = com.rndeveloper.paparcar.fakes.FakeZoneRepository(),
             nowMs = { PENDING_AT_MS + SpotTtlPolicy.PROVISIONAL_SPOT_TTL_MS + 1 },
         )()
 
@@ -126,6 +139,7 @@ class RetractDeducedDepartureUseCaseTest {
             userParkingRepository = parkings,
             spotRepository = spots,
             detectionEventLogger = FakeDetectionEventLogger(),
+            zoneRepository = com.rndeveloper.paparcar.fakes.FakeZoneRepository(),
             nowMs = { PENDING_AT_MS + SpotTtlPolicy.PROVISIONAL_SPOT_TTL_MS },
         )()
 
@@ -135,14 +149,21 @@ class RetractDeducedDepartureUseCaseTest {
     private fun buildUseCase(
         parkings: FakeUserParkingRepository = FakeUserParkingRepository(),
         spots: FakeSpotRepository = FakeSpotRepository(),
+        zones: com.rndeveloper.paparcar.fakes.FakeZoneRepository =
+            com.rndeveloper.paparcar.fakes.FakeZoneRepository(),
     ) = RetractDeducedDepartureUseCase(
         userParkingRepository = parkings,
         spotRepository = spots,
         detectionEventLogger = FakeDetectionEventLogger(),
+        zoneRepository = zones,
         nowMs = { PENDING_AT_MS + 60_000L },
     )
 
     private companion object {
         const val PENDING_AT_MS = 1_000_000L
+
+        /** Where every session in this file is parked — the private-zone case draws its zone here. */
+        const val SESSION_LAT = 40.4
+        const val SESSION_LON = -3.7
     }
 }

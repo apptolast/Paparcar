@@ -333,6 +333,15 @@ decisión).
    HOME_GEOFENCE — si no lo hace, es un bug real); (b) NO resetea `DepartureEventBus` (ni lo
    inyecta) — tras una liberación manual el bus conserva el ENTER viejo del viaje de llegada
    (Process:80 sí resetea). **¿Bug o intención? Bloquea la parametrización de P1 hasta adjudicar.**
+
+   > ✅ **(a) ADJUDICADO Y CERRADO — SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001.**
+   > Era bug real: la incógnita se verificó y la UI **no** escondía el botón. Y el término copiado en
+   > tres puertas resultó ser el síntoma menor — el fondo era que `privateZoneId` sellaba al aparcar
+   > un veredicto cuya respuesta es viva. El gate se mudó a `SpotReleasePolicy.shapeFor(...)`, que
+   > las cuatro puertas ya llamaban. Ver el capítulo al final de `PARKING-DETECTION.md`.
+   >
+   > 🔵 **(b) SIGUE ABIERTO**, deliberadamente fuera de alcance de ese ticket: es un bug de
+   > detección (el bus retiene el ENTER de llegada), no de publicación.
 2. **Posible zona SIN techo en el path honest-close**: EvalHC:319 calcula su radio de zona con solo
    el floor (`max(acc, honestCloseMinZoneRadiusMeters)`) mientras el path desatendido aplica
    también el techo `unattendedZoneMaxRadiusMeters` (CPD:1501-1504). **NO VERIFICADO** si el

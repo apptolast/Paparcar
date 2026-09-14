@@ -36,8 +36,18 @@ enum class ParkingDetectionSource {
     /** The user placed or confirmed this pin by hand. */
     Manual,
 
-    /** Parked inside a private zone — publication is suppressed on departure. */
-    PrivateZone,
+    // ⛔ There used to be a `PrivateZone` member here, and it was not a source.
+    // [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] It answered WHERE the car is,
+    // in the enum that answers WHO put the pin, and being an enum it could only do that by
+    // REPLACING the real answer: a park in the user's own garage stopped saying whether Bluetooth
+    // or the coordinator had detected it — the exact question this type exists to answer. And
+    // because it was derived from `spotType == HOME_GEOFENCE`, which `ConfirmParkingUseCase` only
+    // assigns to AUTO_DETECTED pins, a pin placed BY HAND inside a private zone read "Manual" and
+    // never mentioned the zone at all, though it carried `privateZoneId` all the same.
+    //
+    // Both axes are now reported, separately: the strategy here, the place (and the consequence —
+    // that no plaza was published) on its own line in the history detail, resolved live from the
+    // user's current zones.
 
     /**
      * Auto-detected, but the row predates provenance ([UserParking.detectionPath] is null). We do
@@ -59,8 +69,11 @@ fun parkingDetectionSourceOf(
     spotType: SpotType,
     detectionPath: String?,
 ): ParkingDetectionSource = when (spotType) {
-    SpotType.HOME_GEOFENCE -> ParkingDetectionSource.PrivateZone
     SpotType.MANUAL_REPORT -> ParkingDetectionSource.Manual
+    // [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] A park at home is still a park
+    // SOMETHING detected: HOME_GEOFENCE says where the car is, never who found it, so it reads its
+    // strategy off the path exactly like any other auto-detected pin.
+    SpotType.HOME_GEOFENCE,
     // [DET-DETECTION-PATH-IS-A-TYPE-001] The path DECLARES its strategy; this no longer re-derives
     // it. What used to live here was a prefix guess and a fall-through:
     //

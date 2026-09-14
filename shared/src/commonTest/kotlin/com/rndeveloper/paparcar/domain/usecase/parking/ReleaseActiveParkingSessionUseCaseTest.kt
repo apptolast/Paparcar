@@ -17,6 +17,8 @@ import com.rndeveloper.paparcar.fakes.FakeDetectionEventLogger
 import com.rndeveloper.paparcar.fakes.FakeGeofenceManager
 import com.rndeveloper.paparcar.fakes.FakeReportSpotScheduler
 import com.rndeveloper.paparcar.fakes.FakeUserParkingRepository
+import com.rndeveloper.paparcar.fakes.FakeZoneRepository
+import com.rndeveloper.paparcar.domain.model.Zone
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -38,8 +40,9 @@ class ReleaseActiveParkingSessionUseCaseTest {
     private val geofence = com.rndeveloper.paparcar.fakes.FakeGeofenceManager()
     private val eventLogger = FakeDetectionEventLogger()
     private val tracker = FakeAnalyticsTracker()
+    private val zoneRepo = FakeZoneRepository()
     private val useCase = ReleaseActiveParkingSessionUseCase(
-        reportSpotReleased, parkingRepo, geofence, eventLogger, tracker,
+        reportSpotReleased, parkingRepo, geofence, eventLogger, zoneRepo, tracker,
     )
 
     private val location = GpsPoint(40.416775, -3.703790, 10f, 0L, 0f)
@@ -60,11 +63,87 @@ class ReleaseActiveParkingSessionUseCaseTest {
         geofenceId = geofenceId,
     )
 
+    /** A private zone drawn around [location] — where every session in this file is parked. */
+    private fun privateZoneHere(
+        id: String = "zone-garage",
+        name: String = "Garaje",
+        radiusMeters: Float = 50f,
+    ) = Zone(
+        id = id,
+        userId = "u-1",
+        name = name,
+        lat = location.latitude,
+        lon = location.longitude,
+        iconKey = "HOME",
+        createdAt = 0L,
+        radiusMeters = radiusMeters,
+        isPrivate = true,
+    )
+
+    // ── [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] ───────
+    // The tests this file did NOT have. It had "zone" tests all along — but of
+    // `zoneRadiusMeters`, the honest-close doubt circle. Two different things called zone in one
+    // file is how a green suite looked like it had checked this.
+
+    @Test
+    fun `should_notPublishTheSpot_when_theUserLeavesFromInsideAPrivateZone`() = runTest {
+        zoneRepo.zones = listOf(privateZoneHere())
+        parkingRepo.saveNewParkingSession(session(id = "sess-garage"))
+
+        val result = useCase(location.latitude, location.longitude, parkingRepo.getActiveSession())
+
+        assertEquals(0, scheduler.scheduleCallCount, "the plaza of your own garage is not the community's")
+        assertEquals(false, result.getOrNull(), "…and the UI must not thank the user for a plaza")
+        val closed = parkingRepo.getSessionById("sess-garage")!!
+        assertNotNull(closed.endedAtMs, "the session still closes — only the publication is gated")
+        assertFalse(closed.publishedSpot)
+    }
+
+    @Test
+    fun `should_notPublishTheSpot_when_theZoneWasDrawnAfterTheCarWasAlreadyParked`() = runTest {
+        // The session carries NO `privateZoneId`: it was confirmed before the zone existed, which
+        // is exactly the case the stamped verdict could never see. The gate asks the zones as they
+        // are now, so protection starts the moment the user draws it.
+        parkingRepo.saveNewParkingSession(session(id = "sess-late-zone"))
+        assertNull(parkingRepo.getActiveSession()!!.privateZoneId, "precondition: nothing was stamped")
+        zoneRepo.zones = listOf(privateZoneHere())
+
+        val result = useCase(location.latitude, location.longitude, parkingRepo.getActiveSession())
+
+        assertEquals(0, scheduler.scheduleCallCount)
+        assertEquals(false, result.getOrNull())
+    }
+
+    @Test
+    fun `should_publishTheSpot_when_theZoneThatCoveredThisParkWasDeleted`() = runTest {
+        // The mirror case, and the reason the stamp had to go rather than merely be re-read: a
+        // session stamped `privateZoneId` stayed silent forever, even after the user withdrew the
+        // privacy. `zoneRepo` is empty, so the same park now frees a plaza.
+        parkingRepo.saveNewParkingSession(session(id = "sess-ex-zone").copy(privateZoneId = "zone-garage"))
+
+        val result = useCase(location.latitude, location.longitude, parkingRepo.getActiveSession())
+
+        assertEquals(1, scheduler.scheduleCallCount, "the zone is gone; the place is public again")
+        assertEquals(true, result.getOrNull())
+    }
+
+    @Test
+    fun `should_publishTheSpot_when_theOnlyZoneNearbyIsNotPrivate`() = runTest {
+        // A habitual zone the user did NOT mark private is a navigation shortcut, nothing more.
+        // `FakeZoneRepository.getPrivateZonesSnapshot` filters it out, as the real one does.
+        zoneRepo.zones = listOf(privateZoneHere(id = "zone-work", name = "Trabajo").copy(isPrivate = false))
+
+        val result = useCase(location.latitude, location.longitude, session())
+
+        assertEquals(1, scheduler.scheduleCallCount)
+        assertEquals(true, result.getOrNull())
+    }
+
     // ── [VEH-ACTIVE-FENCE-001] Release observability ─────────────────────────
 
     @Test
     fun `should_log_a_Released_event_with_publish_flag_and_location`() = runTest {
-        useCase(lat = 40.5, lon = -3.6, currentSession = session(id = "sess-1"), reason = ParkingReleaseReason.DEPARTURE_PUBLISHED)
+        useCase(lat = 40.5, lon = -3.6, currentSession = session(id = "sess-1"), reason = ParkingReleaseReason.DEPARTURE)
 
         val released = eventLogger.events.filterIsInstance<DetectionEvent.Released>()
         assertEquals(1, released.size)
@@ -75,7 +154,7 @@ class ReleaseActiveParkingSessionUseCaseTest {
 
     @Test
     fun `should_not_log_a_Released_event_when_there_is_no_session`() = runTest {
-        useCase(lat = 40.5, lon = -3.6, currentSession = null, reason = ParkingReleaseReason.DEPARTURE_PUBLISHED)
+        useCase(lat = 40.5, lon = -3.6, currentSession = null, reason = ParkingReleaseReason.DEPARTURE)
 
         assertTrue(eventLogger.events.filterIsInstance<DetectionEvent.Released>().isEmpty())
     }
@@ -118,8 +197,13 @@ class ReleaseActiveParkingSessionUseCaseTest {
     }
 
     @Test
-    fun `should_removeGeofence_alsoOnTheJustDeletePath`() = runTest {
-        useCase(40.416775, -3.703790, session(geofenceId = "geof-2"), reason = ParkingReleaseReason.DEPARTURE_UNPUBLISHED)
+    fun `should_removeGeofence_alsoWhenNothingIsPublished`() = runTest {
+        // [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] There is no longer a
+        // "leave without sharing" button; a departure that publishes nothing is one out of a
+        // private zone, and the fence has to come down all the same.
+        zoneRepo.zones = listOf(privateZoneHere())
+
+        useCase(40.416775, -3.703790, session(geofenceId = "geof-2"))
 
         assertEquals(listOf("geof-2"), geofence.removedIds)
     }
@@ -232,7 +316,7 @@ class ReleaseActiveParkingSessionUseCaseTest {
     fun `should_stamp_endedAt_and_publishedSpot_when_the_departure_publishes`() = runTest {
         parkingRepo.saveNewParkingSession(session(id = "sess-close"))
 
-        useCase(40.0, -3.0, parkingRepo.getActiveSession(), reason = ParkingReleaseReason.DEPARTURE_PUBLISHED)
+        useCase(40.0, -3.0, parkingRepo.getActiveSession(), reason = ParkingReleaseReason.DEPARTURE)
 
         val closed = parkingRepo.getSessionById("sess-close")!!
         assertNotNull(closed.endedAtMs, "the close must record when the departure happened")
@@ -240,14 +324,14 @@ class ReleaseActiveParkingSessionUseCaseTest {
     }
 
     @Test
-    fun `should_stamp_endedAt_without_claiming_a_spot_when_kept_private_or_deleted`() = runTest {
+    fun `should_stamp_endedAt_without_claiming_a_spot_when_theRecordIsDeleted`() = runTest {
         parkingRepo.saveNewParkingSession(session(id = "sess-priv"))
 
-        useCase(40.0, -3.0, parkingRepo.getActiveSession(), reason = ParkingReleaseReason.DEPARTURE_UNPUBLISHED)
+        useCase(40.0, -3.0, parkingRepo.getActiveSession(), reason = ParkingReleaseReason.RECORD_DELETED)
 
         val closed = parkingRepo.getSessionById("sess-priv")!!
         assertNotNull(closed.endedAtMs)
-        assertFalse(closed.publishedSpot, "a kept-private departure must not count as a shared spot")
+        assertFalse(closed.publishedSpot, "a deleted record must not count as a shared spot")
     }
 
     // ── [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] "Me voy" inherits the session's shape ───
@@ -265,7 +349,7 @@ class ReleaseActiveParkingSessionUseCaseTest {
     fun `should_withholdTheSpotButStillClear_when_theZoneIsWiderThanTheCeiling`() = runTest {
         parkingRepo.saveNewParkingSession(session(id = "sess-wide").copy(zoneRadiusMeters = 250f))
 
-        val result = useCase(40.0, -3.0, parkingRepo.getActiveSession(), reason = ParkingReleaseReason.DEPARTURE_PUBLISHED)
+        val result = useCase(40.0, -3.0, parkingRepo.getActiveSession(), reason = ParkingReleaseReason.DEPARTURE)
 
         assertEquals(0, scheduler.scheduleCallCount, "a neighbourhood is not a plaza")
         assertEquals(false, result.getOrNull(), "the caller must learn nothing went out — no thank-you toast")

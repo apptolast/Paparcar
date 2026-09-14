@@ -54,6 +54,7 @@ fun DevCatalogScreen(
     val online by scenario.online.collectAsStateWithLifecycle()
     val aggressiveOem by scenario.aggressiveOem.collectAsStateWithLifecycle()
     val ownParked by scenario.ownParkedSession.collectAsStateWithLifecycle()
+    val inPrivateZone by scenario.parkedInPrivateZone.collectAsStateWithLifecycle()
     val activeBt by scenario.activeVehicleBluetooth.collectAsStateWithLifecycle()
     val sentryAlive by scenario.sentryAlive.collectAsStateWithLifecycle()
     val approximate by scenario.approximateParking.collectAsStateWithLifecycle()
@@ -131,6 +132,13 @@ fun DevCatalogScreen(
             // Necesita "Sesión propia aparcada" activado.
             SwitchRow("Aparcamiento aproximado (zona, no pin)", approximate) {
                 scenario.approximateParking.value = it
+            }
+            // [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] Dibuja una zona
+            // PRIVADA sobre la sesión sembrada. El diálogo de «Me voy» pasa a decir que no se
+            // publica plaza (y la nombra), y el detalle del historial añade su fila sin comerse la
+            // estrategia. Necesita "Sesión propia aparcada".
+            SwitchRow("Aparcado en zona privada (no publica plaza)", inPrivateZone) {
+                scenario.parkedInPrivateZone.value = it
             }
             // [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] Devuelve el checklist guiado al Home
             // REAL. A partir de ahí los pasos avanzan con las mismas señales que en producción, así

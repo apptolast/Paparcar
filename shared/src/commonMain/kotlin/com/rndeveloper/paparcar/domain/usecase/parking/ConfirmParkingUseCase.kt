@@ -24,6 +24,7 @@ import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.sensor.DetectionStepAnchors
+import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy
 import com.rndeveloper.paparcar.domain.util.PolylineCodec
 import com.rndeveloper.paparcar.domain.util.haversineMeters
 import com.rndeveloper.paparcar.domain.service.DepartureEventBus
@@ -164,12 +165,21 @@ class ConfirmParkingUseCase(
         val resolvedCarbodyType = carbodyType ?: vehicle.carbodyType
         val resolvedVehicleId = vehicle.id
 
-        // Check if the parking location falls inside one of the user's private zones.
-        // If so, the session is stored locally but the community Spot is never published.
-        val matchedPrivateZoneId = zoneRepository.getPrivateZonesSnapshot().firstOrNull { zone ->
-            haversineMeters(location.latitude, location.longitude, zone.lat, zone.lon) <= zone.radiusMeters
-        }?.id
-        PaparcarLogger.d(DIAG, "  privateZoneId=$matchedPrivateZoneId")
+        // Which of the user's private zones this park falls into, if any.
+        //
+        // [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] ⚠️ This is PROVENANCE now,
+        // not the verdict. It used to be the only time the question was ever asked, and the answer
+        // was persisted as `privateZoneId` for the publish paths to read — which is why a zone drawn
+        // around an already-parked car protected nothing, and a zone deleted afterwards silenced its
+        // park forever. The publication gate lives in [SpotReleasePolicy] and is evaluated at the
+        // moment it is acted on. What survives here is the record of WHICH zone the car arrived in
+        // (and the HOME_GEOFENCE type below, the only cross-device trace of "parked at home", since
+        // `privateZoneId` is local-only and never reaches `ParkingHistoryDto`).
+        //
+        // Same predicate as the gate, so the two can never disagree about what "inside" means.
+        val matchedPrivateZoneId = SpotReleasePolicy
+            .privateZoneAt(location, zoneRepository.getPrivateZonesSnapshot())?.id
+        PaparcarLogger.d(DIAG, "  privateZoneId=$matchedPrivateZoneId (provenance — the publish gate re-asks live)")
 
         // Private zone → HOME_GEOFENCE: the user is parking in their own saved private spot.
         // Only applies to AUTO_DETECTED — manual reports and explicit callers keep their type.

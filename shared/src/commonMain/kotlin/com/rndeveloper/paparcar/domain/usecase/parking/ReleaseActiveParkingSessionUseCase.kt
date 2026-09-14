@@ -13,8 +13,12 @@ import com.rndeveloper.paparcar.domain.model.ParkingReleaseReason
 import com.rndeveloper.paparcar.domain.model.SpotType
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
+import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.service.GeofenceManager
 import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy
+import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy.publishConfidence
+import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy.publishRadiusMeters
+import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy.publishes
 import com.rndeveloper.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import kotlin.time.Clock
@@ -22,22 +26,31 @@ import kotlin.time.Clock
 /**
  * Releases the user's active parking session.
  *
- * [reason] says WHY the session is closing and owns the consequences: a departure that publishes
- * reports the freed parking to the community via a durable WorkManager job so it survives process
- * death; a departure the user keeps private, and a deleted record, only clear the local + remote
- * session. [PEEK-ACTIONS-001] [PARK-DELETE-NO-DECLARE-001]
+ * [reason] says WHY the session is closing and owns the consequences: a departure OFFERS the freed
+ * parking to the community via a durable WorkManager job so it survives process death; a deleted
+ * record only clears the local + remote session. [PEEK-ACTIONS-001] [PARK-DELETE-NO-DECLARE-001]
  *
  * Returns [Result.failure] if clearing the session fails; on success the value says whether a
- * community spot actually went out — [reason] asking for one is no longer enough, because a zone
- * session wider than the publish ceiling withholds it [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] —
- * so the UI can thank the user for a plaza only when there is one. When publishing, the spot
- * report is enqueued first so the community spot is never lost even if the clear fails.
+ * community spot actually went out — [reason] offering one is not enough, because
+ * [SpotReleasePolicy] can withhold it (the park is inside a private zone, or the session's doubt
+ * circle is wider than the publish ceiling) — so the UI can thank the user for a plaza only when
+ * there is one. When publishing, the spot report is enqueued first so the community spot is never
+ * lost even if the clear fails.
+ *
+ * [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] This use case is the one that had
+ * NO private-zone term at all — three sibling publish paths carried `session.privateZoneId == null`
+ * and this one simply did not, so "Me voy → Liberar plaza" over a car parked in the user's own
+ * garage published it to the community. The term is not added here: it moved INTO
+ * [SpotReleasePolicy.shapeFor], which every door already calls, so no door can be missing it again.
  */
 class ReleaseActiveParkingSessionUseCase(
     private val reportSpotReleased: ReportSpotReleasedUseCase,
     private val userParkingRepository: UserParkingRepository,
     private val geofenceService: GeofenceManager,
     private val detectionEventLogger: DetectionEventLogger,
+    /** [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] The user's zones as they are
+     *  NOW — the gate is evaluated at publish time, not read off the stamp the park left behind. */
+    private val zoneRepository: ZoneRepository,
     // Optional product-analytics sink; fire-and-forget, nullable for test doubles. [ANALYTICS-EVENTS-001]
     private val analyticsTracker: AnalyticsTracker? = null,
 ) {
@@ -45,21 +58,35 @@ class ReleaseActiveParkingSessionUseCase(
         lat: Double,
         lon: Double,
         currentSession: UserParking?,
-        reason: ParkingReleaseReason = ParkingReleaseReason.DEPARTURE_PUBLISHED,
+        reason: ParkingReleaseReason = ParkingReleaseReason.DEPARTURE,
     ): Result<Boolean> {
         // [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] The user's "Me voy" witnesses the departure,
         // but the coordinates published are the SESSION's pin — and for an approximate session
         // that pin is the centre of a doubt circle. Same shape rule as every other publish path.
+        // [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] …and the same private-zone
+        // rule, which this path never had. Asked against the coordinates being PUBLISHED (lat/lon),
+        // not the session's stamp: they are the same point on every real call, and when a caller
+        // passes something else, what must be gated is what goes out.
+        // A failed zone read reads as "no private zones" — the same answer an account with none
+        // gives, and the one that keeps a departure from being blocked by a Room hiccup.
+        val privateZones = runCatching { zoneRepository.getPrivateZonesSnapshot() }
+            .onFailure { PaparcarLogger.w(TAG, "private zones unreadable — release proceeds as if there were none", it) }
+            .getOrDefault(emptyList())
         val shape = SpotReleasePolicy.shapeFor(
-            currentSession?.zoneRadiusMeters,
-            currentSession?.detectionReliability,
+            location = GpsPoint(latitude = lat, longitude = lon, accuracy = 0f, timestamp = 0L, speed = 0f),
+            zoneRadiusMeters = currentSession?.zoneRadiusMeters,
+            detectionReliability = currentSession?.detectionReliability,
+            privateZones = privateZones,
         )
-        val publishes = reason.publishesSpot && shape != SpotReleasePolicy.Shape.Withheld
-        if (reason.publishesSpot && !publishes) {
+        val publishes = reason.offersSpot && shape.publishes()
+        if (reason.offersSpot && !publishes) {
+            val withheld = shape as SpotReleasePolicy.Shape.Withheld
             PaparcarLogger.d(
                 TAG,
-                "⊘ zone r=${currentSession?.zoneRadiusMeters}m > ${SpotReleasePolicy.ZONE_PUBLISH_MAX_RADIUS_METERS}m " +
-                    "— freed spot WITHHELD on manual release [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001]",
+                "⊘ freed spot WITHHELD on manual release — ${withheld.reason} " +
+                    "(zone r=${currentSession?.zoneRadiusMeters}m, ceiling " +
+                    "${SpotReleasePolicy.ZONE_PUBLISH_MAX_RADIUS_METERS}m); session cleanup continues " +
+                    "[SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001]",
             )
         }
         if (publishes) {
@@ -80,17 +107,13 @@ class ReleaseActiveParkingSessionUseCase(
                 lon = lon,
                 spotId = spotId,
                 spotType = spotType,
-                confidence = when (shape) {
-                    is SpotReleasePolicy.Shape.Exact -> shape.confidence
-                    is SpotReleasePolicy.Shape.Zone -> shape.confidence
-                    SpotReleasePolicy.Shape.Withheld -> 0f // unreachable — gated above
-                },
+                confidence = shape.publishConfidence(),
                 sizeCategory = sizeCategory,
                 carbodyType = carbodyType,
                 prefetched = prefetched,
                 // A zone spot is provisional whatever proved the departure: the place never was.
                 provisional = shape is SpotReleasePolicy.Shape.Zone,
-                zoneRadiusMeters = (shape as? SpotReleasePolicy.Shape.Zone)?.radiusMeters,
+                zoneRadiusMeters = shape.publishRadiusMeters(),
             )
         }
 

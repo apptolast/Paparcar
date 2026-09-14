@@ -171,7 +171,7 @@ val mockModule = module {
         FakeUserParkingRepository(get<com.rndeveloper.paparcar.domain.detection.DetectionRuntimeState>(), get<MockScenario>())
     }
     single<UserProfileRepository> { FakeUserProfileRepository() }
-    single<ZoneRepository> { FakeZoneRepository() }
+    single<ZoneRepository> { FakeZoneRepository(get()) }
     // Scenario-aware: la palanca "Plus activo" del Dev Catalog mueve todos los gates de Plus
     // en vivo, incluida la degradación Plus → free que la tienda real no deja ensayar. [MONEY-001]
     single<com.rndeveloper.paparcar.domain.repository.EntitlementRepository> {

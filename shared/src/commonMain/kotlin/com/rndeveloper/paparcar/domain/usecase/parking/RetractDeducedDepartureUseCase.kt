@@ -7,6 +7,8 @@ import com.rndeveloper.paparcar.domain.diagnostics.DetectionEventLogger
 import com.rndeveloper.paparcar.domain.model.SpotTtlPolicy
 import com.rndeveloper.paparcar.domain.repository.SpotRepository
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
+import com.rndeveloper.paparcar.domain.repository.ZoneRepository
+import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.flow.firstOrNull
 import kotlin.time.Clock
@@ -64,6 +66,20 @@ class RetractDeducedDepartureUseCase(
     private val userParkingRepository: UserParkingRepository,
     private val spotRepository: SpotRepository,
     private val detectionEventLogger: DetectionEventLogger? = null,
+    /**
+     * [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] The user's private zones.
+     *
+     * ⚠️ Read here for a different question than the publish paths ask. This use case does not want
+     * to know "may this be published" but "is there a document out there to withdraw", and the
+     * private zone has always been a PROXY for the second ("it was never published, so there is
+     * nothing to take back"). The proxy is kept — and it must be evaluated against the same zone
+     * set the publish decision used. With a live gate that set can shift between the provisional
+     * publish and this retraction; the divergence is bounded by
+     * [SpotTtlPolicy.PROVISIONAL_SPOT_TTL_MS] and documented in the ticket, and it fails on the
+     * cheap side (a spot published before the zone existed expires on its TTL instead of being
+     * withdrawn early).
+     */
+    private val zoneRepository: ZoneRepository,
     // [DET-RETRACT-DENIED-FOREVER-001] Injected so the TTL bound below is reachable from a test at
     // all — same shape as `RunDepartureCheckUseCase`. Reading the wall clock inline would have made
     // "the provisional window has elapsed" untestable, which is how it went unbounded to begin with.
@@ -90,13 +106,25 @@ class RetractDeducedDepartureUseCase(
 
         if (pending.isEmpty()) return 0
 
+        // [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] Read once for the whole
+        // sweep. Failure reads as "none", which makes the retraction ATTEMPT more sessions rather
+        // than fewer — the safe direction here, since withdrawing a spot that was never published
+        // only costs a log line (bounded by the TTL check below), while skipping one leaves a
+        // phantom standing.
+        val privateZones = runCatching { zoneRepository.getPrivateZonesSnapshot() }
+            .onFailure { PaparcarLogger.w(TAG, "private zones unreadable — retracting as if there were none", it) }
+            .getOrDefault(emptyList())
+
         val now = nowMs()
         var retracted = 0
         pending.forEach { session ->
             val deducedAtMs = session.provisionalDepartureAtMs ?: return@forEach
             // A private zone never published anything, so there is nothing to take back. The
             // marker still stands: the car is still the user's to release when a drive proves it.
-            if (session.privateZoneId != null) return@forEach
+            // [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] Asked of the zones as
+            // they are, through the same predicate the publish paths use — not of the stamp the
+            // park left behind, which could say "private" about a zone the user has since deleted.
+            if (SpotReleasePolicy.privateZoneAt(session.location, privateZones) != null) return@forEach
 
             // [DET-RETRACT-DENIED-FOREVER-001] Past the provisional TTL there is no document left to
             // withdraw — the expiry already did it, which is what the failure branch below has always

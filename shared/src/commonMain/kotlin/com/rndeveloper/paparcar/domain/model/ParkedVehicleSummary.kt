@@ -17,7 +17,10 @@ data class ParkedVehicleSummary(
     /** Body shape of the parked vehicle. Null when the underlying vehicle is non-CAR or unknown. */
     val carbodyType: CarbodyType? = null,
     val stableRank: Int,
-    val privateZoneId: String? = null,
+    // ⛔ No `privateZoneId` here. [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001]
+    // It rode along for the map layer and NOBODY ever read it — a stamped verdict offered to the
+    // UI is an invitation to gate on the answer the car arrived with instead of the one that
+    // holds now. Whoever needs to know asks `SpotReleasePolicy.privateZoneAt(location, zones)`.
     /** On-device license plate — used to label the map marker. Never synced to Firestore. */
     val licensePlate: String? = null,
     /**

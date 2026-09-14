@@ -61,14 +61,14 @@
     <string name="location_fallback_spot">Plaza en el mapa</string>
     <string name="location_fallback_parking">Ubicación en el mapa</string>
     <string name="location_approximate_near">Cerca de %1$s</string>
-    <string name="home_release_dialog_title">Liberas la plaza, ¿la compartes?</string>
-    <string name="home_release_dialog_message">Cuando avisas, otros conductores reciben la notificación y pueden llegar antes.</string>
+    <string name="home_release_dialog_title">¿Te vas?</string>
+    <string name="home_release_dialog_message">Al irte, tu aparcamiento libera una plaza para la comunidad.</string>
+    <string name="home_release_dialog_message_private_zone">Aparcaste en %1$s, una zona privada: al irte no se publica ninguna plaza.</string>
     <!-- Consequence line: leaving means detection re-arms for the next parking. [VEH-ACTIVE-FENCE-001] -->
     <string name="home_release_dialog_detection_active">Empezaremos a detectar tu próximo aparcamiento.</string>
     <string name="home_release_dialog_detection_unavailable">No podremos detectar tu próximo aparcamiento por nuestra cuenta.</string>
     <string name="home_release_dialog_detection_inactive">%1$s pasará a ser tu coche activo, así que detectaremos tu próximo aparcamiento.</string>
-    <string name="home_release_dialog_publish">Liberar y avisar</string>
-    <string name="home_release_dialog_delete_only">Solo liberar</string>
+    <string name="home_release_dialog_confirm">Me voy</string>
     <string name="home_release_dialog_cancel">Cancelar</string>
     <!-- HomeSearchBar -->
     <string name="home_search_clear_cd">Limpiar búsqueda</string>
@@ -223,7 +223,7 @@
     <string name="parking_detail_detection_bluetooth">Automático (Bluetooth)</string>
     <string name="parking_detail_detection_assisted">Asistido</string>
     <string name="parking_detail_detection_manual">Aviso manual</string>
-    <string name="parking_detail_detection_home">Zona privada</string>
+    <string name="parking_detail_private_zone">%1$s · zona privada — no se publicó ninguna plaza</string>
     <string name="map_cd_midpoint">Punto medio entre mi posición y el coche</string>
     <string name="map_cd_go_to_car">Ir a mi vehículo aparcado</string>
     <string name="map_cd_go_to_parking">Centrar en este aparcamiento</string>

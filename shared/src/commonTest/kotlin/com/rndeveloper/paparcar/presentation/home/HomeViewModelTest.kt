@@ -146,11 +146,12 @@ class HomeViewModelTest {
         val releaseSession = ReleaseActiveParkingSessionUseCase(
             reportSpotReleased, parkingRepo, FakeGeofenceManager(),
             com.rndeveloper.paparcar.domain.diagnostics.NoOpDetectionEventLogger(),
+            zoneRepo,
         )
         val confirmParking = ConfirmParkingUseCase(
             userParkingRepository = parkingRepo,
             vehicleRepository = vehicleRepo,
-            zoneRepository = FakeZoneRepository(),
+            zoneRepository = zoneRepo,
             geofenceService = FakeGeofenceManager(),
             enrichmentScheduler = FakeParkingEnrichmentScheduler(),
             authRepository = authRepo,
@@ -778,17 +779,18 @@ class HomeViewModelTest {
         parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
         vm = buildVm()
         vm.effect.test {
-            vm.handleIntent(HomeIntent.ReleaseParking(sessionId = session.id, reason = ParkingReleaseReason.DEPARTURE_PUBLISHED))
+            vm.handleIntent(HomeIntent.ReleaseParking(sessionId = session.id, reason = ParkingReleaseReason.DEPARTURE))
             assertIs<HomeEffect.SpotReported>(awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     // ── Which action is in flight [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001] ─────
-    // The state used to hold a bare `isReleasingParking: Boolean`, so the release dialog could only
-    // ever spin its PRIMARY button — even when the user had pressed the secondary, which means the
-    // opposite thing (don't hand the freed space to the community). These two tests pin the
-    // discriminator itself, in flight and after: the reason the user chose is what the state holds.
+    // The state used to hold a bare `isReleasingParking: Boolean`. The release dialog has one
+    // button again since [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001], but the
+    // discriminator still earns its place: RECORD_DELETED runs the same code from the edit peek,
+    // and only the surface that started a release may spin. These two tests pin it, in flight and
+    // after: the reason the user chose is what the state holds.
     // They run on a StandardTestDispatcher on purpose — the suite's Unconfined one would finish the
     // release before there is any in-flight window left to look at.
 
@@ -806,12 +808,12 @@ class HomeViewModelTest {
         vm.handleIntent(
             HomeIntent.ReleaseParking(
                 sessionId = session.id,
-                reason = ParkingReleaseReason.DEPARTURE_UNPUBLISHED,
+                reason = ParkingReleaseReason.DEPARTURE,
             ),
         )
 
-        // Not merely "a release is running": WHICH one, so the secondary button can spin itself.
-        assertEquals(ParkingReleaseReason.DEPARTURE_UNPUBLISHED, vm.state.value.releasingReason)
+        // Not merely "a release is running": WHICH one, so only the surface that asked spins.
+        assertEquals(ParkingReleaseReason.DEPARTURE, vm.state.value.releasingReason)
         assertTrue(vm.state.value.isReleasingParking)
 
         advanceUntilIdle()
@@ -853,7 +855,7 @@ class HomeViewModelTest {
         parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
         vm = buildVm()
         vm.handleIntent(HomeIntent.SelectItem(HomeSelection.Parking(session.id)))
-        vm.handleIntent(HomeIntent.ReleaseParking(sessionId = session.id, reason = ParkingReleaseReason.DEPARTURE_PUBLISHED))
+        vm.handleIntent(HomeIntent.ReleaseParking(sessionId = session.id, reason = ParkingReleaseReason.DEPARTURE))
         assertNull(vm.state.value.selection)
     }
 
@@ -877,7 +879,7 @@ class HomeViewModelTest {
         vm.handleIntent(HomeIntent.OpenReleaseDialog(session.id))
         assertEquals(session.id, vm.state.value.releaseDialogSessionId)
 
-        vm.handleIntent(HomeIntent.ReleaseParking(session.id, ParkingReleaseReason.DEPARTURE_UNPUBLISHED))
+        vm.handleIntent(HomeIntent.ReleaseParking(session.id, ParkingReleaseReason.DEPARTURE))
 
         assertNull(vm.state.value.releaseDialogSessionId)
         assertEquals(1, parkingRepo.clearActiveParkingSessionCallCount)
@@ -892,7 +894,7 @@ class HomeViewModelTest {
 
         vm.effect.test {
             vm.handleIntent(HomeIntent.OpenReleaseDialog(session.id))
-            vm.handleIntent(HomeIntent.ReleaseParking(session.id, ParkingReleaseReason.DEPARTURE_PUBLISHED))
+            vm.handleIntent(HomeIntent.ReleaseParking(session.id, ParkingReleaseReason.DEPARTURE))
 
             // Closed, so the snackbar carrying the error is not hidden behind it.
             assertNull(vm.state.value.releaseDialogSessionId)
@@ -902,7 +904,7 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun should_runOnlyOneRelease_when_bothButtonsAreTappedWithinTheSameFrame() = runTest {
+    fun should_runOnlyOneRelease_when_theConfirmIsTappedTwiceWithinTheSameFrame() = runTest {
         Dispatchers.setMain(StandardTestDispatcher(testScheduler))
         val session = releasableSession()
         parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
@@ -910,13 +912,13 @@ class HomeViewModelTest {
         advanceUntilIdle()
 
         vm.handleIntent(HomeIntent.OpenReleaseDialog(session.id))
-        vm.handleIntent(HomeIntent.ReleaseParking(session.id, ParkingReleaseReason.DEPARTURE_PUBLISHED))
-        // Second tap before any recomposition could disable the buttons.
-        vm.handleIntent(HomeIntent.ReleaseParking(session.id, ParkingReleaseReason.DEPARTURE_UNPUBLISHED))
+        vm.handleIntent(HomeIntent.ReleaseParking(session.id, ParkingReleaseReason.DEPARTURE))
+        // Second tap before any recomposition could disable the button.
+        vm.handleIntent(HomeIntent.ReleaseParking(session.id, ParkingReleaseReason.DEPARTURE))
         advanceUntilIdle()
 
         assertEquals(1, parkingRepo.clearActiveParkingSessionCallCount)
-        assertEquals(1, reportScheduler.scheduleCallCount)
+        assertEquals(1, reportScheduler.scheduleCallCount, "one tap, one plaza")
         // The first answer is the one that counted: the spot went out AND Room says so.
         assertEquals(true, parkingRepo.getSessionById(session.id)?.publishedSpot)
         assertNull(vm.state.value.releaseDialogSessionId)
@@ -931,7 +933,7 @@ class HomeViewModelTest {
         advanceUntilIdle()
 
         vm.handleIntent(HomeIntent.OpenReleaseDialog(session.id))
-        vm.handleIntent(HomeIntent.ReleaseParking(session.id, ParkingReleaseReason.DEPARTURE_PUBLISHED))
+        vm.handleIntent(HomeIntent.ReleaseParking(session.id, ParkingReleaseReason.DEPARTURE))
         vm.handleIntent(HomeIntent.DismissReleaseDialog)
         assertEquals(session.id, vm.state.value.releaseDialogSessionId)
 
@@ -1345,7 +1347,7 @@ class HomeViewModelTest {
         vm = buildVm()
 
         // The peek fires the tapped card's id — release targets THAT session explicitly.
-        vm.handleIntent(HomeIntent.ReleaseParking(sessionId = sessionB.id, reason = ParkingReleaseReason.DEPARTURE_UNPUBLISHED))
+        vm.handleIntent(HomeIntent.ReleaseParking(sessionId = sessionB.id, reason = ParkingReleaseReason.DEPARTURE))
 
         // sessionA must remain active; sessionB cleared.
         val activeAfter = vm.state.value.activeSessions.map { it.id }.toSet()
@@ -1374,7 +1376,7 @@ class HomeViewModelTest {
         vm = buildVm()
 
         vm.effect.test {
-            vm.handleIntent(HomeIntent.ReleaseParking(sessionId = "ghost-session", reason = ParkingReleaseReason.DEPARTURE_UNPUBLISHED))
+            vm.handleIntent(HomeIntent.ReleaseParking(sessionId = "ghost-session", reason = ParkingReleaseReason.DEPARTURE))
             val effect = awaitItem()
             assertIs<HomeEffect.ShowError>(effect)
             assertIs<com.rndeveloper.paparcar.domain.error.PaparcarError.Parking.ReleaseFailed>(effect.error)
@@ -1405,7 +1407,7 @@ class HomeViewModelTest {
         parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
         vm = buildVm()
 
-        vm.handleIntent(HomeIntent.ReleaseParking(sessionId = "session-inactive", reason = ParkingReleaseReason.DEPARTURE_UNPUBLISHED))
+        vm.handleIntent(HomeIntent.ReleaseParking(sessionId = "session-inactive", reason = ParkingReleaseReason.DEPARTURE))
         advanceUntilIdle()
 
         assertEquals(listOf("veh-inactive"), vehicleRepo.setActiveCalls)
@@ -1434,7 +1436,7 @@ class HomeViewModelTest {
         vm = buildVm()
         advanceUntilIdle()
 
-        vm.handleIntent(HomeIntent.ReleaseParking(sessionId = "session-kamiq", reason = ParkingReleaseReason.DEPARTURE_PUBLISHED))
+        vm.handleIntent(HomeIntent.ReleaseParking(sessionId = "session-kamiq", reason = ParkingReleaseReason.DEPARTURE))
         advanceUntilIdle()
 
         assertEquals(emptyList(), vehicleRepo.setActiveCalls)

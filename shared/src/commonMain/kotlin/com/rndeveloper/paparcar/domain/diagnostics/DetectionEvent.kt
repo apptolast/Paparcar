@@ -320,7 +320,7 @@ sealed interface DetectionEvent {
         override val sessionId: String,
         override val timestampMs: Long,
         val published: Boolean,
-        val reason: ParkingReleaseReason = ParkingReleaseReason.DEPARTURE_PUBLISHED,
+        val reason: ParkingReleaseReason = ParkingReleaseReason.DEPARTURE,
         override val location: GpsPoint? = null,
     ) : DetectionEvent
 

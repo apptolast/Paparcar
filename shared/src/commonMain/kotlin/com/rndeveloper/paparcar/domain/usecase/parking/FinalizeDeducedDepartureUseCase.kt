@@ -9,7 +9,11 @@ import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEventLogger
 import com.rndeveloper.paparcar.domain.model.AddressAndPlace
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
+import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy
+import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy.publishConfidence
+import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy.publishRadiusMeters
+import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy.publishes
 import com.rndeveloper.paparcar.domain.detection.parkedSessionIsContradictedByBtConnect
 import com.rndeveloper.paparcar.domain.detection.ports.BtConnectStampReader
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
@@ -65,6 +69,10 @@ class FinalizeDeducedDepartureUseCase(
      *  knows where the car is. Nullable for the same reason as everywhere: no stamp = cannot know. */
     private val btConnectStamps: BtConnectStampReader? = null,
     private val config: ParkingDetectionConfig = ParkingDetectionConfig(),
+    /** [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] The user's zones as they are
+     *  NOW — required, never nullable: a missing reader would silently promote a private garage's
+     *  plaza to the FULL lifetime, which is the loudest version of the bug this ticket closes. */
+    private val zoneRepository: ZoneRepository,
 ) : FinalizeDeducedDeparture {
     /**
      * @param vehicleId the vehicle whose live session just proved a drive. The pending departure is
@@ -91,7 +99,18 @@ class FinalizeDeducedDepartureUseCase(
         // stays a ZONE spot — the drive just measured proves the HOUR of the departure, never the
         // place, so the promotion keeps the radius, the capped confidence and the provisional
         // (short) lifetime.
-        val shape = SpotReleasePolicy.shapeFor(session.zoneRadiusMeters, session.detectionReliability)
+        // [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] The private-zone term used
+        // to sit beside this line as `session.privateZoneId == null`; it is now inside the call, and
+        // asked against the zones as they are at PROMOTION time. A failed read reads as "none".
+        val privateZones = runCatching { zoneRepository.getPrivateZonesSnapshot() }
+            .onFailure { PaparcarLogger.w(TAG, "private zones unreadable — promotion proceeds as if there were none", it) }
+            .getOrDefault(emptyList())
+        val shape = SpotReleasePolicy.shapeFor(
+            location = session.location,
+            zoneRadiusMeters = session.zoneRadiusMeters,
+            detectionReliability = session.detectionReliability,
+            privateZones = privateZones,
+        )
         // [DET-A-BT-CONNECT-KNOWS-WHERE-THE-CAR-IS-001] The pin may have gone stale between the
         // deduction and this promotion: the paired car connecting somewhere else is the only signal
         // that says so, and promoting on top of it would publish a plaza freed by another person at
@@ -110,19 +129,14 @@ class FinalizeDeducedDepartureUseCase(
                     "provisional spot's own TTL is left to expire [DET-A-BT-CONNECT-KNOWS-WHERE-THE-CAR-IS-001]",
             )
         }
-        val publishes = !pinIsContradicted &&
-            session.privateZoneId == null && shape != SpotReleasePolicy.Shape.Withheld
+        val publishes = !pinIsContradicted && shape.publishes()
         if (publishes) {
             reportSpotReleased(
                 lat = session.location.latitude,
                 lon = session.location.longitude,
                 spotId = session.id,
                 spotType = session.spotType,
-                confidence = when (shape) {
-                    is SpotReleasePolicy.Shape.Exact -> shape.confidence
-                    is SpotReleasePolicy.Shape.Zone -> shape.confidence
-                    SpotReleasePolicy.Shape.Withheld -> 0f // unreachable — gated above
-                },
+                confidence = shape.publishConfidence(),
                 sizeCategory = session.sizeCategory,
                 carbodyType = session.carbodyType,
                 prefetched = session.address?.let { AddressAndPlace(it, session.placeInfo) },
@@ -130,7 +144,7 @@ class FinalizeDeducedDepartureUseCase(
                 // Same document, second publish — the provisional emission already counted this
                 // spot. [ANALYTICS-EVENTS-001]
                 promotion = true,
-                zoneRadiusMeters = (shape as? SpotReleasePolicy.Shape.Zone)?.radiusMeters,
+                zoneRadiusMeters = shape.publishRadiusMeters(),
             )
         }
 

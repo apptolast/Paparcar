@@ -14,9 +14,14 @@ import com.rndeveloper.paparcar.domain.diagnostics.DetectionEventLogger
 import com.rndeveloper.paparcar.domain.detection.DetectionPath
 import com.rndeveloper.paparcar.domain.detection.pinIsRefutedByItsOwnDeparture
 import com.rndeveloper.paparcar.domain.model.AddressAndPlace
+import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
+import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy
+import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy.publishConfidence
+import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy.publishRadiusMeters
+import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy.publishes
 import com.rndeveloper.paparcar.domain.service.DepartureEventBus
 import com.rndeveloper.paparcar.domain.service.GeofenceManager
 import com.rndeveloper.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
@@ -62,6 +67,17 @@ class ProcessConfirmedDepartureUseCase(
      *  signal that can tell this session its pin is stale. Nullable: a platform or a vehicle without
      *  a Bluetooth lane simply has no stamp, and "no stamp" already means "cannot know". */
     private val btConnectStamps: BtConnectStampReader? = null,
+    /**
+     * [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] The user's zones as they are
+     * NOW. The private-zone term used to be `session.privateZoneId == null` — a verdict sealed at
+     * park time, so a zone drawn around a car already parked protected nothing.
+     *
+     * ⛔ **Deliberately NOT nullable**, unlike every optional collaborator above it. A null reader
+     * would mean "withhold nothing", i.e. publish the user's garage — the exact bug this ticket
+     * closes, re-introduced silently by any construction site that forgot the argument. The whole
+     * point is that no door can be missing the gate, so the compiler asks every door.
+     */
+    private val zoneRepository: ZoneRepository,
 ) {
     private companion object {
         const val TAG = "ProcessConfirmedDeparture"
@@ -138,12 +154,26 @@ class ProcessConfirmedDepartureUseCase(
         // provisional lifetime; a zone wider than the ceiling publishes NOTHING (sending a seeker
         // to scan a 250 m circle is the ghost pin's damage, on foot). The witnessed departure only
         // ever validated the area — the car left the fence — never the centre coordinate.
-        val shape = SpotReleasePolicy.shapeFor(session?.zoneRadiusMeters, session?.detectionReliability)
+        // [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] …and the private-zone gate
+        // now lives in the same call, asked against the user's CURRENT zones instead of the stamp
+        // the park left behind. A failed read reads as "no private zones" — a Room hiccup must not
+        // block a departure, and it is the same answer an account with no zones gives.
+        val privateZones = runCatching { zoneRepository.getPrivateZonesSnapshot() }
+            .onFailure { PaparcarLogger.w(TAG, "private zones unreadable — departure proceeds as if there were none", it) }
+            .getOrDefault(emptyList())
+        val shape = SpotReleasePolicy.shapeFor(
+            // No session → nothing is published anyway (the branch below requires one); the point
+            // only has to be somewhere no user zone can be, and the origin is.
+            location = session?.location
+                ?: GpsPoint(latitude = 0.0, longitude = 0.0, accuracy = 0f, timestamp = 0L, speed = 0f),
+            zoneRadiusMeters = session?.zoneRadiusMeters,
+            detectionReliability = session?.detectionReliability,
+            privateZones = privateZones,
+        )
 
         // Public spots are published to the community; private zones are not reported.
         if (publishSpot && !alreadyPublishedProvisionally && !sessionPinIsContradicted &&
-            session != null && lat != null && lon != null && session.privateZoneId == null &&
-            shape != SpotReleasePolicy.Shape.Withheld
+            session != null && lat != null && lon != null && shape.publishes()
         ) {
             publishesNow = true
             // Reuse the address/POI enriched on the session at park time instead of
@@ -155,11 +185,7 @@ class ProcessConfirmedDepartureUseCase(
                 lon = lon,
                 spotId = spotId,
                 spotType = session.spotType,
-                confidence = when (shape) {
-                    is SpotReleasePolicy.Shape.Exact -> shape.confidence
-                    is SpotReleasePolicy.Shape.Zone -> shape.confidence
-                    SpotReleasePolicy.Shape.Withheld -> 0f // unreachable — gated above
-                },
+                confidence = shape.publishConfidence(),
                 sizeCategory = session.sizeCategory,
                 carbodyType = session.carbodyType,
                 prefetched = prefetched,
@@ -167,7 +193,7 @@ class ProcessConfirmedDepartureUseCase(
                 // provisional whatever proved the departure: the hour may be witnessed, the PLACE
                 // never was, and the doubt about the place does not expire with a drive.
                 provisional = proof == DepartureProof.Deduced || shape is SpotReleasePolicy.Shape.Zone,
-                zoneRadiusMeters = (shape as? SpotReleasePolicy.Shape.Zone)?.radiusMeters,
+                zoneRadiusMeters = shape.publishRadiusMeters(),
             )
         } else if (sessionPinIsContradicted && publishSpot) {
             // [DET-A-BT-CONNECT-KNOWS-WHERE-THE-CAR-IS-001] Named apart from every other "nothing
@@ -180,12 +206,13 @@ class ProcessConfirmedDepartureUseCase(
                     "freed spot NOT published (it would advertise a plaza freed by someone else, at " +
                     "an hour nobody witnessed); session cleanup continues",
             )
-        } else if (shape == SpotReleasePolicy.Shape.Withheld && publishSpot && session != null) {
+        } else if (shape is SpotReleasePolicy.Shape.Withheld && publishSpot && session != null) {
             PaparcarLogger.d(
                 TAG,
-                "⊘ zone r=${session.zoneRadiusMeters}m > ${SpotReleasePolicy.ZONE_PUBLISH_MAX_RADIUS_METERS}m " +
-                    "— freed spot WITHHELD (area too wide to be worth a stranger's walk); session cleanup " +
-                    "continues [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001]",
+                "⊘ freed spot WITHHELD — ${shape.reason} (zone r=${session.zoneRadiusMeters}m, ceiling " +
+                    "${SpotReleasePolicy.ZONE_PUBLISH_MAX_RADIUS_METERS}m); session cleanup continues " +
+                    "[SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] " +
+                    "[SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001]",
             )
         }
 
@@ -231,8 +258,7 @@ class ProcessConfirmedDepartureUseCase(
             // promotion of that same document). Private zones never published either way.
             // [VEH-STATS-SAY-SOMETHING-USEFUL-001]
             val gaveSpot = publishesNow ||
-                (session.provisionalDepartureAtMs != null && session.privateZoneId == null &&
-                    shape != SpotReleasePolicy.Shape.Withheld)
+                (session.provisionalDepartureAtMs != null && shape.publishes())
             userParkingRepository.clearActiveParkingSession(
                 session.id,
                 endedAtMs = Clock.System.now().toEpochMilliseconds(),

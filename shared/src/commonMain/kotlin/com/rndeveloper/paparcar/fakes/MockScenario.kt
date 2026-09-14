@@ -68,6 +68,13 @@ class MockScenario {
      *  and [sentryAlive] to walk the checklist forward without leaving the emulator. */
     val firstStepsPending = MutableStateFlow(false)
 
+    /** [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] Draws a PRIVATE zone over the
+     *  seeded own parking, so leaving it frees no plaza. Requires [ownParkedSession]. With it on,
+     *  the release dialog says so instead of promising a spot, and the history detail names the
+     *  zone next to (not instead of) the strategy that detected the park. Without it the whole
+     *  private-zone half of the app was unreachable in the mock set. */
+    val parkedInPrivateZone = MutableStateFlow(false)
+
     /** [MONEY-001] The user holds the Paparcar Plus entitlement. Drives every gate in the real
      *  graph through [com.rndeveloper.paparcar.fakes.data.repository.FakeEntitlementRepository]:
      *  toggle it OFF while inside the app to exercise the live downgrade rules (history window
@@ -78,6 +85,7 @@ class MockScenario {
         session.value = Session.LoggedInWithVehicles
         onboardingCompleted.value = true
         permissionTier.value = PermissionTier.All
+        parkedInPrivateZone.value = false
         gpsEnabled.value = true
         online.value = true
         aggressiveOem.value = false

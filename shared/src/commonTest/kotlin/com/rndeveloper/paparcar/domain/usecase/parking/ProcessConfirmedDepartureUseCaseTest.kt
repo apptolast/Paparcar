@@ -23,6 +23,8 @@ import com.rndeveloper.paparcar.fakes.FakeDetectionEventLogger
 import com.rndeveloper.paparcar.fakes.FakeGeofenceManager
 import com.rndeveloper.paparcar.fakes.FakeReportSpotScheduler
 import com.rndeveloper.paparcar.fakes.FakeUserParkingRepository
+import com.rndeveloper.paparcar.fakes.FakeZoneRepository
+import com.rndeveloper.paparcar.domain.model.Zone
 import kotlinx.coroutines.test.runTest
 import kotlin.time.Clock
 import kotlin.test.Test
@@ -36,6 +38,24 @@ import kotlin.test.assertTrue
  * that publishes the freed spot, clears the session, and tears down the geofence.
  */
 class ProcessConfirmedDepartureUseCaseTest {
+
+    /**
+     * A private zone drawn over [point]. [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001]
+     * The gate no longer reads the session's `privateZoneId` stamp — it asks the zones as they are
+     * — so a private-zone case is set up by the user HAVING the zone, which is also how a real
+     * account reaches this state.
+     */
+    private fun privateZoneOver(point: GpsPoint) = Zone(
+        id = "zone-1",
+        userId = "user-42",
+        name = "Garaje",
+        lat = point.latitude,
+        lon = point.longitude,
+        iconKey = "HOME",
+        createdAt = 0L,
+        radiusMeters = 50f,
+        isPrivate = true,
+    )
 
     private fun activeSession(
         id: String = "session-1",
@@ -70,9 +90,10 @@ class ProcessConfirmedDepartureUseCaseTest {
 
     @Test
     fun should_not_publish_spot_for_private_zone_departure() = runTest {
-        val repo = FakeUserParkingRepository(initialSession = activeSession(privateZoneId = "zone-1"))
+        val repo = FakeUserParkingRepository(initialSession = activeSession())
         val spotScheduler = FakeReportSpotScheduler()
-        val useCase = buildUseCase(repo = repo, spotScheduler = spotScheduler)
+        val zones = FakeZoneRepository().apply { this.zones = listOf(privateZoneOver(PARK_A)) }
+        val useCase = buildUseCase(repo = repo, spotScheduler = spotScheduler, zones = zones)
 
         val result = useCase("session-1", publishSpot = true)
 
@@ -120,8 +141,9 @@ class ProcessConfirmedDepartureUseCaseTest {
     @Test
     fun should_log_departure_processed_without_publish_for_private_zone() = runTest {
         val logger = FakeDetectionEventLogger()
-        val repo = FakeUserParkingRepository(initialSession = activeSession(privateZoneId = "zone-1"))
-        buildUseCase(repo = repo, logger = logger)("session-1", publishSpot = true)
+        val repo = FakeUserParkingRepository(initialSession = activeSession())
+        val zones = FakeZoneRepository().apply { this.zones = listOf(privateZoneOver(PARK_A)) }
+        buildUseCase(repo = repo, logger = logger, zones = zones)("session-1", publishSpot = true)
 
         val event = logger.events.filterIsInstance<DetectionEvent.DepartureProcessed>().single()
         assertFalse(event.published)
@@ -444,6 +466,7 @@ class ProcessConfirmedDepartureUseCaseTest {
         bus: FakeDepartureEventBus = FakeDepartureEventBus(),
         logger: FakeDetectionEventLogger = FakeDetectionEventLogger(),
         config: ParkingDetectionConfig = ParkingDetectionConfig(),
+        zones: FakeZoneRepository = FakeZoneRepository(),
         tracker: FakeAnalyticsTracker? = null,
         btConnectStamps: FakeBtConnectStampReader? = null,
     ) = ProcessConfirmedDepartureUseCase(
@@ -459,6 +482,7 @@ class ProcessConfirmedDepartureUseCaseTest {
         config = config,
         analyticsTracker = tracker,
         btConnectStamps = btConnectStamps,
+        zoneRepository = zones,
     )
 
     // ── Product analytics [ANALYTICS-EVENTS-001] ─────────────────────────────

@@ -14,6 +14,8 @@ import com.rndeveloper.paparcar.fakes.FakeDetectionEventLogger
 import com.rndeveloper.paparcar.fakes.FakeGeofenceManager
 import com.rndeveloper.paparcar.fakes.FakeReportSpotScheduler
 import com.rndeveloper.paparcar.fakes.FakeUserParkingRepository
+import com.rndeveloper.paparcar.fakes.FakeZoneRepository
+import com.rndeveloper.paparcar.domain.model.Zone
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -25,6 +27,27 @@ import kotlin.test.assertTrue
  * guess to the moment a drive is actually MEASURED.
  */
 class FinalizeDeducedDepartureUseCaseTest {
+
+    /**
+     * A private zone drawn over [point]. [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001]
+     * The gate no longer reads the session's `privateZoneId` stamp — it asks the zones as they are
+     * — so a private-zone case is set up by the user HAVING the zone, which is also how a real
+     * account reaches this state.
+     */
+    private fun privateZoneOver(point: GpsPoint) = Zone(
+        id = "zone-1",
+        userId = "user-42",
+        name = "Garaje",
+        lat = point.latitude,
+        lon = point.longitude,
+        iconKey = "HOME",
+        createdAt = 0L,
+        radiusMeters = 50f,
+        isPrivate = true,
+    )
+
+    /** Where every session in this file is parked — see [session]. */
+    private val park = GpsPoint(40.4, -3.7, 8f, 1_000_000L, 0f)
 
     private fun session(
         id: String = "session-1",
@@ -126,11 +149,12 @@ class FinalizeDeducedDepartureUseCaseTest {
     fun should_not_publish_a_private_zone_but_still_release_the_car() = runTest {
         // A private zone was never advertised, so there is nothing to promote — the release still
         // has to happen, or the car would stay pinned at a place it has provably left.
-        val repo = FakeUserParkingRepository(initialSession = session(privateZoneId = "zone-1"))
+        val repo = FakeUserParkingRepository(initialSession = session())
         val spotScheduler = FakeReportSpotScheduler()
         val geofence = FakeGeofenceManager()
+        val zones = FakeZoneRepository().apply { this.zones = listOf(privateZoneOver(park)) }
 
-        val finalized = buildUseCase(repo, spotScheduler, geofence)("v-1")
+        val finalized = buildUseCase(repo, spotScheduler, geofence, zones = zones)("v-1")
 
         assertTrue(finalized)
         assertEquals(0, spotScheduler.scheduleCallCount)
@@ -153,9 +177,10 @@ class FinalizeDeducedDepartureUseCaseTest {
 
     @Test
     fun should_not_claim_a_spot_for_a_private_zone_close() = runTest {
-        val repo = FakeUserParkingRepository(initialSession = session(privateZoneId = "zone-1"))
+        val repo = FakeUserParkingRepository(initialSession = session())
+        val zones = FakeZoneRepository().apply { this.zones = listOf(privateZoneOver(park)) }
 
-        buildUseCase(repo)("v-1")
+        buildUseCase(repo, zones = zones)("v-1")
 
         assertFalse(repo.getSessionById("session-1")!!.publishedSpot)
     }
@@ -166,6 +191,7 @@ class FinalizeDeducedDepartureUseCaseTest {
         geofence: FakeGeofenceManager = FakeGeofenceManager(),
         tracker: FakeAnalyticsTracker? = null,
         btConnectStamps: FakeBtConnectStampReader? = null,
+        zones: FakeZoneRepository = FakeZoneRepository(),
     ) = FinalizeDeducedDepartureUseCase(
         userParkingRepository = repo,
         reportSpotReleased = ReportSpotReleasedUseCase(
@@ -180,6 +206,7 @@ class FinalizeDeducedDepartureUseCaseTest {
         detectionEventLogger = FakeDetectionEventLogger(),
         analyticsTracker = tracker,
         btConnectStamps = btConnectStamps,
+        zoneRepository = zones,
     )
 
     // ── Product analytics [ANALYTICS-EVENTS-001] ─────────────────────────────

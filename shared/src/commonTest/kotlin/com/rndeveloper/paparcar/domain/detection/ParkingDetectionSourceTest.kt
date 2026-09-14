@@ -116,10 +116,18 @@ class ParkingDetectionSourceTest {
     }
 
     @Test
-    fun should_readPrivateZone_when_theParkClosedInsideAHomeGeofence() {
+    fun should_stillNameTheStrategy_when_theParkClosedInsideAPrivateZone() {
+        // [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] HOME_GEOFENCE says WHERE
+        // the car is; it used to answer here, in the field that says WHO found it, and by being an
+        // enum it could only do that by erasing the strategy. A park at home is still a park the
+        // coordinator (or Bluetooth) detected, and the detail row has to be able to say which.
         assertEquals(
-            ParkingDetectionSource.PrivateZone,
-            parkingDetectionSourceOf(SpotType.HOME_GEOFENCE, "steps=2 kinematicFixes=4"),
+            ParkingDetectionSource.Assisted,
+            parkingDetectionSourceOf(SpotType.HOME_GEOFENCE, "steps+egress"),
+        )
+        assertEquals(
+            ParkingDetectionSource.Bluetooth,
+            parkingDetectionSourceOf(SpotType.HOME_GEOFENCE, "bt"),
         )
     }
 

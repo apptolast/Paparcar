@@ -7,6 +7,7 @@ import com.rndeveloper.paparcar.domain.model.RouteInferenceResolution
 import com.rndeveloper.paparcar.domain.entitlement.gateHistoryToEntitlement
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
+import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
 import com.rndeveloper.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
@@ -22,6 +23,7 @@ class ParkingHistoryViewModel(
     observeAdaptiveLocation: ObserveAdaptiveLocationUseCase,
     private val userParkingRepository: UserParkingRepository,
     private val vehicleRepository: VehicleRepository,
+    zoneRepository: ZoneRepository,
     observeIsPlus: ObserveIsPlusUseCase,
 ) : BaseViewModel<ParkingHistoryState, ParkingHistoryIntent, ParkingHistoryEffect>() {
 
@@ -54,6 +56,14 @@ class ParkingHistoryViewModel(
         vehicleRepository.observeVehicles()
             .onEach { vehicles -> updateState { copy(vehicles = vehicles) } }
             .catch { e -> PaparcarLogger.w(TAG, "observeVehicles failed — icon falls back to size shape", e) }
+            .launchIn(viewModelScope)
+
+        // [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] The zones the private-zone
+        // row resolves against. Observed, not snapshotted: drawing a zone around an old parking
+        // re-explains it on the spot, which is the same liveness the publish gate now has.
+        zoneRepository.observeZones()
+            .onEach { zones -> updateState { copy(privateZones = zones.filter { it.isPrivate }) } }
+            .catch { e -> PaparcarLogger.w(TAG, "observeZones failed — the private-zone row stays silent", e) }
             .launchIn(viewModelScope)
 
         // No loading flag rides on this stream: what it measures is a GPS fix, which says nothing

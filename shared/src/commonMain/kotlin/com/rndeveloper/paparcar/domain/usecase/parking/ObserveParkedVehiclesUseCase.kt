@@ -37,7 +37,6 @@ class ObserveParkedVehiclesUseCase(
                     sizeCategory = session.sizeCategory ?: vehicle.sizeCategory,
                     carbodyType = session.carbodyType ?: vehicle.carbodyType,
                     stableRank = sortedIds.indexOf(vehicleId).coerceAtLeast(0),
-                    privateZoneId = session.privateZoneId,
                     licensePlate = vehicle.licensePlate,
                     isBluetoothPaired = vehicle.bluetoothDeviceId != null,
                     color = vehicle.color,

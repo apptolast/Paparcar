@@ -62,6 +62,7 @@ class ParkingHistoryViewModelTest {
             observeAdaptiveLocation = ObserveAdaptiveLocationUseCase(locationDataSource),
             userParkingRepository = repo,
             vehicleRepository = FakeVehicleRepository(extraVehicles = vehicles),
+            zoneRepository = com.rndeveloper.paparcar.fakes.FakeZoneRepository(),
             // PLUS: these tests pin the stepper's mechanics over arbitrary-age fixtures; the free
             // window's own behaviour is covered by HistoryEntitlementGateTest. [MONEY-001]
             observeIsPlus = com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase(

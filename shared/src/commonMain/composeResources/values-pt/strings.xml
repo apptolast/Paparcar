@@ -38,14 +38,14 @@
     <string name="location_fallback_spot">Lugar no mapa</string>
     <string name="location_fallback_parking">Localização no mapa</string>
     <string name="location_approximate_near">Perto de %1$s</string>
-    <string name="home_release_dialog_title">Libertar lugar?</string>
-    <string name="home_release_dialog_message">Partilha o teu lugar com os condutores próximos, ou apaga-o sem partilhar.</string>
+    <string name="home_release_dialog_title">Vais sair?</string>
+    <string name="home_release_dialog_message">Ao saíres, o teu estacionamento liberta um lugar para a comunidade.</string>
+    <string name="home_release_dialog_message_private_zone">Estacionaste em %1$s, uma zona privada: ao saíres não é publicado nenhum lugar.</string>
     <!-- Consequence line: leaving means detection re-arms for the next parking. [VEH-ACTIVE-FENCE-001] -->
     <string name="home_release_dialog_detection_active">Vamos começar a detetar o teu próximo estacionamento.</string>
     <string name="home_release_dialog_detection_unavailable">Não vamos conseguir detetar sozinhos o teu próximo estacionamento.</string>
     <string name="home_release_dialog_detection_inactive">%1$s passa a ser o teu carro ativo, por isso vamos detetar o teu próximo estacionamento.</string>
-    <string name="home_release_dialog_publish">Publicar lugar</string>
-    <string name="home_release_dialog_delete_only">Só libertar</string>
+    <string name="home_release_dialog_confirm">Vou sair</string>
     <string name="home_release_dialog_cancel">Cancelar</string>
     <string name="home_search_clear_cd">Limpar pesquisa</string>
     <string name="pap_field_clear_cd">Limpar campo</string>
@@ -174,7 +174,7 @@
     <string name="parking_detail_detection_bluetooth">Automático (Bluetooth)</string>
     <string name="parking_detail_detection_assisted">Assistido</string>
     <string name="parking_detail_detection_manual">Aviso manual</string>
-    <string name="parking_detail_detection_home">Zona privada</string>
+    <string name="parking_detail_private_zone">%1$s · zona privada — nenhum lugar foi publicado</string>
     <string name="map_cd_midpoint">Ponto médio entre mim e o carro</string>
     <string name="map_cd_go_to_car">Ir ao meu carro estacionado</string>
     <string name="map_cd_go_to_parking">Centrar neste estacionamento</string>

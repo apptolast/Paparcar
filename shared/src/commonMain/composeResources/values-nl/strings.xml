@@ -39,14 +39,14 @@
     <string name="location_fallback_spot">Plek op de kaart</string>
     <string name="location_fallback_parking">Locatie op de kaart</string>
     <string name="location_approximate_near">Bij %1$s</string>
-    <string name="home_release_dialog_title">Plek vrijgeven?</string>
-    <string name="home_release_dialog_message">Deel je plek met bestuurders in de buurt, of verwijder hem zonder te delen.</string>
+    <string name="home_release_dialog_title">Vertrek je?</string>
+    <string name="home_release_dialog_message">Als je vertrekt, geeft je parkeerplaats een plek vrij voor de community.</string>
+    <string name="home_release_dialog_message_private_zone">Je hebt geparkeerd in %1$s, een privézone: bij vertrek wordt geen plek gepubliceerd.</string>
     <!-- Consequence line: leaving means detection re-arms for the next parking. [VEH-ACTIVE-FENCE-001] -->
     <string name="home_release_dialog_detection_active">We beginnen je volgende parkeerplek te detecteren.</string>
     <string name="home_release_dialog_detection_unavailable">We kunnen je volgende parkeeractie niet zelf detecteren.</string>
     <string name="home_release_dialog_detection_inactive">%1$s wordt je actieve auto, dus we detecteren je volgende parkeerplek.</string>
-    <string name="home_release_dialog_publish">Plek publiceren</string>
-    <string name="home_release_dialog_delete_only">Alleen vrijgeven</string>
+    <string name="home_release_dialog_confirm">Ik vertrek</string>
     <string name="home_release_dialog_cancel">Annuleren</string>
     <string name="home_search_clear_cd">Zoekopdracht wissen</string>
     <string name="pap_field_clear_cd">Veld wissen</string>
@@ -175,7 +175,7 @@
     <string name="parking_detail_detection_bluetooth">Automatisch (Bluetooth)</string>
     <string name="parking_detail_detection_assisted">Geassisteerd</string>
     <string name="parking_detail_detection_manual">Handmatige melding</string>
-    <string name="parking_detail_detection_home">Privézone</string>
+    <string name="parking_detail_private_zone">%1$s · privézone — er is geen plek gepubliceerd</string>
     <string name="map_cd_midpoint">Middelpunt tussen mij en de auto</string>
     <string name="map_cd_go_to_car">Naar mijn geparkeerde auto</string>
     <string name="map_cd_go_to_parking">Op deze parkeerplaats centreren</string>

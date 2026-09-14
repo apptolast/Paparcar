@@ -61,6 +61,7 @@ import com.rndeveloper.paparcar.presentation.home.model.isDetectionStopped
 import com.rndeveloper.paparcar.domain.model.DrivingPuck
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.ParkingReleaseReason
+import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.displayName
 import com.rndeveloper.paparcar.presentation.home.sections.header.HomeHeaderSection
@@ -419,10 +420,18 @@ private fun HomeContent(
         ) { scaffoldPadding ->
 
             // Resolve the release target's vehicle for the consequence copy (name + active state).
-            val releaseVehicle = releaseTargetSessionId
+            val releaseSession = releaseTargetSessionId
                 ?.let { id -> state.activeSessions.firstOrNull { it.id == id } }
+            val releaseVehicle = releaseSession
                 ?.vehicleId
                 ?.let { vid -> state.vehicles.firstOrNull { it.id == vid } }
+            // [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] The SAME predicate the
+            // publish gate will run, over the SAME live zone list — so the dialog cannot promise a
+            // plaza the policy is about to withhold, nor vice versa. Not read off the session's
+            // `privateZoneId`, which was sealed when the car arrived.
+            val releasePrivateZoneName = releaseSession?.let { session ->
+                SpotReleasePolicy.privateZoneAt(session.location, state.zones.filter { it.isPrivate })?.name
+            }
             HomeReleaseDialogHost(
                 visible = releaseTargetSessionId != null,
                 releasingReason = state.releasingReason,
@@ -432,6 +441,7 @@ private fun HomeContent(
                 // Off/blocked detection can't honour the "we'll watch your next parking" promise —
                 // the note says so honestly; the story surface in Home asks for the fix. [UX-PARKED-STATE-001]
                 detectionAvailable = !state.detectionUiState.isDetectionStopped,
+                privateZoneName = releasePrivateZoneName,
                 onIntent = onIntent,
                 onDismiss = { onIntent(HomeIntent.DismissReleaseDialog) },
             )
@@ -1072,14 +1082,15 @@ private fun HomeReleaseDialogHost(
     vehicleName: String?,
     vehicleIsActive: Boolean,
     detectionAvailable: Boolean,
+    privateZoneName: String?,
     onIntent: (HomeIntent) -> Unit,
     onDismiss: () -> Unit,
 ) {
     if (!visible || sessionId == null) return
     // The id came from the tapped peek. The VM resolves the session by id and derives the
     // release location from it — no coordinates or ranked fallback here. [VEH-ACTIVE-FENCE-001]
-    // Both buttons mean "I'm leaving in this car" — they differ only in whether the plaza is
-    // shared. That is why both declare the car active. [PARK-DELETE-NO-DECLARE-001]
+    // One answer now: leaving in this car, which is also the declaration that you drive it.
+    // [PARK-DELETE-NO-DECLARE-001] [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001]
     fun release(reason: ParkingReleaseReason) {
         onIntent(HomeIntent.ReleaseParking(sessionId = sessionId, reason = reason))
     }
@@ -1098,9 +1109,9 @@ private fun HomeReleaseDialogHost(
     HomeReleaseDialog(
         releasingReason = releasingReason,
         onDismiss = { if (releasingReason == null) onDismiss() },
-        onPublishSpot = { release(ParkingReleaseReason.DEPARTURE_PUBLISHED) },
-        onDeleteOnly = { release(ParkingReleaseReason.DEPARTURE_UNPUBLISHED) },
+        onConfirm = { release(ParkingReleaseReason.DEPARTURE) },
         detectionNote = detectionNote,
+        privateZoneName = privateZoneName,
     )
 }
 

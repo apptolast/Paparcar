@@ -3,6 +3,7 @@ package com.rndeveloper.paparcar.presentation.map
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
+import com.rndeveloper.paparcar.domain.model.Zone
 
 /**
  * What the screen knows about the parking it was asked to show.
@@ -38,6 +39,10 @@ data class ParkingHistoryState(
     // Registered vehicles — used to resolve the focused session's real body shape + paint colour for
     // the modal + map marker (UserParking has no colour of its own). [HISTORY-DETAIL-001]
     val vehicles: List<Vehicle> = emptyList(),
+    /** The user's PRIVATE zones, live. A park inside one published no plaza, and the detail says
+     *  so — resolved from these and not from the session's `privateZoneId`, which is stamped at
+     *  park time and never synced. [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] */
+    val privateZones: List<Zone> = emptyList(),
     // Which history entry is on screen. Kept as an id (not the object) so it survives list refreshes
     // and prev/next recomputes deterministically against [orderedSessions]. [HISTORY-DETAIL-001]
     val focusedSessionId: String? = null,

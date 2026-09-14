@@ -63,6 +63,8 @@ import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.util.PolylineCodec
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
+import com.rndeveloper.paparcar.domain.model.Zone
+import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy
 import com.rndeveloper.paparcar.domain.model.monitoringStatus
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheet
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetLead
@@ -103,7 +105,7 @@ import paparcar.composeapp.generated.resources.map_cd_back
 import paparcar.composeapp.generated.resources.parking_detail_detection_assisted
 import paparcar.composeapp.generated.resources.parking_detail_detection_auto
 import paparcar.composeapp.generated.resources.parking_detail_detection_bluetooth
-import paparcar.composeapp.generated.resources.parking_detail_detection_home
+import paparcar.composeapp.generated.resources.parking_detail_private_zone
 import paparcar.composeapp.generated.resources.parking_detail_detection_manual
 import paparcar.composeapp.generated.resources.location_fallback_parking
 import paparcar.composeapp.generated.resources.common_directions
@@ -321,6 +323,7 @@ fun ParkingHistoryDetailScreen(
         HistoryDetailSheet(
             focused = focusedParking,
             vehicle = state.focusedVehicle,
+            privateZones = state.privateZones,
             hasOlder = state.hasOlder,
             hasNewer = state.hasNewer,
             onOlder = { viewModel.handleIntent(ParkingHistoryIntent.FocusOlder) },
@@ -460,6 +463,10 @@ private fun InferredRouteQuestionCard(
 fun HistoryDetailSheet(
     focused: FocusedParking,
     vehicle: Vehicle?,
+    /** The user's PRIVATE zones as they are now — a park inside one published no plaza, and the
+     *  detail says so. Live, not read off the session's stamp: see [PrivateZoneRow].
+     *  [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] */
+    privateZones: List<Zone>,
     hasOlder: Boolean,
     hasNewer: Boolean,
     onOlder: () -> Unit,
@@ -514,6 +521,7 @@ fun HistoryDetailSheet(
                     is FocusedParking.Resolved -> HistoryParkingCard(
                         session = shownFocused.session,
                         vehicle = shownVehicle,
+                        privateZones = privateZones,
                         hasOlder = hasOlder,
                         hasNewer = hasNewer,
                         onOlder = onOlder,
@@ -611,6 +619,10 @@ private fun HistoryParkingCard(
     // [UI-HISTORY-DETAIL-MUST-NOT-SPEAK-BEFORE-IT-KNOWS-001]
     session: UserParking,
     vehicle: Vehicle?,
+    /** The user's PRIVATE zones as they are now — a park inside one published no plaza, and the
+     *  detail says so. Live, not read off the session's stamp: see [PrivateZoneRow].
+     *  [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] */
+    privateZones: List<Zone>,
     hasOlder: Boolean,
     hasNewer: Boolean,
     onOlder: () -> Unit,
@@ -677,6 +689,10 @@ private fun HistoryParkingCard(
             run {
                 DateTimeRow(timestampMs = session.location.timestamp, tint = metaTint)
                 DetectionRow(session = session, tint = metaTint)
+                // Two axes, two rows: who found the car (above) and where it is (here). They used
+                // to be one enum, and the place silently replaced the strategy.
+                // [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001]
+                PrivateZoneRow(session = session, privateZones = privateZones, tint = metaTint)
                 // [DET-DOUBT-MUST-REACH-THE-SCREEN-001] El mismo componente que ya usa el peek de
                 // Home — no se re-implementa una fila «icono + texto» [UI-LIST-ITEM-001]. Sin él,
                 // esta pantalla presentaba una zona de 250 m como un punto exacto, con un botón
@@ -774,11 +790,37 @@ private fun DetectionRow(session: UserParking, tint: Color) {
             Icons.Rounded.Bolt to stringResource(Res.string.parking_detail_detection_auto)
         ParkingDetectionSource.Manual ->
             Icons.Rounded.EditLocationAlt to stringResource(Res.string.parking_detail_detection_manual)
-        ParkingDetectionSource.PrivateZone ->
-            Icons.Rounded.Home to stringResource(Res.string.parking_detail_detection_home)
     }
     PeekMetaRow(icon = icon, tint = tint, text = label)
 }
+
+/**
+ * WHERE this parking sits, when where it sits changed what happened: inside one of the user's
+ * private zones, so leaving it published no plaza.
+ * [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001]
+ *
+ * A row of its own, and not a value inside [DetectionRow], because the two answer different
+ * questions — who found the car, and where the car is. Folded together (as `PrivateZone` in
+ * [ParkingDetectionSource] used to be) the place ATE the strategy, and the whole point of that row
+ * is to name the strategy.
+ *
+ * Resolved from [privateZones] as they are NOW, deliberately — the same live read the publish gate
+ * does, and the only one that works at all on a second device, since `UserParking.privateZoneId` is
+ * local-only and never travels in `ParkingHistoryDto`. A zone the user has since deleted stops
+ * explaining the row, which is honest: there is no private zone there any more.
+ */
+@Composable
+private fun PrivateZoneRow(session: UserParking, privateZones: List<Zone>, tint: Color) {
+    val zone = SpotReleasePolicy.privateZoneAt(session.location, privateZones) ?: return
+    PeekMetaRow(
+        icon = Icons.Rounded.Home,
+        tint = tint,
+        text = stringResource(Res.string.parking_detail_private_zone, zone.name),
+        maxLines = PRIVATE_ZONE_ROW_MAX_LINES,
+    )
+}
+
+private const val PRIVATE_ZONE_ROW_MAX_LINES = 3
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tokens
