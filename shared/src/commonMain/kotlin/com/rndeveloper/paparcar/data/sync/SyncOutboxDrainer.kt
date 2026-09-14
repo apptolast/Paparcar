@@ -7,6 +7,7 @@ import com.rndeveloper.paparcar.data.datasource.remote.RemoteUserProfileDataSour
 import com.rndeveloper.paparcar.data.mapper.toAddressDto
 import com.rndeveloper.paparcar.data.mapper.toParkingHistoryDto
 import com.rndeveloper.paparcar.data.mapper.toPlaceInfoDto
+import com.rndeveloper.paparcar.domain.geocoder.enrichParkingSession
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.Spot
 import com.rndeveloper.paparcar.domain.model.SpotStatus
@@ -112,17 +113,17 @@ class SyncOutboxDrainer(
             true
         }
         is OutboxOp.EnrichSession -> {
-            var saved = false
-            getAddressAndPlace(op.lat, op.lon)
-                .catch { PaparcarLogger.w(TAG, "geocoder failure for ${op.sessionId}", it) }
-                .collect { info ->
-                    // Display-only borrowed answer — never persisted. [GEO-CACHE-ANSWERS-NEARBY-001]
-                    if (info.approximate) return@collect
-                    userParkingRepository
-                        .updateParkingSessionAddressAndPlace(op.sessionId, info.address, info.placeInfo)
-                        .onSuccess { saved = true }
-                }
-            saved
+            // ⛔ NOT done until the POI question has an answer. This used to be a literal copy of
+            // the Android worker's loop, bug included: `saved` was raised by the phase-1 street
+            // emission, so a dead Overpass took the op out of the outbox with the session holding
+            // an address and no place, and nothing ever asked again. One function now, in
+            // commonMain. [POI-A-FAILED-LOOKUP-IS-NOT-AN-ANSWER-001]
+            enrichParkingSession(
+                sessionId = op.sessionId,
+                answers = getAddressAndPlace(op.lat, op.lon, persisting = true)
+                    .catch { PaparcarLogger.w(TAG, "geocoder failure for ${op.sessionId}", it) },
+                repository = userParkingRepository,
+            )
         }
         is OutboxOp.ReportSpot -> {
             val now = clock()

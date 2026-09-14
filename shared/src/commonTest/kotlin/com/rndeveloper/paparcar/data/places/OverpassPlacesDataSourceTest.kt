@@ -7,6 +7,7 @@ import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.MockRequestHandleScope
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.engine.mock.respondError
+import io.ktor.client.engine.mock.toByteArray
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
@@ -79,6 +80,30 @@ class OverpassPlacesDataSourceTest {
 
         assertTrue(result.isSuccess, "an honest empty answer IS an answer, and does seal the cell")
         assertNull(result.getOrThrow())
+    }
+
+    // ── What this lane asks for, and how long it may keep asking ─────────────
+    // [POI-A-FAILED-LOOKUP-IS-NOT-AN-ANSWER-001]
+
+    @Test
+    fun should_grantTheServerTheSameBudgetAsEveryOtherLane() = runTest {
+        var body: String? = null
+        val engine = MockEngine { request ->
+            body = request.body.toByteArray().decodeToString()
+            healthy()
+        }
+
+        OverpassPlacesDataSource(HttpClient(engine), MIRRORS).getNearbyPlace(LAT, LON)
+
+        // ⛔ On the WIRE, not on the constant: a test that read `TIMEOUT_S` would not prove the
+        // number reaches the request. This lane declared 8 while every other one declared 20, and
+        // `OverpassWalkPatience` caps a server's turn at `serverBudget + NETWORK_GRACE` — so the 8
+        // held this lane to 13 s per mirror while the derived share was already 15 s.
+        assertTrue(
+            body?.contains("%5Bout%3Ajson%5D%5Btimeout%3A20%5D") == true ||
+                body?.contains("[out:json][timeout:20]") == true,
+            "the POI lane is still asking the server for a different budget than the rest: $body",
+        )
     }
 
     // ── plumbing ──────────────────────────────────────────────────────────────

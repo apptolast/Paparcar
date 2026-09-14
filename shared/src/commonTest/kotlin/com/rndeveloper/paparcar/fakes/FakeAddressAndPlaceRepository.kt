@@ -23,11 +23,36 @@ class FakeAddressAndPlaceRepository(
     /** Every request, in order — lets tests assert cancellation/dedup behaviour. */
     val calls = mutableListOf<Pair<Double, Double>>()
 
-    override fun getAddressAndPlace(lat: Double, lon: Double): Flow<AddressAndPlace> = flow {
+    /** The `persisting` flag of every request, in order. [POI-A-FAILED-LOOKUP-IS-NOT-AN-ANSWER-001] */
+    val persistingCalls = mutableListOf<Boolean>()
+
+    /**
+     * False = Overpass never answered, so phase 2 emits NOTHING — the case that is NOT the same as
+     * "no place here" and that the real repository distinguishes with `poiChecked`. Default true
+     * because most tests want a lookup that completed. [POI-A-FAILED-LOOKUP-IS-NOT-AN-ANSWER-001]
+     */
+    var poiAnswered: Boolean = true
+
+    override fun getAddressAndPlace(
+        lat: Double,
+        lon: Double,
+        persisting: Boolean,
+    ): Flow<AddressAndPlace> = flow {
         calls += lat to lon
+        persistingCalls += persisting
         if (delayMs > 0) kotlinx.coroutines.delay(delayMs)
         val address = addressResult.getOrElse { AddressInfo(null, null, null, null) }
         emit(AddressAndPlace(address = address, placeInfo = null, approximate = approximate))
-        if (placeInfo != null) emit(AddressAndPlace(address = address, placeInfo = placeInfo, approximate = approximate))
+        // Mirrors the real contract: the second emission is made on ANSWERED, not on "found".
+        if (poiAnswered) {
+            emit(
+                AddressAndPlace(
+                    address = address,
+                    placeInfo = placeInfo,
+                    approximate = approximate,
+                    poiChecked = true,
+                ),
+            )
+        }
     }
 }

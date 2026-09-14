@@ -53,23 +53,41 @@ class AddressAndPlaceRepositoryImplTest {
         assertEquals(place, emissions.last().placeInfo)
     }
 
+    // ── "I asked, there is nothing" ≠ "I could not ask" [POI-A-FAILED-LOOKUP-IS-NOT-AN-ANSWER-001] ──
+    //
+    // ⛔ These two used to be the same observation — one emission, `placeInfo == null` — and that is
+    // the whole bug: every persisting consumer read the dead mirror as a settled answer and never
+    // asked again. They are kept adjacent on purpose, because what matters is that they DIFFER.
+
     @Test
-    fun `should emit only once when no place found`() = runTest {
+    fun `should emit a second time carrying poiChecked when no place is found`() = runTest {
         places.placeResult = Result.success(null)
 
         val emissions = repo.getAddressAndPlace(40.416775, -3.703790).toList()
 
-        assertEquals(1, emissions.size)
-        assertNull(emissions.first().placeInfo)
+        assertEquals(2, emissions.size, "the no-place ANSWER ended the flow in silence")
+        assertNull(emissions.last().placeInfo)
+        assertTrue(emissions.last().poiChecked, "an answered lookup must say so")
     }
 
     @Test
-    fun `should emit only once when places call fails`() = runTest {
+    fun `should emit only once and never claim poiChecked when the places call fails`() = runTest {
         places.placeResult = Result.failure(RuntimeException("Network error"))
 
         val emissions = repo.getAddressAndPlace(40.416775, -3.703790).toList()
 
         assertEquals(1, emissions.size)
+        assertTrue(emissions.none { it.poiChecked }, "a failed lookup claimed the POI was checked")
+    }
+
+    @Test
+    fun `should mark poiChecked when a place is found`() = runTest {
+        places.placeResult = Result.success(PlaceInfo("Supersol", PlaceCategory.SUPERMARKET))
+
+        val emissions = repo.getAddressAndPlace(40.416775, -3.703790).toList()
+
+        assertTrue(emissions.last().poiChecked)
+        assertEquals(false, emissions.first().poiChecked, "phase 1 answered a question it never asked")
     }
 
     // ── Deadline + cache purity [GEOCODE-DEADLINE-001] ────────────────────────
@@ -118,6 +136,60 @@ class AddressAndPlaceRepositoryImplTest {
         val sealed = local.puts.last()
         assertEquals(true, sealed.second)
         assertNull(sealed.first.placeInfo)
+    }
+
+    // ── Who a cached "no place here" is good enough for ───────────────────────
+    // [POI-A-FAILED-LOOKUP-IS-NOT-AN-ANSWER-001]
+
+    @Test
+    fun `should serve a cached no-place answer to a caller that only paints it`() = runTest {
+        local.cached = AddressAndPlace(
+            address = AddressInfo("Calle Mayor", "Madrid", null, "ES"),
+            placeInfo = null,
+            poiChecked = true,
+        )
+
+        val emissions = repo.getAddressAndPlace(40.416775, -3.703790).toList()
+
+        // The map's own lanes keep the full cache: re-asking Overpass on every pan settle, over
+        // servers measured answering 504, would be paid by everyone to protect nothing.
+        assertEquals(1, emissions.size)
+        assertEquals(emptyList(), places.asked, "a painting caller went to the network anyway")
+    }
+
+    @Test
+    fun `should re-measure a cached no-place answer when the caller will store it`() = runTest {
+        local.cached = AddressAndPlace(
+            address = AddressInfo("Calle Mayor", "Madrid", null, "ES"),
+            placeInfo = null,
+            poiChecked = true,
+        )
+        geocoder.addressResult = Result.success(AddressInfo("Calle Mayor", "Madrid", null, "ES"))
+        places.placeResult = Result.success(PlaceInfo("Supersol", PlaceCategory.SUPERMARKET))
+
+        val emissions = repo.getAddressAndPlace(40.416775, -3.703790, persisting = true).toList()
+
+        // ⛔ The cell was sealed from ONE point of an 11 × 8 m square — plausibly the user's own
+        // position, metres from the pin and seconds earlier. 14 m against a 40 m naming radius is
+        // what flips the verdict, so the pin measures for itself.
+        assertEquals(listOf(40.416775 to -3.703790), places.asked)
+        assertEquals("Supersol", emissions.last().placeInfo?.name)
+    }
+
+    @Test
+    fun `should serve a cached NAME even to a caller that will store it`() = runTest {
+        local.cached = AddressAndPlace(
+            address = AddressInfo("Calle Mayor", "Madrid", null, "ES"),
+            placeInfo = PlaceInfo("Mercadona", PlaceCategory.SUPERMARKET),
+            poiChecked = true,
+        )
+
+        val emissions = repo.getAddressAndPlace(40.416775, -3.703790, persisting = true).toList()
+
+        // Being 14 m off about "Mercadona is here" costs nothing; only the NEGATIVE is fragile.
+        assertEquals(1, emissions.size)
+        assertEquals("Mercadona", emissions.first().placeInfo?.name)
+        assertEquals(emptyList(), places.asked, "a cached name must not cost an Overpass round trip")
     }
 
     // ── Offline near-miss: the cache answers by neighbourhood [GEO-CACHE-ANSWERS-NEARBY-001] ──

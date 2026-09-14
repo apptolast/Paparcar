@@ -51,7 +51,21 @@ class OverpassPlacesDataSource(
             .onFailure { e -> PaparcarLogger.w(TAG, "Overpass lookup failed for ($lat, $lon)", e) }
 
     private companion object {
-        /** Overpass' own server-side budget for this query, sent inside it. */
-        const val TIMEOUT_S = 8
+        /**
+         * Overpass' own server-side budget for this query, sent inside it.
+         *
+         * ⛔ Was **8** while car parks, stations, French names and roads all asked for 20 — and
+         * [OVERPASS-A-MIRROR-WALK-MUST-OUTLIVE-THE-SERVER-IT-ASKS-001] left it standing while it
+         * fixed everything around it. It is not a cheap query; it was the odd one out, and being
+         * the odd one out COSTS here: `OverpassWalkPatience` caps a server's turn at
+         * `serverBudget + NETWORK_GRACE`, so 8 s capped this lane at 13 s per mirror while the
+         * derived even share was already handing out 15 s. The one lane whose answer is kept for
+         * good was the one that could not use its share.
+         *
+         * Measured 14-09-2026 (El Puerto): the healthy mirror answered THIS query in **13,2 s** on
+         * one of the runs — right through the 13 s cap the 8 was imposing.
+         * [POI-A-FAILED-LOOKUP-IS-NOT-AN-ANSWER-001]
+         */
+        const val TIMEOUT_S = 20
     }
 }

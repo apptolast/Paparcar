@@ -27,7 +27,13 @@ class RoomLocalAddressAndPlaceDataSource(
     override suspend fun getNearest(lat: Double, lon: Double): AddressAndPlace? {
         val minCachedAt = Clock.System.now().toEpochMilliseconds() - CACHE_TTL_MS
         val nearest = pickNearestCell(dao.getStreetCells(minCachedAt), lat, lon) ?: return null
-        return nearest.toAddressAndPlace().copy(approximate = true)
+        // ⛔ `poiChecked = false` whatever the neighbour cell says. The seal is a statement about the
+        // point that MEASURED it, and this one can sit up to MAX_NEAREST_DISTANCE_METERS away — the
+        // same reason the borrowed answer lends its street and never its place. Carrying the
+        // neighbour's `true` up would tell a persisting consumer "the POI question is settled here"
+        // about a question nobody asked at this point.
+        // [POI-A-FAILED-LOOKUP-IS-NOT-AN-ANSWER-001] [GEO-CACHE-ANSWERS-NEARBY-001]
+        return nearest.toAddressAndPlace().copy(approximate = true, poiChecked = false)
     }
 
     override suspend fun put(lat: Double, lon: Double, info: AddressAndPlace, poiChecked: Boolean) {
@@ -69,7 +75,10 @@ class RoomLocalAddressAndPlaceDataSource(
                 .getOrDefault(PlaceCategory.OTHER)
             PlaceInfo(name = placeInfoName, category = category)
         } else null
-        return AddressAndPlace(address = address, placeInfo = placeInfo)
+        // A cell carries its own seal upward: `get()` only ever serves sealed rows, so a cache hit
+        // is a POI question already answered and a consumer that persists must not re-ask.
+        // [POI-A-FAILED-LOOKUP-IS-NOT-AN-ANSWER-001]
+        return AddressAndPlace(address = address, placeInfo = placeInfo, poiChecked = poiChecked)
     }
 
     companion object {

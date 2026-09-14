@@ -87,7 +87,11 @@ class SyncOutboxDrainerTest {
     }
 
     private class NoAddress : AddressAndPlaceRepository {
-        override fun getAddressAndPlace(lat: Double, lon: Double): Flow<AddressAndPlace> = emptyFlow()
+        override fun getAddressAndPlace(
+            lat: Double,
+            lon: Double,
+            persisting: Boolean,
+        ): Flow<AddressAndPlace> = emptyFlow()
     }
 
     // ── Harness ─────────────────────────────────────────────────────────────────────────────

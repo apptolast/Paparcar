@@ -8,6 +8,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.rndeveloper.paparcar.domain.detection.DetectionPath
+import com.rndeveloper.paparcar.domain.geocoder.enrichParkingSession
 import com.rndeveloper.paparcar.domain.matching.InferredRoute
 import com.rndeveloper.paparcar.domain.matching.TrailMapMatcher
 import com.rndeveloper.paparcar.domain.model.UserParking
@@ -26,7 +27,10 @@ import java.util.concurrent.TimeUnit
  * Post-park enrichment: geocoder address + POI, AND the one-time map-match of the driven route.
  *
  *  1. Address (local geocoder, instant) — written to DB immediately.
- *  2. Place info (network, best-effort) — written to DB if available.
+ *  2. Place info (network) — written to DB when a place is found. **Best-effort does not mean
+ *     one shot**: a lookup that could not reach Overpass is a [Result.retry], and only a lookup
+ *     that ANSWERED (place, or a measured "nothing within 40 m") completes this half. The two
+ *     used to be the same null. [POI-A-FAILED-LOOKUP-IS-NOT-AN-ANSWER-001]
  *  3. **Route snap** — the raw route stored at confirm is snapped onto OSM streets ONCE here and
  *     written back as the final on-road line (`routeSnapped = true`), so the history draws it without
  *     re-computing. Until then the session is `routeSnapped = false` → the UI shows "recalculating".
@@ -53,19 +57,18 @@ class EnrichParkingSessionWorker(
         val lat = inputData.getDouble(KEY_LAT, Double.NaN).takeIf { !it.isNaN() } ?: return Result.failure()
         val lon = inputData.getDouble(KEY_LON, Double.NaN).takeIf { !it.isNaN() } ?: return Result.failure()
 
-        var addressSaved = false
-
-        getAddressAndPlace(lat, lon)
-            .catch { e -> PaparcarLogger.e(TAG, "getAddressAndPlace failed (attempt $runAttemptCount) lat=$lat lon=$lon", e) }
-            .collect { info ->
-                // A borrowed-neighbour answer is display-only: persisting it would stamp a guess
-                // as the session's real street. Skip → retry for the exact one.
-                // [GEO-CACHE-ANSWERS-NEARBY-001]
-                if (info.approximate) return@collect
-                userParkingRepository
-                    .updateParkingSessionAddressAndPlace(sessionId, info.address, info.placeInfo)
-                    .onSuccess { addressSaved = true }
-            }
+        // The stamping and the "is it finished?" verdict live in commonMain, shared with the iOS
+        // drainer — two copies of this loop is what let the same bug run on both platforms.
+        // [POI-A-FAILED-LOOKUP-IS-NOT-AN-ANSWER-001]
+        val geocodeDone = enrichParkingSession(
+            sessionId = sessionId,
+            // persisting: this name goes into the session and stays there. A cell that says "no
+            // place here" — possibly sealed seconds ago by the user's own position, metres away —
+            // does not get to answer for the pin. [POI-A-FAILED-LOOKUP-IS-NOT-AN-ANSWER-001]
+            answers = getAddressAndPlace(lat, lon, persisting = true)
+                .catch { e -> PaparcarLogger.e(TAG, "getAddressAndPlace failed (attempt $runAttemptCount) lat=$lat lon=$lon", e) },
+            repository = userParkingRepository,
+        )
 
         // Snap the driven route onto streets ONCE. true = done (snapped / nothing to snap); false =
         // roads couldn't be fetched (offline) → retryable. [DET-ROUTE-SNAP-STORE-001]
@@ -73,7 +76,7 @@ class EnrichParkingSessionWorker(
             .getOrElse { e -> PaparcarLogger.w(TAG, "route snap failed (attempt $runAttemptCount)", e); false }
 
         return when {
-            addressSaved && routeDone -> Result.success()
+            geocodeDone && routeDone -> Result.success()
             runAttemptCount < MAX_RETRIES -> Result.retry()
             else -> {
                 // Give up retrying: accept the raw route as final so history stops "recalculating".

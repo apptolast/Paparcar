@@ -12,7 +12,14 @@ class FakeLocalAddressAndPlaceDataSource : LocalAddressAndPlaceDataSource {
     /** What [getNearest] answers — the fake's stand-in for a nearby cached cell. */
     var nearestResult: AddressAndPlace? = null
 
-    override suspend fun get(lat: Double, lon: Double): AddressAndPlace? = cache[Pair(lat, lon)]
+    /**
+     * A pre-sealed cell that answers EVERY coordinate — the fake's stand-in for "this point's cell
+     * was already measured by somebody else". [POI-A-FAILED-LOOKUP-IS-NOT-AN-ANSWER-001]
+     */
+    var cached: AddressAndPlace? = null
+
+    override suspend fun get(lat: Double, lon: Double): AddressAndPlace? =
+        cached ?: cache[Pair(lat, lon)]
 
     override suspend fun getNearest(lat: Double, lon: Double): AddressAndPlace? = nearestResult
 

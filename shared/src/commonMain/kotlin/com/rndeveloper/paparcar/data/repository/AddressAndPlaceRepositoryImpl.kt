@@ -35,15 +35,33 @@ class AddressAndPlaceRepositoryImpl(
 
     private var evictDone = false
 
-    override fun getAddressAndPlace(lat: Double, lon: Double): Flow<AddressAndPlace> = flow {
+    override fun getAddressAndPlace(
+        lat: Double,
+        lon: Double,
+        persisting: Boolean,
+    ): Flow<AddressAndPlace> = flow {
         if (!evictDone) {
             evictDone = true
             local.evictExpired()
         }
 
         // Local is the single source of truth. Cache hit → emit and done.
+        //
+        // ⛔ …unless this answer is going to be STORED and the cell says "no place here". That
+        // sentence was measured from one point of an 11 × 8 m cell, and 14 m against the 40 m
+        // naming radius is exactly the margin that flips it — so for a caller that will keep the
+        // answer, the cell is re-measured at ITS coordinates. A cached NAME is served to everyone:
+        // being 14 m off about "Supersol is here" costs nothing.
+        //
+        // This is also what settles the race: walking away from a just-parked car, the user's own
+        // position geocodes metres from the pin and seconds before the enrichment worker, so the
+        // caller that was going to discard its answer on the next pan used to decide the parking's
+        // name for 30 days. [POI-A-FAILED-LOOKUP-IS-NOT-AN-ANSWER-001]
         val cached = local.get(lat, lon)
-        if (cached != null) { emit(cached); return@flow }
+        if (cached != null && !(persisting && cached.placeInfo == null)) {
+            emit(cached)
+            return@flow
+        }
 
         // Cache miss — fetch from remote sources, write to local, emit.
 
@@ -81,13 +99,29 @@ class AddressAndPlaceRepositoryImpl(
             runCatching { places.getNearbyPlace(lat, lon) }.getOrElse { e -> Result.failure(e) }
         }
         val placeInfo = placeResult?.getOrNull()
-        PaparcarLogger.d(TAG, "Phase 2 result — placeInfo=$placeInfo answered=${placeResult?.isSuccess}")
-        if (fetchedAddress != null && placeResult?.isSuccess == true) {
+        // Overpass ANSWERED — with a place or with a measured nothing. A timeout (null result) and a
+        // failure are the other thing entirely, and the difference leaves this flow on the emission
+        // below. [POI-A-FAILED-LOOKUP-IS-NOT-AN-ANSWER-001]
+        val poiAnswered = placeResult?.isSuccess == true
+        PaparcarLogger.d(TAG, "Phase 2 result — placeInfo=$placeInfo answered=$poiAnswered")
+        if (fetchedAddress != null && poiAnswered) {
             local.put(lat, lon, AddressAndPlace(address = address, placeInfo = placeInfo), poiChecked = true)
         }
+        // ⛔ Emit on ANSWERED, not on `placeInfo != null`. The no-POI answer used to end this flow in
+        // silence, identical to a dead mirror, so a consumer that persists could not tell "there is
+        // nothing here" from "nobody replied" — and `EnrichParkingSessionWorker` called both done.
         // A real POI upgrade keeps the address's provenance: if the line under it is still a
         // borrowed neighbour, the emission stays approximate.
-        if (placeInfo != null) emit(AddressAndPlace(address = address, placeInfo = placeInfo, approximate = approximate))
+        if (poiAnswered) {
+            emit(
+                AddressAndPlace(
+                    address = address,
+                    placeInfo = placeInfo,
+                    approximate = approximate,
+                    poiChecked = true,
+                ),
+            )
+        }
     }
 
     private companion object {

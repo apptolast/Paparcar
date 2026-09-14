@@ -24,7 +24,23 @@ class GetAddressAndPlaceUseCaseTest {
 
         val result = useCase(40.416775, -3.703790).toList()
 
-        assertEquals(listOf(info), result)
+        // Two emissions for a place-less point, not one: the second says the POI question was
+        // ASKED and came back empty, which is not the same as never having asked.
+        // [POI-A-FAILED-LOOKUP-IS-NOT-AN-ANSWER-001]
+        assertEquals(listOf(info, info.copy(poiChecked = true)), result)
+    }
+
+    @Test
+    fun `should_pass_the_persisting_flag_through_to_the_repository`() = runTest {
+        val repo = FakeAddressAndPlaceRepository(AddressAndPlace(address, null))
+        val useCase = GetAddressAndPlaceUseCase(repo)
+
+        useCase(40.416775, -3.703790).toList()
+        useCase(40.416775, -3.703790, persisting = true).toList()
+
+        // A use case that dropped the flag would look identical from every consumer's side, and the
+        // cached "no place here" would go on answering for pins it never measured.
+        assertEquals(listOf(false, true), repo.persistingCalls)
     }
 
     @Test
@@ -32,7 +48,8 @@ class GetAddressAndPlaceUseCaseTest {
         val addressOnly = AddressAndPlace(address, null)
         val withPlace = AddressAndPlace(address, place)
         val repo = object : com.rndeveloper.paparcar.domain.repository.AddressAndPlaceRepository {
-            override fun getAddressAndPlace(lat: Double, lon: Double) = flowOf(addressOnly, withPlace)
+            override fun getAddressAndPlace(lat: Double, lon: Double, persisting: Boolean) =
+                flowOf(addressOnly, withPlace)
         }
         val useCase = GetAddressAndPlaceUseCase(repo)
 

@@ -210,11 +210,17 @@ class FakeUserParkingRepository(
         return deleteAllDataResult
     }
 
+    /** One entry per stamp, in order — a redundant re-write is a row re-dirtied and a remote push
+     *  re-sent, so the COUNT is part of what the enrichment tests assert.
+     *  [POI-A-FAILED-LOOKUP-IS-NOT-AN-ANSWER-001] */
+    val addressAndPlaceWrites = mutableListOf<Pair<AddressInfo?, PlaceInfo?>>()
+
     override suspend fun updateParkingSessionAddressAndPlace(
         id: String,
         address: AddressInfo?,
         placeInfo: PlaceInfo?,
     ): Result<Unit> {
+        addressAndPlaceWrites += address to placeInfo
         val idx = sessions.indexOfFirst { it.id == id }
         if (idx >= 0) {
             sessions[idx] = sessions[idx].copy(address = address, placeInfo = placeInfo)

@@ -82,6 +82,12 @@ class ReportSpotReleasedUseCase(
         // gives us an address → skip the redundant, blocking inline lookup. [SPOT-PREFETCH-001]
         if (exactPrefetch == null) {
             withTimeoutOrNull(GEOCODE_TIMEOUT_MS.milliseconds) {
+                // ⛔ NOT `persisting = true`, even though this does store the answer.
+                // [POI-A-FAILED-LOOKUP-IS-NOT-AN-ANSWER-001] buys a re-measurement with an Overpass
+                // round trip, and this lane has 5 s, one shot and no retry — it would spend the
+                // budget to time out and publish with LESS than the cell already knew. The stake is
+                // different too: a spot lives minutes, so a slightly stale "no place here" costs a
+                // line of copy for a quarter of an hour, where a parking's name is kept for good.
                 getAddressAndPlace(lat, lon)
                     .catch { /* best-effort: schedule with whatever info we have */ }
                     .collect { info ->

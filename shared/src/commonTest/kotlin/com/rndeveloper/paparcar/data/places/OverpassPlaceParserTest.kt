@@ -20,6 +20,9 @@ class OverpassPlaceParserTest {
         // `out center` is what made a supermarket's own building count as distance.
         assertTrue(!query.contains("out center"), "the centroid output must not come back: $query")
         assertTrue(query.contains("around:${NearbyPlacePolicy.QUERY_RADIUS_METERS},40.416775,-3.70379"), query)
+        // Echoes the budget it was HANDED — 8 here on purpose, a number no lane sends any more, so
+        // that this asserts the parser and not a figure it might coincidentally recognise. What
+        // production actually declares is pinned on the wire, in OverpassPlacesDataSourceTest.
         assertTrue(query.contains("[out:json][timeout:8];"), query)
     }
 
