@@ -1,7 +1,7 @@
 # UI-NO-LOCATION-WEARS-THE-ACCURACY-PILL-001 · «Sin ubicación» habla por la píldora, no por el peek
 
 **Estado:** 🔵 En progreso · rama `feature/UI-NO-LOCATION-WEARS-THE-ACCURACY-PILL-001` ·
-worktree `../Paparcar-no-location-pill` · issue [#27](https://github.com/apptolast/Paparcar/issues/27)
+worktree `../Paparcar-no-location-pill` · issue [#27](https://github.com/apptolast/Paparcar/issues/27) · PR [#28](https://github.com/apptolast/Paparcar/pull/28)
 
 ## Problema
 
