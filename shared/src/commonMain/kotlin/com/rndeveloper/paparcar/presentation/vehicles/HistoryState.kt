@@ -102,9 +102,18 @@ sealed interface HistoryTimeline {
         ): Resolved {
             val gated = gateHistoryToEntitlement(sessions, isPlus = isPlus, nowMs = nowMs)
             val filtered = VehicleHistoryCalculator.filter(gated.visible, filter, nowMs)
+            // [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001] The period chips govern the CHART for
+            // everyone, but the figures of a free account are always its last seven days, whatever
+            // chip is selected — that window is the plan, and Plus is what lets the chip reach them.
+            val statsFilter = if (isPlus) filter else HistoryFilter.Last7Days
+            val statsSessions = if (statsFilter == filter) {
+                filtered
+            } else {
+                VehicleHistoryCalculator.filter(gated.visible, statsFilter, nowMs)
+            }
             // The equivalent window immediately before this one, decided by the SAME authority that
             // decided the current one — never a second date arithmetic. [STATS-CORE-001]
-            val previousWindow = VehicleHistoryCalculator.previousWindow(filter, nowMs)
+            val previousWindow = VehicleHistoryCalculator.previousWindow(statsFilter, nowMs)
             val previousSessions = previousWindow?.let { window ->
                 gated.visible.filter { it.location.timestamp in window }
             }
@@ -112,7 +121,7 @@ sealed interface HistoryTimeline {
             // mean it, and for a free account the visible set is seven days. This discloses no
             // gated CONTENT — only two counts, and the Plus footer under the timeline already
             // states how many sessions lie beyond the window. [MONEY-001]
-            val countryCode = filtered.countryCode()
+            val countryCode = statsSessions.countryCode()
             val litrePrice = vehicle?.let { resolveFuelPrice.litre(it, countryCode) }
             val kwhPrice = vehicle?.let { resolveFuelPrice.kwh(it, countryCode) }
             val endedEver = sessions.filter { !it.isActive }
@@ -122,7 +131,7 @@ sealed interface HistoryTimeline {
                 hiddenOlderCount = gated.hiddenOlderCount,
                 filteredSessions = filtered,
                 periodStats = computePeriodStats(
-                    sessions = filtered,
+                    sessions = statsSessions,
                     vehicles = listOfNotNull(vehicle),
                     previousSessions = previousSessions,
                     // The country comes from the parkings themselves — the reverse geocoder already

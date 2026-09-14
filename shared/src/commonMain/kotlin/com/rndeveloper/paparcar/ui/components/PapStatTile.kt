@@ -3,9 +3,7 @@ package com.rndeveloper.paparcar.ui.components
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,8 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
@@ -26,10 +22,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
@@ -53,12 +46,8 @@ fun PapStatTile(
     /** Level-2 glyph beside the label — what the figure is ABOUT, so a grid of numbers can be
      *  scanned without reading six captions. Tinted like the label it belongs to. */
     icon: ImageVector? = null,
-    /** Hides the VALUE behind a redaction bar while the label stays legible. [MONEY-001] */
-    veiled: Boolean = false,
-    /** The one figure a free user sees in full — the teaser. Larger, never coloured. */
+    /** The lead figure of its grid. Larger, never coloured. */
     emphasized: Boolean = false,
-    /** Spoken instead of the redaction bar, so a screen reader hears the gate, not silence. */
-    veiledDescription: String? = null,
     /**
      * The number behind [value], for the count-up. Null = no animation, and that is the honest
      * default: most tiles hold a day of the week or a street name, which do not count up to
@@ -72,51 +61,43 @@ fun PapStatTile(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(VALUE_DELTA_GAP_DP.dp),
         ) {
-            if (veiled) {
-                RedactedValue(
-                    modifier = Modifier.clearAndSetSemantics {
-                        veiledDescription?.let { contentDescription = it }
-                    },
+            // A figure that is the subject of its own block is CIFRA — and the size is the
+            // role's, never the call site's. [UI-TYPE-TWO-VOICES-ONE-ROW-001]
+            val valueStyle = if (emphasized) {
+                PaparcarType.current.statNumber
+            } else {
+                PaparcarType.current.counter
+            }
+            if (animatedNumber != null) {
+                Text(
+                    text = rememberCountUpText(animatedNumber),
+                    style = valueStyle,
+                    color = cs.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             } else {
-                // A figure that is the subject of its own block is CIFRA — and the size is the
-                // role's, never the call site's. [UI-TYPE-TWO-VOICES-ONE-ROW-001]
-                val valueStyle = if (emphasized) {
-                    PaparcarType.current.statNumber
-                } else {
-                    PaparcarType.current.counter
-                }
-                if (animatedNumber != null) {
+                // "Martes" cannot count up to "Jueves", but it still CHANGED when the period
+                // did, and a figure that swaps in place without a word of transition reads as a
+                // glitch. Words swap, numbers climb — every tile moves, each in the way its own
+                // value can. (User, 08-09-2026.)
+                //
+                // The swap is SEQUENCED, not a `Crossfade`: a crossfade drew "Martes" and
+                // "Jueves" on top of each other for the whole fade. It went unnoticed here
+                // because two short centred words overlap into something that still looks like
+                // a word — the same overlap on the Activity card's km sentence was read on
+                // device as the text changing several times. [UI-THE-KM-LINE-CHANGES-ONCE-001]
+                PapTextSwap(targetState = value, label = "stat_value") { shown ->
                     Text(
-                        text = rememberCountUpText(animatedNumber),
+                        text = shown,
                         style = valueStyle,
                         color = cs.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                } else {
-                    // "Martes" cannot count up to "Jueves", but it still CHANGED when the period
-                    // did, and a figure that swaps in place without a word of transition reads as a
-                    // glitch. Words swap, numbers climb — every tile moves, each in the way its own
-                    // value can. (User, 08-09-2026.)
-                    //
-                    // The swap is SEQUENCED, not a `Crossfade`: a crossfade drew "Martes" and
-                    // "Jueves" on top of each other for the whole fade. It went unnoticed here
-                    // because two short centred words overlap into something that still looks like
-                    // a word — the same overlap on the Activity card's km sentence was read on
-                    // device as the text changing several times. [UI-THE-KM-LINE-CHANGES-ONCE-001]
-                    PapTextSwap(targetState = value, label = "stat_value") { shown ->
-                        Text(
-                            text = shown,
-                            style = valueStyle,
-                            color = cs.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
                 }
-                delta?.let { StatDelta(it) }
             }
+            delta?.let { StatDelta(it) }
         }
         Spacer(Modifier.height(VALUE_LABEL_GAP_DP.dp))
         Row(
@@ -216,25 +197,6 @@ private fun StatDelta(delta: PapStatDelta) {
     }
 }
 
-/**
- * The gated value: a bar where the number would be.
- *
- * ⛔ NOT a blur. `Modifier.blur` is a no-op below API 31 (minSdk here is 26), so a blurred figure
- * would render perfectly legible on every older phone — a paywall with a hole in it, and a silent
- * one. Redaction cannot leak because the value is never composed at all.
- */
-@Composable
-private fun RedactedValue(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .padding(vertical = REDACTION_V_INSET_DP.dp)
-            .width(REDACTION_W_DP.dp)
-            .height(REDACTION_H_DP.dp)
-            .clip(RoundedCornerShape(REDACTION_CORNER_DP.dp))
-            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = REDACTION_ALPHA)),
-    )
-}
-
 private const val TILE_H_PAD_DP = 14
 private const val TILE_V_PAD_DP = 12
 private const val VALUE_DELTA_GAP_DP = 6
@@ -243,11 +205,5 @@ private const val LABEL_ICON_DP = 13
 private const val LABEL_ICON_GAP_DP = 5
 private const val DELTA_ICON_DP = 12
 private const val DELTA_ICON_GAP_DP = 2
-/** Wide enough to read as a withheld number, short enough not to read as a loading skeleton. */
-private const val REDACTION_W_DP = 54
-private const val REDACTION_H_DP = 13
-private const val REDACTION_CORNER_DP = 4
-private const val REDACTION_V_INSET_DP = 4
-private const val REDACTION_ALPHA = 0.16f
 /** Long enough to read as a climb, short enough not to delay the number anyone came for. */
 private const val COUNT_UP_MS = 700

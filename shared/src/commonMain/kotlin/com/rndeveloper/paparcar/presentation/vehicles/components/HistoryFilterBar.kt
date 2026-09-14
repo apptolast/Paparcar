@@ -1,5 +1,7 @@
 package com.rndeveloper.paparcar.presentation.vehicles.components
 
+import paparcar.composeapp.generated.resources.history_filter_last_7_days
+import androidx.compose.material.icons.rounded.Today
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -35,6 +37,7 @@ private const val FILTER_FADE_WIDTH_DP = 28
 
 private val FILTER_ICONS = mapOf(
     HistoryFilter.All to Icons.Rounded.GridView,
+    HistoryFilter.Last7Days to Icons.Rounded.Today,
     HistoryFilter.ThisWeek to Icons.Rounded.DateRange,
     HistoryFilter.ThisMonth to Icons.Rounded.CalendarMonth,
     HistoryFilter.Last3Months to Icons.Rounded.Schedule,
@@ -48,6 +51,9 @@ internal fun HistoryFilterBar(
 ) {
     val filters = listOf(
         HistoryFilter.All to stringResource(Res.string.history_filter_all),
+        // Rolling seven days beside the calendar week — also the free plan's stats window.
+        // [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
+        HistoryFilter.Last7Days to stringResource(Res.string.history_filter_last_7_days),
         HistoryFilter.ThisWeek to stringResource(Res.string.history_filter_this_week),
         HistoryFilter.ThisMonth to stringResource(Res.string.history_filter_this_month),
         HistoryFilter.Last3Months to stringResource(Res.string.history_filter_last_3_months),

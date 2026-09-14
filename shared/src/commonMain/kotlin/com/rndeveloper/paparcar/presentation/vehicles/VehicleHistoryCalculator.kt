@@ -48,6 +48,8 @@ object VehicleHistoryCalculator {
         val startDate = when (filter) {
             HistoryFilter.All -> return null
             HistoryFilter.ThisWeek -> today.minus(today.dayOfWeek.isoDayNumber - 1, DateTimeUnit.DAY)
+            // Rolling: today and the six days before it. [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
+            HistoryFilter.Last7Days -> today.minus(DAYS_PER_WEEK - 1, DateTimeUnit.DAY)
             HistoryFilter.ThisMonth -> LocalDate(today.year, today.month, 1)
             // The 1st of the month (MONTHLY_BUCKETS - 1) months back: three calendar months
             // INCLUDING the current one, which is exactly the span the three bars cover.
@@ -93,6 +95,7 @@ object VehicleHistoryCalculator {
         val previousStartDate = when (filter) {
             HistoryFilter.All -> return null
             HistoryFilter.ThisWeek -> currentStartDate.minus(DAYS_PER_WEEK, DateTimeUnit.DAY)
+            HistoryFilter.Last7Days -> currentStartDate.minus(DAYS_PER_WEEK, DateTimeUnit.DAY)
             HistoryFilter.ThisMonth -> currentStartDate.minus(1, DateTimeUnit.MONTH)
             HistoryFilter.Last3Months -> currentStartDate.minus(MONTHLY_BUCKETS, DateTimeUnit.MONTH)
         }
@@ -120,6 +123,7 @@ object VehicleHistoryCalculator {
         nowMs: Long = Clock.System.now().toEpochMilliseconds(),
     ): List<WeekDayStats> = when (filter) {
         HistoryFilter.ThisWeek -> weekDayBuckets(sessions, dayLabels, nowMs)
+        HistoryFilter.Last7Days -> rollingDayBuckets(sessions, dayLabels, nowMs)
         HistoryFilter.ThisMonth -> monthWeekBuckets(sessions, nowMs)
         HistoryFilter.Last3Months -> monthlyBuckets(sessions, monthNamesShort, MONTHLY_BUCKETS, nowMs)
         HistoryFilter.All -> monthlyBuckets(sessions, monthNamesShort, ALL_MONTHS_CAP, nowMs)
@@ -139,6 +143,29 @@ object VehicleHistoryCalculator {
             .eachCount()
         return (0 until DAYS_PER_WEEK).map { offset ->
             val date = monday.plus(offset, DateTimeUnit.DAY)
+            WeekDayStats(
+                label = dayLabels[date.dayOfWeek.isoDayNumber - 1],
+                sessions = counts[date] ?: 0,
+                isCurrent = date == today,
+            )
+        }
+    }
+
+    /** One bar per day of the last seven, oldest → today — the same rolling window the filter cut.
+     *  [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001] */
+    private fun rollingDayBuckets(
+        sessions: List<UserParking>,
+        dayLabels: List<String>,
+        nowMs: Long,
+    ): List<WeekDayStats> {
+        val tz = TimeZone.currentSystemDefault()
+        val today = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(tz).date
+        val first = today.minus(DAYS_PER_WEEK - 1, DateTimeUnit.DAY)
+        val counts = sessions
+            .groupingBy { Instant.fromEpochMilliseconds(it.location.timestamp).toLocalDateTime(tz).date }
+            .eachCount()
+        return (0 until DAYS_PER_WEEK).map { offset ->
+            val date = first.plus(offset, DateTimeUnit.DAY)
             WeekDayStats(
                 label = dayLabels[date.dayOfWeek.isoDayNumber - 1],
                 sessions = counts[date] ?: 0,

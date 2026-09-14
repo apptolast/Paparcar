@@ -125,6 +125,7 @@
 
     <string name="history_filter_all">Tous</string>
     <string name="history_filter_this_week">Cette semaine</string>
+    <string name="history_filter_last_7_days">7 derniers jours</string>
     <string name="history_filter_this_month">Ce mois-ci</string>
     <string name="history_filter_last_3_months">3 derniers mois</string>
     <string name="history_month_short_1">jan</string>
@@ -745,8 +746,8 @@
     <string name="paywall_tier_free">Gratuit</string>
     <string name="paywall_tier_plus">Plus</string>
     <string name="paywall_free_history">Les 7 derniers jours</string>
-    <string name="paywall_free_stats">Un seul chiffre</string>
-    <string name="paywall_plus_stats">Tous vos chiffres</string>
+    <string name="paywall_free_stats">Tous, 7 derniers jours</string>
+    <string name="paywall_plus_stats">N'importe quelle période</string>
     <string name="paywall_free_vehicles">Votre voiture</string>
     <string name="paywall_plus_vehicles">Toutes vos voitures</string>
     <string name="paywall_free_zones">2 zones</string>
@@ -754,7 +755,7 @@
     <string name="paywall_reason_history">Vous vouliez voir des stationnements plus anciens : Plus garde tout votre historique.</string>
     <string name="paywall_reason_vehicles">La version gratuite garde une voiture : avec Plus, ajoutez-en davantage.</string>
     <string name="paywall_reason_zones">La version gratuite garde deux zones : avec Plus, créez-en davantage.</string>
-    <string name="paywall_reason_stats">Les statistiques avancées font partie de Plus.</string>
+    <string name="paywall_reason_stats">Avec Plus, vous voyez vos chiffres sur n'importe quelle période.</string>
     <string name="paywall_reason_zone_alerts">Les alertes de places libres dans vos zones font partie de Plus.</string>
     <string name="paywall_free_alerts">Non inclus</string>
     <string name="paywall_free_support">Gratuit pour tous</string>
@@ -844,9 +845,13 @@
     <string name="stats_value_minutes">%1$d min</string>
     <string name="stats_value_share">%1$d/%2$d</string>
     <string name="stats_lifetime">Depuis toujours : %1$s stationnements · %2$s places cédées</string>
-    <string name="stats_plus_row_title">Voir tous vos chiffres</string>
-    <string name="stats_plus_row_subtitle">Dépense, CO₂ et habitudes, mois par mois</string>
-    <string name="stats_veiled_value">Masqué — seulement avec Plus</string>
+    <string name="stats_plus_row_title">Choisissez la période</string>
+    <string name="stats_plus_row_subtitle">Gratuit : vos %1$d derniers jours ; avec Plus, la période de votre choix</string>
+    <string name="stats_empty_first_trip">En attente de votre premier trajet</string>
+    <string name="stats_empty_period">Aucun stationnement sur cette période</string>
+    <string name="stats_empty_no_measured_trip">Aucun trajet mesuré pour l'instant</string>
+    <string name="stats_empty_sub">Vos chiffres apparaîtront ici dès que nous mesurons un trajet.</string>
+    <string name="stats_empty_turn_on_detection">Activez la détection automatique pour que vos trajets et stationnements soient mesurés.</string>
     <!-- Vehicle state line (STATS-UI-001) -->
     <string name="vehicle_state_parked">Stationné · %1$s</string>
     <string name="vehicle_state_last_parking">Dernier stationnement · %1$s</string>

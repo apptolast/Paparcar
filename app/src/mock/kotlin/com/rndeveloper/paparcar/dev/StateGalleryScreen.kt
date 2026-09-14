@@ -1569,9 +1569,9 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Plus · mes completo") {
                 StatsContent(state = statsPanelState(), onNavigateBack = {}, onIntent = {})
             },
-            // Free entra al panel: ve la primera cifra entera, el resto tapado y la fila Plus. No se
-            // le cierra la puerta, se le ensena la habitacion. [STATS-PANEL-001]
-            Variant("Free · una cifra y el resto tapado") {
+            // Free entra al panel: ve TODAS las cifras de sus últimos 7 días y la fila Plus que ofrece
+            // cualquier periodo. [STATS-PANEL-001] [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
+            Variant("Free · todas las cifras, últimos 7 días") {
                 StatsContent(
                     state = statsPanelState(isPlus = false),
                     onNavigateBack = {},
@@ -1592,6 +1592,18 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Periodo sin aparcamientos") {
                 StatsContent(
                     state = statsPanelState(sessions = emptyList()),
+                    onNavigateBack = {},
+                    onIntent = {},
+                )
+            },
+            // ⛔ El caso que se coló en produccion: recien instalada, el tutorial deja UN
+            // aparcamiento —manual, sin ruta, sin cerrar— y con eso la tarjeta se abria para
+            // enseñar «0 PLAZAS CEDIDAS» y nada mas. Sin esta variante el estado vacio de la
+            // galeria solo cubria la lista VACIA, que no es donde estaba el fallo (user, 14-09).
+            // [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
+            Variant("Solo el aparcamiento del tutorial") {
+                StatsContent(
+                    state = statsPanelState(sessions = listOf(FakeData.activeSession)),
                     onNavigateBack = {},
                     onIntent = {},
                 )
@@ -1656,10 +1668,9 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     isPlus = true,
                 )
             },
-            // En free se ve ENTERA la primera cifra y el resto va tapado. El tapado es una barra,
-            // no un desenfoque: Modifier.blur no hace nada por debajo de API 31 y el velo se
-            // habría leído perfectamente en cualquier móvil viejo. [MONEY-001]
-            Variant("Cifras · free (una cifra + resto tapado)") {
+            // En free se ven TODAS las cifras, sobre sus últimos 7 días; la fila Plus de debajo ofrece
+            // elegir periodo. [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
+            Variant("Cifras · free (todas, últimos 7 días)") {
                 history(
                     HistoryState(
                         timeline = resolvedHistory(

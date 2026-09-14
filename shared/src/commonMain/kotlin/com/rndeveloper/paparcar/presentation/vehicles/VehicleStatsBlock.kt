@@ -51,6 +51,12 @@ import com.rndeveloper.paparcar.presentation.util.isoDateToEpochMs
 import com.rndeveloper.paparcar.presentation.util.relativeTimeText
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
+import paparcar.composeapp.generated.resources.stats_empty_turn_on_detection
+import paparcar.composeapp.generated.resources.stats_empty_sub
+import paparcar.composeapp.generated.resources.stats_empty_period
+import paparcar.composeapp.generated.resources.stats_empty_first_trip
+import paparcar.composeapp.generated.resources.stats_empty_no_measured_trip
+import paparcar.composeapp.generated.resources.history_filter_last_7_days
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_day_full_fri
 import paparcar.composeapp.generated.resources.history_day_full_mon
@@ -87,7 +93,6 @@ import paparcar.composeapp.generated.resources.stats_value_kwh
 import paparcar.composeapp.generated.resources.stats_value_liters
 import paparcar.composeapp.generated.resources.stats_value_minutes
 import paparcar.composeapp.generated.resources.stats_value_share
-import paparcar.composeapp.generated.resources.stats_veiled_value
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -128,9 +133,30 @@ internal fun VehicleStatsBlock(
     /** Opens the full panel. Null where the block IS the panel — a card does not link to itself.
      *  [STATS-PANEL-001] */
     onOpenPanel: (() -> Unit)? = null,
+    /** Automatic detection is switched on — the empty card only asks to turn it on when it is not.
+     *  [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001] */
+    isAutoDetectionOn: Boolean = true,
 ) {
+    // [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001] A period with nothing MEASURED in it has no
+    // figures to show — only "0 spots shared", which reads as a verdict on a car that simply has not
+    // been measured yet. The card says what is true instead: waiting for the first trip (or for one
+    // in this period), and how to get there when detection is off.
+    //
+    // ⛔ The gate is the FIGURES, not the session count (user, 14-09). Counting parkings let the
+    // tutorial's own parking — one manual session, no route, nothing ended — open the card on the
+    // very zero this ticket exists to remove, because SPOTS_SHARED is added unconditionally. What
+    // makes a card is a figure somebody measured; a lone "0 spots shared" is not one.
+    if (!hasMeasuredFigures(stats)) {
+        EmptyStatsCard(
+            periodLabel = periodLabel,
+            neverParked = lifetimeParkings == 0,
+            parkedInPeriod = stats.parkings > 0,
+            isAutoDetectionOn = isAutoDetectionOn,
+            modifier = modifier,
+        )
+        return
+    }
     val tiles = statTiles(stats)
-    if (tiles.isEmpty()) return
 
     Column(modifier = modifier.fillMaxWidth()) {
         PapOutlinedCard(modifier = Modifier.fillMaxWidth(), shape = PapShapes.card) {
@@ -147,9 +173,11 @@ internal fun VehicleStatsBlock(
                     ),
                 )
                 PapDivider()
-                // Free sees the FIRST figure whole and the rest redacted: enough to know the block
-                // is real and about their own car, never enough to have the answer. [MONEY-001]
-                StatTileGrid(tiles = tiles, veilFromIndex = if (isPlus) null else 1)
+                // Every figure, for everyone. What Plus changes is the PERIOD, not which figures you
+                // may read: free sees all of them over its last FREE_HISTORY_WINDOW_DAYS days (the
+                // figures are already computed over the gated history), Plus over any period.
+                // [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
+                StatTileGrid(tiles = tiles)
                 // With the "all time" period selected the tiles ARE the car's whole life, so the
                 // footer would repeat the card in smaller type.
                 // ⛔ A spend figure has to say what price it used. An average and the user's own
@@ -195,8 +223,9 @@ internal fun VehicleStatsBlock(
                         ),
                     )
                 }
-                // Plus has nothing to be sold, so the card ends with where to go rather than what
-                // to buy. Free gets the metal row below instead — never both.
+                // Plus only: the full breakdown is where any period can be explored, which is what
+                // free does not have. Free gets the Plus row below instead — never both.
+                // [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
                 if (isPlus && onOpenPanel != null) {
                     PapDivider()
                     OpenPanelRow(onClick = onOpenPanel)
@@ -211,8 +240,7 @@ internal fun VehicleStatsBlock(
 
 /** Two-column grid of tiles, hairline-divided like the ficha's other data surfaces. */
 @Composable
-private fun StatTileGrid(tiles: List<StatTileData>, veilFromIndex: Int?) {
-    val veiledLabel = stringResource(Res.string.stats_veiled_value)
+private fun StatTileGrid(tiles: List<StatTileData>) {
     tiles.chunked(COLUMNS).forEachIndexed { rowIndex, rowTiles ->
         if (rowIndex > 0) PapDivider()
         Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
@@ -229,9 +257,7 @@ private fun StatTileGrid(tiles: List<StatTileData>, veilFromIndex: Int?) {
                         value = tile.value,
                         label = tile.label,
                         delta = tile.delta,
-                        veiled = veilFromIndex != null && absoluteIndex >= veilFromIndex,
                         emphasized = absoluteIndex == 0,
-                        veiledDescription = veiledLabel,
                         animatedNumber = tile.animated,
                         icon = tile.icon,
                         modifier = Modifier.weight(1f),
@@ -251,6 +277,68 @@ private fun StatTileGrid(tiles: List<StatTileData>, veilFromIndex: Int?) {
 }
 
 /** Where a Plus user goes for the whole picture. A plain row: the card is already theirs. */
+
+/**
+ * The figures card of a period with nothing measured in it.
+ * [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
+ *
+ * Same card and title as the figures would have, so the section does not jump when the first figure
+ * lands. It never shows a zero.
+ *
+ * Three different truths, three sentences — the card says the one that actually holds:
+ * - nothing ever ended → waiting for the first trip;
+ * - history exists but this period is empty → no parkings in this period;
+ * - parked in this period, nothing measured yet → no measured trips yet. ⛔ This third one is why
+ *   the sentence cannot be picked by `neverParked` alone: telling someone who parked yesterday that
+ *   there are «no parkings in this period» is a lie the card would be making about its own data.
+ */
+@Composable
+private fun EmptyStatsCard(
+    periodLabel: String,
+    neverParked: Boolean,
+    /** At least one session falls in this period, measured or not. */
+    parkedInPeriod: Boolean,
+    isAutoDetectionOn: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    PapOutlinedCard(modifier = modifier.fillMaxWidth(), shape = PapShapes.card) {
+        Column {
+            Text(
+                text = periodLabel,
+                style = PaparcarType.current.cardTitle,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(
+                    start = HEAD_H_PAD_DP.dp, end = HEAD_H_PAD_DP.dp,
+                    top = HEAD_TOP_PAD_DP.dp, bottom = HEAD_BOTTOM_PAD_DP.dp,
+                ),
+            )
+            PapDivider()
+            Column(
+                modifier = Modifier.padding(horizontal = LIFETIME_H_PAD_DP.dp, vertical = EMPTY_V_PAD_DP.dp),
+                verticalArrangement = Arrangement.spacedBy(EMPTY_LINE_GAP_DP.dp),
+            ) {
+                Text(
+                    text = stringResource(
+                        when {
+                            neverParked -> Res.string.stats_empty_first_trip
+                            parkedInPeriod -> Res.string.stats_empty_no_measured_trip
+                            else -> Res.string.stats_empty_period
+                        },
+                    ),
+                    style = PaparcarType.current.rowTitle,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = stringResource(
+                        if (isAutoDetectionOn) Res.string.stats_empty_sub else Res.string.stats_empty_turn_on_detection,
+                    ),
+                    style = PaparcarType.current.caption,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
 @Composable
 private fun OpenPanelRow(onClick: () -> Unit) {
     Row(
@@ -271,7 +359,8 @@ private fun OpenPanelRow(onClick: () -> Unit) {
 }
 
 /** The Plus touchpoint under the block — the metal at the weight that interrupts, not the one that
- *  sells. [UI-PLUS-EMPHASIS-MATCHES-THE-MOMENT-001] */
+ *  sells. It sells the one thing free lacks: choosing the PERIOD. [UI-PLUS-EMPHASIS-MATCHES-THE-MOMENT-001]
+ *  [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001] */
 @Composable
 private fun PlusStatsRow(onClick: () -> Unit, modifier: Modifier = Modifier) {
     PapPremiumSurface(
@@ -298,7 +387,7 @@ private fun PlusStatsRow(onClick: () -> Unit, modifier: Modifier = Modifier) {
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = stringResource(Res.string.stats_plus_row_subtitle),
+                    text = stringResource(Res.string.stats_plus_row_subtitle, FREE_HISTORY_WINDOW_DAYS),
                     style = PaparcarType.current.caption,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -315,8 +404,8 @@ private fun PlusStatsRow(onClick: () -> Unit, modifier: Modifier = Modifier) {
  * a free account cannot have a real "this month": there are only [FREE_HISTORY_WINDOW_DAYS] days of
  * history behind it, and the longer filters would all yield the week's figures. Titling this card
  * "Este mes" for them would be a label the numbers cannot back — the same failure as a partial sum
- * printed as a total. So free names its real window, and reaching for a longer period is exactly
- * what opens the paywall. [STATS-UI-001] [MONEY-001]
+ * printed as a total. So free names its real window, and the Plus row under the card is where a
+ * longer period is offered. [STATS-UI-001] [MONEY-001] [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
  */
 @Composable
 internal fun vehicleStatsPeriodLabel(filter: HistoryFilter, isPlus: Boolean): String =
@@ -328,14 +417,15 @@ internal fun vehicleStatsPeriodLabel(filter: HistoryFilter, isPlus: Boolean): St
             // the same window needs its own words.
             HistoryFilter.All -> stringResource(Res.string.stats_period_all)
             HistoryFilter.ThisWeek -> stringResource(Res.string.history_filter_this_week)
+            HistoryFilter.Last7Days -> stringResource(Res.string.history_filter_last_7_days)
             HistoryFilter.ThisMonth -> stringResource(Res.string.history_filter_this_month)
             HistoryFilter.Last3Months -> stringResource(Res.string.history_filter_last_3_months)
         }
     }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PeriodStats → tiles. Order IS the product decision: the first tile is what a
-// free user gets to see, so it must be the most concrete figure available.
+// PeriodStats → tiles. Order IS the product decision: the first tile is the
+// emphasized lead figure, so it must be the most concrete figure available.
 // ─────────────────────────────────────────────────────────────────────────────
 
 internal data class StatTileData(
@@ -353,8 +443,8 @@ internal data class StatTileData(
  * until a price does. [STATS-CORE-001]
  *
  * Pure and separate from the copy on purpose: presence and order are the product rules (the first
- * key is the one figure a free user sees whole), and a rule that lives inside a @Composable is a
- * rule no test can reach.
+ * key is the emphasized lead figure), and a rule that lives inside a @Composable is a rule no test
+ * can reach.
  */
 internal enum class StatTileKey {
     COST, FUEL, ENERGY, CO2, AVG_DURATION, PEAK_HOUR, USUAL_DAY, USUAL_STREET, AUTO_DETECTED,
@@ -381,7 +471,7 @@ private fun StatTileKey.icon(): ImageVector = when (this) {
 }
 
 internal fun statTileKeys(stats: PeriodStats): List<StatTileKey> = buildList {
-    // Spend leads when it exists — it is the figure a person can act on, so it is what free sees.
+    // Spend leads when it exists — it is the figure a person can act on, so it is the lead tile.
     if (stats.costEstimate != null) add(StatTileKey.COST)
     // El combustible va DETRAS del coste y DELANTE de las emisiones: es la magnitud de la que sale
     // el coste, así que se lee antes que el CO₂. Dos claves y no una porque un híbrido enchufable
@@ -399,6 +489,18 @@ internal fun statTileKeys(stats: PeriodStats): List<StatTileKey> = buildList {
     // Spots shared: 0 IS information (you never freed one), so it shows whenever the block does.
     add(StatTileKey.SPOTS_SHARED)
 }
+
+/**
+ * Whether the period holds a figure somebody MEASURED — the one condition that earns the figures
+ * card. [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
+ *
+ * `SPOTS_SHARED` does not count: it is added unconditionally precisely because its zero is an answer
+ * when it stands NEXT to other figures. Alone in the grid it stops being an answer and becomes the
+ * verdict «0 plazas cedidas» on a car that has not driven anywhere yet — which is what the tutorial's
+ * manual parking produced (user, 14-09): one session, no route, nothing ended.
+ */
+internal fun hasMeasuredFigures(stats: PeriodStats): Boolean =
+    statTileKeys(stats).any { it != StatTileKey.SPOTS_SHARED }
 
 @Composable
 internal fun statTiles(stats: PeriodStats): List<StatTileData> {
@@ -569,6 +671,9 @@ private fun durationText(durationMs: Long): String {
  * own check only sniffs the first 8 KB, so it kept diffing this file and the damage stayed
  * invisible. Same value at runtime, and the file is ordinary text again.
  */
+// Vertical air inside the empty figures card, and between its two lines.
+private const val EMPTY_V_PAD_DP = 16
+private const val EMPTY_LINE_GAP_DP = 4
 private const val NUMBER_SLOT = "\u0000"
 private const val COLUMNS = 2
 private const val HEAD_H_PAD_DP = 14
