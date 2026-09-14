@@ -35,6 +35,14 @@ class IosLocationDataSourceImpl : LocationDataSource {
         distanceFilterMeters = BALANCED_DISTANCE_FILTER_M,
     )
 
+    // Cruise tier [DET-ADAPTIVE-SAMPLING-EARNS-ITS-FIXES-001]: CoreLocation has no interval — the
+    // cadence lever is the distance filter. 25 m sits between the 5 m HA filter and the 50 m
+    // balanced one, at Best accuracy so the fixes stay GNSS-grade for the drawn route.
+    override fun observeCruiseLocation(): Flow<GpsPoint> = locationFlow(
+        accuracy = kCLLocationAccuracyBest,
+        distanceFilterMeters = CRUISE_DISTANCE_FILTER_M,
+    )
+
     // [ROUTE-PASSIVE-FILL-001] CoreLocation has no passive-piggyback provider — nothing to inherit
     // from other apps on iOS, so the stream is silent by design.
     override fun observePassiveLocation(): Flow<GpsPoint> = emptyFlow()
@@ -150,6 +158,7 @@ private class LocationDelegate(
 // is shared by the data source and LocationDelegate, so it belongs at module scope anyway.
 // [IOS-BUILD-FIX]
 private const val HIGH_ACCURACY_DISTANCE_FILTER_M = 5.0
+private const val CRUISE_DISTANCE_FILTER_M = 25.0 // [DET-ADAPTIVE-SAMPLING-EARNS-ITS-FIXES-001]
 private const val BALANCED_DISTANCE_FILTER_M = 50.0
 private const val MILLIS_PER_SECOND = 1_000.0
 private const val MIN_BEARING_SPEED_MPS = 1.5f

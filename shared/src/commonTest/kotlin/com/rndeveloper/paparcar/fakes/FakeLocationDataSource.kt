@@ -10,10 +10,12 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 class FakeLocationDataSource : LocationDataSource {
 
     private val _balanced = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+    private val _cruise = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
     private val _highAccuracy = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
     private val _uiLocation = MutableSharedFlow<UserLocationUi>(extraBufferCapacity = 64)
 
     override fun observeBalancedLocation(): Flow<GpsPoint> = _balanced
+    override fun observeCruiseLocation(): Flow<GpsPoint> = _cruise
     override fun observeHighAccuracyLocation(): Flow<GpsPoint> = _highAccuracy
     override fun observeUiLocation(): Flow<UserLocationUi> = _uiLocation
     override fun observePassiveLocation(): Flow<GpsPoint> = emptyFlow()
@@ -24,6 +26,7 @@ class FakeLocationDataSource : LocationDataSource {
     override suspend fun getLastKnownLocation(): GpsPoint? = lastKnown
 
     suspend fun emitBalanced(point: GpsPoint) = _balanced.emit(point)
+    suspend fun emitCruise(point: GpsPoint) = _cruise.emit(point)
     suspend fun emitHighAccuracy(point: GpsPoint) = _highAccuracy.emit(point)
     suspend fun emitUi(location: UserLocationUi) = _uiLocation.emit(location)
 }

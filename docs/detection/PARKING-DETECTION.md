@@ -8296,3 +8296,40 @@ muerte de proceso. Los blobs huérfanos (~KB) se quedan atrás a propósito.
 **Riesgo.** Ninguno sobre la decisión de aparcamiento: este almacén no alimenta ningún evaluador —
 solo el dibujo de la ruta y el `routePolyline` de la sesión. El único comportamiento retirado es el
 propio tope (pérdida silenciosa del origen), que ningún consumidor deseaba.
+
+### DET-ADAPTIVE-SAMPLING-EARNS-ITS-FIXES-001 — el muestreo gana un escalón de crucero, y solo densifica (commit pending)
+
+**Contexto de producto.** Fase 2 del pivote trayectos-como-producto (14-09): la traza dibujada es
+un entregable, y en crucero urbano salía pobre.
+
+**Paso 0 — el corpus se midió ANTES de tocar nada** (8 trazas de replay con banda de conducción,
+421 pares de fixes conduciendo; script `analyze_corpus.py`), y refutó el diagnóstico de partida:
+- ❌ *"Pedimos fix cada 30 s conduciendo"* — falso: la cadencia real post-burst era **~14 s**
+  (manda el `minUpdateInterval=15 s` de BALANCED, no su interval de 30).
+- ✅ La causa dominante es el **espaciado**: p90 **132 m** entre vértices de ruta (265 m en una
+  traza urbana) — esquinas que el map-matcher tenía que adivinar.
+- ⚠️ 8 % de fixes en conducción con accuracy >100 m (los descarta el gate del route store);
+  0 naps ≥60 s en este corpus (el nap MIUI de agosto existe pero no está representado).
+
+**Cambio.** `ObserveAdaptiveLocationUseCase` pasa de 2 a 3 escalones:
+HIGH_ACCURACY 5 s (lento/parado/burst, igual) · **CRUISE 10 s/5 s NUEVO** (18–90 km/h,
+`observeCruiseLocation`, prioridad HIGH_ACCURACY para que los fixes sigan siendo GNSS) ·
+HIGHWAY = el BALANCED 30/15 de siempre (≥90 km/h, histéresis de reentrada a 72 km/h — la autovía
+es el caso trivial del matcher). **Boost cargando**: `ChargingStateSource` (puerto opcional, impl
+Android `BatteryManager.isCharging`; iOS null a propósito) fija HIGH_ACCURACY enchufado.
+
+⛔ **Regla del ticket: SOLO DENSIFICAR.** Ningún estado a ninguna velocidad muestrea más lento que
+el diseño de 2 escalones. [DET-BURST-001] ya midió que la inanición cambia veredictos
+(`maxSpeedMps < 5` por hambre); quitar densidad es lo peligroso, añadirla no. El burst de 3 min
+queda intacto.
+
+**Consumidores** (todos reciben densificación monotónica): CoordinatorDetectionService (decisión +
+ruta), IosDetectionController, **BluetoothParkingDetector** (opera lento → HA, Cruise apenas
+aplica), **BluetoothDepartureDetector** (mide la salida antes), ParkingHistoryViewModel. Los
+replays inyectan fixes grabados — cadencia congelada, sin churn de tests.
+
+**Riesgo de fix acompañante.** Batería: el escalón Cruise cuesta más que Balanced solo durante
+conducción a 18–90 km/h (el sentinel no muestrea en reposo); la cifra real la medirá
+BATT-A-COST-IS-MEASURED-NOT-DECLARED-001 (fase 5). Detección: más evidencia medida en la banda de
+conducción — la dirección segura del fallo asimétrico. Gate de campo no bloqueante: p90 de
+espaciado urbano < 150 m en un viaje real.

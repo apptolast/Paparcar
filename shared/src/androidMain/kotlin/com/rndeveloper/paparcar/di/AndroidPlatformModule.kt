@@ -38,6 +38,11 @@ val androidPlatformModule = module {
     // Location
     single { LocationServices.getFusedLocationProviderClient(androidContext()) }
     single<LocationDataSource> { AndroidLocationDataSourceImpl(get()) }
+    // Charging boost for the sampling tiers — while plugged in, density is free.
+    // [DET-ADAPTIVE-SAMPLING-EARNS-ITS-FIXES-001]
+    single<com.rndeveloper.paparcar.domain.location.ChargingStateSource> {
+        com.rndeveloper.paparcar.location.AndroidChargingStateSource(androidContext())
+    }
     single<GeocoderDataSource> { AndroidGeocoderDataSourceImpl(androidContext()) }
     // ⛔ Places y carreteras NO están aquí: los dos hablan con Overpass, y una implementación por
     // plataforma es lo que dejó a tres vías usando un solo espejo sin failover. Viven en commonMain

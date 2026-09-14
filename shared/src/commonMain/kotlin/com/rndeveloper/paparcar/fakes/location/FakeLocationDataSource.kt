@@ -54,6 +54,14 @@ class FakeLocationDataSource(
         }
     }
 
+    // Cruise sits between the 1 s HA tick and the 3 s balanced one. [DET-ADAPTIVE-SAMPLING-EARNS-ITS-FIXES-001]
+    override fun observeCruiseLocation(): Flow<GpsPoint> = flow {
+        while (true) {
+            emit(mockLocation.copy(timestamp = Clock.System.now().toEpochMilliseconds()))
+            delay(2.seconds)
+        }
+    }
+
     // No other apps in the mock world → the passive piggyback stream stays silent. [ROUTE-PASSIVE-FILL-001]
     override fun observePassiveLocation(): Flow<GpsPoint> = emptyFlow()
 

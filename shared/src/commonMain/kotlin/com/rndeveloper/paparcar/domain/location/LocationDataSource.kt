@@ -10,6 +10,16 @@ interface LocationDataSource {
     fun observeHighAccuracyLocation(): Flow<GpsPoint>
 
     /**
+     * The CRUISE tier: high-accuracy priority at a mid cadence (~10 s on Android; ~25 m distance
+     * filter on iOS) for clearly-driving-below-motorway speeds. Exists because the BALANCED tier
+     * really delivered ~15 s cadence at cruise → route vertices 130+ m apart, corners the
+     * map-matcher had to guess — and the driven route is a product deliverable now. Deliberately
+     * abstract (no default): a platform that forgets to implement it must fail at compile time,
+     * not silently sample at the wrong tier. [DET-ADAPTIVE-SAMPLING-EARNS-ITS-FIXES-001]
+     */
+    fun observeCruiseLocation(): Flow<GpsPoint>
+
+    /**
      * High-accuracy stream **with heading**, for the live "driving" map puck (location-active). Only
      * subscribed while detection is actively monitoring, so the extra accuracy cost is bounded to
      * trips. Emits [UserLocationUi] with a non-null `bearingDegrees` only when the fix is moving.

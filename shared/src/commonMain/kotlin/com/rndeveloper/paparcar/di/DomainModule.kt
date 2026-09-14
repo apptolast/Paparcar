@@ -114,7 +114,9 @@ val domainModule = module {
     factory { GetAddressAndPlaceUseCase(repository = get()) }
     // tripTrail is platform-bound (getOrNull → null where absent, e.g. iOS). [DET-BREADCRUMBS-001]
     factory { GetOneLocationUseCase(get(), tripTrail = getOrNull()) }
-    factory { ObserveAdaptiveLocationUseCase(get()) }
+    // chargingStateSource is platform-bound (getOrNull → null = no charging boost, e.g. iOS).
+    // [DET-ADAPTIVE-SAMPLING-EARNS-ITS-FIXES-001]
+    factory { ObserveAdaptiveLocationUseCase(get(), chargingStateSource = getOrNull()) }
     factory { SearchAddressUseCase(get()) }
 
     // Gasolineras cercanas — el geocoder da país Y provincia de una sola consulta, que es lo

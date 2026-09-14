@@ -42,6 +42,28 @@ class AndroidLocationDataSourceImpl(
         awaitClose { fusedLocationClient.removeLocationUpdates(callback) }
     }
 
+    // Cruise tier [DET-ADAPTIVE-SAMPLING-EARNS-ITS-FIXES-001]: HIGH_ACCURACY priority (GNSS — a
+    // BALANCED request may serve cell/WiFi fixes the route gate then discards) at a mid cadence.
+    @SuppressLint("MissingPermission")
+    override fun observeCruiseLocation(): Flow<GpsPoint> = callbackFlow {
+
+        val request = LocationRequest.Builder(
+            Priority.PRIORITY_HIGH_ACCURACY,
+            TimeUnit.SECONDS.toMillis(CRUISE_INTERVAL_S)
+        ).setMinUpdateIntervalMillis(TimeUnit.SECONDS.toMillis(CRUISE_MIN_INTERVAL_S))
+            .build()
+
+        val callback = createCallback(this)
+
+        fusedLocationClient.requestLocationUpdates(
+            request,
+            callback,
+            Looper.getMainLooper()
+        )
+
+        awaitClose { fusedLocationClient.removeLocationUpdates(callback) }
+    }
+
     @SuppressLint("MissingPermission")
     override fun observeBalancedLocation(): Flow<GpsPoint> = callbackFlow {
 
@@ -123,6 +145,11 @@ class AndroidLocationDataSourceImpl(
     private companion object {
         const val HIGH_ACCURACY_INTERVAL_S = 5L
         const val HIGH_ACCURACY_MIN_INTERVAL_S = 2L
+        // Cruise: corpus-measured — BALANCED at cruise delivered ~15 s (its own min interval) →
+        // p90 132 m between route vertices. 10 s/5 s keeps a 50 km/h street at ~70–140 m.
+        // [DET-ADAPTIVE-SAMPLING-EARNS-ITS-FIXES-001]
+        const val CRUISE_INTERVAL_S = 10L
+        const val CRUISE_MIN_INTERVAL_S = 5L
         const val BALANCED_INTERVAL_S = 30L
         const val BALANCED_MIN_INTERVAL_S = 15L
         // Delivery-rate cap for the passive piggyback stream (route decimation drops the excess
