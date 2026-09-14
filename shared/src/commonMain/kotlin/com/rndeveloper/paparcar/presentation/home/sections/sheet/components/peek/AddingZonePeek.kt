@@ -32,6 +32,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,6 +54,7 @@ import com.rndeveloper.paparcar.ui.components.PapAlertDialog
 import com.rndeveloper.paparcar.ui.components.PapClearIconButton
 import com.rndeveloper.paparcar.ui.components.PapDialogAccent
 import com.rndeveloper.paparcar.ui.components.PapDialogAction
+import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
 import com.rndeveloper.paparcar.ui.components.PapSectionHeader
@@ -86,9 +88,14 @@ import com.rndeveloper.paparcar.ui.theme.PapColor
 //
 // Same anatomy as its siblings (report a spot / position a parking): a banner
 // telling you what the map is for, ONE row of choices, the settings, one filled
-// action — plus, in edit, the destructive escape behind a confirm. The name is
-// NOT here: it is the last decision, and it is asked in the confirm dialog once
-// the place and the radius are already set. [UI-ZONE-MANAGE-001]
+// action — plus, in edit, the destructive escape behind a confirm.
+//
+// Qué se queda aquí y qué baja al diálogo lo decide UNA pregunta: ¿se decide MIRANDO el mapa?
+// Sí ⇒ la hoja (dónde · qué icono · cuánto radio). No ⇒ el paso de guardar. El nombre ya vivía
+// ahí por eso mismo ("es la última decisión"), y privada + aviso son lo mismo: propiedades de la
+// zona guardada, no de la colocación. Estaban en la hoja costando 88 dp de mapa a una superficie
+// cuya primera frase es "centra el mapa".
+// [UI-ZONE-MANAGE-001] [UI-A-SHEET-THAT-ASKS-FOR-THE-MAP-MUST-NOT-EAT-IT-001]
 // ═════════════════════════════════════════════════════════════════════════════
 
 private const val ZONE_ICON_CHIP_DP = 40
@@ -133,7 +140,12 @@ internal fun AddingZonePeek(
 
     // Naming survives a failed save: the VM stays in AddingZone with the form intact,
     // so the dialog is still up for the retry. [BUG-8]
-    var naming by remember { mutableStateOf(false) }
+    //
+    // ⛔ rememberSaveable, no remember: el aviso de plazas se pide DENTRO de este diálogo y en free
+    // abre el paywall, que es una PANTALLA (`HomeEffect.NavigateToPaywall`). Con un `remember` la
+    // vuelta del paywall recomponía la hoja sin diálogo, así que la decisión que lo abrió se
+    // perdía justo al volver de pagarla. [UI-A-SHEET-THAT-ASKS-FOR-THE-MAP-MUST-NOT-EAT-IT-001]
+    var naming by rememberSaveable { mutableStateOf(false) }
     var confirmingDelete by remember { mutableStateOf(false) }
 
     PapSheet(
@@ -160,18 +172,6 @@ internal fun AddingZonePeek(
             ZoneRadiusSlider(
                 radius = form.radius,
                 onRadiusChange = { onIntent(HomeIntent.SetZoneRadius(it)) },
-            )
-            Spacer(Modifier.height(14.dp))
-            ZonePrivacyToggle(
-                isPrivate = form.isPrivate,
-                onToggle = { onIntent(HomeIntent.SetZoneIsPrivate(it)) },
-            )
-            Spacer(Modifier.height(14.dp))
-            // [MONEY-001] Visible to everyone (soft gate): enabling as free is the attempt
-            // that routes to the paywall — the VM decides, this row only asks.
-            ZoneNotifyToggle(
-                notifyOnSpot = form.notifyOnSpot,
-                onToggle = { onIntent(HomeIntent.SetZoneNotify(it)) },
             )
             Spacer(Modifier.height(14.dp))
         },
@@ -208,10 +208,9 @@ internal fun AddingZonePeek(
     )
 
     if (naming) {
-        ZoneNameDialog(
+        ZoneSaveDialog(
             form = form,
-            onNameChange = { onIntent(HomeIntent.UpdateAddingZoneName(it)) },
-            onConfirm = { onIntent(HomeIntent.ConfirmAddZone) },
+            onIntent = onIntent,
             onDismiss = { if (!form.isSaving) naming = false },
         )
     }
@@ -238,20 +237,29 @@ internal fun AddingZonePeek(
 }
 
 /**
- * The confirm step of saving a zone, which doubles as where the zone is NAMED —
- * the last thing decided, once the place, the icon and the radius are set on the
- * map behind it. The dialog owns the keyboard, so the sheet never has to grow a
- * text field over the map. [UI-ZONE-MANAGE-001]
+ * El paso de GUARDAR una zona: aquí se deciden las tres cosas que definen a la zona guardada —su
+ * nombre, si es privada y si avisa— una vez el sitio, el icono y el radio ya están puestos sobre el
+ * mapa de detrás.
+ *
+ * El nombre estaba aquí desde [UI-ZONE-MANAGE-001] porque es la última decisión y porque así la
+ * hoja no tiene que criar un campo de texto encima del mapa. Los dos interruptores bajaron por la
+ * misma razón, y por una que se mide: la hoja que pide *«centra el mapa en tu zona habitual»* se
+ * comía el 60% de la pantalla, 88 de ellos en dos filas que no se deciden mirando el mapa.
+ * [UI-A-SHEET-THAT-ASKS-FOR-THE-MAP-MUST-NOT-EAT-IT-001]
+ *
+ * El diálogo puede crecer sin esconder nada: [PapAlertDialog] inserta por IME y hace scroll de su
+ * columna desde [SUPPORT-A-REPORT-MUST-SAY-WHAT-WENT-WRONG-001].
  */
 @Composable
-private fun ZoneNameDialog(
+private fun ZoneSaveDialog(
     form: ZonePeekForm,
-    onNameChange: (String) -> Unit,
-    onConfirm: () -> Unit,
+    onIntent: (HomeIntent) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    val onNameChange: (String) -> Unit = { onIntent(HomeIntent.UpdateAddingZoneName(it)) }
+    val onConfirm: () -> Unit = { onIntent(HomeIntent.ConfirmAddZone) }
 
     PapAlertDialog(
         onDismiss = onDismiss,
@@ -291,6 +299,23 @@ private fun ZoneNameDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(focusRequester),
+            )
+            // El divisor separa la decisión que tiene el foco (el nombre) de lo que la zona SERÁ.
+            Spacer(Modifier.height(16.dp))
+            PapDivider()
+            Spacer(Modifier.height(16.dp))
+            ZonePrivacyToggle(
+                isPrivate = form.isPrivate,
+                enabled = !form.isSaving,
+                onToggle = { onIntent(HomeIntent.SetZoneIsPrivate(it)) },
+            )
+            Spacer(Modifier.height(14.dp))
+            // [MONEY-001] Visible to everyone (soft gate): enabling as free is the attempt
+            // that routes to the paywall — the VM decides, this row only asks.
+            ZoneNotifyToggle(
+                notifyOnSpot = form.notifyOnSpot,
+                enabled = !form.isSaving,
+                onToggle = { onIntent(HomeIntent.SetZoneNotify(it)) },
             )
         },
     )
@@ -364,6 +389,7 @@ private fun ZoneRadiusSlider(
 @Composable
 private fun ZonePrivacyToggle(
     isPrivate: Boolean,
+    enabled: Boolean,
     onToggle: (Boolean) -> Unit,
 ) {
     Row(
@@ -396,6 +422,7 @@ private fun ZonePrivacyToggle(
         Switch(
             checked = isPrivate,
             onCheckedChange = onToggle,
+            enabled = enabled,
         )
     }
 }
@@ -403,6 +430,7 @@ private fun ZonePrivacyToggle(
 @Composable
 private fun ZoneNotifyToggle(
     notifyOnSpot: Boolean,
+    enabled: Boolean,
     onToggle: (Boolean) -> Unit,
 ) {
     Row(
@@ -428,6 +456,7 @@ private fun ZoneNotifyToggle(
         Switch(
             checked = notifyOnSpot,
             onCheckedChange = onToggle,
+            enabled = enabled,
         )
     }
 }
