@@ -57,6 +57,11 @@ kotlin {
         iosTarget.binaries.framework {
             baseName = "ComposeApp"
             isStatic = true
+            // Swift installs BaseLogin's sign-in handlers (GoogleSignInProviderIOS,
+            // AppleSignInProviderIOS). Kotlin/Native only exports a dependency's types that our own
+            // public API mentions, and nothing here mentions the providers — without this they do
+            // not exist in ComposeApp.h. Needs `api(libs.baselogin)`. [IOS-APPLE-SIGN-IN-ON-BASELOGIN-3-001]
+            export(libs.baselogin)
         }
         // GitLive Firebase's klibs embed `-framework FirebaseCore` (et al.) linker opts, so the
         // TEST binary needs the native Firebase frameworks ON THE SEARCH PATH — the app gets them

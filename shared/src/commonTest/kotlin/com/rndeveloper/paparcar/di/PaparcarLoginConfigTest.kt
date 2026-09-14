@@ -43,8 +43,7 @@ class PaparcarLoginConfigTest {
 
     @Test
     fun should_offerNothing_when_webClientIdIsMissing() {
-        // Today's iOS: no client id, so no social buttons at all — better an empty row than a dead
-        // button. See IOS-SOCIAL-LOGIN-001.
+        // No client id, so no Google button — better an empty row than a dead button.
         assertTrue(paparcarSocialProviders(paparcarLoginConfig(googleWebClientId = null)).isEmpty())
         assertTrue(paparcarSocialProviders(paparcarLoginConfig(googleWebClientId = "")).isEmpty())
         assertTrue(paparcarSocialProviders(paparcarLoginConfig(googleWebClientId = "   ")).isEmpty())
@@ -73,5 +72,29 @@ class PaparcarLoginConfigTest {
             IdentityProvider.Twitter,
             IdentityProvider.Facebook,
         ).forEach { assertFalse(it in providers, "${it.id} is not configured and must not be shown") }
+    }
+
+    @Test
+    fun should_offerGoogle_when_onlyIosClientIdIsPresent() {
+        val config = paparcarLoginConfig(googleWebClientId = null, googleIosClientId = IOS_CLIENT_ID)
+
+        assertEquals(IOS_CLIENT_ID, config.googleSignInConfig?.iosClientId)
+        assertEquals(listOf(IdentityProvider.Google), paparcarSocialProviders(config))
+    }
+
+    @Test
+    fun should_offerGoogleThenApple_when_appleSignInIsEnabled() {
+        val providers = paparcarSocialProviders(
+            paparcarLoginConfig(googleWebClientId = null, googleIosClientId = IOS_CLIENT_ID, appleSignIn = true),
+        )
+
+        assertEquals(listOf(IdentityProvider.Google, IdentityProvider.Apple), providers)
+    }
+
+    @Test
+    fun should_notOfferApple_when_notRequested() {
+        val config = paparcarLoginConfig(googleWebClientId = WEB_CLIENT_ID)
+
+        assertEquals(null, config.appleSignInConfig, "Android has no Apple setup: the button must stay off")
     }
 }

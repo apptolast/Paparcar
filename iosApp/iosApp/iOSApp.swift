@@ -93,6 +93,10 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         // [IOS-THE-GROUP-CANNOT-REACH-AN-IPHONE-001]
         IosPushRegistry.shared.bridge = SwiftPushRegistrationBridge()
         Messaging.messaging().delegate = self
+        // Social sign-in handlers must exist before the first Composable asks for them — and before
+        // the bootstrap below builds the login config. [IOS-APPLE-SIGN-IN-ON-BASELOGIN-3-001]
+        GoogleSignInCoordinator.register()
+        AppleSignInCoordinator.shared.register()
         // A BACKGROUND relaunch (SLC, region exit, BGTask) never builds the SwiftUI scene, so
         // MainViewController does not run — this is the guaranteed hook, and the bootstrap is
         // idempotent from both doors. [IOS-SYNC-A-QUEUE-THAT-DIES-WITH-THE-PROCESS-001]
@@ -144,6 +148,9 @@ struct iOSApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onOpenURL { url in
+                    _ = GoogleSignInCoordinator.handle(url)
+                }
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background {
