@@ -3,6 +3,8 @@ package com.rndeveloper.paparcar.presentation.onboarding
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -172,7 +174,9 @@ fun FirstStepsCard(
                 // Nothing left to ASK, but something was declined: the checklist has finished its
                 // job without the user having finished theirs, and it says exactly that instead of
                 // hanging there with no current step. [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001]
-                if (progress.current == null && progress.hasDeferrals) {
+                // Read from the projection, so the header knows this row is up and stands its own
+                // "Skip" down. [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001]
+                if (progress.isClosing) {
                     DeferredCloseRow(onDismiss = onDismiss)
                 }
             }
@@ -207,10 +211,11 @@ private fun Header(progress: FirstStepsProgress, onDismiss: () -> Unit) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f),
         )
-        // "Skip" is a quiet way out, never a second CTA competing with the step's own action — and
-        // it is not offered while a REQUIRED step is still open: those two are what the tutorial
-        // exists for. [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001]
-        if (!progress.hasPendingRequired) {
+        // "Skip" is a quiet way out, never a second CTA competing with the step's own action — not
+        // while a REQUIRED step is still open, and not over the closing row either, which already
+        // carries the button that ends the checklist. When to offer it is ONE rule, and it lives in
+        // the projection. [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001]
+        if (progress.offersSkip) {
             TextButton(onClick = onDismiss) {
                 Text(
                     text = stringResource(Res.string.first_steps_skip),
@@ -222,6 +227,7 @@ private fun Header(progress: FirstStepsProgress, onDismiss: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun StepRow(
     step: FirstStep,
@@ -291,11 +297,19 @@ private fun StepRow(
         // and a trailing child measures BEFORE the weighted text column — it served itself ~190 dp
         // of a 263 dp row and left the title wrapping one letter per line.
         // [ONBOARDING-FIRST-STEPS-MUST-BE-READABLE-AND-FOUND-001]
+        //
+        // And it is a FLOW row: whichever second door the step carries ("No tengo garaje", "Aún
+        // no", "Cómo funciona") sits beside the CTA only while both fit on the line. They do not in
+        // every locale — "Marcar aparcamiento" next to "No tengo garaje" already ran past the card
+        // on a 360 dp screen — and the one that does not fit drops to its own line rather than
+        // squeezing the pair. Two buttons stacked read as two doors; two clipped ones read as a bug.
         copy.cta?.takeIf { isCurrent }?.let { cta ->
-            Row(
-                modifier = Modifier.padding(start = ctaIndent, bottom = ROW_V_PAD_DP.dp),
-                verticalAlignment = Alignment.CenterVertically,
+            FlowRow(
+                modifier = Modifier
+                    .padding(start = ctaIndent, end = CARD_H_PAD_DP.dp, bottom = ROW_V_PAD_DP.dp),
                 horizontalArrangement = Arrangement.spacedBy(CTA_GAP_DP.dp),
+                verticalArrangement = Arrangement.spacedBy(CTA_GAP_DP.dp),
+                itemVerticalAlignment = Alignment.CenterVertically,
             ) {
                 PapPrimaryButton(
                     label = stringResource(cta),

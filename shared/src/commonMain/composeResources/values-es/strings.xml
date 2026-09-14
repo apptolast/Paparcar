@@ -80,11 +80,11 @@
     <string name="onboarding_page1_subtitle">Paparcar cuida de tu coche: guarda dónde aparcas, convierte tus trayectos en cifras y, cuando te vas, libera la plaza para quien busca cerca.</string>
     <string name="onboarding_page2_title">Qué hace por ti</string>
     <string name="onboarding_step1_title">Detección automática</string>
-    <string name="onboarding_step1_desc">Detecta sola tus trayectos y aparcamientos y te enseña gasto, CO₂ y hábitos</string>
+    <string name="onboarding_step1_desc">Detecta sola tus trayectos y aparcamientos y te enseña gasto, CO₂ y hábitos.</string>
     <string name="onboarding_step2_title">Tu aparcamiento, guardado</string>
-    <string name="onboarding_step2_desc">Encuentra tu coche sin pensar y repasa dónde has aparcado</string>
+    <string name="onboarding_step2_desc">Encuentra tu coche sin pensar y repasa dónde has aparcado.</string>
     <string name="onboarding_step3_title">Una plaza para otro</string>
-    <string name="onboarding_step3_desc">Cuando te vas, la plaza aparece libre para quien busca cerca</string>
+    <string name="onboarding_step3_desc">Cuando te vas, la plaza aparece libre para quien busca cerca.</string>
     <string name="onboarding_page3_title">Parkings y gasolineras cerca</string>
     <string name="onboarding_page3_subtitle">El mapa también te enseña los parkings públicos y las gasolineras de tu alrededor. En algunos países, con el precio del combustible en tiempo real, de fuentes oficiales.</string>
     <string name="onboarding_cta_next">Siguiente</string>

@@ -95,11 +95,11 @@
     <string name="onboarding_page1_subtitle">Paparcar looks after your car: it saves where you park, turns your trips into figures and, when you leave, frees up the spot for drivers nearby.</string>
     <string name="onboarding_page2_title">What it does for you</string>
     <string name="onboarding_step1_title">Automatic detection</string>
-    <string name="onboarding_step1_desc">Notices your trips and parkings on its own, and shows your spend, CO₂ and habits</string>
+    <string name="onboarding_step1_desc">Notices your trips and parkings on its own, and shows your spend, CO₂ and habits.</string>
     <string name="onboarding_step2_title">Your parking, saved</string>
-    <string name="onboarding_step2_desc">Find your car without thinking and look back at where you have parked</string>
+    <string name="onboarding_step2_desc">Find your car without thinking and look back at where you have parked.</string>
     <string name="onboarding_step3_title">A spot for someone else</string>
-    <string name="onboarding_step3_desc">When you leave, the spot shows up free for drivers nearby</string>
+    <string name="onboarding_step3_desc">When you leave, the spot shows up free for drivers nearby.</string>
     <string name="onboarding_page3_title">Car parks and fuel, nearby</string>
     <string name="onboarding_page3_subtitle">The map also shows public car parks and fuel stations around you. In some countries, with fuel prices in real time from official sources.</string>
     <string name="onboarding_cta_next">Next</string>

@@ -56,11 +56,11 @@
     <string name="onboarding_page1_subtitle">Paparcar kümmert sich um dein Auto: Es merkt sich, wo du parkst, macht aus deinen Fahrten Zahlen und gibt beim Wegfahren den Platz für andere in der Nähe frei.</string>
     <string name="onboarding_page2_title">Was es für dich tut</string>
     <string name="onboarding_step1_title">Automatische Erkennung</string>
-    <string name="onboarding_step1_desc">Erkennt Fahrten und Parkvorgänge von selbst und zeigt dir Kosten, CO₂ und Gewohnheiten</string>
+    <string name="onboarding_step1_desc">Erkennt Fahrten und Parkvorgänge von selbst und zeigt dir Kosten, CO₂ und Gewohnheiten.</string>
     <string name="onboarding_step2_title">Dein Parkplatz, gespeichert</string>
-    <string name="onboarding_step2_desc">Finde dein Auto ohne Nachdenken und sieh nach, wo du geparkt hast</string>
+    <string name="onboarding_step2_desc">Finde dein Auto ohne Nachdenken und sieh nach, wo du geparkt hast.</string>
     <string name="onboarding_step3_title">Ein Platz für jemand anderen</string>
-    <string name="onboarding_step3_desc">Wenn du wegfährst, erscheint der Platz als frei für andere in der Nähe</string>
+    <string name="onboarding_step3_desc">Wenn du wegfährst, erscheint der Platz als frei für andere in der Nähe.</string>
     <string name="onboarding_page3_title">Parkhäuser und Tankstellen in der Nähe</string>
     <string name="onboarding_page3_subtitle">Die Karte zeigt dir auch öffentliche Parkhäuser und Tankstellen in deiner Umgebung. In einigen Ländern mit Spritpreisen in Echtzeit aus offiziellen Quellen.</string>
     <string name="onboarding_cta_next">Weiter</string>

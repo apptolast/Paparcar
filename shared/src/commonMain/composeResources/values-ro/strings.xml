@@ -57,11 +57,11 @@
     <string name="onboarding_page1_subtitle">Paparcar are grijă de mașina ta: reține unde parchezi, îți transformă drumurile în cifre și, când pleci, eliberează locul pentru cei care caută în apropiere.</string>
     <string name="onboarding_page2_title">Ce face pentru tine</string>
     <string name="onboarding_step1_title">Detectare automată</string>
-    <string name="onboarding_step1_desc">Recunoaște singură drumurile și parcările tale și îți arată cheltuielile, CO₂ și obiceiurile</string>
+    <string name="onboarding_step1_desc">Recunoaște singură drumurile și parcările tale și îți arată cheltuielile, CO₂ și obiceiurile.</string>
     <string name="onboarding_step2_title">Parcarea ta, salvată</string>
-    <string name="onboarding_step2_desc">Îți găsești mașina fără să te gândești și vezi unde ai parcat</string>
+    <string name="onboarding_step2_desc">Îți găsești mașina fără să te gândești și vezi unde ai parcat.</string>
     <string name="onboarding_step3_title">Un loc pentru altcineva</string>
-    <string name="onboarding_step3_desc">Când pleci, locul apare liber pentru cei care caută în apropiere</string>
+    <string name="onboarding_step3_desc">Când pleci, locul apare liber pentru cei care caută în apropiere.</string>
     <string name="onboarding_page3_title">Parcări publice și carburant în apropiere</string>
     <string name="onboarding_page3_subtitle">Harta îți arată și parcările publice și benzinăriile din jur. În unele țări, cu prețul carburantului în timp real, din surse oficiale.</string>
     <string name="onboarding_cta_next">Înainte</string>

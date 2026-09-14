@@ -295,6 +295,26 @@ data class FirstStepsProgress(
     val hasPendingRequired: Boolean get() = applicable.any { it.isRequired && it !in done }
 
     /**
+     * The checklist has stopped ASKING and is on its closing card — everything is done, or it ran
+     * out of asks with something left deferred. [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001]
+     *
+     * One fact, two readers: the card renders that closing row from here, and the header reads it
+     * through [offersSkip] so the two can never disagree about whether the card is still asking.
+     */
+    val isClosing: Boolean get() = isComplete || (current == null && hasDeferrals)
+
+    /**
+     * Whether the header offers its quiet way out at all. [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001]
+     *
+     * Two reasons it is withheld, and they are opposite ends of the same list:
+     *  - a REQUIRED step is still open — those two are what the tutorial exists for;
+     *  - the checklist is [isClosing] — its closing row already carries a "Done", and "Skip" next
+     *    to it would offer to abandon a checklist the user has just finished. Skipping and finishing
+     *    land in the same place, so the one that tells the truth is the one that stays.
+     */
+    val offersSkip: Boolean get() = !hasPendingRequired && !isClosing
+
+    /**
      * Which detection-surface row the checklist is speaking for right now — see
      * [FirstStepsOwnership]. Derived from the CURRENT step and its face, so it can never claim a row
      * the checklist is not actually asking for.

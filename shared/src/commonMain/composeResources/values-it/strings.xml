@@ -55,11 +55,11 @@
     <string name="onboarding_page1_subtitle">Paparcar si prende cura della tua auto: salva dove parcheggi, trasforma i tuoi viaggi in numeri e, quando te ne vai, libera il posto per chi cerca vicino.</string>
     <string name="onboarding_page2_title">Cosa fa per te</string>
     <string name="onboarding_step1_title">Rilevamento automatico</string>
-    <string name="onboarding_step1_desc">Riconosce da solo viaggi e parcheggi e ti mostra spesa, CO₂ e abitudini</string>
+    <string name="onboarding_step1_desc">Riconosce da solo viaggi e parcheggi e ti mostra spesa, CO₂ e abitudini.</string>
     <string name="onboarding_step2_title">Il tuo parcheggio, salvato</string>
-    <string name="onboarding_step2_desc">Ritrova l'auto senza pensarci e rivedi dove hai parcheggiato</string>
+    <string name="onboarding_step2_desc">Ritrova l'auto senza pensarci e rivedi dove hai parcheggiato.</string>
     <string name="onboarding_step3_title">Un posto per qualcun altro</string>
-    <string name="onboarding_step3_desc">Quando te ne vai, il posto appare libero per chi cerca vicino</string>
+    <string name="onboarding_step3_desc">Quando te ne vai, il posto appare libero per chi cerca vicino.</string>
     <string name="onboarding_page3_title">Parcheggi pubblici e carburante vicino</string>
     <string name="onboarding_page3_subtitle">La mappa ti mostra anche parcheggi pubblici e distributori intorno a te. In alcuni paesi, con il prezzo del carburante in tempo reale da fonti ufficiali.</string>
     <string name="onboarding_cta_next">Avanti</string>

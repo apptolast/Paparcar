@@ -55,11 +55,11 @@
     <string name="onboarding_page1_subtitle">O Paparcar cuida do teu carro: guarda onde estacionas, transforma as tuas viagens em números e, quando sais, liberta o lugar para quem procura perto.</string>
     <string name="onboarding_page2_title">O que faz por ti</string>
     <string name="onboarding_step1_title">Deteção automática</string>
-    <string name="onboarding_step1_desc">Deteta sozinha as tuas viagens e estacionamentos e mostra-te gastos, CO₂ e hábitos</string>
+    <string name="onboarding_step1_desc">Deteta sozinha as tuas viagens e estacionamentos e mostra-te gastos, CO₂ e hábitos.</string>
     <string name="onboarding_step2_title">O teu estacionamento, guardado</string>
-    <string name="onboarding_step2_desc">Encontra o carro sem pensar e revê onde estacionaste</string>
+    <string name="onboarding_step2_desc">Encontra o carro sem pensar e revê onde estacionaste.</string>
     <string name="onboarding_step3_title">Um lugar para outra pessoa</string>
-    <string name="onboarding_step3_desc">Quando sais, o lugar aparece livre para quem procura perto</string>
+    <string name="onboarding_step3_desc">Quando sais, o lugar aparece livre para quem procura perto.</string>
     <string name="onboarding_page3_title">Parques e combustível perto de ti</string>
     <string name="onboarding_page3_subtitle">O mapa também te mostra os parques de estacionamento públicos e os postos à tua volta. Em alguns países, com o preço do combustível em tempo real, de fontes oficiais.</string>
     <string name="onboarding_cta_next">Seguinte</string>

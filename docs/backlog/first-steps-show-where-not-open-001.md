@@ -1,7 +1,8 @@
 # FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001 · El tutorial señala dónde está cada función, no la abre por el usuario
 
-**Estado:** 🟡 En revisión · rama `feature/FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001` (rebasada sobre
-master tras mergear #24) · GitHub issue
+**Estado:** ✅ Done · mergeado en master por PR
+[#25](https://github.com/apptolast/Paparcar/pull/25); las «Correcciones de diseño (14-09-2026)» del
+final llegan en un commit posterior · GitHub issue
 [#17](https://github.com/apptolast/Paparcar/issues/17)
 
 ## Problema
@@ -42,6 +43,11 @@ Antes:
 - Obligatorios: `FirstStep.isRequired` (MARK_PARKING, PRIVATE_ZONE) → el «Saltar» del checklist se
   oculta mientras quede uno (`FirstStepsProgress.hasPendingRequired`). Sin badge: la revisión lo
   retiró («se sobreentiende que hay que hacerlo» y ocupaba media fila).
+- Cuándo hay «Saltar» es UNA regla y vive en la proyección: `offersSkip = !hasPendingRequired &&
+  !isClosing`. `isClosing` (completado, o sin nada que preguntar con algo aplazado) es además lo que
+  la tarjeta lee para pintar la fila de cierre, así que cabecera y fila no pueden discrepar.
+- Los botones del paso van en `FlowRow`: el segundo («No tengo garaje», «Aún no», «Cómo funciona»)
+  baja a su propia línea cuando no cabe junto al CTA, en vez de salirse de la tarjeta.
 - La auto-apertura del checklist (`firstStepsCue`) no rebobina la lista mientras hay una guía activa:
   el mismo toque que señala completa el paso y cambia el cue.
 - Strings ×9: `first_steps_show_where`; se retiran `first_steps_spot_report_cta`
@@ -54,7 +60,12 @@ Antes:
 - En parkings y gasolineras: scroll a las pestañas, resaltadas, sin cambiar de carril.
 - En zona privada: el sheet se pliega, la cabecera muestra el chip abierto y resaltado.
 - Con MARK_PARKING o PRIVATE_ZONE pendientes: sin «Saltar».
-- `FirstStepsTest`: qué pasos son obligatorios y cuándo se retiene el «Saltar».
+- Con todos los pasos hechos (y en el cierre honesto): tampoco hay «Saltar» — solo el «Hecho» de la
+  fila de cierre.
+- En el paso de zona privada, «Añadir zona privada» y «No tengo garaje» no se salen de la tarjeta:
+  si no caben en la línea, el segundo baja debajo.
+- `FirstStepsTest`: qué pasos son obligatorios y cuándo se retiene el «Saltar» (obligatorio abierto,
+  checklist completado y cierre con aplazamiento).
 
 ## Consumidores auditados
 | Consumidor | Estado |
@@ -71,3 +82,14 @@ Antes:
 1. **Sin badge «OBLIGATORIO»**: se sobreentiende y se comía media fila. Retirado (y su string ×9).
 2. «Saltar» oculto mientras falten los obligatorios, resaltado de 6 s y marcar aparcamiento directo:
    sin objeciones en la revisión, se quedan así.
+
+## Correcciones de diseño (14-09-2026)
+1. **«Saltar» desaparece también con todos los pasos completados.** Se retenía solo por los
+   obligatorios, así que la tarjeta de cierre quedaba con dos salidas: «Hecho» (has terminado) y
+   «Saltar» (abandonas), llevando las dos al mismo sitio. La regla pasa a `offersSkip` en la
+   proyección — un solo sitio — e incluye el cierre honesto por aplazamiento, que también trae su
+   propio «Hecho».
+2. **Los botones del paso que no caben en la fila bajan a la siguiente.** `Row` → `FlowRow` (con
+   `end` padding, que es lo que le da la anchura real contra la que medir). Se veía en el paso de
+   zona privada: «Marcar aparcamiento»/«Añadir zona privada» + «No tengo garaje» no caben en 360 dp,
+   y en FR/DE/RO las etiquetas son aún más largas.

@@ -504,5 +504,40 @@ class FirstStepsTest {
         assertTrue(resolve(hasPrivateZone = false).hasPendingRequired)
         assertTrue(resolve(hasActiveSession = true, hasPrivateZone = false).hasPendingRequired)
         assertFalse(resolve(hasActiveSession = true, hasPrivateZone = true).hasPendingRequired)
+
+        // The two ends of the same list: withheld while a required step is open, offered in the
+        // middle, withheld again once the card is closing.
+        assertFalse(resolve(hasPrivateZone = false).offersSkip)
+        assertTrue(
+            resolve(
+                done = setOf(FirstStep.MARK_PARKING, FirstStep.PRIVATE_ZONE),
+                isAutoDetectionStopped = true,
+            ).offersSkip,
+        )
+    }
+
+    @Test
+    fun should_withdrawTheSkip_when_everyStepIsDone() {
+        // The closing card carries its own "Done": a "Skip" beside it would offer to abandon a
+        // checklist the user has just finished. [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001]
+        val progress = resolve(done = FirstStep.entries.toSet())
+        assertTrue(progress.isComplete)
+        assertTrue(progress.isClosing)
+        assertFalse(progress.offersSkip)
+    }
+
+    @Test
+    fun should_withdrawTheSkip_when_theChecklistClosesOnADeferral() {
+        // Not complete, but out of asks — the deferred closing row is up, and it has the button.
+        val progress = resolve(
+            done = FirstStep.entries.toSet() - FirstStep.FORTIFY_WATCH,
+            reinforcement = WatchReinforcement.BATTERY,
+            deferred = setOf(FirstStep.FORTIFY_WATCH),
+        )
+        assertEquals(null, progress.current)
+        assertFalse(progress.isComplete)
+        assertTrue(progress.hasDeferrals)
+        assertTrue(progress.isClosing)
+        assertFalse(progress.offersSkip)
     }
 }

@@ -84,3 +84,8 @@ Mismas dos páginas, mismo `OnboardingScreen`, sin ViewModel nuevo:
   ilustración diseñada para ello. **Aplazada** («por ahora no hacen falta estos cambios»); si se
   retoma, necesita la ilustración Nivel 3 primero y un ticket propio.
 - Ficha de Google Play: fuera de alcance.
+
+## Corrección de copy (14-09-2026)
+- Las tres descripciones de la página 2 (`onboarding_step1/2/3_desc`) son frases y ahora terminan en
+  punto, en los 9 locales. Eran las únicas del onboarding que no lo hacían: los subtítulos de las
+  páginas 1 y 3 ya cerraban con punto, así que la página de en medio leía como tres apuntes sueltos.

@@ -56,11 +56,11 @@
     <string name="onboarding_page1_subtitle">Paparcar let op je auto: het onthoudt waar je parkeert, maakt cijfers van je ritten en geeft bij vertrek de plek vrij voor wie in de buurt zoekt.</string>
     <string name="onboarding_page2_title">Wat het voor je doet</string>
     <string name="onboarding_step1_title">Automatische detectie</string>
-    <string name="onboarding_step1_desc">Herkent zelf je ritten en parkeerbeurten en toont je kosten, CO₂ en gewoonten</string>
+    <string name="onboarding_step1_desc">Herkent zelf je ritten en parkeerbeurten en toont je kosten, CO₂ en gewoonten.</string>
     <string name="onboarding_step2_title">Je parkeerplaats, bewaard</string>
-    <string name="onboarding_step2_desc">Vind je auto zonder nadenken en kijk terug waar je hebt geparkeerd</string>
+    <string name="onboarding_step2_desc">Vind je auto zonder nadenken en kijk terug waar je hebt geparkeerd.</string>
     <string name="onboarding_step3_title">Een plek voor een ander</string>
-    <string name="onboarding_step3_desc">Als je vertrekt, verschijnt de plek als vrij voor wie in de buurt zoekt</string>
+    <string name="onboarding_step3_desc">Als je vertrekt, verschijnt de plek als vrij voor wie in de buurt zoekt.</string>
     <string name="onboarding_page3_title">Parkeergarages en brandstof dichtbij</string>
     <string name="onboarding_page3_subtitle">De kaart toont je ook openbare parkeergarages en tankstations om je heen. In sommige landen met brandstofprijzen in realtime uit officiële bronnen.</string>
     <string name="onboarding_cta_next">Volgende</string>
