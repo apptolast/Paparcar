@@ -3,7 +3,6 @@ package com.rndeveloper.paparcar.presentation.home.sections.sheet.components
 import com.rndeveloper.paparcar.ui.components.papGuideHighlight
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -30,7 +29,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -149,9 +147,10 @@ fun ZoneChip(
  * The "add a zone" control — the last thing on the zone row, in both of its states.
  *
  * [expanded] is an invitation, not a different widget: the same pill, showing its title, its hint
- * and a × to put it away. Collapsed it is a circle of [ZONE_CHIP_HEIGHT], exactly as tall as the
- * chips beside it, and the transition between the two is animated because it is the SAME thing
- * changing size.
+ * and a × to put it away. Collapsed es una píldora de 42×34 — exactamente el alto de los chips de
+ * al lado y sus mismos casquetes — y la transición entre los dos estados se anima porque es LA
+ * MISMA cosa cambiando de tamaño. Fue un círculo hasta que se vio en la fila: con el mismo hueco
+ * de 8dp que sus vecinos, un casquete redondo se lee separado porque se curva alejándose de ellos.
  *
  * It replaced two separate composables (a 56dp invitation card and a 32dp `MapCircleFab`) that
  * swapped with `if (dismissed) … return` — an instant cut between two heights that never matched
@@ -188,23 +187,24 @@ fun AddZoneChip(
                 .animateContentSize(PapMotion.medium()),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // The "+" sits in a square as wide as the chip is tall, so collapsed the pill IS a
-            // circle of the row's height — no separate size constant to keep in sync.
+            // El "+" va en una PÍLDORA, no en un círculo: mismo alto que la fila y el mismo padding
+            // horizontal que lleva el glifo de un chip de zona (12dp), así que colapsado mide 42×34
+            // y sus casquetes tienen el mismo radio que los de al lado.
             //
-            // Expanded, that square alone put the glyph's centre at 17dp: dead centre of the round
-            // cap, and further into the corner than any other leading icon on the row (a zone chip
-            // puts its own at 12 + 9 = 21). It gains the difference — but ONLY expanded, because
-            // collapsed the same padding would stretch the circle into an oval. Animated, so the
-            // "+" glides across those 4dp instead of jumping the moment the invitation opens.
-            // [UI-HEADER-PILLS-SHARE-ONE-GEOMETRY-001]
-            val leadingInset by animateDpAsState(
-                targetValue = if (expanded) ADD_ZONE_EXPANDED_LEADING_PAD_DP.dp else 0.dp,
-                animationSpec = PapMotion.medium(),
-            )
+            // Era un cuadrado de 34 — un círculo exacto — y en la fila se leía SEPARADO aunque el
+            // hueco fuera el mismo 8dp que entre los demás: un casquete redondo se curva alejándose
+            // de su vecino, así que el aire ÓPTICO es mayor que el geométrico. Es la proporción que
+            // ya usa el "+" de Vehículos ([PaparcarAddChip]: padding horizontal alrededor del
+            // glifo); se copia la proporción, no el componente, porque este flota sobre el mapa y
+            // necesita el contrato de cristal + sombra de FAB. [UI-HEADER-PILLS-SHARE-ONE-GEOMETRY-001]
+            //
+            // De paso se va el inset animado: el glifo queda a 12 + 9 = 21dp del borde, el mismo
+            // sitio que el icono de un chip de zona, y ahora en LOS DOS estados. No hay 4dp que
+            // recorrer al abrirse porque no hay dos geometrías.
             Box(
                 modifier = Modifier
-                    .padding(start = leadingInset)
-                    .size(ZONE_CHIP_HEIGHT),
+                    .height(ZONE_CHIP_HEIGHT)
+                    .padding(horizontal = ADD_ZONE_GLYPH_PAD_H_DP.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -291,8 +291,15 @@ private const val ADD_ZONE_TEXT_GAP_DP = 8
  */
 private const val ADD_ZONE_TEXT_PAD_V_DP = 7
 
-/** Brings the expanded "+" to the same 21dp from the edge as a zone chip's leading icon. */
-private const val ADD_ZONE_EXPANDED_LEADING_PAD_DP = 4
+/**
+ * Aire a cada lado del "+", el mismo que un chip de zona da a su icono principal.
+ *
+ * Colapsado hace la píldora de 12 + 18 + 12 = 42dp sobre un alto de [ZONE_CHIP_HEIGHT], y expandido
+ * deja el glifo a 21dp del borde — donde está el del vecino. Un solo número para los dos estados:
+ * antes eran un cuadrado (círculo) y un inset animado de 4dp que existía sólo para corregirlo.
+ * [UI-HEADER-PILLS-SHARE-ONE-GEOMETRY-001] [UI-THE-ADD-ZONE-CHIP-IS-ONE-CHIP-IN-EVERY-STATE-001]
+ */
+private const val ADD_ZONE_GLYPH_PAD_H_DP = 12
 
 /** The same trailing inset [ZoneChip] gives its pencil — 4 + the glyph's own 6 = 10dp of air. */
 private const val ADD_ZONE_TRAILING_PAD_DP = 4

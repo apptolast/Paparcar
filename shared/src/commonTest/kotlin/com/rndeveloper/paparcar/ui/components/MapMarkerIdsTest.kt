@@ -81,9 +81,14 @@ class MapMarkerIdsTest {
     private val askIds: List<EmittedId> =
         themes.map { EmittedId(parkingAskContentId(it), MarkerTapTarget.ParkingAsk) }
 
+    // Cuatro por zona: apagada × con nombre. El rótulo se dibuja con o sin nombre según el zoom, y
+    // el bitmap se cachea por id — si las dos versiones compartieran clave, cruzar el umbral
+    // serviría la del otro lado. [UI-A-ZONE-IS-AN-AREA-NOT-A-PIN-001]
     private val zoneIds: List<EmittedId> = listOf("z1", "home-zone").flatMap { zoneId ->
         listOf(true, false).flatMap { isPrivate ->
-            listOf(true, false).map { dim -> zoneContentId(zoneId, isPrivate, dim) }
+            listOf(true, false).flatMap { dim ->
+                listOf(true, false).map { named -> zoneContentId(zoneId, isPrivate, dim, named) }
+            }
         }
     }.map { EmittedId(it, MarkerTapTarget.Zone) }
 

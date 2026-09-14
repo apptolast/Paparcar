@@ -150,11 +150,24 @@ private fun MarkersShowcase() {
             FreeSpotClusterMarker(count = 250)
         }
 
-        SectionLabel("Zone marker — area label (public · private)")
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ZoneMarker(name = "Casa", icon = zoneIconFor(ZoneIcon.HOME), isPrivate = false)
-            ZoneMarker(name = "Trabajo", icon = zoneIconFor(ZoneIcon.WORK), isPrivate = true)
-            ZoneMarker(name = "Gimnasio del barrio", icon = zoneIconFor(ZoneIcon.GYM), isPrivate = false)
+        SectionLabel("Zone area label — public · private · long name")
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            ZoneMarker(name = "Casa", icon = zoneIconFor(ZoneIcon.HOME), isPrivate = false, showName = true)
+            ZoneMarker(name = "Trabajo", icon = zoneIconFor(ZoneIcon.WORK), isPrivate = true, showName = true)
+            ZoneMarker(
+                name = "Gimnasio del barrio",
+                icon = zoneIconFor(ZoneIcon.GYM),
+                isPrivate = false,
+                showName = true,
+            )
+        }
+
+        // Cruzar el umbral es lo unico que este rotulo hace solo, asi que sus dos lados van juntos:
+        // el nombre se va y queda el glifo. [UI-A-ZONE-IS-AN-AREA-NOT-A-PIN-001]
+        SectionLabel("Zone area label — below the zoom threshold (glyph only)")
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            ZoneMarker(name = "Casa", icon = zoneIconFor(ZoneIcon.HOME), isPrivate = false, showName = false)
+            ZoneMarker(name = "Trabajo", icon = zoneIconFor(ZoneIcon.WORK), isPrivate = true, showName = false)
         }
 
         SectionLabel("Centre pin · Report (rest · lifted)")

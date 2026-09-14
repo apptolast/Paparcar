@@ -79,6 +79,7 @@ import com.rndeveloper.paparcar.presentation.home.model.formatPumpPrice
 import com.rndeveloper.paparcar.presentation.util.isManualReport
 import com.rndeveloper.paparcar.presentation.util.freshness
 import com.rndeveloper.paparcar.presentation.util.zoneIconFor
+import com.rndeveloper.paparcar.presentation.util.zoneLabelShowsName
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
@@ -206,8 +207,19 @@ private const val RADAR_OUTSET_DP       = 6f      // how far the sweep extends p
 private const val CENTER_DOT_AIMING_RADIUS_DP = 1.4f // precision dot while aiming
 
 // ── Zone radius circle overlay ───────────────────────────────────────────────
+// El anillo es el SUJETO de la zona desde [UI-A-ZONE-IS-AN-AREA-NOT-A-PIN-001]: el rótulo del centro
+// perdió su cápsula y se retiró a glifo + nombre con halo, así que lo que dice "aquí hay una zona"
+// es el círculo. Por eso el trazo sube de 0.30 a 0.42 — lo justo para que se lea sobre teselas
+// claras sin convertirse en una mancha; el relleno NO se toca, que es un lavado y a más alpha
+// empaña el mapa. ⚠️ Los dos valores son de fórmula, calibrados junto al umbral del rótulo.
+//
+// ⛔ La zona privada NO puede llevar trazo discontinuo: `Circle` de kmp-maps (0.9.1-puck4, nuestro
+// fork) sólo tiene `color`, `lineColor` y `lineWidth` — no hay patrón de guiones, y fingirlo con un
+// `Polygon` de arcos sería dibujar a mano un círculo geodésico que la librería ya calcula. Lo
+// privado sigue diciéndose donde siempre: tinte neutro en anillo y glifo + el candado del rótulo,
+// que es el contrato de dos piernas de [UI-A-PRIVATE-ZONE-IS-PRIVATE-ON-EVERY-SURFACE-001].
 private const val ZONE_CIRCLE_FILL_ALPHA    = 0.07f
-private const val ZONE_CIRCLE_STROKE_ALPHA  = 0.30f
+private const val ZONE_CIRCLE_STROKE_ALPHA  = 0.42f
 private const val ZONE_CIRCLE_STROKE_DP    = 2f
 // Saved-zone rings fade with the rest of the map when a pin/selection dims spots.
 private const val ZONE_CIRCLE_DIM_FACTOR   = 0.5f
@@ -911,6 +923,13 @@ fun PaparcarMapView(
             }
         }
     }
+    // ¿Qué zonas escriben su nombre AHORA? Lo decide el tamaño de su anillo en pantalla, no el
+    // composable: `zoneLabelShowsName` es una cuenta pura y con tests. Se guarda como mapa de
+    // booleanos —no como el zoom crudo— para que la lista de marcadores se reconstruya al CRUZAR el
+    // umbral y no en cada tic de zoom. [UI-A-ZONE-IS-AN-AREA-NOT-A-PIN-001]
+    val zoneNamed: Map<String, Boolean> = remember(zones, currentZoom) {
+        zones.associate { it.id to zoneLabelShowsName(it.radiusMeters, it.lat, currentZoom) }
+    }
     val zoneIdByCoords: Map<Coordinates, String> = remember(zones) {
         zones.associate { Coordinates(it.lat, it.lon) to it.id }
     }
@@ -965,6 +984,9 @@ fun PaparcarMapView(
 
     val markers = remember(
         clusters, parkingLocation, parkedVehicles, selectedSpotId, selectedSessionId, zones, dimSpots,
+        // Cruzar el umbral del rotulo de zona cambia su contentId, asi que la lista tiene que
+        // rehacerse. [UI-A-ZONE-IS-AN-AREA-NOT-A-PIN-001]
+        zoneNamed,
         fuelStations, selectedFuelStationId, fuelPricesLabel,
         publicParkings, selectedPublicParkingId,
         departure, arrival, freshnessMinute, themeKey,
@@ -993,7 +1015,12 @@ fun PaparcarMapView(
                         // balloon. Zone ID is recovered via zoneIdByCoords in the
                         // click handler instead.
                         title = null,
-                        contentId = zoneContentId(zone.id, zone.isPrivate, dim = dimSpots),
+                        contentId = zoneContentId(
+                            zoneId = zone.id,
+                            isPrivate = zone.isPrivate,
+                            dim = dimSpots,
+                            named = zoneNamed[zone.id] == true,
+                        ),
                         androidMarkerOptions = ZONE_MARKER_OPTIONS,
                     ),
                 )
@@ -1344,17 +1371,32 @@ fun PaparcarMapView(
 
         // ── Per-zone marker bitmaps (zone code is zone-specific × dim) ──
         val zoneHandlers: Map<String, @Composable (Marker) -> Unit> =
+            // Cuatro por zona (apagada x con nombre), no dos: el rotulo cambia con el zoom y el id
+            // que elija la lista tiene que existir ya registrado, o el marcador se queda sin dibujo
+            // el fotograma en que se cruza el umbral. [UI-A-ZONE-IS-AN-AREA-NOT-A-PIN-001]
             zones.flatMap { zone ->
-                listOf<Pair<String, @Composable (Marker) -> Unit>>(
-                    zoneContentId(zone.id, zone.isPrivate, dim = false) to { _: Marker ->
-                        ZoneMarker(name = zone.name, icon = zoneIconFor(zone.iconKey), isPrivate = zone.isPrivate)
-                    },
-                    zoneContentId(zone.id, zone.isPrivate, dim = true) to { _: Marker ->
-                        DimWrapper {
-                            ZoneMarker(name = zone.name, icon = zoneIconFor(zone.iconKey), isPrivate = zone.isPrivate)
-                        }
-                    },
-                )
+                listOf(false, true).flatMap { named ->
+                    listOf<Pair<String, @Composable (Marker) -> Unit>>(
+                        zoneContentId(zone.id, zone.isPrivate, dim = false, named = named) to { _: Marker ->
+                            ZoneMarker(
+                                name = zone.name,
+                                icon = zoneIconFor(zone.iconKey),
+                                isPrivate = zone.isPrivate,
+                                showName = named,
+                            )
+                        },
+                        zoneContentId(zone.id, zone.isPrivate, dim = true, named = named) to { _: Marker ->
+                            DimWrapper {
+                                ZoneMarker(
+                                    name = zone.name,
+                                    icon = zoneIconFor(zone.iconKey),
+                                    isPrivate = zone.isPrivate,
+                                    showName = named,
+                                )
+                            }
+                        },
+                    )
+                }
             }.toMap()
 
         // ── Per-station fuel capsules — the id already bakes price × selection × theme, so each

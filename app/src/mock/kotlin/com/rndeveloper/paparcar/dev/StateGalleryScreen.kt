@@ -678,11 +678,27 @@ private fun markersShowcase() {
             FreeSpotClusterMarker(count = 12)
             FreeSpotClusterMarker(count = 250)
         }
+        // ⛔ El rótulo de zona ya no es una cápsula: es glifo + nombre con halo de papel, SIN caja,
+        // porque una zona no ocupa un punto — lo califica. Aquí se mira junto a los pucks, que es
+        // donde se ve si recede como debe. [UI-A-ZONE-IS-AN-AREA-NOT-A-PIN-001]
         MarkerSectionLabel("Zona — pública · privada · nombre largo")
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ZoneMarker(name = "Casa", icon = zoneIconFor(ZoneIcon.HOME), isPrivate = false)
-            ZoneMarker(name = "Trabajo", icon = zoneIconFor(ZoneIcon.WORK), isPrivate = true)
-            ZoneMarker(name = "Gimnasio del barrio", icon = zoneIconFor(ZoneIcon.GYM), isPrivate = false)
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            ZoneMarker(name = "Casa", icon = zoneIconFor(ZoneIcon.HOME), isPrivate = false, showName = true)
+            ZoneMarker(name = "Trabajo", icon = zoneIconFor(ZoneIcon.WORK), isPrivate = true, showName = true)
+            ZoneMarker(
+                name = "Gimnasio del barrio",
+                icon = zoneIconFor(ZoneIcon.GYM),
+                isPrivate = false,
+                showName = true,
+            )
+        }
+        // ⛔ Y su otro lado, que es lo único que el rótulo hace SOLO: por debajo del umbral de zoom
+        // el nombre se va y queda el glifo. Una variante que solo enseñe el nombre no vigila el
+        // umbral. [DEV-A-GALLERY-VARIANT-MUST-EXERCISE-ITS-CASE-001]
+        MarkerSectionLabel("Zona — bajo el umbral de zoom (solo glifo)")
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            ZoneMarker(name = "Casa", icon = zoneIconFor(ZoneIcon.HOME), isPrivate = false, showName = false)
+            ZoneMarker(name = "Trabajo", icon = zoneIconFor(ZoneIcon.WORK), isPrivate = true, showName = false)
         }
         // El chip de la cabecera vive aquí junto a la etiqueta del mapa a propósito: son la MISMA
         // zona en dos superficies, y verlos separados es lo que dejó al chip en verde de marca

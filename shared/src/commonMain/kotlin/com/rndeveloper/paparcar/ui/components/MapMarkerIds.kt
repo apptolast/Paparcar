@@ -69,8 +69,15 @@ internal const val MARKER_PUBLIC_PARKING_PREFIX = "public_parking_"
 internal fun parkingAskContentId(themeKey: String): String = "${MARKER_PARKING_ASK}_$themeKey"
 
 /** Per-zone × dim: each zone has two cached bitmaps. [MAP-MARKERS-DIM-002] */
-internal fun zoneContentId(zoneId: String, isPrivate: Boolean, dim: Boolean): String =
-    "$MARKER_ZONE_PREFIX${zoneId}_${if (isPrivate) "prv" else "pub"}_${if (dim) "dim" else "nrm"}"
+/**
+ * ⛔ `named` es parte de la clave, no un detalle: el rótulo de zona se dibuja CON o SIN nombre según
+ * lo grande que sea su anillo en pantalla, y kmpmaps cachea el bitmap por `contentId`. Sin esta
+ * pierna, cruzar el umbral de zoom devolvería el bitmap del otro estado — un nombre que no se va, o
+ * un glifo que no vuelve. [UI-A-ZONE-IS-AN-AREA-NOT-A-PIN-001]
+ */
+internal fun zoneContentId(zoneId: String, isPrivate: Boolean, dim: Boolean, named: Boolean): String =
+    "$MARKER_ZONE_PREFIX${zoneId}_${if (isPrivate) "prv" else "pub"}_" +
+        "${if (dim) "dim" else "nrm"}_${if (named) "named" else "glyph"}"
 
 /**
  * One bitmap per station × price text × fuel label × selection × theme, because everything visible

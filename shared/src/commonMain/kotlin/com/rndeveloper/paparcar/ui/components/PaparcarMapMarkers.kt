@@ -1017,26 +1017,49 @@ private const val SPOT_PUCK_CENTER_Y = 34f // puck circle centre Y (viewBox unit
 // ─── Marker 3 — Zone (ZoneMarker) ────────────────────────────────────────────
 
 /**
- * On-map centre label for a saved [com.rndeveloper.paparcar.domain.model.Zone].
+ * Rótulo de ÁREA de una [com.rndeveloper.paparcar.domain.model.Zone] guardada.
  *
- * Area-first design [ZONE-AREA-001]: the translucent radius ring (drawn as a
- * native map circle in [PaparcarMapView]) is the hero that communicates the
- * zone's area. This marker is just a small, sober chip that tags the centre
- * with the zone's icon + name. It deliberately recedes — soft surface fill,
- * thin tinted outline — so the bright spot/vehicle markers always read above it.
+ * ### Por qué no es un marcador
+ * El mapa tiene dos clases de objeto y cada una tiene un vestido [UI-A-ZONE-IS-AN-AREA-NOT-A-PIN-001]:
  *
- * @param name zone display name; shown next to the icon, ellipsised if long.
- * @param icon the zone's chosen preset icon (resolved from `zone.iconKey`).
- * @param isPrivate when true the chip goes NEUTRAL and shows a small lock — private is a
- *   category, and a category is the glyph's job (tertiary is retired). [UI-COLOR-DOCTRINE-001 F6]
- *   No default: the `= false` this used to carry is how two other surfaces stayed brand-green for
- *   months without anyone writing a wrong line. [UI-A-PRIVATE-ZONE-IS-PRIVATE-ON-EVERY-SURFACE-001]
+ * | clase | qué es | ancla | suelo | caja |
+ * |---|---|---|---|---|
+ * | **puntual** | ocupa una coordenada | `(0.5, 1.0)` | punto + sombra | sí |
+ * | **ámbito** | califica una región | `(0.5, 0.5)` | ninguno | **ninguna** |
+ *
+ * La zona es lo segundo, y hasta este ticket vestía de lo primero: una cápsula opaca con borde,
+ * igual que la gasolinera, pero sin punto de suelo ni sombra. La misma forma decía dos cosas —*un
+ * sitio en este punto* y *el centro de un área*— en la misma capa y a la vez, y la zona flotaba
+ * sobre una coordenada que no ocupaba.
+ *
+ * Ahora es lo que la cartografía hace con los barrios y los parques: glifo + nombre **sin caja**,
+ * legibles por un halo de papel. Sin fondo y sin borde no puede competir con un puck porque no es
+ * del mismo mundo. El sujeto pasa a ser el anillo de radio que dibuja [PaparcarMapView] como
+ * círculo nativo, que es quien lleva el color y quien ya decía el área [ZONE-AREA-001].
+ *
+ * ### El halo, y por qué se pinta nueve veces
+ * Un texto puede llevar contorno (`TextStyle.drawStyle`), pero un [Icon] no: un `ImageVector` no se
+ * puede trazar. Dibujar el rótulo ENTERO en color papel bajo sus ocho vecinos y el de verdad
+ * encima le da a glifo y nombre el MISMO casing, que es lo que hace que se lean como un solo
+ * objeto dibujado por el mapa y no como dos cosas pegadas. Son nueve composiciones de una fila
+ * diminuta dentro de un bitmap que kmpmaps cachea por `contentId`: se pagan una vez, no por frame.
+ *
+ * @param name nombre de la zona. Se pinta sólo si [showName]; vacío ⇒ sólo el glifo.
+ * @param icon icono preset de la zona (resuelto desde `zone.iconKey`).
+ * @param isPrivate zona privada ⇒ tinte NEUTRO + candado pegado al glifo. Privado es una categoría,
+ *   y una categoría es trabajo del glifo (tertiary está retirado). [UI-COLOR-DOCTRINE-001 F6]
+ *   Sin valor por defecto: el `= false` que llevaba antes es cómo dos superficies se quedaron en
+ *   verde de marca durante meses sin que nadie escribiera una línea equivocada.
+ *   [UI-A-PRIVATE-ZONE-IS-PRIVATE-ON-EVERY-SURFACE-001]
+ * @param showName `false` cuando el anillo es demasiado pequeño en pantalla para que su nombre
+ *   titule algo — lo decide `zoneLabelShowsName`, medible y con tests, no el composable.
  */
 @Composable
 fun ZoneMarker(
     name: String,
     icon: ImageVector,
     isPrivate: Boolean,
+    showName: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val zoneColor = zoneIdentityColor(isPrivate)
@@ -1045,68 +1068,98 @@ fun ZoneMarker(
     // La familia de MARCA sale del tema, no de una llamada suelta: si la app cambia de
     // tipografía, las etiquetas del mapa cambian con ella. [UI-TYPE-ONE-VOICE-REACHES-MATERIAL-001]
     val outfit = PaparcarType.current.cardTitle.fontFamily
-    val label = name.trim()
+    val label = if (showName) name.trim() else ""
 
-    // Centre-anchored marker (0.5, 0.5 in PaparcarMapView), so the pill is centred
-    // in its own bitmap and lands dead-centre on the circle centre — no ground gap.
-    Box(modifier = modifier) {
-        Row(
-            modifier = Modifier
-                .clip(RoundedCornerShape(ZONE_LABEL_CORNER))
-                .background(paper.copy(alpha = ZONE_LABEL_BG_ALPHA))
-                .border(
-                    width = ZONE_LABEL_BORDER,
-                    color = zoneColor.copy(alpha = ZONE_LABEL_BORDER_ALPHA),
-                    shape = RoundedCornerShape(ZONE_LABEL_CORNER),
-                )
-                .padding(horizontal = ZONE_LABEL_PAD_H, vertical = ZONE_LABEL_PAD_V),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = zoneColor,
-                modifier = Modifier.size(ZONE_LABEL_ICON),
+    // Marcador anclado al centro (0.5, 0.5 en PaparcarMapView): el rótulo se centra en su propio
+    // bitmap y cae en el centro del círculo. El padding es el hueco que necesita el halo para no
+    // recortarse contra el borde del bitmap — Canvas y Box clipan igual de rápido.
+    Box(modifier = modifier.padding(ZONE_LABEL_HALO)) {
+        ZONE_HALO_OFFSETS.forEach { (dx, dy) ->
+            ZoneLabelRow(
+                label = label,
+                icon = icon,
+                isPrivate = isPrivate,
+                glyphColor = paper,
+                textColor = paper,
+                family = outfit,
+                modifier = Modifier.offset(x = ZONE_LABEL_HALO * dx, y = ZONE_LABEL_HALO * dy),
             )
-            if (label.isNotEmpty()) {
-                Spacer(Modifier.width(ZONE_LABEL_GAP))
-                Text(
-                    text = label,
-                    color = ink,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    style = TextStyle(
-                        fontFamily = outfit,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = ZONE_LABEL_TEXT_SP,
-                    ),
-                    modifier = Modifier.widthIn(max = ZONE_LABEL_MAX_TEXT_W),
-                )
-            }
-            if (isPrivate) {
-                Spacer(Modifier.width(ZONE_LABEL_GAP))
-                Icon(
-                    imageVector = Icons.Rounded.Lock,
-                    contentDescription = null,
-                    tint = zoneColor,
-                    modifier = Modifier.size(ZONE_LABEL_LOCK),
-                )
-            }
+        }
+        ZoneLabelRow(
+            label = label,
+            icon = icon,
+            isPrivate = isPrivate,
+            glyphColor = zoneColor,
+            // El NOMBRE no se tiñe: el glifo lleva la identidad y el nombre se escribe.
+            // [UI-COLOR-DOCTRINE-001]
+            textColor = ink,
+            family = outfit,
+        )
+    }
+}
+
+/** Una pasada del rótulo — la del halo o la de verdad. Misma geometría en las nueve. */
+@Composable
+private fun ZoneLabelRow(
+    label: String,
+    icon: ImageVector,
+    isPrivate: Boolean,
+    glyphColor: Color,
+    textColor: Color,
+    family: androidx.compose.ui.text.font.FontFamily?,
+    modifier: Modifier = Modifier,
+) {
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = glyphColor,
+            modifier = Modifier.size(ZONE_LABEL_ICON),
+        )
+        // El candado va PEGADO al glifo, no al final de una fila: sin cápsula no hay final donde
+        // colgarlo, y privado califica a la zona, no al nombre.
+        // [UI-A-PRIVATE-ZONE-IS-PRIVATE-ON-EVERY-SURFACE-001]
+        if (isPrivate) {
+            Spacer(Modifier.width(ZONE_LABEL_LOCK_GAP))
+            Icon(
+                imageVector = Icons.Rounded.Lock,
+                contentDescription = null,
+                tint = glyphColor,
+                modifier = Modifier.size(ZONE_LABEL_LOCK),
+            )
+        }
+        if (label.isNotEmpty()) {
+            Spacer(Modifier.width(ZONE_LABEL_GAP))
+            Text(
+                text = label,
+                color = textColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = TextStyle(
+                    fontFamily = family,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = ZONE_LABEL_TEXT_SP,
+                ),
+                modifier = Modifier.widthIn(max = ZONE_LABEL_MAX_TEXT_W),
+            )
         }
     }
 }
 
-private val ZONE_LABEL_CORNER     = 999.dp
-private val ZONE_LABEL_BORDER     = 1.dp
-private val ZONE_LABEL_PAD_H      = 8.dp
-private val ZONE_LABEL_PAD_V      = 4.dp
-private val ZONE_LABEL_ICON       = 14.dp
+private val ZONE_LABEL_ICON       = 16.dp
 private val ZONE_LABEL_LOCK       = 11.dp
-private val ZONE_LABEL_GAP        = 4.dp
+private val ZONE_LABEL_GAP        = 5.dp
+private val ZONE_LABEL_LOCK_GAP   = 2.dp
 private val ZONE_LABEL_MAX_TEXT_W = 96.dp
-private val ZONE_LABEL_TEXT_SP    = 11.sp
-private const val ZONE_LABEL_BG_ALPHA     = 0.92f
-private const val ZONE_LABEL_BORDER_ALPHA = 0.55f
+private val ZONE_LABEL_TEXT_SP    = 12.sp
+
+// Grosor del halo de papel. Las ocho direcciones (no cuatro): en diagonal el hueco entre dos
+// pasadas ortogonales deja pasar la tesela, y eso se ve como un borde sucio a tamaño de marcador.
+private val ZONE_LABEL_HALO = 1.5.dp
+private val ZONE_HALO_OFFSETS = listOf(
+    -1f to 0f, 1f to 0f, 0f to -1f, 0f to 1f,
+    -1f to -1f, -1f to 1f, 1f to -1f, 1f to 1f,
+)
 
 // ─── Fuel-station layer ──────────────────────────────────────────────────────
 
@@ -1160,10 +1213,10 @@ fun FuelStationMarker(
                 .offset(y = 0.dp)
                 .padding(horizontal = 4.dp) // extra air inside the Row so it doesn't clip its own border
                 .clip(RoundedCornerShape(FUEL_LABEL_CORNER))
-                .background(paper.copy(alpha = ZONE_LABEL_BG_ALPHA))
+                .background(paper.copy(alpha = FUEL_LABEL_BG_ALPHA))
                 .border(
-                    width = if (selected) FUEL_LABEL_BORDER_SEL else ZONE_LABEL_BORDER,
-                    color = brand.copy(alpha = if (selected) 1f else ZONE_LABEL_BORDER_ALPHA),
+                    width = if (selected) FUEL_LABEL_BORDER_SEL else FUEL_LABEL_BORDER,
+                    color = brand.copy(alpha = if (selected) 1f else FUEL_LABEL_BORDER_ALPHA),
                     shape = RoundedCornerShape(FUEL_LABEL_CORNER),
                 )
                 .padding(horizontal = 10.dp, vertical = 3.dp)
@@ -1284,9 +1337,16 @@ private const val PARKING_PUCK_R = 29f
 
 private val PARKING_LABEL_PAD_H = 9.dp
 
+// La capsula ya no se comparte con la zona: es de la gasolinera y solo de ella. Estos tres valores
+// vivian en el bloque de la zona y el surtidor los tomaba prestados -- por eso la misma forma decia
+// dos cosas a la vez. La zona se fue a rotulo de area, asi que la capsula (fondo, borde y su alpha)
+// se queda aqui, con la unica cosa puntual que lleva una cifra. [UI-A-ZONE-IS-AN-AREA-NOT-A-PIN-001]
 private val FUEL_LABEL_CORNER = 999.dp
+private val FUEL_LABEL_BORDER = 1.dp
 private val FUEL_LABEL_BORDER_SEL = 2.dp
 private val FUEL_GLYPH_SIZE = 16.dp
+private const val FUEL_LABEL_BG_ALPHA = 0.92f
+private const val FUEL_LABEL_BORDER_ALPHA = 0.55f
 
 // ─── Centre-pin family ───────────────────────────────────────────────────────
 
@@ -1449,11 +1509,20 @@ fun ParkingCenterPin(
 }
 
 /**
- * @param isPrivate the pin you are dragging wears the identity the zone will HAVE once saved. The
- *   radius ring under it already went neutral from the same flag, so a `primary` pin here painted
- *   one zone in two colours inside a single frame. No lock: a lone glyph over map tiles has no pill
- *   to hang one from — the tint alone, matching the ring.
+ * El pin de colocación de una zona es **el mismo rótulo que quedará**, sin nombre todavía: se
+ * coloca el centro de un área, y lo que se está colocando ya se ve como se verá.
+ * [UI-A-ZONE-IS-AN-AREA-NOT-A-PIN-001]
+ *
+ * Antes era un glifo suelto sin halo ni candado, así que no se parecía ni a lo que había en el mapa
+ * ni a lo que iba a quedar — la única familia de pines de colocación que incumplía su propia regla
+ * («el pin que colocas ES el marcador que quedará»). No se eleva ni proyecta sombra a propósito:
+ * eso es de los objetos que pisan un punto, y una zona no pisa ninguno.
+ *
+ * @param isPrivate el pin que arrastras lleva la identidad que la zona TENDRÁ al guardarse. El
+ *   anillo de debajo ya se volvía neutro con ese mismo flag, así que un pin `primary` pintaba una
+ *   zona de dos colores en un solo fotograma. Ahora además lleva su candado, como el rótulo.
  *   [UI-A-PRIVATE-ZONE-IS-PRIVATE-ON-EVERY-SURFACE-001]
+ * @param name nombre ya escrito, si lo hay: en el alta todavía no existe y el rótulo es sólo glifo.
  */
 @Composable
 fun ZoneCenterPin(
@@ -1461,18 +1530,14 @@ fun ZoneCenterPin(
     @Suppress("UNUSED_PARAMETER") cameraMoving: Boolean,
     isPrivate: Boolean,
     modifier: Modifier = Modifier,
+    name: String = "",
 ) {
-    Icon(
-        imageVector = icon,
-        contentDescription = null,
-        tint = zoneIdentityColor(isPrivate),
-        // Geometric-centre alignment puts the bounding box centre on the circle
-        // centre, but a teardrop glyph (the default location pin) carries its mass
-        // up top and a tip below, so it reads as floating high. A small downward
-        // nudge sits the visual centre on the circle centre. [ZONE-AREA-001]
-        modifier = modifier
-            .size(ZONE_AREA_ICON_SIZE)
-            .offset(y = ZONE_AREA_ICON_VNUDGE),
+    ZoneMarker(
+        name = name,
+        icon = icon,
+        isPrivate = isPrivate,
+        showName = name.isNotBlank(),
+        modifier = modifier,
     )
 }
 
@@ -1499,8 +1564,9 @@ private const val DROP_SHADOW_REST_SCALE = 0.75f
 private const val DROP_SHADOW_LIFT_SCALE = 1f
 private const val DROP_SHADOW_REST_ALPHA = 0.22f
 private const val DROP_SHADOW_LIFT_ALPHA = 0.38f
-private val ZONE_AREA_ICON_SIZE = 22.dp
-private val ZONE_AREA_ICON_VNUDGE = 2.dp
+// El tamaño del pin de zona ya no vive aquí: es el del rótulo ([ZONE_LABEL_ICON]), porque son el
+// mismo objeto. Y el empujoncito vertical se fue con la cápsula — corregía que un glifo de lágrima
+// leyera alto dentro de una caja que ya no existe. [UI-A-ZONE-IS-AN-AREA-NOT-A-PIN-001]
 
 // ─── Cluster marker ───────────────────────────────────────────────────────────
 
