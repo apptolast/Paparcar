@@ -365,7 +365,7 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
     }
 
     private companion object {
-        const val DEFAULT_MAP_TYPE = "TERRAIN"
+        const val DEFAULT_MAP_TYPE = "NORMAL"
 
         /**
          * The keys that belong to the signed-in USER and die with their session — the list

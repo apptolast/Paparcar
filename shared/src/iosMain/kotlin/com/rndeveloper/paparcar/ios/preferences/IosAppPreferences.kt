@@ -35,7 +35,7 @@ private const val KEY_DARK_MODE_ENABLED = "dark_mode_enabled"
 private const val KEY_THEME_MODE = "theme_mode"
 private const val KEY_USE_IMPERIAL_UNITS = "use_imperial_units"
 private const val KEY_DEFAULT_MAP_TYPE = "default_map_type"
-private const val DEFAULT_MAP_TYPE = "TERRAIN"
+private const val DEFAULT_MAP_TYPE = "NORMAL"
 
 /**
  * The defaults that belong to the signed-in USER and die with their session — the same list the

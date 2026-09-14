@@ -1,13 +1,30 @@
 # MAP-STYLE-IS-SILENTLY-IGNORED-001 · El estilo del mapa no se aplica, y por eso vuelven los POI ajenos
 
-**Estado:** 🟡 EN DUDA — todo lo de abajo se midió **en el emulador**, y el user dice que **en su
-móvil físico el mapa NO muestra POI** (09-09-2026). Si eso se confirma, el estilo sí se aplica en
-hardware real y esto es una diferencia del renderer del emulador (Maps SDK tiene dos, y el
-emulador puede caer en el legacy), no un bug de la app.
+**Estado:** ✅ CERRADO (14-09-2026) por **`MAP-A-STYLE-THAT-NEVER-RAN-001`**, que arregla el
+síntoma — pero ⛔ **la causa escrita aquí abajo era la equivocada, y sus tres salidas resolvían un
+problema que no existía.** Se conserva entero, sin corregir el cuerpo, porque el error es la parte
+útil: enseña cómo se llega a una causa falsa con medidas verdaderas.
 
-⛔ **Primer paso antes de tocar NADA: reproducirlo en un móvil físico.** Una captura del mapa en el
-Oppo con sesión iniciada zanja el ticket en un sentido o en el otro; hasta entonces esto es una
-hipótesis con evidencia de un solo entorno — y el entorno es justo el que suele mentir.
+**Lo que pasaba de verdad:** el tipo de mapa por defecto era `TERRAIN`, y Google aplica el JSON
+styling **solo al tipo `normal`**. El estilo llegaba entero a `setMapStyle()` y el SDK lo tiraba
+por el tipo de mapa, no por el color scheme.
+
+**Por qué este ticket señaló a `mapColorScheme`:** el experimento del 09-09 sustituyó el JSON por
+otro «de solo visibilidad» y midió que nada cambiaba — pero **dejó fija la variable que mandaba**.
+Al no tocar nunca el tipo de mapa, midió el efecto de TERRAIN y se lo atribuyó al scheme. Un
+experimento que deja fija la causa real confirma cualquier hipótesis que le pongas delante. De ahí
+salió la recomendación de montar un Map ID de Cloud Styling: infraestructura nueva para un bug de
+cuatro literales.
+
+Verificado además en las fuentes, que desmienten la incompatibilidad: `maps-compose` 6.12.2 aplica
+las dos cosas seguidas y sin pisarse (`MapUpdater.kt:136` `setMapStyle` · `:140-143`
+`mapColorScheme`), y el fork las pasa las dos (`Map.kt:150`, `Extensions.kt:154`).
+
+**Y la duda del encabezado tenía respuesta, también contraria:** el móvil físico **sí** mostraba
+los POI. La captura del Oppo del 14-09 los tiene todos — píldora morada de «Playa De La Puntilla»
+incluida. El recuerdo de que no salían fue lo que mantuvo el ticket en el aire cinco días.
+
+---
 
 Ticket abierto desde la verificación de la capa de gasolineras.
 

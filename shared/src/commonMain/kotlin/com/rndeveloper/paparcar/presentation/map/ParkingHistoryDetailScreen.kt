@@ -166,7 +166,7 @@ fun ParkingHistoryDetailScreen(
     // Tipo de mapa: estado LOCAL de la pantalla. En Home vive en `HomeState.mapType`, también en
     // memoria — no hay persistencia de este ajuste en ningún sitio, así que no se inventa una.
     // [UI-HISTORY-DETAIL-HAS-THE-MAP-CONTROLS-001]
-    var mapType by remember { mutableStateOf(MapType.TERRAIN) }
+    var mapType by remember { mutableStateOf(MapType.NORMAL) }
     // ONE unwrap, in the open: everything below reads a session that is either resolved or absent,
     // and the sheet gets the full answer (unresolved / not found / resolved) so it can say which.
     // [UI-HISTORY-DETAIL-MUST-NOT-SPEAK-BEFORE-IT-KNOWS-001]

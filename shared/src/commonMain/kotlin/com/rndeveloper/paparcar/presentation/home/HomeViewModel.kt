@@ -1707,18 +1707,22 @@ class HomeViewModel(
     private fun geocodeUserLocation(lat: Double, lon: Double) = geocoder.geocodeUserLocation(lat, lon)
     private fun geocodeCameraLocation(lat: Double, lon: Double) = geocoder.geocodeCameraLocation(lat, lon)
 
-    // Raw satellite is no longer offered — the map toggle only flips terrain ⇄ hybrid.
-    // A preference stored before that change migrates to hybrid (same aerial imagery, plus
-    // street labels), so nobody is stranded on a style the toggle can't leave.
-    // [UI-MAP-TYPE-TOGGLE-001]
+    // Two retired options, read-only, both migrating to the style that replaced them:
+    //  · "SATELLITE" → hybrid (same aerial imagery, plus street labels) since the map control
+    //    became a two-way toggle. [UI-MAP-TYPE-TOGGLE-001]
+    //  · "TERRAIN"   → normal. Google applies JSON styling to the normal map type ONLY, so on
+    //    terrain every rule in MapStyles.kt was silently dropped and the map came back wearing
+    //    Google's own colours and Google's own POIs. A preference written before that was found
+    //    would have stranded the user on the one tile style our styling cannot reach.
+    //    [MAP-A-STYLE-THAT-NEVER-RAN-001]
     private fun String.toMapType(): MapType = when (this) {
         MAP_TYPE_HYBRID, MAP_TYPE_SATELLITE_LEGACY -> MapType.HYBRID
-        else -> MapType.TERRAIN
+        else -> MapType.NORMAL
     }
 
     private fun MapType.toPreferenceString(): String = when (this) {
         MapType.HYBRID -> MAP_TYPE_HYBRID
-        else -> MAP_TYPE_TERRAIN
+        else -> MAP_TYPE_NORMAL
     }
 
     // The pure `HomeState → HomeState` transitions of the mode machine (clearedModeFields,
@@ -1745,11 +1749,13 @@ class HomeViewModel(
         const val LOCATION_PRIORITY_HIGH_ACCURACY = "HIGH_ACCURACY"
 
         // Map type preference strings
-        const val MAP_TYPE_TERRAIN = "TERRAIN"
+        const val MAP_TYPE_NORMAL = "NORMAL"
         const val MAP_TYPE_HYBRID = "HYBRID"
 
         // Retired option, kept only to read (and migrate) preferences written before
         // the map control became a two-way toggle. Never written back.
+        // The other retired value, "TERRAIN", needs no constant: it falls through the same
+        // `else` as any unrecognised string, which is exactly the migration it wants.
         const val MAP_TYPE_SATELLITE_LEGACY = "SATELLITE"
     }
 }

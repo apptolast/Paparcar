@@ -17,8 +17,12 @@ import paparcar.composeapp.generated.resources.home_cd_map_type
 /**
  * Circular FAB that flips the map between its two useful styles.
  *
- *  - [MapType.TERRAIN] — reads as a flat street plan at city zoom: no relief,
- *    no buildings, just roads and names → Map icon.
+ *  - [MapType.NORMAL]  — the flat street plan: roads and names, wearing OUR colours and with
+ *    Google's POI icons off, because normal is the only tile style Google lets us style at all.
+ *    This used to be TERRAIN, defended in this very comment as "a flat street plan at city zoom:
+ *    no relief, no buildings" — which is the definition of normal, not of terrain. The relief we
+ *    were paying for was invisible in a city and it cost us every rule in `MapStyles.kt`.
+ *    [MAP-A-STYLE-THAT-NEVER-RAN-001] → Map icon.
  *  - [MapType.HYBRID]  — the real world from above (buildings, trees, shadows)
  *    with street labels on top → globe icon.
  *
@@ -45,7 +49,7 @@ internal fun MapTypeToggle(
     ) { animatedOnHybrid ->
         MapCircleFab(
             icon = if (animatedOnHybrid) Icons.Rounded.Public else Icons.Rounded.Map,
-            onClick = { onTypeSelected(if (animatedOnHybrid) MapType.TERRAIN else MapType.HYBRID) },
+            onClick = { onTypeSelected(if (animatedOnHybrid) MapType.NORMAL else MapType.HYBRID) },
             contentDescription = contentDescription,
             size = FAB_SIZE,
             iconSize = FAB_ICON_SIZE,

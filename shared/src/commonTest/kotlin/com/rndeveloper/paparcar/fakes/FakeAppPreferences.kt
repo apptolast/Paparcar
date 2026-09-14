@@ -15,7 +15,7 @@ class FakeAppPreferences(
     initialNotifyParking: Boolean = true,
     initialThemeMode: ThemeMode = ThemeMode.SYSTEM,
     initialUseImperialUnits: Boolean = false,
-    initialDefaultMapType: String = "TERRAIN",
+    initialDefaultMapType: String = "NORMAL",
 ) : AppPreferences {
 
     /**

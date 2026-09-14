@@ -82,6 +82,13 @@ sobre el tipo vectorial `NORMAL`).
 > estilo de marca y el dark automático siguen sin aplicar del todo. El KDoc del toggle defiende
 > TERRAIN por legibilidad ("flat street plan at city zoom") pero no responde a esto. Si algún día
 > molesta, se abre ticket nuevo sobre el toggle — no se resucita el del popup.
+>
+> ✅ **RESUELTO el 14-09-2026 por `MAP-A-STYLE-THAT-NEVER-RAN-001`.** Molestó: salió por el tono del
+> mapa claro y por los POI de Google, dos quejas que eran este mismo defecto. El default es `NORMAL`
+> y `MapStyles.kt` se aplica por fin. Matiz sobre lo escrito arriba: no era «no aplica del todo»
+> sino **no aplicaba NADA** — y no es porque terrain sea ráster, es que Google estiliza el tipo
+> `normal` y ningún otro. Esta nota tenía la respuesta desde el 30-08 y estuvo quince días
+> esperando a que alguien la leyera; mientras tanto se abrió otro ticket que culpó al color scheme.
 
 ---
 

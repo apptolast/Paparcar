@@ -124,7 +124,7 @@ class HomeViewModelTest {
     private lateinit var vm: HomeViewModel
 
     private fun buildVm(
-        initialMapType: String = "TERRAIN",
+        initialMapType: String = "NORMAL",
         foreground: Boolean = true,
         showParkingAskBus: com.rndeveloper.paparcar.domain.event.ShowParkingAskEventBus? = null,
         // Default fixture = a Home past its very first entry, so the one-shot map location ask
@@ -309,8 +309,8 @@ class HomeViewModelTest {
     // ── Init — map type from preferences ─────────────────────────────────────
 
     @Test
-    fun `should_apply_terrain_mapType_from_preferences_by_default`() = runTest {
-        assertEquals(MapType.TERRAIN, vm.state.value.mapType)
+    fun `should_apply_normal_mapType_from_preferences_by_default`() = runTest {
+        assertEquals(MapType.NORMAL, vm.state.value.mapType)
     }
 
     @Test
@@ -324,6 +324,15 @@ class HomeViewModelTest {
     fun `should_migrate_legacy_satellite_preference_to_hybrid`() = runTest {
         val vmSat = buildVm(initialMapType = "SATELLITE")
         assertEquals(MapType.HYBRID, vmSat.state.value.mapType)
+    }
+
+    // Terrain was retired because Google applies JSON styling to the NORMAL map type only, so a
+    // preference written by an earlier version is the one way a user could still land on the one
+    // tile style where `MapStyles.kt` is silently discarded. [MAP-A-STYLE-THAT-NEVER-RAN-001]
+    @Test
+    fun `should_migrate_legacy_terrain_preference_to_normal`() = runTest {
+        val vmTerrain = buildVm(initialMapType = "TERRAIN")
+        assertEquals(MapType.NORMAL, vmTerrain.state.value.mapType)
     }
 
     // ── Init — permissions + GPS chain ────────────────────────────────────────
@@ -1066,15 +1075,16 @@ class HomeViewModelTest {
 
     @Test
     fun `should_persist_mapType_to_preferences_on_SetMapType`() = runTest {
-        vm.handleIntent(HomeIntent.SetMapType(MapType.TERRAIN))
-        assertEquals("TERRAIN", prefs.defaultMapType)
+        vm.handleIntent(HomeIntent.SetMapType(MapType.HYBRID))
+        vm.handleIntent(HomeIntent.SetMapType(MapType.NORMAL))
+        assertEquals("NORMAL", prefs.defaultMapType)
     }
 
     @Test
     fun `should_not_update_preferences_when_same_mapType_set`() = runTest {
-        vm.handleIntent(HomeIntent.SetMapType(MapType.TERRAIN))
+        vm.handleIntent(HomeIntent.SetMapType(MapType.NORMAL))
         // First SetMapType with same value as init — prefs should remain untouched
-        assertEquals("TERRAIN", prefs.defaultMapType)
+        assertEquals("NORMAL", prefs.defaultMapType)
         // Verify by switching and switching back
         vm.handleIntent(HomeIntent.SetMapType(MapType.HYBRID))
         val countAfterFirst = prefs.defaultMapType

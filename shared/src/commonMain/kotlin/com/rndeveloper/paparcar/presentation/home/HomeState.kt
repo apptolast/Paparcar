@@ -148,7 +148,7 @@ data class HomeState(
 
     // ── Map / camera ──────────────────────────────────────────────────────────
 
-    val mapType: MapType = MapType.TERRAIN,
+    val mapType: MapType = MapType.NORMAL,
     /** Geocoded address of the map camera centre (updated as the user pans). */
     val cameraAddressAndPlace: AddressAndPlace? = null,
     /** True while camera geocoding is in flight — drives a skeleton placeholder. */

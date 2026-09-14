@@ -122,7 +122,7 @@ import kotlin.time.Duration.Companion.milliseconds
  *   inner disc + chosen zone icon (ZoneMarker family).
  * @property initialCamera Seed camera position used on first composition when
  *   no live `userLocation` and no dynamic `cameraTarget` are available.
- * @property mapType Underlying tile style (NORMAL / SATELLITE / TERRAIN).
+ * @property mapType Underlying tile style. Only NORMAL accepts our JSON styling — see MapStyles.kt. [MAP-A-STYLE-THAT-NEVER-RAN-001]
  * @property styleMode Selects between LIGHT and DARK Google Maps styles. `AUTO`
  *   resolves from `MaterialTheme.colorScheme.background.luminance()`.
  */
@@ -131,7 +131,7 @@ data class PaparcarMapConfig(
     val showFreeSpotOverlays: Boolean = true,
     val centerPin: CenterPinKind? = null,
     val initialCamera: CameraTarget? = null,
-    val mapType: MapType = MapType.TERRAIN,
+    val mapType: MapType = MapType.NORMAL,
     val styleMode: MapStyleMode = MapStyleMode.AUTO,
 )
 
