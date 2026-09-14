@@ -370,6 +370,99 @@ class EvaluateBtParkUseCaseTest {
         assertIs<BtRideProof.DidNotMove>(proof, "190 m between two ±60 m fixes proves nothing")
     }
 
+    // ── The recorded ride testifies [DET-BT-A-PARK-IS-CONFIRMED-NOT-ASSUMED-001] ────────────────
+    //
+    // Since the trip recorder exists, the engagement's own fixes outrank the cached connect fix:
+    // measured DURING the ride by our stream, no cached gap for a walk to hide in.
+
+    /** A recorder fix [meters] from base, stamped [afterConnectMs] into the engagement. */
+    private fun ridePoint(meters: Double, afterConnectMs: Long, accuracy: Float = 10f) =
+        fix(meters = meters, accuracy = accuracy, timestamp = CONNECTED_AT_MS + afterConnectMs)
+
+    @Test
+    fun should_proveRideFromTheRecordedRoute_when_noFixWasCachedAtConnect() {
+        // The exact case the connect-fix witness reported Unmeasurable(NO_FIX) on: no cached
+        // origin — but the recorder measured the whole drive.
+        val proof = useCase.evaluateRideDisplacement(
+            origin = null,
+            connectedAtMs = CONNECTED_AT_MS,
+            candidate = candidate(atMs = CONNECTED_AT_MS + 600_000L, meters = 400.0),
+            recordedRide = listOf(ridePoint(0.0, afterConnectMs = 5_000L), ridePoint(350.0, afterConnectMs = 590_000L)),
+        )
+        assertIs<BtRideProof.Moved>(proof, "the ride's own fixes size the ride — no cached origin needed")
+        assertEquals(BtRideEvidence.RECORDED_ROUTE, proof.evidence)
+    }
+
+    @Test
+    fun should_proveRideFromTheRecordedRoute_when_theCachedOriginIsStale() {
+        val proof = useCase.evaluateRideDisplacement(
+            origin = origin(ageMs = config.btConnectFixMaxAgeMs + 1),
+            connectedAtMs = CONNECTED_AT_MS,
+            candidate = candidate(atMs = CONNECTED_AT_MS + 600_000L, meters = 400.0),
+            recordedRide = listOf(ridePoint(0.0, afterConnectMs = 5_000L), ridePoint(350.0, afterConnectMs = 590_000L)),
+        )
+        assertIs<BtRideProof.Moved>(proof, "a stale cached fix must not out-vote the measured ride")
+        assertEquals(BtRideEvidence.RECORDED_ROUTE, proof.evidence)
+    }
+
+    @Test
+    fun should_letTheRecordedRouteRefuseTheRide_when_itsEndpointsStayedPut() {
+        // The route is the BETTER witness in both directions: its DidNotMove is terminal even when
+        // a far-away stale-ish cached origin would have "proven" a ride nobody drove.
+        val proof = useCase.evaluateRideDisplacement(
+            origin = origin(meters = 4_000.0),
+            connectedAtMs = CONNECTED_AT_MS,
+            candidate = candidate(atMs = CONNECTED_AT_MS + 600_000L, meters = 10.0),
+            recordedRide = listOf(ridePoint(0.0, afterConnectMs = 5_000L), ridePoint(12.0, afterConnectMs = 590_000L)),
+        )
+        assertIs<BtRideProof.DidNotMove>(proof, "the engagement's own measurements outrank the cached fix")
+        assertEquals(BtRideEvidence.RECORDED_ROUTE, proof.evidence)
+    }
+
+    @Test
+    fun should_ignoreRecordedPointsFromBeforeTheConnect_when_sizingTheRide() {
+        // A leftover of the PREVIOUS trip (cleared late, gap not yet hit) must never size this one:
+        // with the pre-connect point filtered out, only ONE usable point remains → fall back to the
+        // connect-fix witness, which here says the car never left.
+        val proof = useCase.evaluateRideDisplacement(
+            origin = origin(),
+            connectedAtMs = CONNECTED_AT_MS,
+            candidate = candidate(atMs = CONNECTED_AT_MS + 600_000L, meters = 6.0),
+            recordedRide = listOf(
+                fix(meters = 900.0, timestamp = CONNECTED_AT_MS - 60_000L), // previous trip's tail
+                ridePoint(6.0, afterConnectMs = 5_000L),
+            ),
+        )
+        assertIs<BtRideProof.DidNotMove>(proof)
+        assertEquals(BtRideEvidence.CONNECT_FIX, proof.evidence, "one usable point is not a ride — fallback decides")
+    }
+
+    @Test
+    fun should_sizeTheRideToItsLastRecordedPoint_when_theHuntNeverProducedACandidate() {
+        // The GPS-timeout rescue: no candidate, no cached origin — the route alone proves the car
+        // went somewhere, so the caller can ASK instead of losing the park in silence.
+        val proof = useCase.evaluateRideDisplacement(
+            origin = null,
+            connectedAtMs = CONNECTED_AT_MS,
+            candidate = null,
+            recordedRide = listOf(ridePoint(0.0, afterConnectMs = 5_000L), ridePoint(500.0, afterConnectMs = 590_000L)),
+        )
+        assertIs<BtRideProof.Moved>(proof, "candidate-less sizing ends at the last recorded point")
+        assertEquals(BtRideEvidence.RECORDED_ROUTE, proof.evidence)
+    }
+
+    @Test
+    fun should_reportUnmeasurable_when_neitherCandidateNorUsableRouteExists() {
+        // Timeout with an empty store: nothing measured anything — doubt, never permission.
+        val proof = useCase.evaluateRideDisplacement(
+            origin = origin(),
+            connectedAtMs = CONNECTED_AT_MS,
+            candidate = null,
+            recordedRide = emptyList(),
+        )
+        assertEquals(BtRideProof.Unmeasurable(BtRideOriginGap.NO_FIX), proof)
+    }
+
     private companion object {
         const val BASE_LAT = 36.6024
         const val BASE_LON = -6.2766

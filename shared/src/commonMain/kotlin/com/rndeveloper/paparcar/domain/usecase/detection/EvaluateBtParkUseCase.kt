@@ -89,12 +89,27 @@ enum class BtRideOriginGap(val label: String) {
 }
 
 /**
+ * Which measurement a [BtRideProof] verdict stands on. [DET-BT-A-PARK-IS-CONFIRMED-NOT-ASSUMED-001]
+ * Travels to the logs so the field can calibrate how often each witness decides.
+ */
+enum class BtRideEvidence(val label: String) {
+    /** The trip recorder's own fixes, sampled DURING the engagement by our stream — the primary
+     *  witness since the tracker exists. [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001] */
+    RECORDED_ROUTE("recorded_route"),
+
+    /** The cached last-known fix stamped at the connect — the original, pre-tracker witness. */
+    CONNECT_FIX("connect_fix"),
+}
+
+/**
  * Did the car actually GO anywhere between connect and park?
  * [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001]
  *
- * The BT lane cannot measure speed: it holds no stream while you drive, and that cheapness is the
- * whole point of the tier. It CAN measure displacement — and a trip is, before anything else, a
- * change of place. [displacementMeters] against [requiredMeters] is that measurement; both travel
+ * Two witnesses can answer, in strict order of quality [DET-BT-A-PARK-IS-CONFIRMED-NOT-ASSUMED-001]:
+ * the trip RECORDER's route (fixes measured during the engagement by our own stream — since
+ * [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001] the lane DOES hold a stream while you drive), and the
+ * cached connect fix (the original witness, now the fallback). A trip is, before anything else, a
+ * change of place: [displacementMeters] against [requiredMeters] is that measurement; both travel
  * on every verdict so the field can see how close a decision was, not just which way it went.
  */
 sealed interface BtRideProof {
@@ -103,6 +118,7 @@ sealed interface BtRideProof {
         val displacementMeters: Double,
         val requiredMeters: Double,
         val originAgeMs: Long,
+        val evidence: BtRideEvidence = BtRideEvidence.CONNECT_FIX,
     ) : BtRideProof
 
     /** Measured, and it did NOT move: the engagement happened with the car parked where it already
@@ -111,6 +127,7 @@ sealed interface BtRideProof {
         val displacementMeters: Double,
         val requiredMeters: Double,
         val originAgeMs: Long,
+        val evidence: BtRideEvidence = BtRideEvidence.CONNECT_FIX,
     ) : BtRideProof
 
     /** The displacement could not be measured at all. Doubt, never permission. */
@@ -202,16 +219,53 @@ class EvaluateBtParkUseCase(private val config: ParkingDetectionConfig) {
      * manufacturing a displacement nobody drove. Both accuracies are added for the same reason: a
      * distance smaller than the error bars of its own endpoints is not a distance.
      *
+     * **The recorded route outranks the cached fix** [DET-BT-A-PARK-IS-CONFIRMED-NOT-ASSUMED-001]:
+     * since the trip recorder exists, the engagement's own fixes — sampled by our stream, already
+     * accuracy-gated and decimated at ingest — are on disk. When ≥2 of them postdate the connect,
+     * the ride is sized from THEM (first recorded point → the candidate, or → the last recorded
+     * point when the post-disconnect hunt never produced one), and that verdict is TERMINAL: a
+     * pre-connect cached fix never re-litigates what the ride's own measurements said. No
+     * pedestrian-age allowance applies to it — both endpoints were measured during the engagement,
+     * so there is no cached gap for a walk to hide in. Every origin-fix failure mode
+     * ([BtRideOriginGap]) is thereby survivable when a route was recorded.
+     *
      * @param origin last known fix at the moment the paired car connected, or null if none was
      *   cached. Its [GpsPoint.timestamp] is the fix's own instant, not the connect's.
      * @param connectedAtMs the connect this engagement began with.
-     * @param candidate the parked-car candidate — the destination of the alleged ride.
+     * @param candidate the parked-car candidate — the destination of the alleged ride. Null when
+     *   the hunt timed out without one: the recorded route alone may still size the ride (so the
+     *   timeout can ASK instead of losing the park in silence), but a cached pre-connect fix may
+     *   not — it cannot say where the ride ENDED.
+     * @param recordedRide the trip recorder's fixes for this engagement (empty when none/unwired).
      */
     fun evaluateRideDisplacement(
         origin: GpsPoint?,
         connectedAtMs: Long,
-        candidate: BtCandidate,
+        candidate: BtCandidate?,
+        recordedRide: List<GpsPoint> = emptyList(),
     ): BtRideProof {
+        // Witness 1 — the recorded ride. Only fixes stamped after the connect testify: the store
+        // self-segments and clears, but a leftover of the previous trip must never size this one.
+        val ridePoints = recordedRide.filter { it.timestamp >= connectedAtMs }
+        if (ridePoints.size >= MIN_RECORDED_RIDE_POINTS) {
+            val first = ridePoints.first()
+            val end = candidate?.fix ?: ridePoints.last()
+            val displacementMeters = haversineMeters(
+                first.latitude, first.longitude, end.latitude, end.longitude,
+            )
+            val requiredMeters = config.btMinRideDisplacementMeters.toDouble() +
+                first.accuracy + end.accuracy
+            val originAgeMs = first.timestamp - connectedAtMs // how late the recorder's first fix came
+            return if (displacementMeters >= requiredMeters) {
+                BtRideProof.Moved(displacementMeters, requiredMeters, originAgeMs, BtRideEvidence.RECORDED_ROUTE)
+            } else {
+                BtRideProof.DidNotMove(displacementMeters, requiredMeters, originAgeMs, BtRideEvidence.RECORDED_ROUTE)
+            }
+        }
+
+        // Witness 2 — the cached connect fix (the original arithmetic, unchanged). It measures a
+        // displacement TO the candidate, so without one it has nothing to say.
+        if (candidate == null) return BtRideProof.Unmeasurable(BtRideOriginGap.NO_FIX)
         if (origin == null) return BtRideProof.Unmeasurable(BtRideOriginGap.NO_FIX)
         val originAgeMs = connectedAtMs - origin.timestamp
         if (originAgeMs < 0) return BtRideProof.Unmeasurable(BtRideOriginGap.INCOHERENT_CLOCK)
@@ -226,9 +280,9 @@ class EvaluateBtParkUseCase(private val config: ParkingDetectionConfig) {
             origin.accuracy + candidate.fix.accuracy +
             config.maxPedestrianSpeedMps * (originAgeMs / 1000.0)
         return if (displacementMeters >= requiredMeters) {
-            BtRideProof.Moved(displacementMeters, requiredMeters, originAgeMs)
+            BtRideProof.Moved(displacementMeters, requiredMeters, originAgeMs, BtRideEvidence.CONNECT_FIX)
         } else {
-            BtRideProof.DidNotMove(displacementMeters, requiredMeters, originAgeMs)
+            BtRideProof.DidNotMove(displacementMeters, requiredMeters, originAgeMs, BtRideEvidence.CONNECT_FIX)
         }
     }
 
@@ -311,5 +365,9 @@ class EvaluateBtParkUseCase(private val config: ParkingDetectionConfig) {
 
     private companion object {
         const val KMH_PER_MPS = 3.6f
+
+        /** One recorded fix is a point, not a ride: sizing needs two endpoints of OUR OWN stream.
+         *  [DET-BT-A-PARK-IS-CONFIRMED-NOT-ASSUMED-001] */
+        const val MIN_RECORDED_RIDE_POINTS = 2
     }
 }

@@ -128,6 +128,9 @@ val androidDetectionModule = module {
             config = get(),
             evaluateBtPark = get(),
             detectionEventLogger = get(),
+            // [DET-BT-A-PARK-IS-CONFIRMED-NOT-ASSUMED-001] The recorded ride testifies in the
+            // displacement proof; optional like every store seam.
+            drivingRouteStore = getOrNull(),
         )
     }
 

@@ -8379,3 +8379,41 @@ las requests. (e) Tras un null-trip NO se re-arranca hasta el siguiente CONNECT 
 evaluador consume nada nuevo. La notificación FGS reutiliza la de detección (verdad: la detección
 automática está activa vía BT). Campo pendiente (gate de fase 4, no de este merge): un viaje BT
 real termina con `routePolyline` en su sesión.
+
+### DET-BT-A-PARK-IS-CONFIRMED-NOT-ASSUMED-001 — la ruta grabada testifica en el veredicto BT, y un timeout de GPS pregunta en vez de callar (commit pending)
+
+**Causa raíz.** `EvaluateBtParkUseCase` razonaba —y su KDoc lo declaraba— que *"the BT lane cannot
+measure speed: it holds no stream while you drive"*. Desde TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001
+esa premisa es falsa: el grabador mide el viaje. El evaluador seguía sin saberlo, con dos
+consecuencias: (1) la prueba del viaje dependía del fix CACHEADO del connect, y cada hueco suyo
+(`no_origin_fix` / `origin_fix_stale` / reloj incoherente) degradaba un viaje REAL a pregunta;
+(2) `bt_gps_timeout` hacía `return` sin sesión NI nudge — un aparcamiento perdido con el viaje
+medido en disco, la violación literal del contrato de detección.
+
+**Fix.** `evaluateRideDisplacement` gana el **testigo grabado** (`recordedRide`), con orden
+estricto de calidad: los fixes del propio engagement (filtrados por `timestamp >= connect`; ≥2
+usables) dimensionan el viaje primero-punto→candidato (o →último punto si la caza no dio
+candidato), SIN el término peatonal por edad (ambos extremos medidos durante el engagement), y su
+veredicto es TERMINAL — un fix cacheado de antes del connect no re-litiga lo que midió el viaje.
+Sin ruta usable, la aritmética del connect-fix queda intacta. `Moved`/`DidNotMove` llevan
+`evidence` (`recorded_route`/`connect_fix`) para calibrar en campo. Y el timeout sin candidato
+evalúa la prueba ruta-sola: viaje probado → `showMarkParkingNudge`
+(verdict `bt_gps_timeout_ride_ask`); sin viaje → silencio como siempre.
+
+**Doctrina.** *Solo el movimiento MEDIDO confirma* — la ruta es medición nuestra tomada durante el
+engagement, evidencia estrictamente mejor que un cacheado. *Fallo asimétrico* intacto: la ruta
+jamás coloca un pin (termina donde acabó la CONDUCCIÓN, no donde descansa el coche) — en el
+timeout produce pregunta, nunca sesión; y un viaje de ida-y-vuelta sigue siendo `DidNotMove` →
+pregunta (misma semántica de desplazamiento entre extremos que la aritmética original, a
+propósito). Las ramas de confirm no cambian de forma: `Moved` sigue siendo la única puerta.
+
+**Alcance descartado con razón.** "Congelar el ancla al fin de conducción" ya estaba cerrado por
+DET-BT-PIN-IS-SAMPLED-AFTER-THE-WALK-001 (la caza corre desde el disconnect, gana el candidato más
+temprano); el "egress medido" ya existe (walk-away a ritmo peatonal desde el instante del
+candidato). Este ticket aporta lo único que faltaba: el testigo del viaje.
+
+**Riesgo del fix acompañante.** Convierte preguntas-por-hueco-de-medición en confirms CON medición
+(la dirección que la doctrina exige) y silencios en preguntas — nunca al revés. Sin camino nuevo de
+confirmación (`detectionPath` intacto); verdicts remotos nuevos: `bt_gps_timeout_ride_ask`.
+Sin carrera con el store: el STOP del grabador viaja en el mismo broadcast del disconnect y la
+lectura es previa al confirm que lo limpia.

@@ -71,6 +71,10 @@ class BluetoothParkingDetector(
     private val config: ParkingDetectionConfig,
     private val evaluateBtPark: EvaluateBtParkUseCase,
     private val detectionEventLogger: DetectionEventLogger? = null,
+    // [DET-BT-A-PARK-IS-CONFIRMED-NOT-ASSUMED-001] The trip recorder's route — the ride's own
+    // witness for the displacement proof. Nullable like everywhere the store is optional; the
+    // evaluator falls back to the connect-fix arithmetic without it.
+    private val drivingRouteStore: com.rndeveloper.paparcar.domain.detection.ports.DrivingRouteStore? = null,
 ) {
 
     suspend fun detectParking(
@@ -103,6 +107,16 @@ class BluetoothParkingDetector(
         }
         PaparcarLogger.d(TAG, "BT engagement ${engagement.durationMs / 1000}s — ride-shaped, continuing")
 
+        // [DET-BT-A-PARK-IS-CONFIRMED-NOT-ASSUMED-001] The trip recorder's fixes for THIS ride —
+        // read once, before the hunt: the recorder already stopped (its STOP travelled on the same
+        // disconnect broadcast), the store keeps the ride until the confirm consumes it, and both
+        // the ride proof and the GPS-timeout rescue below testify from this same list.
+        val connectedAtMs = disconnectedAtMs - engagement.durationMs
+        val recordedRide = runCatching { drivingRouteStore?.points() }.getOrNull().orEmpty()
+        if (recordedRide.isNotEmpty()) {
+            PaparcarLogger.d(TAG, "Recorded ride on disk: ${recordedRide.size} fixes — the ride can testify for itself")
+        }
+
         PaparcarLogger.d(TAG, "Hunting the parking fix from the disconnect — debounce gates acting, not looking")
 
         // [DET-AUDIT-002 T2] Candidate fix must be pin-grade AND STATIONARY — the pure evaluator
@@ -131,8 +145,34 @@ class BluetoothParkingDetector(
             return
         }
         val candidate = hunt.candidate ?: run {
-            PaparcarLogger.w(TAG, "GPS fix timed out — skipping BT parking confirmation")
-            logRemote(sessionId = vehicleId, verdict = "bt_gps_timeout")
+            // [DET-BT-A-PARK-IS-CONFIRMED-NOT-ASSUMED-001] No candidate — but maybe a MEASURED
+            // ride on disk (garage, urban canyon: the destination's GPS is bad, the drive's was
+            // fine). Losing a park with data on disk breaks the detection contract (every trigger
+            // fires, degraded at worst to a question) — so a proven ride ASKS. Asymmetric failure
+            // holds: the route never places a pin, because it ends where the DRIVE ended, not
+            // where the car rests.
+            val proof = evaluateBtPark.evaluateRideDisplacement(
+                origin = connectFix,
+                connectedAtMs = connectedAtMs,
+                candidate = null,
+                recordedRide = recordedRide,
+            )
+            if (proof is BtRideProof.Moved) {
+                PaparcarLogger.w(
+                    TAG,
+                    "GPS fix timed out but the ride is measured (${proof.displacementMeters.toInt()}m via " +
+                        "${proof.evidence.label}) — asking instead of losing the park [DET-BT-A-PARK-IS-CONFIRMED-NOT-ASSUMED-001]",
+                )
+                logRemote(
+                    sessionId = vehicleId,
+                    verdict = VERDICT_GPS_TIMEOUT_RIDE_ASK,
+                    displacementMeters = proof.displacementMeters,
+                )
+                notificationPort.showMarkParkingNudge(source = NUDGE_SOURCE_BT_GPS_TIMEOUT, vehicleId = vehicleId)
+            } else {
+                PaparcarLogger.w(TAG, "GPS fix timed out — skipping BT parking confirmation")
+                logRemote(sessionId = vehicleId, verdict = "bt_gps_timeout")
+            }
             return
         }
         val parkingFix = candidate.fix
@@ -153,15 +193,16 @@ class BluetoothParkingDetector(
         val rideProof = when (
             val proof = evaluateBtPark.evaluateRideDisplacement(
                 origin = connectFix,
-                connectedAtMs = disconnectedAtMs - engagement.durationMs,
+                connectedAtMs = connectedAtMs,
                 candidate = candidate,
+                recordedRide = recordedRide, // [DET-BT-A-PARK-IS-CONFIRMED-NOT-ASSUMED-001]
             )
         ) {
             is BtRideProof.Moved -> {
                 PaparcarLogger.i(
                     TAG,
                     "Ride measured: ${proof.displacementMeters.toInt()}m ≥ ${proof.requiredMeters.toInt()}m required " +
-                        "(origin ${proof.originAgeMs / 1000}s old) — the car went somewhere",
+                        "(via ${proof.evidence.label}, origin ${proof.originAgeMs / 1000}s old) — the car went somewhere",
                 )
                 proof
             }
@@ -169,7 +210,7 @@ class BluetoothParkingDetector(
                 PaparcarLogger.w(
                     TAG,
                     "The car did not move: ${proof.displacementMeters.toInt()}m < ${proof.requiredMeters.toInt()}m required " +
-                        "— engagement without a ride, asking instead of placing [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001]",
+                        "(via ${proof.evidence.label}) — engagement without a ride, asking instead of placing [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001]",
                 )
                 logRemote(
                     sessionId = vehicleId,
@@ -359,6 +400,12 @@ class BluetoothParkingDetector(
          *  first calibration of this gate can be done by grouping on the verdict string. */
         const val VERDICT_UNMEASURABLE_ASK = "bt_unmeasurable_ask"
         const val NUDGE_SOURCE_BT_UNMEASURABLE = "bt_ride_unmeasurable"
+
+        /** [DET-BT-A-PARK-IS-CONFIRMED-NOT-ASSUMED-001] The hunt timed out with a MEASURED ride on
+         *  disk: the park is real but its exact spot is the user's to say — ask, never lose it in
+         *  silence (the detection contract: a park lost with data on disk is our bug). */
+        const val VERDICT_GPS_TIMEOUT_RIDE_ASK = "bt_gps_timeout_ride_ask"
+        const val NUDGE_SOURCE_BT_GPS_TIMEOUT = "bt_gps_timeout"
 
         /** BT-005: Grace window before ACTING on a disconnect (brief stop / oscillation debounce).
          *  ⛔ Not a window before LOOKING: the hunt for the parked-car fix runs from the disconnect,

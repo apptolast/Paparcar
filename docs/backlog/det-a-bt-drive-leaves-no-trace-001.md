@@ -1,8 +1,10 @@
 # DET-A-BT-DRIVE-LEAVES-NO-TRACE-001 · Un viaje detectado por Bluetooth no deja ruta ni distancia
 
-**Estado:** 🔵 Abierto · **diseño SIN decidir a propósito** — el user (31-08) descarta por ahora
-medir el viaje entero; el ticket queda abierto para definirlo. Sin rama.
-**Abierto:** 2026-08-31 · verificado contra master `748648fc`
+**Estado:** 🟡 Vía B **EN MASTER** (14-09, pivote trayectos-como-producto): el CONNECT arranca el
+grabador (`TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001`) y la ruta MEDIDA llega al confirm BT y a la
+prueba de viaje (`DET-BT-A-PARK-IS-CONFIRMED-NOT-ASSUMED-001`). Queda la **vía A** (pin-a-pin
+retroactivo para el historial BT ya existente) — gated por validar el pin BT en campo (Kamiq).
+**Abierto:** 2026-08-31 · verificado contra master `748648fc` · actualizado 2026-09-14
 
 ## Problema
 
