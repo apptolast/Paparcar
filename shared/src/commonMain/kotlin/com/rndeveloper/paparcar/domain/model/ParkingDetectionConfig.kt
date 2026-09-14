@@ -726,6 +726,18 @@ data class ParkingDetectionConfig(
      *  BUG-FGS-1xx class). On expiry the detector aborts cleanly with telemetry — a missed BT
      *  park degrades to the coordinator/safety-net lanes, never to a stuck service. */
     val btWalkAwayTimeoutMs: Long = 15 * 60_000L,
+    /** [DET-A-BT-CONNECT-IS-A-DEPARTURE-001] Hard ceiling on the drive-away watch the BT CONNECT
+     *  arms. Deliberately much shorter than [btWalkAwayTimeoutMs]: that one waits for a human on
+     *  foot to cover 30 m and may legitimately take a quarter of an hour, while this one waits for
+     *  an engine that is already running. Past a few minutes of sitting in the car with the GPS on,
+     *  the honest reading is that this boarding was not a trip — radio, charger, fetching
+     *  something — and the plaza is still occupied.
+     *
+     *  It is also the FGS budget: this watch holds a foreground service with active location, so
+     *  the ceiling is what keeps a boarding-without-a-trip from pinning it (the failure mode
+     *  [btWalkAwayTimeoutMs] exists for, audit A4). A departure that outlives it is not lost — it
+     *  degrades to the geofence EXIT and the safety net, exactly as before this lane existed. */
+    val btDepartureWatchTimeoutMs: Long = 5 * 60_000L,
     /** [DET-BT-DISCONNECT-WITHOUT-RIDE-001] Minimum time the paired car must stay CONNECTED for the
      *  following disconnect to be read as the end of a ride. Below it the engagement is proximity:
      *  the car came within Bluetooth range of the phone and left again, which proves PRESENCE but
@@ -1100,6 +1112,11 @@ data class ParkingDetectionConfig(
         }
         require(spotPublishMaxAgeMs > 0) {
             "spotPublishMaxAgeMs must be > 0, was $spotPublishMaxAgeMs"
+        }
+        // [DET-A-BT-CONNECT-IS-A-DEPARTURE-001] A non-positive ceiling would close the drive-away
+        // watch before its first fix — the lane would exist and never witness anything.
+        require(btDepartureWatchTimeoutMs > 0) {
+            "btDepartureWatchTimeoutMs must be > 0, was $btDepartureWatchTimeoutMs"
         }
         require(freshFixMaxAgeMs > 0) {
             "freshFixMaxAgeMs must be > 0, was $freshFixMaxAgeMs"

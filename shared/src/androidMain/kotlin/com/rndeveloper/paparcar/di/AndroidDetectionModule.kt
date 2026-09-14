@@ -135,4 +135,15 @@ val androidDetectionModule = module {
         )
     }
 
+    // [DET-A-BT-CONNECT-IS-A-DEPARTURE-001] The departure twin, stateless and a factory for the
+    // same reason. It takes no confirm/notification collaborator on purpose: it never confirms,
+    // publishes or asks anything — it only measures, and hands the measurement to the common door.
+    factory {
+        com.rndeveloper.paparcar.bluetooth.BluetoothDepartureDetector(
+            observeLocation = get(),
+            config = get(),
+            detectionEventLogger = get(),
+        )
+    }
+
 }

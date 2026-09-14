@@ -50,6 +50,10 @@ class ObserveDepartureWatchGapUseCase(
                 // Reads the BT adapter at call time, exactly like the service's epilogue: a car
                 // connected over Bluetooth is covered by the ACL receiver and needs no resident
                 // watcher, so that is NOT a gap. [DET-STRATEGY-GATE-001]
+                // [DET-A-BT-CONNECT-IS-A-DEPARTURE-001] That sentence was half true when written:
+                // the ACL receiver covered the PARK (disconnect) and nothing covered the departure,
+                // so standing the sentry down on connect left the drive-away to the geofence alone.
+                // The CONNECT now arms its own drive-away watch, so the claim holds in full.
                 strategy = strategyResolver.strategyFor(vehicles),
             ) == PostDetectionLifecycle.EnterSentry
     }.distinctUntilChanged()

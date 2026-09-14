@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
+import androidx.work.ExistingWorkPolicy
 import androidx.work.WorkManager
 import com.apptolast.baselogin.domain.AuthRepository
 import com.rndeveloper.paparcar.detection.service.ForegroundPromotion
@@ -13,6 +14,8 @@ import com.rndeveloper.paparcar.detection.service.ForegroundServiceController
 import com.rndeveloper.paparcar.detection.worker.ParkingSafetyNetWorker
 import com.rndeveloper.paparcar.domain.model.displayName
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
+import com.rndeveloper.paparcar.detection.worker.DepartureDetectionWorker
+import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import com.rndeveloper.paparcar.notification.ForegroundNotificationProvider
@@ -35,10 +38,16 @@ import org.koin.android.ext.android.inject
  *   [BluetoothConnectionReceiver]. Calls `fgs.promote()`, launches detection in
  *   [lifecycleScope], and tears down via `fgs.stopForegroundAndSelf()` when detection
  *   completes.
- * - [ACTION_BT_CONNECTED] — started via `startService()` (NOT foreground; work is instant).
- *   Cancels any active detection job and tears down. If the Service is already running
- *   as foreground (detection active), this `onStartCommand` is called on the same
- *   instance — the job is cancelled and the service stops cleanly.
+ * - [ACTION_BT_CONNECTED] — two shapes since [DET-A-BT-CONNECT-IS-A-DEPARTURE-001], and the
+ *   receiver picks which by asking whether that car still holds a plaza:
+ *     - **nothing held** → started via `startService()` (NOT foreground; work is instant). Cancels
+ *       any active detection job, accelerates the safety net and tears down — the original
+ *       behaviour, now the minority case.
+ *     - **plaza held** → started via `startForegroundService()`, promotes, and watches whether the
+ *       car measurably drives away ([BluetoothDepartureDetector]). A measured drive-away is handed
+ *       to the common departure door; measuring nothing stands down in silence.
+ *   Either way, if the Service is already running as foreground (detection active), this
+ *   `onStartCommand` is called on the same instance — the pending job is cancelled first.
  *
  * **Cancellation and the BT debounce:**
  * [BluetoothParkingDetector.detectParking] starts with a [kotlinx.coroutines.delay]. If BT
@@ -72,6 +81,9 @@ class BluetoothDetectionService : LifecycleService() {
     private val foregroundNotificationProvider: ForegroundNotificationProvider by inject()
     private val notificationPort: AppNotificationManager by inject()
     private val detector: BluetoothParkingDetector by inject()
+    // [DET-A-BT-CONNECT-IS-A-DEPARTURE-001] The departure twin of [detector].
+    private val departureDetector: BluetoothDepartureDetector by inject()
+    private val userParkingRepository: UserParkingRepository by inject()
     private val vehicleRepository: VehicleRepository by inject()
     private val authRepository: AuthRepository by inject()
 
@@ -214,7 +226,9 @@ class BluetoothDetectionService : LifecycleService() {
 
     private fun handleConnected(intent: Intent) {
         val deviceAddress = intent.getStringExtra(EXTRA_DEVICE_ADDRESS) ?: ""
-        PaparcarLogger.d(DIAG, "  → BT_CONNECTED device=$deviceAddress — cancelling detection, stopForegroundAndSelf()")
+        val vehicleId = intent.getStringExtra(EXTRA_VEHICLE_ID)
+        val watchDeparture = intent.getBooleanExtra(EXTRA_WATCH_DEPARTURE, false)
+        PaparcarLogger.d(DIAG, "  → BT_CONNECTED device=$deviceAddress vehicle=$vehicleId watch=$watchDeparture")
         detectionJob?.cancel()
         detectionJob = null
         // [DET-RETURN-ANCHOR-001] BT CONNECT is the DETERMINISTIC "back at my car" signal — the
@@ -223,11 +237,124 @@ class BluetoothDetectionService : LifecycleService() {
         // gated check re-seals the position anchor + cures the fence state seconds before the
         // drive-away, so the departure resolves live (or via step-budget) instead of dying to a
         // stale anchor as on 2026-07-07. Accelerator only — the evaluator still decides.
+        //
+        // [DET-A-BT-CONNECT-IS-A-DEPARTURE-001] It stays, and it is NOT what this ticket added:
+        // this check runs while the user is still AT the car, so it can prepare the ground for a
+        // departure and can never witness one. Preparation and observation are different jobs.
         ParkingSafetyNetWorker.enqueueCheckNow(
             WorkManager.getInstance(this),
             source = ParkingSafetyNetWorker.SOURCE_BT_CONNECT,
         )
-        fgs.stopForegroundAndSelf() // [FIX BT-BUG-100]
+
+        // [DET-A-BT-CONNECT-IS-A-DEPARTURE-001] Nothing held by this car → the CONNECT is the
+        // instant work it always was. The receiver started us with a plain `startService` in this
+        // case, so there is no promotion owed and `stopForegroundAndSelf` is a clean stop.
+        if (!watchDeparture || vehicleId.isNullOrBlank()) {
+            PaparcarLogger.d(DIAG, "  ■ no plaza held by this car — nothing to watch, stopForegroundAndSelf()")
+            fgs.stopForegroundAndSelf()
+            return
+        }
+        watchForDeparture(vehicleId)
+    }
+
+    /**
+     * [DET-A-BT-CONNECT-IS-A-DEPARTURE-001] The user boarded a car that still holds a plaza. Watch
+     * whether it actually drives away, and hand a measured departure to the common door.
+     *
+     * ⚠️ We were started with `startForegroundService`, so **every path out of here must have
+     * promoted or stopped** — that start is a 5-second promise to the OS (the BUG-FGS-001 class).
+     */
+    private fun watchForDeparture(vehicleId: String) {
+        val promotion = fgs.promote(
+            notificationId = AppNotificationManager.BT_DETECTION_NOTIFICATION_ID,
+            notification = foregroundNotificationProvider.buildDetectionNotification(),
+            hasLocationPermission = hasLocationPermission(),
+        )
+        if (!promotion.isPromoted) {
+            // Same posture as the disconnect lane: without the permission there is no watch to run.
+            // The departure is not lost, it degrades to the geofence EXIT and the safety net —
+            // which is exactly where it lived before this lane existed.
+            PaparcarLogger.e(DIAG, "  ✗ FGS promote refused (outcome=$promotion) — drive-away watch stands down")
+            if (promotion == ForegroundPromotion.REFUSED_MISSING_LOCATION_PERMISSION) {
+                runCatching { notificationPort.showPermissionRevoked() }
+                    .onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ permission-revoked notification failed: ${e.message}") }
+            }
+            fgs.stopForegroundAndSelf()
+            return
+        }
+
+        detectionJob = lifecycleScope.launch {
+            val thisJob = coroutineContext[Job]
+            try {
+                // Re-read inside the job: the receiver's answer is a routing decision taken a moment
+                // ago, and between there and here the departure may already have been processed by
+                // the geofence. A vanished session is not an error, it is the race resolving the
+                // other way.
+                val session = userParkingRepository.getActiveSessionByVehicle(vehicleId)
+                if (session == null) {
+                    PaparcarLogger.d(DIAG, "  ■ the plaza is gone (another lane closed it first) — nothing to watch")
+                    return@launch
+                }
+                // The measured instant of boarding. Null means the stamp is missing (process
+                // installed mid-engagement, prefs cleared): without it the departure has no hour,
+                // and an undated departure publishes nothing downstream anyway
+                // [DET-AN-EXIT-IS-DATED-BY-THE-FIX-THAT-CROSSED-IT-001]. Don't hold a GPS watch to
+                // produce an answer that cannot be used.
+                val connectedAtMs = BtConnectionStore.lastConnectedAt(this@BluetoothDetectionService, vehicleId)
+                if (connectedAtMs == null) {
+                    PaparcarLogger.w(DIAG, "  ⊘ no CONNECT stamp for vehicle=$vehicleId — the departure would have no hour, standing down")
+                    return@launch
+                }
+
+                when (val outcome = departureDetector.watchForDeparture(session, connectedAtMs)) {
+                    is BtDepartureOutcome.Measured -> {
+                        val geofenceId = session.geofenceId
+                        if (geofenceId == null) {
+                            PaparcarLogger.w(DIAG, "  ⊘ session ${session.id.take(8)} has no fence — the common door is keyed by fence, nothing to dispatch")
+                            return@launch
+                        }
+                        // The common door, the same one the geofence EXIT uses — REPLACE keyed by
+                        // fence, so if Play Services also emits, the two collapse into one dispatch
+                        // instead of publishing twice.
+                        //
+                        // `preconfirmed = false` deliberately: preconfirmed means "the trip already
+                        // ENDED, do not re-decide by live speed", and it carries DepartureProof
+                        // .Deduced → a provisional 12-minute plaza with the session retained. Here
+                        // the trip is STARTING, so letting the ladder take its own fresh fix makes
+                        // it Witnessed — full lifetime, car released. This watch does not replace
+                        // the ladder; it gives it the right moment to look.
+                        WorkManager.getInstance(this@BluetoothDetectionService).enqueueUniqueWork(
+                            "${DepartureDetectionWorker.TAG}_$geofenceId",
+                            ExistingWorkPolicy.REPLACE,
+                            DepartureDetectionWorker.buildRequest(
+                                geofenceId = geofenceId,
+                                triggerAtMs = System.currentTimeMillis(),
+                                // Dated by the BOARDING, not by the moment the drive became
+                                // measurable: the plaza was freed when the car pulled out, and the
+                                // CONNECT is the measured instant closest to it.
+                                departedAtMs = connectedAtMs,
+                                preconfirmed = false,
+                            ),
+                        )
+                        PaparcarLogger.i(DIAG, "  ✓ departure dispatched for fence=${geofenceId.take(8)} (proof at ${outcome.fix.timestamp})")
+                    }
+                    BtDepartureOutcome.NeverDrove -> Unit // already traced by the detector
+                }
+            } catch (e: CancellationException) {
+                PaparcarLogger.d(DIAG, "  ✗ drive-away watch cancelled (BT disconnect or destroy)")
+                throw e
+            } catch (e: Exception) {
+                PaparcarLogger.e(DIAG, "  ✗ drive-away watch error", e)
+            } finally {
+                // [FIX BT-BUG-101] Same race guard as the disconnect lane: a newer job (the
+                // DISCONNECT that ends this very trip) must not have its FGS torn down by this one.
+                if (detectionJob === thisJob) {
+                    fgs.stopForegroundAndSelf()
+                } else {
+                    PaparcarLogger.d(DIAG, "  ■ watch finished — superseded by newer job, skipping stop")
+                }
+            }
+        }
     }
 
     /**
@@ -260,6 +387,10 @@ class BluetoothDetectionService : LifecycleService() {
         const val ACTION_BT_CONNECTED = "com.rndeveloper.paparcar.ACTION_BT_CONNECTED"
         const val EXTRA_DEVICE_ADDRESS = "extra_device_address"
         const val EXTRA_VEHICLE_ID = "extra_vehicle_id"
+        /** [DET-A-BT-CONNECT-IS-A-DEPARTURE-001] Set by the receiver on a CONNECT when the car
+         *  still holds a plaza. It is also the record of HOW we were started: true means
+         *  , i.e. a promotion is owed. */
+        const val EXTRA_WATCH_DEPARTURE = "extra_watch_departure"
         /** PARKDIAG prefix: FileAntilog only persists PARKDIAG-tagged lines (was BTDIAG —
          *  invisible in field captures). */
         private const val DIAG = "PARKDIAG/BTService"

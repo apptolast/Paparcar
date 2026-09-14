@@ -10,6 +10,7 @@ import com.rndeveloper.paparcar.detection.service.CoordinatorDetectionService
 import com.rndeveloper.paparcar.domain.detection.DetectionRuntimeState
 import com.rndeveloper.paparcar.domain.location.LocationDataSource
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
+import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.usecase.detection.BtArbitrationEvent
 import com.rndeveloper.paparcar.domain.usecase.detection.BtArbitrationVerdict
@@ -36,8 +37,12 @@ import org.koin.core.component.inject
  * preventing spurious foreground-service launches from unrelated BT peripherals.
  *
  * - [BluetoothDevice.ACTION_ACL_DISCONNECTED] → `startForegroundService(ACTION_BT_DISCONNECTED)`
- * - [BluetoothDevice.ACTION_ACL_CONNECTED]    → `startService(ACTION_BT_CONNECTED)` (instant work,
- *   no foreground needed — the Service cancels the pending job and stops itself immediately)
+ * - [BluetoothDevice.ACTION_ACL_CONNECTED]    → depends on whether that car still holds a plaza
+ *   ([DET-A-BT-CONNECT-IS-A-DEPARTURE-001]): `startForegroundService` when it does, because the
+ *   service will watch for the drive-away with the GPS on; plain `startService` when it does not,
+ *   which is the instant work this lane always did (cancel the pending job, accelerate the safety
+ *   net). ⚠️ The choice is made HERE and cannot be revised later: a foreground start is a promise
+ *   to promote within 5 s, so it may only be made when the service will certainly promote.
  *
  * Registered in AndroidManifest with `exported="true"` and a BLUETOOTH_CONNECT permission guard.
  * The `true` is LOAD-BEARING — do not "fix" it to false: ACL broadcasts are sent by the
@@ -63,6 +68,11 @@ class BluetoothConnectionReceiver : BroadcastReceiver(), KoinComponent {
 
     // [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001] Origin of the ride, read passively at CONNECT.
     private val locationDataSource: LocationDataSource by inject()
+
+    // [DET-A-BT-CONNECT-IS-A-DEPARTURE-001] Whether the car that just connected still holds a
+    // plaza — the one fact that decides whether this CONNECT starts a foreground watch or the
+    // instant work it always did.
+    private val userParkingRepository: UserParkingRepository by inject()
 
     // [DET-TIERS-001] Bluetooth as deterministic arbiter of the probabilistic coordinator.
     private val detectionRuntimeState: DetectionRuntimeState by inject()
@@ -181,14 +191,44 @@ class BluetoothConnectionReceiver : BroadcastReceiver(), KoinComponent {
                         // detection now; the resolver reads this live state to suppress the Coordinator.
                         BtConnectionStore.markConnected(context, pairedVehicle.id)
 
-                        // startService (not foreground) — work is instant (cancel + stopSelf).
-                        // If the detection Service is already running as FGS, onStartCommand
-                        // is called on the existing instance; no 5-second constraint applies.
+                        // [DET-A-BT-CONNECT-IS-A-DEPARTURE-001] Does this car still hold a plaza?
+                        // Asked HERE, in the receiver that already resolves the vehicle from a Room
+                        // read, because the answer decides HOW the service is started — and that is
+                        // a decision no later stage can take back:
+                        //
+                        //  - plaza held → `startForegroundService`, because the service is about to
+                        //    watch for a drive-away with the GPS on and must outlive this broadcast.
+                        //    ⚠️ That start is a PROMISE to call `startForeground` within 5 s or the
+                        //    OS kills the app (the BUG-FGS-001 class), so it may only be made when
+                        //    the service will certainly promote.
+                        //  - nothing held → plain `startService`, exactly as before: the work really
+                        //    is instant (cancel the pending job, accelerate the safety net) and an
+                        //    FGS here would be a notification flash bought for nothing.
+                        //
+                        // A failed read is NOT "no session": that reading would silently give up the
+                        // watch on a Room hiccup, so it errs toward watching. The service re-checks
+                        // and stands down cleanly if the plaza is really gone.
+                        val holdsAPlaza = runCatching {
+                            userParkingRepository.getActiveSessionByVehicle(pairedVehicle.id) != null
+                        }.getOrElse {
+                            PaparcarLogger.w(TAG, "  ⚠ parked-session lookup failed (${it.message}) — assuming a plaza is held")
+                            true
+                        }
                         val serviceIntent = Intent(context, BluetoothDetectionService::class.java).apply {
                             this.action = BluetoothDetectionService.ACTION_BT_CONNECTED
                             putExtra(BluetoothDetectionService.EXTRA_DEVICE_ADDRESS, deviceAddress)
+                            // The vehicleId did not travel on a CONNECT before, because nothing
+                            // downstream needed to know WHICH car: cancelling a pending job and
+                            // enqueueing a safety-net check are both car-agnostic. Looking up that
+                            // car's parking is not.
+                            putExtra(BluetoothDetectionService.EXTRA_VEHICLE_ID, pairedVehicle.id)
+                            putExtra(BluetoothDetectionService.EXTRA_WATCH_DEPARTURE, holdsAPlaza)
                         }
-                        context.startService(serviceIntent)
+                        if (holdsAPlaza) {
+                            ContextCompat.startForegroundService(context, serviceIntent)
+                        } else {
+                            context.startService(serviceIntent)
+                        }
                     }
                 }
             } catch (e: Throwable) {

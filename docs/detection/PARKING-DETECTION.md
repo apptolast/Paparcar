@@ -8197,3 +8197,66 @@ desconocida → no publica.
 apaga el servicio, así que toda salida de un usuario BT se procesa por el carril del Coordinator,
 que es este. Y `SPOT-A-PROMOTION-INHERITS-THE-AGE-OF-ITS-DEPARTURE-001`: la promoción de una salida
 deducida republica con TTL completo de 2 h sin preguntar la edad de `deducedAtMs`.
+
+### DET-A-BT-CONNECT-IS-A-DEPARTURE-001 — el Bluetooth tomaba el mando al conectar y entre conectar y desconectar no detectaba nada
+
+**Síntoma.** Ninguna plaza de un usuario BT sale por el carril BT. Fernando (Skoda emparejado): 43
+pins en 8 días, **ninguno** con `detectionPath = "bt"`, y **6** con `nudge_bt_no_ride`. El carril
+determinista —el que el producto llama "automático"— pregunta en vez de detectar.
+
+**El hueco, y por qué era peor de lo que parecía.** `BluetoothParkingDetector` lo dice en su propio
+código: *"nothing community-facing is published at confirm time (spots publish at departure, with
+their own guards)"*. Y la salida no la recogía nadie en ese carril. Pero al mirar qué SÍ pasa en un
+CONNECT aparecen tres cosas, y ninguna detecta:
+
+1. `EvaluateBtArbitrationUseCase` puede devolver `VetoReturnToVehicle` → el servicio aborta la sesión
+   del Coordinator que hubiera. *BT manda sobre el Coordinator.*
+2. `ParkingStrategyResolver.strategyFor` pasa a `BLUETOOTH` (exige estar CONECTADO, no solo
+   emparejado — [DET-BT-CONNECTED-NOT-PAIRED-001]).
+3. Y por tanto `resolvePostDetectionLifecycle(…, BLUETOOTH)` = `Stop`: **el centinela residente que
+   SÍ vigilaba el coche aparcado se retira justo cuando el coche va a salir** (con el coche
+   desconectado la estrategia es COORDINATOR, así que había centinela).
+
+O sea: el Bluetooth reclamaba la propiedad de la detección, hacía marcharse al vigilante que había,
+y después no vigilaba nada hasta el DISCONNECT. Entre esos dos momentos —el viaje— el único testigo
+era la geocerca de Play Services, que es justo la que se muere de hambre con el móvil quieto.
+
+⚠️ **Lo que el CONNECT sí hacía ya** (y no es lo que faltaba): `ParkingSafetyNetWorker.enqueueCheckNow
+(SOURCE_BT_CONNECT)`, que resella el ancla y cura el estado de la valla. Es **preparación**, y no
+puede ser otra cosa: corre con el usuario todavía JUNTO al coche, así que no puede presenciar una
+salida que aún no ha ocurrido. Preparar y observar son trabajos distintos.
+
+**Fix.** El CONNECT arma una vigilancia de salida en el propio carril BT, simétrica de la que ya
+monta el DISCONNECT. `BluetoothDepartureDetector` observa la ubicación hasta que
+`btDriveAwayIsMeasured` —puro, en `domain/detection/`— dice que el coche se ha ido MEDIDO, y entonces
+despacha **la puerta común** (`DepartureDetectionWorker` → `RunDepartureCheckUseCase`) con
+`departedAtMs = connectedAtMs`. Si no se mide nada, se retira en silencio.
+
+⛔ **Mide DESPLAZAMIENTO desde el pin, no un sample de velocidad.** Un solo Doppler creíble es el
+espejismo que ya plantó una plaza fantasma en un salón ([DET-DRIVE-PROOF-001]). Usa
+`isBeyondPedestrianReach`, que ya se describe como *"la única comprobación física detrás de
+[DET-RIDE-PROOF-001]"* y regala al peatón el radio de la valla y la precisión del fix antes de
+llamar conducción a nada. Y exige fix fresco: la primera emisión del fused provider suele ser un
+last-known cacheado, que es exactamente la forma que falsificaría una salida.
+
+⛔ **`preconfirmed = false`, no `true`.** Lo intuitivo sería "ya lo hemos medido, no lo midas otra
+vez", pero `preconfirmed` significa *"el viaje ya TERMINÓ"* y arrastra `DepartureProof.Deduced` →
+plaza **provisional** de 12 min con la sesión retenida. Aquí el viaje EMPIEZA: dejar que la escalera
+tome su propio fix fresco la hace `Witnessed` → vida completa y coche liberado. Esta vigilancia no
+sustituye a la escalera, le da **el momento bueno** para mirar.
+
+⚠️ **El `startForegroundService` es una promesa de 5 s** (la clase BUG-FGS-001), así que la decisión
+de arrancar en foreground se toma en el RECEIVER —que ya hace lecturas de Room— preguntando si ese
+coche retiene plaza. Sin plaza, `startService` y comportamiento idéntico al de siempre: un FGS ahí
+sería un parpadeo de notificación comprado para nada.
+
+**El caso que podría salir mal, y qué lo impide.** Embarcar, cambiar de idea y marcharse en el coche
+de otro: el móvil se aleja de una plaza cuyo coche no se ha movido. Lo corta el propio DISCONNECT —
+salir del coche cae el enlace en segundos, mucho antes de que un coche cruce el techo peatonal, y
+`handleDisconnected` cancela este job antes que nada. El guard es la cancelación que el carril ya
+tiene; un segundo guard aquí sería duplicar una carrera que ya se gana por construcción.
+
+**Riesgo del fix acompañante.** No publica nada que antes no se publicara: si la geocerca iba a
+disparar igual, `REPLACE` por `geofenceId` colapsa los dos despachos en uno. Lo que añade es un
+testigo NUESTRO del arranque, con GPS activo, que no depende de Play Services. El coste es un FGS
+acotado a `btDepartureWatchTimeoutMs` (5 min) y solo cuando hay plaza que vigilar.
