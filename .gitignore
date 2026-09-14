@@ -590,6 +590,11 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+# Secrets of the iOS release lane: match passphrase, API key path, GitHub PAT — never committed.
+**/fastlane/.env
+**/fastlane/README.md
+**/fastlane/report.xml
+*.p8
 
 # Code Injection
 # After new code Injection tools there's a generated folder /iOSInjectionProject

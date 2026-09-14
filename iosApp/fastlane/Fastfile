@@ -1,0 +1,139 @@
+# Fastfile — iOS lanes for Paparcar (KMP iosApp module).
+#
+# Adapted from Munición (~/StudioProjects/Municion/iosApp/fastlane), trimmed to what the first
+# TestFlight needs: no store metadata and no tag-driven CI lane yet.
+#
+#   • Signing: `match` syncs the shared App Store distribution certificate + Paparcar's own
+#     App Store profile from apptolast/ios-certificates.
+#   • buildNumber (CFBundleVersion): latest TestFlight build + 1, computed at lane runtime and passed
+#     to xcodebuild as CURRENT_PROJECT_VERSION. Not `increment_build_number`: that is agvtool, which
+#     edits the pbxproj, and Paparcar declares the version in Config.xcconfig — agvtool would leave
+#     it at 1 and App Store Connect rejects the second upload. The repo never stores the number.
+#   • marketingVersion stays as declared in Config.xcconfig unless `version_name:` is passed.
+#   • Packages: Xcode resolves SPM on its own — there is no CocoaPods step.
+#
+# Lanes (run from `iosApp/`):
+#   bundle exec fastlane ios bootstrap_match      # once: create/refresh the App Store profile
+#   bundle exec fastlane ios match_certificates   # sync cert + profile (readonly)
+#   bundle exec fastlane ios build                # local Release .ipa, no upload
+#   bundle exec fastlane ios beta                 # build + upload to TestFlight
+#
+# [IOS-APPLE-SIGN-IN-ON-BASELOGIN-3-001]
+
+default_platform(:ios)
+
+IOS_APP_DIR   = File.expand_path("..", __dir__)       # …/PaparcarKMP/iosApp
+ROOT_DIR      = File.expand_path("../..", __dir__)    # …/PaparcarKMP
+XCODEPROJ     = File.join(IOS_APP_DIR, "iosApp.xcodeproj")
+SCHEME        = "iosApp"
+BUNDLE_ID     = "com.rndeveloper.paparcar"
+SHARED_MODULE = ":shared"
+RELEASE_CONFIG = "Release"
+APPSTORE_PROFILE_NAME = "match AppStore #{BUNDLE_ID}"
+APPSTORE_SIGNING_XCARGS = "PROVISIONING_PROFILE_SPECIFIER='#{APPSTORE_PROFILE_NAME}'"
+
+# App Store Connect API key (.p8): non-interactive, no 2FA. Locally the path comes from `.env`.
+def app_store_connect_api_key_token
+  key_id    = ENV["APP_STORE_CONNECT_API_KEY_ID"]
+  issuer_id = ENV["APP_STORE_CONNECT_API_KEY_ISSUER_ID"]
+  key_path  = ENV["ASC_API_KEY_PATH"] || ENV["APP_STORE_CONNECT_API_KEY_PATH"]
+  key_b64   = ENV["APP_STORE_CONNECT_API_KEY_BASE64"]
+
+  UI.user_error!("APP_STORE_CONNECT_API_KEY_ID not set") if key_id.to_s.empty?
+  UI.user_error!("APP_STORE_CONNECT_API_KEY_ISSUER_ID not set") if issuer_id.to_s.empty?
+  UI.user_error!("Provide ASC_API_KEY_PATH (local) or APP_STORE_CONNECT_API_KEY_BASE64 (CI)") if key_path.to_s.empty? && key_b64.to_s.empty?
+
+  token = app_store_connect_api_key(
+    key_id: key_id,
+    issuer_id: issuer_id,
+    key_filepath: key_path,
+    key_content: key_b64,
+    is_key_content_base64: !key_b64.to_s.empty?,
+    in_house: false
+  )
+  # Keeps a bare `fastlane match …` from reading the .p8 path as a token JSON file.
+  ENV.delete("APP_STORE_CONNECT_API_KEY_PATH")
+  ENV.delete("APP_STORE_CONNECT_API_KEY_BASE64")
+  token
+end
+
+# Fail-fast Kotlin compile before xcodebuild. The Xcode Run Script phase
+# (`:shared:embedAndSignAppleFrameworkForXcode`) still does the real embed at build time.
+def prebuild_kotlin_framework
+  gradle(
+    task: "#{SHARED_MODULE}:linkReleaseFrameworkIosArm64",
+    project_dir: ROOT_DIR,
+    flags: "--no-configuration-cache"
+  )
+end
+
+def sync_appstore_signing(api_key)
+  match(type: "appstore", readonly: true, app_identifier: [BUNDLE_ID], api_key: api_key)
+end
+
+def build_release_ipa(extra_xcargs: "")
+  build_app(
+    project: XCODEPROJ,
+    scheme: SCHEME,
+    configuration: RELEASE_CONFIG,
+    export_method: "app-store",
+    export_options: { provisioningProfiles: { BUNDLE_ID => APPSTORE_PROFILE_NAME } },
+    xcargs: "#{APPSTORE_SIGNING_XCARGS} #{extra_xcargs}".strip,
+    include_bitcode: false,
+    include_symbols: true,
+    clean: true
+  )
+end
+
+platform :ios do
+  desc "Once (or after changing App ID capabilities): create/refresh Paparcar's App Store profile in the match repo. force only renews profiles — it never recreates the shared distribution certificate."
+  lane :bootstrap_match do
+    api_key = app_store_connect_api_key_token
+    match(
+      type: "appstore",
+      readonly: false,
+      force: true,
+      app_identifier: [BUNDLE_ID],
+      api_key: api_key
+    )
+  end
+
+  desc "Sync App Store certificate + profile from the match repo (readonly)"
+  lane :match_certificates do
+    sync_appstore_signing(app_store_connect_api_key_token)
+  end
+
+  desc "Build a signed Release .ipa locally, without uploading"
+  lane :build do
+    prebuild_kotlin_framework
+    sync_appstore_signing(app_store_connect_api_key_token)
+    build_release_ipa
+    UI.success "Built .ipa at #{lane_context[SharedValues::IPA_OUTPUT_PATH]}"
+  end
+
+  desc "Build & upload to TestFlight (internal testers). Build number = latest TestFlight build + 1."
+  lane :beta do |options|
+    api_key = app_store_connect_api_key_token
+
+    next_build = latest_testflight_build_number(app_identifier: BUNDLE_ID, api_key: api_key).to_i + 1
+    version_xcargs = "CURRENT_PROJECT_VERSION=#{next_build}"
+    version_xcargs += " MARKETING_VERSION=#{options[:version_name]}" if options[:version_name]
+
+    prebuild_kotlin_framework
+    sync_appstore_signing(api_key)
+    build_release_ipa(extra_xcargs: version_xcargs)
+
+    upload_to_testflight(
+      api_key: api_key,
+      app_identifier: BUNDLE_ID,
+      skip_waiting_for_build_processing: true,
+      distribute_external: false,
+      skip_submission: true
+    )
+    UI.success "Uploaded build #{next_build} to TestFlight"
+  end
+
+  error do |lane, exception|
+    UI.error "Lane `#{lane}` failed: #{exception.message}"
+  end
+end

@@ -1,0 +1,13 @@
+# Matchfile — signing artifacts for Paparcar, stored encrypted in the shared
+# apptolast/ios-certificates repo. The App Store distribution certificate already lives there
+# (shared with Munición and the com.apptolast.* apps); Paparcar only adds its own App Store
+# provisioning profile, created once by `bundle exec fastlane ios bootstrap_match`.
+#
+# Everyday lanes call `match(readonly: true)` so no run ever creates a certificate — Apple allows
+# only 2 distribution certificates per team.
+
+git_url(ENV["MATCH_GIT_URL"]) unless ENV["MATCH_GIT_URL"].to_s.empty?
+storage_mode("git")
+app_identifier(["com.rndeveloper.paparcar"])
+team_id(ENV["FASTLANE_TEAM_ID"]) unless ENV["FASTLANE_TEAM_ID"].to_s.empty?
+type("appstore")

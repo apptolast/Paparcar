@@ -37,5 +37,7 @@
 		<string>com.rndeveloper.paparcar.refresh</string>
 		<string>com.rndeveloper.paparcar.sync</string>
 	</array>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
