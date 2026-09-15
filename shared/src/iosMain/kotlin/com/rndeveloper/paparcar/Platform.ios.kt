@@ -17,3 +17,8 @@ actual val appVersion: String =
 
 // iOS has no user-grantable background battery exemption → hide that Settings row. [SETTINGS-REMODEL-001]
 actual val isBatteryOptimizationRelevant: Boolean = false
+
+// Blank on purpose: no key ⇒ Germany's source does not claim, and the map degrades to OSM's honest
+// floor. The key arrives with iOS's own configuration when iOS ships (parked 07-09-2026).
+// [FUEL-GERMANY-THE-FEED-ANSWERS-WHOLE-001]
+actual val germanyFuelFeedKey: String = ""

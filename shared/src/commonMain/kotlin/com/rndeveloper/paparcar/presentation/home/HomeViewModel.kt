@@ -958,6 +958,7 @@ class HomeViewModel(
                                 reportedAt = nearby.reportedAt,
                                 rememberedAtMs = nearby.rememberedAtMs,
                                 didFallBack = nearby.didFallBack,
+                                pricesAreLive = nearby.pricesAreLive,
                                 fetchedFor = nearby.fuel,
                             ),
                             // A selection whose pin is gone has no subject any more.
@@ -984,6 +985,7 @@ class HomeViewModel(
                                 reportedAt = null,
                                 rememberedAtMs = null,
                                 didFallBack = false,
+                                pricesAreLive = false,
                                 anchorLat = null,
                                 anchorLon = null,
                             ),

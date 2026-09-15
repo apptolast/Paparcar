@@ -193,6 +193,9 @@ data class HomePeekSlice(
     val fuelStations: List<NearbyFuelStation>,
     /** The feed's own hour for those prices, verbatim; null where the source has none. */
     val fuelReportedAt: String?,
+    /** True when the feed guarantees near-real-time prices instead of stamping an hour (Germany's
+     *  MTS-K). [FUEL-GERMANY-THE-FEED-ANSWERS-WHOLE-001] */
+    val fuelPricesAreLive: Boolean,
     /** The car parks the peek resolves a selection against — same reason the fuel list is here.
      *  [PARKINGS-ON-THE-MAP-001] */
     val publicParkings: List<NearbyPublicParking>,
@@ -541,6 +544,9 @@ fun HomeState.toPeekSlice(): HomePeekSlice {
         // [MAP-A-PIN-IS-PRICED-FOR-THE-CAR-YOU-DRIVE-001]
         fuelStations = fuelStationsShown,
         fuelReportedAt = fuel.reportedAt,
+        // Solo en respuesta VIVA: una lista recordada del disco reconstruye sin el flag, y su
+        // frase («no se pudo preguntar hoy») manda igualmente.
+        fuelPricesAreLive = fuel.pricesAreLive && fuel.rememberedAtMs == null,
         publicParkings = publicParkingsShown,
         votedSpotIds = votedSpotIds,
         drivingMeta = drivingMeta,

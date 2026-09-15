@@ -4,6 +4,7 @@ import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.app
 import dev.gitlive.firebase.firestore.firestore
 import com.rndeveloper.paparcar.data.datasource.remote.FirestoreDatabase
+import com.rndeveloper.paparcar.germanyFuelFeedKey
 import com.rndeveloper.paparcar.isDebugBuild
 import com.rndeveloper.paparcar.data.datasource.local.room.AppDatabase
 import com.rndeveloper.paparcar.data.datasource.local.room.SpotDao
@@ -54,6 +55,7 @@ import com.rndeveloper.paparcar.data.fuel.DiskBackedFuelStationsSource
 import com.rndeveloper.paparcar.data.fuel.RoomFuelStationsCache
 import com.rndeveloper.paparcar.data.fuel.AverageFuelPricesRepositoryImpl
 import com.rndeveloper.paparcar.data.fuel.FranceFuelStationsSource
+import com.rndeveloper.paparcar.data.fuel.GermanyFuelStationsSource
 import com.rndeveloper.paparcar.data.fuel.FuelStationsRegistry
 import com.rndeveloper.paparcar.data.fuel.fuelHttpClient
 import com.rndeveloper.paparcar.data.fuel.MineturStationsSource
@@ -209,6 +211,10 @@ val dataModule = module {
                     national = listOf(
                         MineturStationsSource(http),
                         FranceFuelStationsSource(http),
+                        // La clave como PROVEEDOR y no como valor: se lee al preguntar, así que un
+                        // build sin ella (repo público) no reclama Alemania y cae al suelo de OSM
+                        // sin fingir un feed roto. [FUEL-GERMANY-THE-FEED-ANSWERS-WHOLE-001]
+                        GermanyFuelStationsSource(http) { germanyFuelFeedKey },
                     ),
                     fallback = OsmFuelStationsSource(http),
                 ),

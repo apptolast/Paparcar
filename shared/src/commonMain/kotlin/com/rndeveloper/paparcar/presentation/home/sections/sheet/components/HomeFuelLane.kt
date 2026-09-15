@@ -21,6 +21,7 @@ import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_fuel_empty
 import paparcar.composeapp.generated.resources.home_fuel_error
+import paparcar.composeapp.generated.resources.home_fuel_live_prices
 import paparcar.composeapp.generated.resources.home_fuel_missing_fuel_type
 import paparcar.composeapp.generated.resources.home_fuel_no_prices
 import paparcar.composeapp.generated.resources.home_fuel_prices_unavailable
@@ -151,6 +152,13 @@ fun HomeFuelLane(
                                 relativeTimeText(oldestMs),
                             ),
                         )
+
+                    //  · Germany stamps NOTHING — MTS-K prices are near-real-time by law, so the
+                    //    honest line is the guarantee itself, not an hour nobody wrote. Without
+                    //    this branch the first priced list with no stamp fell silent exactly where
+                    //    its feed is freshest. [FUEL-GERMANY-THE-FEED-ANSWERS-WHOLE-001]
+                    slice.pricesAreLive && slice.hasPrices ->
+                        LaneNote(stringResource(Res.string.home_fuel_live_prices))
                 }
             }
         }

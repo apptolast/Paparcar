@@ -281,6 +281,7 @@
     <string name="licenses_source_osm_purpose">Parkings, gasolineras, lugares y calles</string>
     <string name="licenses_source_minetur_purpose">Precios de surtidor en España</string>
     <string name="licenses_source_prix_carburants_purpose">Precios de surtidor en Francia</string>
+    <string name="licenses_source_tankerkoenig_purpose">Precios de surtidor en Alemania</string>
     <string name="settings_contact">Contacto</string>
     <string name="settings_send_diagnostics">Informar de un problema</string>
     <string name="settings_send_diagnostics_confirm_title">¿Enviar diagnóstico?</string>
@@ -884,6 +885,7 @@
     <string name="home_fuel_prices_unavailable">Los precios oficiales no han cargado. Estas son las gasolineras cercanas; vuelve a intentarlo en un momento.</string>
     <string name="home_fuel_reported_at">Precios comunicados a las %1$s</string>
     <string name="home_fuel_oldest_price">Precio más antiguo: %1$s</string>
+    <string name="home_fuel_live_prices">Los precios se actualizan en tiempo real</string>
     <string name="home_fuel_remembered">Sin conexión: estas son las gasolineras que vimos aquí %1$s.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
     <string name="subject_fuel_stations">Gasolineras</string>

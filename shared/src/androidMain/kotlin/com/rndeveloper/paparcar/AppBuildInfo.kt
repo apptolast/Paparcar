@@ -10,4 +10,8 @@ package com.rndeveloper.paparcar
 object AppBuildInfo {
     var isDebug: Boolean = false
     var versionName: String = ""
+
+    /** Tankerkönig key from `local.properties`; blank builds treat Germany as having no feed.
+     *  [FUEL-GERMANY-THE-FEED-ANSWERS-WHOLE-001] */
+    var germanyFuelFeedKey: String = ""
 }

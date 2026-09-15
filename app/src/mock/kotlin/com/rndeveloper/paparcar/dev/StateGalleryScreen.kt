@@ -2611,6 +2611,19 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
+            // Alemania: el feed no sella NADA — ni la respuesta ni el precio — porque el MTS-K es
+            // tiempo real por ley. El pie dice esa garantía en vez de callar, que es lo que hacía
+            // la primera lista con precios sin ninguna hora que citar.
+            // [FUEL-GERMANY-THE-FEED-ANSWERS-WHOLE-001]
+            Variant("Precios en TIEMPO REAL (Alemania)", Placement.Surface) {
+                HomeFuelLane(
+                    slice = HomeFuelSlice(
+                        stations = galleryGermanStations,
+                        reportedAt = null,
+                        pricesAreLive = true,
+                    ),
+                )
+            },
             Variant("Ninguna a menos de 5 km", Placement.Surface) {
                 HomeFuelLane(slice = HomeFuelSlice())
             },
@@ -2974,6 +2987,34 @@ private fun frenchStation(
         price = StationPrice(Money(price, "EUR"), reportedAtMs),
     )
 }
+
+/**
+ * Alemania: nombre y marca vienen EN el feed (la fila luce la marca, «ARAL»), y el precio no lleva
+ * hora — ninguna existe: el pie del carril dice la garantía de tiempo real del MTS-K.
+ * [FUEL-GERMANY-THE-FEED-ANSWERS-WHOLE-001]
+ */
+private val galleryGermanStations: List<NearbyFuelStation> = listOf(
+    germanStation("de1", "ARAL", "Holzmarktstraße 12/14", 2.329, 540.0),
+    germanStation("de2", "HEM", "Wittestr. 16", 2.279, 1_180.0),
+    germanStation("de3", "Sprint", "Kniprodestr. 25", 2.309, 2_400.0),
+)
+
+private fun germanStation(
+    id: String,
+    name: String,
+    address: String,
+    price: Double,
+    distanceMeters: Double,
+): NearbyFuelStation = NearbyFuelStation(
+    station = FuelStation(
+        id = id, name = name, address = address, town = "Berlin",
+        latitude = 52.521, longitude = 13.438,
+        // ⛔ Sin reportedAtMs a propósito: es el caso que la variante existe para ejercitar.
+        prices = mapOf(FuelType.GASOLINE to StationPrice(Money(price, "EUR"))),
+    ),
+    distanceMeters = distanceMeters,
+    price = StationPrice(Money(price, "EUR")),
+)
 
 private const val TWO_HOURS_MS = 2 * 60 * 60 * 1000L
 private const val THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000L

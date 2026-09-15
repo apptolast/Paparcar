@@ -150,6 +150,21 @@ data class FuelStationsResult(
      */
     val didFallBack: Boolean = false,
     /**
+     * True when this source's prices are near-real-time by construction — Germany's MTS-K obliges
+     * stations to report changes within minutes. [FUEL-GERMANY-THE-FEED-ANSWERS-WHOLE-001]
+     *
+     * Each source states the freshness fact it actually owns, and they are three different
+     * sentences: Spain stamps the RESPONSE ([reportedAt]), France stamps each PRICE
+     * ([StationPrice.reportedAtMs]), Germany stamps nothing and instead guarantees recency by law.
+     * Without this flag the German lane would be the first priced list with no freshness line at
+     * all — silent exactly where its feed is strongest.
+     *
+     * ⛔ Only meaningful on a LIVE answer. A remembered list ([rememberedAtMs] set) reconstructs
+     * from disk without it, and the UI's remembered sentence outranks this one anyway: "we could
+     * not ask today" is the fact that matters there.
+     */
+    val pricesAreLive: Boolean = false,
+    /**
      * Null when this was just fetched; otherwise when the app last actually managed to ask about
      * this area. [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]
      *

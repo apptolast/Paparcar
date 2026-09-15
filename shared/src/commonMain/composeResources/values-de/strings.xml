@@ -214,6 +214,7 @@
     <string name="licenses_source_osm_purpose">Parkhäuser, Tankstellen, Orte und Straßen</string>
     <string name="licenses_source_minetur_purpose">Zapfsäulenpreise in Spanien</string>
     <string name="licenses_source_prix_carburants_purpose">Zapfsäulenpreise in Frankreich</string>
+    <string name="licenses_source_tankerkoenig_purpose">Zapfsäulenpreise in Deutschland</string>
 
     <!-- Fehlermeldungen -->
     <string name="error_unknown">Etwas ist schiefgelaufen</string>
@@ -889,6 +890,7 @@
     <string name="home_fuel_prices_unavailable">Die amtlichen Preise wurden nicht geladen. Das sind die Tankstellen in der Nähe — versuch es gleich noch einmal.</string>
     <string name="home_fuel_reported_at">Preise gemeldet um %1$s</string>
     <string name="home_fuel_oldest_price">Ältester Preis: %1$s</string>
+    <string name="home_fuel_live_prices">Preise werden in Echtzeit aktualisiert</string>
     <string name="home_fuel_remembered">Keine Verbindung: Das sind die Tankstellen, die wir hier %1$s gesehen haben.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
     <string name="subject_fuel_stations">Tankstellen</string>

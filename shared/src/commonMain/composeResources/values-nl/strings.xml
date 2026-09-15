@@ -214,6 +214,7 @@
     <string name="licenses_source_osm_purpose">Parkeergarages, tankstations, plekken en straten</string>
     <string name="licenses_source_minetur_purpose">Pompprijzen in Spanje</string>
     <string name="licenses_source_prix_carburants_purpose">Pompprijzen in Frankrijk</string>
+    <string name="licenses_source_tankerkoenig_purpose">Pompprijzen in Duitsland</string>
 
     <!-- Generic error messages -->
     <string name="error_unknown">Er is iets misgegaan</string>
@@ -868,6 +869,7 @@
     <string name="home_fuel_prices_unavailable">De officiële prijzen zijn niet geladen. Dit zijn de tankstations in de buurt; probeer het zo nog eens.</string>
     <string name="home_fuel_reported_at">Prijzen gemeld om %1$s</string>
     <string name="home_fuel_oldest_price">Oudste prijs: %1$s</string>
+    <string name="home_fuel_live_prices">Prijzen worden in realtime bijgewerkt</string>
     <string name="home_fuel_remembered">Geen verbinding: dit zijn de tankstations die we hier %1$s zagen.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
     <string name="subject_fuel_stations">Tankstations</string>

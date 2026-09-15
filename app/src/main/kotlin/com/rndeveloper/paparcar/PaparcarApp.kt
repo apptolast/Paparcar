@@ -43,6 +43,7 @@ class PaparcarApp : Application() {
         // isDebugBuild. Must run before Koin starts and before any component is created.
         AppBuildInfo.isDebug = BuildConfig.DEBUG
         AppBuildInfo.versionName = BuildConfig.VERSION_NAME
+        AppBuildInfo.germanyFuelFeedKey = BuildConfig.GERMANY_FUEL_STATION_KEY
         if (BuildConfig.DEBUG) {
             Napier.base(DebugAntilog())
             Napier.d("GOOGLE_WEB_CLIENT_ID = '${BuildConfig.GOOGLE_WEB_CLIENT_ID}'", tag = "PaparcarApp")

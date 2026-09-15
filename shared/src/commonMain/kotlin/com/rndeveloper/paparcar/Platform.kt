@@ -18,3 +18,16 @@ expect val appVersion: String
  * "unrestricted battery" improvement row is hidden there. [SETTINGS-REMODEL-001]
  */
 expect val isBatteryOptimizationRelevant: Boolean
+
+/**
+ * Tankerkönig API key for Germany's fuel prices. [FUEL-GERMANY-THE-FEED-ANSWERS-WHOLE-001]
+ *
+ * Personal and gitignored (`local.properties → GermanyFuelStationKey` — the repo is public), so a
+ * build without one is a legitimate build, and **blank means Germany simply has no feed**: the
+ * source does not claim the country and the map degrades to OSM's honest floor. It is never an
+ * error state.
+ *
+ * Android: `BuildConfig` → [AppBuildInfo], set in `Application.onCreate` like every build fact.
+ * iOS: blank until iOS ships and brings its own configuration (iOS work is parked, 07-09-2026).
+ */
+expect val germanyFuelFeedKey: String

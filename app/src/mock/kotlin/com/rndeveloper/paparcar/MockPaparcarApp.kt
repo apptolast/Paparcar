@@ -19,6 +19,7 @@ class MockPaparcarApp : Application() {
         // Shared code reads build facts via AppBuildInfo (BuildConfig is app-module-only).
         AppBuildInfo.isDebug = BuildConfig.DEBUG
         AppBuildInfo.versionName = BuildConfig.VERSION_NAME
+        AppBuildInfo.germanyFuelFeedKey = BuildConfig.GERMANY_FUEL_STATION_KEY
         Napier.base(DebugAntilog())
 
         // Use startKoin directly instead of initLoginKoin to bypass the library's DataModule,

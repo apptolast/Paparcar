@@ -41,6 +41,7 @@ import paparcar.composeapp.generated.resources.fuel_peek_eyebrow
 import paparcar.composeapp.generated.resources.fuel_peek_not_sold
 import paparcar.composeapp.generated.resources.fuel_peek_step_next
 import paparcar.composeapp.generated.resources.fuel_peek_step_prev
+import paparcar.composeapp.generated.resources.home_fuel_live_prices
 import paparcar.composeapp.generated.resources.home_fuel_reported_at
 import paparcar.composeapp.generated.resources.location_fallback_station
 
@@ -67,6 +68,9 @@ internal fun FuelStationPeek(
     userLocation: Pair<Double, Double>?,
     /** The feed's own hour for the prices below, verbatim; null when the source has none (OSM). */
     reportedAt: String?,
+    /** True when the feed guarantees near-real-time prices instead of stamping an hour (Germany's
+     *  MTS-K) — the third freshness sentence. [FUEL-GERMANY-THE-FEED-ANSWERS-WHOLE-001] */
+    pricesAreLive: Boolean = false,
     /** Neighbours in the "nearest first" order — the footer ‹ / ›.
      *  [FUEL-PEEK-STEPS-BETWEEN-STATIONS-001] */
     step: PeekStep,
@@ -152,6 +156,17 @@ internal fun FuelStationPeek(
                 Spacer(Modifier.height(8.dp))
                 Text(
                     text = stringResource(Res.string.home_fuel_reported_at, reportedAt),
+                    style = PaparcarType.current.caption,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            // Germany stamps nothing at all — the honest line is the MTS-K guarantee itself.
+            // Mutually exclusive with the two above by construction: a source that stamps a
+            // response or a price never sets this. [FUEL-GERMANY-THE-FEED-ANSWERS-WHOLE-001]
+            if (pricesAreLive && reportedAt == null && spokenFuels.any { station.prices[it] != null }) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = stringResource(Res.string.home_fuel_live_prices),
                     style = PaparcarType.current.caption,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

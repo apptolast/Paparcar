@@ -45,6 +45,12 @@ data class NearbyFuelStations(
      * from the worldwide fallback. [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
      */
     val didFallBack: Boolean = false,
+    /**
+     * True when the answering feed's prices are near-real-time by construction (Germany's MTS-K).
+     * The third freshness sentence, beside Spain's response hour and France's per-price ages.
+     * [FUEL-GERMANY-THE-FEED-ANSWERS-WHOLE-001]
+     */
+    val pricesAreLive: Boolean = false,
 ) {
     /** True when at least one station could be priced — what tells the UI which sentence to say. */
     val hasPrices: Boolean get() = stations.any { it.price != null }
@@ -126,6 +132,7 @@ class GetNearbyFuelStationsUseCase(
                 // whether the country's own feed answered, or whether these are just the forecourts.
                 // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
                 didFallBack = result.didFallBack,
+                pricesAreLive = result.pricesAreLive,
             )
         }
     }

@@ -80,6 +80,15 @@ extensions.configure<ApplicationExtension> {
             "GOOGLE_WEB_CLIENT_ID",
             "\"${prop("GOOGLE_WEB_CLIENT_ID") ?: ""}\""
         )
+        // Tankerkönig (Germany's fuel prices). Personal, gitignored, and OPTIONAL on purpose:
+        // blank means "Germany has no feed" and the map degrades to OSM's honest floor — never a
+        // build failure, because anyone cloning the public repo builds without one.
+        // [FUEL-GERMANY-THE-FEED-ANSWERS-WHOLE-001]
+        buildConfigField(
+            "String",
+            "GERMANY_FUEL_STATION_KEY",
+            "\"${prop("GermanyFuelStationKey") ?: ""}\""
+        )
         manifestPlaceholders["MAPS_API_KEY"] = prop("MAPS_API_KEY") ?: ""
     }
 

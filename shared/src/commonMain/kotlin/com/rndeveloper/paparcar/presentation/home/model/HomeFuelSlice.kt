@@ -34,6 +34,14 @@ data class HomeFuelSlice(
      */
     val didFallBack: Boolean = false,
     /**
+     * True when the answering feed's prices are near-real-time by construction — Germany's MTS-K,
+     * where the freshness fact is a legal guarantee instead of a stamp. The footer's third
+     * sentence, mutually exclusive with [reportedAt] and per-price hours by construction: a source
+     * that stamps nothing is the only one entitled to say this.
+     * [FUEL-GERMANY-THE-FEED-ANSWERS-WHOLE-001]
+     */
+    val pricesAreLive: Boolean = false,
+    /**
      * Set when this list came off the disk because the live answer failed — the moment the app last
      * managed to ask. [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]
      *

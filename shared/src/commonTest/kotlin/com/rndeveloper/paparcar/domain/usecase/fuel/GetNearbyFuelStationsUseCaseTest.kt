@@ -168,6 +168,24 @@ class GetNearbyFuelStationsUseCaseTest {
     }
 
     @Test
+    fun `should_carryTheLivePricesFlagThrough_when_theSourceGuaranteesRecency`() = runTest {
+        // Germany's MTS-K: no stamp anywhere, a legal recency guarantee instead. The flag rides
+        // untouched, like `didFallBack` — only the answering source knows it.
+        // [FUEL-GERMANY-THE-FEED-ANSWERS-WHOLE-001]
+        val source = FakeSource(
+            FuelStationsResult(
+                listOf(station("DE1", prices = mapOf(FuelType.DIESEL to StationPrice(Money(2.399, "EUR"))))),
+                pricesAreLive = true,
+            ),
+        )
+        val result = GetNearbyFuelStationsUseCase(source, FakeGeocoder(madrid))
+            .invoke(52.521, 13.438, FuelType.DIESEL).getOrThrow()
+
+        assertTrue(result.pricesAreLive)
+        assertNull(result.reportedAt)
+    }
+
+    @Test
     fun `should_reportNoPrices_whenTheSourceCarriesNone`() = runTest {
         // The OSM case: real stations, no prices, no timestamp. The UI needs to know so it says
         // "here is where" instead of pretending the pumps are free.

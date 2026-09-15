@@ -219,6 +219,7 @@ fun HomePeekHandle(
                             nearby = nearby,
                             userLocation = slice.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
                             reportedAt = slice.fuelReportedAt,
+                            pricesAreLive = slice.fuelPricesAreLive,
                             step = slice.fuelStationStep,
                             onIntent = onIntent,
                             onAction = onAction,
