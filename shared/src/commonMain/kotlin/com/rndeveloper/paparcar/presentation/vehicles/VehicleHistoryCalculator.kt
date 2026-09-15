@@ -3,7 +3,7 @@
 package com.rndeveloper.paparcar.presentation.vehicles
 
 import com.rndeveloper.paparcar.domain.model.UserParking
-import com.rndeveloper.paparcar.domain.stats.ScopedDistance
+import com.rndeveloper.paparcar.domain.stats.ScopedMeasure
 import com.rndeveloper.paparcar.domain.stats.sumMeasuredDistance
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
@@ -78,7 +78,8 @@ object VehicleHistoryCalculator {
      * domain/stats [STATS-CORE-001]; see [sumMeasuredDistance] for the partial-sum doctrine
      * [UI-HISTORY-A-PARTIAL-SUM-IS-NOT-A-TOTAL-001].
      */
-    fun sumDistanceMeters(sessions: List<UserParking>): ScopedDistance? = sumMeasuredDistance(sessions)
+    fun sumDistanceMeters(sessions: List<UserParking>): ScopedMeasure<Float>? =
+        sumMeasuredDistance(sessions)
 
     /**
      * The [startMs, endMs) window of the period IMMEDIATELY BEFORE [filter]'s, for the ▲/▼

@@ -54,6 +54,13 @@ fun PapStatTile(
      * anything. [STATS-PANEL-001]
      */
     animatedNumber: StatTileNumber? = null,
+    /**
+     * What the figure COVERS, when it does not cover the whole period ("7 of 12 trips"). Null on
+     * every complete figure, which is most of them — this line exists to stop a subtotal passing
+     * for a total, so a tile that has nothing to confess composes exactly as it did before.
+     * [STATS-A-MEASURE-CARRIES-ITS-COVERAGE-001]
+     */
+    note: String? = null,
 ) {
     val cs = MaterialTheme.colorScheme
     Column(modifier = modifier.padding(horizontal = TILE_H_PAD_DP.dp, vertical = TILE_V_PAD_DP.dp)) {
@@ -117,6 +124,19 @@ fun PapStatTile(
                 style = PaparcarType.current.statLabel,
                 color = cs.onSurfaceVariant,
                 maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        // The coverage sits UNDER the label, not next to the number: the figure is what the user
+        // came for, and the caveat qualifies it rather than competing with it. It is prose, so it
+        // reads in the LECTURA voice while the figure keeps CIFRA. [UI-TYPE-TWO-VOICES-ONE-ROW-001]
+        if (note != null) {
+            Spacer(Modifier.height(LABEL_NOTE_GAP_DP.dp))
+            Text(
+                text = note,
+                style = PaparcarType.current.caption,
+                color = cs.onSurfaceVariant,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }
@@ -201,6 +221,7 @@ private const val TILE_H_PAD_DP = 14
 private const val TILE_V_PAD_DP = 12
 private const val VALUE_DELTA_GAP_DP = 6
 private const val VALUE_LABEL_GAP_DP = 4
+private const val LABEL_NOTE_GAP_DP = 3
 private const val LABEL_ICON_DP = 13
 private const val LABEL_ICON_GAP_DP = 5
 private const val DELTA_ICON_DP = 12

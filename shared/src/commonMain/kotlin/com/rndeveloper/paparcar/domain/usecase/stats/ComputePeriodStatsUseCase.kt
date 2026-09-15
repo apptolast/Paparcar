@@ -10,6 +10,7 @@ import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.stats.EmissionFactors
 import com.rndeveloper.paparcar.domain.stats.PeriodStats
 import com.rndeveloper.paparcar.domain.stats.sumMeasuredDistance
+import com.rndeveloper.paparcar.domain.stats.sumMeasuredSearchTime
 import com.rndeveloper.paparcar.domain.vehicle.FuelDefaults
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.isoDayNumber
@@ -161,8 +162,10 @@ class ComputePeriodStatsUseCase {
             detectionKnownCount = if (shareSignificant) known.size else 0,
             // The pitch's flagship figure: time LOST hunting in the period — a sum, not an
             // average, because it is a cost. Sessions without the measure contribute nothing
-            // (absent, never 0). [TRIP-THE-SEARCH-FOR-A-SPOT-IS-MEASURED-001]
-            searchTimeMs = sessions.mapNotNull { it.searchTimeMs }.takeIf { it.isNotEmpty() }?.sum(),
+            // (absent, never 0), and the sum says so: it travels with its coverage exactly like
+            // the distance does, through the same builder. [TRIP-THE-SEARCH-FOR-A-SPOT-IS-MEASURED-001]
+            // [STATS-A-MEASURE-CARRIES-ITS-COVERAGE-001]
+            searchTime = sumMeasuredSearchTime(sessions),
             // The previous period never nests its own previous — one step back is the comparison.
             previous = previousSessions?.let {
                 invoke(

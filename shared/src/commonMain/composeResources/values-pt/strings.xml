@@ -840,6 +840,7 @@
     <string name="stats_tile_co2">CO₂ aprox.</string>
     <string name="stats_tile_avg_duration">duração média</string>
     <string name="stats_tile_search_time">procura de lugar</string>
+    <string name="stats_tile_coverage">%1$d de %2$d viagens</string>
     <string name="stats_tile_peak_hour">hora de ponta</string>
     <string name="stats_tile_usual_day">dia habitual</string>
     <string name="stats_tile_favorite_street">rua habitual</string>

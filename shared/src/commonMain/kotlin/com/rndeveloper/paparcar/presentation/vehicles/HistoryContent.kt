@@ -303,7 +303,7 @@ fun HistoryContent(
                     // the plain figure is still the common case; what it can no longer do is pass
                     // for a total while describing three parkings out of twelve.
                     val distanceText = scopeDistance?.let { distance ->
-                        val km = distanceString(distance.meters)
+                        val km = distanceString(distance.value)
                         if (distance.isComplete) km
                         else pluralStringResource(
                             Res.plurals.history_activity_distance_partial,

@@ -187,7 +187,7 @@ class VehicleHistoryCalculatorTest {
                 session(nowMs, distanceMeters = 800f),
             ),
         )
-        assertEquals(2000f, total?.meters)
+        assertEquals(2000f, total?.value)
     }
 
     // [UI-HISTORY-A-PARTIAL-SUM-IS-NOT-A-TOTAL-001] The sum above is over TWO of three parkings.

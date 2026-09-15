@@ -161,7 +161,7 @@ fun StatsContent(
                             ),
                             total = stats.parkings,
                             distanceText = stats.distance?.let { distance ->
-                                val km = distanceString(distance.meters)
+                                val km = distanceString(distance.value)
                                 if (distance.isComplete) km
                                 else pluralStringResource(
                                     Res.plurals.history_activity_distance_partial,

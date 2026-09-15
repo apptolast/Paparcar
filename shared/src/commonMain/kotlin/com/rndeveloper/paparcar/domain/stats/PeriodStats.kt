@@ -11,14 +11,20 @@ import com.rndeveloper.paparcar.domain.model.Money
  * or "—" posing as a figure. Everything derived from distance (litres, kWh, cost, CO₂) is computed
  * ONLY over sessions with a measured route; [distance] carries that coverage so no caller can
  * print a subtotal as a total [UI-HISTORY-A-PARTIAL-SUM-IS-NOT-A-TOTAL-001].
+ *
+ * ⛔ **Every measured SUM here is a [ScopedMeasure], and that is not decoration**
+ * [STATS-A-MEASURE-CARRIES-ITS-COVERAGE-001]: the paragraph above was written when this aggregate
+ * was born and was true of exactly one field, while five tiles printed distance-derived subtotals
+ * as period totals and the search time arrived as a bare `Long`. A figure that cannot say what it
+ * covers cannot be read.
  */
 data class PeriodStats(
     /** Sessions in the period, active included — "parked N times". */
     val parkings: Int,
     /** Completed sessions — what duration/consumption/provenance are computed over. */
     val endedParkings: Int,
-    /** Measured driving distance + its coverage; null when no session carries a route. */
-    val distance: ScopedDistance?,
+    /** Measured driving distance (meters) + its coverage; null when no session carries a route. */
+    val distance: ScopedMeasure<Float>?,
     /** Litres burned over the MEASURED distance (override or FuelDefaults per session's vehicle). */
     val fuelLiters: Double?,
     /** kWh drawn over the measured distance (EV primary + PHEV secondary). */
@@ -41,8 +47,16 @@ data class PeriodStats(
     /** Auto-detected among provenance-KNOWN ended sessions; both 0 below the share threshold. */
     val autoDetectedCount: Int,
     val detectionKnownCount: Int,
-    /** Minutes lost hunting — stamped by DET-SEARCH-TIME-001 (F7). Null until then. */
-    val searchTimeMs: Long? = null,
+    /**
+     * Time lost hunting a spot (ms) + its coverage — a SUM, because it is what the period cost.
+     * Null when no session in the window carries the measure.
+     *
+     * The unit left the NAME when the coverage joined the value: `searchTimeMs` was a bare `Long`
+     * that reached the screen as a period total computed over whichever sessions happened to have a
+     * measured route. [TRIP-THE-SEARCH-FOR-A-SPOT-IS-MEASURED-001]
+     * [STATS-A-MEASURE-CARRIES-ITS-COVERAGE-001]
+     */
+    val searchTime: ScopedMeasure<Long>? = null,
     /** The equivalent previous period, for ▲/▼ comparisons. Null when not requested or empty. */
     val previous: PeriodStats? = null,
 )

@@ -2,6 +2,7 @@ package com.rndeveloper.paparcar.presentation.vehicles
 
 import com.rndeveloper.paparcar.domain.model.Money
 import com.rndeveloper.paparcar.domain.stats.PeriodStats
+import com.rndeveloper.paparcar.domain.stats.ScopedMeasure
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -29,10 +30,13 @@ class VehicleStatsBlockTest {
         spotsReleased: Int = 0,
         parkings: Int = 10,
         endedParkings: Int = 10,
+        distance: ScopedMeasure<Float>? = null,
+        searchTime: ScopedMeasure<Long>? = null,
+        previous: PeriodStats? = null,
     ) = PeriodStats(
         parkings = parkings,
         endedParkings = endedParkings,
-        distance = null,
+        distance = distance,
         fuelLiters = fuelLiters,
         energyKwh = energyKwh,
         costEstimate = cost,
@@ -44,6 +48,8 @@ class VehicleStatsBlockTest {
         spotsReleased = spotsReleased,
         autoDetectedCount = autoCount,
         detectionKnownCount = knownCount,
+        searchTime = searchTime,
+        previous = previous,
     )
 
     @Test
@@ -194,4 +200,41 @@ class VehicleStatsBlockTest {
         )
     }
 
+
+    // ── La cobertura viaja con la medida [STATS-A-MEASURE-CARRIES-ITS-COVERAGE-001] ──
+
+    /**
+     * ⛔ Un delta compara dos SUMAS; entre 7-de-12 viajes y 3-de-10 no compara nada.
+     *
+     * El «▲ 18 %» no diría que el usuario buscó más: diría que este periodo se midieron más
+     * viajes. Es la misma razón por la que `percentDelta` ya se negaba a comparar contra un cero.
+     */
+    @Test
+    fun `should_refuseToCompare_when_eitherPeriodCoversOnlyPartOfItself`() {
+        val partial = ScopedMeasure(value = 2_000f, fromParkings = 7, ofParkings = 12)
+        val complete = ScopedMeasure(value = 1_500f, fromParkings = 10, ofParkings = 10)
+
+        assertFalse(coverageAllowsComparison(partial, complete), "esta mitad es parcial")
+        assertFalse(coverageAllowsComparison(complete, partial), "y la otra mitad, igual")
+        assertFalse(coverageAllowsComparison(complete, null), "sin periodo anterior no hay delta")
+        assertFalse(coverageAllowsComparison(null, complete))
+    }
+
+    @Test
+    fun `should_compare_when_bothPeriodsCoverThemselves`() {
+        val now = ScopedMeasure(value = 1_800f, fromParkings = 9, ofParkings = 9)
+        val before = ScopedMeasure(value = 1_500f, fromParkings = 10, ofParkings = 10)
+        assertTrue(coverageAllowsComparison(now, before))
+    }
+
+    @Test
+    fun `should_showTheSearchTimeTile_when_thePeriodMeasuredIt`() {
+        val measured = ScopedMeasure(value = 180_000L, fromParkings = 2, ofParkings = 3)
+        assertTrue(StatTileKey.SEARCH_TIME in statTileKeys(stats(searchTime = measured)))
+        assertFalse(StatTileKey.SEARCH_TIME in statTileKeys(stats()))
+        assertTrue(
+            hasMeasuredFigures(stats(parkings = 3, searchTime = measured)),
+            "una búsqueda medida es una cifra medida: la tarjeta se la gana",
+        )
+    }
 }

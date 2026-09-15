@@ -1811,6 +1811,24 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
+            // [STATS-A-MEASURE-CARRIES-ITS-COVERAGE-001] Las cifras MEDIDAS dicen sobre cuántos
+            // viajes hablan, y sin cobertura completa no hay ▲/▼: un delta entre dos subconjuntos
+            // distintos compara cuántos viajes se midieron, no cuánto cambió nada.
+            Variant("Cifras · cobertura parcial (nota, y sin delta)") {
+                history(
+                    HistoryState(
+                        timeline = resolvedHistory(
+                            FakeData.allSessions.mapIndexed { i, session ->
+                                if (i % 3 == 0) session
+                                else session.copy(routeDistanceMeters = null, searchTimeMs = null)
+                            },
+                            HistoryFilter.ThisMonth,
+                        ),
+                        activeFilter = HistoryFilter.ThisMonth,
+                    ),
+                    isPlus = true,
+                )
+            },
             // Las DOS caras que antes eran el mismo valor: "no hay nada" frente a "aún no lo sé".
             // [UI-HISTORY-A-LOADING-LIST-MUST-NOT-CLAIM-TO-BE-EMPTY-001]
             Variant("Vacío (historial resuelto, sin sesiones)") {

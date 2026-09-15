@@ -841,6 +841,7 @@
     <string name="stats_tile_co2">CO₂ ca.</string>
     <string name="stats_tile_avg_duration">durchschn. Dauer</string>
     <string name="stats_tile_search_time">Platzsuche</string>
+    <string name="stats_tile_coverage">%1$d von %2$d Fahrten</string>
     <string name="stats_tile_peak_hour">Stoßzeit</string>
     <string name="stats_tile_usual_day">üblicher Tag</string>
     <string name="stats_tile_favorite_street">übliche Straße</string>

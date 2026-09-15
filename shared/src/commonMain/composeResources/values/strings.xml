@@ -876,6 +876,7 @@
     <string name="stats_tile_co2">approx. CO₂</string>
     <string name="stats_tile_avg_duration">average stay</string>
     <string name="stats_tile_search_time">finding a spot</string>
+    <string name="stats_tile_coverage">%1$d of %2$d trips</string>
     <string name="stats_tile_peak_hour">busiest hour</string>
     <string name="stats_tile_usual_day">usual day</string>
     <string name="stats_tile_favorite_street">usual street</string>

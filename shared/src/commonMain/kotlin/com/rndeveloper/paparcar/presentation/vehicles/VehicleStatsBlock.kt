@@ -36,6 +36,7 @@ import com.rndeveloper.paparcar.domain.entitlement.FREE_HISTORY_WINDOW_DAYS
 import com.rndeveloper.paparcar.domain.fuel.FuelPrice
 import com.rndeveloper.paparcar.domain.fuel.FuelPriceOrigin
 import com.rndeveloper.paparcar.domain.stats.PeriodStats
+import com.rndeveloper.paparcar.domain.stats.ScopedMeasure
 import com.rndeveloper.paparcar.presentation.util.formatHourBucket
 import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.ui.components.PapNavChevron
@@ -85,6 +86,7 @@ import paparcar.composeapp.generated.resources.stats_tile_co2
 import paparcar.composeapp.generated.resources.stats_tile_energy
 import paparcar.composeapp.generated.resources.stats_tile_fuel
 import paparcar.composeapp.generated.resources.stats_tile_cost
+import paparcar.composeapp.generated.resources.stats_tile_coverage
 import paparcar.composeapp.generated.resources.stats_tile_favorite_street
 import paparcar.composeapp.generated.resources.stats_tile_peak_hour
 import paparcar.composeapp.generated.resources.stats_tile_spots_shared
@@ -262,6 +264,7 @@ private fun StatTileGrid(tiles: List<StatTileData>) {
                         emphasized = absoluteIndex == 0,
                         animatedNumber = tile.animated,
                         icon = tile.icon,
+                        note = tile.note,
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -437,6 +440,9 @@ internal data class StatTileData(
     val delta: PapStatDelta? = null,
     /** Set only on figures that COUNT — spend, CO2, spots shared. A usual street does not climb. */
     val animated: StatTileNumber? = null,
+    /** What the figure covers, on the MEASURED figures that do not cover the whole period.
+     *  [STATS-A-MEASURE-CARRIES-ITS-COVERAGE-001] */
+    val note: String? = null,
 )
 
 /**
@@ -474,6 +480,23 @@ private fun StatTileKey.icon(): ImageVector = when (this) {
     StatTileKey.SPOTS_SHARED -> Icons.Rounded.VolunteerActivism
 }
 
+/**
+ * Whether a figure and its previous-period twin can be COMPARED — both are measured sums, and both
+ * cover their whole period. [STATS-A-MEASURE-CARRIES-ITS-COVERAGE-001]
+ *
+ * A delta compares two sums. Between 7-of-12 trips and 3-of-10, a "▲ 18 %" does not say the user
+ * hunted longer: it says more trips got measured this period. That is not a finding, it is an
+ * artefact of coverage wearing a finding's clothes — the same reason `percentDelta` already refuses
+ * to compare against a zero ("infinitely more" is not a statement).
+ *
+ * It fixes itself: as the Bluetooth lane gains recorded routes, coverage completes and the arrows
+ * come back on their own.
+ */
+internal fun coverageAllowsComparison(
+    current: ScopedMeasure<*>?,
+    previous: ScopedMeasure<*>?,
+): Boolean = current != null && current.isComplete && previous != null && previous.isComplete
+
 internal fun statTileKeys(stats: PeriodStats): List<StatTileKey> = buildList {
     // Spend leads when it exists — it is the figure a person can act on, so it is the lead tile.
     if (stats.costEstimate != null) add(StatTileKey.COST)
@@ -486,7 +509,7 @@ internal fun statTileKeys(stats: PeriodStats): List<StatTileKey> = buildList {
     if (stats.co2Kg != null) add(StatTileKey.CO2)
     // Time LOST hunting is a cost of the period, like fuel — it reads with the money block.
     // [TRIP-THE-SEARCH-FOR-A-SPOT-IS-MEASURED-001]
-    if (stats.searchTimeMs != null) add(StatTileKey.SEARCH_TIME)
+    if (stats.searchTime != null) add(StatTileKey.SEARCH_TIME)
     if (stats.avgParkedDurationMs != null) add(StatTileKey.AVG_DURATION)
     if (stats.peakHourBucket != null) add(StatTileKey.PEAK_HOUR)
     if (stats.mostActiveDayOfWeek != null) add(StatTileKey.USUAL_DAY)
@@ -527,6 +550,14 @@ internal fun statTiles(stats: PeriodStats): List<StatTileData> {
     val litersTemplate = stringResource(Res.string.stats_value_liters, NUMBER_SLOT)
     val kwhTemplate = stringResource(Res.string.stats_value_kwh, NUMBER_SLOT)
 
+    // Spend, litres, kWh and CO₂ are all computed over the SAME measured distance, so they all
+    // wear the SAME coverage — one caveat resolved once, not four that could drift apart.
+    // [STATS-A-MEASURE-CARRIES-ITS-COVERAGE-001]
+    val distanceNote = coverageNote(stats.distance)
+    val distanceComparable = coverageAllowsComparison(stats.distance, stats.previous?.distance)
+    val searchNote = coverageNote(stats.searchTime)
+    val searchComparable = coverageAllowsComparison(stats.searchTime, stats.previous?.searchTime)
+
     return statTileKeys(stats).map { key ->
         val icon = key.icon()
         when (key) {
@@ -536,8 +567,10 @@ internal fun statTiles(stats: PeriodStats): List<StatTileData> {
                     icon = icon,
                     value = "${formatMoney(cost.amount)} ${cost.currency}",
                     label = stringResource(Res.string.stats_tile_cost),
-                    delta = percentDelta(cost.amount, stats.previous?.costEstimate?.amount),
+                    delta = percentDelta(cost.amount, stats.previous?.costEstimate?.amount)
+                        .takeIf { distanceComparable },
                     animated = StatTileNumber(cost.amount) { v -> "${formatMoney(v)} ${cost.currency}" },
+                    note = distanceNote,
                 )
             }
             // ⛔ LITROS, no «consumo medio en l/100 km». Los litros se derivan del consumo
@@ -549,37 +582,44 @@ internal fun statTiles(stats: PeriodStats): List<StatTileData> {
                 icon = icon,
                 value = litersTemplate.replace(NUMBER_SLOT, formatDecimal(requireNotNull(stats.fuelLiters))),
                 label = stringResource(Res.string.stats_tile_fuel),
-                delta = percentDelta(requireNotNull(stats.fuelLiters), stats.previous?.fuelLiters),
+                delta = percentDelta(requireNotNull(stats.fuelLiters), stats.previous?.fuelLiters)
+                    .takeIf { distanceComparable },
                 animated = StatTileNumber(requireNotNull(stats.fuelLiters)) { v ->
                     litersTemplate.replace(NUMBER_SLOT, formatDecimal(v))
                 },
+                note = distanceNote,
             )
             StatTileKey.ENERGY -> StatTileData(
                 icon = icon,
                 value = kwhTemplate.replace(NUMBER_SLOT, formatDecimal(requireNotNull(stats.energyKwh))),
                 label = stringResource(Res.string.stats_tile_energy),
-                delta = percentDelta(requireNotNull(stats.energyKwh), stats.previous?.energyKwh),
+                delta = percentDelta(requireNotNull(stats.energyKwh), stats.previous?.energyKwh)
+                    .takeIf { distanceComparable },
                 animated = StatTileNumber(requireNotNull(stats.energyKwh)) { v ->
                     kwhTemplate.replace(NUMBER_SLOT, formatDecimal(v))
                 },
+                note = distanceNote,
             )
             StatTileKey.CO2 -> StatTileData(
                 icon = icon,
                 value = kgTemplate.replace(NUMBER_SLOT, formatDecimal(requireNotNull(stats.co2Kg))),
                 label = stringResource(Res.string.stats_tile_co2),
-                delta = percentDelta(requireNotNull(stats.co2Kg), stats.previous?.co2Kg),
+                delta = percentDelta(requireNotNull(stats.co2Kg), stats.previous?.co2Kg)
+                    .takeIf { distanceComparable },
                 animated = StatTileNumber(requireNotNull(stats.co2Kg)) { v ->
                     kgTemplate.replace(NUMBER_SLOT, formatDecimal(v))
                 },
+                note = distanceNote,
             )
             StatTileKey.SEARCH_TIME -> StatTileData(
                 icon = icon,
-                value = durationText(requireNotNull(stats.searchTimeMs)),
+                value = durationText(requireNotNull(stats.searchTime).value),
                 label = stringResource(Res.string.stats_tile_search_time),
                 delta = percentDelta(
-                    requireNotNull(stats.searchTimeMs).toDouble(),
-                    stats.previous?.searchTimeMs?.toDouble(),
-                ),
+                    requireNotNull(stats.searchTime).value.toDouble(),
+                    stats.previous?.searchTime?.value?.toDouble(),
+                ).takeIf { searchComparable },
+                note = searchNote,
             )
             StatTileKey.AVG_DURATION -> StatTileData(
                 icon = icon,
@@ -658,6 +698,25 @@ private fun formatMoney(value: Double): String {
 private fun formatDecimal(value: Double): String {
     val rounded = (value * DECIMAL_SCALE).roundToInt() / DECIMAL_SCALE
     return if (rounded == rounded.toInt().toDouble()) rounded.toInt().toString() else rounded.toString()
+}
+
+/**
+ * What a measured figure covers, or null when it covers everything — the caveat exists to stop a
+ * subtotal passing for a total, so a complete figure gets no line at all rather than a reassuring
+ * one nobody needs to read. [STATS-A-MEASURE-CARRIES-ITS-COVERAGE-001]
+ *
+ * "Trips", the same word the chart's kilometre line already uses for the same idea: what is
+ * measured is the DRIVE that ended in a parking, and a period holds more parkings than measured
+ * drives.
+ */
+@Composable
+private fun coverageNote(measure: ScopedMeasure<*>?): String? {
+    if (measure == null || measure.isComplete) return null
+    return stringResource(
+        Res.string.stats_tile_coverage,
+        measure.fromParkings,
+        measure.ofParkings,
+    )
 }
 
 @Composable

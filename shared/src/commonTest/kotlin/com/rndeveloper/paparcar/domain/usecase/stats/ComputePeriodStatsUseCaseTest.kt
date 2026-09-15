@@ -229,9 +229,25 @@ class ComputePeriodStatsUseCaseTest {
                 session(3), // unmeasured contributes nothing — absent, never 0
             ),
         )
-        assertEquals(180_000L, withMeasure?.searchTimeMs, "time LOST is a sum, not an average")
+        assertEquals(180_000L, withMeasure?.searchTime?.value, "time LOST is a sum, not an average")
+        // ...and the sum says what it covers: two of the three parkings produced it.
+        // [STATS-A-MEASURE-CARRIES-ITS-COVERAGE-001]
+        assertEquals(2, withMeasure?.searchTime?.fromParkings)
+        assertEquals(3, withMeasure?.searchTime?.ofParkings)
+        assertEquals(false, withMeasure?.searchTime?.isComplete, "2 of 3 is not a period total")
 
         val without = compute(sessions = listOf(session(1), session(2)))
-        assertNull(without?.searchTimeMs, "no measured session -> no figure, never 0")
+        assertNull(without?.searchTime, "no measured session -> no figure, never 0")
+    }
+
+    @Test
+    fun `should_reportCompleteCoverage_when_everySessionMeasuredItsSearch`() {
+        val stats = compute(
+            sessions = listOf(
+                session(1, searchTimeMs = 120_000L),
+                session(2, searchTimeMs = 60_000L),
+            ),
+        )
+        assertEquals(true, stats?.searchTime?.isComplete, "the whole period is a plain figure")
     }
 }
