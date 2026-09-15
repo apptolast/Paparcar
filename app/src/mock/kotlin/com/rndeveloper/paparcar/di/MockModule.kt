@@ -142,6 +142,19 @@ val mockModule = module {
     single<com.rndeveloper.paparcar.domain.detection.ports.DrivingRouteStore> {
         com.rndeveloper.paparcar.data.detection.RoomDrivingRouteStore(dao = get())
     }
+    // Same no-dataModule rule: ObserveZoneSpotAlertsUseCase resolves this with get(), so without it
+    // the whole graph fails to build and EVERY screen crashes on entry (AppViewModel is a shared
+    // dependency). Real Room impl over the in-memory DB, same pattern as DrivingRouteStore above.
+    // [ZONE-AN-ALERT-NOBODY-IS-AWAKE-TO-RECEIVE-001] [MOCK-A-SECOND-GRAPH-NEEDS-A-SECOND-VERIFY-001]
+    single<com.rndeveloper.paparcar.domain.repository.ZoneWatchRepository> {
+        com.rndeveloper.paparcar.data.repository.RoomZoneWatchRepository(dao = get())
+    }
+    // Same no-dataModule rule, different feature: GetNearbyFuelStationsUseCase's price-watch path
+    // resolves this with get(), so without it Home crashes on open. Real Room impl, same pattern.
+    // [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001] [MOCK-A-SECOND-GRAPH-NEEDS-A-SECOND-VERIFY-001]
+    single<com.rndeveloper.paparcar.domain.repository.FuelWatchRepository> {
+        com.rndeveloper.paparcar.data.fuel.RoomFuelWatchRepository(dao = get())
+    }
     single<ReportSpotScheduler> { FakeReportSpotScheduler() }
     single<com.rndeveloper.paparcar.domain.detection.ports.ManualParkingDetection> {
         // Same shared runtime, so the Home "I'm driving" CTA starts the sim too. [DRIVE-SIM-001]
@@ -235,6 +248,8 @@ val mockModule = module {
     single { get<AppDatabase>().zoneDao() }
     single { get<AppDatabase>().geocoderCacheDao() }
     single { get<AppDatabase>().tripRoutePointDao() }
+    single { get<AppDatabase>().zoneWatchDao() }
+    single { get<AppDatabase>().fuelWatchDao() }
 
     // Local datasources
     single<LocalAddressAndPlaceDataSource> { RoomLocalAddressAndPlaceDataSource(get()) }

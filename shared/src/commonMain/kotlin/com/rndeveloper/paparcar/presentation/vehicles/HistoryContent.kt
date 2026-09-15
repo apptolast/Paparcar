@@ -25,8 +25,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -53,6 +55,7 @@ import com.rndeveloper.paparcar.ui.components.PapShimmerBlockScale
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.isoDayNumber
@@ -238,6 +241,20 @@ fun HistoryContent(
 
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+
+    // The header only re-expands from a PROGRAMMATIC jump via `expandKey` (the scroll-to-top
+    // button) — a normal drag/fling that lands the list back at its very first pixel never told
+    // it to. Anything that decouples the header's offset from the list's real position (a
+    // fling settle-animation racing a new gesture, a jump that isn't the button) then leaves the
+    // title and tabs retracted over a list sitting at its own top, forever, since nothing else
+    // asks the header to expand. Watching the list's OWN top — not the button — closes that gap
+    // structurally: "list at its first pixel" always means "header shown", regardless of how it
+    // got there. [UI-A-HEADER-THAT-COLLAPSES-MUST-COME-BACK-001]
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0 }
+            .distinctUntilChanged()
+            .collect { atTop -> if (atTop) onScrolledToTop() }
+    }
 
     Box(modifier = modifier) {
         LazyColumn(
