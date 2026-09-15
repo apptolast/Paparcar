@@ -89,7 +89,9 @@ Grep de todos los sitios que asumen lo contrario del invariante → cerrado / cu
 - **Compilar y testear desde el worktree, vía la herramienta Bash** (el repo no tiene `gradlew.bat`;
   en PowerShell `.\gradlew` sale exit 0 **sin compilar nada** — trampa conocida):
   ```bash
-  ./gradlew :shared:testDebugUnitTest --console=plain
+  # ⛔ testAll, no :shared: — el verify del grafo mock vive en :app y si no, nadie lo corre.
+  # [TEST-A-GUARD-MUST-NOT-READ-THE-FOLDER-NAME-001]
+  ./gradlew testAll --console=plain
   ./gradlew :app:compileMockDebugKotlin :app:compileProdDebugKotlin --console=plain
   ./gradlew :app:installProdDebug     # verificar "Installed on 1 device"
   ```

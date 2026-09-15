@@ -51,6 +51,12 @@ Paparcar es una app KMP (Kotlin Multiplatform) de compartición de plazas de apa
 
 > El repo **no tiene `gradlew.bat`**: compilar SIEMPRE con la herramienta Bash (`./gradlew …`).
 > En PowerShell `.\gradlew` sale exit 0 **sin compilar nada**.
+>
+> ⛔ **La suite es `./gradlew testAll`**, no `:shared:testDebugUnitTest`. Ese último deja fuera los
+> tests de `:app` — y ahí vive el único guardarraíl que comprueba que el grafo del flavor mock se
+> puede resolver (`MockKoinModuleVerifyTest`). Dos tickets seguidos metieron un repositorio en
+> `dataModule` sin declararlo en `mockModule`, el guard los habría cazado en segundos, y nadie lo
+> ejecutó. [TEST-A-GUARD-MUST-NOT-READ-THE-FOLDER-NAME-001]
 
 ## Estructura
 Dos módulos Gradle desde ARCH-HEALTH F7 (paquete: `com.rndeveloper.paparcar`):

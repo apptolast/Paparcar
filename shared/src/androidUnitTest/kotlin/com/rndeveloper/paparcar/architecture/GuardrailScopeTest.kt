@@ -49,7 +49,7 @@ class GuardrailScopeTest {
     fun `a population that shrank below its floor fails even though it is not empty`() {
         val error = assertFailsWith<AssertionError> {
             GuardrailScope.population(name = "feature UI files", floor = 100_000) { scope ->
-                scope.files.filter { it.path.contains("commonMain") }
+                scope.files.filter { it.path.replace('\\', '/').contains("/src/commonMain/") }
             }
         }
         assertTrue(

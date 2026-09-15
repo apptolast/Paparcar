@@ -142,7 +142,7 @@ object GuardrailScope {
         floor = FEATURE_FILES_FLOOR,
     ) { scope ->
         scope.files
-            .filter { it.path.contains("commonMain") }
+            .filter { it.inSourceSet(COMMON_MAIN) }
             .filter { file ->
                 val pkg = file.packagee?.name ?: ""
                 pkg.startsWith(PRESENTATION) || pkg.startsWith(UI_COMPONENTS)
@@ -155,7 +155,7 @@ object GuardrailScope {
         floor = PRESENTATION_FEATURE_FILES_FLOOR,
     ) { scope ->
         scope.files
-            .filter { it.path.contains("commonMain") }
+            .filter { it.inSourceSet(COMMON_MAIN) }
             .filter { (it.packagee?.name ?: "").startsWith(PRESENTATION) }
     }
 
@@ -180,7 +180,7 @@ object GuardrailScope {
         floor = floor,
     ) { scope ->
         scope.files
-            .filter { it.path.contains("commonMain") }
+            .filter { it.inSourceSet(COMMON_MAIN) }
             .filter { (it.packagee?.name ?: "").startsWith(pkg) }
     }
 
@@ -199,10 +199,28 @@ object GuardrailScope {
         floor = COMMON_MAIN_PRODUCTION_FLOOR,
     ) { scope ->
         scope.files.filter { file ->
-            val path = file.path.replace('\\', '/')
-            path.contains("commonMain") && !path.contains("Test")
+            file.inSourceSet(COMMON_MAIN) && !file.path.contains("Test")
         }
     }
+
+    /**
+     * ¿Este fichero vive en ese source set? — preguntado por el TRAMO de ruta, nunca por una
+     * subcadena suelta. [TEST-A-GUARD-MUST-NOT-READ-THE-FOLDER-NAME-001]
+     *
+     * ⛔ Era `path.contains("mock")`, y el path es ABSOLUTO: un worktree llamado
+     * `Paparcar-mock-graph` hacía que TODO fichero del repo —tests incluidos— contara como código
+     * de producción. Medido el 15-09: dos guardarraíles se pusieron rojos sin que se tocara una
+     * línea de lo que vigilan, uno de ellos con un `List has more than one element` que no dice
+     * nada. El nombre de la carpeta donde alguien clona no puede cambiar lo que un guard vigila.
+     */
+    private fun KoFileDeclaration.inSourceSet(vararg names: String): Boolean {
+        val path = path.replace('\\', '/')
+        return names.any { path.contains("/src/$it/") }
+    }
+
+    private const val COMMON_MAIN = "commonMain"
+    private const val ANDROID_MAIN = "androidMain"
+    private const val MOCK = "mock"
 
     /**
      * Everything that SHIPS: `commonMain`, `androidMain` and the mock flavour, both modules. The
@@ -214,8 +232,7 @@ object GuardrailScope {
         floor = PRODUCTION_SOURCES_FLOOR,
     ) { scope ->
         scope.files.filter { file ->
-            val path = file.path.replace('\\', '/')
-            path.contains("commonMain") || path.contains("androidMain") || path.contains("mock")
+            file.inSourceSet(COMMON_MAIN, ANDROID_MAIN, MOCK)
         }
     }
 
