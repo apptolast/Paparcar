@@ -105,4 +105,9 @@
     <string name="notif_month_recap_text_spend">%1$s pe combustibil</string>
     <string name="notif_month_recap_text_search">%1$s min de căutat loc</string>
     <string name="notif_month_recap_text_parkings">%1$s parcări</string>
+    <!-- Coche compartido: alguien del grupo ha aparcado. [SHARED-A-PARKING-TELLS-THE-GROUP-001] -->
+    <string name="notif_shared_car_parked_title">%1$s a parcat mașina</string>
+    <string name="notif_shared_car_parked_text">Pe %1$s · atinge ca să o vezi pe hartă</string>
+    <string name="notif_shared_car_parked_title_unknown">Mașina partajată a fost parcată</string>
+    <string name="notif_shared_car_parked_text_unknown">Atinge ca să vezi unde este</string>
 </resources>

@@ -2,6 +2,8 @@ package com.rndeveloper.paparcar.push
 
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import androidx.work.WorkManager
+import com.rndeveloper.paparcar.detection.worker.GeofenceJanitorWorker
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 import com.rndeveloper.paparcar.domain.repository.ZoneWatchRepository
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
@@ -25,6 +27,7 @@ class PaparcarMessagingService : FirebaseMessagingService() {
     private val notificationPort: AppNotificationManager by inject()
     private val zoneWatch: ZoneWatchRepository by inject()
     private val subscriptions: ZoneAlertSubscriptionSync by inject()
+    private val sharedCarMembers: SharedCarMemberSync by inject()
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -44,10 +47,17 @@ class PaparcarMessagingService : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
         PaparcarLogger.d(TAG) { "FCM token rotated — resyncing subscriptions" }
         subscriptions.resyncNow()
+        // El mismo token vale para las dos vigilancias, y las dos se quedan mudas si nadie lo
+        // apunta. [SHARED-A-PARKING-TELLS-THE-GROUP-001]
+        sharedCarMembers.resyncNow()
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
         val data = message.data
+        if (data["type"] == TYPE_SHARED_CAR_PARKED) {
+            onSharedCarParked(data)
+            return
+        }
         if (data["type"] != TYPE_ZONE_SPOT) {
             PaparcarLogger.w(TAG, "unknown push type=${data["type"]}")
             return
@@ -84,10 +94,48 @@ class PaparcarMessagingService : FirebaseMessagingService() {
         }
     }
 
+    /**
+     * Alguien del grupo ha aparcado el coche. [SHARED-A-PARKING-TELLS-THE-GROUP-001]
+     *
+     * Dos cosas, y la segunda es la que la geocerca compartida estaba esperando:
+     *  1. **Contarlo** — la tarjeta se construye AQUÍ, que es donde están los nueve idiomas. El
+     *     servidor no sabe ninguno y no tiene por qué.
+     *  2. **Mover la vigilancia AHORA** — el reconciliador ya sabe poner la valla donde está el
+     *     coche, pero hasta este mensaje solo se enteraba en la siguiente pasada del janitor (15
+     *     min) o al abrir la app. Esto es lo que convierte «acaba con enterarse» en «se entera».
+     *
+     * ⛔ El autor no recibe este mensaje: a quién se le cuenta lo decide el servidor, que lo excluye
+     * del reparto. Un móvil no puede saber si el aviso era para otro.
+     */
+    private fun onSharedCarParked(data: Map<String, String>) {
+        // PRIMERO la valla, y sin condiciones: el reconciliador no lee nada de este mensaje —
+        // relee el espejo— así que un campo que falte puede costar la tarjeta, nunca la vigilancia.
+        // El janitor es el único sitio que registra vallas; esto solo le dice que pase ya.
+        // [DET-A-SHARED-FENCE-FOLLOWS-THE-CAR-001]
+        GeofenceJanitorWorker.enqueueOnce(
+            WorkManager.getInstance(applicationContext),
+            GeofenceJanitorWorker.TRIGGER_SHARED_CAR_PUSH,
+        )
+
+        val latitude = data["latitude"]?.toDoubleOrNull()
+        val longitude = data["longitude"]?.toDoubleOrNull()
+        if (latitude == null || longitude == null) {
+            PaparcarLogger.w(TAG, "shared-car push sin posición — valla movida, tarjeta no")
+            return
+        }
+        notificationPort.showSharedCarParked(
+            authorName = data["authorName"]?.takeIf { it.isNotBlank() },
+            addressLine = data["addressLine"]?.takeIf { it.isNotBlank() },
+            latitude = latitude,
+            longitude = longitude,
+        )
+    }
+
     private companion object {
         const val TAG = "ZonePush"
 
         /** ⛔ Mirrored in `functions/src/index.ts`. */
+        const val TYPE_SHARED_CAR_PARKED = "shared_car_parked"
         const val TYPE_ZONE_SPOT = "zone_spot"
     }
 }

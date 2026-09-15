@@ -136,6 +136,13 @@ class RemoteSharedCarDataSourceImpl(
         members(carId).document(member.uid).set(member)
     }
 
+    override suspend fun setMemberTokens(carId: String, uid: String, tokens: List<String>) {
+        // Field-targeted, como el flag de rutas: el documento de miembro lo mantiene su dueño y un
+        // `set()` aquí lo reescribiría entero desde lo que este móvil tuviera a mano.
+        runCatching { members(carId).document(uid).update(mapOf(FIELD_TOKENS to tokens)) }
+            .onFailure { PaparcarLogger.w(TAG, "setMemberTokens skipped — not a member of $carId") }
+    }
+
     override suspend fun setMemberSharesRoutes(carId: String, uid: String, sharesRoutes: Boolean) {
         // Field-targeted: the flag changes from a switch, and a set() here would rewrite a
         // membership document from whatever the screen happened to be holding.
@@ -262,6 +269,7 @@ class RemoteSharedCarDataSourceImpl(
                 joinedAtMs = getLongCompat(FIELD_JOINED_AT_MS),
                 role = get<String?>(FIELD_ROLE).orEmpty().ifEmpty { ROLE_MEMBER },
                 sharesRoutes = get<Boolean?>(FIELD_SHARES_ROUTES) ?: true,
+                tokens = runCatching { get<List<String>?>(FIELD_TOKENS) }.getOrNull().orEmpty(),
                 inviteCode = get<String?>(FIELD_INVITE_CODE),
             )
         }.getOrElse { e ->
@@ -331,6 +339,7 @@ class RemoteSharedCarDataSourceImpl(
         const val FIELD_ROUTE_SNAPPED = "routeSnapped"
         const val FIELD_ROUTE_INFERRED_SPANS = "routeInferredSpans"
         const val FIELD_SHARES_ROUTES = "sharesRoutes"
+        const val FIELD_TOKENS = "tokens"
         const val FIELD_INVITE_EXPIRES_AT_MS = "inviteExpiresAtMs"
 
         const val FIELD_SESSION_ID = "sessionId"

@@ -174,6 +174,9 @@ class PaparcarApp : Application() {
         // mes es el use case, no este encolado. KEEP para que abrir la app no reinicie su reloj.
         MonthRecapWorker.schedule(workManager)
         get<ZoneAlertSubscriptionSync>().start()
+        // [SHARED-A-PARKING-TELLS-THE-GROUP-001] Estar en la lista de tokens ES el permiso del
+        // grupo: sin esto el coche compartido no puede avisar a este móvil de nada.
+        get<com.rndeveloper.paparcar.push.SharedCarMemberSync>().start()
 
         // [DET-WATCH-REACTIVATE-001] The resident SENTRY watcher is NOT resurrected here any more.
         // This spot read the parked sessions ONCE (`observeActiveSessions().first()`), so a clean

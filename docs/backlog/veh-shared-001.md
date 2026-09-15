@@ -15,7 +15,7 @@ rebasada sobre `56d63e1f`
 | Grupo | invitación por código, unirse, salir, expulsar, dejar de compartir | — |
 | Lectura | dónde está el coche, quién lo aparcó y cuándo — para TODO el grupo, dueño incluido | — |
 | Backend propio | ❌ nada: reglas Firestore puras | Cloud Functions (dedupe 60 s, FCM, webhook RC) — comparten runtime con F6b |
-| Aviso a los miembros | ❌ | push FCM («Marta ha aparcado en Ponzano, 14») |
+| Aviso a los miembros | ❌ | ✅ hecho aparte en `SHARED-A-PARKING-TELLS-THE-GROUP-001` (push FCM + la valla del grupo se mueve al recibirlo) |
 | Detección | ❌ **no se toca** | dedupe de dos móviles + geocerca/Coordinator degradados a sugerencia (`det-change`, gate de campo con dos móviles) |
 
 Lo que este ticket promete y se puede probar entero sin campo: **dos cuentas ven el mismo coche, y

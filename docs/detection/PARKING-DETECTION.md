@@ -500,8 +500,9 @@ registrar. Los dos casos tienen test.
 
 ### DET-A-SHARED-FENCE-FOLLOWS-THE-CAR-001 — la valla sigue al coche, no a quien lo aparcó
 
-**Commit:** pending. **Reporte del user (15-09):** *«si Marta coge el coche y se va, la geocerca de
-Antonio debería desaparecer y ponerse donde aparcó Marta; todos comparten geocerca»*.
+**Commit:** `fdcf70be` (+ `ef49abdc`, la sesión superseded y iOS). **Reporte del user (15-09):**
+*«si Marta coge el coche y se va, la geocerca de Antonio debería desaparecer y ponerse donde aparcó
+Marta; todos comparten geocerca»*.
 
 **Causa raíz.** La valla siempre ha sido de la SESIÓN (`geofenceId == sessionId`): cada móvil vigila
 el aparcamiento que hizo él. Con el coche compartido (F8 etapa 1) eso deja a los demás miembros
@@ -531,9 +532,44 @@ vocabulario de provenance.
 
 **Riesgo del fix acompañante.** El veto se aplica ANTES de clasificar el lote, así que una valla
 huérfana de verdad que viaje en el mismo disparo se sigue barriendo (tiene su test). Lo que este
-cambio NO hace es despertar el móvil dormido en el instante en que el otro aparca: eso es un mensaje
-de datos por FCM y va con el push del grupo. Hasta entonces la valla se mueve en la siguiente pasada
-del janitor (15 min) o al abrir la app.
+cambio NO hacía es despertar el móvil dormido en el instante en que el otro aparca — eso lo cierra
+`SHARED-A-PARKING-TELLS-THE-GROUP-001`, justo debajo.
+
+### SHARED-A-PARKING-TELLS-THE-GROUP-001 — la valla del grupo se mueve al aparcar, no 15 min después
+
+**Commit:** pending. **Continuación directa de la entrada anterior**, y de su último párrafo.
+
+**Causa raíz.** La valla compartida ya sabía seguir al coche, pero quien la movía eran el
+`GeofenceJanitorWorker` (cada 15 min) y el arranque de la app. Entre que Marta deja el coche y
+Antonio tiene la vigilancia donde está el coche cabía un cuarto de hora — y si Antonio sale a por él
+antes, sale **sin vigilancia**: ni valla en el sitio nuevo, ni la vieja (que ya se barrió), o peor,
+la vieja todavía puesta en la calle del lunes.
+
+**Fix.** Una Cloud Function (`onSharedCarParked`, trigger `onDocumentWritten` sobre
+`sharedCars/{carId}/state/current`) manda un mensaje **de datos** de prioridad alta a los demás
+miembros, y `PaparcarMessagingService` hace dos cosas **en este orden**:
+
+1. **Encola el janitor** con `TRIGGER_SHARED_CAR_PUSH`, sin condiciones y antes de mirar nada del
+   mensaje. El reconciliador no lee ni un campo de este push —relee el espejo—, así que un campo
+   que falte puede costar la tarjeta, nunca la vigilancia.
+2. **Construye la notificación**, si hay coordenadas.
+
+⛔ El registro de vallas sigue estando en UN solo sitio. Este cambio no registra nada: le dice al
+janitor que hay motivo para pasar YA. Un segundo registrador es exactamente como se abren las
+ventanas ciegas que `FenceRegistrationPolicy` existe para cerrar.
+
+⛔ Prioridad `high` en el mensaje **porque el movimiento de valla viaja en él**: una entrega retenida
+hasta la próxima ventana de Doze deja la geocerca precisamente donde el ticket intenta que no se
+quede.
+
+**Doctrina.** Sin cambios: la valla compartida sigue siendo de UBICACIÓN, no arma, no nomina y no
+confirma, así que **no hay `detectionPath` nuevo**. Lo único que se ha movido es *cuándo* se entera
+el otro móvil.
+
+**Riesgo del fix acompañante.** El push llega también al miembro que iba de copiloto en ese mismo
+coche: la regla del servidor («no eres el autor») es correcta y aun así es ruido. El dedupe entre
+dos móviles del mismo viaje queda para la etapa 2 de F8 — y se resuelve mirando si el receptor
+estaba en el viaje, no tocando esta cadena.
 
 ### COM-002 — Adaptive geofence radius by vehicle size + GPS accuracy
 

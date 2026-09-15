@@ -96,6 +96,14 @@ class FakeSharedCarRemote : RemoteSharedCarDataSource {
         members.value = members.value + (carId to rest + member)
     }
 
+    override suspend fun setMemberTokens(carId: String, uid: String, tokens: List<String>) {
+        members.value = members.value + (
+            carId to members.value[carId].orEmpty().map {
+                if (it.uid == uid) it.copy(tokens = tokens) else it
+            }
+            )
+    }
+
     override suspend fun setMemberSharesRoutes(carId: String, uid: String, sharesRoutes: Boolean) {
         members.value = members.value + (
             carId to members.value[carId].orEmpty().map {

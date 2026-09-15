@@ -92,4 +92,14 @@ val androidPlatformModule = module {
             authRepository = get(),
         )
     }
+
+    // El mismo token de este móvil, la otra vigilancia que lo necesita: el grupo del coche
+    // compartido. [SHARED-A-PARKING-TELLS-THE-GROUP-001]
+    single {
+        com.rndeveloper.paparcar.push.SharedCarMemberSync(
+            sharedCarRepository = get(),
+            remote = get(),
+            authRepository = get(),
+        )
+    }
 }

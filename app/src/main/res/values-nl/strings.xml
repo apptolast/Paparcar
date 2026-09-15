@@ -105,4 +105,9 @@
     <string name="notif_month_recap_text_spend">%1$s aan brandstof</string>
     <string name="notif_month_recap_text_search">%1$s min plek zoeken</string>
     <string name="notif_month_recap_text_parkings">%1$s parkeerplaatsen</string>
+    <!-- Coche compartido: alguien del grupo ha aparcado. [SHARED-A-PARKING-TELLS-THE-GROUP-001] -->
+    <string name="notif_shared_car_parked_title">%1$s heeft de auto geparkeerd</string>
+    <string name="notif_shared_car_parked_text">Op %1$s · tik om hem op de kaart te zien</string>
+    <string name="notif_shared_car_parked_title_unknown">De gedeelde auto is geparkeerd</string>
+    <string name="notif_shared_car_parked_text_unknown">Tik om te zien waar hij staat</string>
 </resources>

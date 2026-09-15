@@ -44,6 +44,10 @@ interface RemoteSharedCarDataSource {
     /** Publishes whether this member's routes are visible, so the others can be told why a line is
      *  missing instead of guessing. */
     suspend fun setMemberSharesRoutes(carId: String, uid: String, sharesRoutes: Boolean)
+
+    /** The devices to tell when somebody parks this car. Being in the list IS the permission — the
+     *  function asks nothing else. [SHARED-A-PARKING-TELLS-THE-GROUP-001] */
+    suspend fun setMemberTokens(carId: String, uid: String, tokens: List<String>)
     suspend fun deleteMember(carId: String, uid: String)
 
     suspend fun putInvite(invite: SharedCarInviteDto)

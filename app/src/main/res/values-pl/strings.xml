@@ -105,4 +105,9 @@
     <string name="notif_month_recap_text_spend">%1$s na paliwo</string>
     <string name="notif_month_recap_text_search">%1$s min szukania miejsca</string>
     <string name="notif_month_recap_text_parkings">%1$s parkowań</string>
+    <!-- Coche compartido: alguien del grupo ha aparcado. [SHARED-A-PARKING-TELLS-THE-GROUP-001] -->
+    <string name="notif_shared_car_parked_title">%1$s zaparkował samochód</string>
+    <string name="notif_shared_car_parked_text">Przy %1$s · dotknij, aby zobaczyć na mapie</string>
+    <string name="notif_shared_car_parked_title_unknown">Wspólny samochód został zaparkowany</string>
+    <string name="notif_shared_car_parked_text_unknown">Dotknij, aby zobaczyć, gdzie stoi</string>
 </resources>

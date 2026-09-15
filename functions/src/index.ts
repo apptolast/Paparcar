@@ -1,10 +1,16 @@
-import { onDocumentCreated } from 'firebase-functions/v2/firestore';
+import { onDocumentCreated, onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { setGlobalOptions } from 'firebase-functions/v2';
 import * as logger from 'firebase-functions/logger';
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 import { isDeadToken, targetsFor, verdictFor, type PublishedSpot, type ZoneAlertSub } from './fanout';
+import {
+  targetsFor as sharedCarTargetsFor,
+  verdictFor as sharedCarVerdictFor,
+  type SharedCarMember,
+  type SharedCarState,
+} from './sharedCarFanout';
 
 initializeApp();
 
@@ -90,6 +96,110 @@ export const onSpotPublished = onDocumentCreated('spots/{spotId}', async (event)
     }),
   );
 });
+
+/**
+ * Somebody parked the shared car: tell the rest of the group, and move their fence with it.
+ * [SHARED-A-PARKING-TELLS-THE-GROUP-001]
+ *
+ * Why a push and not the app noticing on its own: the mirror is already written and the others
+ * already *can* read it — but only while they have the app open, or on the janitor's next 15-minute
+ * pass. That is fine for a figure in a history screen and useless for the two things this feature
+ * exists for: knowing the car moved, and having the geofence sitting where the car actually is
+ * before you walk out of the door. The push is what turns «eventually finds out» into «finds out».
+ *
+ * ⛔ `onDocumentWritten` and not `onDocumentCreated`: the state document is written once per
+ * parking, but it is CREATED once per car — every parking after the first one is an update.
+ *
+ * ⛔ Same rule as the zone fan-out: entitlement is not read here. Being in `members/{uid}` with a
+ * token IS the permission, and leaving the group deletes the row.
+ *
+ * ⛔ I/O only. What counts as news and who hears it lives in `sharedCarFanout.ts`.
+ */
+export const onSharedCarParked = onDocumentWritten('sharedCars/{carId}/state/current', async (event) => {
+  const carId = event.params.carId;
+  const before = event.data?.before?.data() as SharedCarState | undefined;
+  const after = event.data?.after?.data() as SharedCarState | undefined;
+
+  const verdict = sharedCarVerdictFor(before, after);
+  if (verdict.kind === 'skip') {
+    logger.info('shared car parking not announced', { carId, reason: verdict.reason });
+    return;
+  }
+
+  const membersRef = getFirestore().collection('sharedCars').doc(carId).collection('members');
+  const snapshot = await membersRef.get();
+  const members = snapshot.docs.map((doc) => ({ ...(doc.data() as SharedCarMember), uid: doc.id }));
+  const targets = sharedCarTargetsFor(members, verdict.authorUid);
+
+  logger.info('shared car fan-out', {
+    carId,
+    sessionId: verdict.sessionId,
+    members: snapshot.size,
+    targets: targets.length,
+  });
+
+  if (targets.length === 0) return;
+
+  await Promise.all(
+    targets.map((member) =>
+      deliverSharedCarParked(
+        membersRef.doc(member.uid),
+        member,
+        carId,
+        verdict.authorName,
+        verdict.addressLine,
+        after!.latitude!,
+        after!.longitude!,
+      ),
+    ),
+  );
+});
+
+/**
+ * One member's devices.
+ *
+ * A **data** message, like the zone one and for a cousin of the same reason: the wording lives in
+ * the app, which is the only side that has the nine locales. A notification message would arrive in
+ * whatever language the server guessed.
+ */
+async function deliverSharedCarParked(
+  ref: FirebaseFirestore.DocumentReference,
+  member: SharedCarMember,
+  carId: string,
+  authorName: string,
+  addressLine: string,
+  latitude: number,
+  longitude: number,
+): Promise<void> {
+  const tokens = (member.tokens ?? []).filter((t) => !!t);
+  if (tokens.length === 0) return;
+
+  const response = await getMessaging().sendEachForMulticast({
+    tokens,
+    data: {
+      type: 'shared_car_parked',
+      carId,
+      authorName,
+      addressLine,
+      latitude: String(latitude),
+      longitude: String(longitude),
+    },
+    android: {
+      // High priority because the fence move rides on this message: a delivery held until the next
+      // Doze window would put the geofence back exactly where this feature is trying not to leave it.
+      priority: 'high',
+    },
+  });
+
+  const dead = response.responses
+    .map((r, i) => (!r.success && isDeadToken(r.error?.code) ? tokens[i] : null))
+    .filter((t): t is string => t !== null);
+
+  if (dead.length > 0) {
+    logger.info('dropping dead shared-car tokens', { carId, uid: member.uid, count: dead.length });
+    await ref.update({ tokens: FieldValue.arrayRemove(...dead) });
+  }
+}
 
 /**
  * One subscription's devices.

@@ -192,6 +192,28 @@ interface AppNotificationManager {
     ) {}
 
     /**
+     * Alguien del grupo acaba de aparcar el coche que compartís.
+     * [SHARED-A-PARKING-TELLS-THE-GROUP-001]
+     *
+     * ⛔ Nunca se manda a quien aparcó: la decisión de a quién se le cuenta se toma en el servidor
+     * (el autor se excluye del reparto), no aquí — un móvil no puede saber si el mensaje era para
+     * otro. Lo que sí decide este lado es CÓMO se dice, que es lo que permite decirlo en los nueve
+     * idiomas sin que el servidor sepa ninguno.
+     *
+     * @param authorName quién lo dejó, o null si su perfil no tiene nombre: la tarjeta dice
+     *   entonces «han aparcado el coche compartido». ⛔ Callarse por no saber el nombre sería
+     *   perder el aviso entero por el campo menos importante que trae.
+     * @param addressLine la calle donde lo dejó, o null si el geocoder aún no ha contestado: la
+     *   tarjeta dice entonces «toca para ver dónde está», que sigue siendo cierto.
+     */
+    fun showSharedCarParked(
+        authorName: String?,
+        addressLine: String?,
+        latitude: Double,
+        longitude: Double,
+    ) {}
+
+    /**
      * A pump near the user charges measurably less than the one they use (Paparcar Plus).
      * [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
      *
@@ -291,6 +313,10 @@ interface AppNotificationManager {
 
         /** ID for the Plus zone-alert "free spot in your zone" notification. [MONEY-001] */
         const val ZONE_SPOT_ALERT_NOTIFICATION_ID = 2009
+
+        /** El aviso de que alguien del grupo ha aparcado el coche compartido.
+         *  [SHARED-A-PARKING-TELLS-THE-GROUP-001] */
+        const val SHARED_CAR_PARKED_NOTIFICATION_ID = 2012
 
         /** ID for the Plus "a cheaper pump nearby" alert. [FUEL-A-PRICE-REMEMBERED-…-001] */
         const val CHEAPER_FUEL_NOTIFICATION_ID = 2010

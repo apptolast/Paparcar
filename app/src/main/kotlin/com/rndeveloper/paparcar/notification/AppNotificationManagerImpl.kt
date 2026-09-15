@@ -157,6 +157,41 @@ class AppNotificationManagerImpl(
     }
 
     /**
+     * Alguien del grupo ha aparcado el coche compartido.
+     * [SHARED-A-PARKING-TELLS-THE-GROUP-001]
+     *
+     * Mismo intent que la alerta de zona —abre el mapa centrado en el punto—, porque la pregunta
+     * que resuelve es la misma: *¿dónde está eso?*.
+     */
+    override fun showSharedCarParked(
+        authorName: String?,
+        addressLine: String?,
+        latitude: Double,
+        longitude: Double,
+    ) {
+        val title = authorName
+            ?.let { context.getString(R.string.notif_shared_car_parked_title, it) }
+            ?: context.getString(R.string.notif_shared_car_parked_title_unknown)
+        val notification = NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
+            .setContentTitle(title)
+            .setContentText(
+                addressLine
+                    ?.let { context.getString(R.string.notif_shared_car_parked_text, it) }
+                    ?: context.getString(R.string.notif_shared_car_parked_text_unknown),
+            )
+            .setSmallIcon(R.drawable.ic_notification_logo)
+            .setColor(COLOR_SUCCESS)
+            .setCategory(NotificationCompat.CATEGORY_EVENT)
+            .setContentIntent(buildFocusIntent(RC_SHARED_CAR_PARKED, latitude, longitude))
+            .setAutoCancel(true)
+            .build()
+        notificationManager.notify(
+            AppNotificationManager.SHARED_CAR_PARKED_NOTIFICATION_ID,
+            notification,
+        )
+    }
+
+    /**
      * [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001] Plus fuel alert: a cheaper pump than
      * the driver's usual one, near them. Informative (UPLOAD channel), same tier and same
      * double-gating as the zone alert — the watch use case checks the switch at decision time and
@@ -688,6 +723,7 @@ class AppNotificationManagerImpl(
         private const val RC_ZONE_SPOT_ALERT = 18
         private const val RC_CHEAPER_FUEL = 19
         private const val RC_FUEL_PRICE_MOVE = 20
+        private const val RC_SHARED_CAR_PARKED = 21
         private const val RC_CONFIRM_YES = 200
         private const val RC_CONFIRM_NO = 201
         // [REFACTOR-300] post-save notification request codes

@@ -105,6 +105,8 @@ data class SharedCarMemberDto(
     val role: String = "MEMBER",
     /** Whether this person's routes are visible to the group. [VEH-SHARED-001] */
     val sharesRoutes: Boolean = true,
+    /** The devices to tell when somebody parks this car. [SHARED-A-PARKING-TELLS-THE-GROUP-001] */
+    val tokens: List<String> = emptyList(),
     /** The invite this membership was born from — the rules read it to verify the claim. */
     val inviteCode: String? = null,
 )

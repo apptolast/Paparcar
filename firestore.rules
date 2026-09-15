@@ -65,8 +65,8 @@ service cloud.firestore {
     //
     // ⚠️ El tope de 4 miembros NO se puede comprobar aquí (las reglas no cuentan una colección): lo
     // impone el cliente al CREAR el código, que es el único momento en que alguien con permiso de
-    // lectura sobre `members` decide si cabe uno más. Endurecerlo es trabajo de la Cloud Function
-    // de la etapa 2, junto con el dedupe y el push.
+    // lectura sobre `members` decide si cabe uno más. Endurecerlo sigue siendo trabajo de la etapa
+    // 2, junto con el dedupe entre dos móviles del mismo grupo.
     match /sharedCars/{carId} {
       function isMember() {
         return request.auth != null
@@ -103,13 +103,22 @@ service cloud.firestore {
 
         allow read: if request.auth != null
                     && exists(/databases/$(database)/documents/sharedCars/$(carId)/members/$(request.auth.uid));
-        allow create, update: if request.auth != null
-                              && uid == request.auth.uid
-                              && request.resource.data.uid == request.auth.uid
-                              && (
-                                   get(/databases/$(database)/documents/sharedCars/$(carId)).data.ownerUid == request.auth.uid
-                                   || holdsValidInvite(request.resource.data.inviteCode)
-                                 );
+        allow create: if request.auth != null
+                      && uid == request.auth.uid
+                      && request.resource.data.uid == request.auth.uid
+                      && (
+                           get(/databases/$(database)/documents/sharedCars/$(carId)).data.ownerUid == request.auth.uid
+                           || holdsValidInvite(request.resource.data.inviteCode)
+                         );
+        // ⛔ El UPDATE no vuelve a pedir el invite: caduca en 24 h y el miembro tiene que poder
+        // mantener SU propia ficha para siempre — el token de FCM rota en cada reinstalación, y sin
+        // esto un móvil conservaría su sitio en el grupo y dejaría de recibir avisos en silencio.
+        // Que el documento YA exista es la prueba de que la entrada ocurrió.
+        // [SHARED-A-PARKING-TELLS-THE-GROUP-001]
+        allow update: if request.auth != null
+                      && uid == request.auth.uid
+                      && request.resource.data.uid == request.auth.uid
+                      && resource != null;
         // Salir es cosa de uno; enseñar la puerta, del dueño.
         allow delete: if request.auth != null
                       && (uid == request.auth.uid

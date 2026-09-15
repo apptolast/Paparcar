@@ -192,6 +192,11 @@ class GeofenceJanitorWorker(
         const val TRIGGER_APP_UPDATE = "app-update"
         const val TRIGGER_APP_START = "app-start"
         const val TRIGGER_POST_SYNC = "post-sync"
+
+        /** Alguien del grupo acaba de aparcar y el servidor nos ha despertado para moverle la valla
+         *  al coche. Su propia etiqueta porque es una lane nueva y la telemetría tiene que poder
+         *  contarla aparte. [SHARED-A-PARKING-TELLS-THE-GROUP-001] */
+        const val TRIGGER_SHARED_CAR_PUSH = "shared-car-push"
         internal const val TRIGGER_PERIODIC = "periodic"
 
         /** The registration event's `source`: `janitor:<trigger>`, with absent input data reading
