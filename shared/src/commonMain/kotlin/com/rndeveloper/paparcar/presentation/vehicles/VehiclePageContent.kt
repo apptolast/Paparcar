@@ -3,6 +3,7 @@
 package com.rndeveloper.paparcar.presentation.vehicles
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -16,8 +17,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Adjust
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.LocationOn
-import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.AccessTimeFilled
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -28,6 +30,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.domain.model.UserParking
@@ -53,7 +57,7 @@ import paparcar.composeapp.generated.resources.vehicle_set_active_action
 import paparcar.composeapp.generated.resources.vehicle_state_last_parking
 import paparcar.composeapp.generated.resources.vehicle_state_never_parked
 import paparcar.composeapp.generated.resources.vehicle_state_parked
-import paparcar.composeapp.generated.resources.vehicle_state_parked_at
+import paparcar.composeapp.generated.resources.vehicle_view_on_map
 
 @Composable
 internal fun VehiclePageContent(
@@ -89,6 +93,27 @@ internal fun VehiclePageContent(
                 // the consequence dialog), never switch silently. [VEH-ACTIVE-FENCE-001]
                 onSetActive = onRequestSetActive,
                 onEdit = { onIntent(VehiclesIntent.EditVehicle(vehicleId)) },
+                // The way back to the map, on the SAME lambda the history rows use — one gesture,
+                // one destination, so the live session and a past one can never drift apart.
+                // [UI-A-PARKED-CARD-OFFERS-THE-WAY-ACROSS-001]
+                // ⛔ DOS destinos, porque son dos cosas. Un aparcamiento VIVO se mira en Home
+                // —donde se puede uno ir, navegar o corregir el pin—, que es la regla editorial del
+                // proyecto: si pasa AHORA, Home. Una sesión CERRADA no tiene pin en Home, así que va
+                // al detalle del historial, en la misma lambda que sus propias filas.
+                // [UI-A-PARKED-CARD-OFFERS-THE-WAY-ACROSS-001]
+                onViewOnMap = { session ->
+                    onIntent(
+                        if (session.isActive) {
+                            VehiclesIntent.ViewLiveParkingOnMap(session.id)
+                        } else {
+                            VehiclesIntent.ViewOnMap(
+                                lat = session.location.latitude,
+                                lon = session.location.longitude,
+                                sessionId = session.id,
+                            )
+                        },
+                    )
+                },
             )
         },
     )
@@ -108,55 +133,116 @@ internal fun VehiclePageContent(
  * all reads as a card that failed to load.
  */
 @Composable
-private fun VehicleStateLine(lastSession: UserParking?, watch: VehicleWatch) {
-    val cs = MaterialTheme.colorScheme
+private fun VehicleStateLine(
+    lastSession: UserParking?,
+    watch: VehicleWatch,
+    onViewOnMap: (UserParking) -> Unit,
+) {
     val parkedNow = lastSession?.isActive == true
     // The glyph carries the vehicle's identity colour; the words stay onSurface. Same split the
     // whole app uses — the state is written, never tinted. [UI-COLOR-DOCTRINE-001]
+    val tint = vehicleIdentityColor(watch)
     val place = lastSession?.let { locationDisplayText(placeInfo = it.placeInfo, address = it.address) }
 
+    // ⛔ El enlace al mapa NO es un botón aparte. Lo fue un rato —un link verde bajo estas líneas— y
+    // no encajaba: metía un cuarto elemento suelto en una card cuyo bloque de estado ya nombra el
+    // sitio del que habla. Ahora el bloque ENTERO se toca y lleva su chevron, que es como la app
+    // dice "esta fila abre algo" en el modal. La dirección ES el enlace, y de paso el área táctil
+    // pasa a ser las dos líneas en vez de un texto de 20 dp.
+    // [UI-A-PARKED-CARD-OFFERS-THE-WAY-ACROSS-001] [UI-LIST-ITEM-001]
     Row(
+        modifier = Modifier
+            .then(
+                // ⛔ SIN `clip`. Llevó un rato `PapShapes.chip`, que es una píldora de 999 dp: sobre
+                // una fila de dos líneas el arco entra decenas de dp por cada extremo y RECORTA lo
+                // que viva en las esquinas — o sea el pin y el reloj, que arrancan pegados al
+                // margen izquierdo. Se veían mordidos en device (user, 15-09). El ripple
+                // rectangular de la fila es además lo que hace cualquier fila de lista.
+                if (lastSession != null) {
+                    Modifier.clickable { onViewOnMap(lastSession) }
+                } else Modifier,
+            )
+            .fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(STATE_LINE_GAP.dp),
+        ) {
+            // WHERE, on its own line with the place glyph — and only when there IS a place to name.
+            // It used to share one sentence with the time behind a single icon, which made that icon
+            // mean "place" here and "time" one state later; now the pin is always the place and the
+            // clock is always the time. [UI-A-PARKED-CARD-SAYS-WHERE-AND-WHEN-IN-TWO-LINES-001]
+            if (parkedNow && place != null) {
+                VehicleStateRow(
+                    // An approximate close saved an AREA, and the zone glyph is how the rest of the
+                    // app says so. [UI-APPROXIMATE-ZONE-IN-HISTORY-001]
+                    icon = if (lastSession.isApproximate) Icons.Rounded.Adjust else Icons.Rounded.LocationOn,
+                    text = place,
+                    tint = tint,
+                    // Two lines before truncating: an address rarely fits one line on a narrow
+                    // device, and eating the WHERE to keep the height is backwards — the place is
+                    // the payload of this line. [UI-STATS-HEADER-WRAPS-THE-WRONG-SIDE-001]
+                    maxLines = PLACE_MAX_LINES,
+                )
+            }
+            // WHEN — always present, always the clock. The state stays WRITTEN in it ("Parked · 2 h
+            // ago"), so a car with no resolved address still says what it is doing.
+            VehicleStateRow(
+                icon = Icons.Rounded.AccessTimeFilled,
+                text = when {
+                    lastSession == null -> stringResource(Res.string.vehicle_state_never_parked)
+                    parkedNow -> stringResource(
+                        Res.string.vehicle_state_parked,
+                        relativeTimeText(lastSession.location.timestamp),
+                    )
+                    else -> stringResource(
+                        Res.string.vehicle_state_last_parking,
+                        relativeTimeText(lastSession.location.timestamp),
+                    )
+                },
+                tint = tint,
+            )
+        }
+        // Chrome, no identidad: el chevron dice "se abre", no de quién es el coche.
+        // [UI-COLOR-DOCTRINE-001]
+        if (lastSession != null) {
+            Icon(
+                imageVector = Icons.Rounded.ChevronRight,
+                contentDescription = stringResource(Res.string.vehicle_view_on_map),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(STATE_CHEVRON_DP.dp),
+            )
+        }
+    }
+}
+
+/** One state row of the ficha: its icon, its fact. */
+@Composable
+private fun VehicleStateRow(
+    icon: ImageVector,
+    text: String,
+    tint: Color,
+    maxLines: Int = 1,
+) {
+    Row(
+        verticalAlignment = if (maxLines == 1) Alignment.CenterVertically else Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(STATE_ICON_GAP.dp),
     ) {
         Icon(
-            imageVector = when {
-                // An approximate close saved an AREA, and the zone glyph is how the rest of the app
-                // says so. [UI-APPROXIMATE-ZONE-IN-HISTORY-001]
-                parkedNow && lastSession.isApproximate -> Icons.Rounded.Adjust
-                parkedNow -> Icons.Rounded.LocationOn
-                else -> Icons.Rounded.Schedule
-            },
+            imageVector = icon,
             contentDescription = null,
-            tint = vehicleIdentityColor(watch),
+            tint = tint,
             modifier = Modifier.size(STATE_ICON_DP.dp),
         )
         Text(
-            text = when {
-                lastSession == null -> stringResource(Res.string.vehicle_state_never_parked)
-                parkedNow && place != null -> stringResource(
-                    Res.string.vehicle_state_parked_at,
-                    place,
-                    relativeTimeText(lastSession.location.timestamp),
-                )
-                parkedNow -> stringResource(
-                    Res.string.vehicle_state_parked,
-                    relativeTimeText(lastSession.location.timestamp),
-                )
-                else -> stringResource(
-                    Res.string.vehicle_state_last_parking,
-                    relativeTimeText(lastSession.location.timestamp),
-                )
-            },
+            text = text,
             // `meta` (LECTURA) rather than `caption`: this is not more quiet metadata about the car,
             // it is what the car is DOING — and onSurface separates it from the two grey attribute
             // lines above without spending a colour on it.
             style = PaparcarType.current.meta,
-            color = cs.onSurface,
-            // Two lines before truncating: an address plus its relative time rarely fits one line
-            // on a narrow device, and eating the WHERE to keep the height is backwards — the place
-            // is the payload of this line. [UI-STATS-HEADER-WRAPS-THE-WRONG-SIDE-001]
-            maxLines = 2,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = maxLines,
             overflow = TextOverflow.Ellipsis,
         )
     }
@@ -181,6 +267,7 @@ private fun VehicleHeroCard(
     isSettingActive: Boolean,
     onSetActive: () -> Unit,
     onEdit: () -> Unit,
+    onViewOnMap: (UserParking) -> Unit,
 ) {
     val vehicle = vehicleWithStats.vehicle
     val monitoring = vehicle.monitoringStatus()
@@ -216,9 +303,12 @@ private fun VehicleHeroCard(
                 // attribute of the car, not a floating meta line. [VEH-FUEL-001]
                 metaSecondLine = vehicleFuelMetaLine(vehicle),
                 statusLine = {
+                    // El bloque de estado es además la puerta al mapa: dice dónde está el coche, así
+                    // que tocarlo lleva allí. [UI-A-PARKED-CARD-OFFERS-THE-WAY-ACROSS-001]
                     VehicleStateLine(
                         lastSession = vehicleWithStats.lastSession,
                         watch = monitoring.watch(),
+                        onViewOnMap = onViewOnMap,
                     )
                 },
                 trailing = {
@@ -287,6 +377,12 @@ private fun SetActiveRow(isLoading: Boolean, onClick: () -> Unit) {
 
 private const val STATE_ICON_DP = 15
 private const val STATE_ICON_GAP = 6
+/** Aire entre el lugar y el tiempo: son dos mitades del mismo hecho, no dos bloques.
+ *  [UI-A-PARKED-CARD-SAYS-WHERE-AND-WHEN-IN-TWO-LINES-001] */
+private const val STATE_LINE_GAP = 4
+private const val PLACE_MAX_LINES = 2
+/** El chevron de "esto se abre". Más grande que los iconos de dato: es chrome de fila, no un dato. */
+private const val STATE_CHEVRON_DP = 20
 private const val CARD_PADDING = 16
 // Identity block paddings per the design spec (15 top / 13 bottom).
 private const val IDENTITY_TOP_PAD = 15

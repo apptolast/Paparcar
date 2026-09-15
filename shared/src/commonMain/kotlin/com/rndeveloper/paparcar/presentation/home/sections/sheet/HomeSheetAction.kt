@@ -46,6 +46,15 @@ sealed interface HomeSheetAction {
      */
     data class RequestRelease(val sessionId: String) : HomeSheetAction
 
+    /**
+     * "Ver vehículo" on the parking peek — leave Home for the Vehicles tab, opened ON [vehicleId]:
+     * its ficha, its history, its figures. [UI-A-PARKED-CARD-OFFERS-THE-WAY-ACROSS-001]
+     *
+     * The id travels because the modal knows WHICH car it is talking about and the tab, with two
+     * cars, would otherwise land on whichever one the pager happened to rest at.
+     */
+    data class OpenVehicle(val vehicleId: String) : HomeSheetAction
+
     /** "Report a free spot" CTA — enter Reporting mode centred on the current camera. */
     data object RequestReportMode : HomeSheetAction
 

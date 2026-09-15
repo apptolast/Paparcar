@@ -9,6 +9,7 @@
     <string name="home_vehicle_chip_status_candidate">Parkeren…</string>
     <!-- PapSheet actions + browse header. [UI-SHEET-001] -->
     <string name="home_parking_leave_release">Ik vertrek</string>
+    <string name="home_parking_view_vehicle">Voertuig bekijken</string>
     <string name="home_parking_edit_menu_cd">Parkeerlocatie bewerken</string>
     <!-- Drie antwoorden op één vraag: dezelfde parkeerplek of een andere? Het scherm gebruikt
          "parkeerplek" voor je eigen sessie en "plek" voor de community.
@@ -525,6 +526,8 @@
     <!-- nl batch: added missing keys -->
     <string name="home_peek_car_parked_label">Je auto staat geparkeerd</string>
     <string name="home_peek_parking_duration_hm">%1$dh %2$dm geleden geparkeerd</string>
+    <string name="home_peek_parking_duration_day">%1$d dag geleden geparkeerd</string>
+    <string name="home_peek_parking_duration_days">%1$d dagen geleden geparkeerd</string>
     <string name="home_peek_parking_duration_min">%1$d min geleden geparkeerd</string>
     <string name="home_peek_parking_duration_now">Zojuist geparkeerd</string>
     <string name="home_peek_parking_approximate">Ergens binnen %1$d m: we zijn het einde van de rit kwijtgeraakt. Bewerk om hem te plaatsen.</string>
@@ -837,6 +840,7 @@
     <string name="stats_empty_turn_on_detection">Zet automatische detectie aan zodat je ritten en parkeerbeurten worden gemeten.</string>
     <!-- Vehicle state line (STATS-UI-001) -->
     <string name="vehicle_state_parked">Geparkeerd · %1$s</string>
+    <string name="vehicle_view_on_map">Bekijk op kaart</string>
     <string name="vehicle_state_last_parking">Laatste parkeerplaats · %1$s</string>
     <string name="vehicle_state_never_parked">Nog niet geparkeerd</string>
     <!-- Stats panel (STATS-PANEL-001) -->
@@ -844,7 +848,6 @@
     <string name="stats_panel_empty_body">Nog geen parkeerplaatsen in deze periode. Parkeer een paar keer en de cijfers vullen zich vanzelf.</string>
     <string name="stats_open_panel">Volledig overzicht bekijken</string>
     <!-- Where the car is parked, on the ficha state line (STATS-UI-001) -->
-    <string name="vehicle_state_parked_at">%1$s · %2$s</string>
     <!-- Price the user actually pays (FUEL-PRICE-RESOLVER-001) -->
     <string name="vehicle_registration_fuel_price_label">Prijs per liter (%1$s)</string>
     <string name="vehicle_registration_energy_price_label">Prijs per kWh (%1$s)</string>

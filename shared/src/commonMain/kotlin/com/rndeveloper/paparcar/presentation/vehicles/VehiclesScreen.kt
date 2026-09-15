@@ -107,15 +107,25 @@ fun VehiclesScreen(
     onAddVehicle: () -> Unit = {},
     onEditVehicle: (vehicleId: String) -> Unit = {},
     onNavigateToMap: (lat: Double, lon: Double, sessionId: String) -> Unit = { _, _, _ -> },
+    /** Volver a Home sobre un aparcamiento que sigue vivo. [UI-A-PARKED-CARD-OFFERS-THE-WAY-ACROSS-001] */
+    onNavigateToLiveParking: (sessionId: String) -> Unit = {},
     onShowExplainer: () -> Unit = {},
     onOpenPaywall: (PaywallReason) -> Unit = {},
     /** Plus opening the full figures panel on a given car. [STATS-PANEL-001] */
     onOpenStats: (vehicleId: String) -> Unit = {},
+    /** Which car to open on, when the screen was entered FROM that car ("Ver vehículo" in Home's
+     *  parking modal). Null on a plain tab tap, which keeps whatever was selected.
+     *  [UI-A-PARKED-CARD-OFFERS-THE-WAY-ACROSS-001] */
+    focusVehicleId: String? = null,
     viewModel: VehiclesViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val errorFallback = stringResource(Res.string.error_unknown)
+
+    LaunchedEffect(focusVehicleId) {
+        focusVehicleId?.let { viewModel.handleIntent(VehiclesIntent.FocusVehicle(it)) }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
@@ -123,6 +133,7 @@ fun VehiclesScreen(
                 is VehiclesEffect.NavigateToAddVehicle -> onAddVehicle()
                 is VehiclesEffect.NavigateToEditVehicle -> onEditVehicle(effect.vehicleId)
                 is VehiclesEffect.NavigateToMap -> onNavigateToMap(effect.lat, effect.lon, effect.sessionId)
+                is VehiclesEffect.NavigateToLiveParking -> onNavigateToLiveParking(effect.sessionId)
                 is VehiclesEffect.NavigateToPaywall -> onOpenPaywall(effect.reason)
                 is VehiclesEffect.NavigateToStats -> onOpenStats(effect.vehicleId)
                 is VehiclesEffect.ShowError -> snackbarHostState.showSnackbar(errorFallback)

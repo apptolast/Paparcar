@@ -7,6 +7,10 @@ sealed class VehiclesEffect {
     data object NavigateToAddVehicle : VehiclesEffect()
     data class NavigateToEditVehicle(val vehicleId: String) : VehiclesEffect()
     data class NavigateToMap(val lat: Double, val lon: Double, val sessionId: String = "") : VehiclesEffect()
+
+    /** Volver a Home con ESTE aparcamiento vivo seleccionado y la cámara encima — el mismo gesto que
+     *  tocar su marcador. [UI-A-PARKED-CARD-OFFERS-THE-WAY-ACROSS-001] */
+    data class NavigateToLiveParking(val sessionId: String) : VehiclesEffect()
     data class ShowError(val error: PaparcarError) : VehiclesEffect()
 
     /** Open the Paparcar Plus paywall, stamped with WHY. [MONEY-001][FREE-LIMITS-001] */

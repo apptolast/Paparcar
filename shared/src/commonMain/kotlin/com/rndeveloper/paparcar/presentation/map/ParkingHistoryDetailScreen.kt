@@ -32,7 +32,7 @@ import androidx.compose.material.icons.rounded.EditLocationAlt
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Navigation
 import androidx.compose.material.icons.rounded.Radar
-import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.AccessTimeFilled
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -769,7 +769,7 @@ private fun DateTimeRow(timestampMs: Long, tint: Color) {
     val monthStr = stringResource(MONTH_SHORT_RES[dateTime.month.ordinal])
     val dateStr = "${dateTime.day} $monthStr ${dateTime.year}"
 
-    PeekMetaRow(icon = Icons.Rounded.Schedule, tint = tint, text = "$dateStr · $timeStr")
+    PeekMetaRow(icon = Icons.Rounded.AccessTimeFilled, tint = tint, text = "$dateStr · $timeStr")
 }
 
 /**

@@ -275,4 +275,59 @@ class VehiclesViewModelTest {
         }
     }
 
+    /**
+     * Un aparcamiento VIVO se ve en Home, no en el detalle de una sesión cerrada: es el AHORA y es
+     * donde se puede actuar sobre él. [UI-A-PARKED-CARD-OFFERS-THE-WAY-ACROSS-001]
+     */
+    @Test
+    fun `should_sendBackToHome_when_theParkingBeingWatchedIsStillLive`() = runTest {
+        vm.effect.test {
+            vm.handleIntent(VehiclesIntent.ViewLiveParkingOnMap("s1"))
+            val effect = awaitItem()
+            assertIs<VehiclesEffect.NavigateToLiveParking>(effect)
+            assertEquals("s1", effect.sessionId)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    // ── Foco pedido desde fuera de la pantalla ────────────────────────────────
+    // [UI-A-PARKED-CARD-OFFERS-THE-WAY-ACROSS-001]
+
+    @Test
+    fun `should_openOnTheAskedCar_when_theListIsAlreadyThere`() = runTest {
+        vehicleRepo.saveVehicle(vehicle("v1"))
+        vehicleRepo.saveVehicle(vehicle("v2"))
+
+        vm.handleIntent(VehiclesIntent.FocusVehicle("v2"))
+
+        assertEquals(1, vm.state.value.selectedVehicleIndex)
+        assertNull(vm.state.value.pendingFocusVehicleId)
+    }
+
+    /**
+     * La carrera real: "Ver vehículo" navega y la pantalla pide el foco ANTES de que Room haya
+     * emitido los coches. Si la petición se descartara, el modal de un coche abriría la ficha de
+     * otro — que es exactamente lo que el botón existe para no hacer.
+     */
+    @Test
+    fun `should_holdTheRequestAndResolveIt_when_theListArrivesLater`() = runTest {
+        vm.handleIntent(VehiclesIntent.FocusVehicle("v2"))
+        assertEquals("v2", vm.state.value.pendingFocusVehicleId)
+
+        vehicleRepo.saveVehicle(vehicle("v1"))
+        vehicleRepo.saveVehicle(vehicle("v2"))
+
+        assertEquals(1, vm.state.value.selectedVehicleIndex)
+        assertNull(vm.state.value.pendingFocusVehicleId)
+    }
+
+    @Test
+    fun `should_keepTheCurrentCar_when_theAskedOneIsNotRegistered`() = runTest {
+        vehicleRepo.saveVehicle(vehicle("v1"))
+
+        vm.handleIntent(VehiclesIntent.FocusVehicle("ghost"))
+
+        assertEquals(0, vm.state.value.selectedVehicleIndex)
+    }
+
 }

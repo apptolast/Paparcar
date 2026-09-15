@@ -33,6 +33,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.MutableFloatState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -49,6 +50,7 @@ import com.rndeveloper.paparcar.ui.components.PapAlertDialog
 import com.rndeveloper.paparcar.ui.components.PapDialogAccent
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import androidx.navigation.NavDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -374,6 +376,12 @@ private fun MainAppNavigation(
     val navController = rememberNavController()
     val currentBackStack by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStack?.destination?.route
+    // La IDENTIDAD de una pestana es su ruta BASE. Vehiculos acepta ahora un `?vehicleId=`
+    // opcional (abrir la ficha de un coche concreto desde el modal de Home), y con el argumento
+    // en la ruta registrada `destination.route` vale `vehicles?vehicleId={vehicleId}`: comparar
+    // la cadena entera dejaba la bottom nav sin marcar y sin deslizamiento.
+    // [UI-A-PARKED-CARD-OFFERS-THE-WAY-ACROSS-001]
+    val currentTabRoute = currentRoute?.substringBefore('?')
 
     // We deliberately do NOT force-navigate to PERMISSIONS when a permission or GPS is lost
     // mid-session: that ejected the user to a full-screen gate even for non-blocking losses
@@ -415,13 +423,13 @@ private fun MainAppNavigation(
             // hide overrode that and surprised users who expected tab navigation
             // to stay reachable whenever the modal was at peek.
             AnimatedVisibility(
-                visible = (currentRoute ?: startRoute) in BOTTOM_NAV_ROUTES,
+                visible = (currentTabRoute ?: startRoute) in BOTTOM_NAV_ROUTES,
                 enter = slideInVertically { it },
                 exit = slideOutVertically { it },
             ) {
                 AppBottomNavigation(
                     items = bottomNavItems,
-                    currentRoute = currentRoute,
+                    currentRoute = currentTabRoute,
                     onNavigate = { route -> navController.navigateToTab(route) },
                     modifier = Modifier.graphicsLayer {
                         alpha = navProgress.floatValue
@@ -441,8 +449,8 @@ private fun MainAppNavigation(
             startDestination = startRoute,
             modifier = Modifier.fillMaxSize(),
             enterTransition = {
-                val fromIdx = BOTTOM_NAV_TAB_ORDER.indexOf(initialState.destination.route)
-                val toIdx = BOTTOM_NAV_TAB_ORDER.indexOf(targetState.destination.route)
+                val fromIdx = BOTTOM_NAV_TAB_ORDER.indexOf(initialState.destination.tabRoute())
+                val toIdx = BOTTOM_NAV_TAB_ORDER.indexOf(targetState.destination.tabRoute())
                 if (fromIdx >= 0 && toIdx >= 0) {
                     val dir = if (toIdx > fromIdx) 1 else -1
                     fadeIn(navEnterSpec()) + slideInHorizontally(navEnterSpec()) { dir * it / NAV_SLIDE_FRACTION }
@@ -451,8 +459,8 @@ private fun MainAppNavigation(
                 }
             },
             exitTransition = {
-                val fromIdx = BOTTOM_NAV_TAB_ORDER.indexOf(initialState.destination.route)
-                val toIdx = BOTTOM_NAV_TAB_ORDER.indexOf(targetState.destination.route)
+                val fromIdx = BOTTOM_NAV_TAB_ORDER.indexOf(initialState.destination.tabRoute())
+                val toIdx = BOTTOM_NAV_TAB_ORDER.indexOf(targetState.destination.tabRoute())
                 if (fromIdx >= 0 && toIdx >= 0) {
                     val dir = if (toIdx > fromIdx) 1 else -1
                     fadeOut(navExitSpec()) + slideOutHorizontally(navExitSpec()) { -dir * it / NAV_SLIDE_FRACTION }
@@ -572,8 +580,20 @@ private fun MainAppNavigation(
                     },
                 )
             }
-            composable(Routes.HOME) {
+            composable(Routes.HOME) { backStack ->
+                // La ficha pidio ver AQUI un aparcamiento vivo. Viaja por el savedStateHandle de la
+                // propia entrada de Home y no por un argumento de ruta, porque a Home no se NAVEGA
+                // desde una pestana hermana: se vuelve a el (esta debajo en la pila), y una ruta con
+                // argumento obligaria a recrearlo —mapa incluido— para entregar un id.
+                // [UI-A-PARKED-CARD-OFFERS-THE-WAY-ACROSS-001]
+                val focusParkingId by backStack.savedStateHandle
+                    .getStateFlow<String?>(HOME_FOCUS_PARKING_KEY, null)
+                    .collectAsState()
                 HomeScreen(
+                    focusParkingId = focusParkingId,
+                    onFocusParkingConsumed = {
+                        backStack.savedStateHandle[HOME_FOCUS_PARKING_KEY] = null
+                    },
                     navProgressState = navProgress,
                     bottomPadding = scaffoldPadding.calculateBottomPadding(),
                     // [DET-READY-001f] Banner "Turn on" → reuse the permission flow (disclosure +
@@ -597,6 +617,9 @@ private fun MainAppNavigation(
                         navController.navigate("${Routes.FIRST_STEP_EXPLAINER}/${step.name}")
                     },
                     onOpenPaywall = { reason -> navController.navigate("${Routes.PAYWALL}?reason=${reason.name}") },
+                    // [UI-A-PARKED-CARD-OFFERS-THE-WAY-ACROSS-001] "Ver vehiculo" en el modal de
+                    // aparcamiento: la pestana Vehiculos, abierta en ESE coche.
+                    onOpenVehicle = { vehicleId -> navController.navigateToVehicle(vehicleId) },
                 )
             }
             composable(
@@ -630,13 +653,21 @@ private fun MainAppNavigation(
                     sessionId = sessionId,
                 )
             }
-            composable(Routes.VEHICLES) {
+            composable(
+                route = "${Routes.VEHICLES}?vehicleId={vehicleId}",
+                arguments = listOf(
+                    navArgument("vehicleId") { type = NavType.StringType; nullable = true; defaultValue = null },
+                ),
+            ) { backStack ->
                 Box(
                     modifier = Modifier
                         .padding(scaffoldPadding)
                         .consumeWindowInsets(scaffoldPadding),
                 ) {
                     VehiclesScreen(
+                        // Con que coche abrir el pager. Nulo en el toque normal de la pestana, que
+                        // conserva el que estuviera. [UI-A-PARKED-CARD-OFFERS-THE-WAY-ACROSS-001]
+                        focusVehicleId = backStack.arguments?.read { getStringOrNull("vehicleId") },
                         onAddVehicle = {
                             navController.navigate("${Routes.VEHICLE_REGISTRATION}?origin=vehicles")
                         },
@@ -645,6 +676,16 @@ private fun MainAppNavigation(
                         },
                         onNavigateToMap = { lat, lon, sessionId ->
                             navController.navigate("${Routes.PARKING_HISTORY_DETAIL}?lat=$lat&lon=$lon&sessionId=$sessionId")
+                        },
+                        // Un aparcamiento VIVO se ve en Home, no en el detalle de una sesion cerrada:
+                        // es el AHORA, y es donde se puede uno ir, navegar o corregir el pin. Se deja
+                        // el id en la entrada de Home y se VUELVE a el —Home esta debajo en la pila—,
+                        // en vez de apilar una pantalla mas sobre la pestana.
+                        // [UI-A-PARKED-CARD-OFFERS-THE-WAY-ACROSS-001]
+                        onNavigateToLiveParking = { sessionId ->
+                            navController.getBackStackEntry(Routes.HOME)
+                                .savedStateHandle[HOME_FOCUS_PARKING_KEY] = sessionId
+                            navController.popBackStack(Routes.HOME, inclusive = false)
                         },
                         onShowExplainer = {
                             navController.navigate(Routes.VEHICLE_SIZE_EXPLAINER)
@@ -774,6 +815,28 @@ private const val NAV_SLIDE_FRACTION = 6
 // exact same curve/duration (default slide* uses a spring → it would desync the fade).
 private fun <T> navEnterSpec() = tween<T>(NAV_ENTER_MS, easing = PapMotion.Standard)
 private fun <T> navExitSpec() = tween<T>(NAV_EXIT_MS, easing = PapMotion.Standard)
+
+/**
+ * Abrir la pestana Vehiculos EN un coche. [UI-A-PARKED-CARD-OFFERS-THE-WAY-ACROSS-001]
+ *
+ * ⛔ Sin `restoreState`, a diferencia de [navigateToTab]. Navigation Compose, cuando hay estado
+ * guardado para el destino, RESTAURA la entrada vieja con sus argumentos viejos en lugar de crear
+ * una nueva con el `vehicleId` que acabamos de pasar: el salto habria aterrizado en el coche
+ * anterior justo cuando el sentido del boton es aterrizar en este. Una entrada nueva cuesta el
+ * scroll guardado de la pestana, que es exactamente lo que este gesto quiere reemplazar.
+ */
+/** Donde la ficha deja "abre este aparcamiento" para Home. [UI-A-PARKED-CARD-OFFERS-THE-WAY-ACROSS-001] */
+private const val HOME_FOCUS_PARKING_KEY = "focusParkingId"
+
+private fun NavController.navigateToVehicle(vehicleId: String) {
+    navigate("${Routes.VEHICLES}?vehicleId=$vehicleId") {
+        popUpTo(Routes.HOME) { saveState = true }
+        launchSingleTop = true
+    }
+}
+
+/** La ruta de pestana a la que pertenece un destino: su ruta base, sin argumentos. */
+private fun NavDestination.tabRoute(): String? = route?.substringBefore('?')
 
 private fun NavController.navigateToTab(route: String) {
     navigate(route) {

@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Navigation
-import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.AccessTimeFilled
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -100,7 +100,7 @@ internal fun PublicParkingPeek(
                 // As the source words it — "24/7", "Mo-Sa 08:00-22:00"… never parsed, never judged:
                 // a wrong parse closes a car park that is open.
                 PeekMetaRow(
-                    icon = Icons.Rounded.Schedule,
+                    icon = Icons.Rounded.AccessTimeFilled,
                     text = hours,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

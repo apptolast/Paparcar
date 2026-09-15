@@ -188,9 +188,23 @@ fun VehicleIdentityHeader(
             // manda (`alignsWithFirstLine`), porque el tile del coche tiene que casar con la primera
             // línea del nombre — pero eso arrastraba también al trailing, y con una dirección que
             // envuelve a dos líneas el chevron quedaba colgando del borde superior de la card.
-            // Alinear al centro AQUÍ deja el tile donde debe y el chevron donde se espera.
             // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
-            Box(modifier = Modifier.align(Alignment.CenterVertically)) { trailing() }
+            //
+            // Y centrado ¿respecto a QUÉ? Cuando el bloque de texto manda, la fila mide cuatro
+            // líneas y el centro de la fila cae a media card: el lápiz de la ficha quedaba flotando
+            // entre el nombre y el estado, sin casar con nada. Centrarlo sobre la ALTURA DEL TILE lo
+            // pone a la altura del coche, que es el ancla visual de la card. Cuando el texto es
+            // corto (la card de Home: nombre + estado) la fila ya está centrada y no hay diferencia
+            // que corregir. Derivado del contenido, como la propia alineación de la fila.
+            // (User, 15-09.) [UI-A-PARKED-CARD-SAYS-WHERE-AND-WHEN-IN-TWO-LINES-001]
+            Box(
+                modifier = if (alignsWithFirstLine) {
+                    Modifier.height(TILE_DP.dp)
+                } else {
+                    Modifier.align(Alignment.CenterVertically)
+                },
+                contentAlignment = Alignment.Center,
+            ) { trailing() }
         }
     }
 }

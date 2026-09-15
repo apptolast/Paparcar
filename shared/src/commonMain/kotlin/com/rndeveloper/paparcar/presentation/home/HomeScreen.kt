@@ -183,6 +183,14 @@ fun HomeScreen(
     // (reuses its disclosure + escalation) and to vehicle registration respectively.
     onActivateDetection: (focus: String) -> Unit = {},
     onAddVehicle: () -> Unit = {},
+    /** Leave for the Vehicles tab, opened on this car's ficha. [UI-A-PARKED-CARD-OFFERS-THE-WAY-ACROSS-001] */
+    onOpenVehicle: (vehicleId: String) -> Unit = {},
+    /** Arrive AT a parking: the ficha's "Ver en mapa" on a session that is still live. Home opens it
+     *  exactly as tapping its marker does. Null when nobody asked.
+     *  [UI-A-PARKED-CARD-OFFERS-THE-WAY-ACROSS-001] */
+    focusParkingId: String? = null,
+    /** Called once the request above has been honoured, so a rotation does not replay it. */
+    onFocusParkingConsumed: () -> Unit = {},
     /** Deep link into the car-Bluetooth screen for a vehicle — the fortify step's Bluetooth face.
      *  [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] */
     onLinkVehicleBluetooth: (vehicleId: String) -> Unit = {},
@@ -310,6 +318,9 @@ fun HomeScreen(
         bottomPadding = bottomPadding,
         onActivateDetection = onActivateDetection,
         onAddVehicle = onAddVehicle,
+        onOpenVehicle = onOpenVehicle,
+        focusParkingId = focusParkingId,
+        onFocusParkingConsumed = onFocusParkingConsumed,
         onLinkVehicleBluetooth = onLinkVehicleBluetooth,
         onOpenStepExplainer = onOpenStepExplainer,
     )
@@ -331,6 +342,9 @@ private fun HomeContent(
     bottomPadding: Dp,
     onActivateDetection: (focus: String) -> Unit,
     onAddVehicle: () -> Unit,
+    onOpenVehicle: (vehicleId: String) -> Unit,
+    focusParkingId: String?,
+    onFocusParkingConsumed: () -> Unit,
     onLinkVehicleBluetooth: (vehicleId: String) -> Unit,
     onOpenStepExplainer: (FirstStep) -> Unit,
 ) {
@@ -649,6 +663,21 @@ private fun HomeContent(
                     }
                 }
 
+                // Alguien ha llegado a Home PARA ver este aparcamiento (el "Ver en mapa" de la
+                // ficha). Se atiende con la MISMA lambda que un toque en su marcador — seleccionar,
+                // volar la cámara, abrir el modal — así que no hay una segunda forma de llegar al
+                // mismo sitio que pueda divergir. Espera a que la sesión esté en el estado: se llega
+                // aquí antes de que Room emita, y descartarla dejaría el mapa en cualquier parte.
+                // [UI-A-PARKED-CARD-OFFERS-THE-WAY-ACROSS-001]
+                LaunchedEffect(focusParkingId, state.activeSessions) {
+                    if (focusParkingId != null &&
+                        state.activeSessions.any { it.id == focusParkingId }
+                    ) {
+                        onMyCarMarkerClick(focusParkingId)
+                        onFocusParkingConsumed()
+                    }
+                }
+
                 // Same gesture as a spot: select, frame, open the peek. The station is resolved at
                 // call-time so the lambda stays identity-stable — and from the very list the map
                 // painted, so no drawn pin can be a dead tap. [FUEL-STATIONS-MAP-AND-PEEK-001]
@@ -906,6 +935,7 @@ private fun HomeContent(
                     firstStepGuide = firstStepGuide,
                     onActivateDetection = onActivateDetection,
                     onAddVehicle = onAddVehicle,
+                    onOpenVehicle = onOpenVehicle,
                     onLinkVehicleBluetooth = onLinkVehicleBluetooth,
                     onOpenStepExplainer = onOpenStepExplainer,
                     modifier = Modifier.align(Alignment.BottomCenter),
@@ -1208,6 +1238,7 @@ private fun HomeSheetSection(
     firstStepGuide: FirstStepGuide?,
     onActivateDetection: (focus: String) -> Unit,
     onAddVehicle: () -> Unit,
+    onOpenVehicle: (vehicleId: String) -> Unit,
     onLinkVehicleBluetooth: (vehicleId: String) -> Unit,
     onOpenStepExplainer: (FirstStep) -> Unit,
     modifier: Modifier = Modifier,
@@ -1256,6 +1287,9 @@ private fun HomeSheetSection(
             // intent). Focus the permissions screen on the essential tier. [DET-TOGGLE-001]
             HomeSheetAction.OpenCorePermissions -> onActivateDetection(CORE_PERMISSIONS_FOCUS)
             HomeSheetAction.AddVehicle -> onAddVehicle()
+            // [UI-A-PARKED-CARD-OFFERS-THE-WAY-ACROSS-001] Home hands over to the Vehicles tab,
+            // carrying WHICH car so the ficha opens on the one the modal was about.
+            is HomeSheetAction.OpenVehicle -> onOpenVehicle(action.vehicleId)
             // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] Same destination Settings uses.
             is HomeSheetAction.LinkVehicleBluetooth -> onLinkVehicleBluetooth(action.vehicleId)
             // The checklist asking the sheet to show a subject. Three moves, one place, whichever

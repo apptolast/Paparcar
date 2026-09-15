@@ -11,6 +11,10 @@ data class VehiclesState(
     /** Id of the vehicle whose isActive flag is being switched. Null when idle. */
     val settingActiveVehicleId: String? = null,
     val selectedVehicleIndex: Int = 0,
+    /** A car asked for from outside the screen whose page could not be resolved yet — the list had
+     *  not arrived. Resolved (and cleared) on the first emission that contains it.
+     *  [UI-A-PARKED-CARD-OFFERS-THE-WAY-ACROSS-001] */
+    val pendingFocusVehicleId: String? = null,
     val bluetoothConnectedVehicleId: String? = null,
     val historyCache: Map<String, HistoryState> = emptyMap(),
     /** Live Plus entitlement — what SetHistoryFilter re-resolves the timeline with. [MONEY-001] */

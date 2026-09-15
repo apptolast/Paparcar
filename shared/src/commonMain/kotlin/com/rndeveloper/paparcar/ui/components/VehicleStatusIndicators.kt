@@ -252,7 +252,11 @@ fun rememberDrivingStatePulse(): Float {
     return alpha
 }
 
-private const val STATUS_ICON_DP = 16
+// 18 y no 16: en la ficha y en la card este glifo convive con el pin y el reloj del bloque de
+// estado, que son SÓLIDOS y por tanto pesan más a igual tamaño. La identidad del coche tiene que
+// ganar esa fila, y gana por tamaño — bajar los de dato los hacía ilegibles.
+// [UI-A-PARKED-CARD-SAYS-WHERE-AND-WHEN-IN-TWO-LINES-001]
+private const val STATUS_ICON_DP = 18
 
 // Breathing pulse for the driving-state words. [UI-COLOR-DOCTRINE-001]
 private const val STATE_PULSE_PERIOD_MS = 900

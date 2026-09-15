@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Adjust
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.LocationOn
+import androidx.compose.material.icons.rounded.AccessTimeFilled
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -31,10 +32,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.domain.model.UserParking
@@ -158,7 +162,24 @@ internal fun HomeVehicleChip(
             Spacer(Modifier.height(CHIP_FOOT_GAP_DP.dp))
 
             // Parking row — the actionable fact.
-            Row(
+            //
+            // Parked is the one state with TWO facts (where, and since when), so it is the one
+            // state that gets two lines, each with its own icon: pin over clock. Every other
+            // branch has a single fact and stays a single row — a second line there would be
+            // empty height. [UI-A-PARKED-CARD-SAYS-WHERE-AND-WHEN-IN-TWO-LINES-001]
+            if (!isDriving && session != null) {
+                ParkedMetaLines(
+                    session = session,
+                    // The narrow chip spends its width on the PLACE: no "Parked at" prefix, which
+                    // the pin above already says. [UI-A-PARKED-CARD-SAYS-WHERE-AND-WHEN-IN-TWO-LINES-001]
+                    placeText = parkedPlaceLine(session) ?: stringResource(Res.string.home_peek_parked_label),
+                    metaText = relativeTimeText(session.location.timestamp),
+                    accent = accent,
+                    iconSize = FOOT_ICON_DP.dp,
+                    gap = FOOT_GAP_DP.dp,
+                    maxPlaceLines = FOOT_MAX_LINES,
+                )
+            } else Row(
                 modifier = Modifier.heightIn(min = FOOT_MIN_HEIGHT_DP.dp).fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(FOOT_GAP_DP.dp),
@@ -195,27 +216,6 @@ internal fun HomeVehicleChip(
                             // whatever the state. [UI-TYPE-TWO-VOICES-ONE-ROW-001]
                             style = PaparcarType.current.caption,
                             color = cs.onSurface.copy(alpha = rememberDrivingStatePulse()),
-                            maxLines = FOOT_MAX_LINES,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    session != null -> {
-                        Icon(
-                            // An AREA wears the zone glyph, never the pin — the pin claims a point
-                            // the session refused to claim. [UI-APPROXIMATE-ZONE-IN-HISTORY-001]
-                            imageVector = if (session.isApproximate) Icons.Rounded.Adjust else Icons.Rounded.LocationOn,
-                            contentDescription = null,
-                            tint = accent,
-                            modifier = Modifier.size(FOOT_ICON_DP.dp),
-                        )
-                        Text(
-                            text = parkedAddressLine(session),
-                            // An address is a phrase you read → LECTURA (caption), same voice as the
-                            // single-vehicle card's footer. CIFRA is for repeating data
-                            // tokens, not prose — keeps 1-vehicle and 2+-vehicle Home consistent.
-                            // [CARD-ONE-BADGE-001]
-                            style = PaparcarType.current.caption,
-                            color = cs.onSurface,
                             maxLines = FOOT_MAX_LINES,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -350,29 +350,42 @@ internal fun HomeVehicleCard(
                 PapDivider()
                 Spacer(Modifier.height(CHIP_FOOT_GAP_DP.dp))
 
-                Row(
+                // Parked = two facts, two lines, one icon each: pin over clock. Same skeleton as
+                // the compact chip's and as the peek's meta rows, so the same car reads the same
+                // way whichever surface shows it.
+                // [UI-A-PARKED-CARD-SAYS-WHERE-AND-WHEN-IN-TWO-LINES-001]
+                if (!isDriving && session != null) {
+                    ParkedMetaLines(
+                        session = session,
+                        // The roomy card keeps the state IN WORDS ("Parked at X" / "Near X"): it
+                        // has the width for it, and the state is written, never tinted.
+                        // [UI-COLOR-DOCTRINE-001]
+                        placeText = parkedTitle(session),
+                        // The distance rides with the time: both answer "how far / how long ago",
+                        // and they already travelled together in `home_vehicle_card_parked_meta`.
+                        metaText = parkedMeta(session, userLocation),
+                        accent = accent,
+                        iconSize = CARD_FOOT_ICON_DP.dp,
+                        gap = CARD_FOOT_GAP_DP.dp,
+                        maxPlaceLines = FOOT_MAX_LINES,
+                        modifier = Modifier
+                            .padding(start = 14.dp, end = 12.dp, bottom = CARD_V_PAD_DP.dp)
+                            .fillMaxWidth(),
+                    )
+                } else Row(
                     modifier = Modifier
                         .padding(start = 14.dp, end = 12.dp, bottom = CARD_V_PAD_DP.dp)
                         .heightIn(min = FOOT_MIN_HEIGHT_DP.dp)
                         .fillMaxWidth(),
-                    verticalAlignment = if (session != null) Alignment.Top else Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(CARD_FOOT_GAP_DP.dp),
                 ) {
                     // The glyph keeps its meaning and its identity colour; what it loses is the
-                    // 44dp tinted box it used to sit in. Same priority as the text beside it: a
-                    // running trip outranks the parked session. [UI-CHIP-ROUTE-GLYPH-001]
+                    // 44dp tinted box it used to sit in. [UI-CHIP-ROUTE-GLYPH-001]
                     when {
                         isDriving -> DrivingRouteGlyph(
                             color = accent,
                             glyphSize = CARD_FOOT_ICON_DP.dp,
-                        )
-                        session != null -> Icon(
-                            // Same rule as the chip: an approximate session shows the zone glyph,
-                            // not the pin. [UI-APPROXIMATE-ZONE-IN-HISTORY-001]
-                            imageVector = if (session.isApproximate) Icons.Rounded.Adjust else Icons.Rounded.LocationOn,
-                            contentDescription = null,
-                            tint = accent,
-                            modifier = Modifier.size(CARD_FOOT_ICON_DP.dp),
                         )
                         else -> UnmarkedParkingIcon(tint = accent)
                     }
@@ -425,35 +438,6 @@ internal fun HomeVehicleCard(
                                 )
                             }
                         }
-                        session != null -> {
-                            // UNA frase: «Calle X · 6 min · 3 m». (user, 10-09) — dos líneas para
-                            // decir esto costaban altura en el bloque que más se mira.
-                            //
-                            // ⛔ Pero con `maxLines = 2`, no una. Estas dos líneas ya se probaron
-                            // fusionadas y se volvieron a separar porque la meta se quedaba el ancho
-                            // y la dirección se cortaba en «Route d…» — justo el dato por el que uno
-                            // mira la card. Envolver cuando no cabe ahorra la línea siempre que
-                            // sobre sitio, y no parte el nombre de la calle cuando no.
-                            //
-                            // El tono se mantiene DENTRO de la frase: la calle en `onSurface`, la
-                            // meta en `onSurfaceVariant`. Concatenar un String plano habría igualado
-                            // las dos, que es perder la jerarquía para ahorrar una línea.
-                            // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
-                            val title = parkedTitle(session)
-                            val meta = parkedMeta(session, userLocation)
-                            Text(
-                                text = buildAnnotatedString {
-                                    withStyle(SpanStyle(color = cs.onSurface)) { append(title) }
-                                    withStyle(SpanStyle(color = cs.onSurfaceVariant)) {
-                                        append(" $META_SEPARATOR $meta")
-                                    }
-                                },
-                                style = PaparcarType.current.caption,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
                         // ⛔ La PREGUNTA, no la etiqueta. Decia «Mark parking» en verde, que es el
                         // nombre del boton puesto donde va el estado; la fila de arranque en frio
                         // decia lo mismo una card mas arriba. Ahora la card hace la pregunta y la
@@ -487,6 +471,97 @@ internal fun HomeVehicleCard(
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * The parked footer of a vehicle card: **where** over **since when**, each fact with its own icon.
+ * [UI-A-PARKED-CARD-SAYS-WHERE-AND-WHEN-IN-TWO-LINES-001]
+ *
+ * The two facts used to share one sentence behind one pin ("Parked at X · 6 min ago · 180 m"),
+ * which made the pin head a line that was half time, and left the wrapped remainder hanging with
+ * no icon at all. Split, each icon means exactly one thing — pin (or zone ring) is PLACE, clock is
+ * TIME — which is the anatomy the peek's meta rows have always had.
+ *
+ * Both Home surfaces share this skeleton and keep their own wording and their own metrics: the
+ * roomy card says "Parked at X" and carries the distance, the narrow chip spends its width on the
+ * place alone.
+ */
+@Composable
+private fun ParkedMetaLines(
+    session: UserParking,
+    placeText: String,
+    metaText: String,
+    accent: Color,
+    iconSize: Dp,
+    gap: Dp,
+    maxPlaceLines: Int,
+    modifier: Modifier = Modifier,
+) {
+    val cs = MaterialTheme.colorScheme
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(META_LINE_GAP_DP.dp),
+    ) {
+        VehicleMetaLine(
+            // An AREA wears the zone glyph, never the pin — the pin claims a point the session
+            // refused to claim. [UI-APPROXIMATE-ZONE-IN-HISTORY-001]
+            icon = if (session.isApproximate) Icons.Rounded.Adjust else Icons.Rounded.LocationOn,
+            text = placeText,
+            tint = accent,
+            textColor = cs.onSurface,
+            iconSize = iconSize,
+            gap = gap,
+            maxLines = maxPlaceLines,
+        )
+        VehicleMetaLine(
+            icon = Icons.Rounded.AccessTimeFilled,
+            text = metaText,
+            tint = accent,
+            // Quieter than the place: the address is what the card is FOR, the clock qualifies it.
+            textColor = cs.onSurfaceVariant,
+            iconSize = iconSize,
+            gap = gap,
+        )
+    }
+}
+
+/**
+ * One meta line: its icon, its fact, nothing else. The icon carries the vehicle's identity colour
+ * and the words stay neutral — the state is written, never tinted. [UI-COLOR-DOCTRINE-001]
+ */
+@Composable
+private fun VehicleMetaLine(
+    icon: ImageVector,
+    text: String,
+    tint: Color,
+    textColor: Color,
+    iconSize: Dp,
+    gap: Dp,
+    maxLines: Int = 1,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        // Same rule as `PeekMetaRow`: a one-liner centres against its icon, a wrapping address has
+        // to hang from the top or the icon floats in the middle of the paragraph.
+        verticalAlignment = if (maxLines == 1) Alignment.CenterVertically else Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(gap),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(iconSize),
+        )
+        Text(
+            text = text,
+            // An address is a phrase you read → LECTURA (caption). Unchanged by the split: a line
+            // that gained an icon did not change voice. [UI-TYPE-TWO-VOICES-ONE-ROW-001]
+            style = PaparcarType.current.caption,
+            color = textColor,
+            maxLines = maxLines,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
 /** Resolved address / place name for the parked session, or null before enrichment. */
 private fun parkedName(session: UserParking): String? =
     session.placeInfo?.name?.takeIf { it.isNotBlank() }
@@ -502,15 +577,6 @@ private fun parkedName(session: UserParking): String? =
 private fun parkedPlaceLine(session: UserParking): String? {
     val name = parkedName(session) ?: return null
     return if (session.isApproximate) stringResource(Res.string.location_approximate_near, name) else name
-}
-
-/** Compact chip parking line: "address · 2 h ago" (max 2 lines), falling back to just the time. */
-@Composable
-private fun parkedAddressLine(session: UserParking): String {
-    val time = relativeTimeText(session.location.timestamp)
-    val name = parkedPlaceLine(session)
-    return if (name != null) "$name$FOOT_SEPARATOR$time"
-    else "${stringResource(Res.string.home_peek_parked_label)}$FOOT_SEPARATOR$time"
 }
 
 /** Single-card footer title: "Parked at {address}" — or "Near {address}" for an approximate
@@ -537,8 +603,9 @@ private fun parkedMeta(session: UserParking, userLocation: Pair<Double, Double>?
     else time
 }
 
-/** El punto medio que ya separa hora y distancia dentro de `home_vehicle_card_parked_meta`. */
-private const val META_SEPARATOR = "·"
+/** Aire entre la línea del lugar y la del tiempo: menos que el que separa bloques, porque las dos
+ *  son el MISMO hecho contado en dos mitades. [UI-A-PARKED-CARD-SAYS-WHERE-AND-WHEN-IN-TWO-LINES-001] */
+private const val META_LINE_GAP_DP = 4
 
 // Adaptive width bounds — card grows to fit "Toyota Corolla" without truncating, capped so a long
 // name never dominates the LazyRow. [HOME-CARDS-001]
@@ -556,7 +623,7 @@ private const val CHIP_FOOT_GAP_DP = 8
 private const val ICON_BOX_DP = 32
 private const val FOOT_MIN_HEIGHT_DP = 34
 private const val FOOT_GAP_DP = 7
-private const val FOOT_ICON_DP = 15
+private const val FOOT_ICON_DP = 14
 // The foot's three branches share one line shape ("fact · detail") and one wrap budget, so a chip
 // in a trip and a chip parked next to it stay the same object. [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001]
 private const val FOOT_SEPARATOR = " · "
@@ -565,7 +632,9 @@ private const val FOOT_MAX_LINES = 2
 private const val CHEVRON_DP = 22
 private const val CARD_FOOT_ICON_BOX_DP = 34
 private const val CARD_FOOT_ICON_CORNER_DP = 10
-private const val CARD_FOOT_ICON_DP = 18
+private const val CARD_FOOT_ICON_DP = 16
+/** Hueco icono→texto del pie de la card grande: era un 6 inline en dos sitios. */
+private const val CARD_FOOT_GAP_DP = 6
 private const val FOOT_ICON_BOX_ALPHA = 0.15f
 private const val BORDER_DP = 1
 private const val DRIVING_BORDER_DP = 1.5f // thicker live-blue border while driving [CHIP-DRIVING-001]

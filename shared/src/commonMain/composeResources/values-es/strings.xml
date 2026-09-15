@@ -26,6 +26,7 @@
     <!-- SpotPeekRow (hero card de plaza seleccionada) -->
     <!-- CTA primario del parking seleccionado — irse ES la acción del loop comunitario. [UI-SHEET-001] -->
     <string name="home_parking_leave_release">Me voy</string>
+    <string name="home_parking_view_vehicle">Ver vehículo</string>
     <!-- Icon-button editar (pin+lápiz) del bloque meta + su menú. [UI-SHEET-001] -->
     <string name="home_parking_edit_menu_cd">Editar ubicación del aparcamiento</string>
     <!-- Las tres respuestas a una pregunta: ¿es el MISMO aparcamiento u otro? Mismo sustantivo y
@@ -564,6 +565,8 @@
     <!-- Claves añadidas: home peek spot / parking + registro de vehículo -->
     <string name="home_peek_car_parked_label">Tu coche está aparcado</string>
     <string name="home_peek_parking_duration_hm">Aparcado hace %1$dh %2$dm</string>
+    <string name="home_peek_parking_duration_day">Aparcado hace %1$d día</string>
+    <string name="home_peek_parking_duration_days">Aparcado hace %1$d días</string>
     <string name="home_peek_parking_duration_min">Aparcado hace %1$d min</string>
     <string name="home_peek_parking_duration_now">Aparcado ahora mismo</string>
     <string name="home_peek_parking_approximate">En algún punto de %1$d m: perdimos el final del trayecto. Edítalo para colocarlo.</string>
@@ -853,6 +856,7 @@
     <string name="stats_empty_turn_on_detection">Activa la detección automática para que midamos tus trayectos y aparcamientos.</string>
     <!-- Vehicle state line (STATS-UI-001) -->
     <string name="vehicle_state_parked">Aparcado · %1$s</string>
+    <string name="vehicle_view_on_map">Ver en mapa</string>
     <string name="vehicle_state_last_parking">Último aparcamiento · %1$s</string>
     <string name="vehicle_state_never_parked">Aún sin aparcar</string>
     <!-- Stats panel (STATS-PANEL-001) -->
@@ -860,7 +864,6 @@
     <string name="stats_panel_empty_body">Todavía no hay aparcamientos en este periodo. Aparca unas cuantas veces y las cifras se irán llenando.</string>
     <string name="stats_open_panel">Ver desglose completo</string>
     <!-- Where the car is parked, on the ficha state line (STATS-UI-001) -->
-    <string name="vehicle_state_parked_at">%1$s · %2$s</string>
     <!-- Price the user actually pays (FUEL-PRICE-RESOLVER-001) -->
     <string name="vehicle_registration_fuel_price_label">Precio por litro (%1$s)</string>
     <string name="vehicle_registration_energy_price_label">Precio por kWh (%1$s)</string>

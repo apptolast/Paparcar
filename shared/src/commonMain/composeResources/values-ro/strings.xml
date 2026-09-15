@@ -9,6 +9,7 @@
     <string name="home_vehicle_chip_status_candidate">Parcare…</string>
     <!-- PapSheet actions + browse header. [UI-SHEET-001] -->
     <string name="home_parking_leave_release">Plec</string>
+    <string name="home_parking_view_vehicle">Vezi vehiculul</string>
     <string name="home_parking_edit_menu_cd">Editează locația parcării</string>
     <!-- Trei răspunsuri la o singură întrebare: aceeași parcare sau alta?
          [COPY-PARKING-EDIT-THREE-ANSWERS-ONE-QUESTION-001] -->
@@ -530,6 +531,8 @@
     <!-- DET / peek spot compatibility + age -->
     <string name="home_peek_car_parked_label">Mașina ta este parcată</string>
     <string name="home_peek_parking_duration_hm">Parcat acum %1$dh %2$dm</string>
+    <string name="home_peek_parking_duration_day">Parcat acum %1$d zi</string>
+    <string name="home_peek_parking_duration_days">Parcat acum %1$d zile</string>
     <string name="home_peek_parking_duration_min">Parcat acum %1$d min</string>
     <string name="home_peek_parking_duration_now">Parcat chiar acum</string>
     <string name="home_peek_parking_approximate">Undeva pe o rază de %1$d m: am pierdut finalul călătoriei. Editează pentru a-l plasa.</string>
@@ -871,6 +874,7 @@
     <string name="stats_empty_turn_on_detection">Activează detectarea automată ca să-ți măsurăm drumurile și parcările.</string>
     <!-- Vehicle state line (STATS-UI-001) -->
     <string name="vehicle_state_parked">Parcat · %1$s</string>
+    <string name="vehicle_view_on_map">Vezi pe hartă</string>
     <string name="vehicle_state_last_parking">Ultima parcare · %1$s</string>
     <string name="vehicle_state_never_parked">Încă neparcat</string>
     <!-- Stats panel (STATS-PANEL-001) -->
@@ -878,7 +882,6 @@
     <string name="stats_panel_empty_body">Încă nu există parcări în această perioadă. Parchează de câteva ori și cifrele se vor completa.</string>
     <string name="stats_open_panel">Vezi detalierea completă</string>
     <!-- Where the car is parked, on the ficha state line (STATS-UI-001) -->
-    <string name="vehicle_state_parked_at">%1$s · %2$s</string>
     <!-- Price the user actually pays (FUEL-PRICE-RESOLVER-001) -->
     <string name="vehicle_registration_fuel_price_label">Preț pe litru (%1$s)</string>
     <string name="vehicle_registration_energy_price_label">Preț pe kWh (%1$s)</string>

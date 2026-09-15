@@ -72,7 +72,13 @@ class VehiclesViewModel(
                     )
                 }
                 updateState {
-                    val clampedIndex = selectedVehicleIndex
+                    // A focus request that arrived before the list did is honoured HERE, on the
+                    // first emission that actually contains the car — never dropped on the race.
+                    // [UI-A-PARKED-CARD-OFFERS-THE-WAY-ACROSS-001]
+                    val focusedIndex = pendingFocusVehicleId?.let { wanted ->
+                        vehiclesWithStats.indexOfFirst { it.vehicle.id == wanted }.takeIf { it >= 0 }
+                    }
+                    val clampedIndex = (focusedIndex ?: selectedVehicleIndex)
                         .coerceIn(0, (vehiclesWithStats.size - 1).coerceAtLeast(0))
                     val updatedCache = vehiclesWithStats.associate { vws ->
                         val vId = vws.vehicle.id
@@ -99,6 +105,8 @@ class VehiclesViewModel(
                         vehicles = vehiclesWithStats,
                         isLoading = false,
                         selectedVehicleIndex = clampedIndex,
+                        // Resolved (or the car is gone): either way the request is spent.
+                        pendingFocusVehicleId = if (focusedIndex != null) null else pendingFocusVehicleId,
                         historyCache = updatedCache,
                         isPlus = isPlus,
                     )
@@ -120,6 +128,13 @@ class VehiclesViewModel(
             is VehiclesIntent.SelectVehicle -> updateState {
                 val clamped = intent.index.coerceIn(0, (vehicles.size - 1).coerceAtLeast(0))
                 copy(selectedVehicleIndex = clamped)
+            }
+            // Asked from outside by ID: land on it now if the list is here, wait if it is not.
+            // [UI-A-PARKED-CARD-OFFERS-THE-WAY-ACROSS-001]
+            is VehiclesIntent.FocusVehicle -> updateState {
+                val index = vehicles.indexOfFirst { it.vehicle.id == intent.vehicleId }
+                if (index >= 0) copy(selectedVehicleIndex = index, pendingFocusVehicleId = null)
+                else copy(pendingFocusVehicleId = intent.vehicleId)
             }
             is VehiclesIntent.EditVehicle ->
                 sendEffect(VehiclesEffect.NavigateToEditVehicle(intent.vehicleId))
@@ -155,6 +170,8 @@ class VehiclesViewModel(
                     copy(historyCache = historyCache + (vehicleId to updated))
                 }
             }
+            is VehiclesIntent.ViewLiveParkingOnMap ->
+                sendEffect(VehiclesEffect.NavigateToLiveParking(intent.sessionId))
             is VehiclesIntent.ViewOnMap ->
                 sendEffect(VehiclesEffect.NavigateToMap(intent.lat, intent.lon, intent.sessionId))
             is VehiclesIntent.OpenPlusPaywall -> sendEffect(VehiclesEffect.NavigateToPaywall(PaywallReason.HISTORY))

@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.LocalGasStation
 import androidx.compose.material.icons.rounded.Navigation
-import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.AccessTimeFilled
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -130,7 +130,7 @@ internal fun FuelStationPeek(
             station.schedule?.let { schedule ->
                 // As the source words it — "24H", "L-D: 07:00-22:00"… never parsed, never judged.
                 PeekMetaRow(
-                    icon = Icons.Rounded.Schedule,
+                    icon = Icons.Rounded.AccessTimeFilled,
                     text = schedule,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

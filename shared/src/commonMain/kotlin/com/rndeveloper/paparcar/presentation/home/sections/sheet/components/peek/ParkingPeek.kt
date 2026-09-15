@@ -2,12 +2,15 @@ package com.rndeveloper.paparcar.presentation.home.sections.sheet.components.pee
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ArrowOutward
 import androidx.compose.material.icons.rounded.Directions
+import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.EditLocationAlt
-import androidx.compose.material.icons.rounded.Schedule
-import androidx.compose.material.icons.rounded.TimeToLeave
+import androidx.compose.material.icons.rounded.AccessTimeFilled
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -36,7 +39,10 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_navigate_to_vehicle_cd
 import paparcar.composeapp.generated.resources.home_parking_edit_menu_cd
 import paparcar.composeapp.generated.resources.home_parking_leave_release
+import paparcar.composeapp.generated.resources.home_parking_view_vehicle
 import paparcar.composeapp.generated.resources.home_peek_car_parked_label
+import paparcar.composeapp.generated.resources.home_peek_parking_duration_day
+import paparcar.composeapp.generated.resources.home_peek_parking_duration_days
 import paparcar.composeapp.generated.resources.home_peek_parking_duration_hm
 import paparcar.composeapp.generated.resources.home_peek_parking_duration_min
 import paparcar.composeapp.generated.resources.home_peek_parking_duration_now
@@ -169,16 +175,44 @@ internal fun ParkingPeek(
             }
         },
         actions = {
-            // TimeToLeave (a car front, literally "time to go") — Logout read as account
-            // sign-out, the wrong metaphor for freeing a spot. Sole full-width action = the
-            // ONE move that advances the community loop. [UX-PARKED-STATE-001]
+            // ⛔ La flecha que SALE, no un morro de coche. `TimeToLeave` llegó aquí para desbancar
+            // a `Logout` (que se leía como cerrar sesión), y era mejor — pero en cuanto debajo
+            // aparece «Ver vehículo», el coche pasa a ser el icono de ESE botón y arriba quedaban
+            // dos coches diciendo cosas opuestas. Irse es un movimiento, y se dibuja como tal.
+            //
+            // La flecha SUELTA, no `Outbound`: aquel metía la flecha en un disco sólido y sobre el
+            // relleno verde se leía como un botón dentro del botón (visto en device, 15-09). Aquí
+            // el icono ya está pidiendo permiso para existir —la política del componente es
+            // texto solo [UI-BUTTON-ICONS-EARN-THEIR-PLACE-001]—, así que lo mínimo que se puede
+            // dibujar es lo que le toca.
+            // [UI-A-PARKED-CARD-OFFERS-THE-WAY-ACROSS-001] [UX-PARKED-STATE-001]
+            //
+            // El Filled sigue siendo UNO: la única acción que hace avanzar el bucle comunitario
+            // (tu aparcamiento libera una plaza). [COPY-SPOT-IS-NOT-A-PARKING-001]
             PapFooterButton(
                 label = stringResource(Res.string.home_parking_leave_release),
-                leadingIcon = Icons.Rounded.TimeToLeave,
+                leadingIcon = Icons.Rounded.ArrowOutward,
                 onClick = { onAction(HomeSheetAction.RequestRelease(parking.id)) },
                 style = PapFooterButtonStyle.Filled,
                 modifier = Modifier.fillMaxWidth(),
             )
+            // Ver el coche — su ficha, su historial, sus figuras. Hasta ahora había que cerrar el
+            // modal, cambiar de pestaña y buscar el coche a mano; el modal SABE de qué coche habla.
+            // `Outlined` es exactamente lo que `PapFooterButtonStyle` define como la hermana
+            // relevante que NO avanza el bucle. [UI-A-PARKED-CARD-OFFERS-THE-WAY-ACROSS-001]
+            //
+            // Sin coche atado no hay ficha que abrir, y el botón no aparece: un botón que lleva a
+            // ninguna parte es peor que su ausencia.
+            parking.vehicleId?.let { vehicleId ->
+                Spacer(Modifier.height(ACTIONS_GAP_DP.dp))
+                PapFooterButton(
+                    label = stringResource(Res.string.home_parking_view_vehicle),
+                    leadingIcon = Icons.Rounded.DirectionsCar,
+                    onClick = { onAction(HomeSheetAction.OpenVehicle(vehicleId)) },
+                    style = PapFooterButtonStyle.Outlined,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         },
     )
 }
@@ -190,14 +224,27 @@ internal fun ParkingDurationRow(timestampMs: Long, accentColor: Color) {
     val nowMs = rememberNowMinuteTick()
     val elapsedMin = ((nowMs - timestampMs) / MS_PER_MINUTE)
         .toInt().coerceAtLeast(0)
+    val elapsedHours = elapsedMin / MINUTES_PER_HOUR
+    val elapsedDays = elapsedHours / HOURS_PER_DAY
     val durationText = when {
         // A counter at zero says nothing — the first minute reads like a person would say it.
         // [UI-JUST-PARKED-READS-AS-NOW-001]
         elapsedMin < 1 -> stringResource(Res.string.home_peek_parking_duration_now)
-        elapsedMin < 60 -> stringResource(Res.string.home_peek_parking_duration_min, elapsedMin)
-        else -> stringResource(Res.string.home_peek_parking_duration_hm, elapsedMin / 60, elapsedMin % 60)
+        elapsedMin < MINUTES_PER_HOUR -> stringResource(Res.string.home_peek_parking_duration_min, elapsedMin)
+        elapsedHours < HOURS_PER_DAY ->
+            stringResource(Res.string.home_peek_parking_duration_hm, elapsedHours, elapsedMin % MINUTES_PER_HOUR)
+        // ⛔ Pasado un día, los minutos dejan de ser un dato y el contador pasaba a decir cosas como
+        // «hace 50h 45m», que nadie lee como "anteayer". La escala sube a días, con el mismo corte
+        // singular/plural que usa el resto de la app para "hace cuánto".
+        elapsedDays == 1 -> stringResource(Res.string.home_peek_parking_duration_day, elapsedDays)
+        else -> stringResource(Res.string.home_peek_parking_duration_days, elapsedDays)
     }
-    PeekMetaRow(icon = Icons.Rounded.Schedule, text = durationText, tint = accentColor)
+    PeekMetaRow(icon = Icons.Rounded.AccessTimeFilled, text = durationText, tint = accentColor)
 }
 
+private const val MINUTES_PER_HOUR = 60
+private const val HOURS_PER_DAY = 24
+
 private const val META_ACTIONS_GAP_DP = 8
+/** Aire entre los dos botones del pie — el mismo que ya separa los del modal de aparcar. */
+private const val ACTIONS_GAP_DP = 8

@@ -36,6 +36,7 @@
     <!-- SpotPeekRow (selected spot hero card) -->
     <!-- Selected-parking primary CTA — leaving IS the community loop action. [UI-SHEET-001] -->
     <string name="home_parking_leave_release">I’m leaving</string>
+    <string name="home_parking_view_vehicle">View vehicle</string>
     <!-- Edit icon-button (pin+pencil) on the selected-parking meta block + its menu. [UI-SHEET-001] -->
     <string name="home_parking_edit_menu_cd">Edit parking location</string>
     <!-- The three answers to one question: is this the SAME parking, or another one? Same noun and
@@ -574,6 +575,8 @@
     <string name="home_peek_parking_approximate">Somewhere within %1$d m — we lost the end of the trip. Edit to place it exactly.</string>
     <string name="home_peek_spot_approximate">Somewhere within %1$d m — the driver who freed it couldn't mark the exact spot. Search around this area.</string>
     <string name="home_peek_parking_duration_hm">Parked %1$dh %2$dm ago</string>
+    <string name="home_peek_parking_duration_day">Parked %1$d day ago</string>
+    <string name="home_peek_parking_duration_days">Parked %1$d days ago</string>
     <string name="home_report_size_section">Space size (optional)</string>
     <string name="home_zone_saved_message">Zone saved</string>
     <string name="home_zone_action_edit">Edit zone</string>
@@ -893,6 +896,7 @@
     <string name="stats_empty_turn_on_detection">Turn on automatic detection so your trips and parkings are measured.</string>
     <!-- Vehicle state line (STATS-UI-001) -->
     <string name="vehicle_state_parked">Parked · %1$s</string>
+    <string name="vehicle_view_on_map">View on map</string>
     <string name="vehicle_state_last_parking">Last parking · %1$s</string>
     <string name="vehicle_state_never_parked">Not parked yet</string>
     <!-- Stats panel (STATS-PANEL-001) -->
@@ -900,7 +904,6 @@
     <string name="stats_panel_empty_body">No parkings in this period yet. Park a few times and the figures will fill in.</string>
     <string name="stats_open_panel">See full breakdown</string>
     <!-- Where the car is parked, on the ficha state line (STATS-UI-001) -->
-    <string name="vehicle_state_parked_at">%1$s · %2$s</string>
     <!-- Price the user actually pays (FUEL-PRICE-RESOLVER-001) -->
     <string name="vehicle_registration_fuel_price_label">Price per litre (%1$s)</string>
     <string name="vehicle_registration_energy_price_label">Price per kWh (%1$s)</string>
