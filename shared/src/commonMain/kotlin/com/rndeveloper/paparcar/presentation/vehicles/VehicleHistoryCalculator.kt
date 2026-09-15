@@ -268,7 +268,16 @@ object VehicleHistoryCalculator {
     /** Calendar months spanned by "Last 3 months" — the filter window and the bars share it, which
      *  is the whole point of [UI-HISTORY-THE-CHART-SPANS-WHAT-THE-FILTER-SPANS-001]. */
     private const val MONTHLY_BUCKETS = 3
-    /** How many months the "All" chart shows. Older sessions still count in the total — a
-     *  deliberate, documented cap, unlike the two mismatches this ticket fixed. [Task 4] */
-    private const val ALL_MONTHS_CAP = 6
+    /**
+     * How many months the "All" chart shows. Older sessions still count in the total — a
+     * deliberate, documented cap, unlike the two mismatches that ticket fixed. [Task 4]
+     *
+     * ⛔ **Twelve, because a YEAR is the span the memory is sold on**
+     * [STATS-A-YEAR-IS-THE-SPAN-MEMORY-SELLS-001]. Six months cannot show a season: a driver who
+     * parks differently in August than in February sees two halves of that difference and never the
+     * shape. Free never reaches this — its window is seven days — so the longer span IS the Plus
+     * side of "the app remembers for you", and it costs nothing to compute: the buckets were always
+     * derived, never stored.
+     */
+    internal const val ALL_MONTHS_CAP = 12
 }

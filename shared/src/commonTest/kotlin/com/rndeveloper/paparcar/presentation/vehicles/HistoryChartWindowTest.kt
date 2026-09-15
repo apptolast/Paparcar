@@ -29,7 +29,7 @@ import kotlin.test.assertTrue
  *
  * The invariant that kills both, and the reason these tests assert a sum rather than a layout:
  * **every session the filter keeps has a bar to be counted in.** Only "All" is exempt, and that
- * exemption is deliberate and documented (the chart caps at 6 months, the total does not).
+ * exemption is deliberate and documented (the chart caps at twelve months, the total does not).
  *
  * These are also the first tests that can reach the bucket builders at all: they used to be private
  * functions of `HistoryContent.kt` calling `Clock.System.now()` internally.
@@ -171,5 +171,25 @@ class HistoryChartWindowTest {
         // "All" is exempt on purpose: its chart caps at 6 months while the total counts everything.
         listOf(HistoryFilter.ThisWeek, HistoryFilter.ThisMonth, HistoryFilter.Last3Months)
             .forEach { assertEveryCountedSessionHasABar(sessions, it, nowMs) }
+    }
+
+    // ── Un año en «Todo» [STATS-A-YEAR-IS-THE-SPAN-MEMORY-SELLS-001] ────────
+
+    /**
+     * ⛔ Doce barras, no seis: seis meses no pueden enseñar una estación. Y el filtro sigue
+     * contando TODO — el tope es del dibujo, no de la cifra —, así que la comprobación de que cada
+     * aparcamiento contado tiene su barra NO se aplica aquí: es el único caso con tope declarado.
+     */
+    @Test
+    fun should_spanAYear_underTheAllFilter() {
+        val today = LocalDate(2026, 9, 16)
+        val bars = bucketsFor(
+            listOf(session(today), session(today.minus(200, DateTimeUnit.DAY))),
+            HistoryFilter.All,
+            at(today),
+        )
+        assertEquals(VehicleHistoryCalculator.ALL_MONTHS_CAP, bars.size)
+        assertEquals(12, bars.size, "un año")
+        assertTrue(bars.last().isCurrent, "la última barra es el mes en curso")
     }
 }

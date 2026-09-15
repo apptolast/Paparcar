@@ -70,7 +70,15 @@ internal fun DrawScope.drawBarChart(
         val isToday = item.isCurrent
 
         drawBar(barLeft, barWidth, barHeight, chartHeight, corner, isToday, primaryColor, onSurfaceColor)
-        drawDayLabel(centerX, item.label, isToday, textMeasurer, labelStyle, onSurfaceColor)
+        // ⛔ Con doce barras las etiquetas se pisan: a 360 dp cada bucket son ~15 dp y un «sep»
+        // ocupa el doble. Se pintan ALTERNAS —y la última siempre, que es el mes en curso y la
+        // referencia de todo el gráfico—, así el año cabe sin que el eje se vuelva ilegible.
+        // [STATS-A-YEAR-IS-THE-SPAN-MEMORY-SELLS-001]
+        val crowded = data.size > LABELS_FIT_UP_TO
+        val labelled = !crowded || index % 2 == data.lastIndex % 2
+        if (labelled) {
+            drawDayLabel(centerX, item.label, isToday, textMeasurer, labelStyle, onSurfaceColor)
+        }
         if (item.value > 0f && progress > COUNT_FADE_START) {
             drawValueLabel(
                 centerX, barHeight, chartHeight, formatValue(item.value), progress, textMeasurer,
@@ -177,6 +185,8 @@ private const val BAR_CORNER_DP = 8
 // Max bar width so few-bucket charts don't render one giant full-width bar. [VEHICLES-REDESIGN-001]
 // Tallest bar fills this fraction of the chart height, leaving room for the count label above it.
 private const val BAR_MAX_HEIGHT_FRACTION = 0.82f
+/** Hasta aquí caben todas las etiquetas; a partir de aquí se alternan. */
+private const val LABELS_FIT_UP_TO = 7
 private const val GRID_LINE_COUNT = 3
 private const val GRID_LINE_ALPHA = 0.07f
 private const val PLACEHOLDER_BAR_ALPHA = 0.06f
