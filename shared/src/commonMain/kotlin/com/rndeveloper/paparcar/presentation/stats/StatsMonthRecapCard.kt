@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.stats.PeriodStats
 import com.rndeveloper.paparcar.presentation.util.distanceString
 import com.rndeveloper.paparcar.presentation.util.durationText
+import com.rndeveloper.paparcar.presentation.util.statDelta
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
 import com.rndeveloper.paparcar.ui.components.PapStatDelta
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
@@ -75,14 +76,14 @@ internal fun StatsMonthRecapCard(stats: PeriodStats) {
                         // The comparison is against the month BEFORE the closed one, and it is the
                         // same arithmetic the tiles use — including its refusal to compare with a
                         // zero. [STATS-A-MEASURE-CARRIES-ITS-COVERAGE-001]
-                        delta = recapDelta(cost.amount, stats.previous?.costEstimate?.amount),
+                        delta = statDelta(cost.amount, stats.previous?.costEstimate?.amount),
                     )
                 }
                 stats.searchTime?.let { search ->
                     RecapRow(
                         label = stringResource(Res.string.stats_tile_search_time),
                         value = durationText(search.value),
-                        delta = recapDelta(
+                        delta = statDelta(
                             search.value.toDouble(),
                             stats.previous?.searchTime?.value?.toDouble(),
                         ),
@@ -109,15 +110,6 @@ private fun RecapRow(label: String, value: String, delta: PapStatDelta?) {
             textAlign = TextAlign.End,
         )
     }
-}
-
-/** Movement against the month before the closed one. Same refusals as the tiles: nothing to compare
- *  against, a previous zero, or a move that rounds to nothing. */
-private fun recapDelta(current: Double, previous: Double?): PapStatDelta? {
-    if (previous == null || previous == 0.0) return null
-    val change = ((current - previous) / previous * PERCENT).roundToInt()
-    if (change == 0) return null
-    return PapStatDelta(amountText = "${abs(change)}%", isUp = change > 0)
 }
 
 private fun formatRecapMoney(value: Double): String {

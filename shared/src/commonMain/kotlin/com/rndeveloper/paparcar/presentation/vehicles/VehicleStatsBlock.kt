@@ -40,6 +40,7 @@ import com.rndeveloper.paparcar.domain.stats.ScopedMeasure
 import com.rndeveloper.paparcar.domain.stats.coverageAllowsComparison
 import com.rndeveloper.paparcar.presentation.util.durationText
 import com.rndeveloper.paparcar.presentation.util.formatHourBucket
+import com.rndeveloper.paparcar.presentation.util.statDelta
 import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.ui.components.PapNavChevron
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
@@ -554,7 +555,7 @@ internal fun statTiles(stats: PeriodStats): List<StatTileData> {
                     icon = icon,
                     value = "${formatMoney(cost.amount)} ${cost.currency}",
                     label = stringResource(Res.string.stats_tile_cost),
-                    delta = percentDelta(cost.amount, stats.previous?.costEstimate?.amount)
+                    delta = statDelta(cost.amount, stats.previous?.costEstimate?.amount)
                         .takeIf { distanceComparable },
                     animated = StatTileNumber(cost.amount) { v -> "${formatMoney(v)} ${cost.currency}" },
                     note = distanceNote,
@@ -569,7 +570,7 @@ internal fun statTiles(stats: PeriodStats): List<StatTileData> {
                 icon = icon,
                 value = litersTemplate.replace(NUMBER_SLOT, formatDecimal(requireNotNull(stats.fuelLiters))),
                 label = stringResource(Res.string.stats_tile_fuel),
-                delta = percentDelta(requireNotNull(stats.fuelLiters), stats.previous?.fuelLiters)
+                delta = statDelta(requireNotNull(stats.fuelLiters), stats.previous?.fuelLiters)
                     .takeIf { distanceComparable },
                 animated = StatTileNumber(requireNotNull(stats.fuelLiters)) { v ->
                     litersTemplate.replace(NUMBER_SLOT, formatDecimal(v))
@@ -580,7 +581,7 @@ internal fun statTiles(stats: PeriodStats): List<StatTileData> {
                 icon = icon,
                 value = kwhTemplate.replace(NUMBER_SLOT, formatDecimal(requireNotNull(stats.energyKwh))),
                 label = stringResource(Res.string.stats_tile_energy),
-                delta = percentDelta(requireNotNull(stats.energyKwh), stats.previous?.energyKwh)
+                delta = statDelta(requireNotNull(stats.energyKwh), stats.previous?.energyKwh)
                     .takeIf { distanceComparable },
                 animated = StatTileNumber(requireNotNull(stats.energyKwh)) { v ->
                     kwhTemplate.replace(NUMBER_SLOT, formatDecimal(v))
@@ -591,7 +592,7 @@ internal fun statTiles(stats: PeriodStats): List<StatTileData> {
                 icon = icon,
                 value = kgTemplate.replace(NUMBER_SLOT, formatDecimal(requireNotNull(stats.co2Kg))),
                 label = stringResource(Res.string.stats_tile_co2),
-                delta = percentDelta(requireNotNull(stats.co2Kg), stats.previous?.co2Kg)
+                delta = statDelta(requireNotNull(stats.co2Kg), stats.previous?.co2Kg)
                     .takeIf { distanceComparable },
                 animated = StatTileNumber(requireNotNull(stats.co2Kg)) { v ->
                     kgTemplate.replace(NUMBER_SLOT, formatDecimal(v))
@@ -602,7 +603,7 @@ internal fun statTiles(stats: PeriodStats): List<StatTileData> {
                 icon = icon,
                 value = durationText(requireNotNull(stats.searchTime).value),
                 label = stringResource(Res.string.stats_tile_search_time),
-                delta = percentDelta(
+                delta = statDelta(
                     requireNotNull(stats.searchTime).value.toDouble(),
                     stats.previous?.searchTime?.value?.toDouble(),
                 ).takeIf { searchComparable },
@@ -612,7 +613,7 @@ internal fun statTiles(stats: PeriodStats): List<StatTileData> {
                 icon = icon,
                 value = durationText(requireNotNull(stats.avgParkedDurationMs)),
                 label = stringResource(Res.string.stats_tile_avg_duration),
-                delta = percentDelta(
+                delta = statDelta(
                     requireNotNull(stats.avgParkedDurationMs).toDouble(),
                     stats.previous?.avgParkedDurationMs?.toDouble(),
                 ),
@@ -648,27 +649,13 @@ internal fun statTiles(stats: PeriodStats): List<StatTileData> {
                 animated = StatTileNumber(stats.spotsReleased.toDouble()) { v ->
                     v.roundToInt().toString()
                 },
-                delta = percentDelta(
+                delta = statDelta(
                     stats.spotsReleased.toDouble(),
                     stats.previous?.spotsReleased?.toDouble(),
                 ),
             )
         }
     }
-}
-
-/**
- * Movement against the same figure last period, as a whole percentage.
- *
- * Null when there is nothing to compare against, when the previous figure was zero (any change
- * from zero is "infinitely more", which is not a statement), or when the move rounds to nothing —
- * a "▲ 0%" is noise wearing the clothes of a finding.
- */
-private fun percentDelta(current: Double, previous: Double?): PapStatDelta? {
-    if (previous == null || previous == 0.0) return null
-    val changePercent = ((current - previous) / previous * PERCENT).roundToInt()
-    if (changePercent == 0) return null
-    return PapStatDelta(amountText = "${abs(changePercent)}%", isUp = changePercent > 0)
 }
 
 /**
