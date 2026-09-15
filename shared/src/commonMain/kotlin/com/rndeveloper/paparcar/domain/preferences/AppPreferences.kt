@@ -144,6 +144,11 @@ interface AppPreferences {
     val notifyZoneSpots: Boolean
     fun setNotifyZoneSpots(enabled: Boolean)
 
+    /** Reactive twin of [notifyZoneSpots]. Needed since the push index must be rewritten the
+     *  moment the channel is silenced — a snapshot read would leave the server pushing.
+     *  [ZONE-A-SPOT-TELLS-THE-SERVER-AND-THE-SERVER-TELLS-YOU-001] */
+    fun observeNotifyZoneSpots(): Flow<Boolean>
+
     /** Master gate for the Plus fuel-price alerts (a cheaper pump nearby, and what a followed
      *  station did overnight). Sibling of [notifyZoneSpots] and ON by default for the same reason:
      *  following a station already expressed the wish, and this switch exists so Settings can

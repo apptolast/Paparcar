@@ -25,7 +25,6 @@ import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.PurchasePlusUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.RestorePurchasesUseCase
 import com.rndeveloper.paparcar.domain.usecase.zone.ObserveZoneSpotAlertsUseCase
-import com.rndeveloper.paparcar.domain.usecase.zone.RunZoneSpotWatchUseCase
 import com.rndeveloper.paparcar.domain.usecase.zone.SaveOrUpdateZoneUseCase
 import com.rndeveloper.paparcar.domain.usecase.zone.SaveZoneUseCase
 import org.koin.dsl.module
@@ -105,22 +104,12 @@ val domainModule = module {
     factory { SaveZoneUseCase(repository = get(), authRepository = get()) }
     // Home's zone form (create + in-place edit). [HOME-ATOMIZE-001 F4]
     factory { SaveOrUpdateZoneUseCase(repository = get(), saveZone = get()) }
-    // Plus zone alerts. DOS carriles y UNA memoria: el stream mientras la app vive, el worker
-    // mientras no. Los dos deciden con `zoneSpotsWorthTelling` y apuntan en el MISMO repositorio,
-    // que es lo que impide que se avise dos veces o que discrepen sobre qué es novedad.
-    // [MONEY-001] [ZONE-AN-ALERT-NOBODY-IS-AWAKE-TO-RECEIVE-001]
+    // Plus zone alerts. DOS carriles y UNA memoria: el stream mientras la app vive, el PUSH
+    // mientras no. Los dos apuntan en el MISMO repositorio, que es lo que impide que la misma
+    // plaza se anuncie dos veces por dos rutas.
+    // [MONEY-001] [ZONE-A-SPOT-TELLS-THE-SERVER-AND-THE-SERVER-TELLS-YOU-001]
     factory {
         ObserveZoneSpotAlertsUseCase(
-            zoneRepository = get(),
-            spotRepository = get(),
-            watchRepository = get(),
-            observeIsPlus = get(),
-            appPreferences = get(),
-            authRepository = get(),
-        )
-    }
-    factory {
-        RunZoneSpotWatchUseCase(
             zoneRepository = get(),
             spotRepository = get(),
             watchRepository = get(),

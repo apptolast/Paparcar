@@ -127,11 +127,26 @@ class AppNotificationManagerImpl(
      * and double-gated by the Settings master switch: the use case checks it at fire time and
      * this choke point re-reads it, mirroring the [showParkingSaved] pattern.
      */
-    override fun showZoneSpotAlert(zoneName: String, latitude: Double, longitude: Double) {
+    override fun showZoneSpotAlert(
+        zoneName: String,
+        latitude: Double,
+        longitude: Double,
+        isProvisional: Boolean,
+    ) {
         if (!appPreferences.notifyZoneSpots) return
         val notification = NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
             .setContentTitle(context.getString(R.string.notif_zone_spot_title, zoneName))
-            .setContentText(context.getString(R.string.notif_zone_spot_text))
+            // ⛔ A deduced departure says so. The spot is still worth telling about — it is the
+            // freshest thing on the map — but it can be withdrawn, and a card that hid that would
+            // send someone to a space the app itself stopped believing in.
+            // [ZONE-A-SPOT-TELLS-THE-SERVER-AND-THE-SERVER-TELLS-YOU-001]
+            .setContentText(
+                if (isProvisional) {
+                    context.getString(R.string.notif_zone_spot_text_provisional)
+                } else {
+                    context.getString(R.string.notif_zone_spot_text)
+                },
+            )
             .setSmallIcon(R.drawable.ic_notification_logo)
             .setColor(COLOR_SUCCESS)
             .setCategory(NotificationCompat.CATEGORY_EVENT)

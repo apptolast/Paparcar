@@ -108,6 +108,21 @@
         <!-- BluetoothDetectionService retired: the BT lane (hunt + departure watch) rides the
              sentinel above since [DET-ONE-SERVICE-TWO-LANES-001]. -->
 
+        <!-- Zone alert push. [ZONE-A-SPOT-TELLS-THE-SERVER-AND-THE-SERVER-TELLS-YOU-001]
+             Replaces the 15-minute poll: a Cloud Function tells the phone when a spot lands inside
+             one of its zones, which is the only way to be told while the app is not running.
+             ⛔ exported="false" WITH an intent filter, which looks contradictory and is not: only
+             the Firebase messaging library in this same process dispatches MESSAGING_EVENT, so
+             nothing external needs to reach it. Exporting it would let any app on the device fire a
+             fake zone alert at the user. -->
+        <service
+            android:name="com.rndeveloper.paparcar.push.PaparcarMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
         <!-- ActivityTransitionReceiver -->
         <receiver
             android:name=".detection.receiver.ActivityTransitionReceiver"

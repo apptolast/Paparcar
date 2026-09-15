@@ -33,6 +33,18 @@ class FakeZoneWatchRepository : ZoneWatchRepository {
         if (markBaseline) baselines += zoneId
     }
 
+    override suspend fun hasAnnounced(zoneId: String, spotId: String): Boolean =
+        spotId in alerted[zoneId].orEmpty()
+
+    override suspend fun recordAnnounced(
+        zoneId: String,
+        spotId: String,
+        spotExpiresAt: Long,
+        nowMs: Long,
+    ) {
+        alerted.getOrPut(zoneId) { mutableSetOf() } += spotId
+    }
+
     /** Counted, not simulated: what expiry pruning does to real rows is the store's test, not this. */
     override suspend fun prune(nowMs: Long) {
         pruneCount++

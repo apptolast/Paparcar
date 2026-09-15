@@ -175,7 +175,21 @@ interface AppNotificationManager {
      * ZONE-SUBSCRIBE-001 for background delivery. Default no-op for non-Android impls and
      * fakes. [MONEY-001]
      */
-    fun showZoneSpotAlert(zoneName: String, latitude: Double, longitude: Double) {}
+    fun showZoneSpotAlert(
+        zoneName: String,
+        latitude: Double,
+        longitude: Double,
+        /**
+         * True when the departure behind this spot was DEDUCED, not witnessed — it lives twelve
+         * minutes and may yet be withdrawn. [ZONE-A-SPOT-TELLS-THE-SERVER-AND-THE-SERVER-TELLS-YOU-001]
+         *
+         * ⛔ Said, never hidden. These are the freshest spots there are and the ones the old
+         * fifteen-minute poll could not reach at all, so push is what makes them deliverable — but a
+         * card that promised a confirmed space and sent someone to a retracted one would spend the
+         * trust the whole alert runs on. Different words, not a different silence.
+         */
+        isProvisional: Boolean = false,
+    ) {}
 
     /**
      * A pump near the user charges measurably less than the one they use (Paparcar Plus).

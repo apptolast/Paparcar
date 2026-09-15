@@ -73,6 +73,7 @@
     <!-- Plus zone alert [MONEY-001] -->
     <string name="notif_zone_spot_title">Place libre dans %1$s</string>
     <string name="notif_zone_spot_text">Quelqu\'un vient de partir — ouvre la carte pour la voir</string>
+    <string name="notif_zone_spot_text_provisional">Quelqu'un vient peut-être de partir — ouvre la carte, pas encore confirmé</string>
 
     <string name="notif_fuel_cheaper_title_named">%1$s est moins chère</string>
     <string name="notif_fuel_cheaper_title">Une station moins chère à proximité</string>

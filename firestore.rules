@@ -178,6 +178,38 @@ service cloud.firestore {
       allow create, update: if false;
     }
 
+    // Índice de suscripciones a alertas de zona [ZONE-A-SPOT-TELLS-THE-SERVER-AND-THE-SERVER-TELLS-YOU-001]
+    //
+    // Colección de nivel superior porque la Cloud Function tiene que poder preguntar «¿quién tiene
+    // una zona que contenga este punto?» ENTRE usuarios, y eso no se puede hacer con las zonas
+    // metidas en subcolecciones privadas.
+    //
+    // ⛔⛔ **Un índice de dónde vive la gente NO se puede barrer.** Ese es el fallo que este ticket
+    // podría tener y el que estas reglas existen para impedir: la consulta de la función es
+    // `cells array-contains`, así que si un cliente pudiera hacerla sacaría las coordenadas de sus
+    // vecinos.
+    //
+    // La lectura se permite SOLO acotada al propio uid, y eso NO reabre el barrido: Firestore exige
+    // que una consulta se pueda demostrar permitida *antes* de ejecutarla, así que
+    // `where('cells','array-contains',…)` es rechazada de plano — no puede probar que todos los
+    // resultados serían tuyos. Solo pasa `where('uid','==',<el tuyo>)`.
+    //
+    // ⚠️ Y hace falta: sin leer tus propias filas no se pueden BORRAR las que sobran, que es
+    // justo lo que pasa al perder Plus o al apagar una zona. Una primera versión puso
+    // `read: if false` y dejaba al usuario recibiendo avisos de una zona que había apagado, desde
+    // un servidor sin forma de enterarse.
+    //
+    // Escribir, solo lo tuyo. La comprobación va sobre el CAMPO `uid`, no sobre el id: un uid de
+    // Firebase Auth no tiene formato garantizado, así que partir el id por `_` sería una regla que
+    // depende de una convención de nombres. Y en un borrado `request.resource` es null — por eso
+    // create/update y delete van aparte en vez de un `write` que fallaría al desuscribirse.
+    match /zoneAlertSubs/{subId} {
+      allow read: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow create, update: if request.auth != null
+                            && request.resource.data.uid == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+
     // Denegar cualquier otra colección no listada explícitamente.
     match /{document=**} {
       allow read, write: if false;

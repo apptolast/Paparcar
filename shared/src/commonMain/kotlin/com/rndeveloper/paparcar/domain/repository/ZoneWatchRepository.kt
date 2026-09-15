@@ -26,6 +26,19 @@ interface ZoneWatchRepository {
      */
     suspend fun recordLook(zoneId: String, spots: List<Spot>, nowMs: Long, markBaseline: Boolean)
 
+    /**
+     * Has this exact free space already been announced for this zone?
+     * [ZONE-A-SPOT-TELLS-THE-SERVER-AND-THE-SERVER-TELLS-YOU-001]
+     *
+     * The push path's door. With a server telling and a stream also watching while the app is open,
+     * the SAME spot can arrive twice by two routes — and the rule about what has already been said
+     * must keep living in one place, not get a second copy inside a messaging service.
+     */
+    suspend fun hasAnnounced(zoneId: String, spotId: String): Boolean
+
+    /** Writes down one announcement. [spotExpiresAt] is what the sweep prunes by: the spot's death. */
+    suspend fun recordAnnounced(zoneId: String, spotId: String, spotExpiresAt: Long, nowMs: Long)
+
     /** Drops rows whose spot has expired, and rows of zones that no longer exist. */
     suspend fun prune(nowMs: Long)
 }

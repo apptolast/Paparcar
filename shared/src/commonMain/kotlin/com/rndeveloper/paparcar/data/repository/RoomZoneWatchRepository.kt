@@ -43,6 +43,27 @@ class RoomZoneWatchRepository(
         }
     }
 
+    override suspend fun hasAnnounced(zoneId: String, spotId: String): Boolean =
+        spotId in dao.alertedSpotIds(zoneId)
+
+    override suspend fun recordAnnounced(
+        zoneId: String,
+        spotId: String,
+        spotExpiresAt: Long,
+        nowMs: Long,
+    ) {
+        dao.recordAlerted(
+            listOf(
+                ZoneAlertedSpotEntity(
+                    zoneId = zoneId,
+                    spotId = spotId,
+                    alertedAtMs = nowMs,
+                    spotExpiresAt = spotExpiresAt,
+                ),
+            ),
+        )
+    }
+
     override suspend fun prune(nowMs: Long) {
         dao.pruneExpired(nowMs)
         dao.deleteOrphanedAlerts()

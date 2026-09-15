@@ -1,5 +1,7 @@
 package com.rndeveloper.paparcar.di
 
+import com.rndeveloper.paparcar.domain.repository.ZoneAlertSubscriptionRepository
+import com.rndeveloper.paparcar.data.repository.FirestoreZoneAlertSubscriptionRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneWatchRepository
 import com.rndeveloper.paparcar.data.repository.RoomZoneWatchRepository
 import dev.gitlive.firebase.Firebase
@@ -203,6 +205,11 @@ val dataModule = module {
     // La memoria que la alerta de zona nunca tuvo: lo ya avisado y el primer vistazo de cada zona.
     // [ZONE-AN-ALERT-NOBODY-IS-AWAKE-TO-RECEIVE-001]
     single<ZoneWatchRepository> { RoomZoneWatchRepository(dao = get()) }
+
+    // El índice que la Cloud Function consulta. ⛔ Solo se ESCRIBE desde el cliente; las reglas
+    // permiten leer únicamente lo tuyo, y esa lectura acotada es lo que hace posible BORRAR las
+    // suscripciones que sobran. [ZONE-A-SPOT-TELLS-THE-SERVER-AND-THE-SERVER-TELLS-YOU-001]
+    single<ZoneAlertSubscriptionRepository> { FirestoreZoneAlertSubscriptionRepository(firestore = get()) }
     single { get<AppDatabase>().geocoderCacheDao() }
     single { get<AppDatabase>().publicParkingCacheDao() }
     single { get<AppDatabase>().osmCoverageDao() }

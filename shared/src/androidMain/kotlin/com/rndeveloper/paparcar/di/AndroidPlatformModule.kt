@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.di
 
+import com.rndeveloper.paparcar.push.ZoneAlertSubscriptionSync
 import android.app.NotificationManager
 import android.content.Context
 import com.google.android.gms.location.LocationServices
@@ -77,4 +78,18 @@ val androidPlatformModule = module {
 
     // "Report a problem" ships the local parkdiag history. [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001]
     single<LocalDiagnosticsLog> { AndroidLocalDiagnosticsLog(androidContext()) }
+
+    // Zone alert push — Android only, because FCM is the Android answer to "wake an app that is not
+    // running". ⛔ A `single`: the messaging service injects the SAME instance to ask for a resync
+    // when the token rotates, and two of these would each hold half the truth.
+    // [ZONE-A-SPOT-TELLS-THE-SERVER-AND-THE-SERVER-TELLS-YOU-001]
+    single {
+        ZoneAlertSubscriptionSync(
+            zoneRepository = get(),
+            subscriptionRepository = get(),
+            observeIsPlus = get(),
+            appPreferences = get(),
+            authRepository = get(),
+        )
+    }
 }

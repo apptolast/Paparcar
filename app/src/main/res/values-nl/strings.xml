@@ -73,6 +73,7 @@
     <!-- Plus zone alert [MONEY-001] -->
     <string name="notif_zone_spot_title">Vrije plek in %1$s</string>
     <string name="notif_zone_spot_text">Er is net iemand vertrokken — open de kaart</string>
+    <string name="notif_zone_spot_text_provisional">Misschien is er net iemand vertrokken — open de kaart, nog niet bevestigd</string>
 
     <string name="notif_fuel_cheaper_title_named">%1$s is goedkoper</string>
     <string name="notif_fuel_cheaper_title">Een goedkoper tankstation in de buurt</string>

@@ -118,7 +118,12 @@ class FakeAppPreferences(
 
     private var _notifyZoneSpots = true
     override val notifyZoneSpots: Boolean get() = _notifyZoneSpots
-    override fun setNotifyZoneSpots(enabled: Boolean) { _notifyZoneSpots = enabled }
+    private val _notifyZoneSpotsFlow = MutableStateFlow(true)
+    override fun setNotifyZoneSpots(enabled: Boolean) {
+        _notifyZoneSpots = enabled
+        _notifyZoneSpotsFlow.value = enabled
+    }
+    override fun observeNotifyZoneSpots(): Flow<Boolean> = _notifyZoneSpotsFlow
 
     private var _notifyFuelPrices = true
     override val notifyFuelPrices: Boolean get() = _notifyFuelPrices

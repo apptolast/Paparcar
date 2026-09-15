@@ -259,6 +259,7 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     private val _notifyZoneSpots = MutableStateFlow(true)
     override val notifyZoneSpots: Boolean get() = _notifyZoneSpots.value
     override fun setNotifyZoneSpots(enabled: Boolean) { _notifyZoneSpots.value = enabled }
+    override fun observeNotifyZoneSpots(): Flow<Boolean> = _notifyZoneSpots
 
     private val _notifyFuelPrices = MutableStateFlow(true)
     override val notifyFuelPrices: Boolean get() = _notifyFuelPrices.value

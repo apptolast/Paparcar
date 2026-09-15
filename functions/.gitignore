@@ -1,0 +1,5 @@
+# Build output and dependencies — the deploy runs `npm run build` from a clean checkout.
+node_modules/
+lib/
+*.log
+.runtimeconfig.json

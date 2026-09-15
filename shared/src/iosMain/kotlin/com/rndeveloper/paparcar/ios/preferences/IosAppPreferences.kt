@@ -8,6 +8,7 @@ import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.preferences.ThemeMode
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import platform.Foundation.NSUserDefaults
@@ -288,6 +289,9 @@ class IosAppPreferences : AppPreferences {
     override fun setNotifyZoneSpots(enabled: Boolean) {
         userDefaults.setBool(enabled, forKey = KEY_NOTIFY_ZONE_SPOTS)
     }
+
+    /** iOS has no FCM lane yet; a single emission is the honest shape rather than a fake stream. */
+    override fun observeNotifyZoneSpots(): Flow<Boolean> = flowOf(notifyZoneSpots)
 
     override val notifyFuelPrices: Boolean
         get() = if (userDefaults.objectForKey(KEY_NOTIFY_FUEL_PRICES) == null) true

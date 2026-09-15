@@ -37,7 +37,7 @@ tampoco. → **Compartido = No** en todo.
 | App activity → **Other user-generated content** | Vehículos (marca/modelo/matrícula opcional), zonas privadas, plazas avisadas | Opcional | App functionality |
 | App info & performance → **Crash logs** | Crashlytics | Obligatorio | Analytics |
 | App info & performance → **Diagnostics** | Telemetría de detección (Firestore `diagnostics/`) + parkdiag | Obligatorio | Analytics |
-| Device or other IDs → **Device or other IDs** | MAC/nombre del BT del coche del usuario; ids de instalación de Firebase (incluye el app-instance id de Analytics) | Opcional (BT) | App functionality, Analytics |
+| Device or other IDs → **Device or other IDs** | MAC/nombre del BT del coche del usuario; ids de instalación de Firebase (incluye el app-instance id de Analytics); **token de registro FCM** del dispositivo, guardado en `zoneAlertSubs` mientras las alertas de zona estén activas [ZONE-A-SPOT-TELLS-THE-SERVER-AND-THE-SERVER-TELLS-YOU-001] | Opcional (BT y token: solo con alertas de zona activas) | App functionality, Analytics |
 
 ⛔ **Advertising ID: NO se declara y NO se recoge.** `play-services-measurement` (lo arrastra
 Firebase Analytics) fusiona el permiso `com.google.android.gms.permission.AD_ID`; el manifest lo

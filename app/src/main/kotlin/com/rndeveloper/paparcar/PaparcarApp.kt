@@ -31,7 +31,7 @@ import com.rndeveloper.paparcar.domain.preferences.ThemeMode
 import com.rndeveloper.paparcar.domain.usecase.detection.isFirstParkNudgeSpent
 import com.rndeveloper.paparcar.logging.FileAntilog
 import com.rndeveloper.paparcar.fuel.FuelWatchScheduler
-import com.rndeveloper.paparcar.zone.ZoneWatchScheduler
+import com.rndeveloper.paparcar.push.ZoneAlertSubscriptionSync
 import com.rndeveloper.paparcar.widget.ParkedWidgetRefresher
 import org.koin.android.ext.android.get
 import org.koin.android.ext.koin.androidContext
@@ -158,13 +158,18 @@ class PaparcarApp : Application() {
 
         // Both Plus watches arm the same way and for the same reason: their clock follows what
         // the user subscribed to as a STREAM — armed the moment a station is starred or a zone asks
-        // to be watched, cancelled when the last one goes. Never a one-shot read at launch, for the
-        // very reason the note below gives. Neither reads the entitlement: Plus is decided live
-        // inside each use case, in ONE place.
+        // to be watched, dropped when the last one goes. Never a one-shot read at launch, for the
+        // very reason the note below gives.
+        //
+        // ⛔ They are no longer the same KIND of thing, and that is the point: fuel still POLLS
+        // (a pump moves once a day, a daily worker is the right tool), while the zone alert stopped
+        // polling entirely — a Cloud Function tells the phone, and what runs here is only the
+        // bookkeeping that keeps the server's index honest. Neither reads the entitlement: Plus is
+        // decided live in ONE place each.
         // [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
-        // [ZONE-AN-ALERT-NOBODY-IS-AWAKE-TO-RECEIVE-001]
+        // [ZONE-A-SPOT-TELLS-THE-SERVER-AND-THE-SERVER-TELLS-YOU-001]
         FuelWatchScheduler(workManager, get()).start()
-        ZoneWatchScheduler(workManager, get()).start()
+        get<ZoneAlertSubscriptionSync>().start()
 
         // [DET-WATCH-REACTIVATE-001] The resident SENTRY watcher is NOT resurrected here any more.
         // This spot read the parked sessions ONCE (`observeActiveSessions().first()`), so a clean

@@ -191,6 +191,11 @@ kotlin {
             api(project.dependencies.platform(libs.firebase.bom))
             api(libs.firebase.crashlytics)
 
+            // FCM — el ÚNICO canal por el que un servidor puede despertar a la app cerrada, que es
+            // exactamente cuando una alerta de zona sirve para algo.
+            // [ZONE-A-SPOT-TELLS-THE-SERVER-AND-THE-SERVER-TELLS-YOU-001]
+            api(libs.firebase.messaging)
+
             // WorkManager
             api(libs.work.runtime.ktx)
 

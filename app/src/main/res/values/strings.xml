@@ -84,6 +84,7 @@
     <!-- Plus zone alert [MONEY-001] -->
     <string name="notif_zone_spot_title">Free spot in %1$s</string>
     <string name="notif_zone_spot_text">Someone just left — open the map to see it</string>
+    <string name="notif_zone_spot_text_provisional">Someone may have just left — open the map, it is not confirmed yet</string>
 
     <!-- [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001] Plus fuel alerts. The saving always
          names what it is measured against: a bare "8 c/l cheaper" is a number nobody can check. -->

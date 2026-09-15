@@ -296,6 +296,9 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
 
     override fun setNotifyZoneSpots(enabled: Boolean) = set(Keys.NOTIFY_ZONE_SPOTS, enabled)
 
+    override fun observeNotifyZoneSpots(): Flow<Boolean> =
+        store.data.map { it[Keys.NOTIFY_ZONE_SPOTS] ?: true }.distinctUntilChanged()
+
     override val notifyFuelPrices: Boolean
         get() = get(Keys.NOTIFY_FUEL_PRICES, true)
 
