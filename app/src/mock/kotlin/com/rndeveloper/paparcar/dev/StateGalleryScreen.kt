@@ -1859,6 +1859,23 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             // apiladas en dos sitios y con la búsqueda cara concentrada en una franja, que es lo que
             // hace que las reglas pasen su umbral. Sin esto la card no se compone — y una variante
             // que no alcanza su caso no vigila nada [DEV-A-GALLERY-VARIANT-MUST-EXERCISE-ITS-CASE-001].
+            // [STATS-AN-ESTIMATE-SAYS-IT-IS-ONE-001] La proyección existe sólo en un periodo de
+            // CALENDARIO y con recorrido suficiente: «Este mes» la enseña, «Todos» —ventana sin
+            // final— no puede, y así se ven las dos caras.
+            Variant("Ritmo · a dónde va el mes") {
+                StatsContent(
+                    state = statsPanelState(filter = HistoryFilter.ThisMonth),
+                    onNavigateBack = {},
+                    onIntent = {},
+                )
+            },
+            Variant("Ritmo · un periodo sin final (no proyecta)") {
+                StatsContent(
+                    state = statsPanelState(filter = HistoryFilter.All),
+                    onNavigateBack = {},
+                    onIntent = {},
+                )
+            },
             // Las DOS caras del motor, porque las cuatro reglas no caben en un solo periodo: con
             // «Todos» entran los seis aparcamientos y hay dos SITIOS que contrastar; con «Este mes»
             // el sitio barato se queda en dos visitas —y deja de ser un sitio— pero aparece la

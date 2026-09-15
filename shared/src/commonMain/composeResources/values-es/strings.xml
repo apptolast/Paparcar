@@ -845,6 +845,12 @@
     <string name="stats_places_title">Tus sitios</string>
     <string name="stats_when_title">Cuándo aparcas</string>
     <string name="stats_insights_title">Lo que dicen tus aparcamientos</string>
+    <string name="stats_pace_title">Si sigue este ritmo</string>
+    <string name="stats_pace_close">cierre de mes</string>
+    <string name="stats_pace_year">un año a este ritmo</string>
+    <string name="stats_pace_distance">kilómetros</string>
+    <string name="stats_pace_search">buscando plaza</string>
+    <string name="stats_pace_basis">Sobre el %1$d% del periodo</string>
     <string name="stats_insight_worst_time">%1$s de %2$s: tardas %3$s en aparcar</string>
     <string name="stats_insight_easiest_time">%1$s de %2$s: aparcas en %3$s</string>
     <string name="stats_insight_costliest_place">En %1$s tardas %2$s en aparcar; en tus otros sitios, %3$s</string>

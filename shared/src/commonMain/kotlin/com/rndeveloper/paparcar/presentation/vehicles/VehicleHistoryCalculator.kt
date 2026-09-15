@@ -59,6 +59,34 @@ object VehicleHistoryCalculator {
         return startDate.atStartOfDayIn(tz).toEpochMilliseconds()
     }
 
+    /**
+     * When [filter]'s window CLOSES — and null for the ones that never do.
+     * [STATS-AN-ESTIMATE-SAYS-IT-IS-ONE-001]
+     *
+     * ⛔ Only a CALENDAR period has an end. "Last 7 days" and "Last 3 months" are rolling windows:
+     * they always cover the same span and never close, so projecting their end means nothing —
+     * tomorrow the window has moved, with the user still inside it. "All" has no end at all.
+     * Returning null for those three is that rule expressed as a type, so no caller can project a
+     * period that cannot finish.
+     *
+     * It lives next to [windowStartMs] because a window's two ends are one decision.
+     */
+    fun windowEndMs(
+        filter: HistoryFilter,
+        nowMs: Long = Clock.System.now().toEpochMilliseconds(),
+    ): Long? {
+        val tz = TimeZone.currentSystemDefault()
+        val today = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(tz).date
+        val endDate = when (filter) {
+            HistoryFilter.ThisWeek ->
+                today.minus(today.dayOfWeek.isoDayNumber - 1, DateTimeUnit.DAY)
+                    .plus(DAYS_PER_WEEK, DateTimeUnit.DAY)
+            HistoryFilter.ThisMonth -> LocalDate(today.year, today.month, 1).plus(1, DateTimeUnit.MONTH)
+            HistoryFilter.Last7Days, HistoryFilter.Last3Months, HistoryFilter.All -> return null
+        }
+        return endDate.atStartOfDayIn(tz).toEpochMilliseconds()
+    }
+
     /** Sessions within the time window of [filter]. `nowMs` injectable for deterministic tests. */
     fun filter(
         sessions: List<UserParking>,

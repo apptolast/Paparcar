@@ -849,6 +849,12 @@
     <string name="stats_places_title">I tuoi posti</string>
     <string name="stats_when_title">Quando parcheggi</string>
     <string name="stats_insights_title">Cosa dicono i tuoi parcheggi</string>
+    <string name="stats_pace_title">Se continua così</string>
+    <string name="stats_pace_close">fine mese</string>
+    <string name="stats_pace_year">un anno a questo ritmo</string>
+    <string name="stats_pace_distance">chilometri</string>
+    <string name="stats_pace_search">a cercare posto</string>
+    <string name="stats_pace_basis">Sul %1$d% del periodo</string>
     <string name="stats_insight_worst_time">%1$s dalle %2$s: impieghi %3$s a parcheggiare</string>
     <string name="stats_insight_easiest_time">%1$s dalle %2$s: parcheggi in %3$s</string>
     <string name="stats_insight_costliest_place">A %1$s impieghi %2$s a parcheggiare; negli altri posti, %3$s</string>

@@ -885,6 +885,12 @@
     <string name="stats_places_title">Your places</string>
     <string name="stats_when_title">When you park</string>
     <string name="stats_insights_title">What your parkings say</string>
+    <string name="stats_pace_title">Where this is heading</string>
+    <string name="stats_pace_close">month close</string>
+    <string name="stats_pace_year">a year at this pace</string>
+    <string name="stats_pace_distance">kilometres</string>
+    <string name="stats_pace_search">hunting a spot</string>
+    <string name="stats_pace_basis">From %1$d% of the period</string>
     <string name="stats_insight_worst_time">%1$s, %2$s: you take %3$s to park</string>
     <string name="stats_insight_easiest_time">%1$s, %2$s: you park in %3$s</string>
     <string name="stats_insight_costliest_place">At %1$s you take %2$s to park; at your other places, %3$s</string>

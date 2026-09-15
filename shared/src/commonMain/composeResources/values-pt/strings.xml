@@ -849,6 +849,12 @@
     <string name="stats_places_title">Os teus locais</string>
     <string name="stats_when_title">Quando estacionas</string>
     <string name="stats_insights_title">O que dizem os teus estacionamentos</string>
+    <string name="stats_pace_title">Se continuar assim</string>
+    <string name="stats_pace_close">fecho do mês</string>
+    <string name="stats_pace_year">um ano a este ritmo</string>
+    <string name="stats_pace_distance">quilómetros</string>
+    <string name="stats_pace_search">à procura de lugar</string>
+    <string name="stats_pace_basis">Sobre %1$d% do período</string>
     <string name="stats_insight_worst_time">%1$s das %2$s: demoras %3$s a estacionar</string>
     <string name="stats_insight_easiest_time">%1$s das %2$s: estacionas em %3$s</string>
     <string name="stats_insight_costliest_place">Em %1$s demoras %2$s a estacionar; nos teus outros locais, %3$s</string>

@@ -829,6 +829,12 @@
     <string name="stats_places_title">Jouw plekken</string>
     <string name="stats_when_title">Wanneer je parkeert</string>
     <string name="stats_insights_title">Wat je parkeerplaatsen zeggen</string>
+    <string name="stats_pace_title">Als dit zo doorgaat</string>
+    <string name="stats_pace_close">einde van de maand</string>
+    <string name="stats_pace_year">een jaar in dit tempo</string>
+    <string name="stats_pace_distance">kilometers</string>
+    <string name="stats_pace_search">plek zoeken</string>
+    <string name="stats_pace_basis">Op basis van %1$d% van de periode</string>
     <string name="stats_insight_worst_time">%1$s, %2$s: je doet %3$s over parkeren</string>
     <string name="stats_insight_easiest_time">%1$s, %2$s: je parkeert in %3$s</string>
     <string name="stats_insight_costliest_place">Bij %1$s doe je %2$s over parkeren; op je andere plekken %3$s</string>

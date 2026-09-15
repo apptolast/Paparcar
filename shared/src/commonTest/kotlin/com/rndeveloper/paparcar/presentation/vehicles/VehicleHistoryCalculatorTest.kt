@@ -281,4 +281,35 @@ class VehicleHistoryCalculatorTest {
         assertEquals(0f, distance.last().value, "hoy no se midió ruta: la barra es cero")
         assertEquals(60_000f, search.last().value)
     }
+
+    // ── El final de la ventana [STATS-AN-ESTIMATE-SAYS-IT-IS-ONE-001] ───────
+
+    /**
+     * ⛔ Sólo un periodo de CALENDARIO tiene final. «Últimos 7 días» y «3 meses» son ventanas
+     * RODANTES —siempre cubren el mismo tramo y nunca se cierran— y «Todo» no acaba nunca: proyectar
+     * su cierre no significa nada, así que no hay final que devolver.
+     */
+    @Test
+    fun should_haveNoEnd_forRollingWindows() {
+        assertNull(VehicleHistoryCalculator.windowEndMs(HistoryFilter.Last7Days, nowMs))
+        assertNull(VehicleHistoryCalculator.windowEndMs(HistoryFilter.Last3Months, nowMs))
+        assertNull(VehicleHistoryCalculator.windowEndMs(HistoryFilter.All, nowMs))
+    }
+
+    @Test
+    fun should_closeTheCalendarPeriods_afterTheirStart() {
+        listOf(HistoryFilter.ThisWeek, HistoryFilter.ThisMonth).forEach { filter ->
+            val start = VehicleHistoryCalculator.windowStartMs(filter, nowMs)!!
+            val end = VehicleHistoryCalculator.windowEndMs(filter, nowMs)!!
+            assertTrue(end > nowMs, "$filter todavía no ha terminado")
+            assertTrue(start < nowMs, "$filter ya ha empezado")
+        }
+        // Una semana dura menos que un mes, que es lo que hace que las dos proyecciones difieran.
+        val week = VehicleHistoryCalculator.windowEndMs(HistoryFilter.ThisWeek, nowMs)!! -
+            VehicleHistoryCalculator.windowStartMs(HistoryFilter.ThisWeek, nowMs)!!
+        val month = VehicleHistoryCalculator.windowEndMs(HistoryFilter.ThisMonth, nowMs)!! -
+            VehicleHistoryCalculator.windowStartMs(HistoryFilter.ThisMonth, nowMs)!!
+        assertEquals(7L * 24 * 60 * 60 * 1000, week)
+        assertTrue(month >= 28L * 24 * 60 * 60 * 1000)
+    }
 }

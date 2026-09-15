@@ -863,6 +863,12 @@
     <string name="stats_places_title">Locurile tale</string>
     <string name="stats_when_title">Când parchezi</string>
     <string name="stats_insights_title">Ce spun parcările tale</string>
+    <string name="stats_pace_title">Dacă ritmul se menține</string>
+    <string name="stats_pace_close">finalul lunii</string>
+    <string name="stats_pace_year">un an în acest ritm</string>
+    <string name="stats_pace_distance">kilometri</string>
+    <string name="stats_pace_search">căutare loc</string>
+    <string name="stats_pace_basis">Pe baza a %1$d% din perioadă</string>
     <string name="stats_insight_worst_time">%1$s, %2$s: faci %3$s să parchezi</string>
     <string name="stats_insight_easiest_time">%1$s, %2$s: parchezi în %3$s</string>
     <string name="stats_insight_costliest_place">La %1$s faci %2$s să parchezi; în celelalte locuri, %3$s</string>
