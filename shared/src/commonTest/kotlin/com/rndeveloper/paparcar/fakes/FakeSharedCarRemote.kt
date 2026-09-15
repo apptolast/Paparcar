@@ -140,6 +140,7 @@ class FakeSharedCarDao : SharedCarDao {
     override fun observeById(carId: String): Flow<SharedCarEntity?> = rows.map { it[carId] }
     override fun observeAll(): Flow<List<SharedCarEntity>> = rows.map { it.values.toList() }
     override suspend fun getById(carId: String): SharedCarEntity? = rows.value[carId]
+    override suspend fun getAll(): List<SharedCarEntity> = rows.value.values.toList()
     override suspend fun deleteById(carId: String) { rows.value = rows.value - carId }
     override suspend fun deleteAll() { rows.value = emptyMap() }
 }

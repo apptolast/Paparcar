@@ -38,7 +38,13 @@ suspend fun cleanOrphanEnterFences(
 ): List<String> {
     if (deliveredGeofenceIds.isEmpty()) return emptyList()
     val liveFenceIds = activeSessions.mapNotNull { it.geofenceId }.toSet()
-    val orphans = deliveredGeofenceIds.filter { it !in liveFenceIds }
+    // ⛔ Una valla del grupo NO tiene sesión local y aun así está viva: vigila el aparcamiento que
+    // hizo otra persona. Barrerla dejaría al miembro sin saber dónde está el coche, que es
+    // exactamente lo que la valla compartida existe para contar.
+    // [DET-A-SHARED-FENCE-FOLLOWS-THE-CAR-001]
+    val orphans = deliveredGeofenceIds
+        .filterNot { com.rndeveloper.paparcar.domain.detection.fence.SharedCarFence.isSharedFenceId(it) }
+        .filter { it !in liveFenceIds }
     for (id in orphans) {
         PaparcarLogger.w(TAG, "✗ ENTER from a fence with no session geof=${id.take(8)} — removing the orphan [DET-A-RELEASED-PIN-TAKES-ITS-FENCES-WITH-IT-001]")
         // Best-effort like the EXIT sweep: a failed removal stays registered and this same sweep

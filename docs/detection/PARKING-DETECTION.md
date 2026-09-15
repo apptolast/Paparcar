@@ -476,6 +476,43 @@ See `diagnostics/README.md` at the repo root for the recommended layout when arc
 
 Each entry is one issue we shipped a fix for. Listed roughly in dependency order (mappers first, then pipeline, then algorithm). Every entry should explain *what was wrong*, *why it was wrong*, and *what guard exists today*. If you ever want to remove a guard, find its entry here first.
 
+### DET-A-SHARED-FENCE-FOLLOWS-THE-CAR-001 — la valla sigue al coche, no a quien lo aparcó
+
+**Commit:** pending. **Reporte del user (15-09):** *«si Marta coge el coche y se va, la geocerca de
+Antonio debería desaparecer y ponerse donde aparcó Marta; todos comparten geocerca»*.
+
+**Causa raíz.** La valla siempre ha sido de la SESIÓN (`geofenceId == sessionId`): cada móvil vigila
+el aparcamiento que hizo él. Con el coche compartido (F8 etapa 1) eso deja a los demás miembros
+vigilando un sitio donde el coche ya no está — y lo caro no es la desinformación, es que **esa valla
+sigue siendo un trigger de detección**: Antonio pasa andando por la calle del lunes, su valla
+dispara un EXIT, el intake lo lee como salida y la cadena puede publicar la plaza de un coche que
+nadie ha movido. Falso positivo con el nombre de otra persona.
+
+**Fix.** Tres piezas, ninguna dentro del servicio:
+
+1. **Espacio de nombres propio**, `SharedCarFence` → `shared:<carId>`. Hace falta porque una valla
+   del grupo **no tiene sesión local por construcción**, y tres sitios deciden por «¿qué sesión la
+   respalda?»: el evaluador del EXIT (la habría barrido por huérfana), el barrido del carril ENTER
+   (igual) y el janitor (no la habría re-registrado nunca).
+2. **Veredicto puro**, `EvaluateSharedCarWatchUseCase`: del estado del espejo sale qué valla toca
+   (ninguna si el aparcamiento es mío — la de mi sesión ya lo vigila) y si mi sesión local quedó
+   obsoleta. Superseder exige **tres** condiciones a la vez: otra sesión, de otra persona y **más
+   nueva**. Sin la tercera, una sincronización que llega tarde borraría un aparcamiento hecho sin
+   cobertura; y «el grupo dice que no está aparcado» nunca supersede, por lo mismo.
+3. **Ejecución en el janitor**, que ya es el sitio donde se reconcilian vallas — no un segundo
+   registrador, que es como se abren ventanas ciegas (ver `FenceRegistrationPolicy`).
+
+**Doctrina.** La valla compartida es de UBICACIÓN, no de liberación: no arma, no nomina y no
+confirma. Quien libera la plaza sigue siendo quien MIDIÓ la conducción, así que no hay
+`detectionPath` nuevo — este camino no confirma ningún aparcamiento, y por eso no aparece en el
+vocabulario de provenance.
+
+**Riesgo del fix acompañante.** El veto se aplica ANTES de clasificar el lote, así que una valla
+huérfana de verdad que viaje en el mismo disparo se sigue barriendo (tiene su test). Lo que este
+cambio NO hace es despertar el móvil dormido en el instante en que el otro aparca: eso es un mensaje
+de datos por FCM y va con el push del grupo. Hasta entonces la valla se mueve en la siguiente pasada
+del janitor (15 min) o al abrir la app.
+
 ### COM-002 — Adaptive geofence radius by vehicle size + GPS accuracy
 
 **Commit:** `c7b67ae`.

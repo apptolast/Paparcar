@@ -157,6 +157,16 @@ val dataModule = module {
             profileDao = get(),
         )
     }
+    // Las vallas del grupo: el veredicto es puro, esto es su I/O.
+    // [DET-A-SHARED-FENCE-FOLLOWS-THE-CAR-001]
+    single {
+        com.rndeveloper.paparcar.data.sharedcar.SharedCarFenceReconciler(
+            sharedCarDao = get(),
+            parkingDao = get(),
+            geofenceManager = get(),
+            config = get(),
+        )
+    }
     single<SharedCarRepository> {
         SharedCarRepositoryImpl(
             remote = get(),

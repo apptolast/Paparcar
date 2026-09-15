@@ -16,7 +16,11 @@ sealed interface GeofenceExitLookup {
     data class Found(override val geofenceId: String, val session: UserParking) : GeofenceExitLookup
 
     /** The read succeeded and found NO active session — the fence is an ORPHAN (a re-park left it
-     *  registered NEVER_EXPIRE; it fires spurious exits with nothing to release). */
+     *  registered NEVER_EXPIRE; it fires spurious exits with nothing to release).
+     *
+     *  ⛔ …unless it is a SHARED-CAR fence, which has no local session by construction. That case is
+     *  split out below rather than filtered at the caller, so every platform that resolves fences
+     *  inherits the rule. [DET-A-SHARED-FENCE-FOLLOWS-THE-CAR-001] */
     data class NoSession(override val geofenceId: String) : GeofenceExitLookup
 
     /** The read FAILED (I/O error / cancellation). Indeterminate — must NOT be treated as an
@@ -24,6 +28,17 @@ sealed interface GeofenceExitLookup {
      *  on-time EXIT (field 2026-07-11 00:38, the lookup was cancelled mid-flight). */
     data class LookupFailed(override val geofenceId: String) : GeofenceExitLookup
 }
+
+/**
+ * Whether this lookup is a shared-car watch — a fence this phone keeps over a parking SOMEBODY ELSE
+ * made. [DET-A-SHARED-FENCE-FOLLOWS-THE-CAR-001]
+ *
+ * It fires when the phone walks away from the car, which proves nothing about the car: the person
+ * carrying the phone is not necessarily the person driving. So it is neither an orphan to sweep
+ * (it is doing its job) nor a departure to dispatch (it would publish somebody else's spot).
+ */
+private fun GeofenceExitLookup.isSharedWatch(): Boolean =
+    com.rndeveloper.paparcar.domain.detection.fence.SharedCarFence.isSharedFenceId(geofenceId)
 
 /** A geofence whose active session provably belongs to a departing vehicle. */
 data class DepartingExit(val geofenceId: String, val session: UserParking)
@@ -74,9 +89,13 @@ class EvaluateGeofenceExitUseCase(private val config: ParkingDetectionConfig) {
         triggerLatitude: Double?,
         triggerLongitude: Double?,
     ): GeofenceExitDecision {
-        val orphans = lookups.filterIsInstance<GeofenceExitLookup.NoSession>().map { it.geofenceId }
+        // ⛔ Shared-car fences leave the batch first, and before ANY classification: they have no
+        // local session by construction, so every rule below — orphan sweep included — would read
+        // them wrong. [DET-A-SHARED-FENCE-FOLLOWS-THE-CAR-001]
+        val own = lookups.filterNot { it.isSharedWatch() }
+        val orphans = own.filterIsInstance<GeofenceExitLookup.NoSession>().map { it.geofenceId }
         // LookupFailed is intentionally dropped here — neither cleaned nor dispatched.
-        val realExits = lookups.filterIsInstance<GeofenceExitLookup.Found>()
+        val realExits = own.filterIsInstance<GeofenceExitLookup.Found>()
         if (realExits.isEmpty()) {
             return GeofenceExitDecision(orphans, emptyList(), emptyList())
         }

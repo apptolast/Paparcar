@@ -21,6 +21,11 @@ interface SharedCarDao {
     @Query("SELECT * FROM shared_cars WHERE carId = :carId LIMIT 1")
     suspend fun getById(carId: String): SharedCarEntity?
 
+    /** Todos los coches del grupo, de una vez — la población que reconcilia las vallas compartidas.
+     *  [DET-A-SHARED-FENCE-FOLLOWS-THE-CAR-001] */
+    @Query("SELECT * FROM shared_cars")
+    suspend fun getAll(): List<SharedCarEntity>
+
     @Query("DELETE FROM shared_cars WHERE carId = :carId")
     suspend fun deleteById(carId: String)
 

@@ -49,6 +49,8 @@ class GeofenceJanitorWorker(
     private val geofenceManager: GeofenceManager by inject()
     private val config: ParkingDetectionConfig by inject()
     private val detectionEventLogger: DetectionEventLogger by inject()
+    private val sharedCarFenceReconciler: com.rndeveloper.paparcar.data.sharedcar.SharedCarFenceReconciler by inject()
+    private val authRepository: com.apptolast.baselogin.domain.AuthRepository by inject()
 
     override suspend fun doWork(): Result {
         // [DET-JANITOR-LANE-TELLS-ONCE-FROM-PERIODIC-001] Which clock asked for this run. The
@@ -149,6 +151,17 @@ class GeofenceJanitorWorker(
                 )
             }
         }
+
+        // ⛔ Las vallas del GRUPO se reconcilian aquí y no en un sitio nuevo: dos lugares
+        // registrando vallas abren dos ventanas ciegas por cada pasada, que es justo lo que
+        // [FenceRegistrationPolicy] documenta. Va DESPUÉS de las propias y nunca hace fallar el
+        // run: un coche compartido que no se puede vallar no puede llevarse por delante la valla
+        // del coche propio. [DET-A-SHARED-FENCE-FOLLOWS-THE-CAR-001]
+        runCatching {
+            val myUid = authRepository.getCurrentSession()?.userId
+            val shared = sharedCarFenceReconciler.reconcile(myUid)
+            if (shared > 0) PaparcarLogger.d(TAG, "  ✓ $shared valla(s) de coche compartido al día")
+        }.onFailure { PaparcarLogger.w(TAG, "  ⚠ shared-car fences not reconciled", it) }
 
         return if (failures == 0) {
             PaparcarLogger.d(TAG, "■ GeofenceJanitorWorker SUCCESS")
