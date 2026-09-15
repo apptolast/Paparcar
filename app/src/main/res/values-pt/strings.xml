@@ -94,7 +94,7 @@
     <string name="widget_driving_title">%1$s · A caminho</string>
     <string name="widget_driving_title_unknown">A caminho</string>
     <string name="widget_driving_parking">A estacionar…</string>
-    <string name="widget_driving_hint">Avisamos onde estacionou</string>
+    <string name="widget_driving_hint">Avisaremos onde estacionou</string>
     <string name="widget_location_pending">Localização guardada</string>
     <string name="widget_more_parked">+%1$d mais</string>
     <!-- Widget actions [WIDGET-ACTIONS-002] — same wording as in-app -->
