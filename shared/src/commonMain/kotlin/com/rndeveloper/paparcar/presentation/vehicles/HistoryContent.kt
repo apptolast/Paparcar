@@ -41,6 +41,7 @@ import com.rndeveloper.paparcar.presentation.vehicles.components.EmptyHistorySta
 import com.rndeveloper.paparcar.presentation.vehicles.components.EndedSessionTimelineNode
 import com.rndeveloper.paparcar.presentation.vehicles.components.HistoryFilterBar
 import com.rndeveloper.paparcar.presentation.vehicles.components.ActivityCard
+import com.rndeveloper.paparcar.presentation.vehicles.components.chartQualifierText
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
 import com.rndeveloper.paparcar.ui.components.PapPremiumEmphasis
 import com.rndeveloper.paparcar.ui.components.PapNavChevron
@@ -80,7 +81,7 @@ import paparcar.composeapp.generated.resources.history_day_short_sun
 import paparcar.composeapp.generated.resources.history_day_short_thu
 import paparcar.composeapp.generated.resources.history_day_short_tue
 import paparcar.composeapp.generated.resources.history_day_short_wed
-import paparcar.composeapp.generated.resources.history_activity_distance_partial
+import paparcar.composeapp.generated.resources.history_activity_measure_partial
 import paparcar.composeapp.generated.resources.history_month_short_1
 import paparcar.composeapp.generated.resources.history_month_short_10
 import paparcar.composeapp.generated.resources.history_month_short_11
@@ -120,7 +121,17 @@ internal val DAY_FULL_RES: List<StringResource> = listOf(
     Res.string.history_day_full_sun,
 )
 
-data class WeekDayStats(val label: String, val sessions: Int, val isCurrent: Boolean = false)
+/**
+ * One bar of the activity chart: what it is called, what it is WORTH on the selected metric, and
+ * whether it is the bucket the calendar is standing in. [STATS-A-PERIOD-IS-A-SERIES-NOT-A-NUMBER-001]
+ *
+ * It was `WeekDayStats(label, sessions: Int, isCurrent)`, and both halves of that name had stopped
+ * being true: the buckets have been weeks and months since the filter got five options, and the
+ * value stopped being a count of sessions the moment a bar could hold metres or milliseconds. The
+ * unit lives in the [ChartMetric] that produced the value, which is also where its scale floor and
+ * its formatter come from.
+ */
+data class ActivityBucket(val label: String, val value: Float, val isCurrent: Boolean = false)
 
 internal sealed class TimelineItem {
     abstract val key: String
@@ -141,6 +152,8 @@ fun HistoryContent(
     contentPadding: PaddingValues,
     onViewOnMap: (lat: Double, lon: Double, sessionId: String) -> Unit,
     onFilterSelected: (HistoryFilter) -> Unit = {},
+    /** Which series the activity chart draws. [STATS-A-PERIOD-IS-A-SERIES-NOT-A-NUMBER-001] */
+    onMetricSelected: (ChartMetric) -> Unit = {},
     /** The "Ver todo con Plus" footer under a gated timeline. [MONEY-001] */
     onOpenPlusPaywall: () -> Unit = {},
     /** Live entitlement: decides how the figures card's period is named and whether the Plus row shows.
@@ -184,10 +197,20 @@ fun HistoryContent(
     // VehicleHistoryCalculator.windowStartMs, so neither can drift from the other. That claim used
     // to be a comment here while the code did something else.
     // [UI-HISTORY-THE-CHART-SPANS-WHAT-THE-FILTER-SPANS-001]
-    val activityBuckets = remember(filteredSessions, state.activeFilter, dayLabels, monthNamesShort) {
+    // Which series the bars draw, and which ones this period can offer at all. The choice is
+    // re-resolved here rather than trusted, because the filter can take the data out from under it
+    // between two emissions. [STATS-A-PERIOD-IS-A-SERIES-NOT-A-NUMBER-001]
+    val chartMetrics = remember(filteredSessions) { availableChartMetrics(filteredSessions) }
+    val chartMetric = remember(filteredSessions, state.chartMetric) {
+        resolveChartMetric(state.chartMetric, filteredSessions)
+    }
+    val activityBuckets = remember(
+        filteredSessions, state.activeFilter, chartMetric, dayLabels, monthNamesShort,
+    ) {
         VehicleHistoryCalculator.buildActivityBuckets(
             sessions = filteredSessions,
             filter = state.activeFilter,
+            metric = chartMetric,
             dayLabels = dayLabels,
             monthNamesShort = monthNamesShort,
         )
@@ -295,28 +318,16 @@ fun HistoryContent(
                     // they were computed over the WHOLE visible history while living inside a card
                     // titled by the period's count, so changing the filter left them untouched.
                     // [STATS-UI-001]
-                    val scopeDistance = remember(filteredSessions) {
-                        VehicleHistoryCalculator.sumDistanceMeters(filteredSessions)
-                    }
-                    // [UI-HISTORY-A-PARTIAL-SUM-IS-NOT-A-TOTAL-001] A sum that does not cover every
-                    // parking in scope says so. Only the BT lane and legacy rows lack a route, so
-                    // the plain figure is still the common case; what it can no longer do is pass
-                    // for a total while describing three parkings out of twelve.
-                    val distanceText = scopeDistance?.let { distance ->
-                        val km = distanceString(distance.value)
-                        if (distance.isComplete) km
-                        else pluralStringResource(
-                            Res.plurals.history_activity_distance_partial,
-                            distance.fromParkings,
-                            km,
-                            distance.fromParkings,
-                        )
-                    }
+                    // [UI-HISTORY-A-PARTIAL-SUM-IS-NOT-A-TOTAL-001] A sum that does not cover
+                    // every parking in scope says so — for whichever measure the bars are drawing.
                     Box(Modifier.padding(horizontal = 16.dp)) {
                         ActivityCard(
                             data = activityBuckets,
                             total = scopeTotal,
-                            distanceText = distanceText,
+                            qualifierText = chartQualifierText(chartMetric, filteredSessions),
+                            metric = chartMetric,
+                            metrics = chartMetrics,
+                            onMetricSelected = onMetricSelected,
                         )
                     }
                 }

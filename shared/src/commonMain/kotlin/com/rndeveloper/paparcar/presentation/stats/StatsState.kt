@@ -5,6 +5,7 @@ import com.rndeveloper.paparcar.domain.fuel.FuelPrice
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.VehicleWithStats
 import com.rndeveloper.paparcar.domain.stats.PeriodStats
+import com.rndeveloper.paparcar.presentation.vehicles.ChartMetric
 import com.rndeveloper.paparcar.presentation.vehicles.HistoryFilter
 
 /**
@@ -20,6 +21,8 @@ data class StatsState(
     val vehicles: List<VehicleWithStats>? = null,
     val selectedVehicleIndex: Int = 0,
     val filter: HistoryFilter = HistoryFilter.ThisMonth,
+    /** What the chart's bars measure. [STATS-A-PERIOD-IS-A-SERIES-NOT-A-NUMBER-001] */
+    val chartMetric: ChartMetric = ChartMetric.PARKINGS,
     /**
      * The selected car's figures for the selected period, with its previous period attached.
      * Null once resolved means the period holds no session — an empty state, not a zero.

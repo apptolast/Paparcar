@@ -17,6 +17,9 @@ sealed class VehiclesIntent {
     data class EditVehicle(val vehicleId: String) : VehiclesIntent()
     data object AddVehicle : VehiclesIntent()
     data class SetHistoryFilter(val filter: HistoryFilter) : VehiclesIntent()
+
+    /** Which series the activity chart draws. [STATS-A-PERIOD-IS-A-SERIES-NOT-A-NUMBER-001] */
+    data class SetChartMetric(val metric: ChartMetric) : VehiclesIntent()
     data class ViewOnMap(val lat: Double, val lon: Double, val sessionId: String = "") : VehiclesIntent()
 
     /**

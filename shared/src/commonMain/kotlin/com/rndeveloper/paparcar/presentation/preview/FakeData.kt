@@ -20,7 +20,7 @@ import com.rndeveloper.paparcar.domain.model.VehicleType
 import com.rndeveloper.paparcar.domain.model.VehicleWithStats
 import com.rndeveloper.paparcar.domain.model.bluetooth.BluetoothDeviceInfo
 import com.rndeveloper.paparcar.domain.model.bluetooth.BluetoothDeviceType
-import com.rndeveloper.paparcar.presentation.vehicles.WeekDayStats
+import com.rndeveloper.paparcar.presentation.vehicles.ActivityBucket
 import kotlin.time.Clock
 import com.rndeveloper.paparcar.domain.detection.DetectionPath
 
@@ -238,23 +238,23 @@ object FakeData {
     // ── Weekly chart ──────────────────────────────────────────────────────────
 
     val weeklyStats = listOf(
-        WeekDayStats("L", 2),
-        WeekDayStats("M", 1),
-        WeekDayStats("X", 3),
-        WeekDayStats("J", 0),
-        WeekDayStats("V", 2),
-        WeekDayStats("S", 1),
-        WeekDayStats("D", 4),
+        ActivityBucket("L", 2f),
+        ActivityBucket("M", 1f),
+        ActivityBucket("X", 3f),
+        ActivityBucket("J", 0f),
+        ActivityBucket("V", 2f),
+        ActivityBucket("S", 1f),
+        ActivityBucket("D", 4f),
     )
 
     val weeklyStatsEmpty = listOf(
-        WeekDayStats("L", 0),
-        WeekDayStats("M", 0),
-        WeekDayStats("X", 0),
-        WeekDayStats("J", 0),
-        WeekDayStats("V", 0),
-        WeekDayStats("S", 0),
-        WeekDayStats("D", 0),
+        ActivityBucket("L", 0f),
+        ActivityBucket("M", 0f),
+        ActivityBucket("X", 0f),
+        ActivityBucket("J", 0f),
+        ActivityBucket("V", 0f),
+        ActivityBucket("S", 0f),
+        ActivityBucket("D", 0f),
     )
 
     // ── Nearby spots ──────────────────────────────────────────────────────────

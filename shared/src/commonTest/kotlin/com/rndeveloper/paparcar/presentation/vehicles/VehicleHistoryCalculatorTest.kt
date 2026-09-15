@@ -27,6 +27,7 @@ class VehicleHistoryCalculatorTest {
         spotType: SpotType = SpotType.AUTO_DETECTED,
         detectionPath: String? = null,
         distanceMeters: Float? = null,
+        searchTimeMs: Long? = null,
     ) = UserParking(
         id = "s-$atMs-${street ?: ""}-$detectionPath",
         location = GpsPoint(0.0, 0.0, accuracy = 5f, timestamp = atMs, speed = 0f),
@@ -36,6 +37,7 @@ class VehicleHistoryCalculatorTest {
         spotType = spotType,
         detectionPath = detectionPath,
         routeDistanceMeters = distanceMeters,
+        searchTimeMs = searchTimeMs,
     )
 
     // ── filter ────────────────────────────────────────────────────────────────
@@ -218,5 +220,45 @@ class VehicleHistoryCalculatorTest {
             ),
         )
         assertEquals(true, distance?.isComplete, "the common case must stay a plain figure")
+    }
+
+    // ── Una ventana, tres series [STATS-A-PERIOD-IS-A-SERIES-NOT-A-NUMBER-001] ──
+
+    /**
+     * Los mismos buckets, la misma ventana, tres lecturas distintas — y la de APARCAMIENTOS es
+     * exactamente la de siempre, que es la única forma de saber que el gráfico no se movió donde
+     * no había nada que elegir.
+     */
+    @Test
+    fun should_bucketEveryMetricOverTheSameWindow() {
+        val sessions = listOf(
+            session(nowMs - 2 * dayMs, distanceMeters = 1_200f, searchTimeMs = 120_000L),
+            session(nowMs - 2 * dayMs, distanceMeters = 800f),
+            session(nowMs, searchTimeMs = 60_000L),
+        )
+        fun seriesOf(metric: ChartMetric) = VehicleHistoryCalculator.buildActivityBuckets(
+            sessions = sessions,
+            filter = HistoryFilter.Last7Days,
+            dayLabels = listOf("L", "M", "X", "J", "V", "S", "D"),
+            monthNamesShort = List(12) { "m" },
+            metric = metric,
+            nowMs = nowMs,
+        )
+
+        val parkings = seriesOf(ChartMetric.PARKINGS)
+        val distance = seriesOf(ChartMetric.DISTANCE)
+        val search = seriesOf(ChartMetric.SEARCH_TIME)
+
+        assertEquals(7, parkings.size, "la ventana la sigue mandando el filtro, no la métrica")
+        assertEquals(parkings.map { it.label }, distance.map { it.label })
+        assertEquals(parkings.map { it.isCurrent }, search.map { it.isCurrent })
+
+        // El antepenúltimo día lleva dos aparcamientos, 2 km y dos minutos buscando; hoy, uno.
+        assertEquals(2f, parkings[4].value)
+        assertEquals(2_000f, distance[4].value)
+        assertEquals(120_000f, search[4].value)
+        assertEquals(1f, parkings.last().value)
+        assertEquals(0f, distance.last().value, "hoy no se midió ruta: la barra es cero")
+        assertEquals(60_000f, search.last().value)
     }
 }

@@ -303,6 +303,21 @@ class VehiclesViewModel(
                     copy(historyCache = historyCache + (vehicleId to updated))
                 }
             }
+            // Only the chart changes, so nothing is re-resolved: the sessions, the window and the
+            // figures are the same ones: what moves is which of their numbers the bars draw. And
+            // the choice is re-checked against what the period HAS, because a filter change can
+            // take the data out from under it. [STATS-A-PERIOD-IS-A-SERIES-NOT-A-NUMBER-001]
+            is VehiclesIntent.SetChartMetric -> {
+                val vehicleId = state.value.currentVehicleId ?: return
+                val currentHistory = state.value.historyCache[vehicleId] ?: return
+                val resolved = currentHistory.timeline as? HistoryTimeline.Resolved ?: return
+                updateState {
+                    val updated = currentHistory.copy(
+                        chartMetric = resolveChartMetric(intent.metric, resolved.filteredSessions),
+                    )
+                    copy(historyCache = historyCache + (vehicleId to updated))
+                }
+            }
             is VehiclesIntent.ViewLiveParkingOnMap ->
                 sendEffect(VehiclesEffect.NavigateToLiveParking(intent.sessionId))
             is VehiclesIntent.ViewOnMap ->

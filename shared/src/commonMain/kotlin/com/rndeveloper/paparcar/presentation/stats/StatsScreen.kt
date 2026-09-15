@@ -38,7 +38,10 @@ import com.rndeveloper.paparcar.presentation.vehicles.DAY_SHORT_RES
 import com.rndeveloper.paparcar.presentation.vehicles.HistoryFilter
 import com.rndeveloper.paparcar.presentation.vehicles.MONTH_SHORT_RES
 import com.rndeveloper.paparcar.presentation.vehicles.VehicleHistoryCalculator
+import com.rndeveloper.paparcar.presentation.vehicles.availableChartMetrics
+import com.rndeveloper.paparcar.presentation.vehicles.resolveChartMetric
 import com.rndeveloper.paparcar.presentation.vehicles.components.ActivityCard
+import com.rndeveloper.paparcar.presentation.vehicles.components.chartQualifierText
 import com.rndeveloper.paparcar.presentation.vehicles.VehicleStatsBlock
 import com.rndeveloper.paparcar.presentation.vehicles.components.HistoryFilterBar
 import com.rndeveloper.paparcar.presentation.vehicles.vehicleStatsPeriodLabel
@@ -51,7 +54,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import paparcar.composeapp.generated.resources.Res
-import paparcar.composeapp.generated.resources.history_activity_distance_partial
+import paparcar.composeapp.generated.resources.history_activity_measure_partial
 import paparcar.composeapp.generated.resources.my_car_unnamed_vehicle
 import paparcar.composeapp.generated.resources.stats_panel_empty_body
 import paparcar.composeapp.generated.resources.stats_panel_title
@@ -151,6 +154,10 @@ fun StatsContent(
                     // The same bars the ficha draws, from the same builder and the same window —
                     // the panel is a bigger view of one car, not a second interpretation of it.
                     // [UI-HISTORY-THE-CHART-SPANS-WHAT-THE-FILTER-SPANS-001]
+                    // The panel offers the SAME metrics as the ficha, resolved against the same
+                    // sessions: a bigger view of one car, never a second interpretation of it.
+                    // [STATS-A-PERIOD-IS-A-SERIES-NOT-A-NUMBER-001]
+                    val metric = resolveChartMetric(state.chartMetric, state.filteredSessions)
                     Box(Modifier.padding(horizontal = H_PAD_DP.dp)) {
                         ActivityCard(
                             data = VehicleHistoryCalculator.buildActivityBuckets(
@@ -158,18 +165,13 @@ fun StatsContent(
                                 filter = state.filter,
                                 dayLabels = DAY_SHORT_RES.map { stringResource(it) },
                                 monthNamesShort = MONTH_SHORT_RES.map { stringResource(it) },
+                                metric = metric,
                             ),
                             total = stats.parkings,
-                            distanceText = stats.distance?.let { distance ->
-                                val km = distanceString(distance.value)
-                                if (distance.isComplete) km
-                                else pluralStringResource(
-                                    Res.plurals.history_activity_distance_partial,
-                                    distance.fromParkings,
-                                    km,
-                                    distance.fromParkings,
-                                )
-                            },
+                            qualifierText = chartQualifierText(metric, state.filteredSessions),
+                            metric = metric,
+                            metrics = availableChartMetrics(state.filteredSessions),
+                            onMetricSelected = { onIntent(StatsIntent.SetChartMetric(it)) },
                         )
                     }
                     Spacer(Modifier.height(SECTION_GAP_DP.dp))

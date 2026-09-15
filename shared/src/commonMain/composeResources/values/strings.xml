@@ -162,7 +162,7 @@
     </plurals>
     <!-- Distancia de un tramo que NO cubre todos sus aparcamientos: la cifra dice sobre
          cuántos se midió. [UI-HISTORY-A-PARTIAL-SUM-IS-NOT-A-TOTAL-001] -->
-    <plurals name="history_activity_distance_partial">
+    <plurals name="history_activity_measure_partial">
         <item quantity="one">%1$s (%2$d trip)</item>
         <item quantity="other">%1$s (%2$d trips)</item>
     </plurals>
@@ -876,6 +876,8 @@
     <string name="stats_tile_co2">approx. CO₂</string>
     <string name="stats_tile_avg_duration">average stay</string>
     <string name="stats_tile_search_time">finding a spot</string>
+    <string name="stats_metric_parkings">parkings</string>
+    <string name="stats_metric_distance">distance</string>
     <string name="stats_tile_coverage">%1$d of %2$d trips</string>
     <string name="stats_tile_peak_hour">busiest hour</string>
     <string name="stats_tile_usual_day">usual day</string>

@@ -14,6 +14,7 @@ import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import com.rndeveloper.paparcar.presentation.base.BaseViewModel
 import com.rndeveloper.paparcar.presentation.vehicles.HistoryFilter
+import com.rndeveloper.paparcar.presentation.vehicles.resolveChartMetric
 import com.rndeveloper.paparcar.presentation.vehicles.HistoryTimeline
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
@@ -108,6 +109,11 @@ class StatsViewModel(
             is StatsIntent.SetFilter -> updateState {
                 copy(filter = intent.filter)
                     .withResolvedStats(selectedVehicle?.vehicle, intent.filter, isPlus)
+            }
+            // The period can take the data out from under a metric (a week with no measured
+            // route), so the choice is re-resolved against what the period HAS before it is stored.
+            is StatsIntent.SetChartMetric -> updateState {
+                copy(chartMetric = resolveChartMetric(intent.metric, filteredSessions))
             }
             is StatsIntent.OpenPaywall ->
                 sendEffect(StatsEffect.NavigateToPaywall(PaywallReason.STATS))

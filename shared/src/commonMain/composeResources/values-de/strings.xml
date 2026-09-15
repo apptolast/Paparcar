@@ -626,7 +626,7 @@
         <item quantity="one">Parkplatz</item>
         <item quantity="other">Parkplätze</item>
     </plurals>
-    <plurals name="history_activity_distance_partial">
+    <plurals name="history_activity_measure_partial">
         <item quantity="one">%1$s (%2$d Fahrt)</item>
         <item quantity="other">%1$s (%2$d Fahrten)</item>
     </plurals>
@@ -841,6 +841,8 @@
     <string name="stats_tile_co2">CO₂ ca.</string>
     <string name="stats_tile_avg_duration">durchschn. Dauer</string>
     <string name="stats_tile_search_time">Platzsuche</string>
+    <string name="stats_metric_parkings">Parkplätze</string>
+    <string name="stats_metric_distance">Strecke</string>
     <string name="stats_tile_coverage">%1$d von %2$d Fahrten</string>
     <string name="stats_tile_peak_hour">Stoßzeit</string>
     <string name="stats_tile_usual_day">üblicher Tag</string>

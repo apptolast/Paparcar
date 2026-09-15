@@ -93,6 +93,7 @@ internal fun VehiclePageContent(
         contentPadding = contentPadding,
         onViewOnMap = { lat, lon, sessionId -> onIntent(VehiclesIntent.ViewOnMap(lat, lon, sessionId)) },
         onFilterSelected = { filter -> onIntent(VehiclesIntent.SetHistoryFilter(filter)) },
+        onMetricSelected = { metric -> onIntent(VehiclesIntent.SetChartMetric(metric)) },
         onOpenPlusPaywall = { onIntent(VehiclesIntent.OpenPlusPaywall) },
         isPlus = isPlus,
         isAutoDetectionOn = isAutoDetectionOn,

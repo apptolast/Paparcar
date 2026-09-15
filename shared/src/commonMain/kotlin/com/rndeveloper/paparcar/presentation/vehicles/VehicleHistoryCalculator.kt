@@ -121,32 +121,38 @@ object VehicleHistoryCalculator {
         filter: HistoryFilter,
         dayLabels: List<String>,
         monthNamesShort: List<String>,
+        /** What each bar MEASURES. The default is the chart as it always was - counting parkings -
+         *  so a caller with no metric to offer draws exactly what it drew before.
+         *  [STATS-A-PERIOD-IS-A-SERIES-NOT-A-NUMBER-001] */
+        metric: ChartMetric = ChartMetric.PARKINGS,
         nowMs: Long = Clock.System.now().toEpochMilliseconds(),
-    ): List<WeekDayStats> = when (filter) {
-        HistoryFilter.ThisWeek -> weekDayBuckets(sessions, dayLabels, nowMs)
-        HistoryFilter.Last7Days -> rollingDayBuckets(sessions, dayLabels, nowMs)
-        HistoryFilter.ThisMonth -> monthWeekBuckets(sessions, nowMs)
-        HistoryFilter.Last3Months -> monthlyBuckets(sessions, monthNamesShort, MONTHLY_BUCKETS, nowMs)
-        HistoryFilter.All -> monthlyBuckets(sessions, monthNamesShort, ALL_MONTHS_CAP, nowMs)
+    ): List<ActivityBucket> = when (filter) {
+        HistoryFilter.ThisWeek -> weekDayBuckets(sessions, dayLabels, metric, nowMs)
+        HistoryFilter.Last7Days -> rollingDayBuckets(sessions, dayLabels, metric, nowMs)
+        HistoryFilter.ThisMonth -> monthWeekBuckets(sessions, metric, nowMs)
+        HistoryFilter.Last3Months ->
+            monthlyBuckets(sessions, monthNamesShort, MONTHLY_BUCKETS, metric, nowMs)
+        HistoryFilter.All -> monthlyBuckets(sessions, monthNamesShort, ALL_MONTHS_CAP, metric, nowMs)
     }
 
     /** One bar per day of the CURRENT week, Monday → Sunday — the same week the filter cut. */
     private fun weekDayBuckets(
         sessions: List<UserParking>,
         dayLabels: List<String>,
+        metric: ChartMetric,
         nowMs: Long,
-    ): List<WeekDayStats> {
+    ): List<ActivityBucket> {
         val tz = TimeZone.currentSystemDefault()
         val today = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(tz).date
         val monday = today.minus(today.dayOfWeek.isoDayNumber - 1, DateTimeUnit.DAY)
-        val counts = sessions
-            .groupingBy { Instant.fromEpochMilliseconds(it.location.timestamp).toLocalDateTime(tz).date }
-            .eachCount()
+        val byDate = sessions.groupBy {
+            Instant.fromEpochMilliseconds(it.location.timestamp).toLocalDateTime(tz).date
+        }
         return (0 until DAYS_PER_WEEK).map { offset ->
             val date = monday.plus(offset, DateTimeUnit.DAY)
-            WeekDayStats(
+            ActivityBucket(
                 label = dayLabels[date.dayOfWeek.isoDayNumber - 1],
-                sessions = counts[date] ?: 0,
+                value = metric.valueOf(byDate[date].orEmpty()),
                 isCurrent = date == today,
             )
         }
@@ -157,40 +163,48 @@ object VehicleHistoryCalculator {
     private fun rollingDayBuckets(
         sessions: List<UserParking>,
         dayLabels: List<String>,
+        metric: ChartMetric,
         nowMs: Long,
-    ): List<WeekDayStats> {
+    ): List<ActivityBucket> {
         val tz = TimeZone.currentSystemDefault()
         val today = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(tz).date
         val first = today.minus(DAYS_PER_WEEK - 1, DateTimeUnit.DAY)
-        val counts = sessions
-            .groupingBy { Instant.fromEpochMilliseconds(it.location.timestamp).toLocalDateTime(tz).date }
-            .eachCount()
+        val byDate = sessions.groupBy {
+            Instant.fromEpochMilliseconds(it.location.timestamp).toLocalDateTime(tz).date
+        }
         return (0 until DAYS_PER_WEEK).map { offset ->
             val date = first.plus(offset, DateTimeUnit.DAY)
-            WeekDayStats(
+            ActivityBucket(
                 label = dayLabels[date.dayOfWeek.isoDayNumber - 1],
-                sessions = counts[date] ?: 0,
+                value = metric.valueOf(byDate[date].orEmpty()),
                 isCurrent = date == today,
             )
         }
     }
 
     /** One bar per week of the current month, labelled by the week's starting day-of-month. */
-    private fun monthWeekBuckets(sessions: List<UserParking>, nowMs: Long): List<WeekDayStats> {
+    private fun monthWeekBuckets(
+        sessions: List<UserParking>,
+        metric: ChartMetric,
+        nowMs: Long,
+    ): List<ActivityBucket> {
         val tz = TimeZone.currentSystemDefault()
         val today = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(tz).date
         val currentWeek = (today.day - 1) / DAYS_PER_WEEK
-        val counts = IntArray(WEEKS_IN_MONTH)
-        sessions.forEach { s ->
-            val d = Instant.fromEpochMilliseconds(s.location.timestamp).toLocalDateTime(tz).date
-            if (d.year == today.year && d.month == today.month) {
-                counts[((d.day - 1) / DAYS_PER_WEEK).coerceAtMost(WEEKS_IN_MONTH - 1)]++
-            }
+        fun weekOf(session: UserParking): Int {
+            val d = Instant.fromEpochMilliseconds(session.location.timestamp).toLocalDateTime(tz).date
+            return ((d.day - 1) / DAYS_PER_WEEK).coerceAtMost(WEEKS_IN_MONTH - 1)
         }
+        val byWeek = sessions
+            .filter { s ->
+                val d = Instant.fromEpochMilliseconds(s.location.timestamp).toLocalDateTime(tz).date
+                d.year == today.year && d.month == today.month
+            }
+            .groupBy(::weekOf)
         return (0 until WEEKS_IN_MONTH).map { i ->
-            WeekDayStats(
+            ActivityBucket(
                 label = "${i * DAYS_PER_WEEK + 1}",
-                sessions = counts[i],
+                value = metric.valueOf(byWeek[i].orEmpty()),
                 isCurrent = i == currentWeek,
             )
         }
@@ -201,20 +215,21 @@ object VehicleHistoryCalculator {
         sessions: List<UserParking>,
         monthNamesShort: List<String>,
         months: Int,
+        metric: ChartMetric,
         nowMs: Long,
-    ): List<WeekDayStats> {
+    ): List<ActivityBucket> {
         val tz = TimeZone.currentSystemDefault()
         val today = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(tz).date
-        val grouped = sessions.groupingBy { s ->
+        val grouped = sessions.groupBy { s ->
             val d = Instant.fromEpochMilliseconds(s.location.timestamp).toLocalDateTime(tz)
             d.year to d.month.number
-        }.eachCount()
+        }
         val firstOfThisMonth = LocalDate(today.year, today.month, 1)
         return (months - 1 downTo 0).map { back ->
             val month = firstOfThisMonth.minus(back, DateTimeUnit.MONTH)
-            WeekDayStats(
+            ActivityBucket(
                 label = monthNamesShort[month.month.number - 1],
-                sessions = grouped[month.year to month.month.number] ?: 0,
+                value = metric.valueOf(grouped[month.year to month.month.number].orEmpty()),
                 isCurrent = back == 0,
             )
         }

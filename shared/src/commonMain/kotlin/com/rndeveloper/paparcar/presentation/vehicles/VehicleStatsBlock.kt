@@ -37,6 +37,7 @@ import com.rndeveloper.paparcar.domain.fuel.FuelPrice
 import com.rndeveloper.paparcar.domain.fuel.FuelPriceOrigin
 import com.rndeveloper.paparcar.domain.stats.PeriodStats
 import com.rndeveloper.paparcar.domain.stats.ScopedMeasure
+import com.rndeveloper.paparcar.presentation.util.durationText
 import com.rndeveloper.paparcar.presentation.util.formatHourBucket
 import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.ui.components.PapNavChevron
@@ -717,20 +718,6 @@ private fun coverageNote(measure: ScopedMeasure<*>?): String? {
         measure.fromParkings,
         measure.ofParkings,
     )
-}
-
-@Composable
-private fun durationText(durationMs: Long): String {
-    val totalMinutes = (durationMs / MS_PER_MINUTE).toInt()
-    return if (totalMinutes < MINUTES_PER_HOUR) {
-        stringResource(Res.string.stats_value_minutes, totalMinutes)
-    } else {
-        stringResource(
-            Res.string.stats_value_hours_minutes,
-            totalMinutes / MINUTES_PER_HOUR,
-            totalMinutes % MINUTES_PER_HOUR,
-        )
-    }
 }
 
 /**

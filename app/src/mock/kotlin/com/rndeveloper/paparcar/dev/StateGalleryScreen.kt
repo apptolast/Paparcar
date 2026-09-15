@@ -103,6 +103,7 @@ import com.rndeveloper.paparcar.presentation.settings.SettingsState
 import com.rndeveloper.paparcar.presentation.vehicleregistration.VehicleRegistrationContent
 import com.rndeveloper.paparcar.presentation.vehicleregistration.VehicleRegistrationState
 import com.rndeveloper.paparcar.presentation.vehicles.HistoryContent
+import com.rndeveloper.paparcar.presentation.vehicles.ChartMetric
 import com.rndeveloper.paparcar.presentation.vehicles.HistoryFilter
 import com.rndeveloper.paparcar.presentation.vehicles.HistoryState
 import com.rndeveloper.paparcar.domain.error.PaparcarError
@@ -1773,6 +1774,42 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                                 else session.copy(routeDistanceMeters = null)
                             },
                         ),
+                    ),
+                )
+            },
+            // [STATS-A-PERIOD-IS-A-SERIES-NOT-A-NUMBER-001] El mismo periodo, otra serie: los
+            // chips eligen QUÉ miden las barras, y el calificador del título sigue a la métrica —
+            // una card no puede dibujar una cosa y titularse con otra.
+            Variant("Gráfico · serie de kilómetros") {
+                history(
+                    HistoryState(
+                        timeline = resolvedHistory(FakeData.allSessions, HistoryFilter.ThisMonth),
+                        activeFilter = HistoryFilter.ThisMonth,
+                        chartMetric = ChartMetric.DISTANCE,
+                    ),
+                )
+            },
+            Variant("Gráfico · serie de tiempo buscando plaza") {
+                history(
+                    HistoryState(
+                        timeline = resolvedHistory(FakeData.allSessions, HistoryFilter.ThisMonth),
+                        activeFilter = HistoryFilter.ThisMonth,
+                        chartMetric = ChartMetric.SEARCH_TIME,
+                    ),
+                )
+            },
+            // Un coche sin una sola medida no tiene entre qué elegir: la fila de chips no se
+            // compone, y la card es exactamente la de siempre.
+            Variant("Gráfico · sin métricas que ofrecer (solo aparcamientos)") {
+                history(
+                    HistoryState(
+                        timeline = resolvedHistory(
+                            FakeData.allSessions.map {
+                                it.copy(routeDistanceMeters = null, searchTimeMs = null)
+                            },
+                            HistoryFilter.ThisMonth,
+                        ),
+                        activeFilter = HistoryFilter.ThisMonth,
                     ),
                 )
             },

@@ -11,7 +11,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.rndeveloper.paparcar.presentation.vehicles.WeekDayStats
+import com.rndeveloper.paparcar.presentation.vehicles.ActivityBucket
 
 /**
  * The activity chart's actual drawing — every `DrawScope` routine the Canvas calls, and nothing else.
@@ -27,14 +27,18 @@ import com.rndeveloper.paparcar.presentation.vehicles.WeekDayStats
  */
 
 internal fun DrawScope.drawBarChart(
-    data: List<WeekDayStats>,
-    maxValue: Int,
+    data: List<ActivityBucket>,
+    maxValue: Float,
     progress: Float,
     textMeasurer: TextMeasurer,
     primaryColor: Color,
     onSurfaceColor: Color,
     labelStyle: TextStyle,
     countStyle: TextStyle,
+    /** The value above a bar, already in the reader's units and locale. Resolved in composition and
+     *  passed in pure, because a `DrawScope` cannot call a composable.
+     *  [STATS-A-PERIOD-IS-A-SERIES-NOT-A-NUMBER-001] */
+    formatValue: (Float) -> String,
 ) {
     if (data.isEmpty()) return
 
@@ -59,7 +63,7 @@ internal fun DrawScope.drawBarChart(
     data.forEachIndexed { index, item ->
         val barLeft = index * (barWidth + gap)
         val centerX = barLeft + barWidth / 2f
-        val fillRatio = if (maxValue > 0) item.sessions.toFloat() / maxValue else 0f
+        val fillRatio = if (maxValue > 0f) item.value / maxValue else 0f
         // Reserve headroom above the tallest bar so the per-bar count label never clips off the top of
         // the canvas (a full-height bar would push its number to a negative y). [VEHICLES-REDESIGN-001]
         val barHeight = chartHeight * BAR_MAX_HEIGHT_FRACTION * fillRatio * progress
@@ -67,8 +71,11 @@ internal fun DrawScope.drawBarChart(
 
         drawBar(barLeft, barWidth, barHeight, chartHeight, corner, isToday, primaryColor, onSurfaceColor)
         drawDayLabel(centerX, item.label, isToday, textMeasurer, labelStyle, onSurfaceColor)
-        if (item.sessions > 0 && progress > COUNT_FADE_START) {
-            drawCountLabel(centerX, barHeight, chartHeight, item.sessions, progress, textMeasurer, countStyle, primaryColor)
+        if (item.value > 0f && progress > COUNT_FADE_START) {
+            drawValueLabel(
+                centerX, barHeight, chartHeight, formatValue(item.value), progress, textMeasurer,
+                countStyle, primaryColor,
+            )
         }
     }
 }
@@ -138,11 +145,11 @@ private fun DrawScope.drawDayLabel(
     )
 }
 
-private fun DrawScope.drawCountLabel(
+private fun DrawScope.drawValueLabel(
     centerX: Float,
     barHeight: Float,
     chartHeight: Float,
-    sessionCount: Int,
+    valueText: String,
     progress: Float,
     textMeasurer: TextMeasurer,
     countStyle: TextStyle,
@@ -150,7 +157,7 @@ private fun DrawScope.drawCountLabel(
 ) {
     val fade = ((progress - COUNT_FADE_START) / (1f - COUNT_FADE_START)).coerceIn(0f, 1f)
     val result = textMeasurer.measure(
-        sessionCount.toString(),
+        valueText,
         countStyle.copy(color = primaryColor.copy(alpha = fade)),
     )
     drawText(
@@ -177,6 +184,7 @@ private const val INACTIVE_BAR_ALPHA = 0.5f
 private const val LABEL_ALPHA_MUTED = 0.45f
 private const val LABEL_ALPHA_TODAY = 0.8f
 private const val COUNT_FADE_START = 0.8f
-// Bar-scale floor: the max value used for bar heights never drops below this, so a single session
-// doesn't render as a full-height bar. [Task 3]
-internal const val MIN_SCALE_MAX = 3
+// ⛔ The bar-scale floor used to live HERE, as `MIN_SCALE_MAX = 3`. It is a floor of three
+// PARKINGS, which means nothing once the same bar can hold metres or milliseconds, so it moved to
+// `ChartMetric.scaleFloor` — with its unit, like every other magnitude in this app.
+// [STATS-A-PERIOD-IS-A-SERIES-NOT-A-NUMBER-001]

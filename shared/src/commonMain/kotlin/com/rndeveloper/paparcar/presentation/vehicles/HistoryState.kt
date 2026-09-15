@@ -178,6 +178,12 @@ data class HistoryState(
     val timeline: HistoryTimeline,
     /** The user's filter choice, which outlives any single emission, so it sits outside the timeline. */
     val activeFilter: HistoryFilter = HistoryFilter.All,
+    /**
+     * What the chart's bars measure. Beside the filter and for the same reason: it is a CHOICE,
+     * it survives the next emission of the history, and a `remember` inside the card would lose it
+     * every time Room speaks. [STATS-A-PERIOD-IS-A-SERIES-NOT-A-NUMBER-001]
+     */
+    val chartMetric: ChartMetric = ChartMetric.PARKINGS,
 ) {
     /**
      * The selected period's figures, or null while unresolved / with nothing in the period. Null

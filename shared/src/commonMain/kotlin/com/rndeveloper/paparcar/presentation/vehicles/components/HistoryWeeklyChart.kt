@@ -42,15 +42,30 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import com.rndeveloper.paparcar.presentation.vehicles.WeekDayStats
+import com.rndeveloper.paparcar.domain.model.UserParking
+import com.rndeveloper.paparcar.domain.stats.ScopedMeasure
+import com.rndeveloper.paparcar.domain.stats.sumMeasuredDistance
+import com.rndeveloper.paparcar.domain.stats.sumMeasuredSearchTime
+import com.rndeveloper.paparcar.presentation.util.LocalDistanceUnit
+import com.rndeveloper.paparcar.presentation.util.distanceString
+import com.rndeveloper.paparcar.presentation.util.durationText
+import com.rndeveloper.paparcar.presentation.util.formatDistance
+import com.rndeveloper.paparcar.presentation.vehicles.ActivityBucket
+import com.rndeveloper.paparcar.presentation.vehicles.ChartMetric
 import kotlin.math.roundToInt
 import com.rndeveloper.paparcar.ui.components.PapTextSwap
+import com.rndeveloper.paparcar.ui.components.chips.PaparcarFilterChip
 import com.rndeveloper.paparcar.ui.components.rememberCountUp
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.history_activity_measure_partial
 import paparcar.composeapp.generated.resources.history_activity_noun
+import paparcar.composeapp.generated.resources.stats_metric_distance
+import paparcar.composeapp.generated.resources.stats_metric_parkings
+import paparcar.composeapp.generated.resources.stats_tile_search_time
+import paparcar.composeapp.generated.resources.stats_value_minutes
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
 import com.rndeveloper.paparcar.ui.theme.PapColor
 
@@ -68,11 +83,20 @@ private const val CHART_ENTER_DURATION = 800
  */
 @Composable
 internal fun ActivityCard(
-    data: List<WeekDayStats>,
+    data: List<ActivityBucket>,
     total: Int,
-    // Pre-formatted, locale-correct "8,4 km" of the SCOPED sessions — null hides it (no distance
-    // data must render as nothing, never as "0 km"). [VEH-STATS-SAY-SOMETHING-USEFUL-001]
-    distanceText: String? = null,
+    // Pre-formatted, locale-correct total of the metric the bars are DRAWING — "8,4 km", "1 h 12
+    // min" — with its coverage when it has one. Null hides it (an absent measure renders as
+    // nothing, never as "0 km"). [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+    // [STATS-A-PERIOD-IS-A-SERIES-NOT-A-NUMBER-001] It follows the selected metric, because a card
+    // that draws one thing and qualifies itself with another has two subjects. [STATS-UI-001]
+    qualifierText: String? = null,
+    /** What the bars measure, and what the value labels are written in. */
+    metric: ChartMetric = ChartMetric.PARKINGS,
+    /** Every metric this period can draw. One entry = no chips at all: a selector with a single
+     *  option is noise. */
+    metrics: List<ChartMetric> = emptyList(),
+    onMetricSelected: (ChartMetric) -> Unit = {},
 ) {
     // Brand green, on EVERY vehicle's page — the chart is app chrome, not identity anatomy. An
     // identity-tinted chart (blue for BT, neutral for unwatched) was built and REVOKED by the
@@ -85,16 +109,20 @@ internal fun ActivityCard(
         // parking draws one short bar among seven and reads fine, so the branch was buying nothing
         // and costing plenty: a second implementation of the "N parkings" phrase, an inline
         // FontWeight.Bold and a decorative arrow. [UI-IDENTITY-IS-SAID-ONCE-001]
-        ActivityCardTitle(total = total, distanceText = distanceText)
+        ActivityCardTitle(total = total, qualifierText = qualifierText)
+        if (metrics.size > 1) {
+            Spacer(Modifier.height(METRIC_ROW_GAP_DP.dp))
+            ChartMetricRow(metrics = metrics, selected = metric, onSelected = onMetricSelected)
+        }
         Spacer(Modifier.height(CARD_TITLE_GAP_DP.dp))
-        ActivityBarChart(data = data)
+        ActivityBarChart(data = data, metric = metric)
     }
 }
 
 @Composable
-private fun ActivityCardTitle(total: Int, distanceText: String?) {
-    // Two ends, not one sentence: the count is what the card is ABOUT and the distance is a
-    // qualifier. Run together ("12 aparcamientos · 84,2 km") they read as equals and the eye has to
+private fun ActivityCardTitle(total: Int, qualifierText: String?) {
+    // Two ends, not one sentence: the count is what the card is ABOUT and the measure it is drawing
+    // is a qualifier. Run together ("12 aparcamientos · 84,2 km") they read as equals and the eye has to
     // parse a middle dot to tell them apart; pushed to opposite edges, the hierarchy is the layout.
     // (User, 08-09-2026.) [ACTIVITY-CARD-TITLE-001]
     Row(
@@ -163,7 +191,7 @@ private fun ActivityCardTitle(total: Int, distanceText: String?) {
                 .width(subjectSlot)
                 .wrapContentWidth(align = Alignment.Start, unbounded = true),
         )
-        if (distanceText != null) {
+        if (qualifierText != null) {
             // The row RESERVES the height of its worst case instead of deducing it from what the
             // text happens to measure today, because three separate things make that measurement
             // move and every one of them shoved the chart 8dp:
@@ -192,7 +220,7 @@ private fun ActivityCardTitle(total: Int, distanceText: String?) {
                 // interleaved into a smear that read as the text changing several times per filter
                 // tap. Why sequencing is the fix lives in PapTextSwap.
                 // [STATS-PANEL-001 · UI-THE-KM-LINE-CHANGES-ONCE-001]
-                PapTextSwap(targetState = distanceText, label = "activity_distance") { shown ->
+                PapTextSwap(targetState = qualifierText, label = "activity_qualifier") { shown ->
                     Text(
                         text = shown,
                         style = PaparcarType.current.caption,
@@ -203,6 +231,100 @@ private fun ActivityCardTitle(total: Int, distanceText: String?) {
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
+            }
+        }
+    }
+}
+
+/**
+ * The card's qualifier: the TOTAL of the metric the bars are drawing, with its coverage when the
+ * measure does not span the whole period. [STATS-A-PERIOD-IS-A-SERIES-NOT-A-NUMBER-001]
+ *
+ * Written here, once, because the ficha and the panel draw the SAME card - two copies of this would
+ * be two interpretations of one period, which is the failure [STATS-UI-001] spent a whole ticket
+ * undoing.
+ *
+ * A bar cannot confess its own coverage - it has one dimension and the value already spent it - so
+ * the confession lives here, exactly where the kilometres already made it.
+ * [UI-HISTORY-A-PARTIAL-SUM-IS-NOT-A-TOTAL-001] [STATS-A-MEASURE-CARRIES-ITS-COVERAGE-001]
+ *
+ * PARKINGS keeps the kilometres: the count is already the card's subject, so repeating it as its
+ * own qualifier would say one thing twice.
+ */
+@Composable
+internal fun chartQualifierText(metric: ChartMetric, sessions: List<UserParking>): String? {
+    val measure: ScopedMeasure<*> = when (metric) {
+        ChartMetric.PARKINGS, ChartMetric.DISTANCE -> sumMeasuredDistance(sessions)
+        ChartMetric.SEARCH_TIME -> sumMeasuredSearchTime(sessions)
+    } ?: return null
+    val figure = when (val value = measure.value) {
+        is Float -> distanceString(value)
+        is Long -> durationText(value)
+        else -> return null
+    }
+    if (measure.isComplete) return figure
+    return pluralStringResource(
+        Res.plurals.history_activity_measure_partial,
+        measure.fromParkings,
+        figure,
+        measure.fromParkings,
+    )
+}
+
+/**
+ * Which series the bars draw. [STATS-A-PERIOD-IS-A-SERIES-NOT-A-NUMBER-001]
+ *
+ * The same chip the period filter uses, one row above — the two rows read as one idea (this card is
+ * governed by choices) instead of two controls that happen to sit together. Only the metrics this
+ * period HAS are offered, so a chip never leads to an empty chart.
+ */
+@Composable
+private fun ChartMetricRow(
+    metrics: List<ChartMetric>,
+    selected: ChartMetric,
+    onSelected: (ChartMetric) -> Unit,
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(METRIC_CHIP_GAP_DP.dp)) {
+        metrics.forEach { metric ->
+            PaparcarFilterChip(
+                label = metric.label(),
+                selected = metric == selected,
+                onClick = { onSelected(metric) },
+            )
+        }
+    }
+}
+
+/** A metric's name. SEARCH_TIME borrows the tile's words on purpose: one idea, one wording. */
+@Composable
+private fun ChartMetric.label(): String = stringResource(
+    when (this) {
+        ChartMetric.PARKINGS -> Res.string.stats_metric_parkings
+        ChartMetric.DISTANCE -> Res.string.stats_metric_distance
+        ChartMetric.SEARCH_TIME -> Res.string.stats_tile_search_time
+    },
+)
+
+/**
+ * How a bar's value is written above it — resolved HERE, in composition, and handed to the canvas
+ * as a pure lambda, because a `DrawScope` cannot read a string resource or a CompositionLocal.
+ *
+ * Minutes rather than "1 h 12 min" over a bar: the label has to fit in a bar's width, and the tile
+ * below already gives the period's total in long form.
+ */
+@Composable
+private fun chartValueFormatter(metric: ChartMetric): (Float) -> String {
+    val unit = LocalDistanceUnit.current
+    val minutesTemplate = stringResource(Res.string.stats_value_minutes, MINUTES_SLOT)
+    return remember(metric, unit, minutesTemplate) {
+        when (metric) {
+            ChartMetric.PARKINGS -> { value -> value.roundToInt().toString() }
+            ChartMetric.DISTANCE -> { value -> formatDistance(value, unit) }
+            ChartMetric.SEARCH_TIME -> { value ->
+                minutesTemplate.replace(
+                    MINUTES_SLOT,
+                    (value / MS_PER_MINUTE).roundToInt().coerceAtLeast(1).toString(),
+                )
             }
         }
     }
@@ -231,11 +353,13 @@ private fun ActivityCardShell(content: @Composable () -> Unit) {
  * when the selected window has 0–2 sessions. [VEHICLES-REDESIGN-001]
  */
 @Composable
-private fun ActivityBarChart(data: List<WeekDayStats>) {
-    // Scale floor: a lone bar (value 1) shouldn't fill the whole chart height and leave the rest blank,
-    // so the max is clamped up to MIN_SCALE_MAX. [VEHICLES-REDESIGN-001]
-    val maxSessions = (data.maxOfOrNull { it.sessions } ?: 1).coerceAtLeast(MIN_SCALE_MAX)
-    val total = data.sumOf { it.sessions }
+private fun ActivityBarChart(data: List<ActivityBucket>, metric: ChartMetric) {
+    // Scale floor: a lone bar shouldn't fill the whole chart height and leave the rest blank, so the
+    // max is clamped up to the METRIC's floor — three parkings, ten kilometres, ten minutes. The
+    // floor belongs to the unit. [VEHICLES-REDESIGN-001] [STATS-A-PERIOD-IS-A-SERIES-NOT-A-NUMBER-001]
+    val maxSessions = (data.maxOfOrNull { it.value } ?: 0f).coerceAtLeast(metric.scaleFloor)
+    val total = data.sumOf { it.value.toDouble() }
+    val formatValue = chartValueFormatter(metric)
 
     // Re-grow the bars whenever the dataset changes (e.g. a new session lands)
     // instead of animating only on first composition.
@@ -262,6 +386,7 @@ private fun ActivityBarChart(data: List<WeekDayStats>) {
         drawBarChart(
             data = data,
             maxValue = maxSessions,
+            formatValue = formatValue,
             progress = anim,
             textMeasurer = textMeasurer,
             primaryColor = primaryColor,
@@ -289,3 +414,12 @@ private const val TITLE_GAP_DP = 7
  * [UI-ACTIVITY-HEADER-RESERVES-ITS-HEIGHT-001]
  */
 private const val QUALIFIER_LINES = 2
+
+/** Air between the card title and the metric chips, and between chip and chip. */
+private const val METRIC_ROW_GAP_DP = 10
+private const val METRIC_CHIP_GAP_DP = 8
+private const val MS_PER_MINUTE = 60_000f
+/** Stands in for the figure inside the resolved minutes template. A control character, so no
+ *  translation can contain it by accident — and written as the ESCAPE, never as a raw NUL byte in
+ *  the source. [STATS-A-COMPUTED-LITRE-WITH-NO-READER-001] */
+private const val MINUTES_SLOT = "\u0000"

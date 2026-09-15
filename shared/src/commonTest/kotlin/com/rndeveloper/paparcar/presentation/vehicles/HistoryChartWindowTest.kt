@@ -68,7 +68,7 @@ class HistoryChartWindowTest {
         nowMs: Long,
     ) {
         val kept = VehicleHistoryCalculator.filter(sessions, filter, nowMs).size
-        val drawn = bucketsFor(sessions, filter, nowMs).sumOf { it.sessions }
+        val drawn = bucketsFor(sessions, filter, nowMs).sumOf { it.value.toInt() }
         assertEquals(
             kept,
             drawn,
@@ -96,7 +96,7 @@ class HistoryChartWindowTest {
 
         assertEquals(7, bars.size)
         assertEquals(dayLabels, bars.map { it.label }, "the week reads Monday → Sunday")
-        assertEquals(1, bars.first().sessions, "today's parking lands on Monday")
+        assertEquals(1, bars.first().value.toInt(), "today's parking lands on Monday")
         assertEveryCountedSessionHasABar(sessions, HistoryFilter.ThisWeek, nowMs)
     }
 
@@ -112,8 +112,8 @@ class HistoryChartWindowTest {
 
         // Mon–Wed happened and are filled; Thu–Sun have not arrived yet. An empty FUTURE day claims
         // nothing; an empty PAST day outside the window was the lie.
-        assertTrue(bars.take(3).all { it.sessions == 1 })
-        assertTrue(bars.drop(3).all { it.sessions == 0 })
+        assertTrue(bars.take(3).all { it.value.toInt() == 1 })
+        assertTrue(bars.drop(3).all { it.value.toInt() == 0 })
         assertTrue(bars[2].isCurrent, "today is the highlighted bar")
         assertEveryCountedSessionHasABar(sessions, HistoryFilter.ThisWeek, nowMs)
     }

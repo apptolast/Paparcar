@@ -633,7 +633,7 @@
         <item quantity="many">parkingów</item>
         <item quantity="other">parkingu</item>
     </plurals>
-    <plurals name="history_activity_distance_partial">
+    <plurals name="history_activity_measure_partial">
         <item quantity="one">%1$s (%2$d przejazd)</item>
         <item quantity="few">%1$s (%2$d przejazdy)</item>
         <item quantity="many">%1$s (%2$d przejazdów)</item>
@@ -854,6 +854,8 @@
     <string name="stats_tile_co2">CO₂ ok.</string>
     <string name="stats_tile_avg_duration">śr. czas postoju</string>
     <string name="stats_tile_search_time">szukanie miejsca</string>
+    <string name="stats_metric_parkings">parkingi</string>
+    <string name="stats_metric_distance">dystans</string>
     <string name="stats_tile_coverage">%1$d z %2$d przejazdów</string>
     <string name="stats_tile_peak_hour">godzina szczytu</string>
     <string name="stats_tile_usual_day">zwykły dzień</string>

@@ -15,6 +15,8 @@ import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.stats_value_hours_minutes
+import paparcar.composeapp.generated.resources.stats_value_minutes
 import paparcar.composeapp.generated.resources.drive_time_minutes
 import paparcar.composeapp.generated.resources.relative_time_compact_day
 import paparcar.composeapp.generated.resources.relative_time_compact_hour
@@ -112,6 +114,28 @@ fun driveTimeString(meters: Float): String {
  */
 @Composable
 fun distanceString(meters: Float): String = formatDistance(meters, LocalDistanceUnit.current)
+
+/**
+ * A span of time as a figure — "42 min", "1 h 12 min". [STATS-UI-001]
+ *
+ * It lives with the other time formatters because TWO surfaces write durations now: the figures
+ * grid (average stay, time hunting) and the activity card's qualifier when the chart is drawing the
+ * search-time series. Two copies of the same rounding is how "1 h 12 min" and "72 min" end up on
+ * one screen. [STATS-A-PERIOD-IS-A-SERIES-NOT-A-NUMBER-001]
+ */
+@Composable
+fun durationText(durationMs: Long): String {
+    val totalMinutes = durationMs / MS_PER_MINUTE
+    return if (totalMinutes < MINUTES_PER_HOUR) {
+        stringResource(Res.string.stats_value_minutes, totalMinutes.toInt())
+    } else {
+        stringResource(
+            Res.string.stats_value_hours_minutes,
+            (totalMinutes / MINUTES_PER_HOUR).toInt(),
+            (totalMinutes % MINUTES_PER_HOUR).toInt(),
+        )
+    }
+}
 
 /**
  * A wall-clock time, `HH:mm`, in the device's own zone.
