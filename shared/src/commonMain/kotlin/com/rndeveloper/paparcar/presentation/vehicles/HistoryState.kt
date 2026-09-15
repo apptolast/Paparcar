@@ -7,6 +7,7 @@ import com.rndeveloper.paparcar.domain.entitlement.gateHistoryToEntitlement
 import com.rndeveloper.paparcar.domain.fuel.FuelPrice
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
+import com.rndeveloper.paparcar.domain.model.Zone
 import com.rndeveloper.paparcar.domain.stats.PeriodStats
 import com.rndeveloper.paparcar.domain.usecase.fuel.ResolveFuelPriceUseCase
 import com.rndeveloper.paparcar.domain.usecase.stats.ComputePeriodStatsUseCase
@@ -85,6 +86,12 @@ sealed interface HistoryTimeline {
             filter: HistoryFilter,
             isPlus: Boolean,
             vehicle: Vehicle? = null,
+            /**
+             * The user's named places. Without them the period still has its places — they are
+             * just called by their street instead of by the name the user gave them.
+             * [STATS-A-USUAL-PLACE-IS-A-CLUSTER-NOT-A-STREET-001]
+             */
+            zones: List<Zone> = emptyList(),
             nowMs: Long = Clock.System.now().toEpochMilliseconds(),
             /**
              * The price ladder to quote. [FUEL-NATIONAL-AVERAGE-FROM-OPENVAN-001]
@@ -134,6 +141,7 @@ sealed interface HistoryTimeline {
                     sessions = statsSessions,
                     vehicles = listOfNotNull(vehicle),
                     previousSessions = previousSessions,
+                    zones = zones,
                     // The country comes from the parkings themselves — the reverse geocoder already
                     // stamps it on every one — so a price is resolved where the car actually was,
                     // and the user's country is never stored anywhere. [FUEL-PRICE-RESOLVER-001]

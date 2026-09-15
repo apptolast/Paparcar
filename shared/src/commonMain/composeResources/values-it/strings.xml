@@ -845,7 +845,18 @@
     <string name="stats_tile_coverage">%1$d di %2$d viaggi</string>
     <string name="stats_tile_peak_hour">ora di punta</string>
     <string name="stats_tile_usual_day">giorno abituale</string>
-    <string name="stats_tile_favorite_street">via abituale</string>
+    <string name="stats_tile_usual_place">posto abituale</string>
+    <string name="stats_places_title">I tuoi posti</string>
+    <plurals name="stats_places_empty">
+        <item quantity="one">Un posto compare quando ci hai parcheggiato %1$d volta</item>
+        <item quantity="other">Un posto compare quando ci hai parcheggiato %1$d volte</item>
+    </plurals>
+    <plurals name="stats_places_row_times">
+        <item quantity="one">%1$d volta</item>
+        <item quantity="other">%1$d volte</item>
+    </plurals>
+    <string name="stats_places_row_stay">%1$s in media</string>
+    <string name="stats_places_row_searching">%1$s a cercare</string>
     <string name="stats_tile_auto_detected">rilevati da soli</string>
     <string name="stats_tile_spots_shared">posti ceduti</string>
     <string name="stats_value_kg">%1$s kg</string>

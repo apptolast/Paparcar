@@ -74,6 +74,7 @@ class StatsViewModelTest {
         vehicleRepository = vehicleRepo,
         userParkingRepository = parkingRepo,
         observeIsPlus = ObserveIsPlusUseCase(FakeEntitlementRepository(entitlement)),
+        zoneRepository = com.rndeveloper.paparcar.fakes.data.repository.FakeZoneRepository(),
         // The offline ladder: averages from the binary, no network. What every screen falls back
         // to anyway. [FUEL-NATIONAL-AVERAGE-FROM-OPENVAN-001]
         resolveFuelPrice = ResolveFuelPriceUseCase(),

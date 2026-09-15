@@ -7,8 +7,10 @@ import com.rndeveloper.paparcar.domain.detection.detectionSource
 import com.rndeveloper.paparcar.domain.model.Money
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
+import com.rndeveloper.paparcar.domain.model.Zone
 import com.rndeveloper.paparcar.domain.stats.EmissionFactors
 import com.rndeveloper.paparcar.domain.stats.PeriodStats
+import com.rndeveloper.paparcar.domain.stats.clusterParkings
 import com.rndeveloper.paparcar.domain.stats.sumMeasuredDistance
 import com.rndeveloper.paparcar.domain.stats.sumMeasuredSearchTime
 import com.rndeveloper.paparcar.domain.vehicle.FuelDefaults
@@ -39,6 +41,9 @@ class ComputePeriodStatsUseCase {
         vehicles: List<Vehicle> = emptyList(),
         /** The equivalent previous period, already sliced by the caller — feeds ▲/▼ comparisons. */
         previousSessions: List<UserParking>? = null,
+        /** The user's named places. Without them a cluster still exists — it is just called by its
+         *  street instead of "Trabajo". [STATS-A-USUAL-PLACE-IS-A-CLUSTER-NOT-A-STREET-001] */
+        zones: List<Zone> = emptyList(),
         /** Prices land with FUEL-PRICES-001; until then null ⇒ [PeriodStats.costEstimate] = null. */
         fuelPricePerLiter: Money? = null,
         energyPricePerKwh: Money? = null,
@@ -128,13 +133,10 @@ class ComputePeriodStatsUseCase {
             ?.maxByOrNull { it.value }
             ?.key
 
-        // A street is "usual" when it repeats, not when it merely wins a 1-1 tie.
-        val favoriteStreet = ended
-            .mapNotNull { it.address?.street?.takeIf { s -> s.isNotBlank() } }
-            .groupBy { it }
-            .maxByOrNull { it.value.size }
-            ?.takeIf { it.value.size >= MIN_SESSIONS_FOR_STREET }
-            ?.key
+        // Where you REPEAT, as patches of ground rather than as strings a geocoder returned.
+        // Over the ENDED sessions, like every other habit figure here: an open parking has not
+        // told us what it cost yet. [STATS-A-USUAL-PLACE-IS-A-CLUSTER-NOT-A-STREET-001]
+        val places = clusterParkings(ended, zones)
 
         // One resolver for "who placed this pin" — never a second set of path strings here.
         // [UI-HISTORY-IDENTITY-AND-SOURCE-001]
@@ -152,7 +154,7 @@ class ComputePeriodStatsUseCase {
             avgParkedDurationMs = avgParkedDurationMs,
             peakHourBucket = peakHourBucket,
             mostActiveDayOfWeek = mostActiveDayOfWeek,
-            favoriteStreet = favoriteStreet,
+            places = places,
             spotsReleased = ended.count { it.publishedSpot },
             autoDetectedCount = if (shareSignificant) {
                 known.count { it.detectionSource() != ParkingDetectionSource.Manual }
@@ -172,6 +174,7 @@ class ComputePeriodStatsUseCase {
                     sessions = it,
                     vehicles = vehicles,
                     previousSessions = null,
+                    zones = zones,
                     fuelPricePerLiter = fuelPricePerLiter,
                     energyPricePerKwh = energyPricePerKwh,
                 )
@@ -181,7 +184,6 @@ class ComputePeriodStatsUseCase {
 
     companion object {
         const val MIN_SESSIONS_FOR_PEAK = 5
-        const val MIN_SESSIONS_FOR_STREET = 3
         const val MIN_SESSIONS_FOR_AUTO_SHARE = 5
         const val MIN_SESSIONS_FOR_DURATION = 3
         private const val METERS_PER_KM = 1_000.0

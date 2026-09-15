@@ -40,8 +40,15 @@ data class PeriodStats(
     val peakHourBucket: Int?,
     /** isoDayNumber 1=Mon..7=Sun; null below the peak threshold. */
     val mostActiveDayOfWeek: Int?,
-    /** Street that repeats (≥ street threshold); a 1-1 tie is nobody's favourite. */
-    val favoriteStreet: String?,
+    /**
+      * The places this period repeats at, most-visited first — empty when nothing repeats yet.
+      * [STATS-A-USUAL-PLACE-IS-A-CLUSTER-NOT-A-STREET-001]
+      *
+      * Replaces `favoriteStreet`, which compared GEOCODER STRINGS: one corner answered with two
+      * road names was two places, and four kilometres of one avenue was a single one. A place is a
+      * patch of ground; the name is what you call it, and the user's own zone name wins.
+      */
+    val places: List<ParkingCluster>,
     /** Closes that gave the community a spot — 0 IS information. */
     val spotsReleased: Int,
     /** Auto-detected among provenance-KNOWN ended sessions; both 0 below the share threshold. */
@@ -59,4 +66,13 @@ data class PeriodStats(
     val searchTime: ScopedMeasure<Long>? = null,
     /** The equivalent previous period, for ▲/▼ comparisons. Null when not requested or empty. */
     val previous: PeriodStats? = null,
-)
+) {
+    /**
+     * The one place to name when there is room for exactly one — the tile's value.
+     * [STATS-A-USUAL-PLACE-IS-A-CLUSTER-NOT-A-STREET-001]
+     *
+     * Derived rather than stored so the tile and the panel's list can never name different places:
+     * it IS the first of [places] that can say where it is.
+     */
+    val usualPlaceName: String? get() = places.firstNotNullOfOrNull { it.name }
+}

@@ -88,7 +88,7 @@ import paparcar.composeapp.generated.resources.stats_tile_energy
 import paparcar.composeapp.generated.resources.stats_tile_fuel
 import paparcar.composeapp.generated.resources.stats_tile_cost
 import paparcar.composeapp.generated.resources.stats_tile_coverage
-import paparcar.composeapp.generated.resources.stats_tile_favorite_street
+import paparcar.composeapp.generated.resources.stats_tile_usual_place
 import paparcar.composeapp.generated.resources.stats_tile_peak_hour
 import paparcar.composeapp.generated.resources.stats_tile_spots_shared
 import paparcar.composeapp.generated.resources.stats_tile_usual_day
@@ -456,7 +456,7 @@ internal data class StatTileData(
  * can reach.
  */
 internal enum class StatTileKey {
-    COST, FUEL, ENERGY, CO2, SEARCH_TIME, AVG_DURATION, PEAK_HOUR, USUAL_DAY, USUAL_STREET,
+    COST, FUEL, ENERGY, CO2, SEARCH_TIME, AVG_DURATION, PEAK_HOUR, USUAL_DAY, USUAL_PLACE,
     AUTO_DETECTED, SPOTS_SHARED
 }
 
@@ -476,7 +476,7 @@ private fun StatTileKey.icon(): ImageVector = when (this) {
     StatTileKey.AVG_DURATION -> Icons.Rounded.HourglassBottom
     StatTileKey.PEAK_HOUR -> Icons.Rounded.Schedule
     StatTileKey.USUAL_DAY -> Icons.Rounded.Event
-    StatTileKey.USUAL_STREET -> Icons.Rounded.Place
+    StatTileKey.USUAL_PLACE -> Icons.Rounded.Place
     StatTileKey.AUTO_DETECTED -> Icons.Rounded.AutoAwesome
     StatTileKey.SPOTS_SHARED -> Icons.Rounded.VolunteerActivism
 }
@@ -514,7 +514,9 @@ internal fun statTileKeys(stats: PeriodStats): List<StatTileKey> = buildList {
     if (stats.avgParkedDurationMs != null) add(StatTileKey.AVG_DURATION)
     if (stats.peakHourBucket != null) add(StatTileKey.PEAK_HOUR)
     if (stats.mostActiveDayOfWeek != null) add(StatTileKey.USUAL_DAY)
-    if (stats.favoriteStreet != null) add(StatTileKey.USUAL_STREET)
+    // The place you repeat at — named by your own zone when you have one there.
+    // [STATS-A-USUAL-PLACE-IS-A-CLUSTER-NOT-A-STREET-001]
+    if (stats.usualPlaceName != null) add(StatTileKey.USUAL_PLACE)
     // Zero known-provenance sessions means "below the threshold" upstream, where a share is noise.
     if (stats.detectionKnownCount > 0) add(StatTileKey.AUTO_DETECTED)
     // Spots shared: 0 IS information (you never freed one), so it shows whenever the block does.
@@ -641,10 +643,10 @@ internal fun statTiles(stats: PeriodStats): List<StatTileData> {
                 value = dayLabels[requireNotNull(stats.mostActiveDayOfWeek) - 1],
                 label = stringResource(Res.string.stats_tile_usual_day),
             )
-            StatTileKey.USUAL_STREET -> StatTileData(
+            StatTileKey.USUAL_PLACE -> StatTileData(
                 icon = icon,
-                value = requireNotNull(stats.favoriteStreet),
-                label = stringResource(Res.string.stats_tile_favorite_street),
+                value = requireNotNull(stats.usualPlaceName),
+                label = stringResource(Res.string.stats_tile_usual_place),
             )
             StatTileKey.AUTO_DETECTED -> StatTileData(
                 icon = icon,

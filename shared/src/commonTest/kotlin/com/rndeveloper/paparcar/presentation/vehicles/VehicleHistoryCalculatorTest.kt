@@ -97,7 +97,12 @@ class VehicleHistoryCalculatorTest {
 
     @Test
     fun should_suppressFavoriteStreet_whenNoStreetRepeatsThreeTimes() {
-        // Winning a 2-1 tie is not a habit — below the threshold nothing is claimed.
+        // ⛔ Esta prueba cambió de veredicto A PROPÓSITO con
+        // [STATS-A-USUAL-PLACE-IS-A-CLUSTER-NOT-A-STREET-001]. Antes exigía que una CALLE se
+        // repitiera, porque el string ERA la identidad del sitio. Ahora la repetición la prueba la
+        // geometría —tres aparcamientos en el mismo punto son un sitio— y la calle sólo lo NOMBRA:
+        // dos respuestas "Calle A" y una "Calle B" del geocoder describen el mismo sitio, y llamarlo
+        // por la mayoritaria es exactamente lo que hay que hacer.
         val stats = computePeriodStats(
             listOf(
                 session(nowMs - 20 * dayMs, street = "Calle A"),
@@ -105,11 +110,26 @@ class VehicleHistoryCalculatorTest {
                 session(nowMs - 18 * dayMs, street = "Calle B"),
             ),
         )
-        assertNull(stats?.favoriteStreet)
+        assertEquals("Calle A", stats?.usualPlaceName, "la calle mayoritaria nombra el sitio")
+        assertEquals(1, stats?.places?.size, "y es UN sitio, no dos calles")
     }
 
     @Test
-    fun should_pickFavoriteStreet_whenAStreetReachesThreeSessions() {
+    fun should_claimNoPlace_when_youHaveNotRepeatedYet() {
+        // Dos aparcamientos no son un sitio habitual: por debajo del umbral no hay racimo, y por
+        // tanto no hay ni tile ni fila. Nunca un sitio de un solo uso.
+        val stats = computePeriodStats(
+            listOf(
+                session(nowMs - 20 * dayMs, street = "Calle A"),
+                session(nowMs - 19 * dayMs, street = "Calle A"),
+            ),
+        )
+        assertNull(stats?.usualPlaceName)
+        assertEquals(emptyList(), stats?.places)
+    }
+
+    @Test
+    fun should_nameThePlace_byTheStreetThatRepeatsMost() {
         val stats = computePeriodStats(
             listOf(
                 session(nowMs - 21 * dayMs, street = "Calle A"),
@@ -118,7 +138,7 @@ class VehicleHistoryCalculatorTest {
                 session(nowMs - 18 * dayMs, street = "Calle B"),
             ),
         )
-        assertEquals("Calle A", stats?.favoriteStreet)
+        assertEquals("Calle A", stats?.usualPlaceName)
     }
 
     @Test

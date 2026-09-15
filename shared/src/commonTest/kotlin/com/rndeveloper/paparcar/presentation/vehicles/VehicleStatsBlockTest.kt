@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.presentation.vehicles
 
 import com.rndeveloper.paparcar.domain.model.Money
+import com.rndeveloper.paparcar.domain.stats.ParkingCluster
 import com.rndeveloper.paparcar.domain.stats.PeriodStats
 import com.rndeveloper.paparcar.domain.stats.ScopedMeasure
 import kotlin.test.Test
@@ -24,7 +25,7 @@ class VehicleStatsBlockTest {
         avgDurationMs: Long? = null,
         peakHour: Int? = null,
         usualDay: Int? = null,
-        street: String? = null,
+        place: String? = null,
         knownCount: Int = 0,
         autoCount: Int = 0,
         spotsReleased: Int = 0,
@@ -44,7 +45,14 @@ class VehicleStatsBlockTest {
         avgParkedDurationMs = avgDurationMs,
         peakHourBucket = peakHour,
         mostActiveDayOfWeek = usualDay,
-        favoriteStreet = street,
+        places = place?.let {
+            listOf(
+                ParkingCluster(
+                    id = "c1", name = it, latitude = 40.4, longitude = -3.7, parkings = 4,
+                    avgStayMs = null, searchTime = null, spotsReleased = 0, lastParkedAtMs = 0L,
+                ),
+            )
+        }.orEmpty(),
         spotsReleased = spotsReleased,
         autoDetectedCount = autoCount,
         detectionKnownCount = knownCount,
@@ -124,7 +132,7 @@ class VehicleStatsBlockTest {
                 avgDurationMs = 24_000_000L,
                 peakHour = 18,
                 usualDay = 2,
-                street = "Calle de Alcalá",
+                place = "Calle de Alcalá",
                 knownCount = 12,
                 autoCount = 9,
                 spotsReleased = 5,
@@ -137,7 +145,7 @@ class VehicleStatsBlockTest {
                 StatTileKey.AVG_DURATION,
                 StatTileKey.PEAK_HOUR,
                 StatTileKey.USUAL_DAY,
-                StatTileKey.USUAL_STREET,
+                StatTileKey.USUAL_PLACE,
                 StatTileKey.AUTO_DETECTED,
                 StatTileKey.SPOTS_SHARED,
             ),

@@ -64,8 +64,8 @@ class HistoryTimelineScopeTest {
         val allTime = HistoryTimeline.resolve(sessions, HistoryFilter.All, isPlus = true, nowMs = nowMs)
         val thisWeek = HistoryTimeline.resolve(sessions, HistoryFilter.ThisWeek, isPlus = true, nowMs = nowMs)
 
-        assertEquals("Alcalá", allTime.periodStats?.favoriteStreet)
-        assertEquals("Gran Vía", thisWeek.periodStats?.favoriteStreet)
+        assertEquals("Alcalá", allTime.periodStats?.usualPlaceName)
+        assertEquals("Gran Vía", thisWeek.periodStats?.usualPlaceName)
         assertNotEquals(allTime.periodStats?.parkings, thisWeek.periodStats?.parkings)
     }
 

@@ -68,6 +68,9 @@ class VehiclesViewModelTest {
         vm = VehiclesViewModel(
             vehicleRepo,
             parkingRepo,
+            // No zones: the places still exist, they are just called by their street.
+            // [STATS-A-USUAL-PLACE-IS-A-CLUSTER-NOT-A-STREET-001]
+            com.rndeveloper.paparcar.fakes.data.repository.FakeZoneRepository(),
             declareActiveVehicle,
             com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase(entitlementRepo),
             // The offline ladder: averages from the binary, no network. What every screen falls

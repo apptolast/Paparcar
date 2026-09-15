@@ -13,9 +13,12 @@ import com.rndeveloper.paparcar.domain.model.SharedCar
 import com.rndeveloper.paparcar.domain.model.SharedCarMember
 import com.rndeveloper.paparcar.domain.model.SharedCarSession
 import com.rndeveloper.paparcar.domain.model.UserParking
+import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleWithStats
 import com.rndeveloper.paparcar.domain.repository.SharedCarRepository
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
+import com.rndeveloper.paparcar.domain.model.Zone
+import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.sharedcar.asHistoryEntry
 import com.rndeveloper.paparcar.domain.usecase.fuel.ResolveFuelPriceUseCase
@@ -42,6 +45,8 @@ private data class VehiclesSnapshot(
     val isPlus: Boolean,
     val sharedCars: Map<String, SharedCar>,
     val groupFeed: Map<String, GroupFeed>,
+    /** Los sitios que el usuario ha nombrado. [STATS-A-USUAL-PLACE-IS-A-CLUSTER-NOT-A-STREET-001] */
+    val zones: List<Zone> = emptyList(),
 )
 
 /** Las sesiones del grupo y quién no enseña su ruta, que es lo que decide cómo se convierten. */
@@ -67,6 +72,9 @@ private data class GroupFeed(
 class VehiclesViewModel(
     private val vehicleRepository: VehicleRepository,
     private val userParkingRepository: UserParkingRepository,
+    /** The user's named places — what turns "Calle Serrano" into "Trabajo" in the figures.
+     *  [STATS-A-USUAL-PLACE-IS-A-CLUSTER-NOT-A-STREET-001] */
+    private val zoneRepository: ZoneRepository,
     // Declaring the active vehicle also swaps the OS geofences to it. [VEH-ACTIVE-FENCE-001]
     private val declareActiveVehicle: DeclareActiveVehicleUseCase,
     // The Plus gate over the history window — observed LIVE so losing or regaining Plus
@@ -127,6 +135,11 @@ class VehiclesViewModel(
             .launchIn(viewModelScope)
     }
 
+    /** Las zonas de la última emisión — el intent del filtro re-resuelve fuera del stream y tiene
+     *  que nombrar los sitios exactamente igual que los acaba de nombrar la emisión.
+     *  [STATS-A-USUAL-PLACE-IS-A-CLUSTER-NOT-A-STREET-001] */
+    private var lastZones: List<Zone> = emptyList()
+
     /**
      * Miembros y sesiones del coche compartido a la vista. [VEH-SHARED-001]
      *
@@ -166,6 +179,10 @@ class VehiclesViewModel(
     }
 
     private fun observeVehicles() {
+        // ⛔ Zones belong IN the combine, not in a field updated on the side: they arrive after the
+        // first sessions emission, and a place named "Calle Serrano" that only becomes "Trabajo" on
+        // the next unrelated emission is the kind of staleness nobody reports and everybody sees.
+        // [STATS-A-USUAL-PLACE-IS-A-CLUSTER-NOT-A-STREET-001]
         combine(
             vehicleRepository.observeVehicles(),
             userParkingRepository.observeAllSessions(),
@@ -175,7 +192,14 @@ class VehiclesViewModel(
         ) { vehicles, allSessions, isPlus, sharedCars, group ->
             VehiclesSnapshot(vehicles, allSessions, isPlus, sharedCars.associateBy { it.carId }, group)
         }
-            .onEach { (vehicles, allSessions, isPlus, sharedCars, group) ->
+            // ⛔ Las zonas van DENTRO del flujo, no en un campo actualizado por fuera: llegan
+            // después de las sesiones, y un sitio que se llama «Calle Serrano» y sólo pasa a
+            // «Trabajo» en la siguiente emisión ajena es caducidad que nadie reporta y todo el
+            // mundo ve. Se enganchan con un `combine` encadenado porque `combine` tipado se acaba
+            // en cinco flujos y aquí ya hay cinco. [STATS-A-USUAL-PLACE-IS-A-CLUSTER-NOT-A-STREET-001]
+            .combine(zoneRepository.observeZones()) { snapshot, zones -> snapshot.copy(zones = zones) }
+            .onEach { (vehicles, allSessions, isPlus, sharedCars, group, zones) ->
+                lastZones = zones
                 val sessionsByVehicle = allSessions.groupBy { it.vehicleId }
                 personalSessions = sessionsByVehicle
                 val nowMs = Clock.System.now().toEpochMilliseconds()
@@ -217,6 +241,7 @@ class VehiclesViewModel(
                                 // Consumption, cost and CO₂ are computed with THIS car's figures
                                 // (its override, or the named FuelDefaults). [STATS-UI-001]
                                 vehicle = vws.vehicle,
+                                zones = zones,
                                 nowMs = nowMs,
                                 resolveFuelPrice = resolveFuelPrice,
                             ),
@@ -295,6 +320,7 @@ class VehiclesViewModel(
                             filter = intent.filter,
                             isPlus = isPlus,
                             vehicle = vehicles.firstOrNull { it.vehicle.id == vehicleId }?.vehicle,
+                            zones = lastZones,
                             nowMs = nowMs,
                             resolveFuelPrice = resolveFuelPrice,
                         ),

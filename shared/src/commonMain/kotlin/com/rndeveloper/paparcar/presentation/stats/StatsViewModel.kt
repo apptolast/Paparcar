@@ -6,8 +6,10 @@ import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
+import com.rndeveloper.paparcar.domain.model.Zone
 import com.rndeveloper.paparcar.domain.model.VehicleWithStats
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
+import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.usecase.fuel.ResolveFuelPriceUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
@@ -34,6 +36,8 @@ class StatsViewModel(
     private val vehicleRepository: VehicleRepository,
     private val userParkingRepository: UserParkingRepository,
     private val observeIsPlus: ObserveIsPlusUseCase,
+    /** The user's named places — see the ficha's. [STATS-A-USUAL-PLACE-IS-A-CLUSTER-NOT-A-STREET-001] */
+    private val zoneRepository: ZoneRepository,
     /**
      * The price ladder behind the cost tile. [FUEL-NATIONAL-AVERAGE-FROM-OPENVAN-001]
      *
@@ -53,6 +57,9 @@ class StatsViewModel(
     /** Kept so a filter or vehicle change can re-resolve without waiting for a new emission. */
     private var sessionsByVehicle: Map<String?, List<UserParking>> = emptyMap()
 
+    /** Same reason, for the names of the places. [STATS-A-USUAL-PLACE-IS-A-CLUSTER-NOT-A-STREET-001] */
+    private var zones: List<Zone> = emptyList()
+
     init {
         observeData()
         appPreferences.observeAutoDetectParking()
@@ -66,9 +73,13 @@ class StatsViewModel(
             vehicleRepository.observeVehicles(),
             userParkingRepository.observeAllSessions(),
             observeIsPlus(),
-        ) { vehicles, sessions, isPlus -> Triple(vehicles, sessions, isPlus) }
-            .onEach { (vehicles, allSessions, isPlus) ->
+            // In the combine, not on the side: zones land after the sessions do, and a place that
+            // only takes its real name on the next unrelated emission reads as a stale screen.
+            zoneRepository.observeZones(),
+        ) { vehicles, sessions, isPlus, zones -> StatsSnapshot(vehicles, sessions, isPlus, zones) }
+            .onEach { (vehicles, allSessions, isPlus, observedZones) ->
                 sessionsByVehicle = allSessions.groupBy { it.vehicleId }
+                zones = observedZones
                 val withStats = vehicles.map { vehicle ->
                     val vehicleSessions = sessionsByVehicle[vehicle.id].orEmpty()
                     VehicleWithStats(
@@ -143,6 +154,7 @@ class StatsViewModel(
             filter = filter,
             isPlus = isPlus,
             vehicle = vehicle,
+            zones = zones,
             nowMs = Clock.System.now().toEpochMilliseconds(),
             resolveFuelPrice = resolveFuelPrice,
         )
@@ -154,6 +166,14 @@ class StatsViewModel(
             lifetimeSpotsReleased = resolved.lifetimeSpotsReleased,
         )
     }
+
+    /** One emission of everything the panel depends on. A `Triple` ran out of slots. */
+    private data class StatsSnapshot(
+        val vehicles: List<Vehicle>,
+        val sessions: List<UserParking>,
+        val isPlus: Boolean,
+        val zones: List<Zone>,
+    )
 
     private companion object {
         const val TAG = "StatsViewModel"

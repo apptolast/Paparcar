@@ -75,6 +75,7 @@ import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.home
 import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.domain.model.SpotType
 import com.rndeveloper.paparcar.domain.model.UserParking
+import com.rndeveloper.paparcar.domain.model.Zone
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.presentation.map.FocusedParking
 import com.rndeveloper.paparcar.presentation.map.HistoryDetailSheet
@@ -124,7 +125,6 @@ import com.apptolast.baselogin.presentation.screens.components.DefaultAuthContai
 import com.apptolast.baselogin.presentation.slots.defaultslots.DefaultDivider
 import com.rndeveloper.paparcar.di.paparcarLoginConfig
 import com.rndeveloper.paparcar.di.paparcarSocialProviders
-import com.rndeveloper.paparcar.domain.model.Zone
 import com.rndeveloper.paparcar.domain.model.ZoneIcon
 import com.rndeveloper.paparcar.presentation.paywall.PaywallContent
 import com.rndeveloper.paparcar.presentation.paywall.PaywallState
@@ -371,7 +371,10 @@ private fun resolvedHistory(
     // Sin coche no hay consumo, y sin consumo la tarjeta de cifras se queda sin CO2 ni gasto: la
     // galeria pasa uno para ensenar el bloque como se ve de verdad. [STATS-UI-001]
     vehicle: Vehicle? = FakeData.vehiclesWithStats.firstOrNull()?.vehicle,
-) = HistoryTimeline.resolve(sessions, filter, isPlus, vehicle)
+    // Sin zonas los sitios existen igual — se llaman por su calle en vez de "Trabajo".
+    // [STATS-A-USUAL-PLACE-IS-A-CLUSTER-NOT-A-STREET-001]
+    zones: List<Zone> = emptyList(),
+) = HistoryTimeline.resolve(sessions, filter, isPlus, vehicle, zones)
 
 // [MONEY-001] Sesiones envejecidas para las variantes free: el gate corta por
 // location.timestamp, así que empujar la marca 40 días atrás la saca de la ventana gratuita
@@ -410,6 +413,7 @@ private fun statsPanelState(
     isPlus: Boolean = true,
     sessions: List<UserParking> = FakeData.allSessions,
     vehiclesOverride: List<VehicleWithStats>? = null,
+    zones: List<Zone> = emptyList(),
 ): StatsState {
     val vehicles = vehiclesOverride ?: FakeData.vehiclesWithStats
     // Las sesiones de FakeData nacen sin vehicleId, y sin coche el agregador no puede convertir
@@ -422,7 +426,7 @@ private fun statsPanelState(
     // primer coche de FakeData, asi que la variante del enchufable cambiaba la CABECERA y dejaba
     // el calculo con el coche de gasolina: salian litros y no salia el tile de kWh. Una variante
     // que no ejercita su caso es peor que no tenerla — se ve verde y no vigila nada.
-    val resolved = resolvedHistory(owned, filter, isPlus, vehicles.firstOrNull()?.vehicle)
+    val resolved = resolvedHistory(owned, filter, isPlus, vehicles.firstOrNull()?.vehicle, zones)
     return StatsState(
         vehicles = vehicles,
         selectedVehicleIndex = 0,
@@ -1729,6 +1733,31 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     onIntent = {},
                 )
             },
+            // [STATS-A-USUAL-PLACE-IS-A-CLUSTER-NOT-A-STREET-001] El sitio se llama como lo llama
+            // el usuario: su zona manda sobre el nombre de la calle.
+            Variant("Sitios · nombrados por tus zonas") {
+                StatsContent(
+                    state = statsPanelState(
+                        zones = listOf(
+                            Zone(
+                                id = "z1", userId = "u", name = "Trabajo",
+                                lat = 40.4168, lon = -3.7038, iconKey = "WORK", createdAt = 0L,
+                            ),
+                        ),
+                    ),
+                    onNavigateBack = {},
+                    onIntent = {},
+                )
+            },
+            // Y el estado honesto de un coche que aún no repite: dice qué falta y cuánto, en vez
+            // de una lista vacía.
+            Variant("Sitios · aún no repites") {
+                StatsContent(
+                    state = statsPanelState(sessions = FakeData.endedSessions.take(2)),
+                    onNavigateBack = {},
+                    onIntent = {},
+                )
+            },
             Variant("Sin resolver (skeleton)") {
                 StatsContent(state = StatsState(), onNavigateBack = {}, onIntent = {})
             },
@@ -1864,6 +1893,25 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         activeFilter = HistoryFilter.ThisMonth,
                     ),
                     isPlus = true,
+                )
+            },
+            // [STATS-A-USUAL-PLACE-IS-A-CLUSTER-NOT-A-STREET-001] Un sitio es un racimo de
+            // aparcamientos, no una cadena de texto: aquí las mismas sesiones, todas a pocos metros
+            // y con el nombre de calle bailando, salen como UN sitio con sus cifras.
+            Variant("Sitios · el mismo punto con dos nombres de calle") {
+                history(
+                    HistoryState(
+                        timeline = resolvedHistory(
+                            FakeData.allSessions.mapIndexed { i, session ->
+                                session.copy(
+                                    address = session.address?.copy(
+                                        street = if (i % 2 == 0) "Calle de Alcalá" else "Calle de O'Donnell",
+                                    ),
+                                )
+                            },
+                            HistoryFilter.All,
+                        ),
+                    ),
                 )
             },
             // Las DOS caras que antes eran el mismo valor: "no hay nada" frente a "aún no lo sé".

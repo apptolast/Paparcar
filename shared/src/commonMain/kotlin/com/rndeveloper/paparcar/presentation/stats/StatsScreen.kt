@@ -202,6 +202,16 @@ fun StatsContent(
                         )
                     }
                 }
+                // Where this car repeats, and what parking costs at each place — UNDER the figures,
+                // because it answers the same question with more room: the grid names one place in
+                // a tile, this names five and prices each one.
+                // [STATS-A-USUAL-PLACE-IS-A-CLUSTER-NOT-A-STREET-001]
+                item(key = "places") {
+                    Spacer(Modifier.height(SECTION_GAP_DP.dp))
+                    Box(Modifier.padding(horizontal = H_PAD_DP.dp)) {
+                        StatsPlacesCard(places = stats.places)
+                    }
+                }
             }
         }
     }
