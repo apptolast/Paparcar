@@ -102,7 +102,7 @@ private fun PlaceRow(place: ParkingCluster) {
 private fun placeSubtitle(place: ParkingCluster): String = listOfNotNull(
     pluralStringResource(Res.plurals.stats_places_row_times, place.parkings, place.parkings),
     place.avgStayMs?.let { stringResource(Res.string.stats_places_row_stay, durationText(it)) },
-    place.searchTime?.let { stringResource(Res.string.stats_places_row_searching, durationText(it.value)) },
+    place.avgSearchTimeMs?.let { stringResource(Res.string.stats_places_row_searching, durationText(it)) },
 ).joinToString(SEPARATOR)
 
 /** Five is what fits before a list stops being a summary and becomes a directory. */

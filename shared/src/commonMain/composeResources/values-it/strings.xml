@@ -847,6 +847,10 @@
     <string name="stats_tile_usual_day">giorno abituale</string>
     <string name="stats_tile_usual_place">posto abituale</string>
     <string name="stats_places_title">I tuoi posti</string>
+    <string name="stats_when_title">Quando parcheggi</string>
+    <string name="stats_when_empty">Non ci sono ancora parcheggi sufficienti per vedere uno schema</string>
+    <string name="stats_when_less">meno</string>
+    <string name="stats_when_more">più</string>
     <plurals name="stats_places_empty">
         <item quantity="one">Un posto compare quando ci hai parcheggiato %1$d volta</item>
         <item quantity="other">Un posto compare quando ci hai parcheggiato %1$d volte</item>
@@ -855,8 +859,8 @@
         <item quantity="one">%1$d volta</item>
         <item quantity="other">%1$d volte</item>
     </plurals>
-    <string name="stats_places_row_stay">%1$s in media</string>
-    <string name="stats_places_row_searching">%1$s a cercare</string>
+    <string name="stats_places_row_stay">%1$s di sosta</string>
+    <string name="stats_places_row_searching">%1$s a cercare in media</string>
     <string name="stats_tile_auto_detected">rilevati da soli</string>
     <string name="stats_tile_spots_shared">posti ceduti</string>
     <string name="stats_value_kg">%1$s kg</string>
@@ -865,6 +869,7 @@
     <string name="stats_value_liters">%1$s L</string>
     <string name="stats_value_kwh">%1$s kWh</string>
     <string name="stats_value_hours_minutes">%1$d h %2$d min</string>
+    <string name="stats_value_hours">%1$d h</string>
     <string name="stats_value_minutes">%1$d min</string>
     <string name="stats_value_share">%1$d/%2$d</string>
     <string name="stats_lifetime">Da sempre: %1$s parcheggi · %2$s posti ceduti</string>

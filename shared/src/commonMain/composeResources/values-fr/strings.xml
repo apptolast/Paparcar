@@ -847,6 +847,10 @@
     <string name="stats_tile_usual_day">jour habituel</string>
     <string name="stats_tile_usual_place">lieu habituel</string>
     <string name="stats_places_title">Tes lieux</string>
+    <string name="stats_when_title">Quand tu te gares</string>
+    <string name="stats_when_empty">Pas encore assez de stationnements pour voir une tendance</string>
+    <string name="stats_when_less">moins</string>
+    <string name="stats_when_more">plus</string>
     <plurals name="stats_places_empty">
         <item quantity="one">Un lieu apparaît quand tu t'y es garé %1$d fois</item>
         <item quantity="other">Un lieu apparaît quand tu t'y es garé %1$d fois</item>
@@ -855,8 +859,8 @@
         <item quantity="one">%1$d fois</item>
         <item quantity="other">%1$d fois</item>
     </plurals>
-    <string name="stats_places_row_stay">%1$s en moyenne</string>
-    <string name="stats_places_row_searching">%1$s à chercher</string>
+    <string name="stats_places_row_stay">%1$s stationné</string>
+    <string name="stats_places_row_searching">%1$s à chercher en moyenne</string>
     <string name="stats_tile_auto_detected">détectés seuls</string>
     <string name="stats_tile_spots_shared">places cédées</string>
     <string name="stats_value_kg">%1$s kg</string>
@@ -865,6 +869,7 @@
     <string name="stats_value_liters">%1$s L</string>
     <string name="stats_value_kwh">%1$s kWh</string>
     <string name="stats_value_hours_minutes">%1$d h %2$d min</string>
+    <string name="stats_value_hours">%1$d h</string>
     <string name="stats_value_minutes">%1$d min</string>
     <string name="stats_value_share">%1$d/%2$d</string>
     <string name="stats_lifetime">Depuis toujours : %1$s stationnements · %2$s places cédées</string>

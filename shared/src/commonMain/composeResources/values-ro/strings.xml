@@ -861,6 +861,10 @@
     <string name="stats_tile_usual_day">ziua obișnuită</string>
     <string name="stats_tile_usual_place">loc obișnuit</string>
     <string name="stats_places_title">Locurile tale</string>
+    <string name="stats_when_title">Când parchezi</string>
+    <string name="stats_when_empty">Încă nu sunt destule parcări pentru a vedea un tipar</string>
+    <string name="stats_when_less">mai puțin</string>
+    <string name="stats_when_more">mai mult</string>
     <plurals name="stats_places_empty">
         <item quantity="one">Un loc apare după ce ai parcat acolo de %1$d dată</item>
         <item quantity="few">Un loc apare după ce ai parcat acolo de %1$d ori</item>
@@ -871,8 +875,8 @@
         <item quantity="few">de %1$d ori</item>
         <item quantity="other">de %1$d ori</item>
     </plurals>
-    <string name="stats_places_row_stay">%1$s în medie</string>
-    <string name="stats_places_row_searching">%1$s de căutat</string>
+    <string name="stats_places_row_stay">%1$s parcat</string>
+    <string name="stats_places_row_searching">%1$s de căutat în medie</string>
     <string name="stats_tile_auto_detected">detectate singure</string>
     <string name="stats_tile_spots_shared">locuri cedate</string>
     <string name="stats_value_kg">%1$s kg</string>
@@ -881,6 +885,7 @@
     <string name="stats_value_liters">%1$s L</string>
     <string name="stats_value_kwh">%1$s kWh</string>
     <string name="stats_value_hours_minutes">%1$d h %2$d min</string>
+    <string name="stats_value_hours">%1$d h</string>
     <string name="stats_value_minutes">%1$d min</string>
     <string name="stats_value_share">%1$d/%2$d</string>
     <string name="stats_lifetime">Dintotdeauna: %1$s parcări · %2$s locuri cedate</string>

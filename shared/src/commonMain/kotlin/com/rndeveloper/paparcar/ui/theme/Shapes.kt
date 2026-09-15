@@ -34,6 +34,10 @@ val AppShapes = Shapes(
  */
 object PapShapes {
     val chip = RoundedCornerShape(999.dp)
+
+    /** A data cell — a heat-map square, a swatch. Below `row`, because at 12 dp a 20 dp square
+     *  stops reading as a square. [STATS-THE-EXPENSIVE-HOUR-IS-MEASURED-001] */
+    val cell = RoundedCornerShape(6.dp)
     val row = RoundedCornerShape(12.dp)
     val card = RoundedCornerShape(16.dp)
     val sheet = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)

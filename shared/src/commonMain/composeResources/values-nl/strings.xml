@@ -827,6 +827,10 @@
     <string name="stats_tile_usual_day">vaste dag</string>
     <string name="stats_tile_usual_place">vaste plek</string>
     <string name="stats_places_title">Jouw plekken</string>
+    <string name="stats_when_title">Wanneer je parkeert</string>
+    <string name="stats_when_empty">Nog niet genoeg parkeerplaatsen om een patroon te zien</string>
+    <string name="stats_when_less">minder</string>
+    <string name="stats_when_more">meer</string>
     <plurals name="stats_places_empty">
         <item quantity="one">Een plek verschijnt als je er %1$d keer hebt geparkeerd</item>
         <item quantity="other">Een plek verschijnt als je er %1$d keer hebt geparkeerd</item>
@@ -835,8 +839,8 @@
         <item quantity="one">%1$d keer</item>
         <item quantity="other">%1$d keer</item>
     </plurals>
-    <string name="stats_places_row_stay">%1$s gemiddeld</string>
-    <string name="stats_places_row_searching">%1$s zoeken</string>
+    <string name="stats_places_row_stay">%1$s geparkeerd</string>
+    <string name="stats_places_row_searching">%1$s zoeken gemiddeld</string>
     <string name="stats_tile_auto_detected">vanzelf herkend</string>
     <string name="stats_tile_spots_shared">gedeelde plekken</string>
     <string name="stats_value_kg">%1$s kg</string>
@@ -845,6 +849,7 @@
     <string name="stats_value_liters">%1$s L</string>
     <string name="stats_value_kwh">%1$s kWh</string>
     <string name="stats_value_hours_minutes">%1$d u %2$d min</string>
+    <string name="stats_value_hours">%1$d u</string>
     <string name="stats_value_minutes">%1$d min</string>
     <string name="stats_value_share">%1$d/%2$d</string>
     <string name="stats_lifetime">Sinds het begin: %1$s parkeerplaatsen · %2$s gedeelde plekken</string>

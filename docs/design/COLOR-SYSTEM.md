@@ -328,6 +328,18 @@ entre patas; si un trabajo nuevo necesita otro par, se añade aquí, no en la pa
 
 ## 8. Decisiones registradas
 
+### Un mapa de calor es INTENSIDAD, no un tono nuevo [STATS-THE-EXPENSIVE-HOUR-IS-MEASURED-001]
+
+La rejilla «¿Cuándo aparcas?» necesita una escala secuencial, y lo obvio —una rampa de tonos— está
+prohibido dos veces: la rampa verde→amarillo→rojo es **exclusiva de la caducidad de plazas**, y un
+tono nuevo tendría que ganarse un significado que no tiene [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001].
+
+La escala es `brandData` a **alpha variable**, que es lo que el gráfico de barras ya hace para decir
+«menos» (`INACTIVE_BAR_ALPHA`): un mapa de calor es esa misma idea en dos dimensiones. Y una celda
+**sin dato** no se pinta pálida — se queda en el listón vacío de una barra sin relleno, porque un
+verde tenue diría «poco» donde la respuesta honesta es «nada».
+
+
 - **2026-08-11 (v1, revocada)** — "aparcado pierde el color; vigilancia = cian en el chasis".
   Rechazada por el usuario en device: garaje ilegible, cian incomprensible. Se conserva de la v1
   la parte de ingeniería (resolver único, azul-vivo unificado, rampa exclusiva de plazas, retiro

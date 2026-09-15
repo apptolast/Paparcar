@@ -848,6 +848,10 @@
     <string name="stats_tile_usual_day">üblicher Tag</string>
     <string name="stats_tile_usual_place">üblicher Ort</string>
     <string name="stats_places_title">Deine Orte</string>
+    <string name="stats_when_title">Wann du parkst</string>
+    <string name="stats_when_empty">Noch nicht genug Parkvorgänge für ein Muster</string>
+    <string name="stats_when_less">weniger</string>
+    <string name="stats_when_more">mehr</string>
     <plurals name="stats_places_empty">
         <item quantity="one">Ein Ort erscheint, wenn du dort %1$d Mal geparkt hast</item>
         <item quantity="other">Ein Ort erscheint, wenn du dort %1$d Mal geparkt hast</item>
@@ -856,8 +860,8 @@
         <item quantity="one">%1$d Mal</item>
         <item quantity="other">%1$d Mal</item>
     </plurals>
-    <string name="stats_places_row_stay">%1$s im Schnitt</string>
-    <string name="stats_places_row_searching">%1$s Suche</string>
+    <string name="stats_places_row_stay">%1$s geparkt</string>
+    <string name="stats_places_row_searching">%1$s Suche im Schnitt</string>
     <string name="stats_tile_auto_detected">automatisch erkannt</string>
     <string name="stats_tile_spots_shared">geteilte Plätze</string>
     <string name="stats_value_kg">%1$s kg</string>
@@ -866,6 +870,7 @@
     <string name="stats_value_liters">%1$s L</string>
     <string name="stats_value_kwh">%1$s kWh</string>
     <string name="stats_value_hours_minutes">%1$d Std. %2$d Min.</string>
+    <string name="stats_value_hours">%1$d Std.</string>
     <string name="stats_value_minutes">%1$d Min.</string>
     <string name="stats_value_share">%1$d/%2$d</string>
     <string name="stats_lifetime">Seit Beginn: %1$s Parkvorgänge · %2$s geteilte Plätze</string>

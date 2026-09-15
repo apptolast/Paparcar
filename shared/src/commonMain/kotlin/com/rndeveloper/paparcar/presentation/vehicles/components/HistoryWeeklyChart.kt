@@ -7,6 +7,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -284,8 +286,12 @@ private fun ChartMetricRow(
     selected: ChartMetric,
     onSelected: (ChartMetric) -> Unit,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(METRIC_CHIP_GAP_DP.dp)) {
-        metrics.forEach { metric ->
+    // ⛔ It SCROLLS, like the period filter right above it. Measured on the Oppo (15-09): three
+    // chips do not fit 360 dp, and a plain Row does not overflow — it WRAPS the text inside the
+    // last chip, so "buscando plaza" broke mid-word into "buscand / o plaza". A chip is a label, and
+    // a label that hyphenates itself has stopped being one.
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(METRIC_CHIP_GAP_DP.dp)) {
+        items(metrics) { metric ->
             PaparcarFilterChip(
                 label = metric.label(),
                 selected = metric == selected,

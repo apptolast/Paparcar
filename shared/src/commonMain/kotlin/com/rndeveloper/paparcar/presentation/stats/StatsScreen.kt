@@ -27,10 +27,13 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
+import com.rndeveloper.paparcar.domain.stats.HeatMeasure
+import com.rndeveloper.paparcar.domain.stats.buildParkingHeatmap
 import com.rndeveloper.paparcar.domain.model.displayName
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rndeveloper.paparcar.presentation.util.distanceString
@@ -210,6 +213,36 @@ fun StatsContent(
                     Spacer(Modifier.height(SECTION_GAP_DP.dp))
                     Box(Modifier.padding(horizontal = H_PAD_DP.dp)) {
                         StatsPlacesCard(places = stats.places)
+                    }
+                }
+                // WHEN you park, and when it costs you — the two dimensions the peak-hour and
+                // usual-day tiles can only answer one at a time.
+                // [STATS-THE-EXPENSIVE-HOUR-IS-MEASURED-001]
+                item(key = "when") {
+                    val searchGrid = remember(state.filteredSessions) {
+                        buildParkingHeatmap(state.filteredSessions, HeatMeasure.SEARCH_TIME)
+                    }
+                    // The hunting grid is offered only when it HAS something: a chip that leads to
+                    // "not enough parkings yet" is a chip that wasted a tap.
+                    val measures = buildList {
+                        add(HeatMeasure.PARKINGS)
+                        if (!searchGrid.isEmpty) add(HeatMeasure.SEARCH_TIME)
+                    }
+                    val measure = state.heatMeasure.takeIf { it in measures } ?: HeatMeasure.PARKINGS
+                    val grid = if (measure == HeatMeasure.SEARCH_TIME) {
+                        searchGrid
+                    } else {
+                        remember(state.filteredSessions) {
+                            buildParkingHeatmap(state.filteredSessions, HeatMeasure.PARKINGS)
+                        }
+                    }
+                    Spacer(Modifier.height(SECTION_GAP_DP.dp))
+                    Box(Modifier.padding(horizontal = H_PAD_DP.dp)) {
+                        StatsWhenCard(
+                            heatmap = grid,
+                            measures = measures,
+                            onMeasureSelected = { onIntent(StatsIntent.SetHeatMeasure(it)) },
+                        )
                     }
                 }
             }

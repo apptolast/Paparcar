@@ -15,6 +15,7 @@ import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.stats_value_hours
 import paparcar.composeapp.generated.resources.stats_value_hours_minutes
 import paparcar.composeapp.generated.resources.stats_value_minutes
 import paparcar.composeapp.generated.resources.drive_time_minutes
@@ -126,14 +127,14 @@ fun distanceString(meters: Float): String = formatDistance(meters, LocalDistance
 @Composable
 fun durationText(durationMs: Long): String {
     val totalMinutes = durationMs / MS_PER_MINUTE
-    return if (totalMinutes < MINUTES_PER_HOUR) {
-        stringResource(Res.string.stats_value_minutes, totalMinutes.toInt())
-    } else {
-        stringResource(
-            Res.string.stats_value_hours_minutes,
-            (totalMinutes / MINUTES_PER_HOUR).toInt(),
-            (totalMinutes % MINUTES_PER_HOUR).toInt(),
-        )
+    val hours = (totalMinutes / MINUTES_PER_HOUR).toInt()
+    val minutes = (totalMinutes % MINUTES_PER_HOUR).toInt()
+    return when {
+        hours == 0 -> stringResource(Res.string.stats_value_minutes, minutes)
+        // ⛔ "7 h 0 min" is not how anyone says seven hours — it reads as a broken number, the same
+        // way "5.6 EUR" does. Seen on device in the places list (15-09).
+        minutes == 0 -> stringResource(Res.string.stats_value_hours, hours)
+        else -> stringResource(Res.string.stats_value_hours_minutes, hours, minutes)
     }
 }
 

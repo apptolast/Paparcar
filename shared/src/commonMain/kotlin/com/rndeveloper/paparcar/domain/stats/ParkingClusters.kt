@@ -41,7 +41,17 @@ data class ParkingCluster(
     val spotsReleased: Int,
     /** Most recent park here — what orders "your places" when two are tied. */
     val lastParkedAtMs: Long,
-)
+) {
+    /**
+     * What ONE hunt here typically costs — the sum over what was measured.
+     *
+     * ⛔ The mean, and for the same reason the day × hour grid uses one
+     * [STATS-THE-EXPENSIVE-HOUR-IS-MEASURED-001]: a per-place SUM grows with how often you go
+     * there, so it would rank your places by frequency while appearing to rank them by cost. And
+     * the app cannot say "buscando" with two different statistics on two cards of one screen.
+     */
+    val avgSearchTimeMs: Long? get() = searchTime?.let { it.value / it.fromParkings }
+}
 
 /**
  * The places [sessions] repeat at, most-visited first. [STATS-A-USUAL-PLACE-IS-A-CLUSTER-NOT-A-STREET-001]

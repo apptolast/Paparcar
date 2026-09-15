@@ -76,6 +76,7 @@ import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.domain.model.SpotType
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Zone
+import com.rndeveloper.paparcar.domain.stats.HeatMeasure
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.presentation.map.FocusedParking
 import com.rndeveloper.paparcar.presentation.map.HistoryDetailSheet
@@ -375,6 +376,30 @@ private fun resolvedHistory(
     // [STATS-A-USUAL-PLACE-IS-A-CLUSTER-NOT-A-STREET-001]
     zones: List<Zone> = emptyList(),
 ) = HistoryTimeline.resolve(sessions, filter, isPlus, vehicle, zones)
+
+/**
+ * Las sesiones de FakeData, apiladas en DOS sitios reales — y con el reloj de la búsqueda puesto en
+ * el mismo par de celdas, para que la rejilla de "buscando plaza" tenga su media.
+ * [STATS-A-USUAL-PLACE-IS-A-CLUSTER-NOT-A-STREET-001] [STATS-THE-EXPENSIVE-HOUR-IS-MEASURED-001]
+ *
+ * Los fakes nacieron repartidos por medio Madrid para que el MAPA tuviera marcadores separados, que
+ * es lo correcto para el mapa y lo que impide que exista un solo sitio habitual.
+ */
+private fun List<UserParking>.clusteredForTheGallery(): List<UserParking> = mapIndexed { i, s ->
+    val atZone = i % 3 != 2
+    s.copy(
+        location = s.location.copy(
+            latitude = if (atZone) ZONE_LAT else OTHER_LAT,
+            longitude = if (atZone) ZONE_LON else OTHER_LON,
+        ),
+        searchTimeMs = s.searchTimeMs ?: ((i % 4) + 2) * 60_000L,
+    )
+}
+
+private const val ZONE_LAT = 40.4168
+private const val ZONE_LON = -3.7038
+private const val OTHER_LAT = 40.4090
+private const val OTHER_LON = -3.6920
 
 // [MONEY-001] Sesiones envejecidas para las variantes free: el gate corta por
 // location.timestamp, así que empujar la marca 40 días atrás la saca de la ventana gratuita
@@ -1735,16 +1760,30 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             },
             // [STATS-A-USUAL-PLACE-IS-A-CLUSTER-NOT-A-STREET-001] El sitio se llama como lo llama
             // el usuario: su zona manda sobre el nombre de la calle.
+            //
+            // ⛔ Las sesiones se AGRUPAN a mano en dos puntos [DEV-A-GALLERY-VARIANT-MUST-EXERCISE-ITS-CASE-001]:
+            // las de FakeData están repartidas por medio Madrid (40.409–40.420), así que ningún
+            // racimo llega a tres y la tarjeta salía SIEMPRE con su estado vacío — visto en el Oppo
+            // el 15-09. Una variante que no puede alcanzar su caso es peor que no tenerla.
             Variant("Sitios · nombrados por tus zonas") {
                 StatsContent(
                     state = statsPanelState(
+                        sessions = FakeData.allSessions.clusteredForTheGallery(),
                         zones = listOf(
                             Zone(
                                 id = "z1", userId = "u", name = "Trabajo",
-                                lat = 40.4168, lon = -3.7038, iconKey = "WORK", createdAt = 0L,
+                                lat = ZONE_LAT, lon = ZONE_LON, iconKey = "WORK", createdAt = 0L,
                             ),
                         ),
                     ),
+                    onNavigateBack = {},
+                    onIntent = {},
+                )
+            },
+            // El mismo racimo SIN zona: se llama por la calle que más se repite.
+            Variant("Sitios · nombrados por la calle") {
+                StatsContent(
+                    state = statsPanelState(sessions = FakeData.allSessions.clusteredForTheGallery()),
                     onNavigateBack = {},
                     onIntent = {},
                 )
@@ -1754,6 +1793,16 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Sitios · aún no repites") {
                 StatsContent(
                     state = statsPanelState(sessions = FakeData.endedSessions.take(2)),
+                    onNavigateBack = {},
+                    onIntent = {},
+                )
+            },
+            // [STATS-THE-EXPENSIVE-HOUR-IS-MEASURED-001] La rejilla día × franja, con la medida
+            // de tiempo buscando plaza seleccionada — la pregunta que abrió toda la ola.
+            Variant("Cuándo · buscando plaza") {
+                StatsContent(
+                    state = statsPanelState(sessions = FakeData.allSessions.clusteredForTheGallery())
+                        .copy(heatMeasure = HeatMeasure.SEARCH_TIME),
                     onNavigateBack = {},
                     onIntent = {},
                 )

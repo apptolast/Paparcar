@@ -883,6 +883,10 @@
     <string name="stats_tile_usual_day">usual day</string>
     <string name="stats_tile_usual_place">usual place</string>
     <string name="stats_places_title">Your places</string>
+    <string name="stats_when_title">When you park</string>
+    <string name="stats_when_empty">Not enough parkings yet to see a pattern</string>
+    <string name="stats_when_less">less</string>
+    <string name="stats_when_more">more</string>
     <plurals name="stats_places_empty">
         <item quantity="one">A place shows up once you have parked there %1$d time</item>
         <item quantity="other">A place shows up once you have parked there %1$d times</item>
@@ -891,8 +895,8 @@
         <item quantity="one">%1$d time</item>
         <item quantity="other">%1$d times</item>
     </plurals>
-    <string name="stats_places_row_stay">%1$s on average</string>
-    <string name="stats_places_row_searching">%1$s hunting</string>
+    <string name="stats_places_row_stay">%1$s parked</string>
+    <string name="stats_places_row_searching">%1$s hunting on average</string>
     <string name="stats_tile_auto_detected">detected for you</string>
     <string name="stats_tile_spots_shared">spots shared</string>
     <string name="stats_value_kg">%1$s kg</string>
@@ -901,6 +905,7 @@
     <string name="stats_value_liters">%1$s L</string>
     <string name="stats_value_kwh">%1$s kWh</string>
     <string name="stats_value_hours_minutes">%1$dh %2$dm</string>
+    <string name="stats_value_hours">%1$d h</string>
     <string name="stats_value_minutes">%1$d min</string>
     <string name="stats_value_share">%1$d/%2$d</string>
     <string name="stats_lifetime">All time: %1$s parkings · %2$s spots shared</string>

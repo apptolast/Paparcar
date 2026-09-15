@@ -126,6 +126,9 @@ class StatsViewModel(
             is StatsIntent.SetChartMetric -> updateState {
                 copy(chartMetric = resolveChartMetric(intent.metric, filteredSessions))
             }
+            // No re-resolution: the sessions, the window and the figures are the same. What moves
+            // is which of their numbers the grid paints. [STATS-THE-EXPENSIVE-HOUR-IS-MEASURED-001]
+            is StatsIntent.SetHeatMeasure -> updateState { copy(heatMeasure = intent.measure) }
             is StatsIntent.OpenPaywall ->
                 sendEffect(StatsEffect.NavigateToPaywall(PaywallReason.STATS))
         }

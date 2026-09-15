@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import com.rndeveloper.paparcar.domain.fuel.FuelPrice
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.VehicleWithStats
+import com.rndeveloper.paparcar.domain.stats.HeatMeasure
 import com.rndeveloper.paparcar.domain.stats.PeriodStats
 import com.rndeveloper.paparcar.presentation.vehicles.ChartMetric
 import com.rndeveloper.paparcar.presentation.vehicles.HistoryFilter
@@ -23,6 +24,10 @@ data class StatsState(
     val filter: HistoryFilter = HistoryFilter.ThisMonth,
     /** What the chart's bars measure. [STATS-A-PERIOD-IS-A-SERIES-NOT-A-NUMBER-001] */
     val chartMetric: ChartMetric = ChartMetric.PARKINGS,
+    /** What the day x band grid measures. A SECOND choice and not the chart's, because the two
+     *  answer different questions: the chart is "how much, over the period", the grid is "when".
+     *  [STATS-THE-EXPENSIVE-HOUR-IS-MEASURED-001] */
+    val heatMeasure: HeatMeasure = HeatMeasure.PARKINGS,
     /**
      * The selected car's figures for the selected period, with its previous period attached.
      * Null once resolved means the period holds no session — an empty state, not a zero.
