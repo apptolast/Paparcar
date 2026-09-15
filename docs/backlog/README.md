@@ -102,6 +102,7 @@ No esperan a un viaje: esperan a que vuelva a fallar lo que los originó.
 | [`dev-an-edit-variant-must-edit-a-car-001`](dev-an-edit-variant-must-edit-a-car-001.md) | las variantes «Edición» de la galería pintan una **moto**. ✔ sigue vivo: `StateGalleryScreen.kt:2277-2285`, el state se construye sin `vehicleType` |
 | [`bug-home-fab-padding-2026-06-05`](bug-home-fab-padding-2026-06-05.md) | padding negativo en `HomeMapFabsLayer` (Nothing Phone A001). 1 evento, sin reproducir: su propio doc dice priorizar **solo si reaparece** |
 | [`vehicles-multimarker-2026-05-19`](vehicles-multimarker-2026-05-19.md) | 🟡 sprint PARCIAL — los marcadores existen; el resto quedó diferido |
+| [`fuel-a-peek-does-not-mark-your-car-001`](fuel-a-peek-does-not-mark-your-car-001.md) | 📋 el peek de gasolinera lista todos los productos sin distinguir cuál compra el coche activo — para un híbrido, «Gasoline» y «Diesel» se leen igual de relevantes. Pide decisión de producto |
 
 ## 🧪 Salud de build / KMP
 
