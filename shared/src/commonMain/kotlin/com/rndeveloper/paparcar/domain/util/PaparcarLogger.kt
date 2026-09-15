@@ -3,6 +3,7 @@ package com.rndeveloper.paparcar.domain.util
 import com.rndeveloper.paparcar.core.crash.CrashReporter
 import io.github.aakira.napier.LogLevel
 import io.github.aakira.napier.Napier
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * Minimal structured logger for Paparcar backed by Napier.
@@ -12,7 +13,8 @@ import io.github.aakira.napier.Napier
  * - iOS:     call `NapierProxyKt.debugBuild()` in the Swift entry point (debug only)
  *
  * Error-level logs with a [Throwable] are also forwarded to [CrashReporter]
- * for non-fatal tracking in Firebase Crashlytics (Android).
+ * for non-fatal tracking in Firebase Crashlytics (Android) — except coroutine cancellation,
+ * see [isReportableToCrashlytics].
  */
 object PaparcarLogger {
 
@@ -50,6 +52,19 @@ object PaparcarLogger {
 
     fun e(tag: String, message: String, throwable: Throwable? = null) {
         Napier.e(message, throwable = throwable, tag = tag)
-        throwable?.let { runCatching { CrashReporter.recordNonFatal(tag, message, it) } }
+        if (throwable != null && isReportableToCrashlytics(throwable)) {
+            runCatching { CrashReporter.recordNonFatal(tag, message, throwable) }
+        }
     }
 }
+
+/**
+ * [DET-A-CANCELLED-TICK-IS-NOT-A-FAILED-READ-001] A coroutine cancellation is not a failure — it
+ * is how `ExistingWorkPolicy.REPLACE` and structured concurrency in general are SUPPOSED to work.
+ * With 70+ call sites of [PaparcarLogger.e] across the app, the invariant "a cancellation is never
+ * a reportable non-fatal" belongs in this ONE place rather than audited at every call site: it was
+ * the single most frequent Crashlytics issue in the app (104 events / 19 users in 90 days),
+ * entirely routine `ParkingSafetyNetWorker` ticks self-cancelling on the sensor-triggered
+ * check-now.
+ */
+fun isReportableToCrashlytics(throwable: Throwable): Boolean = throwable !is CancellationException

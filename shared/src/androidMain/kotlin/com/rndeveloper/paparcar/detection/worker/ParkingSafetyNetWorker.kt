@@ -59,6 +59,7 @@ import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import com.rndeveloper.paparcar.domain.util.haversineMeters
 import com.rndeveloper.paparcar.notification.ForegroundNotificationProvider
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.firstOrNull
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -149,14 +150,22 @@ class ParkingSafetyNetWorker(
         // telemetry so a field trace shows WHICH layer (periodic / sensor / teardown) saw what.
         val source = inputData.getString(KEY_SOURCE) ?: SOURCE_PERIODIC
 
-        val sessions = runCatching { userParkingRepository.observeActiveSessions().firstOrNull().orEmpty() }
-            .getOrElse {
-                // [DET-A-RELEASED-PIN-TAKES-ITS-FENCES-WITH-IT-001] Returning HERE is also what
-                // keeps the orphan sweep below fail-open: a failed read must never classify a live
-                // fence as orphan (the 2026-07-11 lesson, inherited from the EXIT lane's sweep).
-                PaparcarLogger.e(DIAG, "✗ failed to read active sessions", it)
-                return Result.success()
-            }
+        // [DET-A-CANCELLED-TICK-IS-NOT-A-FAILED-READ-001] A CancellationException here is routine —
+        // `enqueueCheckNow` replaces an in-flight tick (ExistingWorkPolicy.REPLACE) whenever the
+        // sensor fires a check-now while the periodic tick is still running, and WorkManager cancels
+        // this coroutine to do it. That is not a failed read, so it must propagate, not degrade to
+        // Result.success() with an error log Crashlytics counts as a non-fatal.
+        val sessions = try {
+            userParkingRepository.observeActiveSessions().firstOrNull().orEmpty()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // [DET-A-RELEASED-PIN-TAKES-ITS-FENCES-WITH-IT-001] Returning HERE is also what
+            // keeps the orphan sweep below fail-open: a failed read must never classify a live
+            // fence as orphan (the 2026-07-11 lesson, inherited from the EXIT lane's sweep).
+            PaparcarLogger.e(DIAG, "✗ failed to read active sessions", e)
+            return Result.success()
+        }
 
         // [DET-A-RELEASED-PIN-TAKES-ITS-FENCES-WITH-IT-001] The ENTER lane's orphan sweep: a fence
         // whose ENTER fired but whose session is gone was released with a failed/never-run removal
