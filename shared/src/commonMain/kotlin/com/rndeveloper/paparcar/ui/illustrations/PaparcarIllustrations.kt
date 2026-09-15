@@ -186,6 +186,58 @@ fun EmptyFuelStationsIllustration(
     }
 }
 
+/**
+ * "No hay parkings cerca" — edificio de parking + barrera de acceso + anillo punteado (el radio
+ * buscado) + coche. Empty state del carril «dónde aparcar» público. [PARKINGS-ON-THE-MAP-001]
+ */
+@Composable
+fun EmptyParkingsIllustration(
+    modifier: Modifier = Modifier,
+    dark: Boolean = isAppDark(),
+) {
+    Canvas(modifier.size(140.dp, 120.dp)) {
+        viewBox {
+            drawShadowEllipse(60f, 106f, 38f, 6f, dark)
+            // Anillo punteado: el radio en el que se buscó y no había nada
+            val ring = if (dark) Color(0xFF2DF58E) else Color(0xFF009F5E)
+            drawCircle(
+                ring.copy(alpha = if (dark) 0.5f else 0.45f),
+                42f,
+                Offset(60f, 62f),
+                style = Stroke(2f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(2.5f, 7f))),
+            )
+            // Edificio del parking
+            val hardware = if (dark) Color(0xFF2A3A55) else Color(0xFFE7EEF8)
+            val hardwareEdge = if (dark) Color(0xFF16243C) else Color.White
+            val cap = if (dark) Color(0xFF3A4D6B) else Color(0xFFD9E2F0)
+            val bar = if (dark) Color(0xFF3A4D6B) else Color(0xFFC6D3E6)
+            val doorway = if (dark) Color(0xFF0A1220) else Color(0xFFCBD6E6)
+            val body = Path().apply {
+                addRoundRect(RoundRect(30f, 42f, 92f, 100f, 8f, 8f))
+            }
+            drawPath(body, hardware)
+            drawPath(body, hardwareEdge, style = Stroke(3f, join = StrokeJoin.Round))
+            // Remate superior
+            val top = Path().apply { addRoundRect(RoundRect(34f, 34f, 88f, 44f, 4f, 4f)) }
+            drawPath(top, cap)
+            // Plantas: dos bandas de fachada
+            val band1 = Path().apply { addRoundRect(RoundRect(38f, 52f, 84f, 60f, 2.5f, 2.5f)) }
+            drawPath(band1, bar)
+            val band2 = Path().apply { addRoundRect(RoundRect(38f, 66f, 74f, 74f, 2.5f, 2.5f)) }
+            drawPath(band2, bar)
+            // Entrada (hueco)
+            val entrance = Path().apply { addRoundRect(RoundRect(50f, 80f, 72f, 100f, 4f, 4f)) }
+            drawPath(entrance, doorway)
+            // Barrera de acceso: poste + brazo levantado, en verde de marca
+            drawLine(hardwareEdge, Offset(26f, 68f), Offset(26f, 100f), 3f, StrokeCap.Round)
+            drawLine(ring, Offset(26f, 70f), Offset(54f, 54f), 3.4f, StrokeCap.Round)
+            drawCircle(ring, 3.4f, Offset(26f, 70f))
+            // Coche
+            miniCar(translateX = 92f, translateY = 76f, scale = 0.58f, dark = dark)
+        }
+    }
+}
+
 // region — helpers de dibujo
 
 /** Aplica el transform viewBox→canvas (escala con aspecto + centrado) y ejecuta [block]. */

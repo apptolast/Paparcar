@@ -1,13 +1,22 @@
 package com.rndeveloper.paparcar.presentation.home.sections.sheet.components
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
 import com.rndeveloper.paparcar.presentation.home.model.HomeParkingsSlice
 import com.rndeveloper.paparcar.presentation.home.model.ViewportRefetch
 import com.rndeveloper.paparcar.presentation.util.relativeTimeText
+import com.rndeveloper.paparcar.ui.illustrations.EmptyParkingsIllustration
+import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_parkings_empty
@@ -58,7 +67,7 @@ fun HomeParkingsLane(
             // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
             slice.isLoading && slice.parkings.isEmpty() -> NearbyRowsSkeleton()
 
-            slice.parkings.isEmpty() -> LaneNote(stringResource(Res.string.home_parkings_empty))
+            slice.parkings.isEmpty() -> EmptyParkings()
 
             else -> HomePublicParkingRows(
                 parkings = slice.parkings,
@@ -86,3 +95,27 @@ fun HomeParkingsLane(
         }
     }
 }
+
+/** The honest "none within 1.5 km": illustrated, twin of [EmptyFuelStations] in the fuel lane. */
+@Composable
+private fun EmptyParkings() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        EmptyParkingsIllustration(
+            modifier = Modifier.size(EMPTY_ILLUSTRATION_W.dp, EMPTY_ILLUSTRATION_H.dp),
+        )
+        Text(
+            text = stringResource(Res.string.home_parkings_empty),
+            style = PaparcarType.current.caption,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+private const val EMPTY_ILLUSTRATION_W = 112
+private const val EMPTY_ILLUSTRATION_H = 96

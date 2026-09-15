@@ -288,21 +288,39 @@ internal fun HomeEmptySpots(
      */
     unasked: Boolean = false,
 ) {
-    // Una LINEA, no una caja.
+    // Una LINEA, no una caja — sigue siendo la doctrina: sin borde, sin titulo+subtitulo, sin CTA
+    // propio (eso ya lo da la tarjeta de avisar que va debajo). [UI-ONE-SKELETON-ONE-EMPHASIS-ONE-GREEN-001]
     //
-    // Esto era un bloque con borde discontinuo, ilustracion, titulo, subtitulo y su propio CTA
-    // relleno: ~150dp y el septimo lenguaje de contenedor del sheet, para decir que no hay nada.
-    // El borde punteado ademas prometia "hueco por rellenar", que es justo lo que el usuario no
-    // puede hacer desde aqui. Lo que si puede hacer ya se lo ofrece la tarjeta de avisar que va
-    // debajo - y esa tarjeta ahora se muestra tambien en vacio, porque este estado dejo de tener
-    // un CTA que la duplicara. [UI-ONE-SKELETON-ONE-EMPHASIS-ONE-GREEN-001]
-    Text(
-        text = stringResource(if (unasked) Res.string.home_spots_unasked else Res.string.home_empty_title),
-        style = PaparcarType.current.caption,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        textAlign = TextAlign.Center,
-        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 20.dp),
-    )
+    // Lo que SI vuelve es la ilustracion, en el mismo formato minimo que ya usan gasolineras y
+    // parkings: imagen + caption, nada mas — no el bloque pesado (~150dp, borde discontinuo,
+    // titulo, subtitulo, CTA relleno) que se quito. Solo en el veredicto real de "vacio": el estado
+    // "unasked" no es un veredicto sobre el mundo (nadie ha preguntado todavia), asi que se queda
+    // en texto solo, igual que las otras frases-que-no-son-veredicto de gasolina y parkings.
+    if (unasked) {
+        Text(
+            text = stringResource(Res.string.home_spots_unasked),
+            style = PaparcarType.current.caption,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 20.dp),
+        )
+    } else {
+        Column(
+            modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            EmptySpotsIllustration(
+                modifier = Modifier.size(EMPTY_ILLUSTRATION_W.dp, EMPTY_ILLUSTRATION_H.dp),
+            )
+            Text(
+                text = stringResource(Res.string.home_empty_title),
+                style = PaparcarType.current.caption,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
+    }
 }
 
 @Composable
@@ -413,11 +431,6 @@ private val META_MUTED_ALPHA = PapAlpha.subtitle
 private val PRIMARY_CARD_SUBTITLE_ALPHA = PapAlpha.subtitle
 private const val PRIMARY_CARD_ICON_BOX_DP = 44
 private const val PRIMARY_CARD_ICON_CORNER_DP = 14
-private const val EMPTY_ICON_ALPHA = 0.25f
-private val EMPTY_SUBTITLE_ALPHA = PapAlpha.muted
-private const val EMPTY_ILLUSTRATION_W = 180
-private const val EMPTY_ILLUSTRATION_H = 154
-// Dashed "waiting slot" border of the empty state — same 14dp tier as cardSmall.
-private const val EMPTY_DASH_CORNER_DP = 14
-private const val EMPTY_DASH_ON_DP = 6
-private const val EMPTY_DASH_OFF_DP = 6
+// Same footprint as the fuel lane's empty illustration — one size for the three lanes.
+private const val EMPTY_ILLUSTRATION_W = 112
+private const val EMPTY_ILLUSTRATION_H = 96
