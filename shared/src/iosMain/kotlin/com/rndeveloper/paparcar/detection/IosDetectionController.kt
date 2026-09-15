@@ -125,6 +125,10 @@ class IosDetectionController(
     private val exitDeliveryRecords: ExitDeliveryRecords,
     private val notificationPort: AppNotificationManager,
     private val drivingRouteStore: DrivingRouteStore,
+    /** Las vallas del grupo, reconciliadas en la MISMA pasada que las propias.
+     *  [DET-A-SHARED-FENCE-FOLLOWS-THE-CAR-001] */
+    private val sharedCarFenceReconciler: com.rndeveloper.paparcar.data.sharedcar.SharedCarFenceReconciler,
+    private val authRepository: com.apptolast.baselogin.domain.AuthRepository,
     private val safetyNetRecords: IosSafetyNetRecords = IosSafetyNetRecords(),
     /** Builds the virtual-clock coordinator a reconstruction replays into (Koin factory,
      *  `RECONSTRUCTION_COORDINATOR`) — the production single ticks the real clock and recorded
@@ -849,6 +853,30 @@ class IosDetectionController(
             )
         }
         actions.toRemove.forEach { geofenceManager.removeGeofence(it) }
+        reconcileSharedCarFences(source)
+    }
+
+    /**
+     * Las vallas de los coches que conducen varios. [DET-A-SHARED-FENCE-FOLLOWS-THE-CAR-001]
+     *
+     * Aquí y no en un sitio propio, por lo mismo que en Android va dentro del janitor: el reconcile
+     * es EL momento en que el inventario de regiones se pone al día, y dos pasadas distintas sobre
+     * el mismo inventario acaban discrepando. Nunca hace fallar el reconcile de las propias: un
+     * coche compartido que no se puede vallar no puede llevarse por delante la valla del coche
+     * propio.
+     */
+    private suspend fun reconcileSharedCarFences(source: String) {
+        try {
+            val myUid = authRepository.getCurrentSession()?.userId
+            val registered = sharedCarFenceReconciler.reconcile(myUid)
+            if (registered > 0) {
+                Napier.d("reconcile($source): $registered shared-car fence(s) up to date", tag = TAG)
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            Napier.w("reconcile($source): shared-car fences not reconciled", e, tag = TAG)
+        }
     }
 
     /** Listing regions is an iOS-only affordance (any CLLocationManager sees the app's shared

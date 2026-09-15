@@ -476,6 +476,28 @@ See `diagnostics/README.md` at the repo root for the recommended layout when arc
 
 Each entry is one issue we shipped a fix for. Listed roughly in dependency order (mappers first, then pipeline, then algorithm). Every entry should explain *what was wrong*, *why it was wrong*, and *what guard exists today*. If you ever want to remove a guard, find its entry here first.
 
+### DET-A-SUPERSEDED-FENCE-LEAVES-WITH-ITS-SESSION-001 — la valla vieja se va con su sesión (y iOS)
+
+**Commit:** pending. **Pregunta del user (15-09):** *«si ya tenemos geovalla en shared car, ¿se
+reemplaza por la que habría antes de que fuera un shared car?»*.
+
+**Causa raíz.** Sí se reemplaza, pero el ticket padre lo dejó a medias en dos sitios. (a) Al superar
+mi sesión se cerraba la sesión y **no** se quitaba su valla: registrada `NEVER_EXPIRE`, seguía
+despertando el servicio cada vez que su dueño pasaba por allí, hasta que el barrido de huérfanas la
+cazaba en su siguiente disparo. (b) En iOS, `reconcileFences` compara regiones monitorizadas contra
+sesiones activas y borra lo que no tenga sesión detrás — así que la valla del grupo, que no tiene
+ninguna por construcción, **moría en el primer reconcile**. El barrido del padre lo clasificó como
+«no cableado»: cierto para registrar, falso para borrar, y esa diferencia era el bug.
+
+**Fix.** El reconciliador quita la valla superada en el mismo gesto en que cierra su sesión;
+`reconcileFences` excluye los ids `shared:` de `toRemove` (nunca de `toRegister`: una valla del
+grupo no sustituye a la de una sesión propia); y `IosDetectionController` reconcilia las del grupo
+al terminar con las propias, igual que Android lo hace dentro del janitor.
+
+**Riesgo del fix acompañante.** El veto es solo de BORRADO: una huérfana de verdad en el mismo
+inventario se sigue barriendo, y una sesión propia sin valla se sigue detectando como pendiente de
+registrar. Los dos casos tienen test.
+
 ### DET-A-SHARED-FENCE-FOLLOWS-THE-CAR-001 — la valla sigue al coche, no a quien lo aparcó
 
 **Commit:** pending. **Reporte del user (15-09):** *«si Marta coge el coche y se va, la geocerca de

@@ -64,6 +64,16 @@ class SharedCarFenceReconciler(
                 )
                 runCatching { parkingDao.clearActiveByVehicle(car.carId, clock()) }
                     .onFailure { PaparcarLogger.w(TAG, "✗ no se pudo cerrar la sesión superada", it) }
+                // ⛔ Y su valla se va CON ella, en el mismo gesto. Cerrar la sesión y dejar la
+                // valla registrada (NEVER_EXPIRE) deja un trigger sobre una plaza que ya no es de
+                // nadie: se cura sola en el siguiente disparo —el barrido la lee como huérfana—
+                // pero hasta entonces despierta el servicio cada vez que su dueño pasa por allí.
+                // La valla nueva ya está en su sitio; esta es la que sobra.
+                // [DET-A-SHARED-FENCE-FOLLOWS-THE-CAR-001]
+                mine?.geofenceId?.let { staleFence ->
+                    runCatching { geofenceManager.removeGeofence(staleFence) }
+                        .onFailure { PaparcarLogger.w(TAG, "✗ no se pudo quitar la valla superada", it) }
+                }
             }
 
             val point = watch.register

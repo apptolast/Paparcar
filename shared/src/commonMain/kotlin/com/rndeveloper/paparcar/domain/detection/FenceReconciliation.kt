@@ -19,7 +19,12 @@ import com.rndeveloper.paparcar.domain.model.UserParking
 data class FenceReconcileActions(
     /** Sessions whose fence must be (re-)registered — they carry a fence id the OS is not monitoring. */
     val toRegister: List<UserParking>,
-    /** Monitored ids no active session owns — orphans to stop monitoring. */
+    /** Monitored ids no active session owns — orphans to stop monitoring.
+     *
+     *  ⛔ Shared-car fences are NEVER in here: they have no session by construction and are
+     *  reconciled by their own pass. Without the exclusion this set would delete, on every
+     *  reconcile, the very fence that tells a member where the car is.
+     *  [DET-A-SHARED-FENCE-FOLLOWS-THE-CAR-001] */
     val toRemove: Set<String>,
 ) {
     val isInSync: Boolean get() = toRegister.isEmpty() && toRemove.isEmpty()
@@ -45,7 +50,11 @@ fun reconcileFences(
     val wantedIds = wanted.mapNotNull { it.geofenceId }.toSet()
     return FenceReconcileActions(
         toRegister = wanted.filter { it.geofenceId !in monitoredIds },
-        toRemove = monitoredIds - wantedIds,
+        // Una valla del grupo la pone y la quita `SharedCarFenceReconciler`, que sabe lo que
+        // vigila; para ESTE reconcile es invisible, no huérfana.
+        toRemove = (monitoredIds - wantedIds)
+            .filterNot { com.rndeveloper.paparcar.domain.detection.fence.SharedCarFence.isSharedFenceId(it) }
+            .toSet(),
     )
 }
 
