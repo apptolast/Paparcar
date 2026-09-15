@@ -24,3 +24,33 @@ package com.rndeveloper.paparcar.presentation.home.model
  */
 fun homeHasNoLocation(hasCorePermissions: Boolean, detectionUiState: DetectionUiState): Boolean =
     !hasCorePermissions || detectionUiState.warnsLocationMissing
+
+/**
+ * The first-entry location ask is about to be made, or is on screen right now with no answer read
+ * yet — so Home must NOT state the absence. [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001]
+ *
+ * [homeHasNoLocation] is the FACT; this is whether Home is allowed to SAY it. They are separate
+ * because the two consumers want different things: the pill and the amber row are sentences and must
+ * wait for the answer, while the camera ACTS on the fact — flying to the parked car behind the
+ * dialog is the best version of the context that dialog is opened over, and making it wait would
+ * leave Home at (0, 0) behind the question. [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
+ *
+ * ⛔ **Both terms are load-bearing**, and each covers a window the other misses:
+ *  - [locationEverAsked] is stamped BEFORE the dialog launches (`askFineLocationOnFirstEntry`), so
+ *    on its own it is already `true` for the whole time the dialog is up — it only covers the beat
+ *    between Home's first frame and the `SetMapForeground(true)` that fires the ask;
+ *  - [locationAnswerInFlight] covers exactly that dialog window, and nothing before it.
+ *
+ * ⛔ And [hasCorePermissions] has to come first: a user who granted the permission and then turned
+ * location services OFF was never asked anything, so without this term their pill would go quiet
+ * forever over a question that is never coming.
+ *
+ * A refusal already has its own moment — `locationWarningCue` opens the sheet onto the warning once
+ * the answer is read [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]. This one only holds the
+ * sentence until that moment arrives.
+ */
+fun homeAwaitsLocationAnswer(
+    hasCorePermissions: Boolean,
+    locationEverAsked: Boolean,
+    locationAnswerInFlight: Boolean,
+): Boolean = !hasCorePermissions && (!locationEverAsked || locationAnswerInFlight)

@@ -1465,10 +1465,14 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             // la ubicación) y el carril responde por el sitio que miras. Lo único que cambia es que
             // la tarjeta de avisar queda deshabilitada DICIENDO por qué: un aviso comunitario sólo
             // es fiable si sabemos que estabas cerca. [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
+            // `locationEverAsked = true` NO es relleno: el aviso es para quien YA contestó que no.
+            // Sin declararlo, estas dos variantes enseñarían el silencio de la pregunta abierta en
+            // vez del aviso que vienen a enseñar. [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001]
             Variant("Sheet · sin permiso de ubicación, con coche") {
                 sheet(
                     HomeState(
                         hasCorePermissions = false,
+                        locationEverAsked = true,
                         vehicles = listOf(FakeData.vehicleSedan),
                         nearbySpots = FakeData.nearbySpots,
                         detectionReadiness = DetectionReadiness.Blocked(setOf(RequiredPermission.FOREGROUND_LOCATION)),
@@ -1478,14 +1482,47 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             // El usuario recién llegado que pulsa «No permitir» y aún no tiene coche: antes veía un
             // mapa mudo y un sheet vacío — ni contenido ni motivo.
             Variant("Sheet · sin permiso de ubicación, sin coche") {
-                sheet(HomeState(hasCorePermissions = false, nearbySpots = FakeData.nearbySpots))
+                sheet(
+                    HomeState(
+                        hasCorePermissions = false,
+                        locationEverAsked = true,
+                        nearbySpots = FakeData.nearbySpots,
+                    ),
+                )
+            },
+            // ⛔ Y el instante ANTERIOR a esos dos: el diálogo del sistema está encima pidiendo la
+            // ubicación, y detrás la hoja ya está abierta porque el checklist la abre de golpe. Home
+            // se ve entero y CALLADO — sin fila ámbar y sin píldora—, porque acusar de una falta que
+            // el usuario está contestando en ese mismo momento es contestar por él. El aviso llega
+            // solo cuando se lee la respuesta. [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001]
+            Variant("Sheet · pregunta de ubicación EN EL AIRE (sin aviso)") {
+                sheet(
+                    HomeState(
+                        hasCorePermissions = false,
+                        locationEverAsked = true,
+                        locationAnswerInFlight = true,
+                        vehicles = listOf(FakeData.vehicleSedan),
+                        nearbySpots = FakeData.nearbySpots,
+                        detectionReadiness = DetectionReadiness.Blocked(setOf(RequiredPermission.FOREGROUND_LOCATION)),
+                    ),
+                )
             },
             // ⛔ Todavía NADIE ha preguntado: ni fix ni un mapa llevado a ningún sitio, así que no hay
             // centro de consulta. La lista está vacía porque no se ha mirado, y el carril dice eso —
             // «no hay plazas libres cerca» sería un veredicto sobre un sitio que nadie ha visto.
             // [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
             Variant("Sheet · plazas sin preguntar (sin centro)") {
-                sheet(HomeState(hasCorePermissions = false, nearbySpots = emptyList(), spotsUnasked = true))
+                sheet(
+                    HomeState(
+                        hasCorePermissions = false,
+                        // Ya contestó: el sujeto aquí es el carril sin centro, y se mira con el Home
+                        // que de verdad se ve después de la respuesta, con su aviso.
+                        // [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001]
+                        locationEverAsked = true,
+                        nearbySpots = emptyList(),
+                        spotsUnasked = true,
+                    ),
+                )
             },
             // Driving chip: the monitored vehicle's trip is in progress (drivingPuck.vehicleId == its
             // id, no active session) → chip shows "Conduciendo" + radar halo, floated first. [CHIP-DRIVING-001]

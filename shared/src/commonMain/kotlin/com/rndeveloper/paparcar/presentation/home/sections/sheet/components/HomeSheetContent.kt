@@ -235,6 +235,9 @@ fun LazyListScope.homeSheetItems(
         // vigilancia sana y esta superficie no la repite.
         // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
         carCardSaysTheWatch = showPersonalBlocks,
+        // Y con el diálogo de permisos abierto encima, la fila ámbar se calla: la pregunta que
+        // contestaría está literalmente en pantalla. [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001]
+        locationAskPending = slice.locationAskPending,
     )
     // ── 1. La VIGILANCIA — lo que está pasando con tu coche ahora mismo ────────────────────────
     // The ONE voice for "what is detection doing right now": loud action rows + discreet happy

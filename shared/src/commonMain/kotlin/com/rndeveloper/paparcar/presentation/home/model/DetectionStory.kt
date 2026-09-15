@@ -153,6 +153,22 @@ fun resolveDetectionStory(
      * service) and the step could only say something vaguer. [DET-WATCH-HONEST-001]
      */
     firstStepsOwns: FirstStepsOwnership = FirstStepsOwnership.NOTHING,
+    /**
+     * The first-entry location ask is imminent or on screen with its answer unread — so the
+     * [BlockedCore] row STANDS DOWN. [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001]
+     *
+     * Same mechanism as [firstStepsOwns] and [carCardSaysTheWatch], and for the same reason: a row
+     * steps aside when another surface is already saying its sentence. Here that surface is the
+     * system dialog itself, which asks for the very permission this row would complain about — and
+     * it is louder, modal, and carries the actual remedy. The guided checklist SNAPS the sheet open
+     * on the first frame it exists (`HomeSheetPositioning`), so this row really is on screen behind
+     * that dialog; it is not a theoretical case.
+     *
+     * It suppresses this ONE row and nothing else. Once the answer is read the row comes back on its
+     * own, and a refusal additionally opens the sheet onto it
+     * [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001].
+     */
+    locationAskPending: Boolean = false,
 ): DetectionStory {
     val activeCard = vehicleCards.firstOrNull { it.vehicle.isActive }
 
@@ -197,7 +213,13 @@ fun resolveDetectionStory(
     // marcar dice «¿Donde esta tu coche?» y trae su propio boton, para CADA coche y no solo para el
     // que esta funcion elige. Se aparta por decir lo MISMO, igual que la fila calmada de vigilancia.
     // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
-    if (uiState == DetectionUiState.BlockedCore) return DetectionStory.BlockedCore
+    // ⛔ …y aun por delante de todo eso, la pregunta que el usuario tiene ABIERTA en pantalla: con el
+    // diálogo del sistema pidiendo la ubicación, esta fila estaría acusando de una falta que nadie
+    // ha cometido todavía. No es que se esconda, es que aún no le toca.
+    // [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001]
+    if (uiState == DetectionUiState.BlockedCore) {
+        return if (locationAskPending) DetectionStory.Hidden else DetectionStory.BlockedCore
+    }
     if (promptWindow != null) return DetectionStory.AwaitingAnswer(promptWindow)
     if (showParkNudge) return DetectionStory.PendingAsk
 

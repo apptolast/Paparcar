@@ -47,6 +47,32 @@ class DetectionStoryTest {
     private val otherCard = VehicleCard(vehicle("v-other", brand = "Seat", model = "Ibiza"), session = null)
 
     @Test
+    fun should_standDown_theBlockedCoreRow_when_theLocationAskIsStillOnScreen() {
+        // El checklist guiado abre la hoja de golpe en la primera entrada, así que esta fila SÍ está
+        // detrás del diálogo del sistema — y diría «activa la ubicación» mientras el usuario tiene
+        // delante el botón que la activa. [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001]
+        val cards = listOf(activeCard)
+        assertEquals(
+            DetectionStory.Hidden,
+            resolveDetectionStory(DetectionUiState.BlockedCore, cards, locationAskPending = true),
+        )
+        // Contestada la pregunta, la fila vuelve sola: no se ha escondido, es que no le tocaba.
+        assertEquals(
+            DetectionStory.BlockedCore,
+            resolveDetectionStory(DetectionUiState.BlockedCore, cards, locationAskPending = false),
+        )
+    }
+
+    @Test
+    fun should_notStandDown_anyOtherRow_when_theLocationAskIsOnScreen() {
+        // Aparta UNA fila y ninguna más: sin permiso y sin coche la historia sigue siendo la suya.
+        assertEquals(
+            DetectionStory.NoVehicle,
+            resolveDetectionStory(DetectionUiState.NoVehicle, emptyList(), locationAskPending = true),
+        )
+    }
+
+    @Test
     fun should_passThrough_the_four_action_states() {
         val cards = listOf(activeCard)
         assertEquals(DetectionStory.BlockedCore, resolveDetectionStory(DetectionUiState.BlockedCore, cards))

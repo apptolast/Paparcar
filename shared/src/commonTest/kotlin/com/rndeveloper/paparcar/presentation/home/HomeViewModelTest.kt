@@ -548,6 +548,54 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `should_stay_quiet_about_location_while_the_first_entry_ask_is_unanswered`() = runTest(testDispatcher) {
+        // [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001] El aviso no puede llegar antes que la respuesta:
+        // detrás del diálogo la hoja está abierta (la abre el checklist) y el aviso diría que active
+        // la ubicación mientras el botón que la activa está encima.
+        val freshVm = buildVm(foreground = false, locationAlreadyAsked = false)
+        // Antes incluso de que el mapa dispare la pregunta: la pref aún no está estampada.
+        assertFalse(freshVm.state.value.toFabsSlice().locationMissing)
+
+        freshVm.handleIntent(HomeIntent.SetMapForeground(true)) // dispara la pregunta
+        assertTrue(freshVm.state.value.locationEverAsked)
+        assertTrue(freshVm.state.value.locationAnswerInFlight)
+        assertFalse(freshVm.state.value.toFabsSlice().locationMissing)
+
+        freshVm.handleIntent(HomeIntent.SetMapForeground(false)) // el diálogo tapa el mapa
+        assertFalse(freshVm.state.value.toFabsSlice().locationMissing)
+
+        freshVm.handleIntent(HomeIntent.SetMapForeground(true)) // contestado (no)
+        assertFalse(freshVm.state.value.locationAnswerInFlight)
+        assertTrue(freshVm.state.value.toFabsSlice().locationMissing)
+    }
+
+    @Test
+    fun `should_warn_about_location_from_the_first_frame_when_the_ask_was_already_refused`() = runTest(testDispatcher) {
+        // Segunda entrada: ya preguntamos y dijeron que no, así que no hay nada que esperar.
+        // [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001]
+        val vmAsked = buildVm(foreground = false, locationAlreadyAsked = true)
+        assertTrue(vmAsked.state.value.locationEverAsked)
+        assertFalse(vmAsked.state.value.locationAnswerInFlight)
+        assertTrue(vmAsked.state.value.toFabsSlice().locationMissing)
+    }
+
+    @Test
+    fun `should_lift_the_location_silence_when_the_dialog_never_paused_the_map`() = runTest(testDispatcher) {
+        // Un OEM que no pausa la pantalla nos cuesta la auto-apertura, que es una cortesía; callar el
+        // aviso una sesión entera sería la app enmudeciendo sobre lo único que necesita.
+        // [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001]
+        val freshVm = buildVm(foreground = false, locationAlreadyAsked = false)
+        freshVm.handleIntent(HomeIntent.SetMapForeground(true)) // dispara la pregunta
+        freshVm.handleIntent(HomeIntent.SetMapForeground(true)) // vuelve sin haber pasado por pause
+
+        assertFalse(freshVm.state.value.locationAnswerInFlight)
+        assertTrue(freshVm.state.value.toFabsSlice().locationMissing)
+        // …y sin el paréntesis completo la hoja NO se auto-abre: eso sigue exigiendo la prueba de que
+        // el diálogo estuvo delante. [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
+        assertEquals(0, freshVm.state.value.locationWarningCue)
+    }
+
+    @Test
     fun `should_not_cue_the_location_warning_when_there_is_no_car`() = runTest(testDispatcher) {
         // No car → no BlockedCore → no warning to open onto: Home lives without location.
         val freshVm = buildVm(foreground = false, locationAlreadyAsked = false)

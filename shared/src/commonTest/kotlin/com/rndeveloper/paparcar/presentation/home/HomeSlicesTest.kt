@@ -1119,7 +1119,37 @@ class HomeSlicesTest {
         // que el usuario que acababa de pulsar «No permitir» y aún no tenía coche veía un Home que
         // nunca decía por qué no sabía dónde estaba. Es justo la persona a la que va la frase.
         // [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
-        assertTrue(HomeState().toFabsSlice().locationMissing)
+        //
+        // «Acababa de pulsar No permitir» ahora se DECLARA (`locationEverAsked`): la frase es para
+        // quien ya contestó, no para quien tiene el diálogo delante.
+        // [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001]
+        assertTrue(HomeState(locationEverAsked = true).toFabsSlice().locationMissing)
+    }
+
+    @Test
+    fun should_notShowTheLocationWarning_when_theFirstEntryAskIsStillUnanswered() {
+        // El diálogo del sistema está encima pidiendo justo eso, y el remedio que ofrecería la
+        // píldora —abrir los permisos— es ese mismo diálogo. [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001]
+        assertFalse(
+            HomeState(locationEverAsked = true, locationAnswerInFlight = true)
+                .toFabsSlice().locationMissing,
+        )
+        // Y antes incluso de que el diálogo salga: la pregunta se dispara con el mapa, y hasta
+        // entonces la pref todavía no está estampada.
+        assertFalse(HomeState().toFabsSlice().locationMissing)
+    }
+
+    @Test
+    fun should_showTheLocationWarning_when_servicesAreOffAndNoAskIsComing() {
+        // ⛔ Testigo de que el silencio no se come al usuario que CONCEDIÓ el permiso y luego apagó
+        // los servicios: a ese no se le preguntó nunca, así que su `locationEverAsked` es false para
+        // siempre. [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001]
+        val servicesOff = HomeState(
+            hasCorePermissions = true,
+            locationEverAsked = false,
+            detectionReadiness = DetectionReadiness.Blocked(setOf(RequiredPermission.FOREGROUND_LOCATION)),
+        )
+        assertTrue(servicesOff.toFabsSlice().locationMissing)
     }
 
     @Test

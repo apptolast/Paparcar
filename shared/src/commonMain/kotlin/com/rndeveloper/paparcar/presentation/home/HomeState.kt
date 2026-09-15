@@ -97,6 +97,22 @@ data class HomeState(
      * refusal and a sheet dragged back down stays down. [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
      */
     val locationWarningCue: Int = 0,
+    /**
+     * The first-entry location ask has been made at least once on this install — the persisted
+     * `AppPreferences.hasRequestedLocationPermission`, mirrored into state so the projections can
+     * read it. [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001]
+     *
+     * Kept RAW next to [locationAnswerInFlight] instead of storing the chewed verdict: the rule that
+     * combines them is `homeAwaitsLocationAnswer`, written once, so no surface can spell it its own
+     * way. Defaults to `false`, which means the frame before `init` reads the preference stays
+     * QUIET — the safe side: better a mute frame than a frame accusing the user of a refusal they
+     * have not made.
+     */
+    val locationEverAsked: Boolean = false,
+    /** The first-entry location dialog is up and its answer has not been read yet. This IS the
+     *  ViewModel's latch, not a copy of it, so the two cannot disagree — the answer is read off the
+     *  map's own foreground bracket. [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001] */
+    val locationAnswerInFlight: Boolean = false,
 
     // ── User location ─────────────────────────────────────────────────────────
 

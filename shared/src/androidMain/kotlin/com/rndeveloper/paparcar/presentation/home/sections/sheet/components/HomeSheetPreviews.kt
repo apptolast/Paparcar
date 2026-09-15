@@ -534,6 +534,9 @@ private fun HomeSheetContentWithoutLocationPreview() {
         PreviewSheet(
             state = HomeState(
                 hasCorePermissions = false,
+                // Ya contestado que no: el aviso es para quien respondió, no para quien tiene el
+                // diálogo delante. [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001]
+                locationEverAsked = true,
                 vehicles = listOf(FakeData.vehicleSedan),
                 nearbySpots = FakeData.nearbySpots,
             ),

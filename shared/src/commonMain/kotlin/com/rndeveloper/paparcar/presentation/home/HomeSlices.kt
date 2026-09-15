@@ -20,6 +20,7 @@ import com.rndeveloper.paparcar.domain.detection.shouldShowParkNudgeBanner
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.domain.onboarding.FirstStepsProgress
 import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
+import com.rndeveloper.paparcar.presentation.home.model.homeAwaitsLocationAnswer
 import com.rndeveloper.paparcar.presentation.home.model.homeHasNoLocation
 import com.rndeveloper.paparcar.presentation.home.model.DetectionUiState
 import com.rndeveloper.paparcar.presentation.home.model.ParkedWatchBadge
@@ -342,6 +343,14 @@ data class HomeBrowseListSlice(
     /** Vehicle the pending nudge asks about (pre-targets the mark-spot flow), or null. */
     val parkNudgeVehicleId: String?,
     val hasCorePermissions: Boolean,
+    /**
+     * The first-entry location ask is imminent or on screen with no answer yet, so the amber
+     * `BlockedCore` row stands down — the app would be telling the user their location is off while
+     * the dialog asking for it is still open on top. Resolved by `homeAwaitsLocationAnswer`, the
+     * same verdict the map's pill obeys, so the two cannot go quiet at different moments.
+     * [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001]
+     */
+    val locationAskPending: Boolean,
     val isLoading: Boolean,
     val sizeFilter: VehicleSize?,
     /** [HomeState.nearbySpots] after [sizeFilter] — materialised once per state emission. */
@@ -454,7 +463,13 @@ internal fun HomeState.toFabsSlice() = HomeFabsSlice(
     // most needs the sentence (just refused the permission, no car yet) looking at a Home that never
     // said why it did not know where they were.
     // [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001] [UI-NO-LOCATION-WEARS-THE-ACCURACY-PILL-001]
-    locationMissing = homeHasNoLocation(hasCorePermissions, detectionUiState),
+    //
+    // …and it holds its tongue while the first-entry ask is on screen: stating the absence of a
+    // permission the user is at that very moment being asked for is answering for them, and the
+    // remedy the pill offers (tap → permissions) is the dialog already open on top of it.
+    // [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001]
+    locationMissing = homeHasNoLocation(hasCorePermissions, detectionUiState) &&
+        !homeAwaitsLocationAnswer(hasCorePermissions, locationEverAsked, locationAnswerInFlight),
 )
 
 internal fun HomeState.toMapSlice() = HomeMapSlice(
@@ -590,6 +605,9 @@ fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
     parkNudgeVehicleId = pendingParkNudge?.vehicleId,
     promptWindow = promptWindow,
     hasCorePermissions = hasCorePermissions,
+    locationAskPending = homeAwaitsLocationAnswer(
+        hasCorePermissions, locationEverAsked, locationAnswerInFlight,
+    ),
     isLoading = isLoading,
     sizeFilter = sizeFilter,
     filteredSpots = filteredNearbySpots(),

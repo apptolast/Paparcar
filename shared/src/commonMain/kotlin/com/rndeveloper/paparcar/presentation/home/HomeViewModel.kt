@@ -186,6 +186,10 @@ class HomeViewModel(
         // start opens on the spots the community is offering.
         // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
         updateState { copy(mapType = appPreferences.defaultMapType.toMapType()) }
+        // Whether the first-entry ask has EVER been made — read here so a returning user who already
+        // refused gets the warning immediately, with nothing to wait for, while a first-timer stays
+        // quiet until they have answered. [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001]
+        updateState { copy(locationEverAsked = appPreferences.hasRequestedLocationPermission) }
         geocoder.attach(viewModelScope)
         subscribeControllerUpdates()
         // Repo streams → state slices, one line each ([collectInto] isolates stream errors so the UI
@@ -223,11 +227,13 @@ class HomeViewModel(
         val hasLocation = permissionManager.permissionState.value.hasLocationPermission
         if (hasLocation || appPreferences.hasRequestedLocationPermission) return
         appPreferences.setLocationPermissionRequested()
+        // Mirrored the moment it is stamped: from here on Home knows it has asked, and the warning
+        // surfaces stay quiet until the answer is read. [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001]
+        updateState { copy(locationEverAsked = true, locationAnswerInFlight = true) }
         // If this very ask is granted, pitch auto-detection right after (see subscribePermissions):
         // the user just granted location and is looking at the map — peak engagement for the app's
         // star feature, which no longer has a first-run screen to introduce it.
         pitchDetectionAfterGrant = true
-        awaitingFirstEntryAnswer = true
         sendEffect(HomeEffect.RequestLocationPermission)
     }
 
@@ -242,10 +248,19 @@ class HomeViewModel(
      * instead of a platform callback: the system dialog pauses the screen, and resuming it means the
      * dialog is gone. Measured on Android; on iOS it relies on the alert resigning the app active.
      * A grant is left to [subscribePermissions] (the detection pitch).
+     *
+     * It also ends the SILENCE the question bought: while the ask is in flight the pill and the
+     * amber row say nothing, because the app would be stating the absence of a permission the user
+     * is still being asked for. [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001]
      */
     private fun resolveFirstEntryAnswer() {
-        if (!awaitingFirstEntryAnswer || !firstEntryDialogShown) return
-        awaitingFirstEntryAnswer = false
+        if (!state.value.locationAnswerInFlight) return
+        // Back on screen means the dialog is gone, whatever was answered — so the silence lifts HERE
+        // and not below the [firstEntryDialogShown] guard. An OEM that never paused the map then
+        // costs us the auto-open, which is a missed nicety; muting the warning for a whole session
+        // would be the app going quiet about the one thing it needs.
+        updateState { copy(locationAnswerInFlight = false) }
+        if (!firstEntryDialogShown) return
         firstEntryDialogShown = false
         val denied = !permissionManager.permissionState.value.hasLocationPermission
         if (denied && state.value.detectionUiState.warnsLocationMissing) {
@@ -253,9 +268,10 @@ class HomeViewModel(
         }
     }
 
-    /** Armed by [askFineLocationOnFirstEntry]; [firstEntryDialogShown] once the dialog paused the
-     *  map. Session-scoped like [pitchDetectionAfterGrant]. */
-    private var awaitingFirstEntryAnswer = false
+    /** Set once the dialog paused the map; the ask's own latch is
+     *  [HomeState.locationAnswerInFlight] — it lives in state because the warning surfaces read it,
+     *  and a second private copy here is how the two would drift apart.
+     *  [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001] */
     private var firstEntryDialogShown = false
 
     /** Armed by [askFineLocationOnFirstEntry]; consumed on the grant. Session-scoped on purpose:
@@ -492,7 +508,7 @@ class HomeViewModel(
                     // Back from the system dialog → read its answer. [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
                     resolveFirstEntryAnswer()
                     askFineLocationOnFirstEntry()
-                } else if (awaitingFirstEntryAnswer) {
+                } else if (state.value.locationAnswerInFlight) {
                     firstEntryDialogShown = true
                 }
             }
