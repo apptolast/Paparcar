@@ -844,7 +844,16 @@
     <string name="stats_tile_usual_place">sitio habitual</string>
     <string name="stats_places_title">Tus sitios</string>
     <string name="stats_when_title">Cuándo aparcas</string>
-    <string name="stats_when_empty">Aún no hay aparcamientos suficientes para ver un patrón</string>
+    <string name="stats_insights_title">Lo que dicen tus aparcamientos</string>
+    <string name="stats_insight_worst_time">%1$s de %2$s: tardas %3$s en aparcar</string>
+    <string name="stats_insight_easiest_time">%1$s de %2$s: aparcas en %3$s</string>
+    <string name="stats_insight_costliest_place">En %1$s tardas %2$s en aparcar; en tus otros sitios, %3$s</string>
+    <string name="stats_insight_trend_up">Estás buscando %1$s más por viaje que el periodo anterior</string>
+    <string name="stats_insight_trend_down">Estás buscando %1$s menos por viaje que el periodo anterior</string>
+    <plurals name="stats_insight_evidence">
+        <item quantity="one">sobre %1$d aparcamiento medido</item>
+        <item quantity="other">sobre %1$d aparcamientos medidos</item>
+    </plurals>
     <string name="stats_when_less">menos</string>
     <string name="stats_when_more">más</string>
     <plurals name="stats_places_empty">

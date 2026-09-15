@@ -848,7 +848,16 @@
     <string name="stats_tile_usual_place">posto abituale</string>
     <string name="stats_places_title">I tuoi posti</string>
     <string name="stats_when_title">Quando parcheggi</string>
-    <string name="stats_when_empty">Non ci sono ancora parcheggi sufficienti per vedere uno schema</string>
+    <string name="stats_insights_title">Cosa dicono i tuoi parcheggi</string>
+    <string name="stats_insight_worst_time">%1$s dalle %2$s: impieghi %3$s a parcheggiare</string>
+    <string name="stats_insight_easiest_time">%1$s dalle %2$s: parcheggi in %3$s</string>
+    <string name="stats_insight_costliest_place">A %1$s impieghi %2$s a parcheggiare; negli altri posti, %3$s</string>
+    <string name="stats_insight_trend_up">Stai cercando %1$s in più a viaggio rispetto al periodo scorso</string>
+    <string name="stats_insight_trend_down">Stai cercando %1$s in meno a viaggio rispetto al periodo scorso</string>
+    <plurals name="stats_insight_evidence">
+        <item quantity="one">su %1$d parcheggio misurato</item>
+        <item quantity="other">su %1$d parcheggi misurati</item>
+    </plurals>
     <string name="stats_when_less">meno</string>
     <string name="stats_when_more">più</string>
     <plurals name="stats_places_empty">

@@ -34,7 +34,6 @@ import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.stats_metric_parkings
 import paparcar.composeapp.generated.resources.stats_tile_search_time
-import paparcar.composeapp.generated.resources.stats_when_empty
 import paparcar.composeapp.generated.resources.stats_when_more
 import paparcar.composeapp.generated.resources.stats_when_less
 import paparcar.composeapp.generated.resources.stats_when_title
@@ -54,12 +53,20 @@ import paparcar.composeapp.generated.resources.stats_when_title
  * for `ActivityBarCanvas` "and nothing else". Forty-two composables cost less than an exemption.
  * [UI-TYPE-SYSTEM-HYGIENE-001]
  */
+/**
+ * ⛔ **Nothing is drawn for an EMPTY grid, and there is no "not enough data yet" copy either** — it
+ * was written, and then the device pass showed it could never render: the card is only composed for
+ * a period that HAS parkings, and the measure falls back to PARKINGS the moment the hunting grid has
+ * no cells, so the grid always holds something. A branch that cannot be reached is worse than one
+ * that is missing: it reads as covered. (15-09, Oppo.)
+ */
 @Composable
 internal fun StatsWhenCard(
     heatmap: ParkingHeatmap,
     measures: List<HeatMeasure>,
     onMeasureSelected: (HeatMeasure) -> Unit,
 ) {
+    if (heatmap.isEmpty) return
     PapOutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(CARD_PAD_DP.dp)) {
             Text(
@@ -82,19 +89,9 @@ internal fun StatsWhenCard(
                 }
             }
             Spacer(Modifier.height(GRID_GAP_DP.dp))
-            if (heatmap.isEmpty) {
-                // A grid of empty cells would look like a chart that failed to load. The card says
-                // what is missing instead.
-                Text(
-                    text = stringResource(Res.string.stats_when_empty),
-                    style = PaparcarType.current.body,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else {
-                HeatGrid(heatmap)
-                Spacer(Modifier.height(GRID_GAP_DP.dp))
-                IntensityLegend()
-            }
+            HeatGrid(heatmap)
+            Spacer(Modifier.height(GRID_GAP_DP.dp))
+            IntensityLegend()
         }
     }
 }

@@ -862,7 +862,18 @@
     <string name="stats_tile_usual_place">stałe miejsce</string>
     <string name="stats_places_title">Twoje miejsca</string>
     <string name="stats_when_title">Kiedy parkujesz</string>
-    <string name="stats_when_empty">Za mało parkowań, by zobaczyć wzorzec</string>
+    <string name="stats_insights_title">Co mówią twoje parkowania</string>
+    <string name="stats_insight_worst_time">%1$s, %2$s: parkujesz przez %3$s</string>
+    <string name="stats_insight_easiest_time">%1$s, %2$s: parkujesz w %3$s</string>
+    <string name="stats_insight_costliest_place">W %1$s parkujesz przez %2$s; w innych miejscach %3$s</string>
+    <string name="stats_insight_trend_up">Szukasz %1$s dłużej na przejazd niż w poprzednim okresie</string>
+    <string name="stats_insight_trend_down">Szukasz %1$s krócej na przejazd niż w poprzednim okresie</string>
+    <plurals name="stats_insight_evidence">
+        <item quantity="one">na podstawie %1$d zmierzonego parkowania</item>
+        <item quantity="few">na podstawie %1$d zmierzonych parkowań</item>
+        <item quantity="many">na podstawie %1$d zmierzonych parkowań</item>
+        <item quantity="other">na podstawie %1$d zmierzonych parkowań</item>
+    </plurals>
     <string name="stats_when_less">mniej</string>
     <string name="stats_when_more">więcej</string>
     <plurals name="stats_places_empty">

@@ -862,7 +862,17 @@
     <string name="stats_tile_usual_place">loc obișnuit</string>
     <string name="stats_places_title">Locurile tale</string>
     <string name="stats_when_title">Când parchezi</string>
-    <string name="stats_when_empty">Încă nu sunt destule parcări pentru a vedea un tipar</string>
+    <string name="stats_insights_title">Ce spun parcările tale</string>
+    <string name="stats_insight_worst_time">%1$s, %2$s: faci %3$s să parchezi</string>
+    <string name="stats_insight_easiest_time">%1$s, %2$s: parchezi în %3$s</string>
+    <string name="stats_insight_costliest_place">La %1$s faci %2$s să parchezi; în celelalte locuri, %3$s</string>
+    <string name="stats_insight_trend_up">Cauți %1$s mai mult pe cursă decât în perioada anterioară</string>
+    <string name="stats_insight_trend_down">Cauți %1$s mai puțin pe cursă decât în perioada anterioară</string>
+    <plurals name="stats_insight_evidence">
+        <item quantity="one">din %1$d parcare măsurată</item>
+        <item quantity="few">din %1$d parcări măsurate</item>
+        <item quantity="other">din %1$d de parcări măsurate</item>
+    </plurals>
     <string name="stats_when_less">mai puțin</string>
     <string name="stats_when_more">mai mult</string>
     <plurals name="stats_places_empty">

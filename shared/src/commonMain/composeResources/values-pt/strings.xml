@@ -848,7 +848,16 @@
     <string name="stats_tile_usual_place">local habitual</string>
     <string name="stats_places_title">Os teus locais</string>
     <string name="stats_when_title">Quando estacionas</string>
-    <string name="stats_when_empty">Ainda não há estacionamentos suficientes para ver um padrão</string>
+    <string name="stats_insights_title">O que dizem os teus estacionamentos</string>
+    <string name="stats_insight_worst_time">%1$s das %2$s: demoras %3$s a estacionar</string>
+    <string name="stats_insight_easiest_time">%1$s das %2$s: estacionas em %3$s</string>
+    <string name="stats_insight_costliest_place">Em %1$s demoras %2$s a estacionar; nos teus outros locais, %3$s</string>
+    <string name="stats_insight_trend_up">Estás à procura %1$s mais por viagem do que no período anterior</string>
+    <string name="stats_insight_trend_down">Estás à procura %1$s menos por viagem do que no período anterior</string>
+    <plurals name="stats_insight_evidence">
+        <item quantity="one">sobre %1$d estacionamento medido</item>
+        <item quantity="other">sobre %1$d estacionamentos medidos</item>
+    </plurals>
     <string name="stats_when_less">menos</string>
     <string name="stats_when_more">mais</string>
     <plurals name="stats_places_empty">

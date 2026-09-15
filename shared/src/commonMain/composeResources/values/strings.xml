@@ -884,7 +884,16 @@
     <string name="stats_tile_usual_place">usual place</string>
     <string name="stats_places_title">Your places</string>
     <string name="stats_when_title">When you park</string>
-    <string name="stats_when_empty">Not enough parkings yet to see a pattern</string>
+    <string name="stats_insights_title">What your parkings say</string>
+    <string name="stats_insight_worst_time">%1$s, %2$s: you take %3$s to park</string>
+    <string name="stats_insight_easiest_time">%1$s, %2$s: you park in %3$s</string>
+    <string name="stats_insight_costliest_place">At %1$s you take %2$s to park; at your other places, %3$s</string>
+    <string name="stats_insight_trend_up">You are spending %1$s more per trip hunting than last period</string>
+    <string name="stats_insight_trend_down">You are spending %1$s less per trip hunting than last period</string>
+    <plurals name="stats_insight_evidence">
+        <item quantity="one">from %1$d measured parking</item>
+        <item quantity="other">from %1$d measured parkings</item>
+    </plurals>
     <string name="stats_when_less">less</string>
     <string name="stats_when_more">more</string>
     <plurals name="stats_places_empty">

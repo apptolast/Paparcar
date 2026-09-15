@@ -77,6 +77,7 @@ import com.rndeveloper.paparcar.domain.model.SpotType
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Zone
 import com.rndeveloper.paparcar.domain.stats.HeatMeasure
+import com.rndeveloper.paparcar.domain.usecase.stats.DeriveStatsInsightsUseCase
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.presentation.map.FocusedParking
 import com.rndeveloper.paparcar.presentation.map.HistoryDetailSheet
@@ -385,6 +386,40 @@ private fun resolvedHistory(
  * Los fakes nacieron repartidos por medio Madrid para que el MAPA tuviera marcadores separados, que
  * es lo correcto para el mapa y lo que impide que exista un solo sitio habitual.
  */
+/**
+ * Seis aparcamientos colocados para que las reglas de insight lleguen a su umbral
+ * [STATS-AN-INSIGHT-IS-A-VERDICT-WITH-ITS-EVIDENCE-001]: tres en un sitio caro, siempre el MISMO
+ * día de la semana y la misma franja, y tres en otro barato tres días después.
+ *
+ * ⛔ Las marcas de tiempo se mueven en múltiplos de SIETE DÍAS, que es lo que conserva el día de la
+ * semana y la hora — y por tanto la celda de la rejilla. Un desplazamiento cualquiera repartiría los
+ * seis en seis celdas de una muestra cada una, ninguna llegaría al mínimo de dos, y la card no se
+ * compondría: exactamente lo que pasó al primer intento, en el móvil.
+ * [DEV-A-GALLERY-VARIANT-MUST-EXERCISE-ITS-CASE-001]
+ */
+private fun List<UserParking>.withAnExpensiveSlot(): List<UserParking> {
+    val anchor = firstOrNull()?.location?.timestamp ?: return this
+    return take(GALLERY_INSIGHT_PARKINGS).mapIndexed { i, s ->
+        val expensive = i % 2 == 0
+        val weeksBack = i / 2
+        s.copy(
+            location = s.location.copy(
+                timestamp = anchor - weeksBack * WEEK_MS - if (expensive) 0L else THREE_DAYS_MS,
+                latitude = if (expensive) ZONE_LAT else OTHER_LAT,
+                longitude = if (expensive) ZONE_LON else OTHER_LON,
+            ),
+            endedAtMs = null,
+            isActive = false,
+            searchTimeMs = if (expensive) EXPENSIVE_HUNT_MS else CHEAP_HUNT_MS,
+        )
+    }
+}
+
+private const val GALLERY_INSIGHT_PARKINGS = 6
+private const val WEEK_MS = 7L * 86_400_000L
+private const val EXPENSIVE_HUNT_MS = 14L * 60_000L
+private const val CHEAP_HUNT_MS = 2L * 60_000L
+
 private fun List<UserParking>.clusteredForTheGallery(): List<UserParking> = mapIndexed { i, s ->
     val atZone = i % 3 != 2
     s.copy(
@@ -456,6 +491,11 @@ private fun statsPanelState(
         vehicles = vehicles,
         selectedVehicleIndex = 0,
         filter = filter,
+        // ⛔ La galería arma el estado A MANO —no pasa por el ViewModel—, así que los insights hay
+        // que derivarlos aquí igual que las cifras: con el estado por defecto la card no se componía
+        // NUNCA, y la variante se veía verde sin enseñar su caso (visto en el Oppo, 15-09).
+        // [STATS-AN-INSIGHT-IS-A-VERDICT-WITH-ITS-EVIDENCE-001] [DEV-A-GALLERY-VARIANT-MUST-EXERCISE-ITS-CASE-001]
+        insights = DeriveStatsInsightsUseCase()(resolved.filteredSessions, resolved.periodStats),
         filteredSessions = resolved.filteredSessions,
         costPrice = resolved.costPrice,
         periodStats = resolved.periodStats,
@@ -1780,6 +1820,24 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     onIntent = {},
                 )
             },
+            // Un garaje: la fila lleva candado en vez de pin, porque un sitio privado no libera
+            // plaza al salir. [STATS-A-USUAL-PLACE-IS-A-CLUSTER-NOT-A-STREET-001]
+            Variant("Sitios · zona privada (garaje)") {
+                StatsContent(
+                    state = statsPanelState(
+                        sessions = FakeData.allSessions.clusteredForTheGallery(),
+                        zones = listOf(
+                            Zone(
+                                id = "z2", userId = "u", name = "Garaje",
+                                lat = ZONE_LAT, lon = ZONE_LON, iconKey = "HOME", createdAt = 0L,
+                                isPrivate = true,
+                            ),
+                        ),
+                    ),
+                    onNavigateBack = {},
+                    onIntent = {},
+                )
+            },
             // El mismo racimo SIN zona: se llama por la calle que más se repite.
             Variant("Sitios · nombrados por la calle") {
                 StatsContent(
@@ -1793,6 +1851,31 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Sitios · aún no repites") {
                 StatsContent(
                     state = statsPanelState(sessions = FakeData.endedSessions.take(2)),
+                    onNavigateBack = {},
+                    onIntent = {},
+                )
+            },
+            // [STATS-AN-INSIGHT-IS-A-VERDICT-WITH-ITS-EVIDENCE-001] La app concluye: sesiones
+            // apiladas en dos sitios y con la búsqueda cara concentrada en una franja, que es lo que
+            // hace que las reglas pasen su umbral. Sin esto la card no se compone — y una variante
+            // que no alcanza su caso no vigila nada [DEV-A-GALLERY-VARIANT-MUST-EXERCISE-ITS-CASE-001].
+            // Las DOS caras del motor, porque las cuatro reglas no caben en un solo periodo: con
+            // «Todos» entran los seis aparcamientos y hay dos SITIOS que contrastar; con «Este mes»
+            // el sitio barato se queda en dos visitas —y deja de ser un sitio— pero aparece la
+            // TENDENCIA contra el periodo anterior. [STATS-AN-INSIGHT-IS-A-VERDICT-WITH-ITS-EVIDENCE-001]
+            Variant("Insights · el sitio que más te cuesta y tus horas") {
+                StatsContent(
+                    state = statsPanelState(
+                        sessions = FakeData.allSessions.withAnExpensiveSlot(),
+                        filter = HistoryFilter.All,
+                    ),
+                    onNavigateBack = {},
+                    onIntent = {},
+                )
+            },
+            Variant("Insights · la tendencia contra el periodo anterior") {
+                StatsContent(
+                    state = statsPanelState(sessions = FakeData.allSessions.withAnExpensiveSlot()),
                     onNavigateBack = {},
                     onIntent = {},
                 )

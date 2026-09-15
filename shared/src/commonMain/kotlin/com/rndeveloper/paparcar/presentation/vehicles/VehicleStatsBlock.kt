@@ -37,6 +37,7 @@ import com.rndeveloper.paparcar.domain.fuel.FuelPrice
 import com.rndeveloper.paparcar.domain.fuel.FuelPriceOrigin
 import com.rndeveloper.paparcar.domain.stats.PeriodStats
 import com.rndeveloper.paparcar.domain.stats.ScopedMeasure
+import com.rndeveloper.paparcar.domain.stats.coverageAllowsComparison
 import com.rndeveloper.paparcar.presentation.util.durationText
 import com.rndeveloper.paparcar.presentation.util.formatHourBucket
 import com.rndeveloper.paparcar.ui.components.PapDivider
@@ -480,23 +481,6 @@ private fun StatTileKey.icon(): ImageVector = when (this) {
     StatTileKey.AUTO_DETECTED -> Icons.Rounded.AutoAwesome
     StatTileKey.SPOTS_SHARED -> Icons.Rounded.VolunteerActivism
 }
-
-/**
- * Whether a figure and its previous-period twin can be COMPARED — both are measured sums, and both
- * cover their whole period. [STATS-A-MEASURE-CARRIES-ITS-COVERAGE-001]
- *
- * A delta compares two sums. Between 7-of-12 trips and 3-of-10, a "▲ 18 %" does not say the user
- * hunted longer: it says more trips got measured this period. That is not a finding, it is an
- * artefact of coverage wearing a finding's clothes — the same reason `percentDelta` already refuses
- * to compare against a zero ("infinitely more" is not a statement).
- *
- * It fixes itself: as the Bluetooth lane gains recorded routes, coverage completes and the arrows
- * come back on their own.
- */
-internal fun coverageAllowsComparison(
-    current: ScopedMeasure<*>?,
-    previous: ScopedMeasure<*>?,
-): Boolean = current != null && current.isComplete && previous != null && previous.isComplete
 
 internal fun statTileKeys(stats: PeriodStats): List<StatTileKey> = buildList {
     // Spend leads when it exists — it is the figure a person can act on, so it is the lead tile.

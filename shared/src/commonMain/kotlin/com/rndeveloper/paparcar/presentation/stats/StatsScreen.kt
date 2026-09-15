@@ -151,6 +151,18 @@ fun StatsContent(
                 Spacer(Modifier.height(SECTION_GAP_DP.dp))
             }
 
+            // The conclusion BEFORE the proof: everything below this card — the chart, the
+            // figures, the places, the grid — is what backs it up.
+            // [STATS-AN-INSIGHT-IS-A-VERDICT-WITH-ITS-EVIDENCE-001]
+            if (state.insights.isNotEmpty()) {
+                item(key = "insights") {
+                    Box(Modifier.padding(horizontal = H_PAD_DP.dp)) {
+                        StatsInsightsCard(insights = state.insights)
+                    }
+                    Spacer(Modifier.height(SECTION_GAP_DP.dp))
+                }
+            }
+
             val stats = state.periodStats
             if (stats != null) {
                 item(key = "chart") {

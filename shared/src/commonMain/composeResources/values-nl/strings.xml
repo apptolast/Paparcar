@@ -828,7 +828,16 @@
     <string name="stats_tile_usual_place">vaste plek</string>
     <string name="stats_places_title">Jouw plekken</string>
     <string name="stats_when_title">Wanneer je parkeert</string>
-    <string name="stats_when_empty">Nog niet genoeg parkeerplaatsen om een patroon te zien</string>
+    <string name="stats_insights_title">Wat je parkeerplaatsen zeggen</string>
+    <string name="stats_insight_worst_time">%1$s, %2$s: je doet %3$s over parkeren</string>
+    <string name="stats_insight_easiest_time">%1$s, %2$s: je parkeert in %3$s</string>
+    <string name="stats_insight_costliest_place">Bij %1$s doe je %2$s over parkeren; op je andere plekken %3$s</string>
+    <string name="stats_insight_trend_up">Je zoekt %1$s langer per rit dan de vorige periode</string>
+    <string name="stats_insight_trend_down">Je zoekt %1$s korter per rit dan de vorige periode</string>
+    <plurals name="stats_insight_evidence">
+        <item quantity="one">op basis van %1$d gemeten parkeerplaats</item>
+        <item quantity="other">op basis van %1$d gemeten parkeerplaatsen</item>
+    </plurals>
     <string name="stats_when_less">minder</string>
     <string name="stats_when_more">meer</string>
     <plurals name="stats_places_empty">

@@ -12,6 +12,7 @@ import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.usecase.fuel.ResolveFuelPriceUseCase
+import com.rndeveloper.paparcar.domain.usecase.stats.DeriveStatsInsightsUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import com.rndeveloper.paparcar.presentation.base.BaseViewModel
@@ -163,6 +164,10 @@ class StatsViewModel(
         )
         return copy(
             periodStats = resolved.periodStats,
+            // The conclusions come from the SAME resolution as the figures under them: an insight
+            // that disagreed with the card proving it would be worse than no insight.
+            // [STATS-AN-INSIGHT-IS-A-VERDICT-WITH-ITS-EVIDENCE-001]
+            insights = deriveInsights(resolved.filteredSessions, resolved.periodStats),
             filteredSessions = resolved.filteredSessions,
             costPrice = resolved.costPrice,
             lifetimeParkings = resolved.lifetimeParkings,
@@ -179,6 +184,7 @@ class StatsViewModel(
     )
 
     private companion object {
+        private val deriveInsights = DeriveStatsInsightsUseCase()
         const val TAG = "StatsViewModel"
     }
 }

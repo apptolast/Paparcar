@@ -34,6 +34,28 @@ data class ScopedMeasure<out T : Any>(
 }
 
 /**
+ * Whether a figure and its previous-period twin can be COMPARED — both are measured sums, and both
+ * cover their whole period. [STATS-A-MEASURE-CARRIES-ITS-COVERAGE-001]
+ *
+ * A delta compares two sums. Between 7-of-12 trips and 3-of-10, a "▲ 18 %" does not say the user
+ * hunted longer: it says more trips got measured this period. That is not a finding, it is an
+ * artefact of coverage wearing a finding's clothes — the same reason `percentDelta` already refuses
+ * to compare against a zero ("infinitely more" is not a statement).
+ *
+ * It fixes itself: as the Bluetooth lane gains recorded routes, coverage completes and the arrows
+ * come back on their own.
+ *
+ * ⛔ It lives HERE, with the type it is about, and not next to the tiles that first needed it
+ * [STATS-AN-INSIGHT-IS-A-VERDICT-WITH-ITS-EVIDENCE-001]: the second reader (the insight engine)
+ * would have had to import it from `presentation`, which domain cannot do, and a copy of a rule
+ * like this one is how two surfaces end up disagreeing about whether a comparison is honest.
+ */
+fun coverageAllowsComparison(
+    current: ScopedMeasure<*>?,
+    previous: ScopedMeasure<*>?,
+): Boolean = current != null && current.isComplete && previous != null && previous.isComplete
+
+/**
  * Distance covered by [sessions] with its coverage, or null when not one of them carries a route
  * ("no distance data" renders as nothing, never as 0 km). The ONE implementation —
  * `VehicleHistoryCalculator.sumDistanceMeters` delegates here. [STATS-CORE-001]

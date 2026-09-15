@@ -6,6 +6,7 @@ import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.VehicleWithStats
 import com.rndeveloper.paparcar.domain.stats.HeatMeasure
 import com.rndeveloper.paparcar.domain.stats.PeriodStats
+import com.rndeveloper.paparcar.domain.stats.insights.StatsInsight
 import com.rndeveloper.paparcar.presentation.vehicles.ChartMetric
 import com.rndeveloper.paparcar.presentation.vehicles.HistoryFilter
 
@@ -39,6 +40,12 @@ data class StatsState(
      *  or the same number carries a warning on one screen and none on the other.
      *  [FUEL-PRICE-RESOLVER-001] */
     val costPrice: FuelPrice? = null,
+    /**
+     * What the app concluded about this period, biggest finding first — empty when the period
+     * supports nothing, which below the thresholds is most of the time.
+     * [STATS-AN-INSIGHT-IS-A-VERDICT-WITH-ITS-EVIDENCE-001]
+     */
+    val insights: List<StatsInsight> = emptyList(),
     /** Ended parkings and shared spots over the car's WHOLE life, gate or no gate. */
     val lifetimeParkings: Int = 0,
     val lifetimeSpotsReleased: Int = 0,

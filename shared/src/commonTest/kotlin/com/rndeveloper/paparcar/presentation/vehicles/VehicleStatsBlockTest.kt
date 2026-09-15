@@ -2,6 +2,7 @@ package com.rndeveloper.paparcar.presentation.vehicles
 
 import com.rndeveloper.paparcar.domain.model.Money
 import com.rndeveloper.paparcar.domain.stats.ParkingCluster
+import com.rndeveloper.paparcar.domain.stats.coverageAllowsComparison
 import com.rndeveloper.paparcar.domain.stats.PeriodStats
 import com.rndeveloper.paparcar.domain.stats.ScopedMeasure
 import kotlin.test.Test
