@@ -243,4 +243,95 @@ class RunZoneSpotWatchUseCaseTest {
         // Being told about your street is not being told about your office.
         assertEquals(listOf("z-1", "z-2"), outcome.alerts.map { it.zoneId })
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // [ZONE-A-LOOK-THAT-READS-THE-CACHE-IS-NOT-A-LOOK-001]
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * ⛔ THE regression. The first version took `observeNearbySpots(...).first()`, and that flow's
+     * only emitter is its Room branch — so the worker read the LOCAL CACHE, frozen at whenever the
+     * app was last open. With the app closed there is nothing new there by definition, which is the
+     * one state this whole feature exists for.
+     */
+    @Test
+    fun should_seeASpotThatOnlyTheServerHas_when_theLocalCacheIsStale() = runTest {
+        zoneRepo.zones = listOf(zone())
+        spotRepo.spots = emptyList()
+        useCase()
+
+        // Published while this phone was not looking: the server has it, Room does not.
+        spotRepo.cachedSpots = emptyList()
+        spotRepo.serverOnlySpots = listOf(spot("published-while-closed"))
+
+        val outcome = useCase() as ZoneWatchOutcome.Looked
+
+        assertEquals(listOf("published-while-closed"), outcome.alerts.map { it.spot.id })
+    }
+
+    @Test
+    fun should_askTheServer_when_itLooks() = runTest {
+        zoneRepo.zones = listOf(zone())
+        spotRepo.spots = emptyList()
+
+        useCase()
+
+        assertTrue(spotRepo.onceCallCount > 0, "a look that never asks the server is not a look")
+    }
+
+    /**
+     * The zone radius answers «where is my place»; the alert needs «how far would I walk». A user
+     * marking their doorway with 50 m is not asking to be told only about their doorway.
+     */
+    @Test
+    fun should_reachTheAlertFloor_when_theZoneIsAPin() = runTest {
+        zoneRepo.zones = listOf(zone().copy(radiusMeters = 50f))
+        spotRepo.spots = emptyList()
+        useCase()
+
+        // ~333 m north: outside the 50 m zone, inside the 500 m alert.
+        spotRepo.spots = listOf(spot("three-hundred-m", latOffset = 0.003))
+        val outcome = useCase() as ZoneWatchOutcome.Looked
+
+        assertEquals(500.0, spotRepo.lastOnceRadiusMeters, "the query must ask for the alert radius")
+        assertEquals(listOf("three-hundred-m"), outcome.alerts.map { it.spot.id })
+    }
+
+    /** ⛔ A floor, not a multiplier: a zone drawn wide on purpose keeps the radius it was given. */
+    @Test
+    fun should_honourTheDrawnRadius_when_theZoneIsAlreadyWide() = runTest {
+        zoneRepo.zones = listOf(zone().copy(radiusMeters = 500f))
+        spotRepo.spots = emptyList()
+
+        useCase()
+
+        assertEquals(500.0, spotRepo.lastOnceRadiusMeters)
+    }
+
+    /** Still outside even the widened circle — the geohash query overfetches, the circle decides. */
+    @Test
+    fun should_stillIgnoreWhatFallsOutsideTheAlertCircle_when_theFloorApplies() = runTest {
+        zoneRepo.zones = listOf(zone().copy(radiusMeters = 50f))
+        spotRepo.spots = emptyList()
+        useCase()
+
+        // ~1,1 km north: beyond the 500 m floor.
+        spotRepo.spots = listOf(spot("too-far", latOffset = 0.010))
+        val outcome = useCase() as ZoneWatchOutcome.Looked
+
+        assertTrue(outcome.alerts.isEmpty())
+    }
+
+    /** The number the Firestore bill is made of — carried out so a field run can quote it. */
+    @Test
+    fun should_reportWhatItRead_when_theQueryOverfetches() = runTest {
+        zoneRepo.zones = listOf(zone())
+        spotRepo.spots = listOf(spot("s-1"))
+        // The geohash ranges return four more documents than the circle keeps.
+        spotRepo.overfetchDocs = 4
+
+        val outcome = useCase() as ZoneWatchOutcome.Looked
+
+        assertEquals(5, outcome.documentsRead, "what Firestore charged for, not what we kept")
+    }
 }

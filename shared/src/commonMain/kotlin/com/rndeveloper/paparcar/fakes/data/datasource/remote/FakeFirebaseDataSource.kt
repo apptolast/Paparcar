@@ -13,6 +13,12 @@ class FakeFirebaseDataSource : FirebaseDataSource {
         radiusMeters: Double
     ): Flow<Map<String, SpotDto>> = emptyFlow()
 
+    override suspend fun getNearbySpotsOnce(
+        latitude: Double,
+        longitude: Double,
+        radiusMeters: Double,
+    ): Map<String, SpotDto> = emptyMap()
+
     override suspend fun reportSpotReleased(spotDto: SpotDto) {}
 
     override suspend fun deleteSpot(spotId: String) {}

@@ -34,6 +34,19 @@ class FakeFirebaseDataSource : FirebaseDataSource {
         observeSpotsFlow.collect { emit(it) }
     }
 
+    /** What a `get()` would answer. Scriptable apart from the flow, because in production they are
+     *  two different reads. [ZONE-A-LOOK-THAT-READS-THE-CACHE-IS-NOT-A-LOOK-001] */
+    var onceSpots: Map<String, SpotDto> = emptyMap()
+
+    override suspend fun getNearbySpotsOnce(
+        latitude: Double,
+        longitude: Double,
+        radiusMeters: Double,
+    ): Map<String, SpotDto> {
+        observeNearbyThrows?.let { throw it }
+        return onceSpots
+    }
+
     override suspend fun reportSpotReleased(spotDto: SpotDto) {
         reportSpotReleasedCallCount++
         lastReportedSpot = spotDto

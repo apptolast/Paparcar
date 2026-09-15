@@ -12,6 +12,7 @@ import com.rndeveloper.paparcar.domain.model.Spot
 import com.rndeveloper.paparcar.domain.model.SpotType
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.repository.AddressAndPlaceRepository
+import com.rndeveloper.paparcar.domain.repository.NearbySpotsRead
 import com.rndeveloper.paparcar.domain.repository.SpotRepository
 import com.rndeveloper.paparcar.domain.sync.OutboxOp
 import com.rndeveloper.paparcar.domain.sync.SyncOutbox
@@ -80,6 +81,8 @@ class SyncOutboxDrainerTest {
             return Result.success(Unit)
         }
         override fun observeNearbySpots(location: GpsPoint, radiusMeters: Double): Flow<List<Spot>> = emptyFlow()
+        override suspend fun getNearbySpotsOnce(location: GpsPoint, radiusMeters: Double) =
+            Result.success(NearbySpotsRead(spots = emptyList(), documentsRead = 0))
         override suspend fun retractSpot(spotId: String): Result<Unit> = Result.success(Unit)
         override suspend fun sendSpotSignal(spotId: String, accepted: Boolean): Result<Unit> = Result.success(Unit)
         override suspend fun refreshSpot(spotId: String): Result<Unit> = Result.success(Unit)

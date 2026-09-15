@@ -10,6 +10,7 @@ import com.rndeveloper.paparcar.domain.model.Spot
 import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.domain.model.SpotType
 import com.rndeveloper.paparcar.domain.model.VehicleSize
+import com.rndeveloper.paparcar.domain.repository.NearbySpotsRead
 import com.rndeveloper.paparcar.domain.repository.SpotRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -92,6 +93,13 @@ class FakeSpotRepository : SpotRepository {
 
     override fun observeNearbySpots(location: GpsPoint, radiusMeters: Double): Flow<List<Spot>> =
         spotsFlow.asStateFlow()
+
+    /** The Dev Catalog has no server behind it: the one-shot answers the same scenario spots. */
+    override suspend fun getNearbySpotsOnce(
+        location: GpsPoint,
+        radiusMeters: Double,
+    ): Result<NearbySpotsRead> =
+        Result.success(NearbySpotsRead(spots = spotsFlow.value, documentsRead = spotsFlow.value.size))
 
     override suspend fun reportSpotReleased(spot: Spot): Result<Unit> =
         Result.success(Unit)

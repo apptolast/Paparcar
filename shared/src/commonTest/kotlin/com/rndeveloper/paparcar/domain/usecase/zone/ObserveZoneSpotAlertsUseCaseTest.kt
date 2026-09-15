@@ -121,13 +121,32 @@ class ObserveZoneSpotAlertsUseCaseTest {
     }
 
     @Test
-    fun `should_ignoreSpotsOutsideTheZoneRadius_when_theGeoQueryOverfetches`() = runTest {
+    fun `should_ignoreSpotsOutsideTheAlertRadius_when_theGeoQueryOverfetches`() = runTest {
         entitlementRepo.emitEntitlement(Entitlement.PLUS)
         zoneRepo.zones = listOf(zone(radius = 100f))
 
         useCase().test {
-            spotRepo.spots = listOf(spot("s-far", offsetMeters = 400.0))
+            // Beyond the 500 m alert floor: the geohash ranges overfetch, the circle decides.
+            spotRepo.spots = listOf(spot("s-far", offsetMeters = 900.0))
             expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    /**
+     * ⛔ Changed by [ZONE-A-LOOK-THAT-READS-THE-CACHE-IS-NOT-A-LOOK-001]: this spot used to be
+     * ignored, because the alert clipped to the zone's own radius. A 100 m zone is someone marking a
+     * place, not declaring that a free space 400 m from home is of no interest — and the app itself
+     * calls 2 km "nearby" everywhere else. The floor is 500 m of walking.
+     */
+    @Test
+    fun `should_reachPastTheDrawnRadius_when_theZoneIsSmallerThanAWalk`() = runTest {
+        entitlementRepo.emitEntitlement(Entitlement.PLUS)
+        zoneRepo.zones = listOf(zone(radius = 100f))
+
+        useCase().test {
+            spotRepo.spots = listOf(spot("s-400m", offsetMeters = 400.0))
+            assertEquals("s-400m", awaitItem().spot.id)
             cancelAndIgnoreRemainingEvents()
         }
     }

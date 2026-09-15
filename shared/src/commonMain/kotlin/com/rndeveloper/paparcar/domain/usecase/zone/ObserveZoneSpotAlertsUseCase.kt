@@ -12,6 +12,7 @@ import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneWatchRepository
 import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
+import com.rndeveloper.paparcar.domain.zone.zoneAlertRadiusMeters
 import com.rndeveloper.paparcar.domain.zone.zoneSpotsWorthTelling
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -79,7 +80,10 @@ class ObserveZoneSpotAlertsUseCase(
             timestamp = 0L,
             speed = 0f,
         )
-        return spotRepository.observeNearbySpots(centre, zone.radiusMeters.toDouble())
+        // The SAME ground the worker asks for: two lanes watching different circles would make
+        // "what is news" depend on whether the app happened to be open.
+        // [ZONE-A-LOOK-THAT-READS-THE-CACHE-IS-NOT-A-LOOK-001]
+        return spotRepository.observeNearbySpots(centre, zoneAlertRadiusMeters(zone).toDouble())
             .transform { spots ->
                 val now = clock()
                 val look = zoneSpotsWorthTelling(

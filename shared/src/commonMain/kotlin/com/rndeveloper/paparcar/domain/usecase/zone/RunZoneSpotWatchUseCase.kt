@@ -10,6 +10,7 @@ import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneWatchRepository
 import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
+import com.rndeveloper.paparcar.domain.zone.zoneAlertRadiusMeters
 import com.rndeveloper.paparcar.domain.zone.zoneSpotsWorthTelling
 import kotlinx.coroutines.flow.first
 import kotlin.time.Clock
@@ -19,8 +20,17 @@ sealed class ZoneWatchOutcome {
     /** Nothing to do: not Plus, the switch is off, or no zone asks to be watched. */
     data class Skipped(val reason: String) : ZoneWatchOutcome()
 
-    /** Looked. An empty list is a real answer — it means nothing new appeared. */
-    data class Looked(val alerts: List<ZoneSpotAlert>, val zonesLooked: Int) : ZoneWatchOutcome()
+    /**
+     * Looked. An empty list is a real answer — it means nothing new appeared.
+     *
+     * [documentsRead] is what Firestore charged for, carried so a caller (and a field diagnosis) can
+     * quote it. [ZONE-A-LOOK-THAT-READS-THE-CACHE-IS-NOT-A-LOOK-001]
+     */
+    data class Looked(
+        val alerts: List<ZoneSpotAlert>,
+        val zonesLooked: Int,
+        val documentsRead: Int = 0,
+    ) : ZoneWatchOutcome()
 
     /** Could not look. Nothing recorded, so no zone is left marked as seen without being seen. */
     data class Unavailable(val reason: String) : ZoneWatchOutcome()
@@ -62,6 +72,10 @@ class RunZoneSpotWatchUseCase(
 
         val alerts = mutableListOf<ZoneSpotAlert>()
         var looked = 0
+        // Firestore bills per DOCUMENT, and this is the only unknown in what the watch costs.
+        // Logged per run so a day on a real phone gives the figure instead of an estimate.
+        var documentsRead = 0
+        var inZoneTotal = 0
         subscribed.forEach { zone ->
             val centre = GpsPoint(
                 latitude = zone.lat,
@@ -70,17 +84,20 @@ class RunZoneSpotWatchUseCase(
                 timestamp = 0L,
                 speed = 0f,
             )
-            // ⛔ ONE emission, not a collect: a worker that subscribes to a live query never
-            // returns, and WorkManager would kill it mid-look.
-            val spots = runCatching {
-                spotRepository.observeNearbySpots(centre, zone.radiusMeters.toDouble()).first()
-            }.getOrElse { e ->
-                // One zone's failing query must not cost the others their look — the same stream
-                // isolation the live lane already practises, applied per zone instead of per merge.
+            // ⛔ A one-shot READ, never `observeNearbySpots(...).first()`. That flow's only emitter
+            // is its Room branch, so `.first()` hands back the LOCAL CACHE — frozen at whenever the
+            // app was last open, which is precisely when this question stops being worth asking.
+            // [ZONE-A-LOOK-THAT-READS-THE-CACHE-IS-NOT-A-LOOK-001]
+            val radius = zoneAlertRadiusMeters(zone).toDouble()
+            val read = spotRepository.getNearbySpotsOnce(centre, radius).getOrElse { e ->
+                // One zone's failing query must not cost the others their look — the same isolation
+                // the live lane practises, applied per zone.
                 PaparcarLogger.w(TAG, "zone ${zone.id} could not be looked at", e)
                 return@forEach
             }
             looked++
+            documentsRead += read.documentsRead
+            val spots = read.spots
 
             val look = zoneSpotsWorthTelling(
                 zone = zone,
@@ -96,16 +113,28 @@ class RunZoneSpotWatchUseCase(
                 nowMs = now,
                 markBaseline = look.takingBaseline,
             )
+            inZoneTotal += look.toRecord.size
             alerts += look.alertable.map { spot ->
                 ZoneSpotAlert(zoneId = zone.id, zoneName = zone.name, spot = spot)
             }
         }
 
-        return if (looked == 0) {
-            ZoneWatchOutcome.Unavailable("no-zone-answered")
-        } else {
-            ZoneWatchOutcome.Looked(alerts = alerts, zonesLooked = looked)
-        }
+        if (looked == 0) return ZoneWatchOutcome.Unavailable("no-zone-answered")
+
+        // ⛔ The cost line. Five numbers, one per run: how many zones were asked, how many documents
+        // Firestore actually returned (what it charges for), how many survived the circle, how many
+        // were news, and how long it took. Without the document count the bill is
+        // `runs × zones × users × ?` — three knowns and the factor that decides.
+        PaparcarLogger.i(
+            TAG,
+            "▶ watch run: zones=$looked docs=$documentsRead inZone=$inZoneTotal new=${alerts.size} " +
+                "tookMs=${clock() - now}",
+        )
+        return ZoneWatchOutcome.Looked(
+            alerts = alerts,
+            zonesLooked = looked,
+            documentsRead = documentsRead,
+        )
     }
 
     private companion object {

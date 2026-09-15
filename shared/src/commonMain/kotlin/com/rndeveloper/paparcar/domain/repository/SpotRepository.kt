@@ -4,9 +4,36 @@ import com.rndeveloper.paparcar.domain.model.Spot
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * What one look found, and **what it cost**. [ZONE-A-LOOK-THAT-READS-THE-CACHE-IS-NOT-A-LOOK-001]
+ *
+ * [documentsRead] is not decoration: Firestore bills per DOCUMENT, the geohash ranges overfetch
+ * relative to the circle (which is why the circle is applied afterwards, in Kotlin), and that number
+ * is the only unknown in the cost of running the zone watch. Carried out of the data layer because
+ * it is the only place that knows it.
+ */
+data class NearbySpotsRead(
+    val spots: List<Spot>,
+    val documentsRead: Int,
+)
+
 interface SpotRepository {
 
     fun observeNearbySpots(location: GpsPoint, radiusMeters: Double): Flow<List<Spot>>
+
+    /**
+     * ONE look at what is published around [location], asked of the server.
+     * [ZONE-A-LOOK-THAT-READS-THE-CACHE-IS-NOT-A-LOOK-001]
+     *
+     * ⛔ **Not `observeNearbySpots(...).first()`.** That flow's only emitter is its ROOM branch — the
+     * Firestore half writes into Room and lets Room re-emit — so the first emission is always the
+     * local cache, and a background caller would be producing a verdict about the world by reading
+     * its own memory. With the app closed that cache is frozen at whenever it was last collected,
+     * which is exactly the moment the question stops being worth asking.
+     *
+     * Refreshes the cache on its way through: a look already paid for should not be thrown away.
+     */
+    suspend fun getNearbySpotsOnce(location: GpsPoint, radiusMeters: Double): Result<NearbySpotsRead>
 
     suspend fun reportSpotReleased(spot: Spot): Result<Unit>
 

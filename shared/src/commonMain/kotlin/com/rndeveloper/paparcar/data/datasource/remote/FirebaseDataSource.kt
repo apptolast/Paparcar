@@ -6,6 +6,21 @@ import kotlinx.coroutines.flow.Flow
 
 interface FirebaseDataSource {
     fun observeNearbySpots(latitude: Double, longitude: Double, radiusMeters: Double): Flow<Map<String, SpotDto>>
+
+    /**
+     * ONE read of the same ground, for callers that cannot hold a listener open.
+     * [ZONE-A-LOOK-THAT-READS-THE-CACHE-IS-NOT-A-LOOK-001]
+     *
+     * ⛔ Not a convenience twin of [observeNearbySpots]: a background worker asking that one and
+     * taking `.first()` gets the LOCAL CACHE, because the remote half of that flow never emits — it
+     * writes into Room and Room re-emits. A `get()` is the only shape that answers "what is there
+     * right now" without a live collector.
+     *
+     * Returns the raw documents the geohash ranges matched — deliberately unclipped, so the caller
+     * can report how many were actually READ. Firestore bills per document, and that number is the
+     * only unknown in the cost of the zone watch.
+     */
+    suspend fun getNearbySpotsOnce(latitude: Double, longitude: Double, radiusMeters: Double): Map<String, SpotDto>
     suspend fun reportSpotReleased(spotDto: SpotDto)
     suspend fun deleteSpot(spotId: String)
 

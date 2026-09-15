@@ -6,6 +6,35 @@ import com.rndeveloper.paparcar.domain.model.Zone
 import com.rndeveloper.paparcar.domain.util.haversineMeters
 
 /**
+ * How far the ALERT looks, which is not how big the zone is.
+ * [ZONE-A-LOOK-THAT-READS-THE-CACHE-IS-NOT-A-LOOK-001]
+ *
+ * The two numbers answer different questions and only one of them was being asked:
+ * - [Zone.radiusMeters] answers **«where is my place»** — a pin with a tolerance. It goes from 50 m
+ *   to 500 m and a user who drags it down to 50 is marking a doorway, not declaring that they only
+ *   want to hear about spots inside their doorway.
+ * - The alert needs **«how far would I walk from a free space to that place»**, and the app's own
+ *   answer to "nearby" elsewhere is 2 km (`ObserveNearbySpotsUseCase.DEFAULT_SEARCH_RADIUS_METERS`).
+ *
+ * So the alert gets a FLOOR and not a multiplier: `max` honours the user who deliberately drew a
+ * wide zone (500 m stays 500 m) and rescues the one who drew a pin. Adding to an explicit choice
+ * would be deciding for them; leaving a 50 m zone alone is an alert that can never fire.
+ *
+ * ⚠️ Whatever this returns is the circle the policy clips to AND the radius the query asks for —
+ * widening one without the other changes nothing at all, and the version that widens only the query
+ * is the expensive half.
+ */
+fun zoneAlertRadiusMeters(zone: Zone): Float =
+    maxOf(zone.radiusMeters, ZONE_ALERT_MIN_RADIUS_METERS)
+
+/**
+ * 500 m — the widest zone anyone can draw, so the alert never looks at less ground than the largest
+ * zone that exists, and still a walk (~6 min) rather than a drive. ⛔ Not 2 km: a spot 2 km from
+ * home is not a spot near home, it is a different trip.
+ */
+const val ZONE_ALERT_MIN_RADIUS_METERS = 500f
+
+/**
  * Whether a spot is one this zone's owner should ever be told about.
  * [ZONE-AN-ALERT-NOBODY-IS-AWAKE-TO-RECEIVE-001]
  *
@@ -39,10 +68,11 @@ fun isAlertableInZone(
     // Already dead by the time we looked.
     spot.expiresAt != 0L && spot.expiresAt <= nowMs -> false
 
-    // The geo query overfetches by geohash bounds; the zone circle is the contract.
+    // The geo query overfetches by geohash bounds; the ALERT circle is the contract — and it is
+    // deliberately not the zone's own, see [zoneAlertRadiusMeters].
     else -> haversineMeters(
         zone.lat, zone.lon, spot.location.latitude, spot.location.longitude,
-    ) <= zone.radiusMeters
+    ) <= zoneAlertRadiusMeters(zone)
 }
 
 /** What one look at one zone decided: what to say, and what to write down so it is not said twice. */

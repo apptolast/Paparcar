@@ -10,6 +10,7 @@ import com.rndeveloper.paparcar.data.mapper.toEntity
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.Spot
 import com.rndeveloper.paparcar.domain.model.SpotTtlPolicy
+import com.rndeveloper.paparcar.domain.repository.NearbySpotsRead
 import com.rndeveloper.paparcar.domain.repository.SpotRepository
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import com.rndeveloper.paparcar.domain.util.boundingBox
@@ -109,6 +110,43 @@ class SpotRepositoryImpl(
                     )
                 }
         }
+    }
+
+    /**
+     * One `get()`, clipped to the circle, written through to Room.
+     * [ZONE-A-LOOK-THAT-READS-THE-CACHE-IS-NOT-A-LOOK-001]
+     *
+     * Same three steps the listener's branch does — bbox clip, expiry clip, `smartReplaceForBoundingBox`
+     * — deliberately, so a spot read by the worker and a spot read by the map land in the cache the
+     * same way. What it does NOT do is the passive cleanup of expired documents: deleting other
+     * people's rows is a side effect the map earns by being watched, not something a background job
+     * should do four times an hour on ground nobody is looking at.
+     */
+    override suspend fun getNearbySpotsOnce(
+        location: GpsPoint,
+        radiusMeters: Double,
+    ): Result<NearbySpotsRead> = runCatching {
+        val bbox = boundingBox(location.latitude, location.longitude, radiusMeters)
+        val dtos = firebaseDataSource.getNearbySpotsOnce(
+            location.latitude, location.longitude, radiusMeters,
+        )
+        val now = Clock.System.now().toEpochMilliseconds()
+        val inBbox = dtos.values.filter { dto ->
+            dto.latitude in bbox.minLat..bbox.maxLat && dto.longitude in bbox.minLon..bbox.maxLon
+        }
+        val alive = inBbox.filter { it.expiresAt == 0L || it.expiresAt >= now }
+        spotDao.smartReplaceForBoundingBox(
+            bbox.minLat, bbox.maxLat, bbox.minLon, bbox.maxLon,
+            alive.map(SpotDto::toEntity),
+        )
+        PaparcarLogger.d(TAG) {
+            "one-shot read r=${radiusMeters.toInt()}m → ${dtos.size} docs, ${inBbox.size} in bbox, ${alive.size} alive"
+        }
+        NearbySpotsRead(
+            spots = alive.map { it.toEntity().toDomain() },
+            // ⛔ The RAW count, before any clipping: what Firestore charged for, not what we kept.
+            documentsRead = dtos.size,
+        )
     }
 
     override suspend fun reportSpotReleased(spot: Spot): Result<Unit> = runCatching {

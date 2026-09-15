@@ -44,6 +44,31 @@ class FirebaseDataSourceImpl(private val firestore: FirebaseFirestore) : Firebas
         return combine(flows) { maps -> maps.fold(emptyMap<String, SpotDto>()) { acc, m -> acc + m } }
     }
 
+    /**
+     * The same 3×3 geohash neighbourhood, read ONCE. [ZONE-A-LOOK-THAT-READS-THE-CACHE-IS-NOT-A-LOOK-001]
+     *
+     * ⛔ Built from the very same [geohashQueryBounds] as the listener above, and that is the point:
+     * two spellings of "which ground is this" would eventually answer differently, and the one that
+     * runs with the app closed is the one nobody would be watching when it did.
+     *
+     * `get()` and not `.snapshots.first()`: a snapshot flow attaches a listener and then detaches
+     * it, which is a subscription we do not want and a cost we cannot attribute.
+     */
+    override suspend fun getNearbySpotsOnce(
+        latitude: Double,
+        longitude: Double,
+        radiusMeters: Double,
+    ): Map<String, SpotDto> {
+        val bounds = geohashQueryBounds(latitude, longitude, radiusMeters)
+        return bounds.fold(emptyMap()) { acc, (startHash, endHash) ->
+            val snapshot = spotsCollection
+                .where { "geohash" greaterThanOrEqualTo startHash }
+                .where { "geohash" lessThan endHash }
+                .get()
+            acc + snapshot.documents.mapNotNull { doc -> doc.toSpotDto()?.let { doc.id to it } }
+        }
+    }
+
     override suspend fun reportSpotReleased(spotDto: SpotDto) {
         spotsCollection.document(spotDto.id).set(spotDto)
     }
