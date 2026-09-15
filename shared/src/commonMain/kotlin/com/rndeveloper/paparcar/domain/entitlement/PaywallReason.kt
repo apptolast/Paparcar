@@ -14,6 +14,7 @@ enum class PaywallReason {
     ZONES,
     STATS,
     ZONE_ALERTS,
+    ROUTE_CLOUD,
     GENERAL,
     ;
 

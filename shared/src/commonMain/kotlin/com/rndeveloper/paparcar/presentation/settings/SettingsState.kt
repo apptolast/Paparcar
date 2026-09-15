@@ -13,6 +13,9 @@ data class SettingsState(
     val isPlus: Boolean = false,
     /** Master gate for the Plus zone-alert notifications. [MONEY-001] */
     val notifyZoneSpots: Boolean = true,
+    /** Cloud copy of the ROUTE GEOMETRY — opt-in, Plus-gated, default OFF: trips stay on this
+     *  phone unless the user says otherwise. [PRIV-A-TRACE-IS-NOT-A-STAT-001] */
+    val syncRouteGeometry: Boolean = false,
     /** True when this platform + launcher can pin the parked-car widget from in-app — gates the
      *  "add the widget" row. [WIDGET-ACTIONS-002] */
     val canPinWidget: Boolean = false,

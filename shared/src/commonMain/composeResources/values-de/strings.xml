@@ -756,6 +756,7 @@
     <string name="paywall_reason_zones">Kostenlos bleiben zwei Zonen – mit Plus kannst du weitere erstellen.</string>
     <string name="paywall_reason_stats">Mit Plus siehst du deine Zahlen für jeden Zeitraum.</string>
     <string name="paywall_reason_zone_alerts">Hinweise auf freie Plätze in deinen Zonen sind Teil von Plus.</string>
+    <string name="paywall_reason_route_cloud">Routen im Konto zu speichern ist Teil von Plus.</string>
     <string name="paywall_free_alerts">Nicht enthalten</string>
     <string name="paywall_free_support">Für alle kostenlos</string>
     <string name="paywall_plus_history">Dein ganzer Verlauf</string>
@@ -777,6 +778,8 @@
     <string name="settings_plus_badge_active">AKTIV</string>
     <string name="settings_notif_zone_alerts">Zonen-Hinweise</string>
     <string name="settings_notif_zone_alerts_desc">Hinweis, wenn in deinen Zonen ein Platz frei wird</string>
+    <string name="settings_sync_routes">Routen im Konto speichern</string>
+    <string name="settings_sync_routes_desc">Deine Fahrten bleiben nur auf diesem Handy. Aktiviere dies, um sie auch auf deinen anderen Geräten zu sehen.</string>
     <string name="home_zone_form_notify_label">Bei freien Plätzen hier benachrichtigen</string>
     <!-- Notification surface - MIRRORED from app/src/main/res (Android stays the live source until it migrates to composeResources); parity enforced by NotificationCopyParityTest [IOS-NOTIF-A-SURFACE-THAT-SPEAKS-ONE-LANGUAGE-001] -->
     <string name="notif_confirmation_title">Hast du geparkt?</string>

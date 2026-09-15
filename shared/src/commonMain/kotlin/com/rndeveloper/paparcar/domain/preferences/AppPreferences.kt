@@ -144,6 +144,13 @@ interface AppPreferences {
     val notifyZoneSpots: Boolean
     fun setNotifyZoneSpots(enabled: Boolean)
 
+    /** [PRIV-A-TRACE-IS-NOT-A-STAT-001] Whether the ROUTE GEOMETRY (polyline + inferred spans) may
+     *  leave the device. Opt-in and Plus-gated in Settings, default **OFF**: the trip's FIGURES
+     *  (distance, search time) always sync -- they are numbers; the trace itself (where you drove)
+     *  only with this consent. USER-scoped: consent belongs to the account, cleared on sign-out. */
+    val syncRouteGeometry: Boolean
+    fun setSyncRouteGeometry(enabled: Boolean)
+
     val themeMode: ThemeMode
     fun setThemeMode(mode: ThemeMode)
 

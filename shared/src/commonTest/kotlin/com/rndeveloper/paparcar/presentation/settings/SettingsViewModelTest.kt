@@ -611,6 +611,32 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun `should_routeToThePaywallAndLeaveThePrefAlone_when_freeEnablesRouteCloudSync`() = runTest {
+        // [PRIV-A-TRACE-IS-NOT-A-STAT-001] Same soft gate as the zone alerts.
+        vm.effect.test {
+            vm.handleIntent(SettingsIntent.ToggleRouteCloudSync(enabled = true))
+            assertEquals(
+                SettingsEffect.NavigateToPaywall(com.rndeveloper.paparcar.domain.entitlement.PaywallReason.ROUTE_CLOUD),
+                awaitItem(),
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertFalse(prefs.syncRouteGeometry, "the attempt opens the paywall; consent must not flip")
+    }
+
+    @Test
+    fun `should_persistTheConsent_when_plusTogglesRouteCloudSync`() = runTest {
+        entitlementRepo.emitEntitlement(com.rndeveloper.paparcar.domain.model.Entitlement.PLUS)
+
+        vm.handleIntent(SettingsIntent.ToggleRouteCloudSync(enabled = true))
+        assertTrue(prefs.syncRouteGeometry)
+
+        // Withdrawing consent needs no entitlement and always sticks.
+        vm.handleIntent(SettingsIntent.ToggleRouteCloudSync(enabled = false))
+        assertFalse(prefs.syncRouteGeometry)
+    }
+
+    @Test
     fun `should_persistTheMasterSwitch_when_plusTogglesIt`() = runTest {
         entitlementRepo.emitEntitlement(com.rndeveloper.paparcar.domain.model.Entitlement.PLUS)
 

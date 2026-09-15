@@ -6,6 +6,7 @@ import dev.gitlive.firebase.firestore.FirebaseFirestore
 import kotlin.time.Clock
 import com.rndeveloper.paparcar.data.datasource.remote.dto.AddressDto
 import com.rndeveloper.paparcar.data.datasource.remote.dto.ParkingHistoryDto
+import com.rndeveloper.paparcar.data.datasource.remote.dto.withoutRouteGeometry
 import com.rndeveloper.paparcar.data.datasource.remote.dto.PlaceInfoDto
 import com.rndeveloper.paparcar.data.datasource.remote.dto.UserProfileDto
 import com.rndeveloper.paparcar.data.datasource.remote.dto.VehicleDto
@@ -13,6 +14,10 @@ import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 
 class RemoteUserProfileDataSourceImpl(
     private val firestore: FirebaseFirestore,
+    // [PRIV-A-TRACE-IS-NOT-A-STAT-001] The ONE door every session push converges on (save worker,
+    // pending drainer, iOS drainer, in-place mutations) -- so the local-first strip lives here and
+    // no caller can forget it. Nullable so test doubles keep explicit behaviour.
+    private val appPreferences: com.rndeveloper.paparcar.domain.preferences.AppPreferences? = null,
 ) : RemoteUserProfileDataSource {
 
     private fun usersCollection() = firestore.collection(COLLECTION_USERS)
@@ -64,7 +69,12 @@ class RemoteUserProfileDataSourceImpl(
     }
 
     override suspend fun saveParkingSession(userId: String, session: ParkingHistoryDto) {
-        parkingHistoryCollection(userId).document(session.id).set(session)
+        // [PRIV-A-TRACE-IS-NOT-A-STAT-001] A trace is not a stat: without the user's cloud-routes
+        // consent the FIGURES travel (distance, search time) and the GEOMETRY stays home. Applied
+        // at this single door; the full-document set() also scrubs any previously-synced geometry
+        // of this session on its next push, which is the retention promise keeping itself.
+        val outgoing = if (appPreferences?.syncRouteGeometry == true) session else session.withoutRouteGeometry()
+        parkingHistoryCollection(userId).document(session.id).set(outgoing)
     }
 
     override suspend fun clearParkingSessionActiveFlag(userId: String, sessionId: String) {

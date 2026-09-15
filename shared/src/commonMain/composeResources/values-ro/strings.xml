@@ -769,6 +769,7 @@
     <string name="paywall_reason_zones">Gratuit păstrezi două zone – cu Plus poți crea mai multe.</string>
     <string name="paywall_reason_stats">Cu Plus îți vezi cifrele pentru orice perioadă.</string>
     <string name="paywall_reason_zone_alerts">Alertele de locuri libere în zonele tale fac parte din Plus.</string>
+    <string name="paywall_reason_route_cloud">Păstrarea rutelor în contul tău face parte din Plus.</string>
     <string name="paywall_free_alerts">Neincluse</string>
     <string name="paywall_free_support">Gratuit pentru toți</string>
     <string name="paywall_plus_history">Tot istoricul tău</string>
@@ -790,6 +791,8 @@
     <string name="settings_plus_badge_active">ACTIV</string>
     <string name="settings_notif_zone_alerts">Alerte de zonă</string>
     <string name="settings_notif_zone_alerts_desc">Notificare când apare un loc liber în zonele tale</string>
+    <string name="settings_sync_routes">Salvează rutele în contul tău</string>
+    <string name="settings_sync_routes_desc">Călătoriile tale rămân doar pe acest telefon. Activează pentru a le vedea și pe celelalte dispozitive.</string>
     <string name="home_zone_form_notify_label">Anunță-mă despre locuri libere aici</string>
     <!-- Notification surface - MIRRORED from app/src/main/res (Android stays the live source until it migrates to composeResources); parity enforced by NotificationCopyParityTest [IOS-NOTIF-A-SURFACE-THAT-SPEAKS-ONE-LANGUAGE-001] -->
     <string name="notif_confirmation_title">Ai parcat?</string>

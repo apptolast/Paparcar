@@ -296,6 +296,12 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
 
     override fun setNotifyZoneSpots(enabled: Boolean) = set(Keys.NOTIFY_ZONE_SPOTS, enabled)
 
+    // [PRIV-A-TRACE-IS-NOT-A-STAT-001] Default OFF: the trace never leaves without the user saying so.
+    override val syncRouteGeometry: Boolean
+        get() = get(Keys.SYNC_ROUTE_GEOMETRY, false)
+
+    override fun setSyncRouteGeometry(enabled: Boolean) = set(Keys.SYNC_ROUTE_GEOMETRY, enabled)
+
     // ── Theme ────────────────────────────────────────────────────────────────
 
     override val themeMode: ThemeMode
@@ -350,6 +356,7 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         val PENDING_PROMPT_STREET = stringPreferencesKey("pending_prompt_window_street")
         val NOTIFY_PARKING_DETECTED = booleanPreferencesKey("notify_parking_detected")
         val NOTIFY_ZONE_SPOTS = booleanPreferencesKey("notify_zone_spots")
+        val SYNC_ROUTE_GEOMETRY = booleanPreferencesKey("sync_route_geometry") // [PRIV-A-TRACE-IS-NOT-A-STAT-001]
         // "notify_spot_freed" removed 2026-08-28: it gated a notification that never existed.
         // Stale values may linger in the DataStore file; they are inert. [SETTINGS-AUDIT-REMEDIATION-001]
         val THEME_MODE              = stringPreferencesKey("theme_mode")
@@ -379,6 +386,8 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
          * `DEFAULT_MAP_TYPE` describe this phone.
          */
         val USER_SCOPED_KEYS: List<Preferences.Key<*>> = listOf(
+            // [PRIV-A-TRACE-IS-NOT-A-STAT-001] Consent belongs to the account, not the device.
+            Keys.SYNC_ROUTE_GEOMETRY,
             // The guided tutorial: all three halves, so nothing is left claiming progress the next
             // account never made. The dismissal comes back from the ACCOUNT, not from here.
             Keys.FIRST_STEPS_DONE,

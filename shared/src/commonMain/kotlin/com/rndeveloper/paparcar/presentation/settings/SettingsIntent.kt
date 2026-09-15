@@ -5,6 +5,10 @@ sealed class SettingsIntent {
     data class ToggleParkingDetectedNotif(val enabled: Boolean) : SettingsIntent()
     /** Master switch for the Plus zone alerts; enabling as free routes to the paywall. [MONEY-001] */
     data class ToggleZoneAlertsNotif(val enabled: Boolean) : SettingsIntent()
+
+    /** [PRIV-A-TRACE-IS-NOT-A-STAT-001] Soft-gated like the zone alerts: enabling as free opens
+     *  the paywall; disabling is always allowed. */
+    data class ToggleRouteCloudSync(val enabled: Boolean) : SettingsIntent()
     /** The Plus entry at the top of Settings (free users only — Plus shows a badge). [MONEY-001] */
     data object OpenPlusPaywall : SettingsIntent()
     data object NavigateToVehicles : SettingsIntent()

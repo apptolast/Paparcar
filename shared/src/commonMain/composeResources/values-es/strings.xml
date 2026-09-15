@@ -751,6 +751,7 @@
     <string name="paywall_reason_zones">Free se queda con dos zonas: con Plus puedes crear más.</string>
     <string name="paywall_reason_stats">Con Plus ves tus cifras en el periodo que elijas.</string>
     <string name="paywall_reason_zone_alerts">Los avisos de plazas libres en tus zonas son parte de Plus.</string>
+    <string name="paywall_reason_route_cloud">Guardar tus rutas en tu cuenta es parte de Plus.</string>
     <string name="paywall_free_alerts">No incluidos</string>
     <string name="paywall_free_support">Gratis para todos</string>
     <string name="paywall_plus_history">Tu historial completo</string>
@@ -772,6 +773,8 @@
     <string name="settings_plus_badge_active">ACTIVO</string>
     <string name="settings_notif_zone_alerts">Alertas de zona</string>
     <string name="settings_notif_zone_alerts_desc">Aviso cuando aparezca una plaza libre en tus zonas</string>
+    <string name="settings_sync_routes">Guardar tus rutas en tu cuenta</string>
+    <string name="settings_sync_routes_desc">Tus trayectos se guardan solo en este móvil. Actívalo para verlos también en tus otros dispositivos.</string>
     <string name="home_zone_form_notify_label">Avisarme de plazas libres aquí</string>
     <!-- Notification surface - MIRRORED from app/src/main/res (Android stays the live source until it migrates to composeResources); parity enforced by NotificationCopyParityTest [IOS-NOTIF-A-SURFACE-THAT-SPEAKS-ONE-LANGUAGE-001] -->
     <string name="notif_confirmation_title">¿Has aparcado?</string>

@@ -45,6 +45,16 @@ fun reconcileParkingSessions(
             // Close provenance + route length ARE synced, but a legacy remote doc predating the
             // fields must not erase what this device already knows. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
             routeDistanceMeters = r.routeDistanceMeters ?: l?.routeDistanceMeters,
+            // [PRIV-A-TRACE-IS-NOT-A-STAT-001] The route GEOMETRY is local-first: a consent-off
+            // push writes the remote doc WITHOUT it, so a later sync-back carries null -- and
+            // taking that null would be local-first destroying the local copy. The figure above
+            // already had this shape; the trace gets it for a stronger reason. (Known edge,
+            // documented in the ticket: a cross-device REJECTED deletion can resurrect on the
+            // other device.)
+            routePolyline = r.routePolyline ?: l?.routePolyline,
+            routeSnapped = if (r.routePolyline != null) r.routeSnapped else (l?.routeSnapped ?: r.routeSnapped),
+            routeInferredSpans = r.routeInferredSpans ?: l?.routeInferredSpans,
+            routeInferredResolution = r.routeInferredResolution ?: l?.routeInferredResolution,
             searchTimeMs = r.searchTimeMs ?: l?.searchTimeMs,
             endedAtMs = r.endedAtMs ?: l?.endedAtMs,
             publishedSpot = r.publishedSpot || l?.publishedSpot == true,

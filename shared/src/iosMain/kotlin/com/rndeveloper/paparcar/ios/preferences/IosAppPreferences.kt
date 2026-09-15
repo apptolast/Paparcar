@@ -31,6 +31,7 @@ private const val KEY_PENDING_PROMPT_SHOWN_AT = "pending_prompt_window_shown_at"
 private const val KEY_PENDING_PROMPT_VEHICLE_NAME = "pending_prompt_window_vehicle_name"
 private const val KEY_NOTIFY_PARKING_DETECTED = "notify_parking_detected"
 private const val KEY_NOTIFY_ZONE_SPOTS = "notify_zone_spots"
+private const val KEY_SYNC_ROUTE_GEOMETRY = "sync_route_geometry" // [PRIV-A-TRACE-IS-NOT-A-STAT-001]
 private const val KEY_DARK_MODE_ENABLED = "dark_mode_enabled"
 private const val KEY_THEME_MODE = "theme_mode"
 private const val KEY_USE_IMPERIAL_UNITS = "use_imperial_units"
@@ -285,6 +286,14 @@ class IosAppPreferences : AppPreferences {
 
     override fun setNotifyZoneSpots(enabled: Boolean) {
         userDefaults.setBool(enabled, forKey = KEY_NOTIFY_ZONE_SPOTS)
+    }
+
+    // [PRIV-A-TRACE-IS-NOT-A-STAT-001] Absent key = false: the trace never leaves by default.
+    override val syncRouteGeometry: Boolean
+        get() = userDefaults.boolForKey(KEY_SYNC_ROUTE_GEOMETRY)
+
+    override fun setSyncRouteGeometry(enabled: Boolean) {
+        userDefaults.setBool(enabled, forKey = KEY_SYNC_ROUTE_GEOMETRY)
     }
 
     override val themeMode: ThemeMode

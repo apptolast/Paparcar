@@ -105,6 +105,7 @@ import paparcar.composeapp.generated.resources.paywall_plus_zones
 import paparcar.composeapp.generated.resources.paywall_reason_history
 import paparcar.composeapp.generated.resources.paywall_reason_stats
 import paparcar.composeapp.generated.resources.paywall_reason_vehicles
+import paparcar.composeapp.generated.resources.paywall_reason_route_cloud
 import paparcar.composeapp.generated.resources.paywall_reason_zone_alerts
 import paparcar.composeapp.generated.resources.paywall_reason_zones
 
@@ -492,6 +493,7 @@ private fun reasonLineRes(reason: PaywallReason): StringResource? = when (reason
     PaywallReason.ZONES -> Res.string.paywall_reason_zones
     PaywallReason.STATS -> Res.string.paywall_reason_stats
     PaywallReason.ZONE_ALERTS -> Res.string.paywall_reason_zone_alerts
+    PaywallReason.ROUTE_CLOUD -> Res.string.paywall_reason_route_cloud
     PaywallReason.GENERAL -> null
 }
 

@@ -755,6 +755,7 @@
     <string name="paywall_reason_zones">Free tiene due zone: con Plus puoi crearne altre.</string>
     <string name="paywall_reason_stats">Con Plus vedi le tue cifre per qualsiasi periodo.</string>
     <string name="paywall_reason_zone_alerts">Gli avvisi di posti liberi nelle tue zone fanno parte di Plus.</string>
+    <string name="paywall_reason_route_cloud">Salvare i percorsi nel tuo account fa parte di Plus.</string>
     <string name="paywall_free_alerts">Non inclusi</string>
     <string name="paywall_free_support">Gratis per tutti</string>
     <string name="paywall_plus_history">Tutto il tuo storico</string>
@@ -776,6 +777,8 @@
     <string name="settings_plus_badge_active">ATTIVO</string>
     <string name="settings_notif_zone_alerts">Avvisi di zona</string>
     <string name="settings_notif_zone_alerts_desc">Avviso quando appare un posto libero nelle tue zone</string>
+    <string name="settings_sync_routes">Salva i tuoi percorsi nel tuo account</string>
+    <string name="settings_sync_routes_desc">I tuoi viaggi restano solo su questo telefono. Attivalo per vederli anche sugli altri tuoi dispositivi.</string>
     <string name="home_zone_form_notify_label">Avvisami dei posti liberi qui</string>
     <!-- Notification surface - MIRRORED from app/src/main/res (Android stays the live source until it migrates to composeResources); parity enforced by NotificationCopyParityTest [IOS-NOTIF-A-SURFACE-THAT-SPEAKS-ONE-LANGUAGE-001] -->
     <string name="notif_confirmation_title">Hai parcheggiato?</string>

@@ -769,6 +769,7 @@
     <string name="paywall_reason_zones">W wersji darmowej masz dwie strefy – z Plus utworzysz więcej.</string>
     <string name="paywall_reason_stats">Z Plus widzisz swoje liczby za dowolny okres.</string>
     <string name="paywall_reason_zone_alerts">Powiadomienia o wolnych miejscach w twoich strefach są częścią Plus.</string>
+    <string name="paywall_reason_route_cloud">Zapisywanie tras na koncie to część Plus.</string>
     <string name="paywall_free_alerts">Niedostępne</string>
     <string name="paywall_free_support">Darmowe dla wszystkich</string>
     <string name="paywall_plus_history">Cała Twoja historia</string>
@@ -790,6 +791,8 @@
     <string name="settings_plus_badge_active">AKTYWNY</string>
     <string name="settings_notif_zone_alerts">Alerty stref</string>
     <string name="settings_notif_zone_alerts_desc">Powiadomienie, gdy w Twoich strefach pojawi się wolne miejsce</string>
+    <string name="settings_sync_routes">Zapisuj trasy na koncie</string>
+    <string name="settings_sync_routes_desc">Twoje przejazdy pozostają tylko na tym telefonie. Włącz, aby widzieć je także na innych urządzeniach.</string>
     <string name="home_zone_form_notify_label">Powiadamiaj o wolnych miejscach tutaj</string>
     <!-- Notification surface - MIRRORED from app/src/main/res (Android stays the live source until it migrates to composeResources); parity enforced by NotificationCopyParityTest [IOS-NOTIF-A-SURFACE-THAT-SPEAKS-ONE-LANGUAGE-001] -->
     <string name="notif_confirmation_title">Zaparkowałeś?</string>

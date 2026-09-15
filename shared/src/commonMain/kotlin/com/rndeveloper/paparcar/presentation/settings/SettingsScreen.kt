@@ -43,6 +43,7 @@ import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.CloudUpload
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Sensors
@@ -185,6 +186,8 @@ import paparcar.composeapp.generated.resources.settings_section_appearance
 import paparcar.composeapp.generated.resources.settings_section_detection
 import paparcar.composeapp.generated.resources.settings_section_map
 import paparcar.composeapp.generated.resources.settings_notif_zone_alerts
+import paparcar.composeapp.generated.resources.settings_sync_routes
+import paparcar.composeapp.generated.resources.settings_sync_routes_desc
 import paparcar.composeapp.generated.resources.settings_notif_zone_alerts_desc
 import paparcar.composeapp.generated.resources.settings_plus_badge_active
 import paparcar.composeapp.generated.resources.settings_plus_subtitle_active
@@ -503,6 +506,17 @@ fun SettingsContent(
                                 description = stringResource(Res.string.settings_notif_zone_alerts_desc),
                                 checked = state.isPlus && state.notifyZoneSpots,
                                 onCheckedChange = { onIntent(SettingsIntent.ToggleZoneAlertsNotif(it)) },
+                                subtitleColor = settingsSubtitleColor(),
+                            )
+                            PapDivider()
+                            // [PRIV-A-TRACE-IS-NOT-A-STAT-001] Local-first: the route GEOMETRY only
+                            // leaves the phone under this consent. Same soft gate as the row above.
+                            PapSwitchRow(
+                                icon = Icons.Rounded.CloudUpload,
+                                label = stringResource(Res.string.settings_sync_routes),
+                                description = stringResource(Res.string.settings_sync_routes_desc),
+                                checked = state.isPlus && state.syncRouteGeometry,
+                                onCheckedChange = { onIntent(SettingsIntent.ToggleRouteCloudSync(it)) },
                                 subtitleColor = settingsSubtitleColor(),
                             )
                         }

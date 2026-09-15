@@ -127,6 +127,7 @@ class SettingsViewModel(
                 autoDetectParking = prefs.autoDetectParking,
                 notifyParkingDetected = prefs.notifyParkingDetected,
                 notifyZoneSpots = prefs.notifyZoneSpots,
+                syncRouteGeometry = prefs.syncRouteGeometry,
             )
         }
     }
@@ -171,6 +172,17 @@ class SettingsViewModel(
                 } else {
                     prefs.setNotifyZoneSpots(intent.enabled)
                     updateState { copy(notifyZoneSpots = intent.enabled) }
+                }
+            }
+            // [PRIV-A-TRACE-IS-NOT-A-STAT-001] Same soft gate as the zone alerts: the trace only
+            // leaves the phone under a Plus consent, and a free user's attempt IS the paywall
+            // moment. Turning it OFF is always allowed — withdrawing consent needs no entitlement.
+            is SettingsIntent.ToggleRouteCloudSync -> {
+                if (intent.enabled && !state.value.isPlus) {
+                    sendEffect(SettingsEffect.NavigateToPaywall(PaywallReason.ROUTE_CLOUD))
+                } else {
+                    prefs.setSyncRouteGeometry(intent.enabled)
+                    updateState { copy(syncRouteGeometry = intent.enabled) }
                 }
             }
             // The Plus row is an OFFER, not a gate — GENERAL keeps the funnel honest. [FREE-LIMITS-001]

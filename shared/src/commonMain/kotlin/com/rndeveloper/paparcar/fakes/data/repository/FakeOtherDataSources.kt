@@ -260,6 +260,10 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     override val notifyZoneSpots: Boolean get() = _notifyZoneSpots.value
     override fun setNotifyZoneSpots(enabled: Boolean) { _notifyZoneSpots.value = enabled }
 
+    private val _syncRouteGeometry = MutableStateFlow(false)
+    override val syncRouteGeometry: Boolean get() = _syncRouteGeometry.value
+    override fun setSyncRouteGeometry(enabled: Boolean) { _syncRouteGeometry.value = enabled }
+
     private val _themeMode = MutableStateFlow(ThemeMode.SYSTEM)
     override val themeMode: ThemeMode get() = _themeMode.value
     override fun setThemeMode(mode: ThemeMode) { _themeMode.value = mode }

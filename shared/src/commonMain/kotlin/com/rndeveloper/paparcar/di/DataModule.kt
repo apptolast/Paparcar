@@ -79,7 +79,11 @@ val dataModule = module {
 
     // DataSources
     single<FirebaseDataSource> { FirebaseDataSourceImpl(get()) }
-    single<RemoteUserProfileDataSource> { RemoteUserProfileDataSourceImpl(get()) }
+    single<RemoteUserProfileDataSource> {
+        // appPreferences = the local-first consent, read at the single push door.
+        // [PRIV-A-TRACE-IS-NOT-A-STAT-001]
+        RemoteUserProfileDataSourceImpl(get(), appPreferences = getOrNull())
+    }
 
     // Detection diagnostics — Firestore-backed remote event log, gated by a Firestore flag
     // (diagnostics_config/{userId}.enabled). [DET-LOG-02]

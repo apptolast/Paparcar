@@ -756,6 +756,7 @@
     <string name="paywall_reason_zones">Gratis houd je twee zones – met Plus maak je er meer.</string>
     <string name="paywall_reason_stats">Met Plus zie je je cijfers over elke periode.</string>
     <string name="paywall_reason_zone_alerts">Meldingen van vrije plekken in je zones horen bij Plus.</string>
+    <string name="paywall_reason_route_cloud">Routes in je account bewaren is onderdeel van Plus.</string>
     <string name="paywall_free_alerts">Niet inbegrepen</string>
     <string name="paywall_free_support">Gratis voor iedereen</string>
     <string name="paywall_plus_history">Je volledige geschiedenis</string>
@@ -777,6 +778,8 @@
     <string name="settings_plus_badge_active">ACTIEF</string>
     <string name="settings_notif_zone_alerts">Zonemeldingen</string>
     <string name="settings_notif_zone_alerts_desc">Melding wanneer er een vrije plek in je zones verschijnt</string>
+    <string name="settings_sync_routes">Routes in je account bewaren</string>
+    <string name="settings_sync_routes_desc">Je ritten blijven alleen op deze telefoon. Zet dit aan om ze ook op je andere apparaten te zien.</string>
     <string name="home_zone_form_notify_label">Waarschuw me voor vrije plekken hier</string>
 
     <!-- Fuel block [VEH-FUEL-001] -->

@@ -755,6 +755,7 @@
     <string name="paywall_reason_zones">La version gratuite garde deux zones : avec Plus, créez-en davantage.</string>
     <string name="paywall_reason_stats">Avec Plus, vous voyez vos chiffres sur n'importe quelle période.</string>
     <string name="paywall_reason_zone_alerts">Les alertes de places libres dans vos zones font partie de Plus.</string>
+    <string name="paywall_reason_route_cloud">Conserver vos trajets dans votre compte fait partie de Plus.</string>
     <string name="paywall_free_alerts">Non inclus</string>
     <string name="paywall_free_support">Gratuit pour tous</string>
     <string name="paywall_plus_history">Tout ton historique</string>
@@ -776,6 +777,8 @@
     <string name="settings_plus_badge_active">ACTIF</string>
     <string name="settings_notif_zone_alerts">Alertes de zone</string>
     <string name="settings_notif_zone_alerts_desc">Alerte quand une place se libère dans tes zones</string>
+    <string name="settings_sync_routes">Enregistrer vos trajets dans votre compte</string>
+    <string name="settings_sync_routes_desc">Vos trajets restent uniquement sur ce téléphone. Activez pour les retrouver aussi sur vos autres appareils.</string>
     <string name="home_zone_form_notify_label">M'alerter des places libres ici</string>
     <!-- Notification surface - MIRRORED from app/src/main/res (Android stays the live source until it migrates to composeResources); parity enforced by NotificationCopyParityTest [IOS-NOTIF-A-SURFACE-THAT-SPEAKS-ONE-LANGUAGE-001] -->
     <string name="notif_confirmation_title">Tu t’es garé ?</string>

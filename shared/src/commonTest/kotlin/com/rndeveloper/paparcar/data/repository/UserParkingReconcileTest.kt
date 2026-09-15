@@ -25,6 +25,7 @@ class UserParkingReconcileTest {
         detectionPath: String? = null,
         retractedAtMs: Long? = null,
         zoneRadiusMeters: Float? = null,
+        routePolyline: String? = null,
     ) = UserParkingEntity(
         id = id,
         userId = "u1",
@@ -41,6 +42,7 @@ class UserParkingReconcileTest {
         detectionPath = detectionPath,
         retractedAtMs = retractedAtMs,
         zoneRadiusMeters = zoneRadiusMeters,
+        routePolyline = routePolyline,
     )
 
     // ── The doubt radius: one null, two meanings ─────────────────────────────────────────────
@@ -239,5 +241,29 @@ class UserParkingReconcileTest {
         val merged = reconcileParkingSessions(local, remote)
 
         assertEquals(2_500L, merged.single().retractedAtMs, "the withdrawal travels both ways")
+    }
+
+    // ── Local-first route geometry [PRIV-A-TRACE-IS-NOT-A-STAT-001] ──────────────────────────
+
+    @Test
+    fun `a consent-off push must not let the sync-back erase the local route`() {
+        // The push wrote the remote doc WITHOUT geometry (newer updatedAt); the local copy is the
+        // ONLY copy. Taking the remote null would be local-first destroying the local data.
+        val local = s("p1", updatedAt = 100, routePolyline = "encoded_route")
+        val remote = s("p1", updatedAt = 200, routePolyline = null)
+
+        val merged = reconcileParkingSessions(local = listOf(local), remote = listOf(remote)).single()
+
+        assertEquals("encoded_route", merged.routePolyline)
+    }
+
+    @Test
+    fun `a consented remote route still restores onto a device that never had one`() {
+        val local = s("p1", updatedAt = 100, routePolyline = null)
+        val remote = s("p1", updatedAt = 200, routePolyline = "cloud_route")
+
+        val merged = reconcileParkingSessions(local = listOf(local), remote = listOf(remote)).single()
+
+        assertEquals("cloud_route", merged.routePolyline)
     }
 }

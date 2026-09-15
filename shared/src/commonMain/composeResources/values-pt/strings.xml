@@ -755,6 +755,7 @@
     <string name="paywall_reason_zones">O plano gratuito fica com duas zonas: com o Plus pode criar mais.</string>
     <string name="paywall_reason_stats">Com Plus vês os teus números em qualquer período.</string>
     <string name="paywall_reason_zone_alerts">Os alertas de lugares livres nas suas zonas fazem parte do Plus.</string>
+    <string name="paywall_reason_route_cloud">Guardar as rotas na tua conta faz parte do Plus.</string>
     <string name="paywall_free_alerts">Não incluídos</string>
     <string name="paywall_free_support">Grátis para todos</string>
     <string name="paywall_plus_history">O teu histórico completo</string>
@@ -776,6 +777,8 @@
     <string name="settings_plus_badge_active">ATIVO</string>
     <string name="settings_notif_zone_alerts">Alertas de zona</string>
     <string name="settings_notif_zone_alerts_desc">Aviso quando aparecer um lugar livre nas tuas zonas</string>
+    <string name="settings_sync_routes">Guardar as tuas rotas na tua conta</string>
+    <string name="settings_sync_routes_desc">As tuas viagens ficam apenas neste telefone. Ativa para as veres também nos teus outros dispositivos.</string>
     <string name="home_zone_form_notify_label">Avisar-me de lugares livres aqui</string>
     <!-- Notification surface - MIRRORED from app/src/main/res (Android stays the live source until it migrates to composeResources); parity enforced by NotificationCopyParityTest [IOS-NOTIF-A-SURFACE-THAT-SPEAKS-ONE-LANGUAGE-001] -->
     <string name="notif_confirmation_title">Estacionaste?</string>

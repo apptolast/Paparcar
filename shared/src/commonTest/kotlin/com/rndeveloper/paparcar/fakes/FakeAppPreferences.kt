@@ -120,6 +120,10 @@ class FakeAppPreferences(
     override val notifyZoneSpots: Boolean get() = _notifyZoneSpots
     override fun setNotifyZoneSpots(enabled: Boolean) { _notifyZoneSpots = enabled }
 
+    private var _syncRouteGeometry = false
+    override val syncRouteGeometry: Boolean get() = _syncRouteGeometry
+    override fun setSyncRouteGeometry(enabled: Boolean) { _syncRouteGeometry = enabled }
+
     private var _themeMode = initialThemeMode
     override val themeMode: ThemeMode get() = _themeMode
     override fun setThemeMode(mode: ThemeMode) { _themeMode = mode }
