@@ -37,4 +37,32 @@ enum class FuelType {
     /** Carries a SECOND consumption figure (kWh) besides its litres — the plug-in hybrid shape.
      *  Asked as a question so call sites never spell `== PLUG_IN_HYBRID`. */
     val hasSecondaryElectric: Boolean get() = usesLiters && usesElectricity
+
+    /**
+     * Which product this car actually buys at the pump.
+     * [FUEL-A-HYBRID-FILLS-UP-WITH-PETROL-001]
+     *
+     * **A hybrid does not fill up with "hybrid": it fills up with petrol, and so does a plug-in
+     * hybrid.** No feed on earth emits a HYBRID price — Spain, France, Germany and OSM all quote the
+     * three products a forecourt sells — so a powertrain used as a lookup key answers null, silently,
+     * everywhere. That is one bug with three faces, and this is the one place it gets answered:
+     * the cost tile already knew it privately, the CO₂ table knew it privately, and the station
+     * lane knew it nowhere, which is why every hybrid driver saw a priceless list and a priceless
+     * map beside a peek quoting both pumps.
+     *
+     * ⛔ It is NOT the key of [com.rndeveloper.paparcar.domain.fuel.FuelStation.prices], which stays
+     * indexed by product. This is the CAR→PRODUCT conversion, applied where a car becomes a lookup,
+     * and it is idempotent by construction. A surface that itemises the pumps a station spoke about
+     * must keep asking with products.
+     *
+     * An [ELECTRIC] car answers ELECTRIC: it buys nothing at a pump, and saying "petrol" to make the
+     * lookup succeed would put a litre price on a car with no tank.
+     *
+     * A `when` and not a map, so a new [FuelType] cannot be added without answering this.
+     */
+    val pumpProduct: FuelType
+        get() = when (this) {
+            HYBRID, PLUG_IN_HYBRID -> GASOLINE
+            GASOLINE, DIESEL, LPG_CNG, ELECTRIC -> this
+        }
 }

@@ -33,7 +33,10 @@ object NearbyOrdering {
         stations
             .map { nearby ->
                 nearby.copy(
-                    price = pricedFor?.let { nearby.station.prices[it] },
+                    // Through the pump product: a forecourt is indexed by what it SELLS, and «for
+                    // the car being driven» includes the hybrid that buys petrol. Idempotent, so a
+                    // caller that already mapped loses nothing. [FUEL-A-HYBRID-FILLS-UP-WITH-PETROL-001]
+                    price = pricedFor?.let { nearby.station.prices[it.pumpProduct] },
                     distanceMeters = user?.let {
                         haversineMeters(it.latitude, it.longitude, nearby.station.latitude, nearby.station.longitude)
                     } ?: nearby.distanceMeters,

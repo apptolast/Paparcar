@@ -11,12 +11,20 @@ import com.rndeveloper.paparcar.domain.model.FuelType
  */
 object EmissionFactors {
 
-    /** kg CO₂ per litre of this fuel. Hybrids burn gasoline; null for a pure EV (no litres). */
-    fun kgCo2PerLiter(fuel: FuelType): Double? = when (fuel) {
-        FuelType.GASOLINE, FuelType.HYBRID, FuelType.PLUG_IN_HYBRID -> KG_CO2_PER_LITER_GASOLINE
+    /**
+     * kg CO₂ per litre of this fuel. Null for a pure EV (no litres).
+     *
+     * Chemistry answers about the LITRE, so the question is asked of the product the car buys —
+     * hybrids burn petrol, and that sentence is [FuelType.pumpProduct]'s to say, not a third
+     * private copy of it. [FUEL-A-HYBRID-FILLS-UP-WITH-PETROL-001]
+     */
+    fun kgCo2PerLiter(fuel: FuelType): Double? = when (fuel.pumpProduct) {
+        FuelType.GASOLINE -> KG_CO2_PER_LITER_GASOLINE
         FuelType.DIESEL -> KG_CO2_PER_LITER_DIESEL
         FuelType.LPG_CNG -> KG_CO2_PER_LITER_LPG
-        FuelType.ELECTRIC -> null
+        // Unreachable: pumpProduct maps both hybrids onto GASOLINE. Named rather than `else` so a
+        // new FuelType has to come back here and answer.
+        FuelType.ELECTRIC, FuelType.HYBRID, FuelType.PLUG_IN_HYBRID -> null
     }
 
     const val KG_CO2_PER_LITER_GASOLINE = 2.31

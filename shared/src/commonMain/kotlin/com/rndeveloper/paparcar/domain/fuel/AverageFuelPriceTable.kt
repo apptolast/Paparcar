@@ -49,32 +49,21 @@ data class AverageFuelPriceTable(
         if (!fuel.usesLiters) return null
         val code = countryCode?.uppercase() ?: return null
         val row = rows[code] ?: return null
-        val amount = when (fuel.pumpProduct()) {
+        // The table prices PRODUCTS — the three a pump sells — so the car's powertrain is mapped
+        // onto one by the shared [FuelType.pumpProduct]. ⛔ It used to be a private copy of that
+        // rule here, and a second private copy in EmissionFactors, while the station lane had none:
+        // the same sentence written twice and missing once is how every hybrid driver ended up with
+        // a priceless map. [FUEL-A-HYBRID-FILLS-UP-WITH-PETROL-001]
+        val amount = when (fuel.pumpProduct) {
             FuelType.GASOLINE -> row.gasoline
             FuelType.DIESEL -> row.diesel
             FuelType.LPG_CNG -> row.lpg
-            // Unreachable: pumpProduct() only ever returns the three products a pump sells, and
+            // Unreachable: pumpProduct only ever returns the three products a pump sells, and
             // usesLiters already excluded the electric case. Named rather than `else` so a new
             // FuelType has to come back here and answer. [VEH-A-NEW-VEHICLE-TYPE-MUST-NOT-BE-A-CAR-BY-OMISSION-001]
             FuelType.ELECTRIC, FuelType.HYBRID, FuelType.PLUG_IN_HYBRID -> null
         } ?: return null
         return Money(amount, row.currency)
-    }
-
-    /**
-     * Which product this fuel actually buys at the pump.
-     *
-     * A hybrid does not fill up with "hybrid": it fills up with petrol, and so does a plug-in
-     * hybrid. The table prices PRODUCTS — the three a pump sells — and this is what maps a car's
-     * powertrain onto one. Caught by its own test once already: `PLUG_IN_HYBRID` had no row and the
-     * spend for every hybrid came back null, which the screen would have shown as "no cost figure"
-     * rather than as the bug it was.
-     *
-     * A `when` and not a map, so a new [FuelType] cannot be added without answering this.
-     */
-    private fun FuelType.pumpProduct(): FuelType = when (this) {
-        FuelType.HYBRID, FuelType.PLUG_IN_HYBRID -> FuelType.GASOLINE
-        FuelType.GASOLINE, FuelType.DIESEL, FuelType.LPG_CNG, FuelType.ELECTRIC -> this
     }
 
     companion object {

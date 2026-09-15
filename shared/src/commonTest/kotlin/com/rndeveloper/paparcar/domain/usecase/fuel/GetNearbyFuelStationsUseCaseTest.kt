@@ -197,4 +197,80 @@ class GetNearbyFuelStationsUseCaseTest {
         assertNull(result.reportedAt)
         assertNull(result.stations.single().price)
     }
+
+    // ── A hybrid fills up with petrol ────────────────────────────────────────
+    // [FUEL-A-HYBRID-FILLS-UP-WITH-PETROL-001]
+
+    @Test
+    fun `should_quoteThePetrolPrice_when_theCarIsAHybrid`() = runTest {
+        // The Berlin fixture, measured: Tankerkönig quotes the two products, and nothing else. A
+        // car asking with HYBRID used to match no key at all and come back unpriced in silence.
+        val source = FakeSource(
+            FuelStationsResult(
+                listOf(
+                    station(
+                        "DE1",
+                        prices = mapOf(
+                            FuelType.GASOLINE to StationPrice(Money(2.309, "EUR")),
+                            FuelType.DIESEL to StationPrice(Money(2.399, "EUR")),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        val result = GetNearbyFuelStationsUseCase(source, FakeGeocoder(madrid))
+            .invoke(52.520, 13.405, FuelType.HYBRID).getOrThrow()
+
+        assertEquals(2.309, result.stations.single().price?.perUnit?.amount)
+        // And the answer names the PRODUCT, so whatever labels the figure cannot say «Híbrido».
+        assertEquals(FuelType.GASOLINE, result.fuel)
+    }
+
+    @Test
+    fun `should_quoteThePetrolPrice_when_theCarIsAPlugInHybrid`() = runTest {
+        val source = FakeSource(
+            FuelStationsResult(
+                listOf(station("DE2", prices = mapOf(FuelType.GASOLINE to StationPrice(Money(2.259, "EUR"))))),
+            ),
+        )
+        val result = GetNearbyFuelStationsUseCase(source, FakeGeocoder(madrid))
+            .invoke(52.520, 13.405, FuelType.PLUG_IN_HYBRID).getOrThrow()
+
+        assertEquals(2.259, result.stations.single().price?.perUnit?.amount)
+    }
+
+    @Test
+    fun `should_hideTheForecourt_when_aHybridsPetrolIsDeclaredNotSold`() = runTest {
+        // The other half of the same key. A station that STATES it sells no petrol is no use to a
+        // hybrid — but `isKnownNotToSell(HYBRID)` could never be true, so it stayed on the list.
+        val source = FakeSource(
+            FuelStationsResult(
+                listOf(
+                    station("NO_PETROL", availability = mapOf(FuelType.GASOLINE to FuelAvailability.NOT_SOLD)),
+                    station("PETROL", prices = mapOf(FuelType.GASOLINE to StationPrice(Money(1.859, "EUR")))),
+                ),
+            ),
+        )
+        val result = GetNearbyFuelStationsUseCase(source, FakeGeocoder(madrid))
+            .invoke(40.4168, -3.7038, FuelType.HYBRID).getOrThrow()
+
+        assertEquals(listOf("PETROL"), result.stations.map { it.station.id })
+    }
+
+    @Test
+    fun `should_priceNothing_when_theCarIsPurelyElectric`() = runTest {
+        // ⛔ The guard on the other side: mapping an EV onto petrol to make the lookup succeed would
+        // put a litre price beside a car with no tank.
+        val source = FakeSource(
+            FuelStationsResult(
+                listOf(station("DE3", prices = mapOf(FuelType.GASOLINE to StationPrice(Money(2.309, "EUR"))))),
+            ),
+        )
+        val result = GetNearbyFuelStationsUseCase(source, FakeGeocoder(madrid))
+            .invoke(52.520, 13.405, FuelType.ELECTRIC).getOrThrow()
+
+        assertNull(result.stations.single().price)
+        // Still listed: where to stop is a fair question even when nothing can be priced.
+        assertEquals(1, result.stations.size)
+    }
 }

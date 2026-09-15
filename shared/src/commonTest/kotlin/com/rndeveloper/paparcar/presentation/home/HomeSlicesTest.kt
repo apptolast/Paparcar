@@ -1002,6 +1002,27 @@ class HomeSlicesTest {
     }
 
     @Test
+    fun should_quotePetrolAndSayPetrol_when_theActiveCarIsAHybrid() {
+        // Measured on device in Berlin: the capsule and the row went blank while the peek quoted
+        // both pumps, because `prices[HYBRID]` matches nothing any feed emits. The label must move
+        // with the figure — «Híbrido» over a petrol price is the pairing the capsule exists to
+        // prevent. [FUEL-A-HYBRID-FILLS-UP-WITH-PETROL-001]
+        val state = HomeState(
+            nearbyLens = HomeNearbyLens.FUEL,
+            vehicles = listOf(carBurning(FuelType.HYBRID)),
+            fuel = com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice(
+                stations = listOf(pricedStation("a", 100.0, gasoline = 2.309, diesel = 2.399)),
+            ),
+        )
+
+        val map = state.toMapSlice()
+        assertEquals(listOf(2.309), map.fuelStations.map { it.price?.perUnit?.amount })
+        assertEquals(FuelType.GASOLINE, map.fuelPricesFor, "the figure and its subject share a source")
+        // The list reads the same store, so the row cannot disagree with the capsule.
+        assertEquals(listOf(2.309), state.fuelStationsShown.map { it.price?.perUnit?.amount })
+    }
+
+    @Test
     fun should_showTheGlyphAlone_when_nobodyDeclaredWhatTheCarBurns() {
         // No fuel, no figure — and no invented zero. The stations still show: where to refuel is a
         // fair question whatever the car burns.

@@ -433,9 +433,16 @@ data class HomeState(
      * ⛔ The one definition of "what this driver puts in", read by the map, the peek AND the
      * view model's own ask — which used to keep a second copy of these two lines. Two definitions of
      * the same thing is how the map ended up labelling one fuel and pricing another.
+     *
+     * ⛔ The PUMP PRODUCT, not the powertrain: what a driver puts in a hybrid is petrol, and every
+     * feed is indexed by what a forecourt sells. Asking with HYBRID matched nothing, so the row and
+     * the capsule went blank while the peek — which asks with products — quoted both pumps on the
+     * same screen. Mapping HERE and not lower down is what keeps the figure and its label sharing
+     * one source: `fuelPricesFor` reads this. [FUEL-A-HYBRID-FILLS-UP-WITH-PETROL-001]
      */
     val pricedFuelType: FuelType?
-        get() = vehicles.firstOrNull { it.isActive }?.fuelType ?: vehicles.firstOrNull()?.fuelType
+        get() = (vehicles.firstOrNull { it.isActive }?.fuelType ?: vehicles.firstOrNull()?.fuelType)
+            ?.pumpProduct
 
     /**
      * The stations the lane, the map, the peek, its stepper and the selection all read: the ONE

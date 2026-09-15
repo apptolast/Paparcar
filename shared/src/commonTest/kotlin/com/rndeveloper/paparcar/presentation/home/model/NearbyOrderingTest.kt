@@ -60,6 +60,25 @@ class NearbyOrderingTest {
     }
 
     @Test
+    fun should_priceAndRankAHybridLikeAPetrolCar_when_theForecourtQuotesOnlyProducts() {
+        // «Priced for the car being driven» includes the car that buys petrol without burning only
+        // petrol. Asking with HYBRID priced nothing, so a list of priced forecourts collapsed into
+        // one flat nearest-first run with no figures at all.
+        // [FUEL-A-HYBRID-FILLS-UP-WITH-PETROL-001]
+        val shown = NearbyOrdering.fuelStations(
+            stations = listOf(
+                station("near-unpriced", northMeters = 100.0),
+                station("far-priced", northMeters = 3_000.0, gasoline = 1.5),
+            ),
+            pricedFor = FuelType.HYBRID,
+            user = user,
+        )
+
+        assertEquals(listOf("far-priced", "near-unpriced"), shown.map { it.station.id })
+        assertEquals(1.5, shown.first().price?.perUnit?.amount)
+    }
+
+    @Test
     fun should_orderByDistanceAlone_andPriceNothing_when_nobodyDeclaredTheFuel() {
         val shown = NearbyOrdering.fuelStations(
             stations = listOf(station("far", 3_000.0, gasoline = 1.5), station("near", 100.0)),

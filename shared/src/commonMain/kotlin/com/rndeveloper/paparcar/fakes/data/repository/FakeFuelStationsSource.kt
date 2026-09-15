@@ -92,11 +92,15 @@ class FakeFuelStationsSource : FuelStationsSource {
             town = town,
             latitude = query.latitude + northMeters / METERS_PER_DEGREE,
             longitude = query.longitude + eastMeters / METERS_PER_DEGREE,
+            // ⛔ The three products a forecourt actually sells, and NOT ONE MORE. This fake used to
+            // also quote HYBRID and PLUG_IN_HYBRID, which no feed on earth emits — and since the
+            // catalogue's default car is a hybrid, the fixture answered the one lookup every real
+            // source returns null for. The mock set was hiding the exact bug it exists to surface:
+            // a hybrid driver saw a priceless row and a priceless capsule in production and a fully
+            // priced list in the gallery. [FUEL-A-HYBRID-FILLS-UP-WITH-PETROL-001]
             prices = mapOf(
                 FuelType.GASOLINE to price(BASE_GASOLINE),
                 FuelType.DIESEL to price(BASE_DIESEL),
-                FuelType.HYBRID to price(BASE_GASOLINE),
-                FuelType.PLUG_IN_HYBRID to price(BASE_GASOLINE),
                 FuelType.LPG_CNG to price(BASE_LPG),
             ),
         )

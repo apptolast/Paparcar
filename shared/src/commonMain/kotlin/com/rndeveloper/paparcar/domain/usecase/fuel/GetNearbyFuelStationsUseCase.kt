@@ -28,7 +28,14 @@ data class NearbyFuelStation(
 /** The answer, with the two things that make it readable: what was asked, and when it was said. */
 data class NearbyFuelStations(
     val stations: List<NearbyFuelStation>,
-    /** Null when nobody declared what the car burns — nothing was priced, nothing was hidden. */
+    /**
+     * The PUMP PRODUCT these stations were priced for, never the raw powertrain — a hybrid's answer
+     * says GASOLINE because that is the figure inside it. Null when nobody declared what the car
+     * burns: nothing was priced, nothing was hidden. [FUEL-A-HYBRID-FILLS-UP-WITH-PETROL-001]
+     *
+     * ⛔ It is what labels the figure. Echoing the powertrain here would let a caller print
+     * «Híbrido» over a petrol price, which is the one pairing the map capsule exists to keep honest.
+     */
     val fuel: FuelType?,
     /** The feed's own timestamp; null when the source carries no prices at all (OSM). */
     val reportedAt: String?,
@@ -107,23 +114,28 @@ class GetNearbyFuelStationsUseCase(
             radiusMeters = radiusMeters,
         )
 
+        // What this car buys at the pump, which is what every feed is indexed by. A hybrid asking
+        // for «hybrid» matched nothing anywhere and came back unpriced in silence.
+        // [FUEL-A-HYBRID-FILLS-UP-WITH-PETROL-001]
+        val product = fuel?.pumpProduct
+
         return stations.stationsNear(query).map { result ->
             NearbyFuelStations(
                 stations = result.stations
                     // ⛔ Hidden ONLY when the source states a negative. An untagged OSM station is
                     // UNKNOWN, and hiding those would empty the list in most of the world — 56% of
                     // stations measured carry no fuel tag at all.
-                    .filterNot { fuel != null && it.isKnownNotToSell(fuel) }
+                    .filterNot { product != null && it.isKnownNotToSell(product) }
                     .map { station ->
                         NearbyFuelStation(
                             station = station,
                             distanceMeters = haversineMeters(
                                 latitude, longitude, station.latitude, station.longitude,
                             ),
-                            price = fuel?.let { station.prices[it] },
+                            price = product?.let { station.prices[it] },
                         )
                     },
-                fuel = fuel,
+                fuel = product,
                 reportedAt = result.reportedAt,
                 // Carried through untouched: which stations are worth showing and when the app last
                 // managed to ask are unrelated questions.
