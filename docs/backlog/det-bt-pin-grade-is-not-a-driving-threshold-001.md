@@ -2,6 +2,12 @@
 
 **Estado:** 🟡 Abierto, sin rama · destapado por [DET-BT-PIN-IS-SAMPLED-AFTER-THE-WALK-001] (30-08)
 · **auditado el 03-09: la opción 2 tal como está escrita es un NO-OP** (ver abajo)
+· **re-verificado el 15-09 contra `d7880ac7`**: el suelo sigue siendo **uno y global** —
+`ParkingDetectionConfig.minGpsAccuracyForDriving = 50f` (`:846`), y `EvaluateBtParkUseCase` lo usa
+tal cual (`:293`, `fix.accuracy <= config.minGpsAccuracyForDriving`). Comparte causa con
+[DET-COARSE-FIX-DRIVE-PROOF-001](det-coarse-fix-drive-proof-001.md): **tocar ese número mueve los dos
+tickets a la vez**, en direcciones opuestas (aquí se pide bajarlo, allí que no ciegue a un móvil de
+accuracy mala). No se toca sin decidir los dos juntos.
 
 > ## Auditoría 03-09 — ⛔ «adoptar la duda que ya existe» no cambia nada, y eso reencuadra el ticket
 >

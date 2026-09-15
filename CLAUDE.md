@@ -102,6 +102,13 @@ WorkManager. `CoordinatorDetectionService` serializa todos los triggers en un in
 [DET-INTAKE-001] y solo hace I/O + side-effects: **la DECISIÓN vive en use cases puros de
 commonMain**. Todo pin persiste su `detectionPath` + `armEvidence` (provenance).
 
+⛔ **Carriles separados ≠ servicios separados** [DET-ONE-SERVICE-TWO-LANES-001, 15-09]: desde
+`d7880ac7` hay **UN solo FGS y una sola notificación** — `BluetoothDetectionService` está borrado y
+el carril BT entero (caza del disconnect, trabajo del connect, vigilancia de salida, grabador) entra
+por el MISMO intake, en slots de job propios (`btHuntJob`, `btTrackingJob`). La doctrina de no
+mezclar sigue INTACTA y ahora se lee así: *carriles separados = slots + use cases separados, mismo
+host*. Lo prohibido no ha cambiado: **cero señales BT dentro del scoring del Coordinator**.
+
 ---
 
 ## REGLAS DE CÓDIGO OBLIGATORIAS
@@ -239,8 +246,13 @@ Regla mental: *si su resultado no se puede citar en un diagnóstico, no es un ca
   `SentryWakeCooldown.kt`, `SentryLifecycleDecision.kt`, `VehicleFenceOwnershipPolicy.kt`,
   `HumanPoweredRide.kt`). Sigue siendo directamente testeable, sin ceremonia de clase inyectada.
 - **Un predicado NO se queda como método privado del coordinator sólo porque estuvieras editando ese
-  fichero.** Ese reflejo es lo que produjo a la vez ~45 casos de uso (hoy **47**) y un `CoordinatorParkingDetector`
-  de 2.600 líneas con 11 predicados puros dentro — no son dos problemas opuestos, son el mismo.
+  fichero.** Ese reflejo produjo a la vez ~45 casos de uso y un `CoordinatorParkingDetector` de 2.600
+  líneas con 11 predicados puros dentro — no son dos problemas opuestos, son el mismo.
+  **Medido el 15-09 (`d7880ac7`): el detector bajó a 1.466 líneas y 4 privadas, `domain/detection/`
+  tiene 95 ficheros de funciones puras, y los casos de uso son 57** — la cifra que importa no es
+  cuántos hay, es que cada uno sea citable en un diagnóstico. La clase gorda de hoy es
+  `CoordinatorDetectionService` (2.713 líneas, I/O del intake): auditarla es lo que queda de
+  [DET-VERDICT-NOT-PREDICATE-001].
 - **Arreglar un bug no justifica un caso de uso nuevo.** Lo normal es añadir una línea a un evaluador
   que ya existe. Crear uno se justifica cuando hay lógica **inalcanzable para los tests** (p. ej. una
   cadena que sólo se ejecuta tras un timeout de 15 min de reloj real).

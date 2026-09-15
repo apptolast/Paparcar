@@ -1,6 +1,8 @@
 # FIRESTORE-DEBUG-BUILDS-USE-DEBUG-DATABASE-001 · Los builds debug escriben en la base de datos `debug`, release en `(default)`
 
-**Estado:** 🔵 En progreso · rama `chore/FIRESTORE-DEBUG-BUILDS-USE-DEBUG-DATABASE-001` · worktree `../PaparcarKMP-firestore-debug-db`
+**Estado:** ✅ **Done — en master**, entregado dentro del squash `8c2daf09` (el merge de `IOS-F0-001`,
+que arrastró también `PARK-RELEASE-THE-SCREEN-NEVER-SAW-001` y `NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001`).
+Verificado 15-09; rama y worktree ya no existen.
 
 ## Problema
 Debug y release compartían la única base de datos Firestore del proyecto `pap-26`, `(default)`.

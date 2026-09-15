@@ -2,6 +2,10 @@
 
 **Estado:** 🔵 Abierto, sin código · detectado al diagnosticar el field 15-08
 · **auditado el 03-09 contra master: SIGUE VIVO, y ya se sabe por qué exactamente** (ver abajo)
+· **re-verificado en código el 15-09 contra `d7880ac7`**: la línea que lo sostiene sigue ahí —
+`CoordinatorDetectionService.kt:1331-1333` (`val staleGeofence = stalePin?.geofenceId ?: return`), y
+`EvaluateArEnterArmUseCase.kt:78` sigue abriendo con `session?.geofenceId ?: return NoSession`.
+Ni el pivote de trayectos ni la fusión de servicios lo tocaron.
 
 > ## Auditoría 03-09 — ⛔ el honest close NO lo cubre, y la razón es una línea
 >

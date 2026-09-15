@@ -1,7 +1,14 @@
 # FUEL-GERMANY-001 · Alemania, tercer país de la saga de combustible
 
-**Estado:** 📋 Backlog — **sin medir**. No tiene rama ni worktree. Decisión del user (10-09-2026):
-queda aparcado mientras se cierra `OVERPASS-A-SINGLE-MIRROR-HAS-NO-FAILOVER-001`.
+**Estado:** ✅ **SUPERSEDED — entregado el 15-09-2026** por
+[`fuel-germany-the-feed-answers-whole-001.md`](fuel-germany-the-feed-answers-whole-001.md)
+(`9afbc5e5`: `GermanyFuelStationsSource` + `GermanyStationParser` por Tankerkönig/MTS-K, clave por
+la cascada de build, strings ×9, galería mock). Este doc se conserva como el ENCARGO — el estudio de
+fuentes y el orden España → Francia → Alemania → Italia—; el estado real vive en el otro.
+⏳ Solo queda verlo en mano con GPS en Alemania. Siguiente del orden: **Italia**.
+
+> Estado original: 📋 Backlog — sin medir, sin rama, aparcado el 10-09 mientras se cerraba
+> `OVERPASS-A-SINGLE-MIRROR-HAS-NO-FAILOVER-001`.
 
 Orden fijado en [`fuel-france-a-price-carries-its-own-hour-001.md`](fuel-france-a-price-carries-its-own-hour-001.md):
 **Francia → Alemania → Italia**. España ✅ (Minetur) · Francia ✅ (`37c4ef48`).

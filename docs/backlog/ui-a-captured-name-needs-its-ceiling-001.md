@@ -1,6 +1,8 @@
 # UI-A-CAPTURED-NAME-NEEDS-ITS-CEILING-001 · el nombre de zona no tiene techo
 
-**Estado:** 🔵 Abierto, sin código
+**Estado:** 🔵 Abierto, sin código · **verificado el 15-09 contra `d7880ac7`**:
+`AddingZonePeek.kt:276-280` sigue siendo un `OutlinedTextField` con `onValueChange = onNameChange`
+sin `take(n)` ni contador; `singleLine = true` solo impide saltos de línea, no longitud.
 
 ## Problema
 El diálogo que captura el nombre de una zona (`AddingZonePeek.kt`, `ZoneNameDialog`) es un

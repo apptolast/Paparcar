@@ -1,6 +1,6 @@
 # DET-FENCE-REREGISTER-BY-CAUSE-001 · Re-registrar una geocerca por CAUSA, no por reloj
 
-**Estado:** 🟢 ✅ DONE (§D+§A+§B) — master `ef03cea6` (squash 21-08, sin pushear). ⏳ Pendiente SÓLO los dos números (suelo de la cura 6 h, periódico del janitor 12 h), que esperan la telemetría `GEOFENCE_REGISTRATION`.
+**Estado:** ✅ DONE (§D+§A+§B) — master `ef03cea6` (squash 21-08, sin pushear). ⏳ Pendiente SÓLO los dos números (suelo de la cura 6 h, periódico del janitor 12 h), que esperan la telemetría `GEOFENCE_REGISTRATION`.
 
 
 > ⚠️ La rama se apiló (no sale ya de master) porque su base traía Room **v18** y los móviles corren

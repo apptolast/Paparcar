@@ -1,7 +1,25 @@
 # PLUS-ROADMAP-001 · Paparcar Plus, segunda ola: límites free, combustible, estadísticas, gasolineras, parkings
 
-**Estado:** 📋 Abierto (2026-09-07) · F0 (fusión documental) ✅ ejecutada el 07-09 · ninguna fase de
-código empezada. Sucede a `MONEY-001` (✅ Done, mergeado 06-09).
+**Estado:** 🟡 **Casi cerrada** — verificado contra master `d7880ac7` el **2026-09-15**
+(`git log master --grep=<ID>` fase a fase, y en código donde la fase describe código). Sucede a
+`MONEY-001` (✅ Done, mergeado 06-09).
+
+**Quedan DOS cosas de esta ola, y ninguna es una fase a medias:**
+
+| Qué | Por qué sigue abierta |
+|---|---|
+| **F6b · `PARKINGS-LIVE-OCCUPANCY-001`** (ocupación en tiempo real de Madrid/Málaga) | ficha [`parkings-live-occupancy-001`](parkings-live-occupancy-001.md). F6a (la base mundial de Overpass en mapa y sheet) ✅ cerró el 10-09; la ocupación exige el **primer backend propio** del proyecto (Cloud Function programada), que es todo el coste de la fase |
+| **F8 · `VEH-SHARED-001`** (coche compartido, la feature estrella de Plus) | modelo ✅ decidido el 08-09 (proyección/espejo, §F8), **cero código y sin doc de ticket propio**. Era "octubre" por decisión del user |
+
+Cola menor heredada de fases ✅ (no bloquea cerrar la ola):
+[`fuel-station-brand-marks-001`](fuel-station-brand-marks-001.md) (🔵 decidido, sin empezar) ·
+**Italia**, siguiente país del orden medido ·
+[`parking-availability-vendor-001`](parking-availability-vendor-001.md) (🧊 diferido).
+~~Alemania~~ ✅ el 15-09 (`9afbc5e5`, [`fuel-germany-the-feed-answers-whole-001`](fuel-germany-the-feed-answers-whole-001.md)).
+
+⚠️ **F7 no se implementó como este doc lo escribió**: lo hizo el pivote de trayectos del 14-09 con
+otro nombre y otro cálculo (ver F7 abajo). Esta ola y el pivote se solaparon; el pivote manda en
+detección.
 
 > ⚠️ **Superado en la regla free/Plus de las cifras** por
 > [`stats-free-sees-every-figure-for-7-days-001.md`](stats-free-sees-every-figure-for-7-days-001.md)
@@ -103,19 +121,19 @@ Cuatro, tomadas por el user al fusionar este plan (venido de una sesión en Clau
 
 Orden fijado por el user (07-09) tras valorar éxito/riesgo/trabajo. **No se reordena sin preguntar.**
 
-| # | Ticket | Free/Plus | Toca detección | Estimación |
-|---|---|---|---|---|
-| A1 | `ANALYTICS-EVENTS-001` | transversal | no (emite desde el punto que ya estampa `detectionPath`) | ½ día |
-| A2 | `WIDGET-PARKED-001` | free | no | 1 día |
-| A2b | `WIDGET-ACTIONS-002` (mini-fase pedida el 08-09) | free | no | ½ día |
-| F1 | `FREE-LIMITS-001` | gating | no | 1 día |
-| F2 | `VEH-FUEL-001` | free (dato) | no | 2 días |
-| F3 | `STATS-CORE-001` | dominio | no | 2-3 días |
-| F4 | `STATS-UI-001` | free cifra / Plus panel | no | 4-5 días |
-| F5 | `FUEL-PRICES-001` | free | no | 3-4 días |
-| F6 | `PARKINGS-LIVE-001` | free | no | 3-4 días (+ Cloud Function) |
-| F7 | `DET-SEARCH-TIME-001` | Plus (agitación) | **sí** — octubre, skill `det-change` | 2-3 días |
-| F8 | `VEH-SHARED-001` | Plus (estrella) | **sí** — octubre, solo BT | 8-12 días |
+| # | Ticket | Free/Plus | Estado (verificado 15-09 contra `ddb448e4`) |
+|---|---|---|---|
+| A1 | `ANALYTICS-EVENTS-001` | transversal | ✅ master `f7933aab` (+ consola del user cerrada el mismo día) |
+| A2 | `WIDGET-PARKED-001` | free | ✅ master `d0f06451` |
+| A2b | `WIDGET-ACTIONS-002` | free | ✅ master (08-09) + 3 secuelas ✅ (`53890365`, `9eb5b5cd`, tall widget) |
+| F1 | `FREE-LIMITS-001` | gating | ✅ master `4cb380dd` |
+| F2 | `VEH-FUEL-001` | free (dato) | ✅ master `7a8b36aa` |
+| F3 | `STATS-CORE-001` | dominio | ✅ master `c43e3ad6` |
+| F4 | `STATS-UI-001` + `STATS-PANEL-001` | free cifra / Plus panel | ✅ master `fa131791` · **superado** por `1f276225` (free ve TODAS las cifras de 7 días; Plus vende el periodo) |
+| F5 | `FUEL-PRICES-001` | free | ✅ completa: resolver `fe9fb43f` → ES+FR con hora propia `37c4ef48` → mapa y peek `b2722ea0` (cierra F5) |
+| F6 | `PARKINGS-LIVE-001` | free | 🟡 **a medias**: F6a ✅ `36ba800b` (base mundial en mapa + sheet) · **F6b 🔵 PENDIENTE** (ocupación real, Cloud Function) |
+| F7 | `DET-SEARCH-TIME-001` | Plus (agitación) | ✅ **entregado por el pivote**, no por esta ola: `6622f8d9` [TRIP-THE-SEARCH-FOR-A-SPOT-IS-MEASURED-001] |
+| F8 | `VEH-SHARED-001` | Plus (estrella) | 🔵 **SIN EMPEZAR** — modelo decidido 08-09, cero código, sin doc de ticket |
 | — | SER Madrid (aparcada TRAS la ola, decisión 07-09) · `ROUTES-PLUS-001` · `PARKING-AFFILIATE-001` | después | — | ver roadmap padre |
 
 Cada fase, sin excepción: strings en los **9 locales** en la misma tarea (`LocaleParityGuardrailTest`);
@@ -286,6 +304,14 @@ kWh/gasto/CO₂ la heredan) · precios como `Money?` por energía (F5), gasto pa
 
 ### F4 · STATS-UI-001 — la cifra que el user no sabía, y el panel que la explica
 
+**Estado: ✅ EN MASTER** (`fa131791`, con `STATS-PANEL-001`) — fichas
+[`stats-ui-001.md`](stats-ui-001.md) y [`stats-panel-001.md`](stats-panel-001.md). El layout completo
+de la ficha del vehículo que el user exigió ANTES de código se hizo y se aprobó (cuatro zonas).
+⚠️ **La regla free/Plus de este apartado quedó SUPERADA** por
+[`stats-free-sees-every-figure-for-7-days-001`](stats-free-sees-every-figure-for-7-days-001.md)
+(`1f276225`, 14-09): no hay teaser-con-velo; free ve **todas** las cifras de sus últimos 7 días y
+Plus vende el **periodo**. Lo de abajo se conserva como origen, no como estado.
+
 **Objetivo.** (1) **Tarjeta teaser** en free con UNA cifra real y CTA a Plus; (2) **panel
 Estadísticas** completo para Plus; (3) las cifras que ya existen en Vehículos se integran, no se
 duplican.
@@ -336,6 +362,19 @@ una vez, no ir apilando.
 
 ### F5 · FUEL-PRICES-001 — precio real donde exista, media donde no, gasolineras cercanas
 
+**Estado: ✅ COMPLETA EN MASTER** — se ejecutó como cadena de tickets, no como uno:
+[`fuel-price-resolver-001`](fuel-price-resolver-001.md) (`fe9fb43f`, el gasto deja de ser null) →
+[`fuel-stations-list-001`](fuel-stations-list-001.md) → [`fuel-national-average-from-openvan-001`](fuel-national-average-from-openvan-001.md)
+→ [`fuel-an-average-must-say-when-it-was-measured-001`](fuel-an-average-must-say-when-it-was-measured-001.md)
+→ [`fuel-france-a-price-carries-its-own-hour-001`](fuel-france-a-price-carries-its-own-hour-001.md) (`37c4ef48`, FR con precio real)
+→ [`fuel-stations-map-and-peek-001`](fuel-stations-map-and-peek-001.md) (`b2722ea0`, **cierra F5**),
+más cuatro correcciones de campo (país desconocido, país del aparcamiento, sección que solo responde
+lo suyo, capa que sigue a la cámara) y `4a36d17b` (el postcode ES el `IDProvincia`).
+**Cola abierta, opcional:** [`fuel-station-brand-marks-001`](fuel-station-brand-marks-001.md)
+(marcas de enseña, decidido sin empezar) e **Italia**. Alemania ya NO está en la cola: entró el 15-09
+con `9afbc5e5` (Tankerkönig/MTS-K, clave por la cascada de build) —
+[`fuel-germany-the-feed-answers-whole-001`](fuel-germany-the-feed-answers-whole-001.md).
+
 **Preguntas del user, respondidas en el diseño:**
 - *¿La API del Ministerio vale para más países?* No: es solo España. Por eso el precio es un
   **puerto con adaptadores por país**, y el gasto estimado funciona **en todos los países** por
@@ -384,6 +423,15 @@ una vez, no ir apilando.
 ---
 
 ### F6 · PARKINGS-LIVE-001 — parkings públicos: base mundial + ocupación por adaptadores
+
+**Estado: 🟡 MITAD HECHA.**
+- **F6a ✅ EN MASTER** — [`parkings-on-the-map-001`](parkings-on-the-map-001.md) (`36ba800b`): capa 1
+  entera (Overpass mundial) en mapa y sheet, peek que solo afirma lo que la fuente dice, y después
+  `c47d401a` (una zona se pide una vez y se panea gratis), `e8c281ba` (el cap dejó de tirar el
+  parking más cercano) y el endurecimiento de Overpass (`f511fcfe`, `738e2355`, `04f4747c`).
+- **F6b 🔵 PENDIENTE** — [`parkings-live-occupancy-001`](parkings-live-occupancy-001.md): la capa 2
+  (ocupación real de Madrid/Málaga). Es **lo que queda de la ola junto con F8**, y es la que estrena
+  el primer backend propio (Cloud Function + deploy + secretos).
 
 **Cómo lo hacen los que muestran parkings de todo el mundo**: tres capas, y ninguna API única
 gratuita. Paparcar replica el modelo:
@@ -445,6 +493,17 @@ gratuita. Paparcar replica el modelo:
 
 ### F7 · DET-SEARCH-TIME-001 — tiempo buscando plaza (octubre, skill `det-change`)
 
+**Estado: ✅ ENTREGADO — pero por el pivote de trayectos, con otro nombre y otro cálculo**:
+[`trip-the-search-for-a-spot-is-measured-001`](trip-the-search-for-a-spot-is-measured-001.md)
+(`6622f8d9`, 14-09), fase 7 del plan de trayectos. Tres desviaciones respecto a lo escrito aquí, y
+las tres mandan sobre el texto de abajo:
+1. El campo es `UserParking.searchTimeMs` y el asiento ya estaba reservado en `PeriodStats`
+   (`searchTimeMs`, KDoc *"DET-SEARCH-TIME-001 (F7)"*) — no hizo falta un `searchDurationMs` nuevo.
+2. La regla es **"last time far" (> 300 m del ancla), nunca "first time near"**, medida SOLO en el
+   confirm (el polyline no lleva relojes) y con el reloj cerrado por el timestamp ORIGINAL del ancla.
+3. Room subió a **v10**, no a v4: la numeración de este doc se quedó atrás (v8 ruta, v9 postal, v10
+   searchTime). Free lo ve como cualquier otra cifra de sus 7 días, no es un gate de Plus.
+
 **Objetivo.** Persistir `searchDurationMs: Long?` en `UserParking` = tiempo entre la primera entrada
 del viaje en el radio de destino (~300 m del pin final) y la confirmación del aparcamiento. Es la
 estadística única de Paparcar ("este mes has perdido 2 h 40 min buscando plaza").
@@ -463,6 +522,13 @@ estadística única de Paparcar ("este mes has perdido 2 h 40 min buscando plaza
 ---
 
 ### F8 · VEH-SHARED-001 — coche compartido, solo Bluetooth (octubre, feature estrella de Plus)
+
+**Estado: 🔵 SIN EMPEZAR** (verificado 15-09: `git log master --grep=VEH-SHARED` → 0 commits; no hay
+`docs/backlog/veh-shared-001.md`). Lo que SÍ está cerrado es la decisión de modelo (08-09, abajo), y
+lo que la ola ha construido desde entonces no le estorba: con la proyección (B), nada de F2/F3/F7 hay
+que re-keyarlo. ⚠️ Releer antes de abrirla: el pivote de trayectos metió `routePolyline` bajo
+consentimiento local-first [PRIV-A-TRACE-IS-NOT-A-STAT-001, `ddb448e4`], así que *"la ruta personal
+no se comparte"* ya no es solo una regla de este doc — es el default del sistema.
 
 **Reglas acordadas (06/07-09):** solo con BT emparejado; sin geocerca compartida; el propietario
 con Plus cubre a hasta **4 miembros** que no necesitan Plus; los compartidos no cuentan para el

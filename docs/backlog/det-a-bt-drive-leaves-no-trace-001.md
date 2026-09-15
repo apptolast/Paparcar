@@ -5,6 +5,11 @@ grabador (`TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001`) y la ruta MEDIDA llega al c
 prueba de viaje (`DET-BT-A-PARK-IS-CONFIRMED-NOT-ASSUMED-001`). Queda la **vía A** (pin-a-pin
 retroactivo para el historial BT ya existente) — gated por validar el pin BT en campo (Kamiq).
 **Abierto:** 2026-08-31 · verificado contra master `748648fc` · actualizado 2026-09-14
+· **vía A re-verificada en código el 15-09 contra `d7880ac7`**: sigue cerrada por construcción en
+`EnrichParkingSessionWorker.isPinToPinEligible` (`:217-235`), donde `DetectionPath.Bt` y
+`DetectionPath.BtTimeout` están en la rama NO elegible con su motivo escrito (*"BT drives deserve a
+MEASURED route — separate gap"*). Abrirla es **una línea del `when`** más la decisión de qué contar
+como inferido; lo que falta no es código, es el viaje del Kamiq que valide el pin BT.
 
 ## Problema
 

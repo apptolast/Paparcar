@@ -1,7 +1,9 @@
 # DEV-AN-EDIT-VARIANT-MUST-EDIT-A-CAR-001 · Las variantes «Edición» de la galería pintan una moto
 
 **Estado:** 📋 Abierto · sin rama · detectado el 10-09-2026 durante
-`UI-A-NEUTRAL-TILE-MUST-NOT-MUTE-AN-ACTION-001`
+`UI-A-NEUTRAL-TILE-MUST-NOT-MUTE-AN-ACTION-001` · **verificado el 15-09 contra `d7880ac7`**:
+`StateGalleryScreen.kt:2277-2285` sigue construyendo el state de la variante «Edición» con
+`editingVehicleId`, marca, modelo, `sizeCategory` y `showBrandModelOnSpot` — **sin `vehicleType`**.
 
 ## Problema
 

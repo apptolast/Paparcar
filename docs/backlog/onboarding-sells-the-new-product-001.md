@@ -1,7 +1,8 @@
 # ONBOARDING-SELLS-THE-NEW-PRODUCT-001 · El onboarding cuenta el producto de hoy: tu coche vigilado, en cifras, y la plaza que liberas
 
-**Estado:** 🟡 En revisión · PR desde rama `feature/ONBOARDING-SELLS-THE-NEW-PRODUCT-001` ·
-GitHub issue [#7](https://github.com/apptolast/Paparcar/issues/7)
+**Estado:** ✅ **Done — en master** (`76d3f271` el onboarding nuevo, `6b3bb43f` las decisiones de
+revisión, `4787260e` la tercera página de parkings y gasolineras con su ilustración). Verificado
+15-09; la rama ya no existe. GitHub issue [#7](https://github.com/apptolast/Paparcar/issues/7).
 
 ## Problema
 Issue #7: «Vender la detección como servicio para evaluar datos de conducción y aparcamiento de tu

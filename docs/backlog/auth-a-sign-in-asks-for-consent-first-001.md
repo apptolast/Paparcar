@@ -1,6 +1,8 @@
 # AUTH-A-SIGN-IN-ASKS-FOR-CONSENT-FIRST-001 · Entrar en la app es aceptar la política, y hasta hoy nadie lo preguntaba
 
-**Estado:** 🔵 En progreso · rama `feature/AUTH-A-SIGN-IN-ASKS-FOR-CONSENT-FIRST-001-consent-checkbox` · worktree `../Paparcar-auth-consent`
+**Estado:** ✅ **Done — en master `91d35b7c`.** Rama y worktree ya no existen (verificado 15-09 con
+`git merge-base --is-ancestor`). La línea "🔵 En progreso" llevaba días mintiendo: el índice del
+backlog ya lo había marcado como sospechoso el 03-09.
 
 ## Problema
 La app crea una cuenta y empieza a recoger ubicación en background sin que el usuario haya visto

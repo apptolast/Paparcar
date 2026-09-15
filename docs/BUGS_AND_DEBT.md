@@ -1,7 +1,9 @@
 # Paparcar — Bugs y deuda técnica
 
-> **Doc vivo.** Inventario de lo que **sigue abierto hoy**. Verificado contra master `46621e7f` el
-> **2026-08-30**: cada punto se comprobó en el árbol (`grep`/`ls`), no de memoria.
+> **Doc vivo.** Inventario de lo que **sigue abierto hoy**. Re-verificado contra master `ddb448e4` el
+> **2026-09-15**: cada punto se comprobó en el árbol (`grep`/`ls`), no de memoria. Cambios de este
+> barrido: **§4 invirtió su signo** (la app ya está publicada y Room va por v10) y **§6 se cierra**
+> (`5ab6742f`). Los tres primeros son de iOS, **aparcado por el user el 07-09**.
 > Sustituye a `Gemini_Potential_Fixes.md`, **borrado** en este mismo barrido por estar reemplazado
 > por completo (recuperable en el histórico de git).
 >
@@ -60,28 +62,34 @@ un job `macos-latest` que al menos compila `iosMain` en cada push.
 
 ---
 
-## 4 · Room vive de un destructivo que caduca el día del lanzamiento
+## 4 · Room ya tiene usuarios detrás, y el destructivo sigue armado
 
-**Severidad:** media hoy, **crítica el día 1** · **Verificado:** `AppDatabase.kt` (`version = 1`),
-`AndroidAppDatabase.kt:27` y `IosPlatformModule.kt:40` (`fallbackToDestructiveMigration(dropAllTables = true)`).
+**Severidad:** 🔴 **alta — el día que este punto anunciaba YA PASÓ** (1.0.0 en producción el
+05-09-2026) · **Verificado 15-09:** `AppDatabase.kt:10` → `PAPARCAR_DB_VERSION = 10`;
+`AndroidAppDatabase.kt:52` e `IosPlatformModule.kt:45` siguen llamando
+`fallbackToDestructiveMigration(dropAllTables = true)`.
 
-La cadena v2..v20 y sus 16 esquemas se borraron a conciencia: describían upgrades de bases que solo
-existieron en nuestros propios móviles. v1 es la línea base y el destructivo es **correcto mientras no
-haya usuarios**. [DATA-ROOM-STARTS-AT-VERSION-ONE-001]
+Lo bueno: la tubería dejó de estar vacía. Hay `ALL_MIGRATIONS` compartido y registrado en los dos
+builders, y la cadena llega a **v10** (v8 ruta del viaje · v9 postal · v10 `searchTimeMs`), cada bump
+con su `Migration` y su testigo en el baseline.
 
-⚠️ **El primer release público invierte el signo de esta decisión.** Desde ahí hay datos que deben
-sobrevivir y todo cambio de esquema necesita `Migration` + schema exportado + `MigrationTestHelper`.
-No hay recordatorio automático de eso: está escrito en el KDoc de `AppDatabase` y aquí.
+Lo que queda abierto es el **signo del fallback**: con usuarios reales, un bump cuyo `Migration`
+falte **no falla ruidosamente, borra la base del usuario**. Hoy nada lo impide salvo la disciplina de
+quien sube la versión. Decidir (y escribirlo aquí) una de las dos:
+- quitar el destructivo en release y dejar que un esquema sin migración **crashee en debug**, o
+- conservarlo, pero con un test que falle si `PAPARCAR_DB_VERSION` sube sin su entrada en
+  `ALL_MIGRATIONS` — el recordatorio automático que hoy no existe.
+
+> El comportamiento del downgrade está **medido**, no supuesto (`AppDatabaseDowngradeTest`), y
+> `AppDatabaseV1BaselineTest` mide el agujero que ningún destructivo tapa: **misma versión + hash
+> distinto** rechaza el fichero en cada open, para siempre.
+> Historia: la cadena v2..v20 se borró a conciencia [DATA-ROOM-STARTS-AT-VERSION-ONE-001] y
+> `DATA-ROOM-RETURNS-TO-VERSION-ONE-001` la devolvió a v1 el 03-09; de ahí arranca la de hoy.
 
 > Ya se ensayó una vez: `DB-A-NEW-COLUMN-NEEDS-ITS-MIGRATION-001` bumpeó a v2 el 01-09 con los
 > móviles de banco como "usuarios", y `DATA-ROOM-RETURNS-TO-VERSION-ONE-001` lo retiró el 03-09 al
-> borrarse esos datos. La tubería (`ALL_MIGRATIONS` compartido, registrado en los dos builders)
-> sobrevivió vacía a propósito: lo caro no era la migración, era descubrir dónde va.
-
-> El comportamiento del downgrade está **medido**, no supuesto: `AppDatabaseDowngradeTest` demuestra
-> que no crashea. Ese test existe precisamente porque la documentación de Room dice lo contrario.
-> `AppDatabaseV1BaselineTest` mide además el agujero que ningún destructivo tapa: **misma versión +
-> hash distinto** rechaza el fichero en cada open, para siempre.
+> borrarse esos datos. Eso fue el ensayo; desde el 14-09 la tubería lleva carga real.
+> ⛔⛔ Y por eso `pm clear` en los móviles de banco **es un brick de datos**, no una limpieza.
 
 ---
 
@@ -101,15 +109,14 @@ es un **no-op silencioso**: hay que usar la CLI y verificar.
 
 ---
 
-## 6 · El flavor `mock` se rompe en las pantallas de auth
+## 6 · ~~El flavor `mock` se rompe en las pantallas de auth~~ — ✅ CERRADO
 
-**Severidad:** media (solo desarrollo) · **Ticket:** `MOCK-AUTH-SCREENS-NEED-THEIR-VIEWMODELS-001`.
+**Cerrado el 15-09** al re-verificar: `MOCK-AUTH-SCREENS-NEED-THEIR-VIEWMODELS-001` está en master
+(`5ab6742f`, *"the auth screens get their ViewModels, as a module and not as a list"*), y BaseLogin
+vive ya en Maven Central (**2.0.1**). Se conserva la entrada porque el diagnóstico —*los ViewModels
+se bindean como módulo, no como lista*— es la lección, no el síntoma.
 
-En `mock`, pulsar "Sign Up" mata la app; en `prod` está sana. La causa es de dependencias de BaseLogin
-que el módulo mock no bindea. Lo arregla de verdad **publicar BaseLogin 2.0.0 en Maven Central** — que
-es una sesión propia y aparte, porque el rename cambia TODOS los imports del proyecto.
-
-> ⛔ BaseLogin no se toca desde este repo.
+> ⛔ BaseLogin no se toca desde este repo. Y su `origin/master` DIVERGE del nuestro: no hacer `pull`.
 
 ---
 

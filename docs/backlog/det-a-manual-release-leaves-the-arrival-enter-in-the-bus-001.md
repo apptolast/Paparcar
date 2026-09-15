@@ -1,6 +1,9 @@
 # DET-A-MANUAL-RELEASE-LEAVES-THE-ARRIVAL-ENTER-IN-THE-BUS-001 · la liberación manual no resetea el bus de salidas
 
-**Estado:** 🔵 Abierto, sin empezar · sin rama
+**Estado:** 🔵 Abierto, sin empezar · sin rama · **verificado en código el 15-09 contra `d7880ac7`**:
+`ReleaseActiveParkingSessionUseCase` sigue sin una sola mención a `DepartureEventBus` (ni import, ni
+dependencia, ni `reset()`), mientras `ConfirmParkingUseCase:386` y `ProcessConfirmedDepartureUseCase:314`
+sí lo resetean. La tabla de abajo sigue siendo exacta.
 
 ## Problema
 

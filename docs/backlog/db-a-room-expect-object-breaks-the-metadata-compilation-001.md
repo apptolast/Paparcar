@@ -1,7 +1,11 @@
 # DB-A-ROOM-EXPECT-OBJECT-BREAKS-THE-METADATA-COMPILATION-001 · `compileCommonMainKotlinMetadata` no compila
 
 **Estado:** 🟡 abierto, sin rama ni código · descubierto 31-08-2026 al migrar BaseLogin a Maven
-Central ([[deps-baselogin-leaves-jitpack-for-maven-central-001]])
+Central ([[deps-baselogin-leaves-jitpack-for-maven-central-001]]) · **re-verificado el 15-09 contra
+`d7880ac7`**: `AppDatabase.kt:58-59` sigue con `@Suppress("NO_ACTUAL_FOR_EXPECT") expect object
+AppDatabaseConstructor`. ⚠️ El snippet de abajo lo sitúa en `:37-38` y la base ya va por **v10**
+(`PAPARCAR_DB_VERSION = 10`, `:10`): las líneas corrieron, la causa no. Sigue sin romper APK,
+framework ni tests — solo el análisis de `commonMain` en el IDE.
 
 ## Problema
 

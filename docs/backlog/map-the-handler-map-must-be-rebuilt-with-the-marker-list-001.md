@@ -1,6 +1,13 @@
 # MAP-THE-HANDLER-MAP-MUST-BE-REBUILT-WITH-THE-MARKER-LIST-001 · Al cambiar la vigilancia del viaje, salida y llegada pierden su dibujo
 
 **Estado:** 🔵 Hallazgo lateral, SIN arreglar (encontrado auditando el crash del 10-09-2026)
+· **re-verificado en código el 15-09 contra `d7880ac7`: sigue exactamente igual, con las líneas
+corridas.** Hoy: la lista keya por `watchKey` (`PaparcarMapView.kt:983`, y los contentId de salida y
+llegada lo llevan dentro — `:1164`, `:1176`), mientras el `remember` del mapa de handlers
+(**`:1202-1214`**) enumera 16 claves y **`watchKey` no está entre ellas**; los `put` de
+`departureContentId(watchKey)` / `arrivalContentId(watchKey)` (`:1269`, `:1274`) quedan dentro de un
+bloque que no se recompone cuando cambia la vigilancia. La tabla de abajo conserva las líneas del
+10-09 (966-983 / 1173-1184): son las mismas dos piezas.
 
 ## Problema
 

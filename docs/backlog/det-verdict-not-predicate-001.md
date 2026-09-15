@@ -1,6 +1,30 @@
 # DET-VERDICT-NOT-PREDICATE-001 · un caso de uso por veredicto; los predicados se agrupan con su dueño
 
-**Estado:** 🔵 Regla en `CLAUDE.md` ✅ · consolidación del código ⏳ pendiente (a ejecutar DESPUÉS de validar en campo los 3 fixes del field 16-08) · rama `chore/DET-VERDICT-NOT-PREDICATE-001-usecase-doctrine` · worktree `../Paparcar-usecase-doctrine`
+**Estado:** 🟡 **Regla en `CLAUDE.md` puesta, y la consolidación pasó SOLA por el camino largo** —
+re-medido en código el 15-09 contra `d7880ac7`. ⚠️ La rama y el worktree que citaba esta línea
+(`chore/DET-VERDICT-NOT-PREDICATE-001-usecase-doctrine`, `../Paparcar-usecase-doctrine`) **ya no
+existen**.
+
+| Medida | `96f948e9` (17-08) | **`d7880ac7` (15-09)** |
+|---|---|---|
+| Casos de uso (`*UseCase.kt` en `domain/usecase/`) | 45 | **57** |
+| `CoordinatorParkingDetector.kt` | 2.622 líneas | **1.466** |
+| `private fun` en el detector | 11 predicados puros | **4** |
+| Ficheros en `domain/detection/` | — | **95** (los predicados, como funciones puras de nivel superior) |
+
+Lo que arregló el bulto **no fue este ticket** sino `DET-PACKAGE-CLUSTERS-001` + el patrón de
+funciones puras (`HumanPoweredRide`, `SentryLifecycleDecision`, `FreedSpotIsStillThere`,
+`AssertedPinAuthority`, `MeasuredDepartureInstant`…, que citan esta doctrina en su KDoc) y el
+troceado del detector en `state/` + `stages/`. Los casos de uso **subieron** de 45 a 57, y eso está
+bien: cada uno nuevo es un veredicto citable en diagnóstico, que es justo lo que la regla pide.
+
+**Lo único que queda por mirar** es la otra clase gorda, que ahora es la de Android:
+`CoordinatorDetectionService.kt` = **2.713 líneas y 44 funciones privadas**. Vistas por nombre son
+handlers de I/O (el intake [DET-INTAKE-001]) salvo media docena que huelen a decisión —
+`nominatingSession`, `runCheapWakeTriage`, `exitCrossedAtMs`, `arbitrateBtEdge`, `stopIfIdle`,
+`resolveIdleEpilogue`—, y varias ya delegan en funciones puras del dominio. Cerrar este ticket =
+auditar esas seis y decidir si alguna es un veredicto disfrazado. No es urgente y **no se abre a la
+vez que un cambio de detección**.
 
 ## Problema
 

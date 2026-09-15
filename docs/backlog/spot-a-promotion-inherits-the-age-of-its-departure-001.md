@@ -3,6 +3,23 @@
 **Estado:** 📋 Abierto · sin rama · descubierto el 14-09-2026 durante
 [DET-AN-EXIT-IS-DATED-BY-THE-FIX-THAT-CROSSED-IT-001](det-an-exit-is-dated-by-the-fix-that-crossed-it-001.md)
 
+> ### Verificado en código el 15-09 contra `d7880ac7` — vivo, con DOS mitigaciones que ya existen
+>
+> El mecanismo está confirmado en dos sitios:
+> - `ReportSpotWorker.kt:71` declara *"The TTL is anchored to the RELEASE time (enqueue)"* y
+>   `:163` estampa `KEY_TIMESTAMP to Clock.System.now()…` **en el momento del encolado**. En la
+>   promoción ese momento es la promoción, no la salida deducida.
+> - `FinalizeDeducedDepartureUseCase.kt:95-96`: *"Same spot id → the worker's REPLACE policy rewrites
+>   the SAME document with the full TTL"*, y la llamada a `reportSpotReleased` (`:131-148`) **no pasa
+>   ningún instante**: pasa `deducedAtMs` a `clearActiveParkingSession` y no a la publicación.
+>
+> Lo que ya está tapado (no volver a escribirlo en el diseño): una promoción de **forma Zone**
+> conserva radio, confianza capada y **TTL provisional corto**; y un pin **desmentido por un CONNECT
+> BT en otro sitio** no promueve nada [DET-A-BT-CONNECT-KNOWS-WHERE-THE-CAR-IS-001]. El agujero real
+> que queda es el caso normal (forma punto): plaza con vida completa de 2 h anclada a la promoción.
+> **El arreglo es un parámetro, no una tubería**: hacer que la publicación acepte el instante de la
+> salida y que el worker lo use como ancla del TTL en vez de `now`.
+
 ## Problema
 
 `FinalizeDeducedDepartureUseCase` es la **segunda** puerta a la comunidad y es la única que no

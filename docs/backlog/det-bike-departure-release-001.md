@@ -1,6 +1,11 @@
 # DET-BIKE-DEPARTURE-RELEASE-001 · un paseo en bici sigue declarando que el coche se ha ido
 
 **Estado:** ⚪ Abierto, sin código · follow-up deliberado de [DET-BIKE-NOT-A-CAR-001](det-bike-not-a-car-001.md)
+· **verificado en código el 15-09 contra `d7880ac7`**: la asimetría persiste tal cual —
+`isHumanPoweredRide` (`domain/detection/HumanPoweredRide.kt:85`) solo veta el **guardado**
+(`stages/ConfidenceScoringStage.kt:126` → `StageVerdict.Skip`), y `VerifyDepartureEvidenceUseCase`
+no lo consulta en ninguna línea: la bici sigue pudiendo sellar `verified_speed` con
+`minimumDepartureSpeedKmh = 10f` (`ParkingDetectionConfig.kt:269`) y soltar la plaza.
 
 ## Problema
 

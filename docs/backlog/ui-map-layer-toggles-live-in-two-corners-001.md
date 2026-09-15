@@ -1,7 +1,16 @@
 # UI-MAP-LAYER-TOGGLES-LIVE-IN-TWO-CORNERS-001 · Las dos capas del mapa se piden desde esquinas distintas
 
-**Estado:** 🟡 Abierto, sin empezar · descubierto durante
-[UI-A-WARNING-COSTS-NOTHING-WHEN-SILENT-001] y dejado fuera de alcance por decisión del user.
+**Estado:** ✅ **Cerrado sin rama propia — lo resolvió `HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001`**
+(`b967323b`, 10-09) y lo remató `HOME-THE-WATCH-COMES-FIRST-AND-THE-HEADER-FOLLOWS-THE-LANE-001`
+(`fc683c38`). Ya no hay dos esquinas porque **ya no hay dos controles**: la banda de FABs perdió el
+grupo de capas y el mapa pinta el complemento del CARRIL que miras en la sheet. Verificado en código
+el 15-09 — `HomeMapFab.kt` lo dice en su cabecera (*"It used to carry a second group… That group is
+gone"*) y no queda ningún toggle de gasolineras.
+La cabecera conserva el `MapTypeToggle`, pero ese no cambia **qué** se pinta sino **sobre qué** —que
+era justo la distinción que este ticket pedía.
+
+> Estado original: 🟡 Abierto, sin empezar · descubierto durante
+> [UI-A-WARNING-COSTS-NOTHING-WHEN-SILENT-001] y dejado fuera de alcance por decisión del user.
 
 ## Problema
 

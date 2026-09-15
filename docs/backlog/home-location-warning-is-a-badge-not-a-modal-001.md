@@ -1,7 +1,8 @@
 # HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001 · Sin ubicación, Home avisa con un badge — no con un bloqueo rojo
 
-**Estado:** 🟡 En revisión · PR desde rama `bugfix/HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001` ·
-GitHub issue [#5](https://github.com/apptolast/Paparcar/issues/5)
+**Estado:** ✅ **Done — en master** (`68ce566e` el badge, `a09b5fe7` la sheet se abre sobre el aviso
+cuando se rechaza la primera petición, `124920dd` sin ubicación la cámara vuela al coche aparcado).
+Verificado 15-09; la rama ya no existe. GitHub issue [#5](https://github.com/apptolast/Paparcar/issues/5).
 
 ## Problema
 Issue #5: «Cuando pidamos permisos de localización en primer plano al iniciar home, que no aparezca

@@ -3,6 +3,13 @@
 **Estado:** 📋 Abierto · sin rama · descubierto el 14-09-2026 durante
 [DET-EVERY-TRIGGER-REPORTS-WHAT-IT-PRODUCED-001](det-every-trigger-reports-what-it-produced-001.md)
 
+> **Verificado en código el 15-09 contra `d7880ac7`.** `UserParking` (28 campos) sigue sin un solo
+> campo de procedencia de la MARCHA: lleva `detectionPath` y `armEvidence` —los dos de la LLEGADA—,
+> y del cierre solo `endedAtMs`, `publishedSpot`, `provisionalDepartureAtMs` y `retractedAtMs`, que
+> dicen *cuándo* y *si publicó*, nunca *quién lo detectó*. Cuatro cerradores distintos
+> (`ProcessConfirmedDepartureUseCase`, `ReleaseActiveParkingSessionUseCase`,
+> `FinalizeDeducedDepartureUseCase` y la retractación) escriben ese mismo cierre sin firmarlo.
+
 ## Problema
 
 Esta app consigue **dos** cosas: coloca un pin (aparcamiento) y libera una plaza (marcha). La

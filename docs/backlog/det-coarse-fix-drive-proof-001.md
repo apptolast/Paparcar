@@ -1,6 +1,11 @@
 # DET-COARSE-FIX-DRIVE-PROOF-001 · un móvil con accuracy crónicamente mala no puede probar NUNCA un viaje
 
 **Estado:** ⚪ Abierto, sin código · hallazgo del análisis del field 16-08 · **NO es el bug que cerró `e9186a52`**
+· **re-verificado el 15-09 contra `d7880ac7`**: la puerta sigue siendo `minGpsAccuracyForDriving = 50f`
+(`ParkingDetectionConfig.kt:846`), leída tanto por la reducción de fixes
+(`state/FixReduction.kt:88`, `credibleSpeedFix`) como por el carril BT (`EvaluateBtParkUseCase.kt:293`).
+⚠️ **Es el MISMO número que [DET-BT-PIN-GRADE-IS-NOT-A-DRIVING-THRESHOLD-001] quiere bajar**: los dos
+tickets tiran del mismo tornillo en sentidos opuestos y hay que decidirlos juntos.
 
 ## Problema
 

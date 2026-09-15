@@ -1,6 +1,6 @@
 # DET-HANDOFF-NOT-MANUAL-001 · El handoff del safety net no es "el usuario pulsó Estoy conduciendo"
 
-**Estado:** 🟢 ✅ DONE — master `26aec131` (squash 21-08, sin pushear). Pendiente §B.5 (instrumentar tasa de retractadas) y, en ticket propio, avisar a quien va de camino.
+**Estado:** ✅ DONE — master `26aec131` (squash 21-08, sin pushear). Pendiente §B.5 (instrumentar tasa de retractadas) y, en ticket propio, avisar a quien va de camino.
 
 
 ## Problema

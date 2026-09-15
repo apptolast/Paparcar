@@ -5,6 +5,28 @@
 · **03-09: las DOS barras candidatas implementadas y MEDIDAS contra el harness — las dos pierden un
 viaje real. El diseño de abajo está refutado tal como está escrito** (ver «Lo medido»)
 
+> ### Re-verificación en código, 15-09 contra `d7880ac7` — sigue vivo, y **la ruta del snippet ya no existe**
+>
+> ⚠️ El bloque de abajo cita `CoordinatorParkingDetector.kt` y `location.speed`. Desde
+> `DET-PACKAGE-CLUSTERS-001` la reducción vive en
+> **`domain/detection/state/FixReduction.kt:105-107`**, con `fix.speed`:
+>
+> ```kotlin
+> val hasJustReachedSpeed = !session.driveAuthorized &&
+>         fix.speed >= config.minimumTripSpeedMps &&
+>         credibleSpeedFix
+> ```
+>
+> Misma forma exacta: **velocidad declarada + precisión declarada, sin corroboración**. Lo que SÍ
+> cambió alrededor es la red que lo envuelve, y conviene no re-litigarla:
+> `DET-DISPLACEMENT-DRIVE-MUST-SURVIVE-ITS-NEXT-FIX-001` mantiene el cruce como
+> `provisionalCrossing` y lo **REVOCA** si el siguiente fix vuelve dentro del sobre de origen dentro
+> de `driveProofWindowMaxMs` (`FixReduction.kt:98-104`), y `credibleSpeedFix` se apoya en
+> `minGpsAccuracyForDriving` (**50 m**, `ParkingDetectionConfig.kt:846`) — el mismo suelo global que
+> discuten [DET-BT-PIN-GRADE-IS-NOT-A-DRIVING-THRESHOLD-001] y [DET-COARSE-FIX-DRIVE-PROOF-001].
+> Es decir: el espejismo de interior ya no sobrevive si la traza lo desmiente, pero **un solo fix
+> sigue siendo suficiente mientras nada lo contradiga**. El ticket sigue abierto por eso.
+
 ## Problema
 
 `ParkingDetectionState.hasEverReachedDrivingSpeed` — la bandera que desarma **todos** los guards
