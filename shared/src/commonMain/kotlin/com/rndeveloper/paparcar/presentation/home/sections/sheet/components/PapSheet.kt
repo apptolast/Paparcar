@@ -75,7 +75,7 @@ import paparcar.composeapp.generated.resources.home_peek_dismiss_cd
  * hatch). One anatomy, five optional slots: [UI-SHEET-001]
  *
  *  ┌──────────────────────────────────────────────────────────────────────┐
- *  │ ‹  [LEAD]  EYEBROW (state-tinted caps)                [× | pill]   › │
+ *  │ ‹  [LEAD]  EYEBROW (state-tinted caps)                       [×]   › │
  *  │     46dp   Title — 1 line, ellipsis (the address)                    │
  *  │            subtitle (optional, muted)                                │
  *  ├──────────────────────────────────────────────────────────────────────┤
@@ -97,7 +97,19 @@ internal fun PapSheet(
     eyebrow: String,
     title: String,
     modifier: Modifier = Modifier,
-    onDismiss: () -> Unit = {},
+    /**
+     * How this sheet is CLOSED — and, by the same token, whether it wears a ✕ at all: the button is
+     * drawn if and only if there is a close to run. Null (the default) = this surface has no way out
+     * of its own (browse, a screen whose exit is the top bar's back), so no ✕.
+     *
+     * ⛔ One parameter on purpose. It used to be two — a `trailing = Dismiss` default that drew the
+     * button and an `onDismiss = {}` default that did nothing — and every combination compiled,
+     * including the one that makes no sense. Browse fell into it the moment
+     * [UI-NO-LOCATION-WEARS-THE-ACCURACY-PILL-001] removed the badge that had been occupying its
+     * trailing slot: the header inherited the default ✕, wired to the default no-op, and promised an
+     * exit that did not exist. [UI-A-CLOSE-X-MUST-CLOSE-SOMETHING-001]
+     */
+    onDismiss: (() -> Unit)? = null,
     eyebrowTone: PapSheetEyebrowTone = PapSheetEyebrowTone.Neutral,
     /** Overrides the tone colour — the reliability palette of a community spot. */
     eyebrowColor: Color? = null,
@@ -117,7 +129,6 @@ internal fun PapSheet(
      * explaining. [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] [UI-SHEET-006]
      */
     subtitleMaxLines: Int = 1,
-    trailing: PapSheetTrailing? = PapSheetTrailing.Dismiss,
     /** Pager chrome: the ‹ / › that open the pin before/after this one. Null (the default) leaves
      *  the header at full width, exactly as it was before the stepper existed.
      *  [UI-PEEK-STEPS-BETWEEN-PINS-001] */
@@ -166,7 +177,7 @@ internal fun PapSheet(
             contentPadding = PaddingValues(top = 12.dp, bottom = 14.dp),
             gap = 12.dp,
             leading = { PapSheetLeadTile(lead) },
-            trailing = papSheetHeaderTrailing(trailing, stepper, onDismiss),
+            trailing = papSheetHeaderTrailing(stepper, onDismiss),
         )
 
         // ── Slot 2 · Banner ───────────────────────────────────────────────
@@ -236,14 +247,16 @@ internal data class PapSheetStepper(
  * The three don't look alike on purpose: a filled circle acts on THIS card (dismiss), a bare glyph
  * moves BETWEEN cards. With three identical tonal pills in a row, the × and the › read as twins and
  * closing by accident is one mis-tap away.
+ *
+ * The × is drawn from [onDismiss] itself — no separate "should there be one" flag — so a header can
+ * never show a way out it does not have. [UI-A-CLOSE-X-MUST-CLOSE-SOMETHING-001]
  */
 private fun papSheetHeaderTrailing(
-    trailing: PapSheetTrailing?,
     stepper: PapSheetStepper?,
-    onDismiss: () -> Unit,
+    onDismiss: (() -> Unit)?,
 ): (@Composable () -> Unit)? {
     val pager = stepper?.takeIf { it.hasAny }
-    if (pager == null && trailing == null) return null
+    if (pager == null && onDismiss == null) return null
     return {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (pager != null) {
@@ -258,12 +271,9 @@ private fun papSheetHeaderTrailing(
                     contentDescription = pager.nextContentDescription,
                     onClick = pager.onNext,
                 )
-                if (trailing != null) Spacer(Modifier.width(STEPPER_TO_DISMISS_GAP_DP.dp))
+                if (onDismiss != null) Spacer(Modifier.width(STEPPER_TO_DISMISS_GAP_DP.dp))
             }
-            when (trailing) {
-                PapSheetTrailing.Dismiss -> PapSheetDismissButton(onDismiss = onDismiss)
-                null -> Unit
-            }
+            if (onDismiss != null) PapSheetDismissButton(onDismiss = onDismiss)
         }
     }
 }
@@ -371,16 +381,12 @@ private fun PapSheetEyebrowTone.color(): Color = when (this) {
     PapSheetEyebrowTone.Neutral -> MaterialTheme.colorScheme.onSurfaceVariant
 }
 
-/** Header trailing: dismiss × in modal states; in browse, nothing — or a [Warning] badge. */
-internal sealed interface PapSheetTrailing {
-    data object Dismiss : PapSheetTrailing
-
-    // ⛔ There was a `Warning` badge here — the only thing that ever wore it was Home's
-    // missing-location warning, which now speaks from the map's location pill, where a warning
-    // about the location does not compete for the width the header uses to NAME things.
-    // It is gone rather than kept "in case": a variant with no subject is a variant that drifts.
-    // [UI-NO-LOCATION-WEARS-THE-ACCURACY-PILL-001]
-}
+// ⛔ There was a `PapSheetTrailing` sealed interface here, deciding what the header's trailing slot
+// held. It ended up with ONE member, `Dismiss`, once [UI-NO-LOCATION-WEARS-THE-ACCURACY-PILL-001]
+// deleted the `Warning` badge — and a one-member choice that answers "is there a ✕?" is the same
+// question `onDismiss` already answers, asked twice. Asked twice, the two can disagree, and they
+// did: Browse drew the × from the `trailing` default and ran the `onDismiss` no-op.
+// Now the lambda alone decides. [UI-A-CLOSE-X-MUST-CLOSE-SOMETHING-001]
 
 @Composable
 private fun PapSheetLeadTile(lead: PapSheetLead) {

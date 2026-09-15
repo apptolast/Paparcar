@@ -109,6 +109,12 @@ internal fun BrowsePeek(
     // car, the address, the lane. It now lives in the map's location pill, which was standing
     // silent at exactly that moment: without a fix there is no accuracy to report.
     // [UI-NO-LOCATION-WEARS-THE-ACCURACY-PILL-001]
+    //
+    // ⛔ Y por eso NINGUNA de las tres ramas de abajo pasa `onDismiss`: browse es el estado BASE de
+    // Home — el sitio al que vuelven los demás—, así que no tiene nada que cerrar. Al mudarse el
+    // badge, el hueco del trailing quedó libre y `PapSheet` colaba ahí su ✕ por defecto, cableada a
+    // un `onDismiss` vacío: un botón de cerrar que no cerraba nada. Hoy la ✕ nace de la lambda, así
+    // que no pasarla ES no tener salida. [UI-A-CLOSE-X-MUST-CLOSE-SOMETHING-001]
 
     // ── Subject = the car being driven RIGHT NOW (monitored trip) ─────────────
     // Collapsed peek only. A live trip OUTRANKS any parked car — the vehicle being actively

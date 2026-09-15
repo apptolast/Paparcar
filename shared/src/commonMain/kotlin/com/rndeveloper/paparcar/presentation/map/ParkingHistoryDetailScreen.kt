@@ -677,8 +677,8 @@ private fun HistoryParkingCard(
         eyebrowHighlightColor = identity,
         title = title,
         subtitle = subtitle,
-        // No dismiss: this is a screen, and the top bar's back arrow is its way out.
-        trailing = null,
+        // No `onDismiss`, so no ×: this is a screen, and the top bar's back arrow is its way out.
+        // [UI-A-CLOSE-X-MUST-CLOSE-SOMETHING-001]
         stepper = PapSheetStepper(
             prevContentDescription = stringResource(Res.string.parking_detail_prev),
             nextContentDescription = stringResource(Res.string.parking_detail_next),
