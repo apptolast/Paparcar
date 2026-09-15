@@ -21,23 +21,32 @@ Paparcar es una app KMP (Kotlin Multiplatform) de compartición de plazas de apa
 
 ## Stack
 > Fuente de verdad: `gradle/libs.versions.toml`. Todas las versiones de abajo re-verificadas contra
-> el catálogo y el wrapper el **2026-08-30** (master `46621e7f`) — ninguna había derivado.
+> el catálogo y el wrapper el **2026-09-15** ([BUILD-DEPS-AT-LATEST-STABLE-002]) — **doce** subieron:
+> once que habían derivado respecto a su índice upstream, más `kmp-maps`, que no sale de ningún
+> índice porque es nuestro fork. El resto ya estaba en su última estable.
 > Solo estables en el catálogo: ni un alpha/beta/rc. Al comprobar si algo se ha quedado atrás,
 > consultar `repo1.maven.org/.../maven-metadata.xml` y `dl.google.com/dl/android/maven2/.../group-index.xml`
 > — el índice de `search.maven.org/solrsearch` está obsoleto y miente por versiones enteras.
-- Lenguaje: Kotlin 2.4.10 (KSP 2.3.11) · Gradle 9.7.1
-- Build: AGP 9.3.2 · compileSdk 37 · targetSdk 37 (Android 17) · minSdk 26
+> ⚠️ `kotlinx-datetime` publica una línea `0.8.0-0.6.x-compat` que **ordena después** de `0.8.0` sin
+> ser más nueva: es la variante de compatibilidad con la API 0.6. No leerla como un bump pendiente.
+- Lenguaje: Kotlin 2.4.20 (KSP 2.3.12) · Gradle 9.7.1 (**es la actual**, no hay 9.8)
+- Build: AGP 9.4.0 · compileSdk 37 · targetSdk 37 (Android 17) · minSdk 26
 - UI: Compose Multiplatform 1.12.0 · Material3 (JB) 1.9.0 (**no hay estable por encima**) · Navigation Compose 2.9.2
 - Arquitectura: Clean Architecture + MVI (State + Intent + Effect)
 - DI: Koin 4.2.2
-- DB local: Room KMP 2.8.4 (SQLite bundled 2.7.0)
-- Backend: Firebase (GitLive KMP SDK 2.6.0) · firebase-bom 34.18.0
-- Auth: BaseLogin (librería propia, JitPack) — ⛔ no se toca desde Paparcar
+- DB local: Room KMP 2.8.5 (SQLite bundled 2.7.1)
+- Backend: Firebase (GitLive KMP SDK 2.7.0) · firebase-bom 34.19.0
+- Auth: BaseLogin 3.0.0 (librería propia, **Maven Central** `io.github.apptolast:baselogin` desde
+  2.0.0; JitPack quedó atrás) — ⛔ no se toca desde Paparcar
 - Async: Coroutines 1.11.0 + Flow · Serialization 1.11.0 · Datetime 0.8.0
-- Mapas: kmp-maps **fork propio** `io.github.rndevelo.kmpmaps:core:0.9.1-puck5`, ya en Maven Central
+- Mapas: kmp-maps **fork propio** `io.github.rndevelo.kmpmaps:core:0.9.1-puck6`, ya en Maven Central
   (marker de id estable; upstream SW Mansion 0.9.1 + PR #170 sin mergear) — su versión la manda
   nuestro repo, no upstream
-- Imágenes: Coil 3.6.0 + Ktor 3.5.2 (motor de red)
+- Imágenes: Coil 3.6.2 + Ktor 3.5.2 (motor de red)
+- Monetización: RevenueCat `purchases-kmp` 3.8.0 — ⛔ **no volver a declarar el artefacto Android
+  `purchases` a mano**: 3.8.0 ya pina 10.20.0, la versión con las consumer rules de R8 estrechadas,
+  así que el puente de [R8-REVENUECAT-ALREADY-NARROWED-ITS-RULES-001] murió en
+  [BUILD-DEPS-AT-LATEST-STABLE-002]
 - Logging: Napier 2.7.1 · Monitoring: Firebase Crashlytics
 
 > El repo **no tiene `gradlew.bat`**: compilar SIEMPRE con la herramienta Bash (`./gradlew …`).

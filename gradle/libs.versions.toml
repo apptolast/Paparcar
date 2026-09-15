@@ -6,7 +6,7 @@
 [versions]
 
 # ── Android ──────────────────────────────────────────────────────────────────
-agp = "9.3.2"
+agp = "9.4.0"
 android-compileSdk = "37"
 android-minSdk = "26"      # NotificationChannel (26) + FOREGROUND_SERVICE_LOCATION (29) → mínimo real 26
 android-targetSdk = "37"
@@ -14,8 +14,8 @@ android-targetSdk = "37"
 # ── Kotlin & KMP ─────────────────────────────────────────────────────────────
 componentsResources = "1.12.0"
 foundation = "1.12.0"
-kotlin = "2.4.10"
-ksp = "2.3.11"   # Esquema propio, independiente de la versión de Kotlin
+kotlin = "2.4.20"
+ksp = "2.3.12"   # Esquema propio, independiente de la versión de Kotlin
 # ── Compose ──────────────────────────────────────────────────────────────────
 compose-plugin = "1.12.0"
 
@@ -41,7 +41,7 @@ androidx-test-junit = "1.3.0"
 androidx-espresso-core = "3.7.0"
 turbine = "1.2.1"
 konsist = "0.17.3"
-robolectric = "4.16.1"
+robolectric = "4.17"
 androidx-test-core = "1.7.0"
 
 # ── Kotlinx ──────────────────────────────────────────────────────────────────
@@ -55,22 +55,24 @@ koin = "4.2.2"
 
 # ── Persistencia local — Room KMP ────────────────────────────────────────────
 # 2.7.x es la primera línea con soporte KMP completo (commonMain)
-room = "2.8.4"
-sqlite = "2.7.0"
+room = "2.8.5"
+sqlite = "2.7.1"
 
 # ── Firebase ─────────────────────────────────────────────────────────────────
 # GitLive SDK: wrapper KMP sobre Firebase oficial → va en commonMain
-firebase-bom = "34.18.0"
+firebase-bom = "34.19.0"
 firebase-crashlytics-plugin = "3.0.8"
 firebase-appdistribution-plugin = "5.3.0"
-firebase-gitlive = "2.6.0"
+firebase-gitlive = "2.7.0"
 google-services = "4.5.0"
 
 # ── KMP Maps (fork propio de Software Mansion kmp-maps) ─────────────────────
 # Core: Google Maps en Android + Apple Maps en iOS (sin CocoaPods)
 # Fork con marker de id estable — DRIVE-PUCK-NATIVE-001. Upstream: 0.9.1, PR #170 sin mergear.
 # Publicado en Maven Central desde rndevelo/kmp-maps tag v0.9.1-puck4 [BUILD-KMPMAPS-CENTRAL-DEPENDENCY-001].
-kmp-maps = "0.9.1-puck5"
+# ⛔ Esta versión la manda NUESTRO repo, no upstream: subirla es publicar un tag nuevo del fork, no
+# leer un índice. Al 15-09 la última publicada es puck6.
+kmp-maps = "0.9.1-puck6"
 
 # ── Licencias OSS — AboutLibraries ───────────────────────────────────────────
 aboutlibraries = "15.2.0"
@@ -82,7 +84,7 @@ napier = "2.7.1"
 # coil-compose en commonMain (AsyncImage). Fetcher de red multiplataforma vía
 # coil-network-ktor3 (commonMain) + engine Ktor por plataforma: okhttp (Android),
 # darwin (iOS). Coil auto-registra el fetcher al estar en el classpath.
-coil = "3.6.0"
+coil = "3.6.2"
 
 # ── Ktor client — engine de red para Coil (KMP) ──────────────────────────────
 ktor = "3.5.2"
@@ -94,20 +96,21 @@ ktor = "3.5.2"
 # (`baselogin-android`, `baselogin-iosarm64`, `baselogin-iossimulatorarm64`); nunca declararlos.
 # 2.0.1: la foto de la sesión sigue al proveedor (providerData sobre el photoURL congelado) y
 # refreshSession() recarga el usuario antes de leerlo. [PROFILE-PHOTO-STUCK-AND-STALE-001]
-baselogin = "2.0.1"
+# 3.0.0 (13-09-2026): major por AMPLIAR sealed, no por retirar nada — +8 `AuthError`,
+# `SocialTokenResult.Failed`, `RegisterEffect.EmailVerificationRequired` y
+# `GoogleSignInProviderAndroid.PickerOutcome`. Comparado el AAR clase a clase: nada borrado.
+# Paparcar no hace `when` exhaustivo sobre ninguno, así que el bump es drop-in.
+baselogin = "3.0.0"
 
 # ── Monetización — RevenueCat purchases-kmp ─────────────────────────────────
 # core (SDK) + ui (Paywalls con plantilla remota) van SIEMPRE a la misma versión.
 # Desde 3.x el versionado es semver plano (ya no lleva el sufijo +X.Y.Z del SDK iOS).
-purchases-kmp = "3.7.0"
-# ⛔ PUENTE, no destino: `purchases-kmp-core` 3.7.0 pina el artefacto Android `purchases` en 10.19.1
-# (scope runtime), y esa versión trae `-keep class com.revenuecat.** { *; }` en sus consumer rules —
-# 2.919 clases que R8 no puede tocar, el 14 % del bytecode de la app. En 10.20.0 esa regla YA NO
-# ESTÁ: la estrecharon en el PR #3557, mergeado el 01-09-2026. Se declara aquí para que Gradle
-# resuelva la buena por debajo del wrapper.
-# **Al subir `purchases-kmp` a una versión que ya pine ≥10.20.0, BORRAR esta línea y su alias.**
-# [R8-REVENUECAT-ALREADY-NARROWED-ITS-RULES-001]
-purchases-android = "10.20.0"
+# ✅ El puente `purchases-android = "10.20.0"` ya NO existe: 3.8.0 pina el artefacto Android en
+# 10.20.0 por su cuenta, que es justo la versión donde las consumer rules dejaron de anclar el SDK
+# entero con `-keep class com.revenuecat.** { *; }` (estrechadas en el PR #3557). La condición que el
+# propio puente ponía para retirarse se cumplió. No volver a declararlo a mano salvo que el wrapper
+# BAJE el pin. [R8-REVENUECAT-ALREADY-NARROWED-ITS-RULES-001] [BUILD-DEPS-AT-LATEST-STABLE-002]
+purchases-kmp = "3.8.0"
 
 # ── Android-only ─────────────────────────────────────────────────────────────
 # play-services-location incluye Activity Recognition Transitions desde v17+
@@ -224,9 +227,6 @@ baselogin = { module = "io.github.apptolast:baselogin", version.ref = "baselogin
 # core en commonMain (repositorio de entitlements + configure); ui se cablea en la
 # fase del paywall. En Android arrastra Play Billing Library al APK. [MONEY-001]
 purchases-core = { module = "com.revenuecat.purchases:purchases-kmp-core", version.ref = "purchases-kmp" }
-# Solo androidMain. Ver la nota de `purchases-android` arriba: es un puente hasta que el wrapper KMP
-# suba el pin. [R8-REVENUECAT-ALREADY-NARROWED-ITS-RULES-001]
-purchases-android = { module = "com.revenuecat.purchases:purchases", version.ref = "purchases-android" }
 
 # ── Android-only: Detección ──────────────────────────────────────────────────
 # Incluye FusedLocationProviderClient + Activity Recognition Transitions API
