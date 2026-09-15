@@ -846,6 +846,11 @@
     <string name="stats_when_title">Cuándo aparcas</string>
     <string name="stats_insights_title">Lo que dicen tus aparcamientos</string>
     <string name="stats_pace_title">Si sigue este ritmo</string>
+    <string name="stats_recap_title">El mes pasado</string>
+    <plurals name="stats_recap_parkings">
+        <item quantity="one">%1$d aparcamiento</item>
+        <item quantity="other">%1$d aparcamientos</item>
+    </plurals>
     <string name="stats_pace_close">cierre de mes</string>
     <string name="stats_pace_year">un año a este ritmo</string>
     <string name="stats_pace_distance">kilómetros</string>

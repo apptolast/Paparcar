@@ -136,10 +136,15 @@ private fun StatsInsight.sentence(): String {
     }
 }
 
-/** "16–20" — a clock reading, not copy anyone translates. Same call `formatClockTime` already made. */
+/**
+ * "16–20" — a clock reading, not copy anyone translates. Same call `formatClockTime` already made.
+ *
+ * ⛔ The last band ends at 24, not at 0. Wrapping it round the clock printed "20–0", which reads as
+ * a typo: a RANGE runs to the end of the day, and "midnight" as an end is 24. (Seen on device.)
+ */
 private fun StatsInsight.bandLabel(): String {
     val start = values.bandStartHour ?: 0
-    return "$start–${(start + BAND_HOURS) % HOURS_IN_DAY}"
+    return "$start–${start + BAND_HOURS}"
 }
 
 /** The glyph says which KIND of finding it is — the app's existing vocabulary, nothing new. */
@@ -158,4 +163,3 @@ private const val ICON_GAP_DP = 10
 private const val ICON_DP = 20
 private const val ICON_TOP_PAD_DP = 2
 private const val BAND_HOURS = 4
-private const val HOURS_IN_DAY = 24

@@ -886,6 +886,11 @@
     <string name="stats_when_title">When you park</string>
     <string name="stats_insights_title">What your parkings say</string>
     <string name="stats_pace_title">Where this is heading</string>
+    <string name="stats_recap_title">Last month</string>
+    <plurals name="stats_recap_parkings">
+        <item quantity="one">%1$d parking</item>
+        <item quantity="other">%1$d parkings</item>
+    </plurals>
     <string name="stats_pace_close">month close</string>
     <string name="stats_pace_year">a year at this pace</string>
     <string name="stats_pace_distance">kilometres</string>

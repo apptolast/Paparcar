@@ -12,6 +12,11 @@ import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.usecase.fuel.ResolveFuelPriceUseCase
+import com.rndeveloper.paparcar.domain.stats.PeriodStats
+import com.rndeveloper.paparcar.domain.stats.closedMonthWindow
+import com.rndeveloper.paparcar.domain.stats.isRecapFresh
+import com.rndeveloper.paparcar.domain.stats.previousToClosedMonthWindow
+import com.rndeveloper.paparcar.domain.usecase.stats.ComputePeriodStatsUseCase
 import com.rndeveloper.paparcar.domain.usecase.stats.DeriveStatsInsightsUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
@@ -168,10 +173,36 @@ class StatsViewModel(
             // that disagreed with the card proving it would be worse than no insight.
             // [STATS-AN-INSIGHT-IS-A-VERDICT-WITH-ITS-EVIDENCE-001]
             insights = deriveInsights(resolved.filteredSessions, resolved.periodStats),
+            closedMonth = closedMonthRecap(vehicle),
             filteredSessions = resolved.filteredSessions,
             costPrice = resolved.costPrice,
             lifetimeParkings = resolved.lifetimeParkings,
             lifetimeSpotsReleased = resolved.lifetimeSpotsReleased,
+        )
+    }
+
+    /**
+     * The month that just closed — computed from the SAME sessions as everything else, over a window
+     * the filter does not decide. [STATS-PLUS-REMEMBERS-AND-REPORTS-001]
+     *
+     * ⛔ Over the gated list, like every other figure: a free account's visible history is seven
+     * days, so this returns null for them by construction — which is the whole Plus gate, with
+     * nothing hidden and nothing veiled. And it stops being computed once it stops being news.
+     */
+    private fun closedMonthRecap(vehicle: Vehicle?): PeriodStats? {
+        if (vehicle == null) return null
+        val nowMs = Clock.System.now().toEpochMilliseconds()
+        if (!isRecapFresh(nowMs)) return null
+        val sessions = sessionsByVehicle[vehicle.id].orEmpty()
+        val closed = closedMonthWindow(nowMs)
+        val before = previousToClosedMonthWindow(nowMs)
+        val closedSessions = sessions.filter { it.location.timestamp in closed }
+        if (closedSessions.isEmpty()) return null
+        return computeStats(
+            sessions = closedSessions,
+            vehicles = listOf(vehicle),
+            previousSessions = sessions.filter { it.location.timestamp in before },
+            zones = zones,
         )
     }
 
@@ -185,6 +216,12 @@ class StatsViewModel(
 
     private companion object {
         private val deriveInsights = DeriveStatsInsightsUseCase()
+
+        /**
+         * ⛔ The same aggregator the rest of the screen uses, not a second one: the recap's figures
+         * have to be computed exactly like the ones the user can compare them against.
+         */
+        private val computeStats = ComputePeriodStatsUseCase()
         const val TAG = "StatsViewModel"
     }
 }

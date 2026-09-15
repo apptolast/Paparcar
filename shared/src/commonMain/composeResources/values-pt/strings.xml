@@ -850,6 +850,11 @@
     <string name="stats_when_title">Quando estacionas</string>
     <string name="stats_insights_title">O que dizem os teus estacionamentos</string>
     <string name="stats_pace_title">Se continuar assim</string>
+    <string name="stats_recap_title">No mês passado</string>
+    <plurals name="stats_recap_parkings">
+        <item quantity="one">%1$d estacionamento</item>
+        <item quantity="other">%1$d estacionamentos</item>
+    </plurals>
     <string name="stats_pace_close">fecho do mês</string>
     <string name="stats_pace_year">um ano a este ritmo</string>
     <string name="stats_pace_distance">quilómetros</string>

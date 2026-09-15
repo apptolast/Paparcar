@@ -851,6 +851,11 @@
     <string name="stats_when_title">Wann du parkst</string>
     <string name="stats_insights_title">Was deine Parkvorgänge sagen</string>
     <string name="stats_pace_title">Wenn es so weitergeht</string>
+    <string name="stats_recap_title">Letzter Monat</string>
+    <plurals name="stats_recap_parkings">
+        <item quantity="one">%1$d Parkvorgang</item>
+        <item quantity="other">%1$d Parkvorgänge</item>
+    </plurals>
     <string name="stats_pace_close">Monatsende</string>
     <string name="stats_pace_year">ein Jahr in diesem Tempo</string>
     <string name="stats_pace_distance">Kilometer</string>

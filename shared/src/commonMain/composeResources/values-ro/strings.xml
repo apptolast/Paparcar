@@ -864,6 +864,12 @@
     <string name="stats_when_title">Când parchezi</string>
     <string name="stats_insights_title">Ce spun parcările tale</string>
     <string name="stats_pace_title">Dacă ritmul se menține</string>
+    <string name="stats_recap_title">Luna trecută</string>
+    <plurals name="stats_recap_parkings">
+        <item quantity="one">%1$d parcare</item>
+        <item quantity="few">%1$d parcări</item>
+        <item quantity="other">%1$d de parcări</item>
+    </plurals>
     <string name="stats_pace_close">finalul lunii</string>
     <string name="stats_pace_year">un an în acest ritm</string>
     <string name="stats_pace_distance">kilometri</string>

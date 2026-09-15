@@ -864,6 +864,13 @@
     <string name="stats_when_title">Kiedy parkujesz</string>
     <string name="stats_insights_title">Co mówią twoje parkowania</string>
     <string name="stats_pace_title">Jeśli tak dalej pójdzie</string>
+    <string name="stats_recap_title">W zeszłym miesiącu</string>
+    <plurals name="stats_recap_parkings">
+        <item quantity="one">%1$d parkowanie</item>
+        <item quantity="few">%1$d parkowania</item>
+        <item quantity="many">%1$d parkowań</item>
+        <item quantity="other">%1$d parkowania</item>
+    </plurals>
     <string name="stats_pace_close">koniec miesiąca</string>
     <string name="stats_pace_year">rok w tym tempie</string>
     <string name="stats_pace_distance">kilometry</string>

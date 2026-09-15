@@ -160,6 +160,18 @@ fun StatsContent(
                 Spacer(Modifier.height(SECTION_GAP_DP.dp))
             }
 
+            // The month that just closed — above everything, because it is the only thing here
+            // nobody asked for and it is only here because it just happened.
+            // [STATS-PLUS-REMEMBERS-AND-REPORTS-001]
+            state.closedMonth?.let { recap ->
+                item(key = "recap") {
+                    Box(Modifier.padding(horizontal = H_PAD_DP.dp)) {
+                        StatsMonthRecapCard(stats = recap)
+                    }
+                    Spacer(Modifier.height(SECTION_GAP_DP.dp))
+                }
+            }
+
             // The conclusion BEFORE the proof: everything below this card — the chart, the
             // figures, the places, the grid — is what backs it up.
             // [STATS-AN-INSIGHT-IS-A-VERDICT-WITH-ITS-EVIDENCE-001]

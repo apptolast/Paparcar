@@ -850,6 +850,11 @@
     <string name="stats_when_title">Quando parcheggi</string>
     <string name="stats_insights_title">Cosa dicono i tuoi parcheggi</string>
     <string name="stats_pace_title">Se continua così</string>
+    <string name="stats_recap_title">Il mese scorso</string>
+    <plurals name="stats_recap_parkings">
+        <item quantity="one">%1$d parcheggio</item>
+        <item quantity="other">%1$d parcheggi</item>
+    </plurals>
     <string name="stats_pace_close">fine mese</string>
     <string name="stats_pace_year">un anno a questo ritmo</string>
     <string name="stats_pace_distance">chilometri</string>

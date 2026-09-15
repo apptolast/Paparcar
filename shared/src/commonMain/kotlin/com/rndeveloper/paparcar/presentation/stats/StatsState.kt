@@ -41,6 +41,12 @@ data class StatsState(
      *  [FUEL-PRICE-RESOLVER-001] */
     val costPrice: FuelPrice? = null,
     /**
+     * The month that just closed, with the month before it attached for the ▲/▼ — null except
+     * during the first days of a new month, and for a free account always.
+     * [STATS-PLUS-REMEMBERS-AND-REPORTS-001]
+     */
+    val closedMonth: PeriodStats? = null,
+    /**
      * What the app concluded about this period, biggest finding first — empty when the period
      * supports nothing, which below the thresholds is most of the time.
      * [STATS-AN-INSIGHT-IS-A-VERDICT-WITH-ITS-EVIDENCE-001]

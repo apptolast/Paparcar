@@ -1859,6 +1859,17 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             // apiladas en dos sitios y con la búsqueda cara concentrada en una franja, que es lo que
             // hace que las reglas pasen su umbral. Sin esto la card no se compone — y una variante
             // que no alcanza su caso no vigila nada [DEV-A-GALLERY-VARIANT-MUST-EXERCISE-ITS-CASE-001].
+            // [STATS-PLUS-REMEMBERS-AND-REPORTS-001] El resumen del mes cerrado. La card real sólo
+            // aparece durante los primeros días del mes nuevo, así que aquí se le pasa el estado ya
+            // resuelto: la galería enseña la CARD, no el calendario.
+            Variant("Resumen · el mes pasado, cerrado") {
+                val base = statsPanelState(sessions = FakeData.allSessions.withAnExpensiveSlot())
+                StatsContent(
+                    state = base.copy(closedMonth = base.periodStats),
+                    onNavigateBack = {},
+                    onIntent = {},
+                )
+            },
             // [STATS-AN-ESTIMATE-SAYS-IT-IS-ONE-001] La proyección existe sólo en un periodo de
             // CALENDARIO y con recorrido suficiente: «Este mes» la enseña, «Todos» —ventana sin
             // final— no puede, y así se ven las dos caras.

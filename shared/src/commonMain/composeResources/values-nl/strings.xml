@@ -830,6 +830,11 @@
     <string name="stats_when_title">Wanneer je parkeert</string>
     <string name="stats_insights_title">Wat je parkeerplaatsen zeggen</string>
     <string name="stats_pace_title">Als dit zo doorgaat</string>
+    <string name="stats_recap_title">Vorige maand</string>
+    <plurals name="stats_recap_parkings">
+        <item quantity="one">%1$d parkeerplaats</item>
+        <item quantity="other">%1$d parkeerplaatsen</item>
+    </plurals>
     <string name="stats_pace_close">einde van de maand</string>
     <string name="stats_pace_year">een jaar in dit tempo</string>
     <string name="stats_pace_distance">kilometers</string>
