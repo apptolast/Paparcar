@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.Group
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -78,7 +79,15 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.error_unknown
+import com.rndeveloper.paparcar.presentation.vehicles.components.JoinSharedCarDialogContent
+import com.rndeveloper.paparcar.presentation.vehicles.components.SharedCarMembersSheet
+import com.rndeveloper.paparcar.ui.components.PapAlertDialog
 import paparcar.composeapp.generated.resources.my_car_add_vehicle
+import paparcar.composeapp.generated.resources.my_car_delete_cancel
+import paparcar.composeapp.generated.resources.shared_car_not_shared_body
+import paparcar.composeapp.generated.resources.shared_car_share_cta
+import paparcar.composeapp.generated.resources.shared_car_title
+import paparcar.composeapp.generated.resources.vehicles_join_shared_car
 import paparcar.composeapp.generated.resources.my_car_empty_subtitle
 import paparcar.composeapp.generated.resources.my_car_empty_why_link
 import paparcar.composeapp.generated.resources.my_car_no_vehicle
@@ -204,6 +213,7 @@ fun VehiclesContent(
                 modifier = Modifier.fillMaxSize().padding(headerPadding),
                 onAddVehicle = { onIntent(VehiclesIntent.AddVehicle) },
                 onShowExplainer = onShowExplainer,
+                onJoinSharedCar = { onIntent(VehiclesIntent.ShowJoinDialog(true)) },
             )
 
             else -> VehiclesPager(
@@ -283,6 +293,10 @@ private fun VehiclesPager(
                 scaleY = scale
             },
         ) {
+            val pageShared = state.sharedCars[vehicleWithStats.vehicle.id]
+            // La página que se está MIRANDO es la única que tiene miembros cargados: el pager
+            // enseña una y suscribirse a las cinco abriría cinco listeners para pintar una.
+            val isOnScreen = vehicleWithStats.vehicle.id == state.currentVehicleId
             VehiclePageContent(
                 vehicleWithStats = vehicleWithStats,
                 historyState = pageHistoryState,
@@ -293,8 +307,63 @@ private fun VehiclesPager(
                 contentPadding = contentPadding,
                 onScrolledToTop = onScrolledToTop,
                 onIntent = onIntent,
+                sharedCar = pageShared,
+                members = if (isOnScreen) state.sharedMembers else emptyList(),
+                currentUid = state.currentUid,
+                isOwnerOfShared = pageShared?.ownerUid == state.currentUid && state.currentUid != null,
+                sharedHistoryMineOnly = state.sharedHistoryMineOnly,
+                sharedWorking = state.sharedWorking,
+                sharedNote = if (pageShared != null && !state.sharedHistoryMineOnly) {
+                    { session ->
+                        SharedRowNote(
+                            // Tu propia fila no se firma: en una lista tuya y de otros, el nombre
+                            // que hace falta es el del OTRO.
+                            authorName = session.userId
+                                .takeIf { it != state.currentUid }
+                                ?.let { state.sharedAuthorByUid[it] },
+                            routeWithheld = session.id in state.sharedWithheldRouteIds,
+                        )
+                    }
+                } else null,
             )
         }
+    }
+
+    state.membersSheetCarId?.let { carId ->
+        SharedCarMembersSheet(
+            members = state.sharedMembers,
+            currentUid = state.currentUid,
+            isOwner = state.isOwnerOfCurrent,
+            working = state.sharedWorking,
+            onRemove = { uid -> onIntent(VehiclesIntent.RemoveMember(carId, uid)) },
+            onLeave = { onIntent(VehiclesIntent.LeaveSharedCar(carId)) },
+            onStopSharing = { onIntent(VehiclesIntent.StopSharing(carId)) },
+            onDismiss = { onIntent(VehiclesIntent.ShowMembers(null)) },
+        )
+    }
+
+    state.joinDialog?.let { dialog ->
+        JoinSharedCarDialogContent(
+            dialog = dialog,
+            onCodeChanged = { onIntent(VehiclesIntent.JoinCodeChanged(it)) },
+            onSubmit = { onIntent(VehiclesIntent.SubmitJoinCode) },
+            onDismiss = { onIntent(VehiclesIntent.ShowJoinDialog(false)) },
+        )
+    }
+
+    // ⛔ Compartir se CONFIRMA: abre el coche a otras personas y dice, antes de hacerlo, qué van a
+    // ver. Un interruptor silencioso para eso sería la clase de sorpresa que no se puede deshacer
+    // del todo — los demás ya habrían visto dónde quedó el coche. [VEH-SHARED-001]
+    state.confirmShareCarId?.let { carId ->
+        PapAlertDialog(
+            onDismiss = { onIntent(VehiclesIntent.ConfirmShareCar(null)) },
+            icon = Icons.Rounded.Group,
+            title = stringResource(Res.string.shared_car_title),
+            body = stringResource(Res.string.shared_car_not_shared_body),
+            primaryLabel = stringResource(Res.string.shared_car_share_cta),
+            onPrimary = { onIntent(VehiclesIntent.ShareCar(carId)) },
+            cancelLabel = stringResource(Res.string.my_car_delete_cancel),
+        )
     }
 
     pendingSetActive?.let { veh ->
@@ -465,6 +534,10 @@ private fun EmptyVehicleState(
     modifier: Modifier = Modifier,
     onAddVehicle: () -> Unit,
     onShowExplainer: () -> Unit,
+    /** The OTHER way to get a car into an empty garage: somebody shared theirs. Here and not in a
+     *  menu, because a person invited into a car lands on exactly this screen and would otherwise
+     *  be asked to register a car that is not theirs. [VEH-SHARED-001] */
+    onJoinSharedCar: () -> Unit = {},
 ) {
     Column(
         modifier = modifier.padding(horizontal = 32.dp),
@@ -511,6 +584,13 @@ private fun EmptyVehicleState(
             style = PapFooterButtonStyle.Filled,
         )
         Spacer(Modifier.height(12.dp))
+        TextButton(onClick = onJoinSharedCar) {
+            Text(
+                text = stringResource(Res.string.vehicles_join_shared_car),
+                style = PaparcarType.current.label,
+                color = PapColor.actionText,
+            )
+        }
         TextButton(onClick = onShowExplainer) {
             Text(
                 text = stringResource(Res.string.my_car_empty_why_link),

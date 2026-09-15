@@ -52,6 +52,109 @@ service cloud.firestore {
       }
     }
 
+    // Coche compartido — el ESPEJO del grupo. [VEH-SHARED-001]
+    //
+    // La sesión personal (`users/{uid}/parkingHistory`) sigue siendo la fuente de verdad y no se
+    // toca: aquí vive solo la proyección que el grupo puede ver, sin ruta, sin provenance de
+    // detección y sin matrícula — lo garantiza el TIPO que la escribe, no estas reglas.
+    //
+    // La pertenencia es una SUBCOLECCIÓN y no un array, precisamente para que se pueda comprobar
+    // aquí: `exists(.../members/{uid})` es una condición de regla; "el uid está en el array y solo
+    // te has añadido a ti mismo" no lo es sin releer el array anterior, y dos personas uniéndose a
+    // la vez se pisarían el documento del dueño.
+    //
+    // ⚠️ El tope de 4 miembros NO se puede comprobar aquí (las reglas no cuentan una colección): lo
+    // impone el cliente al CREAR el código, que es el único momento en que alguien con permiso de
+    // lectura sobre `members` decide si cabe uno más. Endurecerlo es trabajo de la Cloud Function
+    // de la etapa 2, junto con el dedupe y el push.
+    match /sharedCars/{carId} {
+      function isMember() {
+        return request.auth != null
+               && exists(/databases/$(database)/documents/sharedCars/$(carId)/members/$(request.auth.uid));
+      }
+      function isOwner() {
+        return request.auth != null && resource.data.ownerUid == request.auth.uid;
+      }
+
+      allow read: if isMember();
+      // El id del documento ES el id del coche del dueño: compartir no re-keya nada.
+      allow create: if request.auth != null
+                    && request.resource.data.ownerUid == request.auth.uid
+                    && request.resource.data.carId == carId;
+      // El dueño edita lo suyo (nombre, código activo, pausa) y NUNCA puede cambiar de dueño.
+      allow update: if isOwner()
+                    && request.resource.data.ownerUid == resource.data.ownerUid;
+      allow delete: if isOwner();
+
+      // Una persona escribe SU documento y el de nadie más. Entrar exige un invite vivo que
+      // apunte a ESTE coche; el dueño se inscribe a sí mismo al crear el grupo.
+      match /members/{uid} {
+        function invite(code) {
+          return get(/databases/$(database)/documents/sharedCarInvites/$(code)).data;
+        }
+        function holdsValidInvite(code) {
+          return code is string
+                 && exists(/databases/$(database)/documents/sharedCarInvites/$(code))
+                 && invite(code).carId == carId
+                 && invite(code).expiresAtMs > request.time.toMillis()
+                 && (invite(code).claimedByUid == null
+                     || invite(code).claimedByUid == request.auth.uid);
+        }
+
+        allow read: if request.auth != null
+                    && exists(/databases/$(database)/documents/sharedCars/$(carId)/members/$(request.auth.uid));
+        allow create, update: if request.auth != null
+                              && uid == request.auth.uid
+                              && request.resource.data.uid == request.auth.uid
+                              && (
+                                   get(/databases/$(database)/documents/sharedCars/$(carId)).data.ownerUid == request.auth.uid
+                                   || holdsValidInvite(request.resource.data.inviteCode)
+                                 );
+        // Salir es cosa de uno; enseñar la puerta, del dueño.
+        allow delete: if request.auth != null
+                      && (uid == request.auth.uid
+                          || get(/databases/$(database)/documents/sharedCars/$(carId)).data.ownerUid == request.auth.uid);
+      }
+
+      // Dónde está el coche AHORA. Lo escribe quien aparca, que puede ser cualquiera del grupo.
+      match /state/{docId} {
+        allow read, write: if isMember();
+      }
+
+      // El historial compartido: cada uno firma el suyo, todos lo leen, y solo el dueño borra.
+      match /sessions/{sessionId} {
+        allow read: if isMember();
+        allow create, update: if isMember()
+                              && request.resource.data.authorUid == request.auth.uid;
+        allow delete: if request.auth != null
+                      && get(/databases/$(database)/documents/sharedCars/$(carId)).data.ownerUid == request.auth.uid;
+      }
+    }
+
+    // El código ES el secreto: se lee de uno en uno, nunca se lista. [VEH-SHARED-001]
+    //
+    // `get` abierto a cualquier autenticado es deliberado —quien tiene el código puede mirar a qué
+    // coche pertenece antes de entrar—, y `list` cerrado es lo que impide barrer la colección
+    // entera. Un solo uso: el que entra solo puede escribir `claimedByUid` con SU uid, una vez.
+    match /sharedCarInvites/{code} {
+      allow get: if request.auth != null;
+      allow list: if false;
+      allow create: if request.auth != null
+                    && request.resource.data.ownerUid == request.auth.uid
+                    && request.resource.data.code == code;
+      allow update: if request.auth != null
+                    && (
+                         resource.data.ownerUid == request.auth.uid
+                         || (
+                              resource.data.claimedByUid == null
+                              && request.resource.data.claimedByUid == request.auth.uid
+                              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['claimedByUid'])
+                              && resource.data.expiresAtMs > request.time.toMillis()
+                            )
+                       );
+      allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
+    }
+
     // Diagnostics — trazas de detección en campo (DET-LOG). Sólo el propio usuario escribe/lee
     // las suyas. Default OFF vía el flag de abajo; sin opt-in no se escribe nada.
     match /diagnostics/{uid}/{document=**} {

@@ -26,6 +26,7 @@ import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.Explore
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.Group
 import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.NotificationsActive
@@ -105,8 +106,11 @@ import paparcar.composeapp.generated.resources.paywall_plus_zones
 import paparcar.composeapp.generated.resources.paywall_reason_history
 import paparcar.composeapp.generated.resources.paywall_reason_stats
 import paparcar.composeapp.generated.resources.paywall_reason_vehicles
+import paparcar.composeapp.generated.resources.paywall_free_shared_car
+import paparcar.composeapp.generated.resources.paywall_plus_shared_car
 import paparcar.composeapp.generated.resources.paywall_reason_route_cloud
 import paparcar.composeapp.generated.resources.paywall_reason_fuel_alerts
+import paparcar.composeapp.generated.resources.paywall_reason_shared_car
 import paparcar.composeapp.generated.resources.paywall_reason_zone_alerts
 import paparcar.composeapp.generated.resources.paywall_reason_zones
 
@@ -484,6 +488,8 @@ private val TIER_ROWS = listOf(
     // the one that can list them. [WIDGET-A-TRIP-IS-NOT-AN-EMPTY-WIDGET-001]
     TierRow(Icons.Rounded.Widgets, Res.string.paywall_free_widget, Res.string.paywall_plus_widget),
     TierRow(Icons.Rounded.NotificationsActive, Res.string.paywall_free_alerts, Res.string.paywall_plus_alerts),
+    // La feature estrella de Plus: el coche que conducen varios. [VEH-SHARED-001]
+    TierRow(Icons.Rounded.Group, Res.string.paywall_free_shared_car, Res.string.paywall_plus_shared_car),
     TierRow(Icons.Rounded.Favorite, Res.string.paywall_free_support, Res.string.paywall_plus_support),
 )
 
@@ -496,6 +502,7 @@ private fun reasonLineRes(reason: PaywallReason): StringResource? = when (reason
     PaywallReason.ZONE_ALERTS -> Res.string.paywall_reason_zone_alerts
     PaywallReason.FUEL_ALERTS -> Res.string.paywall_reason_fuel_alerts
     PaywallReason.ROUTE_CLOUD -> Res.string.paywall_reason_route_cloud
+    PaywallReason.SHARED_CAR -> Res.string.paywall_reason_shared_car
     PaywallReason.GENERAL -> null
 }
 

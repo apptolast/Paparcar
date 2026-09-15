@@ -40,6 +40,14 @@ data class VehicleEntity(
     val priceCurrency: String? = null,
     /** [EnergyLabel] enum name. Null = not answered. [VEH-FUEL-001] */
     val energyLabel: String? = null,
+    /** Id of the `sharedCars/{carId}` mirror this car projects onto; null = not shared. Synced —
+     *  a reinstall that forgot it would strand the group. [VEH-SHARED-001] */
+    val sharedCarId: String? = null,
+    /** Owner of a car SOMEBODY ELSE shared with this user; null on own rows. Synced. [VEH-SHARED-001] */
+    val ownerUid: String? = null,
+    /** Whether this user's routes in this car are visible to the group. Default ON — a shared car
+     *  behaves like any other, and the switch is there to take a trace back. [VEH-SHARED-001] */
+    val shareRoutesInGroup: Boolean = true,
     /**
      * Wall-clock (client epoch ms) of the last LOCAL mutation to this row. Drives Last-Write-Wins
      * reconciliation against the remote copy in `syncFromRemote`, so an offline edit is not

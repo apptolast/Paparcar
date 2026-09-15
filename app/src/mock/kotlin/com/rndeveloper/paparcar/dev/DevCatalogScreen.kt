@@ -54,6 +54,7 @@ fun DevCatalogScreen(
     val online by scenario.online.collectAsStateWithLifecycle()
     val aggressiveOem by scenario.aggressiveOem.collectAsStateWithLifecycle()
     val ownParked by scenario.ownParkedSession.collectAsStateWithLifecycle()
+    val sharedCarJoined by scenario.sharedCarJoined.collectAsStateWithLifecycle()
     val inPrivateZone by scenario.parkedInPrivateZone.collectAsStateWithLifecycle()
     val activeBt by scenario.activeVehicleBluetooth.collectAsStateWithLifecycle()
     val sentryAlive by scenario.sentryAlive.collectAsStateWithLifecycle()
@@ -126,6 +127,12 @@ fun DevCatalogScreen(
             SwitchRow("Centinela vivo (FGS activo)", sentryAlive) { on ->
                 scenario.sentryAlive.value = on
                 runtime.setPresence(if (on && scenario.ownParkedSession.value) ServicePresence.Sentry else ServicePresence.Dead)
+            }
+            // [VEH-SHARED-001] El coche activo pasa a ser de OTRA persona y el usuario, un miembro
+            // de su grupo: garaje con la fila vinculada, «lo aparcó Marta» y «salir de este coche».
+            // Es la lectura que desde la cuenta del dueño no existe.
+            SwitchRow("Coche compartido: soy miembro", sharedCarJoined) {
+                scenario.sharedCarJoined.value = it
             }
             // [UI-APPROXIMATE-PARKING-DRAWS-ITS-DOUBT-001] La sesión sembrada pasa a ser un ÁREA:
             // anillo de duda alrededor del coche en el mapa + fila que lo explica en el peek.

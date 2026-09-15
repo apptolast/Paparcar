@@ -105,6 +105,15 @@ import com.rndeveloper.paparcar.presentation.vehicleregistration.VehicleRegistra
 import com.rndeveloper.paparcar.presentation.vehicles.HistoryContent
 import com.rndeveloper.paparcar.presentation.vehicles.HistoryFilter
 import com.rndeveloper.paparcar.presentation.vehicles.HistoryState
+import com.rndeveloper.paparcar.domain.error.PaparcarError
+import com.rndeveloper.paparcar.domain.model.AddressInfo
+import com.rndeveloper.paparcar.domain.model.SharedCar
+import com.rndeveloper.paparcar.domain.model.SharedCarMember
+import com.rndeveloper.paparcar.domain.model.SharedCarRole
+import com.rndeveloper.paparcar.domain.model.SharedCarState
+import com.rndeveloper.paparcar.presentation.vehicles.JoinSharedCarDialog
+import com.rndeveloper.paparcar.presentation.vehicles.components.JoinSharedCarDialogContent
+import com.rndeveloper.paparcar.presentation.vehicles.components.SharedCarSection
 import com.rndeveloper.paparcar.presentation.stats.StatsContent
 import com.rndeveloper.paparcar.presentation.stats.StatsState
 import com.rndeveloper.paparcar.presentation.vehicles.HistoryTimeline
@@ -2531,6 +2540,106 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             },
         ),
     ),
+    // [VEH-SHARED-001] El coche que conducen varios, tal como se ve DENTRO de su página: la sección,
+    // la hoja de miembros y el diálogo de unirse. No hay pantalla de grupo que enseñar.
+    ScreenGroup(
+        "Coche compartido",
+        listOf(
+            Variant("Sin compartir · la fila que lo ofrece", Placement.Surface) {
+                SharedCarSection(
+                    vehicle = sharedMockVehicle(),
+                    sharedCar = null,
+                    members = emptyList(),
+                    currentUid = "mock_user_001",
+                    isOwner = true,
+                    mineOnly = false,
+                    working = false,
+                    onOfferShare = {}, onOpenMembers = {}, onCreateInvite = {},
+                    onSetShareRoutes = {}, onSetScope = {},
+                )
+            },
+            Variant("Dueño · código vivo y rutas compartidas", Placement.Surface) {
+                SharedCarSection(
+                    vehicle = sharedMockVehicle(),
+                    sharedCar = sharedCarKamiq.copy(activeInviteCode = "K7QP3M", state = sharedCarState()),
+                    members = sharedCarGroup,
+                    currentUid = "mock_user_001",
+                    isOwner = true,
+                    mineOnly = false,
+                    working = false,
+                    onOfferShare = {}, onOpenMembers = {}, onCreateInvite = {},
+                    onSetShareRoutes = {}, onSetScope = {},
+                )
+            },
+            Variant("Miembro · lo aparcó otro, y no comparte rutas", Placement.Surface) {
+                SharedCarSection(
+                    vehicle = sharedMockVehicle(shareRoutes = false),
+                    sharedCar = sharedCarKamiq.copy(state = sharedCarState()),
+                    members = sharedCarGroup,
+                    currentUid = "mock_user_002",
+                    isOwner = false,
+                    mineOnly = false,
+                    working = false,
+                    onOfferShare = {}, onOpenMembers = {}, onCreateInvite = {},
+                    onSetShareRoutes = {}, onSetScope = {},
+                )
+            },
+            Variant("Miembro sin emparejar · sus aparcamientos no se detectan", Placement.Surface) {
+                SharedCarSection(
+                    vehicle = sharedMockVehicle(paired = false),
+                    sharedCar = sharedCarKamiq.copy(state = sharedCarState()),
+                    members = sharedCarGroup,
+                    currentUid = "mock_user_002",
+                    isOwner = false,
+                    mineOnly = true,
+                    working = false,
+                    onOfferShare = {}, onOpenMembers = {}, onCreateInvite = {},
+                    onSetShareRoutes = {}, onSetScope = {},
+                )
+            },
+            Variant("El coche ya no está aparcado", Placement.Surface) {
+                SharedCarSection(
+                    vehicle = sharedMockVehicle(),
+                    sharedCar = sharedCarKamiq.copy(state = sharedCarState(parked = false)),
+                    members = sharedCarGroup,
+                    currentUid = "mock_user_002",
+                    isOwner = false,
+                    mineOnly = false,
+                    working = false,
+                    onOfferShare = {}, onOpenMembers = {}, onCreateInvite = {},
+                    onSetShareRoutes = {}, onSetScope = {},
+                )
+            },
+            Variant("Nadie lo ha aparcado todavía", Placement.Surface) {
+                SharedCarSection(
+                    vehicle = sharedMockVehicle(),
+                    sharedCar = sharedCarKamiq.copy(activeInviteCode = null),
+                    members = sharedCarGroup,
+                    currentUid = "mock_user_001",
+                    isOwner = true,
+                    mineOnly = false,
+                    working = false,
+                    onOfferShare = {}, onOpenMembers = {}, onCreateInvite = {},
+                    onSetShareRoutes = {}, onSetScope = {},
+                )
+            },
+            Variant("Unirse · código vacío", Placement.Surface) {
+                JoinSharedCarDialogContent(
+                    dialog = JoinSharedCarDialog(),
+                    onCodeChanged = {}, onSubmit = {}, onDismiss = {},
+                )
+            },
+            Variant("Unirse · el código ha caducado", Placement.Surface) {
+                JoinSharedCarDialogContent(
+                    dialog = JoinSharedCarDialog(
+                        code = "AB3K9P",
+                        error = PaparcarError.SharedCar.InviteExpired,
+                    ),
+                    onCodeChanged = {}, onSubmit = {}, onDismiss = {},
+                )
+            },
+        ),
+    ),
     ScreenGroup(
         "Primeros pasos (foco del pin)",
         listOf(
@@ -3204,3 +3313,45 @@ fun StateGalleryScreen(onBack: () -> Unit) {
         }
     }
 }
+
+// ── Coche compartido ─────────────────────────────────────────────────────────
+// [VEH-SHARED-001] Fixtures del grupo. Las cifras del espejo viajan siempre; la geometría, solo si
+// su autor quiere — por eso hay una variante con el interruptor apagado.
+
+private val sharedCarKamiq = SharedCar(
+    carId = "mock_vehicle_001",
+    ownerUid = "mock_user_001",
+    ownerName = "Marta",
+    displayName = "Seat León",
+    sizeCategory = VehicleSize.MEDIUM_SUV,
+    fuelType = FuelType.GASOLINE,
+    consumptionPer100 = 6.4f,
+    createdAtMs = 1_757_000_000_000L,
+)
+
+private val sharedCarGroup = listOf(
+    SharedCarMember("mock_user_001", "Marta", role = SharedCarRole.OWNER, joinedAtMs = 0L),
+    SharedCarMember("mock_user_002", "Nacho", joinedAtMs = 0L, sharesRoutes = false),
+)
+
+private fun sharedCarState(parked: Boolean = true) = SharedCarState(
+    sessionId = "mock_shared_session",
+    location = GpsPoint(40.4378, -3.6795, 8f, 1_757_900_000_000L, 0f),
+    parkedAtMs = 1_757_900_000_000L,
+    authorUid = "mock_user_001",
+    authorName = "Marta",
+    address = AddressInfo(street = "Calle de Ponzano, 14", city = "Madrid", region = null, country = "España"),
+    isParked = parked,
+    updatedAtMs = 1_757_900_000_000L,
+)
+
+private fun sharedMockVehicle(shareRoutes: Boolean = true, paired: Boolean = true) = Vehicle(
+    id = "mock_vehicle_001",
+    userId = "mock_user_002",
+    name = "Seat León",
+    sizeCategory = VehicleSize.MEDIUM_SUV,
+    bluetoothDeviceId = if (paired) "AA:BB:CC:DD:EE:FF" else null,
+    sharedCarId = "mock_vehicle_001",
+    ownerUid = "mock_user_001",
+    shareRoutesInGroup = shareRoutes,
+)

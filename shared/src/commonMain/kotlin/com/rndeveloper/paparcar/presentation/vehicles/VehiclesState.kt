@@ -1,6 +1,8 @@
 package com.rndeveloper.paparcar.presentation.vehicles
 
 import androidx.compose.runtime.Immutable
+import com.rndeveloper.paparcar.domain.model.SharedCar
+import com.rndeveloper.paparcar.domain.model.SharedCarMember
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleWithStats
 
@@ -22,6 +24,28 @@ data class VehiclesState(
     /** Automatic detection switched on in Settings — the empty figures card asks for it otherwise.
      *  [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001] */
     val isAutoDetectionOn: Boolean = true,
+    // ── Coche compartido [VEH-SHARED-001] ────────────────────────────────────
+    // ⛔ No hay pantalla de grupo: un coche compartido es un coche más del pager, y lo que el
+    // grupo añade vive en una sección DENTRO de su página (decisión del user, 15-09).
+    /** El espejo de cada coche compartido de este garaje, por id. Vacío = ninguno lo está. */
+    val sharedCars: Map<String, SharedCar> = emptyMap(),
+    /** Los miembros del coche que se está mirando. Solo de ese: el pager enseña uno. */
+    val sharedMembers: List<SharedCarMember> = emptyList(),
+    /** Historial y cifras del coche a la vista: del grupo, o solo los tuyos. */
+    val sharedHistoryMineOnly: Boolean = false,
+    /** Quién escribió cada sesión compartida, para poder firmarla en la fila. */
+    val sharedAuthorByUid: Map<String, String> = emptyMap(),
+    /** Sesiones cuyo autor NO comparte la ruta — la fila lo dice en vez de dejar un hueco. */
+    val sharedWithheldRouteIds: Set<String> = emptySet(),
+    /** Una acción de grupo en vuelo: el segundo toque no arranca una gemela. */
+    val sharedWorking: Boolean = false,
+    /** La hoja de miembros, abierta sobre este coche. */
+    val membersSheetCarId: String? = null,
+    /** El diálogo de unirse, o null si no está abierto. */
+    val joinDialog: JoinSharedCarDialog? = null,
+    /** El diálogo que explica qué verá el grupo antes de abrirlo, sobre este coche. */
+    val confirmShareCarId: String? = null,
+    val currentUid: String? = null,
 ) {
     val currentVehicleId: String?
         get() = vehicles.getOrNull(selectedVehicleIndex)?.vehicle?.id
@@ -33,6 +57,14 @@ data class VehiclesState(
     val historyState: HistoryState
         get() = currentVehicleId?.let { historyCache[it] }
             ?: HistoryState(timeline = HistoryTimeline.Unresolved)
+
+    /** El espejo del coche a la vista, o null si ese coche no está compartido. */
+    val currentSharedCar: SharedCar?
+        get() = currentVehicleId?.let { sharedCars[it] }
+
+    /** Este usuario es el propietario del coche a la vista. */
+    val isOwnerOfCurrent: Boolean
+        get() = currentSharedCar?.ownerUid == currentUid && currentUid != null
 
     val activeVehicle: Vehicle?
         get() = vehicles

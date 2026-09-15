@@ -38,6 +38,9 @@ import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.presentation.util.locationDisplayText
 import com.rndeveloper.paparcar.presentation.util.relativeTimeText
 import com.rndeveloper.paparcar.domain.model.VehicleMonitoringStatus
+import com.rndeveloper.paparcar.domain.model.Vehicle
+import com.rndeveloper.paparcar.domain.model.SharedCar
+import com.rndeveloper.paparcar.domain.model.SharedCarMember
 import com.rndeveloper.paparcar.domain.model.VehicleWithStats
 import com.rndeveloper.paparcar.domain.model.monitoringStatus
 import com.rndeveloper.paparcar.presentation.util.vehicleFuelMetaLine
@@ -50,9 +53,12 @@ import com.rndeveloper.paparcar.ui.theme.PapBorders
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PapColor
+import androidx.compose.material.icons.rounded.Group
+import com.rndeveloper.paparcar.presentation.vehicles.components.SharedCarSection
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.my_car_edit_vehicle
+import paparcar.composeapp.generated.resources.shared_car_title
 import paparcar.composeapp.generated.resources.vehicle_set_active_action
 import paparcar.composeapp.generated.resources.vehicle_state_last_parking
 import paparcar.composeapp.generated.resources.vehicle_state_never_parked
@@ -70,6 +76,15 @@ internal fun VehiclePageContent(
     contentPadding: PaddingValues,
     onScrolledToTop: () -> Unit,
     onIntent: (VehiclesIntent) -> Unit,
+    /** El grupo de ESTE coche, o null si no está compartido. [VEH-SHARED-001] */
+    sharedCar: SharedCar? = null,
+    members: List<SharedCarMember> = emptyList(),
+    currentUid: String? = null,
+    isOwnerOfShared: Boolean = false,
+    sharedHistoryMineOnly: Boolean = false,
+    sharedWorking: Boolean = false,
+    /** Cómo se firma cada fila del historial cuando la lista es de varios conductores. */
+    sharedNote: ((UserParking) -> SharedRowNote?)? = null,
 ) {
     val vehicleId = vehicleWithStats.vehicle.id
 
@@ -84,10 +99,15 @@ internal fun VehiclePageContent(
         onOpenStatsPaywall = { onIntent(VehiclesIntent.OpenStatsPaywall) },
         onOpenStatsPanel = { onIntent(VehiclesIntent.OpenStatsPanel(vehicleId)) },
         onScrolledToTop = onScrolledToTop,
+        sharedNote = sharedNote,
         modifier = Modifier.fillMaxSize(),
         header = {
+          androidx.compose.foundation.layout.Column(
+              verticalArrangement = Arrangement.spacedBy(12.dp),
+          ) {
             VehicleHeroCard(
                 vehicleWithStats = vehicleWithStats,
+                isShared = sharedCar != null,
                 isSettingActive = isSettingActive,
                 // Making a vehicle active declares "I drive this" — confirm first (the screen owns
                 // the consequence dialog), never switch silently. [VEH-ACTIVE-FENCE-001]
@@ -115,9 +135,26 @@ internal fun VehiclePageContent(
                     )
                 },
             )
+            SharedCarSection(
+                vehicle = vehicleWithStats.vehicle,
+                sharedCar = sharedCar,
+                members = members,
+                currentUid = currentUid,
+                isOwner = isOwnerOfShared,
+                mineOnly = sharedHistoryMineOnly,
+                working = sharedWorking,
+                onOfferShare = { onIntent(VehiclesIntent.ConfirmShareCar(vehicleId)) },
+                onOpenMembers = { onIntent(VehiclesIntent.ShowMembers(vehicleId)) },
+                onCreateInvite = { onIntent(VehiclesIntent.CreateInvite(vehicleId)) },
+                onSetShareRoutes = { share -> onIntent(VehiclesIntent.SetShareRoutes(vehicleId, share)) },
+                onSetScope = { mineOnly -> onIntent(VehiclesIntent.SetSharedHistoryScope(mineOnly)) },
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+          }
         },
     )
 }
+
 
 /**
  * What this car is doing, in one line: parked at a place, last parked a while ago, or never parked.
@@ -264,6 +301,7 @@ private fun VehicleStateRow(
 @Composable
 private fun VehicleHeroCard(
     vehicleWithStats: VehicleWithStats,
+    isShared: Boolean,
     isSettingActive: Boolean,
     onSetActive: () -> Unit,
     onEdit: () -> Unit,
@@ -302,6 +340,18 @@ private fun VehicleHeroCard(
                 // The fuel data joins the vehicle-data column, right under carbody · size — an
                 // attribute of the car, not a floating meta line. [VEH-FUEL-001]
                 metaSecondLine = vehicleFuelMetaLine(vehicle),
+                // La marca de «lo conduce más gente», junto al nombre y en gris de sistema: es
+                // plumbing de UI, no identidad de vigilancia. [VEH-SHARED-001]
+                nameSuffix = if (isShared) {
+                    {
+                        Icon(
+                            imageVector = Icons.Rounded.Group,
+                            contentDescription = stringResource(Res.string.shared_car_title),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(SHARED_MARK_DP.dp),
+                        )
+                    }
+                } else null,
                 statusLine = {
                     // El bloque de estado es además la puerta al mapa: dice dónde está el coche, así
                     // que tocarlo lleva allí. [UI-A-PARKED-CARD-OFFERS-THE-WAY-ACROSS-001]
@@ -404,3 +454,5 @@ private const val SET_ACTIVE_PAD = 13
 private const val SET_ACTIVE_GAP = 9
 private const val SET_ACTIVE_ICON_DP = 18
 private const val SET_ACTIVE_SPINNER_STROKE = 2
+/** La marca de coche compartido junto al nombre: del tamaño de una mayúscula, no de un botón. */
+private const val SHARED_MARK_DP = 18

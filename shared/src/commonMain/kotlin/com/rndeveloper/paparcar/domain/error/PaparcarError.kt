@@ -68,4 +68,29 @@ sealed class PaparcarError : Exception() {
          *  [VEH-A-DELETED-CAR-DOES-NOT-ERASE-ITS-HISTORY-001] */
         data object DeleteBlockedByActiveParking : Vehicle()
     }
+
+    /**
+     * A shared car refuses an operation. [VEH-SHARED-001]
+     *
+     * Every case here is a thing the USER can act on, which is why they are separate types and not
+     * one `SharedCarFailed`: the copy for each one names its own remedy ("ask for another code",
+     * "someone has to leave first"). Nothing broke in any of them — the screen says what happened
+     * and what to do, never "error".
+     */
+    sealed class SharedCar : PaparcarError() {
+        /** Six characters that match no live invitation — mistyped, or the owner revoked it. */
+        data object InviteNotFound : SharedCar()
+        /** The code was real and its 24 h are up. */
+        data object InviteExpired : SharedCar()
+        /** Single use, and somebody already used it. */
+        data object InviteAlreadyUsed : SharedCar()
+        /** The owner plus four is the whole group; somebody has to leave first. */
+        data object GroupFull : SharedCar()
+        /** Already in this group — joining twice is a no-op, not a failure to hide. */
+        data object AlreadyJoined : SharedCar()
+        /** Only the owner opens, closes or changes the group. */
+        data object NotTheOwner : SharedCar()
+        /** The mirror could not be written or read. The one case here that IS a breakage. */
+        data object SyncFailed : SharedCar()
+    }
 }

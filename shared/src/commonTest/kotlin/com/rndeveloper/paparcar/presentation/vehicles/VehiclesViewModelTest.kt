@@ -74,6 +74,14 @@ class VehiclesViewModelTest {
             // back to anyway. [FUEL-NATIONAL-AVERAGE-FROM-OPENVAN-001]
             com.rndeveloper.paparcar.domain.usecase.fuel.ResolveFuelPriceUseCase(),
             com.rndeveloper.paparcar.fakes.FakeAppPreferences(),
+            // Coche compartido: sin grupo en estos casos — la pestaña se comporta como siempre.
+            // [VEH-SHARED-001]
+            com.rndeveloper.paparcar.fakes.data.repository.FakeSharedCarRepository(),
+            com.rndeveloper.paparcar.fakes.FakeAuthRepository(
+                com.apptolast.baselogin.domain.model.UserSession(
+                    userId = "user-1", email = null, displayName = null, photoUrl = null,
+                ),
+            ),
         )
     }
 

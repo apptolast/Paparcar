@@ -265,4 +265,63 @@ private val MIGRATION_11_12 = object : Migration(11, 12) {
     }
 }
 
-val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
+/**
+ * v13 [VEH-SHARED-001]: a car two people drive.
+ *
+ * Two columns on `vehicles` — `sharedCarId` (the mirror this car projects onto) and `ownerUid`
+ * (non-null ⇒ a LINKED row: somebody else's car, joined by invitation) — plus the read-only cache
+ * of the mirror head. Nothing is back-filled and nothing changes for a car that is not shared: both
+ * columns are null on every existing row, which is exactly what "this car is mine and only mine"
+ * means.
+ *
+ * The cache table carries no `pendingSync`: the mirror is written straight to Firestore by whoever
+ * parks, so there is no local edit here that could be owed to the server.
+ *
+ * ⚠️ WRITTEN as 10 → 11 and renumbered on the way in, exactly like the zone watch one step above:
+ * this branch and the two watches all left the same v10. A version number is the one collision git
+ * cannot see — two files edited in different places, one number silently shared — so whoever lands
+ * last renumbers. The tables are unrelated; only the step is.
+ */
+private val MIGRATION_12_13 = object : Migration(12, 13) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("ALTER TABLE `vehicles` ADD COLUMN `sharedCarId` TEXT")
+        connection.execSQL("ALTER TABLE `vehicles` ADD COLUMN `ownerUid` TEXT")
+        connection.execSQL(
+            "CREATE TABLE IF NOT EXISTS `shared_cars` (" +
+                "`carId` TEXT NOT NULL, `ownerUid` TEXT NOT NULL, `ownerName` TEXT, " +
+                "`displayName` TEXT NOT NULL, `btMacHash` TEXT, `sizeCategory` TEXT, " +
+                "`carbodyType` TEXT, `color` TEXT, `sharingEnabled` INTEGER NOT NULL, " +
+                "`createdAtMs` INTEGER NOT NULL, `activeInviteCode` TEXT, " +
+                "`activeInviteExpiresAtMs` INTEGER, `stateSessionId` TEXT, `stateLatitude` REAL, " +
+                "`stateLongitude` REAL, `stateAccuracy` REAL, `stateParkedAtMs` INTEGER, " +
+                "`stateAuthorUid` TEXT, `stateAuthorName` TEXT, `stateStreet` TEXT, " +
+                "`stateCity` TEXT, `stateRegion` TEXT, `stateCountry` TEXT, " +
+                "`stateCountryCode` TEXT, `stateProvince` TEXT, `statePostalCode` TEXT, " +
+                "`statePlaceName` TEXT, `statePlaceCategory` TEXT, " +
+                "`stateIsParked` INTEGER NOT NULL, `stateUpdatedAtMs` INTEGER NOT NULL, " +
+                "PRIMARY KEY(`carId`))"
+        )
+    }
+}
+
+/**
+ * v14 [VEH-SHARED-001]: a shared car is measured like any other, so the mirror keeps the car's spec
+ * and each driver keeps a switch over their own routes.
+ *
+ * `shareRoutesInGroup` defaults to **1**, and the default IS the decision (user, 15-09): the routes
+ * of a shared car reach the group the way its figures do, and the switch exists to take one back
+ * rather than to have to ask for it. On an existing row the column means nothing until that car
+ * joins a group, which is exactly when the value starts mattering.
+ */
+private val MIGRATION_13_14 = object : Migration(13, 14) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "ALTER TABLE `vehicles` ADD COLUMN `shareRoutesInGroup` INTEGER NOT NULL DEFAULT 1"
+        )
+        connection.execSQL("ALTER TABLE `shared_cars` ADD COLUMN `fuelType` TEXT")
+        connection.execSQL("ALTER TABLE `shared_cars` ADD COLUMN `consumptionPer100` REAL")
+        connection.execSQL("ALTER TABLE `shared_cars` ADD COLUMN `consumptionElectricPer100` REAL")
+    }
+}
+
+val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14)

@@ -153,6 +153,9 @@ fun HistoryContent(
     onOpenStatsPaywall: () -> Unit = {},
     /** Plus only: the figures card's link to the full panel. Null = no link. [STATS-PANEL-001] */
     onOpenStatsPanel: (() -> Unit)? = null,
+    /** Cómo se firma cada fila cuando el historial es de un coche compartido; null = es el tuyo.
+     *  [VEH-SHARED-001] */
+    sharedNote: ((UserParking) -> SharedRowNote?)? = null,
     modifier: Modifier = Modifier,
     header: (@Composable () -> Unit)? = null,
     onScrolledToTop: () -> Unit = {},
@@ -375,6 +378,7 @@ fun HistoryContent(
                                 isLast = timelineItems.isEmpty(),
                                 isActive = true,
                                 onViewOnMap = onViewOnMap,
+                                sharedNote = sharedNote?.invoke(activeSession),
                             )
                         }
                     }
@@ -391,6 +395,7 @@ fun HistoryContent(
                                 isLast = timelineItem.isLast,
                                 isActive = false,
                                 onViewOnMap = onViewOnMap,
+                                sharedNote = sharedNote?.invoke(timelineItem.parking),
                             )
                         }
                     }

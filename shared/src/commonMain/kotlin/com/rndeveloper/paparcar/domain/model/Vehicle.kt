@@ -81,4 +81,34 @@ data class Vehicle(
     val energyPricePerKwh: Money? = null,
     /** Environmental badge (DGT names in Spain). Optional; stored for the regulated-zone rules. */
     val energyLabel: EnergyLabel? = null,
-)
+    /**
+     * Non-null when this car is SHARED with a group — the id of its `sharedCars/{carId}` mirror.
+     * Equal to the owner's [id]: sharing re-keys nothing. [VEH-SHARED-001]
+     */
+    val sharedCarId: String? = null,
+    /**
+     * Who owns the shared car. Null on every ordinary vehicle AND on the owner's own row — a car
+     * you opened a group for is still yours. Non-null marks a LINKED row: a car somebody shared
+     * with this user, which detects exactly like any other (same MAC, same BT strategy) but does
+     * not count towards the free one-car limit. [VEH-SHARED-001]
+     */
+    val ownerUid: String? = null,
+    /**
+     * Whether THIS user's routes in THIS car are visible to the group. [VEH-SHARED-001]
+     *
+     * Default ON, and the default is the point: a shared car is measured and evaluated exactly like
+     * any other, so its routes reach the group the way its figures do — the switch exists to take
+     * one back, not to have to ask for it. Meaningless (and ignored) on a car with no group.
+     *
+     * ⛔ Local to each person, even though both drivers share the car: the question is "do I want
+     * MY trips drawn for the others", and the answer belongs to whoever drove.
+     */
+    val shareRoutesInGroup: Boolean = true,
+) {
+    /** A car somebody else owns and shared with me. The question the free limit, the garage and
+     *  the delete path all need to ask, written once. [VEH-SHARED-001] */
+    val isLinked: Boolean get() = ownerUid != null
+
+    /** Part of a group — mine that I opened up, or somebody else's that I joined. */
+    val isShared: Boolean get() = sharedCarId != null
+}

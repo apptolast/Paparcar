@@ -88,6 +88,12 @@ class FirestoreDeserializerParityTest {
             DeserializerRule("RemoteUserProfileDataSourceImpl", "toParkingHistoryDto", "ParkingHistoryDto"),
             DeserializerRule("FirebaseDataSourceImpl", "toSpotDto", "SpotDto"),
             DeserializerRule("FirebaseDataSourceImpl", "toZoneDto", "ZoneDto"),
+            // El espejo del coche compartido. [VEH-SHARED-001]
+            DeserializerRule("RemoteSharedCarDataSourceImpl", "toSharedCarDto", "SharedCarDto"),
+            DeserializerRule("RemoteSharedCarDataSourceImpl", "toSharedCarStateDto", "SharedCarStateDto"),
+            DeserializerRule("RemoteSharedCarDataSourceImpl", "toSharedCarSessionDto", "SharedCarSessionDto"),
+            DeserializerRule("RemoteSharedCarDataSourceImpl", "toSharedCarMemberDto", "SharedCarMemberDto"),
+            DeserializerRule("RemoteSharedCarDataSourceImpl", "toSharedCarInviteDto", "SharedCarInviteDto"),
         )
     }
 }

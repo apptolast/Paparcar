@@ -41,7 +41,7 @@ Lo que queda para la 1.1.0 no es todo código: siguen pendientes acciones de cue
 | Ficha de Play (9 idiomas, icono, gráfico) | ✅ Commiteada; faltan capturas |
 | Detección iOS | 🧊 **Aparcada por el user (07-09)**. Fases 0 y 2 viven en `feature/IOS-F0-001-fase0`, sin mergear |
 | Room & Keystore | ✅ Room KMP en **v10** (v8 ruta del viaje · v9 postal · v10 `searchTimeMs`) y claves cifradas |
-| **Ola 2 (Plus, Widget, Fuel)** | 🟡 **casi cerrada**: A1–F5 y F7 ✅ (Alemania entró el 15-09, `9afbc5e5`; sigue Italia). Quedan **F6b** (ocupación real de parkings) y **F8** (coche compartido) → [`backlog/plus-roadmap-001.md`](./backlog/plus-roadmap-001.md) |
+| **Ola 2 (Plus, Widget, Fuel)** | 🟡 **casi cerrada**: A1–F5 y F7 ✅ (Alemania entró el 15-09, `9afbc5e5`; sigue Italia). Quedan **F6b** (ocupación real de parkings) y **F8** (coche compartido: **etapa 1 en rama** desde el 15-09, etapas 2-3 sin empezar) → [`backlog/plus-roadmap-001.md`](./backlog/plus-roadmap-001.md) |
 | Hosting de detección | ✅ **un solo FGS y una sola notificación** desde `d7880ac7`: `BluetoothDetectionService` borrado, el carril BT entra por el intake del sentinel en slots propios [DET-ONE-SERVICE-TWO-LANES-001] |
 | **Pivote trayectos** (14-09, 8 fases) | 🟢 **fases 1-5, 7 y 8 ✅ en master** (`b3d8168d` … `ddb448e4`): ruta en Room sin tope, muestreo Cruise, grabador BT, park BT confirmado con ruta medida, batería medida, tiempo-buscando-plaza, geometría local-first. Queda la fase 6 (vía A pin-a-pin) ⛔ gated por el viaje del **Kamiq** |
 

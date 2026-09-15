@@ -165,6 +165,10 @@ val mockModule = module {
     single<SpotRepository> { FakeSpotRepository() }
     single<AuthRepository> { FakeAuthRepository(get()) }
     single<VehicleRepository> { FakeVehicleRepository(get()) }
+    // El grupo del coche compartido, sin backend. [VEH-SHARED-001]
+    single<com.rndeveloper.paparcar.domain.repository.SharedCarRepository> {
+        com.rndeveloper.paparcar.fakes.data.repository.FakeSharedCarRepository(get())
+    }
     // Runtime-aware: while the driving sim runs, report no active session so readiness reaches Monitoring. [DRIVE-SIM-001]
     // Scenario-aware: the "own parked session" lever seeds an active session for the ACTIVE
     // vehicle so Home reaches the watching/parked state. [UX-PARKED-STATE-001]

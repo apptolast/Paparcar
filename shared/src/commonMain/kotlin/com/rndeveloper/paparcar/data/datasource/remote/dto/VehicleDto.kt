@@ -31,6 +31,12 @@ data class VehicleDto(
     val priceCurrency: String? = null,
     /** [EnergyLabel] enum name. Empty string when not answered. [VEH-FUEL-001] */
     val energyLabel: String = "",
+    /** Mirror id when this car is shared with a group; null otherwise. [VEH-SHARED-001] */
+    val sharedCarId: String? = null,
+    /** Owner of a car shared WITH this user (a linked row); null on own cars. [VEH-SHARED-001] */
+    val ownerUid: String? = null,
+    /** Whether this user's routes in this car are visible to the group. [VEH-SHARED-001] */
+    val shareRoutesInGroup: Boolean = true,
     /**
      * Client epoch-ms stamp of the last write, set by the remote data source on every vehicle write.
      * Read back by the inbound sync so the merge can tell when the server has caught up with a local

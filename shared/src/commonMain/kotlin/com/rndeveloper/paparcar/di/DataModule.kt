@@ -18,8 +18,14 @@ import com.rndeveloper.paparcar.data.analytics.FirebaseAnalyticsTracker
 import com.rndeveloper.paparcar.data.datasource.remote.FirestoreDetectionEventLogger
 import com.rndeveloper.paparcar.data.datasource.remote.FirestoreDiagnosticsReportUploader
 import com.rndeveloper.paparcar.data.datasource.remote.FirestoreUiLocationLogger
+import com.rndeveloper.paparcar.data.datasource.remote.RemoteSharedCarDataSource
+import com.rndeveloper.paparcar.data.datasource.remote.RemoteSharedCarDataSourceImpl
 import com.rndeveloper.paparcar.data.datasource.remote.RemoteUserProfileDataSource
 import com.rndeveloper.paparcar.data.datasource.remote.RemoteUserProfileDataSourceImpl
+import com.rndeveloper.paparcar.data.repository.SharedCarRepositoryImpl
+import com.rndeveloper.paparcar.data.sharedcar.SharedCarMirrorWriter
+import com.rndeveloper.paparcar.domain.repository.SharedCarRepository
+import com.rndeveloper.paparcar.domain.sharedcar.SharedCarMirror
 import com.rndeveloper.paparcar.data.repository.AddressAndPlaceRepositoryImpl
 import com.rndeveloper.paparcar.data.repository.DiagnosticsRepositoryImpl
 import com.rndeveloper.paparcar.data.repository.OpenSourceLicenseRepositoryImpl
@@ -88,8 +94,15 @@ val dataModule = module {
     single<RemoteUserProfileDataSource> {
         // appPreferences = the local-first consent, read at the single push door.
         // [PRIV-A-TRACE-IS-NOT-A-STAT-001]
-        RemoteUserProfileDataSourceImpl(get(), appPreferences = getOrNull())
+        // sharedCarMirror = the group's copy of a parking, written at the same door.
+        // [VEH-SHARED-001]
+        RemoteUserProfileDataSourceImpl(
+            get(),
+            appPreferences = getOrNull(),
+            sharedCarMirror = getOrNull(),
+        )
     }
+    single<RemoteSharedCarDataSource> { RemoteSharedCarDataSourceImpl(get()) }
 
     // Detection diagnostics — Firestore-backed remote event log, gated by a Firestore flag
     // (diagnostics_config/{userId}.enabled). [DET-LOG-02]
@@ -132,6 +145,25 @@ val dataModule = module {
     // Atribución OSS — `single` a propósito: el fichero se genera en build y no cambia en runtime,
     // así que la lista y el detalle comparten una sola lectura. [SET-LICENSES-ARE-SHOWN-IN-THE-APP-001]
     single<OpenSourceLicenseRepository> { OpenSourceLicenseRepositoryImpl() }
+
+    // Coche compartido: el espejo del grupo. [VEH-SHARED-001]
+    single<SharedCarMirror> {
+        SharedCarMirrorWriter(
+            remote = get(),
+            vehicleDao = get(),
+            parkingDao = get(),
+            profileDao = get(),
+        )
+    }
+    single<SharedCarRepository> {
+        SharedCarRepositoryImpl(
+            remote = get(),
+            dao = get(),
+            profileDao = get(),
+            vehicleRepository = get(),
+            authRepository = get(),
+        )
+    }
 
     single<ZoneRepository> {
         ZoneRepositoryImpl(get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default))
@@ -177,6 +209,7 @@ val dataModule = module {
     single { get<AppDatabase>().fuelStationCacheDao() }
     single { get<AppDatabase>().fuelWatchDao() }
     single { get<AppDatabase>().tripRoutePointDao() }
+    single { get<AppDatabase>().sharedCarDao() }
 
     // Lo que el usuario sigue y lo que esas bombas han cobrado. ⛔ Tabla aparte de la caché a
     // propósito: la caché se barre, y un seguimiento borrado por una limpieza es la elección del

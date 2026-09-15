@@ -20,6 +20,8 @@ enum class PaywallReason {
      *  vigilance someone wanted. [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001] */
     FUEL_ALERTS,
     ROUTE_CLOUD,
+    /** Opening a group on a car — the owner's Plus covers everyone who joins. [VEH-SHARED-001] */
+    SHARED_CAR,
     GENERAL,
     ;
 

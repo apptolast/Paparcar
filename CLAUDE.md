@@ -332,8 +332,24 @@ tarea, o queda fuera del set probable:
 - `UserParking` — sesión propia: vehicleId, location, geofenceId, isActive, detectionMethod, detectionPath, armEvidence, routePolyline, sizeCategory, carbodyType
 - `Vehicle` — brand, model, licensePlate? (on-device), bluetoothDeviceId?, isDefault, sizeCategory,
   carbodyType?, fuelType? (obligatorio en alta si `burnsFuel`), consumptionPer100? (override;
-  null ⇒ `FuelDefaults`), consumptionElectricPer100? (solo PHEV), energyLabel?
+  null ⇒ `FuelDefaults`), consumptionElectricPer100? (solo PHEV), energyLabel?,
+  **sharedCarId?** (el espejo del grupo) + **ownerUid?** (no null ⇒ fila VINCULADA: coche de otro,
+  no cuenta para el límite free) [VEH-SHARED-001]
 - `UserProfile` — perfil Firebase: userId, email, displayName, photoUrl
+- `SharedCar` — ESPEJO del coche que conducen varios [VEH-SHARED-001]: carId (= id del coche del
+  dueño, no se re-keya nada), ownerUid, displayName, btMacHash (token de comparación, **nunca la
+  MAC**), `state` (dónde está AHORA y quién lo dejó — lo lee todo el grupo, **dueño incluido**),
+  `members/{uid}` (subcolección: la pertenencia tiene que ser comprobable por reglas) y
+  `sessions/{id}`, el historial compartido. Un coche compartido **se mide como cualquier otro** y
+  sus cifras son del grupo: km, tiempo buscando plaza y plaza liberada viajan SIEMPRE; la
+  **geometría** también viaja SIEMPRE, y lo que decide su autor es si se MUESTRA
+  (`vehicles.shareRoutesInGroup` → `members/{uid}.sharesRoutes`, encendido por defecto, resuelto al
+  leer en `asHistoryEntry(showRoute)` para que volver a encenderlo devuelva los viajes viejos). ⛔ El espejo **no tiene campo** para `armEvidence`,
+  `detectionPath`, `tripMaxSpeedMps` ni matrícula: eso es mecánica de detección, y la lista blanca
+  ahí es el TIPO, no un `if`. La sesión personal sigue siendo la fuente de verdad, con su ruta.
+  ⛔ **No hay pantalla de grupo**: el coche compartido es un coche más de la pestaña Vehículos, con
+  su sección dentro de la página (miembros, código, interruptor de rutas) y con historial y cifras
+  del GRUPO por el mismo agregador de siempre.
 
 ### Categorización bidimensional de vehículos
 > Detalle: `docs/architecture/VEHICLE-CATEGORIZATION.md`

@@ -80,6 +80,14 @@ fun VehicleIdentityHeader(
      * [STATS-UI-001] [UI-COLOR-DOCTRINE-001]
      */
     statusLine: (@Composable () -> Unit)? = null,
+    /**
+     * Una marca junto al NOMBRE — hoy, que el coche es compartido. [VEH-SHARED-001]
+     *
+     * Va aquí y no en el color del nombre a propósito: el color de este bloque ya dice CÓMO se
+     * vigila el coche (verde, azul BT, gris), y meter «compartido» en esa misma señal haría que dos
+     * hechos distintos pelearan por un canal. [UI-COLOR-DOCTRINE-001]
+     */
+    nameSuffix: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
 ) {
     val watch = vehicle.monitoringStatus().watch()
@@ -149,6 +157,7 @@ fun VehicleIdentityHeader(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
+                nameSuffix?.invoke()
             }
             // Quiet descriptive subtitle (carbody · size) — no chips. Detail-screen only.
             if (showSize) {

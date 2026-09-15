@@ -10,6 +10,8 @@ import com.rndeveloper.paparcar.data.datasource.remote.dto.withoutRouteGeometry
 import com.rndeveloper.paparcar.data.datasource.remote.dto.PlaceInfoDto
 import com.rndeveloper.paparcar.data.datasource.remote.dto.UserProfileDto
 import com.rndeveloper.paparcar.data.datasource.remote.dto.VehicleDto
+import com.rndeveloper.paparcar.data.mapper.toDomain
+import com.rndeveloper.paparcar.data.mapper.toEntity
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 
 class RemoteUserProfileDataSourceImpl(
@@ -18,6 +20,10 @@ class RemoteUserProfileDataSourceImpl(
     // pending drainer, iOS drainer, in-place mutations) -- so the local-first strip lives here and
     // no caller can forget it. Nullable so test doubles keep explicit behaviour.
     private val appPreferences: com.rndeveloper.paparcar.domain.preferences.AppPreferences? = null,
+    // [VEH-SHARED-001] The group's copy hangs off the SAME door, and for the same reason: a second
+    // write path is a second place to forget. Null = nobody shares anything (tests, and every
+    // build before the mirror existed); the writer itself is a no-op for a car with no group.
+    private val sharedCarMirror: com.rndeveloper.paparcar.domain.sharedcar.SharedCarMirror? = null,
 ) : RemoteUserProfileDataSource {
 
     private fun usersCollection() = firestore.collection(COLLECTION_USERS)
@@ -75,6 +81,11 @@ class RemoteUserProfileDataSourceImpl(
         // of this session on its next push, which is the retention promise keeping itself.
         val outgoing = if (appPreferences?.syncRouteGeometry == true) session else session.withoutRouteGeometry()
         parkingHistoryCollection(userId).document(session.id).set(outgoing)
+        // ⛔ AFTER the personal write and never in its place: the mirror is a projection of a
+        // record that already exists. Note it mirrors `session`, not `outgoing` — the geometry
+        // strip is about what the USER syncs of their own trace, and the mirror never carries
+        // geometry at all (its type has no field for it). [VEH-SHARED-001]
+        sharedCarMirror?.onSessionSaved(session.toEntity().toDomain())
     }
 
     override suspend fun clearParkingSessionActiveFlag(userId: String, sessionId: String) {
@@ -86,6 +97,9 @@ class RemoteUserProfileDataSourceImpl(
             // doesn't exist remotely — no point reporting this as a non-fatal.
             PaparcarLogger.w(TAG, "clearParkingSessionActiveFlag skipped — session not in Firestore: $sessionId")
         }
+        // The group is told the car left, but NOT where it went: the last known position stays put
+        // with its hour. [VEH-SHARED-001]
+        sharedCarMirror?.onSessionClosed(sessionId, endedAtMs = nowMs())
     }
 
     override suspend fun updateParkingSessionAddressAndPlace(
@@ -99,6 +113,11 @@ class RemoteUserProfileDataSourceImpl(
             put(FIELD_PLACE_INFO, placeInfo)
         }
         parkingHistoryCollection(userId).document(sessionId).update(updates)
+        sharedCarMirror?.onAddressResolved(
+            sessionId = sessionId,
+            address = address?.toDomain(),
+            placeInfo = placeInfo?.toDomain(),
+        )
     }
 
     override suspend fun getParkingHistory(userId: String): List<ParkingHistoryDto> =
@@ -198,6 +217,14 @@ class RemoteUserProfileDataSourceImpl(
                 energyPricePerKwh = runCatching { get<Double?>(FIELD_ENERGY_PRICE_PER_KWH) }.getOrNull(),
                 priceCurrency = runCatching { get<String?>(FIELD_PRICE_CURRENCY) }.getOrNull(),
                 energyLabel = runCatching { get<String?>(FIELD_ENERGY_LABEL) }.getOrNull().orEmpty(),
+                // Shared-car link — absent on every doc written before VEH-SHARED-001, and absent
+                // forever on a car nobody shares. Read back so a reinstall rejoins the group
+                // instead of quietly becoming a lone car with the same MAC. [VEH-SHARED-001]
+                sharedCarId = runCatching { get<String?>(FIELD_SHARED_CAR_ID) }.getOrNull(),
+                ownerUid = runCatching { get<String?>(FIELD_OWNER_UID) }.getOrNull(),
+                // Absent on every doc written before the switch existed → true, which is the
+                // default the switch itself has. [VEH-SHARED-001]
+                shareRoutesInGroup = runCatching { get<Boolean?>(FIELD_SHARE_ROUTES_IN_GROUP) }.getOrNull() ?: true,
                 updatedAt = getLongCompat(FIELD_UPDATED_AT),
             )
         }.getOrElse { e ->
@@ -305,6 +332,10 @@ class RemoteUserProfileDataSourceImpl(
         const val FIELD_ENERGY_PRICE_PER_KWH = "energyPricePerKwh"
         const val FIELD_PRICE_CURRENCY = "priceCurrency"
         const val FIELD_ENERGY_LABEL = "energyLabel"
+        // Shared-car link. [VEH-SHARED-001]
+        const val FIELD_SHARED_CAR_ID = "sharedCarId"
+        const val FIELD_OWNER_UID = "ownerUid"
+        const val FIELD_SHARE_ROUTES_IN_GROUP = "shareRoutesInGroup"
         const val FIELD_LATITUDE = "latitude"
         const val FIELD_LONGITUDE = "longitude"
         const val FIELD_ACCURACY = "accuracy"

@@ -35,6 +35,9 @@ fun VehicleEntity.toDomain(): Vehicle = Vehicle(
     fuelPricePerLiter = priceCurrency?.let { c -> fuelPricePerLiter?.let { Money(it, c) } },
     energyPricePerKwh = priceCurrency?.let { c -> energyPricePerKwh?.let { Money(it, c) } },
     energyLabel = energyLabel?.toEnumOrNull<EnergyLabel>(),
+    sharedCarId = sharedCarId,
+    ownerUid = ownerUid,
+    shareRoutesInGroup = shareRoutesInGroup,
 )
 
 // [updatedAt]/[pendingSync] are persistence-only reconciliation metadata (not on the domain model):
@@ -61,6 +64,9 @@ fun Vehicle.toEntity(updatedAt: Long = 0, pendingSync: Boolean = false): Vehicle
     energyPricePerKwh = energyPricePerKwh?.amount,
     priceCurrency = (fuelPricePerLiter ?: energyPricePerKwh)?.currency,
     energyLabel = energyLabel?.name,
+    sharedCarId = sharedCarId,
+    ownerUid = ownerUid,
+    shareRoutesInGroup = shareRoutesInGroup,
     updatedAt = updatedAt,
     pendingSync = pendingSync,
 )
@@ -88,6 +94,9 @@ fun VehicleDto.toEntity(): VehicleEntity = VehicleEntity(
     consumptionPer100 = consumptionPer100,
     consumptionElectricPer100 = consumptionElectricPer100,
     energyLabel = energyLabel.ifBlank { null },
+    sharedCarId = sharedCarId,
+    ownerUid = ownerUid,
+    shareRoutesInGroup = shareRoutesInGroup,
     // Remote is authoritative & confirmed by definition → clean row, carrying the server's stamp so
     // the merge can compare it against a local pending edit. [SYNC-RECONCILE-001]
     updatedAt = updatedAt,
@@ -114,4 +123,7 @@ fun Vehicle.toDto(): VehicleDto = VehicleDto(
     consumptionPer100 = consumptionPer100,
     consumptionElectricPer100 = consumptionElectricPer100,
     energyLabel = energyLabel?.name ?: "",
+    sharedCarId = sharedCarId,
+    ownerUid = ownerUid,
+    shareRoutesInGroup = shareRoutesInGroup,
 )

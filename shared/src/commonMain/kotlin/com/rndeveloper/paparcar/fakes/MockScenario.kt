@@ -28,6 +28,11 @@ class MockScenario {
     val gpsEnabled = MutableStateFlow(true)
     val online = MutableStateFlow(true)
 
+    /** [VEH-SHARED-001] El coche del garaje es de OTRA persona y el usuario se unió a su grupo —
+     *  la lectura de MIEMBRO, que desde la cuenta del dueño no se puede alcanzar: fila vinculada,
+     *  «lo aparcó Marta» y «salir de este coche» en vez del código y «dejar de compartir». */
+    val sharedCarJoined = MutableStateFlow(false)
+
     /** Simulates an aggressive-OEM device (MIUI/ColorOS…): the OEM manager reports both
      *  proprietary gates, so REDUCED reliability is reachable on any emulator (combine with
      *  tier=Producer — no battery exemption — and vehicles without BT). [DET-RELIABILITY-001] */
@@ -96,5 +101,6 @@ class MockScenario {
         approximateParking.value = false
         firstStepsPending.value = false
         isPlus.value = false
+        sharedCarJoined.value = false
     }
 }

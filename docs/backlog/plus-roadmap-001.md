@@ -9,7 +9,7 @@
 | Qué | Por qué sigue abierta |
 |---|---|
 | **F6b · `PARKINGS-LIVE-OCCUPANCY-001`** (ocupación en tiempo real de Madrid/Málaga) | ficha [`parkings-live-occupancy-001`](parkings-live-occupancy-001.md). F6a (la base mundial de Overpass en mapa y sheet) ✅ cerró el 10-09; la ocupación exige el **primer backend propio** del proyecto (Cloud Function programada), que es todo el coste de la fase |
-| **F8 · `VEH-SHARED-001`** (coche compartido, la feature estrella de Plus) | modelo ✅ decidido el 08-09 (proyección/espejo, §F8), **cero código y sin doc de ticket propio**. Era "octubre" por decisión del user |
+| **F8 · `VEH-SHARED-001`** (coche compartido, la feature estrella de Plus) | 🟡 **etapa 1 EN RAMA** desde el 15-09 (`feature/VEH-SHARED-001-mirror-and-group`): el grupo y el espejo, sin Cloud Functions y sin tocar detección. Ficha: [`veh-shared-001.md`](veh-shared-001.md). Quedan la etapa 2 (FCM + dedupe + functions) y la 3 (webhook RC) |
 
 Cola menor heredada de fases ✅ (no bloquea cerrar la ola):
 [`fuel-station-brand-marks-001`](fuel-station-brand-marks-001.md) (🔵 decidido, sin empezar) ·
@@ -133,7 +133,7 @@ Orden fijado por el user (07-09) tras valorar éxito/riesgo/trabajo. **No se reo
 | F5 | `FUEL-PRICES-001` | free | ✅ completa: resolver `fe9fb43f` → ES+FR con hora propia `37c4ef48` → mapa y peek `b2722ea0` (cierra F5) |
 | F6 | `PARKINGS-LIVE-001` | free | 🟡 **a medias**: F6a ✅ `36ba800b` (base mundial en mapa + sheet) · **F6b 🔵 PENDIENTE** (ocupación real, Cloud Function) |
 | F7 | `DET-SEARCH-TIME-001` | Plus (agitación) | ✅ **entregado por el pivote**, no por esta ola: `6622f8d9` [TRIP-THE-SEARCH-FOR-A-SPOT-IS-MEASURED-001] |
-| F8 | `VEH-SHARED-001` | Plus (estrella) | 🔵 **SIN EMPEZAR** — modelo decidido 08-09, cero código, sin doc de ticket |
+| F8 | `VEH-SHARED-001` | Plus (estrella) | 🟡 **etapa 1 en rama** (15-09): espejo `sharedCars/` + grupo + reglas + Room. Etapas 2 y 3 (push/functions, webhook RC) sin empezar — ficha [`veh-shared-001.md`](veh-shared-001.md) |
 | — | SER Madrid (aparcada TRAS la ola, decisión 07-09) · `ROUTES-PLUS-001` · `PARKING-AFFILIATE-001` | después | — | ver roadmap padre |
 
 Cada fase, sin excepción: strings en los **9 locales** en la misma tarea (`LocaleParityGuardrailTest`);
@@ -523,8 +523,10 @@ estadística única de Paparcar ("este mes has perdido 2 h 40 min buscando plaza
 
 ### F8 · VEH-SHARED-001 — coche compartido, solo Bluetooth (octubre, feature estrella de Plus)
 
-**Estado: 🔵 SIN EMPEZAR** (verificado 15-09: `git log master --grep=VEH-SHARED` → 0 commits; no hay
-`docs/backlog/veh-shared-001.md`). Lo que SÍ está cerrado es la decisión de modelo (08-09, abajo), y
+**Estado: 🟡 ETAPA 1 EN RAMA** (15-09) — la fase se partió en TRES con el user, y la primera (el
+grupo y el espejo, cliente puro) está escrita en `feature/VEH-SHARED-001-mirror-and-group`; su
+detalle fino, sus desviaciones respecto a lo de abajo y lo que queda viven en
+[`veh-shared-001.md`](veh-shared-001.md). Lo que SÍ está cerrado es la decisión de modelo (08-09, abajo), y
 lo que la ola ha construido desde entonces no le estorba: con la proyección (B), nada de F2/F3/F7 hay
 que re-keyarlo. ⚠️ Releer antes de abrirla: el pivote de trayectos metió `routePolyline` bajo
 consentimiento local-first [PRIV-A-TRACE-IS-NOT-A-STAT-001, `ddb448e4`], así que *"la ruta personal

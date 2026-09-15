@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.model.UserParking
+import com.rndeveloper.paparcar.presentation.vehicles.SharedRowNote
 import com.rndeveloper.paparcar.presentation.util.locationDisplayText
 import com.rndeveloper.paparcar.presentation.util.relativeTimeText
 import com.rndeveloper.paparcar.ui.components.PapSectionHeaderRow
@@ -47,6 +48,7 @@ import kotlinx.datetime.TimeZone
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_view_map
+import paparcar.composeapp.generated.resources.shared_car_route_withheld
 import paparcar.composeapp.generated.resources.location_approximate_near
 import paparcar.composeapp.generated.resources.location_fallback_parking
 import kotlinx.datetime.toLocalDateTime
@@ -96,6 +98,8 @@ internal fun EndedSessionTimelineNode(
     isLast: Boolean,
     isActive: Boolean = false,
     onViewOnMap: (lat: Double, lon: Double, sessionId: String) -> Unit,
+    /** Quién condujo, y si su ruta se puede dibujar. Null en un coche que solo es tuyo. */
+    sharedNote: SharedRowNote? = null,
 ) {
     // "Live" is the only thing this list has to tell apart, so that is what wears the brand.
     val liveAccent = PapColor.brandData
@@ -138,6 +142,7 @@ internal fun EndedSessionTimelineNode(
             session = session,
             isActive = isActive,
             onViewOnMap = onViewOnMap,
+            sharedNote = sharedNote,
             modifier = Modifier
                 .weight(1f)
                 .padding(bottom = CARD_BOTTOM_GAP_DP.dp),
@@ -151,6 +156,7 @@ private fun SessionCardContent(
     isActive: Boolean,
     onViewOnMap: (lat: Double, lon: Double, sessionId: String) -> Unit,
     modifier: Modifier = Modifier,
+    sharedNote: SharedRowNote? = null,
 ) {
     val cs = MaterialTheme.colorScheme
     val dateTime = remember(session.location.timestamp) {
@@ -174,8 +180,17 @@ private fun SessionCardContent(
         resolvedLocation != null -> resolvedLocation
         else -> stringResource(Res.string.location_fallback_parking)
     }
-    val secondaryText = if (isActive) activeRelativeTime
+    val baseSecondary = if (isActive) activeRelativeTime
         else session.address?.city?.let { "$it · $timeStr" } ?: timeStr
+    // En un coche de varios, la misma línea quieta dice QUIÉN condujo y, si hace falta, que de ese
+    // viaje no hay línea que dibujar — un hueco sin explicación se lee como un fallo nuestro.
+    // [VEH-SHARED-001]
+    val withheldLabel = stringResource(Res.string.shared_car_route_withheld)
+    val secondaryText = listOfNotNull(
+        baseSecondary,
+        sharedNote?.authorName,
+        withheldLabel.takeIf { sharedNote?.routeWithheld == true },
+    ).joinToString(" · ")
 
     // The live card keeps its filled container, and the fill now means LIVE — not "watched by
     // Bluetooth". It followed the watch tier until 08-09-2026, so that a BT car would not announce

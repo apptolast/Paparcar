@@ -81,25 +81,44 @@ class FakeVehicleRepository(private val scenario: MockScenario? = null) : Vehicl
 
     /** The scenario list: empty for fresh accounts; the ACTIVE vehicle gains a paired-BT
      *  identity when the Dev Catalog flips that lever. [UX-PARKED-STATE-001] */
-    private fun scenarioList(session: MockScenario.Session, activeBt: Boolean): List<Vehicle> =
+    private fun scenarioList(
+        session: MockScenario.Session,
+        activeBt: Boolean,
+        sharedCarJoined: Boolean,
+    ): List<Vehicle> =
         when {
             session != MockScenario.Session.LoggedInWithVehicles -> emptyList()
-            activeBt -> mockVehicles.map { v ->
-                if (v.isActive) v.copy(bluetoothDeviceId = ACTIVE_BT_MAC) else v
+            else -> mockVehicles.map { v ->
+                var out = v
+                if (activeBt && v.isActive) out = out.copy(bluetoothDeviceId = ACTIVE_BT_MAC)
+                // [VEH-SHARED-001] La fila VINCULADA: el coche activo pasa a ser de otra persona,
+                // que es lo que hace que el garaje lo lea como «te has unido a este coche» y que el
+                // límite free deje de contarlo.
+                if (sharedCarJoined && v.isActive) {
+                    out = out.copy(sharedCarId = v.id, ownerUid = "mock_user_002")
+                }
+                out
             }
-            else -> mockVehicles
         }
 
     private fun currentList(): List<Vehicle> =
         if (scenario != null) {
-            scenarioList(scenario.session.value, scenario.activeVehicleBluetooth.value)
+            scenarioList(
+                scenario.session.value,
+                scenario.activeVehicleBluetooth.value,
+                scenario.sharedCarJoined.value,
+            )
         } else {
             mockVehicles
         }
 
     override fun observeVehicles(): Flow<List<Vehicle>> =
         if (scenario != null) {
-            combine(scenario.session, scenario.activeVehicleBluetooth) { s, bt -> scenarioList(s, bt) }
+            combine(
+                scenario.session,
+                scenario.activeVehicleBluetooth,
+                scenario.sharedCarJoined,
+            ) { s, bt, joined -> scenarioList(s, bt, joined) }
         } else {
             _vehiclesFlow.asStateFlow()
         }
