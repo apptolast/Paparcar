@@ -105,13 +105,8 @@
             android:foregroundServiceType="location"
             android:exported="false" />
 
-        <!-- BluetoothDetectionService — BT disconnect path [BT-REFACTOR-FGS-001]
-             foregroundServiceType="location" required for GPS access while running in
-             background (30 s debounce + 60 s GPS sampling + distance watch). -->
-        <service
-            android:name=".bluetooth.BluetoothDetectionService"
-            android:foregroundServiceType="location"
-            android:exported="false" />
+        <!-- BluetoothDetectionService retired: the BT lane (hunt + departure watch) rides the
+             sentinel above since [DET-ONE-SERVICE-TWO-LANES-001]. -->
 
         <!-- ActivityTransitionReceiver -->
         <receiver

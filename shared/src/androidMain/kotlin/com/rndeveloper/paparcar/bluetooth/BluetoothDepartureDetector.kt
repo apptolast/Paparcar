@@ -25,7 +25,8 @@ sealed interface BtDepartureOutcome {
  * [DET-A-BT-CONNECT-IS-A-DEPARTURE-001] The departure twin of [BluetoothParkingDetector]: the paired
  * car CONNECTED while one of its plazas is still held, so watch whether it actually drives away.
  *
- * Stateless, exactly like its park-side twin — the caller ([BluetoothDetectionService]) owns the
+ * Stateless, exactly like its park-side twin — the caller (the sentinel's BT watch job since
+ * [DET-ONE-SERVICE-TWO-LANES-001]) owns the
  * scope and the foreground service, and cancels the coroutine when the car disconnects again.
  *
  * **Why this exists.** At CONNECT three things already happen and none of them watches a drive: the
@@ -58,7 +59,7 @@ sealed interface BtDepartureOutcome {
  *
  * What stops it is the ACL DISCONNECT: leaving the paired car drops the link within seconds — long
  * before a car could carry the phone past the pedestrian ceiling — and
- * [BluetoothDetectionService.handleDisconnected] cancels this job before doing anything else. The
+ * the sentinel's BT_DISCONNECTED handler cancels this job before doing anything else. The
  * guard is therefore the lane's own cancellation, not an extra check, which is why there isn't
  * one: a second guard here would be a duplicate of a race this lane already wins by construction.
  */

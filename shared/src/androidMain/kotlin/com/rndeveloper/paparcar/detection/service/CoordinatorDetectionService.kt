@@ -178,6 +178,30 @@ class CoordinatorDetectionService : LifecycleService() {
      *  GPS-holding jobs — the figures the field calibrates the sampling tiers against. */
     private val batteryMeter: com.rndeveloper.paparcar.domain.detection.ports.BatteryMeter by inject()
 
+    // ── [DET-ONE-SERVICE-TWO-LANES-001] The BT lane rides the sentinel ─────────────────────────
+    // The dedicated BluetoothDetectionService is gone: its two jobs (the disconnect HUNT and the
+    // connect departure WATCH) are hosted here, in their own slots, entering through the same
+    // serialized intake as everything else. The DOCTRINE is unchanged — the lanes stay separate as
+    // SLOTS + pure use cases (EvaluateBtParkUseCase decides the hunt, the coordinator's evaluators
+    // decide sessions; nothing BT enters coordinator scoring) — what merged is the HOSTING: one
+    // FGS, one notification, one teardown authority.
+
+    /** The BT disconnect HUNT (debounce → candidate → ride proof → walk-away → confirm). A sibling
+     *  slot of [detectionJob] on purpose: a hunt for car A and a coordinator session for car B are
+     *  legal concurrently, exactly as they were across two services — an arm never cancels it and
+     *  it never satisfies the arm-debounce guards. */
+    @Volatile private var btHuntJob: Job? = null
+
+    /** [DET-A-BT-CONNECT-IS-A-DEPARTURE-001] The connect-side drive-away watch (≤5 min bounded). */
+    @Volatile private var btWatchJob: Job? = null
+
+    private val btParkingDetector: com.rndeveloper.paparcar.bluetooth.BluetoothParkingDetector by inject()
+    private val btDepartureDetector: com.rndeveloper.paparcar.bluetooth.BluetoothDepartureDetector by inject()
+    // [DET-TIERS-001] The deterministic arbiter now runs INSIDE the intake (it reads runtime state
+    // this service owns) — the receiver no longer computes it, so edge ordering is serialized here.
+    private val evaluateBtArbitration: com.rndeveloper.paparcar.domain.usecase.detection.EvaluateBtArbitrationUseCase by inject()
+    private val authRepository: com.apptolast.baselogin.domain.AuthRepository by inject()
+
     /** [DET-RESIDENT-FGS-001 · F3] Alive only while resident in SENTRY — see [watchSentryPreconditions]. */
     private var sentryWatchJob: Job? = null
 
@@ -371,31 +395,19 @@ class CoordinatorDetectionService : LifecycleService() {
             // from STOP_TRACKING (an internal cancel): this one stamps the session's own terminal
             // outcome, drops any held confirm so nothing is planted, and opens the quiet period.
             ACTION_USER_STOP -> handleUserStop()
-            // [DET-TIERS-001] Bluetooth arbitrated: a paired-car BT edge SUPERSEDES this
-            // probabilistic session (disconnect → the BT path confirms deterministically; connect in
-            // Candidate → the user is back in the car, veto the pending pin). Either way the
-            // coordinator must step aside — abort exactly like STOP so no ladder/prompt/pin survives.
-            // The decision was made by the pure EvaluateBtArbitrationUseCase in the BT receiver; the
-            // service only executes the abort. BT never enters coordinator scoring — it overrides.
-            ACTION_BT_OVERRIDE -> {
-                PaparcarLogger.d(DIAG, "  → BT_OVERRIDE (${intent.getStringExtra(EXTRA_BT_OVERRIDE_REASON)}) — Bluetooth supersedes, aborting session")
-                cancelDetectionJob()
-            }
-            // [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001] The paired car's ACL CONNECT asks for the
-            // trip RECORDER — no arming, no decision, only route points, so the BT lane's confirm
-            // gets a measured route instead of none. When a detection job still runs (the
-            // arbitration override travels ahead of this intent and cancels synchronously, but a
-            // MANUAL session may legitimately survive), the wish parks in
-            // [btTrackingPendingVehicleId] and the idle epilogue honours it.
-            ACTION_BT_TRIP_START -> handleBtTripStart(intent.getStringExtra(EXTRA_BT_TRIP_VEHICLE_ID))
-            // The car's ACL DISCONNECT: the ride is over — stop recording. The store is NOT
-            // touched: the BT hunt's confirm consumes it (encodeFreshRoute), and the 20-min
-            // new-trip gap segments any leftovers of an unconfirmed stop.
-            ACTION_BT_TRIP_STOP -> {
-                PaparcarLogger.d(DIAG, "  → BT_TRIP_STOP — cancelling the trip recorder")
-                btTrackingPendingVehicleId = null
-                cancelBtTrackingJob()
-            }
+            // [DET-ONE-SERVICE-TWO-LANES-001] The paired car's ACL edges, whole: arbitration
+            // [DET-TIERS-001], the trip recorder [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001], the
+            // disconnect HUNT and the connect departure WATCH all resolve HERE, serialized — the
+            // receiver forwards one intent per edge and computes nothing.
+            ACTION_BT_CONNECTED -> handleBtConnected(
+                deviceAddress = intent.getStringExtra(EXTRA_BT_DEVICE_ADDRESS),
+                vehicleId = intent.getStringExtra(EXTRA_BT_VEHICLE_ID),
+                watchDeparture = intent.getBooleanExtra(EXTRA_BT_WATCH_DEPARTURE, false),
+            )
+            ACTION_BT_DISCONNECTED -> handleBtDisconnected(
+                deviceAddress = intent.getStringExtra(EXTRA_BT_DEVICE_ADDRESS),
+                vehicleId = intent.getStringExtra(EXTRA_BT_VEHICLE_ID),
+            )
             // [DET-B-01] Unknown action: we already promoted to satisfy the 5 s window; the
             // epilogue below tears down if idle instead of leaving the FGS notification hanging.
             else -> PaparcarLogger.d(DIAG, "  ⊘ unhandled action=$action [DET-B-01]")
@@ -1493,6 +1505,206 @@ class CoordinatorDetectionService : LifecycleService() {
         btTrackingJob = null
     }
 
+    /**
+     * [DET-TIERS-001 · DET-ONE-SERVICE-TWO-LANES-001] The deterministic arbiter, now run INSIDE
+     * the serialized intake (it reads runtime state this service owns, so computing it in the
+     * receiver was a snapshot racing the queue). BT never enters coordinator scoring — it
+     * overrides: a non-NoOp verdict aborts the probabilistic session exactly like STOP, so no
+     * ladder/prompt/pin survives the paired car's own edge.
+     */
+    private fun arbitrateBtEdge(event: com.rndeveloper.paparcar.domain.usecase.detection.BtArbitrationEvent, btVehicleId: String) {
+        val verdict = evaluateBtArbitration(
+            event = event,
+            coordinatorRunning = detectionRuntime.isRunning.value,
+            coordinatorPhase = detectionRuntime.phase.value,
+            btVehicleId = btVehicleId,
+            coordinatorVehicleId = detectionRuntime.trip.value?.departingVehicleId,
+        )
+        if (verdict != com.rndeveloper.paparcar.domain.usecase.detection.BtArbitrationVerdict.NoOp) {
+            PaparcarLogger.d(DIAG, "  ⚡ BT arbitrates over the coordinator: ${verdict::class.simpleName} — aborting session")
+            cancelDetectionJob()
+        }
+    }
+
+    /**
+     * [DET-ONE-SERVICE-TWO-LANES-001] The paired car's ACL CONNECT, whole and in order:
+     * arbitration → the BT-005 reconnect cancel of a pending hunt → the return-anchor accelerator →
+     * the trip recorder → the departure watch when the car still holds a plaza. One edge, one
+     * serialized handler — the two-service era coordinated these by racing intents.
+     */
+    private fun handleBtConnected(deviceAddress: String?, vehicleId: String?, watchDeparture: Boolean) {
+        if (vehicleId.isNullOrBlank()) {
+            PaparcarLogger.w(DIAG, "  ✗ BT_CONNECTED without a vehicle id — ignored")
+            return
+        }
+        PaparcarLogger.d(DIAG, "  → BT_CONNECTED device=$deviceAddress vehicle=$vehicleId watch=$watchDeparture")
+        arbitrateBtEdge(com.rndeveloper.paparcar.domain.usecase.detection.BtArbitrationEvent.CONNECT, vehicleId)
+        // [BT-005] A reconnect inside the debounce means the disconnect was an oscillation (a
+        // traffic light, a flaky head unit) — the pending hunt dies before it can act.
+        if (btHuntJob?.isActive == true) {
+            PaparcarLogger.d(DIAG, "  ↻ reconnect — cancelling the pending hunt [BT-005]")
+        }
+        btHuntJob?.cancel()
+        btHuntJob = null
+        // [DET-RETURN-ANCHOR-001] Deterministic "back at my car": re-seal the anchor + cure the
+        // fence seconds before the drive-away. Accelerator only — the evaluator still decides.
+        ParkingSafetyNetWorker.enqueueCheckNow(
+            WorkManager.getInstance(this),
+            source = ParkingSafetyNetWorker.SOURCE_BT_CONNECT,
+        )
+        // [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001] The ride this connect begins gets recorded.
+        handleBtTripStart(vehicleId)
+        // [DET-A-BT-CONNECT-IS-A-DEPARTURE-001] The car still holds a plaza → watch for the
+        // measured drive-away.
+        if (watchDeparture) launchBtDepartureWatch(vehicleId)
+    }
+
+    /**
+     * [DET-ONE-SERVICE-TWO-LANES-001] The paired car's ACL DISCONNECTED, whole and in order:
+     * arbitration → the watch this trip's end supersedes → the recorder stops (its store is the
+     * hunt's evidence, untouched) → the HUNT for the parked-car pin.
+     */
+    private fun handleBtDisconnected(deviceAddress: String?, vehicleId: String?) {
+        if (deviceAddress.isNullOrBlank() || vehicleId.isNullOrBlank()) {
+            PaparcarLogger.w(DIAG, "  ✗ BT_DISCONNECTED — missing extras (device=$deviceAddress, vehicle=$vehicleId)")
+            return
+        }
+        PaparcarLogger.d(DIAG, "  → BT_DISCONNECTED device=$deviceAddress vehicle=$vehicleId — hunting the pin")
+        arbitrateBtEdge(com.rndeveloper.paparcar.domain.usecase.detection.BtArbitrationEvent.DISCONNECT, vehicleId)
+        // The trip the departure watch was watching just ended — it is superseded, not failed.
+        btWatchJob?.cancel()
+        btWatchJob = null
+        // [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001] The ride is over — stop recording. The store
+        // is NOT touched: the hunt's confirm consumes it (encodeFreshRoute), and the 20-min
+        // new-trip gap segments any leftovers of an unconfirmed stop.
+        btTrackingPendingVehicleId = null
+        cancelBtTrackingJob()
+        launchBtHunt(deviceAddress, vehicleId)
+    }
+
+    /**
+     * The disconnect HUNT (debounce → candidate → ride proof → walk-away → confirm), hosted.
+     * Decision stays pure in `EvaluateBtParkUseCase`; this job is I/O: the sampling loop lives in
+     * [btParkingDetector], the FGS promotion already happened in `onStartCommand` (including the
+     * revoked-permission stand-down), and the teardown question goes out through the intake like
+     * every other job's. [DET-ONE-SERVICE-TWO-LANES-001]
+     */
+    private fun launchBtHunt(deviceAddress: String, vehicleId: String) {
+        btHuntJob?.cancel()
+        btHuntJob = lifecycleScope.launch {
+            // Vehicle name on the ONE notification — resolved by the vehicle that actually
+            // disconnected, never by the active default (multi-vehicle setups). [BT-BUG-103/104]
+            runCatching {
+                val userId = authRepository.getCurrentSession()?.userId
+                val name = userId
+                    ?.let { vehicleRepository.getVehicleById(it, vehicleId) }
+                    ?.let { it.displayName(fallback = "").takeIf { n -> n.isNotBlank() } }
+                if (name != null) {
+                    notificationPort.updateDetectionVehicle(name, AppNotificationManager.DETECTION_NOTIFICATION_ID)
+                }
+            }.onFailure { e -> PaparcarLogger.w(DIAG, "    ⚠ vehicle-name fetch failed: ${e.message}") }
+            try {
+                // [DET-BT-DISCONNECT-WITHOUT-RIDE-001] The matching CONNECT stamp, read here so the
+                // decision core stays free of Android Context. Null = no connect on record — the
+                // evaluator treats that as doubt, not permission.
+                val connectedAtMs = com.rndeveloper.paparcar.bluetooth.BtConnectionStore.lastConnectedAt(
+                    this@CoordinatorDetectionService, vehicleId,
+                )
+                val connectFix = com.rndeveloper.paparcar.bluetooth.BtConnectionStore.lastConnectFix(
+                    this@CoordinatorDetectionService, vehicleId,
+                )
+                btParkingDetector.detectParking(deviceAddress, vehicleId, connectedAtMs, connectFix)
+                PaparcarLogger.d(DIAG, "  ✓ BT hunt returned normally")
+                // [DET-RETURN-ANCHOR-001] Seal the anchor for the just-confirmed session right away.
+                ParkingSafetyNetWorker.enqueueCheckNow(
+                    WorkManager.getInstance(this@CoordinatorDetectionService),
+                    source = ParkingSafetyNetWorker.SOURCE_BT_PARK,
+                )
+            } catch (e: CancellationException) {
+                PaparcarLogger.d(DIAG, "  ✗ BT hunt cancelled (reconnect or destroy)")
+                throw e
+            } catch (e: Exception) {
+                PaparcarLogger.e(DIAG, "  ✗ BT hunt error", e)
+                notificationPort.showDebug("ERROR en la detección Bluetooth (${e.message}): la sesión se aborta SIN pin → el próximo evento del coche (conectar/desconectar) vuelve a intentarlo")
+            }
+        }
+        val startedJob = btHuntJob!!
+        startedJob.invokeOnCompletion {
+            // Same completion pattern as every job here [DET-ENDED-VETO-RACE-001]: the teardown
+            // question travels through the intake, and only the CURRENT job may ask it.
+            if (btHuntJob === startedJob) {
+                btHuntJob = null
+                intake.trySend(Command.DetectionEnded(lastStartId))
+            }
+        }
+    }
+
+    /**
+     * [DET-A-BT-CONNECT-IS-A-DEPARTURE-001] The boarded car still holds a plaza: watch whether it
+     * measurably drives away and hand the departure to the common door (REPLACE keyed by fence, so
+     * a Play Services EXIT collapses into one dispatch). Hosted here since
+     * [DET-ONE-SERVICE-TWO-LANES-001]; bounded by the detector's own timeout.
+     */
+    private fun launchBtDepartureWatch(vehicleId: String) {
+        btWatchJob?.cancel()
+        btWatchJob = lifecycleScope.launch {
+            try {
+                // Re-read inside the job: the receiver's answer was a routing decision taken a
+                // moment ago; a vanished session is the race resolving the other way, not an error.
+                val session = userParkingRepository.getActiveSessionByVehicle(vehicleId)
+                if (session == null) {
+                    PaparcarLogger.d(DIAG, "  ■ the plaza is gone (another lane closed it first) — nothing to watch")
+                    return@launch
+                }
+                // No CONNECT stamp → the departure would have no hour, and an undated departure
+                // publishes nothing downstream. [DET-AN-EXIT-IS-DATED-BY-THE-FIX-THAT-CROSSED-IT-001]
+                val connectedAtMs = com.rndeveloper.paparcar.bluetooth.BtConnectionStore.lastConnectedAt(
+                    this@CoordinatorDetectionService, vehicleId,
+                )
+                if (connectedAtMs == null) {
+                    PaparcarLogger.w(DIAG, "  ⊘ no CONNECT stamp for vehicle=$vehicleId — standing down")
+                    return@launch
+                }
+                when (val outcome = btDepartureDetector.watchForDeparture(session, connectedAtMs)) {
+                    is com.rndeveloper.paparcar.bluetooth.BtDepartureOutcome.Measured -> {
+                        val geofenceId = session.geofenceId
+                        if (geofenceId == null) {
+                            PaparcarLogger.w(DIAG, "  ⊘ session ${session.id.take(8)} has no fence — nothing to dispatch")
+                            return@launch
+                        }
+                        WorkManager.getInstance(this@CoordinatorDetectionService).enqueueUniqueWork(
+                            "${DepartureDetectionWorker.TAG}_$geofenceId",
+                            ExistingWorkPolicy.REPLACE,
+                            DepartureDetectionWorker.buildRequest(
+                                geofenceId = geofenceId,
+                                triggerAtMs = System.currentTimeMillis(),
+                                // Dated by the BOARDING — the measured instant closest to the pull-out.
+                                departedAtMs = connectedAtMs,
+                                // `false` deliberately: the trip is STARTING; a fresh fix makes the
+                                // ladder's verdict Witnessed (full lifetime), never Deduced.
+                                preconfirmed = false,
+                            ),
+                        )
+                        PaparcarLogger.i(DIAG, "  ✓ departure dispatched for fence=${geofenceId.take(8)} (proof at ${outcome.fix.timestamp})")
+                    }
+                    com.rndeveloper.paparcar.bluetooth.BtDepartureOutcome.NeverDrove -> Unit // traced by the detector
+                }
+            } catch (e: CancellationException) {
+                PaparcarLogger.d(DIAG, "  ✗ drive-away watch cancelled (disconnect or destroy)")
+                throw e
+            } catch (e: Exception) {
+                PaparcarLogger.e(DIAG, "  ✗ drive-away watch error", e)
+            }
+        }
+        val startedJob = btWatchJob!!
+        startedJob.invokeOnCompletion {
+            if (btWatchJob === startedJob) {
+                btWatchJob = null
+                intake.trySend(Command.DetectionEnded(lastStartId))
+            }
+        }
+    }
+
     /** [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001] ACL CONNECT → record this ride (or park the wish
      *  until the running detection job ends). */
     private fun handleBtTripStart(vehicleId: String?) {
@@ -1575,6 +1787,9 @@ class CoordinatorDetectionService : LifecycleService() {
         if (detectionJob?.isActive == true) return
         // [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001] A live trip recorder owns the FGS too.
         if (btTrackingJob?.isActive == true) return
+        // [DET-ONE-SERVICE-TWO-LANES-001] …and so do the hosted BT jobs.
+        if (btHuntJob?.isActive == true) return
+        if (btWatchJob?.isActive == true) return
         // [DET-RESIDENT-FGS-001 · F2] Error-path teardown is still a DELIBERATE stop — drop any
         // residency stamp so the kill detector never reads this as an OS kill.
         sentryWatchJob?.cancel()
@@ -1600,6 +1815,10 @@ class CoordinatorDetectionService : LifecycleService() {
         // [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001] A live trip recorder owns the service exactly
         // like a detection job: no teardown and no sentry decision while it records.
         if (btTrackingJob?.isActive == true) return
+        // [DET-ONE-SERVICE-TWO-LANES-001] The hosted BT jobs own it the same way: a hunt or a
+        // departure watch mid-flight must never lose its FGS to another command's idle epilogue.
+        if (btHuntJob?.isActive == true) return
+        if (btWatchJob?.isActive == true) return
         // A CONNECT that arrived while a detection job ran parked its wish here; honour it now the
         // job is over — IF the car is still on its ride. A stale wish (disconnected meanwhile) is
         // dropped so it can never start a recorder for a parked car. After a null-trip shutoff the
@@ -2347,6 +2566,8 @@ class CoordinatorDetectionService : LifecycleService() {
     override fun onDestroy() {
         PaparcarLogger.d(DIAG, "■ Service onDestroy — cancelling detectionJob")
         btTrackingJob?.cancel() // [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001]
+        btHuntJob?.cancel() // [DET-ONE-SERVICE-TWO-LANES-001]
+        btWatchJob?.cancel()
         detectionJob?.cancel()
         detectionRuntime.setRunning(false) // [DET-READY-001c] service gone → detection idle
         detectionRuntime.setPresence(ServicePresence.Dead) // [DET-RESIDENT-FGS-001] process gone
@@ -2451,17 +2672,20 @@ class CoordinatorDetectionService : LifecycleService() {
         const val EXTRA_TRIAGE_ONLY = "com.rndeveloper.paparcar.EXTRA_TRIAGE_ONLY"
         // [DET-TIERS-001] Bluetooth arbitration override: the BT receiver decided a paired-car edge
         // must supersede the running coordinator session; the service aborts it. Reason is for the log.
-        const val ACTION_BT_OVERRIDE = "com.rndeveloper.paparcar.ACTION_BT_OVERRIDE"
+        /** [DET-ONE-SERVICE-TWO-LANES-001] The paired car's ACL edges, forwarded whole by the
+         *  receiver. Each handler runs arbitration, the recorder, and its lane's job — serialized
+         *  in the intake, replacing the retired trio (BT_OVERRIDE / BT_TRIP_START / BT_TRIP_STOP)
+         *  that used to coordinate two services by racing intents. Action strings kept from the
+         *  deleted BluetoothDetectionService for log/trace continuity. */
+        const val ACTION_BT_CONNECTED = "com.rndeveloper.paparcar.ACTION_BT_CONNECTED"
+        const val ACTION_BT_DISCONNECTED = "com.rndeveloper.paparcar.ACTION_BT_DISCONNECTED"
 
-        /** [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001] The paired car's ACL CONNECT → start the trip
-         *  RECORDER (route points only, zero decision authority). Extra: [EXTRA_BT_TRIP_VEHICLE_ID]. */
-        const val ACTION_BT_TRIP_START = "com.rndeveloper.paparcar.ACTION_BT_TRIP_START"
+        const val EXTRA_BT_DEVICE_ADDRESS = "extra_device_address"
+        const val EXTRA_BT_VEHICLE_ID = "extra_vehicle_id"
 
-        /** The car's ACL DISCONNECT → stop the recorder; the BT hunt's confirm consumes the store. */
-        const val ACTION_BT_TRIP_STOP = "com.rndeveloper.paparcar.ACTION_BT_TRIP_STOP"
-
-        const val EXTRA_BT_TRIP_VEHICLE_ID = "extra_bt_trip_vehicle_id"
-        const val EXTRA_BT_OVERRIDE_REASON = "com.rndeveloper.paparcar.EXTRA_BT_OVERRIDE_REASON"
+        /** [DET-A-BT-CONNECT-IS-A-DEPARTURE-001] Set on a CONNECT when the car still holds a
+         *  plaza → the handler opens the drive-away watch. */
+        const val EXTRA_BT_WATCH_DEPARTURE = "extra_watch_departure"
 
         // [DET-G-01] Geofence-exit delivered directly to the service via getForegroundService so
         // Play Services grants the privileged FGS start (the same getForegroundService mechanism the

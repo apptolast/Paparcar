@@ -7,14 +7,10 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.content.ContextCompat
 import com.rndeveloper.paparcar.detection.service.CoordinatorDetectionService
-import com.rndeveloper.paparcar.domain.detection.DetectionRuntimeState
 import com.rndeveloper.paparcar.domain.location.LocationDataSource
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
-import com.rndeveloper.paparcar.domain.usecase.detection.BtArbitrationEvent
-import com.rndeveloper.paparcar.domain.usecase.detection.BtArbitrationVerdict
-import com.rndeveloper.paparcar.domain.usecase.detection.EvaluateBtArbitrationUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,23 +22,22 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 /**
- * System BroadcastReceiver that translates ACL Bluetooth events into
- * [BluetoothDetectionService] start commands.
+ * System BroadcastReceiver that translates ACL Bluetooth events into sentinel
+ * ([com.rndeveloper.paparcar.detection.service.CoordinatorDetectionService]) start commands.
+ * [DET-ONE-SERVICE-TWO-LANES-001]
  *
- * **Minimum-work pattern.** This receiver does exactly two things and nothing more:
+ * **Minimum-work pattern.** This receiver does exactly three things and nothing more:
  * 1. Resolve the vehicleId paired to the event's BT device address (fast Room read).
- * 2. Delegate to [BluetoothDetectionService] — all long-running detection work lives there.
+ * 2. Stamp the durable facts a broadcast is the only witness of (connect instant + origin fix).
+ * 3. Forward ONE intent per edge to the sentinel's serialized intake — arbitration, the trip
+ *    recorder, the disconnect hunt and the departure watch all resolve THERE.
  *
  * Events from devices not paired to any user vehicle are ignored before any Service is started,
  * preventing spurious foreground-service launches from unrelated BT peripherals.
  *
- * - [BluetoothDevice.ACTION_ACL_DISCONNECTED] → `startForegroundService(ACTION_BT_DISCONNECTED)`
- * - [BluetoothDevice.ACTION_ACL_CONNECTED]    → depends on whether that car still holds a plaza
- *   ([DET-A-BT-CONNECT-IS-A-DEPARTURE-001]): `startForegroundService` when it does, because the
- *   service will watch for the drive-away with the GPS on; plain `startService` when it does not,
- *   which is the instant work this lane always did (cancel the pending job, accelerate the safety
- *   net). ⚠️ The choice is made HERE and cannot be revised later: a foreground start is a promise
- *   to promote within 5 s, so it may only be made when the service will certainly promote.
+ * Both edges are `startForegroundService` — a DISCONNECTED runs the GPS hunt and a CONNECTED
+ * always starts the trip recorder [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001] — and the sentinel
+ * promotes for every action, so the 5-second promise is always kept.
  *
  * Registered in AndroidManifest with `exported="true"` and a BLUETOOTH_CONNECT permission guard.
  * The `true` is LOAD-BEARING — do not "fix" it to false: ACL broadcasts are sent by the
@@ -70,13 +65,8 @@ class BluetoothConnectionReceiver : BroadcastReceiver(), KoinComponent {
     private val locationDataSource: LocationDataSource by inject()
 
     // [DET-A-BT-CONNECT-IS-A-DEPARTURE-001] Whether the car that just connected still holds a
-    // plaza — the one fact that decides whether this CONNECT starts a foreground watch or the
-    // instant work it always did.
+    // plaza — the routing fact the sentinel's CONNECT handler wants ready-made.
     private val userParkingRepository: UserParkingRepository by inject()
-
-    // [DET-TIERS-001] Bluetooth as deterministic arbiter of the probabilistic coordinator.
-    private val detectionRuntimeState: DetectionRuntimeState by inject()
-    private val evaluateBtArbitration: EvaluateBtArbitrationUseCase by inject()
 
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action ?: return
@@ -119,57 +109,27 @@ class BluetoothConnectionReceiver : BroadcastReceiver(), KoinComponent {
                     PaparcarLogger.d(TAG, "  no vehicle paired with $deviceAddress — ignoring")
                     return@launch
                 }
-                PaparcarLogger.d(TAG, "  matched vehicle=${pairedVehicle.id} — starting BluetoothDetectionService ($eventLabel)")
+                PaparcarLogger.d(TAG, "  matched vehicle=${pairedVehicle.id} — forwarding $eventLabel to the sentinel")
 
-                // [DET-TIERS-001] Bluetooth arbitration: if a probabilistic coordinator session is
-                // in progress, this deterministic paired-car edge SUPERSEDES it (BT never scores —
-                // it overrides). The pure use case rules; if it's not a no-op, tell the coordinator
-                // service to abort its session so no ladder/prompt/pin survives. The normal BT flow
-                // below is unchanged: disconnect still confirms via the detector, connect re-seals.
-                val verdict = evaluateBtArbitration(
-                    event = if (action == BluetoothDevice.ACTION_ACL_DISCONNECTED) {
-                        BtArbitrationEvent.DISCONNECT
-                    } else {
-                        BtArbitrationEvent.CONNECT
-                    },
-                    coordinatorRunning = detectionRuntimeState.isRunning.value,
-                    coordinatorPhase = detectionRuntimeState.phase.value,
-                    btVehicleId = pairedVehicle.id,
-                    coordinatorVehicleId = detectionRuntimeState.trip.value?.departingVehicleId,
-                )
-                if (verdict != BtArbitrationVerdict.NoOp) {
-                    val reason = verdict::class.simpleName
-                    PaparcarLogger.d(TAG, "  ⚡ BT arbitrates over the coordinator: $reason — signalling abort")
-                    val overrideIntent = Intent(context, CoordinatorDetectionService::class.java).apply {
-                        this.action = CoordinatorDetectionService.ACTION_BT_OVERRIDE
-                        putExtra(CoordinatorDetectionService.EXTRA_BT_OVERRIDE_REASON, reason)
-                    }
-                    // The coordinator FGS is already running (verdict != NoOp ⇒ session live), so a
-                    // plain startService reaches the existing instance's serialized intake.
-                    context.startService(overrideIntent)
-                }
-
+                // [DET-ONE-SERVICE-TWO-LANES-001] The receiver computes NOTHING about detection any
+                // more: arbitration [DET-TIERS-001], the trip recorder, the hunt and the departure
+                // watch all resolve inside the sentinel's serialized intake. This receiver keeps
+                // only what must happen at broadcast time — the durable stamps and the routing
+                // facts — and forwards ONE intent per edge.
                 when (action) {
                     BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
                         // [DET-BT-CONNECTED-NOT-PAIRED-001] Car no longer connected → clear the live
                         // connection state the strategy resolver reads, so detection falls back to the
                         // Coordinator for the next (possibly non-BT) car.
                         BtConnectionStore.markDisconnected(context, pairedVehicle.id)
-                        // [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001] The ride is over → stop the trip
-                        // recorder. Plain startService (same window/precedent as the CONNECT work
-                        // below): if the sentinel is dead there is no recorder to stop and the
-                        // intake's epilogue tears the brief start back down.
-                        context.startService(
-                            Intent(context, CoordinatorDetectionService::class.java).apply {
-                                this.action = CoordinatorDetectionService.ACTION_BT_TRIP_STOP
-                            },
+                        // ONE intent: the sentinel stops the recorder and runs the hunt, in order.
+                        // Foreground start — the hunt holds GPS for minutes. [DET-ONE-SERVICE-TWO-LANES-001]
+                        sendBtEdgeToSentinel(
+                            context,
+                            action = CoordinatorDetectionService.ACTION_BT_DISCONNECTED,
+                            deviceAddress = deviceAddress,
+                            vehicleId = pairedVehicle.id,
                         )
-                        val serviceIntent = Intent(context, BluetoothDetectionService::class.java).apply {
-                            this.action = BluetoothDetectionService.ACTION_BT_DISCONNECTED
-                            putExtra(BluetoothDetectionService.EXTRA_DEVICE_ADDRESS, deviceAddress)
-                            putExtra(BluetoothDetectionService.EXTRA_VEHICLE_ID, pairedVehicle.id)
-                        }
-                        ContextCompat.startForegroundService(context, serviceIntent)
                     }
                     BluetoothDevice.ACTION_ACL_CONNECTED -> {
                         // [DET-BT-IDENTITY-GATE-001] Stamp that the user got into THIS car — the
@@ -201,61 +161,32 @@ class BluetoothConnectionReceiver : BroadcastReceiver(), KoinComponent {
                         BtConnectionStore.markConnected(context, pairedVehicle.id)
 
                         // [DET-A-BT-CONNECT-IS-A-DEPARTURE-001] Does this car still hold a plaza?
-                        // Asked HERE, in the receiver that already resolves the vehicle from a Room
-                        // read, because the answer decides HOW the service is started — and that is
-                        // a decision no later stage can take back:
-                        //
-                        //  - plaza held → `startForegroundService`, because the service is about to
-                        //    watch for a drive-away with the GPS on and must outlive this broadcast.
-                        //    ⚠️ That start is a PROMISE to call `startForeground` within 5 s or the
-                        //    OS kills the app (the BUG-FGS-001 class), so it may only be made when
-                        //    the service will certainly promote.
-                        //  - nothing held → plain `startService`, exactly as before: the work really
-                        //    is instant (cancel the pending job, accelerate the safety net) and an
-                        //    FGS here would be a notification flash bought for nothing.
-                        //
-                        // A failed read is NOT "no session": that reading would silently give up the
-                        // watch on a Room hiccup, so it errs toward watching. The service re-checks
-                        // and stands down cleanly if the plaza is really gone.
+                        // Still asked HERE (the receiver already resolves the vehicle from a Room
+                        // read) because it is a ROUTING fact the handler wants ready-made — but it
+                        // no longer decides how the service starts: since the fusion the connect
+                        // always starts the trip recorder, so the start is always foreground.
+                        // A failed read is NOT "no session": that reading would silently give up
+                        // the watch on a Room hiccup, so it errs toward watching. The sentinel
+                        // re-checks and stands down cleanly if the plaza is really gone.
                         val holdsAPlaza = runCatching {
                             userParkingRepository.getActiveSessionByVehicle(pairedVehicle.id) != null
                         }.getOrElse {
                             PaparcarLogger.w(TAG, "  ⚠ parked-session lookup failed (${it.message}) — assuming a plaza is held")
                             true
                         }
-                        val serviceIntent = Intent(context, BluetoothDetectionService::class.java).apply {
-                            this.action = BluetoothDetectionService.ACTION_BT_CONNECTED
-                            putExtra(BluetoothDetectionService.EXTRA_DEVICE_ADDRESS, deviceAddress)
-                            // The vehicleId did not travel on a CONNECT before, because nothing
-                            // downstream needed to know WHICH car: cancelling a pending job and
-                            // enqueueing a safety-net check are both car-agnostic. Looking up that
-                            // car's parking is not.
-                            putExtra(BluetoothDetectionService.EXTRA_VEHICLE_ID, pairedVehicle.id)
-                            putExtra(BluetoothDetectionService.EXTRA_WATCH_DEPARTURE, holdsAPlaza)
-                        }
-                        if (holdsAPlaza) {
-                            ContextCompat.startForegroundService(context, serviceIntent)
-                        } else {
-                            context.startService(serviceIntent)
-                        }
-
-                        // [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001] …and start the trip RECORDER in
-                        // the sentinel: the CONNECT nominates nothing and arms nothing — it turns on
-                        // a recorder with zero decision authority, so the ride this connect begins
-                        // ends with a MEASURED route on its BT-confirmed park. Ordered AFTER the
-                        // arbitration override above (the intake serializes and cancelDetectionJob
-                        // is synchronous), so the recorder always meets a service whose superseded
-                        // session is already gone. startForegroundService: recording is
-                        // long-running, ACL broadcasts are exempt from the background FGS-start
-                        // restriction, and the sentinel promotes itself for every action. The
-                        // garage-radio case is bounded by the recorder's own null-trip shutoff
-                        // (BtTripShutoff), never by this receiver guessing.
-                        ContextCompat.startForegroundService(
+                        // ONE intent: the sentinel arbitrates, starts the trip RECORDER (always —
+                        // the ride this connect begins must end with a MEASURED route on its park)
+                        // and opens the departure watch when a plaza is held. Always a foreground
+                        // start: recording is long-running, ACL broadcasts are exempt from the
+                        // background FGS-start restriction, and the garage-radio case is bounded by
+                        // the recorder's own null-trip shutoff (BtTripShutoff) — never by this
+                        // receiver guessing. [DET-ONE-SERVICE-TWO-LANES-001]
+                        sendBtEdgeToSentinel(
                             context,
-                            Intent(context, CoordinatorDetectionService::class.java).apply {
-                                this.action = CoordinatorDetectionService.ACTION_BT_TRIP_START
-                                putExtra(CoordinatorDetectionService.EXTRA_BT_TRIP_VEHICLE_ID, pairedVehicle.id)
-                            },
+                            action = CoordinatorDetectionService.ACTION_BT_CONNECTED,
+                            deviceAddress = deviceAddress,
+                            vehicleId = pairedVehicle.id,
+                            watchDeparture = holdsAPlaza,
                         )
                     }
                 }
@@ -268,6 +199,24 @@ class BluetoothConnectionReceiver : BroadcastReceiver(), KoinComponent {
                 scope.cancel() // [FIX BT-BUG-102] tear down the per-delivery scope.
             }
         }
+    }
+
+    /** [DET-ONE-SERVICE-TWO-LANES-001] The one way a BT edge reaches the sentinel — both branches
+     *  build their intent HERE, so they cannot drift in style or destination again. */
+    private fun sendBtEdgeToSentinel(
+        context: Context,
+        action: String,
+        deviceAddress: String,
+        vehicleId: String,
+        watchDeparture: Boolean? = null,
+    ) {
+        val intent = Intent(context, CoordinatorDetectionService::class.java).apply {
+            this.action = action
+            putExtra(CoordinatorDetectionService.EXTRA_BT_DEVICE_ADDRESS, deviceAddress)
+            putExtra(CoordinatorDetectionService.EXTRA_BT_VEHICLE_ID, vehicleId)
+            watchDeparture?.let { putExtra(CoordinatorDetectionService.EXTRA_BT_WATCH_DEPARTURE, it) }
+        }
+        ContextCompat.startForegroundService(context, intent)
     }
 
     private companion object {

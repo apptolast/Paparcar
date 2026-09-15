@@ -8467,3 +8467,43 @@ confirm — el hold/paseo no se cobran como búsqueda. Un ancla sin timestamp (m
 alimenta a los dos). Los 53 tests del confirm pasan sin cambiar ningún veredicto. Lector completo
 en la misma tarea: suma en `ComputePeriodStatsUseCase` (coste del periodo, no media) → tile
 `SEARCH_TIME` en el bloque de stats, 9 locales.
+
+### DET-ONE-SERVICE-TWO-LANES-001 — el carril BT monta en el sentinel: un FGS, una notificación, una puerta (commit pending)
+
+**Decisión del user (15-09): fusionar YA** (mi recomendación era esperar al Kamiq; queda dicho y
+asumido: se fusiona sobre la vigilancia de salida aún sin validar, y BT-005 se re-demuestra con
+tests, no con campo).
+
+**Qué se fusiona — HOSTING, no doctrina.** `BluetoothDetectionService` desaparece (clase +
+manifest + notificación 1003). Sus dos jobs viven ahora en el sentinel en SLOTS propios:
+`btHuntJob` (la caza del disconnect) y `btWatchJob` (la vigilancia de salida del connect), junto a
+`btTrackingJob`. La DECISIÓN no se movió ni una línea: `EvaluateBtParkUseCase` (37/37) y
+`BluetoothDepartureDetector`/`BluetoothParkingDetector` quedan idénticos — lo que cambió es quién
+hospeda sus coroutines. *Carriles separados* pasa de "dos procesos de servicio" a "slots + use
+cases separados, mismo host": nada BT entra al scoring del coordinator, y un arm jamás toca la
+caza (caza de coche A + sesión de coche B siguen siendo legales en paralelo, como siempre).
+
+**El intake absorbe la coordinación entre servicios.** El receiver ya no computa NADA de
+detección: estampa (connect instant + origin fix + markConnected/Disconnected), lee el routing
+fact (`holdsAPlaza`) y reenvía UN intent por edge (`ACTION_BT_CONNECTED` / `ACTION_BT_DISCONNECTED`,
+helper único `sendBtEdgeToSentinel` — la limpieza de estilo pedida). El trío retirado
+(`ACTION_BT_OVERRIDE`, `BT_TRIP_START`, `BT_TRIP_STOP`) coordinaba dos servicios a base de intents
+en carrera; ahora cada handler hace, EN ORDEN y serializado: arbitraje [DET-TIERS-001] (movido
+dentro — lee el runtime state que el servicio posee, así que computarlo en el receiver era una foto
+compitiendo con la cola) → cancelaciones del edge (reconnect cancela caza [BT-005]; disconnect
+cancela vigilancia y grabador) → acelerador de la red [DET-RETURN-ANCHOR-001] → grabador → caza o
+vigilancia.
+
+**Los guards que hacen esto seguro.** `stopIfIdle`/`resolveIdleEpilogue` ganan los dos slots (un
+hunt o watch en vuelo posee el FGS); ambos jobs usan el patrón de completion
+[DET-ENDED-VETO-RACE-001] (la pregunta de teardown viaja por el intake); `onDestroy` cancela los
+cuatro. La promoción y el matiz de permiso revocado los cubre el `onStartCommand` del sentinel
+para TODA acción (incluido `showPermissionRevoked`) — el carril BT los hereda en vez de duplicarlos.
+El CONNECT siempre es `startForegroundService` (el grabador siempre arranca), así que la decisión
+FGS-vs-plain del receiver desaparece y la promesa de 5 s se cumple por construcción.
+
+**Riesgo asumido y su testigo.** BT-005 (reconnect-cancela-caza) cambió de mecanismo
+(`onStartCommand` del servicio propio → comando de intake): re-demostrado por los replays (29/29)
+y la suite entera (104/104 coordinator); el testigo de CAMPO sigue siendo el viaje del Kamiq, que
+ahora valida este hosting además de todo lo BT pendiente. Coste retirado: la ventana de doble
+notificación (1001+1003) ya no puede existir.

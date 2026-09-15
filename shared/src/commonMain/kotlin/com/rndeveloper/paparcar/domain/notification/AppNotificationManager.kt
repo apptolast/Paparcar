@@ -82,7 +82,8 @@ interface AppNotificationManager {
      * Called from a coroutine immediately after the service calls startForeground().
      *
      * @param vehicleName Display name of the active vehicle (e.g. "Ford Focus").
-     * @param notifId     [DETECTION_NOTIFICATION_ID] or [BT_DETECTION_NOTIFICATION_ID].
+     * @param notifId     [DETECTION_NOTIFICATION_ID] (the BT id was retired with its service —
+     *                    [DET-ONE-SERVICE-TWO-LANES-001]).
      */
     fun updateDetectionVehicle(vehicleName: String, notifId: Int)
 
@@ -191,9 +192,6 @@ interface AppNotificationManager {
         /** ID for the parking-saved notification (channel: UPLOAD / DEFAULT priority). */
         const val UPLOAD_NOTIFICATION_ID = 1002
 
-        /** ID for the [BluetoothDetectionService] foreground notification — distinct from
-         *  [DETECTION_NOTIFICATION_ID] so both services can coexist without overwriting each other. */
-        const val BT_DETECTION_NOTIFICATION_ID = 1003
 
         /** ID for the debug diagnostic notification (channel: DEBUG / HIGH priority). */
         const val DEBUG_NOTIFICATION_ID = 2001

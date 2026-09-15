@@ -22,7 +22,7 @@ import kotlin.time.Duration.Companion.milliseconds
  * Deterministic parking detector driven by Bluetooth connection events.
  *
  * Stateless: owns no [kotlinx.coroutines.CoroutineScope] and no [kotlinx.coroutines.Job].
- * The caller ([BluetoothDetectionService]) runs [detectParking] inside its own
+ * The caller (the sentinel's BT hunt job — [DET-ONE-SERVICE-TWO-LANES-001]) runs [detectParking] inside its own
  * [androidx.lifecycle.lifecycleScope] and cancels the coroutine when BT reconnects —
  * cooperative cancellation at `first` handles the abort cleanly.
  *
