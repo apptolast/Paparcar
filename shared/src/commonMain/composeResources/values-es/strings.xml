@@ -755,6 +755,7 @@
     <string name="paywall_reason_zones">Free se queda con dos zonas: con Plus puedes crear más.</string>
     <string name="paywall_reason_stats">Con Plus ves tus cifras en el periodo que elijas.</string>
     <string name="paywall_reason_zone_alerts">Los avisos de plazas libres en tus zonas son parte de Plus.</string>
+    <string name="paywall_reason_fuel_alerts">Los avisos de precio de carburante son parte de Plus.</string>
     <string name="paywall_reason_route_cloud">Guardar tus rutas en tu cuenta es parte de Plus.</string>
     <string name="paywall_free_alerts">No incluidos</string>
     <string name="paywall_free_support">Gratis para todos</string>
@@ -777,6 +778,8 @@
     <string name="settings_plus_badge_active">ACTIVO</string>
     <string name="settings_notif_zone_alerts">Alertas de zona</string>
     <string name="settings_notif_zone_alerts_desc">Aviso cuando aparezca una plaza libre en tus zonas</string>
+    <string name="settings_notif_fuel_alerts">Alertas de precio de carburante</string>
+    <string name="settings_notif_fuel_alerts_desc">Aviso cuando una gasolinera que sigues cambie de precio o haya otra más barata cerca</string>
     <string name="settings_sync_routes">Guardar tus rutas en tu cuenta</string>
     <string name="settings_sync_routes_desc">Tus trayectos se guardan solo en este móvil. Actívalo para verlos también en tus otros dispositivos.</string>
     <string name="home_zone_form_notify_label">Avisarme de plazas libres aquí</string>
@@ -881,6 +884,8 @@
     <string name="fuel_peek_not_sold">No lo venden aquí</string>
     <string name="fuel_peek_step_prev">Gasolinera anterior</string>
     <string name="fuel_peek_step_next">Gasolinera siguiente</string>
+    <string name="fuel_peek_follow">Seguir</string>
+    <string name="fuel_peek_following">Siguiendo</string>
     <string name="home_fuel_error">No hemos podido cargar las gasolineras. Comprueba la conexión y vuelve a abrir esto.</string>
     <string name="home_fuel_too_far">Solo mostramos gasolineras a menos de %1$d km de ti. Acerca el mapa para verlas.</string>
     <string name="home_fuel_no_prices">En este país no se publican los precios. Estas son las gasolineras cercanas.</string>

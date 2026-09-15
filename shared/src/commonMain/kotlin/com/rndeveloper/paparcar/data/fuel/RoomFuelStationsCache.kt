@@ -17,6 +17,7 @@ import com.rndeveloper.paparcar.domain.fuel.FuelAvailability
 import com.rndeveloper.paparcar.domain.fuel.FuelStation
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsQuery
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsResult
+import com.rndeveloper.paparcar.domain.fuel.fuelStationKey
 import com.rndeveloper.paparcar.domain.fuel.StationPrice
 import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.Money
@@ -216,8 +217,14 @@ class RoomFuelStationsCache(
         /** Discs kept, which bounds the stations too since each disc brings a capped answer. */
         const val MAX_DISCS = 60
 
-        /** ⛔ `source|id`: [FuelStation.id] is only unique WITHIN its feed, and three feeds share
-         *  this table. See [FuelStationCacheEntity.stationKey]. */
-        fun stationKey(source: String, id: String) = "$source|$id"
+        /**
+         * ⛔ `source|id`: [FuelStation.id] is only unique WITHIN its feed, and three feeds share
+         * this table. See [FuelStationCacheEntity.stationKey].
+         *
+         * The rule moved to `domain/fuel/fuelStationKey` when the watch store started keying follows
+         * by the same identity — one spelling for both, or the day they disagree a followed station
+         * quietly stops matching its own cached row. This stays as the cache's own doorway to it.
+         */
+        fun stationKey(source: String, id: String) = fuelStationKey(source, id)
     }
 }

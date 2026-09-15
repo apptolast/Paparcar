@@ -759,6 +759,7 @@
     <string name="paywall_reason_zones">Free tiene due zone: con Plus puoi crearne altre.</string>
     <string name="paywall_reason_stats">Con Plus vedi le tue cifre per qualsiasi periodo.</string>
     <string name="paywall_reason_zone_alerts">Gli avvisi di posti liberi nelle tue zone fanno parte di Plus.</string>
+    <string name="paywall_reason_fuel_alerts">Gli avvisi sul prezzo del carburante fanno parte di Plus.</string>
     <string name="paywall_reason_route_cloud">Salvare i percorsi nel tuo account fa parte di Plus.</string>
     <string name="paywall_free_alerts">Non inclusi</string>
     <string name="paywall_free_support">Gratis per tutti</string>
@@ -781,6 +782,8 @@
     <string name="settings_plus_badge_active">ATTIVO</string>
     <string name="settings_notif_zone_alerts">Avvisi di zona</string>
     <string name="settings_notif_zone_alerts_desc">Avviso quando appare un posto libero nelle tue zone</string>
+    <string name="settings_notif_fuel_alerts">Avvisi sul prezzo del carburante</string>
+    <string name="settings_notif_fuel_alerts_desc">Avviso quando un distributore che segui cambia prezzo o ce n'è uno più economico vicino</string>
     <string name="settings_sync_routes">Salva i tuoi percorsi nel tuo account</string>
     <string name="settings_sync_routes_desc">I tuoi viaggi restano solo su questo telefono. Attivalo per vederli anche sugli altri tuoi dispositivi.</string>
     <string name="home_zone_form_notify_label">Avvisami dei posti liberi qui</string>
@@ -885,6 +888,8 @@
     <string name="fuel_peek_not_sold">Non venduto qui</string>
     <string name="fuel_peek_step_prev">Distributore precedente</string>
     <string name="fuel_peek_step_next">Distributore successivo</string>
+    <string name="fuel_peek_follow">Segui</string>
+    <string name="fuel_peek_following">Seguito</string>
     <string name="home_fuel_error">Non siamo riusciti a caricare i distributori. Controlla la connessione e riapri.</string>
     <string name="home_fuel_too_far">Mostriamo i distributori solo entro %1$d km da te. Avvicina la mappa per vederli.</string>
     <string name="home_fuel_no_prices">In questo Paese i prezzi non sono pubblicati. Questi sono i distributori vicini.</string>

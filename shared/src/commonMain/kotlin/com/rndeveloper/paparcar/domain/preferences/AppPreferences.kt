@@ -144,6 +144,14 @@ interface AppPreferences {
     val notifyZoneSpots: Boolean
     fun setNotifyZoneSpots(enabled: Boolean)
 
+    /** Master gate for the Plus fuel-price alerts (a cheaper pump nearby, and what a followed
+     *  station did overnight). Sibling of [notifyZoneSpots] and ON by default for the same reason:
+     *  following a station already expressed the wish, and this switch exists so Settings can
+     *  silence the channel without the user having to unfollow anything.
+     *  [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001] */
+    val notifyFuelPrices: Boolean
+    fun setNotifyFuelPrices(enabled: Boolean)
+
     /** [PRIV-A-TRACE-IS-NOT-A-STAT-001] Whether the ROUTE GEOMETRY (polyline + inferred spans) may
      *  leave the device. Opt-in and Plus-gated in Settings, default **OFF**: the trip's FIGURES
      *  (distance, search time) always sync -- they are numbers; the trace itself (where you drove)

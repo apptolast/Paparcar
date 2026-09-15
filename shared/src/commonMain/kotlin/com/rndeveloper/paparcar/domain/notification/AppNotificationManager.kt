@@ -178,6 +178,47 @@ interface AppNotificationManager {
     fun showZoneSpotAlert(zoneName: String, latitude: Double, longitude: Double) {}
 
     /**
+     * A pump near the user charges measurably less than the one they use (Paparcar Plus).
+     * [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
+     *
+     * ⛔ The saving is stated WITH what it is measured against — a bare «8 c/l cheaper» is a number
+     * the driver cannot check, and the whole fuel layer exists because an unverifiable price ran
+     * twelve hours behind and nobody could tell.
+     *
+     * @param stationName  The forecourt, as its source names it; null where the feed has no name.
+     * @param savingLabel  The amount, already written at the pump's precision. ⛔ Not the SENTENCE:
+     *                     wording is a locale decision and belongs to the platform layer, which is
+     *                     the only place with the string table.
+     * @param referenceName The followed station the saving is measured against; **null means the
+     *                     reference was what is normal around here**, which the implementation words
+     *                     in the user's language. A real answer, not a missing one.
+     */
+    fun showCheaperFuelNearby(
+        stationName: String?,
+        savingLabel: String,
+        referenceName: String?,
+        latitude: Double,
+        longitude: Double,
+    ) {}
+
+    /**
+     * A followed station's price moved overnight (Paparcar Plus).
+     * [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
+     *
+     * One notification for the whole set, never one per station: a driver who follows four pumps
+     * must not wake up to four cards. [deltaLabel] describes the lead station; [otherMovesCount] is
+     * how many more moved, so the copy can say so in one line.
+     */
+    fun showFuelPriceMove(
+        stationName: String?,
+        deltaLabel: String,
+        wentUp: Boolean,
+        otherMovesCount: Int,
+        latitude: Double,
+        longitude: Double,
+    ) {}
+
+    /**
      * Dismisses the notification with the given [notificationId].
      *
      * @param notificationId One of the [DETECTION_NOTIFICATION_ID], [UPLOAD_NOTIFICATION_ID],
@@ -219,5 +260,11 @@ interface AppNotificationManager {
 
         /** ID for the Plus zone-alert "free spot in your zone" notification. [MONEY-001] */
         const val ZONE_SPOT_ALERT_NOTIFICATION_ID = 2009
+
+        /** ID for the Plus "a cheaper pump nearby" alert. [FUEL-A-PRICE-REMEMBERED-…-001] */
+        const val CHEAPER_FUEL_NOTIFICATION_ID = 2010
+
+        /** ID for the Plus "your station moved" alert — ONE card for the whole followed set. */
+        const val FUEL_PRICE_MOVE_NOTIFICATION_ID = 2011
     }
 }

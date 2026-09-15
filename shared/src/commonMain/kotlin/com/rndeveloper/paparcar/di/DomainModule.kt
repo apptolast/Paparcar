@@ -29,7 +29,12 @@ import com.rndeveloper.paparcar.domain.usecase.zone.SaveOrUpdateZoneUseCase
 import com.rndeveloper.paparcar.domain.usecase.zone.SaveZoneUseCase
 import org.koin.dsl.module
 import com.rndeveloper.paparcar.domain.repository.AverageFuelPricesRepository
+import com.rndeveloper.paparcar.domain.usecase.fuel.EvaluateCheaperStationNearbyUseCase
+import com.rndeveloper.paparcar.domain.usecase.fuel.EvaluateDailyPriceMoveUseCase
 import com.rndeveloper.paparcar.domain.usecase.fuel.GetNearbyFuelStationsUseCase
+import com.rndeveloper.paparcar.domain.usecase.fuel.ObserveFollowedFuelStationsUseCase
+import com.rndeveloper.paparcar.domain.usecase.fuel.RunFuelPriceWatchUseCase
+import com.rndeveloper.paparcar.domain.usecase.fuel.ToggleFollowFuelStationUseCase
 import com.rndeveloper.paparcar.domain.usecase.fuel.ResolveFuelPriceUseCase
 import com.rndeveloper.paparcar.domain.usecase.parkings.GetNearbyPublicParkingsUseCase
 
@@ -122,6 +127,25 @@ val domainModule = module {
     // Gasolineras cercanas — el geocoder da país Y provincia de una sola consulta, que es lo
     // que enruta la petición. [FUEL-STATIONS-LIST-001]
     factory { GetNearbyFuelStationsUseCase(stations = get(), geocoder = get()) }
+
+    // Vigilancia de precios [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]. Los dos
+    // veredictos son puros y sin dependencias: se instancian solos y se testean sin reloj ni radio.
+    factory { EvaluateDailyPriceMoveUseCase() }
+    factory { EvaluateCheaperStationNearbyUseCase() }
+    factory { ToggleFollowFuelStationUseCase(repository = get()) }
+    factory { ObserveFollowedFuelStationsUseCase(repository = get()) }
+    factory {
+        RunFuelPriceWatchUseCase(
+            watchRepository = get(),
+            vehicleRepository = get(),
+            getNearbyFuelStations = get(),
+            getOneLocation = get(),
+            observeIsPlus = get(),
+            appPreferences = get(),
+            evaluateDailyPriceMove = get(),
+            evaluateCheaperStationNearby = get(),
+        )
+    }
 
     // El escalón de la media nacional se lee EN LA LLAMADA, no al construir el use case: si
     // capturase la tabla aquí, un refresco posterior no llegaría nunca a las pantallas ya vivas.

@@ -1,0 +1,83 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
+package com.rndeveloper.paparcar.domain.fuel
+
+import com.rndeveloper.paparcar.domain.model.FuelType
+import com.rndeveloper.paparcar.domain.model.Money
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Instant
+
+/**
+ * `source|id` — the identity of a forecourt across the whole app.
+ *
+ * ⛔ [FuelStation.id] is stable only WITHIN its feed, and Spain's `IDEESS`, France's official ref
+ * and OSM element ids all coexist: the bare id would let Spain's station `1234` be the same thing as
+ * an OSM `1234` a thousand kilometres away. The cache learned that first and kept the rule private
+ * in its companion; from here it is also what a FOLLOW is keyed by and what an alert names, so it
+ * lives where both halves can reach it — a predicate shared by two verdicts is a top-level function,
+ * not a private method of whichever class needed it first. [DET-VERDICT-NOT-PREDICATE-001]
+ */
+fun fuelStationKey(source: String, id: String): String = "$source|$id"
+
+/**
+ * A station the user asked to keep an eye on.
+ * [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
+ *
+ * ⛔ Not a cache row and not derived from one: this is the only thing in the fuel layer that the
+ * USER put there. The layer follows the camera [FUEL-LAYER-FOLLOWS-THE-CAMERA-001], so without a
+ * followed set there is no station that keeps existing when you look away — and no subject for the
+ * sentence the alert is made of («8 c/l less than where you usually refuel»).
+ *
+ * Geography is copied in rather than joined: a followed station 300 km away must still be
+ * answerable when its province has fallen out of the cache disc, and the alert needs to name and
+ * place it without a round trip.
+ */
+data class FollowedFuelStation(
+    /** `source|id` — the same composite key the cache uses, for the same collision reason. */
+    val stationKey: String,
+    val source: String,
+    val id: String,
+    val name: String?,
+    val latitude: Double,
+    val longitude: Double,
+    val followedAtMs: Long,
+)
+
+/**
+ * One reading of one pump on one day: what it charged, when the FEED said so, and when we looked.
+ * [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
+ *
+ * Two hours, and collapsing them is the mistake this whole ticket exists to avoid:
+ * - [reportedAtMs] is the feed's own stamp. It is what decides whether a price MOVED — Italy carries
+ *   69% of its prices two to seven days old with a tail to 2013, so «today's row differs from
+ *   yesterday's row» is not the same statement as «the price changed».
+ * - [observedAtMs] is when the app looked, and [observedDay] is the day that reading belongs to.
+ *
+ * ⛔ A sample never holds a null price. An absent price is not a sample of zero — the feeds report
+ * "does not sell it" as an empty string, and a 0,000 € row would win every ranking there is.
+ */
+data class FuelPriceSample(
+    val stationKey: String,
+    val fuelType: FuelType,
+    val perUnit: Money,
+    /** The feed's stamp; null when the source publishes none. Null is a real answer. */
+    val reportedAtMs: Long?,
+    val observedAtMs: Long,
+    /** Local day of [observedAtMs] — see [localDayOf]. The key that makes this a SERIES, not a log. */
+    val observedDay: Long,
+)
+
+/**
+ * The local day an instant falls on, as days since the epoch.
+ *
+ * Local and not UTC on purpose: the series exists to say «yesterday it cost less», and yesterday is
+ * a word about the user's calendar, not about Greenwich. A driver in Madrid reading a price at
+ * 00:30 has to see it land on the day they would call it.
+ *
+ * ⛔ It is also what stops the history from becoming a log: eight readings in one afternoon are one
+ * row, and the last one wins. A user who opens the app a lot must not end up with a denser — and
+ * therefore differently-shaped — history than one who opens it once.
+ */
+fun localDayOf(epochMs: Long, timeZone: TimeZone = TimeZone.currentSystemDefault()): Long =
+    Instant.fromEpochMilliseconds(epochMs).toLocalDateTime(timeZone).date.toEpochDays()

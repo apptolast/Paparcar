@@ -84,6 +84,8 @@ import kotlinx.coroutines.launch
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import com.rndeveloper.paparcar.domain.usecase.fuel.GetNearbyFuelStationsUseCase
+import com.rndeveloper.paparcar.domain.usecase.fuel.ObserveFollowedFuelStationsUseCase
+import com.rndeveloper.paparcar.domain.usecase.fuel.ToggleFollowFuelStationUseCase
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingsQuery
 import com.rndeveloper.paparcar.domain.usecase.parkings.GetNearbyPublicParkingsUseCase
 
@@ -154,6 +156,12 @@ class HomeViewModel(
     // bare `get()`s (see PresentationModule), so a parameter inserted in the MIDDLE shifts every
     // argument after it. Adding one here cost exactly that mistake once. [PARKINGS-ON-THE-MAP-001]
     private val getNearbyPublicParkings: GetNearbyPublicParkingsUseCase,
+    // ⛔ 37th + 38th, AT THE END and never in the middle: PresentationModule hands this constructor
+    // a row of bare `get()`s whose types come from the positions they land on, so one inserted
+    // beside its cousins would silently shift every argument after it.
+    // [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
+    private val toggleFollowFuelStation: ToggleFollowFuelStationUseCase,
+    private val observeFollowedFuelStations: ObserveFollowedFuelStationsUseCase,
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
 
     /**
@@ -202,6 +210,12 @@ class HomeViewModel(
         zoneRepository.observeZones().collectInto("zones") { copy(zones = it) }
         vehicleRepository.observeVehicles().collectInto("vehicles") { copy(vehicles = it) }
         observeIsPlus().collectInto("isPlus") { copy(isPlus = it) }
+        // A standing subscription, not a lane answer: the star must be right the moment a peek
+        // opens, whether or not the fuel lane was ever entered.
+        // [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
+        observeFollowedFuelStations().collectInto("followedFuelStations") { followed ->
+            copy(followedFuelStationKeys = followed.map { it.stationKey }.toSet())
+        }
         subscribePermissions()
         subscribeGpsLocation()
         subscribeMapFocusEvents()
@@ -418,6 +432,10 @@ class HomeViewModel(
             is HomeIntent.SetReportingSize,
             is HomeIntent.ReportTestSpot,
             -> handleSpotIntent(intent)
+
+            // Following a forecourt — a write to the user's own store, answered by the star alone.
+            // [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
+            is HomeIntent.ToggleFollowFuelStation -> onToggleFollowFuelStation(intent.stationKey)
 
             // Own parking sessions
             is HomeIntent.OpenReleaseDialog,
@@ -933,6 +951,32 @@ class HomeViewModel(
      * own sentence (`missingFuelType`) while the map paints capsules without a figure — honest either
      * way, and the SAME stations underneath.
      */
+    /**
+     * Star / unstar the forecourt, reading the rest of what a follow stores out of the live slice.
+     * [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
+     *
+     * ⛔ Nothing is written into the state here: [followedFuelStationKeys] comes off the store's own
+     * stream, so the star lights when the row lands. An optimistic flip would be a second source of
+     * truth for a fact the database already publishes — and the one that shows a filled star for a
+     * write that failed.
+     */
+    private fun onToggleFollowFuelStation(stationKey: String) {
+        val nearby = state.value.fuel.stations.firstOrNull { it.stationKey == stationKey } ?: return
+        viewModelScope.launch {
+            toggleFollowFuelStation(
+                stationKey = stationKey,
+                source = nearby.source,
+                id = nearby.station.id,
+                name = nearby.station.name,
+                latitude = nearby.station.latitude,
+                longitude = nearby.station.longitude,
+            ).onFailure { e ->
+                PaparcarLogger.w(TAG, "follow toggle failed for $stationKey", e)
+                sendEffect(HomeEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
+            }
+        }
+    }
+
     private fun fetchFuelStations(lat: Double, lon: Double) {
         val fuelType = activeFuelType()
         fuelJob?.cancel()

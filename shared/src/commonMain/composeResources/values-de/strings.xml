@@ -760,6 +760,7 @@
     <string name="paywall_reason_zones">Kostenlos bleiben zwei Zonen – mit Plus kannst du weitere erstellen.</string>
     <string name="paywall_reason_stats">Mit Plus siehst du deine Zahlen für jeden Zeitraum.</string>
     <string name="paywall_reason_zone_alerts">Hinweise auf freie Plätze in deinen Zonen sind Teil von Plus.</string>
+    <string name="paywall_reason_fuel_alerts">Preisalarme für Kraftstoff sind Teil von Plus.</string>
     <string name="paywall_reason_route_cloud">Routen im Konto zu speichern ist Teil von Plus.</string>
     <string name="paywall_free_alerts">Nicht enthalten</string>
     <string name="paywall_free_support">Für alle kostenlos</string>
@@ -782,6 +783,8 @@
     <string name="settings_plus_badge_active">AKTIV</string>
     <string name="settings_notif_zone_alerts">Zonen-Hinweise</string>
     <string name="settings_notif_zone_alerts_desc">Hinweis, wenn in deinen Zonen ein Platz frei wird</string>
+    <string name="settings_notif_fuel_alerts">Preisalarme für Kraftstoff</string>
+    <string name="settings_notif_fuel_alerts_desc">Hinweis, wenn eine Tankstelle, der du folgst, den Preis ändert oder eine günstigere in der Nähe ist</string>
     <string name="settings_sync_routes">Routen im Konto speichern</string>
     <string name="settings_sync_routes_desc">Deine Fahrten bleiben nur auf diesem Handy. Aktiviere dies, um sie auch auf deinen anderen Geräten zu sehen.</string>
     <string name="home_zone_form_notify_label">Bei freien Plätzen hier benachrichtigen</string>
@@ -886,6 +889,8 @@
     <string name="fuel_peek_not_sold">Hier nicht im Verkauf</string>
     <string name="fuel_peek_step_prev">Vorherige Tankstelle</string>
     <string name="fuel_peek_step_next">Nächste Tankstelle</string>
+    <string name="fuel_peek_follow">Folgen</string>
+    <string name="fuel_peek_following">Gefolgt</string>
     <string name="home_fuel_error">Die Tankstellen konnten nicht geladen werden. Prüfe die Verbindung und öffne das erneut.</string>
     <string name="home_fuel_too_far">Tankstellen werden nur im Umkreis von %1$d km um dich angezeigt. Bewege die Karte näher heran.</string>
     <string name="home_fuel_no_prices">In diesem Land werden keine Preise veröffentlicht. Das sind die Tankstellen in der Nähe.</string>

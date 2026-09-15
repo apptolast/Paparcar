@@ -773,6 +773,7 @@
     <string name="paywall_reason_zones">Gratuit păstrezi două zone – cu Plus poți crea mai multe.</string>
     <string name="paywall_reason_stats">Cu Plus îți vezi cifrele pentru orice perioadă.</string>
     <string name="paywall_reason_zone_alerts">Alertele de locuri libere în zonele tale fac parte din Plus.</string>
+    <string name="paywall_reason_fuel_alerts">Alertele de preț la carburant fac parte din Plus.</string>
     <string name="paywall_reason_route_cloud">Păstrarea rutelor în contul tău face parte din Plus.</string>
     <string name="paywall_free_alerts">Neincluse</string>
     <string name="paywall_free_support">Gratuit pentru toți</string>
@@ -795,6 +796,8 @@
     <string name="settings_plus_badge_active">ACTIV</string>
     <string name="settings_notif_zone_alerts">Alerte de zonă</string>
     <string name="settings_notif_zone_alerts_desc">Notificare când apare un loc liber în zonele tale</string>
+    <string name="settings_notif_fuel_alerts">Alerte de preț la carburant</string>
+    <string name="settings_notif_fuel_alerts_desc">Notificare când o benzinărie urmărită își schimbă prețul sau există una mai ieftină în apropiere</string>
     <string name="settings_sync_routes">Salvează rutele în contul tău</string>
     <string name="settings_sync_routes_desc">Călătoriile tale rămân doar pe acest telefon. Activează pentru a le vedea și pe celelalte dispozitive.</string>
     <string name="home_zone_form_notify_label">Anunță-mă despre locuri libere aici</string>
@@ -899,6 +902,8 @@
     <string name="fuel_peek_not_sold">Nu se vinde aici</string>
     <string name="fuel_peek_step_prev">Benzinăria anterioară</string>
     <string name="fuel_peek_step_next">Benzinăria următoare</string>
+    <string name="fuel_peek_follow">Urmărește</string>
+    <string name="fuel_peek_following">Urmărită</string>
     <string name="home_fuel_error">Nu am putut încărca benzinăriile. Verifică conexiunea și deschide din nou.</string>
     <string name="home_fuel_too_far">Afișăm benzinăriile doar pe o rază de %1$d km de tine. Apropie harta ca să le vezi.</string>
     <string name="home_fuel_no_prices">În această țară prețurile nu sunt publicate. Acestea sunt benzinăriile din apropiere.</string>

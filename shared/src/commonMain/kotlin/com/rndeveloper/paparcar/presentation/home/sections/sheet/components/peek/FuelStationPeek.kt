@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.LocalGasStation
 import androidx.compose.material.icons.rounded.Navigation
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.StarOutline
 import androidx.compose.material.icons.rounded.AccessTimeFilled
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -39,6 +41,8 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.common_directions
 import paparcar.composeapp.generated.resources.fuel_peek_eyebrow
 import paparcar.composeapp.generated.resources.fuel_peek_not_sold
+import paparcar.composeapp.generated.resources.fuel_peek_follow
+import paparcar.composeapp.generated.resources.fuel_peek_following
 import paparcar.composeapp.generated.resources.fuel_peek_step_next
 import paparcar.composeapp.generated.resources.fuel_peek_step_prev
 import paparcar.composeapp.generated.resources.home_fuel_live_prices
@@ -74,6 +78,15 @@ internal fun FuelStationPeek(
     /** Neighbours in the "nearest first" order — the footer ‹ / ›.
      *  [FUEL-PEEK-STEPS-BETWEEN-STATIONS-001] */
     step: PeekStep,
+    /**
+     * Whether this forecourt is one the user follows.
+     * [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
+     *
+     * ⛔ The star is FREE and stays free. Following is the app answering something you just told it;
+     * what Plus buys is the app watching that station while you are not looking. Hiding the gesture
+     * behind the paywall would leave it selling a thing the user has never seen work.
+     */
+    isFollowed: Boolean = false,
     onIntent: (HomeIntent) -> Unit,
     onAction: (HomeSheetAction) -> Unit,
 ) {
@@ -187,6 +200,22 @@ internal fun FuelStationPeek(
                     )
                 },
                 style = PapFooterButtonStyle.Filled,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            // The star. Outlined, under the primary: it is not what you came here to do — you came
+            // to see the price — but it is the gesture that turns this forecourt into a subject the
+            // app can watch. The label states the CURRENT state, never the action, so the button
+            // reads the same way as the switch it will end up feeding.
+            Spacer(Modifier.height(8.dp))
+            PapFooterButton(
+                label = if (isFollowed) {
+                    stringResource(Res.string.fuel_peek_following)
+                } else {
+                    stringResource(Res.string.fuel_peek_follow)
+                },
+                leadingIcon = if (isFollowed) Icons.Rounded.Star else Icons.Rounded.StarOutline,
+                onClick = { onAction(HomeSheetAction.ToggleFollowFuelStation(nearby.stationKey)) },
+                style = PapFooterButtonStyle.Outlined,
                 modifier = Modifier.fillMaxWidth(),
             )
         },

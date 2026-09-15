@@ -52,6 +52,15 @@ sealed class HomeIntent {
 
     /** Enter reporting mode anchored at the map's current centre. */
     data class EnterReportMode(val lat: Double, val lon: Double) : HomeIntent()
+
+    /**
+     * Star / unstar a forecourt, by its `source|id`.
+     * [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
+     *
+     * ⛔ Free. The paywall belongs to the WATCHING (`RunFuelPriceWatchUseCase`), which is the one
+     * place the Plus gate is read — putting a second one here would be two gates to keep in step.
+     */
+    data class ToggleFollowFuelStation(val stationKey: String) : HomeIntent()
     data object ExitReportMode : HomeIntent()
     data object ConfirmReportSpot : HomeIntent()
     /** Toggle the size selection for a manual spot report; passing null clears it. */

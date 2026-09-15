@@ -85,6 +85,19 @@
     <string name="notif_zone_spot_title">Free spot in %1$s</string>
     <string name="notif_zone_spot_text">Someone just left — open the map to see it</string>
 
+    <!-- [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001] Plus fuel alerts. The saving always
+         names what it is measured against: a bare "8 c/l cheaper" is a number nobody can check. -->
+    <string name="notif_fuel_cheaper_title_named">%1$s is cheaper</string>
+    <string name="notif_fuel_cheaper_title">A cheaper station nearby</string>
+    <string name="notif_fuel_cheaper_text">%1$s less per litre than %2$s</string>
+    <string name="notif_fuel_reference_area">the usual price nearby</string>
+    <string name="notif_fuel_move_title_named">%1$s changed its price</string>
+    <string name="notif_fuel_move_title">A station you follow changed its price</string>
+    <string name="notif_fuel_move_text_down">%1$s cheaper per litre than yesterday</string>
+    <string name="notif_fuel_move_text_up">%1$s dearer per litre than yesterday</string>
+    <string name="notif_fuel_move_text_down_more">%1$s cheaper per litre than yesterday · %2$s more changed</string>
+    <string name="notif_fuel_move_text_up_more">%1$s dearer per litre than yesterday · %2$s more changed</string>
+
     <!-- Home-screen widget [WIDGET-PARKED-001] -->
     <string name="widget_label">Parked car</string>
     <string name="widget_description">See where you left your car, at a glance</string>

@@ -13,6 +13,9 @@ data class SettingsState(
     val isPlus: Boolean = false,
     /** Master gate for the Plus zone-alert notifications. [MONEY-001] */
     val notifyZoneSpots: Boolean = true,
+    /** Master gate for the Plus fuel-price alerts — a cheaper pump nearby, and what a followed
+     *  station did overnight. [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001] */
+    val notifyFuelPrices: Boolean = true,
     /** Cloud copy of the ROUTE GEOMETRY — opt-in, Plus-gated, default OFF: trips stay on this
      *  phone unless the user says otherwise. [PRIV-A-TRACE-IS-NOT-A-STAT-001] */
     val syncRouteGeometry: Boolean = false,

@@ -74,6 +74,17 @@
     <string name="notif_zone_spot_title">Loc liber în %1$s</string>
     <string name="notif_zone_spot_text">Cineva tocmai a plecat — deschide harta</string>
 
+    <string name="notif_fuel_cheaper_title_named">%1$s este mai ieftină</string>
+    <string name="notif_fuel_cheaper_title">O benzinărie mai ieftină în apropiere</string>
+    <string name="notif_fuel_cheaper_text">%1$s mai puțin pe litru decât %2$s</string>
+    <string name="notif_fuel_reference_area">prețul obișnuit din zonă</string>
+    <string name="notif_fuel_move_title_named">%1$s și-a schimbat prețul</string>
+    <string name="notif_fuel_move_title">O benzinărie pe care o urmărești și-a schimbat prețul</string>
+    <string name="notif_fuel_move_text_down">%1$s mai ieftin pe litru decât ieri</string>
+    <string name="notif_fuel_move_text_up">%1$s mai scump pe litru decât ieri</string>
+    <string name="notif_fuel_move_text_down_more">%1$s mai ieftin pe litru decât ieri · încă %2$s s-au schimbat</string>
+    <string name="notif_fuel_move_text_up_more">%1$s mai scump pe litru decât ieri · încă %2$s s-au schimbat</string>
+
     <!-- Home-screen widget [WIDGET-PARKED-001] -->
     <string name="widget_label">Mașină parcată</string>
     <string name="widget_description">Vezi dintr-o privire unde ai lăsat mașina</string>

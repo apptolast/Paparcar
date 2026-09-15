@@ -31,6 +31,8 @@ class NearbyOrderingTest {
             ),
             // What the use case measured: from where it was ASKED, not from the user.
             distanceMeters = askedFrom,
+            stationKey = "test|$id",
+            source = "test",
             price = null,
         )
 

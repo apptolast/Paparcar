@@ -28,6 +28,15 @@ sealed interface HomeSheetAction {
      *  [FUEL-STATIONS-MAP-AND-PEEK-001] */
     data class SelectFuelStation(val stationId: String) : HomeSheetAction
 
+    /**
+     * Star / unstar a forecourt. [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
+     *
+     * Carries only the `source|id` key: the rest of what a follow stores (name, coordinates) is
+     * already in the slice the ViewModel holds, and a second copy travelling through an intent is a
+     * second thing that can disagree with the first.
+     */
+    data class ToggleFollowFuelStation(val stationKey: String) : HomeSheetAction
+
     /** Same gesture for a car park row. [PARKINGS-ON-THE-MAP-001] */
     data class SelectPublicParking(val parkingId: String) : HomeSheetAction
 

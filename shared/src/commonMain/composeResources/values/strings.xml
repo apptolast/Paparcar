@@ -795,6 +795,7 @@
     <string name="paywall_reason_zones">Free keeps two zones — with Plus you can create more.</string>
     <string name="paywall_reason_stats">With Plus you see your figures for any period.</string>
     <string name="paywall_reason_zone_alerts">Free-spot alerts in your zones are part of Plus.</string>
+    <string name="paywall_reason_fuel_alerts">Fuel price alerts are part of Plus.</string>
     <string name="paywall_reason_route_cloud">Keeping your routes in your account is part of Plus.</string>
     <string name="paywall_free_alerts">Not included</string>
     <string name="paywall_free_support">Free for everyone</string>
@@ -817,6 +818,8 @@
     <string name="settings_plus_badge_active">ACTIVE</string>
     <string name="settings_notif_zone_alerts">Zone alerts</string>
     <string name="settings_notif_zone_alerts_desc">Get notified when a free spot appears in your zones</string>
+    <string name="settings_notif_fuel_alerts">Fuel price alerts</string>
+    <string name="settings_notif_fuel_alerts_desc">Get notified when a station you follow changes price, or a cheaper one is nearby</string>
     <string name="settings_sync_routes">Save your routes to your account</string>
     <string name="settings_sync_routes_desc">Your trips are stored only on this phone. Turn this on to also see them on your other devices.</string>
     <string name="home_zone_form_notify_label">Alert me about free spots here</string>
@@ -921,6 +924,8 @@
     <string name="fuel_peek_not_sold">Not sold here</string>
     <string name="fuel_peek_step_prev">Previous station</string>
     <string name="fuel_peek_step_next">Next station</string>
+    <string name="fuel_peek_follow">Follow</string>
+    <string name="fuel_peek_following">Following</string>
     <string name="home_fuel_error">We could not load the stations. Check your connection and open this again.</string>
     <string name="home_fuel_too_far">Fuel stations are only shown within %1$d km of you. Move the map closer to see them.</string>
     <string name="home_fuel_no_prices">Prices are not published in this country. These are the stations nearby.</string>

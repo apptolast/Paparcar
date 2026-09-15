@@ -1251,6 +1251,10 @@ private fun HomeSheetSection(
             is HomeSheetAction.OpenFirstStepExplainer -> onOpenStepExplainer(action.step)
             is HomeSheetAction.SelectSpot -> onSelectSpot(action.spotId)
             is HomeSheetAction.SelectFuelStation -> onSelectFuelStation(action.stationId)
+            // Straight to the intent: following is a WRITE to the user's own store, with no camera
+            // move and no selection change — nothing for this translation point to arrange.
+            is HomeSheetAction.ToggleFollowFuelStation ->
+                onIntent(HomeIntent.ToggleFollowFuelStation(action.stationKey))
             is HomeSheetAction.SelectPublicParking -> onSelectPublicParking(action.parkingId)
             // The car lane steps over VEHICLES; each stop resolves to its modal here, in the one
             // translation point. Parked → the very lambda a marker tap uses; unparked → the very

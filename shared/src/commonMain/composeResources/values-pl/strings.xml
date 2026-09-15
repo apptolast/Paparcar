@@ -773,6 +773,7 @@
     <string name="paywall_reason_zones">W wersji darmowej masz dwie strefy – z Plus utworzysz więcej.</string>
     <string name="paywall_reason_stats">Z Plus widzisz swoje liczby za dowolny okres.</string>
     <string name="paywall_reason_zone_alerts">Powiadomienia o wolnych miejscach w twoich strefach są częścią Plus.</string>
+    <string name="paywall_reason_fuel_alerts">Alerty cen paliwa są częścią Plus.</string>
     <string name="paywall_reason_route_cloud">Zapisywanie tras na koncie to część Plus.</string>
     <string name="paywall_free_alerts">Niedostępne</string>
     <string name="paywall_free_support">Darmowe dla wszystkich</string>
@@ -795,6 +796,8 @@
     <string name="settings_plus_badge_active">AKTYWNY</string>
     <string name="settings_notif_zone_alerts">Alerty stref</string>
     <string name="settings_notif_zone_alerts_desc">Powiadomienie, gdy w Twoich strefach pojawi się wolne miejsce</string>
+    <string name="settings_notif_fuel_alerts">Alerty cen paliwa</string>
+    <string name="settings_notif_fuel_alerts_desc">Powiadomienie, gdy obserwowana stacja zmieni cenę lub w pobliżu jest tańsza</string>
     <string name="settings_sync_routes">Zapisuj trasy na koncie</string>
     <string name="settings_sync_routes_desc">Twoje przejazdy pozostają tylko na tym telefonie. Włącz, aby widzieć je także na innych urządzeniach.</string>
     <string name="home_zone_form_notify_label">Powiadamiaj o wolnych miejscach tutaj</string>
@@ -899,6 +902,8 @@
     <string name="fuel_peek_not_sold">Tu niedostępne</string>
     <string name="fuel_peek_step_prev">Poprzednia stacja</string>
     <string name="fuel_peek_step_next">Następna stacja</string>
+    <string name="fuel_peek_follow">Obserwuj</string>
+    <string name="fuel_peek_following">Obserwowana</string>
     <string name="home_fuel_error">Nie udało się wczytać stacji. Sprawdź połączenie i otwórz to ponownie.</string>
     <string name="home_fuel_too_far">Stacje paliw pokazujemy tylko w promieniu %1$d km od ciebie. Przesuń mapę bliżej, aby je zobaczyć.</string>
     <string name="home_fuel_no_prices">W tym kraju ceny nie są publikowane. Oto stacje w pobliżu.</string>

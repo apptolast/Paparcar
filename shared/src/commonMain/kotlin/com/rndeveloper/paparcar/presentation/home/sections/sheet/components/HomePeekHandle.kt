@@ -221,6 +221,7 @@ fun HomePeekHandle(
                             reportedAt = slice.fuelReportedAt,
                             pricesAreLive = slice.fuelPricesAreLive,
                             step = slice.fuelStationStep,
+                            isFollowed = nearby.stationKey in slice.followedFuelStationKeys,
                             onIntent = onIntent,
                             onAction = onAction,
                         )

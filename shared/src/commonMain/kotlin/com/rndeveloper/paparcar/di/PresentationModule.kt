@@ -60,6 +60,9 @@ val presentationModule = module {
             // more of these AND must be declared at the END of the constructor — one inserted in
             // the middle silently shifts every argument after it. [PARKINGS-ON-THE-MAP-001]
             get(), get(),
+            // 37th + 38th: ToggleFollowFuelStationUseCase and ObserveFollowedFuelStationsUseCase.
+            // [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
+            get(), get(),
         )
     }
     viewModelOf(::ParkingHistoryViewModel)

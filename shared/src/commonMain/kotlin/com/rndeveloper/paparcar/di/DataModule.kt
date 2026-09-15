@@ -53,6 +53,8 @@ import org.koin.dsl.module
 import com.rndeveloper.paparcar.data.fuel.CachingFuelStationsSource
 import com.rndeveloper.paparcar.data.fuel.DiskBackedFuelStationsSource
 import com.rndeveloper.paparcar.data.fuel.RoomFuelStationsCache
+import com.rndeveloper.paparcar.data.fuel.RoomFuelWatchRepository
+import com.rndeveloper.paparcar.domain.repository.FuelWatchRepository
 import com.rndeveloper.paparcar.data.fuel.AverageFuelPricesRepositoryImpl
 import com.rndeveloper.paparcar.data.fuel.FranceFuelStationsSource
 import com.rndeveloper.paparcar.data.fuel.GermanyFuelStationsSource
@@ -166,7 +168,13 @@ val dataModule = module {
     single { get<AppDatabase>().publicParkingCacheDao() }
     single { get<AppDatabase>().osmCoverageDao() }
     single { get<AppDatabase>().fuelStationCacheDao() }
+    single { get<AppDatabase>().fuelWatchDao() }
     single { get<AppDatabase>().tripRoutePointDao() }
+
+    // Lo que el usuario sigue y lo que esas bombas han cobrado. ⛔ Tabla aparte de la caché a
+    // propósito: la caché se barre, y un seguimiento borrado por una limpieza es la elección del
+    // usuario tirada por una tarea de mantenimiento. [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
+    single<FuelWatchRepository> { RoomFuelWatchRepository(dao = get()) }
 
     // Driving route of the live trip — ONE Room-backed impl for both platforms, replacing the
     // SharedPreferences/NSUserDefaults twins. [TRIP-A-LONG-DRIVE-KEEPS-ITS-ORIGIN-001]

@@ -142,6 +142,82 @@ class AppNotificationManagerImpl(
     }
 
     /**
+     * [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001] Plus fuel alert: a cheaper pump than
+     * the driver's usual one, near them. Informative (UPLOAD channel), same tier and same
+     * double-gating as the zone alert — the watch use case checks the switch at decision time and
+     * this choke point re-reads it, because a notification method is where a gate cannot be skipped.
+     */
+    override fun showCheaperFuelNearby(
+        stationName: String?,
+        savingLabel: String,
+        referenceName: String?,
+        latitude: Double,
+        longitude: Double,
+    ) {
+        if (!appPreferences.notifyFuelPrices) return
+        val title = stationName
+            ?.let { context.getString(R.string.notif_fuel_cheaper_title_named, it) }
+            ?: context.getString(R.string.notif_fuel_cheaper_title)
+        // Null reference = the saving was measured against what is normal around here, and that
+        // sentence is a locale decision — which is why it is worded HERE and not in the worker.
+        val referenceLabel = referenceName ?: context.getString(R.string.notif_fuel_reference_area)
+        val notification = NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
+            .setContentTitle(title)
+            .setContentText(context.getString(R.string.notif_fuel_cheaper_text, savingLabel, referenceLabel))
+            .setSmallIcon(R.drawable.ic_notification_logo)
+            .setColor(COLOR_SUCCESS)
+            .setCategory(NotificationCompat.CATEGORY_EVENT)
+            .setContentIntent(buildFocusIntent(RC_CHEAPER_FUEL, latitude, longitude))
+            .setAutoCancel(true)
+            .build()
+        notificationManager.notify(AppNotificationManager.CHEAPER_FUEL_NOTIFICATION_ID, notification)
+    }
+
+    /**
+     * [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001] What the followed pumps did overnight
+     * — ONE card for the whole set. Four followed stations must not become four cards, which is the
+     * fastest way to teach someone to turn a vigilance feature off.
+     */
+    override fun showFuelPriceMove(
+        stationName: String?,
+        deltaLabel: String,
+        wentUp: Boolean,
+        otherMovesCount: Int,
+        latitude: Double,
+        longitude: Double,
+    ) {
+        if (!appPreferences.notifyFuelPrices) return
+        val title = stationName
+            ?.let { context.getString(R.string.notif_fuel_move_title_named, it) }
+            ?: context.getString(R.string.notif_fuel_move_title)
+        // ⛔ Four whole sentences, not a direction word glued onto a stem: «cheaper/dearer» inflects
+        // with what follows it in half the nine locales, and a composed string is where that breaks
+        // silently. The count is a separate variant for the same reason.
+        val body = when {
+            wentUp && otherMovesCount > 0 -> context.getString(
+                R.string.notif_fuel_move_text_up_more, deltaLabel, otherMovesCount.toString(),
+            )
+            wentUp -> context.getString(R.string.notif_fuel_move_text_up, deltaLabel)
+            otherMovesCount > 0 -> context.getString(
+                R.string.notif_fuel_move_text_down_more, deltaLabel, otherMovesCount.toString(),
+            )
+            else -> context.getString(R.string.notif_fuel_move_text_down, deltaLabel)
+        }
+        val notification = NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setSmallIcon(R.drawable.ic_notification_logo)
+            // A rise is not an error and a fall is not a success: the same neutral brand colour
+            // either way. The direction is in the words. [UI-COLOR-DOCTRINE-001]
+            .setColor(COLOR_SUCCESS)
+            .setCategory(NotificationCompat.CATEGORY_EVENT)
+            .setContentIntent(buildFocusIntent(RC_FUEL_PRICE_MOVE, latitude, longitude))
+            .setAutoCancel(true)
+            .build()
+        notificationManager.notify(AppNotificationManager.FUEL_PRICE_MOVE_NOTIFICATION_ID, notification)
+    }
+
+    /**
      * [REFACTOR-300] Single notification that replaces the "¿Has aparcado?" prompt at
      * the same ID. Two action buttons:
      *  - "Sí, confirmar" → ACTION_PARKING_ACK (just dismiss + stop service)
@@ -562,6 +638,8 @@ class AppNotificationManagerImpl(
         private const val RC_PERMISSION_REVOKED = 15
         private const val RC_CONFIRMATION_FAILED = 17
         private const val RC_ZONE_SPOT_ALERT = 18
+        private const val RC_CHEAPER_FUEL = 19
+        private const val RC_FUEL_PRICE_MOVE = 20
         private const val RC_CONFIRM_YES = 200
         private const val RC_CONFIRM_NO = 201
         // [REFACTOR-300] post-save notification request codes

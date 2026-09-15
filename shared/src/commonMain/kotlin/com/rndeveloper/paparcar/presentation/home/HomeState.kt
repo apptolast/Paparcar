@@ -289,6 +289,14 @@ data class HomeState(
      * that no pixel reads would be schema cost for nothing.
      */
     val votedSpotIds: Set<String> = emptySet(),
+    /**
+     * `source|id` of the forecourts the user follows.
+     * [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
+     *
+     * A standing subscription like the free spots, not a lane answer: it is read from the user's own
+     * store and survives the fuel lane being emptied, panned away from, or never opened.
+     */
+    val followedFuelStationKeys: Set<String> = emptySet(),
     val addingZoneName: String = "",
     val addingZoneIconKey: String = ZoneIcon.DEFAULT,
     val addingZoneRadius: Float = Zone.DEFAULT_RADIUS_METERS,

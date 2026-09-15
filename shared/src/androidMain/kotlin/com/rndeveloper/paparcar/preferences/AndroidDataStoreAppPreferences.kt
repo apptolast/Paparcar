@@ -296,6 +296,11 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
 
     override fun setNotifyZoneSpots(enabled: Boolean) = set(Keys.NOTIFY_ZONE_SPOTS, enabled)
 
+    override val notifyFuelPrices: Boolean
+        get() = get(Keys.NOTIFY_FUEL_PRICES, true)
+
+    override fun setNotifyFuelPrices(enabled: Boolean) = set(Keys.NOTIFY_FUEL_PRICES, enabled)
+
     // [PRIV-A-TRACE-IS-NOT-A-STAT-001] Default OFF: the trace never leaves without the user saying so.
     override val syncRouteGeometry: Boolean
         get() = get(Keys.SYNC_ROUTE_GEOMETRY, false)
@@ -356,6 +361,7 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         val PENDING_PROMPT_STREET = stringPreferencesKey("pending_prompt_window_street")
         val NOTIFY_PARKING_DETECTED = booleanPreferencesKey("notify_parking_detected")
         val NOTIFY_ZONE_SPOTS = booleanPreferencesKey("notify_zone_spots")
+        val NOTIFY_FUEL_PRICES = booleanPreferencesKey("notify_fuel_prices")
         val SYNC_ROUTE_GEOMETRY = booleanPreferencesKey("sync_route_geometry") // [PRIV-A-TRACE-IS-NOT-A-STAT-001]
         // "notify_spot_freed" removed 2026-08-28: it gated a notification that never existed.
         // Stale values may linger in the DataStore file; they are inert. [SETTINGS-AUDIT-REMEDIATION-001]

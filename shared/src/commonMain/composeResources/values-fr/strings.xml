@@ -759,6 +759,7 @@
     <string name="paywall_reason_zones">La version gratuite garde deux zones : avec Plus, créez-en davantage.</string>
     <string name="paywall_reason_stats">Avec Plus, vous voyez vos chiffres sur n'importe quelle période.</string>
     <string name="paywall_reason_zone_alerts">Les alertes de places libres dans vos zones font partie de Plus.</string>
+    <string name="paywall_reason_fuel_alerts">Les alertes de prix du carburant font partie de Plus.</string>
     <string name="paywall_reason_route_cloud">Conserver vos trajets dans votre compte fait partie de Plus.</string>
     <string name="paywall_free_alerts">Non inclus</string>
     <string name="paywall_free_support">Gratuit pour tous</string>
@@ -781,6 +782,8 @@
     <string name="settings_plus_badge_active">ACTIF</string>
     <string name="settings_notif_zone_alerts">Alertes de zone</string>
     <string name="settings_notif_zone_alerts_desc">Alerte quand une place se libère dans tes zones</string>
+    <string name="settings_notif_fuel_alerts">Alertes de prix du carburant</string>
+    <string name="settings_notif_fuel_alerts_desc">Alerte quand une station que tu suis change de prix ou qu'une moins chère est à proximité</string>
     <string name="settings_sync_routes">Enregistrer vos trajets dans votre compte</string>
     <string name="settings_sync_routes_desc">Vos trajets restent uniquement sur ce téléphone. Activez pour les retrouver aussi sur vos autres appareils.</string>
     <string name="home_zone_form_notify_label">M'alerter des places libres ici</string>
@@ -885,6 +888,8 @@
     <string name="fuel_peek_not_sold">Non vendu ici</string>
     <string name="fuel_peek_step_prev">Station précédente</string>
     <string name="fuel_peek_step_next">Station suivante</string>
+    <string name="fuel_peek_follow">Suivre</string>
+    <string name="fuel_peek_following">Suivie</string>
     <string name="home_fuel_error">Impossible de charger les stations. Vérifie ta connexion et rouvre cette section.</string>
     <string name="home_fuel_too_far">Les stations-service ne s'affichent qu'à moins de %1$d km de toi. Rapproche la carte pour les voir.</string>
     <string name="home_fuel_no_prices">Les prix ne sont pas publiés dans ce pays. Voici les stations à proximité.</string>

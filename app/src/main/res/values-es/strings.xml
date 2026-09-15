@@ -76,6 +76,17 @@
     <string name="notif_zone_spot_title">Plaza libre en %1$s</string>
     <string name="notif_zone_spot_text">Alguien acaba de irse — abre el mapa para verla</string>
 
+    <string name="notif_fuel_cheaper_title_named">%1$s está más barata</string>
+    <string name="notif_fuel_cheaper_title">Hay una gasolinera más barata cerca</string>
+    <string name="notif_fuel_cheaper_text">%1$s menos por litro que %2$s</string>
+    <string name="notif_fuel_reference_area">el precio habitual de la zona</string>
+    <string name="notif_fuel_move_title_named">%1$s ha cambiado de precio</string>
+    <string name="notif_fuel_move_title">Una gasolinera que sigues ha cambiado de precio</string>
+    <string name="notif_fuel_move_text_down">%1$s más barata por litro que ayer</string>
+    <string name="notif_fuel_move_text_up">%1$s más cara por litro que ayer</string>
+    <string name="notif_fuel_move_text_down_more">%1$s más barata por litro que ayer · %2$s más han cambiado</string>
+    <string name="notif_fuel_move_text_up_more">%1$s más cara por litro que ayer · %2$s más han cambiado</string>
+
     <!-- Home-screen widget [WIDGET-PARKED-001] -->
     <string name="widget_label">Coche aparcado</string>
     <string name="widget_description">Mira de un vistazo dónde dejaste el coche</string>

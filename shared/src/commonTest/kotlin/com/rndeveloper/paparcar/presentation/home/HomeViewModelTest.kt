@@ -2,6 +2,7 @@
 
 package com.rndeveloper.paparcar.presentation.home
 
+import com.rndeveloper.paparcar.fakes.FakeFuelWatchRepository
 import app.cash.turbine.test
 import com.swmansion.kmpmaps.core.MapType
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityStatus
@@ -84,6 +85,8 @@ import com.rndeveloper.paparcar.domain.geocoder.GeocoderDataSource
 import com.rndeveloper.paparcar.domain.model.AddressInfo
 import com.rndeveloper.paparcar.domain.model.SearchResult
 import com.rndeveloper.paparcar.domain.usecase.fuel.GetNearbyFuelStationsUseCase
+import com.rndeveloper.paparcar.domain.usecase.fuel.ToggleFollowFuelStationUseCase
+import com.rndeveloper.paparcar.domain.usecase.fuel.ObserveFollowedFuelStationsUseCase
 import com.rndeveloper.paparcar.domain.parkings.PublicParking
 import com.rndeveloper.paparcar.domain.parkings.ParkingZoneGrid
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingKind
@@ -120,6 +123,7 @@ class HomeViewModelTest {
     // bonded device? A test that wants the Bluetooth face sets its pairedDevices.
     private lateinit var bluetoothScanner: FakeBluetoothScanner
     private lateinit var fuelSource: SpyFuelStationsSource
+    private lateinit var fuelWatchRepo: FakeFuelWatchRepository
     private lateinit var parkingsSource: SpyPublicParkingsSource
     private lateinit var geocoderFake: FakeGeocoderDataSource
     private lateinit var vm: HomeViewModel
@@ -273,6 +277,10 @@ class HomeViewModelTest {
                         Result.success(emptyList<SearchResult>())
                 },
             ),
+            // [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001] The two watch-store doors, at
+            // the END of the constructor where PresentationModule's positional `get()`s expect them.
+            toggleFollowFuelStation = ToggleFollowFuelStationUseCase(fuelWatchRepo),
+            observeFollowedFuelStations = ObserveFollowedFuelStationsUseCase(fuelWatchRepo),
         ).also {
             // Default test fixture = map on screen, so the high-accuracy request is armed and location
             // emits reach state. The backgrounded case uses buildVm(foreground = false). [UI-LOC-FOREGROUND-001]
@@ -298,6 +306,7 @@ class HomeViewModelTest {
         uiLocationLogger = com.rndeveloper.paparcar.fakes.FakeUiLocationLogger()
         bluetoothScanner = FakeBluetoothScanner(bluetoothEnabled = false)
         fuelSource = SpyFuelStationsSource()
+        fuelWatchRepo = FakeFuelWatchRepository()
         parkingsSource = SpyPublicParkingsSource()
         vm = buildVm()
     }

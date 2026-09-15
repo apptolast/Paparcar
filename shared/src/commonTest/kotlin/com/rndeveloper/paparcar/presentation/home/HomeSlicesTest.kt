@@ -903,6 +903,8 @@ class HomeSlicesTest {
                 latitude = 40.0, longitude = -3.0, prices = emptyMap(),
             ),
             distanceMeters = dist,
+            stationKey = "test|$id",
+            source = "test",
             price = null,
         )
 
@@ -949,6 +951,8 @@ class HomeSlicesTest {
                 ),
             ),
             distanceMeters = dist,
+            stationKey = "test|$id",
+            source = "test",
             // ⛔ Null on purpose: this is the copy the LAYER holds, and the layer is asked fuel-less.
             price = null,
         )

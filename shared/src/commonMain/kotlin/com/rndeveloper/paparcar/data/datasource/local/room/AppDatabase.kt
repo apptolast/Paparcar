@@ -7,7 +7,7 @@ import androidx.room.RoomDatabaseConstructor
 
 /** The declared schema version — single source for the annotation and the tests that pin what an
  *  opened file must end up at. [DB-A-NEW-COLUMN-NEEDS-ITS-MIGRATION-001] */
-const val PAPARCAR_DB_VERSION = 10  // v10: a parking remembers how long the spot took to find [TRIP-THE-SEARCH-FOR-A-SPOT-IS-MEASURED-001] — MIGRATION_9_10 in ALL_MIGRATIONS
+const val PAPARCAR_DB_VERSION = 11  // v11: followed stations + one price reading per day [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001] — MIGRATION_10_11 in ALL_MIGRATIONS
 
 @Database(
     entities = [
@@ -21,6 +21,8 @@ const val PAPARCAR_DB_VERSION = 10  // v10: a parking remembers how long the spo
         OsmCoverageEntity::class,
         FuelStationCacheEntity::class,
         FuelStationFuelEntity::class,
+        FollowedFuelStationEntity::class,
+        FuelPriceHistoryEntity::class,
         TripRoutePointEntity::class,
     ],
     // v1 is the baseline of [DATA-ROOM-STARTS-AT-VERSION-ONE-001]: Paparcar had never shipped, so
@@ -52,6 +54,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun publicParkingCacheDao(): PublicParkingCacheDao
     abstract fun osmCoverageDao(): OsmCoverageDao
     abstract fun fuelStationCacheDao(): FuelStationCacheDao
+    abstract fun fuelWatchDao(): FuelWatchDao
     abstract fun tripRoutePointDao(): TripRoutePointDao
 }
 

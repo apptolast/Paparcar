@@ -30,6 +30,7 @@ import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.preferences.ThemeMode
 import com.rndeveloper.paparcar.domain.usecase.detection.isFirstParkNudgeSpent
 import com.rndeveloper.paparcar.logging.FileAntilog
+import com.rndeveloper.paparcar.fuel.FuelWatchScheduler
 import com.rndeveloper.paparcar.widget.ParkedWidgetRefresher
 import org.koin.android.ext.android.get
 import org.koin.android.ext.koin.androidContext
@@ -153,6 +154,12 @@ class PaparcarApp : Application() {
                 nudgeCount = appPreferences.firstParkNudgeCount,
             ),
         )
+
+        // The daily fuel-price watch follows the followed set as a STREAM — armed the moment a
+        // station is starred, cancelled when the last one is dropped. Never a one-shot read at
+        // launch, for the very reason the note below gives.
+        // [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
+        FuelWatchScheduler(workManager, get()).start()
 
         // [DET-WATCH-REACTIVATE-001] The resident SENTRY watcher is NOT resurrected here any more.
         // This spot read the parked sessions ONCE (`observeActiveSessions().first()`), so a clean

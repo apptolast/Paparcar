@@ -44,6 +44,7 @@ import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.CloudUpload
+import androidx.compose.material.icons.rounded.LocalGasStation
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Sensors
@@ -185,6 +186,8 @@ import paparcar.composeapp.generated.resources.settings_section_about
 import paparcar.composeapp.generated.resources.settings_section_appearance
 import paparcar.composeapp.generated.resources.settings_section_detection
 import paparcar.composeapp.generated.resources.settings_section_map
+import paparcar.composeapp.generated.resources.settings_notif_fuel_alerts
+import paparcar.composeapp.generated.resources.settings_notif_fuel_alerts_desc
 import paparcar.composeapp.generated.resources.settings_notif_zone_alerts
 import paparcar.composeapp.generated.resources.settings_sync_routes
 import paparcar.composeapp.generated.resources.settings_sync_routes_desc
@@ -506,6 +509,19 @@ fun SettingsContent(
                                 description = stringResource(Res.string.settings_notif_zone_alerts_desc),
                                 checked = state.isPlus && state.notifyZoneSpots,
                                 onCheckedChange = { onIntent(SettingsIntent.ToggleZoneAlertsNotif(it)) },
+                                subtitleColor = settingsSubtitleColor(),
+                            )
+                            PapDivider()
+                            // [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001] Same shape as
+                            // the zone row above and for the same reason: the watch is the Plus
+                            // half, so a free user flipping it ON meets the paywall rather than a
+                            // switch that was never there. Following a station stays free.
+                            PapSwitchRow(
+                                icon = Icons.Rounded.LocalGasStation,
+                                label = stringResource(Res.string.settings_notif_fuel_alerts),
+                                description = stringResource(Res.string.settings_notif_fuel_alerts_desc),
+                                checked = state.isPlus && state.notifyFuelPrices,
+                                onCheckedChange = { onIntent(SettingsIntent.ToggleFuelAlertsNotif(it)) },
                                 subtitleColor = settingsSubtitleColor(),
                             )
                             PapDivider()

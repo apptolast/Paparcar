@@ -2715,6 +2715,22 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
+            // La MISMA gasolinera, ya seguida: la estrella se rellena y el botón dice el estado
+            // actual, no la acción. ⛔ Sin Plus por ningún lado — seguir es gratis; lo que se paga
+            // es que la app la vigile. [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
+            Variant("Peek de gasolinera (seguida)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        fuel = HomeFuelSlice(
+                            stations = galleryFuelStations,
+                            reportedAt = "09/09/2026 08:30:00",
+                        ),
+                        selection = HomeSelection.FuelStation("1"),
+                        userGpsPoint = sampleGps,
+                        followedFuelStationKeys = setOf("minetur|1"),
+                    ),
+                )
+            },
             // OSM: la estación existe, ningún precio y ninguna afirmación sobre surtidores.
             Variant("Peek de gasolinera (OSM, sin precios)", Placement.Surface) {
                 peek(
@@ -2956,6 +2972,8 @@ private val galleryOsmStation = NearbyFuelStation(
         schedule = "24/7",
     ),
     distanceMeters = 890.0,
+    stationKey = "osm|node/99",
+    source = "osm",
     price = null,
 )
 
@@ -2968,6 +2986,8 @@ private val galleryFuelStations: List<NearbyFuelStation> = listOf(
             prices = mapOf(FuelType.DIESEL to StationPrice(Money(1.879, "EUR"), SPAIN_FEED_MS)),
         ),
         distanceMeters = 420.0,
+        stationKey = "minetur|1",
+        source = "minetur",
         price = StationPrice(Money(1.879, "EUR"), SPAIN_FEED_MS),
     ),
     NearbyFuelStation(
@@ -2977,6 +2997,8 @@ private val galleryFuelStations: List<NearbyFuelStation> = listOf(
             prices = mapOf(FuelType.DIESEL to StationPrice(Money(1.759, "EUR"), SPAIN_FEED_MS)),
         ),
         distanceMeters = 1_240.0,
+        stationKey = "minetur|2",
+        source = "minetur",
         price = StationPrice(Money(1.759, "EUR"), SPAIN_FEED_MS),
     ),
     // Sin nombre ni marca: se la ubica, no se le inventa un nombre. Pasa en el feed francés (que no
@@ -2988,6 +3010,8 @@ private val galleryFuelStations: List<NearbyFuelStation> = listOf(
             prices = mapOf(FuelType.DIESEL to StationPrice(Money(1.765, "EUR"), SPAIN_FEED_MS)),
         ),
         distanceMeters = 3_100.0,
+        stationKey = "minetur|3",
+        source = "minetur",
         price = StationPrice(Money(1.765, "EUR"), SPAIN_FEED_MS),
     ),
 )
@@ -3021,6 +3045,8 @@ private fun frenchStation(
             ),
         ),
         distanceMeters = distanceMeters,
+        stationKey = "france|$id",
+        source = "france",
         price = StationPrice(Money(price, "EUR"), reportedAtMs),
     )
 }
@@ -3050,6 +3076,8 @@ private fun germanStation(
         prices = mapOf(FuelType.GASOLINE to StationPrice(Money(price, "EUR"))),
     ),
     distanceMeters = distanceMeters,
+    stationKey = "germany|$id",
+    source = "germany",
     price = StationPrice(Money(price, "EUR")),
 )
 

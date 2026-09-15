@@ -14,6 +14,11 @@ enum class PaywallReason {
     ZONES,
     STATS,
     ZONE_ALERTS,
+
+    /** The fuel-price watch — a cheaper pump nearby, and what a followed station did overnight.
+     *  Its own entry and not folded into [ZONE_ALERTS]: the funnel's whole job is telling WHICH
+     *  vigilance someone wanted. [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001] */
+    FUEL_ALERTS,
     ROUTE_CLOUD,
     GENERAL,
     ;

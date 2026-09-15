@@ -199,4 +199,36 @@ private val MIGRATION_9_10 = object : Migration(9, 10) {
     }
 }
 
-val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
+/**
+ * v11 [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]: the two tables a price alert needs —
+ * the stations the user follows, and one reading per station, fuel and DAY.
+ *
+ * ⛔ Nothing is back-filled, and there is nothing that could be: the fuel cache deletes and rewrites
+ * its whole fuel set on every write, so no device has ever held yesterday's price. The series starts
+ * the first day the watch worker runs, which is also why the first alert cannot arrive before the
+ * second day — a movement needs two readings and we have never kept one.
+ */
+private val MIGRATION_10_11 = object : Migration(10, 11) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "CREATE TABLE IF NOT EXISTS `followed_fuel_stations` (" +
+                "`stationKey` TEXT NOT NULL, `source` TEXT NOT NULL, `id` TEXT NOT NULL, " +
+                "`name` TEXT, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, " +
+                "`followedAtMs` INTEGER NOT NULL, PRIMARY KEY(`stationKey`))"
+        )
+        connection.execSQL(
+            "CREATE TABLE IF NOT EXISTS `fuel_price_history` (" +
+                "`stationKey` TEXT NOT NULL, `fuelType` TEXT NOT NULL, " +
+                "`priceAmount` REAL NOT NULL, `priceCurrency` TEXT NOT NULL, " +
+                "`reportedAtMs` INTEGER, `observedAtMs` INTEGER NOT NULL, " +
+                "`observedDay` INTEGER NOT NULL, " +
+                "PRIMARY KEY(`stationKey`, `fuelType`, `observedDay`))"
+        )
+        connection.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_fuel_price_history_stationKey_fuelType` " +
+                "ON `fuel_price_history` (`stationKey`, `fuelType`)"
+        )
+    }
+}
+
+val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)

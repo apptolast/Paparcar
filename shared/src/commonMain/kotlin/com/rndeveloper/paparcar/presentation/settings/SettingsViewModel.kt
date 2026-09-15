@@ -127,6 +127,7 @@ class SettingsViewModel(
                 autoDetectParking = prefs.autoDetectParking,
                 notifyParkingDetected = prefs.notifyParkingDetected,
                 notifyZoneSpots = prefs.notifyZoneSpots,
+                notifyFuelPrices = prefs.notifyFuelPrices,
                 syncRouteGeometry = prefs.syncRouteGeometry,
             )
         }
@@ -172,6 +173,18 @@ class SettingsViewModel(
                 } else {
                     prefs.setNotifyZoneSpots(intent.enabled)
                     updateState { copy(notifyZoneSpots = intent.enabled) }
+                }
+            }
+            // [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001] The same soft gate, the same
+            // asymmetry: turning the watch ON is the paywall moment, turning it off never is.
+            // ⛔ What this does NOT touch is which stations are followed — those stay starred
+            // through a lapse, so regaining Plus resumes the same watch instead of an empty one.
+            is SettingsIntent.ToggleFuelAlertsNotif -> {
+                if (intent.enabled && !state.value.isPlus) {
+                    sendEffect(SettingsEffect.NavigateToPaywall(PaywallReason.FUEL_ALERTS))
+                } else {
+                    prefs.setNotifyFuelPrices(intent.enabled)
+                    updateState { copy(notifyFuelPrices = intent.enabled) }
                 }
             }
             // [PRIV-A-TRACE-IS-NOT-A-STAT-001] Same soft gate as the zone alerts: the trace only

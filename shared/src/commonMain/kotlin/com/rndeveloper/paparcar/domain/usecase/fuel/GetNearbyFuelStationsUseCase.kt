@@ -3,6 +3,7 @@ package com.rndeveloper.paparcar.domain.usecase.fuel
 import com.rndeveloper.paparcar.domain.fuel.FuelStation
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsQuery
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsSource
+import com.rndeveloper.paparcar.domain.fuel.fuelStationKey
 import com.rndeveloper.paparcar.domain.geocoder.GeocoderDataSource
 import com.rndeveloper.paparcar.domain.fuel.StationPrice
 import com.rndeveloper.paparcar.domain.model.FuelType
@@ -15,6 +16,19 @@ import com.rndeveloper.paparcar.domain.util.haversineMeters
 data class NearbyFuelStation(
     val station: FuelStation,
     val distanceMeters: Double,
+    /**
+     * `source|id` — the identity that survives leaving this answer.
+     * [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
+     *
+     * ⛔ Built HERE and not at the call site: the source is a property of the answering feed, and it
+     * died at this boundary — `FuelStationsResult` carried it and `NearbyFuelStations` dropped it,
+     * so nothing above could name a station in a way that still meant something tomorrow. A follow
+     * keyed by the bare id would break the moment two feeds numbered a station alike.
+     */
+    val stationKey: String,
+    /** The feed that answered — travels beside the key so a follow can be stored whole instead of
+     *  being reconstructed by splitting a string back apart. */
+    val source: String,
     /**
      * Null where the source has no price for this fuel — never a zero, never a substitute.
      *
@@ -132,6 +146,11 @@ class GetNearbyFuelStationsUseCase(
                             distanceMeters = haversineMeters(
                                 latitude, longitude, station.latitude, station.longitude,
                             ),
+                            stationKey = fuelStationKey(result.source, station.id),
+                            source = result.source,
+                            // ⛔ Priced by the PUMP PRODUCT, never by the powertrain — a hybrid
+                            // asking for «hybrid» matched nothing anywhere.
+                            // [FUEL-A-HYBRID-FILLS-UP-WITH-PETROL-001]
                             price = product?.let { station.prices[it] },
                         )
                     },

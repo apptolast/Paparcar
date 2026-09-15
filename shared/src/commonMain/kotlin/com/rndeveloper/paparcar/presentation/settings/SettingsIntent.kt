@@ -6,6 +6,10 @@ sealed class SettingsIntent {
     /** Master switch for the Plus zone alerts; enabling as free routes to the paywall. [MONEY-001] */
     data class ToggleZoneAlertsNotif(val enabled: Boolean) : SettingsIntent()
 
+    /** Master gate for the Plus fuel-price alerts. Same soft-gate shape as the zone one.
+     *  [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001] */
+    data class ToggleFuelAlertsNotif(val enabled: Boolean) : SettingsIntent()
+
     /** [PRIV-A-TRACE-IS-NOT-A-STAT-001] Soft-gated like the zone alerts: enabling as free opens
      *  the paywall; disabling is always allowed. */
     data class ToggleRouteCloudSync(val enabled: Boolean) : SettingsIntent()
