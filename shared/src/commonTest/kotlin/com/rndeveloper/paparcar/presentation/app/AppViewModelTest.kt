@@ -14,6 +14,7 @@ import com.rndeveloper.paparcar.fakes.FakeSpotRepository
 import com.rndeveloper.paparcar.fakes.FakeUserParkingRepository
 import com.rndeveloper.paparcar.fakes.FakeVehicleRepository
 import com.rndeveloper.paparcar.fakes.FakeZoneRepository
+import com.rndeveloper.paparcar.fakes.FakeZoneWatchRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -56,6 +57,7 @@ class AppViewModelTest {
         zoneAlerts = ObserveZoneSpotAlertsUseCase(
             zoneRepository = fakeZoneRepo,
             spotRepository = FakeSpotRepository(),
+            watchRepository = FakeZoneWatchRepository(),
             observeIsPlus = ObserveIsPlusUseCase(FakeEntitlementRepository()),
             appPreferences = fakePrefs,
             authRepository = FakeAuthRepository(),

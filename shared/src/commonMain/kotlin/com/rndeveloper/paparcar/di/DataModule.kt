@@ -1,5 +1,7 @@
 package com.rndeveloper.paparcar.di
 
+import com.rndeveloper.paparcar.domain.repository.ZoneWatchRepository
+import com.rndeveloper.paparcar.data.repository.RoomZoneWatchRepository
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.app
 import dev.gitlive.firebase.firestore.firestore
@@ -164,6 +166,11 @@ val dataModule = module {
     single { get<AppDatabase>().vehicleDao() }
     single<SpotDao> { get<AppDatabase>().spotDao() }
     single { get<AppDatabase>().zoneDao() }
+    single { get<AppDatabase>().zoneWatchDao() }
+
+    // La memoria que la alerta de zona nunca tuvo: lo ya avisado y el primer vistazo de cada zona.
+    // [ZONE-AN-ALERT-NOBODY-IS-AWAKE-TO-RECEIVE-001]
+    single<ZoneWatchRepository> { RoomZoneWatchRepository(dao = get()) }
     single { get<AppDatabase>().geocoderCacheDao() }
     single { get<AppDatabase>().publicParkingCacheDao() }
     single { get<AppDatabase>().osmCoverageDao() }

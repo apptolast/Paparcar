@@ -231,4 +231,38 @@ private val MIGRATION_10_11 = object : Migration(10, 11) {
     }
 }
 
-val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
+/**
+ * v12 [ZONE-AN-ALERT-NOBODY-IS-AWAKE-TO-RECEIVE-001]: what the zone watch has already announced,
+ * and when each zone was first looked at.
+ *
+ * ⛔ Nothing is back-filled and nothing could be: until now the "already alerted" set lived in
+ * memory inside the stream and died with the process. The practical consequence on upgrade is one
+ * silent first look per zone — it records the ground instead of reporting it — which is exactly
+ * what a first look is supposed to do.
+ *
+ * ⚠️ It was WRITTEN as 10 → 11 and renumbered on the way in: the fuel watch and the zone watch were
+ * developed in parallel off the same v10 and both claimed v11. A version number is the one kind of
+ * collision git cannot see — two files edited in different places, one number silently shared — so
+ * the second to land renumbers. The tables are unrelated; only the step is.
+ */
+private val MIGRATION_11_12 = object : Migration(11, 12) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "CREATE TABLE IF NOT EXISTS `zone_alerted_spots` (" +
+                "`zoneId` TEXT NOT NULL, `spotId` TEXT NOT NULL, " +
+                "`alertedAtMs` INTEGER NOT NULL, `spotExpiresAt` INTEGER NOT NULL, " +
+                "PRIMARY KEY(`zoneId`, `spotId`))"
+        )
+        connection.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_zone_alerted_spots_spotExpiresAt` " +
+                "ON `zone_alerted_spots` (`spotExpiresAt`)"
+        )
+        connection.execSQL(
+            "CREATE TABLE IF NOT EXISTS `zone_watch_baseline` (" +
+                "`zoneId` TEXT NOT NULL, `baselineAtMs` INTEGER NOT NULL, " +
+                "PRIMARY KEY(`zoneId`))"
+        )
+    }
+}
+
+val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)

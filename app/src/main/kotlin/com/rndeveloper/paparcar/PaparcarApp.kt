@@ -31,6 +31,7 @@ import com.rndeveloper.paparcar.domain.preferences.ThemeMode
 import com.rndeveloper.paparcar.domain.usecase.detection.isFirstParkNudgeSpent
 import com.rndeveloper.paparcar.logging.FileAntilog
 import com.rndeveloper.paparcar.fuel.FuelWatchScheduler
+import com.rndeveloper.paparcar.zone.ZoneWatchScheduler
 import com.rndeveloper.paparcar.widget.ParkedWidgetRefresher
 import org.koin.android.ext.android.get
 import org.koin.android.ext.koin.androidContext
@@ -155,11 +156,15 @@ class PaparcarApp : Application() {
             ),
         )
 
-        // The daily fuel-price watch follows the followed set as a STREAM — armed the moment a
-        // station is starred, cancelled when the last one is dropped. Never a one-shot read at
-        // launch, for the very reason the note below gives.
+        // Both Plus watches arm the same way and for the same reason: their clock follows what
+        // the user subscribed to as a STREAM — armed the moment a station is starred or a zone asks
+        // to be watched, cancelled when the last one goes. Never a one-shot read at launch, for the
+        // very reason the note below gives. Neither reads the entitlement: Plus is decided live
+        // inside each use case, in ONE place.
         // [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
+        // [ZONE-AN-ALERT-NOBODY-IS-AWAKE-TO-RECEIVE-001]
         FuelWatchScheduler(workManager, get()).start()
+        ZoneWatchScheduler(workManager, get()).start()
 
         // [DET-WATCH-REACTIVATE-001] The resident SENTRY watcher is NOT resurrected here any more.
         // This spot read the parked sessions ONCE (`observeActiveSessions().first()`), so a clean
