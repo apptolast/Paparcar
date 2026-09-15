@@ -448,6 +448,37 @@ class AppNotificationManagerImpl(
         notificationManager.notify(AppNotificationManager.MARK_PARKING_NUDGE_NOTIFICATION_ID, notification)
     }
 
+    /**
+     * The closed month, knocking once. [STATS-PLUS-THE-RECAP-KNOCKS-001]
+     *
+     * Same channel as the zone and fuel alerts and NOT the detection one: a monthly digest must be
+     * silenceable without silencing the watch over the car. Tapping opens the app, where the recap
+     * card is already the first thing on the stats panel.
+     */
+    override fun showMonthRecap(parkings: Int, spendText: String?, searchTimeMs: Long?) {
+        // ⛔ Three whole sentences instead of gluing clauses: which figures exist varies (a car with
+        // no fuel type has no spend, a month with no measured route has no hunting time), and a
+        // composed string is where that breaks silently in half the nine locales.
+        val minutes = searchTimeMs?.let { (it / MS_PER_MINUTE).toInt() }
+        val body = when {
+            spendText != null && minutes != null ->
+                context.getString(R.string.notif_month_recap_text_both, spendText, minutes.toString())
+            spendText != null -> context.getString(R.string.notif_month_recap_text_spend, spendText)
+            minutes != null -> context.getString(R.string.notif_month_recap_text_search, minutes.toString())
+            else -> context.getString(R.string.notif_month_recap_text_parkings, parkings.toString())
+        }
+        val notification = NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
+            .setContentTitle(context.getString(R.string.notif_month_recap_title))
+            .setContentText(body)
+            .setSmallIcon(R.drawable.ic_notification_logo)
+            .setColor(COLOR_SUCCESS)
+            .setCategory(NotificationCompat.CATEGORY_EVENT)
+            .setContentIntent(buildOpenAppIntent(RC_MONTH_RECAP))
+            .setAutoCancel(true)
+            .build()
+        notificationManager.notify(AppNotificationManager.MONTH_RECAP_NOTIFICATION_ID, notification)
+    }
+
     override fun dismiss(notificationId: Int) {
         // [DET-ASK-STATE-001] The single close point. Every way the question ends — the user answers
         // (from the tray OR the Home row: both hooks dismiss), an auto-confirm lands, the response
@@ -646,10 +677,12 @@ class AppNotificationManagerImpl(
         const val SENTRY_CHANNEL_ID = "sentry_channel" // [DET-RESIDENT-FGS-001 · F3]
 
         // PendingIntent request codes — must be unique across the app
+        private const val MS_PER_MINUTE = 60_000L
         private const val RC_DETECTION = 10
         private const val RC_CONFIRMATION = 11
         private const val RC_PARKING_SAVED = 12
         private const val RC_DEBUG = 14
+        private const val RC_MONTH_RECAP = 217
         private const val RC_PERMISSION_REVOKED = 15
         private const val RC_CONFIRMATION_FAILED = 17
         private const val RC_ZONE_SPOT_ALERT = 18

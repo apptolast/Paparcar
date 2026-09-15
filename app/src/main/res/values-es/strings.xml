@@ -102,4 +102,9 @@
     <!-- Widget actions [WIDGET-ACTIONS-002] — same wording as in-app -->
     <string name="widget_action_navigate">Cómo llegar</string>
     <string name="widget_action_more">Más opciones</string>
+    <string name="notif_month_recap_title">El mes pasado</string>
+    <string name="notif_month_recap_text_both">%1$s y %2$s min buscando plaza</string>
+    <string name="notif_month_recap_text_spend">%1$s en combustible</string>
+    <string name="notif_month_recap_text_search">%1$s min buscando plaza</string>
+    <string name="notif_month_recap_text_parkings">%1$s aparcamientos</string>
 </resources>

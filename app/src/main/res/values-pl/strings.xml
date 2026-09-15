@@ -100,4 +100,9 @@
     <!-- Widget actions [WIDGET-ACTIONS-002] — same wording as in-app -->
     <string name="widget_action_navigate">Trasa</string>
     <string name="widget_action_more">Więcej opcji</string>
+    <string name="notif_month_recap_title">W zeszłym miesiącu</string>
+    <string name="notif_month_recap_text_both">%1$s i %2$s min szukania miejsca</string>
+    <string name="notif_month_recap_text_spend">%1$s na paliwo</string>
+    <string name="notif_month_recap_text_search">%1$s min szukania miejsca</string>
+    <string name="notif_month_recap_text_parkings">%1$s parkowań</string>
 </resources>

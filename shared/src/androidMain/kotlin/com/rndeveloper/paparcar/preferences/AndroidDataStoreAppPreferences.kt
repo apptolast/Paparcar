@@ -304,6 +304,12 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
 
     override fun setNotifyFuelPrices(enabled: Boolean) = set(Keys.NOTIFY_FUEL_PRICES, enabled)
 
+    // [STATS-PLUS-THE-RECAP-KNOCKS-001] 0 means "never told" — the key simply is not there yet.
+    override val lastMonthRecapAnnounced: Int?
+        get() = get(Keys.LAST_MONTH_RECAP, 0).takeIf { it > 0 }
+
+    override fun setLastMonthRecapAnnounced(yearMonth: Int) = set(Keys.LAST_MONTH_RECAP, yearMonth)
+
     // [PRIV-A-TRACE-IS-NOT-A-STAT-001] Default OFF: the trace never leaves without the user saying so.
     override val syncRouteGeometry: Boolean
         get() = get(Keys.SYNC_ROUTE_GEOMETRY, false)
@@ -365,6 +371,7 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         val NOTIFY_PARKING_DETECTED = booleanPreferencesKey("notify_parking_detected")
         val NOTIFY_ZONE_SPOTS = booleanPreferencesKey("notify_zone_spots")
         val NOTIFY_FUEL_PRICES = booleanPreferencesKey("notify_fuel_prices")
+        val LAST_MONTH_RECAP = intPreferencesKey("last_month_recap_announced")
         val SYNC_ROUTE_GEOMETRY = booleanPreferencesKey("sync_route_geometry") // [PRIV-A-TRACE-IS-NOT-A-STAT-001]
         // "notify_spot_freed" removed 2026-08-28: it gated a notification that never existed.
         // Stale values may linger in the DataStore file; they are inert. [SETTINGS-AUDIT-REMEDIATION-001]

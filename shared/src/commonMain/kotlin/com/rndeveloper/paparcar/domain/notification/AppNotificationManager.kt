@@ -233,6 +233,19 @@ interface AppNotificationManager {
     ) {}
 
     /**
+     * The month that just closed, knocking. [STATS-PLUS-THE-RECAP-KNOCKS-001]
+     *
+     * ⛔ DOMAIN values, not a finished sentence: the words and their nine locales belong to the
+     * implementation, which is the side that owns `R.string`. The same split every other alert here
+     * already lives by.
+     *
+     * @param parkings    how many times the car was parked in the closed month
+     * @param spendText   the month's approximate spend, already formatted with its currency, or null
+     * @param searchTimeMs time lost hunting a spot over the month, or null when nothing was measured
+     */
+    fun showMonthRecap(parkings: Int, spendText: String?, searchTimeMs: Long?) {}
+
+    /**
      * Dismisses the notification with the given [notificationId].
      *
      * @param notificationId One of the [DETECTION_NOTIFICATION_ID], [UPLOAD_NOTIFICATION_ID],
@@ -243,6 +256,10 @@ interface AppNotificationManager {
     companion object {
         /** ID for the foreground-service detection notification (channel: DETECTION / LOW priority). */
         const val DETECTION_NOTIFICATION_ID = 1001
+
+        /** The monthly recap. Its own id so it can never replace an alert about right now.
+         *  [STATS-PLUS-THE-RECAP-KNOCKS-001] */
+        const val MONTH_RECAP_NOTIFICATION_ID = 1012
 
         /** ID for the parking-saved notification (channel: UPLOAD / DEFAULT priority). */
         const val UPLOAD_NOTIFICATION_ID = 1002

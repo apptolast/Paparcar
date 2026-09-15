@@ -34,6 +34,7 @@ import com.rndeveloper.paparcar.domain.usecase.fuel.EvaluateDailyPriceMoveUseCas
 import com.rndeveloper.paparcar.domain.usecase.fuel.GetNearbyFuelStationsUseCase
 import com.rndeveloper.paparcar.domain.usecase.fuel.ObserveFollowedFuelStationsUseCase
 import com.rndeveloper.paparcar.domain.usecase.fuel.RunFuelPriceWatchUseCase
+import com.rndeveloper.paparcar.domain.usecase.stats.RunMonthRecapUseCase
 import com.rndeveloper.paparcar.domain.usecase.fuel.ToggleFollowFuelStationUseCase
 import com.rndeveloper.paparcar.domain.usecase.fuel.ResolveFuelPriceUseCase
 import com.rndeveloper.paparcar.domain.usecase.parkings.GetNearbyPublicParkingsUseCase
@@ -148,6 +149,17 @@ val domainModule = module {
             appPreferences = get(),
             evaluateDailyPriceMove = get(),
             evaluateCheaperStationNearby = get(),
+        )
+    }
+
+    // [STATS-PLUS-THE-RECAP-KNOCKS-001] El veredicto del resumen mensual. Sin `isPlus` propio: las
+    // cifras salen del historial gateado por el plan, igual que la card del panel.
+    factory {
+        RunMonthRecapUseCase(
+            userParkingRepository = get(),
+            vehicleRepository = get(),
+            observeIsPlus = get(),
+            appPreferences = get(),
         )
     }
 

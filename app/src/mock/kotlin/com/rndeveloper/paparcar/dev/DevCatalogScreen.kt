@@ -64,6 +64,7 @@ fun DevCatalogScreen(
     // Shared detection runtime — toggling it simulates an in-progress trip in the real Home (moving
     // driving puck + "Conduciendo" chip + camera follow), no real drive needed. [DRIVE-SIM-001]
     val runtime: MutableDetectionRuntimeState = koinInject()
+    val notifications: com.rndeveloper.paparcar.domain.notification.AppNotificationManager = koinInject()
     val driving by runtime.isRunning.collectAsStateWithLifecycle()
     val candidate by runtime.phase.collectAsStateWithLifecycle()
 
@@ -269,6 +270,26 @@ fun DevCatalogScreen(
             PresetButton("¿Has aparcado? — pregunta abierta durante un viaje") {
                 scenario.reset(); scenario.promptOpen.value = true
                 runtime.setRunning(true); onEnter()
+            }
+
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            SectionTitle("Notificaciones que sólo ocurren un día al año")
+            // ⛔ El resumen del mes cerrado sólo puede verse los siete primeros días de un mes
+            // [STATS-PLUS-THE-RECAP-KNOCKS-001]. Sin este disparo, la notificación no se mira en
+            // mano hasta el día 1 del mes que viene — y una notificación que no se ha visto es copy
+            // que nadie ha leído. Dispara la NOTIFICACIÓN, no el veredicto: las puertas tienen su
+            // test, lo que aquí falta por ver son las palabras.
+            OutlinedButton(
+                onClick = {
+                    notifications.showMonthRecap(
+                        parkings = 14,
+                        spendText = "38.40 EUR",
+                        searchTimeMs = 72 * 60_000L,
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Disparar el resumen del mes pasado")
             }
 
             HorizontalDivider(Modifier.padding(vertical = 8.dp))

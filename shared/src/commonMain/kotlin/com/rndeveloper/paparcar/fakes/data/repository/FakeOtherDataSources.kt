@@ -265,6 +265,10 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     override val notifyFuelPrices: Boolean get() = _notifyFuelPrices.value
     override fun setNotifyFuelPrices(enabled: Boolean) { _notifyFuelPrices.value = enabled }
 
+    private var _lastMonthRecap: Int? = null
+    override val lastMonthRecapAnnounced: Int? get() = _lastMonthRecap
+    override fun setLastMonthRecapAnnounced(yearMonth: Int) { _lastMonthRecap = yearMonth }
+
     private val _syncRouteGeometry = MutableStateFlow(false)
     override val syncRouteGeometry: Boolean get() = _syncRouteGeometry.value
     override fun setSyncRouteGeometry(enabled: Boolean) { _syncRouteGeometry.value = enabled }

@@ -157,6 +157,17 @@ interface AppPreferences {
     val notifyFuelPrices: Boolean
     fun setNotifyFuelPrices(enabled: Boolean)
 
+    /**
+     * The closed month already told, as `yyyymm` — null until the first one is.
+     * [STATS-PLUS-THE-RECAP-KNOCKS-001]
+     *
+     * ⛔ The MONTH and not a boolean: the app can wake seven days running inside the window, and a
+     * flag would either repeat September every day or, once cleared, have nothing to say about
+     * October. A month number answers both questions with one value.
+     */
+    val lastMonthRecapAnnounced: Int?
+    fun setLastMonthRecapAnnounced(yearMonth: Int)
+
     /** [PRIV-A-TRACE-IS-NOT-A-STAT-001] Whether the ROUTE GEOMETRY (polyline + inferred spans) may
      *  leave the device. Opt-in and Plus-gated in Settings, default **OFF**: the trip's FIGURES
      *  (distance, search time) always sync -- they are numbers; the trace itself (where you drove)

@@ -30,6 +30,7 @@ import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.preferences.ThemeMode
 import com.rndeveloper.paparcar.domain.usecase.detection.isFirstParkNudgeSpent
 import com.rndeveloper.paparcar.logging.FileAntilog
+import com.rndeveloper.paparcar.detection.worker.MonthRecapWorker
 import com.rndeveloper.paparcar.fuel.FuelWatchScheduler
 import com.rndeveloper.paparcar.push.ZoneAlertSubscriptionSync
 import com.rndeveloper.paparcar.widget.ParkedWidgetRefresher
@@ -169,6 +170,9 @@ class PaparcarApp : Application() {
         // [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
         // [ZONE-A-SPOT-TELLS-THE-SERVER-AND-THE-SERVER-TELLS-YOU-001]
         FuelWatchScheduler(workManager, get()).start()
+        // [STATS-PLUS-THE-RECAP-KNOCKS-001] Un tic diario y barato; quién decide si toca contar el
+        // mes es el use case, no este encolado. KEEP para que abrir la app no reinicie su reloj.
+        MonthRecapWorker.schedule(workManager)
         get<ZoneAlertSubscriptionSync>().start()
 
         // [DET-WATCH-REACTIVATE-001] The resident SENTRY watcher is NOT resurrected here any more.

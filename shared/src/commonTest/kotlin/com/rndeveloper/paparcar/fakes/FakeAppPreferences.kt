@@ -129,6 +129,11 @@ class FakeAppPreferences(
     override val notifyFuelPrices: Boolean get() = _notifyFuelPrices
     override fun setNotifyFuelPrices(enabled: Boolean) { _notifyFuelPrices = enabled }
 
+    // [STATS-PLUS-THE-RECAP-KNOCKS-001] El mes ya contado, como `yyyymm`.
+    private var _lastMonthRecap: Int? = null
+    override val lastMonthRecapAnnounced: Int? get() = _lastMonthRecap
+    override fun setLastMonthRecapAnnounced(yearMonth: Int) { _lastMonthRecap = yearMonth }
+
     private var _syncRouteGeometry = false
     override val syncRouteGeometry: Boolean get() = _syncRouteGeometry
     override fun setSyncRouteGeometry(enabled: Boolean) { _syncRouteGeometry = enabled }
