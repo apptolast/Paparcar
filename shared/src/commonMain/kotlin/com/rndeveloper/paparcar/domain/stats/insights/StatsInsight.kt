@@ -47,6 +47,10 @@ enum class InsightKind {
 
     /** How the hunt moved against the equivalent period before. */
     SEARCH_TIME_TREND,
+
+    /** A PLACE that got harder — or easier — than it was last period.
+     *  [STATS-A-PLACE-CAN-GET-WORSE-001] */
+    PLACE_TREND,
 }
 
 /**

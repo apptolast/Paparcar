@@ -864,6 +864,8 @@
     <string name="stats_insight_easiest_time">%1$s das %2$s: estacionas em %3$s</string>
     <string name="stats_insight_costliest_place">Em %1$s demoras %2$s a estacionar; nos teus outros locais, %3$s</string>
     <string name="stats_insight_trend_up">Estás à procura %1$s mais por viagem do que no período anterior</string>
+    <string name="stats_insight_place_worse">Em %1$s demoras %2$s mais do que no período anterior</string>
+    <string name="stats_insight_place_better">Em %1$s demoras %2$s menos do que no período anterior</string>
     <string name="stats_insight_trend_down">Estás à procura %1$s menos por viagem do que no período anterior</string>
     <plurals name="stats_insight_evidence">
         <item quantity="one">sobre %1$d estacionamento medido</item>

@@ -14,6 +14,7 @@ import com.rndeveloper.paparcar.domain.stats.insights.InsightKind
 import com.rndeveloper.paparcar.domain.stats.insights.MAX_INSIGHTS
 import com.rndeveloper.paparcar.domain.stats.insights.costliestPlace
 import com.rndeveloper.paparcar.domain.stats.insights.easiestTimeToPark
+import com.rndeveloper.paparcar.domain.stats.insights.placeTrend
 import com.rndeveloper.paparcar.domain.stats.insights.searchTimeTrend
 import com.rndeveloper.paparcar.domain.stats.insights.worstTimeToPark
 import kotlinx.datetime.LocalDateTime
@@ -52,10 +53,11 @@ class DeriveStatsInsightsUseCaseTest {
         name: String?,
         avgMs: Long,
         visits: Int,
+        lat: Double = 40.4,
     ) = ParkingCluster(
         id = id,
         name = name,
-        latitude = 40.4,
+        latitude = lat,
         longitude = -3.7,
         parkings = visits,
         avgStayMs = null,
@@ -241,5 +243,66 @@ class DeriveStatsInsightsUseCaseTest {
         assertTrue(insights.size <= MAX_INSIGHTS, "tres es lo que alguien lee")
         assertTrue(insights.zipWithNext().all { (a, b) -> a.score >= b.score }, "de mayor a menor")
         assertTrue(insights.all { it.samples > 0 }, "ninguna frase sin su n")
+    }
+
+    // ── Un sitio que empeora [STATS-A-PLACE-CAN-GET-WORSE-001] ──────────────
+
+    /**
+     * La vigilancia que promete Plus: el mismo SITIO comparado consigo mismo. Y se empareja por
+     * GEOMETRÍA, no por nombre — el mismo trozo de acera se llama distinto según el geocoder, que es
+     * justo por lo que un sitio dejó de ser una cadena de texto.
+     */
+    @Test
+    fun should_noticeAPlaceGettingHarder_matchingItByGround() {
+        val insight = placeTrend(
+            places = listOf(place("now", "Calle de Alcalá", 600_000L, visits = 4)),
+            previousPlaces = listOf(place("before", "Calle de O'Donnell", 120_000L, visits = 4)),
+        )!!
+        assertEquals(InsightKind.PLACE_TREND, insight.kind)
+        assertEquals("Calle de Alcalá", insight.values.placeName)
+        assertTrue(insight.values.isUp, "ahora cuesta más")
+        assertEquals(480_000L, insight.values.deltaMs)
+    }
+
+    @Test
+    fun should_alsoSayItWhenAPlaceGetsEasier() {
+        val insight = placeTrend(
+            places = listOf(place("now", "Trabajo", 120_000L, visits = 4)),
+            previousPlaces = listOf(place("before", "Trabajo", 600_000L, visits = 4)),
+        )!!
+        assertTrue(!insight.values.isUp)
+    }
+
+    /** Sitios distintos no se comparan: a 3 km no hay «el mismo sitio» que comparar. */
+    @Test
+    fun should_notCompareTwoDifferentPlaces() {
+        assertNull(
+            placeTrend(
+                places = listOf(place("now", "Trabajo", 600_000L, visits = 4, lat = 40.4)),
+                previousPlaces = listOf(place("far", "Casa", 120_000L, visits = 4, lat = 40.43)),
+            ),
+        )
+    }
+
+    /** Una media de una sola búsqueda no es una media, a ninguno de los dos lados. */
+    @Test
+    fun should_staySilent_when_eitherSideHasASingleHunt() {
+        assertNull(
+            placeTrend(
+                places = listOf(place("now", "Trabajo", 600_000L, visits = 1)),
+                previousPlaces = listOf(place("before", "Trabajo", 120_000L, visits = 4)),
+            ),
+        )
+    }
+
+    /** Y un cambio pequeño es el ruido normal de aparcar, no un hallazgo. */
+    @Test
+    fun should_staySilent_when_theMoveIsOrdinary() {
+        assertNull(
+            placeTrend(
+                places = listOf(place("now", "Trabajo", 130_000L, visits = 4)),
+                previousPlaces = listOf(place("before", "Trabajo", 120_000L, visits = 4)),
+            ),
+        )
     }
 }

@@ -865,6 +865,8 @@
     <string name="stats_insight_easiest_time">%1$s, %2$s: du parkst in %3$s</string>
     <string name="stats_insight_costliest_place">An %1$s brauchst du %2$s zum Parken; an deinen anderen Orten %3$s</string>
     <string name="stats_insight_trend_up">Du suchst %1$s länger pro Fahrt als im Zeitraum davor</string>
+    <string name="stats_insight_place_worse">An %1$s brauchst du %2$s länger als im Zeitraum davor</string>
+    <string name="stats_insight_place_better">An %1$s brauchst du %2$s kürzer als im Zeitraum davor</string>
     <string name="stats_insight_trend_down">Du suchst %1$s kürzer pro Fahrt als im Zeitraum davor</string>
     <plurals name="stats_insight_evidence">
         <item quantity="one">aus %1$d gemessenem Parkvorgang</item>

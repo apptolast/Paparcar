@@ -844,6 +844,8 @@
     <string name="stats_insight_easiest_time">%1$s, %2$s: je parkeert in %3$s</string>
     <string name="stats_insight_costliest_place">Bij %1$s doe je %2$s over parkeren; op je andere plekken %3$s</string>
     <string name="stats_insight_trend_up">Je zoekt %1$s langer per rit dan de vorige periode</string>
+    <string name="stats_insight_place_worse">Bij %1$s doe je %2$s langer dan de vorige periode</string>
+    <string name="stats_insight_place_better">Bij %1$s doe je %2$s korter dan de vorige periode</string>
     <string name="stats_insight_trend_down">Je zoekt %1$s korter per rit dan de vorige periode</string>
     <plurals name="stats_insight_evidence">
         <item quantity="one">op basis van %1$d gemeten parkeerplaats</item>

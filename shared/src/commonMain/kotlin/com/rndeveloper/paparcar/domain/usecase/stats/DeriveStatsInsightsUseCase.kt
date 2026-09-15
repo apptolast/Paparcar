@@ -9,6 +9,7 @@ import com.rndeveloper.paparcar.domain.stats.insights.MAX_INSIGHTS
 import com.rndeveloper.paparcar.domain.stats.insights.StatsInsight
 import com.rndeveloper.paparcar.domain.stats.insights.costliestPlace
 import com.rndeveloper.paparcar.domain.stats.insights.easiestTimeToPark
+import com.rndeveloper.paparcar.domain.stats.insights.placeTrend
 import com.rndeveloper.paparcar.domain.stats.insights.searchTimeTrend
 import com.rndeveloper.paparcar.domain.stats.insights.worstTimeToPark
 
@@ -38,6 +39,9 @@ class DeriveStatsInsightsUseCase {
             worst,
             easiestTimeToPark(grid, worst),
             costliestPlace(stats.places),
+            // The watch: a place compared with ITSELF a period ago, which is the only sentence here
+            // that can notice roadworks. [STATS-A-PLACE-CAN-GET-WORSE-001]
+            placeTrend(stats.places, stats.previous?.places.orEmpty()),
             searchTimeTrend(
                 current = stats.searchTime,
                 previous = stats.previous?.searchTime,

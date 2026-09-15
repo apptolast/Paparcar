@@ -879,6 +879,8 @@
     <string name="stats_insight_easiest_time">%1$s, %2$s: parchezi în %3$s</string>
     <string name="stats_insight_costliest_place">La %1$s faci %2$s să parchezi; în celelalte locuri, %3$s</string>
     <string name="stats_insight_trend_up">Cauți %1$s mai mult pe cursă decât în perioada anterioară</string>
+    <string name="stats_insight_place_worse">La %1$s faci %2$s mai mult decât în perioada anterioară</string>
+    <string name="stats_insight_place_better">La %1$s faci %2$s mai puțin decât în perioada anterioară</string>
     <string name="stats_insight_trend_down">Cauți %1$s mai puțin pe cursă decât în perioada anterioară</string>
     <plurals name="stats_insight_evidence">
         <item quantity="one">din %1$d parcare măsurată</item>

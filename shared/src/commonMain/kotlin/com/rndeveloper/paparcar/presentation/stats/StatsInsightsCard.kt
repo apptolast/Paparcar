@@ -33,6 +33,8 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.stats_insight_costliest_place
 import paparcar.composeapp.generated.resources.stats_insight_easiest_time
 import paparcar.composeapp.generated.resources.stats_insight_evidence
+import paparcar.composeapp.generated.resources.stats_insight_place_better
+import paparcar.composeapp.generated.resources.stats_insight_place_worse
 import paparcar.composeapp.generated.resources.stats_insight_trend_down
 import paparcar.composeapp.generated.resources.stats_insight_trend_up
 import paparcar.composeapp.generated.resources.stats_insight_worst_time
@@ -133,6 +135,15 @@ private fun StatsInsight.sentence(): String {
             if (values.isUp) Res.string.stats_insight_trend_up else Res.string.stats_insight_trend_down,
             values.deltaMs?.let { durationText(it) }.orEmpty(),
         )
+        InsightKind.PLACE_TREND -> stringResource(
+            if (values.isUp) {
+                Res.string.stats_insight_place_worse
+            } else {
+                Res.string.stats_insight_place_better
+            },
+            values.placeName.orEmpty(),
+            values.deltaMs?.let { durationText(it) }.orEmpty(),
+        )
     }
 }
 
@@ -152,7 +163,7 @@ private fun StatsInsight.icon(): ImageVector = when (kind) {
     InsightKind.WORST_TIME_TO_PARK -> Icons.Rounded.Schedule
     InsightKind.EASIEST_TIME_TO_PARK -> Icons.Rounded.TravelExplore
     InsightKind.COSTLIEST_PLACE -> Icons.Rounded.Place
-    InsightKind.SEARCH_TIME_TREND ->
+    InsightKind.SEARCH_TIME_TREND, InsightKind.PLACE_TREND ->
         if (values.isUp) Icons.AutoMirrored.Rounded.TrendingUp else Icons.AutoMirrored.Rounded.TrendingDown
 }
 

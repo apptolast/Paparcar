@@ -415,6 +415,31 @@ private fun List<UserParking>.withAnExpensiveSlot(): List<UserParking> {
     }
 }
 
+/**
+ * El mismo sitio, dos meses: cuatro visitas baratas en el mes ANTERIOR y cuatro caras en el actual.
+ * Es lo único que hace saltar la vigilancia de sitio, que compara un racimo consigo mismo.
+ * [STATS-A-PLACE-CAN-GET-WORSE-001]
+ */
+private fun List<UserParking>.withAPlaceThatGotWorse(): List<UserParking> {
+    val anchor = firstOrNull()?.location?.timestamp ?: return this
+    return take(GALLERY_PLACE_TREND_PARKINGS).mapIndexed { i, s ->
+        val thisMonth = i % 2 == 0
+        val weeksBack = i / 2
+        s.copy(
+            location = s.location.copy(
+                timestamp = anchor - weeksBack * WEEK_MS - if (thisMonth) 0L else MONTH_MS,
+                latitude = ZONE_LAT,
+                longitude = ZONE_LON,
+            ),
+            isActive = false,
+            endedAtMs = null,
+            searchTimeMs = if (thisMonth) EXPENSIVE_HUNT_MS else CHEAP_HUNT_MS,
+        )
+    }
+}
+
+private const val GALLERY_PLACE_TREND_PARKINGS = 8
+private const val MONTH_MS = 31L * 86_400_000L
 private const val GALLERY_INSIGHT_PARKINGS = 6
 private const val WEEK_MS = 7L * 86_400_000L
 private const val EXPENSIVE_HUNT_MS = 14L * 60_000L
@@ -1896,6 +1921,18 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     state = statsPanelState(
                         sessions = FakeData.allSessions.withAnExpensiveSlot(),
                         filter = HistoryFilter.All,
+                    ),
+                    onNavigateBack = {},
+                    onIntent = {},
+                )
+            },
+            // [STATS-A-PLACE-CAN-GET-WORSE-001] El MISMO sitio en dos meses: barato el mes pasado,
+            // caro este. Sin las dos mitades la regla no tiene con qué comparar y no salta.
+            Variant("Insights · un sitio que ha empeorado") {
+                StatsContent(
+                    state = statsPanelState(
+                        sessions = FakeData.allSessions.withAPlaceThatGotWorse(),
+                        filter = HistoryFilter.ThisMonth,
                     ),
                     onNavigateBack = {},
                     onIntent = {},
