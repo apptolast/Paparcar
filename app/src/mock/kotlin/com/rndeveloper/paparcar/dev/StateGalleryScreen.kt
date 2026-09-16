@@ -553,6 +553,11 @@ private fun statsPanelState(
         filteredSessions = resolved.filteredSessions,
         costPrice = resolved.costPrice,
         periodStats = resolved.periodStats,
+        // ⛔ Del `resolved`, NO el del parámetro: es el periodo que las cifras cubren de verdad, y la
+        // card de ritmo hace su aritmética con él. Dejándolo al valor por defecto, las variantes de
+        // ritmo se verían verdes sin componer su card.
+        // [DEV-A-GALLERY-VARIANT-MUST-EXERCISE-ITS-CASE-001] [STATS-A-PACE-ROW-NAMES-THE-PERIOD-IT-PROJECTS-001]
+        statsPeriod = resolved.statsPeriod,
         lifetimeParkings = resolved.lifetimeParkings,
         lifetimeSpotsReleased = resolved.lifetimeSpotsReleased,
         isPlus = isPlus,
@@ -575,6 +580,11 @@ private fun history(
         contentPadding = PaddingValues(0.dp),
         onViewOnMap = { _, _, _ -> },
         onFilterSelected = {},
+        // ⛔ Se PASA, aunque no navegue: sin él `onOpenPanel` es null y la fila «Ver todas tus
+        // cifras» no se componía en NINGUNA variante, ni Plus ni free — justo la fila cuya regla de
+        // visibilidad acaba de cambiar. Un no-op es lo correcto en un catálogo de estados; omitirlo
+        // era dejar la fila sin vigilar. [DEV-A-GALLERY-VARIANT-MUST-EXERCISE-ITS-CASE-001]
+        onOpenStatsPanel = {},
         isPlus = isPlus,
     )
 }
@@ -2062,7 +2072,15 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Resumen · el mes pasado, cerrado") {
                 val base = statsPanelState(sessions = FakeData.allSessions.withAnExpensiveSlot())
                 StatsContent(
-                    state = base.copy(closedMonth = base.periodStats),
+                    // ⛔ El precio también, o la variante no ejercita su caso: la fila de gasto de
+                    // esta card sólo se compone con `costEstimate`, y `costEstimate` sólo existe si
+                    // hay precio. Sin esta línea la galería enseñaba la card SIN la fila que el
+                    // ticket acaba de hacer alcanzable. [DEV-A-GALLERY-VARIANT-MUST-EXERCISE-ITS-CASE-001]
+                    // [STATS-A-PACE-ROW-NAMES-THE-PERIOD-IT-PROJECTS-001]
+                    state = base.copy(
+                        closedMonth = base.periodStats,
+                        closedMonthPrice = base.costPrice,
+                    ),
                     onNavigateBack = {},
                     onIntent = {},
                 )
@@ -2077,9 +2095,32 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     onIntent = {},
                 )
             },
+            // ⛔ La MISMA card con otro periodo, que es el caso que el ticket arregla: la fila se
+            // llamaba «cierre de mes» proyectara lo que proyectara. Aquí tiene que leerse «cierre
+            // de año», y la fila «un año a este ritmo» NO puede aparecer: sería la misma cifra
+            // dicha dos veces. [STATS-A-PACE-ROW-NAMES-THE-PERIOD-IT-PROJECTS-001]
+            Variant("Ritmo · a dónde va el año") {
+                StatsContent(
+                    state = statsPanelState(filter = HistoryFilter.ThisYear),
+                    onNavigateBack = {},
+                    onIntent = {},
+                )
+            },
             Variant("Ritmo · un periodo sin final (no proyecta)") {
                 StatsContent(
                     state = statsPanelState(filter = HistoryFilter.All),
+                    onNavigateBack = {},
+                    onIntent = {},
+                )
+            },
+            // ⛔ El caso que estaba MAL, y que sólo se ve con el chip de un mes encendido sobre una
+            // cuenta free: las cifras son siempre sus últimos 7 días, así que la card de ritmo
+            // dividía siete días de gasto por la fracción del MES transcurrida y lo llamaba «cierre
+            // de mes». Aquí tiene que verse el título «últimos 7 días» y NINGUNA card de ritmo.
+            // [STATS-A-PACE-ROW-NAMES-THE-PERIOD-IT-PROJECTS-001] [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
+            Variant("Ritmo · free con el chip del mes (no proyecta nada)") {
+                StatsContent(
+                    state = statsPanelState(filter = HistoryFilter.ThisMonth, isPlus = false),
                     onNavigateBack = {},
                     onIntent = {},
                 )
@@ -2249,8 +2290,10 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     isPlus = true,
                 )
             },
-            // En free se ven TODAS las cifras, sobre sus últimos 7 días; la fila Plus de debajo ofrece
-            // elegir periodo. [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
+            // En free se ven TODAS las cifras, sobre sus últimos 7 días, y tiene que verse LA FILA DE
+            // ENTRADA AL PANEL igual que un Plus: la de debajo, la Plus, vende el periodo. Estaban
+            // enfrentadas —«nunca las dos»— y eso escondía un botón por plan.
+            // [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001] [MONEY-001]
             Variant("Cifras · free (todas, últimos 7 días)") {
                 history(
                     HistoryState(

@@ -4,6 +4,8 @@ package com.rndeveloper.paparcar.presentation.vehicles
 
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.UserParking
+import com.rndeveloper.paparcar.domain.stats.closedMonthWindow
+import com.rndeveloper.paparcar.domain.stats.previousToClosedMonthWindow
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
@@ -147,5 +149,25 @@ class ClosedPeriodWindowTest {
         )
 
         assertEquals(12, bars.size, "Inside a year, All is still twelve monthly bars")
+    }
+
+    /**
+     * ⛔ **Dos autoridades, una sola ventana.** `closedMonthWindow` nació para el resumen del mes
+     * cerrado y `LastMonth` para el chip, y calculan la MISMA fecha en dos sitios
+     * [STATS-CORE-001: ninguna segunda aritmética de fechas]. Por eso el resumen pasa ya por
+     * `HistoryTimeline.resolve(LastMonth)` —y así hereda el gate de plan, el precio del combustible
+     * y la ventana anterior—: este test es lo que autoriza ese cambio a no mover ni una cifra.
+     * [STATS-A-PACE-ROW-NAMES-THE-PERIOD-IT-PROJECTS-001]
+     */
+    @Test
+    fun should_spanTheSameWindow_whicheverAuthorityIsAsked() {
+        val closed = closedMonthWindow(nowMs, tz)
+        assertEquals(closed.startMs, VehicleHistoryCalculator.windowStartMs(HistoryFilter.LastMonth, nowMs))
+        assertEquals(closed.endMs, VehicleHistoryCalculator.windowEndMs(HistoryFilter.LastMonth, nowMs))
+
+        // Y la comparación ▲/▼ también: el mes anterior al cerrado es el mismo por los dos caminos.
+        val before = previousToClosedMonthWindow(nowMs, tz)
+        val previous = VehicleHistoryCalculator.previousWindow(HistoryFilter.LastMonth, nowMs)
+        assertEquals(before.startMs until before.endMs, previous)
     }
 }

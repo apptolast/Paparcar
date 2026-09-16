@@ -130,4 +130,50 @@ class HistoryTimelineScopeTest {
         )
         assertEquals(2, resolved.lifetimeParkings)
     }
+
+    /**
+     * ⛔ **Una resolución que reinterpreta su ventana tiene que DECIRLO.**
+     * [STATS-A-PACE-ROW-NAMES-THE-PERIOD-IT-PROJECTS-001]
+     *
+     * Las cifras de una cuenta free son siempre sus últimos 7 días, esté encendido el chip que esté
+     * [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]. Esa sustitución ocurría DENTRO de `resolve` y
+     * no salía por ningún lado, así que quien hiciera aritmética con el periodo pedido —la card de
+     * ritmo, que dividía por la fracción del MES transcurrida— proyectaba una ventana que nadie
+     * había medido. El título de las cifras nunca tuvo el bug porque se re-rotula solo («últimos 7
+     * días»); la fila de debajo no podía saberlo.
+     */
+    @Test
+    fun `should_sayWhichPeriodTheFiguresActuallyCover`() {
+        val sessions = listOf(session(1), session(2), session(20))
+
+        val free = HistoryTimeline.resolve(sessions, HistoryFilter.ThisMonth, isPlus = false, nowMs = nowMs)
+        assertEquals(
+            HistoryFilter.Last7Days,
+            free.statsPeriod,
+            "pidió el mes y midió la ventana del plan: tiene que decir cuál midió",
+        )
+
+        val plus = HistoryTimeline.resolve(sessions, HistoryFilter.ThisMonth, isPlus = true, nowMs = nowMs)
+        assertEquals(HistoryFilter.ThisMonth, plus.statsPeriod, "para Plus el chip ES el periodo")
+    }
+
+    /**
+     * Y la consecuencia, que es el bug: un periodo que no cierra no se puede proyectar, así que una
+     * cuenta free no recibe ninguna estimación en vez de recibir una del mes calculada sobre siete
+     * días. `paceRows` es @Composable y no se instancia aquí; lo que se fija es la pareja de hechos
+     * de la que depende, que es donde estaba el fallo.
+     */
+    @Test
+    fun `should_leaveAFreeAccountWithNothingToProject`() {
+        val free = HistoryTimeline.resolve(
+            listOf(session(1), session(20)),
+            HistoryFilter.ThisMonth,
+            isPlus = false,
+            nowMs = nowMs,
+        )
+        assertNull(free.statsPeriod.close(), "una ventana rodante no tiene final que proyectar")
+        assertNull(VehicleHistoryCalculator.windowEndMs(free.statsPeriod, nowMs))
+        // Mientras que el chip que pidió sí lo tiene — que es por lo que leerlo era el error.
+        assertNotNull(HistoryFilter.ThisMonth.close())
+    }
 }

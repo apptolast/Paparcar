@@ -842,7 +842,9 @@
         <item quantity="one">%1$d parkeerplaats</item>
         <item quantity="other">%1$d parkeerplaatsen</item>
     </plurals>
-    <string name="stats_pace_close">einde van de maand</string>
+    <string name="stats_pace_close_week">einde van de week</string>
+    <string name="stats_pace_close_month">einde van de maand</string>
+    <string name="stats_pace_close_year">einde van het jaar</string>
     <string name="stats_pace_year">een jaar in dit tempo</string>
     <string name="stats_pace_distance">kilometers</string>
     <string name="stats_pace_search">plek zoeken</string>

@@ -911,7 +911,9 @@
         <item quantity="one">%1$d parking</item>
         <item quantity="other">%1$d parkings</item>
     </plurals>
-    <string name="stats_pace_close">month close</string>
+    <string name="stats_pace_close_week">end of week</string>
+    <string name="stats_pace_close_month">end of month</string>
+    <string name="stats_pace_close_year">end of year</string>
     <string name="stats_pace_year">a year at this pace</string>
     <string name="stats_pace_distance">kilometres</string>
     <string name="stats_pace_search">hunting a spot</string>

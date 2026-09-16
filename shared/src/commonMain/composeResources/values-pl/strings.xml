@@ -891,7 +891,9 @@
         <item quantity="many">%1$d parkowań</item>
         <item quantity="other">%1$d parkowania</item>
     </plurals>
-    <string name="stats_pace_close">koniec miesiąca</string>
+    <string name="stats_pace_close_week">koniec tygodnia</string>
+    <string name="stats_pace_close_month">koniec miesiąca</string>
+    <string name="stats_pace_close_year">koniec roku</string>
     <string name="stats_pace_year">rok w tym tempie</string>
     <string name="stats_pace_distance">kilometry</string>
     <string name="stats_pace_search">szukanie miejsca</string>

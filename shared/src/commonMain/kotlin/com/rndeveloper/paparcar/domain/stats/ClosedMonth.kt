@@ -16,9 +16,9 @@ import kotlin.time.Instant
  * [STATS-PLUS-REMEMBERS-AND-REPORTS-001]
  *
  * Every other stats surface answers a chip the user pressed. This one speaks first, which is the
- * axis the product sells as Plus: *free asks and the app answers; Plus remembers for you.* And it
- * needs no gate to be Plus — the free window is seven days, so a closed month cannot exist for a
- * free account at all.
+ * axis the product sells as Plus: *free asks and the app answers; Plus remembers for you.* What
+ * makes it Plus is [closedMonthIsFullyVisible] — and it had to be written, because the reasoning
+ * that replaced it did not hold. See that function.
  *
  * Pure, with the time zone injected, because "which month just closed" is a question about the
  * user's calendar and not about UTC: at 00:30 on the 1st, UTC is still in the old month.
@@ -59,6 +59,39 @@ fun previousToClosedMonthWindow(
         year = firstOfPrevious.year,
     )
 }
+
+/**
+ * Whether the history this user may see COVERS the whole month being recapped — the only condition
+ * under which a recap of it is a recap and not a fragment.
+ * [STATS-A-PACE-ROW-NAMES-THE-PERIOD-IT-PROJECTS-001]
+ *
+ * ⛔ **This is the Plus gate, and it was missing.** Two KDocs asserted that a free account returns
+ * null "by construction", because its window is seven days and a closed month cannot survive it.
+ * That is false on exactly the days the recap exists: it only composes on the 1st–7th of the new
+ * month, and a rolling seven-day window on the 1st of October reaches back to the 24th of
+ * September. A free account would have been shown four days of September under the words "last
+ * month" — not a hidden figure, a WRONG one, which is worse.
+ *
+ * ⛔ And it is written as COVERAGE rather than as `if (isPlus)` on purpose: it says why the card is
+ * absent, and it is the same rule the partial-sum doctrine already lives by
+ * [STATS-A-MEASURE-CARRIES-ITS-COVERAGE-001].
+ *
+ * ⛔ **On its own it would not make raising the free window safe**, and saying it did would be the
+ * same overclaim this function exists to correct. `HistoryTimeline.resolve` substitutes `Last7Days`
+ * for a free account's figures whatever period it is handed
+ * [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001] — right for the panel, where a chip picks the
+ * period; wrong for a recap, whose title is a fixed "last month" that cannot relabel itself. So the
+ * caller does not rely on this gate alone: it also requires `Resolved.statsPeriod` to BE the closed
+ * month, which is a structural answer rather than a promise about a constant.
+ *
+ * [visibleFromMs] is `historyVisibleFromMs(isPlus, nowMs)`: the oldest instant the user may see,
+ * null when they may see everything.
+ */
+fun closedMonthIsFullyVisible(
+    visibleFromMs: Long?,
+    nowMs: Long,
+    timeZone: TimeZone = TimeZone.currentSystemDefault(),
+): Boolean = visibleFromMs == null || visibleFromMs <= closedMonthWindow(nowMs, timeZone).startMs
 
 /**
  * Whether the recap is still NEWS.

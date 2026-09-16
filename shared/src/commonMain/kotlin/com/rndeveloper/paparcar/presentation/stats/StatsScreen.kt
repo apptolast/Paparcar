@@ -45,6 +45,8 @@ import com.rndeveloper.paparcar.presentation.util.distanceString
 import com.rndeveloper.paparcar.presentation.vehicles.DAY_SHORT_RES
 import com.rndeveloper.paparcar.presentation.vehicles.HistoryFilter
 import com.rndeveloper.paparcar.presentation.vehicles.MONTH_SHORT_RES
+import com.rndeveloper.paparcar.presentation.vehicles.PeriodClose
+import com.rndeveloper.paparcar.presentation.vehicles.close
 import com.rndeveloper.paparcar.presentation.vehicles.VehicleHistoryCalculator
 import com.rndeveloper.paparcar.presentation.vehicles.availableChartMetrics
 import com.rndeveloper.paparcar.presentation.vehicles.resolveChartMetric
@@ -57,6 +59,7 @@ import com.rndeveloper.paparcar.presentation.vehicles.vehicleStatsPeriodLabel
 import com.rndeveloper.paparcar.ui.components.PapShimmerBlockScale
 import com.rndeveloper.paparcar.ui.components.PapShimmerBox
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -64,7 +67,9 @@ import org.koin.core.parameter.parametersOf
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_activity_measure_partial
 import paparcar.composeapp.generated.resources.stats_panel_empty_body
-import paparcar.composeapp.generated.resources.stats_pace_close
+import paparcar.composeapp.generated.resources.stats_pace_close_month
+import paparcar.composeapp.generated.resources.stats_pace_close_week
+import paparcar.composeapp.generated.resources.stats_pace_close_year
 import paparcar.composeapp.generated.resources.stats_pace_distance
 import paparcar.composeapp.generated.resources.stats_pace_search
 import paparcar.composeapp.generated.resources.stats_pace_year
@@ -170,7 +175,7 @@ fun StatsContent(
             state.closedMonth?.let { recap ->
                 item(key = "recap") {
                     Box(Modifier.padding(horizontal = H_PAD_DP.dp)) {
-                        StatsMonthRecapCard(stats = recap)
+                        StatsMonthRecapCard(stats = recap, costPrice = state.closedMonthPrice)
                     }
                     Spacer(Modifier.height(SECTION_GAP_DP.dp))
                 }
@@ -307,13 +312,31 @@ fun StatsContent(
  * ⛔ Only the three magnitudes that move independently: CO₂ and litres are constant multiples of the
  * kilometres for one car, so projecting them would print the same forecast three times in different
  * units — the finding F1 already made about the chart's series.
+ *
+ * ⛔ **The close row is named by the period it projects, never by a constant.**
+ * [STATS-A-PACE-ROW-NAMES-THE-PERIOD-IT-PROJECTS-001] This row said the literal "month close" over
+ * whatever the selected chip closed: the WEEK five days out of seven, and the YEAR from April to
+ * late November. The figure was right all along — it is `windowEndMs` that decides what is being
+ * projected — so the fix is that the same authority decides the words.
+ *
+ * ⛔ **And every date here comes from [StatsState.statsPeriod], never from the chip.** For a free
+ * account the figures are always the last seven days whatever chip is lit
+ * [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]. Reading the CHIP meant dividing seven days of
+ * measured spend by the fraction of the MONTH already elapsed and printing the result as that
+ * month's close — a forecast of a window nobody had measured, understated by however far the two
+ * windows differed. The figures card above never had the bug because its title relabels itself to
+ * "últimos 7 días"; this row had no way to know, so now it is told. The consequence is that a free
+ * account gets no forecast at all, which is correct: its figures are never a calendar period, and
+ * a rolling window has no end to forecast.
  */
 @Composable
 private fun paceRows(state: StatsState, nowMs: Long): Pair<List<PaceRow>, Int> {
     val stats = state.periodStats ?: return emptyList<PaceRow>() to 0
-    val start = VehicleHistoryCalculator.windowStartMs(state.filter, nowMs)
-    val end = VehicleHistoryCalculator.windowEndMs(state.filter, nowMs)
-    if (start == null || end == null) return emptyList<PaceRow>() to 0
+    val period = state.statsPeriod
+    val start = VehicleHistoryCalculator.windowStartMs(period, nowMs)
+    val end = VehicleHistoryCalculator.windowEndMs(period, nowMs)
+    val close = period.close()
+    if (start == null || end == null || close == null) return emptyList<PaceRow>() to 0
     val elapsed = nowMs - start
     val window = end - start
 
@@ -329,19 +352,28 @@ private fun paceRows(state: StatsState, nowMs: Long): Pair<List<PaceRow>, Int> {
         cost?.let { (projection, currency) ->
             add(
                 PaceRow(
-                    label = stringResource(Res.string.stats_pace_close),
+                    label = stringResource(closeLabelRes(close)),
                     value = "${formatPaceMoney(projection.value)} $currency",
                 ),
             )
-            // A year is not one of the filter's periods — it is a PACE extrapolated, and only from a
-            // month: seven days of somebody's life sample their week, not their year.
-            projectYear(money(projection.value, elapsed, window), elapsed)?.let { yearly ->
-                add(
-                    PaceRow(
-                        label = stringResource(Res.string.stats_pace_year),
-                        value = "${formatPaceMoney(yearly)} $currency",
-                    ),
-                )
+            // A PACE extrapolated past the period, and only from a period shorter than a year:
+            // seven days of somebody's life sample their week, not their year — which is what
+            // `projectYear`'s own three-week floor enforces.
+            //
+            // ⛔ And never when the period IS the year. The comment here used to read "a year is
+            // not one of the filter's periods", true when it was written and false the day
+            // `ThisYear` was added [STATS-A-FILTER-THAT-CANNOT-ANSWER-IS-NOT-OFFERED-001]: from
+            // then on this row printed, one line under the year's own close, arithmetically the
+            // same number with a different name.
+            if (close != PeriodClose.YEAR) {
+                projectYear(money(projection.value, elapsed, window), elapsed)?.let { yearly ->
+                    add(
+                        PaceRow(
+                            label = stringResource(Res.string.stats_pace_year),
+                            value = "${formatPaceMoney(yearly)} $currency",
+                        ),
+                    )
+                }
             }
         }
         distance?.let {
@@ -352,6 +384,14 @@ private fun paceRows(state: StatsState, nowMs: Long): Pair<List<PaceRow>, Int> {
         }
     }
     return rows to (fraction * PERCENT).roundToInt()
+}
+
+/** What this period's end is called. One line, so the mapping cannot be spelled twice.
+ *  [STATS-A-PACE-ROW-NAMES-THE-PERIOD-IT-PROJECTS-001] */
+private fun closeLabelRes(close: PeriodClose): StringResource = when (close) {
+    PeriodClose.WEEK -> Res.string.stats_pace_close_week
+    PeriodClose.MONTH -> Res.string.stats_pace_close_month
+    PeriodClose.YEAR -> Res.string.stats_pace_close_year
 }
 
 /** The measured part of the period, back out of its projection — what the yearly pace runs on. */

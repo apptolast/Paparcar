@@ -890,7 +890,9 @@
         <item quantity="few">%1$d parcări</item>
         <item quantity="other">%1$d de parcări</item>
     </plurals>
-    <string name="stats_pace_close">finalul lunii</string>
+    <string name="stats_pace_close_week">finalul săptămânii</string>
+    <string name="stats_pace_close_month">finalul lunii</string>
+    <string name="stats_pace_close_year">finalul anului</string>
     <string name="stats_pace_year">un an în acest ritm</string>
     <string name="stats_pace_distance">kilometri</string>
     <string name="stats_pace_search">căutare loc</string>

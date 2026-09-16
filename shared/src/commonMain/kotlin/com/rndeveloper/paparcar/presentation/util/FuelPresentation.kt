@@ -1,6 +1,8 @@
 package com.rndeveloper.paparcar.presentation.util
 
 import androidx.compose.runtime.Composable
+import com.rndeveloper.paparcar.domain.fuel.FuelPrice
+import com.rndeveloper.paparcar.domain.fuel.FuelPriceOrigin
 import com.rndeveloper.paparcar.domain.model.EnergyLabel
 import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.Vehicle
@@ -17,6 +19,9 @@ import paparcar.composeapp.generated.resources.vehicle_registration_consumption_
 import paparcar.composeapp.generated.resources.vehicle_registration_consumption_liters_label
 import paparcar.composeapp.generated.resources.vehicle_registration_consumption_mpg_label
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.stats_cost_from_average
+import paparcar.composeapp.generated.resources.stats_cost_from_average_dated
+import paparcar.composeapp.generated.resources.stats_cost_from_your_price
 import paparcar.composeapp.generated.resources.energy_label_b
 import paparcar.composeapp.generated.resources.energy_label_c
 import paparcar.composeapp.generated.resources.energy_label_eco
@@ -57,6 +62,34 @@ fun energyLabelText(label: EnergyLabel): String = stringResource(
         EnergyLabel.NONE -> Res.string.energy_label_none
     },
 )
+
+/**
+ * What a spend figure has to say about the price behind it. [FUEL-PRICE-RESOLVER-001]
+ *
+ * ⛔ A spend figure has to say what price it used: an average and the user's own price are not the
+ * same claim, and only one of them is theirs. Same family as the partial-sum rule — a figure that
+ * cannot describe itself gets described by whoever reads it.
+ *
+ * ⛔ **La media DICE cuándo se midió** [FUEL-AN-AVERAGE-MUST-SAY-WHEN-IT-WAS-MEASURED-001]. El
+ * precio del usuario no lleva fecha porque no la tiene, y ahí la frase se queda como estaba:
+ * inventarle una sería peor que no decir nada.
+ *
+ * Here rather than inside the figures card because it stopped having one reader: the closed-month
+ * recap prints a spend too, and a second card is not allowed to invent a second way of qualifying
+ * the same number. [STATS-A-PACE-ROW-NAMES-THE-PERIOD-IT-PROJECTS-001]
+ */
+@Composable
+fun fuelPriceNoteText(price: FuelPrice): String {
+    val measuredAgo = price.measuredOn?.let { relativeTimeText(isoDateToEpochMs(it)) }
+    return when {
+        price.source == FuelPriceOrigin.UserOverride ->
+            stringResource(Res.string.stats_cost_from_your_price)
+        measuredAgo != null ->
+            stringResource(Res.string.stats_cost_from_average_dated, measuredAgo)
+        // Sin fecha no se finge una: se dice lo de siempre.
+        else -> stringResource(Res.string.stats_cost_from_average)
+    }
+}
 
 /** Renders a consumption figure without a trailing ".0" for whole numbers. */
 fun formatPer100(value: Float): String =

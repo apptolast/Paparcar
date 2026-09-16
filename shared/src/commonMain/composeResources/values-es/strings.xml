@@ -871,7 +871,9 @@
         <item quantity="one">%1$d aparcamiento</item>
         <item quantity="other">%1$d aparcamientos</item>
     </plurals>
-    <string name="stats_pace_close">cierre de mes</string>
+    <string name="stats_pace_close_week">cierre de semana</string>
+    <string name="stats_pace_close_month">cierre de mes</string>
+    <string name="stats_pace_close_year">cierre de año</string>
     <string name="stats_pace_year">un año a este ritmo</string>
     <string name="stats_pace_distance">kilómetros</string>
     <string name="stats_pace_search">buscando plaza</string>

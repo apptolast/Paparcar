@@ -2,6 +2,7 @@
 
 package com.rndeveloper.paparcar.domain.stats
 
+import com.rndeveloper.paparcar.domain.entitlement.historyVisibleFromMs
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
@@ -65,6 +66,59 @@ class ClosedMonthTest {
         assertTrue(isRecapFresh(at(2026, 10, 7), utc))
         assertFalse(isRecapFresh(at(2026, 10, 8), utc))
         assertFalse(isRecapFresh(at(2026, 10, 27), utc))
+    }
+
+    /**
+     * ⛔ **El gate de Plus que faltaba.** Durante 48 horas de código este resumen no tenía ninguno:
+     * dos KDoc afirmaban que una cuenta free devolvía null «por construcción», porque su ventana son
+     * 7 días y un mes cerrado no cabría en ella. Es falso justo los días en que la card existe —del
+     * 1 al 7—, porque una ventana RODANTE de 7 días el 1 de octubre llega hasta el 24 de septiembre.
+     * Un free habría leído cuatro días de septiembre bajo el título «El mes pasado».
+     * [STATS-A-PACE-ROW-NAMES-THE-PERIOD-IT-PROJECTS-001]
+     */
+    @Test
+    fun should_refuseTheRecap_whenTheWindowOnlyCoversPartOfTheClosedMonth() {
+        // El día 1: la ventana free alcanza el 24 de septiembre, dentro del mes cerrado.
+        val day1 = at(2026, 10, 1)
+        val freeOnDay1 = historyVisibleFromMs(isPlus = false, nowMs = day1)
+        assertTrue(freeOnDay1!! > closedMonthWindow(day1, utc).startMs, "la ventana empieza DENTRO")
+        assertFalse(closedMonthIsFullyVisible(freeOnDay1, day1, utc))
+
+        // Y el día 7 sigue sin cubrirlo: no hay un solo día del tramo en que un free lo vea entero.
+        val day7 = at(2026, 10, 7)
+        assertFalse(closedMonthIsFullyVisible(historyVisibleFromMs(false, day7), day7, utc))
+    }
+
+    @Test
+    fun should_allowTheRecap_whenNothingIsHidden() {
+        val day1 = at(2026, 10, 1)
+        assertTrue(closedMonthIsFullyVisible(historyVisibleFromMs(isPlus = true, nowMs = day1), day1, utc))
+        assertTrue(closedMonthIsFullyVisible(null, at(2026, 10, 7), utc))
+    }
+
+    /**
+     * Está escrito como COBERTURA y no como `if (isPlus)`: el día que la ventana free deje de ser
+     * de 7 días, el gate se mueve solo. Una ventana que alcanza el principio del mes cerrado deja
+     * pasar el resumen aunque quien la tenga no sea Plus.
+     */
+    @Test
+    fun should_followTheWindow_notThePlan() {
+        val day3 = at(2026, 10, 3)
+        val startOfClosed = closedMonthWindow(day3, utc).startMs
+        assertTrue(closedMonthIsFullyVisible(startOfClosed, day3, utc), "justo en el borde, entra")
+        assertFalse(closedMonthIsFullyVisible(startOfClosed + 1, day3, utc), "un ms más tarde, no")
+    }
+
+    /** Ningún día del tramo en que la card existe deja pasar a un free — no sólo el 1 y el 7. */
+    @Test
+    fun should_refuseEveryDayTheCardCanExist_forFree() {
+        (1..RECAP_FRESH_DAYS).forEach { day ->
+            val nowMs = at(2026, 10, day)
+            assertFalse(
+                closedMonthIsFullyVisible(historyVisibleFromMs(isPlus = false, nowMs = nowMs), nowMs, utc),
+                "día $day: un free no puede ver septiembre entero",
+            )
+        }
     }
 
     /**

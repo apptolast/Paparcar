@@ -12,11 +12,9 @@ import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.usecase.fuel.ResolveFuelPriceUseCase
-import com.rndeveloper.paparcar.domain.stats.PeriodStats
-import com.rndeveloper.paparcar.domain.stats.closedMonthWindow
+import com.rndeveloper.paparcar.domain.entitlement.historyVisibleFromMs
+import com.rndeveloper.paparcar.domain.stats.closedMonthIsFullyVisible
 import com.rndeveloper.paparcar.domain.stats.isRecapFresh
-import com.rndeveloper.paparcar.domain.stats.previousToClosedMonthWindow
-import com.rndeveloper.paparcar.domain.usecase.stats.ComputePeriodStatsUseCase
 import com.rndeveloper.paparcar.domain.usecase.stats.DeriveStatsInsightsUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
@@ -153,13 +151,19 @@ class StatsViewModel(
         if (vehicle == null) {
             return copy(
                 periodStats = null,
+                statsPeriod = filter,
                 filteredSessions = emptyList(),
                 costPrice = null,
+                // ⛔ Cleared with the rest. This one used to survive the reset and kept showing the
+                // PREVIOUS car's month under a screen that had no car at all.
+                closedMonth = null,
+                closedMonthPrice = null,
                 lifetimeParkings = 0,
                 lifetimeSpotsReleased = 0,
             )
         }
         val allSessions = sessionsByVehicle[vehicle.id].orEmpty()
+        val recap = closedMonthRecap(vehicle, isPlus)
         val resolved = HistoryTimeline.resolve(
             sessions = sessionsByVehicle[vehicle.id].orEmpty(),
             filter = filter,
@@ -171,11 +175,13 @@ class StatsViewModel(
         )
         return copy(
             periodStats = resolved.periodStats,
+            statsPeriod = resolved.statsPeriod,
             // The conclusions come from the SAME resolution as the figures under them: an insight
             // that disagreed with the card proving it would be worse than no insight.
             // [STATS-AN-INSIGHT-IS-A-VERDICT-WITH-ITS-EVIDENCE-001]
             insights = deriveInsights(resolved.filteredSessions, resolved.periodStats),
-            closedMonth = closedMonthRecap(vehicle),
+            closedMonth = recap?.periodStats,
+            closedMonthPrice = recap?.costPrice,
             filteredSessions = resolved.filteredSessions,
             // Over the FULL list: what the row may OFFER is a question about the data, not about the
             // plan. [STATS-A-FILTER-THAT-CANNOT-ANSWER-IS-NOT-OFFERED-001]
@@ -187,28 +193,42 @@ class StatsViewModel(
     }
 
     /**
-     * The month that just closed — computed from the SAME sessions as everything else, over a window
-     * the filter does not decide. [STATS-PLUS-REMEMBERS-AND-REPORTS-001]
+     * The month that just closed — over a window the filter does not decide.
+     * [STATS-PLUS-REMEMBERS-AND-REPORTS-001]
      *
-     * ⛔ Over the gated list, like every other figure: a free account's visible history is seven
-     * days, so this returns null for them by construction — which is the whole Plus gate, with
-     * nothing hidden and nothing veiled. And it stops being computed once it stops being news.
+     * Two conditions, both about whether there is a month to talk about at all: it has to still be
+     * NEWS (the first week of the new month), and the user has to be able to SEE the whole of it —
+     * which is the Plus gate, and which this function did not have.
+     * [STATS-A-PACE-ROW-NAMES-THE-PERIOD-IT-PROJECTS-001]
+     *
+     * ⛔ **Through the same resolution as every other figure on this screen**, with the period
+     * pinned to `LastMonth` instead of the chip's. `windowStartMs`/`windowEndMs`/`previousWindow`
+     * for that filter are the SAME dates `closedMonthWindow` computes — verified line by line — so
+     * this recomputes nothing and no figure moves; what it gains is the entitlement gate, the fuel
+     * price and the previous window from the one authority that owns them. The hand-rolled version
+     * passed no price, which is why the card's spend row had never once been composed.
      */
-    private fun closedMonthRecap(vehicle: Vehicle?): PeriodStats? {
-        if (vehicle == null) return null
+    private fun closedMonthRecap(vehicle: Vehicle, isPlus: Boolean): HistoryTimeline.Resolved? {
         val nowMs = Clock.System.now().toEpochMilliseconds()
         if (!isRecapFresh(nowMs)) return null
-        val sessions = sessionsByVehicle[vehicle.id].orEmpty()
-        val closed = closedMonthWindow(nowMs)
-        val before = previousToClosedMonthWindow(nowMs)
-        val closedSessions = sessions.filter { it.location.timestamp in closed }
-        if (closedSessions.isEmpty()) return null
-        return computeStats(
-            sessions = closedSessions,
-            vehicles = listOf(vehicle),
-            previousSessions = sessions.filter { it.location.timestamp in before },
+        if (!closedMonthIsFullyVisible(historyVisibleFromMs(isPlus, nowMs), nowMs)) return null
+        return HistoryTimeline.resolve(
+            sessions = sessionsByVehicle[vehicle.id].orEmpty(),
+            filter = HistoryFilter.LastMonth,
+            isPlus = isPlus,
+            vehicle = vehicle,
             zones = zones,
-        )
+            nowMs = nowMs,
+            resolveFuelPrice = resolveFuelPrice,
+        ).takeIf {
+            // ⛔ And only if the resolution actually MEASURED the month asked for. A plan whose
+            // figures fall back to a rolling window would otherwise be summarised under the words
+            // "last month" — the card's title is a fixed string and cannot relabel itself the way
+            // the panel's does. Unreachable while the free window is seven days; a structural
+            // answer instead of a promise that it will stay that way.
+            // [STATS-A-PACE-ROW-NAMES-THE-PERIOD-IT-PROJECTS-001]
+            it.periodStats != null && it.statsPeriod == HistoryFilter.LastMonth
+        }
     }
 
     /** One emission of everything the panel depends on. A `Triple` ran out of slots. */
@@ -222,11 +242,8 @@ class StatsViewModel(
     private companion object {
         private val deriveInsights = DeriveStatsInsightsUseCase()
 
-        /**
-         * ⛔ The same aggregator the rest of the screen uses, not a second one: the recap's figures
-         * have to be computed exactly like the ones the user can compare them against.
-         */
-        private val computeStats = ComputePeriodStatsUseCase()
+        // The recap's own aggregator is gone with it: it now goes through `HistoryTimeline.resolve`
+        // like everything else, which holds the ONE `ComputePeriodStatsUseCase` this screen uses.
         const val TAG = "StatsViewModel"
     }
 }

@@ -10,6 +10,7 @@ import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.Zone
 import com.rndeveloper.paparcar.domain.stats.PeriodStats
 import com.rndeveloper.paparcar.domain.usecase.fuel.ResolveFuelPriceUseCase
+import com.rndeveloper.paparcar.domain.usecase.fuel.forSessions
 import com.rndeveloper.paparcar.domain.usecase.stats.ComputePeriodStatsUseCase
 import kotlin.time.Clock
 
@@ -53,6 +54,23 @@ sealed interface HistoryTimeline {
          * Activity section answer to the same filter. Null when the period holds no session.
          */
         val periodStats: PeriodStats?,
+        /**
+         * The period [periodStats] ACTUALLY covers — which is not always the one that was asked
+         * for. [STATS-A-PACE-ROW-NAMES-THE-PERIOD-IT-PROJECTS-001]
+         *
+         * ⛔ **A resolution that silently reinterprets its window has to say so.** For a free
+         * account the figures are always the last seven days whatever chip is lit
+         * [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001], and that substitution used to happen
+         * inside this function with nothing coming back out. Whoever then did arithmetic with the
+         * REQUESTED period — the pace card, computing the fraction of the month elapsed, over seven
+         * days of spend — produced a figure about a window that was never measured. The panel's own
+         * title had always relabelled itself ("últimos 7 días"); the row below it could not, because
+         * it had no way to know.
+         *
+         * Same doctrine as the coverage on a partial sum: a figure that cannot describe itself gets
+         * described by whoever reads it. [STATS-A-MEASURE-CARRIES-ITS-COVERAGE-001]
+         */
+        val statsPeriod: HistoryFilter,
         /**
          * The price behind [periodStats]'s cost, or null when there is no cost. The card says it
          * out loud: a spend computed from a national average and one computed from what the user
@@ -128,9 +146,7 @@ sealed interface HistoryTimeline {
             // mean it, and for a free account the visible set is seven days. This discloses no
             // gated CONTENT — only two counts, and the Plus footer under the timeline already
             // states how many sessions lie beyond the window. [MONEY-001]
-            val countryCode = statsSessions.countryCode()
-            val litrePrice = vehicle?.let { resolveFuelPrice.litre(it, countryCode) }
-            val kwhPrice = vehicle?.let { resolveFuelPrice.kwh(it, countryCode) }
+            val prices = resolveFuelPrice.forSessions(vehicle, statsSessions)
             val endedEver = sessions.filter { !it.isActive }
             return Resolved(
                 sessions = sessions,
@@ -142,15 +158,15 @@ sealed interface HistoryTimeline {
                     vehicles = listOfNotNull(vehicle),
                     previousSessions = previousSessions,
                     zones = zones,
-                    // The country comes from the parkings themselves — the reverse geocoder already
-                    // stamps it on every one — so a price is resolved where the car actually was,
-                    // and the user's country is never stored anywhere. [FUEL-PRICE-RESOLVER-001]
-                    fuelPricePerLiter = litrePrice?.perUnit,
-                    energyPricePerKwh = kwhPrice?.perUnit,
+                    // Priced where the car actually was, never where the user says they live — see
+                    // `forSessions`, which is also where the month-recap use case asks the same
+                    // question. [FUEL-PRICE-RESOLVER-001]
+                    fuelPricePerLiter = prices.litre?.perUnit,
+                    energyPricePerKwh = prices.kwh?.perUnit,
                 ),
-                // The two rungs cannot disagree — one resolver, one order — so either answers for
-                // the label. The litre is asked first because most cars only have that one.
-                costPrice = litrePrice ?: kwhPrice,
+                // Out loud, next to the figures it describes — never left inside this function.
+                statsPeriod = statsFilter,
+                costPrice = prices.quoted,
                 lifetimeParkings = endedEver.size,
                 lifetimeSpotsReleased = endedEver.count { it.publishedSpot },
             )
@@ -166,17 +182,6 @@ sealed interface HistoryTimeline {
          * (if unrefreshed) figure.
          */
         private val OfflineFuelPrice = ResolveFuelPriceUseCase()
-
-        /**
-         * Where this period happened, for pricing purposes: the country of the MOST RECENT parking
-         * that knows its own. A period that straddles a border is priced where the driver ended up,
-         * which is both the likelier place they refuel and a decision worth naming — the
-         * alternative (pricing each session in its own country and summing) would produce a total
-         * in mixed currencies, and the aggregate already refuses those. [FUEL-PRICE-RESOLVER-001]
-         */
-        private fun List<UserParking>.countryCode(): String? =
-            maxByOrNull { it.location.timestamp }?.address?.countryCode
-                ?: firstNotNullOfOrNull { it.address?.countryCode }
     }
 }
 

@@ -34,12 +34,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.entitlement.FREE_HISTORY_WINDOW_DAYS
 import com.rndeveloper.paparcar.domain.fuel.FuelPrice
-import com.rndeveloper.paparcar.domain.fuel.FuelPriceOrigin
 import com.rndeveloper.paparcar.domain.stats.PeriodStats
 import com.rndeveloper.paparcar.domain.stats.ScopedMeasure
 import com.rndeveloper.paparcar.domain.stats.coverageAllowsComparison
 import com.rndeveloper.paparcar.presentation.util.durationText
 import com.rndeveloper.paparcar.presentation.util.formatHourBucket
+import com.rndeveloper.paparcar.presentation.util.fuelPriceNoteText
 import com.rndeveloper.paparcar.presentation.util.statDelta
 import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.ui.components.PapNavChevron
@@ -52,8 +52,6 @@ import com.rndeveloper.paparcar.ui.components.StatTileNumber
 import com.rndeveloper.paparcar.ui.components.PapVerticalDivider
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PapShapes
-import com.rndeveloper.paparcar.presentation.util.isoDateToEpochMs
-import com.rndeveloper.paparcar.presentation.util.relativeTimeText
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.stats_empty_turn_on_detection
@@ -75,9 +73,6 @@ import paparcar.composeapp.generated.resources.history_filter_last_month
 import paparcar.composeapp.generated.resources.history_filter_this_month
 import paparcar.composeapp.generated.resources.history_filter_this_year
 import paparcar.composeapp.generated.resources.history_filter_this_week
-import paparcar.composeapp.generated.resources.stats_cost_from_average
-import paparcar.composeapp.generated.resources.stats_cost_from_average_dated
-import paparcar.composeapp.generated.resources.stats_cost_from_your_price
 import paparcar.composeapp.generated.resources.stats_lifetime
 import paparcar.composeapp.generated.resources.stats_open_panel
 import paparcar.composeapp.generated.resources.stats_period_all
@@ -195,19 +190,11 @@ internal fun VehicleStatsBlock(
                 // reads it. [FUEL-PRICE-RESOLVER-001]
                 costPrice?.let { price ->
                     PapDivider()
-                    // ⛔ La media DICE cuando se midio. [FUEL-AN-AVERAGE-MUST-SAY-WHEN-IT-WAS-MEASURED-001]
-                    // El precio del usuario no lleva fecha porque no la tiene, y ahi la frase se
-                    // queda como estaba: inventarle una seria peor que no decir nada.
-                    val measuredAgo = price.measuredOn?.let { relativeTimeText(isoDateToEpochMs(it)) }
                     Text(
-                        text = when {
-                            price.source == FuelPriceOrigin.UserOverride ->
-                                stringResource(Res.string.stats_cost_from_your_price)
-                            measuredAgo != null ->
-                                stringResource(Res.string.stats_cost_from_average_dated, measuredAgo)
-                            // Sin fecha no se finge una: se dice lo de siempre.
-                            else -> stringResource(Res.string.stats_cost_from_average)
-                        },
+                        // The wording lives in `fuelPriceNoteText`: the closed-month recap prints a
+                        // spend too, and both have to qualify it the same way.
+                        // [STATS-A-PACE-ROW-NAMES-THE-PERIOD-IT-PROJECTS-001]
+                        text = fuelPriceNoteText(price),
                         style = PaparcarType.current.caption,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(
@@ -232,10 +219,20 @@ internal fun VehicleStatsBlock(
                         ),
                     )
                 }
-                // Plus only: the full breakdown is where any period can be explored, which is what
-                // free does not have. Free gets the Plus row below instead — never both.
-                // [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
-                if (isPlus && onOpenPanel != null) {
+                // ⛔ **For everyone with figures, not for Plus.** [MONEY-001]
+                // [STATS-A-PACE-ROW-NAMES-THE-PERIOD-IT-PROJECTS-001]
+                //
+                // This used to read `isPlus && …`, on the argument that the breakdown is where any
+                // PERIOD can be explored and free cannot choose one. But the panel is not a period
+                // chooser: it is where the chart, the places, the day×band grid and the conclusions
+                // live, and every one of them is free over the last seven days — the panel was
+                // already built for a free account, with its own honest title and its own Plus row
+                // inside it. Hiding the way in was a HARD gate on a button, which the plan doctrine
+                // forbids; and gating VER is the one thing the tiers never do.
+                //
+                // Both rows now, and that is not overload: they answer different things. This one
+                // opens what is already yours; the Plus surface below sells the period.
+                if (onOpenPanel != null) {
                     PapDivider()
                     OpenPanelRow(onClick = onOpenPanel)
                 }

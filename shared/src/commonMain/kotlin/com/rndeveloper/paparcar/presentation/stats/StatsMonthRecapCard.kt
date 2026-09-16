@@ -14,9 +14,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.rndeveloper.paparcar.domain.fuel.FuelPrice
 import com.rndeveloper.paparcar.domain.stats.PeriodStats
 import com.rndeveloper.paparcar.presentation.util.distanceString
 import com.rndeveloper.paparcar.presentation.util.durationText
+import com.rndeveloper.paparcar.presentation.util.fuelPriceNoteText
 import com.rndeveloper.paparcar.presentation.util.statDelta
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
 import com.rndeveloper.paparcar.ui.components.PapPremiumMark
@@ -41,15 +43,28 @@ import kotlin.math.roundToInt
  * clock clash [STATS-UI-001] spent a whole ticket undoing. "Last month" is the smallest honest way
  * to say it — and unambiguous, because the card only exists during the first week of the new one.
  *
- * ⛔ **It needs no Plus gate, and that is not an oversight.** The free history window is seven days,
- * so a closed month cannot exist for a free account at all — the plan does the gating, and nothing
- * is hidden or veiled. [MONEY-001] [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
+ * ⛔ **The Plus gate is `closedMonthIsFullyVisible`, and this KDoc used to claim it was unnecessary.**
+ * It said the free window of seven days meant a closed month could not exist for a free account —
+ * false on exactly the days this card composes, the 1st to the 7th, when a rolling seven-day window
+ * still reaches into the tail of the month that closed. The gate is a real line of code now, and it
+ * is written as coverage rather than as a plan check. [MONEY-001]
+ * [STATS-A-PACE-ROW-NAMES-THE-PERIOD-IT-PROJECTS-001]
  *
  * It disappears by itself after the first week of the new month: a summary read on the 27th is not
  * a summary, it is a memory sitting on top of everything that is actually happening.
  */
 @Composable
-internal fun StatsMonthRecapCard(stats: PeriodStats) {
+internal fun StatsMonthRecapCard(
+    stats: PeriodStats,
+    /**
+     * Where the spend row's price came from, exactly as the figures card owes it. Null = no spend
+     * to caveat. [FUEL-PRICE-RESOLVER-001]
+     *
+     * ⛔ Until this parameter existed the spend row was UNREACHABLE: the recap was computed without
+     * prices, so `costEstimate` was always null and the `let` below never ran.
+     */
+    costPrice: FuelPrice? = null,
+) {
     // ⛔ **El metal va en la MARCA, no en la card.** Vestir la card entera se midió en device y
     // costó legibilidad donde más duele: sobre el lecho verde, las etiquetas de fila («gasto
     // aprox.», «buscando plaza», `onSurfaceVariant`) caen de 5,9:1 a **3,5:1** de contraste, y esta
@@ -110,6 +125,17 @@ internal fun StatsMonthRecapCard(stats: PeriodStats) {
                     )
                 }
             }
+            // The same caveat, in the same words, as the figures card — a second card printing a
+            // spend is not allowed to invent a second way of qualifying it.
+            // [FUEL-AN-AVERAGE-MUST-SAY-WHEN-IT-WAS-MEASURED-001]
+            if (stats.costEstimate != null && costPrice != null) {
+                Spacer(Modifier.height(TITLE_GAP_DP.dp))
+                Text(
+                    text = fuelPriceNoteText(costPrice),
+                    style = PaparcarType.current.caption,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
@@ -149,5 +175,4 @@ private const val RECAP_MARK_DP = 22
 private const val MARK_GAP_DP = 10
 private const val TITLE_GAP_DP = 12
 private const val ROW_GAP_DP = 10
-private const val PERCENT = 100
 private const val CENTS = 100.0

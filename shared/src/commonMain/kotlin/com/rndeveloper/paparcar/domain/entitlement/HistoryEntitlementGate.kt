@@ -17,13 +17,25 @@ data class GatedHistory(
     val hiddenOlderCount: Int,
 )
 
+/**
+ * The oldest instant this user may see, or null when they may see everything. [MONEY-001]
+ *
+ * Public because the window is a QUESTION other surfaces have to ask, not just a step inside
+ * [gateHistoryToEntitlement]: a recap of a closed month may only be shown when the user can see
+ * that whole month, and answering that by re-deriving `now - 7 days` somewhere else would be the
+ * second arithmetic this file exists to prevent.
+ * [STATS-A-PACE-ROW-NAMES-THE-PERIOD-IT-PROJECTS-001]
+ */
+fun historyVisibleFromMs(isPlus: Boolean, nowMs: Long): Long? =
+    if (isPlus) null else nowMs - FREE_HISTORY_WINDOW_DAYS * MS_PER_DAY
+
 fun gateHistoryToEntitlement(
     sessions: List<UserParking>,
     isPlus: Boolean,
     nowMs: Long,
 ): GatedHistory {
-    if (isPlus) return GatedHistory(visible = sessions, hiddenOlderCount = 0)
-    val windowStartMs = nowMs - FREE_HISTORY_WINDOW_DAYS * MS_PER_DAY
+    val windowStartMs = historyVisibleFromMs(isPlus, nowMs)
+        ?: return GatedHistory(visible = sessions, hiddenOlderCount = 0)
     // An ACTIVE session is the user's car parked right now — that is "the present", not
     // history, and hiding someone's own parked car behind a paywall is never on the table,
     // however long ago they parked it.

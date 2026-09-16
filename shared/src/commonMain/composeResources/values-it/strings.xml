@@ -875,7 +875,9 @@
         <item quantity="one">%1$d parcheggio</item>
         <item quantity="other">%1$d parcheggi</item>
     </plurals>
-    <string name="stats_pace_close">fine mese</string>
+    <string name="stats_pace_close_week">fine della settimana</string>
+    <string name="stats_pace_close_month">fine mese</string>
+    <string name="stats_pace_close_year">fine anno</string>
     <string name="stats_pace_year">un anno a questo ritmo</string>
     <string name="stats_pace_distance">chilometri</string>
     <string name="stats_pace_search">a cercare posto</string>

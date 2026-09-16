@@ -61,6 +61,34 @@ sealed class HistoryFilter {
 }
 
 /**
+ * The calendar unit a period CLOSES — what its end is CALLED.
+ * [STATS-A-PACE-ROW-NAMES-THE-PERIOD-IT-PROJECTS-001]
+ */
+enum class PeriodClose { WEEK, MONTH, YEAR }
+
+/**
+ * Which calendar this period ends on, and null for the ones that never end.
+ *
+ * ⛔ **The same set as [VehicleHistoryCalculator.windowEndMs]'s non-nulls, and that is a TESTED
+ * bicondition, not a coincidence.** A forecast of a period's end and the words that name that end
+ * were two separate `when`s over the same sealed class, and two such `when`s drift: the pace card
+ * printed the literal "month close" over a projection of the week or of the year, because
+ * `ThisWeek` and `ThisYear` reached a row that had been written when only `ThisMonth` could.
+ * `PeriodCloseTest` walks every filter and fails if one of them can end without being nameable.
+ *
+ * It lives here rather than in the calculator because it is a property of the PERIOD — the same
+ * reason `availableFilters` does — while the calculator owns the date arithmetic.
+ */
+fun HistoryFilter.close(): PeriodClose? = when (this) {
+    HistoryFilter.ThisWeek -> PeriodClose.WEEK
+    HistoryFilter.ThisMonth, HistoryFilter.LastMonth -> PeriodClose.MONTH
+    HistoryFilter.ThisYear, is HistoryFilter.Year -> PeriodClose.YEAR
+    // Rolling windows and "everything": they always cover the same span and never finish, so their
+    // end has no name because it has no date.
+    HistoryFilter.Last7Days, HistoryFilter.Last3Months, HistoryFilter.All -> null
+}
+
+/**
  * The periods this history can actually answer, in reading order.
  * [STATS-A-FILTER-THAT-CANNOT-ANSWER-IS-NOT-OFFERED-001]
  *

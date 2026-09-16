@@ -160,6 +160,10 @@ val domainModule = module {
             vehicleRepository = get(),
             observeIsPlus = get(),
             appPreferences = get(),
+            // El resolver VIVO, no el offline por defecto: la notificación cita el mismo precio que
+            // la card, y el de la card sale de la tabla que un refresco puede reemplazar.
+            // [FUEL-NATIONAL-AVERAGE-FROM-OPENVAN-001]
+            resolveFuelPrice = get(),
         )
     }
 

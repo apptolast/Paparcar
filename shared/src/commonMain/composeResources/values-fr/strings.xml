@@ -875,7 +875,9 @@
         <item quantity="one">%1$d stationnement</item>
         <item quantity="other">%1$d stationnements</item>
     </plurals>
-    <string name="stats_pace_close">fin de mois</string>
+    <string name="stats_pace_close_week">fin de la semaine</string>
+    <string name="stats_pace_close_month">fin de mois</string>
+    <string name="stats_pace_close_year">fin d'année</string>
     <string name="stats_pace_year">un an à ce rythme</string>
     <string name="stats_pace_distance">kilomètres</string>
     <string name="stats_pace_search">à chercher une place</string>

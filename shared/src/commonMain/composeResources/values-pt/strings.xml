@@ -875,7 +875,9 @@
         <item quantity="one">%1$d estacionamento</item>
         <item quantity="other">%1$d estacionamentos</item>
     </plurals>
-    <string name="stats_pace_close">fecho do mês</string>
+    <string name="stats_pace_close_week">fecho da semana</string>
+    <string name="stats_pace_close_month">fecho do mês</string>
+    <string name="stats_pace_close_year">fecho do ano</string>
     <string name="stats_pace_year">um ano a este ritmo</string>
     <string name="stats_pace_distance">quilómetros</string>
     <string name="stats_pace_search">à procura de lugar</string>

@@ -37,6 +37,13 @@ data class StatsState(
      * Null once resolved means the period holds no session — an empty state, not a zero.
      */
     val periodStats: PeriodStats? = null,
+    /**
+     * The period [periodStats] actually covers — [filter] for Plus, the free window for everyone
+     * else. See `HistoryTimeline.Resolved.statsPeriod`: anything doing ARITHMETIC with the period
+     * has to read this and not [filter], or it measures a window nobody computed.
+     * [STATS-A-PACE-ROW-NAMES-THE-PERIOD-IT-PROJECTS-001]
+     */
+    val statsPeriod: HistoryFilter = HistoryFilter.Default,
     /** The period's sessions, for the chart's buckets — the same list the figures came from. */
     val filteredSessions: List<UserParking> = emptyList(),
     /**
@@ -63,6 +70,13 @@ data class StatsState(
      * [STATS-PLUS-REMEMBERS-AND-REPORTS-001]
      */
     val closedMonth: PeriodStats? = null,
+    /**
+     * Where [closedMonth]'s spend came from. Its OWN price and not [costPrice]: the two cards span
+     * different windows, so the country the recap was priced in need not be the country the
+     * selected period was. A figure that cannot describe itself gets described by whoever reads it.
+     * [FUEL-AN-AVERAGE-MUST-SAY-WHEN-IT-WAS-MEASURED-001]
+     */
+    val closedMonthPrice: FuelPrice? = null,
     /**
      * What the app concluded about this period, biggest finding first — empty when the period
      * supports nothing, which below the thresholds is most of the time.

@@ -876,7 +876,9 @@
         <item quantity="one">%1$d Parkvorgang</item>
         <item quantity="other">%1$d Parkvorgänge</item>
     </plurals>
-    <string name="stats_pace_close">Monatsende</string>
+    <string name="stats_pace_close_week">Ende der Woche</string>
+    <string name="stats_pace_close_month">Monatsende</string>
+    <string name="stats_pace_close_year">Jahresende</string>
     <string name="stats_pace_year">ein Jahr in diesem Tempo</string>
     <string name="stats_pace_distance">Kilometer</string>
     <string name="stats_pace_search">Platzsuche</string>
