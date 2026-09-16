@@ -1,21 +1,27 @@
-Paparcar 1.0.0-beta02
+Paparcar 1.2.0
 
-Mejoras y correcciones sobre beta01.
+Lo que ha entrado desde la 1.1.0 (la de Paparcar Plus).
 
-— Nueva identidad visual del coche aparcado: anillo de color sobre fondo
-  oscuro. Coches con Bluetooth emparejado salen siempre en azul; los demás
-  en colores distintos para diferenciarse en multi-coche.
-— Categorización de vehículos por tamaño + tipo de carrocería (10
-  pictogramas: hatchback, SUV, sedán, familiar, pickup, furgoneta…) con
-  auto-inferencia al elegir marca y modelo.
-— Detección de aparcamiento más fiable: deja de marcar paradas mientras
-  caminas y corrige confirmaciones tardías en Oppo.
-— Multi-vehículo: el estado de monitorización (BT / Activo / Inactivo)
-  se calcula por coche en lugar de globalmente — emparejar uno ya no
-  desactiva los demás.
-— El emparejamiento Bluetooth ahora se sincroniza con la nube; no se
-  pierde al reinstalar la app.
-— Buscador y campos de texto con botón de limpiar de una sola pulsación.
-— Traducciones revisadas en 9 idiomas.
+— Repostar: gasolineras en el mapa y en la sheet, con el precio real del
+  surtidor en España, Francia, Alemania e Italia, y la media nacional en
+  el resto del mundo. La alerta de bajada de precio ya no recomienda el
+  precio más rancio.
+— Parkings públicos: capa propia que sigue a la cámara, con tarifa y
+  gálibo cuando la fuente los da, y peek con cómo llegar.
+— Coche compartido: un coche que conducen varios es un coche, no una
+  pantalla. El grupo ve dónde quedó aparcado, quién se lo lleva y comparte
+  historial y cifras; las rutas se muestran solo si su autor quiere.
+— Estadísticas: cada cifra dice de cuánto sale y qué cubre. Sitios de
+  costumbre por racimos, rejilla de días y horas caras, estimación del
+  periodo marcada como lo que es, y el resumen del mes que se cierra.
+— Avisos en segundo plano: plaza en tu zona y bajada de precio llegan con
+  la app cerrada, por push (Plus).
+— Trayectos: la ruta del viaje vivo se guarda en el móvil, un viaje largo
+  conserva su origen, y el tiempo buscando plaza se mide y se enseña.
+— Detección: un tren o un autobús ya no confirman un aparcamiento, el
+  carril Bluetooth confirma con movimiento medido y no con un reloj, y el
+  muestreo se adapta sin dejar de ser denso cuando hace falta.
+— Widget del coche aparcado, onboarding rehecho, paywall rehecho y el
+  mapa con su estilo claro y oscuro de verdad.
 
 Reporte de bugs: support@paparcar.com

@@ -1,0 +1,72 @@
+<en-US>
+• Fuel stations on the map with the real pump price (Spain, France, Germany, Italy).
+• Car parks: their own map layer, with rates and height limits when the source gives them.
+• One car, several drivers: the group sees where it was left and who is taking it.
+• Your figures: what you spend, where you usually park and when it costs most.
+• Alerts for a spot in your area and for a price drop, with the app closed (Plus).
+• Steadier detection: a train or a bus no longer logs a parking.
+</en-US>
+<es-ES>
+• Gasolineras en el mapa con el precio real del surtidor (España, Francia, Alemania e Italia).
+• Parkings públicos: capa propia, con tarifa y gálibo cuando la fuente los da.
+• Un coche, varios conductores: el grupo ve dónde quedó y quién se lo lleva.
+• Tus cifras: cuánto gastas, dónde aparcas de costumbre y a qué hora sale más caro.
+• Avisos de plaza en tu zona y de bajada de precio con la app cerrada (Plus).
+• Detección más fiable: un tren o un autobús ya no marcan un aparcamiento.
+</es-ES>
+<de-DE>
+• Tankstellen mit echtem Zapfsäulenpreis (Spanien, Frankreich, Deutschland, Italien).
+• Parkhäuser: eigene Kartenebene, mit Tarif und Höhe, wenn die Quelle sie liefert.
+• Ein Auto, mehrere Fahrer: Die Gruppe sieht, wo es steht und wer es nimmt.
+• Deine Zahlen: was du ausgibst, wo du meist parkst und wann es teurer ist.
+• Hinweise auf einen Platz in deiner Zone und auf Preissenkungen bei geschlossener App (Plus).
+• Zuverlässigere Erkennung: Zug oder Bus gelten nicht mehr als Parkplatz.
+</de-DE>
+<fr-FR>
+• Stations-service avec le vrai prix à la pompe (Espagne, France, Allemagne, Italie).
+• Parkings : leur propre couche, avec tarif et hauteur quand la source les donne.
+• Une voiture, plusieurs conducteurs : le groupe voit où elle est et qui la prend.
+• Vos chiffres : ce que vous dépensez, où vous vous garez et quand c'est le plus cher.
+• Alertes de place dans votre zone et de baisse de prix, appli fermée (Plus).
+• Détection plus fiable : un train ou un bus n'enregistre plus un stationnement.
+</fr-FR>
+<it-IT>
+• Distributori sulla mappa con il prezzo reale alla pompa (Spagna, Francia, Germania, Italia).
+• Parcheggi pubblici: livello dedicato, con tariffa e altezza se la fonte le fornisce.
+• Un'auto, più conducenti: il gruppo vede dov'è e chi la sta prendendo.
+• I tuoi numeri: quanto spendi, dove parcheggi di solito e quando costa di più.
+• Avvisi di un posto nella tua zona e di calo del prezzo, con l'app chiusa (Plus).
+• Rilevamento più affidabile: un treno o un bus non registrano più un parcheggio.
+</it-IT>
+<nl-NL>
+• Tankstations met de echte pompprijs (Spanje, Frankrijk, Duitsland, Italië).
+• Parkeergarages: eigen kaartlaag, met tarief en hoogte als de bron die geeft.
+• Eén auto, meerdere bestuurders: de groep ziet waar hij staat en wie hem ophaalt.
+• Jouw cijfers: wat je uitgeeft, waar je meestal parkeert en wanneer het duurder is.
+• Meldingen van een plek in je zone en van een prijsdaling, met de app dicht (Plus).
+• Betrouwbaardere detectie: een trein of bus telt niet meer als parkeerplaats.
+</nl-NL>
+<pl-PL>
+• Stacje paliw na mapie z realną ceną przy dystrybutorze (Hiszpania, Francja, Niemcy, Włochy).
+• Parkingi publiczne: własna warstwa, z taryfą i wysokością, jeśli źródło je podaje.
+• Jedno auto, kilku kierowców: grupa widzi, gdzie stoi i kto je zabiera.
+• Twoje liczby: ile wydajesz, gdzie zwykle parkujesz i kiedy jest najdrożej.
+• Powiadomienia o miejscu w Twojej strefie i o spadku ceny przy zamkniętej aplikacji (Plus).
+• Pewniejsze wykrywanie: pociąg ani autobus nie zapisują już parkowania.
+</pl-PL>
+<pt-PT>
+• Bombas de combustível no mapa com o preço real (Espanha, França, Alemanha, Itália).
+• Parques de estacionamento: camada própria, com tarifa e altura quando a fonte as dá.
+• Um carro, vários condutores: o grupo vê onde ficou e quem o está a levar.
+• Os teus números: quanto gastas, onde estacionas e a que horas fica mais caro.
+• Avisos de um lugar na tua zona e de descida de preço, com a app fechada (Plus).
+• Deteção mais fiável: um comboio ou um autocarro já não registam um estacionamento.
+</pt-PT>
+<ro>
+• Benzinării pe hartă cu prețul real de la pompă (Spania, Franța, Germania, Italia).
+• Parcări publice: strat propriu, cu tarif și înălțime, când sursa le oferă.
+• O mașină, mai mulți șoferi: grupul vede unde a rămas și cine o ia acum.
+• Cifrele tale: cât cheltui, unde parchezi de obicei și când e mai scump.
+• Alerte pentru un loc în zona ta și pentru scăderea prețului, cu aplicația închisă (Plus).
+• Detectare mai sigură: un tren sau un autobuz nu mai înregistrează o parcare.
+</ro>
