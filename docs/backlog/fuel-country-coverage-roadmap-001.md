@@ -158,6 +158,42 @@ entra ningún país sin medición. F1 no está bloqueada por dificultad, está b
 cuyo tráfico salga por VPN o CGNAT extranjero recibiría 403. El camino ya existe y es el correcto
 (`Result.failure` → OSM), pero hay que comprobar que no se queda pegado disculpándose.
 
+#### Cómo se desbloquea sin VPN — medido el 16-09
+
+**1 · La prueba que sustituye a la VPN: una función en `europe-west2` (Londres).** Ya tenemos Cloud
+Functions desplegadas (`functions/src/index.ts`, `europe-west1`), mismo proyecto y misma facturación.
+Una función HTTP de usar y tirar en **Londres** que pida el portal y el endpoint de token y devuelva
+status + cabeceras **confirma o descarta el geobloqueo**, que es justo lo que no podemos hacer desde
+aquí. Si contesta 200, además queda como **banco de medición** para toda la Fase 0 de UK.
+⚠️ **Lo que esa función NO resuelve: el alta.** El registro es un flujo interactivo de navegador con
+**GOV.UK One Login**, y está detrás del mismo 403. La función da el plano de datos, no la cuenta.
+
+**2 · Escribir al equipo de Fuel Finder** — la única vía que resuelve el ALTA sin un navegador
+británico. La pregunta tiene que ser explícita: *¿el acceso exige IP del Reino Unido, y puede
+registrarse un desarrollador desde fuera?* La respuesta es un hecho duradero: si la API es UK-only
+por diseño, un relé propio deja de ser una comodidad de desarrollo y pasa a ser **dependencia de
+producción**, con su coste y su decisión de arquitectura.
+
+**3 · El mosaico de minoristas — banco de pruebas, JAMÁS fuente.** Barridos los 15 endpoints del
+esquema voluntario anterior desde España: **8 contestan**, sin clave y sin bloqueo. Motor Fuel Group
+1.224 estaciones, Asda 790, Esso 194, SGN 112.
+
+⛔ Y aun así **no se cablea**, por dos medidas:
+- **Decae, y se ve dónde.** Rontec congelado el **01-05-2026** — *exactamente* el día en que empezó
+  el enforcement de Fuel Finder—, Applegreen en **feb-2025**, Morrisons devuelve **una** estación, y
+  BP y Tesco dan 403 de antibot. El mosaico se está apagando porque el esquema estatutario lo
+  sustituyó.
+- **Los vivos se actualizan UNA VEZ AL DÍA** (MFG `00:00:01`, Esso `00:05:11`), no en 30 minutos. Es
+  peor que los cuatro países que ya tenemos, y un precio de ayer **no se distingue en pantalla** de
+  uno bueno: la razón exacta por la que se rechazó FuelWide con doce horas.
+
+✅ Para lo que **sí** sirve, y es mucho: medir el esquema **hoy**, sin acceso. Ya medido sobre MFG:
+`site_id` · `brand` (≠ operador: hay «BP» dentro del fichero de MFG) · `address` · `postcode` ·
+`location{latitude,longitude}` decimal · `prices{E10, E5, B7, SDV}`.
+🔴 **Y confirma el ×100 que este doc daba por «casi seguro»: los precios vienen en PENIQUES**
+(`"E10": 174.9` = 1,749 £/L, rango medido 131,9–209,9). Ya no es una sospecha, es una medición.
+`SDV` (diésel súper) es un cuarto grado que tampoco tiene casilla en `FuelType`.
+
 #### Corrección a este mismo doc: UK **no** consulta por radio
 
 El proyecto de terceros que ya integra el feed usa `GET /api/v1/pfs?batch-number=N` y
