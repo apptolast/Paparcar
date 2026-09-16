@@ -55,9 +55,12 @@ internal fun ActiveSectionHeader(text: String, accent: Color) {
 /**
  * Empty history state (Nivel 3) — ilustración de marca `empty-records` (claro+oscuro), luego bold
  * title + muted body. El bloque se centra vertical/horizontalmente en el espacio que le da el caller
- * (en historial, [HistoryContent] le pasa `fillParentMaxSize` → queda encuadrado en el hueco entre la
- * hero card y la bottom nav). La ilustración va pegada a su texto (gap mínimo) porque el propio
- * drawable ya reserva aire inferior con la sombra de suelo.
+ * (en historial, [HistoryContent] lo encuadra en el hueco que quede bajo la hero card). Ese hueco es
+ * un SUELO, no un techo: si el contenido de encima llena el viewport, este bloque conserva su altura
+ * natural y la lista scrollea — nunca se le recorta ni se le deja a cero.
+ * [UI-AN-EMPTY-HISTORY-MUST-NOT-CROP-ITS-HEADER-001]
+ * La ilustración va pegada a su texto (gap mínimo) porque el propio drawable ya reserva aire
+ * inferior con la sombra de suelo.
  *
  * La ilustración trae su propio color (multicolor) → se pinta con [Image] SIN tint/colorFilter.
  * Theme-aware por luminancia de `surface` (no `isSystemInDarkTheme()`, que devuelve la variante

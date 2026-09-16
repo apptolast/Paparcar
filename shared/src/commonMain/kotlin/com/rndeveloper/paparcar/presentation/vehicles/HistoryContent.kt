@@ -5,6 +5,7 @@ package com.rndeveloper.paparcar.presentation.vehicles
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -31,7 +32,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.WorkspacePremium
@@ -260,7 +264,12 @@ fun HistoryContent(
             .collect { atTop -> if (atTop) onScrolledToTop() }
     }
 
-    Box(modifier = modifier) {
+    // El alto del viewport se lee aquí —no cuesta un layout nuevo— porque lo necesita el estado
+    // vacío para saber CUÁNTO sobra bajo el header. Dentro de un `item` de `LazyColumn` esa cifra
+    // no existe: las constraints verticales llegan con `maxHeight = Infinity`.
+    // [UI-AN-EMPTY-HISTORY-MUST-NOT-CROP-ITS-HEADER-001]
+    BoxWithConstraints(modifier = modifier) {
+        val viewportHeight = maxHeight
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
@@ -273,33 +282,35 @@ fun HistoryContent(
                 }
             } else if (sessions.isEmpty()) {
                 item(key = "empty") {
-                    // Un único item a viewport completo: la hero card arriba y el bloque vacío
-                    // centrado en el hueco restante con weight(1f), así queda encuadrado en el
-                    // centro del espacio bajo la card (no del viewport entero). [empty-records]
-                    // fillParentMaxSize mide el viewport ENTERO (ignora el contentPadding), así que
-                    // se le descuenta la cabecera: si no, el bloque vacío quedaría medio hueco de
-                    // cabecera por debajo del centro real. [UI-TOPBAR-COLLAPSE-001]
-                    Column(
-                        modifier = Modifier
-                            .fillParentMaxSize()
-                            .padding(bottom = listPadding.calculateTopPadding()),
+                    // El header arriba y el bloque vacío centrado en LO QUE SOBRE del viewport, que
+                    // es lo que lo encuadra bajo la hero card en vez de en el centro de la pantalla.
+                    // [empty-records]
+                    //
+                    // ⛔ Esto era una caja de altura FIJA (`fillParentMaxSize`) con el header
+                    // dentro, y recortaba en silencio en cuanto el header dejaba de caber: con un
+                    // coche compartido la sección del grupo se cortaba a media card y el propio
+                    // bloque vacío se quedaba a cero px, porque su `weight(1f)` repartía un sobrante
+                    // negativo. Ahora la altura es un MÍNIMO, así que un header grande hace crecer
+                    // la lista —y scrollear— en vez de perder lo que no cabe.
+                    // [UI-AN-EMPTY-HISTORY-MUST-NOT-CROP-ITS-HEADER-001]
+                    //
+                    // Al viewport se le descuenta la cabecera de la pantalla porque el alto medido
+                    // la ignora (es `contentPadding`, no layout): si no, el bloque vacío quedaría
+                    // medio hueco de cabecera por debajo del centro real. [UI-TOPBAR-COLLAPSE-001]
+                    HeaderThenFillRest(
+                        restHeight = viewportHeight - listPadding.calculateTopPadding(),
+                        header = { header?.invoke() },
                     ) {
-                        header?.invoke()
-                        Box(
-                            modifier = Modifier.fillMaxWidth().weight(1f),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            // A history that is only HIDDEN must not claim to be empty: when the
-                            // free window covers nothing recent, the honest message is how much
-                            // exists beyond it, not "you never parked". [MONEY-001]
-                            if (hiddenOlderCount > 0) {
-                                PlusHistoryFooter(
-                                    hiddenCount = hiddenOlderCount,
-                                    onSeeAll = onOpenPlusPaywall,
-                                )
-                            } else {
-                                EmptyHistoryState(modifier = Modifier.fillMaxWidth())
-                            }
+                        // A history that is only HIDDEN must not claim to be empty: when the
+                        // free window covers nothing recent, the honest message is how much
+                        // exists beyond it, not "you never parked". [MONEY-001]
+                        if (hiddenOlderCount > 0) {
+                            PlusHistoryFooter(
+                                hiddenCount = hiddenOlderCount,
+                                onSeeAll = onOpenPlusPaywall,
+                            )
+                        } else {
+                            EmptyHistoryState(modifier = Modifier.fillMaxWidth())
                         }
                     }
                 }
@@ -459,6 +470,59 @@ fun HistoryContent(
                 onScrolledToTop()
             },
         )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Header + resto del viewport [UI-AN-EMPTY-HISTORY-MUST-NOT-CROP-ITS-HEADER-001]
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * El [header] con su altura natural, y debajo [content] ocupando **lo que sobre** de [restHeight]
+ * — o su propia altura cuando no sobra nada.
+ *
+ * Existe porque la caja de altura fija que hacía esto antes (`fillParentMaxSize` con el header
+ * dentro) no tenía forma de crecer: cuando el header pasó a llevar también la sección de coche
+ * compartido dejó de caber, y lo que no cabía se perdía fuera de la caja —incluido el estado vacío,
+ * cuyo `weight(1f)` recibía un sobrante negativo y lo dejaba a cero px—.
+ *
+ * Una sola pasada de medida resuelve los dos casos sin número mágico ni estado intermedio: el
+ * header se mide **suelto** (nunca recortado) y el resto se mide con `minHeight` = lo que queda,
+ * acotado a ≥ 0, y `maxHeight` libre. Si queda sitio, [content] se estira hasta ahí y se centra en
+ * él; si no queda, toma su altura natural y quien lo aloje crecerá y scrolleará.
+ *
+ * ⛔ No vale `heightIn(min = …)` sobre una `Column` con `weight`: dentro de un `item` de
+ * `LazyColumn` las constraints verticales llegan con `maxHeight = Infinity`, y un `weight()` sin
+ * máximo acotado no tiene espacio que repartir. Quitaría el recorte a costa del centrado.
+ */
+@Composable
+private fun HeaderThenFillRest(
+    restHeight: Dp,
+    header: @Composable () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    // El centrado vive AQUÍ y no en el call site: el hueco es lo que este layout acaba de calcular,
+    // así que centrarse en él no es algo que el llamante pueda pedir con un modifier.
+    val centeredContent: @Composable () -> Unit = {
+        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { content() }
+    }
+    Layout(contents = listOf(header, centeredContent)) { (headerMeasurables, contentMeasurables), constraints ->
+        val loose = constraints.copy(minHeight = 0, maxHeight = Constraints.Infinity)
+        val headerPlaceables = headerMeasurables.map { it.measure(loose) }
+        val headerHeight = headerPlaceables.sumOf { it.height }
+        // Lo que sobra es un SUELO, no un techo: de ahí que el máximo siga libre.
+        val rest = (restHeight.roundToPx() - headerHeight).coerceAtLeast(0)
+        val contentPlaceables = contentMeasurables.map { it.measure(loose.copy(minHeight = rest)) }
+        val contentHeight = contentPlaceables.maxOfOrNull { it.height } ?: 0
+
+        layout(constraints.maxWidth, headerHeight + contentHeight) {
+            var y = 0
+            headerPlaceables.forEach { placeable ->
+                placeable.place(0, y)
+                y += placeable.height
+            }
+            contentPlaceables.forEach { it.place(0, y) }
+        }
     }
 }
 

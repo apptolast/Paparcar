@@ -2791,6 +2791,31 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
+            // ⛔ La variante que faltaba, y por eso el recorte llegó a device: coche compartido
+            // (dueño, con código) Y historial vacío A LA VEZ. Cada mitad se veía por separado —seis
+            // variantes de `SharedCarSection` y un «Vacío (historial resuelto)» sin header—, y el
+            // fallo solo existe cuando coinciden: el header pasa a no caber en el hueco del estado
+            // vacío. Es el estado de una cuenta que acaba de abrir el grupo.
+            // [UI-AN-EMPTY-HISTORY-MUST-NOT-CROP-ITS-HEADER-001]
+            // [DEV-A-GALLERY-VARIANT-MUST-EXERCISE-ITS-CASE-001]
+            Variant("Compartido + historial vacío (header que no cabe)") {
+                VehiclesContent(
+                    state = VehiclesState(
+                        vehicles = FakeData.vehiclesWithStats,
+                        isLoading = false,
+                        historyCache = vehiclesHistoryCache(emptyList()),
+                        // Dueño: es quien ve la card del código, la que se cortaba por la mitad.
+                        currentUid = sharedCarKamiq.ownerUid,
+                        sharedCars = mapOf(
+                            FakeData.vehicleSedan.id to sharedCarKamiq.copy(
+                                carId = FakeData.vehicleSedan.id,
+                                activeInviteCode = "K7QP3M",
+                            ),
+                        ),
+                        sharedMembers = sharedCarGroup,
+                    ),
+                )
+            },
             Variant("Vacío") { VehiclesContent(state = VehiclesState(vehicles = emptyList(), isLoading = false)) },
             Variant("Cargando") { VehiclesContent(state = VehiclesState(isLoading = true)) },
             // Los coches ya están, su historial NO: cada página cae en el fallback `Unresolved` y
