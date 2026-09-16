@@ -74,7 +74,7 @@
 
 <main>
 
-<p class="meta">Last updated / Última actualización: 10-09-2026</p>
+<p class="meta">Last updated / Última actualización: 16-09-2026</p>
 
 <nav class="lang-nav">
   🇬🇧 <a href="#en">Privacy Policy (English)</a> &nbsp;·&nbsp; 🇪🇸 <a href="#es">Política de Privacidad (Español)</a>
@@ -132,6 +132,11 @@ Privacy contact: <a href="mailto:support@paparcar.com">support@paparcar.com</a><
 <h3>2.5 Parking history and zones</h3>
 <ul>
   <li>History of your parking sessions (location, time, vehicle, how it was detected).</li>
+  <li><strong>The route of your trip</strong> — the line of where you drove is recorded on your
+  phone and stays there. It is only uploaded if you are a Plus subscriber and turn on route sync in
+  Settings, which is <strong>off by default</strong>. The figures derived from it (distance driven,
+  time spent looking for a spot) do travel, because they say how much, not where. If the car is
+  shared with other people, see §2.9.</li>
   <li>Private zones you define (e.g. your home or garage), where the app never publishes spots.</li>
   <li>If you are a Plus subscriber and turn on <strong>zone alerts</strong>: the centre, radius and
   name of the zones you asked to be alerted about, plus your device's <strong>push notification
@@ -164,15 +169,35 @@ Privacy contact: <a href="mailto:support@paparcar.com">support@paparcar.com</a><
 
 <h3>2.8 Map queries and Plus subscription</h3>
 <ul>
-  <li><strong>Where you are looking</strong> — when you open the car parks or fuel lane, or move
-  the map, we ask public data services for that <strong>area</strong> (an approximate box around
-  the point on screen, or your province or country for pump prices). We send the area and nothing
-  else: no account, no identifier, no history. These services see a request from a phone, not from
-  you.</li>
+  <li><strong>Where you are looking</strong> — when you open the car parks or fuel lane, move the
+  map, or search for an address, we ask public data services about that area. Depending on the
+  service, that is <strong>a point on the map and a radius</strong> (OpenStreetMap, and the German,
+  French and Italian price feeds) or <strong>your province or country</strong> (the Spanish feed and
+  national averages). We send the area and nothing else: no account, no identifier, no history.
+  These services see a request from a phone, not from you.</li>
   <li><strong>Plus subscription</strong> — if you subscribe, the purchase is processed by Google
   Play and managed through RevenueCat, which receives your <strong>account identifier</strong> and
   the state of your subscription. It never receives your location, your parkings or your vehicles.
   We never see your card details: the payment happens inside Google Play.</li>
+</ul>
+
+<h3>2.9 Cars you share with other people</h3>
+<ul>
+  <li>Sharing a car is <strong>optional</strong>: you join a group with an invitation code, and you
+  can leave it. While you are in it, the group holds a shared copy of that car — <strong>where it is
+  parked now and who left it there</strong>, and the history of the group's parkings (location and
+  time of each one, distance driven, time spent looking for a spot). Every member sees it, the
+  owner included.</li>
+  <li>Members see <strong>your profile name</strong> next to the parkings you make with that car.
+  They never see your licence plate, nor how the parking was detected: the shared copy has no field
+  for either.</li>
+  <li>Your device's <strong>push notification token</strong> is stored with your membership, so the
+  group can be told when the car is parked or taken.</li>
+  <li>The <strong>route</strong> of each trip is controlled by a switch on the car (<em>Share routes
+  with the group</em>), on by default. While it is off, the routes of your trips are <strong>not
+  uploaded at all</strong>, and the ones uploaded earlier stop being shown; turning it back on shows
+  those again. This switch is separate from the one that syncs your own routes to your cloud
+  history: each one asks its own permission, and neither uploads anything without it.</li>
 </ul>
 
 <h2>3. How we use the data</h2>
@@ -190,11 +215,15 @@ Privacy contact: <a href="mailto:support@paparcar.com">support@paparcar.com</a><
 <table>
   <tr><th>Recipient</th><th>What they receive</th><th>Why</th></tr>
   <tr><td>Other Paparcar users</td><td>Location, time and size of the spots you free (without your identity)</td><td>It is the app's purpose</td></tr>
+  <tr><td>The other members of a car you share</td><td>Where that car is parked now and who left it there, the group's parking history and, unless you turn the switch off, the routes — with your profile name</td><td>Optional feature you join with an invitation code (§2.9)</td></tr>
   <tr><td>Google Firebase (Auth, Cloud Firestore, Crashlytics, Analytics)</td><td>Account data, parking sessions, vehicles, diagnostics, crash reports, anonymous usage events</td><td>Authentication, database, stability and usage statistics. <a href="https://firebase.google.com/support/privacy">Firebase privacy</a></td></tr>
   <tr><td>Google Maps Platform / Play Services</td><td>Map requests and location/activity signals processed by the SDK</td><td>Rendering the map and detecting driving. <a href="https://policies.google.com/privacy">Google privacy</a></td></tr>
-  <tr><td>OpenStreetMap (Overpass servers)</td><td>An approximate area of the map — never your identity</td><td>Public car parks, fuel stations, place names and streets. <a href="https://osmfoundation.org/wiki/Privacy_Policy">OSMF privacy</a></td></tr>
+  <tr><td>OpenStreetMap (Overpass servers)</td><td>A point on the map and a radius — never your identity</td><td>Public car parks, fuel stations, place names and streets. <a href="https://osmfoundation.org/wiki/Privacy_Policy">OSMF privacy</a></td></tr>
+  <tr><td>Photon (Komoot)</td><td>A point on the map, or the text you type when searching for a place</td><td>Turning a point into a street name, and searching addresses. <a href="https://photon.komoot.io">photon.komoot.io</a></td></tr>
   <tr><td>Ministerio para la Transición Ecológica (Spain)</td><td>The province or municipality you are looking at</td><td>Official pump prices in Spain</td></tr>
   <tr><td>data.economie.gouv.fr (France)</td><td>A point on the map and a radius</td><td>Official pump prices in France</td></tr>
+  <tr><td>MIMIT — Ministero delle Imprese e del Made in Italy</td><td>A point on the map and a radius</td><td>Official pump prices in Italy</td></tr>
+  <tr><td>Tankerkönig (Germany)</td><td>A point on the map and a radius</td><td>Official pump prices in Germany</td></tr>
   <tr><td>OpenVan.camp</td><td>The country you are in</td><td>National average fuel prices</td></tr>
   <tr><td>RevenueCat</td><td>Your account identifier and the state of your Plus subscription</td><td>Managing the subscription. <a href="https://www.revenuecat.com/privacy">RevenueCat privacy</a></td></tr>
 </table>
@@ -207,6 +236,10 @@ appropriate safeguards for international transfers (standard contractual clauses
   <li><strong>Published spots</strong>: expire and disappear automatically within minutes to hours.</li>
   <li><strong>Parking history, vehicles and zones</strong>: for as long as you keep your account,
   or until you delete them in the app.</li>
+  <li><strong>The shared copy of a car you share</strong>: for as long as the group exists. Leaving
+  the group stops new parkings from being copied to it.</li>
+  <li><strong>Route geometry</strong>: on your phone, with the parking it belongs to. In the cloud,
+  only if you turned route sync on, and for as long as that parking is in your history.</li>
   <li><strong>Diagnostics and crash reports</strong>: kept as long as needed to investigate and
   fix issues, and removed with the account.</li>
   <li><strong>Anonymous usage statistics</strong>: retained by Firebase Analytics for up to
@@ -218,7 +251,12 @@ appropriate safeguards for international transfers (standard contractual clauses
 
 <h2 id="delete-account">6. Deleting your account and data</h2>
 <p>You can delete your account from <strong>Settings → Delete account</strong> inside the app.
-This removes your account and associated data (profile, vehicles, history, zones and diagnostics).
+This removes your account and associated data: profile, vehicles, history, zones, diagnostics,
+your <strong>membership of any shared car</strong> — together with the trips you recorded in it and
+the <strong>notification tokens</strong> of your phone — and your zone alerts. A shared car that was
+<em>yours</em> is dissolved for the whole group; nobody loses their own parkings, which live in
+their own account and never in the shared copy. Leaving a group, on its own, does the same with
+your part of it.
 If you no longer have the app installed, request deletion at
 <a href="/delete-account">paparcar.com/delete-account</a> — we complete it within 30 days.
 You can also request deletion of, or access to, your data by writing to
@@ -235,8 +273,9 @@ stability and security (Art. 6(1)(f)).</p>
 
 <h2>8. Security</h2>
 <p>Data travels encrypted (TLS) and is stored on Google Cloud infrastructure with access rules
-that restrict each record to its owner; community spots are the only data visible to other users,
-and carry no identity.</p>
+that restrict each record to its owner. Only two kinds of data are visible to anyone else:
+<strong>community spots</strong>, which carry no identity, and the <strong>shared copy of a car you
+chose to share</strong>, readable only by the members of that group (§2.9).</p>
 
 <h2>9. Children</h2>
 <p>Paparcar is intended for drivers and is not directed at children under 16. We do not knowingly
@@ -306,6 +345,11 @@ Contacto de privacidad: <a href="mailto:support@paparcar.com">support@paparcar.c
 <h3>2.5 Historial de aparcamientos y zonas</h3>
 <ul>
   <li>Historial de tus sesiones de aparcamiento (ubicación, hora, vehículo, cómo se detectó).</li>
+  <li><strong>La ruta de tu viaje</strong> — la línea de por dónde condujiste se graba en tu móvil y
+  ahí se queda. Solo se sube si tienes Plus y activas la sincronización de rutas en Ajustes, que
+  viene <strong>desactivada por defecto</strong>. Las cifras que salen de ella (distancia recorrida,
+  tiempo buscando plaza) sí viajan, porque dicen cuánto, no dónde. Si el coche está compartido con
+  otras personas, mira el §2.9.</li>
   <li>Zonas privadas que definas (p. ej. tu casa o garaje), donde la app no publica plazas.</li>
   <li>Si tienes Plus y activas las <strong>alertas de zona</strong>: se guardan el centro, el radio y
   el nombre de las zonas de las que pides aviso, junto con el <strong>token de notificaciones</strong>
@@ -339,15 +383,35 @@ Contacto de privacidad: <a href="mailto:support@paparcar.com">support@paparcar.c
 
 <h3>2.8 Consultas al mapa y suscripción Plus</h3>
 <ul>
-  <li><strong>Dónde estás mirando</strong> — al abrir el carril de parkings o el de gasolineras, o
-  al mover el mapa, preguntamos por esa <strong>zona</strong> a servicios de datos públicos (un
-  recuadro aproximado alrededor del punto que ves en pantalla, o tu provincia o país para los
-  precios de surtidor). Se envía la zona y nada más: ni cuenta, ni identificador, ni historial.
-  Esos servicios ven una petición de un móvil, no tuya.</li>
+  <li><strong>Dónde estás mirando</strong> — al abrir el carril de parkings o el de gasolineras, al
+  mover el mapa o al buscar una dirección, preguntamos por esa zona a servicios de datos públicos.
+  Según el servicio, eso es <strong>un punto del mapa y un radio</strong> (OpenStreetMap y los
+  feeds de precios de Alemania, Francia e Italia) o <strong>tu provincia o tu país</strong> (el
+  feed español y las medias nacionales). Se envía la zona y nada más: ni cuenta, ni identificador,
+  ni historial. Esos servicios ven una petición de un móvil, no tuya.</li>
   <li><strong>Suscripción Plus</strong> — si te suscribes, la compra la procesa Google Play y se
   gestiona a través de RevenueCat, que recibe tu <strong>identificador de cuenta</strong> y el
   estado de la suscripción. Nunca recibe tu ubicación, tus aparcamientos ni tus vehículos. Nosotros
   no vemos los datos de tu tarjeta en ningún momento: el pago ocurre dentro de Google Play.</li>
+</ul>
+
+<h3>2.9 Coches que compartes con otras personas</h3>
+<ul>
+  <li>Compartir un coche es <strong>opcional</strong>: entras en un grupo con un código de
+  invitación, y puedes salirte. Mientras estás dentro, el grupo tiene una copia compartida de ese
+  coche — <strong>dónde está aparcado ahora y quién lo dejó ahí</strong>, y el historial de
+  aparcamientos del grupo (ubicación y hora de cada uno, distancia recorrida, tiempo buscando
+  plaza). Lo ve cada miembro, el dueño incluido.</li>
+  <li>Los miembros ven <strong>tu nombre de perfil</strong> junto a los aparcamientos que haces con
+  ese coche. No ven tu matrícula ni cómo se detectó el aparcamiento: la copia compartida no tiene
+  campo para ninguna de las dos cosas.</li>
+  <li>El <strong>token de notificaciones</strong> de tu dispositivo se guarda junto a tu ficha de
+  miembro, para poder avisar al grupo cuando el coche se aparca o se lo lleva alguien.</li>
+  <li>La <strong>ruta</strong> de cada viaje la decide un interruptor del coche (<em>Compartir rutas
+  con el grupo</em>), activado por defecto. Mientras está apagado, las rutas de tus viajes <strong>no
+  se suben</strong>, y las que se subieron antes dejan de verse; al volver a encenderlo, aquellas
+  vuelven a verse. Este interruptor es independiente del que sincroniza tus propias rutas con tu
+  historial en la nube: cada uno pide su permiso, y ninguno sube nada sin él.</li>
 </ul>
 
 <h2>3. Para qué usamos los datos</h2>
@@ -365,11 +429,15 @@ Contacto de privacidad: <a href="mailto:support@paparcar.com">support@paparcar.c
 <table>
   <tr><th>Destinatario</th><th>Qué recibe</th><th>Por qué</th></tr>
   <tr><td>Otros usuarios de Paparcar</td><td>Ubicación, hora y tamaño de las plazas que liberas (sin tu identidad)</td><td>Es la función de la app</td></tr>
+  <tr><td>Los demás miembros de un coche que compartes</td><td>Dónde está aparcado ese coche y quién lo dejó, el historial de aparcamientos del grupo y, salvo que apagues el interruptor, las rutas — con tu nombre de perfil</td><td>Función opcional a la que entras con un código de invitación (§2.9)</td></tr>
   <tr><td>Google Firebase (Auth, Cloud Firestore, Crashlytics, Analytics)</td><td>Datos de cuenta, aparcamientos, vehículos, diagnósticos, informes de fallo, eventos de uso anónimos</td><td>Autenticación, base de datos, estabilidad y estadísticas de uso. <a href="https://firebase.google.com/support/privacy">Privacidad de Firebase</a></td></tr>
   <tr><td>Google Maps Platform / Play Services</td><td>Peticiones de mapa y señales de ubicación/actividad procesadas por el SDK</td><td>Mostrar el mapa y detectar conducción. <a href="https://policies.google.com/privacy">Privacidad de Google</a></td></tr>
-  <tr><td>OpenStreetMap (servidores Overpass)</td><td>Una zona aproximada del mapa — nunca tu identidad</td><td>Parkings públicos, gasolineras, nombres de sitios y calles. <a href="https://osmfoundation.org/wiki/Privacy_Policy">Privacidad de la OSMF</a></td></tr>
+  <tr><td>OpenStreetMap (servidores Overpass)</td><td>Un punto del mapa y un radio — nunca tu identidad</td><td>Parkings públicos, gasolineras, nombres de sitios y calles. <a href="https://osmfoundation.org/wiki/Privacy_Policy">Privacidad de la OSMF</a></td></tr>
+  <tr><td>Photon (Komoot)</td><td>Un punto del mapa, o el texto que escribes al buscar un sitio</td><td>Convertir un punto en el nombre de una calle, y buscar direcciones. <a href="https://photon.komoot.io">photon.komoot.io</a></td></tr>
   <tr><td>Ministerio para la Transición Ecológica (España)</td><td>La provincia o el municipio que estás mirando</td><td>Precios oficiales de surtidor en España</td></tr>
   <tr><td>data.economie.gouv.fr (Francia)</td><td>Un punto del mapa y un radio</td><td>Precios oficiales de surtidor en Francia</td></tr>
+  <tr><td>MIMIT — Ministero delle Imprese e del Made in Italy</td><td>Un punto del mapa y un radio</td><td>Precios oficiales de surtidor en Italia</td></tr>
+  <tr><td>Tankerkönig (Alemania)</td><td>Un punto del mapa y un radio</td><td>Precios oficiales de surtidor en Alemania</td></tr>
   <tr><td>OpenVan.camp</td><td>El país en el que estás</td><td>Media nacional de precios de combustible</td></tr>
   <tr><td>RevenueCat</td><td>Tu identificador de cuenta y el estado de tu suscripción Plus</td><td>Gestionar la suscripción. <a href="https://www.revenuecat.com/privacy">Privacidad de RevenueCat</a></td></tr>
 </table>
@@ -383,15 +451,29 @@ procesamiento de datos</a>, con las garantías correspondientes para transferenc
   <li><strong>Plazas publicadas</strong>: caducan y desaparecen automáticamente en minutos u horas.</li>
   <li><strong>Historial de aparcamientos, vehículos y zonas</strong>: mientras mantengas tu cuenta,
   o hasta que los borres desde la app.</li>
+  <li><strong>La copia compartida de un coche que compartes</strong>: mientras exista el grupo. Al
+  salirte, tus aparcamientos dejan de copiarse a él.</li>
+  <li><strong>Geometría de la ruta</strong>: en tu móvil, junto al aparcamiento al que pertenece. En
+  la nube, solo si activaste la sincronización de rutas, y mientras ese aparcamiento siga en tu
+  historial.</li>
   <li><strong>Diagnósticos e informes de fallo</strong>: se conservan el tiempo necesario para
   investigar y corregir problemas, y se eliminan con la cuenta.</li>
   <li><strong>Estadísticas de uso anónimas</strong>: Firebase Analytics las conserva hasta
   14 meses; no contienen la identidad de tu cuenta.</li>
+  <li><strong>Estado de la suscripción</strong>: mientras la suscripción esté activa y después
+  durante el tiempo que exijan la tienda y las obligaciones fiscales. Las consultas al mapa no las
+  guardamos nosotros en absoluto: las respuestas se cachean en tu propio dispositivo para que el
+  mapa no salga vacío sin cobertura.</li>
 </ul>
 
 <h2>6. Borrar tu cuenta y tus datos</h2>
 <p>Puedes eliminar tu cuenta desde <strong>Ajustes → Eliminar cuenta</strong> dentro de la app.
-Esto borra tu cuenta y los datos asociados (perfil, vehículos, historial, zonas y diagnósticos).
+Esto borra tu cuenta y los datos asociados: perfil, vehículos, historial, zonas, diagnósticos, tu
+<strong>pertenencia a cualquier coche compartido</strong> —junto con los viajes que registraste en
+él y los <strong>tokens de notificaciones</strong> de tu móvil— y tus alertas de zona. Un coche
+compartido que era <em>tuyo</em> se disuelve para todo el grupo; nadie pierde sus propios
+aparcamientos, que viven en su cuenta y nunca en la copia compartida. Salirte de un grupo, por sí
+solo, hace lo mismo con tu parte.
 Si ya no tienes la app instalada, solicita el borrado en
 <a href="/delete-account">paparcar.com/delete-account</a> — lo completamos en un máximo de
 30 días. También puedes solicitar el borrado, o el acceso a tus datos, escribiendo a
@@ -408,8 +490,9 @@ autoridad de control (en España, la AEPD). Bases jurídicas: ejecución del ser
 
 <h2>8. Seguridad</h2>
 <p>Los datos viajan cifrados (TLS) y se almacenan en la infraestructura de Google Cloud con reglas
-de acceso que limitan cada dato a su propietario; las plazas comunitarias son el único dato visible
-para otros usuarios, y sin identidad.</p>
+de acceso que limitan cada dato a su propietario. Solo hay dos datos visibles para alguien más: las
+<strong>plazas comunitarias</strong>, que van sin identidad, y la <strong>copia compartida de un
+coche que tú decidiste compartir</strong>, legible solo por los miembros de ese grupo (§2.9).</p>
 
 <h2>9. Menores</h2>
 <p>Paparcar está pensada para conductores y no está dirigida a menores de 16 años. No recogemos
