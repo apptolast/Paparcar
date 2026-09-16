@@ -12,11 +12,16 @@
          que esta app USA — incluido el foreground service que WorkManager levanta para
          ParkingSafetyNetWorker (ver el tools:node="merge" más abajo).
 
-         ⚠️ FOREGROUND_SERVICE_DATA_SYNC ya no se declara aquí, pero SIGUE APARECIENDO en el
-         manifiesto fusionado: lo inyecta AGP 9.3.2 después del merge. Verificado — ninguna de las
-         1.095 dependencias lo declara, el blame del merger no lo atribuye a nadie, y ni borrarlo de
-         aquí ni un tools:node="remove" lo eliminan. No está bajo nuestro control; lo que sí lo está
-         es que nuestro manifiesto deje de reclamarlo. -->
+         Nota histórica [FGS-DATA-SYNC-IS-NO-LONGER-INJECTED-001]: con AGP 9.3.2, retirar
+         FOREGROUND_SERVICE_DATA_SYNC de aquí NO lo quitaba del manifiesto fusionado — lo reinyectaba
+         AGP después del merge (ninguna de las 1.095 dependencias lo declaraba, el blame del merger
+         no se lo atribuía a nadie, y ni un tools:node="remove" lo eliminaba). Con AGP 9.4.0 ya NO
+         aparece: medido el 16-09-2026 en los manifiestos fusionados prodDebug/prodRelease
+         (processProd*MainManifest forzado con rerun-tasks, porque un artefacto incremental no sirve
+         de prueba), en el blame del merger, en los dos APK vía `aapt2 dump permissions` y en el AAB.
+         ⛔ Dentro de un comentario XML no caben dos guiones seguidos: por eso el flag va escrito sin
+         ellos. Con el flag literal, processProdReleaseMainManifest falla al parsear este fichero.
+         Si algún día reaparece, eso es lo que hay que volver a medir. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
 

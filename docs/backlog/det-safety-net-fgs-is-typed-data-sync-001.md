@@ -8,8 +8,12 @@ existen.
 > *"🔵 En progreso"* sobre una rama borrada. Verificado por las tres vías de `DOCS-BACKLOG-TRUTH-001`
 > — `git log master --grep`, existencia de la rama, y el tipo del `ForegroundInfo` en el árbol.
 >
-> ⛔ El aprendizaje que **no** hay que perder: `DATA_SYNC` lo inyecta AGP por su cuenta al fusionar
-> manifiestos. Que el permiso apareciera no significaba que lo hubiéramos pedido nosotros.
+> ⛔ El aprendizaje que **no** hay que perder: que un permiso aparezca en el fusionado no significa
+> que lo hayamos pedido nosotros. **Con AGP 9.3.2, `DATA_SYNC` lo inyectaba AGP** por su cuenta al
+> fusionar manifiestos, y ni borrarlo ni un `tools:node="remove"` lo quitaban (ver Pieza 3).
+> ⚠️ Eso **ya no pasa**: con AGP 9.4.0 el permiso no está en ninguna superficie — medido el
+> 16-09-2026 en [FGS-DATA-SYNC-IS-NO-LONGER-INJECTED-001]. El hallazgo era de su versión de AGP,
+> no una ley de la plataforma.
 
 **Origen:** 2026-08-27. Salió de una pregunta del user sobre qué nos aprietan las versiones nuevas de
 Android. Al auditar la superficie de foreground services apareció un permiso
@@ -113,19 +117,26 @@ tiparlo `location` sería un bug si algún otro worker hiciera trabajo de otra n
 - [x] Sin strings, pantallas ni estados MVI → no toca los 9 locales ni el Dev Catalog.
 - [x] Sin cambios en `detectionPath` / `armEvidence`.
 
-### ⚠️ Pieza 3: el permiso NO se puede quitar — y eso es un hallazgo, no un olvido
+### ⚠️ Pieza 3: el permiso NO se podía quitar con AGP 9.3.2 — y eso era un hallazgo, no un olvido
 
-Retirarlo de nuestro manifiesto **no lo elimina del fusionado**. Lo comprobado, en este orden:
+> ✅ **Cerrada el 16-09-2026 por el bump de AGP a 9.4.0** (`b72ba4e7`,
+> [BUILD-DEPS-AT-LATEST-STABLE-002]): el permiso **ya no aparece** en el fusionado, ni en el blame
+> del merger, ni en los APK, ni en el AAB. Todo lo de abajo describe el comportamiento de AGP 9.3.2
+> y se conserva por si vuelve. Medición nueva en
+> [FGS-DATA-SYNC-IS-NO-LONGER-INJECTED-001].
 
-1. Borrado de `androidMain/AndroidManifest.xml` → sigue apareciendo.
-2. `tools:node="remove"` explícito → **sigue apareciendo**.
+Retirarlo de nuestro manifiesto **no lo eliminaba del fusionado**. Lo comprobado, en este orden:
+
+1. Borrado de `androidMain/AndroidManifest.xml` → seguía apareciendo.
+2. `tools:node="remove"` explícito → **seguía apareciendo**.
 3. Escaneadas **1.095 `AndroidManifest.xml`** de la caché de transforms de AGP: **ninguna dependencia
    lo declara**, y ninguna declara un `<service>` tipado `dataSync` del que pudiera derivarse.
-4. El blame del merger (`manifest_merge_blame_file`) **no se lo atribuye a nadie**: aparece en la
+4. El blame del merger (`manifest_merge_blame_file`) **no se lo atribuía a nadie**: aparecía en la
    salida de `processProdDebugMainManifest` sin estar en su propio informe de autoría.
 
-Conclusión: **lo inyecta AGP 9.3.2 después del merge**, presumiblemente por la mera presencia de
-`androidx.work`. No está bajo nuestro control.
+Conclusión de entonces: **lo inyectaba AGP 9.3.2 después del merge**, presumiblemente por la mera
+presencia de `androidx.work`. No estaba bajo nuestro control — y el siguiente AGP lo confirmó al
+quitarlo sin que nosotros tocáramos nada.
 
 Lo que el ticket sí consigue, que era el fondo del asunto:
 
@@ -134,8 +145,9 @@ Lo que el ticket sí consigue, que era el fondo del asunto:
   `location` no) — este era el riesgo real, y está cerrado;
 - **nuestro manifiesto deja de reclamar un permiso que no usa**, que es la parte que sí controlamos.
 
-El permiso sobrante en el APK queda como ruido de AGP, sin consumidor. Si algún día molesta (revisión
-de Play, auditoría de permisos), el sitio donde mirar es el manifest merger de AGP, no nuestro código.
+El permiso sobrante en el APK quedó como ruido de AGP, sin consumidor, y el sitio a mirar era el
+manifest merger de AGP, no nuestro código. **Se fue solo con AGP 9.4.0**: ni Play ni una auditoría
+de permisos lo verán ya en el AAB.
 
 ## Pendiente
 

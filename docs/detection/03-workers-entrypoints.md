@@ -70,7 +70,7 @@
 - Servicios: `CoordinatorDetectionService` y `BluetoothDetectionService`, ambos `foregroundServiceType="location"`, `exported="false"` (`:65-76`).
 - Receivers: `ActivityTransitionReceiver` (exported, permiso GMS AR), `BootCompletedReceiver` (BOOT + MY_PACKAGE_REPLACED), `BluetoothConnectionReceiver` (exported + permiso BLUETOOTH_CONNECT — obligatorio, el stack BT no entrega a no-exportados [DET-BT-RECEIVER-EXPORT-001]), `GeofenceEnterReceiver`, `GeofenceExitWitnessReceiver`, `ExactHeartbeatReceiver` (explícitos, sin filter), `ParkingConfirmationReceiver` (filter con 4 acciones).
 - ⚠️ Detalle: el intent-filter de `ParkingConfirmationReceiver` (`:148-153`) NO lista `ACTION_DEPARTURE_CONFIRMED`, que el receiver sí enruta (`ParkingConfirmationReceiver:51`). Si la notificación "sigues aparcado" usa PendingIntent explícito a la clase, el filter es irrelevante — **NO VERIFICADO** (el builder de esa notificación no está en el alcance leído).
-- Permisos FGS: `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_LOCATION`, `FOREGROUND_SERVICE_DATA_SYNC`, más `SCHEDULE_EXACT_ALARM`, `ACTIVITY_RECOGNITION`, `BLUETOOTH_CONNECT`, `RECEIVE_BOOT_COMPLETED`.
+- Permisos FGS: `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_LOCATION` —y **solo esos dos**: `FOREGROUND_SERVICE_DATA_SYNC` salió del manifiesto en [DET-SAFETY-NET-FGS-IS-TYPED-DATA-SYNC-001] y desde AGP 9.4.0 tampoco aparece en el fusionado ni en el APK/AAB [FGS-DATA-SYNC-IS-NO-LONGER-INJECTED-001]—, más `SCHEDULE_EXACT_ALARM`, `ACTIVITY_RECOGNITION`, `BLUETOOTH_CONNECT`, `RECEIVE_BOOT_COMPLETED`.
 
 ## 2 · ¿Pueden DOS actores armar, confirmar o cerrar una sesión A LA VEZ?
 
