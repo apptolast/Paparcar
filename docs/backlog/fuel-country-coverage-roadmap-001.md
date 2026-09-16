@@ -5,8 +5,11 @@ contra master `e575350e`, leyendo el código (no el recuerdo): `FuelStationsRegi
 `DataModule.kt:283` y las cuatro fuentes nacionales.
 
 🔴 **F1 (UK) está bloqueada por ACCESO desde el mismo día que se escribió esto**: el portal —y el
-sitio público— devuelven **403 desde España** en el borde de CloudFront. Medición y consecuencias en
-F1; el orden de ejecución (§8) ya está reordenado en consecuencia: **empieza México**.
+sitio público— devuelven **403 desde España** en el borde de CloudFront. ✅ **Geobloqueo CONFIRMADO
+el 16-09 con una sonda desplegada en Londres y borrada el mismo día**: desde `europe-west2` las
+mismas URLs dan 200 y la API contesta un 403 *de aplicación* pidiendo el token. Lo único que sigue
+bloqueado es **el alta** (One Login, flujo de navegador). Medición completa y sus consecuencias en
+F1; el orden de ejecución (§8) ya está reordenado: **empieza México**.
 
 Continúa [`fuel-stations-list-001.md`](fuel-stations-list-001.md), cuyo «barrido medido» del 09-09
 abrió esta cola y **ya ha quedado desfasado en dos puntos** (ver §3). Sucede en la cola menor de
@@ -160,13 +163,47 @@ cuyo tráfico salga por VPN o CGNAT extranjero recibiría 403. El camino ya exis
 
 #### Cómo se desbloquea sin VPN — medido el 16-09
 
-**1 · La prueba que sustituye a la VPN: una función en `europe-west2` (Londres).** Ya tenemos Cloud
-Functions desplegadas (`functions/src/index.ts`, `europe-west1`), mismo proyecto y misma facturación.
-Una función HTTP de usar y tirar en **Londres** que pida el portal y el endpoint de token y devuelva
-status + cabeceras **confirma o descarta el geobloqueo**, que es justo lo que no podemos hacer desde
-aquí. Si contesta 200, además queda como **banco de medición** para toda la Fase 0 de UK.
-⚠️ **Lo que esa función NO resuelve: el alta.** El registro es un flujo interactivo de navegador con
-**GOV.UK One Login**, y está detrás del mismo 403. La función da el plano de datos, no la cuenta.
+**1 · ✅ HECHO — la sonda de Londres, y el geobloqueo queda CONFIRMADO.** Se desplegó una función
+HTTP de usar y tirar en `europe-west2`, se midió y **se borró el mismo día** (función eliminada,
+código fuera, `functions/` sin cambios; la política de purga de imágenes ya existía, 1 día).
+
+Salida verificada en la propia respuesta — `34.34.246.120`, **London, GB**, AS396982 Google — y con
+eso el veredicto ya no es una hipótesis:
+
+| URL | Desde España | Desde Londres |
+|---|---|---|
+| `/` del portal | **403** CloudFront, cuerpo vacío | **308** → `/fuel-finder`, `X-Cache: Miss from cloudfront`, PoP **LHR82** |
+| `/fuel-finder/public-api` | **403** | **200**, 14.747 B de página real |
+| `/api/v1/pfs?batch-number=1` | **403** de borde | **403 de APLICACIÓN**: `{"error":"Unauthorized","message":"Missing access token…"}` |
+
+⛔ Esa última fila es la que importa: desde el Reino Unido **el plano de datos contesta**, y lo único
+que le falta es el token. Desde España no se llega ni a la aplicación.
+
+**Lo que la sonda además arrancó del portal, que ahorra media Fase 0:**
+- **Hay TRES vías de acceso y solo una usa OAuth**: (a) **descarga de un CSV** con precios y
+  forecourts, (b) **suscripción por email** que manda el enlace del CSV cuando se publica
+  (`/fuel-finder/info-recipient/email-subscription/sign-up`), y (c) la API.
+- **OAuth 2.0 client credentials**, `scope=fuelfinder.read`, `expires_in: 3600`. Dos entornos, **test
+  y producción**, con credenciales distintas.
+- **Límites medidos, y son el problema de diseño**: **100 peticiones/minuto por CLIENTE** y **UNA
+  petición concurrente por cliente**, 429 al pasarse. Su propia guía recomienda *cachear los datos de
+  estación una hora*.
+- El alta es **GOV.UK One Login**, sin requisito de entidad británica en la página.
+
+🔴 **Consecuencia que cambia el coste de F1, y hay que decirla ahora:** el límite es **por cliente**,
+no por usuario, y un `client_secret` embebido en un APK público es a la vez un secreto regalado y un
+cupo de 100 rpm **compartido entre todos nuestros usuarios**. Alemania se permite la clave embebida
+porque su cupo lo tolera; UK, con 1 concurrente, no. Eso empuja a UK hacia un **relé propio con
+caché** — o sea, el primer país que **no es un adaptador, sino un adaptador más backend**, en la
+liga de coste de `PARKINGS-LIVE-OCCUPANCY-001`. Antes de escribir una línea de Kotlin hay que
+decidir eso.
+
+⚠️ **Lo que la sonda NO resuelve: el alta.** El registro es un flujo interactivo de navegador con
+GOV.UK One Login detrás del mismo 403. La función da el plano de datos, no la cuenta.
+➡️ **Siguiente prueba barata, cuando se retome:** la **suscripción por email** no parece pedir One
+Login. Si el formulario se puede enviar desde una salida británica y **el CSV que llega por correo
+no está geovallado**, UK se desbloquea entero sin cuenta, sin OAuth y sin relé — y con el cupo de la
+API fuera de la ecuación. Es la primera medición del día que se retome F1.
 
 **2 · Escribir al equipo de Fuel Finder** — la única vía que resuelve el ALTA sin un navegador
 británico. La pregunta tiene que ser explícita: *¿el acceso exige IP del Reino Unido, y puede
