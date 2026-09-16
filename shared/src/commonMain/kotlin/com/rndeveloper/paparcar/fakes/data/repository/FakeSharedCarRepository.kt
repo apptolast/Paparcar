@@ -154,6 +154,12 @@ class FakeSharedCarRepository(private val scenario: MockScenario? = null) : Shar
 
     override suspend fun syncFromRemote(): Result<Unit> = Result.success(Unit)
 
+    /** Erasure looks like walking out of every group at once, which is what it is. */
+    override suspend fun deleteAllData(userId: String): Result<Unit> {
+        joined?.value = false
+        return Result.success(Unit)
+    }
+
     private companion object {
         const val MOCK_CAR_ID = "mock_vehicle_001"
         const val MOCK_CREATED_AT_MS = 1_757_000_000_000L

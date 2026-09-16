@@ -130,13 +130,23 @@ service cloud.firestore {
         allow read, write: if isMember();
       }
 
-      // El historial compartido: cada uno firma el suyo, todos lo leen, y solo el dueño borra.
+      // El historial compartido: cada uno firma el suyo y todos lo leen.
+      //
+      // ⛔ Borrar es de DOS: el dueño (disolver el grupo) y **el autor de la sesión**. Esto último
+      // faltaba, y sin ello salir del grupo —o borrar la cuenta— dejaba tu recorrido dentro para
+      // siempre: la ficha de miembro se iba y las sesiones se quedaban, firmadas por un uid que ya
+      // no estaba. La regla no puede pedir `isMember()` para el autor, porque el barrido corre
+      // JUSTO cuando esa pertenencia se está deshaciendo.
+      // [PRIV-A-DELETED-ACCOUNT-LEAVES-TWO-TOKENS-BEHIND-001]
       match /sessions/{sessionId} {
         allow read: if isMember();
         allow create, update: if isMember()
                               && request.resource.data.authorUid == request.auth.uid;
         allow delete: if request.auth != null
-                      && get(/databases/$(database)/documents/sharedCars/$(carId)).data.ownerUid == request.auth.uid;
+                      && (
+                           resource.data.authorUid == request.auth.uid
+                           || get(/databases/$(database)/documents/sharedCars/$(carId)).data.ownerUid == request.auth.uid
+                         );
       }
     }
 

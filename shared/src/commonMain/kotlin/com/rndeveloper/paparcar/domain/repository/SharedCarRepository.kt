@@ -13,8 +13,12 @@ import kotlinx.coroutines.flow.Flow
  * Everything here is about the MIRROR (`sharedCars/{carId}`). The personal session repository is
  * untouched and stays the source of truth — this is the projection the group reads, and the only
  * place a second user's write ever lands.
+ *
+ * It is [UserScopedRepository] because the mirror holds two things that are unmistakably the
+ * member's own: the trips they signed and the push tokens of their phone. Deleting the account has
+ * to take both. [PRIV-A-DELETED-ACCOUNT-LEAVES-TWO-TOKENS-BEHIND-001]
  */
-interface SharedCarRepository {
+interface SharedCarRepository : UserScopedRepository {
 
     /** The car as the group sees it, live. Null while it is not (or no longer) shared. Served from
      *  the Room cache first so a screen opened without network still says where the car was. */
@@ -50,7 +54,15 @@ interface SharedCarRepository {
      */
     suspend fun joinByCode(code: String, bluetoothDeviceId: String?): Result<SharedCar>
 
-    /** The member walks out. Their linked row goes with them; their personal history stays theirs. */
+    /**
+     * The member walks out. Their linked row goes with them; their personal history stays theirs.
+     *
+     * ⛔ And the trips they signed in the group go too. Until
+     * [PRIV-A-DELETED-ACCOUNT-LEAVES-TWO-TOKENS-BEHIND-001] only the membership was removed, so
+     * walking out left your recorded whereabouts in a group you no longer belong to — visible to
+     * everyone still in it, and unreachable to you, because reading needs a membership you just
+     * gave up. What stays theirs is the PERSONAL session, which never lived here.
+     */
     suspend fun leave(carId: String): Result<Unit>
 
     /**

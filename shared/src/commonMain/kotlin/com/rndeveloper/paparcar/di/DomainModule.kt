@@ -14,9 +14,11 @@ import com.rndeveloper.paparcar.domain.usecase.spot.ReportManualSpotUseCase
 import com.rndeveloper.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import com.rndeveloper.paparcar.domain.usecase.spot.SendSpotSignalUseCase
 import com.rndeveloper.paparcar.domain.repository.DiagnosticsRepository
+import com.rndeveloper.paparcar.domain.repository.SharedCarRepository
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.UserProfileRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
+import com.rndeveloper.paparcar.domain.repository.ZoneAlertSubscriptionRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.event.MapFocusEventBus
 import com.rndeveloper.paparcar.domain.event.StartAddParkingEventBus
@@ -60,10 +62,21 @@ val domainModule = module {
     factory {
         DeleteAccountUseCase(
             authRepository = get(),
-            // Diagnostics goes LAST: the loggers keep draining their channels while the chain runs,
-            // so sweeping the telemetry right before the auth delete minimises the window in which
-            // a straggler event could re-create a doc. [ACCOUNT-DELETE-SWEEPS-DIAGNOSTICS-001]
+            // The order is the decision here, and two of its three reasons were learned the hard
+            // way. [ACCOUNT-DELETE-SWEEPS-DIAGNOSTICS-001][PRIV-A-DELETED-ACCOUNT-LEAVES-TWO-TOKENS-BEHIND-001]
+            //
+            //  1. Push tokens FIRST — zone alerts and shared cars both hold them. A phone that is
+            //     still in a fan-out list while its account is being erased gets told about a spot
+            //     or a parking mid-deletion.
+            //  2. SharedCar BEFORE Vehicle — the vehicles are how the groups are found
+            //     (`observeVehicles().filter { isShared }`). Wipe the cars first and the mirrors
+            //     become unreachable, with the member doc and its tokens left inside.
+            //  3. Diagnostics LAST — the loggers keep draining their channels while the chain runs,
+            //     so sweeping telemetry right before the auth delete minimises the window in which
+            //     a straggler event could re-create a doc.
             userScopedRepos = listOf(
+                get<ZoneAlertSubscriptionRepository>(),
+                get<SharedCarRepository>(),
                 get<UserParkingRepository>(),
                 get<VehicleRepository>(),
                 get<UserProfileRepository>(),

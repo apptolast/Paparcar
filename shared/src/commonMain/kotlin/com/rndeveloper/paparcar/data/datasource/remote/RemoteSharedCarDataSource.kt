@@ -49,6 +49,15 @@ interface RemoteSharedCarDataSource {
         updatedAtMs: Long,
     )
 
+    /**
+     * Every session this uid signed in this group, gone.
+     *
+     * ⛔ Has to run BEFORE the member doc is deleted: the reading rule is `isMember()`, so a
+     * membership already torn down leaves the sessions unreachable — and unreadable is not
+     * deleted. [PRIV-A-DELETED-ACCOUNT-LEAVES-TWO-TOKENS-BEHIND-001]
+     */
+    suspend fun deleteSessionsOf(carId: String, uid: String)
+
     suspend fun putMember(carId: String, member: SharedCarMemberDto)
     /** Publishes whether this member's routes are visible, so the others can be told why a line is
      *  missing instead of guessing. */

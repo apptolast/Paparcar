@@ -133,6 +133,17 @@ class FakeSharedCarRemote : RemoteSharedCarDataSource {
             )
     }
 
+    override suspend fun deleteSessionsOf(carId: String, uid: String) {
+        // Mirrors the rule, not just the happy path: once the membership is gone the sessions are
+        // unreadable, so a sweep attempted after leaving deletes nothing — which is exactly the
+        // ordering bug the real implementation has to avoid.
+        // [PRIV-A-DELETED-ACCOUNT-LEAVES-TWO-TOKENS-BEHIND-001]
+        val stillAMember = members.value[carId].orEmpty().any { it.uid == uid }
+        if (!stillAMember) return
+        sessions.value = sessions.value +
+            (carId to sessions.value[carId].orEmpty().filterNot { it.authorUid == uid })
+    }
+
     override suspend fun deleteMember(carId: String, uid: String) {
         members.value = members.value + (carId to members.value[carId].orEmpty().filterNot { it.uid == uid })
     }

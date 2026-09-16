@@ -3,6 +3,7 @@ package com.rndeveloper.paparcar.data.repository
 import com.apptolast.baselogin.domain.model.UserSession
 import com.rndeveloper.paparcar.data.datasource.local.room.UserProfileEntity
 import com.rndeveloper.paparcar.data.datasource.remote.dto.SharedCarInviteDto
+import com.rndeveloper.paparcar.data.datasource.remote.dto.SharedCarSessionDto
 import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleSize
@@ -174,12 +175,79 @@ class SharedCarRepositoryImplTest {
     }
 
     @Test
+    fun should_takeTheTripsTheySigned_when_aMemberLeaves() = runTest {
+        val remote = FakeSharedCarRemote()
+        val owner = repository("marta", FakeVehicleRepository(defaultVehicle = ownerCar), remote)
+        owner.shareVehicle(ownerCar).getOrThrow()
+        remote.putInvite(liveInvite())
+        val member = repository("nacho", FakeVehicleRepository(), remote)
+        member.joinByCode("AB3K9P", null).getOrThrow()
+        remote.putSession("car-1", session("s-marta", "marta"))
+        remote.putSession("car-1", session("s-nacho", "nacho"))
+
+        member.leave("car-1").getOrThrow()
+
+        // Walking out takes YOUR whereabouts with you and leaves the group's alone. Before
+        // [PRIV-A-DELETED-ACCOUNT-LEAVES-TWO-TOKENS-BEHIND-001] `s-nacho` stayed behind, readable
+        // by everyone still in the group and unreachable to Nacho, who was no longer a member.
+        assertEquals(listOf("s-marta"), remote.sessions.value["car-1"].orEmpty().map { it.sessionId })
+    }
+
+    @Test
+    fun should_walkOutOfEveryGroup_when_aMemberDeletesTheirAccount() = runTest {
+        val remote = FakeSharedCarRemote()
+        val owner = repository("marta", FakeVehicleRepository(defaultVehicle = ownerCar), remote)
+        owner.shareVehicle(ownerCar).getOrThrow()
+        remote.putInvite(liveInvite())
+        val memberVehicles = FakeVehicleRepository()
+        val member = repository("nacho", memberVehicles, remote)
+        member.joinByCode("AB3K9P", null).getOrThrow()
+        remote.putSession("car-1", session("s-marta", "marta"))
+        remote.putSession("car-1", session("s-nacho", "nacho"))
+
+        member.deleteAllData("nacho").getOrThrow()
+
+        // The group survives — it is not his car. What leaves is everything that was his: the
+        // membership (with its push tokens) and the trips he signed.
+        assertNotNull(remote.getCar("car-1"))
+        assertEquals(emptyList(), remote.getMembers("car-1").map { it.uid }.filter { it == "nacho" })
+        assertEquals(listOf("s-marta"), remote.sessions.value["car-1"].orEmpty().map { it.sessionId })
+    }
+
+    @Test
+    fun should_dissolveTheGroupForEveryone_when_theOwnerDeletesTheirAccount() = runTest {
+        val remote = FakeSharedCarRemote()
+        val vehicles = FakeVehicleRepository(defaultVehicle = ownerCar)
+        val owner = repository("marta", vehicles, remote)
+        owner.shareVehicle(ownerCar).getOrThrow()
+        remote.putInvite(liveInvite())
+        repository("nacho", FakeVehicleRepository(), remote).joinByCode("AB3K9P", null).getOrThrow()
+        remote.putSession("car-1", session("s-nacho", "nacho"))
+
+        owner.deleteAllData("marta").getOrThrow()
+
+        // The mirror is a projection of HER car: with the account gone there is nothing left to
+        // project, so it goes for the whole group. Nobody loses their own history — every member
+        // keeps their personal parkings, which never lived in the mirror.
+        assertNull(remote.getCar("car-1"))
+        assertEquals(emptyList(), remote.getMembers("car-1"))
+        assertEquals(emptyList(), remote.sessions.value["car-1"].orEmpty())
+    }
+
+    private fun session(id: String, author: String) = SharedCarSessionDto(
+        sessionId = id,
+        authorUid = author,
+        parkedAtMs = now,
+        updatedAtMs = now,
+    )
+
+    @Test
     fun should_unshareTheOwnRowAndSweepTheInvites_when_theOwnerDissolvesTheGroup() = runTest {
         val remote = FakeSharedCarRemote()
         val vehicles = FakeVehicleRepository(defaultVehicle = ownerCar)
         val owner = repository("marta", vehicles, remote)
         owner.shareVehicle(ownerCar).getOrThrow()
-        owner.createInvite("car-1").getOrThrow()
+        remote.putInvite(liveInvite())
 
         owner.stopSharing("car-1").getOrThrow()
 

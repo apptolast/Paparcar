@@ -175,6 +175,18 @@ class RemoteSharedCarDataSourceImpl(
             .onFailure { PaparcarLogger.w(TAG, "setMemberSharesRoutes skipped — not a member of $carId") }
     }
 
+    override suspend fun deleteSessionsOf(carId: String, uid: String) {
+        // Read-then-delete over the whole collection instead of a `where` query: the group's
+        // history is capped and small, and the read is the same one `observeSessions` already
+        // does. What must not happen is deleting somebody else's row, so the author is checked
+        // here and again by the rules. [PRIV-A-DELETED-ACCOUNT-LEAVES-TWO-TOKENS-BEHIND-001]
+        runCatching {
+            sessions(carId).get().documents
+                .filter { runCatching { it.get<String?>(FIELD_AUTHOR_UID) }.getOrNull() == uid }
+                .forEach { it.reference.delete() }
+        }.onFailure { PaparcarLogger.w(TAG, "deleteSessionsOf skipped on $carId — ${it.message}") }
+    }
+
     override suspend fun deleteMember(carId: String, uid: String) {
         members(carId).document(uid).delete()
     }

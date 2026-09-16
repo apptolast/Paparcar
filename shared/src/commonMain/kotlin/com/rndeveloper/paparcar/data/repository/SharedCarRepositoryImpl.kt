@@ -242,11 +242,44 @@ class SharedCarRepositoryImpl(
 
     override suspend fun leave(carId: String): Result<Unit> = runCatching {
         val uid = requireUid()
+        // ⛔ Sessions BEFORE the membership: reading them needs `isMember()`, so the door has to
+        // still be open when we sweep. Inverting these two lines deletes nothing and reports
+        // success. [PRIV-A-DELETED-ACCOUNT-LEAVES-TWO-TOKENS-BEHIND-001]
+        remote.deleteSessionsOf(carId, uid)
         remote.deleteMember(carId, uid)
         dao.deleteById(carId)
         vehicleRepository.getVehicleById(uid, carId)
             ?.takeIf { it.isLinked }
             ?.let { vehicleRepository.saveVehicle(it.unlinked()).getOrThrow() }
+    }
+
+    /**
+     * Account deletion, expressed as the two exits that already exist. [GDPR right-to-erasure]
+     *
+     * There is no third verb for this: a car you own dissolves ([stopSharing]) and a car you were
+     * lent you walk out of ([leave]). Dissolving takes the mirror away from the whole group, and
+     * that is the right reading, not collateral damage — the mirror is a projection of YOUR
+     * vehicle, and nobody loses their own history, which lives in their own account. The doc on
+     * `Vehicle.unlinked()` says it for the other direction: sharing lends the car, not the memory
+     * of using it.
+     *
+     * ⛔ Must run BEFORE `VehicleRepository` in the deletion chain: the cars are how the groups are
+     * found. Wired that way in `DomainModule`, and a guard test holds the wiring.
+     */
+    override suspend fun deleteAllData(userId: String): Result<Unit> = runCatching {
+        val shared = vehicleRepository.observeVehicles().first().filter { it.isShared }
+        shared.forEach { vehicle ->
+            val carId = vehicle.sharedCarId ?: return@forEach
+            // Failure-tolerant per car on purpose: a group that cannot be reached must not stop
+            // the account deletion, which is the thing the user actually asked for. What a skipped
+            // group costs is logged, not swallowed in silence.
+            val outcome = if (remote.getCar(carId)?.ownerUid == userId) {
+                stopSharing(carId)
+            } else {
+                leave(carId)
+            }
+            outcome.onFailure { PaparcarLogger.w(TAG, "shared car $carId not swept — ${it.message}") }
+        }
     }
 
     override suspend fun setShareRoutes(carId: String, share: Boolean): Result<Unit> = runCatching {
