@@ -13,9 +13,11 @@
 
 Cola menor heredada de fases ✅ (no bloquea cerrar la ola):
 [`fuel-station-brand-marks-001`](fuel-station-brand-marks-001.md) (🔵 decidido, sin empezar) ·
-**Italia**, siguiente país del orden medido ·
+los **siguientes países** de la escalera de precio, ya con su orden y su coste en
+[`fuel-country-coverage-roadmap-001`](fuel-country-coverage-roadmap-001.md) (🔵 plan, sin empezar) ·
 [`parking-availability-vendor-001`](parking-availability-vendor-001.md) (🧊 diferido).
-~~Alemania~~ ✅ el 15-09 (`9afbc5e5`, [`fuel-germany-the-feed-answers-whole-001`](fuel-germany-the-feed-answers-whole-001.md)).
+~~Alemania~~ ✅ el 15-09 (`9afbc5e5`, [`fuel-germany-the-feed-answers-whole-001`](fuel-germany-the-feed-answers-whole-001.md)) ·
+~~Italia~~ ✅ el 16-09 (`f843b00d`, [`fuel-italy-a-price-depends-on-who-pumps-it-001`](fuel-italy-a-price-depends-on-who-pumps-it-001.md)).
 
 ⚠️ **F7 no se implementó como este doc lo escribió**: lo hizo el pivote de trayectos del 14-09 con
 otro nombre y otro cálculo (ver F7 abajo). Esta ola y el pivote se solaparon; el pivote manda en
