@@ -775,6 +775,7 @@
     <string name="paywall_reason_stats">Met Plus zie je je cijfers over elke periode.</string>
     <string name="paywall_reason_zone_alerts">Meldingen van vrije plekken in je zones horen bij Plus.</string>
     <string name="paywall_reason_fuel_alerts">Prijsmeldingen voor brandstof horen bij Plus.</string>
+    <string name="paywall_reason_month_recap">Het maandoverzicht is onderdeel van Plus.</string>
     <string name="paywall_reason_route_cloud">Routes in je account bewaren is onderdeel van Plus.</string>
     <string name="paywall_plan_monthly">Maandelijks</string>
     <string name="paywall_plan_yearly">Jaarlijks</string>
@@ -794,6 +795,8 @@
     <string name="settings_notif_zone_alerts_desc">Melding wanneer er een vrije plek in je zones verschijnt</string>
     <string name="settings_notif_fuel_alerts">Prijsmeldingen voor brandstof</string>
     <string name="settings_notif_fuel_alerts_desc">Melding wanneer een tankstation dat je volgt de prijs wijzigt of er een goedkopere in de buurt is</string>
+    <string name="settings_notif_month_recap">Maandoverzicht</string>
+    <string name="settings_notif_month_recap_desc">Een overzicht als de maand afsluit: wat je hebt uitgegeven en hoe lang je hebt gezocht</string>
     <string name="settings_sync_routes">Routes in je account bewaren</string>
     <string name="settings_sync_routes_desc">Je ritten blijven alleen op deze telefoon. Zet dit aan om ze ook op je andere apparaten te zien.</string>
     <string name="home_zone_form_notify_label">Waarschuw me voor vrije plekken hier</string>

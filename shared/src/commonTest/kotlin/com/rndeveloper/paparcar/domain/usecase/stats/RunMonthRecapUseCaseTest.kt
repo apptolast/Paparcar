@@ -117,6 +117,33 @@ class RunMonthRecapUseCaseTest {
         assertTrue(cost.amount > 0.0)
     }
 
+    /**
+     * ⛔ **El interruptor que no existía.** De los cuatro canales de notificación, este era el
+     * único que no se podía apagar: un Plus al que el resumen le molestara no tenía dónde decirlo.
+     * [MONEY-A-CARD-THAT-NEVER-APPEARS-IS-NEVER-SOLD-001]
+     *
+     * Y se pregunta ANTES que el plan a propósito: quien lo silenció ya respondió, y tratarlo como
+     * una cuenta a la que venderle algo sería no haberle escuchado.
+     */
+    @Test
+    fun should_notKnock_when_theUserSilencedTheRecap() = runTest {
+        val silenced = FakeAppPreferences().apply { setNotifyMonthRecap(false) }
+        val outcome = useCase(listOf(drive(3), drive(28)), Entitlement.PLUS, silenced)()
+        val skipped = assertIs<MonthRecapOutcome.Skipped>(outcome, "lo apagó el usuario")
+        assertEquals("silenced", skipped.reason)
+    }
+
+    /** Y el mes NO se marca como contado al callarlo: volver a encenderlo dentro de la ventana
+     *  tiene que poder contar el mes que se perdió, no saltárselo para siempre. */
+    @Test
+    fun should_notBurnTheMonth_when_theRecapWasSilenced() = runTest {
+        val preferences = FakeAppPreferences().apply { setNotifyMonthRecap(false) }
+        val sessions = listOf(drive(3), drive(28))
+        useCase(sessions, Entitlement.PLUS, preferences)()
+        preferences.setNotifyMonthRecap(true)
+        assertTrue(useCase(sessions, Entitlement.PLUS, preferences)() is MonthRecapOutcome.Tell)
+    }
+
     /** Una vez al mes: el segundo tick del mismo mes ya no llama. */
     @Test
     fun should_tellOnlyOnce_perClosedMonth() = runTest {

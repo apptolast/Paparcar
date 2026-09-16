@@ -64,6 +64,12 @@ class RunMonthRecapUseCase(
             is MonthRecapGate.Tell -> Unit
         }
 
+        // ⛔ The user's own switch FIRST, and before the entitlement: somebody who silenced the
+        // recap is not a free account to be sold anything, they answered the question already.
+        // The channel had no switch at all until [MONEY-A-CARD-THAT-NEVER-APPEARS-IS-NEVER-SOLD-001]
+        // — the one notification of the four that could not be turned off.
+        if (!appPreferences.notifyMonthRecap) return MonthRecapOutcome.Skipped("silenced")
+
         // A month nobody can see the whole of is not a month this can summarise — and it is asked
         // here, still among the cheap gates, because it needs no history at all.
         val isPlus = observeIsPlus().first()

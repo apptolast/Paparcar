@@ -16,6 +16,10 @@ data class SettingsState(
     /** Master gate for the Plus fuel-price alerts — a cheaper pump nearby, and what a followed
      *  station did overnight. [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001] */
     val notifyFuelPrices: Boolean = true,
+    /** El resumen del mes cerrado — el único aviso que la app da sin que nadie pregunte, y el
+     *  único de los cuatro que no tenía interruptor.
+     *  [MONEY-A-CARD-THAT-NEVER-APPEARS-IS-NEVER-SOLD-001] */
+    val notifyMonthRecap: Boolean = true,
     /** Cloud copy of the ROUTE GEOMETRY — opt-in, Plus-gated, default OFF: trips stay on this
      *  phone unless the user says otherwise. [PRIV-A-TRACE-IS-NOT-A-STAT-001] */
     val syncRouteGeometry: Boolean = false,

@@ -264,6 +264,9 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     private val _notifyFuelPrices = MutableStateFlow(true)
     override val notifyFuelPrices: Boolean get() = _notifyFuelPrices.value
     override fun setNotifyFuelPrices(enabled: Boolean) { _notifyFuelPrices.value = enabled }
+    private val _notifyMonthRecap = MutableStateFlow(true)
+    override val notifyMonthRecap: Boolean get() = _notifyMonthRecap.value
+    override fun setNotifyMonthRecap(enabled: Boolean) { _notifyMonthRecap.value = enabled }
 
     private var _lastMonthRecap: Int? = null
     override val lastMonthRecapAnnounced: Int? get() = _lastMonthRecap

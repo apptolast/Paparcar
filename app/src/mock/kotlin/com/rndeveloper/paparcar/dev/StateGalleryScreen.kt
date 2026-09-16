@@ -2456,6 +2456,17 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Con fila de widget (launcher con pin)") {
                 SettingsContent(state = SettingsState(userProfile = sampleProfile, canPinWidget = true))
             },
+            // [MONEY-A-CARD-THAT-NEVER-APPEARS-IS-NEVER-SOLD-001] Las tres filas con gate blando
+            // vistas desde una cuenta FREE: se pintan apagadas —la vista las fuerza con
+            // `isPlus && …`— y encenderlas es lo que abre el paywall. Sin esta variante la fila
+            // nueva del resumen del mes sólo se veía en su estado de Plus, que es el que NO tiene
+            // el problema que la hizo nacer.
+            Variant("Notificaciones de Plus · cuenta free") {
+                SettingsContent(state = SettingsState(userProfile = sampleProfile, isPlus = false))
+            },
+            Variant("Notificaciones de Plus · cuenta Plus") {
+                SettingsContent(state = SettingsState(userProfile = sampleProfile, isPlus = true))
+            },
             Variant("Detección/notif off, imperial") {
                 SettingsContent(
                     state = SettingsState(

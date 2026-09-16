@@ -33,6 +33,7 @@ private const val KEY_PENDING_PROMPT_VEHICLE_NAME = "pending_prompt_window_vehic
 private const val KEY_NOTIFY_PARKING_DETECTED = "notify_parking_detected"
 private const val KEY_NOTIFY_ZONE_SPOTS = "notify_zone_spots"
 private const val KEY_NOTIFY_FUEL_PRICES = "notify_fuel_prices"
+private const val KEY_NOTIFY_MONTH_RECAP = "notify_month_recap"
 private const val KEY_LAST_MONTH_RECAP = "last_month_recap_announced"
 private const val KEY_SYNC_ROUTE_GEOMETRY = "sync_route_geometry" // [PRIV-A-TRACE-IS-NOT-A-STAT-001]
 // [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001] What was last reported to the account doc.
@@ -306,6 +307,16 @@ class IosAppPreferences : AppPreferences {
 
     override fun setNotifyFuelPrices(enabled: Boolean) {
         userDefaults.setBool(enabled, forKey = KEY_NOTIFY_FUEL_PRICES)
+    }
+
+    // [MONEY-A-CARD-THAT-NEVER-APPEARS-IS-NEVER-SOLD-001] El interruptor del resumen del mes.
+    // Encendido por defecto, como sus tres hermanos: ausente ≠ apagado.
+    override val notifyMonthRecap: Boolean
+        get() = if (userDefaults.objectForKey(KEY_NOTIFY_MONTH_RECAP) == null) true
+                else userDefaults.boolForKey(KEY_NOTIFY_MONTH_RECAP)
+
+    override fun setNotifyMonthRecap(enabled: Boolean) {
+        userDefaults.setBool(enabled, forKey = KEY_NOTIFY_MONTH_RECAP)
     }
 
     // [STATS-PLUS-THE-RECAP-KNOCKS-001] El mes ya contado, como `yyyymm`. Ausente = 0 = nunca.

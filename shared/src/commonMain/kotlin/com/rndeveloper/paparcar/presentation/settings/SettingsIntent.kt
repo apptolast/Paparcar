@@ -10,6 +10,10 @@ sealed class SettingsIntent {
      *  [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001] */
     data class ToggleFuelAlertsNotif(val enabled: Boolean) : SettingsIntent()
 
+    /** El resumen del mes. Mismo gate blando que sus dos vecinas.
+     *  [MONEY-A-CARD-THAT-NEVER-APPEARS-IS-NEVER-SOLD-001] */
+    data class ToggleMonthRecapNotif(val enabled: Boolean) : SettingsIntent()
+
     /** [PRIV-A-TRACE-IS-NOT-A-STAT-001] Soft-gated like the zone alerts: enabling as free opens
      *  the paywall; disabling is always allowed. */
     data class ToggleRouteCloudSync(val enabled: Boolean) : SettingsIntent()

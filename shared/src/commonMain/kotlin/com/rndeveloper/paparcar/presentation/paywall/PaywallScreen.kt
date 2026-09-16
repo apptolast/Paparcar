@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.EventAvailable
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Group
 import androidx.compose.material.icons.rounded.Insights
@@ -95,6 +96,7 @@ import paparcar.composeapp.generated.resources.paywall_reason_stats
 import paparcar.composeapp.generated.resources.paywall_reason_vehicles
 import paparcar.composeapp.generated.resources.paywall_reason_route_cloud
 import paparcar.composeapp.generated.resources.paywall_reason_fuel_alerts
+import paparcar.composeapp.generated.resources.paywall_reason_month_recap
 import paparcar.composeapp.generated.resources.paywall_reason_shared_car
 import paparcar.composeapp.generated.resources.paywall_reason_zone_alerts
 import paparcar.composeapp.generated.resources.paywall_reason_zones
@@ -395,6 +397,7 @@ private fun reasonLine(reason: PaywallReason): ReasonLine? = when (reason) {
     PaywallReason.STATS -> ReasonLine(Icons.Rounded.Insights, Res.string.paywall_reason_stats)
     PaywallReason.ZONE_ALERTS -> ReasonLine(Icons.Rounded.NotificationsActive, Res.string.paywall_reason_zone_alerts)
     PaywallReason.FUEL_ALERTS -> ReasonLine(Icons.Rounded.NotificationsActive, Res.string.paywall_reason_fuel_alerts)
+    PaywallReason.MONTH_RECAP -> ReasonLine(Icons.Rounded.EventAvailable, Res.string.paywall_reason_month_recap)
     PaywallReason.ROUTE_CLOUD -> ReasonLine(Icons.Rounded.Route, Res.string.paywall_reason_route_cloud)
     PaywallReason.SHARED_CAR -> ReasonLine(Icons.Rounded.Group, Res.string.paywall_reason_shared_car)
     PaywallReason.GENERAL -> null

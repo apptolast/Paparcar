@@ -774,6 +774,7 @@
     <string name="paywall_reason_stats">Avec Plus, vous voyez vos chiffres sur n'importe quelle période.</string>
     <string name="paywall_reason_zone_alerts">Les alertes de places libres dans vos zones font partie de Plus.</string>
     <string name="paywall_reason_fuel_alerts">Les alertes de prix du carburant font partie de Plus.</string>
+    <string name="paywall_reason_month_recap">Le bilan du mois fait partie de Plus.</string>
     <string name="paywall_reason_route_cloud">Conserver vos trajets dans votre compte fait partie de Plus.</string>
     <string name="paywall_plan_monthly">Mensuel</string>
     <string name="paywall_plan_yearly">Annuel</string>
@@ -793,6 +794,8 @@
     <string name="settings_notif_zone_alerts_desc">Alerte quand une place se libère dans tes zones</string>
     <string name="settings_notif_fuel_alerts">Alertes de prix du carburant</string>
     <string name="settings_notif_fuel_alerts_desc">Alerte quand une station que tu suis change de prix ou qu'une moins chère est à proximité</string>
+    <string name="settings_notif_month_recap">Bilan du mois</string>
+    <string name="settings_notif_month_recap_desc">Un bilan à la fin du mois : ce que vous avez dépensé et le temps passé à chercher</string>
     <string name="settings_sync_routes">Enregistrer vos trajets dans votre compte</string>
     <string name="settings_sync_routes_desc">Vos trajets restent uniquement sur ce téléphone. Activez pour les retrouver aussi sur vos autres appareils.</string>
     <string name="home_zone_form_notify_label">M'alerter des places libres ici</string>

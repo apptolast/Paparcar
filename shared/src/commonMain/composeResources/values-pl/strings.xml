@@ -788,6 +788,7 @@
     <string name="paywall_reason_stats">Z Plus widzisz swoje liczby za dowolny okres.</string>
     <string name="paywall_reason_zone_alerts">Powiadomienia o wolnych miejscach w twoich strefach są częścią Plus.</string>
     <string name="paywall_reason_fuel_alerts">Alerty cen paliwa są częścią Plus.</string>
+    <string name="paywall_reason_month_recap">Podsumowanie miesiąca jest częścią Plusa.</string>
     <string name="paywall_reason_route_cloud">Zapisywanie tras na koncie to część Plus.</string>
     <string name="paywall_plan_monthly">Miesięcznie</string>
     <string name="paywall_plan_yearly">Rocznie</string>
@@ -807,6 +808,8 @@
     <string name="settings_notif_zone_alerts_desc">Powiadomienie, gdy w Twoich strefach pojawi się wolne miejsce</string>
     <string name="settings_notif_fuel_alerts">Alerty cen paliwa</string>
     <string name="settings_notif_fuel_alerts_desc">Powiadomienie, gdy obserwowana stacja zmieni cenę lub w pobliżu jest tańsza</string>
+    <string name="settings_notif_month_recap">Podsumowanie miesiąca</string>
+    <string name="settings_notif_month_recap_desc">Podsumowanie na koniec miesiąca: ile wydałeś i ile czasu szukałeś miejsca</string>
     <string name="settings_sync_routes">Zapisuj trasy na koncie</string>
     <string name="settings_sync_routes_desc">Twoje przejazdy pozostają tylko na tym telefonie. Włącz, aby widzieć je także na innych urządzeniach.</string>
     <string name="home_zone_form_notify_label">Powiadamiaj o wolnych miejscach tutaj</string>

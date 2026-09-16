@@ -129,6 +129,11 @@ class FakeAppPreferences(
     override val notifyFuelPrices: Boolean get() = _notifyFuelPrices
     override fun setNotifyFuelPrices(enabled: Boolean) { _notifyFuelPrices = enabled }
 
+    // [MONEY-A-CARD-THAT-NEVER-APPEARS-IS-NEVER-SOLD-001] Encendido por defecto, como sus hermanos.
+    private var _notifyMonthRecap = true
+    override val notifyMonthRecap: Boolean get() = _notifyMonthRecap
+    override fun setNotifyMonthRecap(enabled: Boolean) { _notifyMonthRecap = enabled }
+
     // [STATS-PLUS-THE-RECAP-KNOCKS-001] El mes ya contado, como `yyyymm`.
     private var _lastMonthRecap: Int? = null
     override val lastMonthRecapAnnounced: Int? get() = _lastMonthRecap

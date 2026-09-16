@@ -774,6 +774,7 @@
     <string name="paywall_reason_stats">Com Plus vês os teus números em qualquer período.</string>
     <string name="paywall_reason_zone_alerts">Os alertas de lugares livres nas suas zonas fazem parte do Plus.</string>
     <string name="paywall_reason_fuel_alerts">Os alertas de preço de combustível fazem parte do Plus.</string>
+    <string name="paywall_reason_month_recap">O resumo do mês faz parte do Plus.</string>
     <string name="paywall_reason_route_cloud">Guardar as rotas na tua conta faz parte do Plus.</string>
     <string name="paywall_plan_monthly">Mensal</string>
     <string name="paywall_plan_yearly">Anual</string>
@@ -793,6 +794,8 @@
     <string name="settings_notif_zone_alerts_desc">Aviso quando aparecer um lugar livre nas tuas zonas</string>
     <string name="settings_notif_fuel_alerts">Alertas de preço de combustível</string>
     <string name="settings_notif_fuel_alerts_desc">Aviso quando um posto que segues muda de preço ou há outro mais barato perto</string>
+    <string name="settings_notif_month_recap">Resumo do mês</string>
+    <string name="settings_notif_month_recap_desc">Um resumo quando o mês fecha: o que gastaste e quanto tempo passaste à procura</string>
     <string name="settings_sync_routes">Guardar as tuas rotas na tua conta</string>
     <string name="settings_sync_routes_desc">As tuas viagens ficam apenas neste telefone. Ativa para as veres também nos teus outros dispositivos.</string>
     <string name="home_zone_form_notify_label">Avisar-me de lugares livres aqui</string>

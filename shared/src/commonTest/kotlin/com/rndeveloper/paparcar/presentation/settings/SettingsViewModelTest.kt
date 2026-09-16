@@ -647,6 +647,49 @@ class SettingsViewModelTest {
         assertTrue(prefs.notifyZoneSpots)
     }
 
+    // ── Resumen del mes [MONEY-A-CARD-THAT-NEVER-APPEARS-IS-NEVER-SOLD-001] ──
+
+    /**
+     * ⛔ La fila que no existía. Un free no tenía dónde enterarse de que el resumen del mes existe
+     * —ni card, ni notificación, ni mención— y un Plus no tenía dónde callarlo. El gate blando de
+     * la fila arregla las dos mitades a la vez.
+     *
+     * Su motivo es PROPIO y no [PaywallReason.STATS]: querer que te cuenten el mes y querer elegir
+     * un periodo son dos deseos distintos, y distinguirlos es el trabajo del embudo.
+     */
+    @Test
+    fun `should_openTheMonthRecapPaywall_when_freeTurnsTheRecapOn`() = runTest {
+        vm.effect.test {
+            vm.handleIntent(SettingsIntent.ToggleMonthRecapNotif(enabled = true))
+            assertEquals(
+                SettingsEffect.NavigateToPaywall(
+                    com.rndeveloper.paparcar.domain.entitlement.PaywallReason.MONTH_RECAP,
+                ),
+                awaitItem(),
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `should_letPlusSilenceTheRecap_theOneChannelThatCouldNotBeTurnedOff`() = runTest {
+        entitlementRepo.emitEntitlement(com.rndeveloper.paparcar.domain.model.Entitlement.PLUS)
+
+        vm.handleIntent(SettingsIntent.ToggleMonthRecapNotif(enabled = false))
+        assertFalse(prefs.notifyMonthRecap)
+        assertFalse(vm.state.value.notifyMonthRecap)
+
+        vm.handleIntent(SettingsIntent.ToggleMonthRecapNotif(enabled = true))
+        assertTrue(prefs.notifyMonthRecap)
+    }
+
+    /** Callar nunca se gatea, tampoco este. */
+    @Test
+    fun `should_alwaysAllowSilencingTheRecap_when_free`() = runTest {
+        vm.handleIntent(SettingsIntent.ToggleMonthRecapNotif(enabled = false))
+        assertFalse(prefs.notifyMonthRecap)
+    }
+
     @Test
     fun `should_alwaysAllowSilencing_when_free`() = runTest {
         // Silencing a channel needs no entitlement — only ENABLING is the gated attempt.

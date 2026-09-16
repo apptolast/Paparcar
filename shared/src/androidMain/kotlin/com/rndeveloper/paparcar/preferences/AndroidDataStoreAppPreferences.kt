@@ -304,6 +304,11 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
 
     override fun setNotifyFuelPrices(enabled: Boolean) = set(Keys.NOTIFY_FUEL_PRICES, enabled)
 
+    override val notifyMonthRecap: Boolean
+        get() = get(Keys.NOTIFY_MONTH_RECAP, true)
+
+    override fun setNotifyMonthRecap(enabled: Boolean) = set(Keys.NOTIFY_MONTH_RECAP, enabled)
+
     // [STATS-PLUS-THE-RECAP-KNOCKS-001] 0 means "never told" — the key simply is not there yet.
     override val lastMonthRecapAnnounced: Int?
         get() = get(Keys.LAST_MONTH_RECAP, 0).takeIf { it > 0 }
@@ -380,6 +385,9 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         val NOTIFY_ZONE_SPOTS = booleanPreferencesKey("notify_zone_spots")
         val NOTIFY_FUEL_PRICES = booleanPreferencesKey("notify_fuel_prices")
         val LAST_MONTH_RECAP = intPreferencesKey("last_month_recap_announced")
+        // [MONEY-A-CARD-THAT-NEVER-APPEARS-IS-NEVER-SOLD-001] The recap's own switch, which it
+        // never had — its three sibling channels all did.
+        val NOTIFY_MONTH_RECAP = booleanPreferencesKey("notify_month_recap")
         val SYNC_ROUTE_GEOMETRY = booleanPreferencesKey("sync_route_geometry") // [PRIV-A-TRACE-IS-NOT-A-STAT-001]
         // [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001] What was last reported to the account doc.
         val LAST_PUBLISHED_DETECTION_STATE = stringPreferencesKey("last_published_detection_state")

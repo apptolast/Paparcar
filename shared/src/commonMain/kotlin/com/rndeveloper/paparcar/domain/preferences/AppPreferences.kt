@@ -158,6 +158,22 @@ interface AppPreferences {
     fun setNotifyFuelPrices(enabled: Boolean)
 
     /**
+     * Master gate for the Plus month recap — the one thing the app says entirely on its own.
+     * [MONEY-A-CARD-THAT-NEVER-APPEARS-IS-NEVER-SOLD-001] [STATS-PLUS-THE-RECAP-KNOCKS-001]
+     *
+     * ⛔ It did not exist, and its absence was TWO defects wearing one silence: a Plus account
+     * could not turn the recap off while it could silence its three siblings, and a free account
+     * had no surface anywhere naming a feature it does not get — no card (the panel simply does
+     * not compose one), no notification (`RunMonthRecapUseCase` skips it), and no mention. A row
+     * that does not exist cannot be soft-gated, and soft gating is the only way this plan sells.
+     *
+     * ON by default, like its siblings: the recap is a once-a-month knock, not a channel somebody
+     * opted into.
+     */
+    val notifyMonthRecap: Boolean
+    fun setNotifyMonthRecap(enabled: Boolean)
+
+    /**
      * The closed month already told, as `yyyymm` — null until the first one is.
      * [STATS-PLUS-THE-RECAP-KNOCKS-001]
      *

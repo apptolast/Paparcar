@@ -128,6 +128,7 @@ class SettingsViewModel(
                 notifyParkingDetected = prefs.notifyParkingDetected,
                 notifyZoneSpots = prefs.notifyZoneSpots,
                 notifyFuelPrices = prefs.notifyFuelPrices,
+                notifyMonthRecap = prefs.notifyMonthRecap,
                 syncRouteGeometry = prefs.syncRouteGeometry,
             )
         }
@@ -179,6 +180,19 @@ class SettingsViewModel(
             // asymmetry: turning the watch ON is the paywall moment, turning it off never is.
             // ⛔ What this does NOT touch is which stations are followed — those stay starred
             // through a lapse, so regaining Plus resumes the same watch instead of an empty one.
+            // [MONEY-A-CARD-THAT-NEVER-APPEARS-IS-NEVER-SOLD-001] La misma asimetría que sus dos
+            // vecinas: encenderlo siendo free es el intento que abre el paywall, apagarlo se
+            // permite siempre. ⛔ Y su motivo es PROPIO, no el de cifras: querer que te CUENTEN
+            // cómo fue el mes y querer ELEGIR un periodo son dos deseos distintos, y separarlos es
+            // el trabajo entero del embudo.
+            is SettingsIntent.ToggleMonthRecapNotif -> {
+                if (intent.enabled && !state.value.isPlus) {
+                    sendEffect(SettingsEffect.NavigateToPaywall(PaywallReason.MONTH_RECAP))
+                } else {
+                    prefs.setNotifyMonthRecap(intent.enabled)
+                    updateState { copy(notifyMonthRecap = intent.enabled) }
+                }
+            }
             is SettingsIntent.ToggleFuelAlertsNotif -> {
                 if (intent.enabled && !state.value.isPlus) {
                     sendEffect(SettingsEffect.NavigateToPaywall(PaywallReason.FUEL_ALERTS))

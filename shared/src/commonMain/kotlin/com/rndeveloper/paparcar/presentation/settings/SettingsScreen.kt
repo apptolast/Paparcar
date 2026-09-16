@@ -44,6 +44,7 @@ import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.CloudUpload
+import androidx.compose.material.icons.rounded.EventAvailable
 import androidx.compose.material.icons.rounded.LocalGasStation
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Person
@@ -186,6 +187,8 @@ import paparcar.composeapp.generated.resources.settings_section_detection
 import paparcar.composeapp.generated.resources.settings_section_map
 import paparcar.composeapp.generated.resources.settings_notif_fuel_alerts
 import paparcar.composeapp.generated.resources.settings_notif_fuel_alerts_desc
+import paparcar.composeapp.generated.resources.settings_notif_month_recap
+import paparcar.composeapp.generated.resources.settings_notif_month_recap_desc
 import paparcar.composeapp.generated.resources.settings_notif_zone_alerts
 import paparcar.composeapp.generated.resources.settings_sync_routes
 import paparcar.composeapp.generated.resources.settings_sync_routes_desc
@@ -520,6 +523,25 @@ fun SettingsContent(
                                 description = stringResource(Res.string.settings_notif_fuel_alerts_desc),
                                 checked = state.isPlus && state.notifyFuelPrices,
                                 onCheckedChange = { onIntent(SettingsIntent.ToggleFuelAlertsNotif(it)) },
+                                subtitleColor = settingsSubtitleColor(),
+                            )
+                            PapDivider()
+                            // [MONEY-A-CARD-THAT-NEVER-APPEARS-IS-NEVER-SOLD-001] La fila que
+                            // faltaba, y su ausencia eran DOS fallos: un Plus no podía callar el
+                            // único aviso de los cuatro que no se podía callar, y para un free la
+                            // función no existía en ninguna superficie — sin card en el panel, sin
+                            // notificación y sin una sola mención. Una fila que no existe no se
+                            // puede gatear en blando, que es la única forma en que este plan vende.
+                            //
+                            // ⛔ La descripción dice QUÉ es el aviso y nada de free-vs-Plus, igual
+                            // que sus dos vecinas (decisión del user, 16-09): quien lo explica es
+                            // el paywall, en el momento del toque.
+                            PapSwitchRow(
+                                icon = Icons.Rounded.EventAvailable,
+                                label = stringResource(Res.string.settings_notif_month_recap),
+                                description = stringResource(Res.string.settings_notif_month_recap_desc),
+                                checked = state.isPlus && state.notifyMonthRecap,
+                                onCheckedChange = { onIntent(SettingsIntent.ToggleMonthRecapNotif(it)) },
                                 subtitleColor = settingsSubtitleColor(),
                             )
                             PapDivider()
