@@ -131,6 +131,9 @@
     <string name="history_filter_last_7_days">Ultimi 7 giorni</string>
     <string name="history_filter_this_month">Questo mese</string>
     <string name="history_filter_last_3_months">Ultimi 3 mesi</string>
+    <string name="history_filter_last_month">Mese scorso</string>
+    <string name="history_filter_this_year">Quest'anno</string>
+    <string name="history_filter_years">Per anno</string>
     <string name="history_month_short_1">gen</string>
     <string name="history_month_short_2">feb</string>
     <string name="history_month_short_3">mar</string>

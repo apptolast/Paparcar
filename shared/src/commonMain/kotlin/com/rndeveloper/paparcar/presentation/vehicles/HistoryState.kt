@@ -200,4 +200,16 @@ data class HistoryState(
      */
     val periodStats: PeriodStats?
         get() = (timeline as? HistoryTimeline.Resolved)?.periodStats
+
+    /**
+     * The periods this history can answer. [STATS-A-FILTER-THAT-CANNOT-ANSWER-IS-NOT-OFFERED-001]
+     *
+     * ⛔ From the FULL list and not the visible one: what the row may OFFER is a question about the
+     * DATA, not about the plan. A free account with a year behind it still sees "this year" and
+     * meets the paywall on tapping it — hiding the chip would be a hard gate on a button [MONEY-001].
+     * While the history is unresolved the row holds only the periods that are always true, so it
+     * never flickers a chip in and out as Room answers.
+     */
+    val periodFilters: List<HistoryFilter>
+        get() = availableFilters((timeline as? HistoryTimeline.Resolved)?.sessions.orEmpty())
 }

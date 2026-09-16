@@ -36,6 +36,20 @@ data class StatsState(
     val periodStats: PeriodStats? = null,
     /** The period's sessions, for the chart's buckets — the same list the figures came from. */
     val filteredSessions: List<UserParking> = emptyList(),
+    /**
+     * The periods this car's history can answer, derived from its sessions.
+     * [STATS-A-FILTER-THAT-CANNOT-ANSWER-IS-NOT-OFFERED-001]
+     *
+     * ⛔ Derived from the FULL list, never the gated one. A free account with a year of driving must
+     * still SEE "this year" on the row and get the paywall when it taps it — hiding the chip would
+     * be a hard gate on a button, which is exactly what [MONEY-001] forbids.
+     */
+    val periodFilters: List<HistoryFilter> = listOf(
+        HistoryFilter.All,
+        HistoryFilter.Last7Days,
+        HistoryFilter.ThisWeek,
+        HistoryFilter.ThisMonth,
+    ),
     /** Where the spend figure's price came from — the panel owes the same caveat the ficha gives,
      *  or the same number carries a warning on one screen and none on the other.
      *  [FUEL-PRICE-RESOLVER-001] */

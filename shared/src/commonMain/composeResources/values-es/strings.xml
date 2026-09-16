@@ -179,6 +179,9 @@
     <string name="history_filter_last_7_days">Últimos 7 días</string>
     <string name="history_filter_this_month">Este mes</string>
     <string name="history_filter_last_3_months">Últimos 3 meses</string>
+    <string name="history_filter_last_month">Mes pasado</string>
+    <string name="history_filter_this_year">Este año</string>
+    <string name="history_filter_years">Por años</string>
     <!-- %1$d = día, %2$s = nombre del mes, %3$s = hora (con ceros), %4$s = minuto (con ceros) -->
     <string name="history_month_short_1">ene</string>
     <string name="history_month_short_2">feb</string>

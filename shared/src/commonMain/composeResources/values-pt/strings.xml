@@ -131,6 +131,9 @@
     <string name="history_filter_last_7_days">Últimos 7 dias</string>
     <string name="history_filter_this_month">Este mês</string>
     <string name="history_filter_last_3_months">Últimos 3 meses</string>
+    <string name="history_filter_last_month">Mês passado</string>
+    <string name="history_filter_this_year">Este ano</string>
+    <string name="history_filter_years">Por ano</string>
     <string name="history_month_short_1">jan</string>
     <string name="history_month_short_2">fev</string>
     <string name="history_month_short_3">mar</string>

@@ -22,6 +22,7 @@ import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import com.rndeveloper.paparcar.presentation.base.BaseViewModel
 import com.rndeveloper.paparcar.presentation.vehicles.HistoryFilter
+import com.rndeveloper.paparcar.presentation.vehicles.availableFilters
 import com.rndeveloper.paparcar.presentation.vehicles.resolveChartMetric
 import com.rndeveloper.paparcar.presentation.vehicles.HistoryTimeline
 import kotlinx.coroutines.flow.catch
@@ -158,6 +159,7 @@ class StatsViewModel(
                 lifetimeSpotsReleased = 0,
             )
         }
+        val allSessions = sessionsByVehicle[vehicle.id].orEmpty()
         val resolved = HistoryTimeline.resolve(
             sessions = sessionsByVehicle[vehicle.id].orEmpty(),
             filter = filter,
@@ -175,6 +177,9 @@ class StatsViewModel(
             insights = deriveInsights(resolved.filteredSessions, resolved.periodStats),
             closedMonth = closedMonthRecap(vehicle),
             filteredSessions = resolved.filteredSessions,
+            // Over the FULL list: what the row may OFFER is a question about the data, not about the
+            // plan. [STATS-A-FILTER-THAT-CANNOT-ANSWER-IS-NOT-OFFERED-001]
+            periodFilters = availableFilters(allSessions),
             costPrice = resolved.costPrice,
             lifetimeParkings = resolved.lifetimeParkings,
             lifetimeSpotsReleased = resolved.lifetimeSpotsReleased,

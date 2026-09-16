@@ -131,6 +131,9 @@
     <string name="history_filter_last_7_days">Ostatnie 7 dni</string>
     <string name="history_filter_this_month">Ten miesiąc</string>
     <string name="history_filter_last_3_months">Ostatnie 3 miesiące</string>
+    <string name="history_filter_last_month">Poprzedni miesiąc</string>
+    <string name="history_filter_this_year">Ten rok</string>
+    <string name="history_filter_years">Według roku</string>
     <string name="history_month_short_1">sty</string>
     <string name="history_month_short_2">lut</string>
     <string name="history_month_short_3">mar</string>

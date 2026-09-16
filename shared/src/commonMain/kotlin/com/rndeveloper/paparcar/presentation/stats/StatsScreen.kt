@@ -154,8 +154,13 @@ fun StatsContent(
 
             item(key = "filters") {
                 HistoryFilterBar(
+                    filters = state.periodFilters,
                     activeFilter = state.filter,
                     onFilterSelected = { onIntent(StatsIntent.SetFilter(it)) },
+                    // This screen's Scaffold is `surface`; the bar used to assume the tone of the
+                    // OTHER screen it lives on and painted a band across this one.
+                    // [STATS-A-FILTER-THAT-CANNOT-ANSWER-IS-NOT-OFFERED-001]
+                    containerColor = MaterialTheme.colorScheme.surface,
                 )
                 Spacer(Modifier.height(SECTION_GAP_DP.dp))
             }

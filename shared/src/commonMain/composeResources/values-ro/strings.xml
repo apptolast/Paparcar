@@ -133,6 +133,9 @@
     <string name="history_filter_last_7_days">Ultimele 7 zile</string>
     <string name="history_filter_this_month">Luna aceasta</string>
     <string name="history_filter_last_3_months">Ultimele 3 luni</string>
+    <string name="history_filter_last_month">Luna trecută</string>
+    <string name="history_filter_this_year">Anul acesta</string>
+    <string name="history_filter_years">Pe ani</string>
     <string name="history_month_short_1">ian</string>
     <string name="history_month_short_2">feb</string>
     <string name="history_month_short_3">mar</string>

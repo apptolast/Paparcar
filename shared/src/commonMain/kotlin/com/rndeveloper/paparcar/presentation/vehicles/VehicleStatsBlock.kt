@@ -71,7 +71,9 @@ import paparcar.composeapp.generated.resources.history_day_full_thu
 import paparcar.composeapp.generated.resources.history_day_full_tue
 import paparcar.composeapp.generated.resources.history_day_full_wed
 import paparcar.composeapp.generated.resources.history_filter_last_3_months
+import paparcar.composeapp.generated.resources.history_filter_last_month
 import paparcar.composeapp.generated.resources.history_filter_this_month
+import paparcar.composeapp.generated.resources.history_filter_this_year
 import paparcar.composeapp.generated.resources.history_filter_this_week
 import paparcar.composeapp.generated.resources.stats_cost_from_average
 import paparcar.composeapp.generated.resources.stats_cost_from_average_dated
@@ -428,6 +430,10 @@ internal fun vehicleStatsPeriodLabel(filter: HistoryFilter, isPlus: Boolean): St
             HistoryFilter.Last7Days -> stringResource(Res.string.history_filter_last_7_days)
             HistoryFilter.ThisMonth -> stringResource(Res.string.history_filter_this_month)
             HistoryFilter.Last3Months -> stringResource(Res.string.history_filter_last_3_months)
+            HistoryFilter.LastMonth -> stringResource(Res.string.history_filter_last_month)
+            HistoryFilter.ThisYear -> stringResource(Res.string.history_filter_this_year)
+            // A year names itself. [STATS-A-FILTER-THAT-CANNOT-ANSWER-IS-NOT-OFFERED-001]
+            is HistoryFilter.Year -> filter.value.toString()
         }
     }
 

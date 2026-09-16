@@ -366,6 +366,33 @@ private fun sheet(state: HomeState, firstStepGuide: FirstStepGuide? = null) {
 
 // Un historial ya resuelto, con sus vistas derivadas calculadas por el MISMO sitio que las calcula
 // en producción — así la galería no puede mostrar un set filtrado que contradiga a su filtro.
+/**
+ * Las mismas sesiones, [days] días atrás — para que la galería pueda enseñar un periodo CERRADO.
+ * [STATS-A-FILTER-THAT-CANNOT-ANSWER-IS-NOT-OFFERED-001]
+ *
+ * ⛔ Mover el reloj y no la geometría: los sitios, las rutas y el tiempo buscando plaza siguen
+ * siendo los mismos, así que lo único que cambia entre una variante y otra es el PERIODO, que es
+ * exactamente lo que estas variantes existen para enseñar.
+ */
+private fun List<UserParking>.shiftedBack(days: Int): List<UserParking> {
+    val delta = days * MS_PER_DAY
+    return mapIndexed { index, session ->
+        session.copy(
+            id = "${session.id}-${days}d-$index",
+            location = session.location.copy(timestamp = session.location.timestamp - delta),
+            // ⛔ Y su FINAL con él. Moviendo sólo el comienzo, una sesión empezaba hace dos años y
+            // terminaba hoy: la galería enseñaba «9686 h de duración media», que no es un estado de
+            // la app sino un fixture roto — y un fixture roto en la galería se lee como un bug.
+            endedAtMs = session.endedAtMs?.minus(delta),
+        )
+    }
+}
+
+private const val MS_PER_DAY = 24L * 60 * 60 * 1000
+private const val DAYS_IN_MONTH = 31
+private const val DAYS_IN_HALF_YEAR = 183
+private const val DAYS_IN_YEAR = 365
+
 private fun resolvedHistory(
     sessions: List<UserParking>,
     filter: HistoryFilter = HistoryFilter.All,
@@ -547,6 +574,32 @@ private fun history(
         onViewOnMap = { _, _, _ -> },
         onFilterSelected = {},
         isPlus = isPlus,
+    )
+}
+
+/**
+ * Un historial que SÍ responde al selector de periodo.
+ * [STATS-A-FILTER-THAT-CANNOT-ANSWER-IS-NOT-OFFERED-001]
+ *
+ * ⛔ La galería es un catálogo de ESTADOS y por eso su `onFilterSelected` no hace nada: cada
+ * variante enseña uno, y tocar no debe llevarte a otro. Pero un selector cuyo trabajo entero es
+ * CAMBIAR de periodo no se puede mirar quieto — «Por años» se despliega y no se puede comprobar que
+ * lo elegido llega hasta las barras. Así que las variantes de periodo, y sólo ésas, se resuelven de
+ * nuevo con la elección: sigue sin haber ViewModel, porque `HistoryTimeline.resolve` es una función
+ * pura y el estado es un `remember` de esta pantalla.
+ */
+@Composable
+private fun interactiveHistory(sessions: List<UserParking>, initial: HistoryFilter) {
+    var filter by remember(initial) { mutableStateOf(initial) }
+    HistoryContent(
+        state = HistoryState(
+            timeline = resolvedHistory(sessions, filter),
+            activeFilter = filter,
+        ),
+        contentPadding = PaddingValues(0.dp),
+        onViewOnMap = { _, _, _ -> },
+        onFilterSelected = { filter = it },
+        isPlus = true,
     )
 }
 
@@ -2072,6 +2125,32 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         timeline = resolvedHistory(FakeData.allSessions, HistoryFilter.ThisWeek),
                         activeFilter = HistoryFilter.ThisWeek,
                     ),
+                )
+            },
+            // [STATS-A-FILTER-THAT-CANNOT-ANSWER-IS-NOT-OFFERED-001] Los periodos que CIERRAN. El
+            // mes pasado sólo se podía mirar por la card del resumen, que se retira el día 8.
+            Variant("Filtro: mes pasado (periodo cerrado)") {
+                interactiveHistory(
+                    sessions = FakeData.allSessions + FakeData.allSessions.shiftedBack(DAYS_IN_MONTH),
+                    initial = HistoryFilter.LastMonth,
+                )
+            },
+            // Con más de un trimestre por detrás aparece «Este año» — y es el único periodo que
+            // despierta la proyección anual. [STATS-AN-ESTIMATE-SAYS-IT-IS-ONE-001]
+            Variant("Filtro: este año") {
+                interactiveHistory(
+                    sessions = FakeData.allSessions + FakeData.allSessions.shiftedBack(DAYS_IN_HALF_YEAR),
+                    initial = HistoryFilter.ThisYear,
+                )
+            },
+            // Tres años de historia: el chip de años aparece, y «Todos» pasa a dibujar AÑOS. Antes
+            // decía «Todos» y enseñaba los últimos doce meses sin decirlo.
+            Variant("Tres años: chip de años y «Todos» por años") {
+                interactiveHistory(
+                    sessions = FakeData.allSessions +
+                        FakeData.allSessions.shiftedBack(DAYS_IN_YEAR) +
+                        FakeData.allSessions.shiftedBack(2 * DAYS_IN_YEAR),
+                    initial = HistoryFilter.All,
                 )
             },
             // [UI-HISTORY-A-PARTIAL-SUM-IS-NOT-A-TOTAL-001] Los km del bloque salen sólo de las

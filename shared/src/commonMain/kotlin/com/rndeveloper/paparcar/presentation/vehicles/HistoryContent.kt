@@ -323,8 +323,12 @@ fun HistoryContent(
 
                 item(key = "filter_bar") {
                     HistoryFilterBar(
+                        filters = state.periodFilters,
                         activeFilter = state.activeFilter,
                         onFilterSelected = onFilterSelected,
+                        // The tone of THIS page, said out loud instead of assumed.
+                        // [STATS-A-FILTER-THAT-CANNOT-ANSWER-IS-NOT-OFFERED-001]
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
                     )
                 }
 

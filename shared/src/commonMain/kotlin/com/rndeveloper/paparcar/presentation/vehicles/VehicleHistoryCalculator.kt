@@ -55,6 +55,12 @@ object VehicleHistoryCalculator {
             // INCLUDING the current one, which is exactly the span the three bars cover.
             HistoryFilter.Last3Months ->
                 LocalDate(today.year, today.month, 1).minus(MONTHLY_BUCKETS - 1, DateTimeUnit.MONTH)
+            // The three periods that CLOSED in the past, or are about to.
+            // [STATS-A-FILTER-THAT-CANNOT-ANSWER-IS-NOT-OFFERED-001]
+            HistoryFilter.LastMonth ->
+                LocalDate(today.year, today.month, 1).minus(1, DateTimeUnit.MONTH)
+            HistoryFilter.ThisYear -> LocalDate(today.year, 1, 1)
+            is HistoryFilter.Year -> LocalDate(filter.value, 1, 1)
         }
         return startDate.atStartOfDayIn(tz).toEpochMilliseconds()
     }
@@ -82,19 +88,35 @@ object VehicleHistoryCalculator {
                 today.minus(today.dayOfWeek.isoDayNumber - 1, DateTimeUnit.DAY)
                     .plus(DAYS_PER_WEEK, DateTimeUnit.DAY)
             HistoryFilter.ThisMonth -> LocalDate(today.year, today.month, 1).plus(1, DateTimeUnit.MONTH)
+            // A period that has ALREADY closed has an end too, and it is in the past — which is
+            // what stops [filter] from letting this month's sessions leak into last month's
+            // figures. [STATS-A-FILTER-THAT-CANNOT-ANSWER-IS-NOT-OFFERED-001]
+            HistoryFilter.LastMonth -> LocalDate(today.year, today.month, 1)
+            HistoryFilter.ThisYear -> LocalDate(today.year + 1, 1, 1)
+            is HistoryFilter.Year -> LocalDate(filter.value + 1, 1, 1)
             HistoryFilter.Last7Days, HistoryFilter.Last3Months, HistoryFilter.All -> return null
         }
         return endDate.atStartOfDayIn(tz).toEpochMilliseconds()
     }
 
-    /** Sessions within the time window of [filter]. `nowMs` injectable for deterministic tests. */
+    /**
+     * Sessions within the time window of [filter]. `nowMs` injectable for deterministic tests.
+     *
+     * ⛔ **Both ends, not just the start.** While every period ran up to "now", an open-ended cut was
+     * the same thing; the moment one of them CLOSED in the past — last month, a finished year — a
+     * start-only filter would have counted every parking since, and "last month" would have grown
+     * all month. [STATS-A-FILTER-THAT-CANNOT-ANSWER-IS-NOT-OFFERED-001]
+     */
     fun filter(
         sessions: List<UserParking>,
         filter: HistoryFilter,
         nowMs: Long = Clock.System.now().toEpochMilliseconds(),
     ): List<UserParking> {
         val startMs = windowStartMs(filter, nowMs) ?: return sessions
-        return sessions.filter { it.location.timestamp >= startMs }
+        val endMs = windowEndMs(filter, nowMs)
+        return sessions.filter {
+            it.location.timestamp >= startMs && (endMs == null || it.location.timestamp < endMs)
+        }
     }
 
     // computeStats moved to domain in [STATS-CORE-001]: ComputePeriodStatsUseCase is THE
@@ -127,6 +149,10 @@ object VehicleHistoryCalculator {
             HistoryFilter.Last7Days -> currentStartDate.minus(DAYS_PER_WEEK, DateTimeUnit.DAY)
             HistoryFilter.ThisMonth -> currentStartDate.minus(1, DateTimeUnit.MONTH)
             HistoryFilter.Last3Months -> currentStartDate.minus(MONTHLY_BUCKETS, DateTimeUnit.MONTH)
+            // The month before the closed one, and the year before the year.
+            HistoryFilter.LastMonth -> currentStartDate.minus(1, DateTimeUnit.MONTH)
+            HistoryFilter.ThisYear, is HistoryFilter.Year ->
+                currentStartDate.minus(1, DateTimeUnit.YEAR)
         }
         return previousStartDate.atStartOfDayIn(tz).toEpochMilliseconds() until currentStart
     }
@@ -157,11 +183,88 @@ object VehicleHistoryCalculator {
     ): List<ActivityBucket> = when (filter) {
         HistoryFilter.ThisWeek -> weekDayBuckets(sessions, dayLabels, metric, nowMs)
         HistoryFilter.Last7Days -> rollingDayBuckets(sessions, dayLabels, metric, nowMs)
-        HistoryFilter.ThisMonth -> monthWeekBuckets(sessions, metric, nowMs)
+        HistoryFilter.ThisMonth -> monthWeekBuckets(sessions, metric, nowMs, monthsBack = 0)
+        // The closed month draws in the same unit as the current one — weeks — because what makes
+        // them comparable at a glance is the SHAPE, and a month redrawn in another unit cannot be
+        // compared to the one beside it. [STATS-A-FILTER-THAT-CANNOT-ANSWER-IS-NOT-OFFERED-001]
+        HistoryFilter.LastMonth -> monthWeekBuckets(sessions, metric, nowMs, monthsBack = 1)
         HistoryFilter.Last3Months ->
             monthlyBuckets(sessions, monthNamesShort, MONTHLY_BUCKETS, metric, nowMs)
-        HistoryFilter.All -> monthlyBuckets(sessions, monthNamesShort, ALL_MONTHS_CAP, metric, nowMs)
+        // A year is always its twelve months, whether it is running or finished.
+        HistoryFilter.ThisYear -> calendarYearBuckets(sessions, monthNamesShort, metric, nowMs, nowMs.yearIn())
+        is HistoryFilter.Year ->
+            calendarYearBuckets(sessions, monthNamesShort, metric, nowMs, filter.value)
+        HistoryFilter.All -> allBuckets(sessions, monthNamesShort, metric, nowMs)
     }
+
+    /**
+     * "All" in the unit its own span deserves. [STATS-A-FILTER-THAT-CANNOT-ANSWER-IS-NOT-OFFERED-001]
+     *
+     * ⛔ **A cap is not a unit.** This used to be twelve monthly bars and nothing else, so a driver
+     * with three years of history read a chip that said "All" over a chart that showed the last
+     * year — the FIGURES were of everything, the drawing was of twelve months, and nothing on
+     * screen said which. Past a year the bars become YEARS, so the label and the picture answer the
+     * same question again.
+     */
+    private fun allBuckets(
+        sessions: List<UserParking>,
+        monthNamesShort: List<String>,
+        metric: ChartMetric,
+        nowMs: Long,
+    ): List<ActivityBucket> {
+        val tz = TimeZone.currentSystemDefault()
+        val thisYear = nowMs.yearIn(tz)
+        val firstYear = sessions.minOfOrNull {
+            Instant.fromEpochMilliseconds(it.location.timestamp).toLocalDateTime(tz).year
+        } ?: thisYear
+        val oldest = sessions.minOfOrNull { it.location.timestamp }
+        val startOfTheCappedWindow = LocalDate(
+            Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(tz).date.year,
+            Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(tz).date.month,
+            1,
+        ).minus(ALL_MONTHS_CAP - 1, DateTimeUnit.MONTH).atStartOfDayIn(tz).toEpochMilliseconds()
+        val spansMoreThanTheCap = oldest != null && oldest < startOfTheCappedWindow
+        return if (spansMoreThanTheCap) {
+            val byYear = sessions.groupBy {
+                Instant.fromEpochMilliseconds(it.location.timestamp).toLocalDateTime(tz).year
+            }
+            (firstYear..thisYear).map { year ->
+                ActivityBucket(
+                    label = year.toString(),
+                    value = metric.valueOf(byYear[year].orEmpty()),
+                    isCurrent = year == thisYear,
+                )
+            }
+        } else {
+            monthlyBuckets(sessions, monthNamesShort, ALL_MONTHS_CAP, metric, nowMs)
+        }
+    }
+
+    /** One bar per month of [year], January → December. */
+    private fun calendarYearBuckets(
+        sessions: List<UserParking>,
+        monthNamesShort: List<String>,
+        metric: ChartMetric,
+        nowMs: Long,
+        year: Int,
+    ): List<ActivityBucket> {
+        val tz = TimeZone.currentSystemDefault()
+        val today = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(tz).date
+        val byMonth = sessions
+            .map { Instant.fromEpochMilliseconds(it.location.timestamp).toLocalDateTime(tz) to it }
+            .filter { (d, _) -> d.year == year }
+            .groupBy({ (d, _) -> d.month.number }, { (_, s) -> s })
+        return (1..MONTHS_PER_YEAR).map { month ->
+            ActivityBucket(
+                label = monthNamesShort[month - 1],
+                value = metric.valueOf(byMonth[month].orEmpty()),
+                isCurrent = year == today.year && month == today.month.number,
+            )
+        }
+    }
+
+    private fun Long.yearIn(tz: TimeZone = TimeZone.currentSystemDefault()): Int =
+        Instant.fromEpochMilliseconds(this).toLocalDateTime(tz).year
 
     /** One bar per day of the CURRENT week, Monday → Sunday — the same week the filter cut. */
     private fun weekDayBuckets(
@@ -210,15 +313,22 @@ object VehicleHistoryCalculator {
         }
     }
 
-    /** One bar per week of the current month, labelled by the week's starting day-of-month. */
+    /**
+     * One bar per week of a calendar month, labelled by the week's starting day-of-month.
+     * [monthsBack] picks WHICH month: 0 is the running one, 1 the one that just closed.
+     */
     private fun monthWeekBuckets(
         sessions: List<UserParking>,
         metric: ChartMetric,
         nowMs: Long,
+        monthsBack: Int,
     ): List<ActivityBucket> {
         val tz = TimeZone.currentSystemDefault()
         val today = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(tz).date
-        val currentWeek = (today.day - 1) / DAYS_PER_WEEK
+        val month = LocalDate(today.year, today.month, 1).minus(monthsBack, DateTimeUnit.MONTH)
+        // A closed month has no "current" week: every one of its bars is finished, and lighting one
+        // of them would point at a week for no reason.
+        val currentWeek = if (monthsBack == 0) (today.day - 1) / DAYS_PER_WEEK else -1
         fun weekOf(session: UserParking): Int {
             val d = Instant.fromEpochMilliseconds(session.location.timestamp).toLocalDateTime(tz).date
             return ((d.day - 1) / DAYS_PER_WEEK).coerceAtMost(WEEKS_IN_MONTH - 1)
@@ -226,7 +336,7 @@ object VehicleHistoryCalculator {
         val byWeek = sessions
             .filter { s ->
                 val d = Instant.fromEpochMilliseconds(s.location.timestamp).toLocalDateTime(tz).date
-                d.year == today.year && d.month == today.month
+                d.year == month.year && d.month == month.month
             }
             .groupBy(::weekOf)
         return (0 until WEEKS_IN_MONTH).map { i ->
@@ -265,6 +375,7 @@ object VehicleHistoryCalculator {
 
     private const val DAYS_PER_WEEK = 7
     private const val WEEKS_IN_MONTH = 5
+    private const val MONTHS_PER_YEAR = 12
     /** Calendar months spanned by "Last 3 months" — the filter window and the bars share it, which
      *  is the whole point of [UI-HISTORY-THE-CHART-SPANS-WHAT-THE-FILTER-SPANS-001]. */
     private const val MONTHLY_BUCKETS = 3
