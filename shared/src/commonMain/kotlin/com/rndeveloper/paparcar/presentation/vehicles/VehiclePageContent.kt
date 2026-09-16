@@ -12,12 +12,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Adjust
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.AccessTimeFilled
 import androidx.compose.material.icons.rounded.Edit
@@ -34,6 +34,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.components.PapDivider
+import com.rndeveloper.paparcar.ui.components.PapNavChevron
+import com.rndeveloper.paparcar.ui.components.PapNavChevronSize
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.presentation.util.locationDisplayText
 import com.rndeveloper.paparcar.presentation.util.relativeTimeText
@@ -244,13 +246,13 @@ private fun VehicleStateLine(
         }
         // Chrome, no identidad: el chevron dice "se abre", no de quién es el coche.
         // [UI-COLOR-DOCTRINE-001]
+        //
+        // ⛔ El canónico, no uno propio. Era un `ChevronRight` de 20 dp en `onSurfaceVariant`
+        // dibujado a mano, mientras las filas de Historial de ESTA MISMA pantalla usaban
+        // `PapNavChevron`. Dos glifos distintos para «esto abre algo» a dos dedos de distancia.
+        // [UI-A-CHEVRON-MUST-SIT-ON-THE-CARD-RAIL-001]
         if (lastSession != null) {
-            Icon(
-                imageVector = Icons.Rounded.ChevronRight,
-                contentDescription = stringResource(Res.string.vehicle_view_on_map),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(STATE_CHEVRON_DP.dp),
-            )
+            PapNavChevron(contentDescription = stringResource(Res.string.vehicle_view_on_map))
         }
     }
 }
@@ -363,7 +365,19 @@ private fun VehicleHeroCard(
                     )
                 },
                 trailing = {
-                    IconButton(onClick = onEdit, modifier = Modifier.size(EDIT_BOX_DP.dp)) {
+                    // El raíl de acciones de esta card es el EJE DEL GLIFO —el mismo en el que caen
+                    // el chevron del bloque de estado y el de «Compartir este coche»—, no el borde
+                    // de la caja táctil. El lápiz vive en una caja de 40 dp que no se puede
+                    // encoger sin bajar del mínimo táctil, así que la caja SOBRESALE lo justo para
+                    // que su glifo aterrice en el eje: media caja menos medio chevron. Calculado,
+                    // no escrito a mano — si el chevron cambia de tamaño, el lápiz lo sigue.
+                    // [UI-A-CHEVRON-MUST-SIT-ON-THE-CARD-RAIL-001]
+                    IconButton(
+                        onClick = onEdit,
+                        modifier = Modifier
+                            .size(EDIT_BOX_DP.dp)
+                            .offset(x = (EDIT_BOX_DP.dp - PapNavChevronSize) / 2),
+                    ) {
                         Icon(
                             Icons.Rounded.Edit,
                             contentDescription = stringResource(Res.string.my_car_edit_vehicle),
@@ -432,8 +446,6 @@ private const val STATE_ICON_GAP = 6
  *  [UI-A-PARKED-CARD-SAYS-WHERE-AND-WHEN-IN-TWO-LINES-001] */
 private const val STATE_LINE_GAP = 4
 private const val PLACE_MAX_LINES = 2
-/** El chevron de "esto se abre". Más grande que los iconos de dato: es chrome de fila, no un dato. */
-private const val STATE_CHEVRON_DP = 20
 private const val CARD_PADDING = 16
 // Identity block paddings per the design spec (15 top / 13 bottom).
 private const val IDENTITY_TOP_PAD = 15

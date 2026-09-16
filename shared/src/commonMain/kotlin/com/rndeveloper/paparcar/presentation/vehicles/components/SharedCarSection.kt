@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Group
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.Refresh
@@ -27,6 +26,7 @@ import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.presentation.util.relativeTimeText
 import com.rndeveloper.paparcar.ui.components.PapIconTile
 import com.rndeveloper.paparcar.ui.components.PapListItem
+import com.rndeveloper.paparcar.ui.components.PapNavChevron
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
 import com.rndeveloper.paparcar.ui.components.PapSectionHeader
 import com.rndeveloper.paparcar.ui.components.chips.PaparcarFilterChip
@@ -90,7 +90,7 @@ fun SharedCarSection(
                     title = stringResource(Res.string.shared_car_share_cta),
                     subtitle = stringResource(Res.string.shared_car_row_sub_not_shared),
                     leading = { PapIconTile(icon = Icons.Rounded.Group) },
-                    trailing = { Chevron() },
+                    trailing = { PapNavChevron() },
                 )
             }
             return@Column
@@ -141,7 +141,7 @@ fun SharedCarSection(
                 title = stringResource(Res.string.shared_car_members_title),
                 subtitle = memberLine,
                 leading = { PapIconTile(icon = Icons.Rounded.Group) },
-                trailing = { Chevron() },
+                trailing = { PapNavChevron() },
             )
         }
 
@@ -227,15 +227,6 @@ fun SharedCarSection(
             )
         }
     }
-}
-
-@Composable
-private fun Chevron() {
-    Icon(
-        imageVector = Icons.Rounded.ChevronRight,
-        contentDescription = null,
-        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
 }
 
 /** Alguien del grupo cuyo perfil no trae nombre: sigue siendo alguien, no un hueco. */

@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
@@ -101,15 +102,33 @@ fun PapInfoRow(
     )
 }
 
-/** The shared trailing chevron of navigation rows — one size, one dimness, everywhere. */
+/**
+ * The shared trailing chevron of navigation rows — one size, one dimness, everywhere.
+ *
+ * ⛔ Y «everywhere» ahora es verdad. Lo decía este KDoc mientras tres sitios se dibujaban el suyo a
+ * mano —`ChevronRight` a 24, a 22 y a 20, en `onSurfaceVariant`—, y los cuatro coexistían en la
+ * MISMA pantalla de Vehículos: las filas de Historial usaban esta, y las dos cards de arriba no.
+ * Un chevron no es decoración de cada fila, es cómo la app dice «esto abre algo»: si cambia de
+ * tamaño entre dos cards adyacentes, lo que el usuario lee es un fallo de alineación.
+ * [UI-A-CHEVRON-MUST-SIT-ON-THE-CARD-RAIL-001] [UI-LIST-ITEM-001]
+ *
+ * @param contentDescription qué se abre, cuando la fila no lo dice sola. Normalmente `null` —el
+ *   texto de la fila ya lo anuncia—, pero un bloque que es a la vez estado Y puerta (la ficha del
+ *   coche: dice dónde está y lleva al mapa) necesita nombrar el destino.
+ */
 @Composable
-fun PapNavChevron() {
+fun PapNavChevron(contentDescription: String? = null) {
     Icon(
         imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-        contentDescription = null,
+        contentDescription = contentDescription,
         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = PapAlpha.dim),
-        modifier = Modifier.size(NAV_CHEVRON_DP.dp),
+        modifier = Modifier.size(PapNavChevronSize),
     )
 }
 
-private const val NAV_CHEVRON_DP = 20
+/**
+ * Público por la misma razón que [PapListItemGap]: el raíl de acciones de una card es el EJE del
+ * glifo, no el borde de su caja táctil, y lo que tiene que caer en ese eje vive FUERA de la fila
+ * (el lápiz de la ficha, con su caja de 40 dp). Copiar el número es cómo los dos se separan.
+ */
+val PapNavChevronSize: Dp = 20.dp

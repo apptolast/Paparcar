@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Adjust
-import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.AccessTimeFilled
 import androidx.compose.material3.Icon
@@ -41,6 +40,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.components.PapDivider
+import com.rndeveloper.paparcar.ui.components.PapNavChevron
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.displayName
 import com.rndeveloper.paparcar.domain.model.monitoringStatus
@@ -334,14 +334,9 @@ internal fun HomeVehicleCard(
                     // que 12 arriba se ven menos que 12 abajo. Subir el par empata lo que se VE, que es lo
                     // que se estaba mirando. [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
                     modifier = Modifier.padding(start = 14.dp, end = 12.dp, top = CARD_V_PAD_DP.dp),
-                    trailing = {
-                        Icon(
-                            imageVector = Icons.Rounded.ChevronRight,
-                            contentDescription = null,
-                            tint = cs.onSurfaceVariant,
-                            modifier = Modifier.size(CHEVRON_DP.dp),
-                        )
-                    },
+                    // El chevron canónico de fila, no uno propio: era un `ChevronRight` de 22 dp,
+                    // un tercer tamaño para el mismo hecho. [UI-A-CHEVRON-MUST-SIT-ON-THE-CARD-RAIL-001]
+                    trailing = { PapNavChevron() },
                 )
 
                 Spacer(Modifier.height(CHIP_FOOT_GAP_DP.dp))
@@ -629,7 +624,6 @@ private const val FOOT_ICON_DP = 14
 private const val FOOT_SEPARATOR = " · "
 private const val FOOT_MAX_LINES = 2
 // Full-width single-vehicle card. [HOME-CARDS-001]
-private const val CHEVRON_DP = 22
 private const val CARD_FOOT_ICON_BOX_DP = 34
 private const val CARD_FOOT_ICON_CORNER_DP = 10
 private const val CARD_FOOT_ICON_DP = 16
