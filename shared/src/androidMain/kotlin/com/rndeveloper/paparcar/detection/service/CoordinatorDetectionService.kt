@@ -1522,6 +1522,9 @@ class CoordinatorDetectionService : LifecycleService() {
             coordinatorPhase = detectionRuntime.phase.value,
             btVehicleId = btVehicleId,
             coordinatorVehicleId = detectionRuntime.trip.value?.departingVehicleId,
+            // [DET-BT-THE-EDGE-NOMINATES-THE-DISPLACEMENT-DECIDES-001] Publicado por el coordinator en el runtime
+            // compartido; aquí sólo se lee y se pasa, la decisión sigue en el evaluador puro.
+            coordinatorDriveProven = detectionRuntime.driveProven.value,
         )
         if (verdict != com.rndeveloper.paparcar.domain.usecase.detection.BtArbitrationVerdict.NoOp) {
             PaparcarLogger.d(DIAG, "  ⚡ BT arbitrates over the coordinator: ${verdict::class.simpleName} — aborting session")

@@ -786,6 +786,18 @@ class CoordinatorParkingDetector(
                 .collect { phaseSink.setPhase(it) }
         }
 
+        // [DET-BT-THE-EDGE-NOMINATES-THE-DISPLACEMENT-DECIDES-001] El mismo patrón para la prueba de conducción,
+        // y por el mismo motivo: alguien de FUERA necesita saberlo. Cuando el carril Bluetooth
+        // arbitra sobre esta sesión, la pregunta que decide si puede abortarla es si aquí se ha
+        // MEDIDO una conducción o solo se sostiene una hipótesis. Un colector propio (y no un campo
+        // en `TripContext`) porque es un hecho del track, no del origen del viaje.
+        val driveProofJob = launch {
+            _detectionState
+                .map { it.drive.isProven }
+                .distinctUntilChanged()
+                .collect { phaseSink.setDriveProven(it) }
+        }
+
         // [DET-AUDIT-002 T7/M2] Hold watchdog: every hold decision above is driven by the NEXT
         // GPS fix — and the common egress (walking into a building/garage right after parking)
         // is exactly when the stream starves. Without this, a tentatively-confirmed park died in
@@ -1157,6 +1169,7 @@ class CoordinatorParkingDetector(
         } finally {
             stepJob.cancel()
             phaseJob.cancel()
+            driveProofJob.cancel()
             holdWatchdogJob?.cancel()
             promptWatchdogJob.cancel()
             // [FIX BUG-SERVICE-109: reset state on session exit so cross-session reads of

@@ -517,6 +517,57 @@ reloj sobrevive a un movimiento manual, y `UpdateParkingLocationUseCaseTest` lo 
 ⛔ Los DOS fakes de `UserParkingRepository` (el de `commonTest` y el del Dev Catalog) copiaban la
 `location` entera y metían el reloj nuevo por la puerta de atrás — un fake que no espeja el DAO deja
 pasar en verde justo lo que el ticket arregla.
+### DET-BT-THE-EDGE-NOMINATES-THE-DISPLACEMENT-DECIDES-001 — el carril que no puede decidir dejó de matar al que sí
+
+**Commit:** pending. **Campo (2026-09-16, Nothing A001, uid `8fhNJGct…`, parkdiag de 11 días):** el
+usuario marca a mano casi todos sus aparcamientos — **32 de sus 42 confirmaciones son
+`reliability=1.0`** (o sea, la app preguntando). Su Kamiq está emparejado a un MAC que **no es un
+coche**: 237 enganches, **mediana 17 s, máximo 57 s**, 235 descartados por `not a ride`. El estéreo
+real del Kamiq (`50:26:EF:16:1D:C0`) aparece 70 veces como *"no vehicle paired — ignoring"*.
+
+**Causa raíz, en dos mitades que se alimentan:**
+
+```
+09:09:09.128  Coord: ✓ drive PROVEN by displacement (181,6 m, 11,9 m/s)
+09:09:18.668  BTReceiver: ⚡ BT arbitrates over the coordinator — signalling abort
+09:09:18.677  Service:    → BT_OVERRIDE — Bluetooth supersedes, aborting session
+09:09:18.708  BTDetector: BT engagement was not a ride (10s < 90s) — asking instead of placing
+```
+
+1. `EvaluateBtArbitrationUseCase` devolvía `SupersedeWithBluetooth` en **todo** DISCONNECT del propio
+   coche, sin mirar si la sesión del coordinator tenía conducción MEDIDA. **36 sesiones abortadas en
+   11 días**, varias 9 s después de `drive PROVEN`.
+2. …y el carril que las mataba se declaraba acto seguido sin veredicto, porque su puerta de entrada
+   juzgaba con un RELOJ: `evaluateEngagement()` contra `btMinRideDurationMs` (90 s), antes de medir
+   un solo metro. Sesión huérfana: el que mata no decide, y el que podía decidir ya está muerto.
+
+**Fix — el evento nomina, el movimiento medido confirma, también aquí:**
+
+- **La duración nomina, el desplazamiento decide.** El enganche corto deja de disparar un nudge a
+  ciegas: se mide con `evaluateRideDisplacement()` y el nuevo veredicto `BtShortEngagementCall`
+  resuelve `Moved` → era un viaje, sigue la caza · `DidNotMove` → **abortar en silencio**
+  (verdicto remoto nuevo `bt_short_no_move_abort`) · `Unmeasurable` → preguntar, como siempre.
+  La lectura del grabador de ruta **sube por encima** de la puerta de duración: ese orden ERA el bug.
+- **El supersede no puede matar conducción probada.** `driveProven` sube de `DetectionSessionState`
+  al `DetectionRuntime` por un colector reactivo gemelo al de la fase, y el árbitro lo recibe como
+  parámetro **sin valor por defecto** — un `= false` dejaría nacer roto al siguiente call site.
+
+**Doctrina (dictada por el user, 16-09):** *el BT es el trigger y la señal fuerte, no la total.*
+Conectar y desconectar sin desplazamiento → abortar. Desconectar conduciendo y reconectar → la
+detección sigue corriendo, porque ya hay conducción probada. Y hay que medir si el usuario paró de
+verdad o sigue rodando — lo que ya hacía `hunt.aborted` ([DET-AUDIT-002 T2]) y ahora también hace el
+coordinator, por seguir vivo.
+
+**Riesgo del fix acompañante:** ⛔ `DidNotMove` (medido: no se movió) y `Unmeasurable` (no se pudo
+medir) **no son lo mismo**, y confundirlos perdería un aparcamiento real en silencio — lo único que
+el fallo asimétrico prohíbe. Sólo el primero autoriza callar. El garaje NO cae en ese agujero: al
+salir llegan fixes, el grabador los guarda y el viaje declara por sí mismo (`RECORDED_ROUTE`), que es
+el testigo que funciona sin candidato.
+
+**Lo que NO cambia:** el enganche ride-shaped con `DidNotMove` sigue PREGUNTANDO — esa rama la decidió
+[DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001] y este ticket no la reabre. Tampoco cambia el arbitraje de
+un coche DISTINTO ([DET-BT-WRONG-CAR-ABORT-001]), ni entra una sola señal BT en el scoring del
+coordinator: lo que cambia es quién puede ABORTAR a quién, que es arbitraje, no scoring.
 
 ### DET-A-TRAIN-IS-NOT-A-CAR-001 — el vocabulario cinemático tenía suelo y no tenía techo
 

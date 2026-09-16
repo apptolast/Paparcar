@@ -59,6 +59,29 @@ data class BtCandidateHunt(
  * A Bluetooth engagement proves the car came within radio range of the phone. That is PRESENCE,
  * not driving — and the two are only the same thing when the phone was inside the car.
  */
+/**
+ * Qué hacer con un enganche al que la DURACIÓN no pudo llamar viaje, una vez MEDIDO.
+ * [DET-BT-THE-EDGE-NOMINATES-THE-DISPLACEMENT-DECIDES-001]
+ *
+ * La duración nomina, el desplazamiento decide — la misma doctrina que rige el resto de la app («el
+ * evento NOMINA, solo el movimiento MEDIDO confirma»), que este carril era el único en no cumplir:
+ * decidía con un reloj. El coste que justificaba el reloj («at this instant nothing has been
+ * measured yet») dejó de ser cierto cuando el grabador de ruta empezó a dejar el viaje en disco:
+ * hay testigo ANTES de encender el GPS.
+ */
+sealed interface BtShortEngagementCall {
+    /** El coche se movió de verdad: fue un viaje, por corto que sonara. Sigue la caza normal. */
+    data object WasARide : BtShortEngagementCall
+
+    /** Medido: no se movió. No ha pasado nada que aparcar — abortar, en silencio y sin nudge. Aquí
+     *  viven los 235 enganches de un manos libres que se cae cada 17 s. */
+    data object NothingHappened : BtShortEngagementCall
+
+    /** No se pudo medir. ⛔ NO es lo mismo que no haberse movido: sin testigo hay DUDA, y ante la
+     *  duda se pregunta — el fallo asimétrico manda. */
+    data object Ask : BtShortEngagementCall
+}
+
 sealed interface BtEngagement {
     /** Long enough to be the end of a trip: the detector may go on to place a pin. */
     data class Ride(val durationMs: Long) : BtEngagement
@@ -284,6 +307,27 @@ class EvaluateBtParkUseCase(private val config: ParkingDetectionConfig) {
         } else {
             BtRideProof.DidNotMove(displacementMeters, requiredMeters, originAgeMs, BtRideEvidence.CONNECT_FIX)
         }
+    }
+
+    /**
+     * El veredicto de un enganche corto, ya medido. [DET-BT-THE-EDGE-NOMINATES-THE-DISPLACEMENT-DECIDES-001]
+     *
+     * Sólo se pregunta cuando [evaluateEngagement] NO dijo `Ride`: la duración ya ha fallado en
+     * llamarlo viaje y esto decide si el desplazamiento la desmiente. Un `Ride` no pasa por aquí —
+     * su rama sigue siendo la de [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001], que ante `DidNotMove`
+     * PREGUNTA en vez de abortar (un enganche largo sin movimiento sigue siendo un coche que estuvo
+     * ahí, y el sitio es del usuario decirlo).
+     *
+     * @param proof medido con el testigo disponible en el instante del disconnect: la ruta grabada.
+     *   Sin candidato todavía, la aritmética del connect-fix no tiene destino y se declara
+     *   `Unmeasurable` — que aquí significa exactamente «pregunta», no «aborta».
+     */
+    fun evaluateShortEngagement(engagement: BtEngagement, proof: BtRideProof): BtShortEngagementCall = when {
+        // Un `Ride` no es asunto de este veredicto; si llega, no se toca su camino.
+        engagement is BtEngagement.Ride -> BtShortEngagementCall.WasARide
+        proof is BtRideProof.Moved -> BtShortEngagementCall.WasARide
+        proof is BtRideProof.DidNotMove -> BtShortEngagementCall.NothingHappened
+        else -> BtShortEngagementCall.Ask
     }
 
     /** Classify one sampled fix while hunting for the parked-car candidate position. */

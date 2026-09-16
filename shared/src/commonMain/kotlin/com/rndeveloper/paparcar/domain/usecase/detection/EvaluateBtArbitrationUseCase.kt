@@ -76,6 +76,12 @@ class EvaluateBtArbitrationUseCase {
         coordinatorPhase: DetectionPhase,
         btVehicleId: String?,
         coordinatorVehicleId: String?,
+        /** ¿El track de la sesión en curso ha CORROBORADO una conducción?
+         *
+         *  ⛔ Sin valor por defecto a propósito: un `= false` dejaría que el siguiente call site
+         *  naciera matando conducción medida sin haberlo decidido, que es exactamente el bug que
+         *  este parámetro cierra. [DET-BT-THE-EDGE-NOMINATES-THE-DISPLACEMENT-DECIDES-001] */
+        coordinatorDriveProven: Boolean,
     ): BtArbitrationVerdict {
         // Nothing to supersede when no session is live.
         if (!coordinatorRunning) return BtArbitrationVerdict.NoOp
@@ -94,7 +100,30 @@ class EvaluateBtArbitrationUseCase {
         }
 
         return when (event) {
-            BtArbitrationEvent.DISCONNECT -> BtArbitrationVerdict.SupersedeWithBluetooth
+            // ⛔ …salvo que el coordinator ya haya MEDIDO la conducción.
+            // [DET-BT-THE-EDGE-NOMINATES-THE-DISPLACEMENT-DECIDES-001]
+            //
+            // El disconnect del propio coche NOMINA un aparcamiento; no lo prueba. Y su carril puede
+            // acabar sin veredicto — un enganche que no movió el coche aborta, y uno que no se pudo
+            // medir sólo pregunta. Superseder ahí dejaba la sesión HUÉRFANA: el carril que mata no
+            // decide, y el que podía decidir ya está muerto. Campo 16-09 (Nothing A001): 36 sesiones
+            // abortadas en 11 días por un MAC que se cae cada 17 s, varias 9 s después de
+            // `drive PROVEN by displacement`; el usuario acabó marcando sus aparcamientos a mano.
+            //
+            // Con conducción probada el coordinator está midiendo algo real, así que se le deja
+            // terminar: si el coche se ha parado de verdad, lo confirma él; si sigue rodando (la
+            // desconexión fue una oscilación del manos libres a media marcha), sigue midiendo. El
+            // carril BT no pierde nada — su caza corre igual y ambos convergen, como siempre, en
+            // `ConfirmParkingUseCase`.
+            //
+            // ⛔ Esto NO mete señales BT en el scoring del coordinator: cambia quién puede ABORTAR a
+            // quién, que es arbitraje. Los carriles siguen sin mezclarse.
+            BtArbitrationEvent.DISCONNECT ->
+                if (coordinatorDriveProven) {
+                    BtArbitrationVerdict.NoOp
+                } else {
+                    BtArbitrationVerdict.SupersedeWithBluetooth
+                }
             BtArbitrationEvent.CONNECT -> when (coordinatorPhase) {
                 DetectionPhase.Candidate -> BtArbitrationVerdict.VetoReturnToVehicle
                 DetectionPhase.Driving -> BtArbitrationVerdict.NoOp

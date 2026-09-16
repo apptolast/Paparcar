@@ -9,7 +9,9 @@ import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 import com.rndeveloper.paparcar.domain.usecase.detection.BtCandidateHunt
 import com.rndeveloper.paparcar.domain.usecase.detection.BtEngagement
 import com.rndeveloper.paparcar.domain.usecase.detection.BtParkVerdict
+import com.rndeveloper.paparcar.domain.usecase.detection.BtRideOriginGap
 import com.rndeveloper.paparcar.domain.usecase.detection.BtRideProof
+import com.rndeveloper.paparcar.domain.usecase.detection.BtShortEngagementCall
 import com.rndeveloper.paparcar.domain.usecase.detection.EvaluateBtParkUseCase
 import com.rndeveloper.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.ConfirmParkingUseCase
@@ -91,28 +93,84 @@ class BluetoothParkingDetector(
         // parking anyway — it can only nominate one.
         val disconnectedAtMs = System.currentTimeMillis()
         val engagement = evaluateBtPark.evaluateEngagement(connectedAtMs, disconnectedAtMs)
-        if (engagement !is BtEngagement.Ride) {
-            val shape = when (engagement) {
-                is BtEngagement.ProximityOnly -> "proximity ${engagement.durationMs / 1000}s < ${config.btMinRideDurationMs / 1000}s"
-                else -> "no connect on record"
-            }
-            PaparcarLogger.w(TAG, "BT engagement was not a ride ($shape) — asking instead of placing [DET-BT-DISCONNECT-WITHOUT-RIDE-001]")
-            logRemote(sessionId = vehicleId, verdict = VERDICT_NO_RIDE_ASK)
-            // The car IS somewhere near — that is exactly what the engagement proves — but WHERE it
-            // ended up is the user's to say: the fix we could sample sits at the phone, and the
-            // phone was not in the car. The durable nudge survives being slept through and the
-            // confirmed pin keeps detection provenance. [DET-NUDGE-PERSIST-001]
-            notificationPort.showMarkParkingNudge(source = NUDGE_SOURCE_BT_NO_RIDE, vehicleId = vehicleId)
-            return
-        }
-        PaparcarLogger.d(TAG, "BT engagement ${engagement.durationMs / 1000}s — ride-shaped, continuing")
 
         // [DET-BT-A-PARK-IS-CONFIRMED-NOT-ASSUMED-001] The trip recorder's fixes for THIS ride —
         // read once, before the hunt: the recorder already stopped (its STOP travelled on the same
         // disconnect broadcast), the store keeps the ride until the confirm consumes it, and both
         // the ride proof and the GPS-timeout rescue below testify from this same list.
-        val connectedAtMs = disconnectedAtMs - engagement.durationMs
+        //
+        // ⛔ Se lee ANTES de la puerta de duración, no después. Ese orden ERA el bug:
+        // [DET-BT-THE-EDGE-NOMINATES-THE-DISPLACEMENT-DECIDES-001].
         val recordedRide = runCatching { drivingRouteStore?.points() }.getOrNull().orEmpty()
+
+        if (engagement !is BtEngagement.Ride) {
+            val shape = when (engagement) {
+                is BtEngagement.ProximityOnly -> "proximity ${engagement.durationMs / 1000}s < ${config.btMinRideDurationMs / 1000}s"
+                else -> "no connect on record"
+            }
+            // [DET-BT-THE-EDGE-NOMINATES-THE-DISPLACEMENT-DECIDES-001] La duración NOMINA; el desplazamiento
+            // DECIDE. Este carril era el único de la app que resolvía con un reloj, y su excusa
+            // («at this instant nothing has been measured yet») caducó cuando el grabador empezó a
+            // dejar el viaje en disco: el testigo está aquí, antes de encender el GPS.
+            //
+            // Sin candidato todavía sólo puede declarar la RUTA GRABADA (la aritmética del
+            // connect-fix necesita destino) — y es justo el testigo que sobrevive al garaje: al
+            // salir llegan fixes, el grabador los guarda, y el viaje declara por sí mismo.
+            val proof = connectedAtMs?.let {
+                evaluateBtPark.evaluateRideDisplacement(
+                    origin = connectFix,
+                    connectedAtMs = it,
+                    candidate = null,
+                    recordedRide = recordedRide,
+                )
+            } ?: BtRideProof.Unmeasurable(BtRideOriginGap.NO_FIX)
+            when (evaluateBtPark.evaluateShortEngagement(engagement, proof)) {
+                BtShortEngagementCall.NothingHappened -> {
+                    val moved = (proof as? BtRideProof.DidNotMove)?.displacementMeters?.toInt()
+                    PaparcarLogger.w(
+                        TAG,
+                        "BT engagement was not a ride ($shape) and the car did not move (${moved}m) — " +
+                            "nothing to park, aborting [DET-BT-THE-EDGE-NOMINATES-THE-DISPLACEMENT-DECIDES-001]",
+                    )
+                    logRemote(
+                        sessionId = vehicleId,
+                        verdict = VERDICT_SHORT_NO_MOVE_ABORT,
+                        displacementMeters = (proof as? BtRideProof.DidNotMove)?.displacementMeters,
+                    )
+                    return
+                }
+                BtShortEngagementCall.Ask -> {
+                    PaparcarLogger.w(TAG, "BT engagement was not a ride ($shape) — asking instead of placing [DET-BT-DISCONNECT-WITHOUT-RIDE-001]")
+                    logRemote(sessionId = vehicleId, verdict = VERDICT_NO_RIDE_ASK)
+                    // The car IS somewhere near — that is exactly what the engagement proves — but WHERE it
+                    // ended up is the user's to say: the fix we could sample sits at the phone, and the
+                    // phone was not in the car. The durable nudge survives being slept through and the
+                    // confirmed pin keeps detection provenance. [DET-NUDGE-PERSIST-001]
+                    notificationPort.showMarkParkingNudge(source = NUDGE_SOURCE_BT_NO_RIDE, vehicleId = vehicleId)
+                    return
+                }
+                // Corto en el reloj, viaje en el mapa: sigue como cualquier otro viaje.
+                BtShortEngagementCall.WasARide -> PaparcarLogger.w(
+                    TAG,
+                    "BT engagement was short ($shape) but the ride is MEASURED — continuing as a ride " +
+                        "[DET-BT-THE-EDGE-NOMINATES-THE-DISPLACEMENT-DECIDES-001]",
+                )
+            }
+        } else {
+            PaparcarLogger.d(TAG, "BT engagement ${engagement.durationMs / 1000}s — ride-shaped, continuing")
+        }
+
+        // `Ride.durationMs` es `disconnectedAtMs - connectedAtMs` por construcción; un enganche corto
+        // promovido por el desplazamiento trae su propio stamp (sin él no habría podido medirse).
+        val connectedAtMs = (engagement as? BtEngagement.Ride)
+            ?.let { disconnectedAtMs - it.durationMs }
+            ?: connectedAtMs
+            ?: disconnectedAtMs
+        // La duración REAL del enganche, se llamase viaje por el reloj o por el mapa. Va al
+        // `armEvidence` del pin, así que un enganche corto promovido por desplazamiento se estampa
+        // con sus 17 s de verdad y no con una cifra inventada.
+        // [DET-BT-THE-EDGE-NOMINATES-THE-DISPLACEMENT-DECIDES-001]
+        val engagementDurationMs = disconnectedAtMs - connectedAtMs
         if (recordedRide.isNotEmpty()) {
             PaparcarLogger.d(TAG, "Recorded ride on disk: ${recordedRide.size} fixes — the ride can testify for itself")
         }
@@ -276,7 +334,7 @@ class BluetoothParkingDetector(
                 detectionPath = PATH_BLUETOOTH_TIMEOUT,
                 // [DET-BT-DISCONNECT-WITHOUT-RIDE-001] Stamp WHAT armed this BT session. The lane
                 // used to persist nothing, so a field pin could only be traced over a cable.
-                armEvidence = ArmEvidence.BtRide(engagement.durationMs).label,
+                armEvidence = ArmEvidence.BtRide(engagementDurationMs).label,
                 // The user stayed within the walk-away radius for the whole watch, so the pin IS
                 // an honest body position (±30 m) — unlike the egress-confirm case that bans
                 // sealing at the pin. [DET-STEP-BUDGET-ORIGIN-001]
@@ -311,7 +369,7 @@ class BluetoothParkingDetector(
             vehicleId = vehicleId,
             detectionPath = PATH_BLUETOOTH,
             // [DET-BT-DISCONNECT-WITHOUT-RIDE-001] Same provenance stamp as the timeout-save branch.
-            armEvidence = ArmEvidence.BtRide(engagement.durationMs).label,
+            armEvidence = ArmEvidence.BtRide(engagementDurationMs).label,
             // The fix that settled the walk-away IS where the body is at confirm (≥30 m from the
             // car already) — the honest origin for the step baseline. [DET-STEP-BUDGET-ORIGIN-001]
             sealPoint = walkSettled,
@@ -388,6 +446,12 @@ class BluetoothParkingDetector(
 
         /** Nudge provenance so the diagnostics can tell this ask from the coordinator's. */
         const val NUDGE_SOURCE_BT_NO_RIDE = "bt_no_ride"
+
+        /** [DET-BT-THE-EDGE-NOMINATES-THE-DISPLACEMENT-DECIDES-001] Enganche corto Y desplazamiento medido a
+         *  cero: no hay nada que aparcar, así que el carril calla en vez de preguntar. Veredicto
+         *  propio —y no el `no_ride_ask` de siempre— porque la diferencia entre «no se movió» y «no
+         *  pude medirlo» es justo lo que el campo tiene que poder contar. */
+        const val VERDICT_SHORT_NO_MOVE_ABORT = "bt_short_no_move_abort"
 
         /** [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001] The engagement was ride-SHAPED in time but the
          *  car never left: measured, and it did not move. */

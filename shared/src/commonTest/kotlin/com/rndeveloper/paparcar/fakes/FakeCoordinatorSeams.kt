@@ -17,6 +17,13 @@ class FakeDetectionPhaseSink : DetectionPhaseSink {
     override fun setPhase(phase: DetectionPhase) {
         phases += phase
     }
+
+    /** Una entrada por emisión, para que un test pueda afirmar CUÁNDO se probó la conducción.
+     *  [DET-BT-THE-EDGE-NOMINATES-THE-DISPLACEMENT-DECIDES-001] */
+    val driveProvenEmissions = mutableListOf<Boolean>()
+    override fun setDriveProven(proven: Boolean) {
+        driveProvenEmissions += proven
+    }
 }
 
 class FakeFinalizeDeducedDeparture : FinalizeDeducedDeparture {

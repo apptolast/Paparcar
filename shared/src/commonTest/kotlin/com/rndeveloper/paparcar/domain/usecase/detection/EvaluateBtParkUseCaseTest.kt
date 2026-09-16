@@ -463,6 +463,81 @@ class EvaluateBtParkUseCaseTest {
         assertEquals(BtRideProof.Unmeasurable(BtRideOriginGap.NO_FIX), proof)
     }
 
+    // ── La duración NOMINA, el desplazamiento DECIDE ────────────────────────
+    // [DET-BT-THE-EDGE-NOMINATES-THE-DISPLACEMENT-DECIDES-001]
+
+    /**
+     * El caso de campo (16-09, Nothing A001): un manos libres emparejado como coche, 235 enganches
+     * de mediana 17 s. Con el reloj como único juez, cada uno disparaba un nudge a ciegas.
+     */
+    @Test
+    fun should_abortWithoutAsking_when_aShortEngagementMeasurablyDidNotMove() {
+        val proof = useCase.evaluateRideDisplacement(
+            origin = origin(),
+            connectedAtMs = CONNECTED_AT_MS,
+            candidate = null,
+            // El grabador declara: dos fixes, el coche donde estaba.
+            recordedRide = listOf(
+                fix(meters = 0.0, timestamp = CONNECTED_AT_MS + 1_000),
+                fix(meters = 4.0, timestamp = CONNECTED_AT_MS + 15_000),
+            ),
+        )
+        assertEquals(
+            BtShortEngagementCall.NothingHappened,
+            useCase.evaluateShortEngagement(BtEngagement.ProximityOnly(17_000), proof),
+            "measured at a standstill: there is nothing to park and nothing to ask",
+        )
+    }
+
+    /** Un viaje corto en el RELOJ sigue siendo un viaje si el mapa lo dice. */
+    @Test
+    fun should_treatItAsARide_when_aShortEngagementMeasurablyMoved() {
+        val proof = useCase.evaluateRideDisplacement(
+            origin = origin(),
+            connectedAtMs = CONNECTED_AT_MS,
+            candidate = null,
+            recordedRide = listOf(
+                fix(meters = 0.0, timestamp = CONNECTED_AT_MS + 1_000),
+                fix(meters = 900.0, timestamp = CONNECTED_AT_MS + 40_000),
+            ),
+        )
+        assertEquals(
+            BtShortEngagementCall.WasARide,
+            useCase.evaluateShortEngagement(BtEngagement.ProximityOnly(45_000), proof),
+        )
+    }
+
+    /**
+     * ⛔ La distinción que sostiene todo el ticket: «no se movió» es una MEDICIÓN, «no pude medirlo»
+     * es su ausencia. Sin testigo hay duda, y ante la duda se PREGUNTA — si esto abortara, un
+     * aparcamiento real se perdería en silencio, que es lo único que el fallo asimétrico prohíbe.
+     */
+    @Test
+    fun should_askAndNeverAbort_when_aShortEngagementCouldNotBeMeasuredAtAll() {
+        val proof = useCase.evaluateRideDisplacement(
+            origin = origin(),
+            connectedAtMs = CONNECTED_AT_MS,
+            candidate = null,
+            recordedRide = emptyList(),
+        )
+        assertEquals(
+            BtShortEngagementCall.Ask,
+            useCase.evaluateShortEngagement(BtEngagement.ProximityOnly(17_000), proof),
+        )
+    }
+
+    /** Sin connect en el registro tampoco se puede acotar la grabación: duda, y se pregunta. */
+    @Test
+    fun should_ask_when_theEngagementCouldNotBeSizedAtAll() {
+        assertEquals(
+            BtShortEngagementCall.Ask,
+            useCase.evaluateShortEngagement(
+                BtEngagement.Unknown,
+                BtRideProof.Unmeasurable(BtRideOriginGap.NO_FIX),
+            ),
+        )
+    }
+
     private companion object {
         const val BASE_LAT = 36.6024
         const val BASE_LON = -6.2766

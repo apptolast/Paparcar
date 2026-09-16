@@ -25,7 +25,47 @@ class EvaluateBtArbitrationUseCaseTest {
         phase: DetectionPhase = DetectionPhase.Driving,
         btVehicleId: String? = car,
         coordinatorVehicleId: String? = car,
-    ) = useCase(event, running, phase, btVehicleId, coordinatorVehicleId)
+        driveProven: Boolean = false,
+    ) = useCase(event, running, phase, btVehicleId, coordinatorVehicleId, driveProven)
+
+    // ── Un carril que puede no decidir no mata al que ya midió ──────────────
+    // [DET-BT-THE-EDGE-NOMINATES-THE-DISPLACEMENT-DECIDES-001]
+
+    /**
+     * Campo 16-09 (Nothing A001): el manos libres emparejado como coche se cae cada 17 s. A las
+     * 09:09:09 el coordinator registra `drive PROVEN by displacement` (181 m, 11,9 m/s); nueve
+     * segundos después un disconnect de 10 s lo abortaba, y el propio carril BT declaraba acto
+     * seguido que el enganche «no era un viaje» y tampoco colocaba nada. **36 sesiones así en 11
+     * días** — nadie decidía, y la app acababa preguntando.
+     */
+    @Test
+    fun should_leaveTheCoordinatorAlone_when_disconnectArrivesOnAMeasuredDrive() {
+        assertEquals(
+            BtArbitrationVerdict.NoOp,
+            evaluate(BtArbitrationEvent.DISCONNECT, driveProven = true),
+            "a disconnect must not kill a drive the coordinator already measured",
+        )
+    }
+
+    @Test
+    fun should_stillSupersede_when_disconnectArrivesOnAnUnprovenSession() {
+        // La sesión sin conducción medida es una HIPÓTESIS, y el disconnect del coche emparejado es
+        // determinista: ahí el arbitraje de siempre sigue mandando.
+        assertEquals(
+            BtArbitrationVerdict.SupersedeWithBluetooth,
+            evaluate(BtArbitrationEvent.DISCONNECT, driveProven = false),
+        )
+    }
+
+    @Test
+    fun should_stillVetoTheReturn_when_connectArrivesOnAMeasuredDrive() {
+        // La conducción medida no blinda la sesión contra TODO: volver a entrar en el coche sigue
+        // desmintiendo un pin a punto de caer. Lo que se retira es el aborto por DISCONNECT.
+        assertEquals(
+            BtArbitrationVerdict.VetoReturnToVehicle,
+            evaluate(BtArbitrationEvent.CONNECT, phase = DetectionPhase.Candidate, driveProven = true),
+        )
+    }
 
     // ── DISCONNECT ──────────────────────────────────────────────────────────
 

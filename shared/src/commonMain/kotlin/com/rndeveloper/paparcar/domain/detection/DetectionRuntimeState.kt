@@ -43,6 +43,16 @@ enum class DetectionPhase {
  */
 interface DetectionPhaseSink {
     fun setPhase(phase: DetectionPhase)
+
+    /**
+     * ¿El TRACK de esta sesión ha corroborado ya una conducción? (`DriveProof.isProven`.)
+     *
+     * Lo publica el mismo colector reactivo que la fase, y existe por una sola pregunta que se hace
+     * fuera del coordinator: cuando el carril Bluetooth arbitra sobre una sesión en curso, necesita
+     * saber si está matando una hipótesis o una conducción MEDIDA.
+     * [DET-BT-THE-EDGE-NOMINATES-THE-DISPLACEMENT-DECIDES-001]
+     */
+    fun setDriveProven(proven: Boolean)
 }
 
 /**
@@ -92,9 +102,15 @@ interface DetectionRuntimeState {
      *  exercise it need no change. [DET-PHASE-001] */
     val phase: StateFlow<DetectionPhase> get() = ALWAYS_DRIVING
 
+    /** True once the TRACK of the running session has corroborated a drive (`DriveProof.isProven`) —
+     *  no lone in-band fix counts. Falso por defecto: un doble que no lo ejerce no afirma haber
+     *  medido nada. [DET-BT-THE-EDGE-NOMINATES-THE-DISPLACEMENT-DECIDES-001] */
+    val driveProven: StateFlow<Boolean> get() = NEVER_PROVEN
+
     private companion object {
         val NO_TRIP: StateFlow<TripContext?> = MutableStateFlow(null).asStateFlow()
         val ALWAYS_DRIVING: StateFlow<DetectionPhase> = MutableStateFlow(DetectionPhase.Driving).asStateFlow()
+        val NEVER_PROVEN: StateFlow<Boolean> = MutableStateFlow(false).asStateFlow()
         val ALWAYS_DEAD: StateFlow<ServicePresence> = MutableStateFlow(ServicePresence.Dead).asStateFlow()
     }
 }
@@ -118,12 +134,18 @@ class MutableDetectionRuntimeState : DetectionRuntimeState, DetectionPhaseSink {
     private val _presence = MutableStateFlow(ServicePresence.Dead)
     override val presence: StateFlow<ServicePresence> = _presence.asStateFlow()
 
+    private val _driveProven = MutableStateFlow(false)
+    override val driveProven: StateFlow<Boolean> = _driveProven.asStateFlow()
+
     /** Called by the detection service when a tracking job starts (true) or ends (false). Every
      *  trip begins in-motion, so both edges reset the phase to [DetectionPhase.Driving] (a fresh trip
      *  never inherits a leftover "Candidate" from a prior one); ending also clears the trip context. */
     fun setRunning(running: Boolean) {
         _isRunning.value = running
         _phase.value = DetectionPhase.Driving
+        // Igual que la fase: una sesión nueva NO hereda la conducción probada de la anterior — sería
+        // la vía para que un arbitraje perdonara a un zombi. [DET-BT-THE-EDGE-NOMINATES-THE-DISPLACEMENT-DECIDES-001]
+        _driveProven.value = false
         if (!running) {
             _trip.value = null
         }
@@ -147,6 +169,12 @@ class MutableDetectionRuntimeState : DetectionRuntimeState, DetectionPhaseSink {
     override fun setPhase(phase: DetectionPhase) {
         _phase.value = phase
     }
+
+    /** Called by the coordinator cuando su `DriveProof` pasa a probado.
+     *  [DET-BT-THE-EDGE-NOMINATES-THE-DISPLACEMENT-DECIDES-001] */
+    override fun setDriveProven(proven: Boolean) {
+        _driveProven.value = proven
+    }
 }
 
 /**
@@ -158,9 +186,11 @@ class StaticDetectionRuntimeState(
     trip: TripContext? = null,
     phase: DetectionPhase = DetectionPhase.Driving,
     presence: ServicePresence = ServicePresence.Dead,
+    driveProven: Boolean = false,
 ) : DetectionRuntimeState {
     override val isRunning: StateFlow<Boolean> = MutableStateFlow(running).asStateFlow()
     override val trip: StateFlow<TripContext?> = MutableStateFlow(trip).asStateFlow()
     override val phase: StateFlow<DetectionPhase> = MutableStateFlow(phase).asStateFlow()
     override val presence: StateFlow<ServicePresence> = MutableStateFlow(presence).asStateFlow()
+    override val driveProven: StateFlow<Boolean> = MutableStateFlow(driveProven).asStateFlow()
 }
