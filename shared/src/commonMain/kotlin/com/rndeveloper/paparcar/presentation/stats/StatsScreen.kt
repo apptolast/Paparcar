@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.presentation.permissions.PermissionsFocus
 import com.rndeveloper.paparcar.domain.stats.HeatMeasure
+import com.rndeveloper.paparcar.domain.stats.LockedIntelligence
 import com.rndeveloper.paparcar.domain.stats.projectPeriod
 import com.rndeveloper.paparcar.domain.stats.projectYear
 import com.rndeveloper.paparcar.presentation.util.durationText
@@ -57,6 +58,8 @@ import com.rndeveloper.paparcar.presentation.vehicles.VehicleStatsBlock
 import com.rndeveloper.paparcar.presentation.vehicles.components.StatsPeriodBar
 import com.rndeveloper.paparcar.presentation.vehicles.components.PapVehicleSelectorPill
 import com.rndeveloper.paparcar.presentation.vehicles.vehicleStatsPeriodLabel
+import com.rndeveloper.paparcar.ui.components.PapLockedCard
+import com.rndeveloper.paparcar.ui.components.PapLockedShape
 import com.rndeveloper.paparcar.ui.components.PapShimmerBlockScale
 import com.rndeveloper.paparcar.ui.components.PapShimmerBox
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
@@ -67,7 +70,12 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_activity_measure_partial
+import paparcar.composeapp.generated.resources.stats_insights_title
 import paparcar.composeapp.generated.resources.stats_panel_empty_body
+import paparcar.composeapp.generated.resources.stats_pace_title
+import paparcar.composeapp.generated.resources.stats_places_title
+import paparcar.composeapp.generated.resources.stats_recap_title
+import paparcar.composeapp.generated.resources.stats_when_title
 import paparcar.composeapp.generated.resources.stats_pace_close_month
 import paparcar.composeapp.generated.resources.stats_pace_close_week
 import paparcar.composeapp.generated.resources.stats_pace_close_year
@@ -177,6 +185,12 @@ fun StatsContent(
             // The month that just closed — above everything, because it is the only thing here
             // nobody asked for and it is only here because it just happened.
             // [STATS-PLUS-REMEMBERS-AND-REPORTS-001]
+            //
+            // ⛔ And when the plan is what keeps it away, the card is LOCKED rather than absent —
+            // in this very slot, so the panel a free account sees is the panel they would have,
+            // with the glass on. A card that simply did not compose left the one thing the plan is
+            // named after —*Plus remembers for you*— invisible in the screen where it lives.
+            // [MONEY-A-BLUR-IS-ONLY-HONEST-WHEN-THERE-IS-SOMETHING-BEHIND-IT-001]
             state.closedMonth?.let { recap ->
                 item(key = "recap") {
                     Box(Modifier.padding(horizontal = H_PAD_DP.dp)) {
@@ -185,14 +199,45 @@ fun StatsContent(
                     Spacer(Modifier.height(SECTION_GAP_DP.dp))
                 }
             }
+            if (state.closedMonth == null && state.locked.recap) {
+                item(key = "recap_locked") {
+                    Box(Modifier.padding(horizontal = H_PAD_DP.dp)) {
+                        PapLockedCard(
+                            title = stringResource(Res.string.stats_recap_title),
+                            shape = PapLockedShape.Lines,
+                            // ⛔ Its OWN reason. Being told how the month went is not the same wish
+                            // as choosing a period, and the funnel's whole job is telling them apart.
+                            onClick = { onIntent(StatsIntent.OpenPaywall(PaywallReason.MONTH_RECAP)) },
+                        )
+                    }
+                    Spacer(Modifier.height(SECTION_GAP_DP.dp))
+                }
+            }
 
             // The conclusion BEFORE the proof: everything below this card — the chart, the
             // figures, the places, the grid — is what backs it up.
             // [STATS-AN-INSIGHT-IS-A-VERDICT-WITH-ITS-EVIDENCE-001]
-            if (state.insights.isNotEmpty()) {
+            //
+            // ⛔ The conclusions are the layer the plan sells, so for a free account they are the
+            // glass and not the content — over seven days there is almost never a conclusion to
+            // give anyway, and the little there was got given away while the rest stayed silent.
+            // [MONEY-A-BLUR-IS-ONLY-HONEST-WHEN-THERE-IS-SOMETHING-BEHIND-IT-001]
+            if (state.isPlus && state.insights.isNotEmpty()) {
                 item(key = "insights") {
                     Box(Modifier.padding(horizontal = H_PAD_DP.dp)) {
                         StatsInsightsCard(insights = state.insights)
+                    }
+                    Spacer(Modifier.height(SECTION_GAP_DP.dp))
+                }
+            }
+            if (state.locked.insights) {
+                item(key = "insights_locked") {
+                    Box(Modifier.padding(horizontal = H_PAD_DP.dp)) {
+                        PapLockedCard(
+                            title = stringResource(Res.string.stats_insights_title),
+                            shape = PapLockedShape.Lines,
+                            onClick = { onIntent(StatsIntent.OpenPaywall(PaywallReason.STATS)) },
+                        )
                     }
                     Spacer(Modifier.height(SECTION_GAP_DP.dp))
                 }
@@ -256,7 +301,7 @@ fun StatsContent(
                             showLifetime = !state.isPlus || state.filter != StatsPeriod.All,
                             costPrice = state.costPrice,
                             isPlus = state.isPlus,
-                            onOpenPaywall = { onIntent(StatsIntent.OpenPaywall) },
+                            onOpenPaywall = { onIntent(StatsIntent.OpenPaywall(PaywallReason.STATS)) },
                             detectionPause = state.detectionPause,
                             onEnableDetection = { onIntent(StatsIntent.EnableAutoDetection) },
                         )
@@ -278,16 +323,19 @@ fun StatsContent(
                 // because it answers the same question with more room: the grid names one place in
                 // a tile, this names five and prices each one.
                 // [STATS-A-USUAL-PLACE-IS-A-CLUSTER-NOT-A-STREET-001]
-                item(key = "places") {
-                    Spacer(Modifier.height(SECTION_GAP_DP.dp))
-                    Box(Modifier.padding(horizontal = H_PAD_DP.dp)) {
-                        StatsPlacesCard(places = stats.places)
+                if (state.isPlus) {
+                    item(key = "places") {
+                        Spacer(Modifier.height(SECTION_GAP_DP.dp))
+                        Box(Modifier.padding(horizontal = H_PAD_DP.dp)) {
+                            StatsPlacesCard(places = stats.places)
+                        }
                     }
                 }
                 // WHEN you park, and when it costs you — the two dimensions the peak-hour and
                 // usual-day tiles can only answer one at a time.
                 // [STATS-THE-EXPENSIVE-HOUR-IS-MEASURED-001]
-                item(key = "when") {
+                if (state.isPlus) {
+                  item(key = "when") {
                     val searchGrid = remember(state.filteredSessions) {
                         buildParkingHeatmap(state.filteredSessions, HeatMeasure.SEARCH_TIME)
                     }
@@ -313,9 +361,54 @@ fun StatsContent(
                             onMeasureSelected = { onIntent(StatsIntent.SetHeatMeasure(it)) },
                         )
                     }
+                  }
+                }
+            }
+
+            // The three habit cards the plan keeps, in the SAME order and the same slots they
+            // occupy for Plus — the panel under glass is the panel, not a different screen.
+            // [MONEY-A-BLUR-IS-ONLY-HONEST-WHEN-THERE-IS-SOMETHING-BEHIND-IT-001]
+            //
+            // ⛔ OUTSIDE the `periodStats` branch on purpose: what these cards would hold is
+            // decided over the car's whole life, so a free account whose last seven days happen to
+            // be empty still has them behind the glass. Tying them to the figures above would hide
+            // them on exactly the week when the gap is widest.
+            lockedCards(state.locked).forEach { locked ->
+                item(key = locked.key) {
+                    Spacer(Modifier.height(SECTION_GAP_DP.dp))
+                    Box(Modifier.padding(horizontal = H_PAD_DP.dp)) {
+                        PapLockedCard(
+                            title = stringResource(locked.title),
+                            shape = locked.shape,
+                            onClick = { onIntent(StatsIntent.OpenPaywall(PaywallReason.STATS)) },
+                        )
+                    }
                 }
             }
         }
+    }
+}
+
+/** A locked card's identity in the list: what it is called and what its body is shaped like. */
+private data class LockedCard(
+    val key: String,
+    val title: StringResource,
+    val shape: PapLockedShape,
+)
+
+/**
+ * The cards under glass, in reading order. Kept as data rather than three copies of the same
+ * `if` — the shape of the block is identical for all of them and only the words differ.
+ */
+private fun lockedCards(locked: LockedIntelligence): List<LockedCard> = buildList {
+    if (locked.pace) {
+        add(LockedCard("pace_locked", Res.string.stats_pace_title, PapLockedShape.Lines))
+    }
+    if (locked.places) {
+        add(LockedCard("places_locked", Res.string.stats_places_title, PapLockedShape.Lines))
+    }
+    if (locked.heatmap) {
+        add(LockedCard("when_locked", Res.string.stats_when_title, PapLockedShape.Grid))
     }
 }
 

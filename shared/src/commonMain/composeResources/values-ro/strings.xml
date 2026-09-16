@@ -964,7 +964,8 @@
     <!-- Stats panel (STATS-PANEL-001) -->
     <string name="stats_panel_title">Cifrele tale</string>
     <string name="stats_panel_empty_body">Încă nu există parcări în această perioadă. Parchează de câteva ori și cifrele se vor completa.</string>
-    <string name="stats_open_panel">Vezi detalierea completă</string>
+    <string name="stats_open_panel">Vezi detalierea</string>
+    <string name="stats_locked_cta">Vezi cu Plus</string>
     <!-- Where the car is parked, on the ficha state line (STATS-UI-001) -->
     <!-- Price the user actually pays (FUEL-PRICE-RESOLVER-001) -->
     <string name="vehicle_registration_fuel_price_label">Preț pe litru (%1$s)</string>

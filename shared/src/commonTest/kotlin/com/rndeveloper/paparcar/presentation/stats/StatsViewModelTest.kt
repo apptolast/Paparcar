@@ -9,6 +9,7 @@ import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleSize
+import com.rndeveloper.paparcar.domain.stats.LockedIntelligence
 import com.rndeveloper.paparcar.domain.usecase.fuel.ResolveFuelPriceUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
 import com.rndeveloper.paparcar.fakes.FakeEntitlementRepository
@@ -255,11 +256,78 @@ class StatsViewModelTest {
         val vm = viewModel(entitlement = Entitlement.FREE)
 
         vm.effect.test {
-            vm.handleIntent(StatsIntent.OpenPaywall)
+            vm.handleIntent(StatsIntent.OpenPaywall(PaywallReason.STATS))
             val effect = awaitItem()
             assertIs<StatsEffect.NavigateToPaywall>(effect)
             assertEquals(PaywallReason.STATS, effect.reason)
         }
+    }
+
+    /**
+     * The recap's locked card asks for something else than the period row does, and the funnel has
+     * to be able to tell them apart.
+     * [MONEY-A-BLUR-IS-ONLY-HONEST-WHEN-THERE-IS-SOMETHING-BEHIND-IT-001]
+     */
+    @Test
+    fun `should_carryTheTouchpointsOwnReason_when_thePaywallIsOpened`() = runTest {
+        vehicleRepo.saveVehicle(vehicle("v1", isActive = true))
+        val vm = viewModel(entitlement = Entitlement.FREE)
+
+        vm.effect.test {
+            vm.handleIntent(StatsIntent.OpenPaywall(PaywallReason.MONTH_RECAP))
+            val effect = awaitItem()
+            assertIs<StatsEffect.NavigateToPaywall>(effect)
+            assertEquals(PaywallReason.MONTH_RECAP, effect.reason)
+        }
+    }
+
+    /**
+     * ⛔ A blur with nothing behind it is advertising. A car that has concluded nothing gets no
+     * glass at all — the panel looks exactly as it did before the lock existed.
+     * [MONEY-A-BLUR-IS-ONLY-HONEST-WHEN-THERE-IS-SOMETHING-BEHIND-IT-001]
+     */
+    @Test
+    fun `should_lockNothing_when_theCarHasNothingToConclude`() = runTest {
+        vehicleRepo.saveVehicle(vehicle("v1", isActive = true))
+        val vm = viewModel(entitlement = Entitlement.FREE)
+
+        val locked = vm.state.value.locked
+        assertEquals(LockedIntelligence.NONE, locked, "no history is nothing to withhold")
+    }
+
+    /** And the threshold is the CARD's, not the plan's: two parkings are not a place yet. */
+    @Test
+    fun `should_notLockThePlaces_when_theCarHasNotRepeatedAnywhereYet`() = runTest {
+        vehicleRepo.saveVehicle(vehicle("v1", isActive = true))
+        repeat(2) { i -> parkingRepo.saveNewParkingSession(session("s$i", "v1", ageDays = 30 + i)) }
+        val vm = viewModel(entitlement = Entitlement.FREE)
+
+        assertEquals(false, vm.state.value.locked.places, "a place is where you repeat")
+    }
+
+    /**
+     * And the other half: a car with months of history behind the free window IS being withheld
+     * something, so the cards it cannot see come up locked instead of missing.
+     */
+    @Test
+    fun `should_lockTheHabitCards_when_theHistoryReachesBeyondTheFreeWindow`() = runTest {
+        vehicleRepo.saveVehicle(vehicle("v1", isActive = true))
+        repeat(8) { i -> parkingRepo.saveNewParkingSession(session("s$i", "v1", ageDays = 10 + i * 10)) }
+        val vm = viewModel(entitlement = Entitlement.FREE)
+
+        val locked = vm.state.value.locked
+        assertTrue(locked.places, "the car repeats somewhere, and free is not being shown where")
+        assertTrue(locked.heatmap, "there are parkings to lay on the grid")
+    }
+
+    /** And Plus, who sees the cards themselves, never gets a pane of glass. */
+    @Test
+    fun `should_lockNothing_when_thePlanIsPlus`() = runTest {
+        vehicleRepo.saveVehicle(vehicle("v1", isActive = true))
+        repeat(8) { i -> parkingRepo.saveNewParkingSession(session("s$i", "v1", ageDays = i * 10)) }
+        val vm = viewModel(entitlement = Entitlement.PLUS)
+
+        assertEquals(LockedIntelligence.NONE, vm.state.value.locked)
     }
 
     @Test

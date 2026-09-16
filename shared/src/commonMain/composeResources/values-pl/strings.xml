@@ -968,7 +968,8 @@
     <!-- Stats panel (STATS-PANEL-001) -->
     <string name="stats_panel_title">Twoje liczby</string>
     <string name="stats_panel_empty_body">W tym okresie nie ma jeszcze parkowań. Zaparkuj kilka razy, a liczby się wypełnią.</string>
-    <string name="stats_open_panel">Zobacz pełne zestawienie</string>
+    <string name="stats_open_panel">Zobacz zestawienie</string>
+    <string name="stats_locked_cta">Zobacz z Plus</string>
     <!-- Where the car is parked, on the ficha state line (STATS-UI-001) -->
     <!-- Price the user actually pays (FUEL-PRICE-RESOLVER-001) -->
     <string name="vehicle_registration_fuel_price_label">Cena za litr (%1$s)</string>

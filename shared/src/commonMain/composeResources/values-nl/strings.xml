@@ -913,7 +913,8 @@
     <!-- Stats panel (STATS-PANEL-001) -->
     <string name="stats_panel_title">Jouw cijfers</string>
     <string name="stats_panel_empty_body">Nog geen parkeerplaatsen in deze periode. Parkeer een paar keer en de cijfers vullen zich vanzelf.</string>
-    <string name="stats_open_panel">Volledig overzicht bekijken</string>
+    <string name="stats_open_panel">Overzicht bekijken</string>
+    <string name="stats_locked_cta">Bekijken met Plus</string>
     <!-- Where the car is parked, on the ficha state line (STATS-UI-001) -->
     <!-- Price the user actually pays (FUEL-PRICE-RESOLVER-001) -->
     <string name="vehicle_registration_fuel_price_label">Prijs per liter (%1$s)</string>

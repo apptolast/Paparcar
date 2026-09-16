@@ -6,6 +6,7 @@ import com.rndeveloper.paparcar.domain.fuel.FuelPrice
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.VehicleWithStats
 import com.rndeveloper.paparcar.domain.stats.HeatMeasure
+import com.rndeveloper.paparcar.domain.stats.LockedIntelligence
 import com.rndeveloper.paparcar.domain.stats.PeriodStats
 import com.rndeveloper.paparcar.domain.stats.insights.StatsInsight
 import com.rndeveloper.paparcar.presentation.vehicles.ChartMetric
@@ -88,6 +89,15 @@ data class StatsState(
     val lifetimeParkings: Int = 0,
     val lifetimeSpotsReleased: Int = 0,
     val isPlus: Boolean = false,
+    /**
+     * Which conclusion cards this account is NOT being shown, and would be with Plus — each one
+     * renders blurred, locked and clickable instead of missing.
+     * [MONEY-A-BLUR-IS-ONLY-HONEST-WHEN-THERE-IS-SOMETHING-BEHIND-IT-001]
+     *
+     * ⛔ Flags, not content: the figures behind them are never resolved into this state. And always
+     * [LockedIntelligence.NONE] for Plus, who sees the cards themselves.
+     */
+    val locked: LockedIntelligence = LockedIntelligence.NONE,
     /** Why the next trip will not be measured, or null when it will. See `VehiclesState`.
      *  [STATS-A-CHIP-YOU-CANNOT-MEASURE-MUST-NOT-REDRAW-001] */
     val detectionPause: DetectionPause? = null,

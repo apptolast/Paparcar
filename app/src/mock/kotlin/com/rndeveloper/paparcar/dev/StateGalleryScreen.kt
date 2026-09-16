@@ -78,6 +78,8 @@ import com.rndeveloper.paparcar.domain.detection.DetectionPause
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Zone
 import com.rndeveloper.paparcar.domain.stats.HeatMeasure
+import com.rndeveloper.paparcar.domain.stats.buildParkingHeatmap
+import com.rndeveloper.paparcar.domain.stats.lockedIntelligence
 import com.rndeveloper.paparcar.domain.usecase.stats.DeriveStatsInsightsUseCase
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.presentation.map.FocusedParking
@@ -551,6 +553,9 @@ private fun statsPanelState(
     // el calculo con el coche de gasolina: salian litros y no salia el tile de kWh. Una variante
     // que no ejercita su caso es peor que no tenerla — se ve verde y no vigila nada.
     val resolved = resolvedHistory(owned, filter, isPlus, vehicles.firstOrNull()?.vehicle, zones)
+    // La misma historia leída SIN el recorte del plan, que es lo que decide qué cards salen bajo
+    // cristal. Solo se le preguntan booleanos. [MONEY-A-BLUR-IS-ONLY-HONEST-WHEN-THERE-IS-SOMETHING-BEHIND-IT-001]
+    val asPlus = resolvedHistory(owned, StatsPeriod.All, true, vehicles.firstOrNull()?.vehicle, zones)
     return StatsState(
         vehicles = vehicles,
         selectedVehicleIndex = 0,
@@ -560,6 +565,28 @@ private fun statsPanelState(
         // NUNCA, y la variante se veía verde sin enseñar su caso (visto en el Oppo, 15-09).
         // [STATS-AN-INSIGHT-IS-A-VERDICT-WITH-ITS-EVIDENCE-001] [DEV-A-GALLERY-VARIANT-MUST-EXERCISE-ITS-CASE-001]
         insights = DeriveStatsInsightsUseCase()(resolved.filteredSessions, resolved.periodStats),
+        // ⛔ Y por la MISMA razón, las cards bajo cristal: la galería arma el estado a mano, así que
+        // sin esta línea la variante free se vería verde sin un solo borrón — justo lo que el ticket
+        // añade. Se calcula con la misma función pura que usa el ViewModel, sobre una resolución
+        // «como si fuera Plus» cuyos valores mueren aquí.
+        // [MONEY-A-BLUR-IS-ONLY-HONEST-WHEN-THERE-IS-SOMETHING-BEHIND-IT-001]
+        // [DEV-A-GALLERY-VARIANT-MUST-EXERCISE-ITS-CASE-001]
+        locked = lockedIntelligence(
+            isPlus = isPlus,
+            allTime = asPlus.periodStats,
+            insightCount = DeriveStatsInsightsUseCase()(asPlus.filteredSessions, asPlus.periodStats).size,
+            heatmapHasData = !buildParkingHeatmap(asPlus.filteredSessions, HeatMeasure.PARKINGS).isEmpty,
+            thisMonth = resolvedHistory(
+                owned,
+                StatsPeriod.ThisMonth,
+                true,
+                vehicles.firstOrNull()?.vehicle,
+                zones,
+            ).periodStats,
+            // El calendario no cabe en una galería: la variante del mes cerrado lo enciende a mano,
+            // igual que la de Plus se pasa su `closedMonth` ya resuelto.
+            closedMonth = null,
+        ),
         filteredSessions = resolved.filteredSessions,
         costPrice = resolved.costPrice,
         periodStats = resolved.periodStats,
@@ -2018,9 +2045,31 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             },
             // Free entra al panel: ve TODAS las cifras de sus últimos 7 días y la fila Plus que ofrece
             // cualquier periodo. [STATS-PANEL-001] [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
-            Variant("Free · todas las cifras, últimos 7 días") {
+            Variant("Free · cifras de 7 días, inteligencia bajo cristal") {
                 StatsContent(
                     state = statsPanelState(isPlus = false),
+                    onNavigateBack = {},
+                    onIntent = {},
+                )
+            },
+            // ⛔ La otra mitad de la regla, y la que de verdad vigila: un borrón sin nada detrás
+            // sería publicidad. Un coche que todavía no ha concluido nada no enseña ni una card
+            // bloqueada — el panel se ve como se veía antes de que el cristal existiera.
+            // [MONEY-A-BLUR-IS-ONLY-HONEST-WHEN-THERE-IS-SOMETHING-BEHIND-IT-001]
+            Variant("Free · sin nada que bloquear") {
+                StatsContent(
+                    state = statsPanelState(isPlus = false, sessions = emptyList()),
+                    onNavigateBack = {},
+                    onIntent = {},
+                )
+            },
+            // El mes cerrado bajo cristal. Se enciende a mano por la misma razón que su gemela de
+            // Plus se pasa el `closedMonth` ya resuelto: la card real sólo existe durante los
+            // primeros días del mes nuevo, y una galería no puede esperar al día 1.
+            Variant("Free · el mes cerrado, bajo cristal") {
+                val base = statsPanelState(isPlus = false)
+                StatsContent(
+                    state = base.copy(locked = base.locked.copy(recap = true)),
                     onNavigateBack = {},
                     onIntent = {},
                 )

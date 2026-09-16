@@ -17,8 +17,12 @@ import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.usecase.fuel.ResolveFuelPriceUseCase
 import com.rndeveloper.paparcar.domain.entitlement.historyVisibleFromMs
+import com.rndeveloper.paparcar.domain.stats.HeatMeasure
+import com.rndeveloper.paparcar.domain.stats.LockedIntelligence
+import com.rndeveloper.paparcar.domain.stats.buildParkingHeatmap
 import com.rndeveloper.paparcar.domain.stats.closedMonthIsFullyVisible
 import com.rndeveloper.paparcar.domain.stats.isRecapFresh
+import com.rndeveloper.paparcar.domain.stats.lockedIntelligence
 import com.rndeveloper.paparcar.domain.usecase.stats.DeriveStatsInsightsUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
@@ -168,8 +172,10 @@ class StatsViewModel(
             // No re-resolution: the sessions, the window and the figures are the same. What moves
             // is which of their numbers the grid paints. [STATS-THE-EXPENSIVE-HOUR-IS-MEASURED-001]
             is StatsIntent.SetHeatMeasure -> updateState { copy(heatMeasure = intent.measure) }
+            // The reason travels with the tap: the recap's card asks for a different thing than the
+            // period row does. [MONEY-A-BLUR-IS-ONLY-HONEST-WHEN-THERE-IS-SOMETHING-BEHIND-IT-001]
             is StatsIntent.OpenPaywall ->
-                sendEffect(StatsEffect.NavigateToPaywall(PaywallReason.STATS))
+                sendEffect(StatsEffect.NavigateToPaywall(intent.reason))
             // [DET-TOGGLE-001] The SAME single action Home's banner and Settings' switch perform:
             // bank the intent, and open the permissions flow when something is still in the way.
             // A CTA that only flipped the flag would look like it did nothing on the very account
@@ -202,6 +208,7 @@ class StatsViewModel(
                 // PREVIOUS car's month under a screen that had no car at all.
                 closedMonth = null,
                 closedMonthPrice = null,
+                locked = LockedIntelligence.NONE,
                 lifetimeParkings = 0,
                 lifetimeSpotsReleased = 0,
             )
@@ -226,6 +233,7 @@ class StatsViewModel(
             insights = deriveInsights(resolved.filteredSessions, resolved.periodStats),
             closedMonth = recap?.periodStats,
             closedMonthPrice = recap?.costPrice,
+            locked = lockedForPlan(vehicle, isPlus),
             filteredSessions = resolved.filteredSessions,
             // Over the FULL list: what the row may OFFER is a question about the data, not about the
             // plan. [STATS-A-FILTER-THAT-CANNOT-ANSWER-IS-NOT-OFFERED-001]
@@ -273,6 +281,50 @@ class StatsViewModel(
             // [STATS-A-PACE-ROW-NAMES-THE-PERIOD-IT-PROJECTS-001]
             it.periodStats != null && it.statsPeriod == StatsPeriod.LastMonth
         }
+    }
+
+    /**
+     * Which conclusion cards this account is missing BECAUSE of the plan, and only those.
+     * [MONEY-A-BLUR-IS-ONLY-HONEST-WHEN-THERE-IS-SOMETHING-BEHIND-IT-001]
+     *
+     * ⛔ **A shadow resolution, whose VALUES are thrown away on this very line.** Nothing computed
+     * here reaches the state: what survives is five booleans, so `gateHistoryToEntitlement` remains
+     * the one door deciding what is shown. It is the same licence the lifetime counters take when
+     * they count over the full list — a count is not a figure of anyone's month.
+     *
+     * ⛔ **Two windows, because the cards ask two different questions.** Habits (places, the grid,
+     * the conclusions) are about a life, so they are asked over `All`; the pace is a projection to
+     * a period's CLOSE, and `All` has none — asking it there would hide that card for ever, which
+     * is the silent-absence bug this ticket exists to end.
+     *
+     * Skipped entirely for Plus: the short-circuit lives in `lockedIntelligence`, and this returns
+     * before doing the work.
+     */
+    private fun lockedForPlan(vehicle: Vehicle, isPlus: Boolean): LockedIntelligence {
+        if (isPlus) return LockedIntelligence.NONE
+        val sessions = sessionsByVehicle[vehicle.id].orEmpty()
+        val nowMs = Clock.System.now().toEpochMilliseconds()
+        fun asPlus(filter: StatsPeriod) = HistoryTimeline.resolve(
+            sessions = sessions,
+            filter = filter,
+            isPlus = true,
+            vehicle = vehicle,
+            zones = zones,
+            nowMs = nowMs,
+            resolveFuelPrice = resolveFuelPrice,
+        )
+
+        val allTime = asPlus(StatsPeriod.All)
+        return lockedIntelligence(
+            isPlus = false,
+            allTime = allTime.periodStats,
+            insightCount = deriveInsights(allTime.filteredSessions, allTime.periodStats).size,
+            heatmapHasData = !buildParkingHeatmap(allTime.filteredSessions, HeatMeasure.PARKINGS).isEmpty,
+            thisMonth = asPlus(StatsPeriod.ThisMonth).periodStats,
+            // The recap's own gate, asked as if the plan were not in the way — freshness included,
+            // so a locked card cannot outlive the real one it stands for.
+            closedMonth = closedMonthRecap(vehicle, isPlus = true)?.periodStats,
+        )
     }
 
     /** One emission of everything the panel depends on. A `Triple` ran out of slots. */
