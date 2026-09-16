@@ -1130,6 +1130,48 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     laneHeaderLatched = true,
                 )
             },
+            // …pero un carril VACÍO no encabeza nada: plegado devuelve la cabecera al coche, que es
+            // lo único que Home siempre tiene que decir en reposo.
+            // [HOME-AN-EMPTY-LANE-HANDS-THE-HEADER-BACK-TO-THE-CAR-001]
+            Variant("PapSheet · plegado tras abrir (carril PARKINGS vacío → coche)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                        vehicles = listOf(FakeData.vehicleSedan),
+                        activeSessions = listOf(FakeData.activeSession.copy(vehicleId = FakeData.vehicleSedan.id)),
+                        userGpsPoint = sampleGps,
+                        nearbySpots = FakeData.nearbySpots,
+                        nearbyLens = HomeNearbyLens.PARKINGS,
+                        parkings = HomeParkingsSlice(
+                            parkings = emptyList(),
+                            // Con ancla y sin resultados: preguntado y vacío, que es distinto de
+                            // «nadie preguntó». [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+                            anchorLat = sampleGps.latitude,
+                            anchorLon = sampleGps.longitude,
+                        ),
+                    ),
+                    laneHeaderLatched = true,
+                )
+            },
+            // La excepción de la regla anterior: sin coche aparcado no hay a quién devolvérsela, así
+            // que el carril vacío se queda la cabecera.
+            // [HOME-AN-EMPTY-LANE-HANDS-THE-HEADER-BACK-TO-THE-CAR-001]
+            Variant("PapSheet · plegado tras abrir (carril vacío, sin coche)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                        userGpsPoint = sampleGps,
+                        nearbySpots = FakeData.nearbySpots,
+                        nearbyLens = HomeNearbyLens.PARKINGS,
+                        parkings = HomeParkingsSlice(
+                            parkings = emptyList(),
+                            anchorLat = sampleGps.latitude,
+                            anchorLon = sampleGps.longitude,
+                        ),
+                    ),
+                    laneHeaderLatched = true,
+                )
+            },
             // Expanded browse with a parked car: the header hands over to the ZONE — the car's
             // info lives in its TUS VEHÍCULOS card below. [UI-SHEET-004]
             Variant("PapSheet · browse expandido (zona, coche aparcado)", Placement.Surface) {

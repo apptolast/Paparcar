@@ -158,6 +158,9 @@ data class HomePeekSlice(
      * Collapsed, the peek speaks for your car — the live trip, else the parked one — only until the
      * user first opens Browse; from then on a collapsed peek keeps the lane too (a live trip still
      * wins). [HOME-PEEK-FOLLOWS-THE-LANE-ONCE-OPENED-001]
+     *
+     * …and gives it straight back when that lane's list is EMPTY: a subject over a zero is not news,
+     * and the parked car always is. [HOME-AN-EMPTY-LANE-HANDS-THE-HEADER-BACK-TO-THE-CAR-001]
      */
     val nearbyLens: HomeNearbyLens,
     /**

@@ -96,14 +96,23 @@ internal fun BrowsePeek(
     laneLoading: Boolean,
     /**
      * The user has opened Browse at least once: from then on the COLLAPSED header also speaks for the
-     * lane instead of the parked car. A live trip still outranks it (see the driving branch).
+     * lane instead of the parked car — while that lane has something to show, see
+     * [browseHeaderFollowsLane]. A live trip still outranks it (see the driving branch).
      * [HOME-PEEK-FOLLOWS-THE-LANE-ONCE-OPENED-001]
+     * [HOME-AN-EMPTY-LANE-HANDS-THE-HEADER-BACK-TO-THE-CAR-001]
      */
     laneHeaderLatched: Boolean = false,
 ) {
-    // Whether this header speaks for the LANE: always when expanded, and collapsed too once Browse
-    // has been opened. [HOME-PEEK-FOLLOWS-THE-LANE-ONCE-OPENED-001]
-    val followsLane = showZoneHeader || laneHeaderLatched
+    // Whether this header speaks for the LANE — one resolver, right below.
+    // [HOME-PEEK-FOLLOWS-THE-LANE-ONCE-OPENED-001]
+    // [HOME-AN-EMPTY-LANE-HANDS-THE-HEADER-BACK-TO-THE-CAR-001]
+    val followsLane = browseHeaderFollowsLane(
+        expanded = showZoneHeader,
+        laneHeaderLatched = laneHeaderLatched,
+        laneCount = laneCount,
+        laneLoading = laneLoading,
+        hasParkedCar = parking != null,
+    )
     // ⛔ The missing-location warning is NOT here any more. It was a trailing badge on all three
     // subjects, and «SIN UBICACIÓN» in caps ate the width this header needs to NAME things — the
     // car, the address, the lane. It now lives in the map's location pill, which was standing
@@ -312,6 +321,46 @@ internal fun BrowsePeek(
             secondaryLine
         },
     )
+}
+
+/**
+ * WHO the browse header speaks for: the lane on show (`true`) or the car below it (`false`).
+ *
+ * The one place that decision is made, so the collapsed peek and the expanded one can't drift apart.
+ *
+ *  - **Expanded** ([expanded]) it is always the lane: that lane's list is what you are reading, and
+ *    the car's info lives in its TUS VEHÍCULOS card. [UI-SHEET-004]
+ *  - **Collapsed**, the car headlines until the user first opens Browse; from then on
+ *    ([laneHeaderLatched]) the lane keeps the header too.
+ *    [HOME-PEEK-FOLLOWS-THE-LANE-ONCE-OPENED-001]
+ *  - …but only **while it has something to show**. A lane whose list came back empty heads nothing:
+ *    the resting peek — the only line Home says when nobody is looking at it — would read a subject
+ *    over a zero while the parked car, which is always news, sits silent one drag away. So an empty
+ *    lane hands the header back. [HOME-AN-EMPTY-LANE-HANDS-THE-HEADER-BACK-TO-THE-CAR-001]
+ *
+ * Two cautions the rule needs to stay honest:
+ *  - **Asking is not empty** ([laneLoading]): the capsule breathes and the lane keeps the header
+ *    until its answer lands, so a refresh can't flip the subject twice.
+ *  - **With no parked car there is nothing to hand it to** ([hasParkedCar]): browse's base subject is
+ *    the free-spots counter, which is exactly what the un-latched header already shows — handing over
+ *    there would swap a quiet lane for a different lane, not for the car.
+ *
+ * A live trip is decided before this: it outranks both subjects and is never released by the latch.
+ */
+internal fun browseHeaderFollowsLane(
+    expanded: Boolean,
+    laneHeaderLatched: Boolean,
+    laneCount: Int?,
+    laneLoading: Boolean,
+    hasParkedCar: Boolean,
+): Boolean {
+    if (expanded) return true
+    if (!laneHeaderLatched) return false
+    // Nothing to show = it answered zero, or nobody asked it (`null`) — and it is not asking now.
+    // ⛔ Null is still not zero: the lane losing the header is NOT the same as printing a `0` on a
+    // subject no source ever counted. [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+    val laneHasNothingToShow = !laneLoading && (laneCount ?: 0) == 0
+    return !(laneHasNothingToShow && hasParkedCar)
 }
 
 @Composable
