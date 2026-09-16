@@ -58,9 +58,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -106,6 +103,7 @@ import com.rndeveloper.paparcar.ui.components.PapListItem
 import com.rndeveloper.paparcar.ui.components.PapNavChevron
 import com.rndeveloper.paparcar.ui.components.PapNavRow
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
+import com.rndeveloper.paparcar.ui.components.PapSegmentedChoice
 import com.rndeveloper.paparcar.ui.components.PapPremiumEmphasis
 import com.rndeveloper.paparcar.ui.components.PapPremiumSurface
 import com.rndeveloper.paparcar.ui.components.PapSectionHeader
@@ -1024,7 +1022,6 @@ private fun <K> SettingsSegmentedRow(
     onSelect: (K) -> Unit,
     optionIcon: @Composable ((K) -> Unit)? = null,
 ) {
-    val cs = MaterialTheme.colorScheme
     Column {
         PapListItem(
             leading = { PapIconTile(icon = icon) },
@@ -1032,34 +1029,17 @@ private fun <K> SettingsSegmentedRow(
             subtitle = subtitle,
             subtitleColor = settingsSubtitleColor(),
         )
-        val segmentColors = SegmentedButtonDefaults.colors(
-            activeContainerColor = cs.primaryContainer,
-            activeContentColor = cs.primary,
-            activeBorderColor = cs.primary,
-            inactiveContainerColor = Color.Transparent,
-            inactiveContentColor = cs.onSurface,
-            inactiveBorderColor = cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA),
+        // El control es de la casa y vive en `ui/components`: la misma elección entre dos existe
+        // fuera de Ajustes (qué mide la rejilla de «Cuándo aparcas»), y mientras esta receta fue
+        // privada de esta pantalla, allí se dibujó con chips.
+        // [UI-STATS-ONE-QUESTION-ONE-COMPONENT-001]
+        PapSegmentedChoice(
+            options = options,
+            selected = selected,
+            onSelect = onSelect,
+            optionIcon = optionIcon,
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 14.dp),
         )
-        SingleChoiceSegmentedButtonRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, bottom = 14.dp),
-        ) {
-            options.forEachIndexed { index, (key, label) ->
-                SegmentedButton(
-                    selected = key == selected,
-                    onClick = { onSelect(key) },
-                    shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
-                    colors = segmentColors,
-                    icon = {
-                        if (optionIcon != null) optionIcon(key)
-                        else SegmentedButtonDefaults.Icon(active = key == selected)
-                    },
-                ) {
-                    Text(label, style = PaparcarType.current.label)
-                }
-            }
-        }
     }
 }
 

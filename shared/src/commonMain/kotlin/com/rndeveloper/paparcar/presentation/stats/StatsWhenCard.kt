@@ -2,8 +2,6 @@ package com.rndeveloper.paparcar.presentation.stats
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.stats.HeatMeasure
 import com.rndeveloper.paparcar.domain.stats.ParkingHeatmap
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
-import com.rndeveloper.paparcar.ui.components.chips.PaparcarFilterChip
+import com.rndeveloper.paparcar.ui.components.PapSegmentedChoice
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
@@ -76,17 +74,17 @@ internal fun StatsWhenCard(
             )
             if (measures.size > 1) {
                 Spacer(Modifier.height(TITLE_GAP_DP.dp))
-                // Scrolls for the same reason the chart's row does: a chip that wraps its own
-                // label has stopped being a label. (Measured on device, 15-09.)
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(CHIP_GAP_DP.dp)) {
-                    items(measures) { measure ->
-                        PaparcarFilterChip(
-                            label = measure.label(),
-                            selected = measure == heatmap.measure,
-                            onClick = { onMeasureSelected(measure) },
-                        )
-                    }
-                }
+                // ⛔ Segmentado y no chips, y la razón es el TIPO: `HeatMeasure` son DOS por
+                // definición, como kilómetros o millas en Ajustes — un par cerrado que se enseña
+                // entero. Las métricas del gráfico, dos cards más arriba, siguen siendo chips
+                // porque son tres por definición y a veces se quedan en dos por falta de datos; si
+                // el control siguiera al número, el mismo sitio sería dos cosas distintas según el
+                // mes. [UI-STATS-ONE-QUESTION-ONE-COMPONENT-001]
+                PapSegmentedChoice(
+                    options = measures.map { it to it.label() },
+                    selected = heatmap.measure,
+                    onSelect = onMeasureSelected,
+                )
             }
             Spacer(Modifier.height(GRID_GAP_DP.dp))
             HeatGrid(heatmap)
@@ -198,7 +196,6 @@ private const val CARD_PAD_DP = 16
 private const val TITLE_GAP_DP = 10
 private const val GRID_GAP_DP = 12
 private const val CELL_GAP_DP = 4
-private const val CHIP_GAP_DP = 8
 private const val DAY_LABEL_W_DP = 26
 private const val LEGEND_SWATCH_DP = 12
 /** A cell with the least data still has to be visible against the empty track. */

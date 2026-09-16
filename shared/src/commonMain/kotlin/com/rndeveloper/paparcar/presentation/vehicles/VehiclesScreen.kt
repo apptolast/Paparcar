@@ -66,6 +66,8 @@ import com.rndeveloper.paparcar.domain.model.displayName
 import com.rndeveloper.paparcar.domain.model.monitoringStatus
 import com.rndeveloper.paparcar.ui.components.PapCollapsingTopBarScaffold
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
+import com.rndeveloper.paparcar.presentation.vehicles.components.PapVehicleSelectorPill
+import com.rndeveloper.paparcar.presentation.vehicles.components.VEHICLE_PILL_HEIGHT_DP
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
 import com.rndeveloper.paparcar.ui.theme.watch
 import com.rndeveloper.paparcar.ui.components.PapAlertDialog
@@ -436,7 +438,7 @@ private fun VehicleTabRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         vehicles.forEachIndexed { index, vehicle ->
-            VehicleTabPill(
+            PapVehicleSelectorPill(
                 vehicle = vehicle,
                 selected = index == selectedIndex,
                 onClick = { onTabClick(index) },
@@ -444,86 +446,12 @@ private fun VehicleTabRow(
         }
         PaparcarAddChip(
             onClick = onAddVehicle,
-            modifier = Modifier.height(TAB_HEIGHT_DP.dp),
+            modifier = Modifier.height(VEHICLE_PILL_HEIGHT_DP.dp),
             contentDescription = stringResource(Res.string.my_car_add_vehicle),
         )
     }
 }
 
-
-/**
- * Vehicle pager tab — aligned with [PaparcarFilterChip] visual contract:
- * neutral [PapBorders] outline (no neon-primary border on selected), primary-
- * tinted leading icon, and label colours that follow the selected state.
- * Adds an `isActive` dot suffix that the base chip doesn't need.
- */
-@Composable
-private fun VehicleTabPill(vehicle: Vehicle, selected: Boolean, onClick: () -> Unit) {
-    val cs = MaterialTheme.colorScheme
-    val tabName = vehicle.displayName(
-        fallback = stringResource(Res.string.my_car_unnamed_vehicle),
-    )
-    // The selected pill wears ITS vehicle's identity colour — the watch method (green = active
-    // detection, blue = BT, grey = unwatched), same colour as the name everywhere else.
-    // [UI-COLOR-DOCTRINE-001]
-    val watch = vehicle.monitoringStatus().watch()
-    val accent = vehicleIdentityColor(watch)
-    val bg = if (selected) accent.copy(alpha = SELECTED_FILL_ALPHA) else cs.surfaceContainerHigh
-    // Name stays onSurface — the fill/border and the watch dot already carry the identity colour.
-    val fg = cs.onSurface
-
-    Surface(
-        onClick = onClick,
-        modifier = Modifier.height(TAB_HEIGHT_DP.dp),
-        shape = RoundedCornerShape(PILL_RADIUS_DP.dp),
-        color = bg,
-        // Selected = tonal fill + MUTED accent border, honouring the "no neon border on selected"
-        // contract this pill previously violated. [UI-REGRESSION]
-        border = if (selected) BorderStroke(PapBorders.strong, accent.copy(alpha = SELECTED_BORDER_ALPHA))
-        else BorderStroke(PapBorders.thin, cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA)),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            com.rndeveloper.paparcar.ui.components.VehicleIcon(
-                carbody = vehicle.carbodyType,
-                size = vehicle.sizeCategory,
-                tint = Color.Unspecified, // native multi-colour silhouette [BOLT-MARKERS-001]
-                color = vehicle.color,
-                modifier = Modifier.size(20.dp),
-            )
-            Text(
-                text = tabName,
-                // The vehicle NAME is identity → MARCA (rowName) everywhere, including this selector
-                // pill, so the name reads in one voice across card/header/selector. [CARD-ONE-BADGE-001]
-                style = PaparcarType.current.rowName,
-                color = fg,
-                maxLines = 1,
-            )
-            VehicleWatchDot(watch = watch)
-        }
-    }
-}
-
-/** Small watch dot — the vehicle's identity colour (green = active detection, blue = BT) when
- *  monitored, absent when it is not. The selector pill has no room for a border or a glyph, so the
- *  dot carries the method alone; it reads the same single resolver as every other surface.
- *  [HOME-VEH-REFINE-001] [UI-COLOR-DOCTRINE-001] */
-@Composable
-private fun VehicleWatchDot(watch: VehicleWatch) {
-    if (watch == VehicleWatch.Off) return // no dot for an unwatched vehicle
-    val color = vehicleIdentityColor(watch)
-    val cd = stringResource(Res.string.vehicle_status_active_cd)
-    Box(
-        modifier = Modifier
-            .size(ACTIVE_DOT_DP.dp)
-            .clip(CircleShape)
-            .background(color)
-            .semantics { contentDescription = cd },
-    )
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Empty state — big circular icon + display title + prominent CTA

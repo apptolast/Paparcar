@@ -46,7 +46,13 @@ import paparcar.composeapp.generated.resources.stats_places_title
 internal fun StatsPlacesCard(places: List<ParkingCluster>) {
     val named = places.filter { !it.name.isNullOrBlank() }.take(MAX_PLACES)
     PapOutlinedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(vertical = CARD_V_PAD_DP.dp)) {
+        // ⛔ El padding vertical lo pone la FILA, no la card. [UI-LIST-ITEM-001]
+        // `PapListItem` ya se acolcha 14 arriba y abajo; sumarle otros 14 de card daba 28 dp en los
+        // bordes contra los 16 de las cards vecinas, y con un solo sitio la card era casi todo aire.
+        // Es la ÚNICA de la app que lo hacía: las otras siete que meten un `PapListItem` en un
+        // `PapOutlinedCard` lo dejan pegado, o le pasan su `contentPadding` explícito.
+        // [UI-STATS-ONE-QUESTION-ONE-COMPONENT-001]
+        Column(modifier = Modifier.padding(top = TITLE_TOP_PAD_DP.dp)) {
             Text(
                 text = stringResource(Res.string.stats_places_title),
                 style = PaparcarType.current.cardTitle,
@@ -65,7 +71,13 @@ internal fun StatsPlacesCard(places: List<ParkingCluster>) {
                     ),
                     style = PaparcarType.current.body,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = CARD_H_PAD_DP.dp),
+                    // Sin filas debajo, el aire de abajo lo tiene que poner alguien: aquí no hay
+                    // `PapListItem` que lo traiga consigo.
+                    modifier = Modifier.padding(
+                        start = CARD_H_PAD_DP.dp,
+                        end = CARD_H_PAD_DP.dp,
+                        bottom = TITLE_TOP_PAD_DP.dp,
+                    ),
                 )
             } else {
                 named.forEachIndexed { index, place ->
@@ -108,6 +120,9 @@ private fun placeSubtitle(place: ParkingCluster): String = listOfNotNull(
 /** Five is what fits before a list stops being a summary and becomes a directory. */
 private const val MAX_PLACES = 5
 private const val CARD_H_PAD_DP = 16
-private const val CARD_V_PAD_DP = 14
-private const val TITLE_GAP_DP = 10
+
+/** Lo único que la card acolcha por su cuenta: el aire SOBRE el título, igual que las cards vecinas.
+ *  Debajo mandan las filas. [UI-LIST-ITEM-001] */
+private const val TITLE_TOP_PAD_DP = 16
+private const val TITLE_GAP_DP = 6
 private const val SEPARATOR = " · "

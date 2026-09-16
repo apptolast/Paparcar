@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.Icon
@@ -39,7 +40,6 @@ import com.rndeveloper.paparcar.domain.stats.projectPeriod
 import com.rndeveloper.paparcar.domain.stats.projectYear
 import com.rndeveloper.paparcar.presentation.util.durationText
 import com.rndeveloper.paparcar.domain.stats.buildParkingHeatmap
-import com.rndeveloper.paparcar.domain.model.displayName
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rndeveloper.paparcar.presentation.util.distanceString
 import com.rndeveloper.paparcar.presentation.vehicles.DAY_SHORT_RES
@@ -52,10 +52,10 @@ import com.rndeveloper.paparcar.presentation.vehicles.components.ActivityCard
 import com.rndeveloper.paparcar.presentation.vehicles.components.chartQualifierText
 import com.rndeveloper.paparcar.presentation.vehicles.VehicleStatsBlock
 import com.rndeveloper.paparcar.presentation.vehicles.components.HistoryFilterBar
+import com.rndeveloper.paparcar.presentation.vehicles.components.PapVehicleSelectorPill
 import com.rndeveloper.paparcar.presentation.vehicles.vehicleStatsPeriodLabel
 import com.rndeveloper.paparcar.ui.components.PapShimmerBlockScale
 import com.rndeveloper.paparcar.ui.components.PapShimmerBox
-import com.rndeveloper.paparcar.ui.components.chips.PaparcarFilterChip
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -63,7 +63,6 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_activity_measure_partial
-import paparcar.composeapp.generated.resources.my_car_unnamed_vehicle
 import paparcar.composeapp.generated.resources.stats_panel_empty_body
 import paparcar.composeapp.generated.resources.stats_pace_close
 import paparcar.composeapp.generated.resources.stats_pace_distance
@@ -368,15 +367,17 @@ private fun formatPaceMoney(value: Double): String {
 /** Which car the figures belong to. Only rendered when there is more than one to choose. */
 @Composable
 private fun VehicleChips(state: StatsState, onIntent: (StatsIntent) -> Unit) {
-    val fallback = stringResource(Res.string.my_car_unnamed_vehicle)
+    // ⛔ El MISMO selector que la pestaña Vehículos, no uno parecido. Este era un
+    // `PaparcarFilterChip` con el nombre y nada más: sin glifo, sin el color de VIGILANCIA y sin el
+    // punto, o sea la mitad de la identidad del coche perdida por copiar un control en vez de
+    // compartirlo. [UI-STATS-ONE-QUESTION-ONE-COMPONENT-001] [UI-COLOR-DOCTRINE-001]
     LazyRow(
         contentPadding = PaddingValues(horizontal = H_PAD_DP.dp),
         horizontalArrangement = Arrangement.spacedBy(CHIP_GAP_DP.dp),
     ) {
-        items(state.vehicles.orEmpty()) { vws ->
-            val index = state.vehicles.orEmpty().indexOf(vws)
-            PaparcarFilterChip(
-                label = vws.vehicle.displayName(fallback = fallback),
+        itemsIndexed(state.vehicles.orEmpty()) { index, vws ->
+            PapVehicleSelectorPill(
+                vehicle = vws.vehicle,
                 selected = index == state.selectedVehicleIndex,
                 onClick = { onIntent(StatsIntent.SelectVehicle(index)) },
             )
