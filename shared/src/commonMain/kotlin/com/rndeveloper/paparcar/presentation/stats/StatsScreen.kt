@@ -59,7 +59,7 @@ import com.rndeveloper.paparcar.presentation.vehicles.components.StatsPeriodBar
 import com.rndeveloper.paparcar.presentation.vehicles.components.PapVehicleSelectorPill
 import com.rndeveloper.paparcar.presentation.vehicles.vehicleStatsPeriodLabel
 import com.rndeveloper.paparcar.ui.components.PapLockedCard
-import com.rndeveloper.paparcar.ui.components.PapLockedShape
+import com.rndeveloper.paparcar.ui.components.PapLockedPreview
 import com.rndeveloper.paparcar.ui.components.PapShimmerBlockScale
 import com.rndeveloper.paparcar.ui.components.PapShimmerBox
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
@@ -71,6 +71,11 @@ import org.koin.core.parameter.parametersOf
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_activity_measure_partial
 import paparcar.composeapp.generated.resources.stats_insights_title
+import paparcar.composeapp.generated.resources.stats_locked_desc_insights
+import paparcar.composeapp.generated.resources.stats_locked_desc_pace
+import paparcar.composeapp.generated.resources.stats_locked_desc_places
+import paparcar.composeapp.generated.resources.stats_locked_desc_recap
+import paparcar.composeapp.generated.resources.stats_locked_desc_when
 import paparcar.composeapp.generated.resources.stats_panel_empty_body
 import paparcar.composeapp.generated.resources.stats_pace_title
 import paparcar.composeapp.generated.resources.stats_places_title
@@ -204,7 +209,8 @@ fun StatsContent(
                     Box(Modifier.padding(horizontal = H_PAD_DP.dp)) {
                         PapLockedCard(
                             title = stringResource(Res.string.stats_recap_title),
-                            shape = PapLockedShape.Lines,
+                            description = stringResource(Res.string.stats_locked_desc_recap),
+                            preview = PapLockedPreview.Rows,
                             // ⛔ Its OWN reason. Being told how the month went is not the same wish
                             // as choosing a period, and the funnel's whole job is telling them apart.
                             onClick = { onIntent(StatsIntent.OpenPaywall(PaywallReason.MONTH_RECAP)) },
@@ -235,7 +241,8 @@ fun StatsContent(
                     Box(Modifier.padding(horizontal = H_PAD_DP.dp)) {
                         PapLockedCard(
                             title = stringResource(Res.string.stats_insights_title),
-                            shape = PapLockedShape.Lines,
+                            description = stringResource(Res.string.stats_locked_desc_insights),
+                            preview = PapLockedPreview.ListRows,
                             onClick = { onIntent(StatsIntent.OpenPaywall(PaywallReason.STATS)) },
                         )
                     }
@@ -379,7 +386,8 @@ fun StatsContent(
                     Box(Modifier.padding(horizontal = H_PAD_DP.dp)) {
                         PapLockedCard(
                             title = stringResource(locked.title),
-                            shape = locked.shape,
+                            description = stringResource(locked.description),
+                            preview = locked.preview,
                             onClick = { onIntent(StatsIntent.OpenPaywall(PaywallReason.STATS)) },
                         )
                     }
@@ -389,11 +397,15 @@ fun StatsContent(
     }
 }
 
-/** A locked card's identity in the list: what it is called and what its body is shaped like. */
+/**
+ * A locked card's identity in the list: what it is called, what it WOULD tell you, and what its
+ * body is shaped like. [UI-A-BLUR-MUST-LOOK-LIKE-THE-CARD-IT-HIDES-001]
+ */
 private data class LockedCard(
     val key: String,
     val title: StringResource,
-    val shape: PapLockedShape,
+    val description: StringResource,
+    val preview: PapLockedPreview,
 )
 
 /**
@@ -402,13 +414,34 @@ private data class LockedCard(
  */
 private fun lockedCards(locked: LockedIntelligence): List<LockedCard> = buildList {
     if (locked.pace) {
-        add(LockedCard("pace_locked", Res.string.stats_pace_title, PapLockedShape.Lines))
+        add(
+            LockedCard(
+                key = "pace_locked",
+                title = Res.string.stats_pace_title,
+                description = Res.string.stats_locked_desc_pace,
+                preview = PapLockedPreview.Rows,
+            ),
+        )
     }
     if (locked.places) {
-        add(LockedCard("places_locked", Res.string.stats_places_title, PapLockedShape.Lines))
+        add(
+            LockedCard(
+                key = "places_locked",
+                title = Res.string.stats_places_title,
+                description = Res.string.stats_locked_desc_places,
+                preview = PapLockedPreview.ListRows,
+            ),
+        )
     }
     if (locked.heatmap) {
-        add(LockedCard("when_locked", Res.string.stats_when_title, PapLockedShape.Grid))
+        add(
+            LockedCard(
+                key = "when_locked",
+                title = Res.string.stats_when_title,
+                description = Res.string.stats_locked_desc_when,
+                preview = PapLockedPreview.Grid,
+            ),
+        )
     }
 }
 

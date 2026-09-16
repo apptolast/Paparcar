@@ -915,6 +915,11 @@
     <string name="stats_panel_empty_body">Nog geen parkeerplaatsen in deze periode. Parkeer een paar keer en de cijfers vullen zich vanzelf.</string>
     <string name="stats_open_panel">Overzicht bekijken</string>
     <string name="stats_locked_cta">Bekijken met Plus</string>
+    <string name="stats_locked_desc_recap">Hoe de net afgesloten maand ging: wat je uitgaf en hoelang je zocht.</string>
+    <string name="stats_locked_desc_insights">Wat de app uit je parkeersessies concludeert, met de cijfers erbij.</string>
+    <string name="stats_locked_desc_places">Waar deze auto steeds terugkomt en wat parkeren daar kost.</string>
+    <string name="stats_locked_desc_when">Op welke dagen en dagdelen je parkeert, en wanneer het het langst duurt.</string>
+    <string name="stats_locked_desc_pace">Waar de maand in dit tempo heen gaat: uitgaven, kilometers en zoektijd.</string>
     <!-- Where the car is parked, on the ficha state line (STATS-UI-001) -->
     <!-- Price the user actually pays (FUEL-PRICE-RESOLVER-001) -->
     <string name="vehicle_registration_fuel_price_label">Prijs per liter (%1$s)</string>

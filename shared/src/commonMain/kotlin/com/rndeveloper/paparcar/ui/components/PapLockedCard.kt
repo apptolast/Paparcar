@@ -2,6 +2,7 @@ package com.rndeveloper.paparcar.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.WorkspacePremium
@@ -18,7 +21,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
@@ -26,31 +32,47 @@ import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.stats_locked_cta
 
-/** What the blurred body is shaped like — the card's own layout, said without its data. */
-enum class PapLockedShape {
-    /** Rows of a list: last month, the conclusions, the places, the pace. */
-    Lines,
+/**
+ * The SHAPE of the card behind the glass — each one mirrors the real card's own layout.
+ * [UI-A-BLUR-MUST-LOOK-LIKE-THE-CARD-IT-HIDES-001]
+ */
+enum class PapLockedPreview {
+    /** Label on the left, figure on the right, three of them: the pace and the recap rows. */
+    Rows,
 
-    /** The day x band grid. */
+    /** Icon tile + name + meta line, divided: what `PapListItem` draws for every place. */
+    ListRows,
+
+    /** Days x bands of small cells at varying intensity: the heat grid, legend included. */
     Grid,
 }
 
 /**
- * A card whose CONTENT is Plus, shown as a blurred silhouette with its real title and a way in.
- * [MONEY-A-BLUR-IS-ONLY-HONEST-WHEN-THERE-IS-SOMETHING-BEHIND-IT-001]
+ * A card whose CONTENT is Plus: its real title, a line saying what it is, and its own shape under
+ * frosted glass. [MONEY-A-BLUR-IS-ONLY-HONEST-WHEN-THERE-IS-SOMETHING-BEHIND-IT-001]
  *
  * ⛔ **The blur covers a FORM, never a figure.** There are no numbers under the glass: not the real
  * ones (they live beyond the entitlement gate and have no business crossing it to be smudged) and
  * certainly not invented ones, which would make the card lie about the reader's own data while
- * pretending to be their data. What the silhouette says is "there is a card of this shape here",
- * and the title above it says which one.
+ * pretending to be their data.
  *
- * ⛔ **And it is never a skeleton.** `PapShimmerBox` means "this is arriving"; these blocks are
- * static and carry a padlock, because a shimmering lock would promise that waiting is enough.
+ * ⛔ **But a form has to be the form of THIS card.** The first version drew three grey bars for all
+ * five and read, on device, as a list that had failed to load — «entrecortado», said the user, and
+ * they were right: what makes frosted glass legible as content is that the blob behind it has the
+ * geometry of the thing it hides. So [preview] mirrors each card: rows label/figure, list items
+ * with their icon tile, the 7x6 grid with its legend.
+ * [UI-A-BLUR-MUST-LOOK-LIKE-THE-CARD-IT-HIDES-001]
+ *
+ * ⛔ **And the words are NOT blurred.** A locked card whose subject can only be guessed from a
+ * smudge sells nothing; [description] says in one line what this card would tell you. It describes
+ * the FEATURE, never the reader's data, which is why it can be read out loud with the glass on.
+ *
+ * ⛔ **Never a skeleton.** `PapShimmerBox` means "this is arriving"; these blocks are static and
+ * carry a padlock, because a shimmering lock would promise that waiting is enough.
  *
  * ⚠️ On Android `Modifier.blur` is a no-op below API 31 and this project's `minSdk` is 26. That is
  * survivable BY CONSTRUCTION here and nowhere else: the silhouette is already unreadable without
- * the blur — it is blocks, not text — so the desaturation is a finish, not the privacy mechanism.
+ * the blur — it is blocks, not text — so the blur is a finish, not the privacy mechanism.
  *
  * The whole surface is clickable and leads to the paywall: a soft gate is one where the door is
  * visible and takes you to the till [MONEY-001].
@@ -58,7 +80,8 @@ enum class PapLockedShape {
 @Composable
 fun PapLockedCard(
     title: String,
-    shape: PapLockedShape,
+    description: String,
+    preview: PapLockedPreview,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -82,8 +105,28 @@ fun PapLockedCard(
                     modifier = Modifier.size(LOCK_DP.dp),
                 )
             }
+            Spacer(Modifier.height(DESC_GAP_DP.dp))
+            Text(
+                text = description,
+                style = PaparcarType.current.body,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             Spacer(Modifier.height(BODY_GAP_DP.dp))
-            Silhouette(shape = shape)
+            // ⛔ Clipped to the card's own radius, and the blur told to treat the edge the same
+            // way. Left unbounded, the smudge bled past the block it came from and produced the
+            // chopped-off look the first version had.
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(PapShapes.card)
+                    .blur(BLUR_DP.dp, edgeTreatment = BlurredEdgeTreatment(PapShapes.card)),
+            ) {
+                when (preview) {
+                    PapLockedPreview.Rows -> RowsPreview()
+                    PapLockedPreview.ListRows -> ListPreview()
+                    PapLockedPreview.Grid -> GridPreview()
+                }
+            }
             Spacer(Modifier.height(BODY_GAP_DP.dp))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -107,72 +150,169 @@ fun PapLockedCard(
     }
 }
 
-/**
- * The body, drawn as the card's layout and nothing else.
- *
- * Widths vary per row on purpose: a stack of identical bars reads as a loading placeholder, and
- * this is not one — what a list of findings looks like is lines of different lengths.
- */
+/** `StatsPaceCard` / `StatsMonthRecapCard`: a label that runs long, a figure that does not. */
 @Composable
-private fun Silhouette(shape: PapLockedShape) {
-    val blurred = Modifier.blur(BLUR_DP.dp)
-    when (shape) {
-        PapLockedShape.Lines -> Column(
-            modifier = blurred.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(LINE_GAP_DP.dp),
-        ) {
-            LINE_WIDTHS.forEach { fraction ->
-                Block(modifier = Modifier.fillMaxWidth(fraction).height(LINE_H_DP.dp))
+private fun RowsPreview() {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(ROW_GAP_DP.dp),
+    ) {
+        ROW_LABEL_WIDTHS.forEachIndexed { index, labelFraction ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Block(Modifier.fillMaxWidth(labelFraction).height(LINE_H_DP.dp))
+                Spacer(Modifier.weight(1f))
+                Block(
+                    Modifier
+                        .width(ROW_VALUE_WIDTHS[index].dp)
+                        .height(VALUE_H_DP.dp),
+                    alpha = STRONG_ALPHA,
+                )
             }
         }
+        Spacer(Modifier.height(CAPTION_GAP_DP.dp))
+        Block(Modifier.fillMaxWidth(CAPTION_WIDTH).height(CAPTION_H_DP.dp), alpha = FAINT_ALPHA)
+    }
+}
 
-        PapLockedShape.Grid -> Column(
-            modifier = blurred.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(CELL_GAP_DP.dp),
-        ) {
-            repeat(GRID_ROWS) { row ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(CELL_GAP_DP.dp),
-                ) {
-                    repeat(GRID_COLUMNS) { column ->
-                        Block(
-                            modifier = Modifier.weight(1f).height(CELL_H_DP.dp),
-                            // A flat grid reads as a table that failed to load; the real one is
-                            // dense in some cells and empty in others, and that is what shows
-                            // through the glass.
-                            alpha = CELL_ALPHAS[(row * GRID_COLUMNS + column) % CELL_ALPHAS.size],
-                        )
-                    }
+/** `StatsPlacesCard` / `StatsInsightsCard`: icon tile, a name, a meta line under it. */
+@Composable
+private fun ListPreview() {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        LIST_NAME_WIDTHS.forEachIndexed { index, nameFraction ->
+            if (index > 0) {
+                Spacer(Modifier.height(LIST_ROW_GAP_DP.dp))
+                Block(Modifier.fillMaxWidth().height(HAIRLINE_DP.dp), alpha = FAINT_ALPHA)
+                Spacer(Modifier.height(LIST_ROW_GAP_DP.dp))
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(TILE_GAP_DP.dp),
+            ) {
+                Block(Modifier.size(TILE_DP.dp), shape = PapShapes.card, alpha = STRONG_ALPHA)
+                Column(verticalArrangement = Arrangement.spacedBy(LINE_GAP_DP.dp)) {
+                    Block(Modifier.fillMaxWidth(nameFraction).height(LINE_H_DP.dp), alpha = STRONG_ALPHA)
+                    Block(Modifier.fillMaxWidth(LIST_META_WIDTHS[index]).height(META_H_DP.dp))
                 }
             }
         }
     }
 }
 
+/** `StatsWhenCard`: the day x band grid at varying intensity, with its axis and its legend. */
 @Composable
-private fun Block(modifier: Modifier, alpha: Float = BLOCK_ALPHA) {
+private fun GridPreview() {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(CELL_GAP_DP.dp),
+    ) {
+        // Hour axis, offset by the day-label column exactly as the real grid is.
+        Row(horizontalArrangement = Arrangement.spacedBy(CELL_GAP_DP.dp)) {
+            Spacer(Modifier.width(AXIS_W_DP.dp))
+            repeat(BANDS) {
+                Block(Modifier.weight(1f).height(AXIS_H_DP.dp), alpha = FAINT_ALPHA)
+            }
+        }
+        repeat(DAYS) { day ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(CELL_GAP_DP.dp),
+            ) {
+                Block(
+                    Modifier.width(AXIS_W_DP.dp).height(AXIS_H_DP.dp),
+                    alpha = FAINT_ALPHA,
+                )
+                repeat(BANDS) { band ->
+                    // The real grid is dense in a couple of bands and empty in most: a flat one
+                    // reads as a table that failed to load, which is the bug this preview fixes.
+                    Block(
+                        Modifier.weight(1f).height(CELL_H_DP.dp),
+                        alpha = CELL_ALPHAS[(day * BANDS + band) % CELL_ALPHAS.size],
+                        shape = PapShapes.chip,
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(CAPTION_GAP_DP.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(CELL_GAP_DP.dp)) {
+            Block(Modifier.width(LEGEND_W_DP.dp).height(AXIS_H_DP.dp), alpha = FAINT_ALPHA)
+            repeat(LEGEND_STEPS) { step ->
+                Block(
+                    Modifier.width(LEGEND_CELL_DP.dp).height(AXIS_H_DP.dp),
+                    alpha = FAINT_ALPHA + step * LEGEND_ALPHA_STEP,
+                    shape = PapShapes.chip,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun Block(
+    modifier: Modifier,
+    alpha: Float = BLOCK_ALPHA,
+    shape: Shape = BLOCK_SHAPE,
+) {
     Spacer(
         modifier = modifier.background(
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha),
-            shape = PapShapes.chip,
+            shape = shape,
         ),
     )
 }
 
+private val BLOCK_SHAPE = RoundedCornerShape(6.dp)
+
 private const val CARD_PAD_DP = 16
 private const val TITLE_GAP_DP = 8
-private const val BODY_GAP_DP = 14
+private const val DESC_GAP_DP = 6
+private const val BODY_GAP_DP = 16
 private const val CTA_GAP_DP = 8
 private const val LOCK_DP = 18
 private const val MARK_DP = 18
-private const val BLUR_DP = 7
-private const val LINE_GAP_DP = 10
-private const val LINE_H_DP = 14
-private const val CELL_GAP_DP = 6
-private const val CELL_H_DP = 16
-private const val GRID_ROWS = 3
-private const val GRID_COLUMNS = 7
-private const val BLOCK_ALPHA = 0.30f
-private val LINE_WIDTHS = listOf(0.86f, 0.62f, 0.74f)
-private val CELL_ALPHAS = listOf(0.12f, 0.34f, 0.20f, 0.42f, 0.16f, 0.28f, 0.10f)
+
+// Enough to make a word unreadable at this block size, measured against the first pass's 7 dp,
+// which left the bars looking like bars rather than like something behind glass.
+private const val BLUR_DP = 12
+
+private const val LINE_H_DP = 15
+private const val VALUE_H_DP = 19
+private const val META_H_DP = 12
+private const val CAPTION_H_DP = 11
+private const val HAIRLINE_DP = 1
+private const val ROW_GAP_DP = 14
+private const val LINE_GAP_DP = 7
+private const val LIST_ROW_GAP_DP = 12
+private const val CAPTION_GAP_DP = 4
+private const val TILE_DP = 40
+private const val TILE_GAP_DP = 12
+private const val CAPTION_WIDTH = 0.66f
+
+private val ROW_LABEL_WIDTHS = listOf(0.44f, 0.30f, 0.38f)
+private val ROW_VALUE_WIDTHS = listOf(84, 62, 70)
+private val LIST_NAME_WIDTHS = listOf(0.52f, 0.38f, 0.46f)
+private val LIST_META_WIDTHS = listOf(0.78f, 0.64f, 0.72f)
+
+private const val DAYS = 7
+private const val BANDS = 6
+private const val AXIS_W_DP = 22
+private const val AXIS_H_DP = 10
+private const val CELL_H_DP = 14
+private const val CELL_GAP_DP = 4
+private const val LEGEND_W_DP = 34
+private const val LEGEND_CELL_DP = 18
+private const val LEGEND_STEPS = 4
+private const val LEGEND_ALPHA_STEP = 0.09f
+
+private const val BLOCK_ALPHA = 0.26f
+private const val STRONG_ALPHA = 0.40f
+private const val FAINT_ALPHA = 0.14f
+private val CELL_ALPHAS = listOf(
+    0.10f, 0.38f, 0.16f, 0.52f, 0.12f, 0.22f,
+    0.44f, 0.14f, 0.30f, 0.10f, 0.34f, 0.18f,
+    0.12f, 0.26f, 0.48f, 0.16f, 0.20f, 0.36f,
+    0.28f, 0.10f, 0.22f, 0.40f, 0.14f, 0.12f,
+)

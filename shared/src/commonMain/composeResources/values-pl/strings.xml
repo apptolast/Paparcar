@@ -970,6 +970,11 @@
     <string name="stats_panel_empty_body">W tym okresie nie ma jeszcze parkowań. Zaparkuj kilka razy, a liczby się wypełnią.</string>
     <string name="stats_open_panel">Zobacz zestawienie</string>
     <string name="stats_locked_cta">Zobacz z Plus</string>
+    <string name="stats_locked_desc_recap">Jak wypadł właśnie zamknięty miesiąc: ile wydałeś i ile szukałeś miejsca.</string>
+    <string name="stats_locked_desc_insights">Co aplikacja wnioskuje z twoich parkowań, razem z danymi, które to potwierdzają.</string>
+    <string name="stats_locked_desc_places">Gdzie ten samochód parkuje regularnie i ile kosztuje tam postój.</string>
+    <string name="stats_locked_desc_when">W jakie dni i o jakich porach parkujesz, i kiedy szukasz najdłużej.</string>
+    <string name="stats_locked_desc_pace">Dokąd zmierza miesiąc w tym tempie: wydatki, kilometry i czas szukania.</string>
     <!-- Where the car is parked, on the ficha state line (STATS-UI-001) -->
     <!-- Price the user actually pays (FUEL-PRICE-RESOLVER-001) -->
     <string name="vehicle_registration_fuel_price_label">Cena za litr (%1$s)</string>

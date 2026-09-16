@@ -984,6 +984,11 @@
     <string name="stats_panel_empty_body">No parkings in this period yet. Park a few times and the figures will fill in.</string>
     <string name="stats_open_panel">See the breakdown</string>
     <string name="stats_locked_cta">See it with Plus</string>
+    <string name="stats_locked_desc_recap">How the month that just closed went: what you spent and how long you spent looking.</string>
+    <string name="stats_locked_desc_insights">What the app concludes from your parkings, with the figures behind each finding.</string>
+    <string name="stats_locked_desc_places">Where this car repeats, and what parking costs at each place.</string>
+    <string name="stats_locked_desc_when">The days and time bands when you park, and when it takes you longest.</string>
+    <string name="stats_locked_desc_pace">Where the month is heading at this rate: spend, distance and time looking.</string>
     <!-- Where the car is parked, on the ficha state line (STATS-UI-001) -->
     <!-- Price the user actually pays (FUEL-PRICE-RESOLVER-001) -->
     <string name="vehicle_registration_fuel_price_label">Price per litre (%1$s)</string>

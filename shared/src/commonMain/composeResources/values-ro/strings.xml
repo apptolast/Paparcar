@@ -966,6 +966,11 @@
     <string name="stats_panel_empty_body">Încă nu există parcări în această perioadă. Parchează de câteva ori și cifrele se vor completa.</string>
     <string name="stats_open_panel">Vezi detalierea</string>
     <string name="stats_locked_cta">Vezi cu Plus</string>
+    <string name="stats_locked_desc_recap">Cum a mers luna tocmai încheiată: cât ai cheltuit și cât ai căutat loc.</string>
+    <string name="stats_locked_desc_insights">Ce concluzionează aplicația din parcările tale, cu cifrele care o susțin.</string>
+    <string name="stats_locked_desc_places">Unde revine mașina asta și cât costă parcarea în fiecare loc.</string>
+    <string name="stats_locked_desc_when">Zilele și intervalele în care parchezi, și cele în care durează cel mai mult.</string>
+    <string name="stats_locked_desc_pace">Încotro merge luna în ritmul ăsta: cheltuieli, kilometri și timp de căutare.</string>
     <!-- Where the car is parked, on the ficha state line (STATS-UI-001) -->
     <!-- Price the user actually pays (FUEL-PRICE-RESOLVER-001) -->
     <string name="vehicle_registration_fuel_price_label">Preț pe litru (%1$s)</string>

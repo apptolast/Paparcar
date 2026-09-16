@@ -948,6 +948,11 @@
     <string name="stats_panel_empty_body">Ainda não há estacionamentos neste período. Estaciona algumas vezes e os números vão preencher-se.</string>
     <string name="stats_open_panel">Ver o detalhe</string>
     <string name="stats_locked_cta">Ver com Plus</string>
+    <string name="stats_locked_desc_recap">Como correu o mês que acabou de fechar: o que gastaste e quanto demoraste a estacionar.</string>
+    <string name="stats_locked_desc_insights">O que a app conclui dos teus estacionamentos, com os números que o sustentam.</string>
+    <string name="stats_locked_desc_places">Onde este carro repete, e quanto custa estacionar em cada lugar.</string>
+    <string name="stats_locked_desc_when">Os dias e as faixas horárias em que estacionas, e aquelas em que demoras mais.</string>
+    <string name="stats_locked_desc_pace">Para onde vai o mês a este ritmo: gasto, quilómetros e tempo à procura.</string>
     <!-- Where the car is parked, on the ficha state line (STATS-UI-001) -->
     <!-- Price the user actually pays (FUEL-PRICE-RESOLVER-001) -->
     <string name="vehicle_registration_fuel_price_label">Preço por litro (%1$s)</string>

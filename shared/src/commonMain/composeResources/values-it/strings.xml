@@ -948,6 +948,11 @@
     <string name="stats_panel_empty_body">Ancora nessun parcheggio in questo periodo. Parcheggia qualche volta e i numeri si riempiranno.</string>
     <string name="stats_open_panel">Vedi il dettaglio</string>
     <string name="stats_locked_cta">Vedi con Plus</string>
+    <string name="stats_locked_desc_recap">Com'è andato il mese appena chiuso: quanto hai speso e quanto ci hai messo a parcheggiare.</string>
+    <string name="stats_locked_desc_insights">Cosa conclude l'app dai tuoi parcheggi, con i dati che lo sostengono.</string>
+    <string name="stats_locked_desc_places">Dove torni più spesso e quanto costa parcheggiare in ogni posto.</string>
+    <string name="stats_locked_desc_when">I giorni e le fasce in cui parcheggi, e quelle in cui ci metti di più.</string>
+    <string name="stats_locked_desc_pace">Dove va il mese a questo ritmo: spesa, chilometri e tempo di ricerca.</string>
     <!-- Where the car is parked, on the ficha state line (STATS-UI-001) -->
     <!-- Price the user actually pays (FUEL-PRICE-RESOLVER-001) -->
     <string name="vehicle_registration_fuel_price_label">Prezzo al litro (%1$s)</string>

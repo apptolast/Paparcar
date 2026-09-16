@@ -316,8 +316,11 @@ class StatsViewModelTest {
         val vm = viewModel(entitlement = Entitlement.FREE)
 
         val locked = vm.state.value.locked
-        assertTrue(locked.places, "the car repeats somewhere, and free is not being shown where")
         assertTrue(locked.heatmap, "there are parkings to lay on the grid")
+        // ⛔ And NOT the places: these sessions carry no address and no zone, so the card they
+        // stand for would open on its own empty state. The glass follows the card's own filter.
+        // [UI-A-BLUR-MUST-LOOK-LIKE-THE-CARD-IT-HIDES-001]
+        assertEquals(false, locked.places, "an unnamed cluster is not a place the card would list")
     }
 
     /** And Plus, who sees the cards themselves, never gets a pane of glass. */

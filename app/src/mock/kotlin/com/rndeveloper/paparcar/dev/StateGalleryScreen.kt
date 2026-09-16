@@ -2063,6 +2063,26 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     onIntent = {},
                 )
             },
+            // ⛔ La silueta de LISTA no la alcanzaba ninguna variante: con las sesiones por defecto
+            // ningún racimo llega a tres, así que «Tus sitios» no se bloqueaba y su preview no lo
+            // miraba nadie. Mismo racimo y misma zona que la variante de Plus, con el plan apagado.
+            // [UI-A-BLUR-MUST-LOOK-LIKE-THE-CARD-IT-HIDES-001] [DEV-A-GALLERY-VARIANT-MUST-EXERCISE-ITS-CASE-001]
+            Variant("Free · tus sitios, bajo cristal") {
+                StatsContent(
+                    state = statsPanelState(
+                        isPlus = false,
+                        sessions = FakeData.allSessions.clusteredForTheGallery(),
+                        zones = listOf(
+                            Zone(
+                                id = "z1", userId = "u", name = "Trabajo",
+                                lat = ZONE_LAT, lon = ZONE_LON, iconKey = "WORK", createdAt = 0L,
+                            ),
+                        ),
+                    ),
+                    onNavigateBack = {},
+                    onIntent = {},
+                )
+            },
             // El mes cerrado bajo cristal. Se enciende a mano por la misma razón que su gemela de
             // Plus se pasa el `closedMonth` ya resuelto: la card real sólo existe durante los
             // primeros días del mes nuevo, y una galería no puede esperar al día 1.

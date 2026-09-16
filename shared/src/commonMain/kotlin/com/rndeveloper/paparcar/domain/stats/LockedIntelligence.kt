@@ -62,7 +62,12 @@ fun lockedIntelligence(
     return LockedIntelligence(
         recap = closedMonth != null,
         insights = insightCount > 0,
-        places = allTime?.places?.isNotEmpty() == true,
+        // ⛔ NAMED places, which is the same filter the card itself applies. Counting every cluster
+        // put a locked "Tus sitios" over a card that would have opened on its own empty state —
+        // a blur with nothing behind it, the one thing this file exists to prevent. A cluster the
+        // app cannot put a name to helps nobody, gate or no gate.
+        // [STATS-A-USUAL-PLACE-IS-A-CLUSTER-NOT-A-STREET-001]
+        places = allTime?.places?.any { !it.name.isNullOrBlank() } == true,
         heatmap = heatmapHasData,
         // The same three magnitudes the pace card projects, and the same reason: a month with no
         // measured spend, distance or search time has no forecast to withhold.

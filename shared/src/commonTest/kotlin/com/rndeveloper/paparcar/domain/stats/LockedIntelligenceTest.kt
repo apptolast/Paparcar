@@ -32,9 +32,9 @@ class LockedIntelligenceTest {
         detectionKnownCount = 0,
     )
 
-    private fun cluster() = ParkingCluster(
+    private fun cluster(name: String? = "Trabajo") = ParkingCluster(
         id = "c1",
-        name = null,
+        name = name,
         latitude = 40.4,
         longitude = -3.7,
         parkings = 4,
@@ -105,6 +105,25 @@ class LockedIntelligenceTest {
 
         assertFalse(locked.pace, "no spend, no distance and no search time is nothing to project")
         assertTrue(locked.places, "the places are still there")
+    }
+
+    /**
+     * ⛔ The card lists NAMED places only and opens on its empty state otherwise, so an unnamed
+     * cluster is a blur with nothing behind it. Same filter on both sides or the glass lies.
+     * [UI-A-BLUR-MUST-LOOK-LIKE-THE-CARD-IT-HIDES-001]
+     */
+    @Test
+    fun `should_notLockThePlaces_when_noClusterHasAName`() {
+        val locked = lockedIntelligence(
+            isPlus = false,
+            allTime = stats(places = listOf(cluster(name = null))),
+            insightCount = 0,
+            heatmapHasData = false,
+            thisMonth = null,
+            closedMonth = null,
+        )
+
+        assertFalse(locked.places, "a cluster the app cannot name is not a place the card would show")
     }
 
     /** The places card is locked by its own content, never by the fact that a period exists. */
