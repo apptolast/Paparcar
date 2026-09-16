@@ -383,8 +383,10 @@ internal fun HomeReportSpotCard(
             titleMaxLines = 1,
             subtitleStyle = PaparcarType.current.label,
             subtitleColor = MaterialTheme.colorScheme.onSurface.copy(alpha = PRIMARY_CARD_SUBTITLE_ALPHA),
-            // La razón no cabe en una línea, y recortarla la dejaría diciendo la mitad.
-            subtitleMaxLines = if (enabled) 1 else 2,
+            // Dos líneas SIEMPRE: ninguna de las dos frases cabe en una sola en un móvil estrecho, y
+            // la de habilitada moría en «…quieres compar…». Recortar una razón la deja diciendo la
+            // mitad, y la altura no es nueva — la versión deshabilitada ya reservaba las dos.
+            subtitleMaxLines = 2,
             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp),
             gap = 12.dp,
             leading = {

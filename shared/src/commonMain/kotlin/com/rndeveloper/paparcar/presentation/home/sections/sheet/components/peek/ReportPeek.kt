@@ -8,9 +8,13 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Campaign
+import androidx.compose.material.icons.rounded.LocationOff
+import androidx.compose.material.icons.rounded.WrongLocation
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.rndeveloper.paparcar.domain.model.SpotReportGate
+import com.rndeveloper.paparcar.domain.model.SpotReportPolicy
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.presentation.home.HomeIntent
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheet
@@ -20,6 +24,8 @@ import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapS
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
 import com.rndeveloper.paparcar.ui.components.PapSectionHeader
+import com.rndeveloper.paparcar.presentation.util.LocalDistanceUnit
+import com.rndeveloper.paparcar.presentation.util.formatDistance
 import com.rndeveloper.paparcar.ui.components.chips.PaparcarFilterChip
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -27,7 +33,11 @@ import paparcar.composeapp.generated.resources.home_report_confirm_here
 import paparcar.composeapp.generated.resources.home_report_header_label
 import paparcar.composeapp.generated.resources.home_report_helper_primary
 import paparcar.composeapp.generated.resources.home_report_helper_secondary
+import paparcar.composeapp.generated.resources.home_report_needs_location
+import paparcar.composeapp.generated.resources.home_report_no_fix_title
 import paparcar.composeapp.generated.resources.home_report_size_section
+import paparcar.composeapp.generated.resources.home_report_too_far_sub
+import paparcar.composeapp.generated.resources.home_report_too_far_title
 import paparcar.composeapp.generated.resources.vehicle_size_large
 import paparcar.composeapp.generated.resources.vehicle_size_medium
 import paparcar.composeapp.generated.resources.vehicle_size_moto
@@ -45,8 +55,20 @@ internal fun ReportPeek(
     selectedSize: VehicleSize?,
     isReporting: Boolean,
     isCameraMoving: Boolean,
+    /** Whether the pin may be published at all. [SPOT-A-REPORT-YOU-CANNOT-SEE-IS-NOT-A-REPORT-001] */
+    gate: SpotReportGate,
     onIntent: (HomeIntent) -> Unit,
 ) {
+    // ⛔ El banner es UNA pregunta: «¿qué tengo que hacer ahora?». Mientras el pin es publicable eso
+    // es centrarlo; cuando no lo es, es volver a donde estás — y entonces la instrucción vieja
+    // sobraría, porque centrar un pin que no se puede confirmar no lleva a ninguna parte. Por eso la
+    // razón SUSTITUYE al banner en lugar de apilarse debajo. [UI-SHEET-001]
+    val blocked = gate != SpotReportGate.ALLOWED
+    val maxDistance = formatDistance(
+        meters = SpotReportPolicy.MAX_REPORT_DISTANCE_METERS.toFloat(),
+        unit = LocalDistanceUnit.current,
+    )
+
     PapSheet(
         lead = PapSheetLead.Announce,
         eyebrow = stringResource(Res.string.home_report_header_label).uppercase(),
@@ -55,10 +77,28 @@ internal fun ReportPeek(
         title = title,
         onDismiss = { onIntent(HomeIntent.ExitReportMode) },
         banner = {
-            PapSheetBanner(
-                title = stringResource(Res.string.home_report_helper_primary),
-                subtitle = stringResource(Res.string.home_report_helper_secondary),
-            )
+            when (gate) {
+                SpotReportGate.ALLOWED -> PapSheetBanner(
+                    title = stringResource(Res.string.home_report_helper_primary),
+                    subtitle = stringResource(Res.string.home_report_helper_secondary),
+                )
+                // Causa + consecuencia + remedio, y la distancia NUNCA escrita a mano: va formateada
+                // para que quien eligió millas no lea kilómetros.
+                // [I18N-A-RADIUS-WRITTEN-BY-HAND-IGNORES-MILES-001]
+                SpotReportGate.TOO_FAR -> PapSheetBanner(
+                    title = stringResource(Res.string.home_report_too_far_title),
+                    subtitle = stringResource(Res.string.home_report_too_far_sub, maxDistance),
+                    icon = Icons.Rounded.WrongLocation,
+                    maxLines = Int.MAX_VALUE,
+                )
+                // Sin fix no sabemos dónde estás: decir «estás lejos» sería adivinar.
+                SpotReportGate.NO_FIX -> PapSheetBanner(
+                    title = stringResource(Res.string.home_report_no_fix_title),
+                    subtitle = stringResource(Res.string.home_report_needs_location),
+                    icon = Icons.Rounded.LocationOff,
+                    maxLines = Int.MAX_VALUE,
+                )
+            }
         },
         chips = {
             PapSectionHeader(title = stringResource(Res.string.home_report_size_section))
@@ -74,7 +114,7 @@ internal fun ReportPeek(
                 leadingIcon = Icons.Rounded.Campaign,
                 onClick = { onIntent(HomeIntent.ConfirmReportSpot) },
                 style = PapFooterButtonStyle.Filled,
-                enabled = !isCameraMoving && !isReporting,
+                enabled = !blocked && !isCameraMoving && !isReporting,
                 isLoading = isReporting,
                 modifier = Modifier.fillMaxWidth(),
             )

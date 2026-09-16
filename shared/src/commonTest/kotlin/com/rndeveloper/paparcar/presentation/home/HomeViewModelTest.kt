@@ -2015,10 +2015,21 @@ class HomeViewModelTest {
         assertEquals("z1", s.editingZoneId)
     }
 
+    /**
+     * Puts the report pin where the user actually IS. Reporting is gated on that distance
+     * ([SPOT-A-REPORT-YOU-CANNOT-SEE-IS-NOT-A-REPORT-001]), so a confirm test that never emits a fix
+     * is not testing the publish path — it is testing the gate by accident.
+     */
+    private suspend fun enterReportModeAtUser() {
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        vm.handleIntent(HomeIntent.EnterReportMode(lat = location.latitude, lon = location.longitude))
+    }
+
     @Test
     fun `should_emit_ShowError_when_confirmReportSpot_use_case_throws`() = runTest {
         reportScheduler.shouldThrow = true
-        vm.handleIntent(HomeIntent.EnterReportMode(lat = 40.0, lon = -3.7))
+        enterReportModeAtUser()
         vm.effect.test {
             vm.handleIntent(HomeIntent.ConfirmReportSpot)
             // First effect is the ShowError from the failure branch.
@@ -2049,7 +2060,7 @@ class HomeViewModelTest {
         vehicleRepo = FakeVehicleRepository(defaultVehicle = activeVehicle)
         vm = buildVm()
 
-        vm.handleIntent(HomeIntent.EnterReportMode(lat = 40.0, lon = -3.7))
+        enterReportModeAtUser()
         vm.handleIntent(HomeIntent.ConfirmReportSpot)
         advanceUntilIdle()
 
@@ -2069,7 +2080,7 @@ class HomeViewModelTest {
         vehicleRepo = FakeVehicleRepository(defaultVehicle = activeVehicle)
         vm = buildVm()
 
-        vm.handleIntent(HomeIntent.EnterReportMode(lat = 40.0, lon = -3.7))
+        enterReportModeAtUser()
         vm.handleIntent(HomeIntent.SetReportingSize(com.rndeveloper.paparcar.domain.model.VehicleSize.MICRO_SMALL))
         vm.handleIntent(HomeIntent.ConfirmReportSpot)
         advanceUntilIdle()
@@ -2077,6 +2088,65 @@ class HomeViewModelTest {
         // User-picked size wins; carbody still comes from the active vehicle.
         assertEquals(com.rndeveloper.paparcar.domain.model.VehicleSize.MICRO_SMALL, reportScheduler.lastSizeCategory)
         assertEquals(com.rndeveloper.paparcar.domain.model.CarbodyType.SEDAN, reportScheduler.lastCarbodyType)
+    }
+
+    // ── Report proximity gate [SPOT-A-REPORT-YOU-CANNOT-SEE-IS-NOT-A-REPORT-001] ──
+
+    @Test
+    fun `should_refuse_confirmReportSpot_when_pin_is_further_than_the_report_radius`() = runTest {
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        // Pan to another city — which is exactly what the report pin allowed before the gate:
+        // it is the camera centre, so the map was the only thing deciding where the spot landed.
+        vm.handleIntent(HomeIntent.EnterReportMode(lat = 41.3874, lon = 2.1686))
+
+        vm.effect.test {
+            vm.handleIntent(HomeIntent.ConfirmReportSpot)
+            val effect = awaitItem()
+            assertIs<HomeEffect.ShowError>(effect)
+            assertEquals(PaparcarError.Spot.TooFarToReport, effect.error)
+            cancelAndIgnoreRemainingEvents()
+        }
+        advanceUntilIdle()
+
+        // Nothing was written, and the mode stays open so walking back is enough to retry.
+        assertEquals(0, reportScheduler.scheduleCallCount)
+        assertEquals(false, vm.state.value.isReporting)
+        assertEquals(HomeMode.Reporting, vm.state.value.mode)
+    }
+
+    @Test
+    fun `should_refuse_confirmReportSpot_when_there_is_no_location_fix`() = runTest {
+        // No fix: the app cannot tell whether you are next to the spot, and "you are too far" would
+        // be a guess — so this path says the location sentence instead.
+        vm.handleIntent(HomeIntent.EnterReportMode(lat = 40.0, lon = -3.7))
+
+        vm.effect.test {
+            vm.handleIntent(HomeIntent.ConfirmReportSpot)
+            val effect = awaitItem()
+            assertIs<HomeEffect.ShowError>(effect)
+            assertEquals(PaparcarError.Location.ProviderDisabled, effect.error)
+            cancelAndIgnoreRemainingEvents()
+        }
+        advanceUntilIdle()
+
+        assertEquals(0, reportScheduler.scheduleCallCount)
+    }
+
+    @Test
+    fun `should_publish_spot_when_pin_is_within_the_report_radius`() = runTest {
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        // ~100 m north of the fix: the spot you are walking away from, which must keep working.
+        vm.handleIntent(
+            HomeIntent.EnterReportMode(lat = location.latitude + 0.0009, lon = location.longitude),
+        )
+
+        vm.handleIntent(HomeIntent.ConfirmReportSpot)
+        advanceUntilIdle()
+
+        assertEquals(1, reportScheduler.scheduleCallCount)
+        assertEquals(HomeMode.Browse, vm.state.value.mode)
     }
 
     @Test

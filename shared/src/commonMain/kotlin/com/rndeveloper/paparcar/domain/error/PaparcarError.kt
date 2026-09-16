@@ -58,6 +58,16 @@ sealed class PaparcarError : Exception() {
         data object ReleaseFailed : Parking()
     }
 
+    /** The community half — a PLAZA, not your parking. Kept apart from [Parking] on purpose: the two
+     *  words name two different things and the vocabulary already split them.
+     *  [COPY-SPOT-IS-NOT-A-PARKING-001] */
+    sealed class Spot : PaparcarError() {
+        /** The pin sat further from the measured fix than a reporter can vouch for. The peek disables
+         *  its confirm and says so, so this only lands when the fix moved between the camera settling
+         *  and the press. [SPOT-A-REPORT-YOU-CANNOT-SEE-IS-NOT-A-REPORT-001] */
+        data object TooFarToReport : Spot()
+    }
+
     sealed class Vehicle : PaparcarError() {
         data object SaveFailed : Vehicle()
         data object DeleteFailed : Vehicle()

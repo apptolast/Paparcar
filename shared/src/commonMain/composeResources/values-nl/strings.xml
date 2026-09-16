@@ -225,6 +225,7 @@
     <!-- Generic error messages -->
     <string name="error_unknown">Er is iets misgegaan</string>
     <string name="error_watch_resume_failed">De bewaking kon niet worden herstart. Probeer het zo nog eens.</string>
+    <string name="error_report_too_far">Die plek is te ver weg om te melden.</string>
     <string name="error_load_spots">Kon parkeerplaatsen in de buurt niet laden</string>
     <string name="error_load_session">Kon parkeersessie niet laden</string>
     <string name="error_release_parking">Kon parkeerplaats niet vrijgeven</string>
@@ -247,6 +248,9 @@
     <!-- Home Reporting mode -->
     <string name="home_report_subtitle">Een vrije plek die je hebt gezien en wilt delen.</string>
     <string name="home_report_needs_location">Zet locatie aan om te melden: een plek is alleen betrouwbaar als je ernaast stond.</string>
+    <string name="home_report_too_far_title">Die plek is te ver bij je vandaan</string>
+    <string name="home_report_too_far_sub">Rijders gaan meteen af op wat je meldt, dus het moet een plek zijn die je ziet. Schuif de kaart terug tot binnen %1$s van je.</string>
+    <string name="home_report_no_fix_title">We weten niet waar je bent</string>
     <string name="home_report_fab_cd">Vrije plek melden</string>
 
     <!-- Home Zones — vaste plekken -->

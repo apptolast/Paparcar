@@ -224,6 +224,7 @@
     <!-- Generic error messages -->
     <string name="error_unknown">Coś poszło nie tak</string>
     <string name="error_watch_resume_failed">Nie udało się wznowić czuwania. Spróbuj ponownie za chwilę.</string>
+    <string name="error_report_too_far">To miejsce jest za daleko, aby je zgłosić.</string>
     <string name="error_load_spots">Nie można załadować pobliskich miejsc</string>
     <string name="error_load_session">Nie można załadować sesji parkowania</string>
     <string name="error_release_parking">Nie można zwolnić miejsca parkingowego</string>
@@ -246,6 +247,9 @@
     <!-- Home Reporting mode -->
     <string name="home_report_subtitle">Wolne miejsce, kt&#xF3;re widzia&#x0142;e&#x015B; i chcesz udost&#x0119;pni&#x0107; innym.</string>
     <string name="home_report_needs_location">Włącz lokalizację, aby zgłosić: miejsce jest wiarygodne tylko wtedy, gdy byłeś obok.</string>
+    <string name="home_report_too_far_title">To miejsce jest za daleko od ciebie</string>
+    <string name="home_report_too_far_sub">Kierowcy jadą prosto do tego, co zgłosisz, więc musi to być miejsce, które widzisz. Przesuń mapę bliżej niż %1$s od ciebie.</string>
+    <string name="home_report_no_fix_title">Nie wiemy, gdzie jesteś</string>
     <string name="home_report_fab_cd">Zg&#x0142;o&#x015B; wolne miejsce</string>
 
     <!-- Home Zones — sta&#x0142;e miejsca -->

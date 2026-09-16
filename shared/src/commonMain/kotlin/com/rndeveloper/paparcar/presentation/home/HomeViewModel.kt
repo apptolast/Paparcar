@@ -42,6 +42,7 @@ import com.rndeveloper.paparcar.domain.usecase.vehicle.DeclareActiveVehicleUseCa
 import com.rndeveloper.paparcar.domain.usecase.spot.ReportManualSpotUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.SetFirstStepsDismissedUseCase
 import com.rndeveloper.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
+import com.rndeveloper.paparcar.domain.model.SpotReportGate
 import com.rndeveloper.paparcar.domain.model.SpotVoteOutcome
 import com.rndeveloper.paparcar.domain.usecase.spot.SendSpotSignalUseCase
 import com.rndeveloper.paparcar.presentation.util.distanceMeters
@@ -1150,6 +1151,19 @@ class HomeViewModel(
         val current = state.value
         if (current.mode !is HomeMode.Reporting || current.isReporting) return
         val (lat, lon) = current.pinCoordinates() ?: return reportPinMissing()
+        // ⛔ Last fence, not the only one: the peek already disables its confirm and says why, so
+        // reaching here means the fix moved between the camera settling and the press. It still
+        // refuses — a spot nobody saw sends the whole neighbourhood on a wasted drive, which is the
+        // failure the asymmetry doctrine exists to avoid.
+        // [SPOT-A-REPORT-YOU-CANNOT-SEE-IS-NOT-A-REPORT-001]
+        when (current.reportGate()) {
+            SpotReportGate.ALLOWED -> Unit
+            // Losing the fix is not standing far away, and the two must not share a sentence:
+            // "turn your location on" is actionable, "you're too far" would be a guess.
+            SpotReportGate.NO_FIX -> return reportPinMissing()
+            SpotReportGate.TOO_FAR ->
+                return sendEffect(HomeEffect.ShowError(PaparcarError.Spot.TooFarToReport))
+        }
         updateState { copy(isReporting = true) }
         viewModelScope.launch {
             reportManualSpot(

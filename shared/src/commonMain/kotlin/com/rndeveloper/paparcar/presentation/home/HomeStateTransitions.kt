@@ -1,9 +1,12 @@
 package com.rndeveloper.paparcar.presentation.home
 
 import com.rndeveloper.paparcar.domain.model.Spot
+import com.rndeveloper.paparcar.domain.model.SpotReportGate
+import com.rndeveloper.paparcar.domain.model.SpotReportPolicy
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Zone
 import com.rndeveloper.paparcar.domain.model.ZoneIcon
+import com.rndeveloper.paparcar.presentation.util.distanceMeters
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HomeStateTransitions — the PURE `HomeState → HomeState` transitions of Home's
@@ -133,3 +136,20 @@ internal fun HomeState.pinCoordinates(): Pair<Double, Double>? {
     val lon = pinCameraLon ?: return null
     return lat to lon
 }
+
+/**
+ * How far the report pin sits from the measured fix, or null when either end is missing.
+ *
+ * Measured HERE, from the state that owns both the fix and the pin, for the same reason the vote
+ * measures itself in the ViewModel: a gate whose input is passed in by the call site is a gate the
+ * next call site forgets. [SPOT-A-REPORT-YOU-CANNOT-SEE-IS-NOT-A-REPORT-001]
+ */
+internal fun HomeState.pinDistanceFromUserMeters(): Double? {
+    val (lat, lon) = pinCoordinates() ?: return null
+    val me = userGpsPoint ?: return null
+    return distanceMeters(me.latitude, me.longitude, lat, lon).toDouble()
+}
+
+/** Whether the spot under the report pin may be published at all. */
+internal fun HomeState.reportGate(): SpotReportGate =
+    SpotReportPolicy.gateFor(pinDistanceFromUserMeters())

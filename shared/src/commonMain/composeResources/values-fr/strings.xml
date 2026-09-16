@@ -224,6 +224,7 @@
     <!-- Messages d'erreur génériques -->
     <string name="error_unknown">Une erreur est survenue</string>
     <string name="error_watch_resume_failed">Impossible de réactiver la surveillance. Réessaie dans un instant.</string>
+    <string name="error_report_too_far">Cette place est trop loin de vous pour être signalée.</string>
     <string name="error_load_spots">Impossible de charger les places à proximité</string>
     <string name="error_load_session">Impossible de charger la session de stationnement</string>
     <string name="error_release_parking">Impossible de libérer le stationnement</string>
@@ -246,6 +247,9 @@
     <!-- Home Reporting mode -->
     <string name="home_report_subtitle">Une place libre que vous avez vue et souhaitez partager.</string>
     <string name="home_report_needs_location">Activez la localisation pour signaler : une place n'est fiable que si vous étiez à côté.</string>
+    <string name="home_report_too_far_title">Cette place est loin de vous</string>
+    <string name="home_report_too_far_sub">Les conducteurs foncent droit vers ce que vous signalez : il faut donc une place que vous voyez. Rapprochez la carte à moins de %1$s de vous.</string>
+    <string name="home_report_no_fix_title">Nous ne savons pas où vous êtes</string>
     <string name="home_report_fab_cd">Signaler une place libre</string>
 
     <!-- Home Zones — lieux habituels -->

@@ -1623,11 +1623,40 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
+            // El pin CAE DENTRO del radio de reporte: banner de instrucción y confirmar vivo.
+            // [SPOT-A-REPORT-YOU-CANNOT-SEE-IS-NOT-A-REPORT-001]
             Variant("PapSheet · add spot (chips tamaño)", Placement.Surface) {
                 peek(
                     HomeState(
                         mode = HomeMode.Reporting,
                         cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                        userGpsPoint = sampleGps,
+                        pinCameraLat = sampleGps.latitude,
+                        pinCameraLon = sampleGps.longitude,
+                    ),
+                )
+            },
+            // El mapa paneado lejos: el banner cambia a la razón y "Confirmar plaza aquí" se apaga.
+            Variant("PapSheet · add spot (demasiado lejos)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        mode = HomeMode.Reporting,
+                        cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                        userGpsPoint = sampleGps,
+                        // Barcelona con el fix en Madrid — el caso que el gate existe para cortar.
+                        pinCameraLat = 41.3874,
+                        pinCameraLon = 2.1686,
+                    ),
+                )
+            },
+            // Sin fix: otra frase, porque "estás lejos" sería adivinar dónde estás.
+            Variant("PapSheet · add spot (sin ubicación)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        mode = HomeMode.Reporting,
+                        cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                        pinCameraLat = sampleGps.latitude,
+                        pinCameraLon = sampleGps.longitude,
                     ),
                 )
             },

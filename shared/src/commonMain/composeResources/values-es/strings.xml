@@ -306,6 +306,7 @@
     <!-- Mensajes de error genéricos -->
     <string name="error_unknown">Algo fue mal</string>
     <string name="error_watch_resume_failed">No se pudo reactivar la vigilancia. Inténtalo de nuevo en un momento.</string>
+    <string name="error_report_too_far">Esa plaza está demasiado lejos de ti para avisarla.</string>
     <string name="error_load_spots">No se pudieron cargar los parkings cercanos</string>
     <string name="error_load_session">No se pudo cargar la sesión de aparcamiento</string>
     <string name="error_release_parking">No se pudo liberar el aparcamiento</string>
@@ -328,6 +329,9 @@
     <!-- Modo Reporting en Home -->
     <string name="home_report_subtitle">Una plaza libre que has visto y quieres compartir.</string>
     <string name="home_report_needs_location">Activa la ubicación para avisar: una plaza solo es fiable si estabas al lado.</string>
+    <string name="home_report_too_far_title">Esa plaza está lejos de ti</string>
+    <string name="home_report_too_far_sub">Quien la vea va derecho hacia ella, así que tiene que ser una plaza que estés viendo. Acerca el mapa a menos de %1$s de donde estás.</string>
+    <string name="home_report_no_fix_title">No sabemos dónde estás</string>
     <string name="home_report_fab_cd">Avisar plaza libre</string>
     <!-- Copy refrescada para la card del modo Avisar (diseño v1) -->
     <string name="home_report_header_label">Avisar plaza libre</string>

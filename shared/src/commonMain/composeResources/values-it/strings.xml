@@ -224,6 +224,7 @@
     <!-- Messaggi di errore generici -->
     <string name="error_unknown">Qualcosa è andato storto</string>
     <string name="error_watch_resume_failed">Non è stato possibile riattivare il controllo. Riprova tra un momento.</string>
+    <string name="error_report_too_far">Quel posto è troppo lontano da te per segnalarlo.</string>
     <string name="error_load_spots">Impossibile caricare i posti vicini</string>
     <string name="error_load_session">Impossibile caricare la sessione di parcheggio</string>
     <string name="error_release_parking">Impossibile liberare il parcheggio</string>
@@ -246,6 +247,9 @@
     <!-- Home Reporting mode -->
     <string name="home_report_subtitle">Un posto libero che hai visto e vuoi condividere con altri.</string>
     <string name="home_report_needs_location">Attiva la posizione per segnalare: un posto è affidabile solo se eri lì accanto.</string>
+    <string name="home_report_too_far_title">Quel posto è lontano da te</string>
+    <string name="home_report_too_far_sub">Chi lo vede ci va dritto, quindi dev'essere un posto che stai vedendo. Avvicina la mappa a meno di %1$s da dove sei.</string>
+    <string name="home_report_no_fix_title">Non sappiamo dove sei</string>
     <string name="home_report_fab_cd">Segnala un posto libero</string>
 
     <!-- Home Zones — luoghi abituali -->

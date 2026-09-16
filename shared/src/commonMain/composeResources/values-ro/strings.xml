@@ -226,6 +226,7 @@
     <!-- Generic error messages -->
     <string name="error_unknown">Ceva a mers greșit</string>
     <string name="error_watch_resume_failed">Nu am putut reactiva supravegherea. Încearcă din nou într-un moment.</string>
+    <string name="error_report_too_far">Locul acela e prea departe ca să îl anunți.</string>
     <string name="error_load_spots">Nu s-au putut încărca locurile din apropiere</string>
     <string name="error_load_session">Nu s-a putut încărca sesiunea de parcare</string>
     <string name="error_release_parking">Nu s-a putut elibera locul de parcare</string>
@@ -248,6 +249,9 @@
     <!-- Home Reporting mode -->
     <string name="home_report_subtitle">Un loc liber pe care l-ai v&#xE3;zut &#x219;i vrei s&#x103;-l &#xEE;mp&#x103;rt&#x103;&#x219;e&#x219;ti.</string>
     <string name="home_report_needs_location">Activează locația pentru a anunța: un loc e de încredere doar dacă erai lângă el.</string>
+    <string name="home_report_too_far_title">Locul acela e prea departe de tine</string>
+    <string name="home_report_too_far_sub">Șoferii merg direct la ce anunți, deci trebuie să fie un loc pe care îl vezi. Apropie harta la mai puțin de %1$s de tine.</string>
+    <string name="home_report_no_fix_title">Nu știm unde ești</string>
     <string name="home_report_fab_cd">Raporteaz&#x103; un loc liber</string>
 
     <!-- Home Zones — locuri obi&#x219;nuite -->

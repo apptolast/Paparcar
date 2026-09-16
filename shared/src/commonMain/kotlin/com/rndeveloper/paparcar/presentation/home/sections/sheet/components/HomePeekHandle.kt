@@ -167,6 +167,7 @@ fun HomePeekHandle(
                     selectedSize = slice.reportingSize,
                     isReporting = slice.isReporting,
                     isCameraMoving = slice.isCameraMoving,
+                    gate = slice.reportGate,
                     onIntent = onIntent,
                 )
                 PeekState.AddingZone -> AddingZonePeek(

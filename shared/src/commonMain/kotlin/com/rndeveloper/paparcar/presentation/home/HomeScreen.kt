@@ -106,6 +106,7 @@ import paparcar.composeapp.generated.resources.error_load_session
 import paparcar.composeapp.generated.resources.error_load_spots
 import paparcar.composeapp.generated.resources.error_parking_save_failed
 import paparcar.composeapp.generated.resources.error_release_parking
+import paparcar.composeapp.generated.resources.error_report_too_far
 import paparcar.composeapp.generated.resources.error_search_failed
 import paparcar.composeapp.generated.resources.first_steps_spotlight_caption
 import paparcar.composeapp.generated.resources.location_approximate_near
@@ -223,6 +224,7 @@ fun HomeScreen(
     val msgErrorParkingSaveFailed = stringResource(Res.string.error_parking_save_failed)
     val msgErrorSearchFailed = stringResource(Res.string.error_search_failed)
     val msgErrorWatchResumeFailed = stringResource(Res.string.error_watch_resume_failed)
+    val msgErrorReportTooFar = stringResource(Res.string.error_report_too_far)
     val msgSpotReported = stringResource(Res.string.home_spot_reported)
     val msgTestSpotSent = stringResource(Res.string.home_test_spot_sent)
     // Each vote says what it DID. The old single "Thanks for the update!" was true and useless —
@@ -248,6 +250,10 @@ fun HomeScreen(
                         is PaparcarError.Network.Unknown -> msgErrorLoadSpots
                         is PaparcarError.Database.Unknown -> msgErrorLoadSession
                         is PaparcarError.Parking.SaveFailed -> msgErrorParkingSaveFailed
+                        // El peek ya lo dice y apaga su botón: esto sólo salta si el fix se movió
+                        // entre que la cámara se posó y el dedo bajó.
+                        // [SPOT-A-REPORT-YOU-CANNOT-SEE-IS-NOT-A-REPORT-001]
+                        is PaparcarError.Spot.TooFarToReport -> msgErrorReportTooFar
                         // [DET-WATCH-REACTIVATE-001] "Reactivate" could not bring the watcher back.
                         is PaparcarError.Detection.WatchResumeFailed -> msgErrorWatchResumeFailed
                         else -> msgErrorUnknown

@@ -8,6 +8,7 @@ import com.rndeveloper.paparcar.domain.model.ParkedVehicleSummary
 import com.rndeveloper.paparcar.domain.model.ParkingReleaseReason
 import com.rndeveloper.paparcar.domain.model.SearchResult
 import com.rndeveloper.paparcar.domain.model.Spot
+import com.rndeveloper.paparcar.domain.model.SpotReportGate
 import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
@@ -229,6 +230,10 @@ data class HomePeekSlice(
     val isCameraGeocoding: Boolean,
     // Reporting form
     val isReporting: Boolean,
+    /** Whether the spot under the pin may be published, and if not, which sentence the peek owes the
+     *  user. Measured in the state that holds both the fix and the pin.
+     *  [SPOT-A-REPORT-YOU-CANNOT-SEE-IS-NOT-A-REPORT-001] */
+    val reportGate: SpotReportGate,
     val reportingSize: VehicleSize?,
     // Zone form
     val isSavingZone: Boolean,
@@ -583,6 +588,7 @@ fun HomeState.toPeekSlice(): HomePeekSlice {
         isCameraMoving = isCameraMoving,
         isCameraGeocoding = isCameraGeocoding,
         isReporting = isReporting,
+        reportGate = reportGate(),
         reportingSize = reportingSize,
         isSavingZone = isSavingZone,
         isDeletingZone = editingZoneId != null && editingZoneId in deletingZoneIds,
