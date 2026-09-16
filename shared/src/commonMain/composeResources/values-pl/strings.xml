@@ -755,7 +755,7 @@
     </plurals>
     <string name="history_plus_footer_cta">Zobacz wszystko z Plus</string>
     <string name="paywall_title">Paparcar Plus</string>
-    <string name="paywall_tagline">Pełna historia i alerty o wolnych miejscach w Twoich strefach</string>
+    <string name="paywall_tagline">Paparcar czuwa za ciebie i pamięta wszystko</string>
     <string name="paywall_close_cd">Zamknij</string>
     <string name="paywall_store_unavailable">Subskrypcja jest teraz niedostępna — spróbuj później</string>
     <string name="paywall_compare_title">Co zmienia Plus</string>
@@ -763,7 +763,7 @@
     <string name="paywall_tier_plus">Plus</string>
     <string name="paywall_free_history">Ostatnie 7 dni</string>
     <string name="paywall_free_stats">Wszystkie, ostatnie 7 dni</string>
-    <string name="paywall_plus_stats">Dowolny okres</string>
+    <string name="paywall_plus_stats">Cała twoja historia i wnioski z niej</string>
     <string name="paywall_free_vehicles">Twoje auto</string>
     <string name="paywall_plus_vehicles">Wszystkie twoje auta</string>
     <string name="paywall_free_zones">2 strefy</string>
@@ -771,14 +771,14 @@
     <string name="paywall_reason_history">Chcesz zobaczyć starsze parkowania – Plus zachowuje całą historię.</string>
     <string name="paywall_reason_vehicles">W wersji darmowej masz jedno auto – z Plus dodasz więcej.</string>
     <string name="paywall_reason_zones">W wersji darmowej masz dwie strefy – z Plus utworzysz więcej.</string>
-    <string name="paywall_reason_stats">Z Plus widzisz swoje liczby za dowolny okres.</string>
+    <string name="paywall_reason_stats">Paparcar przechowuje wszystkie twoje dane i wyciąga z nich wnioski.</string>
     <string name="paywall_reason_zone_alerts">Powiadomienia o wolnych miejscach w twoich strefach są częścią Plus.</string>
     <string name="paywall_reason_fuel_alerts">Alerty cen paliwa są częścią Plus.</string>
     <string name="paywall_reason_route_cloud">Zapisywanie tras na koncie to część Plus.</string>
     <string name="paywall_free_alerts">Niedostępne</string>
     <string name="paywall_free_support">Darmowe dla wszystkich</string>
     <string name="paywall_plus_history">Cała Twoja historia</string>
-    <string name="paywall_plus_alerts">W wybranych strefach</string>
+    <string name="paywall_plus_alerts">Miejsca, ceny i podsumowanie każdego miesiąca</string>
     <string name="paywall_plus_support">Opłacasz serwery</string>
     <string name="paywall_plan_monthly">Miesięcznie</string>
     <string name="paywall_plan_yearly">Rocznie</string>

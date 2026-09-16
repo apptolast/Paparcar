@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -18,6 +19,7 @@ import com.rndeveloper.paparcar.presentation.util.distanceString
 import com.rndeveloper.paparcar.presentation.util.durationText
 import com.rndeveloper.paparcar.presentation.util.statDelta
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
+import com.rndeveloper.paparcar.ui.components.PapPremiumMark
 import com.rndeveloper.paparcar.ui.components.PapStatDelta
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.pluralStringResource
@@ -48,16 +50,34 @@ import kotlin.math.roundToInt
  */
 @Composable
 internal fun StatsMonthRecapCard(stats: PeriodStats) {
+    // ⛔ **El metal va en la MARCA, no en la card.** Vestir la card entera se midió en device y
+    // costó legibilidad donde más duele: sobre el lecho verde, las etiquetas de fila («gasto
+    // aprox.», «buscando plaza», `onSurfaceVariant`) caen de 5,9:1 a **3,5:1** de contraste, y esta
+    // pantalla existe para LEER cifras. Además, la única superficie `Subdued` que el producto ya
+    // acepta a lo ancho es una FILA — el pie del historial — y la versión anterior de ese pie, una
+    // losa de tres bandas, se revocó en device por exactamente esto: área amplifica croma.
+    // [UI-PLUS-A-BRAND-FILL-IS-NOT-A-METALLIC-FINISH-001] [UI-PLUS-EMPHASIS-MATCHES-THE-MOMENT-001]
+    //
+    // Lo que sí dice «tu Plus está trabajando» sin tocar un solo dato es el CRESTA: el mismo
+    // `PapPremiumSurface`, en el tamaño de un glifo, junto al título. Es la marca de siempre, no una
+    // segunda señal premium inventada. [PLUS-A-PLAN-MUST-NAME-WHAT-IT-JUST-GAINED-001]
     PapOutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(CARD_PAD_DP.dp)) {
-            Text(
-                // ⛔ "El mes pasado" y no "Septiembre": nombrar el mes exigiría doce nombres
-                // largos en nueve idiomas —108 strings— para un título, y la card sólo se compone
-                // durante la primera semana del mes nuevo, así que cuál es no tiene ambigüedad.
-                text = stringResource(Res.string.stats_recap_title),
-                style = PaparcarType.current.cardTitle,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MARK_GAP_DP.dp),
+            ) {
+                PapPremiumMark(size = RECAP_MARK_DP.dp)
+                Text(
+                    // ⛔ "El mes pasado" y no "Septiembre": nombrar el mes exigiría doce nombres
+                    // largos en nueve idiomas —108 strings— para un título, y la card sólo se
+                    // compone durante la primera semana del mes nuevo, así que cuál es no tiene
+                    // ambigüedad.
+                    text = stringResource(Res.string.stats_recap_title),
+                    style = PaparcarType.current.cardTitle,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
             Spacer(Modifier.height(TITLE_GAP_DP.dp))
             Column(verticalArrangement = Arrangement.spacedBy(ROW_GAP_DP.dp)) {
                 RecapRow(
@@ -122,6 +142,11 @@ private fun formatRecapMoney(value: Double): String {
 private const val UP = "▲"
 private const val DOWN = "▼"
 private const val CARD_PAD_DP = 16
+
+/** La cresta al lado del título: a la altura de la mayúscula de `cardTitle`, no mayor. Es una
+ *  firma, no un icono de sección — si crece, vuelve a ser la card la que se viste de premium. */
+private const val RECAP_MARK_DP = 22
+private const val MARK_GAP_DP = 10
 private const val TITLE_GAP_DP = 12
 private const val ROW_GAP_DP = 10
 private const val PERCENT = 100

@@ -742,7 +742,7 @@
     </plurals>
     <string name="history_plus_footer_cta">Alles bekijken met Plus</string>
     <string name="paywall_title">Paparcar Plus</string>
-    <string name="paywall_tagline">Volledige geschiedenis en meldingen van vrije plekken in je zones</string>
+    <string name="paywall_tagline">Paparcar let voor je op en onthoudt alles</string>
     <string name="paywall_close_cd">Sluiten</string>
     <string name="paywall_store_unavailable">Het abonnement is nu niet beschikbaar — probeer het later opnieuw</string>
     <string name="paywall_compare_title">Wat verandert met Plus</string>
@@ -750,7 +750,7 @@
     <string name="paywall_tier_plus">Plus</string>
     <string name="paywall_free_history">De laatste 7 dagen</string>
     <string name="paywall_free_stats">Alle, laatste 7 dagen</string>
-    <string name="paywall_plus_stats">Elke periode</string>
+    <string name="paywall_plus_stats">Je hele geschiedenis, en wat het eruit leert</string>
     <string name="paywall_free_vehicles">Je auto</string>
     <string name="paywall_plus_vehicles">Al je auto's</string>
     <string name="paywall_free_zones">2 zones</string>
@@ -758,14 +758,14 @@
     <string name="paywall_reason_history">Je wilde oudere parkeersessies zien – Plus bewaart je hele geschiedenis.</string>
     <string name="paywall_reason_vehicles">Gratis houd je één auto – met Plus voeg je er meer toe.</string>
     <string name="paywall_reason_zones">Gratis houd je twee zones – met Plus maak je er meer.</string>
-    <string name="paywall_reason_stats">Met Plus zie je je cijfers over elke periode.</string>
+    <string name="paywall_reason_stats">Paparcar bewaart al je cijfers en trekt er conclusies uit.</string>
     <string name="paywall_reason_zone_alerts">Meldingen van vrije plekken in je zones horen bij Plus.</string>
     <string name="paywall_reason_fuel_alerts">Prijsmeldingen voor brandstof horen bij Plus.</string>
     <string name="paywall_reason_route_cloud">Routes in je account bewaren is onderdeel van Plus.</string>
     <string name="paywall_free_alerts">Niet inbegrepen</string>
     <string name="paywall_free_support">Gratis voor iedereen</string>
     <string name="paywall_plus_history">Je volledige geschiedenis</string>
-    <string name="paywall_plus_alerts">In de zones die je kiest</string>
+    <string name="paywall_plus_alerts">Plekken, prijzen en het maandoverzicht</string>
     <string name="paywall_plus_support">Jij betaalt de servers</string>
     <string name="paywall_plan_monthly">Maandelijks</string>
     <string name="paywall_plan_yearly">Jaarlijks</string>

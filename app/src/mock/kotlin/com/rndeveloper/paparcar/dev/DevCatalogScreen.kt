@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.dev
 
+import android.app.NotificationManager
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -23,14 +24,18 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.PlayArrow
 import com.rndeveloper.paparcar.domain.detection.MutableDetectionRuntimeState
+import com.rndeveloper.paparcar.domain.preferences.AppPreferences
+import com.rndeveloper.paparcar.notification.AppNotificationManagerImpl
 import com.rndeveloper.paparcar.domain.detection.ServicePresence
 import com.rndeveloper.paparcar.fakes.MockScenario
 import org.koin.compose.koinInject
@@ -64,7 +69,19 @@ fun DevCatalogScreen(
     // Shared detection runtime — toggling it simulates an in-progress trip in the real Home (moving
     // driving puck + "Conduciendo" chip + camera follow), no real drive needed. [DRIVE-SIM-001]
     val runtime: MutableDetectionRuntimeState = koinInject()
-    val notifications: com.rndeveloper.paparcar.domain.notification.AppNotificationManager = koinInject()
+    // ⛔ El manager REAL, no el del grafo: en mock `AppNotificationManager` está bindeado a
+    // `FakeAppNotificationManager`, que no postea nada — así que el botón de abajo disparaba al
+    // vacío y la notificación del resumen seguía sin verse en mano. Un disparador de notificaciones
+    // que usa el fake no prueba nada. [PLUS-A-PLAN-MUST-NAME-WHAT-IT-JUST-GAINED-001]
+    val context = LocalContext.current
+    val appPreferences: AppPreferences = koinInject()
+    val realNotifications = remember(context) {
+        AppNotificationManagerImpl(
+            context = context,
+            notificationManager = context.getSystemService(NotificationManager::class.java),
+            appPreferences = appPreferences,
+        )
+    }
     val driving by runtime.isRunning.collectAsStateWithLifecycle()
     val candidate by runtime.phase.collectAsStateWithLifecycle()
 
@@ -281,7 +298,7 @@ fun DevCatalogScreen(
             // test, lo que aquí falta por ver son las palabras.
             OutlinedButton(
                 onClick = {
-                    notifications.showMonthRecap(
+                    realNotifications.showMonthRecap(
                         parkings = 14,
                         spendText = "38.40 EUR",
                         searchTimeMs = 72 * 60_000L,

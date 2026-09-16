@@ -777,7 +777,7 @@
     </plurals>
     <string name="history_plus_footer_cta">See everything with Plus</string>
     <string name="paywall_title">Paparcar Plus</string>
-    <string name="paywall_tagline">Full parking history and free-spot alerts in your zones</string>
+    <string name="paywall_tagline">Paparcar watches for you, and remembers everything</string>
     <string name="paywall_close_cd">Close</string>
     <string name="paywall_store_unavailable">Subscriptions aren't available right now — try again later</string>
     <string name="paywall_compare_title">What changes with Plus</string>
@@ -785,7 +785,7 @@
     <string name="paywall_tier_plus">Plus</string>
     <string name="paywall_free_history">The last 7 days</string>
     <string name="paywall_free_stats">All, last 7 days</string>
-    <string name="paywall_plus_stats">Any period</string>
+    <string name="paywall_plus_stats">Your whole history, and what it learns from it</string>
     <string name="paywall_free_vehicles">Your car</string>
     <string name="paywall_plus_vehicles">All your cars</string>
     <string name="paywall_free_zones">2 zones</string>
@@ -793,14 +793,14 @@
     <string name="paywall_reason_history">You wanted to see older parkings — Plus keeps your whole history.</string>
     <string name="paywall_reason_vehicles">Free keeps one car — with Plus you can add more.</string>
     <string name="paywall_reason_zones">Free keeps two zones — with Plus you can create more.</string>
-    <string name="paywall_reason_stats">With Plus you see your figures for any period.</string>
+    <string name="paywall_reason_stats">Paparcar keeps every one of your figures and draws conclusions from them.</string>
     <string name="paywall_reason_zone_alerts">Free-spot alerts in your zones are part of Plus.</string>
     <string name="paywall_reason_fuel_alerts">Fuel price alerts are part of Plus.</string>
     <string name="paywall_reason_route_cloud">Keeping your routes in your account is part of Plus.</string>
     <string name="paywall_free_alerts">Not included</string>
     <string name="paywall_free_support">Free for everyone</string>
     <string name="paywall_plus_history">Your full history</string>
-    <string name="paywall_plus_alerts">In the zones you pick</string>
+    <string name="paywall_plus_alerts">Spots, prices and every month's recap</string>
     <string name="paywall_plus_support">You pay for the servers</string>
     <string name="paywall_plan_monthly">Monthly</string>
     <string name="paywall_plan_yearly">Yearly</string>

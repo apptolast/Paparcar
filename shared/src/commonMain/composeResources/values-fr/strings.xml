@@ -741,7 +741,7 @@
     </plurals>
     <string name="history_plus_footer_cta">Tout voir avec Plus</string>
     <string name="paywall_title">Paparcar Plus</string>
-    <string name="paywall_tagline">Historique complet et alertes de places libres dans tes zones</string>
+    <string name="paywall_tagline">Paparcar veille pour toi et se souvient de tout</string>
     <string name="paywall_close_cd">Fermer</string>
     <string name="paywall_store_unavailable">L'abonnement n'est pas disponible pour le moment — réessaie plus tard</string>
     <string name="paywall_compare_title">Ce qui change avec Plus</string>
@@ -749,7 +749,7 @@
     <string name="paywall_tier_plus">Plus</string>
     <string name="paywall_free_history">Les 7 derniers jours</string>
     <string name="paywall_free_stats">Tous, 7 derniers jours</string>
-    <string name="paywall_plus_stats">N'importe quelle période</string>
+    <string name="paywall_plus_stats">Tout ton historique, et ce qu'il en apprend</string>
     <string name="paywall_free_vehicles">Votre voiture</string>
     <string name="paywall_plus_vehicles">Toutes vos voitures</string>
     <string name="paywall_free_zones">2 zones</string>
@@ -757,14 +757,14 @@
     <string name="paywall_reason_history">Vous vouliez voir des stationnements plus anciens : Plus garde tout votre historique.</string>
     <string name="paywall_reason_vehicles">La version gratuite garde une voiture : avec Plus, ajoutez-en davantage.</string>
     <string name="paywall_reason_zones">La version gratuite garde deux zones : avec Plus, créez-en davantage.</string>
-    <string name="paywall_reason_stats">Avec Plus, vous voyez vos chiffres sur n'importe quelle période.</string>
+    <string name="paywall_reason_stats">Paparcar garde tous tes chiffres et en tire des conclusions.</string>
     <string name="paywall_reason_zone_alerts">Les alertes de places libres dans vos zones font partie de Plus.</string>
     <string name="paywall_reason_fuel_alerts">Les alertes de prix du carburant font partie de Plus.</string>
     <string name="paywall_reason_route_cloud">Conserver vos trajets dans votre compte fait partie de Plus.</string>
     <string name="paywall_free_alerts">Non inclus</string>
     <string name="paywall_free_support">Gratuit pour tous</string>
     <string name="paywall_plus_history">Tout ton historique</string>
-    <string name="paywall_plus_alerts">Dans les zones que tu choisis</string>
+    <string name="paywall_plus_alerts">Places, prix et le bilan de chaque mois</string>
     <string name="paywall_plus_support">Tu paies les serveurs</string>
     <string name="paywall_plan_monthly">Mensuel</string>
     <string name="paywall_plan_yearly">Annuel</string>

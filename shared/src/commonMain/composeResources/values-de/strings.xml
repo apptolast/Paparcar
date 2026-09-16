@@ -742,7 +742,7 @@
     </plurals>
     <string name="history_plus_footer_cta">Alles mit Plus sehen</string>
     <string name="paywall_title">Paparcar Plus</string>
-    <string name="paywall_tagline">Kompletter Verlauf und Hinweise auf freie Plätze in deinen Zonen</string>
+    <string name="paywall_tagline">Paparcar passt für dich auf und merkt sich alles</string>
     <string name="paywall_close_cd">Schließen</string>
     <string name="paywall_store_unavailable">Das Abo ist gerade nicht verfügbar — versuch es später noch einmal</string>
     <string name="paywall_compare_title">Was sich mit Plus ändert</string>
@@ -750,7 +750,7 @@
     <string name="paywall_tier_plus">Plus</string>
     <string name="paywall_free_history">Die letzten 7 Tage</string>
     <string name="paywall_free_stats">Alle, letzte 7 Tage</string>
-    <string name="paywall_plus_stats">Jeder Zeitraum</string>
+    <string name="paywall_plus_stats">Deine ganze Historie, und was es daraus lernt</string>
     <string name="paywall_free_vehicles">Dein Auto</string>
     <string name="paywall_plus_vehicles">Alle deine Autos</string>
     <string name="paywall_free_zones">2 Zonen</string>
@@ -758,14 +758,14 @@
     <string name="paywall_reason_history">Du wolltest ältere Parkvorgänge sehen – Plus behält deinen ganzen Verlauf.</string>
     <string name="paywall_reason_vehicles">Kostenlos bleibt ein Auto – mit Plus kannst du weitere hinzufügen.</string>
     <string name="paywall_reason_zones">Kostenlos bleiben zwei Zonen – mit Plus kannst du weitere erstellen.</string>
-    <string name="paywall_reason_stats">Mit Plus siehst du deine Zahlen für jeden Zeitraum.</string>
+    <string name="paywall_reason_stats">Paparcar behält alle deine Zahlen und zieht Schlüsse daraus.</string>
     <string name="paywall_reason_zone_alerts">Hinweise auf freie Plätze in deinen Zonen sind Teil von Plus.</string>
     <string name="paywall_reason_fuel_alerts">Preisalarme für Kraftstoff sind Teil von Plus.</string>
     <string name="paywall_reason_route_cloud">Routen im Konto zu speichern ist Teil von Plus.</string>
     <string name="paywall_free_alerts">Nicht enthalten</string>
     <string name="paywall_free_support">Für alle kostenlos</string>
     <string name="paywall_plus_history">Dein ganzer Verlauf</string>
-    <string name="paywall_plus_alerts">In deinen gewählten Zonen</string>
+    <string name="paywall_plus_alerts">Plätze, Preise und der Monatsrückblick</string>
     <string name="paywall_plus_support">Du zahlst die Server</string>
     <string name="paywall_plan_monthly">Monatlich</string>
     <string name="paywall_plan_yearly">Jährlich</string>

@@ -755,7 +755,7 @@
     </plurals>
     <string name="history_plus_footer_cta">Vezi tot cu Plus</string>
     <string name="paywall_title">Paparcar Plus</string>
-    <string name="paywall_tagline">Istoric complet și alerte pentru locuri libere în zonele tale</string>
+    <string name="paywall_tagline">Paparcar veghează pentru tine și ține minte tot</string>
     <string name="paywall_close_cd">Închide</string>
     <string name="paywall_store_unavailable">Abonamentul nu este disponibil acum — încearcă mai târziu</string>
     <string name="paywall_compare_title">Ce se schimbă cu Plus</string>
@@ -763,7 +763,7 @@
     <string name="paywall_tier_plus">Plus</string>
     <string name="paywall_free_history">Ultimele 7 zile</string>
     <string name="paywall_free_stats">Toate, ultimele 7 zile</string>
-    <string name="paywall_plus_stats">Orice perioadă</string>
+    <string name="paywall_plus_stats">Tot istoricul tău și ce învață din el</string>
     <string name="paywall_free_vehicles">Mașina ta</string>
     <string name="paywall_plus_vehicles">Toate mașinile tale</string>
     <string name="paywall_free_zones">2 zone</string>
@@ -771,14 +771,14 @@
     <string name="paywall_reason_history">Voiai să vezi parcări mai vechi – Plus păstrează tot istoricul.</string>
     <string name="paywall_reason_vehicles">Gratuit păstrezi o mașină – cu Plus poți adăuga mai multe.</string>
     <string name="paywall_reason_zones">Gratuit păstrezi două zone – cu Plus poți crea mai multe.</string>
-    <string name="paywall_reason_stats">Cu Plus îți vezi cifrele pentru orice perioadă.</string>
+    <string name="paywall_reason_stats">Paparcar păstrează toate cifrele tale și trage concluzii din ele.</string>
     <string name="paywall_reason_zone_alerts">Alertele de locuri libere în zonele tale fac parte din Plus.</string>
     <string name="paywall_reason_fuel_alerts">Alertele de preț la carburant fac parte din Plus.</string>
     <string name="paywall_reason_route_cloud">Păstrarea rutelor în contul tău face parte din Plus.</string>
     <string name="paywall_free_alerts">Neincluse</string>
     <string name="paywall_free_support">Gratuit pentru toți</string>
     <string name="paywall_plus_history">Tot istoricul tău</string>
-    <string name="paywall_plus_alerts">În zonele alese</string>
+    <string name="paywall_plus_alerts">Locuri, prețuri și rezumatul fiecărei luni</string>
     <string name="paywall_plus_support">Plătești serverele</string>
     <string name="paywall_plan_monthly">Lunar</string>
     <string name="paywall_plan_yearly">Anual</string>
