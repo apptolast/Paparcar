@@ -70,7 +70,11 @@ val presentationModule = module {
     viewModelOf(::SettingsViewModel)
     viewModelOf(::LicensesViewModel)
     viewModelOf(::PermissionsViewModel)
-    viewModelOf(::VehicleRegistrationViewModel)
+    // Constructor explícito (no `viewModelOf`): el último parámetro es la unidad del surtidor, que
+    // trae su propio valor por defecto para que un test pueda sustituirlo. El DSL `…Of` intentaría
+    // resolverlo del grafo en vez de dejarlo por defecto.
+    // [I18N-A-PRICE-IS-QUOTED-IN-THE-UNIT-YOU-BUY-IT-001]
+    viewModel { VehicleRegistrationViewModel(get(), get(), get()) }
     viewModelOf(::VehiclesViewModel)
     // Panel de cifras: recibe por parametro el coche que estaba en pantalla. [STATS-PANEL-001]
     viewModel { params ->

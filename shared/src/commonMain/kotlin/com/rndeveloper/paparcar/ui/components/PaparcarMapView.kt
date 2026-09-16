@@ -76,7 +76,8 @@ import com.rndeveloper.paparcar.presentation.map.CameraTarget
 import com.rndeveloper.paparcar.domain.model.SpotFreshness
 import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
 import com.rndeveloper.paparcar.domain.usecase.parkings.NearbyPublicParking
-import com.rndeveloper.paparcar.presentation.home.model.formatPumpPrice
+import com.rndeveloper.paparcar.presentation.home.model.pumpPriceFigure
+import com.rndeveloper.paparcar.presentation.util.LocalPumpGallon
 import com.rndeveloper.paparcar.presentation.home.model.isAttendedService
 import com.rndeveloper.paparcar.presentation.util.isManualReport
 import com.rndeveloper.paparcar.presentation.util.freshness
@@ -999,7 +1000,12 @@ fun PaparcarMapView(
     }
     val watchKey = tripWatch.tripWatchKey()
 
+    // La unidad del surtidor entra como CLAVE de las dos listas: la cápsula lleva la cifra dentro de
+    // su `contentId`, así que un cambio de unidad tiene que rehacer el raster igual que lo rehace un
+    // cambio de tema. [I18N-A-PRICE-IS-QUOTED-IN-THE-UNIT-YOU-BUY-IT-001]
+    val pumpGallon = LocalPumpGallon.current
     val markers = remember(
+        pumpGallon,
         clusters, parkingLocation, parkedVehicles, selectedSpotId, selectedSessionId, zones, dimSpots,
         // Cruzar el umbral del rotulo de zona cambia su contentId, asi que la lista tiene que
         // rehacerse. [UI-A-ZONE-IS-AN-AREA-NOT-A-PIN-001]
@@ -1046,7 +1052,7 @@ fun PaparcarMapView(
             // The capsule shows the NUMBER only; the currency lives in the list and the peek.
             // [FUEL-STATIONS-MAP-AND-PEEK-001]
             fuelStations.forEach { nearby ->
-                val priceText = nearby.price?.let { formatPumpPrice(it.perUnit.amount) }
+                val priceText = nearby.price?.let { it.perUnit.pumpPriceFigure(pumpGallon) }
                 add(
                     Marker(
                         coordinates = Coordinates(nearby.station.latitude, nearby.station.longitude),
@@ -1219,6 +1225,7 @@ fun PaparcarMapView(
     // instead of being applied as a post-rasterisation Modifier.alpha, which
     // never refreshed reliably. [MAP-MARKERS-DIM-002]
     val customMarkerContent = remember(
+        pumpGallon,
         clusterCountByCoords, enRouteBuckets, parkedVehicles, zones,
         fuelStations, selectedFuelStationId, fuelPricesLabel, fuelAttendedLabel,
         publicParkings, selectedPublicParkingId,
@@ -1422,7 +1429,7 @@ fun PaparcarMapView(
         // registered variant is exactly one cached bitmap. [FUEL-STATIONS-MAP-AND-PEEK-001]
         val fuelHandlers: Map<String, @Composable (Marker) -> Unit> =
             fuelStations.flatMap { nearby ->
-                val priceText = nearby.price?.let { formatPumpPrice(it.perUnit.amount) }
+                val priceText = nearby.price?.let { it.perUnit.pumpPriceFigure(pumpGallon) }
                 val label = fuelCapsuleLabel(fuelPricesLabel, fuelAttendedLabel, nearby, priceText)
                 listOf<Pair<String, @Composable (Marker) -> Unit>>(
                     fuelStationContentId(nearby.station.id, priceText, label, selected = false, themeKey = themeKey) to { _: Marker ->

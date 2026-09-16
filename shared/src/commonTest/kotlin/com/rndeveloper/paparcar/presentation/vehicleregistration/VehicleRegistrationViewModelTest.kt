@@ -3,6 +3,8 @@
 package com.rndeveloper.paparcar.presentation.vehicleregistration
 
 import app.cash.turbine.test
+import com.rndeveloper.paparcar.GallonKind
+import com.rndeveloper.paparcar.domain.model.Money
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.domain.model.EnergyLabel
@@ -362,6 +364,65 @@ class VehicleRegistrationViewModelTest {
         assertEquals(EnergyLabel.ECO, s.energyLabel)
     }
 
+    // ── El precio, entre la unidad del surtidor y la del modelo ──────────────
+    // [I18N-A-PRICE-IS-QUOTED-IN-THE-UNIT-YOU-BUY-IT-001]
+
+    @Test
+    fun `should_storePricePerLitre_when_theUserTypedPerGallon`() = runTest {
+        // ⛔ EL TESTIGO DEL TICKET. Este bug no tiene síntoma: un americano teclea 3,499 pensando en
+        // su galón, se guarda como precio del LITRO y el gasto de todos sus viajes sale ×3,785 —
+        // con un número que parece perfectamente correcto en todas las pantallas. Sin un test que
+        // lo mire, vuelve.
+        vm = VehicleRegistrationViewModel(vehicleRepo, auth, prefs) { GallonKind.US }
+        val currency = vm.state.value.priceCurrency
+        assertNotNull(currency, "sin moneda el campo de precio no se ofrece y este testigo no mira nada")
+        fillCarForm()
+        vm.handleIntent(VehicleRegistrationIntent.SetFuelType(FuelType.GASOLINE))
+        vm.handleIntent(VehicleRegistrationIntent.SetFuelPrice("3.499"))
+
+        vm.handleIntent(VehicleRegistrationIntent.Save)
+
+        val saved = vehicleRepo.observeVehicles().first().single().fuelPricePerLiter
+        assertNotNull(saved)
+        assertTrue(
+            saved.amount in PRICE_PER_LITRE_LOW..PRICE_PER_LITRE_HIGH,
+            "3,499 por galón US son ~0,924 por litro — llegó ${saved.amount}",
+        )
+    }
+
+    @Test
+    fun `should_keepThePriceUntouched_when_thePumpChargesByTheLitre`() = runTest {
+        // El otro lado del mismo borde, y el caso de 193 países: lo tecleado se guarda tal cual.
+        vm = VehicleRegistrationViewModel(vehicleRepo, auth, prefs) { null }
+        assertNotNull(vm.state.value.priceCurrency, "sin moneda el campo de precio no se ofrece")
+        fillCarForm()
+        vm.handleIntent(VehicleRegistrationIntent.SetFuelType(FuelType.GASOLINE))
+        vm.handleIntent(VehicleRegistrationIntent.SetFuelPrice("1,879"))
+
+        vm.handleIntent(VehicleRegistrationIntent.Save)
+
+        val saved = vehicleRepo.observeVehicles().first().single().fuelPricePerLiter
+        assertNotNull(saved)
+        assertEquals(1.879, saved.amount, "por litro no se convierte nada")
+    }
+
+    @Test
+    fun `should_showThePriceInGallons_when_loadingACarOnAGallonPump`() = runTest {
+        // ⛔ Las dos direcciones van en pareja: si sólo convirtiera al guardar, abrir la ficha a
+        // cambiarle el nombre al coche le multiplicaría el precio por 3,785 cada vez.
+        vehicleRepo.saveVehicle(
+            vehicle("v-price").copy(
+                fuelType = FuelType.GASOLINE,
+                fuelPricePerLiter = Money(0.9243, "USD"),
+            ),
+        )
+        vm = VehicleRegistrationViewModel(vehicleRepo, auth, prefs) { GallonKind.US }
+
+        vm.handleIntent(VehicleRegistrationIntent.LoadVehicle("v-price"))
+
+        assertEquals("3.499", vm.state.value.fuelPriceText)
+    }
+
     private companion object {
         /**
          * 42,8 mpg en litros a los cien: ~5,5 con el galón US y ~6,6 con el imperial. El rango cubre
@@ -370,5 +431,9 @@ class VehicleRegistrationViewModelTest {
          */
         const val LITRES_LOW = 5.4f
         const val LITRES_HIGH = 6.7f
+
+        /** 3,499 por galón US = 0,9244… por litro. El margen es de milésima, no de unidad. */
+        const val PRICE_PER_LITRE_LOW = 0.923
+        const val PRICE_PER_LITRE_HIGH = 0.926
     }
 }

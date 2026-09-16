@@ -1,5 +1,7 @@
 package com.rndeveloper.paparcar.data.fuel
 
+import com.rndeveloper.paparcar.LITRES_PER_IMPERIAL_GALLON
+import com.rndeveloper.paparcar.LITRES_PER_US_GALLON
 import com.rndeveloper.paparcar.domain.fuel.AverageFuelPriceTable
 import com.rndeveloper.paparcar.domain.fuel.CountryFuelPrices
 import kotlinx.serialization.json.Json
@@ -129,11 +131,15 @@ object OpenVanFuelPricesParser {
     /**
      * Litres in one unit of each thing the feed quotes. ⛔ A unit absent from this map DROPS the
      * country — the whole point is that an unknown unit can never be mistaken for litres.
+     *
+     * The two gallons are the SHARED constants, not a local copy: the outbound boundary writes
+     * prices back out with the same numbers, and one figure spelled in two files is one figure that
+     * eventually disagrees with itself. [I18N-A-PRICE-IS-QUOTED-IN-THE-UNIT-YOU-BUY-IT-001]
      */
     private val LITRES_PER_UNIT = mapOf(
         "liter" to 1.0,
-        "gallon" to 3.785411784,
-        "imperial_gallon" to 4.54609,
+        "gallon" to LITRES_PER_US_GALLON,
+        "imperial_gallon" to LITRES_PER_IMPERIAL_GALLON,
     )
 
     private const val MAX_ROW_AGE_DAYS = 30

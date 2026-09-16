@@ -970,6 +970,7 @@
     <!-- Where the car is parked, on the ficha state line (STATS-UI-001) -->
     <!-- Price the user actually pays (FUEL-PRICE-RESOLVER-001) -->
     <string name="vehicle_registration_fuel_price_label">Cena za litr (%1$s)</string>
+    <string name="vehicle_registration_fuel_price_gallon_label">Cena za galon (%1$s)</string>
     <string name="vehicle_registration_energy_price_label">Cena za kWh (%1$s)</string>
     <string name="vehicle_registration_price_help">Zostaw puste, a użyjemy średniej ceny w Twoim kraju.</string>
     <!-- Where the spend figure's price came from (FUEL-PRICE-RESOLVER-001) -->
@@ -1030,6 +1031,7 @@
     <string name="first_steps_explain_explore_parkings_body">Gdzie wjechać i zapłacić. Wysokość i cennik, gdy operator je publikuje.</string>
     <string name="first_steps_explain_explore_fuel_title">Stacje paliw</string>
     <string name="first_steps_explain_explore_fuel_body">Gdzie zatankować i ile kosztował litr, z godziną pomiaru każdej ceny.</string>
+    <string name="first_steps_explain_explore_fuel_gallon_body">Gdzie zatankować i ile kosztował galon, z godziną pomiaru każdej ceny.</string>
     <string name="first_steps_explain_explore_note">Żadne z nich nie pochodzi od społeczności: to dane publiczne, więc są od pierwszego dnia, i za darmo dla wszystkich.</string>
     <string name="first_steps_zone_title">Chroń swój garaż</string>
     <string name="first_steps_zone_sub">Jeśli parkujesz w prywatnym garażu, dodaj tam strefę prywatną: gdy wyjedziesz, nie opublikujemy wolnego miejsca.</string>

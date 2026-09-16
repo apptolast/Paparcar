@@ -91,13 +91,18 @@
     <string name="notif_fuel_cheaper_title_named">%1$s is cheaper</string>
     <string name="notif_fuel_cheaper_title">A cheaper station nearby</string>
     <string name="notif_fuel_cheaper_text">%1$s less per litre than %2$s</string>
+    <string name="notif_fuel_cheaper_text_gallon">%1$s less per gallon than %2$s</string>
     <string name="notif_fuel_reference_area">the usual price nearby</string>
     <string name="notif_fuel_move_title_named">%1$s changed its price</string>
     <string name="notif_fuel_move_title">A station you follow changed its price</string>
     <string name="notif_fuel_move_text_down">%1$s cheaper per litre than yesterday</string>
+    <string name="notif_fuel_move_text_down_gallon">%1$s cheaper per gallon than yesterday</string>
     <string name="notif_fuel_move_text_up">%1$s dearer per litre than yesterday</string>
+    <string name="notif_fuel_move_text_up_gallon">%1$s dearer per gallon than yesterday</string>
     <string name="notif_fuel_move_text_down_more">%1$s cheaper per litre than yesterday · %2$s more changed</string>
+    <string name="notif_fuel_move_text_down_more_gallon">%1$s cheaper per gallon than yesterday · %2$s more changed</string>
     <string name="notif_fuel_move_text_up_more">%1$s dearer per litre than yesterday · %2$s more changed</string>
+    <string name="notif_fuel_move_text_up_more_gallon">%1$s dearer per gallon than yesterday · %2$s more changed</string>
 
     <!-- Home-screen widget [WIDGET-PARKED-001] -->
     <string name="widget_label">Parked car</string>

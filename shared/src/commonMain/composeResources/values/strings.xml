@@ -984,6 +984,7 @@
     <!-- Where the car is parked, on the ficha state line (STATS-UI-001) -->
     <!-- Price the user actually pays (FUEL-PRICE-RESOLVER-001) -->
     <string name="vehicle_registration_fuel_price_label">Price per litre (%1$s)</string>
+    <string name="vehicle_registration_fuel_price_gallon_label">Price per gallon (%1$s)</string>
     <string name="vehicle_registration_energy_price_label">Price per kWh (%1$s)</string>
     <string name="vehicle_registration_price_help">Leave empty and we use the average price in your country.</string>
     <!-- Where the spend figure's price came from (FUEL-PRICE-RESOLVER-001) -->
@@ -1049,6 +1050,7 @@
     <string name="first_steps_explain_explore_parkings_body">Where you drive in and pay. Height limit and rates when the operator publishes them.</string>
     <string name="first_steps_explain_explore_fuel_title">Fuel stations</string>
     <string name="first_steps_explain_explore_fuel_body">Where to refuel and what the litre cost, with the hour each price was measured.</string>
+    <string name="first_steps_explain_explore_fuel_gallon_body">Where to refuel and what the gallon cost, with the hour each price was measured.</string>
     <string name="first_steps_explain_explore_note">Neither one comes from the community: both are public data, so they are there from day one, and free for everyone.</string>
     <string name="first_steps_zone_title">Protect your garage</string>
     <string name="first_steps_zone_sub">If you park in a private garage, add a private zone there: when you leave it, we will not publish a free spot.</string>

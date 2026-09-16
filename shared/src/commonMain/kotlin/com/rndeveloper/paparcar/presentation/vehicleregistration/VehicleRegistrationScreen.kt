@@ -60,6 +60,7 @@ import com.rndeveloper.paparcar.presentation.util.consumptionFieldLabel
 import com.rndeveloper.paparcar.presentation.util.consumptionFigure
 import com.rndeveloper.paparcar.presentation.util.energyLabelText
 import com.rndeveloper.paparcar.presentation.util.formatPer100
+import com.rndeveloper.paparcar.presentation.util.fuelPriceFieldLabel
 import com.rndeveloper.paparcar.presentation.util.fuelTypeLabel
 import com.rndeveloper.paparcar.ui.components.chips.PaparcarFilterChip
 import com.rndeveloper.paparcar.presentation.vehicleregistration.data.VehicleCatalog
@@ -97,7 +98,6 @@ import paparcar.composeapp.generated.resources.vehicle_registration_consumption_
 import paparcar.composeapp.generated.resources.vehicle_registration_energy_label_title
 import paparcar.composeapp.generated.resources.vehicle_registration_energy_price_label
 import paparcar.composeapp.generated.resources.vehicle_registration_fuel_help
-import paparcar.composeapp.generated.resources.vehicle_registration_fuel_price_label
 import paparcar.composeapp.generated.resources.vehicle_registration_price_help
 import paparcar.composeapp.generated.resources.vehicle_registration_section_fuel
 import paparcar.composeapp.generated.resources.vehicle_reg_cd_back
@@ -821,7 +821,7 @@ private fun FuelSection(
                     PapTextField(
                         value = state.fuelPriceText,
                         onValueChange = { onIntent(VehicleRegistrationIntent.SetFuelPrice(it)) },
-                        label = stringResource(Res.string.vehicle_registration_fuel_price_label, currency),
+                        label = fuelPriceFieldLabel(currency),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
                         modifier = Modifier.fillMaxWidth(),
                     )

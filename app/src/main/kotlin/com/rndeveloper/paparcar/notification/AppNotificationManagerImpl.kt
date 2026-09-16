@@ -16,6 +16,7 @@ import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
+import com.rndeveloper.paparcar.localePumpGallon
 
 class AppNotificationManagerImpl(
     private val context: Context,
@@ -236,9 +237,16 @@ class AppNotificationManagerImpl(
         // Null reference = the saving was measured against what is normal around here, and that
         // sentence is a locale decision — which is why it is worded HERE and not in the worker.
         val referenceLabel = referenceName ?: context.getString(R.string.notif_fuel_reference_area)
+        // The saving arrives already written in the unit this driver buys in, so the sentence has to
+        // agree with it. [I18N-A-PRICE-IS-QUOTED-IN-THE-UNIT-YOU-BUY-IT-001]
+        val cheaperText = if (quotesPerGallon()) {
+            R.string.notif_fuel_cheaper_text_gallon
+        } else {
+            R.string.notif_fuel_cheaper_text
+        }
         val notification = NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
             .setContentTitle(title)
-            .setContentText(context.getString(R.string.notif_fuel_cheaper_text, savingLabel, referenceLabel))
+            .setContentText(context.getString(cheaperText, savingLabel, referenceLabel))
             .setSmallIcon(R.drawable.ic_notification_logo)
             .setColor(COLOR_SUCCESS)
             .setCategory(NotificationCompat.CATEGORY_EVENT)
@@ -268,15 +276,26 @@ class AppNotificationManagerImpl(
         // ⛔ Four whole sentences, not a direction word glued onto a stem: «cheaper/dearer» inflects
         // with what follows it in half the nine locales, and a composed string is where that breaks
         // silently. The count is a separate variant for the same reason.
+        // ⛔ Y ocho, no cuatro: la unidad del surtidor multiplica las variantes porque tampoco es un
+        // sufijo pegable. [I18N-A-PRICE-IS-QUOTED-IN-THE-UNIT-YOU-BUY-IT-001]
+        val gallon = quotesPerGallon()
         val body = when {
             wentUp && otherMovesCount > 0 -> context.getString(
-                R.string.notif_fuel_move_text_up_more, deltaLabel, otherMovesCount.toString(),
+                if (gallon) R.string.notif_fuel_move_text_up_more_gallon else R.string.notif_fuel_move_text_up_more,
+                deltaLabel, otherMovesCount.toString(),
             )
-            wentUp -> context.getString(R.string.notif_fuel_move_text_up, deltaLabel)
+            wentUp -> context.getString(
+                if (gallon) R.string.notif_fuel_move_text_up_gallon else R.string.notif_fuel_move_text_up,
+                deltaLabel,
+            )
             otherMovesCount > 0 -> context.getString(
-                R.string.notif_fuel_move_text_down_more, deltaLabel, otherMovesCount.toString(),
+                if (gallon) R.string.notif_fuel_move_text_down_more_gallon else R.string.notif_fuel_move_text_down_more,
+                deltaLabel, otherMovesCount.toString(),
             )
-            else -> context.getString(R.string.notif_fuel_move_text_down, deltaLabel)
+            else -> context.getString(
+                if (gallon) R.string.notif_fuel_move_text_down_gallon else R.string.notif_fuel_move_text_down,
+                deltaLabel,
+            )
         }
         val notification = NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
             .setContentTitle(title)
@@ -728,6 +747,13 @@ class AppNotificationManagerImpl(
             listOf(detectionChannel, uploadChannel, actionChannel, debugChannel, sentryChannel)
         )
     }
+
+    /**
+     * Si el surtidor de este usuario cobra por galón, la frase del aviso tiene que decir «galón».
+     * Misma señal que usa la etiqueta del precio en la ficha del coche — el LOCALE, no el GPS ni el
+     * ajuste de millas. [I18N-A-PRICE-IS-QUOTED-IN-THE-UNIT-YOU-BUY-IT-001]
+     */
+    private fun quotesPerGallon(): Boolean = localePumpGallon() != null
 
     companion object {
         const val DETECTION_CHANNEL_ID = "detection_channel"

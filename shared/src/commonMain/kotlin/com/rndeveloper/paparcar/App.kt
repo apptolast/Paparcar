@@ -86,6 +86,7 @@ import com.rndeveloper.paparcar.presentation.licenses.LicensesScreen
 import com.rndeveloper.paparcar.presentation.settings.SettingsScreen
 import com.rndeveloper.paparcar.presentation.util.DistanceUnit
 import com.rndeveloper.paparcar.presentation.util.LocalDistanceUnit
+import com.rndeveloper.paparcar.presentation.util.LocalPumpGallon
 import com.rndeveloper.paparcar.presentation.vehicleregistration.VehicleRegistrationScreen
 import com.rndeveloper.paparcar.presentation.vehicleregistration.VehicleSizeExplainerScreen
 import com.rndeveloper.paparcar.ui.auth.paparcarAuthSlots
@@ -178,6 +179,10 @@ fun App(
     PaparcarTheme(darkTheme = darkTheme) {
         CompositionLocalProvider(
             LocalDistanceUnit provides if (appState.imperialUnits) DistanceUnit.IMPERIAL else DistanceUnit.METRIC,
+            // ⛔ El surtidor NO lo decide el interruptor de arriba: un español con la app en millas
+            // sigue pagando por litro. Esta unidad sale del locale y por eso no lleva `appState`.
+            // [I18N-A-PRICE-IS-QUOTED-IN-THE-UNIT-YOU-BUY-IT-001]
+            LocalPumpGallon provides localePumpGallon(),
         ) {
         // Each screen's Scaffold draws its own background.
         Surface(modifier = Modifier.fillMaxSize()) {

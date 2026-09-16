@@ -14,6 +14,7 @@ import com.rndeveloper.paparcar.domain.usecase.fuel.FuelWatchOutcome
 import com.rndeveloper.paparcar.domain.usecase.fuel.PriceMoveDirection
 import com.rndeveloper.paparcar.domain.usecase.fuel.RunFuelPriceWatchUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
+import com.rndeveloper.paparcar.localePumpGallon
 import com.rndeveloper.paparcar.presentation.home.model.pumpPriceLabel
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -66,7 +67,7 @@ class FuelPriceWatchWorker(
         val lead = outcome.moves.maxByOrNull { abs(it.deltaPerUnit) } ?: return
         notificationPort.showFuelPriceMove(
             stationName = lead.station.name,
-            deltaLabel = Money(abs(lead.deltaPerUnit), lead.current.perUnit.currency).pumpPriceLabel(),
+            deltaLabel = Money(abs(lead.deltaPerUnit), lead.current.perUnit.currency).pumpPriceLabel(localePumpGallon()),
             wentUp = lead.direction == PriceMoveDirection.UP,
             otherMovesCount = outcome.moves.size - 1,
             latitude = lead.station.latitude,
@@ -78,7 +79,7 @@ class FuelPriceWatchWorker(
         val cheaper = outcome.cheaper ?: return
         notificationPort.showCheaperFuelNearby(
             stationName = cheaper.station.name,
-            savingLabel = Money(cheaper.savingPerUnit, cheaper.price.currency).pumpPriceLabel(),
+            savingLabel = Money(cheaper.savingPerUnit, cheaper.price.currency).pumpPriceLabel(localePumpGallon()),
             // Null when the reference was the area's median — the words for that live where the
             // string table does. A followed station with no name in its feed reads the same way,
             // which is right: neither can be quoted by name.

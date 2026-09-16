@@ -8,7 +8,9 @@ import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.vehicle.FuelDefaults
 import com.rndeveloper.paparcar.localeGallonKind
+import com.rndeveloper.paparcar.localePumpGallon
 import kotlin.math.round
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.unit_kwh_per_100
 import paparcar.composeapp.generated.resources.unit_kwh_per_100_mi
@@ -18,6 +20,10 @@ import paparcar.composeapp.generated.resources.vehicle_registration_consumption_
 import paparcar.composeapp.generated.resources.vehicle_registration_consumption_kwh_mi_label
 import paparcar.composeapp.generated.resources.vehicle_registration_consumption_liters_label
 import paparcar.composeapp.generated.resources.vehicle_registration_consumption_mpg_label
+import paparcar.composeapp.generated.resources.vehicle_registration_fuel_price_gallon_label
+import paparcar.composeapp.generated.resources.vehicle_registration_fuel_price_label
+import paparcar.composeapp.generated.resources.first_steps_explain_explore_fuel_body
+import paparcar.composeapp.generated.resources.first_steps_explain_explore_fuel_gallon_body
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.stats_cost_from_average
 import paparcar.composeapp.generated.resources.stats_cost_from_average_dated
@@ -131,6 +137,37 @@ fun consumptionFieldLabel(usesLiters: Boolean): String {
         },
     )
 }
+
+/**
+ * La etiqueta del CAMPO donde se teclea el precio — «Precio por litro (EUR)» · «Price per gallon
+ * (USD)». [I18N-A-PRICE-IS-QUOTED-IN-THE-UNIT-YOU-BUY-IT-001]
+ *
+ * ⛔ **La unidad la manda el LOCALE, no el ajuste de millas** — y ahí se separa de
+ * [consumptionFieldLabel], que está tres líneas más arriba y parece su gemela. Son ejes distintos:
+ * un español que pone la app en millas sigue repostando litros, porque el surtidor de su calle no
+ * cambia con un interruptor de su móvil. El consumo es del coche; el precio, del país.
+ *
+ * Y va en pareja con la conversión de [com.rndeveloper.paparcar.presentation.util.pumpPriceToDisplay]:
+ * una etiqueta que cambia sin que cambie el número es precisamente el bug que este ticket cierra —
+ * un americano tecleando su galón en un campo que guarda litros.
+ */
+@Composable
+fun fuelPriceFieldLabel(currency: String): String = stringResource(
+    if (LocalPumpGallon.current != null) {
+        Res.string.vehicle_registration_fuel_price_gallon_label
+    } else {
+        Res.string.vehicle_registration_fuel_price_label
+    },
+    currency,
+)
+
+/** El cuerpo del paso de onboarding que promete precios: nombra la unidad en la que se leerán. */
+fun exploreFuelExplainerBody(): StringResource =
+    if (localePumpGallon() != null) {
+        Res.string.first_steps_explain_explore_fuel_gallon_body
+    } else {
+        Res.string.first_steps_explain_explore_fuel_body
+    }
 
 /**
  * Una cifra de consumo del dominio, ya convertida y redondeada como se enseña.

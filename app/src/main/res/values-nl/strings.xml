@@ -78,13 +78,18 @@
     <string name="notif_fuel_cheaper_title_named">%1$s is goedkoper</string>
     <string name="notif_fuel_cheaper_title">Een goedkoper tankstation in de buurt</string>
     <string name="notif_fuel_cheaper_text">%1$s minder per liter dan %2$s</string>
+    <string name="notif_fuel_cheaper_text_gallon">%1$s minder per gallon dan %2$s</string>
     <string name="notif_fuel_reference_area">de gebruikelijke prijs in de buurt</string>
     <string name="notif_fuel_move_title_named">%1$s heeft de prijs gewijzigd</string>
     <string name="notif_fuel_move_title">Een tankstation dat je volgt heeft de prijs gewijzigd</string>
     <string name="notif_fuel_move_text_down">%1$s goedkoper per liter dan gisteren</string>
+    <string name="notif_fuel_move_text_down_gallon">%1$s goedkoper per gallon dan gisteren</string>
     <string name="notif_fuel_move_text_up">%1$s duurder per liter dan gisteren</string>
+    <string name="notif_fuel_move_text_up_gallon">%1$s duurder per gallon dan gisteren</string>
     <string name="notif_fuel_move_text_down_more">%1$s goedkoper per liter dan gisteren · %2$s andere zijn gewijzigd</string>
+    <string name="notif_fuel_move_text_down_more_gallon">%1$s goedkoper per gallon dan gisteren · %2$s andere zijn gewijzigd</string>
     <string name="notif_fuel_move_text_up_more">%1$s duurder per liter dan gisteren · %2$s andere zijn gewijzigd</string>
+    <string name="notif_fuel_move_text_up_more_gallon">%1$s duurder per gallon dan gisteren · %2$s andere zijn gewijzigd</string>
 
     <!-- Home-screen widget [WIDGET-PARKED-001] -->
     <string name="widget_label">Geparkeerde auto</string>

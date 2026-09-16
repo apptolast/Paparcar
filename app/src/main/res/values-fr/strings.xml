@@ -78,13 +78,18 @@
     <string name="notif_fuel_cheaper_title_named">%1$s est moins chère</string>
     <string name="notif_fuel_cheaper_title">Une station moins chère à proximité</string>
     <string name="notif_fuel_cheaper_text">%1$s de moins par litre que %2$s</string>
+    <string name="notif_fuel_cheaper_text_gallon">%1$s de moins par gallon que %2$s</string>
     <string name="notif_fuel_reference_area">le prix habituel du secteur</string>
     <string name="notif_fuel_move_title_named">%1$s a changé de prix</string>
     <string name="notif_fuel_move_title">Une station que tu suis a changé de prix</string>
     <string name="notif_fuel_move_text_down">%1$s de moins par litre qu\'hier</string>
+    <string name="notif_fuel_move_text_down_gallon">%1$s de moins par gallon qu\'hier</string>
     <string name="notif_fuel_move_text_up">%1$s de plus par litre qu\'hier</string>
+    <string name="notif_fuel_move_text_up_gallon">%1$s de plus par gallon qu\'hier</string>
     <string name="notif_fuel_move_text_down_more">%1$s de moins par litre qu\'hier · %2$s autres ont changé</string>
+    <string name="notif_fuel_move_text_down_more_gallon">%1$s de moins par gallon qu\'hier · %2$s autres ont changé</string>
     <string name="notif_fuel_move_text_up_more">%1$s de plus par litre qu\'hier · %2$s autres ont changé</string>
+    <string name="notif_fuel_move_text_up_more_gallon">%1$s de plus par gallon qu\'hier · %2$s autres ont changé</string>
 
     <!-- Home-screen widget [WIDGET-PARKED-001] -->
     <string name="widget_label">Voiture garée</string>

@@ -44,5 +44,31 @@ fun localeUsesUsGallon(): Boolean = countryUsesUsGallon(Locale.current.region)
 /** El galón de este dispositivo, ya resuelto. */
 fun localeGallonKind(): GallonKind = if (localeUsesUsGallon()) GallonKind.US else GallonKind.IMPERIAL
 
+/**
+ * En qué unidad **cobra el surtidor** aquí: `null` = por litro, y sólo `GallonKind.US` lo contradice.
+ * [I18N-A-PRICE-IS-QUOTED-IN-THE-UNIT-YOU-BUY-IT-001]
+ *
+ * ⛔ **No es [localeGallonKind], por mucho que lo parezca.** Aquélla contesta *«cuando este país dice
+ * mpg, ¿qué galón quiere decir?»* y devuelve `IMPERIAL` para España, Francia y todo el que no sea
+ * US/LR — usarla aquí pondría los precios de media Europa en galones imperiales. Ésta contesta otra
+ * pregunta: *¿en qué unidad se paga en el surtidor?*
+ *
+ * Y por eso **no devuelve `IMPERIAL` nunca**: no hay país que venda el combustible por galón
+ * imperial. El Reino Unido señaliza en millas y habla de mpg imperiales, pero reposta en litros —
+ * es el mismo caso que ya obligó a separar [IMPERIAL_COUNTRIES] de [US_GALLON_COUNTRIES].
+ */
+fun localePumpGallon(): GallonKind? = if (localeUsesUsGallon()) GallonKind.US else null
+
 /** El galón US es de los EE. UU. y de quienes siguen su mercado del automóvil (Liberia lo hace). */
 private val US_GALLON_COUNTRIES = setOf("US", "LR")
+
+/**
+ * Litros en un galón, exactos por definición. Viven aquí —al lado de [GallonKind], que es quien los
+ * nombra— porque el mismo número lo necesitan la frontera de SALIDA (precio por galón) y la de
+ * ENTRADA (`OpenVanFuelPricesParser`, que normaliza los catorce países que cotizan así). Un número
+ * con dos copias es un número que algún día se escribe distinto en una de ellas.
+ */
+const val LITRES_PER_US_GALLON = 3.785411784
+
+/** El galón imperial (UK, Canadá histórico): 4,54609 l exactos. Nadie cobra en él; se convierte mpg. */
+const val LITRES_PER_IMPERIAL_GALLON = 4.54609

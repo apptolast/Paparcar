@@ -966,6 +966,7 @@
     <!-- Where the car is parked, on the ficha state line (STATS-UI-001) -->
     <!-- Price the user actually pays (FUEL-PRICE-RESOLVER-001) -->
     <string name="vehicle_registration_fuel_price_label">Preț pe litru (%1$s)</string>
+    <string name="vehicle_registration_fuel_price_gallon_label">Preț pe galon (%1$s)</string>
     <string name="vehicle_registration_energy_price_label">Preț pe kWh (%1$s)</string>
     <string name="vehicle_registration_price_help">Lasă gol și folosim prețul mediu din țara ta.</string>
     <!-- Where the spend figure's price came from (FUEL-PRICE-RESOLVER-001) -->
@@ -1026,6 +1027,7 @@
     <string name="first_steps_explain_explore_parkings_body">Unde intri și plătești. Înălțimea și tarifele când operatorul le publică.</string>
     <string name="first_steps_explain_explore_fuel_title">Benzinării</string>
     <string name="first_steps_explain_explore_fuel_body">Unde alimentezi și cât a costat litrul, cu ora la care a fost măsurat fiecare preț.</string>
+    <string name="first_steps_explain_explore_fuel_gallon_body">Unde alimentezi și cât a costat galonul, cu ora la care a fost măsurat fiecare preț.</string>
     <string name="first_steps_explain_explore_note">Niciuna dintre ele nu vine de la comunitate: sunt date publice, deci sunt acolo din prima zi, și gratuite pentru toți.</string>
     <string name="first_steps_zone_title">Protejează-ți garajul</string>
     <string name="first_steps_zone_sub">Dacă parchezi într-un garaj privat, adaugă acolo o zonă privată: când pleci, nu vom publica un loc liber.</string>

@@ -180,6 +180,14 @@ de siete entradas a dos**, las dos de minutos.
 
 **El precio del combustible sigue siendo por LITRO** (`vehicle_registration_fuel_price_label`:
 «Price per litre»). El alcance real es más pequeño de lo que parece: en UK la combinación actual es
-la CORRECTA —litros en el surtidor, mpg en el coche—, así que esto sólo chirría en **US**. Y hacerlo
-obliga a bajar el galón a toda la capa de precios (`StationPrice`, `AverageFuelPriceTable`, las
-alertas de precio y los feeds oficiales, que publican en €/l): es un ticket de datos, no de copy.
+la CORRECTA —litros en el surtidor, mpg en el coche—, así que esto sólo chirría en **US**.
+
+> ⛔ **Corregido el 16-09 al abrir [I18N-A-PRICE-IS-QUOTED-IN-THE-UNIT-YOU-BUY-IT-001].** Este
+> párrafo decía que hacerlo *«obliga a bajar el galón a toda la capa de precios (`StationPrice`,
+> `AverageFuelPriceTable`, las alertas de precio y los feeds oficiales): es un ticket de datos, no de
+> copy»*. **Está al revés, y ejecutarlo literalmente es el bug.** El KDoc de `AverageFuelPriceTable`
+> ya lo prohíbe con su razón medida: *un galón llegando a esa clase infla un viaje en EE. UU. ×3,79
+> en silencio*. El dominio se queda en **litros**; el galón es un problema de **frontera**, simétrico
+> a cómo `OpenVanFuelPricesParser` ya normaliza al ENTRAR los catorce países que cotizan por galón.
+> Es un ticket de presentación —la salida y, sobre todo, la ENTRADA del formulario— y no toca ni un
+> feed.

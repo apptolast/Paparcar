@@ -30,6 +30,7 @@ import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapS
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetStepper
 import com.rndeveloper.paparcar.presentation.home.model.isAttendedService
 import com.rndeveloper.paparcar.presentation.home.model.pumpPriceLabel
+import com.rndeveloper.paparcar.presentation.util.LocalPumpGallon
 import com.rndeveloper.paparcar.presentation.util.distanceMeters
 import com.rndeveloper.paparcar.presentation.util.formatDistance
 import com.rndeveloper.paparcar.presentation.util.fuelTypeLabel
@@ -156,7 +157,7 @@ internal fun FuelStationPeek(
                 val price = station.prices[fuel]
                 FuelPriceRow(
                     label = fuelTypeLabel(fuel),
-                    priceLabel = price?.perUnit?.pumpPriceLabel(),
+                    priceLabel = price?.perUnit?.pumpPriceLabel(LocalPumpGallon.current),
                     // Each pump's OWN hour: this is the surface that itemises fuels, so it is the
                     // one place where France's per-price hours actually differ from each other.
                     // [FUEL-FRANCE-A-PRICE-CARRIES-ITS-OWN-HOUR-001]

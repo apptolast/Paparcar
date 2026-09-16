@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.rndeveloper.paparcar.presentation.util.exploreFuelExplainerBody
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheet
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetBanner
@@ -41,7 +42,6 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.first_steps_eyebrow
 import paparcar.composeapp.generated.resources.first_steps_explain_close
 import paparcar.composeapp.generated.resources.first_steps_explain_explore_body
-import paparcar.composeapp.generated.resources.first_steps_explain_explore_fuel_body
 import paparcar.composeapp.generated.resources.first_steps_explain_explore_fuel_title
 import paparcar.composeapp.generated.resources.first_steps_explain_explore_note
 import paparcar.composeapp.generated.resources.first_steps_explain_explore_parkings_body
@@ -252,7 +252,10 @@ internal fun FirstStep.explainerCopy(): ExplainerCopy = when (this) {
             ),
             ExplainerWay(
                 title = Res.string.first_steps_explain_explore_fuel_title,
-                body = Res.string.first_steps_explain_explore_fuel_body,
+                // El litro y el galón no son la misma promesa: esta línea dice en qué unidad se van
+                // a leer esos precios, y tiene que coincidir con lo que luego pinta la fila.
+                // [I18N-A-PRICE-IS-QUOTED-IN-THE-UNIT-YOU-BUY-IT-001]
+                body = exploreFuelExplainerBody(),
                 icon = Icons.Rounded.LocalGasStation,
             ),
         ),

@@ -915,6 +915,7 @@
     <!-- Where the car is parked, on the ficha state line (STATS-UI-001) -->
     <!-- Price the user actually pays (FUEL-PRICE-RESOLVER-001) -->
     <string name="vehicle_registration_fuel_price_label">Prijs per liter (%1$s)</string>
+    <string name="vehicle_registration_fuel_price_gallon_label">Prijs per gallon (%1$s)</string>
     <string name="vehicle_registration_energy_price_label">Prijs per kWh (%1$s)</string>
     <string name="vehicle_registration_price_help">Laat leeg en we gebruiken de gemiddelde prijs in jouw land.</string>
     <!-- Where the spend figure's price came from (FUEL-PRICE-RESOLVER-001) -->
@@ -975,6 +976,7 @@
     <string name="first_steps_explain_explore_parkings_body">Waar je naar binnen rijdt en betaalt. Doorrijhoogte en tarieven als de exploitant ze publiceert.</string>
     <string name="first_steps_explain_explore_fuel_title">Tankstations</string>
     <string name="first_steps_explain_explore_fuel_body">Waar je kunt tanken en wat de liter kostte, met het tijdstip van elke meting.</string>
+    <string name="first_steps_explain_explore_fuel_gallon_body">Waar je kunt tanken en wat de gallon kostte, met het tijdstip van elke meting.</string>
     <string name="first_steps_explain_explore_note">Geen van beide komt van de community: het is publieke data, dus vanaf dag één aanwezig, en gratis voor iedereen.</string>
     <string name="first_steps_zone_title">Bescherm je garage</string>
     <string name="first_steps_zone_sub">Parkeer je in een privégarage? Voeg daar een privézone toe: als je vertrekt, publiceren we geen vrije plek.</string>

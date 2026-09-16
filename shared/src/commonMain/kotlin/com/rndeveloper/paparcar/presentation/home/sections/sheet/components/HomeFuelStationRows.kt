@@ -15,6 +15,7 @@ import com.rndeveloper.paparcar.domain.fuel.StationPrice
 import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
 import com.rndeveloper.paparcar.presentation.home.model.isAttendedService
 import com.rndeveloper.paparcar.presentation.home.model.pumpPriceLabel
+import com.rndeveloper.paparcar.presentation.util.LocalPumpGallon
 import com.rndeveloper.paparcar.presentation.util.formatDistance
 import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.ui.components.PapIconTile
@@ -104,9 +105,11 @@ private fun subtitleFor(station: NearbyFuelStation, title: String, hasFix: Boole
 /**
  * The price, at the pump's own precision — and who pumps it, when that is a question.
  *
- * ⛔ **Three decimals, not two.** Fuel is quoted per litre to a tenth of a cent, and that tenth is
- * frequently the entire difference between two forecourts — rounding 1,879 and 1,875 both to "1,88"
- * would erase exactly the comparison this list exists to make.
+ * ⛔ **Three decimals, not two.** Fuel is quoted to a tenth of a cent, and that tenth is frequently
+ * the entire difference between two forecourts — rounding 1,879 and 1,875 both to "1,88" would erase
+ * exactly the comparison this list exists to make. Per LITRE almost everywhere and per gallon where
+ * that is what the pump charges, which `pumpPriceLabel` settles once for every surface.
+ * [I18N-A-PRICE-IS-QUOTED-IN-THE-UNIT-YOU-BUY-IT-001]
  *
  * ⛔ And that same comparison is what the second line protects. In Italy the same pump quotes `self`
  * and `servito` up to **0,35 €/L** apart, so an unqualified figure here could be either, and two
@@ -122,7 +125,7 @@ private fun FuelPriceLabel(price: StationPrice) {
         Text(
             // The shared formatter: row, map capsule and peek must quote one price the same way.
             // [FUEL-STATIONS-MAP-AND-PEEK-001]
-            text = price.perUnit.pumpPriceLabel(),
+            text = price.perUnit.pumpPriceLabel(LocalPumpGallon.current),
             style = PaparcarType.current.subtitle,
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,

@@ -12,7 +12,11 @@ import com.rndeveloper.paparcar.domain.vehicle.VehicleActiveStatePolicy
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
+import com.rndeveloper.paparcar.GallonKind
 import com.rndeveloper.paparcar.localeGallonKind
+import com.rndeveloper.paparcar.localePumpGallon
+import com.rndeveloper.paparcar.presentation.util.pumpPriceFromDisplay
+import com.rndeveloper.paparcar.presentation.util.pumpPriceToDisplay
 import com.rndeveloper.paparcar.presentation.base.BaseViewModel
 import com.rndeveloper.paparcar.presentation.util.DistanceUnit
 import com.rndeveloper.paparcar.presentation.util.consumptionFromDisplay
@@ -22,6 +26,7 @@ import com.rndeveloper.paparcar.presentation.util.roundToTenth
 import com.rndeveloper.paparcar.presentation.vehicleregistration.data.VehicleCatalog
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlin.math.round
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -32,6 +37,11 @@ class VehicleRegistrationViewModel(
      *  vuelta a l/100 km antes de guardar. El modelo nunca ve mpg.
      *  [I18N-A-RADIUS-WRITTEN-BY-HAND-IGNORES-MILES-001] */
     private val appPreferences: AppPreferences,
+    /** En qué unidad cobra el surtidor de este usuario — `null` = litros, que es el caso de 193
+     *  países. Entra por el constructor y no se lee del locale aquí dentro porque es la ÚNICA forma
+     *  de que un test pueda mirar el caso de EE. UU., que es justo el que no tiene síntoma visible.
+     *  [I18N-A-PRICE-IS-QUOTED-IN-THE-UNIT-YOU-BUY-IT-001] */
+    private val pumpGallon: () -> GallonKind? = ::localePumpGallon,
 ) : BaseViewModel<VehicleRegistrationState, VehicleRegistrationIntent, VehicleRegistrationEffect>() {
 
     // The money this phone is set in, read once: it labels whatever the user types into the price
@@ -288,7 +298,7 @@ class VehicleRegistrationViewModel(
                         consumptionElectricText = vehicle.consumptionElectricPer100?.let {
                             consumptionToField(it, usesLiters = false)
                         } ?: "",
-                        fuelPriceText = vehicle.fuelPricePerLiter?.let { formatConsumption(it.amount.toFloat()) } ?: "",
+                        fuelPriceText = vehicle.fuelPricePerLiter?.let { fuelPriceToField(it.amount) } ?: "",
                         energyPriceText = vehicle.energyPricePerKwh?.let { formatConsumption(it.amount.toFloat()) } ?: "",
                         energyLabel = vehicle.energyLabel,
                     )
@@ -382,7 +392,7 @@ class VehicleRegistrationViewModel(
                     // field was never offered. [FUEL-PRICE-RESOLVER-001]
                     fuelPricePerLiter = current.priceCurrency?.let { c ->
                         if (type.burnsFuel && current.fuelType?.usesLiters == true) {
-                            parseConsumption(current.fuelPriceText)?.let { Money(it.toDouble(), c) }
+                            fuelPriceFromField(current.fuelPriceText)?.let { Money(it, c) }
                         } else {
                             null
                         }
@@ -457,7 +467,12 @@ class VehicleRegistrationViewModel(
     // que leer el consumo guardado sin convertir enseñaría «5,5» bajo una etiqueta que pone mpg, y
     // guardar sin convertir metería 43 en un campo que el resto de la app lee como l/100 km — un
     // coche que gasta 43 litros a los cien. Cada `formatConsumption` de una CIFRA DE CONSUMO tiene
-    // su `fromDisplay` al guardar; los precios no pasan por aquí, que son dinero, no consumo.
+    // su `fromDisplay` al guardar.
+    //
+    // ⛔ Y el PRECIO también pasa por aquí, aunque sea dinero: lleva denominador de volumen, y donde
+    // el surtidor cobra por galón el campo pide galones. Esa frontera es otra —la manda el LOCALE, no
+    // el ajuste de millas— y por eso tiene su propia pareja de funciones, no una rama de éstas.
+    // [I18N-A-PRICE-IS-QUOTED-IN-THE-UNIT-YOU-BUY-IT-001]
     // ─────────────────────────────────────────────────────────────────────────
 
     /** El sistema en el que el usuario teclea ahora mismo. */
@@ -475,8 +490,44 @@ class VehicleRegistrationViewModel(
             consumptionFromDisplay(it, usesLiters, displayUnit(), localeGallonKind())
         }
 
+    /**
+     * Precio guardado (siempre €/litro) → el texto del campo, en la unidad del surtidor.
+     *
+     * Tres decimales, que es la precisión a la que se cotiza el combustible en las dos unidades
+     * («1,879 €/l», «$3,499/gal»). Ese redondeo hace la ida y vuelta un punto FIJO: el primer
+     * guardado desplaza el precio en una milésima de céntimo por litro y a partir de ahí no se mueve
+     * nunca más. Guardar el texto tecleado en vez del número sería meter la unidad de presentación
+     * dentro del modelo, que es justo lo que este borde existe para evitar.
+     */
+    private fun fuelPriceToField(perLitre: Double): String =
+        formatPumpAmount(pumpPriceToDisplay(perLitre, pumpGallon()))
+
+    /**
+     * Lo que quedó escrito en el campo → €/litro, o null si no es un número válido.
+     *
+     * Parsea a **Double**, no a Float como el consumo: `Money.amount` es Double, y pasar un precio
+     * por Float le mete un error de 5·10⁻⁸ que convertía «1,879» en 1,878999948501587 antes de que
+     * nadie lo multiplicara por nada. Con una conversión de unidad delante, esa basura ya no es sólo
+     * fea. [I18N-A-PRICE-IS-QUOTED-IN-THE-UNIT-YOU-BUY-IT-001]
+     */
+    private fun fuelPriceFromField(text: String): Double? =
+        parsePrice(text)?.let { pumpPriceFromDisplay(it, pumpGallon()) }
+
+    /** Mismo criterio que [parseConsumption] —coma o punto, positivo— pero sin pasar por Float. */
+    private fun parsePrice(text: String): Double? =
+        text.trim().replace(',', '.').toDoubleOrNull()?.takeIf { it > 0.0 }
+
+    /** Un precio como se teclea: sin ceros de relleno, pero sin perder la milésima. */
+    private fun formatPumpAmount(value: Double): String {
+        val rounded = round(value * PRICE_SCALE) / PRICE_SCALE
+        return if (rounded == rounded.toInt().toDouble()) rounded.toInt().toString() else rounded.toString()
+    }
+
     private companion object {
         const val TAG = "VehicleRegistrationVM"
+
+        /** Milésimas: la precisión a la que se cotiza un combustible, aquí y en el surtidor. */
+        const val PRICE_SCALE = 1_000.0
 
         /**
          * Body type assumed for a CAR whose typed brand/model matches neither the
