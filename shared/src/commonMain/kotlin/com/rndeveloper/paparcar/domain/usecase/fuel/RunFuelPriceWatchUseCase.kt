@@ -121,6 +121,10 @@ class RunFuelPriceWatchUseCase(
                 // The key the ANSWER already built — never re-derived from a bare id here.
                 candidates = answer.stations.associate { it.stationKey to it.station },
                 referenceStationKeys = followedKeys,
+                // The clock the whole run already shares, so the freshness floor ages prices
+                // against the same instant the samples were stamped with.
+                // [FUEL-A-CHEAP-PRICE-WITH-NO-FLOOR-IS-THE-STALEST-ONE-001]
+                nowMs = now,
             ),
             samplesRecorded = samples.size,
         )

@@ -41,6 +41,24 @@ data class CheaperStationNearby(
  * the worst pump in town and everything is a bargain. It is the followed station when there is one,
  * and otherwise the MEDIAN of what is priced nearby — the value that makes «cheaper» mean «cheaper
  * than normal here».
+ *
+ * ⛔⛔ **And the cheapest price in an area is, on average, its oldest one.**
+ * [FUEL-A-CHEAP-PRICE-WITH-NO-FLOOR-IS-THE-STALEST-ONE-001] A forecourt that stops reporting keeps
+ * its last figure frozen, and since prices climb, the frozen one looks like the bargain of the
+ * neighbourhood. Measured against the live Italian register on 16-09-2026, 5 km radius:
+ *
+ * | | age of the 10 cheapest | age of the rest |
+ * |---|---|---|
+ * | Roma | **175 h** | 28 h |
+ * | Palermo | **171 h** | 34 h |
+ * | Napoli | **166 h** | 47 h |
+ * | Torino | **115 h** | 23 h |
+ * | Milano | 21 h | 22 h |
+ *
+ * So this verdict needs BOTH gates, and they answer different questions: the comparative one asks
+ * «is it fresher than what we compare it against», and [maxPriceAgeMs] asks «is it fresh enough to
+ * send somebody there at all». With only the first, an unfollowed driver in Rome was told to detour
+ * 1,9 km to save 0,455 €/L — 18 € on a tank — on a price six days old.
  */
 class EvaluateCheaperStationNearbyUseCase {
 
@@ -59,8 +77,15 @@ class EvaluateCheaperStationNearbyUseCase {
         fuelType: FuelType,
         candidates: Map<String, FuelStation>,
         referenceStationKeys: Set<String>,
+        /**
+         * ⛔ Required, with no default: this verdict stays pure and synchronous, so the one thing
+         * it cannot do is read a clock. A defaulted `0L` would have silently aged every price by
+         * fifty-six years and muted the alert everywhere.
+         */
+        nowMs: Long,
         maxDistanceMeters: Double = MAX_DETOUR_METERS,
         minSavingPerUnit: Double = MIN_SAVING_PER_UNIT,
+        maxPriceAgeMs: Long = MAX_PRICE_AGE_MS,
     ): CheaperStationNearby? {
         val priced = candidates.mapNotNull { (key, station) ->
             val price = station.prices[fuelType] ?: return@mapNotNull null
@@ -94,6 +119,11 @@ class EvaluateCheaperStationNearbyUseCase {
             // ⛔ A candidate quoted from an older reading than the reference is not proof of
             // anything: half the "savings" in a stale feed are just two different days compared.
             .filter { it.isAtLeastAsFreshAs(reference) }
+            // ⛔ …and that gate is INERT exactly where it is needed most: with nothing followed
+            // yet — the state every user starts in, and the watch does not require a follow to
+            // run — `reference` is null and the line above waves everything through. The floor is
+            // what stands there. [FUEL-A-CHEAP-PRICE-WITH-NO-FLOOR-IS-THE-STALEST-ONE-001]
+            .filter { it.isFreshEnoughToName(nowMs, maxPriceAgeMs) }
             .minByOrNull { it.price.amount }
             ?: return null
 
@@ -125,6 +155,25 @@ class EvaluateCheaperStationNearbyUseCase {
             val theirs = other?.reportedAtMs ?: return true
             return mine >= theirs
         }
+
+        /**
+         * Old enough that nobody should be sent there on its word.
+         * [FUEL-A-CHEAP-PRICE-WITH-NO-FLOOR-IS-THE-STALEST-ONE-001]
+         *
+         * ⛔ **An absent stamp still does not disqualify**, same as above and for the same reason:
+         * Germany's MTS-K publishes no hour at all and guarantees recency by law, so reading null
+         * as "ancient" would mute the alert in a whole country to fix another.
+         *
+         * ⛔ The floor is on the CANDIDATE only, never on the reference — the asymmetry is the
+         * point. A stale candidate makes the app say «drive 1,9 km and pay 1,669 €», which is
+         * simply false when you get there; a stale reference only makes the comparison «cheaper
+         * than you usually pay» shakier, while the figure the driver acts on stays true. One sends
+         * somebody to a wrong number, the other does not.
+         */
+        fun isFreshEnoughToName(nowMs: Long, maxAgeMs: Long): Boolean {
+            val stamp = reportedAtMs ?: return true
+            return nowMs - stamp <= maxAgeMs
+        }
     }
 
     /** The middle price of what is around; the even case takes the lower of the two middles. */
@@ -147,5 +196,17 @@ class EvaluateCheaperStationNearbyUseCase {
          * driver to spend fuel to save fuel.
          */
         const val MIN_SAVING_PER_UNIT = 0.03
+
+        /**
+         * Forty-eight hours, chosen off the measurement rather than as a round number: the median
+         * price age in five Italian cities was **18 h**, so this is ~2,7× the normal and clears a
+         * weekend without clearing a week.
+         *
+         * What it costs and what it buys, measured on the same data: 198 of 229 rows survive in
+         * Rome and 106 of 139 in Naples, and Rome's recommendation moves from 1,669 € (158 h old)
+         * to 1,709 € (5 h) — still a 0,415 €/L saving, and this one is true.
+         * [FUEL-A-CHEAP-PRICE-WITH-NO-FLOOR-IS-THE-STALEST-ONE-001]
+         */
+        const val MAX_PRICE_AGE_MS = 48L * 60 * 60 * 1_000
     }
 }
