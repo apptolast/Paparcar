@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.fakes.data.repository
 
+import com.rndeveloper.paparcar.localePrefersImperialUnits
 import com.rndeveloper.paparcar.domain.geocoder.GeocoderDataSource
 import com.rndeveloper.paparcar.domain.model.AddressInfo
 import com.rndeveloper.paparcar.domain.model.PlaceInfo
@@ -287,7 +288,18 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     override val themeMode: ThemeMode get() = _themeMode.value
     override fun setThemeMode(mode: ThemeMode) { _themeMode.value = mode }
 
-    private val _useImperialUnits = MutableStateFlow(false)
+    // ⛔ El MISMO default que producción, no `false`.
+    // [STATS-A-VOLUME-BURNED-IS-QUOTED-IN-LITRES-EVERYWHERE-001]
+    //
+    // Un fake que arranca en métrico pase lo que pase deja el carril imperial entero —mpg, millas,
+    // galones y libras— invisible en el flavor mock, que es donde se prueban las pantallas: en el
+    // emulador en-US la ficha del coche pedía «Consumption (l/100 km)», y eso NO es lo que hace la
+    // app instalada. Un fake que miente sobre el arranque no simula, esconde.
+    //
+    // Producción resuelve el default por el país del locale y deja ganar al valor guardado en cuanto
+    // el usuario toca el interruptor (`AndroidDataStoreAppPreferences` e `IosAppPreferences`, los dos
+    // vía [localePrefersImperialUnits]). Aquí no hay nada guardado, así que el default ES el valor.
+    private val _useImperialUnits = MutableStateFlow(localePrefersImperialUnits())
     override val useImperialUnits: Boolean get() = _useImperialUnits.value
     override fun setUseImperialUnits(enabled: Boolean) { _useImperialUnits.value = enabled }
 

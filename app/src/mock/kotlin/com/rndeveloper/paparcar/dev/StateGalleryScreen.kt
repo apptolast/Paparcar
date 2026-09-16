@@ -159,6 +159,8 @@ import com.rndeveloper.paparcar.domain.detection.DetectionPath
 import androidx.compose.runtime.CompositionLocalProvider
 import com.rndeveloper.paparcar.GallonKind
 import com.rndeveloper.paparcar.presentation.util.LocalPumpGallon
+import com.rndeveloper.paparcar.presentation.util.DistanceUnit
+import com.rndeveloper.paparcar.presentation.util.LocalDistanceUnit
 import com.rndeveloper.paparcar.domain.fuel.FuelStation
 import com.rndeveloper.paparcar.domain.fuel.StationPrice
 import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
@@ -2391,6 +2393,23 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                     isPlus = false,
                 )
+            },
+            // [STATS-A-VOLUME-BURNED-IS-QUOTED-IN-LITRES-EVERYWHERE-001] Las mismas cifras leidas
+            // por alguien en imperial: distancia en millas, consumo en mpg y —lo que este ticket
+            // arregla— el deposito en GALONES y el CO2 en LIBRAS. Es la unica superficie donde se
+            // puede comprobar con los ojos que la fila CIERRA: millas / mpg = galones. El fake de
+            // preferencias arranca en metrico e ignora el locale, asi que sin proveer la unidad a
+            // mano este carril no se puede mirar en el catalogo.
+            Variant("Cifras · en imperial (galones y libras)") {
+                CompositionLocalProvider(LocalDistanceUnit provides DistanceUnit.IMPERIAL) {
+                    history(
+                        HistoryState(
+                            timeline = resolvedHistory(FakeData.allSessions, StatsPeriod.ThisMonth),
+                            activePeriod = StatsPeriod.ThisMonth,
+                        ),
+                        isPlus = true,
+                    )
+                }
             },
             // Coche recién dado de alta: nada llega a su umbral, así que la tarjeta enseña sólo la
             // cifra donde el cero SÍ es una respuesta (plazas cedidas). Ningún "0" de relleno.

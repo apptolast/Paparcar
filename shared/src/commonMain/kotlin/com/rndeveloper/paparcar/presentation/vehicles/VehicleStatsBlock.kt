@@ -40,7 +40,12 @@ import com.rndeveloper.paparcar.domain.fuel.FuelPrice
 import com.rndeveloper.paparcar.domain.stats.PeriodStats
 import com.rndeveloper.paparcar.domain.stats.ScopedMeasure
 import com.rndeveloper.paparcar.domain.stats.coverageAllowsComparison
+import com.rndeveloper.paparcar.localeGallonKind
+import com.rndeveloper.paparcar.presentation.util.DistanceUnit
+import com.rndeveloper.paparcar.presentation.util.LocalDistanceUnit
+import com.rndeveloper.paparcar.presentation.util.burnedVolumeToDisplay
 import com.rndeveloper.paparcar.presentation.util.durationText
+import com.rndeveloper.paparcar.presentation.util.emittedMassToDisplay
 import com.rndeveloper.paparcar.presentation.util.formatHourBucket
 import com.rndeveloper.paparcar.presentation.util.fuelPriceNoteText
 import com.rndeveloper.paparcar.presentation.util.statDelta
@@ -107,6 +112,8 @@ import paparcar.composeapp.generated.resources.stats_tile_spots_shared
 import paparcar.composeapp.generated.resources.stats_tile_usual_day
 import paparcar.composeapp.generated.resources.stats_value_hours_minutes
 import paparcar.composeapp.generated.resources.stats_value_kg
+import paparcar.composeapp.generated.resources.stats_value_lb
+import paparcar.composeapp.generated.resources.stats_value_gallons
 import paparcar.composeapp.generated.resources.stats_value_kwh
 import paparcar.composeapp.generated.resources.stats_value_liters
 import paparcar.composeapp.generated.resources.stats_value_minutes
@@ -626,8 +633,19 @@ internal fun statTiles(stats: PeriodStats): List<StatTileData> {
     // resolved ONCE here, with a sentinel where the figure goes, and the substitution that runs
     // per frame is pure. The locale still decides where the unit sits relative to the number,
     // which a hardcoded "$value kg" would have quietly taken away from it.
-    val kgTemplate = stringResource(Res.string.stats_value_kg, NUMBER_SLOT)
-    val litersTemplate = stringResource(Res.string.stats_value_liters, NUMBER_SLOT)
+    // ⛔ Y la unidad se elige aquí, en el mismo sitio y por el mismo motivo. El eje es el del
+    // CONSUMO —el ajuste imperial, no el locale del surtidor—: los litros quemados son el consumo
+    // integrado sobre la distancia, así que las tres cifras de la pantalla tienen que CERRAR
+    // (distancia ÷ consumo = volumen). La masa no tiene galón: sólo depende del ajuste.
+    // [STATS-A-VOLUME-BURNED-IS-QUOTED-IN-LITRES-EVERYWHERE-001]
+    val imperial = LocalDistanceUnit.current == DistanceUnit.IMPERIAL
+    val gallon = localeGallonKind()
+    val kgTemplate = stringResource(
+        if (imperial) Res.string.stats_value_lb else Res.string.stats_value_kg, NUMBER_SLOT,
+    )
+    val litersTemplate = stringResource(
+        if (imperial) Res.string.stats_value_gallons else Res.string.stats_value_liters, NUMBER_SLOT,
+    )
     val kwhTemplate = stringResource(Res.string.stats_value_kwh, NUMBER_SLOT)
 
     // Spend, litres, kWh and CO₂ are all computed over the SAME measured distance, so they all
@@ -658,17 +676,24 @@ internal fun statTiles(stats: PeriodStats): List<StatTileData> {
             // EXACTAMENTE la cifra que el usuario tecleó — y que ya está escrita en la ficha, dos
             // dedos más arriba. Sería una constante disfrazada de medición. Los litros del periodo
             // sí se mueven con los kilómetros. [STATS-A-COMPUTED-LITRE-WITH-NO-READER-001]
-            StatTileKey.FUEL -> StatTileData(
-                icon = icon,
-                value = litersTemplate.replace(NUMBER_SLOT, formatDecimal(requireNotNull(stats.fuelLiters))),
-                label = stringResource(Res.string.stats_tile_fuel),
-                delta = statDelta(requireNotNull(stats.fuelLiters), stats.previous?.fuelLiters)
-                    .takeIf { distanceComparable },
-                animated = StatTileNumber(requireNotNull(stats.fuelLiters)) { v ->
-                    litersTemplate.replace(NUMBER_SLOT, formatDecimal(v))
-                },
-                note = distanceNote,
-            )
+            StatTileKey.FUEL -> {
+                // ⛔ El dominio sigue en LITROS: `PeriodStats.fuelLiters` no cambia de unidad, y la
+                // delta tampoco se convierte — es una RAZÓN, y una razón no tiene unidad.
+                val burned = burnedVolumeToDisplay(
+                    requireNotNull(stats.fuelLiters), LocalDistanceUnit.current, gallon,
+                )
+                StatTileData(
+                    icon = icon,
+                    value = litersTemplate.replace(NUMBER_SLOT, formatDecimal(burned)),
+                    label = stringResource(Res.string.stats_tile_fuel),
+                    delta = statDelta(requireNotNull(stats.fuelLiters), stats.previous?.fuelLiters)
+                        .takeIf { distanceComparable },
+                    animated = StatTileNumber(burned) { v ->
+                        litersTemplate.replace(NUMBER_SLOT, formatDecimal(v))
+                    },
+                    note = distanceNote,
+                )
+            }
             StatTileKey.ENERGY -> StatTileData(
                 icon = icon,
                 value = kwhTemplate.replace(NUMBER_SLOT, formatDecimal(requireNotNull(stats.energyKwh))),
@@ -680,17 +705,20 @@ internal fun statTiles(stats: PeriodStats): List<StatTileData> {
                 },
                 note = distanceNote,
             )
-            StatTileKey.CO2 -> StatTileData(
-                icon = icon,
-                value = kgTemplate.replace(NUMBER_SLOT, formatDecimal(requireNotNull(stats.co2Kg))),
-                label = stringResource(Res.string.stats_tile_co2),
-                delta = statDelta(requireNotNull(stats.co2Kg), stats.previous?.co2Kg)
-                    .takeIf { distanceComparable },
-                animated = StatTileNumber(requireNotNull(stats.co2Kg)) { v ->
-                    kgTemplate.replace(NUMBER_SLOT, formatDecimal(v))
-                },
-                note = distanceNote,
-            )
+            StatTileKey.CO2 -> {
+                val emitted = emittedMassToDisplay(requireNotNull(stats.co2Kg), LocalDistanceUnit.current)
+                StatTileData(
+                    icon = icon,
+                    value = kgTemplate.replace(NUMBER_SLOT, formatDecimal(emitted)),
+                    label = stringResource(Res.string.stats_tile_co2),
+                    delta = statDelta(requireNotNull(stats.co2Kg), stats.previous?.co2Kg)
+                        .takeIf { distanceComparable },
+                    animated = StatTileNumber(emitted) { v ->
+                        kgTemplate.replace(NUMBER_SLOT, formatDecimal(v))
+                    },
+                    note = distanceNote,
+                )
+            }
             StatTileKey.SEARCH_TIME -> StatTileData(
                 icon = icon,
                 value = durationText(requireNotNull(stats.searchTime).value),

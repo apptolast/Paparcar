@@ -882,9 +882,11 @@
     <string name="stats_tile_auto_detected">vanzelf herkend</string>
     <string name="stats_tile_spots_shared">gedeelde plekken</string>
     <string name="stats_value_kg">%1$s kg</string>
+    <string name="stats_value_lb">%1$s lb</string>
     <string name="stats_tile_fuel">brandstof</string>
     <string name="stats_tile_energy">energie</string>
     <string name="stats_value_liters">%1$s L</string>
+    <string name="stats_value_gallons">%1$s gal</string>
     <string name="stats_value_kwh">%1$s kWh</string>
     <string name="stats_value_hours_minutes">%1$d u %2$d min</string>
     <string name="stats_value_hours">%1$d u</string>
