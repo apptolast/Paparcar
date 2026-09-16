@@ -237,6 +237,21 @@ class PushMessageHandlerTest {
         assertEquals(emptyList(), log)
     }
 
+    /**
+     * ⛔ El invariante que NADIE declaraba: `SharedCarMemberSync` publica el token de este móvil
+     * leyendo `observeSharedCars()`, y este handler descarta leyendo **el mismo flujo**. Así que un
+     * Room vacío —instalación limpia, sincronización sin aterrizar— no puede descartar un aviso
+     * legítimo: si ahí no hay coches, este móvil tampoco ha publicado su token, y el servidor no le
+     * manda nada. El día que una de las dos mitades cambie de fuente, este test se pone rojo.
+     * [PUSH-A-DEPARTURE-KNOWS-WHICH-CAR-001]
+     */
+    @Test
+    fun should_beSilentOnBothSides_when_thePhoneKnowsOfNoGroup() = runTest {
+        handler(sharedCars = carsOwning()).handle(parkedPush())
+
+        assertEquals(emptyList(), log)
+    }
+
     // ── La puerta única de la zona ──────────────────────────────────────────────────────────────
 
     @Test

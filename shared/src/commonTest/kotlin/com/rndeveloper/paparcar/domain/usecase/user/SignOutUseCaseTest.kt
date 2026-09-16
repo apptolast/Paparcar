@@ -1,4 +1,6 @@
 package com.rndeveloper.paparcar.domain.usecase.user
+import com.rndeveloper.paparcar.domain.repository.SharedCarRepository
+import com.rndeveloper.paparcar.domain.push.PushTokenProvider
 import kotlinx.coroutines.awaitCancellation
 import com.rndeveloper.paparcar.domain.repository.ZoneAlertSubscriptionRepository
 
@@ -106,6 +108,35 @@ class SignOutUseCaseTest {
             pushTokens = FakeNoopPushTokenProvider(),
         )().getOrThrow()
 
+        assertTrue(auth.getCurrentSession() == null)
+    }
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    @Test
+    fun should_waitOnceAndNotThreeTimes_when_nothingAnswers() = runTest {
+        val scheduler = testScheduler
+        val auth = FakeAuthRepository(session)
+        val hangs = object : ZoneAlertSubscriptionRepository {
+            override suspend fun replaceAll(
+                uid: String,
+                subscriptions: List<ZoneAlertSubscription>,
+            ): Result<Unit> = awaitCancellation()
+        }
+        val hangingCars = object : SharedCarRepository by FakeSharedCarRepository() {
+            override suspend fun retirePushTokens(): Result<Unit> = awaitCancellation()
+        }
+        val hangingPush = object : PushTokenProvider {
+            override suspend fun currentToken(): String? = null
+            override suspend fun retireToken() = awaitCancellation()
+        }
+
+        val start = scheduler.currentTime
+        SignOutUseCase(auth, hangs, hangingCars, hangingPush)().getOrThrow()
+
+        // ⛔ Las tres retiradas comparten UN presupuesto y corren a la vez. En serie esto eran tres
+        // plazos de 3 s: nueve segundos reteniendo a quien ya dijo que quería irse.
+        // [PRIV-SIGN-OUT-WAITS-ONCE-NOT-THREE-TIMES-001]
+        assertTrue(scheduler.currentTime - start < 3_500, "esperó ${scheduler.currentTime - start} ms")
         assertTrue(auth.getCurrentSession() == null)
     }
 

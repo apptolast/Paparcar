@@ -12,7 +12,8 @@
     "lint": "tsc --noEmit",
     "test": "tsc && node --test lib/*.test.js",
     "serve": "npm run build && firebase emulators:start --only functions",
-    "deploy": "npm run build && firebase deploy --only functions"
+    "deploy": "npm run build && firebase deploy --only functions",
+    "verify:queries": "tsc && node lib/scripts/verify-prod-queries.js"
   },
   "dependencies": {
     "firebase-admin": "^13.0.0",

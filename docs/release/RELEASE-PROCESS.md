@@ -102,6 +102,23 @@ En `app/build.gradle.kts → defaultConfig`:
 Editar `distribution/release-notes.txt` — texto plano, una versión por archivo.
 Lo lee el plugin de App Distribution y lo muestra a los testers.
 
+### 1.2b Reglas, índices y funciones — ANTES del APK
+
+⛔ **El orden es reglas e índices → funciones → verificación → APK**, y la verificación no es
+opcional: el 16-09 se desplegó una consulta sin su índice compuesto y **ningún test lo vio** — los de
+`functions` prueban lógica pura y **el emulador de Firestore no exige índices**. Habría dejado sin
+alertas de zona a todo el mundo, en silencio.
+
+```bash
+npm --prefix firestore-rules-tests test      # las reglas se EJECUTAN, no se leen
+firebase deploy --only firestore:rules,firestore:indexes --project pap-26
+# esperar a que los índices estén READY (un índice recién creado tarda y hasta entonces falla igual)
+firebase deploy --only functions --project pap-26
+npm --prefix functions run verify:queries    # contra la base REAL: la única que sabe la verdad
+```
+
+Y **releer** lo desplegado —reglas e índices— en vez de fiarse del `success` del deploy.
+
 ### 1.3 Build firmado
 
 ```bash

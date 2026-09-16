@@ -71,8 +71,17 @@ class RemoteSharedCarDataSourceImpl(
         // Subcollections first: an orphaned `members` doc under a deleted car would keep granting
         // reads on paths the parent no longer governs.
         runCatching { sessions(carId).get().documents.forEach { it.reference.delete() } }
-        runCatching { members(carId).get().documents.forEach { it.reference.delete() } }
+        // ⛔ `state` ANTES que `members`: la cabecera es lo ÚNICO que lleva la última posición del
+        // coche, y su regla se apoya en el coche y en la pertenencia. Borrar antes a los miembros y
+        // luego intentar la cabecera es quedarse sin la llave con la puerta todavía abierta.
+        //
+        // ⛔ Y su fallo se REGISTRA: si esto no borra, la posición del coche sobrevive a la
+        // disolución del grupo y nadie se entera. Un `runCatching` mudo es como estuvieron
+        // huérfanas hasta que una revisión las encontró.
+        // [PRIV-A-DISSOLVED-GROUP-LEAVES-ITS-HEAD-001]
         runCatching { state(carId).delete() }
+            .onFailure { PaparcarLogger.e(TAG, "no se pudo borrar la cabecera de $carId — queda huérfana", it) }
+        runCatching { members(carId).get().documents.forEach { it.reference.delete() } }
         deleteInvitesFor(carId)
         car(carId).delete()
     }

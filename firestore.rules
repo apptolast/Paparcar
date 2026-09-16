@@ -160,10 +160,34 @@ service cloud.firestore {
       // quien se va (`clearMemberFromState`), así que un update que solo ponga a null los campos
       // que YA eran suyos también pasa.
       match /state/{docId} {
-        function claimsOwnAuthorship() {
-          return request.resource.data.get('authorUid', '') == request.auth.uid
-                 || request.resource.data.get('movedByUid', '') == request.auth.uid;
+        // ⛔ El dueño se mira en el COCHE, no aquí: `isOwner()` compara `resource.data.ownerUid`, y
+        // dentro de este match `resource` es el documento de ESTADO, que no tiene ese campo. Con
+        // `isOwner()` el borrado se denegaba siempre y disolver un grupo dejaba la última posición
+        // del coche huérfana. [PRIV-A-DISSOLVED-GROUP-LEAVES-ITS-HEAD-001]
+        function carOwner() {
+          return get(/databases/$(database)/documents/sharedCars/$(carId)).data.ownerUid;
         }
+
+        /** Aparcar: firmas TÚ la cabecera. */
+        function writesAsAuthor() {
+          return request.resource.data.get('authorUid', '') == request.auth.uid;
+        }
+
+        /**
+         * Llevarte el coche que dejó otro. Acotado a los cuatro campos de esa noticia: mirar solo
+         * «¿está mi uid en movedByUid?» sobre el documento resultante dejaba firmar un `authorUid`
+         * ajeno con posición inventada y colarse por esta puerta.
+         * [SEC-A-MEMBER-CANNOT-SIGN-AS-ANOTHER-001]
+         */
+        function takesTheCar() {
+          return resource != null
+                 && request.resource.data.get('movedByUid', '') == request.auth.uid
+                 && request.resource.data.get('isParked', true) == false
+                 && request.resource.data.diff(resource.data).affectedKeys()
+                      .hasOnly(['isParked', 'movedByUid', 'movedByName', 'updatedAtMs']);
+        }
+
+        /** Salir del grupo: te borras TU nombre. */
         function clearsOnlyTheirOwnName() {
           return resource != null
                  && (resource.data.get('authorUid', '') == request.auth.uid
@@ -171,9 +195,26 @@ service cloud.firestore {
                  && request.resource.data.diff(resource.data).affectedKeys()
                       .hasOnly(['authorName', 'movedByUid', 'movedByName']);
         }
+
+        /**
+         * Expulsar: el dueño borra el nombre de OTRO, y solo puede BORRARLO.
+         * Sin esto, `removeMember` —que corre con la sesión del dueño— fallaba en silencio y el
+         * expulsado se quedaba con su nombre en la tarjeta del grupo.
+         * [PRIV-A-REMOVED-MEMBER-KEEPS-THEIR-NAME-ON-THE-CAR-001]
+         */
+        function ownerClearsNames() {
+          return carOwner() == request.auth.uid
+                 && request.resource.data.diff(resource.data).affectedKeys()
+                      .hasOnly(['authorName', 'movedByUid', 'movedByName'])
+                 && request.resource.data.get('authorName', null) == null
+                 && request.resource.data.get('movedByName', null) == null;
+        }
+
         allow read: if isMember();
-        allow create, update: if isMember() && (claimsOwnAuthorship() || clearsOnlyTheirOwnName());
-        allow delete: if isOwner();
+        allow create, update: if isMember()
+                              && (writesAsAuthor() || takesTheCar()
+                                  || clearsOnlyTheirOwnName() || ownerClearsNames());
+        allow delete: if request.auth != null && carOwner() == request.auth.uid;
       }
 
       // El historial compartido: cada uno firma el suyo y todos lo leen.

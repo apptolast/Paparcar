@@ -5,6 +5,9 @@ import com.rndeveloper.paparcar.domain.push.PushTokenProvider
 import com.rndeveloper.paparcar.domain.repository.SharedCarRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneAlertSubscriptionRepository
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
@@ -45,18 +48,25 @@ class SignOutUseCase(
 
     suspend operator fun invoke(): Result<Unit> = runCatching {
         val uid = authRepository.getCurrentSession()?.userId
-        if (uid != null) {
-            // Las zonas: la fila entera se va, que es lo que ya hace perder Plus o apagar el aviso.
-            step("alertas de zona") {
-                zoneAlertSubscriptions.replaceAll(uid, emptyList()).getOrThrow()
-            }
-            // Los grupos: se retira el TOKEN, no la pertenencia — cerrar sesión no es salirse.
-            step("tokens del grupo") { sharedCarRepository.retirePushTokens().getOrThrow() }
-        }
-        // Y el propio token, para que ni una fila que se nos haya escapado alcance a este teléfono.
-        step("token de este móvil") { pushTokens.retireToken() }
 
-        // ⛔ FUERA de todo plazo: es lo que el usuario pidió, y es local.
+        // ⛔ UN presupuesto para las tres, y en paralelo. En serie eran tres plazos de 3 s, o sea
+        // hasta NUEVE segundos mirando una pantalla que ya dijiste que querías abandonar — y las
+        // tres retiradas son independientes: nada de lo que hace una cambia lo que hace otra.
+        // [PRIV-SIGN-OUT-WAITS-ONCE-NOT-THREE-TIMES-001]
+        withTimeoutOrNull(SIGN_OUT_TOTAL_TIMEOUT_MS) {
+            coroutineScope {
+                listOf(
+                    // Las zonas: la fila entera se va, como al perder Plus o apagar el aviso.
+                    async { if (uid != null) step("alertas de zona") { zoneAlertSubscriptions.replaceAll(uid, emptyList()).getOrThrow() } },
+                    // Los grupos: se retira el TOKEN, no la pertenencia — salir no es salirse.
+                    async { if (uid != null) step("tokens del grupo") { sharedCarRepository.retirePushTokens().getOrThrow() } },
+                    // Y el propio token, para que ni una fila escapada alcance a este teléfono.
+                    async { step("token de este móvil") { pushTokens.retireToken() } },
+                ).awaitAll()
+            }
+        } ?: PaparcarLogger.w(TAG, "se agotó el plazo retirando tokens — se sale igual")
+
+        // ⛔ FUERA del plazo: es lo que el usuario pidió, y es local.
         authRepository.signOut().getOrThrow()
     }
 
@@ -65,21 +75,18 @@ class SignOutUseCase(
      * [PRIV-A-SIGN-OUT-WITHOUT-NETWORK-NEVER-SIGNS-OUT-001]
      */
     private suspend fun step(what: String, block: suspend () -> Unit) {
-        val done = withTimeoutOrNull(SIGN_OUT_STEP_TIMEOUT_MS) {
-            runCatching { block() }
-                .onFailure { PaparcarLogger.w(TAG, "no se pudo retirar: $what", it) }
-        }
-        if (done == null) PaparcarLogger.w(TAG, "sin respuesta al retirar: $what — se sale igual")
+        runCatching { block() }
+            .onFailure { PaparcarLogger.w(TAG, "no se pudo retirar: $what", it) }
     }
 
     private companion object {
         const val TAG = "SignOut"
 
         /**
-         * Lo que se espera a CADA paso remoto. Tres segundos porque hay una persona mirando la
-         * pantalla: pasado ese punto, seguir esperando no retira más tokens, solo retiene a quien
-         * pidió salir.
+         * Lo que se espera a las tres retiradas JUNTAS. Tres segundos porque hay una persona
+         * mirando la pantalla: pasado ese punto, seguir esperando no retira más tokens, solo
+         * retiene a quien pidió salir.
          */
-        const val SIGN_OUT_STEP_TIMEOUT_MS = 3_000L
+        const val SIGN_OUT_TOTAL_TIMEOUT_MS = 3_000L
     }
 }

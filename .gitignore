@@ -774,3 +774,6 @@ parkdiag*.txt
 # `.claude/*` arriba).
 docs/release/play-listing/assets/screenshots/*
 !docs/release/play-listing/assets/screenshots/raw/
+
+# Los tests de reglas traen su propio node_modules y su caché de emulador.
+firestore-rules-tests/node_modules/

@@ -111,7 +111,14 @@ export const onSpotPublished = onDocumentCreated('spots/{spotId}', async (event)
     .get()
     .then((snap) => snap.data().count)
     .catch((err) => {
-      logger.error('live-spot count failed', { spotId, err });
+      // Un Error de verdad y no un objeto suelto: Error Reporting agrupa por stack, y un `err`
+      // dentro del payload se queda en un log que nadie lee.
+      // [OPS-AN-INDEX-IS-VERIFIED-AGAINST-PRODUCTION-001]
+      logger.error(
+        'live-spot count failed',
+        err instanceof Error ? err : new Error(String(err)),
+        { spotId },
+      );
       return null;
     });
   if (live !== null && live > MAX_LIVE_SPOTS_PER_AUTHOR) {
