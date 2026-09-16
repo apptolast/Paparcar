@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- La capability de Push Notifications. [IOS-THE-GROUP-CANNOT-REACH-AN-IPHONE-001]
+	     `development` es lo que firma un build de Debug; Xcode lo sustituye por `production` al
+	     archivar con un perfil de distribución. -->
+	<key>aps-environment</key>
+	<string>development</string>
+</dict>
+</plist>

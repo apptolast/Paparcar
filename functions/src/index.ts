@@ -24,6 +24,29 @@ setGlobalOptions({ region: 'europe-west1', maxInstances: 10 });
 const SUBS_COLLECTION = 'zoneAlertSubs';
 
 /**
+ * Lo que hace falta para que un mensaje de SOLO DATOS llegue a un iPhone que no está delante.
+ * [IOS-THE-GROUP-CANNOT-REACH-AN-IPHONE-001]
+ *
+ * ⛔ APNs no entrega un mensaje sin `content-available` a una app en segundo plano, y FCM no lo
+ * añade por su cuenta: sin este bloque, un iPhone con su token publicado seguiría sin recibir nada
+ * y nadie se enteraría — ni error, ni rebote, ni fila.
+ *
+ * ⛔ **Prioridad 5, no 10, y no es una elección**: Apple exige `apns-priority: 5` para un push de
+ * tipo `background`, y rechaza la combinación con 10. Es la contrapartida asumida de que el mensaje
+ * sea de datos: la copia en nueve idiomas y el dedup de lo ya anunciado viven en el cliente, y para
+ * que el cliente decida hay que despertarlo en silencio. Android sí va a prioridad alta arriba.
+ */
+const APNS_BACKGROUND = {
+  headers: {
+    'apns-push-type': 'background',
+    'apns-priority': '5',
+  },
+  payload: {
+    aps: { contentAvailable: true },
+  },
+};
+
+/**
  * A community spot was published: tell everyone whose zone contains it.
  * [ZONE-A-SPOT-TELLS-THE-SERVER-AND-THE-SERVER-TELLS-YOU-001]
  *
@@ -190,6 +213,7 @@ async function deliverToMember(
       // Doze window would put the geofence back exactly where this feature is trying not to leave it.
       priority: 'high',
     },
+    apns: APNS_BACKGROUND,
   });
 
   const dead = response.responses
@@ -240,6 +264,7 @@ async function deliver(
       // A free space is worth minutes: this has to wake an app in Doze, not wait for a window.
       priority: 'high',
     },
+    apns: APNS_BACKGROUND,
   });
 
   // Tokens Firebase tells us are dead. Left alone they would be retried on every spot for ever —

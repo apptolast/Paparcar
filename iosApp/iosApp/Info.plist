@@ -17,6 +17,9 @@
 		<string>location</string>
 		<string>fetch</string>
 		<string>processing</string>
+		<!-- Sin esto, un mensaje de solo datos no despierta la app y el aviso del grupo no llega
+		     nunca. [IOS-THE-GROUP-CANNOT-REACH-AN-IPHONE-001] -->
+		<string>remote-notification</string>
 	</array>
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>

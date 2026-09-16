@@ -1,8 +1,8 @@
 package com.rndeveloper.paparcar.push
 
 import com.apptolast.baselogin.domain.AuthRepository
-import com.google.firebase.messaging.FirebaseMessaging
 import com.rndeveloper.paparcar.data.datasource.remote.RemoteSharedCarDataSource
+import com.rndeveloper.paparcar.domain.push.PushTokenProvider
 import com.rndeveloper.paparcar.domain.repository.SharedCarRepository
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.CoroutineScope
@@ -13,8 +13,6 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
-import kotlin.coroutines.resume
-import kotlinx.coroutines.suspendCancellableCoroutine
 
 /**
  * Deja el token de ESTE móvil en la ficha de miembro de cada coche del grupo.
@@ -29,14 +27,18 @@ import kotlinx.coroutines.suspendCancellableCoroutine
  * documenta: una instalación limpia tiene Room vacío mientras la sincronización aterriza, así que
  * una sola lectura al inicio no suscribe nada y se queda mal hasta el siguiente arranque.
  *
- * ⛔ Un token NO es para siempre: Firebase lo rota en reinstalación, restauración y borrado de
- * datos. Por eso [resyncNow] existe y el servicio de mensajería lo llama — una rotación que nadie
- * apunta es un móvil que conserva su sitio en el grupo y deja de recibir en silencio.
+ * ⛔ Un token NO es para siempre: se rota en reinstalación, restauración y borrado de datos. Por eso
+ * [resyncNow] existe y el receptor de cada plataforma lo llama — una rotación que nadie apunta es un
+ * móvil que conserva su sitio en el grupo y deja de recibir en silencio.
+ *
+ * Vive en `commonMain` desde [IOS-THE-GROUP-CANNOT-REACH-AN-IPHONE-001]: de todo lo de arriba, lo
+ * único que era de Android era de dónde salía el token, y eso es ahora [PushTokenProvider].
  */
 class SharedCarMemberSync(
     private val sharedCarRepository: SharedCarRepository,
     private val remote: RemoteSharedCarDataSource,
     private val authRepository: AuthRepository,
+    private val pushTokens: PushTokenProvider,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val nudge = MutableStateFlow(0)
@@ -57,11 +59,16 @@ class SharedCarMemberSync(
         nudge.value = nudge.value + 1
     }
 
+    /**
+     * Un token por móvil, y la lista se REEMPLAZA en vez de crecer: la ficha de miembro es de una
+     * persona, pero el reparto va a dispositivos, y un token viejo que nadie retira es el goteo que
+     * convierte un envío barato en uno caro. Los muertos los poda además la function al fallar.
+     */
     private suspend fun publishToken(carIds: List<String>) {
         if (carIds.isEmpty()) return
         val uid = authRepository.getCurrentSession()?.userId ?: return
-        val token = currentToken() ?: run {
-            PaparcarLogger.w(TAG, "sin token FCM — el grupo no podrá avisar a este móvil")
+        val token = runCatching { pushTokens.currentToken() }.getOrNull() ?: run {
+            PaparcarLogger.w(TAG, "sin token de push — el grupo no podrá avisar a este móvil")
             return
         }
         carIds.forEach { carId ->
@@ -69,20 +76,6 @@ class SharedCarMemberSync(
                 .onFailure { PaparcarLogger.w(TAG, "no se pudo publicar el token en $carId", it) }
         }
         PaparcarLogger.d(TAG) { "✓ token publicado en ${carIds.size} coche(s) del grupo" }
-    }
-
-    /**
-     * Un token por móvil, y la lista se REEMPLAZA en vez de crecer: la ficha de miembro es de una
-     * persona, pero el reparto va a dispositivos, y un token viejo que nadie retira es el goteo que
-     * convierte un envío barato en uno caro. Los muertos los poda además la function al fallar.
-     */
-    @Suppress("DEPRECATION") // misma razón que en [ZoneAlertSubscriptionSync]: la migración
-    // FCM→FID no ha publicado sustituto ni fecha de retirada, y sin esta llamada un móvil que nunca
-    // haya rotado su token no entraría jamás en la lista.
-    private suspend fun currentToken(): String? = suspendCancellableCoroutine { cont ->
-        FirebaseMessaging.getInstance().token
-            .addOnSuccessListener { if (cont.isActive) cont.resume(it) }
-            .addOnFailureListener { if (cont.isActive) cont.resume(null) }
     }
 
     private companion object {

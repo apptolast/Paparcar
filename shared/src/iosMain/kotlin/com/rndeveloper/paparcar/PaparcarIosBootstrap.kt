@@ -10,6 +10,10 @@ import com.rndeveloper.paparcar.di.iosPlatformModule
 import com.rndeveloper.paparcar.di.paparcarLoginConfig
 import com.rndeveloper.paparcar.di.presentationModule
 import com.rndeveloper.paparcar.notification.IosNotificationActionHandler
+import com.rndeveloper.paparcar.push.IosPushRegistry
+import com.rndeveloper.paparcar.push.PushMessageHandler
+import com.rndeveloper.paparcar.push.SharedCarMemberSync
+import com.rndeveloper.paparcar.push.ZoneAlertSubscriptionSync
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -61,8 +65,53 @@ object PaparcarIosBootstrap {
         // [IOS-F1] The orchestrator: bus subscription before any delegate can fire + reconcile
         // + wake reconstruction + safety-net tick.
         koin.get<IosDetectionController>().start()
+        // Las dos vigilancias que publican el token de este móvil. Sin ellas el reparto del
+        // servidor descarta a este miembro por no tener dispositivos, y no lo dice: `targetsFor`
+        // simplemente no lo cuenta. [IOS-THE-GROUP-CANNOT-REACH-AN-IPHONE-001]
+        koin.get<ZoneAlertSubscriptionSync>().start()
+        koin.get<SharedCarMemberSync>().start()
         // Anything the last process owed goes out now.
         scope.launch { koin.get<SyncOutboxDrainer>().drain() }
+    }
+
+    /**
+     * El token de APNs/FCM que Swift acaba de recibir. [IOS-THE-GROUP-CANNOT-REACH-AN-IPHONE-001]
+     *
+     * ⛔ Resincroniza las DOS vigilancias, igual que `onNewToken` en Android: un token nuevo que
+     * solo se apunta en una lista deja la otra apuntando a un dispositivo que ya no existe, y eso no
+     * falla — se calla.
+     */
+    fun onPushToken(token: String) {
+        ensureStarted()
+        IosPushRegistry.onToken(token)
+        val koin = KoinPlatform.getKoin()
+        koin.get<ZoneAlertSubscriptionSync>().resyncNow()
+        koin.get<SharedCarMemberSync>().resyncNow()
+    }
+
+    /**
+     * Un mensaje de datos recién entregado por APNs.
+     * [IOS-THE-GROUP-CANNOT-REACH-AN-IPHONE-001]
+     *
+     * ⛔ **`ensureStarted()` primero, y no por costumbre**: un push de fondo puede relanzar el
+     * proceso muerto, y entonces Koin no existe todavía — la misma razón por la que este objeto
+     * existe. [completion] se llama SIEMPRE, también si el reparto falla: iOS recorta el presupuesto
+     * de fondo de las apps que no contestan.
+     *
+     * El orden de lo que pasa dentro —primero la valla, después la tarjeta— no se decide aquí: vive
+     * en `PushMessageHandler`, que es el mismo en las dos plataformas.
+     */
+    fun onRemoteMessage(userInfo: Map<Any?, Any?>, completion: () -> Unit) {
+        ensureStarted()
+        val data = userInfo.entries.mapNotNull { (key, value) ->
+            val name = key as? String ?: return@mapNotNull null
+            val text = value as? String ?: return@mapNotNull null
+            name to text
+        }.toMap()
+        scope.launch {
+            runCatching { KoinPlatform.getKoin().get<PushMessageHandler>().handle(data) }
+            completion()
+        }
     }
 
     /** BGAppRefreshTask handler entry: mesh tick + outbox drain, then tell iOS we are done. */

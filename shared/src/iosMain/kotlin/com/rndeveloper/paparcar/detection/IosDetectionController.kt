@@ -231,6 +231,19 @@ class IosDetectionController(
         intake.trySend(Command.SafetyNetCheck(source))
     }
 
+    /**
+     * «Pon las vallas al día YA». La puerta que el push del coche compartido necesitaba.
+     * [IOS-THE-GROUP-CANNOT-REACH-AN-IPHONE-001][DET-A-SHARED-FENCE-FOLLOWS-THE-CAR-001]
+     *
+     * ⛔ Entra por el intake como cualquier otro trigger, y lo que hace es adelantar el reconcile de
+     * siempre — no registra ni quita ninguna región por su cuenta. El inventario de regiones tiene
+     * un solo dueño, y dos pasadas distintas sobre él acaban discrepando. En Android esto es una
+     * pasada extra del janitor; aquí es un `Command.Reconcile` más.
+     */
+    fun reconcileFencesNow(source: String) {
+        intake.trySend(Command.Reconcile(source))
+    }
+
     // ── The ports' single doors — one per meaning [DET-HANDOFF-NOT-MANUAL-001] ──────────────────
 
     fun startTrackingManual() {

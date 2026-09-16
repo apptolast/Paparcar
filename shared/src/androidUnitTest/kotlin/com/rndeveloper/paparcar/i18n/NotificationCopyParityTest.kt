@@ -59,14 +59,16 @@ class NotificationCopyParityTest {
         }
     }
 
-    /** Population witness: a green over an empty mirror is not parity. The iOS surface uses 20
-     *  keys today; fewer means the mirror lost subjects, not that copy converged. */
+    /** Population witness: a green over an empty mirror is not parity. The iOS surface uses 30
+     *  keys today — the twenty of the detection surface plus the ten of the zone and shared-car
+     *  push cards [IOS-THE-GROUP-CANNOT-REACH-AN-IPHONE-001]; fewer means the mirror lost subjects,
+     *  not that copy converged. */
     @Test
     fun should_containTheWholeMirroredSurface_when_countedPerLocale() {
         val composeRes = File(repoRoot(), "shared/src/commonMain/composeResources")
         locales.forEach { locale ->
             val count = keysOf(composeRes, locale).size
-            assertTrue(count >= 20, "$locale mirrors only $count notif_* keys — expected >= 20")
+            assertTrue(count >= 30, "$locale mirrors only $count notif_* keys — expected >= 30")
         }
     }
 }

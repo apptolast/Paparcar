@@ -802,6 +802,19 @@
     <string name="notif_still_parked_text">Parece que estás lejos, pero este aparcamiento sigue abierto. Dinos si ya te has ido, o marca dónde está ahora el coche.</string>
     <string name="notif_action_ive_left">Ya he salido</string>
     <string name="notif_action_mark_parking">Marcar aparcamiento</string>
+    <!-- Zone alert + shared-car push cards. Mirrored from app/src/main/res like the
+         rest of notif_*: the push is a DATA message so the wording is the client's,
+         and iOS reads it here. [IOS-THE-GROUP-CANNOT-REACH-AN-IPHONE-001] -->
+    <string name="notif_zone_spot_title">Plaza libre en %1$s</string>
+    <string name="notif_zone_spot_text">Alguien acaba de irse — abre el mapa para verla</string>
+    <string name="notif_zone_spot_text_provisional">Puede que alguien acabe de irse — abre el mapa, aún sin confirmar</string>
+    <string name="notif_shared_car_parked_title">%1$s ha aparcado el coche</string>
+    <string name="notif_shared_car_parked_title_unknown">Han aparcado el coche compartido</string>
+    <string name="notif_shared_car_parked_text">En %1$s · toca para verlo en el mapa</string>
+    <string name="notif_shared_car_parked_text_unknown">Toca para ver dónde está</string>
+    <string name="notif_shared_car_left_title">%1$s se ha llevado el coche</string>
+    <string name="notif_shared_car_left_title_unknown">El coche compartido está en marcha</string>
+    <string name="notif_shared_car_left_text">Ya no está donde estaba aparcado</string>
 
     <!-- Fuel block [VEH-FUEL-001] -->
     <string name="vehicle_registration_section_fuel">Combustible</string>

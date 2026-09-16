@@ -66,6 +66,38 @@ open class FakeAppNotificationManager : AppNotificationManager {
         lastMarkParkingNudgePersistPending = persistPending
     }
 
+    // ── Push surfaces [IOS-THE-GROUP-CANNOT-REACH-AN-IPHONE-001] ─────────────────────────────────
+    /** Zone name of every free-spot card posted, in order. */
+    val zoneSpotAlerts: MutableList<String> = mutableListOf()
+
+    /** `authorName to addressLine` of every "the group parked it" card, in order. */
+    val sharedCarParkedCards: MutableList<Pair<String?, String?>> = mutableListOf()
+
+    /** `authorName` of every "the car is on the move" card, in order. */
+    val sharedCarLeftCards: MutableList<String?> = mutableListOf()
+
+    override fun showZoneSpotAlert(
+        zoneName: String,
+        latitude: Double,
+        longitude: Double,
+        isProvisional: Boolean,
+    ) {
+        zoneSpotAlerts.add(zoneName)
+    }
+
+    override fun showSharedCarParked(
+        authorName: String?,
+        addressLine: String?,
+        latitude: Double,
+        longitude: Double,
+    ) {
+        sharedCarParkedCards.add(authorName to addressLine)
+    }
+
+    override fun showSharedCarLeft(authorName: String?) {
+        sharedCarLeftCards.add(authorName)
+    }
+
     override fun updateDetectionVehicle(vehicleName: String, notifId: Int) = Unit
 
     override fun showPermissionRevoked() = Unit

@@ -18,6 +18,13 @@ import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 import com.rndeveloper.paparcar.domain.permissions.OemBackgroundReliabilityManager
 import com.rndeveloper.paparcar.domain.permissions.PermissionManager
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
+import com.rndeveloper.paparcar.domain.push.PushTokenProvider
+import com.rndeveloper.paparcar.domain.push.SharedCarFenceRefresher
+import com.rndeveloper.paparcar.push.IosPushRegistry
+import com.rndeveloper.paparcar.push.IosSharedCarFenceRefresher
+import com.rndeveloper.paparcar.push.PushMessageHandler
+import com.rndeveloper.paparcar.push.SharedCarMemberSync
+import com.rndeveloper.paparcar.push.ZoneAlertSubscriptionSync
 import com.rndeveloper.paparcar.connectivity.IosConnectivityObserver
 import com.rndeveloper.paparcar.ios.preferences.IosAppPreferences
 import com.rndeveloper.paparcar.location.IosGeocoderDataSourceImpl
@@ -80,6 +87,43 @@ val iosPlatformModule = module {
 
     // Diagnostics — device identity stamped into detection traces [DIAG-READABLE-001]
     single<DeviceInfoProvider> { IosDeviceInfoProvider() }
+
+    // ── Push [IOS-THE-GROUP-CANNOT-REACH-AN-IPHONE-001] ───────────────────────────────────────────
+    // El reparto y las dos vigilancias son de `commonMain`; aquí solo se dice de dónde sale el token
+    // (Swift, vía APNs) y cómo se le pide al controlador que reconcilie las vallas ya.
+    single<PushTokenProvider> { IosPushRegistry }
+    single<SharedCarFenceRefresher> { IosSharedCarFenceRefresher(controller = get()) }
+
+    single {
+        PushMessageHandler(
+            notificationPort = get(),
+            zoneWatch = get(),
+            parkingRepository = get(),
+            sharedCarFences = get(),
+        )
+    }
+
+    // ⛔ `single`, las dos: `PaparcarIosBootstrap` les pide un resync cuando el token rota, y dos
+    // instancias de cada una tendrían media verdad cada una.
+    single {
+        ZoneAlertSubscriptionSync(
+            zoneRepository = get(),
+            subscriptionRepository = get(),
+            observeIsPlus = get(),
+            appPreferences = get(),
+            authRepository = get(),
+            pushTokens = get(),
+        )
+    }
+
+    single {
+        SharedCarMemberSync(
+            sharedCarRepository = get(),
+            remote = get(),
+            authRepository = get(),
+            pushTokens = get(),
+        )
+    }
 }
 
 private fun documentDirectory(): String {

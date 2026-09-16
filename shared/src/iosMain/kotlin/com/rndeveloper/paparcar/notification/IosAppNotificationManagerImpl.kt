@@ -7,8 +7,11 @@ import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager.Companion.CONFIRMATION_FAILED_NOTIFICATION_ID
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager.Companion.DEBUG_NOTIFICATION_ID
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager.Companion.PARKING_CONFIRMATION_NOTIFICATION_ID
+import com.rndeveloper.paparcar.domain.notification.AppNotificationManager.Companion.SHARED_CAR_LEFT_NOTIFICATION_ID
+import com.rndeveloper.paparcar.domain.notification.AppNotificationManager.Companion.SHARED_CAR_PARKED_NOTIFICATION_ID
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager.Companion.STILL_PARKED_NOTIFICATION_ID
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager.Companion.UPLOAD_NOTIFICATION_ID
+import com.rndeveloper.paparcar.domain.notification.AppNotificationManager.Companion.ZONE_SPOT_ALERT_NOTIFICATION_ID
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -35,8 +38,18 @@ import paparcar.composeapp.generated.resources.notif_parking_saved_confirm_title
 import paparcar.composeapp.generated.resources.notif_parking_saved_confirm_title_vehicle
 import paparcar.composeapp.generated.resources.notif_parking_saved_text
 import paparcar.composeapp.generated.resources.notif_parking_saved_title
+import paparcar.composeapp.generated.resources.notif_shared_car_left_text
+import paparcar.composeapp.generated.resources.notif_shared_car_left_title
+import paparcar.composeapp.generated.resources.notif_shared_car_left_title_unknown
+import paparcar.composeapp.generated.resources.notif_shared_car_parked_text
+import paparcar.composeapp.generated.resources.notif_shared_car_parked_text_unknown
+import paparcar.composeapp.generated.resources.notif_shared_car_parked_title
+import paparcar.composeapp.generated.resources.notif_shared_car_parked_title_unknown
 import paparcar.composeapp.generated.resources.notif_still_parked_text
 import paparcar.composeapp.generated.resources.notif_still_parked_title
+import paparcar.composeapp.generated.resources.notif_zone_spot_text
+import paparcar.composeapp.generated.resources.notif_zone_spot_text_provisional
+import paparcar.composeapp.generated.resources.notif_zone_spot_title
 import platform.UserNotifications.UNMutableNotificationContent
 import platform.UserNotifications.UNNotificationAction
 import platform.UserNotifications.UNNotificationActionOptionDestructive
@@ -144,6 +157,90 @@ class IosAppNotificationManagerImpl(
         postLocalized(CONFIRMATION_FAILED_NOTIFICATION_ID) {
             val title = getString(Res.string.notif_confirmation_failed_title)
             val body = getString(Res.string.notif_confirmation_failed_text)
+            setTitle(title)
+            setBody(body)
+            setSound(platform.UserNotifications.UNNotificationSound.defaultSound)
+        }
+    }
+
+    /**
+     * Una plaza libre en una zona vigilada. [ZONE-A-SPOT-TELLS-THE-SERVER-AND-THE-SERVER-TELLS-YOU-001]
+     *
+     * Mismo doble gating que en Android: el caso de uso mira el interruptor cuando decide y este
+     * punto de paso lo vuelve a leer, porque un método de notificación es donde una puerta no se
+     * puede saltar. [SETTINGS-AUDIT-REMEDIATION-001]
+     *
+     * ⛔ Una salida DEDUCIDA lo dice. La plaza sigue mereciendo el aviso —es lo más fresco que hay
+     * en el mapa— pero puede retirarse, y una tarjeta que lo escondiera mandaría a alguien a un
+     * hueco en el que la propia app ha dejado de creer.
+     */
+    override fun showZoneSpotAlert(
+        zoneName: String,
+        latitude: Double,
+        longitude: Double,
+        isProvisional: Boolean,
+    ) {
+        if (!appPreferences.notifyZoneSpots) return
+        postLocalized(ZONE_SPOT_ALERT_NOTIFICATION_ID) {
+            val title = getString(Res.string.notif_zone_spot_title, zoneName)
+            val body = if (isProvisional) {
+                getString(Res.string.notif_zone_spot_text_provisional)
+            } else {
+                getString(Res.string.notif_zone_spot_text)
+            }
+            setTitle(title)
+            setBody(body)
+            setSound(platform.UserNotifications.UNNotificationSound.defaultSound)
+        }
+    }
+
+    /**
+     * Alguien del grupo ha aparcado el coche compartido. [SHARED-A-PARKING-TELLS-THE-GROUP-001]
+     *
+     * ⛔ Sin gating de preferencias, igual que en Android: esto no es una notificación informativa
+     * del propio aparcamiento, es la única vía por la que el resto del grupo se entera de dónde está
+     * el coche.
+     *
+     * ⚠️ La posición viaja para que el día que iOS sepa abrir el mapa en un punto no haya que
+     * volver a tocar el reparto — hoy tocar la tarjeta solo abre la app, la misma carencia que
+     * `showParkingSaved` arrastra desde que existe.
+     */
+    override fun showSharedCarParked(
+        authorName: String?,
+        addressLine: String?,
+        latitude: Double,
+        longitude: Double,
+    ) {
+        postLocalized(SHARED_CAR_PARKED_NOTIFICATION_ID) {
+            val title = if (authorName != null) {
+                getString(Res.string.notif_shared_car_parked_title, authorName)
+            } else {
+                getString(Res.string.notif_shared_car_parked_title_unknown)
+            }
+            val body = if (addressLine != null) {
+                getString(Res.string.notif_shared_car_parked_text, addressLine)
+            } else {
+                getString(Res.string.notif_shared_car_parked_text_unknown)
+            }
+            setTitle(title)
+            setBody(body)
+            setSound(platform.UserNotifications.UNNotificationSound.defaultSound)
+        }
+    }
+
+    /**
+     * El coche compartido ya no está donde estaba. [SHARED-A-CAR-THAT-LEAVES-IS-NEWS-TOO-001]
+     *
+     * Sin sitio al que ir: la noticia es justo que ese punto ya no vale.
+     */
+    override fun showSharedCarLeft(authorName: String?) {
+        postLocalized(SHARED_CAR_LEFT_NOTIFICATION_ID) {
+            val title = if (authorName != null) {
+                getString(Res.string.notif_shared_car_left_title, authorName)
+            } else {
+                getString(Res.string.notif_shared_car_left_title_unknown)
+            }
+            val body = getString(Res.string.notif_shared_car_left_text)
             setTitle(title)
             setBody(body)
             setSound(platform.UserNotifications.UNNotificationSound.defaultSound)

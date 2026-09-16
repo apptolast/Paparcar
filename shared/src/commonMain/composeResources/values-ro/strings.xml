@@ -820,6 +820,19 @@
     <string name="notif_still_parked_text">Pari să fii departe, dar această parcare este încă deschisă. Spune-ne dacă ai plecat deja sau marchează unde este mașina acum.</string>
     <string name="notif_action_ive_left">Am plecat</string>
     <string name="notif_action_mark_parking">Marchează parcarea</string>
+    <!-- Zone alert + shared-car push cards. Mirrored from app/src/main/res like the
+         rest of notif_*: the push is a DATA message so the wording is the client's,
+         and iOS reads it here. [IOS-THE-GROUP-CANNOT-REACH-AN-IPHONE-001] -->
+    <string name="notif_zone_spot_title">Loc liber în %1$s</string>
+    <string name="notif_zone_spot_text">Cineva tocmai a plecat — deschide harta</string>
+    <string name="notif_zone_spot_text_provisional">Poate că tocmai a plecat cineva — deschide harta, încă neconfirmat</string>
+    <string name="notif_shared_car_parked_title">%1$s a parcat mașina</string>
+    <string name="notif_shared_car_parked_title_unknown">Mașina partajată a fost parcată</string>
+    <string name="notif_shared_car_parked_text">Pe %1$s · atinge ca să o vezi pe hartă</string>
+    <string name="notif_shared_car_parked_text_unknown">Atinge ca să vezi unde este</string>
+    <string name="notif_shared_car_left_title">%1$s a luat mașina</string>
+    <string name="notif_shared_car_left_title_unknown">Mașina partajată este în mișcare</string>
+    <string name="notif_shared_car_left_text">Nu mai este unde era parcată</string>
 
     <!-- Fuel block [VEH-FUEL-001] -->
     <string name="vehicle_registration_section_fuel">Combustibil</string>

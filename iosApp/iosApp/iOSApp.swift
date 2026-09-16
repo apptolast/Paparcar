@@ -2,6 +2,7 @@ import SwiftUI
 import BackgroundTasks
 import FirebaseCore
 import FirebaseCrashlytics
+import FirebaseMessaging
 import ComposeApp
 
 /// Forwards the shared module's crash facade into the Firebase iOS SDK — the implementation the
@@ -66,6 +67,20 @@ enum PaparcarBackgroundTasks {
     }
 }
 
+/// Registering with APNs is a UIKit call and nothing else, which is why Kotlin asks for it instead
+/// of doing it. [IOS-THE-GROUP-CANNOT-REACH-AN-IPHONE-001]
+///
+/// ⛔ The call is made ON DEMAND, not at launch: `ZoneAlertSubscriptionSync`'s rule is that a token
+/// is only fetched when there is something to subscribe, and on iOS fetching one IS registering the
+/// device. Registering at launch would have turned that rule into dead letter.
+class SwiftPushRegistrationBridge: PushRegistrationBridge {
+    func registerForRemoteNotifications() {
+        DispatchQueue.main.async {
+            UIApplication.shared.registerForRemoteNotifications()
+        }
+    }
+}
+
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
@@ -73,6 +88,11 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         // Until this line runs every recordNonFatal/setUserId from Kotlin is a silent no-op —
         // install right after Firebase is up so nothing reported at launch is lost.
         CrashReporter.shared.bridge = SwiftCrashReporterBridge()
+        // The push token's door, both ways: Kotlin asks for the registration, Firebase hands the
+        // token back through `messaging(_:didReceiveRegistrationToken:)` below.
+        // [IOS-THE-GROUP-CANNOT-REACH-AN-IPHONE-001]
+        IosPushRegistry.shared.bridge = SwiftPushRegistrationBridge()
+        Messaging.messaging().delegate = self
         // A BACKGROUND relaunch (SLC, region exit, BGTask) never builds the SwiftUI scene, so
         // MainViewController does not run — this is the guaranteed hook, and the bootstrap is
         // idempotent from both doors. [IOS-SYNC-A-QUEUE-THAT-DIES-WITH-THE-PROCESS-001]
@@ -80,6 +100,39 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         // Registration must finish before launch ends — Apple's contract for BGTaskScheduler.
         PaparcarBackgroundTasks.register()
         return true
+    }
+
+    /// APNs answered. Firebase needs the raw device token before it can mint an FCM one.
+    func application(_ application: UIApplication,
+                     didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        Messaging.messaging().apnsToken = deviceToken
+    }
+
+    /// ⛔ Said out loud, because the whole point of this ticket is that the hole used to be mute: a
+    /// device that cannot register is a member the group's fan-out will silently skip.
+    func application(_ application: UIApplication,
+                     didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        Crashlytics.crashlytics().record(error: error)
+    }
+
+    /// A data-only push. Everything it triggers — fence first, card second — lives in Kotlin, the
+    /// same code Android runs. `completionHandler` is always called: iOS cuts the background budget
+    /// of apps that do not answer.
+    func application(_ application: UIApplication,
+                     didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+                     fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        PaparcarIosBootstrap.shared.onRemoteMessage(userInfo: userInfo) {
+            completionHandler(.newData)
+        }
+    }
+}
+
+extension AppDelegate: MessagingDelegate {
+    /// Fires on first registration AND on every rotation. A rotation nobody writes down is a device
+    /// that keeps its row in the group and silently stops receiving anything.
+    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+        guard let fcmToken else { return }
+        PaparcarIosBootstrap.shared.onPushToken(token: fcmToken)
     }
 }
 

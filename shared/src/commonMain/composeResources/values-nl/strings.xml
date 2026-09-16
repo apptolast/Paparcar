@@ -980,6 +980,19 @@
     <string name="notif_still_parked_text">Je lijkt weg te zijn, maar deze parkeerplaats staat nog open. Laat weten of je al vertrokken bent, of markeer waar de auto nu staat.</string>
     <string name="notif_action_ive_left">Ik ben weg</string>
     <string name="notif_action_mark_parking">Parkeerplaats markeren</string>
+    <!-- Zone alert + shared-car push cards. Mirrored from app/src/main/res like the
+         rest of notif_*: the push is a DATA message so the wording is the client's,
+         and iOS reads it here. [IOS-THE-GROUP-CANNOT-REACH-AN-IPHONE-001] -->
+    <string name="notif_zone_spot_title">Vrije plek in %1$s</string>
+    <string name="notif_zone_spot_text">Er is net iemand vertrokken — open de kaart</string>
+    <string name="notif_zone_spot_text_provisional">Misschien is er net iemand vertrokken — open de kaart, nog niet bevestigd</string>
+    <string name="notif_shared_car_parked_title">%1$s heeft de auto geparkeerd</string>
+    <string name="notif_shared_car_parked_title_unknown">De gedeelde auto is geparkeerd</string>
+    <string name="notif_shared_car_parked_text">Op %1$s · tik om hem op de kaart te zien</string>
+    <string name="notif_shared_car_parked_text_unknown">Tik om te zien waar hij staat</string>
+    <string name="notif_shared_car_left_title">%1$s is met de auto weg</string>
+    <string name="notif_shared_car_left_title_unknown">De gedeelde auto is onderweg</string>
+    <string name="notif_shared_car_left_text">Hij staat niet meer waar hij geparkeerd stond</string>
     <!-- Coche compartido / shared car. [VEH-SHARED-001] -->
     <string name="shared_car_title">Gedeelde auto</string>
     <string name="shared_car_not_shared_body">Deel de auto met maximaal vier mensen. Wie rijdt markeert de parkeerplaats, en de hele groep ziet waar de auto staat. Persoonlijke routes worden nooit gedeeld.</string>
