@@ -184,8 +184,10 @@ sealed interface HistoryTimeline {
 data class HistoryState(
     /** No default — see [HistoryTimeline]. A state that cannot say "aún no lo sé" ends up lying. */
     val timeline: HistoryTimeline,
-    /** The user's filter choice, which outlives any single emission, so it sits outside the timeline. */
-    val activeFilter: HistoryFilter = HistoryFilter.All,
+    /** The user's filter choice, which outlives any single emission, so it sits outside the timeline.
+     *  Until they make one it is [HistoryFilter.Default] — the same period the stats panel opens on,
+     *  and the first chip of the row. [STATS-FIRST-CHIP-ANSWERS-NOW-001] */
+    val activeFilter: HistoryFilter = HistoryFilter.Default,
     /**
      * What the chart's bars measure. Beside the filter and for the same reason: it is a CHOICE,
      * it survives the next emission of the history, and a `remember` inside the card would lose it

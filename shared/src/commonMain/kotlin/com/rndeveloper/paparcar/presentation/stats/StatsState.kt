@@ -22,7 +22,10 @@ data class StatsState(
     /** Null while the vehicles and their sessions are still arriving — never "no hay coches". */
     val vehicles: List<VehicleWithStats>? = null,
     val selectedVehicleIndex: Int = 0,
-    val filter: HistoryFilter = HistoryFilter.ThisMonth,
+    /** ⛔ The SHARED opening period, not this screen's own. It was `ThisMonth` here and `All` in the
+     *  ficha, so the same car opened on a different window depending on the door.
+     *  [STATS-FIRST-CHIP-ANSWERS-NOW-001] */
+    val filter: HistoryFilter = HistoryFilter.Default,
     /** What the chart's bars measure. [STATS-A-PERIOD-IS-A-SERIES-NOT-A-NUMBER-001] */
     val chartMetric: ChartMetric = ChartMetric.PARKINGS,
     /** What the day x band grid measures. A SECOND choice and not the chart's, because the two
@@ -45,10 +48,10 @@ data class StatsState(
      * be a hard gate on a button, which is exactly what [MONEY-001] forbids.
      */
     val periodFilters: List<HistoryFilter> = listOf(
-        HistoryFilter.All,
         HistoryFilter.Last7Days,
         HistoryFilter.ThisWeek,
         HistoryFilter.ThisMonth,
+        HistoryFilter.All,
     ),
     /** Where the spend figure's price came from — the panel owes the same caveat the ficha gives,
      *  or the same number carries a warning on one screen and none on the other.

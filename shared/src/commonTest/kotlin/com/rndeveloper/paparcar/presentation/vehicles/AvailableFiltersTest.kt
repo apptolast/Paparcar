@@ -4,6 +4,7 @@ package com.rndeveloper.paparcar.presentation.vehicles
 
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.UserParking
+import com.rndeveloper.paparcar.presentation.stats.StatsState
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -47,13 +48,63 @@ class AvailableFiltersTest {
 
         assertEquals(
             listOf(
-                HistoryFilter.All,
                 HistoryFilter.Last7Days,
                 HistoryFilter.ThisWeek,
                 HistoryFilter.ThisMonth,
+                HistoryFilter.All,
             ),
             filters,
             "A three-day-old history was offered a period it cannot answer differently",
+        )
+    }
+
+    /**
+     * The row reads from NOW outwards, whatever the history behind it.
+     * [STATS-FIRST-CHIP-ANSWERS-NOW-001]
+     */
+    @Test
+    fun should_leadWithTheRollingWeekAndCloseWithAll_when_theHistorySpansYears() {
+        val sessions = listOf(
+            session(today),
+            session(LocalDate(2026, 2, 2)),
+            session(LocalDate(2024, 6, 1)),
+        )
+
+        val filters = availableFilters(sessions, nowMs)
+
+        assertEquals(HistoryFilter.Last7Days, filters.first(), "The row must open on NOW")
+        assertEquals(
+            HistoryFilter.All,
+            filters.last(),
+            "\"All\" is the way out of the row, after the closed years — never its cover",
+        )
+        // And the closed years sit between the periods about now and the way out, so the one chip
+        // the bar collapses them into lands in that gap.
+        assertEquals(
+            listOf(HistoryFilter.Year(2024)),
+            filters.drop(filters.indexOfFirst { it is HistoryFilter.Year }).dropLast(1),
+        )
+    }
+
+    /**
+     * ⛔ Tied to the LIST, not to a literal: the chip lit on arrival has to be the first one drawn,
+     * so reordering the row without moving the default turns this red.
+     * [STATS-FIRST-CHIP-ANSWERS-NOW-001]
+     */
+    @Test
+    fun should_openOnTheFirstChipOfTheRow_when_theUserHasChosenNothingYet() {
+        val filters = availableFilters(listOf(session(today)), nowMs)
+
+        assertEquals(HistoryFilter.Default, filters.first())
+        assertEquals(
+            HistoryFilter.Default,
+            HistoryState(timeline = HistoryTimeline.Unresolved).activeFilter,
+            "The ficha opened on a period other than the one its row leads with",
+        )
+        assertEquals(
+            HistoryFilter.Default,
+            StatsState().filter,
+            "The stats panel and the ficha opened the same car on different windows",
         )
     }
 

@@ -223,7 +223,7 @@ class VehiclesViewModel(
                     val updatedCache = vehiclesWithStats.associate { vws ->
                         val vId = vws.vehicle.id
                         val vSessions = sessionsByVehicle[vId].orEmpty()
-                        val existingFilter = historyCache[vId]?.activeFilter ?: HistoryFilter.All
+                        val existingFilter = historyCache[vId]?.activeFilter ?: HistoryFilter.Default
                         // This emission IS the answer to "¿ha llegado el historial?" — resolving it
                         // here is what keeps the skeleton from being replaced by a false "no hay
                         // nada". [UI-HISTORY-A-LOADING-LIST-MUST-NOT-CLAIM-TO-BE-EMPTY-001]
@@ -425,7 +425,7 @@ class VehiclesViewModel(
             ?.takeIf { !mineOnly }
             ?.rows(vehicleId)
         val source = groupRows ?: personalSessions[vehicleId].orEmpty()
-        val filter = personal?.activeFilter ?: HistoryFilter.All
+        val filter = personal?.activeFilter ?: HistoryFilter.Default
         updateState {
             copy(
                 sharedHistoryMineOnly = mineOnly,

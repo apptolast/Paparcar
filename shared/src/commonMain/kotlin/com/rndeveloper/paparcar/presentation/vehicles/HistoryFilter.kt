@@ -40,6 +40,24 @@ sealed class HistoryFilter {
 
     /** A CLOSED calendar year — 2025, 2024… Derived from the data, never from a list. */
     data class Year(val value: Int) : HistoryFilter()
+
+    companion object {
+        /**
+         * The period every screen opens on. [STATS-FIRST-CHIP-ANSWERS-NOW-001]
+         *
+         * ⛔ **One value, not four.** This used to be written at each door — `All` in the history
+         * state, `ThisMonth` in the stats panel, and `?: HistoryFilter.All` twice more in
+         * `VehiclesViewModel` — so the same car opened on a different window depending on which
+         * screen you came through.
+         *
+         * It is [Last7Days] because that is the question a driver opens the app with (*what have I
+         * been doing lately*), because it is the only window a free account's figures ever really
+         * answer [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001], and because it leads the row — the
+         * chip that is lit on arrival has to be the one the eye lands on first, or the selector
+         * opens scrolled away from its own answer.
+         */
+        val Default: HistoryFilter = Last7Days
+    }
 }
 
 /**
@@ -58,6 +76,13 @@ sealed class HistoryFilter {
  *
  * ⛔ The closed years come from the SESSIONS, never from a constant. A `listOf(2024, 2025)` is a
  * bomb with a known date on it.
+ *
+ * ⛔ **Reading order is NOW first and "everything" last** [STATS-FIRST-CHIP-ANSWERS-NOW-001]. The
+ * row used to open with "All" on the argument that it is the one period that answers before
+ * anything has happened — true, and worth nothing, because with an empty history every chip answers
+ * the same. What it cost was the opposite: the first thing read was the one question whose answer
+ * does not change from one day to the next, while the window that actually governs a free account's
+ * figures sat second. "All" keeps its place as the way out of the row, at the end.
  */
 fun availableFilters(
     sessions: List<UserParking>,
@@ -72,8 +97,8 @@ fun availableFilters(
         oldest != null && oldest < date.atStartOfDayIn(tz).toEpochMilliseconds()
 
     return buildList {
-        // "All" leads, as it always has: it is the one that answers before anything has happened.
-        add(HistoryFilter.All)
+        // The rolling week leads: it is the period the app opens on and the one a free account's
+        // figures always report. [STATS-FIRST-CHIP-ANSWERS-NOW-001]
         add(HistoryFilter.Last7Days)
         add(HistoryFilter.ThisWeek)
         add(HistoryFilter.ThisMonth)
@@ -89,6 +114,8 @@ fun availableFilters(
             add(HistoryFilter.ThisYear)
         }
         addAll(closedYearsWithData(sessions, today.year, tz).map(HistoryFilter::Year))
+        // Last, and last on purpose: "everything" is the way OUT of the row, not its cover.
+        add(HistoryFilter.All)
     }
 }
 

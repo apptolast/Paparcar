@@ -19,8 +19,10 @@ private fun previewHistory(sessions: List<com.rndeveloper.paparcar.domain.model.
         vws.vehicle.id to HistoryState(
             // Plus on purpose: these previews are about the timeline itself, not the gate. The
             // gated (free) variant lives in the Dev Catalog gallery. [MONEY-001]
-            timeline = HistoryTimeline.resolve(sessions, HistoryFilter.All, isPlus = true),
-            activeFilter = HistoryFilter.All,
+            // The period the screen actually opens on — one value, so the lit chip and the list
+            // below it cannot answer to different filters. [STATS-FIRST-CHIP-ANSWERS-NOW-001]
+            timeline = HistoryTimeline.resolve(sessions, HistoryFilter.Default, isPlus = true),
+            activeFilter = HistoryFilter.Default,
         )
     }
 

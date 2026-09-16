@@ -395,7 +395,9 @@ private const val DAYS_IN_YEAR = 365
 
 private fun resolvedHistory(
     sessions: List<UserParking>,
-    filter: HistoryFilter = HistoryFilter.All,
+    // El MISMO periodo con el que abre la pantalla real: si aqui fuera otro, la barra de la galeria
+    // encenderia un chip y la lista de debajo estaria filtrada por otro. [STATS-FIRST-CHIP-ANSWERS-NOW-001]
+    filter: HistoryFilter = HistoryFilter.Default,
     isPlus: Boolean = true,
     // Sin coche no hay consumo, y sin consumo la tarjeta de cifras se queda sin CO2 ni gasto: la
     // galeria pasa uno para ensenar el bloque como se ve de verdad. [STATS-UI-001]
@@ -521,7 +523,7 @@ private fun plugInHybridFleet(): List<VehicleWithStats> =
 /** Estado del panel de cifras, resuelto por el MISMO sitio que lo resuelve en produccion, para que
  *  la galeria no pueda ensenar una rejilla que la pantalla real no daria. [STATS-PANEL-001] */
 private fun statsPanelState(
-    filter: HistoryFilter = HistoryFilter.ThisMonth,
+    filter: HistoryFilter = HistoryFilter.Default,
     isPlus: Boolean = true,
     sessions: List<UserParking> = FakeData.allSessions,
     vehiclesOverride: List<VehicleWithStats>? = null,

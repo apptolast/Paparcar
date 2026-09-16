@@ -69,6 +69,12 @@ private val FILTER_ICONS = mapOf(
  *
  * The closed years live behind ONE chip with a menu instead of one chip each: four years of driving
  * would push the periods about NOW off the edge of a row that already scrolls.
+ *
+ * ⛔ **It draws in the list's order** [STATS-FIRST-CHIP-ANSWERS-NOW-001]. It used to split the list
+ * in two — the chips, then the years — which quietly made the BAR the last word on where a period
+ * sits: "All" moved to the end of `availableFilters` and still came out before the years, because
+ * this function put it there. The run of closed years now collapses into its single chip AT the
+ * place the first of them occupies, and nothing else is reordered here.
  */
 @Composable
 internal fun HistoryFilterBar(
@@ -87,7 +93,6 @@ internal fun HistoryFilterBar(
     modifier: Modifier = Modifier,
 ) {
     val years = filters.filterIsInstance<HistoryFilter.Year>()
-    val chips = filters.filter { it !is HistoryFilter.Year }
     val scrollState = rememberScrollState()
     // Right-edge fade to the bar background, signalling there are more filter chips off-screen — same
     // treatment as Home's size filter bar. Drawn BEFORE horizontalScroll so it stays pinned at the
@@ -116,16 +121,24 @@ internal fun HistoryFilterBar(
             .padding(horizontal = 16.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        chips.forEach { filter ->
-            PaparcarFilterChip(
-                label = filter.label(),
-                selected = activeFilter == filter,
-                onClick = { onFilterSelected(filter) },
-                leadingIcon = FILTER_ICONS[filter],
-            )
-        }
-        if (years.isNotEmpty()) {
-            YearsChip(years = years, activeFilter = activeFilter, onFilterSelected = onFilterSelected)
+        filters.forEach { filter ->
+            if (filter is HistoryFilter.Year) {
+                // The whole run of years is one chip, drawn where the first of them stands.
+                if (filter == years.first()) {
+                    YearsChip(
+                        years = years,
+                        activeFilter = activeFilter,
+                        onFilterSelected = onFilterSelected,
+                    )
+                }
+            } else {
+                PaparcarFilterChip(
+                    label = filter.label(),
+                    selected = activeFilter == filter,
+                    onClick = { onFilterSelected(filter) },
+                    leadingIcon = FILTER_ICONS[filter],
+                )
+            }
         }
     }
 }
