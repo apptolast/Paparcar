@@ -31,6 +31,36 @@ class UpdateParkingLocationUseCaseTest {
         sizeCategory = sizeCategory,
     )
 
+    // ── El reloj [PARK-A-CORRECTION-MOVES-THE-PLACE-NOT-THE-CLOCK-001] ────────
+
+    /**
+     * Corregir mueve el SITIO, no la hora: el coche lleva aparcado desde que se aparcó, y es lo que
+     * promete la propia hoja («Corregir mantiene el tiempo aparcado; marcar uno nuevo lo pone a
+     * cero»). Campo 16-09: un pin de las 10:42 corregido a las 10:51 pasó a decir «Aparcado hace
+     * <1m», porque el caso de uso estampaba `now` sobre el único reloj que tiene la sesión.
+     *
+     * Y ese reloj no es solo texto: es la duración en historial y estadísticas, y la línea de
+     * nacimiento de sesión de [DET-SESSION-BIRTH-001].
+     */
+    @Test
+    fun should_keepTheParkedSinceClock_when_theUserCorrectsTheLocation() = runTest {
+        val parkedAt = 1_789_548_175_000L
+        val session = existingSession().copy(
+            location = existingSession().location.copy(timestamp = parkedAt),
+        )
+        val repo = FakeUserParkingRepository(initialSession = session)
+        val useCase = buildUseCase(repo = repo)
+
+        // La corrección llega con el reloj del momento del arrastre — que es lo que NO debe ganar.
+        val draggedNow = newLocation.copy(timestamp = parkedAt + 8 * 60_000L)
+        val moved = useCase(session.id, draggedNow).getOrNull()
+
+        assertNotNull(moved)
+        assertEquals(parkedAt, moved.location.timestamp, "el coche lleva aparcado desde que se aparcó")
+        assertEquals(draggedNow.latitude, moved.location.latitude, "y el sitio sí se mueve")
+        assertEquals(draggedNow.longitude, moved.location.longitude)
+    }
+
     // ── Provenance [PARK-A-PIN-MUST-SAY-WHO-PLACED-IT-001] ────────────────────
 
     /**

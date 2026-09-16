@@ -1,5 +1,3 @@
-@file:OptIn(kotlin.time.ExperimentalTime::class)
-
 package com.rndeveloper.paparcar.domain.usecase.parking
 
 import com.rndeveloper.paparcar.domain.error.PaparcarError
@@ -12,7 +10,6 @@ import com.rndeveloper.paparcar.domain.service.DepartureEventBus
 import com.rndeveloper.paparcar.domain.service.GeofenceManager
 import com.rndeveloper.paparcar.domain.service.ParkingEnrichmentScheduler
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
-import kotlin.time.Clock
 
 /**
  * Repositions an existing active parking session to a new lat/lon. Used by the
@@ -53,11 +50,22 @@ class UpdateParkingLocationUseCase(
         geofenceService.removeGeofence(parkingId)
             .onFailure { e -> PaparcarLogger.w(DIAG, "removeGeofence failed (continuing)", e) }
 
-        // Stamp the timestamp to "now" so the session timeline reflects the
-        // user's deliberate correction, not the auto-detect moment. Match
-        // ConfirmParkingUseCase's behaviour of normalising timestamps at write
-        // time.
-        val stamped = newLocation.copy(timestamp = Clock.System.now().toEpochMilliseconds())
+        // ⛔ El reloj NO se mueve. Corregir cambia DÓNDE está el coche; lleva aparcado desde que se
+        // aparcó, y la propia hoja lo promete: «Corregir mantiene el tiempo aparcado; marcar uno
+        // nuevo lo pone a cero». El cero es verdad en el otro botón, que crea una sesión nueva.
+        //
+        // Se estampaba `now` «para que la línea temporal reflejase la corrección», y eso escribía
+        // sobre TRES hechos a la vez, porque `location.timestamp` es el único reloj que hay:
+        //   · «aparcado desde» que lee el usuario (campo 16-09: un pin de 8 min pasó a «hace <1m»),
+        //   · la duración de la estancia en historial, racimos, mapa de calor y recap,
+        //   · la LÍNEA DE NACIMIENTO DE SESIÓN de [DET-SESSION-BIRTH-001] — la que decide si una
+        //     evidencia (AR ENTER, EXIT re-entregado, conexión BT) es admisible o describe el viaje
+        //     que CREÓ este aparcamiento.
+        // Mover la tercera era lo único defendible de las tres, y ya está cubierto sin mentir sobre
+        // las otras dos: el `departureEventBus.reset()` de abajo borra el ENTER viejo, que es la
+        // evidencia que el estampado neutralizaba. La sesión nace cuando el coche se dejó, no cuando
+        // el usuario arregló el pin.
+        // [PARK-A-CORRECTION-MOVES-THE-PLACE-NOT-THE-CLOCK-001]
 
         // [PARK-A-PIN-MUST-SAY-WHO-PLACED-IT-001] The drag re-writes the provenance with the
         // coordinates. It used to change only WHERE the pin was, leaving WHO placed it untouched,
@@ -67,7 +75,7 @@ class UpdateParkingLocationUseCase(
         // worth chasing in a trace.
         val updated = userParkingRepository.updateParkingSessionPosition(
             id = parkingId,
-            location = stamped,
+            location = newLocation,
             detectionPath = DetectionPath.UserMovedPin.label,
             detectionReliability = USER_PLACED_RELIABILITY,
         )
@@ -76,7 +84,7 @@ class UpdateParkingLocationUseCase(
                 return Result.failure(PaparcarError.Parking.SaveFailed)
             }
 
-        enrichmentScheduler.enqueueEnrichSession(parkingId, stamped.latitude, stamped.longitude)
+        enrichmentScheduler.enqueueEnrichSession(parkingId, newLocation.latitude, newLocation.longitude)
 
         // The geofence is being re-created at a new location. Reset the arrival
         // IN_VEHICLE_ENTER so the old driving timestamp cannot trigger a false
@@ -85,9 +93,9 @@ class UpdateParkingLocationUseCase(
 
         geofenceService.createGeofence(
             geofenceId = parkingId,
-            latitude = stamped.latitude,
-            longitude = stamped.longitude,
-            radiusMeters = config.geofenceRadiusFor(updated.sizeCategory, stamped.accuracy),
+            latitude = newLocation.latitude,
+            longitude = newLocation.longitude,
+            radiusMeters = config.geofenceRadiusFor(updated.sizeCategory, newLocation.accuracy),
         )
 
         PaparcarLogger.d(DIAG, "■ UpdateParkingLocation.invoke SUCCESS id=$parkingId")

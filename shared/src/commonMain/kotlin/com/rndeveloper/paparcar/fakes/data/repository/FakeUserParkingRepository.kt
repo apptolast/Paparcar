@@ -373,7 +373,11 @@ class FakeUserParkingRepository(
         // a fake that kept the old radius would let a test pass on behaviour production does not
         // have. [PARK-A-PIN-MUST-SAY-WHO-PLACED-IT-001]
         val moved = session.copy(
-            location = location,
+            // ⛔ …y conservando el RELOJ, como el UPDATE real, que no toca la columna `timestamp`:
+            // se corrige dónde está el coche, no desde cuándo lleva ahí. Copiar la `location` entera
+            // metía el reloj nuevo por la puerta de atrás.
+            // [PARK-A-CORRECTION-MOVES-THE-PLACE-NOT-THE-CLOCK-001]
+            location = location.copy(timestamp = session.location.timestamp),
             detectionPath = detectionPath,
             detectionReliability = detectionReliability,
             zoneRadiusMeters = null,

@@ -229,11 +229,20 @@ interface UserParkingDao {
     )
 
     /**
-     * Manual-edit path — overwrites lat/lon/accuracy/timestamp and **clears
+     * Manual-edit path — overwrites lat/lon/accuracy and **clears
      * address + POI fields** so the re-scheduled enrichment worker fills them
      * with the new location's geocode. Used by `UpdateParkingLocationUseCase`
      * when the user drags the parked-car pin to a new spot via the
      * `HomeMode.AddingParking` edit flow.
+     *
+     * ⛔ **`timestamp` NO se toca.** Es el reloj de «aparcado desde» —y, en detección, la línea de
+     * nacimiento de sesión de [DET-SESSION-BIRTH-001)— y el coche lleva ahí desde que se aparcó, no
+     * desde que el usuario arregló el pin. Se escribía, y por eso corregir un aparcamiento de ocho
+     * minutos lo dejaba en «Aparcado hace <1m» (campo 16-09), falseaba de paso la duración en
+     * historial y estadísticas, y contradecía la promesa impresa en esa misma hoja: «Corregir
+     * mantiene el tiempo aparcado; marcar uno nuevo lo pone a cero». El cero es verdad en el OTRO
+     * botón, que crea una sesión nueva.
+     * [PARK-A-CORRECTION-MOVES-THE-PLACE-NOT-THE-CLOCK-001]
      *
      * [PARK-A-PIN-MUST-SAY-WHO-PLACED-IT-001] It also rewrites the PROVENANCE, because after a drag
      * the old one is a lie: the pin now sits where the user put it, not where the detector guessed.
@@ -252,7 +261,6 @@ interface UserParkingDao {
             latitude             = :lat,
             longitude            = :lon,
             accuracy             = :accuracy,
-            timestamp            = :timestamp,
             addressStreet        = NULL,
             addressCity          = NULL,
             addressRegion        = NULL,
@@ -274,7 +282,6 @@ interface UserParkingDao {
         lat: Double,
         lon: Double,
         accuracy: Float,
-        timestamp: Long,
         detectionPath: String,
         detectionReliability: Float,
         now: Long,

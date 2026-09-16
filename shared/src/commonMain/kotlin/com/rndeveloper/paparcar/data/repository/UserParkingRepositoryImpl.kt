@@ -243,7 +243,8 @@ class UserParkingRepositoryImpl(
             lat = location.latitude,
             lon = location.longitude,
             accuracy = location.accuracy,
-            timestamp = location.timestamp,
+            // El reloj de la sesión no viaja con la POSICIÓN: lo que se corrige es dónde está el
+            // coche, no desde cuándo. [PARK-A-CORRECTION-MOVES-THE-PLACE-NOT-THE-CLOCK-001]
             detectionPath = detectionPath,
             detectionReliability = detectionReliability,
             now = Clock.System.now().toEpochMilliseconds(),

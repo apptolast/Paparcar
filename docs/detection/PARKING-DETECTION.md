@@ -476,6 +476,48 @@ See `diagnostics/README.md` at the repo root for the recommended layout when arc
 
 Each entry is one issue we shipped a fix for. Listed roughly in dependency order (mappers first, then pipeline, then algorithm). Every entry should explain *what was wrong*, *why it was wrong*, and *what guard exists today*. If you ever want to remove a guard, find its entry here first.
 
+### PARK-A-CORRECTION-MOVES-THE-PLACE-NOT-THE-CLOCK-001 — corregir el pin reiniciaba el nacimiento de la sesión
+
+**Commit:** pending. **Campo (2026-09-16, Nothing A001, sesión `b9b9dacc`):** un pin colocado a las
+10:42:55 y corregido a las 10:49 y 10:51 acabó diciendo **«Aparcado hace <1m»** — sobre una hoja que
+promete literalmente lo contrario: «Corregir mantiene el tiempo aparcado; marcar uno nuevo lo pone a
+cero».
+
+**Causa raíz:** `UpdateParkingLocationUseCase` estampaba `timestamp = now` sobre la nueva `GpsPoint`,
+y el `UPDATE` del DAO lo escribía en la columna. Pero `location.timestamp` **no es un dato de la
+posición**: es el único reloj que tiene la sesión, y lo leen tres familias distintas —
+
+1. «aparcado desde» que ve el usuario y el espejo del coche compartido (`parkedAtMs`),
+2. la DURACIÓN de la estancia: historial, `ParkingClusters`, `ParkingHeatmap`,
+   `ComputePeriodStatsUseCase`, `RunMonthRecapUseCase`, y la ventana de 7 días de
+   `HistoryEntitlementGate`,
+3. **la línea de nacimiento de sesión de [DET-SESSION-BIRTH-001]** — `sessionStartMs` en
+   `DetectParkingDepartureUseCase` y `EvaluateSafetyNetCheckUseCase`, y la admisibilidad de AR ENTER
+   en `EvaluateArEnterArmUseCase`; además del veto de identidad BT
+   (`lastBtConnectedAtMs < sessionStartMs`).
+
+O sea: corregir el pin no solo mentía en pantalla y falseaba las estadísticas, sino que **movía la
+frontera que decide qué evidencia es admisible**, declarando inadmisible de golpe toda la evidencia
+anterior a la corrección.
+
+**Fix:** el `UPDATE` de `updateLocation` deja de tocar `timestamp` (la columna sigue existiendo; el
+método se llama `updateParkingSessionPosition` y una posición no lleva reloj), y el caso de uso deja
+de estampar. La sesión nace cuando el coche se dejó, no cuando el usuario arregló el pin.
+
+**Riesgo del fix acompañante:** lo único defendible del estampado era el punto 3 — que tras mover el
+pin una evidencia vieja no dispare una salida falsa. Eso **ya estaba cubierto** por el
+`departureEventBus.reset()` que el mismo caso de uso ejecuta dos líneas más abajo
+([BUG-WALK-DEPART-001]), que borra el `lastVehicleEnteredAt` anterior — que es justo la evidencia que
+el estampado neutralizaba. El resto de fuentes (EXIT re-entregado, connect BT) quedan medidas contra
+el nacimiento REAL, que es lo correcto: un BT connect posterior al aparcamiento sí prueba identidad,
+y antes se descartaba por haber corregido el pin.
+
+**Guard hoy:** `ParkingAddressSurvivesEnrichmentTest` afirma sobre el UPDATE real de Room que el
+reloj sobrevive a un movimiento manual, y `UpdateParkingLocationUseCaseTest` lo afirma en dominio.
+⛔ Los DOS fakes de `UserParkingRepository` (el de `commonTest` y el del Dev Catalog) copiaban la
+`location` entera y metían el reloj nuevo por la puerta de atrás — un fake que no espeja el DAO deja
+pasar en verde justo lo que el ticket arregla.
+
 ### DET-A-TRAIN-IS-NOT-A-CAR-001 — el vocabulario cinemático tenía suelo y no tenía techo
 
 **Commit:** pending. **Campo (2026-09-15, Samsung SM-A556B, sesión `1789472756175`):** una tester

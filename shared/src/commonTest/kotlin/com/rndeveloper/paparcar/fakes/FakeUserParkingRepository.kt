@@ -267,7 +267,10 @@ class FakeUserParkingRepository(
         // provenance rewrite. A fake that kept the old radius would let a test go green on behaviour
         // production does not have. [PARK-A-PIN-MUST-SAY-WHO-PLACED-IT-001]
         val updated = sessions[idx].copy(
-            location = location,
+            // ⛔ …y conservando el RELOJ, que el UPDATE real no toca: se corrige dónde está el coche,
+            // no desde cuándo lleva ahí. Copiar la `location` entera metía el reloj del arrastre por
+            // la puerta de atrás. [PARK-A-CORRECTION-MOVES-THE-PLACE-NOT-THE-CLOCK-001]
+            location = location.copy(timestamp = sessions[idx].location.timestamp),
             address = null,
             placeInfo = null,
             detectionPath = detectionPath,

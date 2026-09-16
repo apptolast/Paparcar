@@ -109,7 +109,6 @@ class ParkingAddressSurvivesEnrichmentTest {
             lat = 48.8566,
             lon = 2.3522,
             accuracy = 5f,
-            timestamp = 2L,
             detectionPath = "manual",
             detectionReliability = 1f,
             now = 2L,
@@ -122,6 +121,10 @@ class ParkingAddressSurvivesEnrichmentTest {
         assertNull(row.addressProvince, "the old province survived a manual move")
         // The whole address goes, not just the parts someone remembered.
         assertNull(row.toDomain().address, "a moved pin kept part of its old address")
+        // …y el reloj NO se va con la dirección: lo que se corrige es dónde está el coche, no desde
+        // cuándo lleva ahí. Comprobado contra el UPDATE real, que es quien manda: el fake del repo
+        // puede espejarlo mal, esta fila no. [PARK-A-CORRECTION-MOVES-THE-PLACE-NOT-THE-CLOCK-001]
+        assertEquals(1L, row.timestamp, "a corrected pin restarted the parked-since clock")
     }
 
     /**
