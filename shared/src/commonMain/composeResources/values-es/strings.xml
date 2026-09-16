@@ -59,6 +59,7 @@
     <string name="home_browse_parked_meta">Aparcado hace %1$s · a %2$s de ti</string>
     <string name="home_browse_parked_ago">Aparcado hace %1$s</string>
     <string name="home_browse_hint_swipe_report">Desliza ↑ para avisar de una plaza</string>
+    <string name="home_browse_hint_swipe_mark_parking">Desliza ↑ para marcar tu aparcamiento</string>
     <string name="home_address_unknown">Ubicación desconocida</string>
     <string name="location_fallback_spot">Plaza en el mapa</string>
     <string name="location_fallback_parking">Ubicación en el mapa</string>

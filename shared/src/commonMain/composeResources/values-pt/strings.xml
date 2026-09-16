@@ -31,6 +31,7 @@
     <string name="home_browse_parked_meta">Estacionado há %1$s · a %2$s de ti</string>
     <string name="home_browse_parked_ago">Estacionado há %1$s</string>
     <string name="home_browse_hint_swipe_report">Desliza ↑ para reportar um lugar</string>
+    <string name="home_browse_hint_swipe_mark_parking">Desliza ↑ para marcar o estacionamento</string>
     <string name="common_directions">Como chegar</string>
     <string name="home_navigate_to_vehicle_cd">Como chegar ao carro</string>
     <string name="home_empty_title">Ainda não há lugares reportados</string>

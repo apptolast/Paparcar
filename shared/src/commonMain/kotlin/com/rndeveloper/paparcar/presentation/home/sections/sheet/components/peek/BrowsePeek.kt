@@ -46,6 +46,7 @@ import paparcar.composeapp.generated.resources.home_browse_eyebrow_zone
 import paparcar.composeapp.generated.resources.subject_fuel_stations
 import paparcar.composeapp.generated.resources.subject_public_parkings
 import paparcar.composeapp.generated.resources.subject_free_spots
+import paparcar.composeapp.generated.resources.home_browse_hint_swipe_mark_parking
 import paparcar.composeapp.generated.resources.home_browse_hint_swipe_report
 import paparcar.composeapp.generated.resources.home_browse_parked_ago
 import paparcar.composeapp.generated.resources.home_browse_parked_meta
@@ -54,7 +55,9 @@ import paparcar.composeapp.generated.resources.home_det_monitoring
 import paparcar.composeapp.generated.resources.home_peek_car_parked_label
 import paparcar.composeapp.generated.resources.home_peek_vehicle_parked_label
 import paparcar.composeapp.generated.resources.home_peek_vehicle_status
+import paparcar.composeapp.generated.resources.home_vehicle_chip_mark_parking
 import paparcar.composeapp.generated.resources.home_vehicle_chip_status_candidate
+import paparcar.composeapp.generated.resources.home_vehicle_chip_unmarked
 import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
 import paparcar.composeapp.generated.resources.location_approximate_near
 import paparcar.composeapp.generated.resources.location_fallback_parking
@@ -77,6 +80,11 @@ private const val BROWSE_ROW_HORIZONTAL_PAD_DP = 16
 internal fun BrowsePeek(
     parking: UserParking?,
     parkingVehicle: Vehicle?,
+    /** The car Home speaks for when there is NO session to name — resolved by the orchestrator, the
+     *  same "active vehicle" every other cold-start control targets. Null when the user has no
+     *  vehicle yet: then the lane keeps the header, because there is nothing to ask for.
+     *  [HOME-AN-UNPARKED-CAR-STILL-HAS-SOMETHING-TO-SAY-001] */
+    unparkedVehicle: Vehicle?,
     drivingMeta: DrivingMeta?,
     drivingVehicle: Vehicle?,
     drivingPlace: PlaceLine?,
@@ -95,24 +103,19 @@ internal fun BrowsePeek(
     /** Su carril está preguntando: la cápsula late. */
     laneLoading: Boolean,
     /**
-     * The user has opened Browse at least once: from then on the COLLAPSED header also speaks for the
-     * lane instead of the parked car — while that lane has something to show, see
-     * [browseHeaderFollowsLane]. A live trip still outranks it (see the driving branch).
+     * The COLLAPSED header speaks for the lane instead of the parked car. Set when the user opens
+     * Browse and re-decided when they close it ([nextLaneHeaderLatch]) — never from the live count
+     * while collapsed. A live trip still outranks it (see the driving branch).
      * [HOME-PEEK-FOLLOWS-THE-LANE-ONCE-OPENED-001]
-     * [HOME-AN-EMPTY-LANE-HANDS-THE-HEADER-BACK-TO-THE-CAR-001]
+     * [HOME-THE-SUBJECT-IS-CHOSEN-WHEN-THE-SHEET-CLOSES-001]
      */
     laneHeaderLatched: Boolean = false,
 ) {
-    // Whether this header speaks for the LANE — one resolver, right below.
-    // [HOME-PEEK-FOLLOWS-THE-LANE-ONCE-OPENED-001]
-    // [HOME-AN-EMPTY-LANE-HANDS-THE-HEADER-BACK-TO-THE-CAR-001]
-    val followsLane = browseHeaderFollowsLane(
-        expanded = showZoneHeader,
-        laneHeaderLatched = laneHeaderLatched,
-        laneCount = laneCount,
-        laneLoading = laneLoading,
-        hasParkedCar = parking != null,
-    )
+    // Whether this header speaks for the LANE: always when expanded, and collapsed too while the
+    // latch holds. ⛔ The latch is NOT recomputed here from the live count — quién habla se decide
+    // AL PLEGAR, ver [nextLaneHeaderLatch]. [HOME-PEEK-FOLLOWS-THE-LANE-ONCE-OPENED-001]
+    // [HOME-THE-SUBJECT-IS-CHOSEN-WHEN-THE-SHEET-CLOSES-001]
+    val followsLane = showZoneHeader || laneHeaderLatched
     // ⛔ The missing-location warning is NOT here any more. It was a trailing badge on all three
     // subjects, and «SIN UBICACIÓN» in caps ate the width this header needs to NAME things — the
     // car, the address, the lane. It now lives in the map's location pill, which was standing
@@ -253,7 +256,54 @@ internal fun BrowsePeek(
         return
     }
 
-    // ── Subject = the lane (no parked car, no live trip, expanded browse, or Browse opened once) ──
+    // ── Subject = your car, NOT parked yet ────────────────────────────────────
+    // The header is the car's (the lane had nothing to show when the sheet closed) but there is no
+    // session to name. It still speaks: it says WHOSE car it is, that it is not marked, and what to
+    // do about it. Falling through to the lane here would leave Home's resting line on a counter the
+    // closing already judged empty — and would say nothing about the one action that is always
+    // available. [HOME-AN-UNPARKED-CAR-STILL-HAS-SOMETHING-TO-SAY-001]
+    //
+    // ⛔ No button, and the copy SAYS SO — same shape the spots lane already uses at zero: the sub is
+    // an activation hint («Desliza ↑ …»), not an imperative that looks tappable. The peek handle's
+    // tap belongs to the sheet, so a header that reads "Marcar aparcamiento" as a title would promise
+    // a press that does something else. The hint names the gesture that actually works, and one drag
+    // up is where the control lives. [UI-SHEET-003]
+    //
+    // Vocabulario: lo que se marca es TU APARCAMIENTO, no una plaza — la plaza es de la comunidad, y
+    // por eso el hint de al lado (avisar de una plaza) NO puede ser el mismo.
+    // [COPY-SPOT-IS-NOT-A-PARKING-001]
+    if (!followsLane && unparkedVehicle != null) {
+        val vehicleName = vehicleSummary(unparkedVehicle) ?: stringResource(Res.string.home_vehicle_fallback_name)
+        PapSheet(
+            lead = PapSheetLead.Vehicle(
+                carbody = unparkedVehicle.carbodyType,
+                size = unparkedVehicle.sizeCategory,
+                color = unparkedVehicle.color,
+            ),
+            eyebrow = stringResource(
+                Res.string.home_peek_vehicle_status,
+                vehicleName,
+                stringResource(Res.string.home_vehicle_chip_unmarked),
+            ).uppercase(),
+            // Only the NAME wears the identity colour; "· SIN MARCAR" is state and stays neutral.
+            // [UI-COLOR-DOCTRINE-001]
+            eyebrowColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            eyebrowHighlight = vehicleName,
+            eyebrowHighlightColor = vehicleIdentityColor(unparkedVehicle.monitoringStatus().watch()),
+            // Where you are — the place you would be marking. Same camera resolver as the lane
+            // header, and the same fallback rule as every peek title: name the thing, never the
+            // coordinates. [UI-LOCATION-FALLBACK-SPEAKS-HUMAN-001]
+            title = peekTitle(
+                placeName = cameraInfo?.placeInfo?.name,
+                addressLine = cameraInfo?.displayLine,
+                fallback = stringResource(Res.string.home_vehicle_chip_mark_parking),
+            ),
+            subtitle = stringResource(Res.string.home_browse_hint_swipe_mark_parking),
+        )
+        return
+    }
+
+    // ── Subject = the lane (no car to speak for, no live trip, expanded browse, or Browse opened once) ──
     // Show skeleton when there is no displayable content — covers:
     //  • info still null (initial load before first geocode)
     //  • geocoding in flight with no previous content
@@ -324,43 +374,83 @@ internal fun BrowsePeek(
 }
 
 /**
- * WHO the browse header speaks for: the lane on show (`true`) or the car below it (`false`).
+ * Does the lane deserve to keep the collapsed header, asked **at the moment the sheet closes**?
  *
- * The one place that decision is made, so the collapsed peek and the expanded one can't drift apart.
- *
- *  - **Expanded** ([expanded]) it is always the lane: that lane's list is what you are reading, and
- *    the car's info lives in its TUS VEHÍCULOS card. [UI-SHEET-004]
- *  - **Collapsed**, the car headlines until the user first opens Browse; from then on
- *    ([laneHeaderLatched]) the lane keeps the header too.
- *    [HOME-PEEK-FOLLOWS-THE-LANE-ONCE-OPENED-001]
- *  - …but only **while it has something to show**. A lane whose list came back empty heads nothing:
- *    the resting peek — the only line Home says when nobody is looking at it — would read a subject
- *    over a zero while the parked car, which is always news, sits silent one drag away. So an empty
- *    lane hands the header back. [HOME-AN-EMPTY-LANE-HANDS-THE-HEADER-BACK-TO-THE-CAR-001]
+ * `false` = it has nothing to show and there is a car to hand it to, so the car takes the header.
+ * The resting peek — the only line Home says when nobody is looking at it — must not be a subject
+ * sitting over a zero while the car stays silent one drag away.
+ * [HOME-AN-EMPTY-LANE-HANDS-THE-HEADER-BACK-TO-THE-CAR-001]
  *
  * Two cautions the rule needs to stay honest:
- *  - **Asking is not empty** ([laneLoading]): the capsule breathes and the lane keeps the header
- *    until its answer lands, so a refresh can't flip the subject twice.
- *  - **With no parked car there is nothing to hand it to** ([hasParkedCar]): browse's base subject is
- *    the free-spots counter, which is exactly what the un-latched header already shows — handing over
- *    there would swap a quiet lane for a different lane, not for the car.
+ *  - **Asking is not empty** ([laneLoading]): a lane mid-question has not answered zero yet.
+ *  - **A car to hand it to is not the same as a PARKED car** ([hasCarToSpeakFor]): an unparked one
+ *    has plenty to say — whose it is, that it is not marked, and to go mark it — so it takes the
+ *    header just the same. What leaves the lane holding it is having NO vehicle at all: then browse's
+ *    base subject is the free-spots counter, exactly what the un-latched header already shows, and
+ *    handing over would swap a quiet lane for a different lane rather than for a car.
+ *    [HOME-AN-UNPARKED-CAR-STILL-HAS-SOMETHING-TO-SAY-001]
  *
- * A live trip is decided before this: it outranks both subjects and is never released by the latch.
+ * ⛔ This is asked ONCE per closing, never frame by frame: see [nextLaneHeaderLatch].
  */
-internal fun browseHeaderFollowsLane(
-    expanded: Boolean,
-    laneHeaderLatched: Boolean,
+internal fun laneKeepsHeaderOnCollapse(
     laneCount: Int?,
     laneLoading: Boolean,
-    hasParkedCar: Boolean,
+    hasCarToSpeakFor: Boolean,
 ): Boolean {
-    if (expanded) return true
-    if (!laneHeaderLatched) return false
     // Nothing to show = it answered zero, or nobody asked it (`null`) — and it is not asking now.
     // ⛔ Null is still not zero: the lane losing the header is NOT the same as printing a `0` on a
     // subject no source ever counted. [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
     val laneHasNothingToShow = !laneLoading && (laneCount ?: 0) == 0
-    return !(laneHasNothingToShow && hasParkedCar)
+    return !(laneHasNothingToShow && hasCarToSpeakFor)
+}
+
+/**
+ * What [nextLaneHeaderLatch] reads, bundled so the one effect that owns the latch watches a single
+ * value. [HOME-THE-SUBJECT-IS-CHOSEN-WHEN-THE-SHEET-CLOSES-001]
+ *
+ * @param browseOpen the sheet sits beyond peek in PURE Browse. Automatic openings count; a marker
+ *   tap's expand is a detail opening, not Browse.
+ * @param laneKeepsHeader [laneKeepsHeaderOnCollapse] over the CURRENT lane — only read on closing.
+ */
+internal data class LaneHeaderLatchInputs(
+    val browseOpen: Boolean,
+    val laneKeepsHeader: Boolean,
+)
+
+/**
+ * WHO heads the collapsed peek, decided **on the two gestures that bracket browsing** — opening the
+ * sheet and closing it — and never in between.
+ *
+ * | Gesture | Subject |
+ * |---|---|
+ * | opens Browse | the lane: you asked for its list |
+ * | closes it, lane with results | the lane keeps it |
+ * | closes it, lane empty + car parked | the car |
+ *
+ * Collapsed, the subject is FROZEN; only its content keeps moving. That is the whole point:
+ *
+ *  - The count is LIVE. Spots appear and expire under a parked car; car parks and fuel re-ask on
+ *    camera moves ([NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]), and the spots query re-centres past a
+ *    300 m pan. A subject recomputed from that count changes under a phone nobody is touching.
+ *  - **And panning into an empty block must NOT summon the car.** You are following the lane across
+ *    the map; the honest answer there is its own zero — "nothing here" — not a different subject
+ *    swapped in under your thumb. The car comes back the next time you open and close the sheet,
+ *    which is you asking again.
+ *
+ * [HOME-THE-SUBJECT-IS-CHOSEN-WHEN-THE-SHEET-CLOSES-001] [HOME-PEEK-FOLLOWS-THE-LANE-ONCE-OPENED-001]
+ *
+ * ⛔ A latch that is already `false` stays there on closing: the car has the header because Browse
+ * was never opened (the base state), or because a previous closing gave it back. Re-asking would let
+ * a lane that refilled on its own steal it without the user ever opening the sheet.
+ */
+internal fun nextLaneHeaderLatch(
+    latched: Boolean,
+    browseOpen: Boolean,
+    laneKeepsHeader: Boolean,
+): Boolean = when {
+    browseOpen -> true
+    latched -> laneKeepsHeader
+    else -> false
 }
 
 @Composable

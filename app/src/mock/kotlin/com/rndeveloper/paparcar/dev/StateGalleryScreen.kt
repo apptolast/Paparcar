@@ -1130,10 +1130,12 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     laneHeaderLatched = true,
                 )
             },
-            // …pero un carril VACÍO no encabeza nada: plegado devuelve la cabecera al coche, que es
-            // lo único que Home siempre tiene que decir en reposo.
+            // …pero al CERRAR sobre un carril vacío la cabecera pasa al coche, que es lo único que
+            // Home siempre tiene que decir en reposo. El latch ya viene decidido de ese cierre — por
+            // eso aquí va en `false` y no en `true`: la galería pinta ESTADOS, no transiciones.
             // [HOME-AN-EMPTY-LANE-HANDS-THE-HEADER-BACK-TO-THE-CAR-001]
-            Variant("PapSheet · plegado tras abrir (carril PARKINGS vacío → coche)", Placement.Surface) {
+            // [HOME-THE-SUBJECT-IS-CHOSEN-WHEN-THE-SHEET-CLOSES-001]
+            Variant("PapSheet · cerrado sobre carril PARKINGS vacío → coche", Placement.Surface) {
                 peek(
                     HomeState(
                         cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
@@ -1150,13 +1152,57 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                             anchorLon = sampleGps.longitude,
                         ),
                     ),
+                    laneHeaderLatched = false,
+                )
+            },
+            // ⛔ El caso que la regla protege: el carril se quedó la cabecera al cerrar y DESPUÉS el
+            // paneo lo vació. Sigue hablando él, con su propio cero — no se invoca al coche bajo el
+            // dedo del usuario. Mismo estado que el de arriba salvo el latch, que es justo la
+            // diferencia. [HOME-THE-SUBJECT-IS-CHOSEN-WHEN-THE-SHEET-CLOSES-001]
+            Variant("PapSheet · el paneo vació el carril (sigue el carril, en 0)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                        vehicles = listOf(FakeData.vehicleSedan),
+                        activeSessions = listOf(FakeData.activeSession.copy(vehicleId = FakeData.vehicleSedan.id)),
+                        userGpsPoint = sampleGps,
+                        nearbySpots = FakeData.nearbySpots,
+                        nearbyLens = HomeNearbyLens.PARKINGS,
+                        parkings = HomeParkingsSlice(
+                            parkings = emptyList(),
+                            anchorLat = sampleGps.latitude,
+                            anchorLon = sampleGps.longitude,
+                        ),
+                    ),
                     laneHeaderLatched = true,
                 )
             },
-            // La excepción de la regla anterior: sin coche aparcado no hay a quién devolvérsela, así
-            // que el carril vacío se queda la cabecera.
+            // El coche existe pero NO está aparcado: la cabecera es suya igual, y dice de quién es,
+            // que no está marcado y qué hacer. Sin botón — el gesto del peek es abrir la hoja.
+            // [HOME-AN-UNPARKED-CAR-STILL-HAS-SOMETHING-TO-SAY-001]
+            Variant("PapSheet · cerrado sobre carril vacío, coche SIN aparcar", Placement.Surface) {
+                peek(
+                    HomeState(
+                        cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                        vehicles = listOf(FakeData.vehicleSedan),
+                        // ⛔ Sin sesión activa: es justo lo que distingue esta variante de la de arriba.
+                        activeSessions = emptyList(),
+                        userGpsPoint = sampleGps,
+                        nearbySpots = FakeData.nearbySpots,
+                        nearbyLens = HomeNearbyLens.PARKINGS,
+                        parkings = HomeParkingsSlice(
+                            parkings = emptyList(),
+                            anchorLat = sampleGps.latitude,
+                            anchorLon = sampleGps.longitude,
+                        ),
+                    ),
+                    laneHeaderLatched = false,
+                )
+            },
+            // La única excepción que queda: SIN NINGÚN vehículo no hay a quién devolvérsela, así que
+            // el carril vacío se queda la cabecera aunque se cierre sobre él.
             // [HOME-AN-EMPTY-LANE-HANDS-THE-HEADER-BACK-TO-THE-CAR-001]
-            Variant("PapSheet · plegado tras abrir (carril vacío, sin coche)", Placement.Surface) {
+            Variant("PapSheet · cerrado sobre carril vacío, sin ningún vehículo", Placement.Surface) {
                 peek(
                     HomeState(
                         cameraAddressAndPlace = FakeData.addressAndPlaceStreet,

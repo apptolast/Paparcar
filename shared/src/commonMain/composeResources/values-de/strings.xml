@@ -32,6 +32,7 @@
     <string name="home_browse_parked_meta">Geparkt vor %1$s · %2$s entfernt</string>
     <string name="home_browse_parked_ago">Geparkt vor %1$s</string>
     <string name="home_browse_hint_swipe_report">Wische ↑, um einen Platz zu melden</string>
+    <string name="home_browse_hint_swipe_mark_parking">Wische ↑, um das Parken zu markieren</string>
     <string name="common_directions">Route</string>
     <string name="home_navigate_to_vehicle_cd">Route zum Auto</string>
     <string name="home_empty_title">Noch keine Plätze gemeldet</string>

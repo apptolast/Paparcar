@@ -31,6 +31,7 @@
     <string name="home_browse_parked_meta">Parcheggiato %1$s fa · a %2$s da te</string>
     <string name="home_browse_parked_ago">Parcheggiato %1$s fa</string>
     <string name="home_browse_hint_swipe_report">Scorri ↑ per segnalare un posto</string>
+    <string name="home_browse_hint_swipe_mark_parking">Scorri ↑ per segnare il parcheggio</string>
     <string name="common_directions">Indicazioni</string>
     <string name="home_navigate_to_vehicle_cd">Indicazioni per l&#8217;auto</string>
     <string name="home_empty_title">Ancora nessun posto segnalato</string>

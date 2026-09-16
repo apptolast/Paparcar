@@ -32,6 +32,7 @@
     <string name="home_browse_parked_meta">Geparkeerd %1$s geleden · %2$s van jou</string>
     <string name="home_browse_parked_ago">Geparkeerd %1$s geleden</string>
     <string name="home_browse_hint_swipe_report">Veeg ↑ om een plek te melden</string>
+    <string name="home_browse_hint_swipe_mark_parking">Veeg ↑ om je parkeerplaats te markeren</string>
     <string name="common_directions">Route</string>
     <string name="home_navigate_to_vehicle_cd">Route naar je auto</string>
     <string name="home_empty_title">Nog geen plekken gemeld</string>

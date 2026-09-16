@@ -31,6 +31,7 @@
     <string name="home_browse_parked_meta">Garé il y a %1$s · à %2$s de vous</string>
     <string name="home_browse_parked_ago">Garé il y a %1$s</string>
     <string name="home_browse_hint_swipe_report">Glissez ↑ pour signaler une place</string>
+    <string name="home_browse_hint_swipe_mark_parking">Glissez ↑ pour marquer le stationnement</string>
     <string name="common_directions">Itinéraire</string>
     <string name="home_navigate_to_vehicle_cd">Itinéraire jusqu&#8217;à la voiture</string>
     <string name="home_empty_title">Aucune place signalée pour le moment</string>

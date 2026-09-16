@@ -246,6 +246,17 @@ fun HomePeekHandle(
                     BrowsePeek(
                         parking = parking,
                         parkingVehicle = parking?.let { p -> slice.vehicles.firstOrNull { it.id == p.vehicleId } },
+                        // No session to name → the car Home speaks for is the FIRST of the strip's own
+                        // order ([vehiclesRowOrder]: live trip, then parked by recency, then unparked
+                        // by watch rank). ⛔ Not `firstOrNull { isActive }`: which car represents the
+                        // user is already doctrine, and a second criterion here would let the header,
+                        // the chips strip and the ‹ / › stepper name three different cars.
+                        // [UI-PREFERRED-SESSION-RECENCY-001] [CHIP-DRIVING-001]
+                        // [HOME-AN-UNPARKED-CAR-STILL-HAS-SOMETHING-TO-SAY-001]
+                        unparkedVehicle = if (parking == null) {
+                            slice.steppableVehicleIds.firstOrNull()
+                                ?.let { id -> slice.vehicles.firstOrNull { it.id == id } }
+                        } else null,
                         drivingMeta = slice.drivingMeta,
                         drivingVehicle = slice.drivingMeta?.let { m -> slice.vehicles.firstOrNull { it.id == m.vehicleId } },
                         isAwaitingAnswer = slice.isAwaitingAnswer, // [DET-ASK-STATE-001]

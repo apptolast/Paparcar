@@ -72,6 +72,7 @@
     <string name="home_browse_parked_meta">Parked %1$s ago · %2$s from you</string>
     <string name="home_browse_parked_ago">Parked %1$s ago</string>
     <string name="home_browse_hint_swipe_report">Swipe ↑ to report a free spot</string>
+    <string name="home_browse_hint_swipe_mark_parking">Swipe ↑ to mark your parking</string>
     <string name="home_address_unknown">Unknown location</string>
     <!-- Location title fallback when geocoding/POI failed (e.g. offline): names what the pin IS — a community spot vs your parking — never raw coordinates. [UI-LOCATION-FALLBACK-SPEAKS-HUMAN-001] -->
     <string name="location_fallback_spot">Spot on the map</string>

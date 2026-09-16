@@ -31,6 +31,7 @@
     <string name="home_browse_parked_meta">Parcat acum %1$s · la %2$s de tine</string>
     <string name="home_browse_parked_ago">Parcat acum %1$s</string>
     <string name="home_browse_hint_swipe_report">Glisează ↑ pentru a anunța un loc</string>
+    <string name="home_browse_hint_swipe_mark_parking">Glisează ↑ pentru a marca parcarea</string>
     <string name="common_directions">Indicații</string>
     <string name="home_navigate_to_vehicle_cd">Indicații către mașină</string>
     <!-- Romanian takes "de" from 20 up (20 de locuri), not below it (3 locuri). What used to sit in

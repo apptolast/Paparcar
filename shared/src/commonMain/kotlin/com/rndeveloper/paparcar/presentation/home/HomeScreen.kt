@@ -79,6 +79,9 @@ import com.rndeveloper.paparcar.presentation.home.sections.sheet.rememberSheetPo
 import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.NEARBY_LENS_KEY
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomeReleaseDialog
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.peek.LaneHeaderLatchInputs
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.peek.laneKeepsHeaderOnCollapse
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.peek.nextLaneHeaderLatch
 import com.rndeveloper.paparcar.presentation.util.rememberOpenExternalNavigation
 import com.rndeveloper.paparcar.presentation.util.zoneIconFor
 import com.rndeveloper.paparcar.ui.components.CenterPinKind
@@ -93,7 +96,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.first
 import androidx.compose.runtime.saveable.rememberSaveable
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -544,12 +546,43 @@ private fun HomeContent(
                 // to the car, whose info lives in its card. Saveable, so it survives a trip to another
                 // tab and process restore; only opened from PURE Browse counts — a marker tap's expand
                 // is a detail opening, not Browse. Any opening counts, the automatic ones included.
+                //
+                // [HOME-THE-SUBJECT-IS-CHOSEN-WHEN-THE-SHEET-CLOSES-001] …and it is re-decided when
+                // the sheet CLOSES, which is the only other moment the user asks. Collapsed, the
+                // subject never changes on its own — only its figure does. So panning across a block
+                // with no car parks reads "0" on the lane you were following, instead of summoning
+                // the car under your thumb; and a spot appearing next to your parked car does not
+                // steal the header either. Open and close again and Home answers afresh.
                 var browseLaneHeaderLatched by rememberSaveable { mutableStateOf(false) }
-                val currentIsPureBrowsePeek = rememberUpdatedState(isPureBrowsePeek)
+                // ⛔ rememberUpdatedState, not a capture: the effect below runs ONCE, so reading these
+                // straight from the composition would pin it to the frame it started on.
+                val latchInputs = rememberUpdatedState(
+                    LaneHeaderLatchInputs(
+                        browseOpen = sheetBeyondPeek && isPureBrowsePeek,
+                        laneKeepsHeader = laneKeepsHeaderOnCollapse(
+                            laneCount = peekSlice.laneCount,
+                            laneLoading = peekSlice.laneLoading,
+                            // ⛔ The SAME two cases BrowsePeek's car branch can render — a session to
+                            // name, or a vehicle to ask about, taken from the strip's own order. If
+                            // this said "parked" only, closing over an empty lane would hand the
+                            // header to a branch that then falls through to the lane: a handover to
+                            // nobody. [HOME-AN-UNPARKED-CAR-STILL-HAS-SOMETHING-TO-SAY-001]
+                            hasCarToSpeakFor = peekSlice.userParking != null ||
+                                peekSlice.steppableVehicleIds.isNotEmpty(),
+                        ),
+                    ),
+                )
                 LaunchedEffect(Unit) {
-                    if (browseLaneHeaderLatched) return@LaunchedEffect
-                    snapshotFlow { sheetBeyondPeek && currentIsPureBrowsePeek.value }.first { it }
-                    browseLaneHeaderLatched = true
+                    // Only the OPEN/CLOSE edge moves the latch — snapshotFlow emits on change, so the
+                    // lane's own comings and goings never reach this collect.
+                    snapshotFlow { latchInputs.value.browseOpen }.collect { browseOpen ->
+                        browseLaneHeaderLatched = nextLaneHeaderLatch(
+                            latched = browseLaneHeaderLatched,
+                            browseOpen = browseOpen,
+                            // Read AT the edge: the lane as it stands the instant the sheet closes.
+                            laneKeepsHeader = latchInputs.value.laneKeepsHeader,
+                        )
+                    }
                 }
 
                 // Reset-to-peek, list auto-expand and nav-progress hoisting — see
