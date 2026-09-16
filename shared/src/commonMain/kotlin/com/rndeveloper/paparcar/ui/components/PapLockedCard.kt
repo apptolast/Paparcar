@@ -23,7 +23,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.theme.PapShapes
@@ -108,18 +107,23 @@ fun PapLockedCard(
             Spacer(Modifier.height(DESC_GAP_DP.dp))
             Text(
                 text = description,
-                style = PaparcarType.current.body,
+                // The subtitle role every list row in this app uses under a title — `body` was the
+                // size of the card's own prose and turned a caption into a paragraph.
+                // [UI-TYPE-TWO-VOICES-ONE-ROW-001]
+                style = PaparcarType.current.caption,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(BODY_GAP_DP.dp))
-            // ⛔ Clipped to the card's own radius, and the blur told to treat the edge the same
-            // way. Left unbounded, the smudge bled past the block it came from and produced the
-            // chopped-off look the first version had.
+            // ⛔ **Unbounded, and NOT clipped.** Clipping the blur to a shape is what put a visible
+            // rounded plate inside the card: the smudge stopped dead on all four sides, so instead
+            // of frosted glass you saw a grey panel with cut edges. Letting it bleed past its own
+            // bounds is what makes the haze fade out into the card, which is the whole look.
+            // The gaps above and below are what the bleed lands in.
+            // [UI-A-BLUR-MUST-LOOK-LIKE-THE-CARD-IT-HIDES-001]
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(PapShapes.card)
-                    .blur(BLUR_DP.dp, edgeTreatment = BlurredEdgeTreatment(PapShapes.card)),
+                    .blur(BLUR_DP.dp, edgeTreatment = BlurredEdgeTreatment.Unbounded),
             ) {
                 when (preview) {
                     PapLockedPreview.Rows -> RowsPreview()

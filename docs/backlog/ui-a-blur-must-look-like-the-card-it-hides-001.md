@@ -57,6 +57,22 @@ Y la silueta de lista **no la ejercitaba ninguna variante de galería** (con las
 ningún racimo llega a tres): variante nueva «Free · tus sitios, bajo cristal», con el mismo racimo y
 la misma zona que su gemela de Plus.
 
+## 3.ª pasada en device — el recorte por los cuatro lados
+
+Con la geometría ya bien, el user lo volvió a mirar: *«recorta por todos sus lados sin quedar ese
+difuminado total, se entrecorta por los 4 lados en cada card»*. Y el culpable era **la solución de
+la pasada anterior**: `clip(PapShapes.card)` + `BlurredEdgeTreatment(PapShapes.card)` hacen que la
+mancha **muera en seco** en un rectángulo redondeado — o sea, un panel gris con los bordes cortados
+dentro de la card, que es exactamente lo contrario de un cristal.
+
+⛔ **Un desenfoque que no puede salirse de sus límites no es niebla, es una placa.** Ahora
+`BlurredEdgeTreatment.Unbounded` y **sin `clip`**: la mancha sangra fuera de su caja y se desvanece
+contra la card. Los huecos de arriba y abajo (16 dp) son donde aterriza ese sangrado.
+
+Y la descripción iba en `body` —el tamaño de la prosa de la propia card—, así que un pie se leía
+como un párrafo. Pasa a **`caption`**, que es el `subtitleStyle` que `PapListItem` usa en toda la
+app para exactamente esto.
+
 ## Criterio de éxito
 
 - Cada card bloqueada se parece a la suya y dice en una línea qué es.
@@ -70,8 +86,8 @@ la misma zona que su gemela de Plus.
 | `./gradlew testAll` | ✅ 3.454 tests, 0 fallos |
 | Guards de Konsist `--rerun-tasks` | ✅ |
 | `compileMockDebugKotlin` + `compileProdDebugKotlin` | ✅ |
-| **En el Oppo** (mock `a18ec91b…`, sha verificado en device) | ✅ **visto**: ritmo y cuándo aparcas se leen como contenido tras cristal |
-| «Tus sitios» bajo cristal y «Free · sin nada que bloquear» | ⏳ sin mirar en mano |
+| **En el Oppo** (mock `a18ec91b…` y `92e4391d…`, sha verificado en device) | ✅ **visto** en dos pasadas: geometría primero, y el recorte de los cuatro lados después |
+| La pasada sin `clip` (`92e4391d…`) | ⏳ instalada en el Oppo, sin mirar en mano |
 
 ## Consumidores auditados
 
