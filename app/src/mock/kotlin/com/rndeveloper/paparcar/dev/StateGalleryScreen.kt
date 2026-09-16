@@ -2291,8 +2291,12 @@ private val galleryGroups: List<ScreenGroup> = listOf(
     ScreenGroup(
         "Paparcar Plus",
         listOf(
-            // Con planes: comparativa + las dos suscripciones con precio. Los precios salen del
-            // FakeEntitlementRepository — en prod los pone la tienda, nunca el código. [MONEY-001]
+            // Con planes: la lista de lo que añade Plus + las dos suscripciones con precio. Los
+            // precios salen del FakeEntitlementRepository — en prod los pone la tienda, nunca el
+            // código. [MONEY-001]
+            //
+            // Esta es la entrada GENERAL (fila de Ajustes): no hay gate que nombrar, así que no
+            // lleva tira de motivo. [UI-PAYWALL-THE-FREE-COLUMN-IS-A-LINE-001]
             Variant("Paywall · con planes (anual preseleccionado)") {
                 PaywallContent(state = PaywallState(offers = samplePlusOffers), onIntent = {})
             },
@@ -2317,8 +2321,6 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     onIntent = {},
                 )
             },
-            // Sin tienda: la comparativa sigue en pie y NO aparece ni un precio. Es lo que ve un
-            // release sin key todavía, y lo que se vería si las ofertas no cargaran.
             Variant("Paywall · restaurando compra") {
                 PaywallContent(
                     state = PaywallState(offers = samplePlusOffers, restoring = true),
@@ -2333,11 +2335,33 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     onIntent = {},
                 )
             },
+            // [FREE-LIMITS-001] [UI-PAYWALL-THE-FREE-COLUMN-IS-A-LINE-001] El MOTIVO que trajo al
+            // usuario se lee arriba, bajo la promesa, y se lee SIEMPRE — con tienda y sin ella.
+            // Esta variante es la que faltaba: antes el motivo solo se pintaba en la rama sin
+            // tienda, así que el caso de la vida real (tienda viva + gate tocado) no se podía ver
+            // en la galería porque no existía en la pantalla.
+            Variant("Paywall · venía del límite de coches") {
+                PaywallContent(
+                    state = PaywallState(offers = samplePlusOffers),
+                    onIntent = {},
+                    reason = com.rndeveloper.paparcar.domain.entitlement.PaywallReason.VEHICLES,
+                )
+            },
+            // Otro gate, otro glifo y otra frase: la tira apunta al sitio del que vienes.
+            Variant("Paywall · venía de la ventana de 7 días del historial") {
+                PaywallContent(
+                    state = PaywallState(offers = samplePlusOffers),
+                    onIntent = {},
+                    reason = com.rndeveloper.paparcar.domain.entitlement.PaywallReason.HISTORY,
+                )
+            },
+            // Sin tienda: la lista sigue en pie y NO aparece ni un precio. Es lo que ve un release
+            // sin key todavía, y lo que se vería si las ofertas no cargaran.
             Variant("Paywall · sin tienda (sin ningún precio)") {
                 PaywallContent(state = PaywallState(offers = emptyList()), onIntent = {})
             },
-            // [FREE-LIMITS-001] El marco sin tienda dice el MOTIVO que trajo al usuario: aquí, el
-            // límite de coches. GENERAL (fila de Ajustes) no añade línea — es la variante de arriba.
+            // Sin tienda Y con gate: la tira de motivo arriba, la línea honesta abajo. El motivo
+            // se dice UNA vez — el pie ya no lo repite.
             Variant("Paywall · sin tienda, venía del límite de coches") {
                 PaywallContent(
                     state = PaywallState(offers = emptyList()),
