@@ -133,6 +133,21 @@ class FakeSharedCarRemote : RemoteSharedCarDataSource {
             )
     }
 
+    override suspend fun clearMemberFromState(carId: String, uid: String) {
+        // Misma regla que en Firestore: escribir en `state` exige pertenecer al grupo, así que un
+        // barrido intentado después de salir no borra nada.
+        // [PRIV-LEAVING-A-GROUP-MUST-CLEAR-YOUR-NAME-FROM-ITS-HEAD-001]
+        if (members.value[carId].orEmpty().none { it.uid == uid }) return
+        val current = states.value[carId] ?: return
+        states.value = states.value + (
+            carId to current.copy(
+                authorName = if (current.authorUid == uid) null else current.authorName,
+                movedByUid = if (current.movedByUid == uid) null else current.movedByUid,
+                movedByName = if (current.movedByUid == uid) null else current.movedByName,
+            )
+            )
+    }
+
     override suspend fun deleteSessionsOf(carId: String, uid: String) {
         // Mirrors the rule, not just the happy path: once the membership is gone the sessions are
         // unreadable, so a sweep attempted after leaving deletes nothing — which is exactly the

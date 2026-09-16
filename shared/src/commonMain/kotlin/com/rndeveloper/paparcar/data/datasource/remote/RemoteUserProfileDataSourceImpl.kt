@@ -102,9 +102,18 @@ class RemoteUserProfileDataSourceImpl(
         val outgoing = if (appPreferences?.syncRouteGeometry == true) session else session.withoutRouteGeometry()
         parkingHistoryCollection(userId).document(session.id).set(outgoing)
         // ⛔ AFTER the personal write and never in its place: the mirror is a projection of a
-        // record that already exists. Note it mirrors `session`, not `outgoing` — the geometry
-        // strip is about what the USER syncs of their own trace, and the mirror never carries
-        // geometry at all (its type has no field for it). [VEH-SHARED-001]
+        // record that already exists.
+        //
+        // It mirrors `session`, not `outgoing`, and that is deliberate: the strip above answers
+        // "what does the USER sync of their own trace", and the group's copy answers a different
+        // question with a different switch — `shareRoutesInGroup`, applied inside
+        // `sharedCarMirrorPayload()`. Each door asks its own permission and neither uploads without
+        // it. [PRIV-A-ROUTE-LEAVES-THE-PHONE-BY-ONE-DOOR-001]
+        //
+        // ⛔ This comment used to say the mirror "never carries geometry at all (its type has no
+        // field for it)". That was true before F8 and false after it — `SharedCarSessionDto` has
+        // carried `routePolyline` since. Passing `session` here is safe because of the gate, not
+        // because of the type. [VEH-SHARED-001]
         sharedCarMirror?.onSessionSaved(session.toEntity().toDomain())
     }
 

@@ -175,6 +175,24 @@ class RemoteSharedCarDataSourceImpl(
             .onFailure { PaparcarLogger.w(TAG, "setMemberSharesRoutes skipped — not a member of $carId") }
     }
 
+    override suspend fun clearMemberFromState(carId: String, uid: String) {
+        val current = getState(carId) ?: return
+        // Field-targeted, y solo los campos que son SUYOS: un `set()` aquí reescribiría la posición
+        // del coche con lo que este móvil tuviera en la mano, que es de todo el grupo.
+        val fields = buildMap<String, Any?> {
+            if (current.authorUid == uid) put(FIELD_AUTHOR_NAME, null)
+            if (current.movedByUid == uid) {
+                put(FIELD_MOVED_BY_UID, null)
+                put(FIELD_MOVED_BY_NAME, null)
+            }
+        }
+        // Ni un `updatedAtMs`: el coche no se ha movido. Firestore empuja el cambio a los que
+        // escuchan igual, así que sellarlo solo mentiría sobre cuándo cambió el estado del coche.
+        if (fields.isEmpty()) return
+        runCatching { state(carId).update(fields) }
+            .onFailure { PaparcarLogger.w(TAG, "clearMemberFromState skipped on $carId — ${it.message}") }
+    }
+
     override suspend fun deleteSessionsOf(carId: String, uid: String) {
         // Read-then-delete over the whole collection instead of a `where` query: the group's
         // history is capped and small, and the read is the same one `observeSessions` already

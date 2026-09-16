@@ -4,6 +4,7 @@ import com.apptolast.baselogin.domain.model.UserSession
 import com.rndeveloper.paparcar.data.datasource.local.room.UserProfileEntity
 import com.rndeveloper.paparcar.data.datasource.remote.dto.SharedCarInviteDto
 import com.rndeveloper.paparcar.data.datasource.remote.dto.SharedCarSessionDto
+import com.rndeveloper.paparcar.data.datasource.remote.dto.SharedCarStateDto
 import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleSize
@@ -191,6 +192,61 @@ class SharedCarRepositoryImplTest {
         // [PRIV-A-DELETED-ACCOUNT-LEAVES-TWO-TOKENS-BEHIND-001] `s-nacho` stayed behind, readable
         // by everyone still in the group and unreachable to Nacho, who was no longer a member.
         assertEquals(listOf("s-marta"), remote.sessions.value["car-1"].orEmpty().map { it.sessionId })
+    }
+
+    @Test
+    fun should_takeTheirNameOffTheGroupsCard_when_aMemberLeaves() = runTest {
+        val remote = FakeSharedCarRemote()
+        val owner = repository("marta", FakeVehicleRepository(defaultVehicle = ownerCar), remote)
+        owner.shareVehicle(ownerCar).getOrThrow()
+        remote.putInvite(liveInvite())
+        val member = repository("nacho", FakeVehicleRepository(), remote)
+        member.joinByCode("AB3K9P", null).getOrThrow()
+        // Nacho aparcó el coche y luego se lo llevó él mismo: su nombre está en las DOS caras de la
+        // cabecera del espejo, que es la tarjeta que el grupo mira todos los días.
+        remote.putState(
+            "car-1",
+            SharedCarStateDto(
+                sessionId = "s-nacho",
+                authorUid = "nacho",
+                authorName = "Nacho",
+                movedByUid = "nacho",
+                movedByName = "Nacho",
+                latitude = 40.4,
+                longitude = -3.7,
+                parkedAtMs = now,
+            ),
+        )
+
+        member.leave("car-1").getOrThrow()
+
+        val head = remote.getState("car-1")!!
+        assertNull(head.authorName)
+        assertNull(head.movedByUid)
+        assertNull(head.movedByName)
+        // ⛔ La POSICIÓN se queda: dónde está el coche es del grupo, y borrarla dejaría al dueño sin
+        // saber dónde tiene su propio coche. Lo que se va es el nombre, no el sitio.
+        assertEquals(40.4, head.latitude)
+        assertEquals("s-nacho", head.sessionId)
+    }
+
+    @Test
+    fun should_leaveTheOtherMembersNameAlone_when_someoneElseLeaves() = runTest {
+        val remote = FakeSharedCarRemote()
+        val owner = repository("marta", FakeVehicleRepository(defaultVehicle = ownerCar), remote)
+        owner.shareVehicle(ownerCar).getOrThrow()
+        remote.putInvite(liveInvite())
+        val member = repository("nacho", FakeVehicleRepository(), remote)
+        member.joinByCode("AB3K9P", null).getOrThrow()
+        // La cabecera la firma MARTA. Que se vaya Nacho no puede tocarla.
+        remote.putState(
+            "car-1",
+            SharedCarStateDto(sessionId = "s-marta", authorUid = "marta", authorName = "Marta"),
+        )
+
+        member.leave("car-1").getOrThrow()
+
+        assertEquals("Marta", remote.getState("car-1")?.authorName)
     }
 
     @Test

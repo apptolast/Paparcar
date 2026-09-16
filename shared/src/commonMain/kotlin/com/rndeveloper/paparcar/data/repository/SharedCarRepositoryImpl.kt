@@ -242,10 +242,14 @@ class SharedCarRepositoryImpl(
 
     override suspend fun leave(carId: String): Result<Unit> = runCatching {
         val uid = requireUid()
-        // ⛔ Sessions BEFORE the membership: reading them needs `isMember()`, so the door has to
-        // still be open when we sweep. Inverting these two lines deletes nothing and reports
-        // success. [PRIV-A-DELETED-ACCOUNT-LEAVES-TWO-TOKENS-BEHIND-001]
+        // ⛔ Sessions and the head of the mirror BEFORE the membership: both need `isMember()`, so
+        // the door has to still be open when we sweep. Inverting these lines deletes nothing and
+        // reports success. [PRIV-A-DELETED-ACCOUNT-LEAVES-TWO-TOKENS-BEHIND-001]
         remote.deleteSessionsOf(carId, uid)
+        // The sessions were the history; this is the card the group looks at every day, and it
+        // kept naming whoever had just walked out.
+        // [PRIV-LEAVING-A-GROUP-MUST-CLEAR-YOUR-NAME-FROM-ITS-HEAD-001]
+        remote.clearMemberFromState(carId, uid)
         remote.deleteMember(carId, uid)
         dao.deleteById(carId)
         vehicleRepository.getVehicleById(uid, carId)

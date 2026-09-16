@@ -52,7 +52,7 @@ tampoco. → **Compartido = No** en todo.
 | Financial info → **Purchase history** | Estado de la suscripción Plus. La compra la procesa Google Play; RevenueCat recibe **tu uid** como `appUserID` (`RevenueCatEntitlementRepositoryImpl.kt:92`) y el estado del entitlement — nunca ubicación, aparcamientos ni vehículos. ⚠️ Ya declarado en el Console (la app vende en producción); esta fila existe para que la chuleta deje de omitirlo | Opcional | App functionality, Account management |
 | App info & performance → **Crash logs** | Crashlytics | Obligatorio | Analytics |
 | App info & performance → **Diagnostics** | Telemetría de detección (Firestore `diagnostics/`) + parkdiag | Obligatorio | Analytics |
-| Device or other IDs → **Device or other IDs** | MAC/nombre del BT del coche del usuario; ids de instalación de Firebase (incluye el app-instance id de Analytics); **token de registro FCM/APNs** del dispositivo, guardado en **DOS** sitios: `zoneAlertSubs/{uid}` mientras las alertas de zona estén activas [ZONE-A-SPOT-TELLS-THE-SERVER-AND-THE-SERVER-TELLS-YOU-001] **y `sharedCars/{carId}/members/{uid}.tokens` mientras compartas un coche** (`functions/src/index.ts:205`) [VEH-SHARED-001] | Opcional (BT, y token: solo con alertas de zona o coche compartido) | App functionality, Analytics |
+| Device or other IDs → **Device or other IDs** | MAC/nombre del BT del coche del usuario; ids de instalación de Firebase (incluye el app-instance id de Analytics); **token de registro FCM/APNs** del dispositivo, guardado en **DOS** sitios: `zoneAlertSubs/{uid}_{zoneId}` —**una fila por zona**, no una por usuario— mientras las alertas de zona estén activas [ZONE-A-SPOT-TELLS-THE-SERVER-AND-THE-SERVER-TELLS-YOU-001] **y `sharedCars/{carId}/members/{uid}.tokens` mientras compartas un coche** (`functions/src/index.ts:205`) [VEH-SHARED-001] | Opcional (BT, y token: solo con alertas de zona o coche compartido) | App functionality, Analytics |
 
 ⛔ **Advertising ID: NO se declara y NO se recoge.** `play-services-measurement` (lo arrastra
 Firebase Analytics) fusiona el permiso `com.google.android.gms.permission.AD_ID`; el manifest lo
@@ -95,7 +95,7 @@ lo mismo.
 - [x] «Eliminar cuenta borra … y diagnósticos» — **cerrado**: `DiagnosticsRepository` ya está en
       `userScopedRepos` (`DomainModule.kt:66`), verificado 16-09.
 - [x] El barrido se había quedado en cinco repositorios con dos colecciones nuevas fuera
-      (`sharedCars/{carId}/members/{uid}` con los tokens dentro, y `zoneAlertSubs/{uid}`) — **cerrado
+      (`sharedCars/{carId}/members/{uid}` con los tokens dentro, y `zoneAlertSubs/{uid}_{zoneId}`) — **cerrado
       en `2624b7f0`**, que además se lleva las sesiones que firmaste al salir de un grupo. §6 de la
       política ya lo dice. ⛔ **Las reglas nuevas se despliegan ANTES que el APK**: sin ellas el
       barrido de un miembro falla con permiso denegado y §6 vuelve a prometer lo que no hace.

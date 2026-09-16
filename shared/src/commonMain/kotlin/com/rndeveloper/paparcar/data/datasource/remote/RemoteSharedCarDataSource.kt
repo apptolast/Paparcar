@@ -50,6 +50,21 @@ interface RemoteSharedCarDataSource {
     )
 
     /**
+     * Takes this uid's NAME off the head of the mirror, wherever it is standing.
+     *
+     * `state/current` is not a session: it is the one document the group's card reads, and it
+     * carries two names — quien lo dejó ahí ([SharedCarStateDto.authorName]) y quién se lo llevó
+     * ([SharedCarStateDto.movedByName]). Borrar las sesiones y la ficha de miembro dejaba ese
+     * documento intacto, así que el grupo seguía leyendo «aparcado por Nacho» de alguien que ya no
+     * está. La posición NO se toca: dónde está el coche es del grupo, y borrarla dejaría al resto
+     * sin saber dónde tienen su propio coche.
+     *
+     * ⛔ Como [deleteSessionsOf], tiene que correr ANTES de borrar la ficha de miembro: escribir en
+     * `state` exige `isMember()`. [PRIV-LEAVING-A-GROUP-MUST-CLEAR-YOUR-NAME-FROM-ITS-HEAD-001]
+     */
+    suspend fun clearMemberFromState(carId: String, uid: String)
+
+    /**
      * Every session this uid signed in this group, gone.
      *
      * ⛔ Has to run BEFORE the member doc is deleted: the reading rule is `isMember()`, so a

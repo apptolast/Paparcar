@@ -6,10 +6,19 @@ import com.rndeveloper.paparcar.domain.zone.ZoneAlertSubscription
  * The server-side index of who wants to be told about which ground.
  * [ZONE-A-SPOT-TELLS-THE-SERVER-AND-THE-SERVER-TELLS-YOU-001]
  *
- * ⛔ Write-only from the app, and the security rules say so too: nobody — not even its owner — may
- * READ this collection from a client. The function queries it by `cells array-contains`, so a
- * readable index would let any signed-in user sweep a cell and pull out where their neighbours live.
- * The app never needs to read it: what it is subscribed to is in Room already.
+ * ⛔ **Un índice de dónde vive la gente no se puede barrer**, y eso es lo que protegen las reglas:
+ * la función pregunta por `cells array-contains`, así que un cliente que pudiera hacer ESA consulta
+ * sacaría las coordenadas de sus vecinos. Lo que las reglas permiten es leer **acotado al propio
+ * uid** y nada más — Firestore exige poder demostrar una consulta permitida *antes* de ejecutarla,
+ * así que `array-contains` se rechaza de plano y solo pasa `where('uid','==',<el tuyo>)`.
+ *
+ * Esa lectura acotada no es un adorno: es la que hace posible el *replace* de abajo, que tiene que
+ * saber qué filas sobran para borrarlas.
+ *
+ * ⛔ Este KDoc decía «write-only… nobody — not even its owner — may READ this collection». Era
+ * falso: lo contradicen las propias reglas y la implementación, que lee en la primera línea de
+ * `replaceAll`. Un comentario que promete una prohibición que no existe es peor que no tenerlo,
+ * porque el siguiente lector razona sobre ella.
  */
 interface ZoneAlertSubscriptionRepository : UserScopedRepository {
 
