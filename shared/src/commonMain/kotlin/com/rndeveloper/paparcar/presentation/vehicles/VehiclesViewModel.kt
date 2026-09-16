@@ -57,8 +57,12 @@ private data class VehiclesSnapshot(
     val zones: List<Zone> = emptyList(),
 )
 
-/** Las sesiones del grupo y quién no enseña su ruta, que es lo que decide cómo se convierten. */
-private data class GroupFeed(
+/** Las sesiones del grupo y quién no enseña su ruta, que es lo que decide cómo se convierten.
+ *
+ *  `internal` y no `private` porque aquí vive el invariante de que el historial de un coche
+ *  compartido SUMA lo tuyo en vez de sustituirlo, y un invariante sin test es una intención.
+ *  [VEH-SHARING-A-CAR-DOES-NOT-ERASE-ITS-PAST-001] */
+internal data class GroupFeed(
     val sessions: List<SharedCarSession>,
     val hiddenRouteAuthors: Set<String>,
 ) {
@@ -68,9 +72,37 @@ private data class GroupFeed(
         .map { it.asHistoryEntry(vehicleId, showRoute = it.authorUid !in hiddenRouteAuthors) }
         .sortedByDescending { it.location.timestamp }
 
-    /** Los viajes que TIENEN ruta y no se están enseñando — los únicos que la fila comenta. */
-    fun hiddenRouteSessionIds(): Set<String> = sessions
-        .filter { it.authorUid in hiddenRouteAuthors && routeHidden(it) }
+    /**
+     * El historial del coche: lo tuyo y lo del grupo en UNA lista.
+     * [VEH-SHARING-A-CAR-DOES-NOT-ERASE-ITS-PAST-001]
+     *
+     * ⛔ **Unión, no reemplazo.** Compartir un coche no le da una vida nueva. Esto era
+     * `groupRows ?: mine`, y el día que el dueño abría el grupo su página se quedaba en blanco
+     * —historial vacío, cifras a cero— porque el espejo nace vacío y jamás recibirá su pasado. El
+     * espejo AÑADE las sesiones de los demás; las tuyas no se van a ninguna parte.
+     *
+     * Quien se UNE sí ve poco al principio, y es correcto: no ha conducido ese coche todavía.
+     *
+     * Las tuyas ganan el desempate, y por eso van primero: una sesión propia posterior a compartir
+     * está en las dos listas con el MISMO id —el espejo copia `UserParking.id` en `sessionId`— y la
+     * local es la rica, con su provenance y su ruta, sin pasar por la lista blanca del espejo.
+     */
+    fun rowsWith(mine: List<UserParking>, vehicleId: String): List<UserParking> =
+        (mine + rows(vehicleId))
+            .distinctBy { it.id }
+            .sortedByDescending { it.location.timestamp }
+
+    /**
+     * Los viajes que TIENEN ruta y no se están enseñando — los únicos que la fila comenta.
+     *
+     * ⛔ Las MÍAS no entran, aunque yo tenga el interruptor apagado. Desde la unión de arriba mi
+     * fila viene de la copia local, que sí trae la geometría: comentarla como «ruta no compartida»
+     * la contradiría dibujando la ruta al lado. Y que las mías no viajan ya lo dice el interruptor
+     * de la sección, una vez, en vez de repetirlo en cada fila. La nota es para lo que OTROS no me
+     * enseñan. [VEH-SHARING-A-CAR-DOES-NOT-ERASE-ITS-PAST-001]
+     */
+    fun hiddenRouteSessionIds(selfUid: String?): Set<String> = sessions
+        .filter { it.authorUid != selfUid && it.authorUid in hiddenRouteAuthors && routeHidden(it) }
         .map { it.sessionId }
         .toSet()
 
@@ -192,7 +224,7 @@ class VehiclesViewModel(
                         // Quién firmó cada fila, y de quién no se dibuja la ruta: las dos cosas que
                         // una lista de varios conductores necesita para no mentir.
                         sharedAuthorByUid = members.mapNotNull { m -> m.displayName?.let { m.uid to it } }.toMap(),
-                        sharedWithheldRouteIds = feed.hiddenRouteSessionIds(),
+                        sharedWithheldRouteIds = feed.hiddenRouteSessionIds(currentUid),
                     )
                 }
             }
@@ -252,9 +284,13 @@ class VehiclesViewModel(
                         // ⛔ El historial y las cifras de un coche COMPARTIDO son los del grupo
                         // (user, 15-09) — mismas filas, mismo agregador, otra lista de origen. El
                         // filtro «solo yo» vuelve a la personal. [VEH-SHARED-001]
+                        //
+                        // «Del grupo» = las de TODOS, tuyas incluidas: `rowsWith` suma, no
+                        // sustituye. Lo contrario dejaba la página del dueño en blanco el día que
+                        // compartía. [VEH-SHARING-A-CAR-DOES-NOT-ERASE-ITS-PAST-001]
                         val groupRows = group[vId]
                             ?.takeIf { vws.vehicle.isShared && !sharedHistoryMineOnly }
-                            ?.rows(vId)
+                            ?.rowsWith(vSessions, vId)
                         vId to HistoryState(
                             timeline = HistoryTimeline.resolve(
                                 sessions = groupRows ?: vSessions,
@@ -525,10 +561,15 @@ class VehiclesViewModel(
         val vws = state.value.vehicles.firstOrNull { it.vehicle.id == vehicleId } ?: return
         val personal = state.value.historyCache[vehicleId]
         val nowMs = Clock.System.now().toEpochMilliseconds()
+        // El MISMO `rowsWith` que la emisión de arriba, y por la misma razón: «todo el grupo» son
+        // las de todos, tuyas incluidas. Aquí vivía la segunda copia del reemplazo — el chip
+        // devolvía una lista que empezaba en el día que se creó el grupo.
+        // [VEH-SHARING-A-CAR-DOES-NOT-ERASE-ITS-PAST-001]
+        val mine = personalSessions[vehicleId].orEmpty()
         val groupRows = groupFeed.value[vehicleId]
             ?.takeIf { !mineOnly }
-            ?.rows(vehicleId)
-        val source = groupRows ?: personalSessions[vehicleId].orEmpty()
+            ?.rowsWith(mine, vehicleId)
+        val source = groupRows ?: mine
         val filter = personal?.activePeriod ?: StatsPeriod.Default
         updateState {
             copy(
