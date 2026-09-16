@@ -30,6 +30,12 @@ import com.rndeveloper.paparcar.ui.theme.PaparcarType
  * The selected segment follows the house chip recipe ([chips.PaparcarFilterChip]):
  * primaryContainer fill + primary border/text — never the M3 default secondaryContainer.
  * [UI-COLOR-DOCTRINE-001]
+ *
+ * ⛔ **And without M3's check.** If the fill and the border already say which option is on — the very
+ * recipe every chip in the app is marked with — the tick is a SECOND mark for the same thing: the one
+ * house control that pointed at itself twice, and it shifted the selected segment's label relative to
+ * the others, so choosing moved the words. What is left in that slot is [optionIcon], for an option
+ * with something to SHOW that its name does not say.
  */
 @Composable
 fun <K> PapSegmentedChoice(
@@ -37,8 +43,9 @@ fun <K> PapSegmentedChoice(
     selected: K,
     onSelect: (K) -> Unit,
     modifier: Modifier = Modifier,
-    /** Drawn in M3's selection-check slot. Null keeps the check — see `SettingsScreen`'s theme row,
-     *  which paints what each option LOOKS like instead. [UI-THEME-OPTION-SHOWS-ITS-THEME-001] */
+    /** What each option shows where M3 puts its check. Null draws NOTHING — see the doctrine note
+     *  above. `SettingsScreen`'s theme row fills the slot with what each option LOOKS like.
+     *  [UI-THEME-OPTION-SHOWS-ITS-THEME-001] */
     optionIcon: @Composable ((K) -> Unit)? = null,
 ) {
     val cs = MaterialTheme.colorScheme
@@ -57,10 +64,7 @@ fun <K> PapSegmentedChoice(
                 onClick = { onSelect(key) },
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
                 colors = segmentColors,
-                icon = {
-                    if (optionIcon != null) optionIcon(key)
-                    else SegmentedButtonDefaults.Icon(active = key == selected)
-                },
+                icon = { optionIcon?.invoke(key) },
             ) {
                 Text(label, style = PaparcarType.current.label)
             }
