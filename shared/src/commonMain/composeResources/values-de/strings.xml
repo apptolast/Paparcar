@@ -928,7 +928,12 @@
     <string name="stats_empty_period">Keine Parkvorgänge in diesem Zeitraum</string>
     <string name="stats_empty_no_measured_trip">Noch keine gemessene Fahrt</string>
     <string name="stats_empty_sub">Deine Zahlen erscheinen hier, sobald wir eine Fahrt messen.</string>
-    <string name="stats_empty_turn_on_detection">Aktiviere die automatische Erkennung, damit deine Fahrten und Parkvorgänge gemessen werden.</string>
+    <string name="stats_detection_off_title">Die automatische Erkennung ist aus</string>
+    <string name="stats_detection_off_body">Solange sie aus ist, messen wir deine Fahrten nicht — diese Zahlen bleiben, wie sie sind.</string>
+    <string name="stats_detection_off_cta">Erkennung aktivieren</string>
+    <string name="stats_detection_blocked_title">Die Erkennung kann nicht laufen</string>
+    <string name="stats_detection_blocked_body">Es fehlt eine Berechtigung, also messen wir deine Fahrten nicht und diese Zahlen bleiben, wie sie sind.</string>
+    <string name="stats_detection_blocked_cta">Berechtigungen prüfen</string>
     <!-- Vehicle state line (STATS-UI-001) -->
     <string name="vehicle_state_parked">Geparkt · %1$s</string>
     <string name="vehicle_view_on_map">Auf Karte anzeigen</string>

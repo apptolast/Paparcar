@@ -927,7 +927,12 @@
     <string name="stats_empty_period">Aucun stationnement sur cette période</string>
     <string name="stats_empty_no_measured_trip">Aucun trajet mesuré pour l'instant</string>
     <string name="stats_empty_sub">Vos chiffres apparaîtront ici dès que nous mesurons un trajet.</string>
-    <string name="stats_empty_turn_on_detection">Activez la détection automatique pour que vos trajets et stationnements soient mesurés.</string>
+    <string name="stats_detection_off_title">La détection automatique est désactivée</string>
+    <string name="stats_detection_off_body">Tant qu'elle reste désactivée, nous ne mesurons pas vos trajets : ces chiffres s'arrêtent ici.</string>
+    <string name="stats_detection_off_cta">Activer la détection</string>
+    <string name="stats_detection_blocked_title">La détection ne peut pas fonctionner</string>
+    <string name="stats_detection_blocked_body">Une autorisation manque, donc nous ne mesurons pas vos trajets et ces chiffres s'arrêtent ici.</string>
+    <string name="stats_detection_blocked_cta">Vérifier les autorisations</string>
     <!-- Vehicle state line (STATS-UI-001) -->
     <string name="vehicle_state_parked">Stationné · %1$s</string>
     <string name="vehicle_view_on_map">Voir sur la carte</string>

@@ -894,7 +894,12 @@
     <string name="stats_empty_period">Geen parkeerbeurten in deze periode</string>
     <string name="stats_empty_no_measured_trip">Nog geen gemeten ritten</string>
     <string name="stats_empty_sub">Je cijfers verschijnen hier zodra we een rit meten.</string>
-    <string name="stats_empty_turn_on_detection">Zet automatische detectie aan zodat je ritten en parkeerbeurten worden gemeten.</string>
+    <string name="stats_detection_off_title">Automatische detectie staat uit</string>
+    <string name="stats_detection_off_body">Zolang die uit staat meten we je ritten niet, dus deze cijfers blijven zoals ze zijn.</string>
+    <string name="stats_detection_off_cta">Detectie aanzetten</string>
+    <string name="stats_detection_blocked_title">Detectie kan niet werken</string>
+    <string name="stats_detection_blocked_body">Er ontbreekt een toestemming, dus we meten je ritten niet en deze cijfers blijven zoals ze zijn.</string>
+    <string name="stats_detection_blocked_cta">Toestemmingen bekijken</string>
     <!-- Vehicle state line (STATS-UI-001) -->
     <string name="vehicle_state_parked">Geparkeerd · %1$s</string>
     <string name="vehicle_view_on_map">Bekijk op kaart</string>

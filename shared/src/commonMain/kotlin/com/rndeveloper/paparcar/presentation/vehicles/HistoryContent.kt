@@ -35,6 +35,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.WorkspacePremium
+import com.rndeveloper.paparcar.domain.detection.DetectionPause
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.presentation.util.distanceString
 import com.rndeveloper.paparcar.presentation.vehicles.components.ActiveSectionHeader
@@ -162,8 +163,11 @@ fun HistoryContent(
     /** Live entitlement: decides how the figures card's period is named and whether the Plus row shows.
      *  Defaults to free — the safe answer, the one that cannot hand Plus away by omission. */
     isPlus: Boolean = false,
-    /** Automatic detection is on — see [VehicleStatsBlock]'s empty card. */
-    isAutoDetectionOn: Boolean = true,
+    /** Why the next trip will not be measured — the notice over the figures. Null = it will.
+     *  [STATS-A-CHIP-YOU-CANNOT-MEASURE-MUST-NOT-REDRAW-001] */
+    detectionPause: DetectionPause? = null,
+    /** The notice's CTA. [DET-TOGGLE-001] */
+    onEnableDetection: () -> Unit = {},
     /** Tapping the figures card's Plus row. A DIFFERENT reason from the timeline footer's, so the
      *  funnel can tell which surface sold the upgrade. [STATS-UI-001] */
     onOpenStatsPaywall: () -> Unit = {},
@@ -372,7 +376,8 @@ fun HistoryContent(
                                 isPlus = isPlus,
                                 onOpenPaywall = onOpenStatsPaywall,
                                 onOpenPanel = onOpenStatsPanel,
-                                isAutoDetectionOn = isAutoDetectionOn,
+                                detectionPause = detectionPause,
+                                onEnableDetection = onEnableDetection,
                             )
                         }
                     }

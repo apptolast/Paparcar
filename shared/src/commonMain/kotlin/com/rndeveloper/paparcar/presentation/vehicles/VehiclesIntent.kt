@@ -42,6 +42,11 @@ sealed class VehiclesIntent {
     /** Plus tapping "ver desglose completo" — the panel opens on THIS car. [STATS-PANEL-001] */
     data class OpenStatsPanel(val vehicleId: String) : VehiclesIntent()
 
+    /** The CTA of the paused-detection notice over the figures. ONE action whatever is in the way:
+     *  bank the intent and open the flow that grants what is missing. [DET-TOGGLE-001]
+     *  [STATS-A-CHIP-YOU-CANNOT-MEASURE-MUST-NOT-REDRAW-001] */
+    data object EnableAutoDetection : VehiclesIntent()
+
     // ── Coche compartido [VEH-SHARED-001] ────────────────────────────────────
     // Acciones sobre un coche, no navegación: el grupo vive en la página del coche.
 

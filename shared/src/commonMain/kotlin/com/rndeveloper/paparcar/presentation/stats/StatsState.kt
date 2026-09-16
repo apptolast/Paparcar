@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.presentation.stats
 
 import androidx.compose.runtime.Immutable
+import com.rndeveloper.paparcar.domain.detection.DetectionPause
 import com.rndeveloper.paparcar.domain.fuel.FuelPrice
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.VehicleWithStats
@@ -87,8 +88,9 @@ data class StatsState(
     val lifetimeParkings: Int = 0,
     val lifetimeSpotsReleased: Int = 0,
     val isPlus: Boolean = false,
-    /** [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001] See `VehiclesState.isAutoDetectionOn`. */
-    val isAutoDetectionOn: Boolean = true,
+    /** Why the next trip will not be measured, or null when it will. See `VehiclesState`.
+     *  [STATS-A-CHIP-YOU-CANNOT-MEASURE-MUST-NOT-REDRAW-001] */
+    val detectionPause: DetectionPause? = null,
 ) {
     val isLoading: Boolean get() = vehicles == null
 

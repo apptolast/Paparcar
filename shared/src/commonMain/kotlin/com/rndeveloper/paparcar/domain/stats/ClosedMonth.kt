@@ -2,6 +2,7 @@
 
 package com.rndeveloper.paparcar.domain.stats
 
+import com.rndeveloper.paparcar.domain.entitlement.periodIsFullyVisible
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -86,12 +87,20 @@ fun previousToClosedMonthWindow(
  *
  * [visibleFromMs] is `historyVisibleFromMs(isPlus, nowMs)`: the oldest instant the user may see,
  * null when they may see everything.
+ *
+ * ⛔ The arithmetic itself is NOT here: this is `periodIsFullyVisible` with the closed month's
+ * window put into it. It was written out by hand while the period chips asked the very same
+ * question a second time and got no answer at all
+ * [STATS-A-CHIP-YOU-CANNOT-MEASURE-MUST-NOT-REDRAW-001].
  */
 fun closedMonthIsFullyVisible(
     visibleFromMs: Long?,
     nowMs: Long,
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
-): Boolean = visibleFromMs == null || visibleFromMs <= closedMonthWindow(nowMs, timeZone).startMs
+): Boolean = periodIsFullyVisible(
+    periodStartMs = closedMonthWindow(nowMs, timeZone).startMs,
+    visibleFromMs = visibleFromMs,
+)
 
 /**
  * Whether the recap is still NEWS.

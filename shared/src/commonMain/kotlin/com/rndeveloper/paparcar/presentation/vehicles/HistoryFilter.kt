@@ -2,6 +2,8 @@
 
 package com.rndeveloper.paparcar.presentation.vehicles
 
+import com.rndeveloper.paparcar.domain.entitlement.historyVisibleFromMs
+import com.rndeveloper.paparcar.domain.entitlement.periodIsFullyVisible
 import com.rndeveloper.paparcar.domain.model.UserParking
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
@@ -87,6 +89,35 @@ fun HistoryFilter.close(): PeriodClose? = when (this) {
     // end has no name because it has no date.
     HistoryFilter.Last7Days, HistoryFilter.Last3Months, HistoryFilter.All -> null
 }
+
+/**
+ * Whether THIS ACCOUNT can be answered this period — the question the chips never asked.
+ * [STATS-A-CHIP-YOU-CANNOT-MEASURE-MUST-NOT-REDRAW-001]
+ *
+ * ⛔ Not the same question as [availableFilters], and the two must never be confused: that one asks
+ * the DATA what it could show and decides which chips EXIST; this one asks the PLAN whether a chip
+ * can be honoured and decides what a tap DOES. Every chip stays on screen either way — hiding one
+ * would be a hard gate on a button [MONEY-001].
+ *
+ * A free account whose window is seven days can honour "últimos 7 días" and "esta semana" always,
+ * "este mes" only on the 1st–7th, and nothing else. Tapping any of the rest used to repaint the
+ * chart over a window the account cannot see — drawing empty buckets that read as "you did not
+ * park" rather than "this is hidden" — while the figures silently stayed on the seven days. Now the
+ * tap opens the paywall and the selection does not move, so no surface is ever scoped to a period
+ * that was never measured.
+ *
+ * ⛔ It stays TRUE while the answer is honest and not only while the plan is Plus: the day boundary
+ * moves under a selected period (a free "este mes" chosen on the 7th stops fitting at midnight on
+ * the 8th), which is why `HistoryTimeline.resolve` keeps substituting the window it really measured
+ * [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001] instead of trusting this to have been asked.
+ */
+fun HistoryFilter.isMeasurableBy(
+    isPlus: Boolean,
+    nowMs: Long = Clock.System.now().toEpochMilliseconds(),
+): Boolean = periodIsFullyVisible(
+    periodStartMs = VehicleHistoryCalculator.windowStartMs(this, nowMs),
+    visibleFromMs = historyVisibleFromMs(isPlus, nowMs),
+)
 
 /**
  * The periods this history can actually answer, in reading order.

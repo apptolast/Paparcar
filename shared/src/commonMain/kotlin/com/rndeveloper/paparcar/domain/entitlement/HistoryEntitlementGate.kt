@@ -29,6 +29,30 @@ data class GatedHistory(
 fun historyVisibleFromMs(isPlus: Boolean, nowMs: Long): Long? =
     if (isPlus) null else nowMs - FREE_HISTORY_WINDOW_DAYS * MS_PER_DAY
 
+/**
+ * Whether a period STARTING at [periodStartMs] falls entirely inside what this user may see —
+ * the one question every surface that offers a period has to ask before it answers one.
+ * [STATS-A-CHIP-YOU-CANNOT-MEASURE-MUST-NOT-REDRAW-001]
+ *
+ * [periodStartMs] null means "since forever" (the `All` filter), which only a user with no window
+ * at all can cover. [visibleFromMs] is [historyVisibleFromMs]: null = Plus, sees everything.
+ *
+ * ⛔ **Coverage of the START, not overlap.** A period that merely OVERLAPS the window is the bug
+ * this exists to stop: "this month" read through a seven-day window is not this month, it is a
+ * fragment wearing the month's name — and the figures, the chart axis and the forecast all then
+ * describe a window nobody measured.
+ *
+ * ⛔ And it is a question about the PLAN, never about whether the period would be offered: which
+ * chips the row shows is a question about the DATA
+ * [STATS-A-FILTER-THAT-CANNOT-ANSWER-IS-NOT-OFFERED-001]. Every chip stays on screen; this only
+ * decides whether tapping one answers or opens the paywall [MONEY-001].
+ */
+fun periodIsFullyVisible(periodStartMs: Long?, visibleFromMs: Long?): Boolean = when {
+    visibleFromMs == null -> true
+    periodStartMs == null -> false
+    else -> periodStartMs >= visibleFromMs
+}
+
 fun gateHistoryToEntitlement(
     sessions: List<UserParking>,
     isPlus: Boolean,

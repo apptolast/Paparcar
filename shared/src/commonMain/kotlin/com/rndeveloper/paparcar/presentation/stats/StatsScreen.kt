@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
+import com.rndeveloper.paparcar.presentation.permissions.PermissionsFocus
 import com.rndeveloper.paparcar.domain.stats.HeatMeasure
 import com.rndeveloper.paparcar.domain.stats.projectPeriod
 import com.rndeveloper.paparcar.domain.stats.projectYear
@@ -86,6 +87,9 @@ import paparcar.composeapp.generated.resources.licenses_cd_back
 fun StatsScreen(
     onNavigateBack: () -> Unit,
     onOpenPaywall: (PaywallReason) -> Unit,
+    /** The focused permissions flow — the same one Home's banner and Settings' switch open.
+     *  [DET-TOGGLE-001] */
+    onNavigateToPermissions: (PermissionsFocus) -> Unit = {},
     vehicleId: String? = null,
     viewModel: StatsViewModel = koinViewModel { parametersOf(vehicleId) },
 ) {
@@ -95,6 +99,7 @@ fun StatsScreen(
         viewModel.effect.collect { effect ->
             when (effect) {
                 is StatsEffect.NavigateToPaywall -> onOpenPaywall(effect.reason)
+                is StatsEffect.NavigateToPermissions -> onNavigateToPermissions(effect.focus)
             }
         }
     }
@@ -212,7 +217,16 @@ fun StatsContent(
                                 monthNamesShort = MONTH_SHORT_RES.map { stringResource(it) },
                                 metric = metric,
                             ),
-                            total = stats.parkings,
+                            // ⛔ The BARS' own count, never the figures'. The two are the same set
+                            // only while the selected period is the measured one, and the panel had
+                            // no guarantee of that: a free account on "este mes" got this title
+                            // counting seven days of parkings over bars drawn from the handful that
+                            // fell inside the month — a title describing a set that was not below
+                            // it, with the km qualifier beside it describing the other one. The
+                            // ficha has always passed `filteredSessions.size`; now both do.
+                            // [STATS-A-CHIP-YOU-CANNOT-MEASURE-MUST-NOT-REDRAW-001]
+                            // [ACTIVITY-CARD-TITLE-001]
+                            total = state.filteredSessions.size,
                             qualifierText = chartQualifierText(metric, state.filteredSessions),
                             metric = metric,
                             metrics = availableChartMetrics(state.filteredSessions),
@@ -243,7 +257,8 @@ fun StatsContent(
                             costPrice = state.costPrice,
                             isPlus = state.isPlus,
                             onOpenPaywall = { onIntent(StatsIntent.OpenPaywall) },
-                            isAutoDetectionOn = state.isAutoDetectionOn,
+                            detectionPause = state.detectionPause,
+                            onEnableDetection = { onIntent(StatsIntent.EnableAutoDetection) },
                         )
                     }
                 }

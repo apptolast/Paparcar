@@ -945,7 +945,12 @@
     <string name="stats_empty_period">Nicio parcare în această perioadă</string>
     <string name="stats_empty_no_measured_trip">Încă niciun drum măsurat</string>
     <string name="stats_empty_sub">Cifrele tale apar aici imediat ce măsurăm un drum.</string>
-    <string name="stats_empty_turn_on_detection">Activează detectarea automată ca să-ți măsurăm drumurile și parcările.</string>
+    <string name="stats_detection_off_title">Detectarea automată este oprită</string>
+    <string name="stats_detection_off_body">Cât timp rămâne oprită nu îți măsurăm drumurile, așa că aceste cifre rămân pe loc.</string>
+    <string name="stats_detection_off_cta">Activează detectarea</string>
+    <string name="stats_detection_blocked_title">Detectarea nu poate funcționa</string>
+    <string name="stats_detection_blocked_body">Lipsește o permisiune, așa că nu îți măsurăm drumurile și aceste cifre rămân pe loc.</string>
+    <string name="stats_detection_blocked_cta">Verifică permisiunile</string>
     <!-- Vehicle state line (STATS-UI-001) -->
     <string name="vehicle_state_parked">Parcat · %1$s</string>
     <string name="vehicle_view_on_map">Vezi pe hartă</string>

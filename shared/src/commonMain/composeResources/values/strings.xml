@@ -963,7 +963,12 @@
     <string name="stats_empty_period">No parkings in this period</string>
     <string name="stats_empty_no_measured_trip">No measured trips yet</string>
     <string name="stats_empty_sub">Your figures show up here as soon as we measure a trip.</string>
-    <string name="stats_empty_turn_on_detection">Turn on automatic detection so your trips and parkings are measured.</string>
+    <string name="stats_detection_off_title">Automatic detection is off</string>
+    <string name="stats_detection_off_body">While it stays off we don't measure your trips, so these figures stop here.</string>
+    <string name="stats_detection_off_cta">Turn on detection</string>
+    <string name="stats_detection_blocked_title">Detection can't run</string>
+    <string name="stats_detection_blocked_body">A permission is missing, so we don't measure your trips and these figures stop here.</string>
+    <string name="stats_detection_blocked_cta">Review permissions</string>
     <!-- Vehicle state line (STATS-UI-001) -->
     <string name="vehicle_state_parked">Parked · %1$s</string>
     <string name="vehicle_view_on_map">View on map</string>

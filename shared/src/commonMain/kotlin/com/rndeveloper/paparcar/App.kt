@@ -694,6 +694,11 @@ private fun MainAppNavigation(
                         onOpenStats = { vehicleId ->
                             navController.navigate("${Routes.STATS}?vehicleId=$vehicleId")
                         },
+                        // El mismo flujo enfocado que abren el banner de Home y el interruptor de
+                        // Ajustes: activar la deteccion es UNA accion. [DET-TOGGLE-001]
+                        onNavigateToPermissions = { focus ->
+                            navController.navigate("${Routes.PERMISSIONS}?focus=$focus")
+                        },
                     )
                 }
             }
@@ -706,6 +711,9 @@ private fun MainAppNavigation(
                 StatsScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onOpenPaywall = { reason -> navController.navigate("${Routes.PAYWALL}?reason=${reason.name}") },
+                    onNavigateToPermissions = { focus ->
+                        navController.navigate("${Routes.PERMISSIONS}?focus=$focus")
+                    },
                     // `read { getStringOrNull(...) }` and not Android's Bundle.getString: this
                     // graph is commonMain and compiles for iOS too.
                     vehicleId = backStack.arguments?.read { getStringOrNull("vehicleId") },

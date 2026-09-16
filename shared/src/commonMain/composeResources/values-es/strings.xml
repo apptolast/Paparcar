@@ -923,7 +923,12 @@
     <string name="stats_empty_period">Sin aparcamientos en este periodo</string>
     <string name="stats_empty_no_measured_trip">Todavía sin trayectos medidos</string>
     <string name="stats_empty_sub">Tus cifras aparecerán aquí en cuanto midamos un trayecto.</string>
-    <string name="stats_empty_turn_on_detection">Activa la detección automática para que midamos tus trayectos y aparcamientos.</string>
+    <string name="stats_detection_off_title">La detección automática está apagada</string>
+    <string name="stats_detection_off_body">Mientras siga apagada no medimos tus trayectos, así que estas cifras se quedan aquí.</string>
+    <string name="stats_detection_off_cta">Activar detección</string>
+    <string name="stats_detection_blocked_title">La detección no puede funcionar</string>
+    <string name="stats_detection_blocked_body">Le falta un permiso, así que no medimos tus trayectos y estas cifras se quedan aquí.</string>
+    <string name="stats_detection_blocked_cta">Revisar permisos</string>
     <!-- Vehicle state line (STATS-UI-001) -->
     <string name="vehicle_state_parked">Aparcado · %1$s</string>
     <string name="vehicle_view_on_map">Ver en mapa</string>

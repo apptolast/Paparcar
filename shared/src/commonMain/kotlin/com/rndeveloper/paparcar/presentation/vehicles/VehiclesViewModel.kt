@@ -7,7 +7,11 @@ import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.domain.entitlement.canAddOwnVehicle
 import com.rndeveloper.paparcar.domain.entitlement.countOwnVehicles
+import com.rndeveloper.paparcar.domain.detection.detectionPause
 import com.rndeveloper.paparcar.domain.error.PaparcarError
+import com.rndeveloper.paparcar.domain.permissions.PermissionManager
+import com.rndeveloper.paparcar.domain.permissions.missingProducerPermissions
+import com.rndeveloper.paparcar.presentation.permissions.detectionPermissionGap
 import com.rndeveloper.paparcar.domain.entitlement.canShareVehicle
 import com.rndeveloper.paparcar.domain.model.SharedCar
 import com.rndeveloper.paparcar.domain.model.SharedCarMember
@@ -30,6 +34,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
@@ -101,6 +106,9 @@ class VehiclesViewModel(
      */
     private val sharedCarRepository: SharedCarRepository,
     private val authRepository: AuthRepository,
+    /** The other half of "is detection going to measure anything": the switch says what the user
+     *  WANTS, this says whether it can run. [DET-TOGGLE-A-SWITCH-THAT-CANNOT-RUN-IS-NOT-ON-001] */
+    private val permissionManager: PermissionManager,
 ) : BaseViewModel<VehiclesState, VehiclesIntent, VehiclesEffect>() {
 
     override fun initState(): VehiclesState = VehiclesState()
@@ -129,9 +137,16 @@ class VehiclesViewModel(
         }
         observeVehicles()
         observeWatchedGroup()
-        appPreferences.observeAutoDetectParking()
-            .onEach { on -> updateState { copy(isAutoDetectionOn = on) } }
-            .catch { e -> PaparcarLogger.e(TAG, "Failed to observe the detection toggle", e) }
+        // ⛔ The INTENT and the BLOCKERS together — see the panel's twin. A switch that cannot run
+        // is not on, and the two halves need opposite remedies.
+        // [STATS-A-CHIP-YOU-CANNOT-MEASURE-MUST-NOT-REDRAW-001]
+        combine(
+            appPreferences.observeAutoDetectParking(),
+            permissionManager.permissionState,
+        ) { on, perms -> detectionPause(on, perms.missingProducerPermissions()) }
+            .distinctUntilChanged()
+            .onEach { pause -> updateState { copy(detectionPause = pause) } }
+            .catch { e -> PaparcarLogger.e(TAG, "Failed to observe the detection state", e) }
             .launchIn(viewModelScope)
     }
 
@@ -288,6 +303,14 @@ class VehiclesViewModel(
                 if (index >= 0) copy(selectedVehicleIndex = index, pendingFocusVehicleId = null)
                 else copy(pendingFocusVehicleId = intent.vehicleId)
             }
+            // [DET-TOGGLE-001] The SAME single action Home's banner and Settings' switch perform:
+            // bank the intent, and open the permissions flow when something is still in the way.
+            is VehiclesIntent.EnableAutoDetection -> {
+                appPreferences.setAutoDetectParking(true)
+                detectionPermissionGap(permissionManager.permissionState.value)?.let { gap ->
+                    sendEffect(VehiclesEffect.NavigateToPermissions(gap))
+                }
+            }
             is VehiclesIntent.EditVehicle ->
                 sendEffect(VehiclesEffect.NavigateToEditVehicle(intent.vehicleId))
             // [FREE-LIMITS-001] Soft gate at the ONE chokepoint (FAB and pill send this same
@@ -311,6 +334,14 @@ class VehiclesViewModel(
                 // sessions to filter, and must not be turned into a resolved-but-empty one.
                 val resolved = currentHistory.timeline as? HistoryTimeline.Resolved ?: return
                 val nowMs = Clock.System.now().toEpochMilliseconds()
+                // ⛔ Same gate as the panel's, from the same predicate: a period this account
+                // cannot measure opens the paywall and moves nothing. Re-resolving it would scope
+                // the chart to a window the account cannot see and leave the figures on another.
+                // [STATS-A-CHIP-YOU-CANNOT-MEASURE-MUST-NOT-REDRAW-001] [MONEY-001]
+                if (!intent.filter.isMeasurableBy(state.value.isPlus, nowMs)) {
+                    sendEffect(VehiclesEffect.NavigateToPaywall(PaywallReason.STATS))
+                    return
+                }
                 updateState {
                     val updated = currentHistory.copy(
                         // From the FULL list, never the visible one: re-gating a gated list would

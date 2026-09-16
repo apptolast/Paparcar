@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.ui.components.PapNavChevron
 import com.rndeveloper.paparcar.ui.components.PapNavChevronSize
+import com.rndeveloper.paparcar.domain.detection.DetectionPause
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.presentation.util.locationDisplayText
 import com.rndeveloper.paparcar.presentation.util.relativeTimeText
@@ -73,7 +74,9 @@ internal fun VehiclePageContent(
     historyState: HistoryState,
     isSettingActive: Boolean,
     isPlus: Boolean,
-    isAutoDetectionOn: Boolean,
+    /** Why the next trip will not be measured, or null when it will.
+     *  [STATS-A-CHIP-YOU-CANNOT-MEASURE-MUST-NOT-REDRAW-001] */
+    detectionPause: DetectionPause?,
     onRequestSetActive: () -> Unit,
     contentPadding: PaddingValues,
     onScrolledToTop: () -> Unit,
@@ -98,7 +101,8 @@ internal fun VehiclePageContent(
         onMetricSelected = { metric -> onIntent(VehiclesIntent.SetChartMetric(metric)) },
         onOpenPlusPaywall = { onIntent(VehiclesIntent.OpenPlusPaywall) },
         isPlus = isPlus,
-        isAutoDetectionOn = isAutoDetectionOn,
+        detectionPause = detectionPause,
+        onEnableDetection = { onIntent(VehiclesIntent.EnableAutoDetection) },
         onOpenStatsPaywall = { onIntent(VehiclesIntent.OpenStatsPaywall) },
         onOpenStatsPanel = { onIntent(VehiclesIntent.OpenStatsPanel(vehicleId)) },
         onScrolledToTop = onScrolledToTop,

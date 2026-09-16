@@ -927,7 +927,12 @@
     <string name="stats_empty_period">Sem estacionamentos neste período</string>
     <string name="stats_empty_no_measured_trip">Ainda sem viagens medidas</string>
     <string name="stats_empty_sub">Os teus números aparecem aqui assim que medirmos uma viagem.</string>
-    <string name="stats_empty_turn_on_detection">Ativa a deteção automática para medirmos as tuas viagens e estacionamentos.</string>
+    <string name="stats_detection_off_title">A deteção automática está desligada</string>
+    <string name="stats_detection_off_body">Enquanto estiver desligada não medimos as tuas viagens, por isso estes números ficam por aqui.</string>
+    <string name="stats_detection_off_cta">Ativar deteção</string>
+    <string name="stats_detection_blocked_title">A deteção não pode funcionar</string>
+    <string name="stats_detection_blocked_body">Falta uma permissão, por isso não medimos as tuas viagens e estes números ficam por aqui.</string>
+    <string name="stats_detection_blocked_cta">Rever permissões</string>
     <!-- Vehicle state line (STATS-UI-001) -->
     <string name="vehicle_state_parked">Estacionado · %1$s</string>
     <string name="vehicle_view_on_map">Ver no mapa</string>

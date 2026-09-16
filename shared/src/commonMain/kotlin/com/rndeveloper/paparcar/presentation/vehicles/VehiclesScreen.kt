@@ -66,6 +66,7 @@ import com.rndeveloper.paparcar.domain.model.displayName
 import com.rndeveloper.paparcar.domain.model.monitoringStatus
 import com.rndeveloper.paparcar.ui.components.PapCollapsingTopBarScaffold
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
+import com.rndeveloper.paparcar.presentation.permissions.PermissionsFocus
 import com.rndeveloper.paparcar.presentation.vehicles.components.PapVehicleSelectorPill
 import com.rndeveloper.paparcar.presentation.vehicles.components.VEHICLE_PILL_HEIGHT_DP
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
@@ -124,6 +125,9 @@ fun VehiclesScreen(
     onOpenPaywall: (PaywallReason) -> Unit = {},
     /** Plus opening the full figures panel on a given car. [STATS-PANEL-001] */
     onOpenStats: (vehicleId: String) -> Unit = {},
+    /** The focused permissions flow — the same one Home's banner and Settings' switch open.
+     *  [DET-TOGGLE-001] */
+    onNavigateToPermissions: (PermissionsFocus) -> Unit = {},
     /** Which car to open on, when the screen was entered FROM that car ("Ver vehículo" in Home's
      *  parking modal). Null on a plain tab tap, which keeps whatever was selected.
      *  [UI-A-PARKED-CARD-OFFERS-THE-WAY-ACROSS-001] */
@@ -147,6 +151,7 @@ fun VehiclesScreen(
                 is VehiclesEffect.NavigateToLiveParking -> onNavigateToLiveParking(effect.sessionId)
                 is VehiclesEffect.NavigateToPaywall -> onOpenPaywall(effect.reason)
                 is VehiclesEffect.NavigateToStats -> onOpenStats(effect.vehicleId)
+                is VehiclesEffect.NavigateToPermissions -> onNavigateToPermissions(effect.focus)
                 is VehiclesEffect.ShowError -> snackbarHostState.showSnackbar(errorFallback)
             }
         }
@@ -304,7 +309,7 @@ private fun VehiclesPager(
                 historyState = pageHistoryState,
                 isSettingActive = state.settingActiveVehicleId == vehicleWithStats.vehicle.id,
                 isPlus = state.isPlus,
-                isAutoDetectionOn = state.isAutoDetectionOn,
+                detectionPause = state.detectionPause,
                 onRequestSetActive = { pendingSetActive = vehicleWithStats.vehicle },
                 contentPadding = contentPadding,
                 onScrolledToTop = onScrolledToTop,

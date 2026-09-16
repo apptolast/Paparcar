@@ -74,6 +74,7 @@ import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.Zone
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.homeSheetItems
 import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.domain.model.SpotType
+import com.rndeveloper.paparcar.domain.detection.DetectionPause
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Zone
 import com.rndeveloper.paparcar.domain.stats.HeatMeasure
@@ -528,6 +529,9 @@ private fun statsPanelState(
     sessions: List<UserParking> = FakeData.allSessions,
     vehiclesOverride: List<VehicleWithStats>? = null,
     zones: List<Zone> = emptyList(),
+    /** Por que la deteccion no va a medir el proximo viaje; null = si va a medirlo.
+     *  [STATS-A-CHIP-YOU-CANNOT-MEASURE-MUST-NOT-REDRAW-001] */
+    detectionPause: DetectionPause? = null,
 ): StatsState {
     val vehicles = vehiclesOverride ?: FakeData.vehiclesWithStats
     // Las sesiones de FakeData nacen sin vehicleId, y sin coche el agregador no puede convertir
@@ -561,6 +565,7 @@ private fun statsPanelState(
         lifetimeParkings = resolved.lifetimeParkings,
         lifetimeSpotsReleased = resolved.lifetimeSpotsReleased,
         isPlus = isPlus,
+        detectionPause = detectionPause,
     )
 }
 
@@ -574,6 +579,7 @@ private fun vehiclesHistoryCache(sessions: List<UserParking>) =
 private fun history(
     state: HistoryState,
     isPlus: Boolean = true,
+    detectionPause: DetectionPause? = null,
 ) {
     HistoryContent(
         state = state,
@@ -586,6 +592,7 @@ private fun history(
         // era dejar la fila sin vigilar. [DEV-A-GALLERY-VARIANT-MUST-EXERCISE-ITS-CASE-001]
         onOpenStatsPanel = {},
         isPlus = isPlus,
+        detectionPause = detectionPause,
     )
 }
 
@@ -2012,6 +2019,37 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     onIntent = {},
                 )
             },
+            // ⛔ Las dos poblaciones que NO estan midiendo, y que necesitan remedios opuestos: una
+            // apaga el interruptor, a la otra le falta un permiso y darle un interruptor no le
+            // arregla nada. El aviso va ENCIMA de las cifras sin taparlas — quien lo lee tiene
+            // cifras de cuando la deteccion si corria.
+            // [STATS-A-CHIP-YOU-CANNOT-MEASURE-MUST-NOT-REDRAW-001]
+            Variant("Deteccion apagada · las cifras no crecen") {
+                StatsContent(
+                    state = statsPanelState(detectionPause = DetectionPause.TURNED_OFF),
+                    onNavigateBack = {},
+                    onIntent = {},
+                )
+            },
+            Variant("Deteccion bloqueada · falta un permiso") {
+                StatsContent(
+                    state = statsPanelState(detectionPause = DetectionPause.MISSING_PERMISSIONS),
+                    onNavigateBack = {},
+                    onIntent = {},
+                )
+            },
+            // ⛔ Y el aviso sobre la card VACIA, que es el otro sitio donde aparece: sin cifras que
+            // respetar, el aviso y el estado vacio tienen que leerse como una sola frase.
+            Variant("Deteccion apagada · sin cifras todavia") {
+                StatsContent(
+                    state = statsPanelState(
+                        sessions = listOf(FakeData.activeSession),
+                        detectionPause = DetectionPause.TURNED_OFF,
+                    ),
+                    onNavigateBack = {},
+                    onIntent = {},
+                )
+            },
             // Un enchufable es el UNICO caso que enciende los dos tiles de consumo a la vez, y no
             // habia ninguno en los fakes (gasolina, hibrido, gasolina, diesel). Sin esta variante,
             // el tile de kWh no se veria nunca en la galeria.
@@ -2226,6 +2264,15 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Lista · coche sin vigilancia (gris)") {
                 history(
                     HistoryState(timeline = resolvedHistory(FakeData.allSessions)),
+                )
+            },
+            // El aviso de deteccion pausada tambien vive en la FICHA, encima de las cifras: es el
+            // mismo bloque, y una variante solo en el panel dejaria sin vigilar la mitad de sus
+            // sitios. [STATS-A-CHIP-YOU-CANNOT-MEASURE-MUST-NOT-REDRAW-001]
+            Variant("Cifras · deteccion apagada") {
+                history(
+                    HistoryState(timeline = resolvedHistory(FakeData.allSessions)),
+                    detectionPause = DetectionPause.TURNED_OFF,
                 )
             },
             Variant("Filtro: esta semana") {

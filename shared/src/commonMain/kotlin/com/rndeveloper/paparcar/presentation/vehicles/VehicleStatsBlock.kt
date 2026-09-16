@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,6 +21,7 @@ import androidx.compose.material.icons.rounded.HourglassBottom
 import androidx.compose.material.icons.rounded.Payments
 import androidx.compose.material.icons.rounded.Place
 import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.SensorsOff
 import androidx.compose.material.icons.rounded.TravelExplore
 import androidx.compose.material.icons.rounded.VolunteerActivism
 import androidx.compose.material.icons.rounded.WorkspacePremium
@@ -32,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.rndeveloper.paparcar.domain.detection.DetectionPause
 import com.rndeveloper.paparcar.domain.entitlement.FREE_HISTORY_WINDOW_DAYS
 import com.rndeveloper.paparcar.domain.fuel.FuelPrice
 import com.rndeveloper.paparcar.domain.stats.PeriodStats
@@ -41,9 +44,15 @@ import com.rndeveloper.paparcar.presentation.util.durationText
 import com.rndeveloper.paparcar.presentation.util.formatHourBucket
 import com.rndeveloper.paparcar.presentation.util.fuelPriceNoteText
 import com.rndeveloper.paparcar.presentation.util.statDelta
+import com.rndeveloper.paparcar.ui.components.PapButtonSize
 import com.rndeveloper.paparcar.ui.components.PapDivider
+import com.rndeveloper.paparcar.ui.components.PapIconTile
+import com.rndeveloper.paparcar.ui.components.PapIconTileSize
+import com.rndeveloper.paparcar.ui.components.PapListItem
+import com.rndeveloper.paparcar.ui.components.PapListItemGap
 import com.rndeveloper.paparcar.ui.components.PapNavChevron
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
+import com.rndeveloper.paparcar.ui.components.PapPrimaryButton
 import com.rndeveloper.paparcar.ui.components.PapPremiumEmphasis
 import com.rndeveloper.paparcar.ui.components.PapPremiumSurface
 import com.rndeveloper.paparcar.ui.components.PapStatDelta
@@ -54,7 +63,12 @@ import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
-import paparcar.composeapp.generated.resources.stats_empty_turn_on_detection
+import paparcar.composeapp.generated.resources.stats_detection_blocked_body
+import paparcar.composeapp.generated.resources.stats_detection_blocked_cta
+import paparcar.composeapp.generated.resources.stats_detection_blocked_title
+import paparcar.composeapp.generated.resources.stats_detection_off_body
+import paparcar.composeapp.generated.resources.stats_detection_off_cta
+import paparcar.composeapp.generated.resources.stats_detection_off_title
 import paparcar.composeapp.generated.resources.stats_empty_sub
 import paparcar.composeapp.generated.resources.stats_empty_period
 import paparcar.composeapp.generated.resources.stats_empty_first_trip
@@ -137,9 +151,11 @@ internal fun VehicleStatsBlock(
     /** Opens the full panel. Null where the block IS the panel — a card does not link to itself.
      *  [STATS-PANEL-001] */
     onOpenPanel: (() -> Unit)? = null,
-    /** Automatic detection is switched on — the empty card only asks to turn it on when it is not.
-     *  [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001] */
-    isAutoDetectionOn: Boolean = true,
+    /** Why the next trip will not be measured, or null when it will. The notice above the figures.
+     *  [STATS-A-CHIP-YOU-CANNOT-MEASURE-MUST-NOT-REDRAW-001] */
+    detectionPause: DetectionPause? = null,
+    /** The notice's CTA. [DET-TOGGLE-001] */
+    onEnableDetection: () -> Unit = {},
 ) {
     // [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001] A period with nothing MEASURED in it has no
     // figures to show — only "0 spots shared", which reads as a verdict on a car that simply has not
@@ -151,18 +167,29 @@ internal fun VehicleStatsBlock(
     // very zero this ticket exists to remove, because SPOTS_SHARED is added unconditionally. What
     // makes a card is a figure somebody measured; a lone "0 spots shared" is not one.
     if (!hasMeasuredFigures(stats)) {
-        EmptyStatsCard(
-            periodLabel = periodLabel,
-            neverParked = lifetimeParkings == 0,
-            parkedInPeriod = stats.parkings > 0,
-            isAutoDetectionOn = isAutoDetectionOn,
-            modifier = modifier,
-        )
+        Column(
+            modifier = modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(PLUS_ROW_GAP_DP.dp),
+        ) {
+            DetectionPausedCard(pause = detectionPause, onEnable = onEnableDetection)
+            EmptyStatsCard(
+                periodLabel = periodLabel,
+                neverParked = lifetimeParkings == 0,
+                parkedInPeriod = stats.parkings > 0,
+            )
+        }
         return
     }
     val tiles = statTiles(stats)
 
     Column(modifier = modifier.fillMaxWidth()) {
+        // ⛔ ABOVE the figures and OUTSIDE their card, never over them. Whoever is reading this has
+        // figures worth reading — they were measured back when detection ran — so covering them
+        // would take away the very thing they opened the screen for. What the notice adds is the
+        // one fact the numbers cannot carry: that they have stopped growing.
+        // [STATS-A-CHIP-YOU-CANNOT-MEASURE-MUST-NOT-REDRAW-001]
+        DetectionPausedCard(pause = detectionPause, onEnable = onEnableDetection)
+        if (detectionPause != null) Spacer(Modifier.height(PLUS_ROW_GAP_DP.dp))
         PapOutlinedCard(modifier = Modifier.fillMaxWidth(), shape = PapShapes.card) {
             Column {
                 // Same role and same rhythm as the chart card's title — the two cards are siblings.
@@ -299,13 +326,72 @@ private fun StatTileGrid(tiles: List<StatTileData>) {
  *   the sentence cannot be picked by `neverParked` alone: telling someone who parked yesterday that
  *   there are «no parkings in this period» is a lie the card would be making about its own data.
  */
+/**
+ * The notice that says the figures have stopped growing, and offers the one action that restarts
+ * them. Renders nothing while detection is measuring. [STATS-A-CHIP-YOU-CANNOT-MEASURE-MUST-NOT-REDRAW-001]
+ *
+ * ⛔ **Two texts, because there are two populations with opposite remedies** — see [DetectionPause].
+ * "Turn it on" said to somebody whose switch is already on, and whose background location is what
+ * lapsed, is an instruction that cannot be followed.
+ *
+ * ⛔ **Not a danger card.** Nothing is broken or being destroyed: red is this app's destructive
+ * tone and never a CTA's [UI-COLOR-DOCTRINE-001]. The same outlined card the figures use, with the
+ * glyph Settings already spends on a detection switch that is off.
+ *
+ * ⛔ The CTA gets its OWN line rather than the row's trailing slot: it is a two-to-three word phrase
+ * in all nine locales, and a trailing child measures BEFORE the weighted text column — it would
+ * starve the copy instead of shrinking. Measured in [UI-LIST-ITEM-001]; the first-steps card
+ * carries the same shape, and the indent is READ from the tile so both stay lined up.
+ */
+@Composable
+private fun DetectionPausedCard(pause: DetectionPause?, onEnable: () -> Unit) {
+    if (pause == null) return
+    PapOutlinedCard(modifier = Modifier.fillMaxWidth(), shape = PapShapes.card) {
+        Column {
+            PapListItem(
+                title = stringResource(
+                    when (pause) {
+                        DetectionPause.TURNED_OFF -> Res.string.stats_detection_off_title
+                        DetectionPause.MISSING_PERMISSIONS -> Res.string.stats_detection_blocked_title
+                    },
+                ),
+                subtitle = stringResource(
+                    when (pause) {
+                        DetectionPause.TURNED_OFF -> Res.string.stats_detection_off_body
+                        DetectionPause.MISSING_PERMISSIONS -> Res.string.stats_detection_blocked_body
+                    },
+                ),
+                leading = { PapIconTile(icon = Icons.Rounded.SensorsOff) },
+                contentPadding = PaddingValues(
+                    horizontal = PAUSE_H_PAD_DP.dp,
+                    vertical = PAUSE_V_PAD_DP.dp,
+                ),
+            )
+            PapPrimaryButton(
+                label = stringResource(
+                    when (pause) {
+                        DetectionPause.TURNED_OFF -> Res.string.stats_detection_off_cta
+                        DetectionPause.MISSING_PERMISSIONS -> Res.string.stats_detection_blocked_cta
+                    },
+                ),
+                onClick = onEnable,
+                size = PapButtonSize.Compact,
+                modifier = Modifier.padding(
+                    start = PAUSE_H_PAD_DP.dp + PapIconTileSize + PapListItemGap,
+                    end = PAUSE_H_PAD_DP.dp,
+                    bottom = PAUSE_V_PAD_DP.dp,
+                ),
+            )
+        }
+    }
+}
+
 @Composable
 private fun EmptyStatsCard(
     periodLabel: String,
     neverParked: Boolean,
     /** At least one session falls in this period, measured or not. */
     parkedInPeriod: Boolean,
-    isAutoDetectionOn: Boolean,
     modifier: Modifier = Modifier,
 ) {
     PapOutlinedCard(modifier = modifier.fillMaxWidth(), shape = PapShapes.card) {
@@ -335,10 +421,13 @@ private fun EmptyStatsCard(
                     style = PaparcarType.current.rowTitle,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
+                // ⛔ One line, not two. It used to swap itself for "activa la detección automática"
+                // when the switch was off — a remedy written as prose, on the one card that could
+                // never show it to somebody who already HAS figures. The remedy now lives above,
+                // in a notice with a button, for everyone; this line went back to saying the one
+                // thing it is for. [STATS-A-CHIP-YOU-CANNOT-MEASURE-MUST-NOT-REDRAW-001]
                 Text(
-                    text = stringResource(
-                        if (isAutoDetectionOn) Res.string.stats_empty_sub else Res.string.stats_empty_turn_on_detection,
-                    ),
+                    text = stringResource(Res.string.stats_empty_sub),
                     style = PaparcarType.current.caption,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -727,5 +816,9 @@ private const val LIFETIME_V_PAD_DP = 11
 private const val PANEL_ROW_H_PAD_DP = 14
 private const val PANEL_ROW_V_PAD_DP = 13
 private const val PLUS_ROW_GAP_DP = 12
+// The paused-detection notice keeps the figures card's own rhythm — it is a sibling card, not a
+// banner bolted on top.
+private const val PAUSE_H_PAD_DP = 14
+private const val PAUSE_V_PAD_DP = 12
 private const val PLUS_ROW_PAD_DP = 14
 private const val PLUS_MARK_DP = 24

@@ -17,4 +17,9 @@ sealed class StatsIntent {
 
     /** The Plus row under the panel — choosing any period. [STATS-PANEL-001] */
     data object OpenPaywall : StatsIntent()
+
+    /** The CTA of the paused-detection notice. ONE action whatever is in the way: bank the intent
+     *  and open the flow that grants what is missing. [DET-TOGGLE-001]
+     *  [STATS-A-CHIP-YOU-CANNOT-MEASURE-MUST-NOT-REDRAW-001] */
+    data object EnableAutoDetection : StatsIntent()
 }

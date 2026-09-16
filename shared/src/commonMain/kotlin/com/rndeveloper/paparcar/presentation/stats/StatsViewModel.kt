@@ -3,7 +3,11 @@
 package com.rndeveloper.paparcar.presentation.stats
 
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
+import com.rndeveloper.paparcar.domain.detection.detectionPause
 import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
+import com.rndeveloper.paparcar.domain.permissions.PermissionManager
+import com.rndeveloper.paparcar.domain.permissions.missingProducerPermissions
+import com.rndeveloper.paparcar.presentation.permissions.detectionPermissionGap
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.Zone
@@ -21,10 +25,12 @@ import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import com.rndeveloper.paparcar.presentation.base.BaseViewModel
 import com.rndeveloper.paparcar.presentation.vehicles.HistoryFilter
 import com.rndeveloper.paparcar.presentation.vehicles.availableFilters
+import com.rndeveloper.paparcar.presentation.vehicles.isMeasurableBy
 import com.rndeveloper.paparcar.presentation.vehicles.resolveChartMetric
 import com.rndeveloper.paparcar.presentation.vehicles.HistoryTimeline
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlin.time.Clock
@@ -53,6 +59,9 @@ class StatsViewModel(
     private val resolveFuelPrice: ResolveFuelPriceUseCase,
     /** Read for the detection toggle only. [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001] */
     private val appPreferences: AppPreferences,
+    /** The other half of "is detection going to measure anything": the switch says what the user
+     *  WANTS, this says whether it can run. [DET-TOGGLE-A-SWITCH-THAT-CANNOT-RUN-IS-NOT-ON-001] */
+    private val permissionManager: PermissionManager,
     /** Which car the ficha was showing when the panel was opened; null = the active one. */
     private val initialVehicleId: String? = null,
 ) : BaseViewModel<StatsState, StatsIntent, StatsEffect>() {
@@ -67,9 +76,19 @@ class StatsViewModel(
 
     init {
         observeData()
-        appPreferences.observeAutoDetectParking()
-            .onEach { on -> updateState { copy(isAutoDetectionOn = on) } }
-            .catch { e -> PaparcarLogger.e(TAG, "Failed to observe the detection toggle", e) }
+        // ⛔ The INTENT and the BLOCKERS together, never the switch alone. A user whose background
+        // location lapsed has detection "on" and measures nothing, which is the same silence as
+        // having turned it off and needs the opposite remedy — so the notice reads the verdict that
+        // already tells those two populations apart.
+        // [STATS-A-CHIP-YOU-CANNOT-MEASURE-MUST-NOT-REDRAW-001]
+        // [DET-TOGGLE-A-SWITCH-THAT-CANNOT-RUN-IS-NOT-ON-001]
+        combine(
+            appPreferences.observeAutoDetectParking(),
+            permissionManager.permissionState,
+        ) { on, perms -> detectionPause(on, perms.missingProducerPermissions()) }
+            .distinctUntilChanged()
+            .onEach { pause -> updateState { copy(detectionPause = pause) } }
+            .catch { e -> PaparcarLogger.e(TAG, "Failed to observe the detection state", e) }
             .launchIn(viewModelScope)
     }
 
@@ -122,9 +141,24 @@ class StatsViewModel(
                 copy(selectedVehicleIndex = index)
                     .withResolvedStats(vehicles?.getOrNull(index)?.vehicle, filter, isPlus)
             }
-            is StatsIntent.SetFilter -> updateState {
-                copy(filter = intent.filter)
-                    .withResolvedStats(selectedVehicle?.vehicle, intent.filter, isPlus)
+            // ⛔ A period this account cannot measure does not repaint anything: it opens the
+            // paywall and the selection stays where it was.
+            // [STATS-A-CHIP-YOU-CANNOT-MEASURE-MUST-NOT-REDRAW-001]
+            //
+            // This used to re-resolve unconditionally, which is why a free account tapping "este
+            // mes" got a month-wide chart axis with at most seven days of bars in it — a hidden
+            // window drawn as an empty one — while the tiles beside it never moved. The soft gate
+            // is the honest version of the same tap: the chip is still there, still pressable, and
+            // what it now does is say why [MONEY-001].
+            is StatsIntent.SetFilter -> {
+                if (!intent.filter.isMeasurableBy(state.value.isPlus)) {
+                    sendEffect(StatsEffect.NavigateToPaywall(PaywallReason.STATS))
+                    return
+                }
+                updateState {
+                    copy(filter = intent.filter)
+                        .withResolvedStats(selectedVehicle?.vehicle, intent.filter, isPlus)
+                }
             }
             // The period can take the data out from under a metric (a week with no measured
             // route), so the choice is re-resolved against what the period HAS before it is stored.
@@ -136,6 +170,16 @@ class StatsViewModel(
             is StatsIntent.SetHeatMeasure -> updateState { copy(heatMeasure = intent.measure) }
             is StatsIntent.OpenPaywall ->
                 sendEffect(StatsEffect.NavigateToPaywall(PaywallReason.STATS))
+            // [DET-TOGGLE-001] The SAME single action Home's banner and Settings' switch perform:
+            // bank the intent, and open the permissions flow when something is still in the way.
+            // A CTA that only flipped the flag would look like it did nothing on the very account
+            // this notice exists for — the one whose permissions are the blocker.
+            is StatsIntent.EnableAutoDetection -> {
+                appPreferences.setAutoDetectParking(true)
+                detectionPermissionGap(permissionManager.permissionState.value)?.let { gap ->
+                    sendEffect(StatsEffect.NavigateToPermissions(gap))
+                }
+            }
         }
     }
 

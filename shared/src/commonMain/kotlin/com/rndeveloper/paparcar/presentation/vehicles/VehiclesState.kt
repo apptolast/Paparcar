@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.presentation.vehicles
 
 import androidx.compose.runtime.Immutable
+import com.rndeveloper.paparcar.domain.detection.DetectionPause
 import com.rndeveloper.paparcar.domain.model.SharedCar
 import com.rndeveloper.paparcar.domain.model.SharedCarMember
 import com.rndeveloper.paparcar.domain.model.Vehicle
@@ -21,9 +22,16 @@ data class VehiclesState(
     val historyCache: Map<String, HistoryState> = emptyMap(),
     /** Live Plus entitlement — what SetHistoryFilter re-resolves the timeline with. [MONEY-001] */
     val isPlus: Boolean = false,
-    /** Automatic detection switched on in Settings — the empty figures card asks for it otherwise.
-     *  [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001] */
-    val isAutoDetectionOn: Boolean = true,
+    /**
+     * Why the next trip will NOT be measured, or null when it will — what the notice above the
+     * figures says out loud. [STATS-A-CHIP-YOU-CANNOT-MEASURE-MUST-NOT-REDRAW-001]
+     *
+     * ⛔ It replaced a plain `isAutoDetectionOn`, which was the stored INTENT and therefore said
+     * "detection is on" for an account whose background location had lapsed — an account measuring
+     * exactly nothing, and the one that most needed telling.
+     * [DET-TOGGLE-A-SWITCH-THAT-CANNOT-RUN-IS-NOT-ON-001]
+     */
+    val detectionPause: DetectionPause? = null,
     // ── Coche compartido [VEH-SHARED-001] ────────────────────────────────────
     // ⛔ No hay pantalla de grupo: un coche compartido es un coche más del pager, y lo que el
     // grupo añade vive en una sección DENTRO de su página (decisión del user, 15-09).

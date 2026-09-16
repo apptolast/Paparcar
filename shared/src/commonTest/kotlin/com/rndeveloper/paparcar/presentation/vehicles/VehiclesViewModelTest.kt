@@ -85,6 +85,10 @@ class VehiclesViewModelTest {
                     userId = "user-1", email = null, displayName = null, photoUrl = null,
                 ),
             ),
+            // Todo concedido: estos casos no van de permisos, y un fake que los negara pondría el
+            // aviso de detección pausada sobre las cifras de cada uno.
+            // [STATS-A-CHIP-YOU-CANNOT-MEASURE-MUST-NOT-REDRAW-001]
+            com.rndeveloper.paparcar.fakes.data.repository.FakePermissionManager(),
         )
     }
 
@@ -179,6 +183,41 @@ class VehiclesViewModelTest {
         assertEquals(1, timeline.hiddenOlderCount, "the footer must be able to count what is beyond")
         // The FULL list stays underneath, intact: losing Plus filters, never deletes.
         assertEquals(2, timeline.sessions.size)
+    }
+
+    /**
+     * The ficha's half of the chip gate — the same predicate, the same refusal to repaint.
+     * [STATS-A-CHIP-YOU-CANNOT-MEASURE-MUST-NOT-REDRAW-001]
+     */
+    @Test
+    fun `should_openThePaywallAndKeepTheChip_when_freeTapsAPeriodItCannotMeasure`() = runTest {
+        entitlementRepo.emitEntitlement(com.rndeveloper.paparcar.domain.model.Entitlement.FREE)
+        vehicleRepo.saveVehicle(vehicle("v1"))
+        parkingRepo.saveNewParkingSession(session("s-ancient", "v1"))
+        val before = vm.state.value.historyState.activeFilter
+
+        vm.effect.test {
+            vm.handleIntent(VehiclesIntent.SetHistoryFilter(HistoryFilter.ThisYear))
+            assertEquals(
+                VehiclesEffect.NavigateToPaywall(
+                    com.rndeveloper.paparcar.domain.entitlement.PaywallReason.STATS,
+                ),
+                awaitItem(),
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(before, vm.state.value.historyState.activeFilter, "the lit chip does not move")
+    }
+
+    @Test
+    fun `should_rescopeTheChart_when_freeTapsAPeriodInsideItsWindow`() = runTest {
+        entitlementRepo.emitEntitlement(com.rndeveloper.paparcar.domain.model.Entitlement.FREE)
+        vehicleRepo.saveVehicle(vehicle("v1"))
+        parkingRepo.saveNewParkingSession(session("s-ancient", "v1"))
+
+        vm.handleIntent(VehiclesIntent.SetHistoryFilter(HistoryFilter.ThisWeek))
+
+        assertEquals(HistoryFilter.ThisWeek, vm.state.value.historyState.activeFilter)
     }
 
     @Test

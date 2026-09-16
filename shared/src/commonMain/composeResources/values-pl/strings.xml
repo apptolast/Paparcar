@@ -949,7 +949,12 @@
     <string name="stats_empty_period">Brak parkowań w tym okresie</string>
     <string name="stats_empty_no_measured_trip">Brak zmierzonych przejazdów</string>
     <string name="stats_empty_sub">Twoje liczby pojawią się tu, gdy tylko zmierzymy przejazd.</string>
-    <string name="stats_empty_turn_on_detection">Włącz automatyczne wykrywanie, aby mierzyć twoje przejazdy i parkowania.</string>
+    <string name="stats_detection_off_title">Automatyczne wykrywanie jest wyłączone</string>
+    <string name="stats_detection_off_body">Dopóki jest wyłączone, nie mierzymy twoich przejazdów, więc te liczby się nie zmienią.</string>
+    <string name="stats_detection_off_cta">Włącz wykrywanie</string>
+    <string name="stats_detection_blocked_title">Wykrywanie nie może działać</string>
+    <string name="stats_detection_blocked_body">Brakuje uprawnienia, więc nie mierzymy twoich przejazdów i te liczby się nie zmienią.</string>
+    <string name="stats_detection_blocked_cta">Sprawdź uprawnienia</string>
     <!-- Vehicle state line (STATS-UI-001) -->
     <string name="vehicle_state_parked">Zaparkowany · %1$s</string>
     <string name="vehicle_view_on_map">Pokaż na mapie</string>

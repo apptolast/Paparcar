@@ -81,10 +81,18 @@ enum class DetectionStateLabel(val wire: String) {
  *     and counting their missing permissions would inflate the very number this measures.
  *  2. A missing permission beats a reliability warning — a hard blocker outranks a degradation,
  *     the same order `SettingsState.detectionReliabilityReduced` already uses.
+ *
+ * ⛔ The first two steps are [detectionPause] and not a `when` of their own: the stats surfaces ask
+ * the very same question to decide whether to tell the user their figures have stopped growing
+ * [STATS-A-CHIP-YOU-CANNOT-MEASURE-MUST-NOT-REDRAW-001], and two ladders over one fact drift.
  */
-fun DetectionStateSnapshot.label(): DetectionStateLabel = when {
-    !autoDetectParking -> DetectionStateLabel.OFF_BY_USER
-    blockers.isNotEmpty() -> DetectionStateLabel.BLOCKED_PERMISSIONS
-    reliabilityReduced -> DetectionStateLabel.REDUCED_RELIABILITY
-    else -> DetectionStateLabel.ON
-}
+fun DetectionStateSnapshot.label(): DetectionStateLabel =
+    when (detectionPause(autoDetectParking, blockers)) {
+        DetectionPause.TURNED_OFF -> DetectionStateLabel.OFF_BY_USER
+        DetectionPause.MISSING_PERMISSIONS -> DetectionStateLabel.BLOCKED_PERMISSIONS
+        null -> if (reliabilityReduced) {
+            DetectionStateLabel.REDUCED_RELIABILITY
+        } else {
+            DetectionStateLabel.ON
+        }
+    }

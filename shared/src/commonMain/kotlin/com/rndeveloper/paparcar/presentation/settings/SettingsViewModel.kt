@@ -5,7 +5,6 @@ import com.rndeveloper.paparcar.core.crash.CrashReporter
 import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.permissions.PermissionManager
-import com.rndeveloper.paparcar.domain.permissions.missingCorePermissions
 import com.rndeveloper.paparcar.domain.permissions.missingPermissions
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.repository.UserProfileRepository
@@ -19,6 +18,7 @@ import com.rndeveloper.paparcar.domain.usecase.user.SetFirstStepsDismissedUseCas
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import com.rndeveloper.paparcar.presentation.base.BaseViewModel
 import com.rndeveloper.paparcar.presentation.permissions.PermissionsFocus
+import com.rndeveloper.paparcar.presentation.permissions.detectionPermissionGap
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -290,15 +290,8 @@ class SettingsViewModel(
      * detection cannot run, which must land in the same place.
      * [DET-TOGGLE-A-SWITCH-THAT-CANNOT-RUN-IS-NOT-ON-001]
      */
-    private fun detectionGapFocus(): PermissionsFocus? {
-        val perms = permissionManager.permissionState.value
-        return when {
-            perms.missingCorePermissions().isNotEmpty() || !perms.isLocationServicesEnabled ->
-                PermissionsFocus.Core
-            perms.missingPermissions().isNotEmpty() -> PermissionsFocus.Producer
-            else -> null
-        }
-    }
+    private fun detectionGapFocus(): PermissionsFocus? =
+        detectionPermissionGap(permissionManager.permissionState.value)
 
     /** The consent dialog stays up (with progress) until the upload resolves, so the user never
      *  wonders whether the tap did anything. [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001] */

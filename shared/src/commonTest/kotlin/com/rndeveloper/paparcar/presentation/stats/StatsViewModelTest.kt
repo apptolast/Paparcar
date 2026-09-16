@@ -70,6 +70,10 @@ class StatsViewModelTest {
     private fun viewModel(
         initialVehicleId: String? = null,
         entitlement: Entitlement = Entitlement.PLUS,
+        prefs: com.rndeveloper.paparcar.fakes.FakeAppPreferences =
+            com.rndeveloper.paparcar.fakes.FakeAppPreferences(),
+        permissions: com.rndeveloper.paparcar.domain.permissions.PermissionManager =
+            com.rndeveloper.paparcar.fakes.data.repository.FakePermissionManager(),
     ) = StatsViewModel(
         vehicleRepository = vehicleRepo,
         userParkingRepository = parkingRepo,
@@ -78,7 +82,8 @@ class StatsViewModelTest {
         // The offline ladder: averages from the binary, no network. What every screen falls back
         // to anyway. [FUEL-NATIONAL-AVERAGE-FROM-OPENVAN-001]
         resolveFuelPrice = ResolveFuelPriceUseCase(),
-        appPreferences = com.rndeveloper.paparcar.fakes.FakeAppPreferences(),
+        appPreferences = prefs,
+        permissionManager = permissions,
         initialVehicleId = initialVehicleId,
     )
 
@@ -143,10 +148,96 @@ class StatsViewModelTest {
         parkingRepo.saveNewParkingSession(session("s-old", "v1", ageDays = 60))
         val vm = viewModel(entitlement = Entitlement.FREE)
 
-        vm.handleIntent(StatsIntent.SetFilter(HistoryFilter.All))
-
         assertEquals(2, vm.state.value.lifetimeParkings, "desde siempre has to mean it")
         assertEquals(1, vm.state.value.periodStats?.parkings, "figures stay inside the free window")
+    }
+
+    /**
+     * ⛔ The tap does NOT repaint anything. Re-resolving would scope the chart to a window the
+     * account cannot see — an axis of empty buckets that reads as "you did not park" — while the
+     * figures stayed on the seven days beside it.
+     * [STATS-A-CHIP-YOU-CANNOT-MEASURE-MUST-NOT-REDRAW-001]
+     */
+    @Test
+    fun `should_openThePaywallAndMoveNothing_when_aFreeAccountTapsAPeriodItCannotMeasure`() = runTest {
+        vehicleRepo.saveVehicle(vehicle("v1", isActive = true))
+        parkingRepo.saveNewParkingSession(session("s-recent", "v1", ageDays = 1))
+        parkingRepo.saveNewParkingSession(session("s-old", "v1", ageDays = 60))
+        val vm = viewModel(entitlement = Entitlement.FREE)
+        val before = vm.state.value
+
+        vm.effect.test {
+            vm.handleIntent(StatsIntent.SetFilter(HistoryFilter.All))
+            val effect = awaitItem()
+            assertIs<StatsEffect.NavigateToPaywall>(effect)
+            assertEquals(PaywallReason.STATS, effect.reason)
+        }
+
+        assertEquals(before.filter, vm.state.value.filter, "the lit chip does not move")
+        assertEquals(before.filteredSessions.size, vm.state.value.filteredSessions.size)
+        assertEquals(before.periodStats?.parkings, vm.state.value.periodStats?.parkings)
+    }
+
+    /** The two windows a seven-day history always covers whole are NOT gated: free asks, the app
+     *  answers. [MONEY-001] */
+    @Test
+    fun `should_answerWithoutAPaywall_when_aFreeAccountTapsAPeriodInsideItsWindow`() = runTest {
+        vehicleRepo.saveVehicle(vehicle("v1", isActive = true))
+        parkingRepo.saveNewParkingSession(session("s-recent", "v1", ageDays = 1))
+        val vm = viewModel(entitlement = Entitlement.FREE)
+
+        vm.effect.test {
+            vm.handleIntent(StatsIntent.SetFilter(HistoryFilter.ThisWeek))
+            expectNoEvents()
+        }
+        assertEquals(HistoryFilter.ThisWeek, vm.state.value.filter)
+    }
+
+    /** Plus is not gated by any of this — the same tap that stops a free account answers for Plus. */
+    @Test
+    fun `should_rescopeEveryPeriod_when_thePlanIsPlus`() = runTest {
+        vehicleRepo.saveVehicle(vehicle("v1", isActive = true))
+        parkingRepo.saveNewParkingSession(session("s-old", "v1", ageDays = 200))
+        val vm = viewModel(entitlement = Entitlement.PLUS)
+
+        vm.effect.test {
+            vm.handleIntent(StatsIntent.SetFilter(HistoryFilter.All))
+            expectNoEvents()
+        }
+        assertEquals(HistoryFilter.All, vm.state.value.filter)
+        assertEquals(1, vm.state.value.periodStats?.parkings)
+    }
+
+    /**
+     * The notice over the figures. ⛔ It reads the switch AND the blockers: an account whose
+     * background location lapsed measures nothing while its switch still says "on", and that is the
+     * population that most needs telling. [DET-TOGGLE-A-SWITCH-THAT-CANNOT-RUN-IS-NOT-ON-001]
+     */
+    @Test
+    fun `should_sayWhyTheFiguresStopped_when_detectionCannotMeasure`() = runTest {
+        vehicleRepo.saveVehicle(vehicle("v1", isActive = true))
+
+        assertNull(viewModel().state.value.detectionPause, "everything granted and switched on")
+
+        val off = com.rndeveloper.paparcar.fakes.FakeAppPreferences()
+        off.setAutoDetectParking(false)
+        assertEquals(
+            com.rndeveloper.paparcar.domain.detection.DetectionPause.TURNED_OFF,
+            viewModel(prefs = off).state.value.detectionPause,
+        )
+
+        // Core granted, PRODUCER missing: the switch still reads "on" and nothing gets measured.
+        val coreOnly = com.rndeveloper.paparcar.fakes.MockScenario().apply {
+            permissionTier.value = com.rndeveloper.paparcar.fakes.MockScenario.PermissionTier.Core
+        }
+        assertEquals(
+            com.rndeveloper.paparcar.domain.detection.DetectionPause.MISSING_PERMISSIONS,
+            viewModel(
+                permissions = com.rndeveloper.paparcar.fakes.data.repository
+                    .FakePermissionManager(coreOnly),
+            ).state.value.detectionPause,
+            "a switch that cannot run is not on",
+        )
     }
 
     @Test
