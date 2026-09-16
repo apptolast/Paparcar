@@ -87,6 +87,39 @@ class SharedCarRepositoryImplTest {
     }
 
     @Test
+    fun should_issueTheFirstCode_when_sharingACar() = runTest {
+        // ⛔ El grupo nace CON su código. Antes había que descubrir el botón «Código nuevo» para que
+        // compartir empezara a servir de algo, y la card decía «Sin código» recién abierto el grupo
+        // — un paso muerto en la única cosa para la que existe compartir.
+        // [SHARED-A-GROUP-YOU-CANNOT-JOIN-IS-NOT-A-GROUP-001]
+        val remote = FakeSharedCarRemote()
+        val repo = repository("marta", FakeVehicleRepository(defaultVehicle = ownerCar), remote)
+
+        val car = repo.shareVehicle(ownerCar).getOrThrow()
+
+        assertNotNull(car.activeInviteCode)
+        assertNotNull(car.activeInviteExpiresAtMs)
+        // Y el código existe de verdad al otro lado, no solo en el objeto que devolvemos.
+        assertEquals(car.activeInviteCode, remote.getCar("car-1")!!.inviteCode)
+        assertNotNull(remote.getInvite(car.activeInviteCode))
+    }
+
+    @Test
+    fun should_beUsableBySomebodyElse_when_sharingJustIssuedTheCode() = runTest {
+        // El código que nace con el grupo tiene que servir para entrar; si no, es decoración.
+        val remote = FakeSharedCarRemote()
+        val owner = repository("marta", FakeVehicleRepository(defaultVehicle = ownerCar), remote)
+        val car = owner.shareVehicle(ownerCar).getOrThrow()
+
+        val joinerVehicles = FakeVehicleRepository()
+        val joiner = repository("nacho", joinerVehicles, remote)
+        val joined = joiner.joinByCode(car.activeInviteCode!!, bluetoothDeviceId = null).getOrThrow()
+
+        assertEquals("car-1", joined.carId)
+        assertTrue(remote.getMembers("car-1").map { it.uid }.contains("nacho"))
+    }
+
+    @Test
     fun should_publishAComparisonTokenAndNotTheMac_when_sharingACar() = runTest {
         val remote = FakeSharedCarRemote()
         val repo = repository("marta", FakeVehicleRepository(defaultVehicle = ownerCar), remote)

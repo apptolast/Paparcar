@@ -118,6 +118,7 @@ import com.rndeveloper.paparcar.domain.model.SharedCarRole
 import com.rndeveloper.paparcar.domain.model.SharedCarState
 import com.rndeveloper.paparcar.presentation.vehicles.JoinSharedCarDialog
 import com.rndeveloper.paparcar.presentation.vehicles.components.JoinSharedCarDialogContent
+import com.rndeveloper.paparcar.presentation.vehicles.components.SharedCarMembersSheet
 import com.rndeveloper.paparcar.presentation.vehicles.components.SharedCarSection
 import com.rndeveloper.paparcar.presentation.stats.StatsContent
 import com.rndeveloper.paparcar.presentation.stats.StatsState
@@ -3275,85 +3276,97 @@ private val galleryGroups: List<ScreenGroup> = listOf(
     ScreenGroup(
         "Coche compartido",
         listOf(
+            // ⛔ La SECCION se quedo con lo que se MIRA: quien conduce, y el alcance de las cifras
+            // de debajo. El codigo y el interruptor de rutas se mudaron a la hoja, y «Donde esta el
+            // coche» se borro —lo decia por segunda vez, contradiciendo a la hero card—.
+            // [SHARED-A-GROUP-YOU-CANNOT-JOIN-IS-NOT-A-GROUP-001]
             Variant("Sin compartir · la fila que lo ofrece", Placement.Surface) {
                 SharedCarSection(
-                    vehicle = sharedMockVehicle(),
                     sharedCar = null,
                     members = emptyList(),
                     currentUid = "mock_user_001",
                     isOwner = true,
                     mineOnly = false,
                     working = false,
-                    onOfferShare = {}, onOpenMembers = {}, onCreateInvite = {},
-                    onSetShareRoutes = {}, onSetScope = {},
+                    onOfferShare = {}, onOpenMembers = {}, onSetScope = {},
                 )
             },
-            Variant("Dueño · código vivo y rutas compartidas", Placement.Surface) {
+            Variant("Compartido · quien conduce y el alcance", Placement.Surface) {
                 SharedCarSection(
-                    vehicle = sharedMockVehicle(),
                     sharedCar = sharedCarKamiq.copy(activeInviteCode = "K7QP3M", state = sharedCarState()),
                     members = sharedCarGroup,
                     currentUid = "mock_user_001",
                     isOwner = true,
                     mineOnly = false,
                     working = false,
-                    onOfferShare = {}, onOpenMembers = {}, onCreateInvite = {},
-                    onSetShareRoutes = {}, onSetScope = {},
+                    onOfferShare = {}, onOpenMembers = {}, onSetScope = {},
                 )
             },
-            Variant("Miembro · lo aparcó otro, y no comparte rutas", Placement.Surface) {
+            Variant("Compartido · alcance en «solo yo»", Placement.Surface) {
                 SharedCarSection(
-                    vehicle = sharedMockVehicle(shareRoutes = false),
-                    sharedCar = sharedCarKamiq.copy(state = sharedCarState()),
-                    members = sharedCarGroup,
-                    currentUid = "mock_user_002",
-                    isOwner = false,
-                    mineOnly = false,
-                    working = false,
-                    onOfferShare = {}, onOpenMembers = {}, onCreateInvite = {},
-                    onSetShareRoutes = {}, onSetScope = {},
-                )
-            },
-            Variant("Miembro sin emparejar · sus aparcamientos no se detectan", Placement.Surface) {
-                SharedCarSection(
-                    vehicle = sharedMockVehicle(paired = false),
                     sharedCar = sharedCarKamiq.copy(state = sharedCarState()),
                     members = sharedCarGroup,
                     currentUid = "mock_user_002",
                     isOwner = false,
                     mineOnly = true,
                     working = false,
-                    onOfferShare = {}, onOpenMembers = {}, onCreateInvite = {},
-                    onSetShareRoutes = {}, onSetScope = {},
+                    onOfferShare = {}, onOpenMembers = {}, onSetScope = {},
                 )
             },
-            Variant("El coche ya no está aparcado", Placement.Surface) {
-                SharedCarSection(
-                    vehicle = sharedMockVehicle(),
-                    sharedCar = sharedCarKamiq.copy(state = sharedCarState(parked = false)),
-                    members = sharedCarGroup,
-                    currentUid = "mock_user_002",
-                    isOwner = false,
-                    mineOnly = false,
-                    working = false,
-                    onOfferShare = {}, onOpenMembers = {}, onCreateInvite = {},
-                    onSetShareRoutes = {}, onSetScope = {},
-                )
-            },
-            Variant("Nadie lo ha aparcado todavía", Placement.Surface) {
-                SharedCarSection(
-                    vehicle = sharedMockVehicle(),
-                    sharedCar = sharedCarKamiq.copy(activeInviteCode = null),
+            // La HOJA se quedo con lo que se GESTIONA. Se compone como modal, igual que en la app.
+            Variant("Hoja · dueño, con codigo vivo") {
+                SharedCarMembersSheet(
                     members = sharedCarGroup,
                     currentUid = "mock_user_001",
                     isOwner = true,
-                    mineOnly = false,
                     working = false,
-                    onOfferShare = {}, onOpenMembers = {}, onCreateInvite = {},
-                    onSetShareRoutes = {}, onSetScope = {},
+                    onRemove = {}, onLeave = {}, onStopSharing = {}, onDismiss = {},
+                    inviteCode = "K7QP3M",
+                    shareRoutes = true,
+                    showPairingHint = false,
                 )
             },
-            Variant("Unirse · código vacío", Placement.Surface) {
+            Variant("Hoja · pidiendo codigo nuevo (shimmer)") {
+                // El hueco del codigo reserva su altura: codigo, shimmer y «sin codigo» miden lo
+                // mismo, o la card se estira al cambiar de uno a otro.
+                // [SHARED-A-GROUP-YOU-CANNOT-JOIN-IS-NOT-A-GROUP-001]
+                SharedCarMembersSheet(
+                    members = sharedCarGroup,
+                    currentUid = "mock_user_001",
+                    isOwner = true,
+                    working = true,
+                    onRemove = {}, onLeave = {}, onStopSharing = {}, onDismiss = {},
+                    inviteCode = "K7QP3M",
+                    regenerating = true,
+                    shareRoutes = true,
+                    showPairingHint = false,
+                )
+            },
+            Variant("Hoja · dueño recien compartido (aun sin codigo)") {
+                SharedCarMembersSheet(
+                    members = sharedCarGroup.take(1),
+                    currentUid = "mock_user_001",
+                    isOwner = true,
+                    working = false,
+                    onRemove = {}, onLeave = {}, onStopSharing = {}, onDismiss = {},
+                    inviteCode = null,
+                    shareRoutes = true,
+                    showPairingHint = false,
+                )
+            },
+            Variant("Hoja · miembro sin emparejar y sin enseñar rutas") {
+                SharedCarMembersSheet(
+                    members = sharedCarGroup,
+                    currentUid = "mock_user_002",
+                    isOwner = false,
+                    working = false,
+                    onRemove = {}, onLeave = {}, onStopSharing = {}, onDismiss = {},
+                    inviteCode = null,
+                    shareRoutes = false,
+                    showPairingHint = true,
+                )
+            },
+            Variant("Unirse · el dialogo del codigo") {
                 JoinSharedCarDialogContent(
                     dialog = JoinSharedCarDialog(),
                     onCodeChanged = {}, onSubmit = {}, onDismiss = {}, onShareRoutesChanged = {},
@@ -3367,10 +3380,10 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     onCodeChanged = {}, onSubmit = {}, onDismiss = {}, onShareRoutesChanged = {},
                 )
             },
-            Variant("Unirse · el código ha caducado", Placement.Surface) {
+            Variant("Unirse · codigo caducado") {
                 JoinSharedCarDialogContent(
                     dialog = JoinSharedCarDialog(
-                        code = "AB3K9P",
+                        code = "K7QP3M",
                         error = PaparcarError.SharedCar.InviteExpired,
                     ),
                     onCodeChanged = {}, onSubmit = {}, onDismiss = {}, onShareRoutesChanged = {},

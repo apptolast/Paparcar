@@ -1026,6 +1026,11 @@
     <string name="shared_car_title">Geteiltes Auto</string>
     <string name="shared_car_not_shared_body">Teile das Auto mit bis zu vier Personen. Wer es fährt, markiert den Parkplatz, und die ganze Gruppe sieht, wo es steht. Deine Routen werden nur geteilt, wenn du es hier sagst.</string>
     <string name="shared_car_share_cta">Dieses Auto teilen</string>
+    <string name="vehicles_add_choice_title">Auto hinzufügen</string>
+    <string name="vehicles_add_choice_body">Registriere ein eigenes Auto, oder tritt einem bei, das jemand schon mit dir geteilt hat.</string>
+    <string name="vehicles_add_choice_own">Eigenes Auto hinzufügen</string>
+    <string name="shared_car_stop_sharing_confirm">Die ganze Gruppe sieht nicht mehr, wo das Auto steht. Das Auto, sein Verlauf und seine Kopplung bleiben bei dir.</string>
+    <string name="shared_car_leave_confirm">Du siehst nicht mehr, wo dieses Auto steht, und die Gruppe sieht deine Fahrten nicht mehr. Deine bleiben bei dir.</string>
     <string name="shared_car_code_title">Beitrittscode</string>
     <string name="shared_car_code_body">Gib diesen Code an alle weiter, die das Auto fahren. Er gilt einmal und läuft nach 24 Stunden ab.</string>
     <string name="shared_car_code_new">Neuer Code</string>
@@ -1037,10 +1042,7 @@
     <string name="shared_car_member_remove">Entfernen</string>
     <string name="shared_car_stop_sharing">Teilen beenden</string>
     <string name="shared_car_leave">Dieses Auto verlassen</string>
-    <string name="shared_car_where_title">Wo das Auto steht</string>
     <string name="shared_car_where_parked_by">%1$s hat es geparkt</string>
-    <string name="shared_car_where_empty">Seit Bestehen der Gruppe hat es niemand geparkt.</string>
-    <string name="shared_car_where_left">Steht nicht mehr geparkt</string>
     <string name="shared_car_pairing_hint">Koppele dieses Handy mit dem Bluetooth des Autos, damit auch deine Parkvorgänge erkannt werden.</string>
     <string name="shared_car_join_title">Einem Auto beitreten</string>
     <string name="shared_car_join_body">Gib den sechsstelligen Code ein, den dir der Besitzer gegeben hat.</string>

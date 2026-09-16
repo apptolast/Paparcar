@@ -1021,6 +1021,11 @@
     <string name="shared_car_title">Coche compartido</string>
     <string name="shared_car_not_shared_body">Comparte el coche con hasta cuatro personas. Quien lo conduce marca el aparcamiento y todo el grupo ve dónde está. Tus rutas se comparten solo si lo dices aquí.</string>
     <string name="shared_car_share_cta">Compartir este coche</string>
+    <string name="vehicles_add_choice_title">Añadir un coche</string>
+    <string name="vehicles_add_choice_body">Registra un coche tuyo, o únete a uno que ya te hayan compartido.</string>
+    <string name="vehicles_add_choice_own">Añadir un coche mío</string>
+    <string name="shared_car_stop_sharing_confirm">Todo el grupo deja de ver dónde está el coche. El coche, su historial y su emparejamiento se quedan contigo.</string>
+    <string name="shared_car_leave_confirm">Dejas de ver dónde está este coche, y el grupo deja de ver tus viajes. Los tuyos se quedan contigo.</string>
     <string name="shared_car_code_title">Código para unirse</string>
     <string name="shared_car_code_body">Dile este código a quien conduce el coche. Sirve una vez y caduca en 24 horas.</string>
     <string name="shared_car_code_new">Código nuevo</string>
@@ -1032,10 +1037,7 @@
     <string name="shared_car_member_remove">Quitar</string>
     <string name="shared_car_stop_sharing">Dejar de compartir</string>
     <string name="shared_car_leave">Salir de este coche</string>
-    <string name="shared_car_where_title">Dónde está el coche</string>
     <string name="shared_car_where_parked_by">Lo aparcó %1$s</string>
-    <string name="shared_car_where_empty">Nadie lo ha aparcado desde que existe el grupo.</string>
-    <string name="shared_car_where_left">Ya no está aparcado</string>
     <string name="shared_car_pairing_hint">Empareja este móvil con el Bluetooth del coche para que también se detecten tus aparcamientos.</string>
     <string name="shared_car_join_title">Unirme a un coche</string>
     <string name="shared_car_join_body">Escribe el código de seis caracteres que te ha dicho el propietario.</string>

@@ -57,11 +57,14 @@ import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import androidx.compose.material.icons.rounded.Group
+import com.rndeveloper.paparcar.domain.sharedcar.CarWhereabouts
+import com.rndeveloper.paparcar.domain.sharedcar.carWhereabouts
 import com.rndeveloper.paparcar.presentation.vehicles.components.SharedCarSection
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.my_car_edit_vehicle
 import paparcar.composeapp.generated.resources.shared_car_title
+import paparcar.composeapp.generated.resources.shared_car_where_parked_by
 import paparcar.composeapp.generated.resources.vehicle_set_active_action
 import paparcar.composeapp.generated.resources.vehicle_state_last_parking
 import paparcar.composeapp.generated.resources.vehicle_state_never_parked
@@ -115,6 +118,15 @@ internal fun VehiclePageContent(
             VehicleHeroCard(
                 vehicleWithStats = vehicleWithStats,
                 isShared = sharedCar != null,
+                // UNA sola autoridad sobre donde esta el coche, y de paso lo unico que un miembro
+                // recien llegado puede contar: no tiene sesiones propias de este coche.
+                // [SHARED-A-GROUP-YOU-CANNOT-JOIN-IS-NOT-A-GROUP-001]
+                whereabouts = carWhereabouts(
+                    ownLastSession = vehicleWithStats.lastSession,
+                    sharedCar = sharedCar,
+                    currentUid = currentUid,
+                    vehicleId = vehicleId,
+                ),
                 isSettingActive = isSettingActive,
                 // Making a vehicle active declares "I drive this" — confirm first (the screen owns
                 // the consequence dialog), never switch silently. [VEH-ACTIVE-FENCE-001]
@@ -143,7 +155,6 @@ internal fun VehiclePageContent(
                 },
             )
             SharedCarSection(
-                vehicle = vehicleWithStats.vehicle,
                 sharedCar = sharedCar,
                 members = members,
                 currentUid = currentUid,
@@ -152,8 +163,6 @@ internal fun VehiclePageContent(
                 working = sharedWorking,
                 onOfferShare = { onIntent(VehiclesIntent.ConfirmShareCar(vehicleId)) },
                 onOpenMembers = { onIntent(VehiclesIntent.ShowMembers(vehicleId)) },
-                onCreateInvite = { onIntent(VehiclesIntent.CreateInvite(vehicleId)) },
-                onSetShareRoutes = { share -> onIntent(VehiclesIntent.SetShareRoutes(vehicleId, share)) },
                 onSetScope = { mineOnly -> onIntent(VehiclesIntent.SetSharedHistoryScope(mineOnly)) },
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
@@ -181,6 +190,10 @@ private fun VehicleStateLine(
     lastSession: UserParking?,
     watch: VehicleWatch,
     onViewOnMap: (UserParking) -> Unit,
+    /** Quien dejo el coche ahi, solo cuando no fuiste tu. Es el unico dato que justificaba una
+     *  segunda card diciendo donde esta el coche, y ahora vive en la unica que lo dice.
+     *  [SHARED-A-GROUP-YOU-CANNOT-JOIN-IS-NOT-A-GROUP-001] */
+    parkedByName: String? = null,
 ) {
     val parkedNow = lastSession?.isActive == true
     // The glyph carries the vehicle's identity colour; the words stay onSurface. Same split the
@@ -239,7 +252,9 @@ private fun VehicleStateLine(
                     parkedNow -> stringResource(
                         Res.string.vehicle_state_parked,
                         relativeTimeText(lastSession.location.timestamp),
-                    )
+                    ) + parkedByName?.let {
+                        " · " + stringResource(Res.string.shared_car_where_parked_by, it)
+                    }.orEmpty()
                     else -> stringResource(
                         Res.string.vehicle_state_last_parking,
                         relativeTimeText(lastSession.location.timestamp),
@@ -309,6 +324,7 @@ private fun VehicleStateRow(
 private fun VehicleHeroCard(
     vehicleWithStats: VehicleWithStats,
     isShared: Boolean,
+    whereabouts: CarWhereabouts?,
     isSettingActive: Boolean,
     onSetActive: () -> Unit,
     onEdit: () -> Unit,
@@ -363,9 +379,10 @@ private fun VehicleHeroCard(
                     // El bloque de estado es además la puerta al mapa: dice dónde está el coche, así
                     // que tocarlo lleva allí. [UI-A-PARKED-CARD-OFFERS-THE-WAY-ACROSS-001]
                     VehicleStateLine(
-                        lastSession = vehicleWithStats.lastSession,
+                        lastSession = whereabouts?.session,
                         watch = monitoring.watch(),
                         onViewOnMap = onViewOnMap,
+                        parkedByName = whereabouts?.parkedByName,
                     )
                 },
                 trailing = {

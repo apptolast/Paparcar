@@ -43,6 +43,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
@@ -361,7 +362,10 @@ class VehiclesViewModel(
             // intent): free with a car already → paywall. Nothing existing is ever touched.
             // [VEH-SHARED-001] `.size` counted a car somebody SHARED with the user against their
             // one free slot — accepting an invitation would have spent it.
-            is VehiclesIntent.AddVehicle ->
+            is VehiclesIntent.AddVehicle -> {
+                // La elección ya está hecha: su diálogo se va antes de navegar o de abrir el
+                // paywall, nunca detrás. [SHARED-A-GROUP-YOU-CANNOT-JOIN-IS-NOT-A-GROUP-001]
+                updateState { copy(showAddChoice = false) }
                 if (canAddOwnVehicle(
                         ownedCount = countOwnVehicles(state.value.vehicles.map { it.vehicle }),
                         isPlus = state.value.isPlus,
@@ -371,6 +375,7 @@ class VehiclesViewModel(
                 } else {
                     sendEffect(VehiclesEffect.NavigateToPaywall(PaywallReason.VEHICLES))
                 }
+            }
             is VehiclesIntent.SetStatsPeriod -> {
                 val vehicleId = state.value.currentVehicleId ?: return
                 val currentHistory = state.value.historyCache[vehicleId] ?: return
@@ -448,30 +453,42 @@ class VehiclesViewModel(
                 }
             is VehiclesIntent.ShareCar -> {
                 // ⛔ La respuesta de rutas se lee ANTES de cerrar el diálogo: cerrarlo primero la
-                // borraba y el grupo nacía con el default que este ticket vino a quitar.
+                // borraba y el grupo nacía con el default que aquel ticket vino a quitar.
                 // [COPY-A-CARD-THAT-PROMISES-ROUTES-STAY-HOME-001]
                 val shareRoutes = state.value.confirmShareRoutes
                 updateState { copy(confirmShareCarId = null, confirmShareRoutes = false) }
-                sharedAction {
+                sharedAction(SharedCarBusy.Sharing) {
                     vehicle(intent.vehicleId)?.let { v ->
                         sharedCarRepository.shareVehicle(v)
                             .mapCatching { car ->
                                 sharedCarRepository.setShareRoutes(car.carId, shareRoutes).getOrThrow()
                             }
+                            .map {
+                                // ⛔ Compartir ENTREGA el código, no lo esconde: es lo único para lo
+                                // que existe la acción. Pero DESPUÉS de que la sección se haya
+                                // transformado — abriendo la hoja en el mismo frame, la página
+                                // cambiaba a compartida DETRÁS de ella y el usuario no llegaba a ver
+                                // lo que acababa de pedir.
+                                // [SHARED-A-GROUP-YOU-CANNOT-JOIN-IS-NOT-A-GROUP-001]
+                                delay(SHARE_TO_SHEET_DELAY_MS)
+                                updateState { copy(membersSheetCarId = intent.vehicleId) }
+                            }
                     }
                 }
             }
-            is VehiclesIntent.CreateInvite -> sharedAction { sharedCarRepository.createInvite(intent.carId).map { } }
-            is VehiclesIntent.StopSharing -> sharedAction(closeSheet = true) {
+            is VehiclesIntent.CreateInvite -> sharedAction(SharedCarBusy.Invite) { sharedCarRepository.createInvite(intent.carId).map { } }
+            is VehiclesIntent.StopSharing -> sharedAction(SharedCarBusy.Sharing, closeSheet = true) {
+                updateState { copy(confirmGroupExit = null) }
                 sharedCarRepository.stopSharing(intent.carId)
             }
-            is VehiclesIntent.LeaveSharedCar -> sharedAction(closeSheet = true) {
+            is VehiclesIntent.LeaveSharedCar -> sharedAction(SharedCarBusy.Sharing, closeSheet = true) {
+                updateState { copy(confirmGroupExit = null) }
                 sharedCarRepository.leave(intent.carId)
             }
-            is VehiclesIntent.RemoveMember -> sharedAction {
+            is VehiclesIntent.RemoveMember -> sharedAction(SharedCarBusy.Membership) {
                 sharedCarRepository.removeMember(intent.carId, intent.uid)
             }
-            is VehiclesIntent.SetShareRoutes -> sharedAction {
+            is VehiclesIntent.SetShareRoutes -> sharedAction(SharedCarBusy.Routes) {
                 sharedCarRepository.setShareRoutes(intent.carId, intent.share)
             }
             is VehiclesIntent.ShowMembers -> updateState { copy(membersSheetCarId = intent.carId) }
@@ -482,8 +499,22 @@ class VehiclesViewModel(
                 updateState { copy(confirmShareRoutes = intent.share) }
             is VehiclesIntent.SetJoinShareRoutes ->
                 updateState { copy(joinDialog = joinDialog?.copy(shareRoutes = intent.share)) }
-            is VehiclesIntent.ShowJoinDialog ->
-                updateState { copy(joinDialog = if (intent.open) JoinSharedCarDialog() else null) }
+            // ⛔ Abrir el de código CIERRA el de elección: nunca modal sobre modal.
+            // [SHARED-A-GROUP-YOU-CANNOT-JOIN-IS-NOT-A-GROUP-001]
+            is VehiclesIntent.ShowJoinDialog -> updateState {
+                copy(
+                    joinDialog = if (intent.open) JoinSharedCarDialog() else null,
+                    showAddChoice = false,
+                )
+            }
+            is VehiclesIntent.ShowAddChoice -> updateState { copy(showAddChoice = intent.open) }
+            // La hoja se va ANTES de que aparezca el diálogo, por lo mismo.
+            is VehiclesIntent.ConfirmGroupExit -> updateState {
+                copy(
+                    confirmGroupExit = intent.prompt,
+                    membersSheetCarId = if (intent.prompt != null) null else membersSheetCarId,
+                )
+            }
             is VehiclesIntent.JoinCodeChanged -> updateState {
                 // Escribir borra el rechazo anterior: la respuesta era del código que lo produjo.
                 copy(joinDialog = joinDialog?.copy(code = intent.code.uppercase(), error = null))
@@ -502,9 +533,13 @@ class VehiclesViewModel(
      * y todas pueden fallar de una forma que el usuario puede arreglar (código caducado, grupo
      * lleno), por eso el error viaja como [PaparcarError] y la pantalla lo traduce a su remedio.
      */
-    private fun sharedAction(closeSheet: Boolean = false, block: suspend () -> Result<Unit>?) {
+    private fun sharedAction(
+        busy: SharedCarBusy,
+        closeSheet: Boolean = false,
+        block: suspend () -> Result<Unit>?,
+    ) {
         if (state.value.sharedWorking) return
-        updateState { copy(sharedWorking = true) }
+        updateState { copy(sharedBusy = busy) }
         viewModelScope.launch {
             val result = block() ?: Result.failure(PaparcarError.SharedCar.SyncFailed)
             result
@@ -513,7 +548,7 @@ class VehiclesViewModel(
                     PaparcarLogger.w(TAG, "shared car action failed", e)
                     sendEffect(VehiclesEffect.ShowError(e as? PaparcarError ?: PaparcarError.SharedCar.SyncFailed))
                 }
-            updateState { copy(sharedWorking = false) }
+            updateState { copy(sharedBusy = null) }
         }
     }
 
@@ -664,5 +699,15 @@ class VehiclesViewModel(
     }
     private companion object {
         const val TAG = "VehiclesViewModel"
+
+        /**
+         * Lo que se espera tras compartir antes de abrir la hoja: justo lo que dura la transición
+         * de la sección. [SHARED-A-GROUP-YOU-CANNOT-JOIN-IS-NOT-A-GROUP-001]
+         *
+         * Vale `PapMotion.Medium`, y se escribe aquí en vez de importarse porque `PapMotion` arrastra
+         * el runtime de animación de Compose y un ViewModel no tiene por qué depender de él. Si esa
+         * banda cambia, este número la sigue.
+         */
+        const val SHARE_TO_SHEET_DELAY_MS = 240L
     }
 }

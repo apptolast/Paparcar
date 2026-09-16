@@ -1066,6 +1066,11 @@
     <string name="shared_car_title">Shared car</string>
     <string name="shared_car_not_shared_body">Share the car with up to four people. Whoever drives it marks the parking, and the whole group sees where it is. Your routes are shared only if you say so here.</string>
     <string name="shared_car_share_cta">Share this car</string>
+    <string name="vehicles_add_choice_title">Add a car</string>
+    <string name="vehicles_add_choice_body">Register a car of your own, or join one somebody already shared with you.</string>
+    <string name="vehicles_add_choice_own">Add a car of mine</string>
+    <string name="shared_car_stop_sharing_confirm">Everyone in the group stops seeing where the car is. The car, its history and its pairing stay with you.</string>
+    <string name="shared_car_leave_confirm">You stop seeing where this car is, and the group stops seeing your trips. Your own trips stay with you.</string>
     <string name="shared_car_code_title">Join code</string>
     <string name="shared_car_code_body">Read this code to whoever drives the car. It works once and expires in 24 hours.</string>
     <string name="shared_car_code_new">New code</string>
@@ -1077,10 +1082,7 @@
     <string name="shared_car_member_remove">Remove</string>
     <string name="shared_car_stop_sharing">Stop sharing</string>
     <string name="shared_car_leave">Leave this car</string>
-    <string name="shared_car_where_title">Where the car is</string>
     <string name="shared_car_where_parked_by">%1$s parked it</string>
-    <string name="shared_car_where_empty">Nobody has parked it since the group started.</string>
-    <string name="shared_car_where_left">Not parked any more</string>
     <string name="shared_car_pairing_hint">Pair this phone with the car Bluetooth so your own parkings are detected too.</string>
     <string name="shared_car_join_title">Join a car</string>
     <string name="shared_car_join_body">Type the six-character code the owner read to you.</string>

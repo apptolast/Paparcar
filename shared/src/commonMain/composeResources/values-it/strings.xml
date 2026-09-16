@@ -1025,6 +1025,11 @@
     <string name="shared_car_title">Auto condivisa</string>
     <string name="shared_car_not_shared_body">Condividi l'auto con un massimo di quattro persone. Chi guida segna il parcheggio e tutto il gruppo vede dov'è. I tuoi percorsi si condividono solo se lo dici qui.</string>
     <string name="shared_car_share_cta">Condividi questa auto</string>
+    <string name="vehicles_add_choice_title">Aggiungi un'auto</string>
+    <string name="vehicles_add_choice_body">Registra un'auto tua, oppure entra in una che qualcuno ha già condiviso con te.</string>
+    <string name="vehicles_add_choice_own">Aggiungi un'auto mia</string>
+    <string name="shared_car_stop_sharing_confirm">Tutto il gruppo smette di vedere dov'è l'auto. L'auto, la sua cronologia e il suo abbinamento restano con te.</string>
+    <string name="shared_car_leave_confirm">Smetti di vedere dov'è quest'auto e il gruppo smette di vedere i tuoi viaggi. I tuoi restano con te.</string>
     <string name="shared_car_code_title">Codice per unirsi</string>
     <string name="shared_car_code_body">Comunica questo codice a chi guida l'auto. Vale una volta sola e scade dopo 24 ore.</string>
     <string name="shared_car_code_new">Nuovo codice</string>
@@ -1036,10 +1041,7 @@
     <string name="shared_car_member_remove">Rimuovi</string>
     <string name="shared_car_stop_sharing">Smetti di condividere</string>
     <string name="shared_car_leave">Esci da questa auto</string>
-    <string name="shared_car_where_title">Dov'è l'auto</string>
     <string name="shared_car_where_parked_by">L'ha parcheggiata %1$s</string>
-    <string name="shared_car_where_empty">Nessuno l'ha parcheggiata da quando esiste il gruppo.</string>
-    <string name="shared_car_where_left">Non è più parcheggiata</string>
     <string name="shared_car_pairing_hint">Associa questo telefono al Bluetooth dell'auto per rilevare anche i tuoi parcheggi.</string>
     <string name="shared_car_join_title">Unisciti a un'auto</string>
     <string name="shared_car_join_body">Scrivi il codice di sei caratteri che ti ha dato il proprietario.</string>

@@ -144,8 +144,17 @@ class SharedCarRepositoryImpl(
         // The owner's OWN row learns it is shared. `ownerUid` stays null: a car you opened up is
         // still yours, and the free limit must keep counting it. [VEH-SHARED-001]
         vehicleRepository.saveVehicle(vehicle.copy(sharedCarId = car.carId)).getOrThrow()
-        dao.upsert(car.toEntity())
-        car
+        // ⛔ El grupo nace CON su código. Compartir un coche no tiene otro propósito que invitar a
+        // alguien, así que un grupo recién abierto que dice «Sin código» deja al dueño en un paso
+        // muerto: tenía que descubrir que existía un botón «Código nuevo» para que la función
+        // empezara a servir. [SHARED-A-GROUP-YOU-CANNOT-JOIN-IS-NOT-A-GROUP-001]
+        val invite = issueInvite(carId = car.carId, ownerUid = uid, carName = car.displayName)
+        val shared = car.copy(
+            activeInviteCode = invite.code,
+            activeInviteExpiresAtMs = invite.expiresAtMs,
+        )
+        dao.upsert(shared.toEntity())
+        shared
     }
 
     override suspend fun stopSharing(carId: String): Result<Unit> = runCatching {
@@ -169,18 +178,33 @@ class SharedCarRepositoryImpl(
         if (!canAddSharedCarMember(members)) throw PaparcarError.SharedCar.GroupFull
         // One live code per car: the previous one dies here, so a code read out loud yesterday
         // cannot be used by whoever overheard it tomorrow.
+        issueInvite(carId = carId, ownerUid = uid, carName = car.displayName)
+    }
+
+    /**
+     * Emite el código vivo de un coche. UN solo sitio, porque hay DOS momentos que lo necesitan:
+     * abrir el grupo y pedir uno nuevo. [SHARED-A-GROUP-YOU-CANNOT-JOIN-IS-NOT-A-GROUP-001]
+     *
+     * ⛔ Un código por coche y solo uno: el anterior muere aquí, así que un código dictado en voz
+     * alta ayer no lo puede usar mañana quien lo oyó de paso.
+     */
+    private suspend fun issueInvite(
+        carId: String,
+        ownerUid: String,
+        carName: String,
+    ): SharedCarInvite {
         remote.deleteInvitesFor(carId)
         val now = clock()
         val invite = SharedCarInvite(
             code = SharedCarInviteCode.of(randomBytes(SharedCarInviteCode.LENGTH)),
             carId = carId,
-            ownerUid = uid,
+            ownerUid = ownerUid,
             createdAtMs = now,
             expiresAtMs = now + SharedCarInviteCode.INVITE_TTL_MS,
         )
-        remote.putInvite(invite.toDto(carName = car.displayName))
+        remote.putInvite(invite.toDto(carName = carName))
         remote.setActiveInvite(carId, invite.code, invite.expiresAtMs)
-        invite
+        return invite
     }
 
     override suspend fun findInvite(code: String): Result<SharedCarInvite> = runCatching {

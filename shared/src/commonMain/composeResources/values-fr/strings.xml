@@ -1025,6 +1025,11 @@
     <string name="shared_car_title">Voiture partagée</string>
     <string name="shared_car_not_shared_body">Partagez la voiture avec quatre personnes au maximum. Celui qui conduit marque le stationnement, et tout le groupe voit où elle est. Vos trajets ne sont partagés que si vous le dites ici.</string>
     <string name="shared_car_share_cta">Partager cette voiture</string>
+    <string name="vehicles_add_choice_title">Ajouter une voiture</string>
+    <string name="vehicles_add_choice_body">Enregistrez une voiture à vous, ou rejoignez-en une que l'on a déjà partagée avec vous.</string>
+    <string name="vehicles_add_choice_own">Ajouter une voiture à moi</string>
+    <string name="shared_car_stop_sharing_confirm">Tout le groupe cesse de voir où est la voiture. La voiture, son historique et son appairage restent chez vous.</string>
+    <string name="shared_car_leave_confirm">Vous cessez de voir où est cette voiture, et le groupe cesse de voir vos trajets. Les vôtres restent chez vous.</string>
     <string name="shared_car_code_title">Code pour rejoindre</string>
     <string name="shared_car_code_body">Donnez ce code à celui qui conduit la voiture. Il sert une fois et expire au bout de 24 heures.</string>
     <string name="shared_car_code_new">Nouveau code</string>
@@ -1036,10 +1041,7 @@
     <string name="shared_car_member_remove">Retirer</string>
     <string name="shared_car_stop_sharing">Arrêter le partage</string>
     <string name="shared_car_leave">Quitter cette voiture</string>
-    <string name="shared_car_where_title">Où est la voiture</string>
     <string name="shared_car_where_parked_by">Garée par %1$s</string>
-    <string name="shared_car_where_empty">Personne ne l'a garée depuis la création du groupe.</string>
-    <string name="shared_car_where_left">Elle n'est plus garée</string>
     <string name="shared_car_pairing_hint">Associez ce téléphone au Bluetooth de la voiture pour que vos stationnements soient détectés aussi.</string>
     <string name="shared_car_join_title">Rejoindre une voiture</string>
     <string name="shared_car_join_body">Saisissez le code de six caractères que le propriétaire vous a donné.</string>

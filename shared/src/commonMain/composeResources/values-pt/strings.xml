@@ -1025,6 +1025,11 @@
     <string name="shared_car_title">Carro partilhado</string>
     <string name="shared_car_not_shared_body">Partilha o carro com até quatro pessoas. Quem conduz marca o estacionamento e todo o grupo vê onde está. As tuas rotas só são partilhadas se o disseres aqui.</string>
     <string name="shared_car_share_cta">Partilhar este carro</string>
+    <string name="vehicles_add_choice_title">Adicionar um carro</string>
+    <string name="vehicles_add_choice_body">Regista um carro teu, ou junta-te a um que já te tenham partilhado.</string>
+    <string name="vehicles_add_choice_own">Adicionar um carro meu</string>
+    <string name="shared_car_stop_sharing_confirm">Todo o grupo deixa de ver onde está o carro. O carro, o seu histórico e o emparelhamento ficam contigo.</string>
+    <string name="shared_car_leave_confirm">Deixas de ver onde está este carro, e o grupo deixa de ver as tuas viagens. As tuas ficam contigo.</string>
     <string name="shared_car_code_title">Código para entrar</string>
     <string name="shared_car_code_body">Diga este código a quem conduz o carro. Serve uma vez e expira em 24 horas.</string>
     <string name="shared_car_code_new">Novo código</string>
@@ -1036,10 +1041,7 @@
     <string name="shared_car_member_remove">Remover</string>
     <string name="shared_car_stop_sharing">Deixar de partilhar</string>
     <string name="shared_car_leave">Sair deste carro</string>
-    <string name="shared_car_where_title">Onde está o carro</string>
     <string name="shared_car_where_parked_by">Foi %1$s que o estacionou</string>
-    <string name="shared_car_where_empty">Ninguém o estacionou desde que o grupo existe.</string>
-    <string name="shared_car_where_left">Já não está estacionado</string>
     <string name="shared_car_pairing_hint">Emparelhe este telemóvel com o Bluetooth do carro para os seus estacionamentos também serem detetados.</string>
     <string name="shared_car_join_title">Entrar num carro</string>
     <string name="shared_car_join_body">Escreva o código de seis caracteres que o proprietário lhe deu.</string>

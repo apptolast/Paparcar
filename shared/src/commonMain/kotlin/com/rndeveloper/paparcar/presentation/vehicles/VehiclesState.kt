@@ -45,12 +45,33 @@ data class VehiclesState(
     val sharedAuthorByUid: Map<String, String> = emptyMap(),
     /** Sesiones cuyo autor NO comparte la ruta — la fila lo dice en vez de dejar un hueco. */
     val sharedWithheldRouteIds: Set<String> = emptySet(),
-    /** Una acción de grupo en vuelo: el segundo toque no arranca una gemela. */
-    val sharedWorking: Boolean = false,
+    /**
+     * QUE accion de grupo esta en vuelo, o null si ninguna.
+     * [SHARED-A-GROUP-YOU-CANNOT-JOIN-IS-NOT-A-GROUP-001]
+     *
+     * ⛔ Era un `sharedWorking: Boolean`, y el booleano es el bug: decia «algo esta corriendo», asi
+     * que el hueco del codigo se ponia a brillar porque alguien habia tocado el interruptor de
+     * rutas. Es el mismo fallo que `PapDialogAction` arreglo en los dialogos — un estado de carga
+     * tiene que nombrar su accion o acaba prestandosela a otra.
+     */
+    val sharedBusy: SharedCarBusy? = null,
     /** La hoja de miembros, abierta sobre este coche. */
     val membersSheetCarId: String? = null,
     /** El diálogo de unirse, o null si no está abierto. */
     val joinDialog: JoinSharedCarDialog? = null,
+    /**
+     * El «+» preguntando qué clase de coche se añade: uno mío, o uno que ya me han compartido.
+     * [SHARED-A-GROUP-YOU-CANNOT-JOIN-IS-NOT-A-GROUP-001]
+     *
+     * Existe porque la puerta para teclear un código vivía SOLO en el garaje vacío, así que quien ya
+     * tenía un coche no podía unirse a ninguno — que es el caso normal: ya tengo el mío y alguien me
+     * invita al suyo.
+     */
+    val showAddChoice: Boolean = false,
+    /** Salir del grupo o disolverlo, esperando confirmacion. Disolver deja sin coche a cuatro
+     *  personas y hasta ahora iba a un solo toque.
+     *  [SHARED-A-GROUP-YOU-CANNOT-JOIN-IS-NOT-A-GROUP-001] */
+    val confirmGroupExit: GroupExitPrompt? = null,
     /** El diálogo que explica qué verá el grupo antes de abrirlo, sobre este coche. */
     val confirmShareCarId: String? = null,
     /** La respuesta a «¿comparto también mis rutas?» que se está componiendo en ese diálogo.
@@ -61,6 +82,10 @@ data class VehiclesState(
     val dissolvedCar: DissolvedSharedCarPrompt? = null,
     val currentUid: String? = null,
 ) {
+    /** Hay ALGUNA accion de grupo en vuelo — lo que congela botones. Cual es, lo dice [sharedBusy]. */
+    val sharedWorking: Boolean
+        get() = sharedBusy != null
+
     val currentVehicleId: String?
         get() = vehicles.getOrNull(selectedVehicleIndex)?.vehicle?.id
 
@@ -71,6 +96,12 @@ data class VehiclesState(
     val historyState: HistoryState
         get() = currentVehicleId?.let { historyCache[it] }
             ?: HistoryState(timeline = HistoryTimeline.Unresolved)
+
+    /** El coche a la vista. Lo pide la hoja de miembros, que ahora gestiona cosas SUYAS —el
+     *  interruptor de rutas, el aviso de emparejamiento— y no solo del grupo.
+     *  [SHARED-A-GROUP-YOU-CANNOT-JOIN-IS-NOT-A-GROUP-001] */
+    val currentVehicle: Vehicle?
+        get() = vehicles.getOrNull(selectedVehicleIndex)?.vehicle
 
     /** El espejo del coche a la vista, o null si ese coche no está compartido. */
     val currentSharedCar: SharedCar?
@@ -107,3 +138,11 @@ data class DissolvedSharedCarPrompt(
     val endedParkings: Int,
     val takesTheFreeSlot: Boolean,
 )
+
+/**
+ * Las acciones de grupo que tardan, por su nombre. [SHARED-A-GROUP-YOU-CANNOT-JOIN-IS-NOT-A-GROUP-001]
+ *
+ * Existe para que una espera se dibuje SOLO donde ocurre: el shimmer del codigo es de [Invite] y de
+ * nadie mas.
+ */
+enum class SharedCarBusy { Invite, Routes, Membership, Sharing }

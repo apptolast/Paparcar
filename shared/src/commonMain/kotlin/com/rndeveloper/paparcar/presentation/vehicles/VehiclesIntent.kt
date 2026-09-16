@@ -16,6 +16,15 @@ sealed class VehiclesIntent {
     data class FocusVehicle(val vehicleId: String) : VehiclesIntent()
     data class EditVehicle(val vehicleId: String) : VehiclesIntent()
     data object AddVehicle : VehiclesIntent()
+
+    /** El «+»: preguntar antes de navegar, porque «otro coche en la app» son dos cosas — registrar
+     *  uno mío, o entrar en uno que ya me comparten. `false` cierra.
+     *  [SHARED-A-GROUP-YOU-CANNOT-JOIN-IS-NOT-A-GROUP-001] */
+    data class ShowAddChoice(val open: Boolean) : VehiclesIntent()
+
+    /** Pedir confirmacion antes de salir del grupo o disolverlo; null cierra.
+     *  [SHARED-A-GROUP-YOU-CANNOT-JOIN-IS-NOT-A-GROUP-001] */
+    data class ConfirmGroupExit(val prompt: GroupExitPrompt?) : VehiclesIntent()
     data class SetStatsPeriod(val filter: StatsPeriod) : VehiclesIntent()
 
     /** Which series the activity chart draws. [STATS-A-PERIOD-IS-A-SERIES-NOT-A-NUMBER-001] */
@@ -84,3 +93,11 @@ sealed class VehiclesIntent {
     data class JoinCodeChanged(val code: String) : VehiclesIntent()
     data object SubmitJoinCode : VehiclesIntent()
 }
+
+/**
+ * La salida de un grupo, esperando un si. [SHARED-A-GROUP-YOU-CANNOT-JOIN-IS-NOT-A-GROUP-001]
+ *
+ * Lleva [isOwner] y no lo re-deduce del estado: cual de las dos frases se lee —«todo el grupo deja
+ * de ver» o «dejas de ver»— es la mitad de lo que se esta confirmando.
+ */
+data class GroupExitPrompt(val carId: String, val isOwner: Boolean)

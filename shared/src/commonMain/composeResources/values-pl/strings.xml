@@ -1047,6 +1047,11 @@
     <string name="shared_car_title">Wspólny samochód</string>
     <string name="shared_car_not_shared_body">Udostępnij samochód maksymalnie czterem osobom. Kto prowadzi, oznacza parkowanie, a cała grupa widzi, gdzie stoi. Twoje trasy są udostępniane tylko wtedy, gdy powiesz to tutaj.</string>
     <string name="shared_car_share_cta">Udostępnij ten samochód</string>
+    <string name="vehicles_add_choice_title">Dodaj samochód</string>
+    <string name="vehicles_add_choice_body">Zarejestruj własny samochód albo dołącz do tego, który ktoś już Ci udostępnił.</string>
+    <string name="vehicles_add_choice_own">Dodaj mój samochód</string>
+    <string name="shared_car_stop_sharing_confirm">Cała grupa przestaje widzieć, gdzie stoi auto. Samochód, jego historia i parowanie zostają u Ciebie.</string>
+    <string name="shared_car_leave_confirm">Przestajesz widzieć, gdzie stoi to auto, a grupa przestaje widzieć Twoje przejazdy. Twoje zostają u Ciebie.</string>
     <string name="shared_car_code_title">Kod dołączenia</string>
     <string name="shared_car_code_body">Podaj ten kod osobie, która prowadzi auto. Działa raz i wygasa po 24 godzinach.</string>
     <string name="shared_car_code_new">Nowy kod</string>
@@ -1058,10 +1063,7 @@
     <string name="shared_car_member_remove">Usuń</string>
     <string name="shared_car_stop_sharing">Przestań udostępniać</string>
     <string name="shared_car_leave">Opuść ten samochód</string>
-    <string name="shared_car_where_title">Gdzie stoi samochód</string>
     <string name="shared_car_where_parked_by">Zaparkował go %1$s</string>
-    <string name="shared_car_where_empty">Nikt go nie zaparkował, odkąd istnieje grupa.</string>
-    <string name="shared_car_where_left">Już nie stoi zaparkowany</string>
     <string name="shared_car_pairing_hint">Sparuj ten telefon z bluetooth samochodu, aby wykrywać także twoje parkowania.</string>
     <string name="shared_car_join_title">Dołącz do samochodu</string>
     <string name="shared_car_join_body">Wpisz sześcioznakowy kod, który podał ci właściciel.</string>

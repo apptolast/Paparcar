@@ -76,6 +76,7 @@ import com.rndeveloper.paparcar.presentation.vehicles.components.VEHICLE_PILL_HE
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
 import com.rndeveloper.paparcar.ui.theme.watch
 import com.rndeveloper.paparcar.ui.components.PapDialogAccent
+import com.rndeveloper.paparcar.ui.components.PapDialogAction
 import com.rndeveloper.paparcar.ui.components.PapAlertDialog
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
@@ -99,8 +100,15 @@ import paparcar.composeapp.generated.resources.shared_car_dissolved_delete_with_
 import paparcar.composeapp.generated.resources.shared_car_dissolved_keep
 import paparcar.composeapp.generated.resources.shared_car_dissolved_title
 import paparcar.composeapp.generated.resources.shared_car_not_shared_body
+import paparcar.composeapp.generated.resources.shared_car_leave
+import paparcar.composeapp.generated.resources.shared_car_leave_confirm
 import paparcar.composeapp.generated.resources.shared_car_share_cta
+import paparcar.composeapp.generated.resources.shared_car_stop_sharing
+import paparcar.composeapp.generated.resources.shared_car_stop_sharing_confirm
 import paparcar.composeapp.generated.resources.shared_car_title
+import paparcar.composeapp.generated.resources.vehicles_add_choice_body
+import paparcar.composeapp.generated.resources.vehicles_add_choice_own
+import paparcar.composeapp.generated.resources.vehicles_add_choice_title
 import paparcar.composeapp.generated.resources.vehicles_join_shared_car
 import paparcar.composeapp.generated.resources.my_car_empty_subtitle
 import paparcar.composeapp.generated.resources.my_car_empty_why_link
@@ -216,7 +224,7 @@ fun VehiclesContent(
                         onIntent(VehiclesIntent.SelectVehicle(index))
                         scope.launch { pagerState.animateScrollToPage(index) }
                     },
-                    onAddVehicle = { onIntent(VehiclesIntent.AddVehicle) },
+                    onAddVehicle = { onIntent(VehiclesIntent.ShowAddChoice(true)) },
                 )
             }
         },
@@ -354,9 +362,66 @@ private fun VehiclesPager(
             isOwner = state.isOwnerOfCurrent,
             working = state.sharedWorking,
             onRemove = { uid -> onIntent(VehiclesIntent.RemoveMember(carId, uid)) },
-            onLeave = { onIntent(VehiclesIntent.LeaveSharedCar(carId)) },
-            onStopSharing = { onIntent(VehiclesIntent.StopSharing(carId)) },
+            // ⛔ Ya no ejecutan: PREGUNTAN. Disolver deja sin coche compartido a cuatro personas.
+            // [SHARED-A-GROUP-YOU-CANNOT-JOIN-IS-NOT-A-GROUP-001]
+            onLeave = {
+                onIntent(VehiclesIntent.ConfirmGroupExit(GroupExitPrompt(carId, isOwner = false)))
+            },
+            onStopSharing = {
+                onIntent(VehiclesIntent.ConfirmGroupExit(GroupExitPrompt(carId, isOwner = true)))
+            },
             onDismiss = { onIntent(VehiclesIntent.ShowMembers(null)) },
+            // Lo que se GESTIONA vive aquí, no en la página.
+            // [SHARED-A-GROUP-YOU-CANNOT-JOIN-IS-NOT-A-GROUP-001]
+            inviteCode = state.currentSharedCar?.activeInviteCode,
+            onCreateInvite = { onIntent(VehiclesIntent.CreateInvite(carId)) },
+            regenerating = state.sharedBusy == SharedCarBusy.Invite,
+            shareRoutes = state.currentVehicle?.shareRoutesInGroup ?: true,
+            onSetShareRoutes = { share -> onIntent(VehiclesIntent.SetShareRoutes(carId, share)) },
+            showPairingHint = state.currentVehicle?.bluetoothDeviceId.isNullOrBlank(),
+        )
+    }
+
+    // ⛔ El «+» PREGUNTA en vez de navegar: «otro coche en la app» son dos cosas distintas, y la
+    // puerta para teclear un código solo existía en el garaje vacío — quien ya tenía un coche no
+    // podía unirse a ninguno. [SHARED-A-GROUP-YOU-CANNOT-JOIN-IS-NOT-A-GROUP-001]
+    if (state.showAddChoice) {
+        PapAlertDialog(
+            onDismiss = { onIntent(VehiclesIntent.ShowAddChoice(false)) },
+            icon = Icons.Rounded.DirectionsCar,
+            title = stringResource(Res.string.vehicles_add_choice_title),
+            body = stringResource(Res.string.vehicles_add_choice_body),
+            primaryLabel = stringResource(Res.string.vehicles_add_choice_own),
+            onPrimary = { onIntent(VehiclesIntent.AddVehicle) },
+            secondaryLabel = stringResource(Res.string.vehicles_join_shared_car),
+            onSecondary = { onIntent(VehiclesIntent.ShowJoinDialog(true)) },
+            cancelLabel = stringResource(Res.string.my_car_delete_cancel),
+        )
+    }
+
+    state.confirmGroupExit?.let { prompt ->
+        PapAlertDialog(
+            onDismiss = { onIntent(VehiclesIntent.ConfirmGroupExit(null)) },
+            icon = Icons.Rounded.Group,
+            title = stringResource(
+                if (prompt.isOwner) Res.string.shared_car_stop_sharing else Res.string.shared_car_leave,
+            ),
+            body = stringResource(
+                if (prompt.isOwner) Res.string.shared_car_stop_sharing_confirm
+                else Res.string.shared_car_leave_confirm,
+            ),
+            accent = PapDialogAccent.Destructive,
+            primaryLabel = stringResource(
+                if (prompt.isOwner) Res.string.shared_car_stop_sharing else Res.string.shared_car_leave,
+            ),
+            onPrimary = {
+                onIntent(
+                    if (prompt.isOwner) VehiclesIntent.StopSharing(prompt.carId)
+                    else VehiclesIntent.LeaveSharedCar(prompt.carId),
+                )
+            },
+            loadingAction = if (state.sharedWorking) PapDialogAction.Primary else null,
+            cancelLabel = stringResource(Res.string.my_car_delete_cancel),
         )
     }
 
