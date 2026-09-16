@@ -27,3 +27,16 @@ Lo que NO debe pasar: borrar lo ya subido. Eso es retención, y la política ya 
 Combinar el consentimiento con `observeIsPlus` en la única puerta que ya existe, y decidir qué ve el
 usuario en Ajustes: el interruptor tiene que **explicar por qué está apagado**, no aparecer apagado
 sin más.
+
+## Resolución propuesta (3.ª vuelta): **pausar, no borrar ni olvidar**
+
+`RemoteUserProfileDataSourceImpl` combina el consentimiento con `isPlus` leído de la caché de
+entitlement. El consentimiento **se conserva**: al volver a Plus, vuelve a subir sin que nadie tenga
+que acordarse de reactivarlo.
+
+Y con eso la tensión con *«losing Plus never deletes or disables anything»* se disuelve en vez de
+esquivarse: esa doctrina protege **lo tuyo** — tus coches, tus zonas, tu historial no se borran ni
+se bloquean al caducar. Lo que aquí se para no es algo tuyo: es que **nosotros sigamos prestando un
+servicio de pago** (guardar tu recorrido en nuestra nube) a quien ya no lo paga. La política §2.5 ya
+lo dice así.
+

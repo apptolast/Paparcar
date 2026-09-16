@@ -1057,7 +1057,7 @@
     <string name="shared_car_row_sub_not_shared">Partagez-la avec quatre personnes au maximum</string>
     <string name="vehicles_join_shared_car">Rejoindre une voiture partagée</string>
     <string name="paywall_reason_shared_car">Partager une voiture avec ceux qui la conduisent fait partie de Plus.</string>
-    <string name="shared_car_routes_title">Afficher mes trajets dans cette voiture</string>
+    <string name="shared_car_routes_title">Partager mes trajets dans cette voiture</string>
     <string name="shared_car_routes_sub">Le groupe voit le tracé de vos trajets. Les kilomètres et le coût sont partagés de toute façon.</string>
     <string name="shared_car_route_withheld">trajet masqué</string>
     <string name="shared_car_member_no_routes">Ses trajets sont masqués</string>

@@ -1098,7 +1098,7 @@
     <string name="shared_car_row_sub_not_shared">Share it with up to four people</string>
     <string name="vehicles_join_shared_car">Join a shared car</string>
     <string name="paywall_reason_shared_car">Sharing a car with other drivers is part of Plus.</string>
-    <string name="shared_car_routes_title">Show my routes in this car</string>
+    <string name="shared_car_routes_title">Share my routes in this car</string>
     <string name="shared_car_routes_sub">The group sees the line your trips draw. Distance and cost are shared either way.</string>
     <string name="shared_car_route_withheld">route hidden</string>
     <string name="shared_car_member_no_routes">Their routes are hidden</string>

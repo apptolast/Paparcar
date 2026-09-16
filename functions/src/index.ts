@@ -98,17 +98,27 @@ export const onSpotPublished = onDocumentCreated('spots/{spotId}', async (event)
   // ⛔ Tercera capa de [SEC-A-SPOT-IS-NOT-A-MEGAPHONE-001], y la unica que ve el RITMO: una regla
   // valida plaza a plaza y no puede contar cuantas lleva alguien en diez minutos. Publicar sigue
   // permitido -- lo que se corta es GRITAR, que es lo caro para quien recibe.
-  const recent = await getFirestore()
+  // ⛔ El conteo es una SEGUNDA capa, y por eso su fallo no puede costar el aviso: la plaza ya pasó
+  // la regla -- caducidad valida, estado valido, firmada con su uid --, asi que ante la duda se
+  // anuncia. Al reves, una consulta rota silenciaria el producto entero, que es exactamente lo que
+  // paso al desplegar esto sin su indice compuesto (igualdad + rango en campos distintos).
+  // [OPS-A-COUNT-WITHOUT-ITS-INDEX-SILENCES-EVERY-ZONE-001]
+  const live = await getFirestore()
     .collection('spots')
     .where('reportedBy', '==', spot.reportedBy)
     .where('expiresAt', '>', now)
     .count()
-    .get();
-  if (recent.data().count > MAX_LIVE_SPOTS_PER_AUTHOR) {
+    .get()
+    .then((snap) => snap.data().count)
+    .catch((err) => {
+      logger.error('live-spot count failed', { spotId, err });
+      return null;
+    });
+  if (live !== null && live > MAX_LIVE_SPOTS_PER_AUTHOR) {
     logger.warn('spot not announced: author is flooding', {
       spotId,
       reportedBy: spot.reportedBy,
-      live: recent.data().count,
+      live,
     });
     return;
   }

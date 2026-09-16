@@ -59,7 +59,11 @@ sealed interface PushPayload {
     ) : SharedCarNews
 
     /** Se lo han llevado. [SHARED-A-CAR-THAT-LEAVES-IS-NEWS-TOO-001] */
-    data class SharedCarLeft(val authorName: String?) : SharedCarNews
+    /** ⛔ Lleva `carId` porque el servidor lo MANDA (`functions/src/index.ts`, mensaje
+     *  `shared_car_left`). Tirarlo dejaba al filtro de destinatario preguntando solo «¿pertenezco a
+     *  algún grupo?», que es una pregunta más floja que la que se podía hacer.
+     *  [PUSH-A-DEPARTURE-KNOWS-WHICH-CAR-001] */
+    data class SharedCarLeft(val carId: String?, val authorName: String?) : SharedCarNews
 
     /** No hay nada que hacer con esto, y [reason] dice qué se miró. */
     data class Ignored(val reason: String) : PushPayload
@@ -89,6 +93,7 @@ fun pushPayloadFor(data: Map<String, String>, nowMs: Long): PushPayload = when (
     )
 
     PUSH_TYPE_SHARED_CAR_LEFT -> PushPayload.SharedCarLeft(
+        carId = data[KEY_CAR_ID]?.takeIf { it.isNotBlank() },
         authorName = data[KEY_AUTHOR_NAME]?.takeIf { it.isNotBlank() },
     )
 

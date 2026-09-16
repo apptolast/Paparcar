@@ -1057,7 +1057,7 @@
     <string name="shared_car_row_sub_not_shared">Condividila con un massimo di quattro persone</string>
     <string name="vehicles_join_shared_car">Unisciti a un'auto condivisa</string>
     <string name="paywall_reason_shared_car">Condividere un'auto con chi la guida fa parte di Plus.</string>
-    <string name="shared_car_routes_title">Mostra i miei percorsi in questa auto</string>
+    <string name="shared_car_routes_title">Condividi i miei percorsi in questa auto</string>
     <string name="shared_car_routes_sub">Il gruppo vede il tracciato dei tuoi viaggi. Chilometri e spesa si condividono comunque.</string>
     <string name="shared_car_route_withheld">percorso nascosto</string>
     <string name="shared_car_member_no_routes">Ha i percorsi nascosti</string>

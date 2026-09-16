@@ -140,15 +140,18 @@ class PushMessageHandler(
      * Si esta noticia habla de un coche de alguno de MIS grupos.
      * [PRIV-A-SIGNED-OUT-PHONE-STILL-HEARS-THE-LAST-ACCOUNT-001]
      *
-     * ⛔ `SharedCarLeft` no trae `carId` -- el servidor solo manda quien se lo llevo -- asi que ahi
-     * lo unico comprobable es que este movil pertenezca a ALGUN grupo. No es el mismo filtro y no
-     * se puede fingir que lo sea: si el dia de mañana esa tarjeta necesita mas, lo que hay que
-     * cambiar es el payload del servidor, no esta funcion.
+     * ⛔ Los DOS tipos traen `carId` — el servidor lo manda también en la salida, y el payload lo
+     * tiraba. Un mensaje sin `carId` no se puede atribuir a ningún grupo, así que no se pinta: la
+     * pregunta floja de antes («¿pertenezco a algún grupo?») dejaba pasar la noticia del coche de
+     * otro a cualquiera que estuviese en uno. [PUSH-A-DEPARTURE-KNOWS-WHICH-CAR-001]
      */
     private suspend fun isAGroupOfMine(payload: PushPayload.SharedCarNews): Boolean {
+        val carId = when (payload) {
+            is PushPayload.SharedCarParked -> payload.carId
+            is PushPayload.SharedCarLeft -> payload.carId
+        } ?: return false
         val mine = runCatching { sharedCarRepository.observeSharedCars().first() }.getOrNull().orEmpty()
-        val carId = (payload as? PushPayload.SharedCarParked)?.carId
-        return if (carId == null) mine.isNotEmpty() else mine.any { it.carId == carId }
+        return mine.any { it.carId == carId }
     }
 
     /**

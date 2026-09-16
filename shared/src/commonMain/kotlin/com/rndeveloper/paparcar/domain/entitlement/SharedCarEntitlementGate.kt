@@ -30,9 +30,10 @@ const val SHARED_CAR_MAX_MEMBERS = 4
  * que cubre a la pareja con dos coches y a la familia sin dejar sitio al «un Plus para toda la
  * calle».
  *
- * ⛔ Y por eso **no hay tope en el lado del invitado**: cobrarle por entrar sería cobrar dos veces
- * el mismo sitio, y lo contradice el trato que el propio código documenta en `VehicleEntitlementGate`
- * — *the OWNER's Plus pays for the group*.
+ * ⛔ Y por eso **este es el único tope que cobra**: el del invitado ([canJoinAnotherCar]) existe,
+ * pero es un techo técnico sin paywall — cobrarle por entrar sería cobrar dos veces el mismo sitio,
+ * y lo contradice el trato que el propio código documenta en `VehicleEntitlementGate`: *the OWNER's
+ * Plus pays for the group*.
  *
  * @param alreadyShared coches propios que este usuario ya tiene compartidos.
  */

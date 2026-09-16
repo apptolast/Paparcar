@@ -1075,7 +1075,7 @@
     <string name="shared_car_row_sub_not_shared">Partajeaz-o cu cel mult patru persoane</string>
     <string name="vehicles_join_shared_car">Alătură-te unei mașini partajate</string>
     <string name="paywall_reason_shared_car">Partajarea unei mașini cu ceilalți șoferi face parte din Plus.</string>
-    <string name="shared_car_routes_title">Arată traseele mele în această mașină</string>
+    <string name="shared_car_routes_title">Partajează traseele mele în această mașină</string>
     <string name="shared_car_routes_sub">Grupul vede traseul călătoriilor tale. Kilometrii și costul se împart oricum.</string>
     <string name="shared_car_route_withheld">traseu ascuns</string>
     <string name="shared_car_member_no_routes">Are traseele ascunse</string>

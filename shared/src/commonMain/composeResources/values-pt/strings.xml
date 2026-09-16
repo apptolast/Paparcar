@@ -1057,7 +1057,7 @@
     <string name="shared_car_row_sub_not_shared">Partilhe-o com até quatro pessoas</string>
     <string name="vehicles_join_shared_car">Entrar num carro partilhado</string>
     <string name="paywall_reason_shared_car">Partilhar um carro com quem o conduz faz parte do Plus.</string>
-    <string name="shared_car_routes_title">Mostrar os meus percursos neste carro</string>
+    <string name="shared_car_routes_title">Partilhar as minhas rotas neste carro</string>
     <string name="shared_car_routes_sub">O grupo vê o traçado das suas viagens. Os quilómetros e o gasto partilham-se na mesma.</string>
     <string name="shared_car_route_withheld">percurso oculto</string>
     <string name="shared_car_member_no_routes">Tem os percursos ocultos</string>

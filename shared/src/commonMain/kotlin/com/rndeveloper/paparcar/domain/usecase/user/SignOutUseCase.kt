@@ -5,6 +5,7 @@ import com.rndeveloper.paparcar.domain.push.PushTokenProvider
 import com.rndeveloper.paparcar.domain.repository.SharedCarRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneAlertSubscriptionRepository
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Cerrar sesión, retirando antes lo que seguiría llegando a este móvil.
@@ -23,10 +24,17 @@ import com.rndeveloper.paparcar.domain.util.PaparcarLogger
  * reglas exigen ser ese uid para escribir en sus filas, así que retirarlo después no falla — hace
  * algo peor, se queda a medias sin decirlo.
  *
- * ⛔ Y **ningún fallo puede impedir salir**. Cerrar sesión es una petición del usuario, no una
- * transacción: si el móvil está sin red, se sale igual y el token queda retirado en lo local. Lo
- * que cubre ese hueco es el filtro de destinatario de `PushMessageHandler`, que no se fía de a
- * quién iba dirigido el mensaje. Dos mitades, y hacen falta las dos.
+ * ⛔ Y **ningún fallo ni ninguna espera pueden impedir salir**, que es más fuerte que no fallar:
+ * una escritura de Firestore sin red **no falla, se queda esperando el ack del servidor**, así que
+ * un `runCatching` no la atrapa — suspende, y `signOut()` no llega nunca. Por eso cada paso remoto
+ * va con plazo ([SIGN_OUT_STEP_TIMEOUT_MS]) y `signOut()` queda FUERA de todos ellos.
+ * [PRIV-A-SIGN-OUT-WITHOUT-NETWORK-NEVER-SIGNS-OUT-001]
+ *
+ * ⚠️ Lo que se queda en la cola offline de Firestore **solo sale si ese mismo usuario vuelve a
+ * entrar** en este móvil: la sesión que la autoriza es la que se está cerrando. O sea que sin red
+ * el token puede quedar vivo en el servidor, y eso no lo arregla este caso de uso. Lo cubre la otra
+ * mitad: el filtro de destinatario de `PushMessageHandler`, que no se fía de a quién iba dirigido
+ * el mensaje. Dos mitades, y hacen falta las dos.
  */
 class SignOutUseCase(
     private val authRepository: AuthRepository,
@@ -39,20 +47,39 @@ class SignOutUseCase(
         val uid = authRepository.getCurrentSession()?.userId
         if (uid != null) {
             // Las zonas: la fila entera se va, que es lo que ya hace perder Plus o apagar el aviso.
-            zoneAlertSubscriptions.replaceAll(uid, emptyList())
-                .onFailure { PaparcarLogger.w(TAG, "no se pudieron retirar las alertas de zona", it) }
+            step("alertas de zona") {
+                zoneAlertSubscriptions.replaceAll(uid, emptyList()).getOrThrow()
+            }
             // Los grupos: se retira el TOKEN, no la pertenencia — cerrar sesión no es salirse.
-            sharedCarRepository.retirePushTokens()
-                .onFailure { PaparcarLogger.w(TAG, "no se pudieron retirar los tokens del grupo", it) }
+            step("tokens del grupo") { sharedCarRepository.retirePushTokens().getOrThrow() }
         }
         // Y el propio token, para que ni una fila que se nos haya escapado alcance a este teléfono.
-        runCatching { pushTokens.retireToken() }
-            .onFailure { PaparcarLogger.w(TAG, "no se pudo invalidar el token de este móvil", it) }
+        step("token de este móvil") { pushTokens.retireToken() }
 
+        // ⛔ FUERA de todo plazo: es lo que el usuario pidió, y es local.
         authRepository.signOut().getOrThrow()
+    }
+
+    /**
+     * Un paso remoto que no puede secuestrar la salida: ni por fallar ni por no contestar.
+     * [PRIV-A-SIGN-OUT-WITHOUT-NETWORK-NEVER-SIGNS-OUT-001]
+     */
+    private suspend fun step(what: String, block: suspend () -> Unit) {
+        val done = withTimeoutOrNull(SIGN_OUT_STEP_TIMEOUT_MS) {
+            runCatching { block() }
+                .onFailure { PaparcarLogger.w(TAG, "no se pudo retirar: $what", it) }
+        }
+        if (done == null) PaparcarLogger.w(TAG, "sin respuesta al retirar: $what — se sale igual")
     }
 
     private companion object {
         const val TAG = "SignOut"
+
+        /**
+         * Lo que se espera a CADA paso remoto. Tres segundos porque hay una persona mirando la
+         * pantalla: pasado ese punto, seguir esperando no retira más tokens, solo retiene a quien
+         * pidió salir.
+         */
+        const val SIGN_OUT_STEP_TIMEOUT_MS = 3_000L
     }
 }

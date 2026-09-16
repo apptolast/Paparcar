@@ -85,6 +85,7 @@ class SplashViewModelTest {
         return SplashViewModel(
             authRepository = fakeAuth,
             signOut = testSignOutUseCase(fakeAuth),
+            pushTokens = com.rndeveloper.paparcar.fakes.data.repository.FakeNoopPushTokenProvider(),
             getOrCreateUserProfile = GetOrCreateUserProfileUseCase(
                 userProfileRepository = fakeProfileRepo,
                 authRepository = fakeAuth,

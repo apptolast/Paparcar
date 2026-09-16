@@ -105,9 +105,14 @@ existe.
 
 ---
 
-## Orden sugerido
+## Orden sugerido (revisado tras la 3.ª vuelta)
 
-3 y 4 son los que exponen datos de terceros: primero, y **3 antes que 4** porque su cadena completa
-—token ajeno + fila de alertas sobrescribible + handler que no comprueba nada— es la única que
-termina en el móvil de otra persona. 1 es media hora de copy. 5 es una frase y un botón.
-**2 ya está decidido** y vive en su propio ticket.
+1. **#4 `spotOwners`** junto con `priv-a-spot-nobody-looks-at-never-dies-001`: tocan la misma
+   colección y la misma regla, así que hacerlos por separado es pagar dos veces la migración.
+2. **#1 (seudónimas + Crashlytics) y #5 (el botón de diagnóstico)** — media hora entre los dos, y
+   los dos son promesas publicadas que hoy no se cumplen. **Proponer meterlos en la 1.2.0.**
+3. **#3 `devices/`** baja de prioridad: el filtro por `zoneId`/`carId` del handler
+   [PRIV-A-SIGNED-OUT-PHONE-STILL-HEARS-THE-LAST-ACCOUNT-001] ya neutraliza el spam que hacía
+   peligrosa la lectura de tokens ajenos. Sigue siendo exposición innecesaria, no una vía de ataque.
+4. **#2 · CERRADO** por la decisión 5C: la pregunta de rutas sustituyó al default y vive en
+   `copy-a-card-that-promises-routes-stay-home-001`.

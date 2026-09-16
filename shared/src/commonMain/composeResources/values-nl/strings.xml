@@ -1058,7 +1058,7 @@
     <string name="shared_car_row_sub_not_shared">Deel hem met maximaal vier mensen</string>
     <string name="vehicles_join_shared_car">Bij een gedeelde auto gaan</string>
     <string name="paywall_reason_shared_car">Een auto delen met wie erin rijdt hoort bij Plus.</string>
-    <string name="shared_car_routes_title">Mijn routes in deze auto tonen</string>
+    <string name="shared_car_routes_title">Mijn routes in deze auto delen</string>
     <string name="shared_car_routes_sub">De groep ziet de lijn van je ritten. Kilometers en kosten worden sowieso gedeeld.</string>
     <string name="shared_car_route_withheld">route verborgen</string>
     <string name="shared_car_member_no_routes">Verbergt de eigen routes</string>

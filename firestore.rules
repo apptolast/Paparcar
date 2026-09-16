@@ -33,9 +33,16 @@ service cloud.firestore {
 
       allow update: if request.auth != null
                     && (
-                         // El dueño edita libremente, pero no puede cambiar de dueño.
+                         // El dueño edita lo suyo, pero ni cambia de dueño ni estira la caducidad:
+                         // `set()` sobre un doc que ya existe evalúa UPDATE, así que sin esto la
+                         // puerta que cierra `create` se reabría por detrás — una plaza inmortal es
+                         // un pin que nadie puede quitar del mapa de los demás.
+                         // [SEC-AN-OWNER-CANNOT-MAKE-A-SPOT-IMMORTAL-001]
                          (resource.data.reportedBy == request.auth.uid
-                          && request.resource.data.reportedBy == resource.data.reportedBy)
+                          && request.resource.data.reportedBy == resource.data.reportedBy
+                          && request.resource.data.expiresAt is int
+                          && request.resource.data.expiresAt < request.time.toMillis() + 3 * 60 * 60 * 1000
+                          && request.resource.data.status in ['CONFIRMED', 'PROVISIONAL', 'RETRACTED'])
                          // Un tercero sólo puede tocar los contadores comunitarios.
                          || request.resource.data.diff(resource.data).affectedKeys()
                               .hasOnly(['enRouteCount', 'acceptCount', 'rejectCount'])
@@ -142,9 +149,31 @@ service cloud.firestore {
                           || get(/databases/$(database)/documents/sharedCars/$(carId)).data.ownerUid == request.auth.uid);
       }
 
-      // Dónde está el coche AHORA. Lo escribe quien aparca, que puede ser cualquiera del grupo.
+      // Dónde está el coche AHORA. Lo escribe quien aparca, que puede ser cualquiera del grupo —
+      // pero EN SU NOMBRE. [SEC-A-MEMBER-CANNOT-SPEAK-FOR-THE-CAR-001]
+      //
+      // ⛔ `write: if isMember()` dejaba a cualquier miembro escribir una cabecera firmada por OTRO,
+      // y desde el 16-09 esa escritura dispara un push a todo el grupo: un miembro podía anunciar
+      // que Marta acaba de aparcar donde él quisiera. Ahora la firma tiene que ser suya.
+      //
+      // Y la excepción que el propio código necesita: al salir del grupo se BORRA el nombre de
+      // quien se va (`clearMemberFromState`), así que un update que solo ponga a null los campos
+      // que YA eran suyos también pasa.
       match /state/{docId} {
-        allow read, write: if isMember();
+        function claimsOwnAuthorship() {
+          return request.resource.data.get('authorUid', '') == request.auth.uid
+                 || request.resource.data.get('movedByUid', '') == request.auth.uid;
+        }
+        function clearsOnlyTheirOwnName() {
+          return resource != null
+                 && (resource.data.get('authorUid', '') == request.auth.uid
+                     || resource.data.get('movedByUid', '') == request.auth.uid)
+                 && request.resource.data.diff(resource.data).affectedKeys()
+                      .hasOnly(['authorName', 'movedByUid', 'movedByName']);
+        }
+        allow read: if isMember();
+        allow create, update: if isMember() && (claimsOwnAuthorship() || clearsOnlyTheirOwnName());
+        allow delete: if isOwner();
       }
 
       // El historial compartido: cada uno firma el suyo y todos lo leen.

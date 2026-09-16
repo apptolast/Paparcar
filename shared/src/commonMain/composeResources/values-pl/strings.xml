@@ -1079,7 +1079,7 @@
     <string name="shared_car_row_sub_not_shared">Udostępnij go maksymalnie czterem osobom</string>
     <string name="vehicles_join_shared_car">Dołącz do wspólnego samochodu</string>
     <string name="paywall_reason_shared_car">Wspólny samochód z innymi kierowcami jest częścią Plusa.</string>
-    <string name="shared_car_routes_title">Pokazuj moje trasy w tym samochodzie</string>
+    <string name="shared_car_routes_title">Udostępniaj moje trasy w tym samochodzie</string>
     <string name="shared_car_routes_sub">Grupa widzi przebieg twoich podróży. Kilometry i koszt i tak są wspólne.</string>
     <string name="shared_car_route_withheld">trasa ukryta</string>
     <string name="shared_car_member_no_routes">Ma ukryte trasy</string>

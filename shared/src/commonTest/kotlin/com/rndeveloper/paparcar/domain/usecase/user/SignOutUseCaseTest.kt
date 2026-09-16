@@ -1,4 +1,6 @@
 package com.rndeveloper.paparcar.domain.usecase.user
+import kotlinx.coroutines.awaitCancellation
+import com.rndeveloper.paparcar.domain.repository.ZoneAlertSubscriptionRepository
 
 import com.apptolast.baselogin.domain.model.UserSession
 import com.rndeveloper.paparcar.domain.zone.ZoneAlertSubscription
@@ -78,6 +80,32 @@ class SignOutUseCaseTest {
         // ⛔ Salir es una petición del usuario, no una transacción: sin red se sale igual. Lo que
         // cubre ese hueco es el filtro de destinatario del handler, no un reintento aquí.
         assertTrue(result.isSuccess)
+        assertTrue(auth.getCurrentSession() == null)
+    }
+
+    @Test
+    fun should_stillSignOut_when_theServerNeverAnswers() = runTest {
+        val auth = FakeAuthRepository(session)
+        // ⛔ El caso real de «sin red», y no es el de fallar: una escritura de Firestore offline NO
+        // falla, se queda esperando el ack del servidor. Un `runCatching` no atrapa eso — suspende,
+        // y sin plazo `signOut()` no llegaba nunca.
+        // [PRIV-A-SIGN-OUT-WITHOUT-NETWORK-NEVER-SIGNS-OUT-001]
+        val hangs = object : ZoneAlertSubscriptionRepository {
+            override suspend fun replaceAll(
+                uid: String,
+                subscriptions: List<ZoneAlertSubscription>,
+            ): Result<Unit> {
+                awaitCancellation()
+            }
+        }
+
+        SignOutUseCase(
+            authRepository = auth,
+            zoneAlertSubscriptions = hangs,
+            sharedCarRepository = FakeSharedCarRepository(),
+            pushTokens = FakeNoopPushTokenProvider(),
+        )().getOrThrow()
+
         assertTrue(auth.getCurrentSession() == null)
     }
 

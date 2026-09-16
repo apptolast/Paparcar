@@ -3,6 +3,8 @@ package com.rndeveloper.paparcar.presentation.app
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.apptolast.baselogin.domain.AuthRepository
+import com.rndeveloper.paparcar.domain.push.PushTokenProvider
+import kotlinx.coroutines.withTimeoutOrNull
 import com.rndeveloper.paparcar.domain.usecase.user.SignOutUseCase
 import com.apptolast.baselogin.domain.model.AuthState
 import com.rndeveloper.paparcar.Routes
@@ -71,6 +73,9 @@ class SplashViewModel(
     private val authRepository: AuthRepository,
     /** Salir retira antes los tokens de push. [PRIV-A-SIGNED-OUT-PHONE-STILL-HEARS-THE-LAST-ACCOUNT-001] */
     private val signOut: SignOutUseCase,
+    /** Y una sesión que CADUCA tampoco puede dejar el token vivo.
+     *  [PRIV-AN-EXPIRED-SESSION-STILL-OWNS-THE-TOKEN-001] */
+    private val pushTokens: PushTokenProvider,
     private val getOrCreateUserProfile: GetOrCreateUserProfileUseCase,
     private val bootstrapUserData: BootstrapUserDataUseCase,
     private val vehicleRepository: VehicleRepository,
@@ -145,6 +150,14 @@ class SplashViewModel(
      */
     private suspend fun wipeLocalUserData() {
         PaparcarLogger.i(TAG, "auth Unauthenticated — draining geofences + wiping local Room cache")
+        // ⛔ Este es el hook de TODA transición a Unauthenticated, incluida la que nadie pidió: un
+        // token caducado. El `SignOutUseCase` cubre las salidas por la puerta; esta cubre la
+        // ventana, y sin ella el servidor seguiría teniendo un token vivo apuntando a un móvil
+        // cuya sesión ya no existe. Con plazo, porque aquí no hay usuario esperando y una red mala
+        // no puede dejar la app colgada en el arranque.
+        // [PRIV-AN-EXPIRED-SESSION-STILL-OWNS-THE-TOKEN-001]
+        runCatching { withTimeoutOrNull(TOKEN_RETIRE_TIMEOUT_MS) { pushTokens.retireToken() } }
+            .onFailure { PaparcarLogger.w(TAG, "no se pudo invalidar el token al caducar la sesión", it) }
         // Drain OS-level geofences first. They live in Play Services / CoreLocation, not in Room,
         // so clearAllTables() alone leaves them registered: a parking geofence from the previous
         // user would keep monitoring and could fire an exit transition under the next account.
@@ -335,5 +348,9 @@ class SplashViewModel(
 
     private companion object {
         const val TAG = "SplashViewModel"
+
+        /** Lo que se espera a invalidar un token al caducar la sesión. Nadie está mirando esta
+         *  pantalla esperándolo, así que la red mala no puede convertirlo en un arranque colgado. */
+        const val TOKEN_RETIRE_TIMEOUT_MS = 3_000L
     }
 }

@@ -31,3 +31,21 @@ Ninguna de las tres opciones se puede implementar en el cliente: quien invita es
 - el tope de coches deja de vivir solo en la UI.
 
 ⛔ Sin ese dato, cualquier tope que pongamos lo salta quien hable con Firestore directamente.
+
+## Decisión del user (16-09): opción (b)
+
+**`planExpiresAtMs` escrito por el cliente del dueño + 7 días de gracia.** Se eligió sobre la
+extensión oficial de RevenueCat para Firebase con custom claims (a) porque esa exige verificar que
+exista y esté disponible para `pap-26` y acordar el nombre del claim — trabajo que nadie ha hecho —
+y sobre dejarlo como está (c) porque eso deja el techo sostenido por una pantalla.
+
+⚠️ **Honestidad sobre lo que (b) protege**: el dato lo escribe el cliente del dueño, así que sirve
+contra el descuido —la suscripción que caduca y nadie mira— y **no** contra quien manipule su propio
+cliente. Para eso hace falta (a). Está bien elegido siempre que el ticket no finja otra cosa.
+
+## Y el tope, que hoy vive solo en la interfaz (M5 de la 3.ª vuelta)
+
+`VehiclesViewModel` comprueba `canShareAnotherCar`, pero `shareVehicle` y `createInvite` no, y las
+reglas dejan crear un `sharedCars` a cualquier autenticado. Con `planExpiresAtMs` en el espejo, la
+regla de `create` de `sharedCarInvites` puede exigir las dos cosas —Plus vivo y tope— y el techo
+deja de depender de una pantalla.
