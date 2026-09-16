@@ -332,6 +332,10 @@
     <string name="home_report_too_far_title">Esa plaza está lejos de ti</string>
     <string name="home_report_too_far_sub">Quien la vea va derecho hacia ella, así que tiene que ser una plaza que estés viendo. Acerca el mapa a menos de %1$s de donde estás.</string>
     <string name="home_report_no_fix_title">No sabemos dónde estás</string>
+    <!-- Pin sin sitio: nadie ha posado la camara (sin fix, sin coche, sin zona).
+         Causa + consecuencia + remedio. [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001] -->
+    <string name="home_pin_no_place_title">No sabemos dónde estás</string>
+    <string name="home_pin_no_place_sub">Busca una calle o activa la ubicación: el pin necesita un sitio real.</string>
     <string name="home_report_fab_cd">Avisar plaza libre</string>
     <!-- Copy refrescada para la card del modo Avisar (diseño v1) -->
     <string name="home_report_header_label">Avisar plaza libre</string>

@@ -650,6 +650,30 @@ class HomeViewModelTest {
             assertIs<HomeEffect.ShowError>(awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
+        // ⛔ Y no se guarda NADA. El error solo probaba que la pantalla se queja; lo que se llevó un
+        // Kamiq al Golfo de Guinea cinco veces fue que, con un frame de cámara sin posar, esta misma
+        // llamada escribía una sesión. Sin sitio no hay fila.
+        // [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001]
+        assertEquals(0, parkingRepo.saveNewParkingSessionCallCount)
+        assertIs<HomeMode.AddingParking>(vm.state.value.mode)
+    }
+
+    @Test
+    fun `should_not_offer_the_pin_as_a_place_on_EnterAddParkingMode_when_the_camera_was_never_placed`() = runTest {
+        // El aviso «marca tu aparcamiento» abre Home directamente en modo pin, y en arranque en frío
+        // el primer fix llega DESPUÉS (200 ms tarde, medido en campo). Mientras nadie pose la cámara
+        // el mapa no reporta su centro, así que el pin no está sobre ningún sitio y la hoja lo dice
+        // en vez de ofrecer un confirm que guardaría (0,0).
+        // [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001]
+        vm.handleIntent(HomeIntent.EnterAddParkingMode(initialGps = null, fromDetectionNudge = true))
+
+        assertNull(vm.state.value.pinCameraLat)
+        assertFalse(vm.state.value.toPeekSlice().pinHasPlace)
+
+        // Y en cuanto la cámara se posa —el fix, una búsqueda, el coche— el pin vuelve a ser un sitio.
+        vm.handleIntent(HomeIntent.CameraPositionChanged(location.latitude, location.longitude))
+
+        assertTrue(vm.state.value.toPeekSlice().pinHasPlace)
     }
 
     @Test
@@ -1725,6 +1749,23 @@ class HomeViewModelTest {
             assertIs<HomeEffect.ZoneSaved>(awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun `should_not_save_a_zone_on_ConfirmAddZone_when_the_camera_was_never_placed`() = runTest {
+        // Sin cámara posada y sin fix, el «+» de zonas metía (0, 0) por la puerta: los dos `?: 0.0`
+        // convertían la ausencia en una coordenada, y el Golfo de Guinea es una coordenada válida.
+        // Ahora la ausencia viaja como ausencia y la zona no se guarda en ninguna parte.
+        // [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001]
+        vm.handleIntent(HomeIntent.EnterAddZoneMode(lat = null, lon = null))
+        vm.handleIntent(HomeIntent.UpdateAddingZoneName("Casa"))
+
+        assertNull(vm.state.value.pinCameraLat)
+        assertFalse(vm.state.value.toPeekSlice().pinHasPlace)
+
+        vm.handleIntent(HomeIntent.ConfirmAddZone)
+
+        assertNull(zoneRepo.savedZone)
     }
 
     @Test

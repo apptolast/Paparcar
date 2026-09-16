@@ -252,6 +252,10 @@
     <string name="home_report_too_far_title">Locul acela e prea departe de tine</string>
     <string name="home_report_too_far_sub">Șoferii merg direct la ce anunți, deci trebuie să fie un loc pe care îl vezi. Apropie harta la mai puțin de %1$s de tine.</string>
     <string name="home_report_no_fix_title">Nu știm unde ești</string>
+    <!-- Pin sin sitio: nadie ha posado la camara (sin fix, sin coche, sin zona).
+         Causa + consecuencia + remedio. [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001] -->
+    <string name="home_pin_no_place_title">Nu știm unde ești</string>
+    <string name="home_pin_no_place_sub">Caută o stradă sau activează locația: pinul are nevoie de un loc real.</string>
     <string name="home_report_fab_cd">Raporteaz&#x103; un loc liber</string>
 
     <!-- Home Zones — locuri obi&#x219;nuite -->

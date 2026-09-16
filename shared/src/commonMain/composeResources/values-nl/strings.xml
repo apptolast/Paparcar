@@ -251,6 +251,10 @@
     <string name="home_report_too_far_title">Die plek is te ver bij je vandaan</string>
     <string name="home_report_too_far_sub">Rijders gaan meteen af op wat je meldt, dus het moet een plek zijn die je ziet. Schuif de kaart terug tot binnen %1$s van je.</string>
     <string name="home_report_no_fix_title">We weten niet waar je bent</string>
+    <!-- Pin sin sitio: nadie ha posado la camara (sin fix, sin coche, sin zona).
+         Causa + consecuencia + remedio. [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001] -->
+    <string name="home_pin_no_place_title">We weten niet waar je bent</string>
+    <string name="home_pin_no_place_sub">Zoek een straat of zet locatie aan: de pin heeft een echte plek nodig.</string>
     <string name="home_report_fab_cd">Vrije plek melden</string>
 
     <!-- Home Zones — vaste plekken -->

@@ -251,6 +251,10 @@
     <string name="home_report_too_far_title">Dieser Platz ist zu weit von dir entfernt</string>
     <string name="home_report_too_far_sub">Fahrer fahren direkt zu dem, was du meldest — es muss also ein Platz sein, den du siehst. Schieb die Karte auf weniger als %1$s von dir heran.</string>
     <string name="home_report_no_fix_title">Wir wissen nicht, wo du bist</string>
+    <!-- Pin sin sitio: nadie ha posado la camara (sin fix, sin coche, sin zona).
+         Causa + consecuencia + remedio. [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001] -->
+    <string name="home_pin_no_place_title">Wir wissen nicht, wo du bist</string>
+    <string name="home_pin_no_place_sub">Suche eine Straße oder aktiviere den Standort: Die Markierung braucht einen echten Ort.</string>
     <string name="home_report_fab_cd">Freien Stellplatz melden</string>
 
     <!-- Home Zones — gewohnte Orte -->

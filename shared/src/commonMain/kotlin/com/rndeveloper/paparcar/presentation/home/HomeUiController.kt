@@ -77,10 +77,26 @@ class HomeUiController {
      * Only the AUTOMATIC entries below honour it. A deliberate one ([goToPlace], [framePlaces],
      * [resumeDriverFollow]) still flies: the user pressing "my location" while placing a pin is
      * asking to go there.
+     *
+     * ⛔ Y solo lo honran cuando hay pin QUE PROTEGER — ver [pinToProtect]. Este guard nació para que
+     * el primer fix no arrastrase un pin ya colocado; aplicado a una cámara que nadie ha posado, lo
+     * que hacía era dejarla clavada en el Golfo de Guinea justo en el único modo donde su centro es
+     * la respuesta del usuario. [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001]
      */
     fun setPinPlacementActive(active: Boolean) {
         pinPlacementActive = active
     }
+
+    /**
+     * ¿Hay un pin que defender de un reencuadre automático?
+     *
+     * Solo si además de estar colocándose un pin, la cámara está POSADA en algún sitio: [cameraLat]
+     * lo escribe únicamente [onCameraMoved], y el mapa dejó de reportar su centro mientras sigue en
+     * la semilla de emergencia — así que `cameraLat == null` significa exactamente «nadie ha posado
+     * esta cámara». Un pin que no está en ninguna parte no supera a nada: el primer sitio real que
+     * aparezca (tu fix, tu coche, una zona) manda. [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001]
+     */
+    private val pinToProtect: Boolean get() = pinPlacementActive && cameraLat != null
 
     fun clearProgrammaticMove() {
         isProgrammaticMove = false
@@ -175,7 +191,7 @@ class HomeUiController {
         selectedSpot: Pair<Double, Double>?,
         user: Pair<Double, Double>,
     ) {
-        if (centeredOnUser || userMovedCameraManually || pinPlacementActive) return
+        if (centeredOnUser || userMovedCameraManually || pinToProtect) return
         centeredOnUser = true
         initialFocusWasParking = parking != null
         when {
@@ -197,7 +213,7 @@ class HomeUiController {
      * initial focus: a pan or a pin being placed win.
      */
     fun centerOnParkingWithoutLocation(parking: Pair<Double, Double>) {
-        if (centeredOnUser || userMovedCameraManually || pinPlacementActive) return
+        if (centeredOnUser || userMovedCameraManually || pinToProtect) return
         centeredOnUser = true
         initialFocusWasParking = true
         setTarget(parking.first, parking.second, zoom = FOCUS_PARKED_ZOOM)
@@ -218,7 +234,7 @@ class HomeUiController {
      * los tres carriles dicen que todavía no han podido preguntar.
      */
     fun centerOnZoneWithoutLocation(zone: Pair<Double, Double>) {
-        if (centeredOnUser || userMovedCameraManually || pinPlacementActive) return
+        if (centeredOnUser || userMovedCameraManually || pinToProtect) return
         centeredOnUser = true
         setTarget(zone.first, zone.second, zoom = FOCUS_SEARCH_ZOOM)
     }
@@ -260,7 +276,7 @@ class HomeUiController {
      * the rest of the focus machinery does. [UI-MAP-A-TAPPED-PLACE-OUTRANKS-THE-FOLLOWED-CAR-001]
      */
     fun frameTheAsk(shownAtMs: Long, candidate: Pair<Double, Double>) {
-        if (framedAskAtMs == shownAtMs || pinPlacementActive) return
+        if (framedAskAtMs == shownAtMs || pinToProtect) return
         framedAskAtMs = shownAtMs
         centeredOnUser = true
         setTarget(candidate.first, candidate.second, zoom = FOCUS_PARKED_ZOOM)
@@ -280,7 +296,7 @@ class HomeUiController {
      */
     fun refocusOnParkingArrival(parking: Pair<Double, Double>, user: Pair<Double, Double>?) {
         if (!centeredOnUser || userMovedCameraManually || initialFocusWasParking || refocusedOnParking) return
-        if (pinPlacementActive) return
+        if (pinToProtect) return
         refocusedOnParking = true
         frameParking(parking, user)
     }

@@ -1577,6 +1577,8 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                 peek(
                     HomeState(
                         mode = HomeMode.AddingParking,
+                        pinCameraLat = sampleGps.latitude,
+                        pinCameraLon = sampleGps.longitude,
                         cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
                         vehicles = listOf(FakeData.vehicleSedan),
                         addingParkingVehicleId = FakeData.vehicleSedan.id,
@@ -1589,6 +1591,8 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                 peek(
                     HomeState(
                         mode = HomeMode.AddingParking,
+                        pinCameraLat = sampleGps.latitude,
+                        pinCameraLon = sampleGps.longitude,
                         cameraAddressAndPlace = FakeData.addressAndPlaceApproximate,
                         vehicles = listOf(FakeData.vehicleSedan),
                         addingParkingVehicleId = FakeData.vehicleSedan.id,
@@ -1601,6 +1605,8 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                 peek(
                     HomeState(
                         mode = HomeMode.AddingParking,
+                        pinCameraLat = sampleGps.latitude,
+                        pinCameraLon = sampleGps.longitude,
                         cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
                         vehicles = listOf(FakeData.vehicleSedan, FakeData.vehicleVan),
                         activeSessions = listOf(FakeData.activeSession.copy(vehicleId = FakeData.vehicleSedan.id)),
@@ -1614,6 +1620,8 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                 peek(
                     HomeState(
                         mode = HomeMode.AddingParking,
+                        pinCameraLat = sampleGps.latitude,
+                        pinCameraLon = sampleGps.longitude,
                         cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
                         vehicles = listOf(FakeData.vehicleSedan, FakeData.vehicleVan),
                         addingParkingVehicleId = FakeData.vehicleSedan.id,
@@ -1628,10 +1636,25 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                 peek(
                     HomeState(
                         mode = HomeMode.AddingParking,
+                        pinCameraLat = sampleGps.latitude,
+                        pinCameraLon = sampleGps.longitude,
                         editingParkingId = FakeData.activeSession.id,
                         activeSessions = listOf(FakeData.activeSession.copy(vehicleId = FakeData.vehicleSedan.id)),
                         cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
                         vehicles = listOf(FakeData.vehicleSedan),
+                    ),
+                )
+            },
+            // ⛔ Nadie ha posado la cámara: sin fix, sin coche y sin zona el mapa se abre en una
+            // semilla que no es ningún sitio, así que el pin no puede confirmarse. La razón sustituye
+            // al banner y los dos confirms se apagan — el camino de salida es el buscador.
+            // [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001]
+            Variant("PapSheet · add parking sin sitio (cámara sin posar)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        mode = HomeMode.AddingParking,
+                        vehicles = listOf(FakeData.vehicleSedan),
+                        addingParkingVehicleId = FakeData.vehicleSedan.id,
                     ),
                 )
             },
@@ -1678,6 +1701,8 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                 peek(
                     HomeState(
                         mode = HomeMode.AddingZone,
+                        pinCameraLat = sampleGps.latitude,
+                        pinCameraLon = sampleGps.longitude,
                         cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
                         addingZoneName = "Casa",
                     ),
@@ -1689,12 +1714,24 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                 peek(
                     HomeState(
                         mode = HomeMode.AddingZone,
+                        pinCameraLat = sampleGps.latitude,
+                        pinCameraLon = sampleGps.longitude,
                         cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
                         addingZoneName = "Casa",
                         addingZoneIconKey = ZoneIcon.HOME,
                         addingZoneRadius = 180f,
                         addingZoneIsPrivate = true,
                         editingZoneId = "zone-1",
+                    ),
+                )
+            },
+            // La misma ausencia en el formulario de zona: guardar está apagado hasta que la cámara
+            // se pose en algún sitio. [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001]
+            Variant("PapSheet · add zona sin sitio (cámara sin posar)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        mode = HomeMode.AddingZone,
+                        addingZoneName = "Casa",
                     ),
                 )
             },
@@ -2589,6 +2626,8 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                 peek(
                     HomeState(
                         mode = HomeMode.AddingZone,
+                        pinCameraLat = sampleGps.latitude,
+                        pinCameraLon = sampleGps.longitude,
                         cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
                         addingZoneName = "Casa",
                         addingZoneNotify = true,

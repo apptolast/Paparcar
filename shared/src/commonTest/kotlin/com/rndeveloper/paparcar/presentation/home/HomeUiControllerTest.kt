@@ -262,7 +262,11 @@ class HomeUiControllerTest {
     fun should_notFrameAnythingAutomatically_when_aPinIsBeingPlaced() {
         // Not even without a pan: entering a pin mode pre-centred and waiting for the fix is the
         // very sequence the tutorial walks a new user through.
+        //
+        // «Pre-centrada» es literal y ahora se simula: el mapa reporta el centro, que es lo que
+        // convierte a la cámara en un SITIO que defender. [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001]
         val controller = HomeUiController()
+        controller.onCameraMoved(SPOT_LAT, SPOT_LON)
         controller.setPinPlacementActive(true)
 
         controller.centerInitialFocus(parking = null, selectedSpot = null, user = USER_LAT to USER_LON)
@@ -270,6 +274,53 @@ class HomeUiControllerTest {
         controller.refocusOnParkingArrival(CAR_LAT to CAR_LON, USER_LAT to USER_LON)
 
         assertNull(controller.cameraTarget, "the finger owns the camera while a pin is in the air")
+    }
+
+    // ── Un pin que no está en ningún sitio no supera a nada ──
+    // [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001]
+
+    @Test
+    fun should_frameTheFirstRealPlace_when_aPinIsBeingPlacedOnACameraNobodyEverSet() {
+        // El caso de campo: el aviso abre Home DIRECTAMENTE en modo pin y el arranque en frío todavía
+        // no tiene fix, así que el mapa nace en su semilla de emergencia y no reporta centro alguno.
+        // El guard de «no muevas un pin colocado» dejaba la cámara clavada ahí para siempre, y el pin
+        // se guardaba en el Golfo de Guinea. Sin centro reportado no hay pin que proteger: el primer
+        // sitio real manda.
+        val controller = HomeUiController()
+        controller.setPinPlacementActive(true)
+
+        controller.centerInitialFocus(parking = null, selectedSpot = null, user = USER_LAT to USER_LON)
+
+        val target = assertNotNull(controller.cameraTarget, "nothing to protect: the fix wins")
+        assertEquals(USER_LAT, target.lat)
+    }
+
+    @Test
+    fun should_frameTheParkedCar_when_aPinIsBeingPlacedWithoutLocationAndNothingEverPlacedTheCamera() {
+        // Misma ausencia por la otra puerta: sin permiso de ubicación el fix no llega NUNCA, así que
+        // el coche aparcado es el único sitio que Home conoce. Con el guard viejo, entrar en modo pin
+        // sin fix condenaba la sesión entera a (0,0).
+        val controller = HomeUiController()
+        controller.setPinPlacementActive(true)
+
+        controller.centerOnParkingWithoutLocation(CAR_LAT to CAR_LON)
+
+        assertEquals(CAR_LAT, assertNotNull(controller.cameraTarget).lat)
+    }
+
+    @Test
+    fun should_notFrameAnythingAutomatically_when_theCameraWasPlacedAndThenThePinMovedAway() {
+        // Y lo que el guard protege sigue protegido: una vez la cámara está posada, arrastrar el pin
+        // lejos y que llegue el primer fix NO lo arrastra de vuelta.
+        // [PARK-A-DRAGGED-PIN-MUST-OUTRANK-AN-AUTOMATIC-CAMERA-001]
+        val controller = HomeUiController()
+        controller.onCameraMoved(CAR_LAT, CAR_LON)
+        controller.setPinPlacementActive(true)
+        controller.onCameraMoved(SPOT_LAT, SPOT_LON)
+
+        controller.centerInitialFocus(parking = null, selectedSpot = null, user = USER_LAT to USER_LON)
+
+        assertNull(controller.cameraTarget, "a placed pin still outranks the first fix")
     }
 
     @Test
@@ -289,7 +340,11 @@ class HomeUiControllerTest {
     fun should_frameTheUserAgain_when_thePinModeIsOverAndNothingWasFramedYet() {
         // Standing down must not disarm the one-shot: leaving the mode without ever having framed
         // anything should still let Home open on something meaningful.
+        //
+        // La cámara se posa primero: si no, no habría stand-down que comprobar y el test pasaría por
+        // la razón equivocada. [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001]
         val controller = HomeUiController()
+        controller.onCameraMoved(SPOT_LAT, SPOT_LON)
         controller.setPinPlacementActive(true)
         controller.centerInitialFocus(parking = null, selectedSpot = null, user = USER_LAT to USER_LON)
 

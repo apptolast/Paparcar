@@ -1233,8 +1233,8 @@ private fun HomeFloatingHeader(
                 onAddZone = {
                     onIntent(
                         HomeIntent.EnterAddZoneMode(
-                            lat = uiController.cameraLat ?: userGpsPoint?.latitude ?: 0.0,
-                            lon = uiController.cameraLon ?: userGpsPoint?.longitude ?: 0.0,
+                            lat = uiController.cameraLat ?: userGpsPoint?.latitude,
+                            lon = uiController.cameraLon ?: userGpsPoint?.longitude,
                         )
                     )
                 },

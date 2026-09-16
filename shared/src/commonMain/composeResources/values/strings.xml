@@ -285,6 +285,10 @@
     <string name="home_report_too_far_title">That spot is too far from you</string>
     <string name="home_report_too_far_sub">Drivers head straight for whatever you report, so it has to be a spot you can see. Move the map back to within %1$s of you.</string>
     <string name="home_report_no_fix_title">We don't know where you are</string>
+    <!-- Pin sin sitio: nadie ha posado la cámara (sin fix, sin coche, sin zona).
+         Causa + consecuencia + remedio. [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001] -->
+    <string name="home_pin_no_place_title">We don't know where you are</string>
+    <string name="home_pin_no_place_sub">Search for a street or turn on location: the pin needs a real place.</string>
     <string name="home_report_fab_cd">Report a free spot</string>
     <!-- Refreshed copy for the reporting peek card (v1 design) -->
     <string name="home_report_header_label">Report free spot</string>

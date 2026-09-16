@@ -228,6 +228,13 @@ data class HomePeekSlice(
     val drivingSecondaryLine: String?,
     val isCameraMoving: Boolean,
     val isCameraGeocoding: Boolean,
+    /**
+     * Si el pin está sobre un SITIO. Falso mientras nadie haya posado la cámara — sin fix, sin coche
+     * aparcado y sin zona, el mapa se abre en una semilla de emergencia que no es ningún lugar y que
+     * por tanto no reporta su centro. Los confirms de pin lo usan para callarse con su razón en vez
+     * de guardar el Golfo de Guinea. [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001]
+     */
+    val pinHasPlace: Boolean,
     // Reporting form
     val isReporting: Boolean,
     /** Whether the spot under the pin may be published, and if not, which sentence the peek owes the
@@ -587,6 +594,7 @@ fun HomeState.toPeekSlice(): HomePeekSlice {
         drivingSecondaryLine = drivingMeta?.let { userAddressAndPlace.secondaryPlaceLine() },
         isCameraMoving = isCameraMoving,
         isCameraGeocoding = isCameraGeocoding,
+        pinHasPlace = pinCoordinates() != null,
         isReporting = isReporting,
         reportGate = reportGate(),
         reportingSize = reportingSize,

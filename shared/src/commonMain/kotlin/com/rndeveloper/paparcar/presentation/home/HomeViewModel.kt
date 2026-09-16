@@ -1390,7 +1390,13 @@ class HomeViewModel(
                 }
                 // Same centre, wider frame: sizing a zone means seeing its whole circle,
                 // which the navigation zoom crops. [UI-ZONE-MANAGE-001]
-                sendEffect(HomeEffect.MoveCameraTo(intent.lat, intent.lon, CameraFrame.ZoneEditing))
+                //
+                // Sin sitio no se mueve la cámara a ninguna parte: la hoja se abre diciendo que no
+                // sabemos dónde estás, con el guardar apagado, y el buscador es la salida.
+                // [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001]
+                if (intent.lat != null && intent.lon != null) {
+                    sendEffect(HomeEffect.MoveCameraTo(intent.lat, intent.lon, CameraFrame.ZoneEditing))
+                }
             }
             is HomeIntent.ExitAddZoneMode -> updateState { clearedModeFields() }
             is HomeIntent.ConfirmAddZone -> confirmAddZone()

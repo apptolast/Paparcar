@@ -8,6 +8,7 @@ import androidx.compose.material.icons.rounded.AddLocationAlt
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.EditLocationAlt
+import androidx.compose.material.icons.rounded.LocationOff
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -47,6 +48,8 @@ import paparcar.composeapp.generated.resources.home_add_parking_helper_primary_c
 import paparcar.composeapp.generated.resources.home_add_parking_helper_primary_edit
 import paparcar.composeapp.generated.resources.home_add_parking_helper_secondary_create
 import paparcar.composeapp.generated.resources.home_add_parking_helper_secondary_edit
+import paparcar.composeapp.generated.resources.home_pin_no_place_sub
+import paparcar.composeapp.generated.resources.home_pin_no_place_title
 import paparcar.composeapp.generated.resources.home_parking_delete_confirm_body
 import paparcar.composeapp.generated.resources.home_parking_delete_confirm_title
 import paparcar.composeapp.generated.resources.home_parking_menu_correct
@@ -87,6 +90,8 @@ internal fun AddingParkingPeek(
      *  started here — that is the delete confirm's own spinner. */
     releasingReason: ParkingReleaseReason?,
     isCameraMoving: Boolean,
+    /** Si el pin está sobre un sitio real. [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001] */
+    hasPlace: Boolean,
     step: PeekStep,
     onIntent: (HomeIntent) -> Unit,
     onAction: (HomeSheetAction) -> Unit,
@@ -158,10 +163,22 @@ internal fun AddingParkingPeek(
                 ?.let { id -> { onAction(HomeSheetAction.StepToVehicle(id)) } },
         ),
         banner = {
-            PapSheetBanner(
-                title = helperPrimary,
-                subtitle = helperSecondary,
-            )
+            // La razón SUSTITUYE al banner, como en ReportPeek: decirle a alguien que centre el pin
+            // sobre un mapa que no está en ninguna parte no lleva a ningún sitio.
+            // [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001]
+            if (hasPlace) {
+                PapSheetBanner(
+                    title = helperPrimary,
+                    subtitle = helperSecondary,
+                )
+            } else {
+                PapSheetBanner(
+                    title = stringResource(Res.string.home_pin_no_place_title),
+                    subtitle = stringResource(Res.string.home_pin_no_place_sub),
+                    icon = Icons.Rounded.LocationOff,
+                    maxLines = Int.MAX_VALUE,
+                )
+            }
         },
         actions = {
             // Primary confirm. CREATE → parks the car; EDIT → corrects THIS session's pin in place.
@@ -171,7 +188,7 @@ internal fun AddingParkingPeek(
                               else PaparcarIcons.VehicleCar,
                 onClick = { onIntent(HomeIntent.ConfirmAddParking(asNewSession = false)) },
                 style = PapFooterButtonStyle.Filled,
-                enabled = !isSaving && !isCameraMoving,
+                enabled = !isSaving && !isCameraMoving && hasPlace,
                 isLoading = savingAsNewSession == false,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -208,7 +225,7 @@ internal fun AddingParkingPeek(
                     leadingIcon = Icons.Rounded.AddLocationAlt,
                     onClick = { onIntent(HomeIntent.ConfirmAddParking(asNewSession = true)) },
                     style = PapFooterButtonStyle.Outlined,
-                    enabled = !isSaving && !isCameraMoving,
+                    enabled = !isSaving && !isCameraMoving && hasPlace,
                     // This confirm reports its OWN progress. It used to have no spinner at all, so
                     // re-parking lit the button ABOVE it — the one that means the opposite thing.
                     // [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001]

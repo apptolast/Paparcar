@@ -250,6 +250,10 @@
     <string name="home_report_too_far_title">To miejsce jest za daleko od ciebie</string>
     <string name="home_report_too_far_sub">Kierowcy jadą prosto do tego, co zgłosisz, więc musi to być miejsce, które widzisz. Przesuń mapę bliżej niż %1$s od ciebie.</string>
     <string name="home_report_no_fix_title">Nie wiemy, gdzie jesteś</string>
+    <!-- Pin sin sitio: nadie ha posado la camara (sin fix, sin coche, sin zona).
+         Causa + consecuencia + remedio. [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001] -->
+    <string name="home_pin_no_place_title">Nie wiemy, gdzie jesteś</string>
+    <string name="home_pin_no_place_sub">Wyszukaj ulicę lub włącz lokalizację: pinezka potrzebuje prawdziwego miejsca.</string>
     <string name="home_report_fab_cd">Zg&#x0142;o&#x015B; wolne miejsce</string>
 
     <!-- Home Zones — sta&#x0142;e miejsca -->

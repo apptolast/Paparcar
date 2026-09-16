@@ -17,6 +17,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bookmark
+import androidx.compose.material.icons.rounded.LocationOff
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Notifications
@@ -63,6 +64,8 @@ import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_release_dialog_cancel
+import paparcar.composeapp.generated.resources.home_pin_no_place_sub
+import paparcar.composeapp.generated.resources.home_pin_no_place_title
 import paparcar.composeapp.generated.resources.home_zone_action_delete
 import paparcar.composeapp.generated.resources.home_zone_delete_confirm_body
 import paparcar.composeapp.generated.resources.home_zone_delete_confirm_title
@@ -124,6 +127,8 @@ internal fun AddingZonePeek(
     title: String,
     form: ZonePeekForm,
     isCameraMoving: Boolean,
+    /** Si el pin está sobre un sitio real. [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001] */
+    hasPlace: Boolean,
     onIntent: (HomeIntent) -> Unit,
 ) {
     val headerLabel = if (form.isEditing) {
@@ -154,10 +159,20 @@ internal fun AddingZonePeek(
         title = title,
         onDismiss = { onIntent(HomeIntent.ExitAddZoneMode) },
         banner = {
-            PapSheetBanner(
-                title = helperPrimary,
-                subtitle = stringResource(Res.string.home_zone_helper_secondary),
-            )
+            // La razón SUSTITUYE al banner. [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001]
+            if (hasPlace) {
+                PapSheetBanner(
+                    title = helperPrimary,
+                    subtitle = stringResource(Res.string.home_zone_helper_secondary),
+                )
+            } else {
+                PapSheetBanner(
+                    title = stringResource(Res.string.home_pin_no_place_title),
+                    subtitle = stringResource(Res.string.home_pin_no_place_sub),
+                    icon = Icons.Rounded.LocationOff,
+                    maxLines = Int.MAX_VALUE,
+                )
+            }
         },
         // A row of icons IS the label — a "Icon" header above it only names what is
         // already visible, and the space is worth more to the form. [UI-ZONE-MANAGE-001]
@@ -182,7 +197,7 @@ internal fun AddingZonePeek(
                 style = PapFooterButtonStyle.Filled,
                 // The pin has to be settled before the name is asked — a zone saved
                 // mid-fling lands wherever the camera happened to be.
-                enabled = !form.isSaving && !isCameraMoving,
+                enabled = !form.isSaving && !isCameraMoving && hasPlace,
                 // No spinner here: this button OPENS the naming dialog, it does not save. The save
                 // is fired from inside that dialog and reports its progress there, on the button
                 // that was actually pressed. [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001]

@@ -177,7 +177,13 @@ sealed class HomeIntent {
     // ── Zone management ───────────────────────────────────────────────────────
 
     /** Enter zone-placement mode anchored at the map's current centre. */
-    data class EnterAddZoneMode(val lat: Double, val lon: Double) : HomeIntent()
+    /**
+     * Dónde nace la zona: el centro de la cámara, o la posición del usuario si la cámara todavía no
+     * ha reportado ninguna. **Nullable a propósito** — antes ambos caían en `?: 0.0`, que convertía
+     * «no tengo sitio» en el Golfo de Guinea justo en la puerta.
+     * [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001]
+     */
+    data class EnterAddZoneMode(val lat: Double?, val lon: Double?) : HomeIntent()
     data object ExitAddZoneMode : HomeIntent()
     data object ConfirmAddZone : HomeIntent()
     data class UpdateAddingZoneName(val name: String) : HomeIntent()

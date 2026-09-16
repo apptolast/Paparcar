@@ -183,6 +183,7 @@ fun HomePeekHandle(
                         isDeleting = slice.isDeletingZone,
                     ),
                     isCameraMoving = slice.isCameraMoving,
+                    hasPlace = slice.pinHasPlace,
                     onIntent = onIntent,
                 )
                 is PeekState.AddingParking -> AddingParkingPeek(
@@ -199,6 +200,7 @@ fun HomePeekHandle(
                     savingAsNewSession = slice.savingParkingAsNewSession,
                     releasingReason = slice.releasingReason,
                     isCameraMoving = slice.isCameraMoving,
+                    hasPlace = slice.pinHasPlace,
                     // No stepping out of the focused flows: EDIT corrects ONE session's pin, and a
                     // detection NUDGE is a question about ONE car — stepping away and back would
                     // re-enter without the nudge flag and drop the pin's detection provenance.

@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.State
@@ -255,6 +256,9 @@ private const val ZOOM_DEFAULT       = 15f
 private const val ZOOM_NEIGHBORHOOD  = 14f
 private const val ZOOM_DISTRICT      = 13f
 private const val ZOOM_WIDE          = 12f
+// Cámara sin posar: vista de mundo. No es un encuadre, es la ausencia de uno — y tiene que leerse
+// como tal. [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001]
+private const val ZOOM_UNPLACED      = 2f
 
 // Per-marker metadata that travelled in Marker.title before — we now hold it
 // off-marker so we can set Marker.title = null on every marker and suppress
@@ -1565,7 +1569,7 @@ fun PaparcarMapView(
 
     // Interpolated render pose so the driving car glides between GPS fixes instead of stepping. Also
     // drives the follow camera (below) so the puck marker stays pinned to screen-centre. [FOLLOW-001]
-    val cameraPosition = rememberCameraAnimationState(
+    val cameraRender = rememberCameraAnimationState(
         cameraTarget = cameraTarget,
         userLocation = userLocation,
         initialCamera = config.initialCamera,
@@ -1830,7 +1834,7 @@ fun PaparcarMapView(
     ) {
         Map(
             modifier = Modifier.fillMaxSize(),
-            cameraPosition = cameraPosition,
+            cameraPosition = cameraRender.position,
             properties = MapProperties(
                 // The native Google blue dot is OFF for good: the user position is painted by us
                 // (brand-green projected overlay below) so the map speaks ONE palette — three
@@ -1895,7 +1899,11 @@ fun PaparcarMapView(
                         actualCamLat = coords.latitude.toFloat()
                         actualCamLon = coords.longitude.toFloat()
                     }
-                    if (!isReadOnly) {
+                    // Una cámara que nadie ha posado no tiene centro que reportar: el host lo tomaría
+                    // por un sitio (pin, geocodificación, consulta de plazas) y no lo es. El
+                    // seguimiento interno de arriba sí sigue, porque el mapa necesita saber dónde
+                    // está aunque no sea ninguna parte. [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001]
+                    if (!isReadOnly && cameraRender.isPlaced) {
                         onCameraMove(coords.latitude, coords.longitude)
                     }
                 }
@@ -2112,16 +2120,38 @@ private fun rememberCameraAnimationState(
     actualCamZoom: Float,
     followPose: PuckPose? = null,
     userInteracting: Boolean = false,
-): CameraPosition {
+): MapCameraRender {
     // Seed priority: explicit cameraTarget > config.initialCamera > live userLocation > origin.
     val initCoords = cameraTarget?.let { Coordinates(it.lat, it.lon) }
         ?: initialCamera?.let { Coordinates(it.lat, it.lon) }
         ?: userLocation?.let { Coordinates(it.latitude, it.longitude) }
         ?: Coordinates(0.0, 0.0)
+
+    // ⛔ El origen NO es un sitio: es «todavía no sé dónde mirar». Quién sembró la cámara se decide
+    // AQUÍ, que es donde se elige la semilla, y se decide UNA vez — la semilla vive en un `remember`,
+    // así que una cámara nacida en el origen se queda ahí hasta que llegue un `cameraTarget`.
+    // [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001]
+    val seededOnRealPlace = remember {
+        cameraTarget != null || initialCamera != null || userLocation != null
+    }
+    // Enganchado, no leído en vivo: un host que ponga un destino y luego lo borre volvería a estar
+    // «sin posar» sin haber vuelto a ninguna parte.
+    var everTargeted by remember { mutableStateOf(false) }
+    LaunchedEffect(cameraTarget) { if (cameraTarget != null) everTargeted = true }
+    // Seguir al puck es seguir a una posición MEDIDA: eso también posa la cámara.
+    val isPlaced = seededOnRealPlace || everTargeted || followPose != null
+
     val animLat = remember { Animatable(initCoords.latitude.toFloat()) }
     val animLon = remember { Animatable(initCoords.longitude.toFloat()) }
     val animZoom = remember {
-        Animatable(cameraTarget?.zoom ?: initialCamera?.zoom ?: ZOOM_DEFAULT)
+        // Sin semilla real la cámara se abre ALEJADA: un mapa de calle centrado en el Golfo de
+        // Guinea se lee como «tu coche está en el mar»; uno de mundo se lee como lo que es, que no
+        // sabemos dónde estás. [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001]
+        Animatable(
+            cameraTarget?.zoom
+                ?: initialCamera?.zoom
+                ?: if (seededOnRealPlace) ZOOM_DEFAULT else ZOOM_UNPLACED,
+        )
     }
 
     // Snap Animatables to the actual map position only right before launching
@@ -2216,9 +2246,12 @@ private fun rememberCameraAnimationState(
     // While touching: the frozen position (constant, captured above) so cameraPosition stops changing
     // and native pan/zoom own the camera. Checked FIRST so a touch always wins. [DRIVE-PUCK-NATIVE-001]
     if (userInteracting) {
-        return CameraPosition(
-            coordinates = Coordinates(frozenLat.toDouble(), frozenLon.toDouble()),
-            zoom = frozenZoom,
+        return MapCameraRender(
+            position = CameraPosition(
+                coordinates = Coordinates(frozenLat.toDouble(), frozenLon.toDouble()),
+                zoom = frozenZoom,
+            ),
+            isPlaced = isPlaced,
         )
     }
 
@@ -2229,12 +2262,15 @@ private fun rememberCameraAnimationState(
         val t = followProgress.value
         val anchorLat = actualCamLat?.toDouble() ?: followPose.latitude
         val anchorLon = actualCamLon?.toDouble() ?: followPose.longitude
-        return CameraPosition(
-            coordinates = Coordinates(
-                lerpDouble(anchorLat, followPose.latitude, t),
-                lerpDouble(anchorLon, followPose.longitude, t),
+        return MapCameraRender(
+            position = CameraPosition(
+                coordinates = Coordinates(
+                    lerpDouble(anchorLat, followPose.latitude, t),
+                    lerpDouble(anchorLon, followPose.longitude, t),
+                ),
+                zoom = actualCamZoom,
             ),
-            zoom = actualCamZoom,
+            isPlaced = isPlaced,
         )
     }
 
@@ -2243,11 +2279,32 @@ private fun rememberCameraAnimationState(
     // native pan and its fling run completely free (returning the live actualCam here instead forced a
     // move() to the release position, which killed the fling: the "release stalls / jumps"). It's parked
     // at the frozen touch position (synced below), so releasing a drag is seamless. [DRIVE-PUCK-NATIVE-001]
-    return CameraPosition(
-        coordinates = Coordinates(animLat.value.toDouble(), animLon.value.toDouble()),
-        zoom = animZoom.value,
+    return MapCameraRender(
+        position = CameraPosition(
+            coordinates = Coordinates(animLat.value.toDouble(), animLon.value.toDouble()),
+            zoom = animZoom.value,
+        ),
+        isPlaced = isPlaced,
     )
 }
+
+/**
+ * Lo que el mapa renderiza Y si eso que renderiza es un SITIO.
+ *
+ * [isPlaced] es falso mientras la cámara siga en la semilla de emergencia (el origen), que no es un
+ * lugar sino la ausencia de uno: sin destino, sin `initialCamera` y sin fix no hay nada honesto que
+ * enseñar. Mientras sea falso el mapa no reporta su centro, porque en los modos de pin ese centro no
+ * es un viewport — es la RESPUESTA del usuario, y (0,0) no es una respuesta que nadie haya dado.
+ *
+ * ⛔ Un pan NO posa la cámara: arrastrar es relativo, hereda el sitio del que partió. Un usuario
+ * arrastrando 190 m dentro del Golfo de Guinea sigue sin estar en ninguna parte — es literalmente lo
+ * que pasó en campo. [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001]
+ */
+@Immutable
+private data class MapCameraRender(
+    val position: CameraPosition,
+    val isPlaced: Boolean,
+)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Custom marker composables — overlays on top of the Design System markers
