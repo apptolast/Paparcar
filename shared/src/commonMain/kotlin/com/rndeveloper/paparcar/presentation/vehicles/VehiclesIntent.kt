@@ -69,6 +69,12 @@ sealed class VehiclesIntent {
     data class SetSharedHistoryScope(val mineOnly: Boolean) : VehiclesIntent()
 
     /** Abrir/cerrar el diálogo de unirse. */
+    /** Conservarlo: pasa a ser un coche suyo más y ocupa su plaza.
+     *  [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] */
+    data object KeepDissolvedCar : VehiclesIntent()
+    /** Borrarlo, con los viajes que hizo con él — que son suyos, y por eso se le dice cuántos. */
+    data object DeleteDissolvedCar : VehiclesIntent()
+
     data class ShowJoinDialog(val open: Boolean) : VehiclesIntent()
     data class JoinCodeChanged(val code: String) : VehiclesIntent()
     data object SubmitJoinCode : VehiclesIntent()

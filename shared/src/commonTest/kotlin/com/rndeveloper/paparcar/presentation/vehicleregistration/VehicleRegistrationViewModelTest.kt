@@ -11,7 +11,9 @@ import com.rndeveloper.paparcar.domain.model.EnergyLabel
 import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.VehicleColor
 import com.rndeveloper.paparcar.domain.model.VehicleSize
+import com.rndeveloper.paparcar.domain.usecase.vehicle.DeleteVehicleUseCase
 import com.rndeveloper.paparcar.fakes.FakeAppPreferences
+import com.rndeveloper.paparcar.fakes.data.repository.FakeSharedCarRepository
 import com.rndeveloper.paparcar.fakes.FakeAuthRepository
 import com.rndeveloper.paparcar.fakes.FakeVehicleRepository
 import kotlinx.coroutines.Dispatchers
@@ -58,8 +60,19 @@ class VehicleRegistrationViewModelTest {
         // el consumo entra y sale del formulario sin conversión ninguna.
         // [I18N-A-RADIUS-WRITTEN-BY-HAND-IGNORES-MILES-001]
         prefs = FakeAppPreferences()
-        vm = VehicleRegistrationViewModel(vehicleRepo, auth, prefs)
+        vm = VehicleRegistrationViewModel(vehicleRepo, auth, deleteVehicleUseCase(vehicleRepo, prefs), prefs)
     }
+
+    /** El VM ya no borra la fila a pelo: pasa por el caso de uso, que ademas disuelve o abandona
+     *  el grupo si lo hubiera. [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] */
+    private fun deleteVehicleUseCase(
+        vehicles: FakeVehicleRepository,
+        prefs: FakeAppPreferences,
+    ) = DeleteVehicleUseCase(
+        vehicleRepository = vehicles,
+        sharedCarRepository = FakeSharedCarRepository(),
+        appPreferences = prefs,
+    )
 
     @AfterTest
     fun tearDown() {
@@ -286,7 +299,7 @@ class VehicleRegistrationViewModelTest {
         // tal cual: un coche que gasta 42,8 litros a los cien, y toda la aritmética de ahorro y
         // consumo detrás leyendo ese número. [I18N-A-RADIUS-WRITTEN-BY-HAND-IGNORES-MILES-001]
         prefs.setUseImperialUnits(true)
-        vm = VehicleRegistrationViewModel(vehicleRepo, auth, prefs)
+        vm = VehicleRegistrationViewModel(vehicleRepo, auth, deleteVehicleUseCase(vehicleRepo, prefs), prefs)
         fillCarForm()
         vm.handleIntent(VehicleRegistrationIntent.SetFuelType(FuelType.DIESEL))
         vm.handleIntent(VehicleRegistrationIntent.SetConsumption("42.8"))
@@ -373,7 +386,7 @@ class VehicleRegistrationViewModelTest {
         // su galón, se guarda como precio del LITRO y el gasto de todos sus viajes sale ×3,785 —
         // con un número que parece perfectamente correcto en todas las pantallas. Sin un test que
         // lo mire, vuelve.
-        vm = VehicleRegistrationViewModel(vehicleRepo, auth, prefs) { GallonKind.US }
+        vm = VehicleRegistrationViewModel(vehicleRepo, auth, deleteVehicleUseCase(vehicleRepo, prefs), prefs) { GallonKind.US }
         val currency = vm.state.value.priceCurrency
         assertNotNull(currency, "sin moneda el campo de precio no se ofrece y este testigo no mira nada")
         fillCarForm()
@@ -393,7 +406,7 @@ class VehicleRegistrationViewModelTest {
     @Test
     fun `should_keepThePriceUntouched_when_thePumpChargesByTheLitre`() = runTest {
         // El otro lado del mismo borde, y el caso de 193 países: lo tecleado se guarda tal cual.
-        vm = VehicleRegistrationViewModel(vehicleRepo, auth, prefs) { null }
+        vm = VehicleRegistrationViewModel(vehicleRepo, auth, deleteVehicleUseCase(vehicleRepo, prefs), prefs) { null }
         assertNotNull(vm.state.value.priceCurrency, "sin moneda el campo de precio no se ofrece")
         fillCarForm()
         vm.handleIntent(VehicleRegistrationIntent.SetFuelType(FuelType.GASOLINE))
@@ -416,7 +429,7 @@ class VehicleRegistrationViewModelTest {
                 fuelPricePerLiter = Money(0.9243, "USD"),
             ),
         )
-        vm = VehicleRegistrationViewModel(vehicleRepo, auth, prefs) { GallonKind.US }
+        vm = VehicleRegistrationViewModel(vehicleRepo, auth, deleteVehicleUseCase(vehicleRepo, prefs), prefs) { GallonKind.US }
 
         vm.handleIntent(VehicleRegistrationIntent.LoadVehicle("v-price"))
 

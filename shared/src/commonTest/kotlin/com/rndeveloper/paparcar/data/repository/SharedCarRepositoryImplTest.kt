@@ -8,6 +8,7 @@ import com.rndeveloper.paparcar.data.datasource.remote.dto.SharedCarStateDto
 import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleSize
+import com.rndeveloper.paparcar.fakes.FakeAppPreferences
 import com.rndeveloper.paparcar.fakes.FakeAuthRepository
 import com.rndeveloper.paparcar.fakes.FakeSharedCarDao
 import com.rndeveloper.paparcar.fakes.FakeSharedCarRemote
@@ -44,6 +45,7 @@ class SharedCarRepositoryImplTest {
         vehicles: FakeVehicleRepository,
         remote: FakeSharedCarRemote = FakeSharedCarRemote(),
         dao: FakeSharedCarDao = FakeSharedCarDao(),
+        prefs: FakeAppPreferences = FakeAppPreferences(),
     ) = SharedCarRepositoryImpl(
         remote = remote,
         dao = dao,
@@ -61,6 +63,7 @@ class SharedCarRepositoryImplTest {
         authRepository = FakeAuthRepository(
             UserSession(userId = uid, email = null, displayName = null, photoUrl = null),
         ),
+        appPreferences = prefs,
         randomBytes = { size -> ByteArray(size) { 7 } },
         clock = { now },
     )
@@ -194,6 +197,41 @@ class SharedCarRepositoryImplTest {
         assertEquals(listOf("s-marta"), remote.sessions.value["car-1"].orEmpty().map { it.sessionId })
     }
 
+    @Test
+    fun should_leaveAQuestionBehind_when_theGroupIsDissolvedWithoutAsking() = runTest {
+        val remote = FakeSharedCarRemote()
+        val prefs = FakeAppPreferences()
+        // Una fila PRESTADA cuyo espejo ya no existe: el dueño borró el coche o su cuenta.
+        val lent = ownerCar.copy(userId = "nacho", ownerUid = "marta", sharedCarId = "car-1")
+        val vehicles = FakeVehicleRepository(defaultVehicle = lent)
+        val member = repository("nacho", vehicles, remote, prefs = prefs)
+
+        member.syncFromRemote().getOrThrow()
+
+        // La fila se queda, desvinculada — eso ya pasaba. Lo nuevo es que ahora pasa a CONTAR para
+        // su límite de coches sin que él haya tocado nada, así que queda una pregunta pendiente.
+        val row = vehicles.getVehicleById("nacho", "car-1")!!
+        assertNull(row.sharedCarId)
+        assertEquals(setOf("car-1"), prefs.dissolvedSharedCars.value)
+    }
+
+    @Test
+    fun should_alsoAsk_when_theMemberWalksOutOnTheirOwn() = runTest {
+        val remote = FakeSharedCarRemote()
+        val prefs = FakeAppPreferences()
+        val owner = repository("marta", FakeVehicleRepository(defaultVehicle = ownerCar), remote)
+        owner.shareVehicle(ownerCar).getOrThrow()
+        remote.putInvite(liveInvite())
+        val member = repository("nacho", FakeVehicleRepository(), remote, prefs = prefs)
+        member.joinByCode("AB3K9P", null).getOrThrow()
+
+        member.leave("car-1").getOrThrow()
+
+        // ⛔ Salir del grupo es una decisión sobre el GRUPO, no sobre el coche: la fila se queda y
+        // pasa a ocupar su plaza, y eso no se lo dice nadie — «Salir de este coche» ni siquiera
+        // tiene diálogo. La pregunta es la misma la haya provocado quien la haya provocado.
+        assertEquals(setOf("car-1"), prefs.dissolvedSharedCars.value)
+    }
     @Test
     fun should_takeTheirNameOffTheGroupsCard_when_aMemberLeaves() = runTest {
         val remote = FakeSharedCarRemote()

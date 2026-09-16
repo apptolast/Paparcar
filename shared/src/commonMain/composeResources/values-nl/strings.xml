@@ -1064,4 +1064,18 @@
     <string name="shared_car_member_no_routes">Verbergt de eigen routes</string>
     <string name="shared_car_scope_group">Hele groep</string>
     <string name="shared_car_scope_mine">Alleen ik</string>
+    <!-- El grupo lo cerró su dueño: la fila deja de ser prestada y pasa a ocupar plaza de
+         coche. [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] -->
+    <string name="shared_car_dissolved_title">%1$s wordt niet meer gedeeld</string>
+    <string name="shared_car_dissolved_body">De eigenaar heeft de groep gesloten. Het is nu een gewone auto van jou, met de ritten die je ermee hebt gemaakt.</string>
+    <string name="shared_car_dissolved_body_free_slot">De eigenaar heeft de groep gesloten. Het is nu een gewone auto van jou en neemt dus de enige autoplek van het gratis plan in. Houd hem, of verwijder hem met de ritten die je ermee hebt gemaakt.</string>
+    <string name="shared_car_dissolved_keep">Houden</string>
+    <string name="shared_car_dissolved_delete">Verwijderen</string>
+    <plurals name="shared_car_dissolved_delete_with_history">
+        <item quantity="one">Verwijderen (%1$d parkeerplaats)</item>
+        <item quantity="other">Verwijderen (%1$d parkeerplaatsen)</item>
+    </plurals>
+    <!-- Tope de coches propios compartidos: NO es un paywall, quien lo ve ya es Plus.
+         [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] -->
+    <string name="shared_car_error_too_many_shared">Je kunt maximaal 2 van je auto's delen. Stop met delen bij één om voor een andere een groep te openen.</string>
 </resources>

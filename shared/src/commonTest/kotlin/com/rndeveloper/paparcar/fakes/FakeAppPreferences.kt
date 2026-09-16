@@ -102,6 +102,11 @@ class FakeAppPreferences(
 
     // [DET-NUDGE-PERSIST-001]
     val pendingParkNudge = MutableStateFlow<PendingParkNudge?>(null)
+    val dissolvedSharedCars = MutableStateFlow<Set<String>>(emptySet())
+    override fun observeDissolvedSharedCars(): Flow<Set<String>> = dissolvedSharedCars
+    override fun addDissolvedSharedCar(vehicleId: String) { dissolvedSharedCars.value += vehicleId }
+    override fun clearDissolvedSharedCar(vehicleId: String) { dissolvedSharedCars.value -= vehicleId }
+
     override fun observePendingParkNudge(): Flow<PendingParkNudge?> = pendingParkNudge
     override fun setPendingParkNudge(nudge: PendingParkNudge) { pendingParkNudge.value = nudge }
     override fun clearPendingParkNudge() { pendingParkNudge.value = null }

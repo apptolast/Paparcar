@@ -184,6 +184,7 @@ val dataModule = module {
             profileDao = get(),
             vehicleRepository = get(),
             authRepository = get(),
+            appPreferences = get(),
         )
     }
 

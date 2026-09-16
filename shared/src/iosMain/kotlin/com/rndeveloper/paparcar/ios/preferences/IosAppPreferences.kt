@@ -236,6 +236,11 @@ class IosAppPreferences : AppPreferences {
 
     private val pendingParkNudgeFlow = MutableStateFlow(storedPendingParkNudge())
 
+    private val _dissolvedSharedCars = MutableStateFlow<Set<String>>(emptySet())
+    override fun observeDissolvedSharedCars(): Flow<Set<String>> = _dissolvedSharedCars
+    override fun addDissolvedSharedCar(vehicleId: String) { _dissolvedSharedCars.value += vehicleId }
+    override fun clearDissolvedSharedCar(vehicleId: String) { _dissolvedSharedCars.value -= vehicleId }
+
     override fun observePendingParkNudge(): Flow<PendingParkNudge?> = pendingParkNudgeFlow.asStateFlow()
 
     override fun setPendingParkNudge(nudge: PendingParkNudge) {

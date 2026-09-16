@@ -44,6 +44,10 @@ import kotlin.time.Clock
  */
 private const val MOCK_PROMPT_VEHICLE = "Toyota Corolla"
 
+/** El coche del garaje mock sobre el que se prueba la pregunta de grupo cerrado.
+ *  [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] */
+private const val MOCK_DISSOLVED_VEHICLE_ID = "mock_vehicle_001"
+
 /** The mock has one connected car at a time, so any non-zero stamp ranks it. Only the ordering of
  *  TWO live links needs a real clock, and the mock never produces two.
  *  [UI-MAP-PUCK-BELONGS-TO-THE-DRIVE-NOT-TO-ONE-LANE-001] */
@@ -225,6 +229,20 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
 
     // [DET-NUDGE-PERSIST-001]
     private val _pendingParkNudge = MutableStateFlow<PendingParkNudge?>(null)
+    private val _dissolvedSharedCars = MutableStateFlow<Set<String>>(emptySet())
+
+    /**
+     * Scenario-aware, como el resto de estas preferencias: el Dev Catalog enciende
+     * «el dueño cerró el grupo» y la pestaña de Vehículos se encuentra la pregunta.
+     * [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001]
+     */
+    override fun observeDissolvedSharedCars(): kotlinx.coroutines.flow.Flow<Set<String>> =
+        combine(_dissolvedSharedCars, scenario?.sharedCarDissolved ?: MutableStateFlow(false)) { own, dissolved ->
+            if (dissolved) own + MOCK_DISSOLVED_VEHICLE_ID else own
+        }
+    override fun addDissolvedSharedCar(vehicleId: String) { _dissolvedSharedCars.value += vehicleId }
+    override fun clearDissolvedSharedCar(vehicleId: String) { _dissolvedSharedCars.value -= vehicleId }
+
     override fun observePendingParkNudge(): kotlinx.coroutines.flow.Flow<PendingParkNudge?> = _pendingParkNudge
     override fun setPendingParkNudge(nudge: PendingParkNudge) { _pendingParkNudge.value = nudge }
     override fun clearPendingParkNudge() { _pendingParkNudge.value = null }

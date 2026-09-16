@@ -12,6 +12,7 @@ import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.permissions.PermissionManager
 import com.rndeveloper.paparcar.domain.permissions.missingProducerPermissions
 import com.rndeveloper.paparcar.presentation.permissions.detectionPermissionGap
+import com.rndeveloper.paparcar.domain.entitlement.canShareAnotherCar
 import com.rndeveloper.paparcar.domain.entitlement.canShareVehicle
 import com.rndeveloper.paparcar.domain.model.SharedCar
 import com.rndeveloper.paparcar.domain.model.SharedCarMember
@@ -27,7 +28,9 @@ import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.sharedcar.asHistoryEntry
 import com.rndeveloper.paparcar.domain.usecase.fuel.ResolveFuelPriceUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
+import com.rndeveloper.paparcar.domain.model.displayName
 import com.rndeveloper.paparcar.domain.usecase.vehicle.DeclareActiveVehicleUseCase
+import com.rndeveloper.paparcar.domain.usecase.vehicle.DeleteVehicleUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import com.rndeveloper.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -95,6 +98,9 @@ class VehiclesViewModel(
     private val resolveFuelPrice: ResolveFuelPriceUseCase,
     /** Read for the detection toggle only. [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001] */
     private val appPreferences: AppPreferences,
+    /** Borrar un coche disuelve o abandona el grupo que hubiera detrás.
+     *  [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] */
+    private val deleteVehicle: DeleteVehicleUseCase,
     /**
      * El grupo de los coches compartidos. [VEH-SHARED-001]
      *
@@ -137,6 +143,7 @@ class VehiclesViewModel(
         }
         observeVehicles()
         observeWatchedGroup()
+        observeDissolvedSharedCars()
         // ⛔ The INTENT and the BLOCKERS together — see the panel's twin. A switch that cannot run
         // is not on, and the two halves need opposite remedies.
         // [STATS-A-CHIP-YOU-CANNOT-MEASURE-MUST-NOT-REDRAW-001]
@@ -386,10 +393,21 @@ class VehiclesViewModel(
             // ⛔ Gate BLANDO, como todos: el botón se ve siempre y es la ACCIÓN la que abre el
             // paywall. Esconderlo escondería la feature que Plus vende. [FREE-LIMITS-001]
             is VehiclesIntent.ConfirmShareCar ->
-                if (intent.vehicleId != null && !canShareVehicle(state.value.isPlus)) {
-                    sendEffect(VehiclesEffect.NavigateToPaywall(PaywallReason.SHARED_CAR))
-                } else {
-                    updateState { copy(confirmShareCarId = intent.vehicleId) }
+                when {
+                    intent.vehicleId == null -> updateState { copy(confirmShareCarId = null) }
+                    !canShareVehicle(state.value.isPlus) ->
+                        sendEffect(VehiclesEffect.NavigateToPaywall(PaywallReason.SHARED_CAR))
+                    // ⛔ Y este NO es un paywall: quien llega aquí YA es Plus. Es un tope de
+                    // producto, y el mensaje tiene que decir eso y no ofrecer nada que comprar.
+                    // [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001]
+                    // ⛔ `isShared` incluye los PRESTADOS (`sharedCarId != null` lo cumple una fila
+                    // vinculada): contar eso gastaría el tope del dueño con coches ajenos, que es
+                    // justo lo contrario del trato.
+                    !canShareAnotherCar(
+                        state.value.vehicles.count { it.vehicle.isShared && !it.vehicle.isLinked },
+                    ) ->
+                        sendEffect(VehiclesEffect.ShowError(PaparcarError.SharedCar.TooManySharedCars))
+                    else -> updateState { copy(confirmShareCarId = intent.vehicleId) }
                 }
             is VehiclesIntent.ShareCar -> {
                 updateState { copy(confirmShareCarId = null) }
@@ -410,6 +428,8 @@ class VehiclesViewModel(
             }
             is VehiclesIntent.ShowMembers -> updateState { copy(membersSheetCarId = intent.carId) }
             is VehiclesIntent.SetSharedHistoryScope -> setSharedHistoryScope(intent.mineOnly)
+            VehiclesIntent.KeepDissolvedCar -> answerDissolved(deleteIt = false)
+            VehiclesIntent.DeleteDissolvedCar -> answerDissolved(deleteIt = true)
             is VehiclesIntent.ShowJoinDialog ->
                 updateState { copy(joinDialog = if (intent.open) JoinSharedCarDialog() else null) }
             is VehiclesIntent.JoinCodeChanged -> updateState {
@@ -447,6 +467,59 @@ class VehiclesViewModel(
 
     /** El alcance del historial del coche a la vista. Re-resuelve en el sitio, sin esperar a una
      *  emisión nueva: el usuario acaba de tocar un chip. */
+    /**
+     * La pregunta que deja un grupo cerrado por otro.
+     * [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001]
+     *
+     * Se resuelve contra la lista de coches y no contra la preferencia sola: un id anotado cuyo
+     * coche ya no existe —porque lo borró desde otra pantalla— no es una pregunta, es un resto, y
+     * se limpia en silencio. Se pregunta de UNA en una aunque se cierren dos grupos el mismo día:
+     * cada respuesta descubre la siguiente.
+     */
+    private fun observeDissolvedSharedCars() {
+        combine(
+            appPreferences.observeDissolvedSharedCars(),
+            vehicleRepository.observeVehicles(),
+            observeIsPlus(),
+        ) { pending, vehicles, isPlus ->
+            val vehicle = pending.firstNotNullOfOrNull { id -> vehicles.firstOrNull { it.id == id } }
+            if (vehicle == null) {
+                pending.forEach { appPreferences.clearDissolvedSharedCar(it) }
+                null
+            } else {
+                DissolvedSharedCarPrompt(
+                    vehicleId = vehicle.id,
+                    carName = vehicle.displayName(fallback = vehicle.sizeCategory.name),
+                    endedParkings = vehicleRepository.getParkingFootprint(vehicle.id).endedParkings,
+                    // Conservarlo ocupa plaza solo si ya estaba en el tope: con Plus no hay tope, y
+                    // un free sin coche propio se lo queda sin pagar nada.
+                    takesTheFreeSlot = !canAddOwnVehicle(
+                        ownedCount = countOwnVehicles(vehicles) - 1,
+                        isPlus = isPlus,
+                    ),
+                )
+            }
+        }
+            .distinctUntilChanged()
+            .onEach { prompt -> updateState { copy(dissolvedCar = prompt) } }
+            .launchIn(viewModelScope)
+    }
+
+    private fun answerDissolved(deleteIt: Boolean) {
+        val prompt = state.value.dissolvedCar ?: return
+        viewModelScope.launch {
+            if (deleteIt) {
+                val uid = state.value.currentUid
+                val vehicle = uid?.let { vehicleRepository.getVehicleById(it, prompt.vehicleId) }
+                // El caso de uso limpia la pregunta al borrar; si la fila ya no está, la limpiamos
+                // aquí para no dejar la pregunta dando vueltas sin sujeto.
+                vehicle?.let { deleteVehicle(it) } ?: appPreferences.clearDissolvedSharedCar(prompt.vehicleId)
+            } else {
+                appPreferences.clearDissolvedSharedCar(prompt.vehicleId)
+            }
+        }
+    }
+
     private fun setSharedHistoryScope(mineOnly: Boolean) {
         val vehicleId = state.value.currentVehicleId ?: return
         val vws = state.value.vehicles.firstOrNull { it.vehicle.id == vehicleId } ?: return

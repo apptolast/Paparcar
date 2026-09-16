@@ -96,6 +96,10 @@ sealed class PaparcarError : Exception() {
         data object InviteAlreadyUsed : SharedCar()
         /** The owner plus four is the whole group; somebody has to leave first. */
         data object GroupFull : SharedCar()
+
+        /** Ya tiene el máximo de coches propios compartidos. No es un paywall: ya es Plus.
+         *  [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] */
+        data object TooManySharedCars : SharedCar()
         /** Already in this group — joining twice is a no-op, not a failure to hide. */
         data object AlreadyJoined : SharedCar()
         /** Only the owner opens, closes or changes the group. */

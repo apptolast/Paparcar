@@ -53,6 +53,9 @@ data class VehiclesState(
     val joinDialog: JoinSharedCarDialog? = null,
     /** El diálogo que explica qué verá el grupo antes de abrirlo, sobre este coche. */
     val confirmShareCarId: String? = null,
+    /** El coche que ha dejado de estar compartido sin que el usuario lo pidiera, esperando su
+     *  decisión. [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] */
+    val dissolvedCar: DissolvedSharedCarPrompt? = null,
     val currentUid: String? = null,
 ) {
     val currentVehicleId: String?
@@ -82,3 +85,22 @@ data class VehiclesState(
                     ?: list.firstOrNull { it.isActive }
             }
 }
+
+/**
+ * «Este coche ha dejado de compartirse»: la pregunta que queda cuando el dueño cierra el grupo.
+ * [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001]
+ *
+ * No es un aviso, es una decisión: la fila pasa de PRESTADA —que no gastaba plaza de coche— a
+ * propia, y con el plan gratuito eso ocupa la única que hay. Por eso viaja [takesTheFreeSlot]: el
+ * mismo diálogo dice una cosa u otra según lo que le cueste al que lo lee.
+ *
+ * [endedParkings] es lo que se perdería al borrarlo, y se enseña por la misma razón que en el
+ * borrado normal de un coche [VEH-A-DELETED-CAR-DOES-NOT-ERASE-ITS-HISTORY-001]: esos viajes son
+ * SUYOS aunque el coche fuera de otro.
+ */
+data class DissolvedSharedCarPrompt(
+    val vehicleId: String,
+    val carName: String,
+    val endedParkings: Int,
+    val takesTheFreeSlot: Boolean,
+)

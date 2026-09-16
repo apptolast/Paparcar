@@ -1085,4 +1085,20 @@
     <string name="shared_car_member_no_routes">Ma ukryte trasy</string>
     <string name="shared_car_scope_group">Cała grupa</string>
     <string name="shared_car_scope_mine">Tylko ja</string>
+    <!-- El grupo lo cerró su dueño: la fila deja de ser prestada y pasa a ocupar plaza de
+         coche. [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] -->
+    <string name="shared_car_dissolved_title">%1$s nie jest już udostępniany</string>
+    <string name="shared_car_dissolved_body">Właściciel zamknął grupę. To teraz zwykły Twój samochód, z przejazdami, które nim odbyłeś.</string>
+    <string name="shared_car_dissolved_body_free_slot">Właściciel zamknął grupę. To teraz zwykły Twój samochód, więc zajmuje jedyne miejsce na samochód w planie bezpłatnym. Zachowaj go albo usuń razem z przejazdami, które nim odbyłeś.</string>
+    <string name="shared_car_dissolved_keep">Zachowaj</string>
+    <string name="shared_car_dissolved_delete">Usuń</string>
+    <plurals name="shared_car_dissolved_delete_with_history">
+        <item quantity="one">Usuń (%1$d parkowanie)</item>
+        <item quantity="few">Usuń (%1$d parkowania)</item>
+        <item quantity="many">Usuń (%1$d parkowań)</item>
+        <item quantity="other">Usuń (%1$d parkowań)</item>
+    </plurals>
+    <!-- Tope de coches propios compartidos: NO es un paywall, quien lo ve ya es Plus.
+         [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] -->
+    <string name="shared_car_error_too_many_shared">Możesz udostępnić maksymalnie 2 swoje samochody. Przestań udostępniać jeden, aby otworzyć grupę dla innego.</string>
 </resources>

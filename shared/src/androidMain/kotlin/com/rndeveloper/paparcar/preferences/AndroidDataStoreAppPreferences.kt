@@ -173,6 +173,26 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
     private fun Set<String>?.toComplements(): Set<NearbyComplement> =
         this.orEmpty().mapNotNull { name -> NearbyComplement.entries.firstOrNull { it.name == name } }.toSet()
 
+    // ── Coches cuyo grupo se disolvió. [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] ──
+
+    override fun observeDissolvedSharedCars(): Flow<Set<String>> =
+        store.data.map { it[Keys.DISSOLVED_SHARED_CARS].orEmpty() }.distinctUntilChanged()
+
+    override fun addDissolvedSharedCar(vehicleId: String) = editDissolved { it + vehicleId }
+
+    override fun clearDissolvedSharedCar(vehicleId: String) = editDissolved { it - vehicleId }
+
+    private fun editDissolved(transform: (Set<String>) -> Set<String>) {
+        // Igual que el resto de este fichero: el snapshot en memoria se actualiza YA para que la
+        // lectura síncrona no vaya un tick por detrás, y el store se edita en el scope.
+        snapshot = snapshot.toMutablePreferences().apply {
+            this[Keys.DISSOLVED_SHARED_CARS] = transform(this[Keys.DISSOLVED_SHARED_CARS].orEmpty())
+        }
+        scope.launch {
+            store.edit { it[Keys.DISSOLVED_SHARED_CARS] = transform(it[Keys.DISSOLVED_SHARED_CARS].orEmpty()) }
+        }
+    }
+
     // ── Pending mark-parking nudge. [DET-NUDGE-PERSIST-001] ──────────────────
 
     override fun observePendingParkNudge(): Flow<PendingParkNudge?> =
@@ -364,6 +384,9 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         val FIRST_PARK_NUDGE_COUNT  = intPreferencesKey("first_park_nudge_count")
         val LAST_FIRST_PARK_NUDGE_AT = longPreferencesKey("last_first_park_nudge_at")
         val HAS_CONFIRMED_FIRST_PARK = booleanPreferencesKey("has_confirmed_first_park")
+        /** Filas prestadas que dejaron de serlo sin que el usuario lo pidiera.
+         *  [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] */
+        val DISSOLVED_SHARED_CARS   = stringSetPreferencesKey("dissolved_shared_cars")
         val FIRST_STEPS_DONE        = stringSetPreferencesKey("first_steps_done")
         val FIRST_STEPS_DEFERRED    = stringSetPreferencesKey("first_steps_deferred")
         val FIRST_STEPS_DISMISSED   = booleanPreferencesKey("first_steps_dismissed")

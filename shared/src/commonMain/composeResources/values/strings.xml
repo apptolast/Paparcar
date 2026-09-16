@@ -1104,4 +1104,18 @@
     <string name="shared_car_member_no_routes">Their routes are hidden</string>
     <string name="shared_car_scope_group">Whole group</string>
     <string name="shared_car_scope_mine">Only me</string>
+    <!-- El grupo lo cerró su dueño: la fila deja de ser prestada y pasa a ocupar plaza de
+         coche. [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] -->
+    <string name="shared_car_dissolved_title">%1$s is no longer shared</string>
+    <string name="shared_car_dissolved_body">The group it belonged to was closed by its owner. It is an ordinary car of yours now, with the trips you made in it.</string>
+    <string name="shared_car_dissolved_body_free_slot">The group it belonged to was closed by its owner. It is an ordinary car of yours now, so it takes your free plan's only car slot. Keep it, or delete it with the trips you made in it.</string>
+    <string name="shared_car_dissolved_keep">Keep it</string>
+    <string name="shared_car_dissolved_delete">Delete it</string>
+    <plurals name="shared_car_dissolved_delete_with_history">
+        <item quantity="one">Delete it (%1$d trip)</item>
+        <item quantity="other">Delete it (%1$d trips)</item>
+    </plurals>
+    <!-- Tope de coches propios compartidos: NO es un paywall, quien lo ve ya es Plus.
+         [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] -->
+    <string name="shared_car_error_too_many_shared">You can share up to 2 of your cars. Stop sharing one to open a group for another.</string>
 </resources>

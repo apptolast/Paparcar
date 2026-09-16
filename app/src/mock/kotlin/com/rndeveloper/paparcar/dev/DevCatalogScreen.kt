@@ -60,6 +60,7 @@ fun DevCatalogScreen(
     val aggressiveOem by scenario.aggressiveOem.collectAsStateWithLifecycle()
     val ownParked by scenario.ownParkedSession.collectAsStateWithLifecycle()
     val sharedCarJoined by scenario.sharedCarJoined.collectAsStateWithLifecycle()
+    val sharedCarDissolved by scenario.sharedCarDissolved.collectAsStateWithLifecycle()
     val inPrivateZone by scenario.parkedInPrivateZone.collectAsStateWithLifecycle()
     val activeBt by scenario.activeVehicleBluetooth.collectAsStateWithLifecycle()
     val sentryAlive by scenario.sentryAlive.collectAsStateWithLifecycle()
@@ -151,6 +152,11 @@ fun DevCatalogScreen(
             // Es la lectura que desde la cuenta del dueño no existe.
             SwitchRow("Coche compartido: soy miembro", sharedCarJoined) {
                 scenario.sharedCarJoined.value = it
+            }
+            // [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] El dueño cierra el grupo sin
+            // avisar: Vehículos recibe la pregunta de conservar o eliminar el coche.
+            SwitchRow("Coche compartido: el dueño cerró el grupo", sharedCarDissolved) {
+                scenario.sharedCarDissolved.value = it
             }
             // [UI-APPROXIMATE-PARKING-DRAWS-ITS-DOUBT-001] La sesión sembrada pasa a ser un ÁREA:
             // anillo de duda alrededor del coche en el mapa + fila que lo explica en el peek.

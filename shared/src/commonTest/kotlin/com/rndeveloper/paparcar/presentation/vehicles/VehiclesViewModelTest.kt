@@ -77,6 +77,13 @@ class VehiclesViewModelTest {
             // back to anyway. [FUEL-NATIONAL-AVERAGE-FROM-OPENVAN-001]
             com.rndeveloper.paparcar.domain.usecase.fuel.ResolveFuelPriceUseCase(),
             com.rndeveloper.paparcar.fakes.FakeAppPreferences(),
+            // Borrar un coche pasa por el caso de uso, que ademas cierra o abandona su grupo.
+            // [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001]
+            com.rndeveloper.paparcar.domain.usecase.vehicle.DeleteVehicleUseCase(
+                vehicleRepository = vehicleRepo,
+                sharedCarRepository = com.rndeveloper.paparcar.fakes.data.repository.FakeSharedCarRepository(),
+                appPreferences = com.rndeveloper.paparcar.fakes.FakeAppPreferences(),
+            ),
             // Coche compartido: sin grupo en estos casos — la pestaña se comporta como siempre.
             // [VEH-SHARED-001]
             com.rndeveloper.paparcar.fakes.data.repository.FakeSharedCarRepository(),

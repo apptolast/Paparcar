@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Group
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -71,6 +72,7 @@ import com.rndeveloper.paparcar.presentation.vehicles.components.PapVehicleSelec
 import com.rndeveloper.paparcar.presentation.vehicles.components.VEHICLE_PILL_HEIGHT_DP
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
 import com.rndeveloper.paparcar.ui.theme.watch
+import com.rndeveloper.paparcar.ui.components.PapDialogAccent
 import com.rndeveloper.paparcar.ui.components.PapAlertDialog
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
@@ -78,15 +80,21 @@ import com.rndeveloper.paparcar.ui.components.chips.PaparcarAddChip
 import com.rndeveloper.paparcar.ui.theme.PapBorders
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.error_unknown
 import com.rndeveloper.paparcar.presentation.vehicles.components.JoinSharedCarDialogContent
 import com.rndeveloper.paparcar.presentation.vehicles.components.SharedCarMembersSheet
-import com.rndeveloper.paparcar.ui.components.PapAlertDialog
 import paparcar.composeapp.generated.resources.my_car_add_vehicle
 import paparcar.composeapp.generated.resources.my_car_delete_cancel
+import paparcar.composeapp.generated.resources.shared_car_dissolved_body
+import paparcar.composeapp.generated.resources.shared_car_dissolved_body_free_slot
+import paparcar.composeapp.generated.resources.shared_car_dissolved_delete
+import paparcar.composeapp.generated.resources.shared_car_dissolved_delete_with_history
+import paparcar.composeapp.generated.resources.shared_car_dissolved_keep
+import paparcar.composeapp.generated.resources.shared_car_dissolved_title
 import paparcar.composeapp.generated.resources.shared_car_not_shared_body
 import paparcar.composeapp.generated.resources.shared_car_share_cta
 import paparcar.composeapp.generated.resources.shared_car_title
@@ -370,6 +378,38 @@ private fun VehiclesPager(
             primaryLabel = stringResource(Res.string.shared_car_share_cta),
             onPrimary = { onIntent(VehiclesIntent.ShareCar(carId)) },
             cancelLabel = stringResource(Res.string.my_car_delete_cancel),
+        )
+    }
+
+    // ⛔ El grupo lo cerró OTRO, así que esto no es un aviso: es la decisión que le queda. La fila
+    // deja de ser prestada y pasa a ocupar su plaza de coche sin que él haya tocado nada, y lo que
+    // se borraría con ella son SUS viajes. [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001]
+    state.dissolvedCar?.let { prompt ->
+        PapAlertDialog(
+            onDismiss = { onIntent(VehiclesIntent.KeepDissolvedCar) },
+            icon = Icons.Rounded.Group,
+            title = stringResource(Res.string.shared_car_dissolved_title, prompt.carName),
+            body = if (prompt.takesTheFreeSlot) {
+                stringResource(Res.string.shared_car_dissolved_body_free_slot)
+            } else {
+                stringResource(Res.string.shared_car_dissolved_body)
+            },
+            // Conservar es el PRIMARIO y descartar el diálogo hace lo mismo: la salida barata
+            // tiene que ser la que no borra nada de nadie.
+            primaryLabel = stringResource(Res.string.shared_car_dissolved_keep),
+            onPrimary = { onIntent(VehiclesIntent.KeepDissolvedCar) },
+            secondaryLabel = if (prompt.endedParkings > 0) {
+                pluralStringResource(
+                    Res.plurals.shared_car_dissolved_delete_with_history,
+                    prompt.endedParkings,
+                    prompt.endedParkings,
+                )
+            } else {
+                stringResource(Res.string.shared_car_dissolved_delete)
+            },
+            onSecondary = { onIntent(VehiclesIntent.DeleteDissolvedCar) },
+            secondaryAccent = PapDialogAccent.Destructive,
+            secondaryLeadingIcon = Icons.Rounded.Delete,
         )
     }
 

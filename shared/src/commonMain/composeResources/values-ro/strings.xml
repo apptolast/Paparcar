@@ -1081,4 +1081,19 @@
     <string name="shared_car_member_no_routes">Are traseele ascunse</string>
     <string name="shared_car_scope_group">Tot grupul</string>
     <string name="shared_car_scope_mine">Doar eu</string>
+    <!-- El grupo lo cerró su dueño: la fila deja de ser prestada y pasa a ocupar plaza de
+         coche. [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] -->
+    <string name="shared_car_dissolved_title">%1$s nu mai este partajată</string>
+    <string name="shared_car_dissolved_body">Proprietarul a închis grupul. Acum este o mașină a ta ca oricare alta, cu călătoriile pe care le-ai făcut cu ea.</string>
+    <string name="shared_car_dissolved_body_free_slot">Proprietarul a închis grupul. Acum este o mașină a ta ca oricare alta, deci ocupă singurul loc de mașină din planul gratuit. Păstreaz-o sau șterge-o împreună cu călătoriile pe care le-ai făcut cu ea.</string>
+    <string name="shared_car_dissolved_keep">Păstreaz-o</string>
+    <string name="shared_car_dissolved_delete">Șterge-o</string>
+    <plurals name="shared_car_dissolved_delete_with_history">
+        <item quantity="one">Șterge-o (%1$d parcare)</item>
+        <item quantity="few">Șterge-o (%1$d parcări)</item>
+        <item quantity="other">Șterge-o (%1$d de parcări)</item>
+    </plurals>
+    <!-- Tope de coches propios compartidos: NO es un paywall, quien lo ve ya es Plus.
+         [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] -->
+    <string name="shared_car_error_too_many_shared">Poți partaja cel mult 2 mașini ale tale. Oprește partajarea uneia ca să deschizi un grup pentru alta.</string>
 </resources>

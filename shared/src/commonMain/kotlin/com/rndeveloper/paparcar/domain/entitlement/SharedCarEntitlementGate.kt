@@ -19,3 +19,23 @@ fun canShareVehicle(isPlus: Boolean): Boolean = isPlus
 fun canAddSharedCarMember(currentMembers: Int): Boolean = currentMembers < SHARED_CAR_MAX_MEMBERS
 
 const val SHARED_CAR_MAX_MEMBERS = 4
+
+/**
+ * Cuántos coches PROPIOS puede tener abiertos a un grupo la misma persona. (user, 16-09)
+ *
+ * Es el único tope que protege la economía del producto, y por eso va en el lado del DUEÑO y no en
+ * el del invitado: compartir ya exige Plus y entrar es gratis, así que sin este tope una sola
+ * suscripción habilitaba grupos ilimitados — diez coches por cuatro invitados son cuarenta personas
+ * usando el producto por un pago. Con dos, el techo queda en **ocho invitados por suscripción**,
+ * que cubre a la pareja con dos coches y a la familia sin dejar sitio al «un Plus para toda la
+ * calle».
+ *
+ * ⛔ Y por eso **no hay tope en el lado del invitado**: cobrarle por entrar sería cobrar dos veces
+ * el mismo sitio, y lo contradice el trato que el propio código documenta en `VehicleEntitlementGate`
+ * — *the OWNER's Plus pays for the group*.
+ *
+ * @param alreadyShared coches propios que este usuario ya tiene compartidos.
+ */
+fun canShareAnotherCar(alreadyShared: Int): Boolean = alreadyShared < SHARED_CAR_MAX_OWNED
+
+const val SHARED_CAR_MAX_OWNED = 2

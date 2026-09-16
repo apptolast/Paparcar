@@ -1059,4 +1059,18 @@
     <string name="shared_car_member_no_routes">Tiene sus rutas ocultas</string>
     <string name="shared_car_scope_group">Todo el grupo</string>
     <string name="shared_car_scope_mine">Solo yo</string>
+    <!-- El grupo lo cerró su dueño: la fila deja de ser prestada y pasa a ocupar plaza de
+         coche. [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] -->
+    <string name="shared_car_dissolved_title">%1$s ha dejado de compartirse</string>
+    <string name="shared_car_dissolved_body">Su dueño ha cerrado el grupo. Ahora es un coche tuyo más, con los viajes que hiciste con él.</string>
+    <string name="shared_car_dissolved_body_free_slot">Su dueño ha cerrado el grupo. Ahora es un coche tuyo más, así que ocupa la única plaza de coche del plan gratuito. Consérvalo o elimínalo con los viajes que hiciste con él.</string>
+    <string name="shared_car_dissolved_keep">Conservarlo</string>
+    <string name="shared_car_dissolved_delete">Eliminarlo</string>
+    <plurals name="shared_car_dissolved_delete_with_history">
+        <item quantity="one">Eliminarlo (%1$d aparcamiento)</item>
+        <item quantity="other">Eliminarlo (%1$d aparcamientos)</item>
+    </plurals>
+    <!-- Tope de coches propios compartidos: NO es un paywall, quien lo ve ya es Plus.
+         [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] -->
+    <string name="shared_car_error_too_many_shared">Puedes compartir hasta 2 coches tuyos. Deja de compartir uno para abrir grupo en otro.</string>
 </resources>

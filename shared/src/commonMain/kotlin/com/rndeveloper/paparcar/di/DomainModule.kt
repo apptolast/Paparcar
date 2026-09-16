@@ -2,6 +2,7 @@ package com.rndeveloper.paparcar.di
 
 import com.rndeveloper.paparcar.domain.usecase.diagnostics.SendDiagnosticsReportUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.BootstrapUserDataUseCase
+import com.rndeveloper.paparcar.domain.usecase.vehicle.DeleteVehicleUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.DeleteAccountUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.GetOrCreateUserProfileUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.SetFirstStepsDismissedUseCase
@@ -59,6 +60,10 @@ val domainModule = module {
     // account fact behind one verb, so Home and Settings cannot drift.
     factory { SetFirstStepsDismissedUseCase(get(), get(), get()) }
     factory { BootstrapUserDataUseCase(get(), get(), get()) }
+    // Borrar un coche disuelve o abandona el grupo que hubiera detras; vive en un caso de uso
+    // porque el repositorio de coche compartido ya depende del de vehiculos y la dependencia
+    // inversa seria un ciclo. [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001]
+    factory { DeleteVehicleUseCase(vehicleRepository = get(), sharedCarRepository = get(), appPreferences = get()) }
     factory {
         DeleteAccountUseCase(
             authRepository = get(),

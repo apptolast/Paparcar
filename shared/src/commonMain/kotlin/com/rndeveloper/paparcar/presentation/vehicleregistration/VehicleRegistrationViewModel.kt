@@ -10,6 +10,7 @@ import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.model.VehicleType
 import com.rndeveloper.paparcar.domain.vehicle.VehicleActiveStatePolicy
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
+import com.rndeveloper.paparcar.domain.usecase.vehicle.DeleteVehicleUseCase
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import com.rndeveloper.paparcar.GallonKind
@@ -33,6 +34,9 @@ import kotlin.uuid.Uuid
 class VehicleRegistrationViewModel(
     private val vehicleRepository: VehicleRepository,
     private val authRepository: AuthRepository,
+    /** Borrar un coche no es solo borrar una fila cuando esa fila pertenece a un grupo.
+     *  [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] */
+    private val deleteVehicle: DeleteVehicleUseCase,
     /** Sólo para saber en qué unidad se TECLEA el consumo: mpg si el usuario eligió imperial, y de
      *  vuelta a l/100 km antes de guardar. El modelo nunca ve mpg.
      *  [I18N-A-RADIUS-WRITTEN-BY-HAND-IGNORES-MILES-001] */
@@ -429,7 +433,14 @@ class VehicleRegistrationViewModel(
         if (state.value.isDeleting) return
         updateState { copy(isDeleting = true) }
         viewModelScope.launch {
-            vehicleRepository.deleteVehicle(vehicleId)
+            // La fila hay que LEERLA: sin ella no se sabe si detras hay un grupo, y borrar a
+            // ciegas lo dejaria huerfano. [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001]
+            val uid = authRepository.getCurrentSession()?.userId
+            val vehicle = uid?.let { vehicleRepository.getVehicleById(it, vehicleId) }
+            val result = vehicle
+                ?.let { deleteVehicle(it) }
+                ?: Result.failure(PaparcarError.Vehicle.DeleteFailed)
+            result
                 .onSuccess { sendEffect(VehicleRegistrationEffect.NavigateBack) }
                 .onFailure { e ->
                     updateState { copy(isDeleting = false) }

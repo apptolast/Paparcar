@@ -19,6 +19,7 @@ import com.rndeveloper.paparcar.domain.model.SharedCarSession
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.model.displayName
+import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.repository.SharedCarRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.sharedcar.SharedCarInviteCode
@@ -52,6 +53,9 @@ class SharedCarRepositoryImpl(
     private val profileDao: UserProfileDao,
     private val vehicleRepository: VehicleRepository,
     private val authRepository: AuthRepository,
+    /** Solo para anotar una disolución que el usuario no pidió — ver `syncFromRemote`.
+     *  [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] */
+    private val appPreferences: AppPreferences,
     /** Injected so a test can pin a code; production passes the platform's secure source. */
     private val randomBytes: (Int) -> ByteArray = ::secureRandomBytes,
     private val clock: () -> Long = { Clock.System.now().toEpochMilliseconds() },
@@ -254,7 +258,14 @@ class SharedCarRepositoryImpl(
         dao.deleteById(carId)
         vehicleRepository.getVehicleById(uid, carId)
             ?.takeIf { it.isLinked }
-            ?.let { vehicleRepository.saveVehicle(it.unlinked()).getOrThrow() }
+            ?.let {
+                vehicleRepository.saveVehicle(it.unlinked()).getOrThrow()
+                // La MISMA pregunta que cuando lo cierra el dueño, y por el mismo motivo: salir del
+                // grupo es una decisión sobre el GRUPO, no sobre el coche. La fila se queda y pasa
+                // a ocupar plaza, y hoy eso no lo dice nadie — «Salir de este coche» no tiene
+                // siquiera diálogo. [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001]
+                appPreferences.addDissolvedSharedCar(it.id)
+            }
     }
 
     /**
@@ -313,6 +324,12 @@ class SharedCarRepositoryImpl(
                 PaparcarLogger.i(TAG, "shared car $carId no longer readable — unlinking")
                 dao.deleteById(carId)
                 vehicleRepository.saveVehicle(vehicle.unlinked())
+                // ⛔ Y se anota, porque esto NO lo pidió quien lo sufre: la fila deja de ser
+                // prestada y pasa a contar para su límite de coches sin que haya tocado nada.
+                // Que lo conserve o lo borre es decisión suya, y la pregunta tiene que sobrevivir
+                // a que la app estuviera cerrada cuando el dueño cerró el grupo.
+                // [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001]
+                appPreferences.addDissolvedSharedCar(vehicle.id)
             } else {
                 dao.upsert(remoteCar.toDomain().toEntity())
             }

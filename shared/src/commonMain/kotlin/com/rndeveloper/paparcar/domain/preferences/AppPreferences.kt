@@ -114,6 +114,25 @@ interface AppPreferences {
     fun observeIntroducedComplements(): Flow<Set<NearbyComplement>>
     fun setIntroducedComplements(complements: Set<NearbyComplement>)
 
+    // ── Coches cuyo grupo se disolvió sin que el usuario hiciera nada.
+    //    [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] ──
+    /**
+     * Las filas que eran PRESTADAS y han dejado de serlo porque el dueño cerró el grupo — borrando
+     * el coche o su cuenta. Esperan una decisión del usuario, y por eso son estado y no un evento:
+     * el grupo puede disolverse con la app cerrada, y la pregunta tiene que seguir ahí al abrirla.
+     *
+     * ⛔ Un CONJUNTO, no un slot: se puede estar en varios grupos y cerrarse dos el mismo día.
+     *
+     * ⛔ Entra **toda** fila que deja de ser prestada, la haya soltado quien la haya soltado: que el
+     * dueño cierre el grupo y que te salgas tú tienen la misma consecuencia —la fila se queda y
+     * pasa a ocupar plaza de coche— y ninguna de las dos la cuenta nadie. Salir es una decisión
+     * sobre el GRUPO, no sobre el coche. Lo que NO entra es `stopSharing`: ahí la fila es del
+     * propio dueño y ya contaba antes.
+     */
+    fun observeDissolvedSharedCars(): Flow<Set<String>>
+    fun addDissolvedSharedCar(vehicleId: String)
+    fun clearDissolvedSharedCar(vehicleId: String)
+
     // ── Pending "where did you leave your car?" nudge. [DET-NUDGE-PERSIST-001] ──
     /** The unanswered mark-parking nudge, or null. Single slot: a new set replaces the previous
      *  one (there is only ever one lost car to ask about). Written by the notification adapter at

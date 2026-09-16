@@ -33,6 +33,12 @@ class MockScenario {
      *  «lo aparcó Marta» y «salir de este coche» en vez del código y «dejar de compartir». */
     val sharedCarJoined = MutableStateFlow(false)
 
+    /** [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] El dueño ha cerrado el grupo sin avisar:
+     *  la fila deja de ser prestada y el usuario se encuentra la pregunta al abrir Vehículos.
+     *  Es el único camino por el que ese diálogo aparece, y no se puede provocar desde la cuenta
+     *  del dueño. */
+    val sharedCarDissolved = MutableStateFlow(false)
+
     /** Simulates an aggressive-OEM device (MIUI/ColorOS…): the OEM manager reports both
      *  proprietary gates, so REDUCED reliability is reachable on any emulator (combine with
      *  tier=Producer — no battery exemption — and vehicles without BT). [DET-RELIABILITY-001] */
@@ -102,5 +108,6 @@ class MockScenario {
         firstStepsPending.value = false
         isPlus.value = false
         sharedCarJoined.value = false
+        sharedCarDissolved.value = false
     }
 }
