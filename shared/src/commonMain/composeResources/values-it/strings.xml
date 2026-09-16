@@ -807,7 +807,7 @@
     <string name="notif_confirmation_failed_title">Parcheggio non salvato</string>
     <string name="notif_confirmation_failed_text">Impossibile salvare il parcheggio. Apri Paparcar per riprovare.</string>
     <string name="notif_still_parked_title">Ancora parcheggiato qui?</string>
-    <string name="notif_still_parked_text">Sembri lontano, ma questo parcheggio è ancora aperto. Dicci se sei già uscito, oppure segna dov\'è l\'auto adesso.</string>
+    <string name="notif_still_parked_text">Sembri lontano, ma questo parcheggio è ancora aperto. Dicci se sei già uscito, oppure segna dov'è l'auto adesso.</string>
     <string name="notif_action_ive_left">Sono uscito</string>
     <string name="notif_action_mark_parking">Segna parcheggio</string>
     <!-- Zone alert + shared-car push cards. Mirrored from app/src/main/res like the

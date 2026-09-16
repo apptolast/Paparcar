@@ -221,6 +221,11 @@ color: el estado se escribe, no se tiñe).
   Resources, no `android:strings`: **no desescapa `\'`** y el usuario lee la barra
   («Paparcar\'s»). Medido en el `.cvr` del APK: `\n` sí se desescapa y el apóstrofo crudo sale
   limpio; `\'` es el único roto. Muerde en EN (contracciones) y FR/IT (elisiones).
+  ⛔ **Las dos reglas de abajo las vigila `ComposeResourcesEscapeGuardrailTest`**, y existe porque sin
+  él la regla ya se rompió una vez: se barrió a cero, se escribió aquí, y volvieron a entrar seis por
+  el espejo de notificaciones —copiar de `app/src/main/res`, donde el escape es OBLIGATORIO, sin
+  desescapar—. `NotificationCopyParityTest` no las ve: normaliza `\'` en los dos lados, que para su
+  pregunta es lo correcto. [COPY-AN-APOSTROPHE-GUARD-THAT-NEVER-EXISTED-001]
 - **Un `%` literal se escribe `%`, nunca `%%`** [COPY-PERCENT-IS-NOT-ESCAPED-001]. Misma familia
   que lo anterior y misma causa: el formateo de Compose Resources **no es `String.format`**. Leído
   en la fuente de `components-resources` 1.12 (`StringResourcesUtils.kt`), es un solo

@@ -801,7 +801,7 @@
     <string name="notif_parking_saved_text">Votre voiture a été garée. Appuyez pour la voir sur la carte.</string>
     <string name="notif_parking_saved_confirm_title">Véhicule garé</string>
     <string name="notif_parking_saved_confirm_title_vehicle">%1$s garé</string>
-    <string name="notif_parking_saved_confirm_text">Touchez pour ouvrir la carte, ou annulez si ce n\'était pas votre véhicule.</string>
+    <string name="notif_parking_saved_confirm_text">Touchez pour ouvrir la carte, ou annulez si ce n'était pas votre véhicule.</string>
     <string name="notif_action_confirm">Oui, confirmer</string>
     <string name="notif_action_cancel_save">Non, annuler</string>
     <string name="notif_confirmation_failed_title">Stationnement non sauvegardé</string>
