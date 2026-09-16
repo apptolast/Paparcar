@@ -20,11 +20,20 @@ import kotlinx.serialization.json.jsonPrimitive
  * In commonMain and under test like [MineturStationParser], for the same reason: the wire format is
  * where this integration will break, and only the socket needs a platform.
  *
- * ⛔ Four traps, all measured against the live feed on 09-09-2026 rather than assumed:
+ * ⛔ Five traps, all measured against the live feed rather than assumed:
  *  1. **Fourteen countries do not quote per litre.** `unit` is `gallon` (US and nine others) or
  *     `imperial_gallon` (four Caribbean ones). Reading a US price as litres inflates a drive by
  *     3.79× with no symptom other than wrong arithmetic. A unit this parser does not KNOW drops the
  *     country — it is never assumed to be litres.
+ *  1b. **And the row's unit does not govern every fuel in it.** The feed ALSO ships a `units` map,
+ *     keyed by fuel, and it disagrees with `unit` in 18 countries — because gases are not sold by
+ *     volume: CNG goes by `kg` (Spain, Italy, India…) or `m3` (Brazil, Argentina, Bolivia) and LPG
+ *     by `kg` in Ghana, Pakistan and Thailand. Reading Brazil's `4.8098 BRL/m3` as a litre price is
+ *     not a scale error, it is a CATEGORY error: no factor converts a cubic metre of gas into a
+ *     litre of liquid without knowing the pressure. So the unit of a price is the one of ITS fuel,
+ *     and the row's is only the fallback — and an unknown one drops **that fuel**, not the country,
+ *     because CNG sold by the cubic metre says nothing about the petrol at the same forecourt.
+ *     [FUEL-A-FEED-QUOTES-EACH-FUEL-IN-ITS-OWN-UNIT-001]
  *  2. **The currency is local, and there are ~120 of them.** Poland quotes 7.02 PLN, Turkey 76.84
  *     TRY. Nothing here converts: [Money] carries the currency, and the period aggregate already
  *     refuses to add two of them together.
@@ -72,14 +81,26 @@ object OpenVanFuelPricesParser {
     private fun JsonObject.toRow(asOf: String): CountryFuelPrices? {
         if (this[FIELD_EXCLUDED]?.jsonPrimitive?.booleanOrNull == true) return null
 
-        val litresPerUnit = LITRES_PER_UNIT[this[FIELD_UNIT]?.jsonPrimitive?.contentOrNull]
-            ?: return null
+        val rowUnit = this[FIELD_UNIT]?.jsonPrimitive?.contentOrNull
+        // The row's own unit still has to be one we know: without it the fuels that DON'T declare
+        // their own would have nothing to fall back on, and that is the whole country.
+        if (LITRES_PER_UNIT[rowUnit] == null) return null
         val currency = this[FIELD_CURRENCY]?.jsonPrimitive?.contentOrNull ?: return null
         if (isStale(asOf)) return null
 
         val prices = this[FIELD_PRICES]?.jsonObject ?: return null
-        fun perLitre(key: String): Double? =
-            prices[key]?.jsonPrimitive?.doubleOrNull?.takeIf { it > 0.0 }?.div(litresPerUnit)
+        val units = this[FIELD_UNITS]?.jsonObject
+
+        /** Litres in one unit of [key], asking the fuel first and the row only as a fallback. */
+        fun litresPerUnitOf(key: String): Double? {
+            val declared = units?.get(key)?.jsonPrimitive?.contentOrNull ?: rowUnit
+            return LITRES_PER_UNIT[declared]
+        }
+
+        fun perLitre(key: String): Double? {
+            val factor = litresPerUnitOf(key) ?: return null
+            return prices[key]?.jsonPrimitive?.doubleOrNull?.takeIf { it > 0.0 }?.div(factor)
+        }
 
         val gasoline = perLitre(KEY_GASOLINE)
         val diesel = perLitre(KEY_DIESEL)
@@ -90,7 +111,9 @@ object OpenVanFuelPricesParser {
             currency = currency,
             gasoline = gasoline,
             diesel = diesel,
-            // LPG and CNG are one FuelType here, and LPG is the one a car actually finds.
+            // LPG and CNG are one FuelType here, and LPG is the one a car actually finds. The
+            // fallback survives; what changed is that CNG only answers when it arrives in a unit
+            // this parser can read — which, for the four countries that reach it, it never does.
             lpg = perLitre(KEY_LPG) ?: perLitre(KEY_CNG),
         )
     }
@@ -129,8 +152,13 @@ object OpenVanFuelPricesParser {
     }
 
     /**
-     * Litres in one unit of each thing the feed quotes. ⛔ A unit absent from this map DROPS the
-     * country — the whole point is that an unknown unit can never be mistaken for litres.
+     * Litres in one unit of each thing the feed quotes. ⛔ A unit absent from this map DROPS what it
+     * measures — the whole point is that an unknown unit can never be mistaken for litres.
+     *
+     * ⛔ **`kg` and `m3` are absent ON PURPOSE and must stay absent.** They are how the feed prices
+     * gases, and adding them with some factor would be inventing one: a kilo of LPG is about 1.96
+     * litres but the pump charges the kilo, and a cubic metre of CNG depends on the pressure. A fuel
+     * quoted that way has no litre price, and null is the honest answer.
      *
      * The two gallons are the SHARED constants, not a local copy: the outbound boundary writes
      * prices back out with the same numbers, and one figure spelled in two files is one figure that
@@ -153,6 +181,7 @@ object OpenVanFuelPricesParser {
     private const val FIELD_UPDATED_AT = "updated_at"
     private const val FIELD_DATA = "data"
     private const val FIELD_UNIT = "unit"
+    private const val FIELD_UNITS = "units"
     private const val FIELD_CURRENCY = "currency"
     private const val FIELD_PRICES = "prices"
     private const val FIELD_EXCLUDED = "is_excluded"

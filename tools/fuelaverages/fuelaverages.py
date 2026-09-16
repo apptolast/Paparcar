@@ -18,6 +18,13 @@ WHAT THIS SCRIPT DECIDES, and why it is here and not in Kotlin:
     Caribbean ones). The domain must never see a gallon, so the unit is resolved at the boundary --
     here for the embedded table, and in OpenVanFuelPricesParser for the network one. Both use the
     same two constants, and a unit neither of them knows is DROPPED, never assumed to be litres.
+  * The unit of a price is the one of ITS FUEL, and the row's is only the fallback. The feed ships
+    a per-fuel `units` map that disagrees with the row's `unit` in 18 countries, because gases are
+    not sold by volume: CNG by `kg` or `m3`, LPG by `kg` in three countries. An unknown unit drops
+    THAT FUEL, not the country -- Brazil pricing CNG per cubic metre says nothing about its petrol.
+    kg and m3 are deliberately absent from the table below: no factor converts them without knowing
+    the pressure, and inventing one is the bug this rule exists to stop.
+    [FUEL-A-FEED-QUOTES-EACH-FUEL-IN-ITS-OWN-UNIT-001]
   * Rows the feed itself distrusts (`is_excluded`) are dropped.
   * Stale rows are dropped: one country (FM) was four months old while the other 167 were same-day.
     A price with no fresh date is a number somebody made up.
@@ -105,16 +112,18 @@ def main() -> None:
         sys.exit("OpenVan reported success=false")
 
     updated_at = datetime.fromisoformat(payload["meta"]["updated_at"].replace(" ", "T"))
-    rows, dropped = {}, []
+    rows, dropped, unpriced = {}, [], []
 
     for code, country in sorted(payload["data"].items()):
         if country.get("is_excluded"):
             dropped.append((code, "feed marks it excluded"))
             continue
 
-        factor = LITRES_PER_UNIT.get(country.get("unit"))
-        if factor is None:
-            dropped.append((code, f"unknown unit {country.get('unit')!r}"))
+        row_unit = country.get("unit")
+        # The row's unit must be readable even so: it is what every fuel that does not declare its
+        # own falls back to, and without it there is no country left to price.
+        if LITRES_PER_UNIT.get(row_unit) is None:
+            dropped.append((code, f"unknown row unit {row_unit!r}"))
             continue
 
         fetched_at = datetime.fromisoformat(country["fetched_at"]).replace(tzinfo=None)
@@ -123,10 +132,18 @@ def main() -> None:
             continue
 
         prices = country["prices"]
+        units = country.get("units") or {}
 
         def per_litre(key: str) -> float | None:
             raw = prices.get(key)
-            return None if raw is None else raw / factor
+            if raw is None:
+                return None
+            factor = LITRES_PER_UNIT.get(units.get(key, row_unit))
+            if factor is None:
+                # A gas priced by the kilo or the cubic metre has no litre price. Null is the answer.
+                unpriced.append((code, key, units.get(key)))
+                return None
+            return raw / factor
 
         gasoline, diesel = per_litre("gasoline"), per_litre("diesel")
         if gasoline is None and diesel is None:
@@ -156,6 +173,10 @@ def main() -> None:
     print(f"  {len(rows)} countries, as of {updated_at.date()}")
     for code, why in dropped:
         print(f"  dropped {code}: {why}")
+    # Said out loud, never silently: a fuel left unpriced because its unit is a kilo or a cubic
+    # metre is a DECISION, and one that only shows up here. [FUEL-A-FEED-QUOTES-EACH-FUEL-IN-ITS-OWN-UNIT-001]
+    for code, key, unit in unpriced:
+        print(f"  {code}: no litre price for {key} -- the feed quotes it per {unit!r}")
 
 
 if __name__ == "__main__":

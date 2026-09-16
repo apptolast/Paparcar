@@ -184,6 +184,91 @@ class OpenVanFuelPricesParserTest {
         assertEquals("2026-09-05", table.asOf)
     }
 
+    // ── La unidad la declara el COMBUSTIBLE; la de la fila es el respaldo ────
+    // [FUEL-A-FEED-QUOTES-EACH-FUEL-IN-ITS-OWN-UNIT-001]
+
+    /**
+     * ⛔ El fallo sin síntoma, un piso por debajo del galón: Brasil cotiza el GNC por **metro
+     * cúbico** con la fila en litros, y no tiene GLP — así que el fallback `lpg ?: cng` se tragaba
+     * `4,8098 BRL/m³` como si fuera el precio del litro. No es un error de escala, es de categoría:
+     * ningún factor convierte un m³ de gas en un litro de líquido sin saber la presión.
+     *
+     * Y lo que NO puede pasar es que Brasil se caiga entera: su gasolina está perfectamente cotizada
+     * en litros, y un gas sin precio no invalida el surtidor de al lado.
+     */
+    @Test
+    fun `should_leaveTheGasUnpriced_when_theFeedQuotesItPerCubicMetre`() {
+        val table = OpenVanFuelPricesParser.parse(
+            payload(
+                """"BR": ${country(
+                    "BRL", "liter", gasoline = 6.5664, diesel = 6.8884,
+                    lpg = null, cng = 4.8098, units = """"cng": "m3"""",
+                )}""",
+            ),
+        ).getOrThrow()
+
+        assertNull(table.averageLitre("BR", FuelType.LPG_CNG), "un m³ de gas no es un litro")
+        val gasoline = assertNotNull(table.averageLitre("BR", FuelType.GASOLINE))
+        assertEquals(6.5664, gasoline.amount, ABSOLUTE_TOLERANCE, "la gasolina no se cae con el gas")
+    }
+
+    /** Tailandia vende el GLP por KILO. Mismo veredicto y por la misma razón: el kilo no es litro. */
+    @Test
+    fun `should_leaveTheGasUnpriced_when_theFeedQuotesItPerKilo`() {
+        val table = OpenVanFuelPricesParser.parse(
+            payload(
+                """"TH": ${country(
+                    "THB", "liter", gasoline = 39.09, diesel = 39.84,
+                    lpg = 25.87, units = """"lpg": "kg"""",
+                )}""",
+            ),
+        ).getOrThrow()
+
+        assertNull(table.averageLitre("TH", FuelType.LPG_CNG))
+        assertNotNull(table.averageLitre("TH", FuelType.DIESEL))
+    }
+
+    /**
+     * El caso de España, que es el que explica por qué el mapa existe y por qué hoy no muerde ahí:
+     * declara `cng` en kilos **y** tiene GLP en litros, así que el fallback nunca llega al gas. Una
+     * unidad rara en un combustible que no se lee no puede estropear nada.
+     */
+    @Test
+    fun `should_priceTheLpg_when_onlyTheFuelItNeverReadsCarriesAnOddUnit`() {
+        val table = OpenVanFuelPricesParser.parse(
+            payload(
+                """"ES": ${country(
+                    "EUR", "liter", gasoline = 1.8927, diesel = 1.8584,
+                    lpg = 1.131, cng = 1.804, units = """"cng": "kg"""",
+                )}""",
+            ),
+        ).getOrThrow()
+
+        val lpg = assertNotNull(table.averageLitre("ES", FuelType.LPG_CNG))
+        assertEquals(1.131, lpg.amount, ABSOLUTE_TOLERANCE)
+    }
+
+    /**
+     * ⛔ La dirección importa: manda el COMBUSTIBLE, no la fila. Con la fila en litros y el diésel
+     * declarado en galones, leer la fila dejaría el diésel ×3,79 alto — el fallo del ticket del
+     * galón, escrito por el otro lado.
+     */
+    @Test
+    fun `should_obeyTheFuelUnit_when_itContradictsTheRowUnit`() {
+        val table = OpenVanFuelPricesParser.parse(
+            payload(
+                """"XX": ${country(
+                    "USD", "liter", gasoline = 1.0, diesel = 3.785411784,
+                    units = """"diesel": "gallon"""",
+                )}""",
+            ),
+        ).getOrThrow()
+
+        val diesel = assertNotNull(table.averageLitre("XX", FuelType.DIESEL))
+        assertEquals(1.0, diesel.amount, ABSOLUTE_TOLERANCE, "el galón del diésel manda sobre el litro de la fila")
+        assertEquals(1.0, assertNotNull(table.averageLitre("XX", FuelType.GASOLINE)).amount, ABSOLUTE_TOLERANCE)
+    }
+
     private fun payload(vararg countries: String): String = """
         {
           "success": true,
@@ -198,13 +283,22 @@ class OpenVanFuelPricesParserTest {
         gasoline: Double,
         diesel: Double,
         lpg: Double? = null,
+        cng: Double? = null,
+        /**
+         * The feed's per-fuel `units` object, written as the JSON fragment it really is — e.g.
+         * `"\"cng\": \"m3\""`. Blank ⇒ the key is absent, which is the shape of the 150 countries
+         * that quote everything in the row's own unit.
+         * [FUEL-A-FEED-QUOTES-EACH-FUEL-IN-ITS-OWN-UNIT-001]
+         */
+        units: String = "",
         excluded: Boolean = false,
         fetchedAt: String = FETCHED_AT,
     ): String = """
         {
           "currency": "$currency",
           "unit": "$unit",
-          "prices": { "gasoline": $gasoline, "diesel": $diesel, "lpg": ${lpg ?: "null"}, "cng": null },
+          ${if (units.isBlank()) "" else """"units": { $units },"""}
+          "prices": { "gasoline": $gasoline, "diesel": $diesel, "lpg": ${lpg ?: "null"}, "cng": ${cng ?: "null"} },
           "fetched_at": "$fetchedAt",
           "is_excluded": $excluded
         }
