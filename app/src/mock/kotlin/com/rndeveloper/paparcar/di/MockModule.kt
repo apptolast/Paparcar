@@ -207,6 +207,23 @@ val mockModule = module {
     single<com.rndeveloper.paparcar.domain.parkings.PublicParkingsSource> {
         com.rndeveloper.paparcar.fakes.data.repository.FakePublicParkingsSource()
     }
+    // ⛔ Las tres que faltaban, y ya no se buscan a mano: `MockGraphPortParityTest` compara los
+    // conjuntos de puertos de `dataModule` y de este módulo, así que la próxima se caza en segundos
+    // en vez de en la tercera pantalla. [MOCK-A-PORT-DECLARED-IN-PROD-MUST-EXIST-IN-MOCK-001]
+    //
+    // La primera es la que MATABA el tab Vehículos entero —y con él el panel de cifras—, porque
+    // `ResolveFuelPriceUseCase` la resuelve dentro del cuerpo de su definición, donde `verify()` no
+    // mira. Las otras dos no habían mordido todavía: se pedían solo desde módulos Android que el
+    // catálogo no carga, y estaban a una pantalla de distancia de hacerlo.
+    single<com.rndeveloper.paparcar.domain.repository.AverageFuelPricesRepository> {
+        com.rndeveloper.paparcar.fakes.data.repository.FakeAverageFuelPricesRepository()
+    }
+    single<com.rndeveloper.paparcar.domain.repository.ZoneAlertSubscriptionRepository> {
+        com.rndeveloper.paparcar.fakes.data.repository.FakeZoneAlertSubscriptionRepository()
+    }
+    single<com.rndeveloper.paparcar.domain.sharedcar.SharedCarMirror> {
+        com.rndeveloper.paparcar.fakes.data.repository.FakeSharedCarMirror()
+    }
     // DeleteAccountUseCase resolves this in its swept-repos list; the mock stack has no dataModule,
     // so the port must exist here or resolving it crashes. [ACCOUNT-DELETE-SWEEPS-DIAGNOSTICS-001]
     single<DiagnosticsRepository> { FakeDiagnosticsRepository() }
