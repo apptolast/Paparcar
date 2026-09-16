@@ -47,8 +47,31 @@ class SharedCarMirrorTest {
         detectionReliability = 0.9f,
     )
 
-    private fun payload(of: UserParking = session) =
-        sharedCarMirrorPayload(of, authorUid = "marta", authorName = "Marta", nowMs = 5_000L)
+    private fun payload(of: UserParking = session, shareRoutes: Boolean = true) =
+        sharedCarMirrorPayload(
+            of,
+            authorUid = "marta",
+            authorName = "Marta",
+            nowMs = 5_000L,
+            shareRoutes = shareRoutes,
+        )
+
+    @Test
+    fun should_leaveTheRouteOnThePhone_when_theAuthorDoesNotShareRoutes() {
+        val payload = payload(shareRoutes = false)
+
+        // The geometry is the only thing the switch withholds, and it withholds it BEFORE the
+        // upload — not on reading, which is where it used to be caught after travelling anyway.
+        // [PRIV-A-ROUTE-LEAVES-THE-PHONE-BY-ONE-DOOR-001]
+        assertNull(payload.routePolyline)
+        assertFalse(payload.routeSnapped)
+        assertNull(payload.routeInferredSpans)
+        // ⛔ The figures still travel: they say how much, not where, and they are what the group's
+        // statistics are made of.
+        assertEquals(4_200f, payload.routeDistanceMeters)
+        assertEquals(360_000L, payload.searchTimeMs)
+        assertEquals(40.4, payload.location.latitude)
+    }
 
     @Test
     fun should_carryWhereAndWhenAndWho_when_mirroringAParking() {

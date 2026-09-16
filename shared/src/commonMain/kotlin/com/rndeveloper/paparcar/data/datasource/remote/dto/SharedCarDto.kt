@@ -79,11 +79,15 @@ data class SharedCarStateDto(
 /**
  * `sharedCars/{carId}/sessions/{sessionId}` — one parking, as the group sees it.
  *
- * The facts, the FIGURES and the GEOMETRY all travel — the car's statistics belong to everyone who
- * drives it, and the route has to be stored for the author to be able to show it again later.
- * Whether it is SHOWN is decided on reading, from `members/{uid}.sharesRoutes`. What has no field
- * here at all — and therefore cannot travel by accident — is the detection mechanics:
- * `armEvidence`, `detectionPath`, `tripMaxSpeedMps`, the plate. [VEH-SHARED-001]
+ * The facts and the FIGURES always travel — the car's statistics belong to everyone who drives it.
+ * The GEOMETRY only travels with its author's switch on
+ * [PRIV-A-ROUTE-LEAVES-THE-PHONE-BY-ONE-DOOR-001]; turning it off afterwards also hides on reading
+ * what was uploaded while it was on, from `members/{uid}.sharesRoutes`. So the field being nullable
+ * carries two different truths — "never shared" and "this trip had no route" — and the reader must
+ * not tell them apart from the geometry alone: that is what `routeHidden()` is for.
+ *
+ * What has no field here at all — and therefore cannot travel by accident — is the detection
+ * mechanics: `armEvidence`, `detectionPath`, `tripMaxSpeedMps`, the plate. [VEH-SHARED-001]
  */
 @Serializable
 data class SharedCarSessionDto(

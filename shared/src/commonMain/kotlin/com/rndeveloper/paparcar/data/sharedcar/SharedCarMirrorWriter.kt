@@ -55,6 +55,10 @@ class SharedCarMirrorWriter(
                 authorUid = session.userId,
                 authorName = profileDao.getProfile(session.userId)?.displayName,
                 nowMs = clock(),
+                // The switch is read HERE, from the row this phone owns, and never assumed: the
+                // payload refuses a default for it.
+                // [PRIV-A-ROUTE-LEAVES-THE-PHONE-BY-ONE-DOOR-001]
+                shareRoutes = sharesRoutes(session.userId, session.vehicleId),
             )
             remote.putSession(carId, payload.toDto())
             // The head of the mirror follows the session that was just written — including when it
@@ -149,6 +153,20 @@ class SharedCarMirrorWriter(
     private suspend fun sharedCarIdOf(userId: String, vehicleId: String?): String? {
         val id = vehicleId ?: return null
         return runCatching { vehicleDao.getById(id, userId)?.sharedCarId }.getOrNull()
+    }
+
+    /**
+     * Whether this driver shares the drawn route of THIS car with the group.
+     *
+     * ⛔ Falls back to **false**, not to the field's own default of true: this is read on the way
+     * out, and a row that could not be read is not a permission. Asymmetric failure applies to
+     * privacy exactly as it applies to detection — the cheap mistake is a route the group does not
+     * see, not one the author never agreed to send.
+     * [PRIV-A-ROUTE-LEAVES-THE-PHONE-BY-ONE-DOOR-001]
+     */
+    private suspend fun sharesRoutes(userId: String, vehicleId: String?): Boolean {
+        val id = vehicleId ?: return false
+        return runCatching { vehicleDao.getById(id, userId)?.shareRoutesInGroup }.getOrNull() ?: false
     }
 
     private suspend inline fun guard(what: String, sessionId: String, block: () -> Unit) {

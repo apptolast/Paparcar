@@ -27,9 +27,11 @@ fun SharedCarSession.asHistoryEntry(vehicleId: String, showRoute: Boolean = true
     isActive = isActive,
     address = address,
     placeInfo = placeInfo,
-    // ⛔ Aquí se APLICA la visibilidad, y solo aquí: la geometría sigue guardada en el espejo — es
-    // lo que permite volver a enseñarla —, pero la fila y el mapa no la reciben mientras su autor
-    // la tenga apagada. La DISTANCIA no se toca: es una cifra, y las cifras son del grupo.
+    // ⛔ Aquí se APLICA la visibilidad, y sigue haciendo falta AUNQUE el interruptor ya impida subir
+    // [PRIV-A-ROUTE-LEAVES-THE-PHONE-BY-ONE-DOOR-001]: son dos momentos distintos. El interruptor
+    // decide lo que viaja DE AHORA EN ADELANTE; esto decide lo que se ve de lo que ya viajó, que es
+    // lo único que permite apagarlo y que el grupo deje de ver los viajes antiguos. Apagado: ni
+    // sube ni se enseña. La DISTANCIA no se toca: es una cifra, y las cifras son del grupo.
     routePolyline = routePolyline.takeIf { showRoute },
     routeSnapped = routeSnapped && showRoute,
     routeInferredSpans = routeInferredSpans.takeIf { showRoute },

@@ -15,11 +15,24 @@ import com.rndeveloper.paparcar.domain.model.UserParking
  * 1. **The facts of the parking** — who, where, when, the street. Always.
  * 2. **The figures** — distance, time spent looking, whether a spot was freed. Always, because they
  *    are what the car's statistics are made of, and the statistics belong to everyone who drives it.
- * 3. **The drawn route** — always stored too, and SHOWN according to its author's switch. The
- *    geometry has to be there for the group's figures to be recomputable and, above all, so that
- *    turning the switch back on brings the old trips back instead of leaving a permanent hole
- *    (user, 15-09). Visibility is therefore a READING decision, resolved from the author's current
- *    `sharesRoutes`, not a frozen stamp on each session — a stamp could not be undone.
+ * 3. **The drawn route** — only if its author's switch is on, and hidden on reading when it is
+ *    turned off afterwards.
+ *
+ * ### Why level 3 changed (user, 16-09) — [PRIV-A-ROUTE-LEAVES-THE-PHONE-BY-ONE-DOOR-001]
+ *
+ * It used to travel ALWAYS and be filtered on reading, so that turning the switch back on brought
+ * the old trips back instead of leaving a hole (user, 15-09). That is a good property and it was
+ * bought at a price nobody had priced: the same geometry has a SECOND door, the personal one, where
+ * the rule was the opposite — `syncRouteGeometry` keeps the polyline on the phone unless there is
+ * explicit consent [PRIV-A-TRACE-IS-NOT-A-STAT-001]. One trace, two doors, opposite rules: a user
+ * with the personal consent off — which is the default — uploaded their whole route anyway as soon
+ * as the car was shared.
+ *
+ * The rule now: **each door asks its own permission, and neither uploads without it.** The personal
+ * consent governs YOUR cloud history; this switch governs the GROUP's copy. What is lost is the
+ * resurrection of trips recorded while the switch was off — they were never uploaded, so there is
+ * nothing to bring back. What is kept is the undo for everything uploaded while it was on, because
+ * visibility is still resolved on READING from the author's current `sharesRoutes`.
  *
  * ⛔ Still outside, and still a TYPE and not an `if`: `armEvidence`, `detectionPath`,
  * `tripMaxSpeedMps` and the plate. That is detection mechanics and on-device data — not withheld
@@ -34,6 +47,11 @@ fun sharedCarMirrorPayload(
     authorUid: String,
     authorName: String?,
     nowMs: Long,
+    /**
+     * The author's `shareRoutesInGroup` for THIS car. Not defaulted on purpose: a default here is
+     * how the geometry travelled for two weeks without anybody deciding that it should.
+     */
+    shareRoutes: Boolean,
 ): SharedCarSession {
     return SharedCarSession(
         sessionId = session.id,
@@ -49,11 +67,12 @@ fun sharedCarMirrorPayload(
         routeDistanceMeters = session.routeDistanceMeters,
         searchTimeMs = session.searchTimeMs,
         publishedSpot = session.publishedSpot,
-        // Geometry: also always. Whether the group SEES it is decided when the history is read,
-        // from the author's switch — see `SharedCarMember.sharesRoutes`.
-        routePolyline = session.routePolyline,
-        routeSnapped = session.routeSnapped,
-        routeInferredSpans = session.routeInferredSpans,
+        // Geometry: only with its own permission. `routeSnapped = false` beside a null polyline is
+        // the established "no route" shape, the same one `withoutRouteGeometry()` writes on the
+        // personal door — never the "recalculating" state, which needs a polyline to recalculate.
+        routePolyline = session.routePolyline.takeIf { shareRoutes },
+        routeSnapped = session.routeSnapped && shareRoutes,
+        routeInferredSpans = session.routeInferredSpans.takeIf { shareRoutes },
         updatedAtMs = nowMs,
     )
 }
