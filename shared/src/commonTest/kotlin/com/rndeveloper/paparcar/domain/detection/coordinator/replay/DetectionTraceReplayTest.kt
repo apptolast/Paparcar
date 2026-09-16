@@ -28,6 +28,7 @@ import com.rndeveloper.paparcar.fakes.FakeDepartureEventBus
 import com.rndeveloper.paparcar.fakes.FakeDetectionEventLogger
 import com.rndeveloper.paparcar.fakes.FakeDetectionPhaseSink
 import com.rndeveloper.paparcar.fakes.FakeFinalizeDeducedDeparture
+import com.rndeveloper.paparcar.fakes.FakeRestoreRefutedDeparture
 import com.rndeveloper.paparcar.fakes.FakeRetractDeducedDeparture
 import com.rndeveloper.paparcar.fakes.FakeGeofenceManager
 import com.rndeveloper.paparcar.fakes.FakeParkingEnrichmentScheduler
@@ -1016,6 +1017,9 @@ class DetectionTraceReplayTest {
         val notification: FakeAppNotificationManager,
         val stepDetector: FakeStepDetectorSource,
         val detectionLogger: FakeDetectionEventLogger,
+        /** [DET-A-TRAIN-IS-NOT-A-CAR-001] Hoisted so a replay can assert the car was GIVEN BACK,
+         *  and to which fence — "nothing was pinned" cannot witness a repair. */
+        val restoreRefutedDeparture: FakeRestoreRefutedDeparture,
     )
 
     // ── DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001 ────────────────────────────────────────
@@ -1660,6 +1664,95 @@ class DetectionTraceReplayTest {
             )
         }
 
+    /** [DET-A-TRAIN-IS-NOT-A-CAR-001] The fence of the park left behind at the origin station. */
+    private val PARK_BY_THE_STATION = "park-by-the-station"
+
+    // ── [DET-A-TRAIN-IS-NOT-A-CAR-001] The rail journey, and the same journey by road ──────────
+
+    @Test
+    fun rail_to_terminus_001_a_train_journey_pins_nothing_and_asks_nothing() =
+        runTest(UnconfinedTestDispatcher()) {
+            // The 2026-09-15 profile end to end: park beside a station, walk in, and let the
+            // detector watch 253 km/h for nearly two hours before an arrival walk that carries a
+            // full steps+egress proof. Pre-fix this exact shape confirmed at 0,9 and planted a pin
+            // 600 km from the car — and that pin's geofence then armed six more sessions.
+            val replayer = DetectionTraceIngestion(TRACE_RAIL_TO_TERMINUS_001)
+            val env = buildEnv(clock = { replayer.nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
+            val job = launch {
+                env.coordinator.invoke(
+                    locations,
+                    armEvidence = ArmEvidence.VerifiedBySpeed(speedKmh = 42f, accuracyM = 31f),
+                    // The fence the car was left behind: the real session armed on its EXIT while
+                    // the user walked into the station. It is the address of the park to give back.
+                    armingGeofenceId = PARK_BY_THE_STATION,
+                )
+            }
+
+            replayer.replay(
+                emitFix = { locations.emit(it) },
+                emitStep = { env.stepDetector.emitSteps(1) },
+            )
+            job.cancelAndJoin()
+
+            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount, "a train must never pin a park")
+            assertEquals(
+                0,
+                env.notification.parkingConfirmationCallCount,
+                "…and must not ask either: the only answer available at a terminus is a wrong one",
+            )
+            // …and it must die of THIS guard. A silent replay can be silent for a dozen reasons, and
+            // "no pin" on its own would pass just as well if the session had quietly expired three
+            // hours earlier. [project_test_a_green_suite_must_prove_it_looked_001]
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().last()
+            assertEquals(
+                "aborted_unattended_not_a_road_vehicle",
+                ended.outcome,
+                "the road-plausibility ceiling must be what ends it",
+            )
+            // …and the repair, which is the half that makes the state RIGHT rather than merely less
+            // wrong. Refusing the phantom pin leaves the car forgotten and a plaza standing that
+            // nobody freed; the departure this trip refuted has to be given back.
+            assertEquals(
+                // …with the car it was attributed to, which is what lets the restore refuse when
+                // something newer already answers "where is my car".
+                listOf<Pair<String, String?>>(PARK_BY_THE_STATION to "v-1"),
+                env.restoreRefutedDeparture.calls.toList(),
+                "the park the trip departed from must be restored, and by its own fence",
+            )
+        }
+
+    @Test
+    fun rail_to_terminus_001_the_same_journey_at_road_speeds_still_confirms() =
+        runTest(UnconfinedTestDispatcher()) {
+            // The witness that keeps the test above honest. Identical geometry, timing, stop and
+            // 191-step egress walk — only the physics differ (peak 113 km/h, comfortably inside the
+            // fastest drive ever recorded in the field corpus). If the ceiling ever starts eating
+            // real parks, this is the assert that falls first.
+            val replayer = DetectionTraceIngestion(TRACE_ROAD_TO_DESTINATION_001)
+            val env = buildEnv(clock = { replayer.nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
+            val job = launch {
+                env.coordinator.invoke(
+                    locations,
+                    armEvidence = ArmEvidence.VerifiedBySpeed(speedKmh = 42f, accuracyM = 31f),
+                )
+            }
+
+            replayer.replay(
+                emitFix = { locations.emit(it) },
+                emitStep = { env.stepDetector.emitSteps(1) },
+            )
+            job.cancelAndJoin()
+
+            assertEquals(
+                1,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "the same trip by road is a real park and must still save",
+            )
+        }
+
     private fun buildEnv(
         clock: () -> Long,
         // confirmHoldMs=0 by default: most replays end at the confirm moment; traces where the
@@ -1674,6 +1767,7 @@ class DetectionTraceReplayTest {
         val notification = FakeAppNotificationManager()
         val stepDetector = FakeStepDetectorSource()
         val detectionLogger = FakeDetectionEventLogger()
+        val restoreRefuted = FakeRestoreRefutedDeparture()
         val coordinator = CoordinatorParkingDetector(
             calculateParkingConfidence = CalculateParkingConfidenceUseCase(config),
             confirmParking = ConfirmParkingUseCase(
@@ -1706,8 +1800,9 @@ class DetectionTraceReplayTest {
             phaseSink = FakeDetectionPhaseSink(),
             finalizeDeducedDeparture = FakeFinalizeDeducedDeparture(),
             retractDeducedDeparture = FakeRetractDeducedDeparture(),
+            restoreRefutedDeparture = restoreRefuted,
             clock = clock,
         )
-        return Env(coordinator, parkingRepo, notification, stepDetector, detectionLogger)
+        return Env(coordinator, parkingRepo, notification, stepDetector, detectionLogger, restoreRefuted)
     }
 }

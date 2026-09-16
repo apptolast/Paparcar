@@ -577,6 +577,63 @@ data class ParkingDetectionConfig(
      *  Deliberately ABOVE what a fast cyclist reaches downhill and BELOW any road a car holds, so
      *  the guard only ever fires on movement muscle cannot produce. */
     val motorProofSpeedMps: Float = 11.1f,
+
+    // ── ROAD PLAUSIBILITY — the CEILING the kinematic vocabulary never had ──
+    // [DET-A-TRAIN-IS-NOT-A-CAR-001] Every bar above is a FLOOR: it asks whether the movement was
+    // fast enough to be a vehicle. None of them asks whether it was slow enough to be a ROAD
+    // vehicle, so a high-speed train clears them all by a factor of six and reads as the most
+    // solid drive the app has ever measured (field 2026-09-15, session `1789472756175`: 253 km/h
+    // held for most of 270 minutes, `confirmed_steps+egress`, pin planted in a station 600 km from
+    // the car). See `RoadPlausibleRide.kt` for the verdict these four feed.
+    /** The speed a car may legitimately reach but never *should*: the DOUBT band.
+     *
+     *  44,4 m/s = **160 km/h**. Above every legal motorway limit in the nine markets we ship to
+     *  (the highest is Poland's 140; ES 120, IT/FR/RO 130, NL 100 day / 130 night) and at the 99th
+     *  percentile of the most permissive network in Europe — on unrestricted Autobahn sections the
+     *  IW's 2024 analysis of 1.9 billion measurements in North Rhine-Westphalia found 83 % below
+     *  the 130 advisory, ~10 % between 130 and 140, and **~1 % above 160**.
+     *
+     *  That 1 % is why this band ASKS instead of deciding: a car can be here. */
+    val roadDoubtfulSpeedMps: Float = 44.4f,
+    /** The speed that stops being a road vehicle: 55,6 m/s = **200 km/h**.
+     *
+     *  ⚠️ Not a new belief — [sustainedDepartureMaxRateMps] has carried this exact number since
+     *  [DET-CREDIBLE-DRIVE-001] ("no urban drive sustains more than motorway pace. 55 m/s ≈
+     *  200 km/h"). What is new is what we do with it: there it DISCARDS the measurement as a cache
+     *  teleport, which threw away the one piece of evidence that convicts a train. Same number,
+     *  opposite filing — one asks about the quality of the fix, this one about the nature of the
+     *  vehicle.
+     *
+     *  Reference points: the fastest drive in the whole 18-trace field corpus is 36,49 m/s
+     *  (131,4 km/h, `Trace_MotorwayRedmi001`), so this sits 1,52× above anything real we have ever
+     *  recorded; the Madrid–Seville high-speed line is built for 300 km/h and worked commercially
+     *  at 250–300. */
+    val roadImpossibleSpeedMps: Float = 55.6f,
+    /** How long [roadImpossibleSpeedMps] must be HELD before it convicts: 5 minutes of credited
+     *  band time.
+     *
+     *  Deliberately an order of magnitude above [sustainedDriveProofMs] (30 s). Thirty seconds
+     *  above 200 km/h is a fast car on an empty unrestricted stretch; five minutes is 16+ km of it,
+     *  and a train holds it for hours. It also puts the measurement far beyond any Doppler
+     *  pathology: a spike cannot survive 300 s of credible successive fixes. */
+    val roadImpossibleSustainedMs: Long = 5 * 60 * 1_000L,
+    /** The JOURNEY corroborator, and the half that a fast car on an Autobahn cannot fake: the
+     *  straight-line ground rate the session sustained from its origin, 27,8 m/s = **100 km/h**.
+     *
+     *  Road distance is always ≥ geodesic distance, so a geodesic rate is a CONSERVATIVE lower
+     *  bound on the road speed the trip would have required. With the most prudent detour index
+     *  (1,15), 100 km/h straight-line held for [roadImpossibleJourneyBaselineMs] means ≥115 km/h of
+     *  real road covered for a solid hour with not one stop. The 2026-09-15 session: ~476 km
+     *  geodesic in 270 min = 106 km/h, which by road would have demanded 630 km in 4,5 h — 140 km/h
+     *  door to door.
+     *
+     *  Measured from `DriveProof.maxExcursionMeters`, which only credible fixes may move. */
+    val roadImpossibleJourneyRateMps: Float = 27.8f,
+    /** Minimum baseline the journey rate must be measured over: 60 min. Short baselines make any
+     *  rate cheap — the point of this corroborator is that the SCALE of the trip, not one stretch
+     *  of it, was beyond a road. */
+    val roadImpossibleJourneyBaselineMs: Long = 60 * 60 * 1_000L,
+
     /** Step events concurrent with credible above-pedestrian-ceiling fixes (see
      *  [egressStepMaxSpeedMps]) before the session's movement reads as PEDALLED — the kinematic
      *  second source of `isHumanPoweredRide`, for the short rides AR never classifies (the
@@ -1233,6 +1290,36 @@ data class ParkingDetectionConfig(
             "motorProofSpeedMps ($motorProofSpeedMps) must be > minimumTripSpeedMps " +
                 "($minimumTripSpeedMps) — the motor band is the part of the driving band a " +
                 "bicycle cannot reach, so it can never sit at or below the driving band's floor"
+        }
+        // [DET-A-TRAIN-IS-NOT-A-CAR-001] The road-plausibility ceiling, asserted as an ORDER rather
+        // than as four independent positives: the whole verdict is "floors below, ceilings above",
+        // and a config that inverted any pair would not fail — it would silently veto real drives.
+        require(roadDoubtfulSpeedMps > motorProofSpeedMps) {
+            "roadDoubtfulSpeedMps ($roadDoubtfulSpeedMps) must be > motorProofSpeedMps " +
+                "($motorProofSpeedMps) — the doubt band is a CEILING on road speed and the motor " +
+                "band is a FLOOR on vehicle speed; crossed, every drive reads as a train"
+        }
+        require(roadImpossibleSpeedMps > roadDoubtfulSpeedMps) {
+            "roadImpossibleSpeedMps ($roadImpossibleSpeedMps) must be > roadDoubtfulSpeedMps " +
+                "($roadDoubtfulSpeedMps) — what convicts must sit above what merely doubts"
+        }
+        require(roadImpossibleSustainedMs > sustainedDriveProofMs) {
+            "roadImpossibleSustainedMs ($roadImpossibleSustainedMs) must be > sustainedDriveProofMs " +
+                "($sustainedDriveProofMs) — a terminal close needs a longer hold than a drive proof, " +
+                "not the same one"
+        }
+        require(roadImpossibleJourneyRateMps > 0f) {
+            "roadImpossibleJourneyRateMps must be > 0, was $roadImpossibleJourneyRateMps"
+        }
+        require(roadImpossibleJourneyRateMps < roadImpossibleSpeedMps) {
+            "roadImpossibleJourneyRateMps ($roadImpossibleJourneyRateMps) must be < " +
+                "roadImpossibleSpeedMps ($roadImpossibleSpeedMps) — a whole journey's straight-line " +
+                "average can never be asked to match the peak band, or the corroborator is unreachable"
+        }
+        require(roadImpossibleJourneyBaselineMs > roadImpossibleSustainedMs) {
+            "roadImpossibleJourneyBaselineMs ($roadImpossibleJourneyBaselineMs) must be > " +
+                "roadImpossibleSustainedMs ($roadImpossibleSustainedMs) — the journey corroborator " +
+                "exists to prove SCALE beyond the band, so its baseline must outlast it"
         }
         require(pedalCadenceMinStepEvents > 3) {
             "pedalCadenceMinStepEvents must be > 3 (phantom car steps arrive as bursts of 1-3), was $pedalCadenceMinStepEvents"

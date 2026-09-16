@@ -367,6 +367,17 @@ sealed interface DetectionEffect {
     data class CloseHumanPowered(val vehicleId: String?, val at: GpsPoint) : DetectionEffect
 
     /**
+     * [DET-A-TRAIN-IS-NOT-A-CAR-001] Movement beyond any road vehicle: END, and say nothing.
+     *
+     * The silent sibling of [CloseHumanPowered], and the difference is the whole point. That one
+     * nudges because a bicycle ride still ends somewhere the user may want recorded; this one does
+     * not, because the place on offer is wherever a train put them and the car is hundreds of
+     * kilometres away. An effect that only ends a session still has to EXIST rather than being a
+     * `null` at the call site: the ending is what the trace must be able to attribute.
+     */
+    data class CloseNotARoadVehicle(val vehicleId: String?, val at: GpsPoint) : DetectionEffect
+
+    /**
      * [DET-C-02] Drop a held confirm and say WHY, in one move.
      *
      * The two halves always travel together and once did not: [DET-HOLD-BRANCHES-MUST-SPEAK-001]

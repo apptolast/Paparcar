@@ -70,6 +70,11 @@ class FakeUserParkingRepository(
     /** Ids released at runtime — releasing in the mock really frees the session. */
     private val releasedIds = MutableStateFlow<Set<String>>(emptySet())
 
+    /** [DET-A-TRAIN-IS-NOT-A-CAR-001] Ids given back after a refuted departure. Exposed so a test
+     *  can assert the car RETURNED, not merely that nothing new was pinned — the whole point of the
+     *  repair is a state that reads right, and "no phantom" alone cannot witness it. */
+    val restoredIds = MutableStateFlow<Set<String>>(emptySet())
+
     /** [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] Ids withdrawn at runtime, with the instant.
      *  Kept apart from [releasedIds] because the two are different facts: a release ENDS a
      *  parking, a withdrawal says it never happened. */
@@ -337,6 +342,13 @@ class FakeUserParkingRepository(
         // Releasing really frees the session so the mock plays the whole loop: the parked card
         // and the watching line drop, and the story returns to its cold-start row. [UX-PARKED-STATE-001]
         releasedIds.value = releasedIds.value + sessionId
+        return Result.success(Unit)
+    }
+
+    /** [DET-A-TRAIN-IS-NOT-A-CAR-001] The inverse of the release above: the car comes back. */
+    override suspend fun restoreParkingSession(sessionId: String): Result<Unit> {
+        restoredIds.value = restoredIds.value + sessionId
+        releasedIds.value = releasedIds.value - sessionId
         return Result.success(Unit)
     }
 

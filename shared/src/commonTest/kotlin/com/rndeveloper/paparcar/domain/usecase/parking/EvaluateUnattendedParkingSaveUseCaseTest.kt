@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.domain.usecase.parking
 
+import com.rndeveloper.paparcar.domain.detection.RoadPlausibility
 import com.rndeveloper.paparcar.domain.detection.state.EgressBirthJudgement
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
@@ -58,6 +59,9 @@ class EvaluateUnattendedParkingSaveUseCaseTest {
         // evaluator's FIRST guard in its permissive position. The value is unchanged; what changed
         // is that the file now says it out loud.
         humanPoweredRide: Boolean = false,
+        // [DET-A-TRAIN-IS-NOT-A-CAR-001] Permissive in the helper, mandatory in production —
+        // same rule as the field above it.
+        roadPlausibility: RoadPlausibility = RoadPlausibility.PLAUSIBLE,
     ) = UnattendedSaveInput(
         witnessedRestFix = witnessedRestFix,
         maxSpeedMps = maxSpeedMps,
@@ -78,6 +82,7 @@ class EvaluateUnattendedParkingSaveUseCaseTest {
         egressExceedsWalkReach = egressExceedsWalkReach,
         anchorRestMs = anchorRestMs,
         humanPoweredRide = humanPoweredRide,
+        roadPlausibility = roadPlausibility,
     )
 
     // ── The field regression ─────────────────────────────────────────────────────────────────
@@ -489,6 +494,31 @@ class EvaluateUnattendedParkingSaveUseCaseTest {
     }
 
     // ── The diagnostics vocabulary is load-bearing ───────────────────────────────────────────
+
+    // ── [DET-A-TRAIN-IS-NOT-A-CAR-001] The ceiling reaches this lane too ──────────────────
+
+    @Test
+    fun should_recordNothingAndAskNothing_when_theMovementWasBeyondAnyRoadVehicle() {
+        // The timeout lane is where the 2026-08-16 bicycle FP landed after the confirm paths were
+        // vetoed, and a ceiling that guarded only the confirm side would repeat that exactly: this
+        // input is otherwise a trusted anchor, i.e. a clean `SaveExact` that would stamp a railway
+        // terminus with `unattended_timeout` provenance.
+        val verdict = evaluate(input(roadPlausibility = RoadPlausibility.IMPOSSIBLE))
+
+        val discard = assertIs<UnattendedParkingSave.Discard>(verdict)
+        assertEquals(UnattendedSaveReason.NOT_A_ROAD_VEHICLE, discard.reason)
+    }
+
+    @Test
+    fun should_nudgeUnderItsOwnName_when_theSpeedWasOnlyDoubtful() {
+        // The band a car can reach still ends in a nudge — no pin, but the user is asked. Its
+        // reason must be its own: a doubt filed under an existing label cannot be counted in the
+        // field, which is the whole argument of DET-PROMPT-STATES-ITS-REASON-001.
+        val verdict = evaluate(input(roadPlausibility = RoadPlausibility.DOUBTFUL))
+
+        val ask = assertIs<UnattendedParkingSave.Ask>(verdict)
+        assertEquals(UnattendedSaveReason.NOT_A_ROAD_SPEED, ask.reason)
+    }
 
     /**
      * Field traces and the project's own memory quote these strings verbatim. Two of the historical

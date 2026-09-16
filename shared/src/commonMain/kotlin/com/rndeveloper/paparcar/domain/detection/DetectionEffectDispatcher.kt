@@ -222,6 +222,12 @@ class DetectionEffectDispatcher(
                     apply(effects.closeHumanPowered(effect.vehicleId, effect.at, now))
                     sessionCompleted = true
                 }
+                // [DET-A-TRAIN-IS-NOT-A-CAR-001] Same shape as its sibling above, and the executor
+                // is what differs: this one records the outcome without notifying anybody.
+                is DetectionEffect.CloseNotARoadVehicle -> {
+                    apply(effects.closeNotARoadVehicle(effect.vehicleId, effect.at, now))
+                    sessionCompleted = true
+                }
                 is DetectionEffect.DegradeToPrompt -> {
                     val posted = effects.degradeToPrompt(
                         alreadyPrompted = state.value.confirmation.promptShownAt != null,

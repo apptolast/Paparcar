@@ -107,6 +107,23 @@ class UserParkingRepositoryImpl(
         parkingSyncScheduler.enqueueClearActiveParkingSession(sessionId)
     }
 
+    /**
+     * [DET-A-TRAIN-IS-NOT-A-CAR-001] Re-opens a refuted departure's session.
+     *
+     * ⛔ **Deliberately does NOT enqueue [ParkingSyncScheduler.enqueueClearActiveParkingSession]**,
+     * which every other write in this neighbourhood does. That worker is not a generic "sync this
+     * session" — it calls `clearParkingSessionActiveFlag`, a targeted update that hard-sets
+     * `isActive = false` remotely. Enqueuing it here would schedule a worker whose whole job is to
+     * undo the re-opening we just performed, and it would win as soon as the network came back.
+     *
+     * The re-opening rides `pendingSync = 1` on the outbox drainer's full-document push instead —
+     * the same lane the close's `endedAtMs`/`publishedSpot` provenance already travels on, since the
+     * fast-path worker never carried those either.
+     */
+    override suspend fun restoreParkingSession(sessionId: String): Result<Unit> = runCatching {
+        dao.reopenById(sessionId, Clock.System.now().toEpochMilliseconds())
+    }
+
     /** [DET-HANDOFF-NOT-MANUAL-001 §B] Room-only write — no sync enqueue: the marker is a local
      *  coordination flag between the deduced departure and the moment a drive is (or is not)
      *  proven. Firestore never sees it, and a remote reconcile preserves it (see

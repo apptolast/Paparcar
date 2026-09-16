@@ -184,6 +184,26 @@ class FakeUserParkingRepository(
         return Result.success(Unit)
     }
 
+    /** [DET-A-TRAIN-IS-NOT-A-CAR-001] Mirrors `UserParkingDao.reopenById` column for column —
+     *  including the two undos the close's own COALESCE/MAX would otherwise forbid, because a fake
+     *  that quietly kept `endedAtMs` would let a broken restore pass. */
+    var restoreParkingSessionCallCount = 0
+        private set
+
+    override suspend fun restoreParkingSession(sessionId: String): Result<Unit> {
+        restoreParkingSessionCallCount++
+        sessions.mapInPlace {
+            if (it.id == sessionId && it.retractedAtMs == null) it.copy(
+                isActive = true,
+                endedAtMs = null,
+                publishedSpot = false,
+                provisionalDepartureAtMs = null,
+            ) else it
+        }
+        _sessionsFlow.value = sessions.toList()
+        return Result.success(Unit)
+    }
+
     override suspend fun syncFromRemote(userId: String): Result<Unit> {
         syncCallCount++
         return syncResult

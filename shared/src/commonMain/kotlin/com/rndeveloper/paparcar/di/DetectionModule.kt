@@ -32,6 +32,8 @@ import com.rndeveloper.paparcar.domain.usecase.parking.ObserveParkedVehiclesUseC
 import com.rndeveloper.paparcar.domain.usecase.parking.ProcessConfirmedDepartureUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.ReleaseActiveParkingSessionUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.RetractDeducedDeparture
+import com.rndeveloper.paparcar.domain.usecase.parking.RestoreRefutedDeparture
+import com.rndeveloper.paparcar.domain.usecase.parking.RestoreRefutedDepartureUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.RetractDeducedDepartureUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.RevertParkingUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.RunDepartureCheckUseCase
@@ -161,6 +163,7 @@ val detectionModule = module {
         // [DET-HANDOFF-NOT-MANUAL-001 §B.3] …and its withdrawal, at the moment this session
         // ends having measured none.
         retractDeducedDeparture = get(),
+        restoreRefutedDeparture = get(),
         clock = clock,
     )
     single {
@@ -254,6 +257,17 @@ val detectionModule = module {
             zoneRepository = get(),
         )
     } bind RetractDeducedDeparture::class
+    // [DET-A-TRAIN-IS-NOT-A-CAR-001] The third member: undoes the departure that was WITNESSED (and
+    // therefore took the car) once the trip is measured to be no road vehicle.
+    factory {
+        RestoreRefutedDepartureUseCase(
+            userParkingRepository = get(),
+            spotRepository = get(),
+            geofenceManager = get(),
+            config = get(),
+            detectionEventLogger = get(),
+        )
+    } bind RestoreRefutedDeparture::class
     factory {
         ProcessConfirmedDepartureUseCase(
             userParkingRepository = get(),

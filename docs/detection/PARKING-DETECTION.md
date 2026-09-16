@@ -476,6 +476,107 @@ See `diagnostics/README.md` at the repo root for the recommended layout when arc
 
 Each entry is one issue we shipped a fix for. Listed roughly in dependency order (mappers first, then pipeline, then algorithm). Every entry should explain *what was wrong*, *why it was wrong*, and *what guard exists today*. If you ever want to remove a guard, find its entry here first.
 
+### DET-A-TRAIN-IS-NOT-A-CAR-001 — el vocabulario cinemático tenía suelo y no tenía techo
+
+**Commit:** pending. **Campo (2026-09-15, Samsung SM-A556B, sesión `1789472756175`):** una tester
+aparca junto a la estación, entra andando a coger el AVE, y 270 minutos después la app le planta el
+coche en Atocha.
+
+**Causa raíz.** Todas las barras de la vía probabilística son SUELOS —
+`minimumDepartureSpeedKmh` 10, `minimumTripSpeedMps` 18, `motorProofSpeedMps` 40 km/h — y ninguna
+pregunta si la velocidad medida es posible para un vehículo de CARRETERA. Un tren de alta velocidad
+no pasa los umbrales: los multiplica por seis, así que no es que se cuele como coche, es que se lee
+como la conducción más sólida jamás medida (`vmax 253 km/h (creíble 253)`, 762 fixes creíbles de
+1616). La llegada aportó su paseo por el andén (191 pasos) y `steps+egress` confirmó a 0,9.
+
+Y el daño no acabó ahí: ese pin dejó una geocerca DENTRO de la estación, cuyo centinela armó cinco
+sesiones más en veinte minutos y una sexta que volvió a fijar el coche, esta vez en el centro de
+Madrid, a partir de un trayecto en autobús de 55 km/h. **Los FP posteriores son hijos del primero**
+— todo armado va atado a una valla de vehículo, así que con el pin correcto en El Puerto ninguna
+sesión puede armar en Madrid.
+
+⚠️ **El número ya estaba en el código, archivado bajo la pregunta equivocada.**
+`sustainedDepartureMaxRateMps` vale 55 m/s desde [DET-CREDIBLE-DRIVE-001], comentado *"no urban
+drive sustains more than motorway pace. 55 m/s ≈ 200 km/h"* — y se usaba para DESCARTAR esa medida
+como teletransporte de caché. La app sabía que 200 km/h no es un coche; había decidido que eso
+significaba que el fix era malo, no que el vehículo era otro, y así tiraba la única prueba que
+condena a un tren.
+
+**Fix.** `RoadPlausibleRide.kt`, el gemelo por arriba de `HumanPoweredRide.kt`: aquél pregunta *¿te
+movió un músculo?*, éste *¿te movió algo que no cabe en una carretera?*. Predicado puro, VETO
+(contradice, nunca arma), y **no revocable por AR** — al contrario que el veto de la bicicleta,
+porque Android no tiene clase ferroviaria y etiqueta el AVE como `IN_VEHICLE`: deferir al
+clasificador sería deferir al único testigo garantizadamente equivocado. Dos bandas:
+
+| Banda | Medida | Veredicto |
+|---|---|---|
+| DUDOSA | ≥160 km/h sostenidos 30 s | `PromptReason.NOT_A_ROAD_SPEED` — degrada a pregunta |
+| IMPOSIBLE | ≥200 km/h sostenidos ≥5 min **Y** ritmo geodésico ≥100 km/h sobre línea base ≥60 min | `CloseNotARoadVehicle` — cierre terminal, sin pin y sin preguntar |
+
+Calibración, con estadística oficial y no con intuición: el límite legal más alto de los nueve
+mercados es 140 km/h (Polonia); en Autobahn sin límite ~1 % del tráfico supera los 160 (IW, 1.900 M
+de mediciones en Renania del Norte-Westfalia, 2024), así que 160 es el percentil 99 de la red más
+permisiva de Europa y un coche PUEDE estar ahí; la LAV Madrid–Sevilla está diseñada para 300 km/h y
+explota a 250–300; y la conducción real más rápida del corpus de 18 trazas es 131,4 km/h
+(`Trace_MotorwayRedmi001`), o sea 1,52× por debajo de la banda que condena.
+
+La **Y** es lo que sostiene el ticket. Cada mitad por separado tiene explicación inocente: 200 km/h
+durante cinco minutos es un coche rápido en un tramo libre, y 100 km/h en línea recta durante una
+hora es un viaje largo por autopista. Juntas describen un vehículo a velocidad ferroviaria en un
+trayecto cuya ESCALA ninguna carretera explica — y son medidas independientes, un reloj sobre
+muestras y un ritmo sobre una línea base, así que ninguna patología de sensor produce las dos.
+
+**Por qué la banda que condena no pregunta.** *Ante la duda se pregunta* sigue vigente y la banda
+DUDOSA lo cumple al pie de la letra. En la otra no queda duda que resolver: la pregunta de un prompt
+es *¿has aparcado aquí?* y «aquí» es un sitio donde el coche demostrablemente no está. El propio
+evaluador ya tenía escrita la regla en [DET-ASSERTION-OUTRANKS-INFERENCE-001] — *una pregunta cuyas
+respuestas posibles dañan todas el estado no debe hacerse*. La asimetría sobrevive en el coste del
+error: un IMPOSIBLE equivocado cuesta un pin automático que el siguiente viaje vuelve a poner; el
+falso positivo cuesta un coche marcado a 600 km y una plaza fantasma ofrecida a un desconocido.
+
+**…y la salida se DESHACE, no solo se deja de repetir.** Rehusar el pin fantasma deja el estado
+menos mal, no bien: el coche sigue olvidado y la plaza sigue ofrecida. Pero la salida ya tenía su
+undo — `RetractDeducedDepartureUseCase`, escrito para la bicicleta del 19-08 — y lo que faltaba era
+la otra mitad del par. Una salida **DEDUCIDA** publica en provisional y *no se lleva el coche*: la
+sesión y su valla se quedan donde estaban, así que allí había plaza que retirar y nada que
+restaurar. La del tren fue **PRESENCIADA** (el primer fix creíble de conducción llegó a los 45 s del
+armado: un tren saliendo del andén acelera como nada que el móvil pueda ver), y una salida
+presenciada cierra la sesión y publica la plaza de verdad.
+
+Así que nace el tercer miembro de la familia, `RestoreRefutedDepartureUseCase`, y deshace en el
+orden que importa si el proceso muere a medias: **(1)** la plaza primero, porque es la única parte
+del estado sobre la que actúan terceros y la única con fecha de caducidad; **(2)** la sesión se
+reabre —`endedAtMs` a NULL para que la salida REAL pueda fecharse cuando llegue, `publishedSpot` a
+false porque la plaza acaba de retirarse—; **(3)** la geocerca se vuelve a registrar, porque un pin
+restaurado sin valla es un coche que ya no puede anunciar su siguiente salida (justo lo que el campo
+del 19-08 tasó en la vía deducida). Se niega si el coche YA tiene sesión activa —lo que la haya
+puesto sabe más que un viaje refutado [DET-ASSERTION-OUTRANKS-INFERENCE-001]— y se niega a resucitar
+un pin RETIRADO, porque una retirada es la app o el usuario concluyendo que ese pin era ficción y
+los dos undos no deben pelearse.
+
+⛔ Una trampa de sincronización que casi muerde: `restoreParkingSession` **no** encola
+`enqueueClearActiveParkingSession`, que es lo que hace toda escritura vecina. Ese worker no es un
+«sincroniza esta sesión»: llama a `clearParkingSessionActiveFlag`, que fuerza `isActive=false` en
+remoto. Encolarlo aquí habría programado un trabajador cuyo único cometido es deshacer la
+reapertura, y habría ganado en cuanto volviera la red. La reapertura viaja por `pendingSync` en el
+empuje de documento completo, el mismo carril por el que ya viajaba la procedencia del cierre.
+
+**Riesgo del fix acompañante.** El cierre terminal reutiliza `SessionOutcome.AbortedUnattended`, y
+eso cierra dos puertas traseras por construcción: `triggersHonestClose = false` (la escalera del
+honest-close no planta su pin aproximado en la terminal) y `resolvesTheArrival = true` (el backfill
+no coloca el pin que el coordinator acaba de rechazar — [DET-BACKFILL-TAINT-001]). El carril
+BLUETOOTH queda exento con razón: es determinista y atado a la MAC, y fija donde está el COCHE, no
+donde acaba el pasajero. Y queda un hueco declarado: Cercanías, metro y autobús (40–160 km/h) son
+indistinguibles de un coche por cinemática — en esta traza no importan porque cuelgan del FP #1,
+pero necesitan un discriminador que no sea la velocidad
+(`DET-A-COMMUTER-TRAIN-IS-NOT-A-CAR-001`).
+
+Y el undo tiene su propio riesgo, acotado a propósito: reabrir una sesión rompe deliberadamente la
+monotonía que el cierre protege con `COALESCE`/`MAX`. Es correcto porque esas dos guardas están
+escritas para PROMOCIONES —«la primera fecha de cierre es la buena», «una publicación posterior
+puede confirmar, nunca retirar»— y esto es una RETIRADA: dejar `publishedSpot=true` en una sesión
+cuya plaza acabamos de retirar sería contar una plaza que ya no existe en el mapa de nadie.
+
 ### DET-A-SUPERSEDED-FENCE-LEAVES-WITH-ITS-SESSION-001 — la valla vieja se va con su sesión (y iOS)
 
 **Commit:** pending. **Pregunta del user (15-09):** *«si ya tenemos geovalla en shared car, ¿se

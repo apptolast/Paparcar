@@ -257,6 +257,9 @@ class FirestoreDetectionEventLogger(
                     longitude = event.location?.longitude,
                     drivingBarKmh = DRIVING_SPEED_KMH,
                     accuracyGateMeters = detectionConfig.minGpsAccuracyForDriving,
+                    // [DET-A-TRAIN-IS-NOT-A-CAR-001] Derived from the config bar, never re-typed as
+                    // a literal: the digest must count against the same number the verdict judges by.
+                    roadDoubtfulBarKmh = detectionConfig.roadDoubtfulSpeedMps * MS_TO_KMH,
                 )
             }
             is DetectionEvent.Step ->

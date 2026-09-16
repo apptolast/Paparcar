@@ -2,6 +2,7 @@ package com.rndeveloper.paparcar.domain.detection.stages
 
 import com.rndeveloper.paparcar.domain.detection.assertionBlocksRelocation
 import com.rndeveloper.paparcar.domain.detection.isHumanPoweredRide
+import com.rndeveloper.paparcar.domain.detection.judgeRoadPlausibility
 import com.rndeveloper.paparcar.domain.detection.physics.sustainedDriveWitnessed
 import com.rndeveloper.paparcar.domain.detection.state.DetectionSessionState
 import com.rndeveloper.paparcar.domain.detection.state.anchorRestMs
@@ -75,6 +76,7 @@ fun DetectionSessionState.parkingDecisionInput(
     anchorGapEntered = anchorGapEnteredAtCapture,
     egressExceedsWalkReach = egressExceedsWalkReach(location, config),
     humanPoweredRide = humanPoweredRide(now, config),
+    roadPlausibility = roadPlausibility(config), // [DET-A-TRAIN-IS-NOT-A-CAR-001]
     restCertified = restCertified,
     // [DET-ASSERTION-OUTRANKS-INFERENCE-001] Would confirming HERE move a pin the user
     // asserted minutes ago and metres away, on a session that never measured a drive? Then
@@ -126,6 +128,7 @@ fun DetectionSessionState.unattendedSaveInput(
     egressExceedsWalkReach = egressExceedsWalkReach(location, config),
     anchorRestMs = restMs,
     humanPoweredRide = humanPoweredRide(now, config),
+    roadPlausibility = roadPlausibility(config), // [DET-A-TRAIN-IS-NOT-A-CAR-001]
 )
 
 /** The verdict's whole reasoning, in one `parkdiag` line — unchanged, word for word. */
@@ -166,6 +169,22 @@ private fun DetectionSessionState.zoneCentreTrace(config: ParkingDetectionConfig
     )
     return "rest(acc=${witnessed.accuracy}m vs anchor ${anchor.accuracy}m, ${apart.toInt()}m apart)"
 }
+
+/** [DET-A-TRAIN-IS-NOT-A-CAR-001] Whether this session's movement was possible for a ROAD vehicle.
+ *  The ceiling twin of [humanPoweredRide], and a thin wrapper for the same reason: both decision
+ *  sites and the unattended timeout must ask the one pure evaluator with the one set of inputs.
+ *
+ *  Takes no `now`: every input is a latched measurement of the trip, so unlike the human-powered
+ *  veto — which arbitrates AR stamps against a staleness window — this verdict cannot change by
+ *  being asked later. */
+fun DetectionSessionState.roadPlausibility(
+    config: ParkingDetectionConfig,
+) = judgeRoadPlausibility(
+    roadDoubtfulBandMs = drive.roadDoubtfulBandMs,
+    roadImpossibleBandMs = drive.roadImpossibleBandMs,
+    journeyGroundRateMps = drive.journeyGroundRateMps,
+    config = config,
+)
 
 /** [DET-BIKE-NOT-A-CAR-001] Whether this session's movement was human-powered — the profile
  *  answer OR the measured one. Thin wrapper so both decision sites and the unattended timeout

@@ -18,6 +18,9 @@ class SessionRollupTest {
     private val drivingBarKmh = 18f
     private val accuracyGate = 50f
 
+    /** [DET-A-TRAIN-IS-NOT-A-CAR-001] 160 km/h — `roadDoubtfulSpeedMps` in the digest's units. */
+    private val roadDoubtfulBarKmh = 160f
+
     private fun SessionRollup.fix(speedKmh: Float, accuracyMeters: Float?, lat: Double? = null, lon: Double? = null) =
         onFix(
             speedKmh = speedKmh,
@@ -26,6 +29,7 @@ class SessionRollupTest {
             longitude = lon,
             drivingBarKmh = drivingBarKmh,
             accuracyGateMeters = accuracyGate,
+            roadDoubtfulBarKmh = roadDoubtfulBarKmh,
         )
 
     @Test

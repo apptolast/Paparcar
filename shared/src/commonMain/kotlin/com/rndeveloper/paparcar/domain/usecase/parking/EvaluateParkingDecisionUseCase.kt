@@ -2,6 +2,7 @@ package com.rndeveloper.paparcar.domain.usecase.parking
 
 import com.rndeveloper.paparcar.domain.detection.ArmLabel
 import com.rndeveloper.paparcar.domain.detection.DetectionPath
+import com.rndeveloper.paparcar.domain.detection.RoadPlausibility
 import com.rndeveloper.paparcar.domain.detection.physics.DrivingEvidence
 import com.rndeveloper.paparcar.domain.detection.physics.sustainedDriveWitnessed
 import com.rndeveloper.paparcar.domain.detection.state.EgressBirthJudgement
@@ -42,6 +43,11 @@ enum class PromptReason(val key: String) {
 
     /** Profile says bike/scooter, or the ride measured as human-powered. [DET-BIKE-NOT-A-CAR-001] */
     HUMAN_POWERED("human_powered"),
+
+    /** [DET-A-TRAIN-IS-NOT-A-CAR-001] The session held a speed above every legal motorway limit we
+     *  ship into — faster than a car should be, not faster than a car can be. The DOUBT band; the
+     *  band that convicts never reaches this enum, because it ends the session instead of asking. */
+    NOT_A_ROAD_SPEED("not_a_road_speed"),
 
     /** The egress was born away from the anchor: the park is probably real, the ANCHOR is not.
      *  [DET-ANCHOR-EGRESS-001] */
@@ -92,6 +98,29 @@ sealed interface ParkingDecision {
      * reach a verdict that was available at the first matured stop.
      */
     data object CloseHumanPowered : ParkingDecision
+
+    /**
+     * [DET-A-TRAIN-IS-NOT-A-CAR-001] TERMINAL: the movement was made by something a road cannot
+     * hold — rail speed sustained for minutes across a journey no road explains — so no candidate
+     * on this session can ever be a car park.
+     *
+     * **Why this is not a [Prompt], when the doctrine says to ask in doubt.** There is no doubt
+     * left to resolve: the question a prompt asks is *"did you park here?"*, and "here" is a place
+     * the car provably is not, hundreds of kilometres from it. This evaluator already wrote the
+     * rule for that under [DET-ASSERTION-OUTRANKS-INFERENCE-001] — a question whose every possible
+     * answer damages the state must not be asked. A "yes" relocates the car to a railway terminus;
+     * a silence expires into the unattended timeout, which would then have to make the same guess
+     * with less evidence.
+     *
+     * **Why this is not [Rejected] either.** Rejected discards ONE candidate and leaves the stop
+     * alive for the next, which is right when the doubt is about this stop. Here the finding is
+     * about the whole RIDE: the next candidate on the same session inherits the same latched
+     * measurement and the same impossibility. Field 2026-09-15 shows what "keep trying" costs —
+     * the pin that a session like this planted became a geofence inside a railway station, whose
+     * sentry armed five more sessions in twenty minutes and a sixth that pinned the car a second
+     * time, in a different city district, off a bus ride.
+     */
+    data object CloseNotARoadVehicle : ParkingDecision
 }
 
 /**
@@ -223,6 +252,15 @@ data class ParkingDecisionInput(
      *  car 4,8 km away. FALSE is the permissive answer — a motor, so auto-confirm is allowed — so it
      *  may not be the omitted one. [DET-A-DOUBT-FIELD-MUST-NOT-DEFAULT-TO-CERTAINTY-001] */
     val humanPoweredRide: Boolean,
+    /** [DET-A-TRAIN-IS-NOT-A-CAR-001] How believable it is that a ROAD vehicle made this session's
+     *  movement — the ceiling twin of [humanPoweredRide], which guards the floor. Judged by
+     *  [com.rndeveloper.paparcar.domain.detection.judgeRoadPlausibility] from two measurements the
+     *  session latched: how long it held rail speed, and the straight-line rate it sustained across
+     *  the journey.
+     *
+     *  [RoadPlausibility.PLAUSIBLE] is the permissive answer, so — like [humanPoweredRide] — it may
+     *  not be the omitted one. [DET-A-DOUBT-FIELD-MUST-NOT-DEFAULT-TO-CERTAINTY-001] */
+    val roadPlausibility: RoadPlausibility,
     /** [DET-HUMAN-POWERED-EARLY-CLOSE-001] The confidence scorer has certified a SUSTAINED stop —
      *  the caller is at (or entering) the CANDIDATE phase, which High confidence only grants after
      *  the 5-minute stopped tier. It is the pure expression of "the ride is over", and the terminal
@@ -417,6 +455,12 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
         // that is the one worth acting on.
         val promptReason: PromptReason? = when {
             humanPowered -> PromptReason.HUMAN_POWERED
+            // [DET-A-TRAIN-IS-NOT-A-CAR-001] The second claim about the WHOLE RIDE, so it sits with
+            // the first rather than among the anchor doubts. Ordered under it because the
+            // human-powered claim is the stronger of the two: it says no motor moved you at all,
+            // while this says the motor was going faster than any road we ship into allows —
+            // suspicious, and still a speed ~1 % of unrestricted-Autobahn traffic reaches.
+            input.roadPlausibility == RoadPlausibility.DOUBTFUL -> PromptReason.NOT_A_ROAD_SPEED
             weakEvidenceOnly -> PromptReason.WEAK_EVIDENCE
             // [DET-NOTHING-TO-JUDGE-IS-NOT-NO-DOUBT-001] Two rows where there used to be one, and
             // the second is the whole ticket. `NOT_RECORDED` — the session never saw the walk begin
@@ -433,6 +477,16 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
         }
 
         return when {
+            // [DET-A-TRAIN-IS-NOT-A-CAR-001] FIRST, and above even the asserted pin — not because it
+            // outranks the user's word (it never touches their pin; it ends a session), but because
+            // every branch below this one is an argument about WHICH stop to believe, and this says
+            // the vehicle that did the moving was not the car. There is nothing downstream worth
+            // computing once that holds, and the session going on costs GPS on a train.
+            //
+            // Deliberately NOT gated on `restCertified`, unlike [CloseHumanPowered]: that gate
+            // exists so a cyclist pausing at a light is not closed mid-ride, and its analogue here
+            // would be closing at a station stop — which is exactly when we want to close.
+            input.roadPlausibility == RoadPlausibility.IMPOSSIBLE -> ParkingDecision.CloseNotARoadVehicle
             // [DET-ASSERTION-OUTRANKS-INFERENCE-001] The user has ALREADY told us where the car is,
             // just now and just here. Every proof this evaluator can assemble is an inference, and
             // an inference never deposes an assertion — the rule the honest close has enforced

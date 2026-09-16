@@ -68,6 +68,10 @@ class ResponseTimeoutStage(
                 at = fix,
             )
 
+            // [DET-A-TRAIN-IS-NOT-A-CAR-001] The only branch that produces no effect at all. The
+            // session still ends below with every other one — what it does not do is speak.
+            is UnattendedParkingSave.Discard -> null
+
             is UnattendedParkingSave.Ask -> DetectionEffect.AskUser(
                 reasonKey = verdict.reason.key,
                 vehicleId = vehicleId,
@@ -92,9 +96,12 @@ class ResponseTimeoutStage(
 
         // Every branch ends the session: the window is over either way, and the only non-looping
         // exit is to stop asking. [BUG-STUCK-SESSION]
+        // [DET-A-TRAIN-IS-NOT-A-CAR-001] `listOfNotNull`, because a verdict may now be silent —
+        // ending the session IS the action. The ending itself is unchanged and unconditional, which
+        // is what keeps BUG-STUCK-SESSION closed for the new branch too.
         return StageVerdict.Handled(
             newState = state,
-            effects = listOf(effect),
+            effects = listOfNotNull(effect),
             stopsIteration = true,
             notes = notes,
         )

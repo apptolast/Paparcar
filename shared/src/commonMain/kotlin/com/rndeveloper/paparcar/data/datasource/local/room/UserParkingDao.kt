@@ -95,6 +95,39 @@ interface UserParkingDao {
     """)
     suspend fun retractById(sessionId: String, retractedAtMs: Long, now: Long)
 
+    /**
+     * [DET-A-TRAIN-IS-NOT-A-CAR-001] Re-opens a session whose DEPARTURE the trip went on to refute:
+     * the car never left, so the park it had is the truth again.
+     *
+     * The exact inverse of [clearActiveById], and each column is undone on purpose:
+     *
+     *  - `endedAtMs` back to NULL rather than left where it was. The close comment above calls the
+     *    first stamp "the real departure moment" and guards it with COALESCE — which is right for a
+     *    departure that happened. This one did not, so leaving the stamp would make the REAL
+     *    departure, whenever it comes, unable to date itself.
+     *  - `publishedSpot` back to 0, deliberately breaking that column's MAX monotonicity. The rule
+     *    it breaks says "a later promotion may confirm a publication, never retract one", and it is
+     *    written for promotions. This is a withdrawal: the caller takes the spot document back, so
+     *    a session that still claimed to have freed a plaza would be counting a plaza that no
+     *    longer exists in anyone's map. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+     *  - `provisionalDepartureAtMs` cleared: no deduction is pending on a car that never went.
+     *
+     * `updatedAt`/`pendingSync` like every other write here, so the re-opening wins the inbound
+     * reconcile against the stale remote `isActive = false` it is undoing.
+     * [SYNC-RECONCILE-USERPARKING-001]
+     */
+    @Query("""
+        UPDATE parking_sessions SET
+            isActive = 1,
+            endedAtMs = NULL,
+            publishedSpot = 0,
+            provisionalDepartureAtMs = NULL,
+            updatedAt = :now,
+            pendingSync = 1
+        WHERE id = :sessionId AND retractedAtMs IS NULL
+    """)
+    suspend fun reopenById(sessionId: String, now: Long)
+
     /** [DET-HANDOFF-NOT-MANUAL-001 §B] Marks (or clears, with null) a pending DEDUCED departure on a
      *  session that stays ACTIVE: the spot went out provisionally and the car was not given up.
      *  Local-only — `pendingSync` is deliberately untouched so this never travels to Firestore. */

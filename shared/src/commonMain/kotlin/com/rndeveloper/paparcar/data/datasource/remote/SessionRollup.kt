@@ -54,6 +54,19 @@ internal class SessionRollup(val startedAt: Long = 0L) {
     var credibleDrivingFixes = 0
         private set
 
+    /**
+     * [DET-A-TRAIN-IS-NOT-A-CAR-001] Credible fixes above the road-doubt bar (160 km/h) — the
+     * denominator a road-plausibility verdict can be held to, in the one line a diagnosis reads
+     * first.
+     *
+     * The session that opened that ticket read `vmax 253km/h (cred 253)` at the top of its header
+     * and still took an afternoon to diagnose, because a peak says a receiver claimed something once
+     * while a COUNT says the session lived there. Printed only when non-zero: every ordinary session
+     * keeps the summary it always had, and old traces stay comparable.
+     */
+    var credibleFixesAboveRoadSpeed = 0
+        private set
+
     var maxStepCount = 0
         private set
     var finalLat: Double? = null
@@ -74,6 +87,10 @@ internal class SessionRollup(val startedAt: Long = 0L) {
         longitude: Double?,
         drivingBarKmh: Float,
         accuracyGateMeters: Float,
+        // [DET-A-TRAIN-IS-NOT-A-CAR-001] The road-doubt bar. No default: this digest exists to stop
+        // a header disagreeing with a verdict, and a bar that can be omitted is a header that can
+        // quietly stop counting.
+        roadDoubtfulBarKmh: Float,
     ) {
         fixCount++
         if (speedKmh > maxSpeedKmh) maxSpeedKmh = speedKmh
@@ -83,6 +100,9 @@ internal class SessionRollup(val startedAt: Long = 0L) {
             drivingFixes++
             if (credible) credibleDrivingFixes++
         }
+        // Credible ONLY: the road-plausibility verdict reads nothing else, and a header that counted
+        // wild fixes here would re-open the very contradiction this class exists to close.
+        if (credible && speedKmh >= roadDoubtfulBarKmh) credibleFixesAboveRoadSpeed++
         if (latitude != null && longitude != null) {
             finalLat = latitude
             finalLon = longitude
@@ -105,6 +125,8 @@ internal class SessionRollup(val startedAt: Long = 0L) {
         parts += "vmax ${maxSpeedKmh.roundToInt()}km/h (cred ${credibleMaxSpeedKmh.roundToInt()})"
         parts += "drive $drivingFixes/${fixCount}fix (cred $credibleDrivingFixes)"
         parts += "steps $maxStepCount"
+        // [DET-A-TRAIN-IS-NOT-A-CAR-001] Only when it happened, so an ordinary summary is unchanged.
+        if (credibleFixesAboveRoadSpeed > 0) parts += "road⚠ ${credibleFixesAboveRoadSpeed}fix"
         val lat = finalLat
         val lon = finalLon
         if (lat != null && lon != null) parts += "end ${round5(lat)},${round5(lon)}"

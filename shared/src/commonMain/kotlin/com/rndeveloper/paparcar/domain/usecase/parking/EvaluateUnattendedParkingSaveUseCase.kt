@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.domain.usecase.parking
 
+import com.rndeveloper.paparcar.domain.detection.RoadPlausibility
 import com.rndeveloper.paparcar.domain.detection.physics.SessionOutcome
 import com.rndeveloper.paparcar.domain.detection.physics.walkableInsideGapMeters
 import com.rndeveloper.paparcar.domain.detection.physics.walkedInToAnchorMeters
@@ -26,6 +27,14 @@ enum class UnattendedSaveReason(val key: String, val decisionOutcome: String) {
     WALK_ENTERED_ANCHOR("walk_entered_anchor", "UNATTENDED_WALK_ENTERED_NUDGE"),
     VEHICULAR_EGRESS("vehicular_egress", "UNATTENDED_VEHICULAR_EGRESS_NUDGE"),
     HUMAN_POWERED("human_powered", "UNATTENDED_HUMAN_POWERED_NUDGE"),
+
+    /** [DET-A-TRAIN-IS-NOT-A-CAR-001] Above every legal motorway limit we ship into, but within
+     *  reach of a car: nudge, no pin. */
+    NOT_A_ROAD_SPEED("not_a_road_speed", "UNATTENDED_NOT_A_ROAD_SPEED_NUDGE"),
+
+    /** [DET-A-TRAIN-IS-NOT-A-CAR-001] Rail speed sustained across a journey no road explains. The
+     *  only reason that ends in [UnattendedParkingSave.Discard]: nothing recorded, nothing asked. */
+    NOT_A_ROAD_VEHICLE("not_a_road_vehicle", "UNATTENDED_NOT_A_ROAD_VEHICLE_DISCARD"),
     ;
 
     val nudgeSource: String get() = "unattended_$key"
@@ -41,6 +50,8 @@ enum class UnattendedSaveReason(val key: String, val decisionOutcome: String) {
  * - [SaveZone]   — the anchor is doubtful but the doubt is BOUNDED: save an approximate area
  *                  covering it. The park is kept; only its precision degrades.
  * - [Ask]        — the error is unbounded (or nothing was measured): nudge the user, no pin.
+ * - [Discard]    — the PREMISE is false: whatever moved was not the car, so there is nothing to
+ *                  record and nothing to ask. [DET-A-TRAIN-IS-NOT-A-CAR-001]
  */
 sealed interface UnattendedParkingSave {
     data object SaveExact : UnattendedParkingSave
@@ -59,6 +70,20 @@ sealed interface UnattendedParkingSave {
         val reason: UnattendedSaveReason,
         val distanceMeters: Double? = null,
     ) : UnattendedParkingSave
+
+    /**
+     * [DET-A-TRAIN-IS-NOT-A-CAR-001] Record nothing, ask nothing, end the session.
+     *
+     * The three verdicts above all answer *"how much do we trust the anchor?"* — trusted, bounded,
+     * unbounded. This one rejects the question: the session's movement was measured to be beyond
+     * any road vehicle, so there is no car stop here to be more or less sure about.
+     *
+     * **Why not [Ask], which also refuses to pin.** A nudge is not neutral — it offers to record the
+     * user's current position as the parking, and the current position of someone stepping off a
+     * train is a terminus hundreds of kilometres from their car. The one thing worse than losing
+     * this park silently is offering the user a one-tap way to lose their car.
+     */
+    data class Discard(val reason: UnattendedSaveReason) : UnattendedParkingSave
 }
 
 /**
@@ -159,6 +184,15 @@ data class UnattendedSaveInput(
      * left the phantom exactly where it was.
      */
     val humanPoweredRide: Boolean,
+    /**
+     * [DET-A-TRAIN-IS-NOT-A-CAR-001] How believable a ROAD vehicle made this session's movement.
+     *
+     * Here for exactly the reason [humanPoweredRide] is: vetoing only the confirm paths leaves the
+     * phantom where it was. Field 2026-09-15 reached the confirm path, but the same 253 km/h session
+     * would have reached this one had the prompt gone unanswered instead — and this verdict would
+     * have pinned a railway terminus with `unattended_timeout` provenance and 0,5 reliability.
+     */
+    val roadPlausibility: RoadPlausibility,
 )
 
 /**
@@ -190,6 +224,19 @@ class EvaluateUnattendedParkingSaveUseCase(private val config: ParkingDetectionC
         // is still true and must stand. Every kinematic clause below would happily certify a
         // bicycle, which is exactly how a beach path 4,8 km from the car became a parking.
         if (input.humanPoweredRide) return UnattendedParkingSave.Ask(UnattendedSaveReason.HUMAN_POWERED)
+
+        // [DET-A-TRAIN-IS-NOT-A-CAR-001] …and the same refusal from the other side of the car, in the
+        // same position and for the same reason: every kinematic clause below would happily certify
+        // a train. The two bands part company only in what they offer the user — the one a car can
+        // reach asks, the one no road explains says nothing, because the only answer a nudge can
+        // collect at a railway terminus is a wrong one.
+        when (input.roadPlausibility) {
+            RoadPlausibility.IMPOSSIBLE ->
+                return UnattendedParkingSave.Discard(UnattendedSaveReason.NOT_A_ROAD_VEHICLE)
+            RoadPlausibility.DOUBTFUL ->
+                return UnattendedParkingSave.Ask(UnattendedSaveReason.NOT_A_ROAD_SPEED)
+            RoadPlausibility.PLAUSIBLE -> Unit
+        }
 
         val anchor = input.anchor
         val anchorToCurrentMeters = anchor?.let {

@@ -5,6 +5,8 @@ import com.rndeveloper.paparcar.domain.detection.physics.DriveProofBounds
 import com.rndeveloper.paparcar.domain.detection.physics.SessionOutcome
 import com.rndeveloper.paparcar.domain.detection.state.ConfirmationPhase
 import com.rndeveloper.paparcar.domain.detection.state.isAnchorPinned
+import com.rndeveloper.paparcar.domain.detection.stages.roadPlausibility
+import com.rndeveloper.paparcar.domain.usecase.parking.RestoreRefutedDeparture
 import com.rndeveloper.paparcar.domain.detection.stages.ConfidenceScoringStage
 import com.rndeveloper.paparcar.domain.detection.stages.CandidateStage
 import com.rndeveloper.paparcar.domain.detection.stages.FalseEnterAbortStage
@@ -156,6 +158,10 @@ class CoordinatorParkingDetector(
      *  ever measuring a drive, so the departure it was deduced from is refuted and the spot it
      *  published provisionally is withdrawn. */
     private val retractDeducedDeparture: RetractDeducedDeparture,
+    /** [DET-A-TRAIN-IS-NOT-A-CAR-001] The third member of that family, for the departure that was
+     *  WITNESSED rather than deduced — and therefore took the car with it. When the road-plausibility
+     *  ceiling convicts the trip, this gives the park back and withdraws the plaza it freed. */
+    private val restoreRefutedDeparture: RestoreRefutedDeparture,
     /** Wall-clock source (epoch-ms). Injectable so the time-driven post-confirm hold [DET-C-02]
      *  can be unit-tested without sleeping. Defaults to the system clock — the one default left,
      *  because a missing clock has an obviously correct value and a missing use case does not. */
@@ -1089,6 +1095,38 @@ class CoordinatorParkingDetector(
                             )
                         }
                     }
+                    // [DET-A-TRAIN-IS-NOT-A-CAR-001] The two CEILING bands, on the same lane as the
+                    // two floor refutations above and for the identical reason: the 2026-09-15
+                    // session confirmed `steps+egress` after 270 minutes at 253 km/h and nothing in
+                    // its remote trace ever mentioned the speed — the summary's `vmax` was the only
+                    // clue, and a peak is a rumour. Both bands are stamped, not just the convicting
+                    // one, because calibrating a ceiling needs the near misses.
+                    if (state.drive.roadDoubtfulBandMs >= config.sustainedDriveProofMs &&
+                        diagnostics.latchOnce(DetectionDiagnosticsTap.Latch.ROAD_SPEED_DOUBTED)
+                    ) {
+                        logDetection { sid ->
+                            DetectionEvent.Decision(
+                                sid, now, outcome = "ROAD_SPEED_DOUBTED",
+                                pathLabel = "roadDoubtfulBand=${state.drive.roadDoubtfulBandMs}ms " +
+                                    "≥${config.roadDoubtfulSpeedMps}mps",
+                                location = location,
+                            )
+                        }
+                    }
+                    if (state.drive.roadImpossibleBandMs >= config.roadImpossibleSustainedMs &&
+                        diagnostics.latchOnce(DetectionDiagnosticsTap.Latch.ROAD_SPEED_IMPOSSIBLE)
+                    ) {
+                        logDetection { sid ->
+                            DetectionEvent.Decision(
+                                sid, now, outcome = "ROAD_SPEED_IMPOSSIBLE",
+                                pathLabel = "roadImpossibleBand=${state.drive.roadImpossibleBandMs}ms " +
+                                    "≥${config.roadImpossibleSpeedMps}mps · journey=" +
+                                    "${state.drive.journeyGroundRateMps}mps " +
+                                    "(needs ≥${config.roadImpossibleJourneyRateMps} to convict)",
+                                location = location,
+                            )
+                        }
+                    }
 
                     // ── THE PRECEDENCE ────────────────────────────────────────────────
                     // Driven from [detectionStageOrder], not written out again. Until now the run
@@ -1180,6 +1218,29 @@ class CoordinatorParkingDetector(
                     if (!deducedDepartureSettled) {
                         runCatching { retractDeducedDeparture() }
                             .onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ retract of a refuted deduction failed: ${e.message}") }
+                    }
+                    // [DET-A-TRAIN-IS-NOT-A-CAR-001] …and the same undo for the departure that was
+                    // WITNESSED. The line above handles the deduction that never took the car; this
+                    // one handles the trip that DID — a train pulling out of a platform witnesses a
+                    // departure within seconds, long before any ceiling can know what it is riding.
+                    // Refusing to plant the phantom pin is only half the repair: without this the
+                    // car stays forgotten and a stranger keeps being offered a plaza nobody freed.
+                    //
+                    // Asked of the session's own latched measurements rather than of a flag set
+                    // where the verdict fired: this reads the very inputs the verdict read, so the
+                    // two cannot drift apart, and it stays true however the session ended. A trip
+                    // that measured a train refutes its departure whether the close came from the
+                    // candidate lane, the matured stop or the response timeout.
+                    if (_detectionState.value.roadPlausibility(config) == RoadPlausibility.IMPOSSIBLE) {
+                        val fence = currentArmGeofenceId
+                        if (fence == null) {
+                            PaparcarLogger.d(DIAG, "  ⓘ no arming fence on record — nothing to give back")
+                        } else {
+                            runCatching {
+                                restoreRefutedDeparture(fence, _detectionState.value.session.attributedVehicleId)
+                            }
+                                .onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ restore of a refuted departure failed: ${e.message}") }
+                        }
                     }
                     // [DET-HONEST-CLOSE-001][DET-FROZEN-COUNTER-001] Everything the session leaves
                     // behind, read BEFORE reset() wipes the state and written in ONE statement —

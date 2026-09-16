@@ -3,6 +3,7 @@ package com.rndeveloper.paparcar.fakes
 import com.rndeveloper.paparcar.domain.detection.DetectionPhase
 import com.rndeveloper.paparcar.domain.detection.DetectionPhaseSink
 import com.rndeveloper.paparcar.domain.usecase.parking.FinalizeDeducedDeparture
+import com.rndeveloper.paparcar.domain.usecase.parking.RestoreRefutedDeparture
 import com.rndeveloper.paparcar.domain.usecase.parking.RetractDeducedDeparture
 
 /**
@@ -24,6 +25,17 @@ class FakeFinalizeDeducedDeparture : FinalizeDeducedDeparture {
     var result = false
     override suspend fun invoke(vehicleId: String?): Boolean {
         calls += vehicleId
+        return result
+    }
+}
+
+class FakeRestoreRefutedDeparture : RestoreRefutedDeparture {
+    /** (geofenceId, vehicleId) of every ask — a restore aimed at the wrong fence is a bug a
+     *  call COUNT cannot see. */
+    val calls = mutableListOf<Pair<String, String?>>()
+    var result = true
+    override suspend fun invoke(geofenceId: String, vehicleId: String?): Boolean {
+        calls += geofenceId to vehicleId
         return result
     }
 }

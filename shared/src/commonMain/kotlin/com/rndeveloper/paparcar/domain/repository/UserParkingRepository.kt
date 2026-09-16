@@ -63,6 +63,20 @@ interface UserParkingRepository : UserScopedRepository, RemoteSyncable {
      * Idempotent: the first withdrawal instant wins, like the first close.
      */
     suspend fun retractParkingSession(sessionId: String, retractedAtMs: Long): Result<Unit>
+
+    /**
+     * [DET-A-TRAIN-IS-NOT-A-CAR-001] Gives a car back: re-opens a session whose departure the trip
+     * itself refuted, exactly as it stood before the departure was processed.
+     *
+     * ⚠️ **Not the inverse of [retractParkingSession].** That withdraws a parking that never
+     * happened; this restores one that DID happen and was wrongly declared over. A session already
+     * withdrawn is deliberately left alone — the app concluded that pin was a fiction, and a refuted
+     * departure is no reason to resurrect a refuted pin.
+     *
+     * Idempotent: re-opening an already-open session writes the same three values again.
+     */
+    suspend fun restoreParkingSession(sessionId: String): Result<Unit>
+
     /**
      * Downloads parking history from Firestore and merges it into Room with a Last-Write-Wins
      * reconcile: a pending local edit strictly newer than remote is preserved; otherwise remote

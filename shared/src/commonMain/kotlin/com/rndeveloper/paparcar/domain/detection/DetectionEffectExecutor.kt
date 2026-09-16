@@ -384,6 +384,39 @@ class DetectionEffectExecutor(
     }
 
     /**
+     * [DET-A-TRAIN-IS-NOT-A-CAR-001] The session measured movement no road vehicle makes: end it,
+     * record why, and notify NOBODY.
+     *
+     * Everything [nudge] does except the one line that speaks — deliberately spelled out here rather
+     * than added as a `silent: Boolean` parameter to it. A flag on the nudge would mean a future
+     * caller could get silence by omission; a separate function means silence has to be chosen, and
+     * the trace still gets its `Decision` either way. The pending confirmation IS dismissed: a
+     * question already on screen is as wrong as a new one, and more so — it is the one the user
+     * might actually answer.
+     */
+    suspend fun closeNotARoadVehicle(vehicleId: String?, location: GpsPoint, now: Long): EffectOutcome {
+        val reason = UnattendedSaveReason.NOT_A_ROAD_VEHICLE
+        PaparcarLogger.d(
+            DIAG,
+            "  ⊘ movement beyond any road vehicle (vehicle=$vehicleId) — ending the session with no " +
+                "pin, no prompt and no nudge [DET-A-TRAIN-IS-NOT-A-CAR-001]",
+        )
+        notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
+        diagnostics.emit { sid ->
+            DetectionEvent.Decision(
+                sid, now,
+                outcome = reason.decisionOutcome,
+                pathLabel = DetectionPath.UnattendedTimeout.label,
+                location = location,
+            )
+        }
+        return EffectOutcome(
+            sessionOutcome = SessionOutcome.AbortedUnattended(reason.key),
+            endsSession = true,
+        )
+    }
+
+    /**
      * [DET-SOLID-001] Every confirm condition holds but the evidence is too weak for a silent save —
      * an ENTER-only arm whose session never saw driving, falsifiable by a bus or a taxi. Ask instead:
      * a "Sí" flows through the user-confirm precedence and silence aborts at the response timeout.

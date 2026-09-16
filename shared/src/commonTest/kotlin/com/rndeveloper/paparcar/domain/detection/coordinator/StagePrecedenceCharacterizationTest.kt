@@ -23,6 +23,7 @@ import com.rndeveloper.paparcar.fakes.FakeDepartureEventBus
 import com.rndeveloper.paparcar.fakes.FakeDetectionEventLogger
 import com.rndeveloper.paparcar.fakes.FakeDetectionPhaseSink
 import com.rndeveloper.paparcar.fakes.FakeFinalizeDeducedDeparture
+import com.rndeveloper.paparcar.fakes.FakeRestoreRefutedDeparture
 import com.rndeveloper.paparcar.fakes.FakeRetractDeducedDeparture
 import com.rndeveloper.paparcar.fakes.FakeGeofenceManager
 import com.rndeveloper.paparcar.fakes.FakeParkingEnrichmentScheduler
@@ -137,6 +138,7 @@ class StagePrecedenceCharacterizationTest {
             phaseSink = FakeDetectionPhaseSink(),
             finalizeDeducedDeparture = FakeFinalizeDeducedDeparture(),
             retractDeducedDeparture = FakeRetractDeducedDeparture(),
+            restoreRefutedDeparture = FakeRestoreRefutedDeparture(),
             clock = clock,
         )
         return TestEnv(coordinator, parkingRepo, stepDetector, detectionLogger)

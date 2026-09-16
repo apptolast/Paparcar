@@ -82,6 +82,25 @@ class DetectionDiagnosticsTap(
          * the refutation that failed left no remote mark and the parkdiag had to come off by cable.
          */
         MOTOR_WITNESSED_BY_DISPLACEMENT,
+
+        /**
+         * [DET-A-TRAIN-IS-NOT-A-CAR-001] The road-DOUBT band (160 km/h) held for the first time —
+         * the moment this session stopped being able to confirm silently.
+         *
+         * Latched for the same reason [PEDAL_CADENCE] is: a veto that can decide a session with no
+         * line in the trace is the defect, not the veto. This is also the line that will price the
+         * band if it ever degrades a real drive — an Autobahn run is the ~1 % population it is
+         * calibrated against, and only the field can say how often that 1 % is us.
+         */
+        ROAD_SPEED_DOUBTED,
+
+        /**
+         * [DET-A-TRAIN-IS-NOT-A-CAR-001] The road-IMPOSSIBLE band (200 km/h) crossed its five-minute
+         * hold. Deliberately separate from the verdict: this says the SPEED half convicted, while
+         * the terminal close needs the journey half too, and a trace that showed only the outcome
+         * could never say which half was missing on a session that did NOT close.
+         */
+        ROAD_SPEED_IMPOSSIBLE,
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.domain.detection.stages
 
+import com.rndeveloper.paparcar.domain.detection.RoadPlausibility
 import com.rndeveloper.paparcar.domain.detection.state.ConfirmationPhase
 import com.rndeveloper.paparcar.domain.detection.state.DetectionSessionState
 import com.rndeveloper.paparcar.domain.detection.witnessedCarStop
@@ -88,16 +89,26 @@ class ConfidenceScoringStage(
         val verdict = evaluateParkingDecision(
             state.parkingDecisionInput(fix, now, 0L, state.egress.vehicleExitHint, true, config),
         )
-        if (verdict != ParkingDecision.CloseHumanPowered) return null
+        // [DET-A-TRAIN-IS-NOT-A-CAR-001] Two terminal verdicts now reach this lane, and they close
+        // for the same structural reason — the RIDE, not this stop, is what rules the session out —
+        // so the early close is asked of the verdict's terminality rather than of one identity.
+        val (note, effect) = when (verdict) {
+            ParkingDecision.CloseHumanPowered ->
+                "  ⊘ human-powered ride at a matured stop — closing NOW instead of idling to the " +
+                    "response timeout [DET-HUMAN-POWERED-EARLY-CLOSE-001]" to
+                    DetectionEffect.CloseHumanPowered(state.session.attributedVehicleId, fix)
+
+            ParkingDecision.CloseNotARoadVehicle ->
+                "  ⊘ movement beyond any road vehicle at a matured stop — closing without pin or " +
+                    "prompt [DET-A-TRAIN-IS-NOT-A-CAR-001]" to
+                    DetectionEffect.CloseNotARoadVehicle(state.session.attributedVehicleId, fix)
+
+            else -> return null
+        }
         return StageVerdict.Handled(
             newState = state,
-            notes = notes(
-                "  ⊘ human-powered ride at a matured stop — closing NOW instead of idling to the " +
-                    "response timeout [DET-HUMAN-POWERED-EARLY-CLOSE-001]",
-            ),
-            effects = listOf(
-                DetectionEffect.CloseHumanPowered(state.session.attributedVehicleId, fix),
-            ),
+            notes = notes(note),
+            effects = listOf(effect),
             stopsIteration = true,
         )
     }
@@ -127,6 +138,17 @@ class ConfidenceScoringStage(
                     notes(
                         "  ⊘ Low/Medium notif suppressed — human-powered ride, the matured stop " +
                             "will close the session instead [DET-HUMAN-POWERED-EARLY-CLOSE-001]",
+                    ),
+                )
+                // [DET-A-TRAIN-IS-NOT-A-CAR-001] Same suppression, stronger premise: the prompt this
+                // would raise is "did you park here?" asked of someone on a train. Only the terminal
+                // band suppresses — the DOUBTFUL band's whole purpose is to ASK — and unlike the
+                // veto above this one can never lift, because it reads latched measurements of the
+                // trip rather than an AR stamp that a later boarding may supersede.
+                state.roadPlausibility(config) == RoadPlausibility.IMPOSSIBLE -> StageVerdict.Skip(
+                    notes(
+                        "  ⊘ Low/Medium notif suppressed — movement beyond any road vehicle, the " +
+                            "matured stop will close the session instead [DET-A-TRAIN-IS-NOT-A-CAR-001]",
                     ),
                 )
                 hasExit || timeoutReached -> StageVerdict.Handled(

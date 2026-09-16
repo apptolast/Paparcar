@@ -2,6 +2,7 @@ package com.rndeveloper.paparcar.domain.usecase.parking
 
 import com.rndeveloper.paparcar.domain.detection.state.EgressBirthJudgement
 import com.rndeveloper.paparcar.domain.detection.ArmLabel
+import com.rndeveloper.paparcar.domain.detection.RoadPlausibility
 import com.rndeveloper.paparcar.domain.detection.physics.DrivingEvidence
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.model.VehicleType
@@ -51,6 +52,10 @@ class EvaluateParkingDecisionUseCaseTest {
         egressBirth: EgressBirthJudgement = EgressBirthJudgement.BORN_AT_ANCHOR,
         anchorWalkEntered: Boolean = false,
         humanPoweredRide: Boolean = false,
+        // [DET-A-TRAIN-IS-NOT-A-CAR-001] PLAUSIBLE is the permissive answer, which is exactly why it
+        // may not be an omission in production. In the helper it is the right default: every
+        // scenario written before this ticket meant "a car, at car speeds".
+        roadPlausibility: RoadPlausibility = RoadPlausibility.PLAUSIBLE,
         assertedPinBlocksRelocation: Boolean = false,
         // [DET-A-DOUBT-FIELD-MUST-NOT-DEFAULT-TO-CERTAINTY-001] The one field this helper never
         // mentioned, so every scenario here took it from the data class. The value is unchanged —
@@ -77,6 +82,7 @@ class EvaluateParkingDecisionUseCaseTest {
         egressBirth = egressBirth,
         anchorWalkEntered = anchorWalkEntered,
         humanPoweredRide = humanPoweredRide,
+        roadPlausibility = roadPlausibility,
         assertedPinBlocksRelocation = assertedPinBlocksRelocation,
         restCertified = restCertified,
     )
@@ -854,6 +860,7 @@ class EvaluateParkingDecisionUseCaseTest {
         anchorWalkEntered: Boolean = false,
         anchorGapEntered: Boolean = false,
         humanPoweredRide: Boolean = false,
+        roadPlausibility: RoadPlausibility = RoadPlausibility.PLAUSIBLE,
         evidenceLabel: ArmLabel? = ArmLabel.VERIFIED_SPEED,
         maxSpeedKmh: Float = 60f,
     ) = input(
@@ -865,12 +872,59 @@ class EvaluateParkingDecisionUseCaseTest {
         anchorWalkEntered = anchorWalkEntered,
         anchorGapEntered = anchorGapEntered,
         humanPoweredRide = humanPoweredRide,
+        roadPlausibility = roadPlausibility,
     )
 
     @Test
     fun should_name_the_cause_when_the_ride_was_human_powered() {
         val decision = evaluate(confirmableInput(humanPoweredRide = true))
         assertEquals(PromptReason.HUMAN_POWERED, assertIs<ParkingDecision.Prompt>(decision).reason)
+    }
+
+    // ── [DET-A-TRAIN-IS-NOT-A-CAR-001] The ceiling, and where each band lands ──────────────
+
+    @Test
+    fun should_askRatherThanPin_when_theSessionHeldASpeedNoLegalMotorwayAllows() {
+        // The DOUBTFUL band on a session that otherwise holds every confirm proof. A car can be
+        // here — roughly 1 % of unrestricted-Autobahn traffic is — so the answer is a question,
+        // and the question has to arrive under its OWN name or the field cannot count it.
+        val decision = evaluate(confirmableInput(roadPlausibility = RoadPlausibility.DOUBTFUL))
+        assertEquals(PromptReason.NOT_A_ROAD_SPEED, assertIs<ParkingDecision.Prompt>(decision).reason)
+    }
+
+    @Test
+    fun should_closeWithoutAskingAnything_when_theMovementWasBeyondAnyRoadVehicle() {
+        // The 2026-09-15 shape: the full steps+egress proof of an arrival walk, on a session whose
+        // movement was measured to be a train. Pre-fix this exact input confirmed at 0,9 and pinned
+        // a railway terminus 600 km from the car.
+        val decision = evaluate(confirmableInput(roadPlausibility = RoadPlausibility.IMPOSSIBLE))
+        assertEquals(ParkingDecision.CloseNotARoadVehicle, decision)
+    }
+
+    @Test
+    fun should_stillCloseSilently_when_everyOtherDoubtWouldHavePrompted() {
+        // Precedence, asserted rather than assumed. A session carrying the human-powered veto, a
+        // weak arm AND a disowned anchor would each raise a prompt; the terminal verdict must win
+        // over all of them, because a question at a terminus is the one outcome to avoid.
+        val decision = evaluate(
+            confirmableInput(
+                humanPoweredRide = true,
+                roadPlausibility = RoadPlausibility.IMPOSSIBLE,
+                evidenceLabel = ArmLabel.SELF_OBSERVED,
+                egressBirth = EgressBirthJudgement.BORN_AWAY,
+            ),
+        )
+        assertEquals(ParkingDecision.CloseNotARoadVehicle, decision)
+    }
+
+    @Test
+    fun should_confirmExactlyAsBefore_when_theRideWasTheFastestDriveEverRecordedInTheField() {
+        // The non-regression witness. 131,4 km/h is the peak of `Trace_MotorwayRedmi001`, the
+        // fastest real drive in the whole corpus; it reads PLAUSIBLE, and the verdict is untouched.
+        val decision = evaluate(
+            confirmableInput(maxSpeedKmh = 131.4f, roadPlausibility = RoadPlausibility.PLAUSIBLE),
+        )
+        assertEquals("steps+egress", assertIs<ParkingDecision.Confirmed>(decision).pathLabel)
     }
 
     @Test

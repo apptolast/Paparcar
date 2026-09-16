@@ -111,6 +111,19 @@ class CandidateStage(
                 DetectionEffect.CloseHumanPowered(state.session.attributedVehicleId, fix),
             )
 
+            // [DET-A-TRAIN-IS-NOT-A-CAR-001] Terminal, and the quiet one: no pin, no prompt, no
+            // nudge. Everything this session could still produce rests on a movement that was
+            // measured to be beyond any road vehicle.
+            ParkingDecision.CloseNotARoadVehicle -> handled(
+                state,
+                notes + DiagnosticNote(
+                    "  ⊘ movement beyond any road vehicle (rail band held ${state.drive.roadImpossibleBandMs}ms, " +
+                        "journey ${state.drive.journeyGroundRateMps}m/s straight-line) — closing without " +
+                        "pin or prompt [DET-A-TRAIN-IS-NOT-A-CAR-001]",
+                ),
+                DetectionEffect.CloseNotARoadVehicle(state.session.attributedVehicleId, fix),
+            )
+
             ParkingDecision.Inconclusive -> handled(state, notes)
         }
     }

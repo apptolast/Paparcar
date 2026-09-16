@@ -28,6 +28,7 @@ import com.rndeveloper.paparcar.fakes.FakeDepartureEventBus
 import com.rndeveloper.paparcar.fakes.FakeDetectionEventLogger
 import com.rndeveloper.paparcar.fakes.FakeDetectionPhaseSink
 import com.rndeveloper.paparcar.fakes.FakeFinalizeDeducedDeparture
+import com.rndeveloper.paparcar.fakes.FakeRestoreRefutedDeparture
 import com.rndeveloper.paparcar.fakes.FakeRetractDeducedDeparture
 import com.rndeveloper.paparcar.fakes.FakeAuthRepository
 import com.rndeveloper.paparcar.fakes.FakeGeofenceManager
@@ -145,6 +146,7 @@ class CoordinatorParkingDetectorTest {
             phaseSink = phaseSink,
             finalizeDeducedDeparture = finalizeDeduced,
             retractDeducedDeparture = retractDeduced,
+            restoreRefutedDeparture = FakeRestoreRefutedDeparture(),
             clock = clock,
         )
         return TestEnv(

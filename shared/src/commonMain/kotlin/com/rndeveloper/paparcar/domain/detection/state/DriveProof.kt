@@ -88,6 +88,25 @@ enum class DriveProofSource {
  *   [DET-ASSERTION-OUTRANKS-INFERENCE-001] cannot enter here. Like [motorBandMs] and for the same
  *   reason, deliberately NOT drive-proof-gated: its job is to REFUTE a human-powered claim, never to
  *   buy a silent pin.
+ * @property roadDoubtfulBandMs [DET-A-TRAIN-IS-NOT-A-CAR-001] Time held above a speed a car may
+ *   reach but should not (`roadDoubtfulSpeedMps`, 160 km/h). The third instance of the same band
+ *   clock, and deliberately NOT drive-proof-gated for the identical reason as [motorBandMs]: its job
+ *   is to REFUTE, never to buy a silent pin, so gating it behind a proof it exists to contradict
+ *   would be circular.
+ * @property roadImpossibleBandMs The same clock one band higher again (`roadImpossibleSpeedMps`,
+ *   200 km/h) — the band no road vehicle holds. Half of the terminal verdict; the other half is
+ *   [journeyGroundRateMps], because 200 km/h for half a minute is an Autobahn and 200 km/h across a
+ *   whole journey is a railway.
+ * @property journeyGroundRateMps The fastest STRAIGHT-LINE ground rate this session sustained from
+ *   its origin over a baseline long enough to mean something (`roadImpossibleJourneyBaselineMs`,
+ *   60 min). A high-water mark, and a latch, like [maxExcursionMeters] — ground the vehicle provably
+ *   covered does not become uncovered.
+ *
+ *   ⛔ Deliberately NOT [motorDisplacementRateMps], which answers a different question and could
+ *   never answer this one: that rate is capped by `sustainedDepartureMaxRateMps` (55 m/s) to discard
+ *   cache teleports, so a train's ground rate is thrown away before it can be read. Same reason the
+ *   baseline here is an hour and not a departure: this measures the SCALE of the trip, not its
+ *   start.
  * @property lastFixSeenAtMs Wall clock when the last fix was processed — the freshness reference a
  *   concurrent step event is judged against (step events carry no GPS timestamp of their own).
  * @property lastFixCredible Whether that fix's accuracy was credible.
@@ -112,6 +131,11 @@ data class DriveProof(
     val motorBandMs: Long = 0L,
     val lastMotorBandFixTimestampMs: Long = 0L,
     val motorDisplacementRateMps: Float = 0f,
+    val roadDoubtfulBandMs: Long = 0L,
+    val lastRoadDoubtfulBandFixTimestampMs: Long = 0L,
+    val roadImpossibleBandMs: Long = 0L,
+    val lastRoadImpossibleBandFixTimestampMs: Long = 0L,
+    val journeyGroundRateMps: Float = 0f,
     val lastFixSeenAtMs: Long = 0L,
     val lastFixCredible: Boolean = false,
 ) {
@@ -162,6 +186,11 @@ data class DriveProof(
         val newPeak = if (fix.speed > peakMps && credibleSpeedFix) fix.speed else peakMps
         val fixInBand = credibleSpeedFix && fix.speed >= config.minimumTripSpeedMps
         val fixInMotorBand = credibleSpeedFix && fix.speed >= config.motorProofSpeedMps
+        // [DET-A-TRAIN-IS-NOT-A-CAR-001] The two ceiling bands. Same credibility gate as every
+        // other speed reading in this file: a 200 m-accuracy fix claiming 70 m/s is a rumour, and
+        // the whole point of a ceiling is that it must never fire on one.
+        val fixInRoadDoubtfulBand = credibleSpeedFix && fix.speed >= config.roadDoubtfulSpeedMps
+        val fixInRoadImpossibleBand = credibleSpeedFix && fix.speed >= config.roadImpossibleSpeedMps
 
         val newShortHopRun =
             if (shortHopQualifies(fix, departureAnchor, departureFenceRadiusMeters, elapsedSinceArmMs, config)) {
@@ -215,9 +244,64 @@ data class DriveProof(
                 motorDisplacementRateMps,
                 sustainedDepartureRateMps?.toFloat() ?: 0f,
             ),
+            // [DET-A-TRAIN-IS-NOT-A-CAR-001] The ceiling bands, on the same clock as the two above.
+            roadDoubtfulBandMs = creditSpeedBand(
+                accumulatedMs = roadDoubtfulBandMs,
+                lastInBandFixMs = lastRoadDoubtfulBandFixTimestampMs,
+                fixTimestampMs = fix.timestamp,
+                fixInBand = fixInRoadDoubtfulBand,
+                windowMaxMs = config.driveProofWindowMaxMs,
+            ),
+            lastRoadDoubtfulBandFixTimestampMs = if (fixInRoadDoubtfulBand) {
+                fix.timestamp
+            } else {
+                lastRoadDoubtfulBandFixTimestampMs
+            },
+            roadImpossibleBandMs = creditSpeedBand(
+                accumulatedMs = roadImpossibleBandMs,
+                lastInBandFixMs = lastRoadImpossibleBandFixTimestampMs,
+                fixTimestampMs = fix.timestamp,
+                fixInBand = fixInRoadImpossibleBand,
+                windowMaxMs = config.driveProofWindowMaxMs,
+            ),
+            lastRoadImpossibleBandFixTimestampMs = if (fixInRoadImpossibleBand) {
+                fix.timestamp
+            } else {
+                lastRoadImpossibleBandFixTimestampMs
+            },
+            journeyGroundRateMps = maxOf(
+                journeyGroundRateMps,
+                journeyRateMps(credibleSpeedFix, distanceFromOriginMeters, elapsedSinceArmMs, config),
+            ),
             lastFixSeenAtMs = nowMs,
             lastFixCredible = credibleSpeedFix,
         )
+    }
+
+    /**
+     * [DET-A-TRAIN-IS-NOT-A-CAR-001] This fix's straight-line ground rate from the session origin,
+     * or 0 when the measurement is not yet worth making.
+     *
+     * Three gates, each closing a different way of lying:
+     *
+     *  - **credible only** — an incredible fix reports a position, not a place, and a rate built on
+     *    one is arithmetic on noise;
+     *  - **baseline** — below `roadImpossibleJourneyBaselineMs` any rate is cheap. Ten seconds of
+     *    motorway produce 33 m/s; an hour of it cannot, because an hour contains junctions, towns
+     *    and the fact that roads do not run straight. That is the whole discriminating power here;
+     *  - **geodesic, never route distance** — road distance is always ≥ geodesic, so this is a
+     *    conservative LOWER bound on the speed the trip would have required by road. It can
+     *    understate a real train; it can never overstate a real car.
+     */
+    private fun journeyRateMps(
+        credibleSpeedFix: Boolean,
+        distanceFromOriginMeters: Double,
+        elapsedSinceArmMs: Long,
+        config: ParkingDetectionConfig,
+    ): Float {
+        if (!credibleSpeedFix) return 0f
+        if (elapsedSinceArmMs < config.roadImpossibleJourneyBaselineMs) return 0f
+        return (distanceFromOriginMeters / (elapsedSinceArmMs / MS_PER_SECOND)).toFloat()
     }
 
     /**
@@ -278,5 +362,6 @@ data class DriveProof(
 
     private companion object {
         const val KMH_PER_MPS = 3.6f
+        const val MS_PER_SECOND = 1_000.0
     }
 }

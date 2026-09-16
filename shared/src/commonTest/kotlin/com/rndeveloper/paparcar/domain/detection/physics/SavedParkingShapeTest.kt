@@ -46,6 +46,10 @@ class SavedParkingShapeTest {
         is UnattendedParkingSave.SaveZone ->
             SavedParkingShape.BoundedZone(decision.center, radiusFor(decision.center, decision.doubtMeters))
         is UnattendedParkingSave.Ask -> SavedParkingShape.AskUser
+        // [DET-A-TRAIN-IS-NOT-A-CAR-001] The ladder's fourth rung, and the only one that is
+        // silent by DESIGN rather than by pending work: the premise of the whole ladder — that
+        // a car stopped somewhere — is what this verdict rejects.
+        is UnattendedParkingSave.Discard -> SavedParkingShape.KeepSilent
     }
 
     /** `EvaluateHonestCloseUseCase`. This one already carries its radius; only the trust is implicit. */
@@ -73,6 +77,11 @@ class SavedParkingShapeTest {
             // departure without proof. Written down here so that change is a one-line diff with a
             // failing assert, not an archaeology exercise.
             ParkingDecision.CloseHumanPowered -> SavedParkingShape.AskUser
+            // [DET-A-TRAIN-IS-NOT-A-CAR-001] Terminal and SILENT from birth — the shape the
+            // arm above is supposed to grow into. Different reason, though: that one will go
+            // quiet when the departure stops being committed without proof, while this one is
+            // quiet because the only question it could ask is one no answer improves.
+            ParkingDecision.CloseNotARoadVehicle -> SavedParkingShape.KeepSilent
             ParkingDecision.Rejected -> null
             ParkingDecision.Inconclusive -> null
         }
