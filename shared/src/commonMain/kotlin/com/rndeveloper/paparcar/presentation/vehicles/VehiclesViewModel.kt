@@ -12,6 +12,7 @@ import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.permissions.PermissionManager
 import com.rndeveloper.paparcar.domain.permissions.missingProducerPermissions
 import com.rndeveloper.paparcar.presentation.permissions.detectionPermissionGap
+import com.rndeveloper.paparcar.domain.entitlement.canJoinAnotherCar
 import com.rndeveloper.paparcar.domain.entitlement.canShareAnotherCar
 import com.rndeveloper.paparcar.domain.entitlement.canShareVehicle
 import com.rndeveloper.paparcar.domain.model.SharedCar
@@ -446,8 +447,19 @@ class VehiclesViewModel(
                     else -> updateState { copy(confirmShareCarId = intent.vehicleId) }
                 }
             is VehiclesIntent.ShareCar -> {
-                updateState { copy(confirmShareCarId = null) }
-                sharedAction { vehicle(intent.vehicleId)?.let { sharedCarRepository.shareVehicle(it).map { } } }
+                // ⛔ La respuesta de rutas se lee ANTES de cerrar el diálogo: cerrarlo primero la
+                // borraba y el grupo nacía con el default que este ticket vino a quitar.
+                // [COPY-A-CARD-THAT-PROMISES-ROUTES-STAY-HOME-001]
+                val shareRoutes = state.value.confirmShareRoutes
+                updateState { copy(confirmShareCarId = null, confirmShareRoutes = false) }
+                sharedAction {
+                    vehicle(intent.vehicleId)?.let { v ->
+                        sharedCarRepository.shareVehicle(v)
+                            .mapCatching { car ->
+                                sharedCarRepository.setShareRoutes(car.carId, shareRoutes).getOrThrow()
+                            }
+                    }
+                }
             }
             is VehiclesIntent.CreateInvite -> sharedAction { sharedCarRepository.createInvite(intent.carId).map { } }
             is VehiclesIntent.StopSharing -> sharedAction(closeSheet = true) {
@@ -466,6 +478,10 @@ class VehiclesViewModel(
             is VehiclesIntent.SetSharedHistoryScope -> setSharedHistoryScope(intent.mineOnly)
             VehiclesIntent.KeepDissolvedCar -> answerDissolved(deleteIt = false)
             VehiclesIntent.DeleteDissolvedCar -> answerDissolved(deleteIt = true)
+            is VehiclesIntent.SetConfirmShareRoutes ->
+                updateState { copy(confirmShareRoutes = intent.share) }
+            is VehiclesIntent.SetJoinShareRoutes ->
+                updateState { copy(joinDialog = joinDialog?.copy(shareRoutes = intent.share)) }
             is VehiclesIntent.ShowJoinDialog ->
                 updateState { copy(joinDialog = if (intent.open) JoinSharedCarDialog() else null) }
             is VehiclesIntent.JoinCodeChanged -> updateState {
@@ -594,6 +610,15 @@ class VehiclesViewModel(
     private fun submitJoinCode() {
         val dialog = state.value.joinDialog ?: return
         if (!dialog.canSubmit) return
+        // ⛔ Techo tecnico y no paywall: entrar siempre fue gratis porque lo paga el Plus del dueño.
+        // Se responde en el propio dialogo, no navegando a ningun sitio que vender.
+        // [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001]
+        if (!canJoinAnotherCar(state.value.vehicles.count { it.vehicle.isLinked })) {
+            updateState {
+                copy(joinDialog = dialog.copy(error = PaparcarError.SharedCar.TooManyJoinedCars))
+            }
+            return
+        }
         updateState { copy(joinDialog = dialog.copy(working = true, error = null)) }
         viewModelScope.launch {
             // ⛔ Sin dirección Bluetooth aquí a propósito: la MAC del dueño no viaja, y pedir a
@@ -602,6 +627,9 @@ class VehiclesViewModel(
             // la pantalla de siempre — y la sección se lo recuerda. [VEH-SHARED-001]
             sharedCarRepository.joinByCode(dialog.code, bluetoothDeviceId = null)
                 .onSuccess { car ->
+                    // Lo contestado en el diálogo, aplicado al entrar: nadie entra en un grupo sin
+                    // haber dicho qué comparte. [COPY-A-CARD-THAT-PROMISES-ROUTES-STAY-HOME-001]
+                    sharedCarRepository.setShareRoutes(car.carId, dialog.shareRoutes)
                     updateState { copy(joinDialog = null) }
                     // El pager aterriza en el coche recién entrado. Si la lista aún no lo tiene,
                     // FocusVehicle lo deja pendiente y se resuelve en la primera emisión que sí.

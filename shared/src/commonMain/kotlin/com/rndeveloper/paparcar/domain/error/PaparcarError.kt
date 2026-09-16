@@ -100,6 +100,9 @@ sealed class PaparcarError : Exception() {
         /** Ya tiene el máximo de coches propios compartidos. No es un paywall: ya es Plus.
          *  [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] */
         data object TooManySharedCars : SharedCar()
+
+        /** Ya está en el máximo de grupos ajenos. Tampoco es un paywall: entrar siempre fue gratis. */
+        data object TooManyJoinedCars : SharedCar()
         /** Already in this group — joining twice is a no-op, not a failure to hide. */
         data object AlreadyJoined : SharedCar()
         /** Only the owner opens, closes or changes the group. */

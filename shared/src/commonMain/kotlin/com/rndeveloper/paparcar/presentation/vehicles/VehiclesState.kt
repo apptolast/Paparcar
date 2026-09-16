@@ -53,6 +53,9 @@ data class VehiclesState(
     val joinDialog: JoinSharedCarDialog? = null,
     /** El diálogo que explica qué verá el grupo antes de abrirlo, sobre este coche. */
     val confirmShareCarId: String? = null,
+    /** La respuesta a «¿comparto también mis rutas?» que se está componiendo en ese diálogo.
+     *  [COPY-A-CARD-THAT-PROMISES-ROUTES-STAY-HOME-001] */
+    val confirmShareRoutes: Boolean = false,
     /** El coche que ha dejado de estar compartido sin que el usuario lo pidiera, esperando su
      *  decisión. [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] */
     val dissolvedCar: DissolvedSharedCarPrompt? = null,

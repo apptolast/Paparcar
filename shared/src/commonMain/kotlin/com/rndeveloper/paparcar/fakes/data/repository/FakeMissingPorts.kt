@@ -5,6 +5,7 @@ import com.rndeveloper.paparcar.domain.model.AddressInfo
 import com.rndeveloper.paparcar.domain.model.PlaceInfo
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.repository.AverageFuelPricesRepository
+import com.rndeveloper.paparcar.domain.push.PushTokenProvider
 import com.rndeveloper.paparcar.domain.repository.ZoneAlertSubscriptionRepository
 import com.rndeveloper.paparcar.domain.sharedcar.SharedCarMirror
 import com.rndeveloper.paparcar.domain.zone.ZoneAlertSubscription
@@ -45,10 +46,15 @@ class FakeZoneAlertSubscriptionRepository : ZoneAlertSubscriptionRepository {
     /** What the server would be holding right now, per user. */
     fun subscriptionsOf(uid: String): List<ZoneAlertSubscription> = byUid[uid].orEmpty()
 
+    /** Un servidor inalcanzable, para el caso que importa: salir aunque la retirada falle.
+     *  [PRIV-A-SIGNED-OUT-PHONE-STILL-HEARS-THE-LAST-ACCOUNT-001] */
+    var failNext = false
+
     override suspend fun replaceAll(
         uid: String,
         subscriptions: List<ZoneAlertSubscription>,
     ): Result<Unit> {
+        if (failNext) return Result.failure(IllegalStateException("sin red"))
         byUid[uid] = subscriptions
         return Result.success(Unit)
     }
@@ -70,3 +76,17 @@ class FakeSharedCarMirror : SharedCarMirror {
         placeInfo: PlaceInfo?,
     ) = Unit
 }
+
+/**
+ * Un móvil sin push. [PRIV-A-SIGNED-OUT-PHONE-STILL-HEARS-THE-LAST-ACCOUNT-001]
+ *
+ * `currentToken()` devuelve null —que es el caso real de un emulador sin Play Services— y
+ * `retireToken()` solo anota que se pidió: lo que los tests necesitan comprobar es que el cierre de
+ * sesión LLEGA a pedirlo, no qué hace FCM con ello.
+ */
+class FakeNoopPushTokenProvider(private val token: String? = null) : PushTokenProvider {
+    var retired = false
+    override suspend fun currentToken(): String? = token
+    override suspend fun retireToken() { retired = true }
+}
+

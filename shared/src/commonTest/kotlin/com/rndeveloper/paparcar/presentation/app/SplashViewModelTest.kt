@@ -8,6 +8,7 @@ import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityStatus
 import com.rndeveloper.paparcar.fakes.FakeAppPreferences
+import com.rndeveloper.paparcar.fakes.testSignOutUseCase
 import com.rndeveloper.paparcar.fakes.FakeAuthRepository
 import com.rndeveloper.paparcar.fakes.FakeConnectivityObserver
 import com.rndeveloper.paparcar.fakes.FakeEntitlementRepository
@@ -83,6 +84,7 @@ class SplashViewModelTest {
         fakeConnectivity.emit(connectivityStatus)
         return SplashViewModel(
             authRepository = fakeAuth,
+            signOut = testSignOutUseCase(fakeAuth),
             getOrCreateUserProfile = GetOrCreateUserProfileUseCase(
                 userProfileRepository = fakeProfileRepo,
                 authRepository = fakeAuth,

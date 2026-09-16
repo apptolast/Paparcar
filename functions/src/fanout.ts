@@ -71,8 +71,13 @@ export function verdictFor(spot: PublishedSpot, nowMs: number): SpotVerdict {
   // about a space the app itself does not believe in.
   if (spot.status === 'RETRACTED') return { kind: 'skip', reason: 'retracted' };
 
+  // Una plaza sin caducidad NO se anuncia. [SEC-A-SPOT-IS-NOT-A-MEGAPHONE-001]
+  //
+  // `expiresAt === 0` era «TTL todavia sin fijar» y se dejaba pasar por prudencia; escrito a mano
+  // es una plaza que no caduca nunca, y anunciarla convierte la coleccion en un megafono. La regla
+  // nueva impide crearlas, pero una regla no repara las filas que ya existen: esto si.
   const expiresAt = typeof spot.expiresAt === 'number' ? spot.expiresAt : 0;
-  if (expiresAt !== 0 && expiresAt <= nowMs) {
+  if (expiresAt === 0 || expiresAt <= nowMs) {
     return { kind: 'skip', reason: 'already-expired' };
   }
   return {

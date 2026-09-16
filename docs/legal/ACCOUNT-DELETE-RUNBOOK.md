@@ -59,7 +59,12 @@ grupos y tratarlos distinto según el papel. La app hace exactamente esto, y aqu
    #    ⛔ La POSICIÓN no se toca: dónde está el coche es del grupo.
    firebase firestore:delete "sharedCars/<carId>/members/<uid>" --project pap-26 --force
    ```
-4. Dejar constancia en la respuesta si se disolvió algún grupo: los demás miembros verán
+4. **Si el dueño EXPULSA a alguien a mano**, hace exactamente lo mismo que el paso 3 con el uid
+   del expulsado: sus sesiones y su nombre en la cabecera antes de borrar su ficha. Al expulsado se
+   le cierra la puerta detrás —su fila se desvincula y su propio borrado de cuenta ya no encuentra
+   el grupo—, así que lo que no se limpie aquí no lo limpia nadie nunca.
+   [PRIV-A-REMOVED-MEMBER-LEAVES-THEIR-TRIPS-BEHIND-001]
+5. Dejar constancia en la respuesta si se disolvió algún grupo: los demás miembros verán
    desaparecer el coche compartido de su garaje (su fila queda desvinculada, no borrada).
 
 ## 3 · Borrar la cuenta de Auth

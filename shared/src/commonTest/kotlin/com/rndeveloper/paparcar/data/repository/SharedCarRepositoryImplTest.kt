@@ -233,6 +233,29 @@ class SharedCarRepositoryImplTest {
         assertEquals(setOf("car-1"), prefs.dissolvedSharedCars.value)
     }
     @Test
+    fun should_takeTheirTripsToo_when_theOwnerRemovesAMember() = runTest {
+        val remote = FakeSharedCarRemote()
+        val owner = repository("marta", FakeVehicleRepository(defaultVehicle = ownerCar), remote)
+        owner.shareVehicle(ownerCar).getOrThrow()
+        remote.putInvite(liveInvite())
+        repository("nacho", FakeVehicleRepository(), remote).joinByCode("AB3K9P", null).getOrThrow()
+        remote.putSession("car-1", session("s-marta", "marta"))
+        remote.putSession("car-1", session("s-nacho", "nacho"))
+        remote.putState(
+            "car-1",
+            SharedCarStateDto(sessionId = "s-nacho", authorUid = "nacho", authorName = "Nacho"),
+        )
+
+        owner.removeMember("car-1", "nacho").getOrThrow()
+
+        // ⛔ Al expulsado se le cierra la puerta detrás: su fila se desvincula y su propio borrado
+        // de cuenta ya no encontrará este grupo. Si no se limpia AQUÍ, no lo limpia nadie nunca.
+        assertEquals(listOf("s-marta"), remote.sessions.value["car-1"].orEmpty().map { it.sessionId })
+        assertNull(remote.getState("car-1")?.authorName)
+        assertEquals(emptyList(), remote.getMembers("car-1").map { it.uid }.filter { it == "nacho" })
+    }
+
+    @Test
     fun should_takeTheirNameOffTheGroupsCard_when_aMemberLeaves() = runTest {
         val remote = FakeSharedCarRemote()
         val owner = repository("marta", FakeVehicleRepository(defaultVehicle = ownerCar), remote)

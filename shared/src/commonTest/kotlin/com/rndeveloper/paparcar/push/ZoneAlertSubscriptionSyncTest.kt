@@ -37,6 +37,8 @@ class ZoneAlertSubscriptionSyncTest {
     // sujeto. Con el unconfined, `start()` deja el colector ya corrido al volver.
 
     private class CountingTokenProvider(private val token: String? = "tok-1") : PushTokenProvider {
+        override suspend fun retireToken() = Unit
+
         var calls = 0
             private set
 

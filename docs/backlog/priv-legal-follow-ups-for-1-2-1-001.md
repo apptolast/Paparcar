@@ -27,10 +27,13 @@ KDoc diciendo que *el default ES la decisión* (user, 15-09). Desde
 `PRIV-A-ROUTE-LEAVES-THE-PHONE-BY-ONE-DOOR-001` el interruptor ya impide SUBIR, no solo mostrar, así
 que la política lo describe bien hoy.
 
-Lo que queda es de producto, no de exactitud: **¿debería nacer apagado?** A favor de apagarlo: la
-geometría es el dato más sensible que maneja la app y su hermana personal nace apagada. En contra:
-el grupo se comparte precisamente para verse, y un default apagado deja la función muerta hasta que
-alguien la descubra. **Decisión del user, no técnica.**
+**Decidido por el user (16-09): opción C — ni encendido ni apagado, se PREGUNTA** al compartir y al
+unirse. Sale de aquí a su propio ticket, `copy-a-card-that-promises-routes-stay-home-001`, porque
+arrastra el copy de la tarjeta que hoy promete lo contrario.
+
+Lo que se descartó: **apagado** (la geometría es el dato más sensible que maneja la app y su hermana
+personal nace apagada — pero un default apagado deja la función muerta hasta que alguien la
+descubra) y **encendido**, el de hoy, que obliga al copy a disculpar lo que ya está hecho.
 
 ## 3 · Los miembros de un grupo pueden leer los tokens de push de los demás
 
@@ -42,10 +45,24 @@ Qué se puede hacer con eso: nada directo (enviar un push exige la clave del ser
 identificador de dispositivo de otra persona expuesto a un grupo entero, y no hace falta para nada
 que la app haga: el reparto lo hace la Cloud Function con permisos de servidor.
 
-Arreglo propuesto: sacar `tokens` de `members/{uid}` a una subcolección que solo el dueño de la
-ficha escriba y **nadie del grupo lea** (`members/{uid}/push/{deviceId}`), o marcarlo como campo
-prohibido en la regla de lectura. ⚠️ Toca la función (`functions/src/index.ts:205` los lee con
-permisos de admin, así que le da igual dónde estén) y una migración de los tokens ya escritos.
+### Arreglo concreto (2.ª vuelta de la revisión) — ~1 día
+
+1. Subcolección `sharedCars/{carId}/members/{uid}/devices/{installationId}` con
+   `allow read, write: if request.auth.uid == uid`. **Nadie del grupo la lee**; la función sí, con
+   permisos de admin, así que le da igual dónde vivan.
+2. La función lee la subcolección **y, durante una versión, también el campo viejo**: sin ese
+   solape, los móviles que aún no han migrado dejan de recibir avisos en silencio — que es
+   exactamente el fallo que el KDoc de la regla de `update` de `members` ya avisa que existe.
+3. El cliente migra y **borra** `tokens` de su ficha.
+4. Y de paso, la regla de `update` de `members` pasa a acotar QUÉ campos toca:
+   `request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName','photoUrl','sharesRoutes'])`.
+   Hoy un miembro puede reescribir su propio `role` o su `inviteCode`.
+
+⛔ **El vector completo, que es peor que «se leen entre ellos»**: `zoneAlertSubs` acepta tokens
+ajenos (mientras no entre `sec-a-zone-alert-row-is-only-rewritten-by-its-owner-001`) y
+`PushMessageHandler` los pinta sin comprobar que la zona sea tuya. Leer el token de un compañero de
+grupo y meterlo en una fila de alertas propia = **spam a su móvil durante 30 días**, que es lo que
+dura la suscripción. Los tres agujeros son pequeños por separado y una cadena completa juntos.
 
 ## 4 · El uid de quien libera una plaza lo lee cualquier usuario autenticado
 
@@ -55,11 +72,21 @@ nombre, correo ni foto — o sea que no miente. Pero cualquiera con cuenta puede
 `reportedBy`** y reconstruir por dónde aparca una persona, que es exactamente el perfilado que el
 geohash de Analytics se molestó en evitar.
 
-Arreglo propuesto: que el cliente no reciba `reportedBy`. Hace falta para: (a) que el dueño pueda
-editar/borrar la suya, y (b) el `!=` de la regla de update. Se puede sostener con una regla que
-compare `resource.data.reportedBy` sin exponerlo… lo que en Firestore **no se puede** (leer el doc
-es leer todos sus campos). Alternativa real: un hash con sal por plaza, o mover la edición a una
-función. **No es un cambio de una línea: merece su propio ticket cuando se aborde.**
+### Arreglo elegido (user, 16-09): **B — colección aparte** — ~1 día
+
+En Firestore leer un documento es leer **todos** sus campos, así que «no devolver `reportedBy`» no
+existe como opción. Las dos que sí:
+
+- **B (elegida)** · `spotOwners/{spotId}` con `allow read: if false`. Se crea **en el mismo batch**
+  que la plaza (la regla de `create` de `spots` lo exige con `getAfter`, que es lo que impide
+  publicar sin dueño registrado). El `update`/`delete` del dueño compara contra esa colección; la
+  función la lee para su auto-exclusión.
+- **A (descartada)** · `ownerKey = sha256(uid/spotId)` comprobado con `hashing.sha256(...)` en
+  reglas. Más barata, pero **deja el identificador en el documento público**: no lo elimina, lo
+  disfraza, y basta con probar tu propio uid contra cada plaza para reconocer las tuyas.
+
+⏱ Las plazas duran **horas**, así que la migración es trivial: una ventana de un día aceptando las
+dos formas y la colección vieja se vacía sola por TTL.
 
 ## 5 · El flag de diagnóstico lo activa un admin, no el usuario
 
@@ -71,9 +98,16 @@ No es ilegal por sí mismo (la base es el interés legítimo en la fiabilidad, y
 política dice «default OFF» sin explicar **quién** lo enciende. Arreglo mínimo: decirlo — que se
 activa a petición o para diagnosticar un problema concreto, y que el usuario puede retirarlo.
 
+**Y darle el botón**, que la regla ya permite: `diagnostics_config/{uid}` deja `delete` al dueño. O
+sea que «dejar de enviar diagnóstico» es hoy una línea de UI que nadie ha escrito, no un permiso que
+falte. Con indicador de que está activo, porque un usuario no puede retirar lo que no sabe que
+existe.
+
 ---
 
 ## Orden sugerido
 
-3 y 4 son los que exponen datos de terceros: primero. 1 es media hora de copy. 5 es una frase.
-2 es una decisión que no se puede tomar sin el user.
+3 y 4 son los que exponen datos de terceros: primero, y **3 antes que 4** porque su cadena completa
+—token ajeno + fila de alertas sobrescribible + handler que no comprueba nada— es la única que
+termina en el móvil de otra persona. 1 es media hora de copy. 5 es una frase y un botón.
+**2 ya está decidido** y vive en su propio ticket.

@@ -18,6 +18,7 @@ import com.rndeveloper.paparcar.domain.usecase.user.DeleteAccountUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.SetFirstStepsDismissedUseCase
 import com.rndeveloper.paparcar.fakes.FakeAppPreferences
 import com.rndeveloper.paparcar.fakes.FakeAuthRepository
+import com.rndeveloper.paparcar.fakes.testSignOutUseCase
 import com.rndeveloper.paparcar.fakes.FakeBluetoothScanner
 import com.rndeveloper.paparcar.fakes.FakeDiagnosticsReportUploader
 import com.rndeveloper.paparcar.fakes.FakeLocalDiagnosticsLog
@@ -110,6 +111,7 @@ class SettingsViewModelTest {
         return SettingsViewModel(
             customPrefs,
             auth,
+            testSignOutUseCase(auth),
             profile,
             useCase,
             SetFirstStepsDismissedUseCase(customPrefs, auth, profile),

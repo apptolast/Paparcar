@@ -1,4 +1,14 @@
 package com.rndeveloper.paparcar.push
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.Flow
+import com.rndeveloper.paparcar.domain.repository.ZoneRepository
+import com.rndeveloper.paparcar.domain.model.Zone
+import com.rndeveloper.paparcar.domain.model.SharedCar
+import com.rndeveloper.paparcar.fakes.data.repository.FakeZoneRepository
+import com.rndeveloper.paparcar.fakes.data.repository.FakeSharedCarRepository
+import com.rndeveloper.paparcar.fakes.FakeAuthRepository
+import com.rndeveloper.paparcar.domain.repository.SharedCarRepository
+import com.apptolast.baselogin.domain.model.UserSession
 
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.UserParking
@@ -55,14 +65,29 @@ class PushMessageHandlerTest {
     private val fences = SharedCarFenceRefresher { log.add("fence") }
     private val zoneWatch = FakeZoneWatchRepository()
 
-    private fun handler(parkings: FakeUserParkingRepository = FakeUserParkingRepository()) =
-        PushMessageHandler(
-            notificationPort = notifications,
-            zoneWatch = zoneWatch,
-            parkingRepository = parkings,
-            sharedCarFences = fences,
-            clock = { now },
-        )
+    /**
+     * Por defecto, un móvil CON sesión, con la zona del push entre las suyas y en el grupo del
+     * coche del push: así los casos de siempre siguen preguntando lo que preguntaban, y los tres
+     * parámetros nuevos solo mandan en los casos que los mueven.
+     * [PRIV-A-SIGNED-OUT-PHONE-STILL-HEARS-THE-LAST-ACCOUNT-001]
+     */
+    private fun handler(
+        parkings: FakeUserParkingRepository = FakeUserParkingRepository(),
+        auth: FakeAuthRepository = FakeAuthRepository(
+            UserSession(userId = "me", email = null, displayName = null, photoUrl = null),
+        ),
+        zones: ZoneRepository = zonesOwning("zone-1"),
+        sharedCars: SharedCarRepository = carsOwning("car-1"),
+    ) = PushMessageHandler(
+        notificationPort = notifications,
+        zoneWatch = zoneWatch,
+        parkingRepository = parkings,
+        sharedCarFences = fences,
+        authRepository = auth,
+        zoneRepository = zones,
+        sharedCarRepository = sharedCars,
+        clock = { now },
+    )
 
     private fun parkedPush(
         carId: String = "car-1",
@@ -172,6 +197,46 @@ class PushMessageHandlerTest {
         assertEquals(listOf("fence", "card:parked"), log)
     }
 
+    // ── A quién iba dirigido, que es lo que un token no dice ───────────────────────────────────
+    // [PRIV-A-SIGNED-OUT-PHONE-STILL-HEARS-THE-LAST-ACCOUNT-001]
+
+    @Test
+    fun should_touchNothing_when_thereIsNoSessionOnThisPhone() = runTest {
+        val noSession = FakeAuthRepository(initialSession = null)
+
+        handler(auth = noSession).handle(parkedPush())
+        handler(auth = noSession).handle(zonePush())
+
+        // Ni tarjeta ni valla: el token sobrevivió al usuario que lo publicó, el mensaje no es de
+        // quien tiene el móvil ahora, y mover una geocerca por un coche ajeno sería peor que
+        // callarse.
+        assertEquals(emptyList(), log)
+    }
+
+    @Test
+    fun should_stayQuiet_when_theSpotIsFromAZoneThatIsNotMine() = runTest {
+        handler(zones = zonesOwning("otra-zona")).handle(zonePush())
+
+        assertEquals(emptyList(), log)
+        assertTrue(!zoneWatch.hasAnnounced("zone-1", "spot-1"))
+    }
+
+    @Test
+    fun should_stayQuiet_when_theCarIsFromAGroupThatIsNotMine() = runTest {
+        handler(sharedCars = carsOwning("otro-coche")).handle(parkedPush())
+
+        assertEquals(emptyList(), log)
+    }
+
+    @Test
+    fun should_stayQuiet_when_theCarLeftAndIBelongToNoGroup() = runTest {
+        // `SharedCarLeft` no trae carId, así que lo único comprobable es pertenecer a algún grupo.
+        handler(sharedCars = carsOwning())
+            .handle(mapOf("type" to "shared_car_left", "carId" to "car-1", "authorName" to "Ana"))
+
+        assertEquals(emptyList(), log)
+    }
+
     // ── La puerta única de la zona ──────────────────────────────────────────────────────────────
 
     @Test
@@ -214,3 +279,22 @@ class PushMessageHandlerTest {
         "expiresAt" to "$expiresAt",
     )
 }
+
+/** Un repositorio de zonas que contiene exactamente estas. */
+private fun zonesOwning(vararg ids: String): ZoneRepository = object : ZoneRepository by FakeZoneRepository() {
+    override fun observeZones(): Flow<List<Zone>> = flowOf(
+        ids.map { id ->
+            Zone(id = id, userId = "me", name = id, lat = 0.0, lon = 0.0, iconKey = "home", createdAt = 0L)
+        },
+    )
+}
+
+/** Un usuario que pertenece exactamente a estos grupos. */
+private fun carsOwning(vararg ids: String): SharedCarRepository =
+    object : SharedCarRepository by FakeSharedCarRepository() {
+        override fun observeSharedCars(): Flow<List<SharedCar>> = flowOf(
+            ids.map { id ->
+                SharedCar(carId = id, ownerUid = "otro", displayName = id, createdAtMs = 0L)
+            },
+        )
+    }

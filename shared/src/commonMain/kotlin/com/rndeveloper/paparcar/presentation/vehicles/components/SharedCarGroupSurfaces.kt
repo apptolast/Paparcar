@@ -1,6 +1,9 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 
 package com.rndeveloper.paparcar.presentation.vehicles.components
+import paparcar.composeapp.generated.resources.shared_car_routes_question_title
+import paparcar.composeapp.generated.resources.shared_car_routes_question_subtitle
+import com.rndeveloper.paparcar.ui.components.PapSwitchRow
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -38,6 +41,7 @@ import paparcar.composeapp.generated.resources.shared_car_error_code_expired
 import paparcar.composeapp.generated.resources.shared_car_error_code_not_found
 import paparcar.composeapp.generated.resources.shared_car_error_code_used
 import paparcar.composeapp.generated.resources.shared_car_error_group_full
+import paparcar.composeapp.generated.resources.shared_car_error_too_many_joined
 import paparcar.composeapp.generated.resources.shared_car_error_too_many_shared
 import paparcar.composeapp.generated.resources.shared_car_error_not_owner
 import paparcar.composeapp.generated.resources.shared_car_error_sync
@@ -154,6 +158,9 @@ fun JoinSharedCarDialogContent(
     onCodeChanged: (String) -> Unit,
     onSubmit: () -> Unit,
     onDismiss: () -> Unit,
+    /** La pregunta de rutas, aquí y no después: entrar es el momento en que se decide qué compartes.
+     *  [COPY-A-CARD-THAT-PROMISES-ROUTES-STAY-HOME-001] */
+    onShareRoutesChanged: (Boolean) -> Unit,
 ) {
     PapAlertDialog(
         onDismiss = onDismiss,
@@ -178,6 +185,13 @@ fun JoinSharedCarDialogContent(
                 enabled = !dialog.working,
                 modifier = Modifier.fillMaxWidth(),
             )
+            PapSwitchRow(
+                label = stringResource(Res.string.shared_car_routes_question_title),
+                description = stringResource(Res.string.shared_car_routes_question_subtitle),
+                checked = dialog.shareRoutes,
+                onCheckedChange = onShareRoutesChanged,
+                enabled = !dialog.working,
+            )
         },
     )
 }
@@ -196,6 +210,8 @@ fun sharedCarErrorMessage(error: PaparcarError): String = when (error) {
     PaparcarError.SharedCar.GroupFull -> stringResource(Res.string.shared_car_error_group_full)
     PaparcarError.SharedCar.TooManySharedCars ->
         stringResource(Res.string.shared_car_error_too_many_shared)
+    PaparcarError.SharedCar.TooManyJoinedCars ->
+        stringResource(Res.string.shared_car_error_too_many_joined)
     PaparcarError.SharedCar.AlreadyJoined -> stringResource(Res.string.shared_car_error_already_joined)
     PaparcarError.SharedCar.NotTheOwner -> stringResource(Res.string.shared_car_error_not_owner)
     else -> stringResource(Res.string.shared_car_error_sync)

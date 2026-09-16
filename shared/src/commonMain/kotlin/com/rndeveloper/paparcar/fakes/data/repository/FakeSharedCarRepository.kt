@@ -152,6 +152,13 @@ class FakeSharedCarRepository(private val scenario: MockScenario? = null) : Shar
 
     override suspend fun removeMember(carId: String, uid: String): Result<Unit> = Result.success(Unit)
 
+    /** Cerrar sesión no cambia la pertenencia, así que el fake tampoco: solo anota que pasó. */
+    var pushTokensRetired = false
+    override suspend fun retirePushTokens(): Result<Unit> {
+        pushTokensRetired = true
+        return Result.success(Unit)
+    }
+
     override suspend fun syncFromRemote(): Result<Unit> = Result.success(Unit)
 
     /** Erasure looks like walking out of every group at once, which is what it is. */

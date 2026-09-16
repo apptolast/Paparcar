@@ -39,3 +39,22 @@ const val SHARED_CAR_MAX_MEMBERS = 4
 fun canShareAnotherCar(alreadyShared: Int): Boolean = alreadyShared < SHARED_CAR_MAX_OWNED
 
 const val SHARED_CAR_MAX_OWNED = 2
+
+/**
+ * En cuántos grupos puede estar la misma persona como INVITADA. (user, 16-09)
+ *
+ * ⛔ **Techo técnico, no paywall**, y la diferencia importa: compartir ya exige Plus y entrar es
+ * gratis porque *the OWNER's Plus pays for the group* — cobrarle al que entra sería cobrar dos veces
+ * el mismo sitio. Diez no protege ninguna cuenta de resultados: protege de que alguien coleccione
+ * coches prestados, que es un uso que no existe.
+ *
+ * ⛔ Y por eso el número es ALTO: alcanzarlo obliga a salirse de un grupo, y salirse **borra tus
+ * viajes allí** [PRIV-LEAVING-A-GROUP-MUST-CLEAR-YOUR-NAME-FROM-ITS-HEAD-001]. Un tope que empuja a
+ * destruir datos propios no es un tope, es una trampa; a diez no se llega sin querer.
+ *
+ * @param alreadyJoined coches PRESTADOS que ya tiene (`isLinked`), nunca los suyos.
+ */
+fun canJoinAnotherCar(alreadyJoined: Int): Boolean = alreadyJoined < SHARED_CAR_MAX_JOINED
+
+const val SHARED_CAR_MAX_JOINED = 10
+

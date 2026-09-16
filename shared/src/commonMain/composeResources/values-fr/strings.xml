@@ -1023,7 +1023,7 @@
     <string name="first_steps_explain_zone_note">Elle s'applique aux stationnements marqués après sa création. Pas de garage privé ? Répondez «Je n'en ai pas» et l'étape est faite.</string>
     <!-- Coche compartido / shared car. [VEH-SHARED-001] -->
     <string name="shared_car_title">Voiture partagée</string>
-    <string name="shared_car_not_shared_body">Partagez la voiture avec quatre personnes au maximum. Celui qui conduit marque le stationnement et tout le groupe voit où elle est. Les trajets personnels ne sont jamais partagés.</string>
+    <string name="shared_car_not_shared_body">Partagez la voiture avec quatre personnes au maximum. Celui qui conduit marque le stationnement, et tout le groupe voit où elle est. Vos trajets ne sont partagés que si vous le dites ici.</string>
     <string name="shared_car_share_cta">Partager cette voiture</string>
     <string name="shared_car_code_title">Code pour rejoindre</string>
     <string name="shared_car_code_body">Donnez ce code à celui qui conduit la voiture. Il sert une fois et expire au bout de 24 heures.</string>
@@ -1077,4 +1077,9 @@
     <!-- Tope de coches propios compartidos: NO es un paywall, quien lo ve ya es Plus.
          [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] -->
     <string name="shared_car_error_too_many_shared">Vous pouvez partager jusqu'à 2 de vos voitures. Arrêtez d'en partager une pour ouvrir un groupe sur une autre.</string>
+    <!-- La pregunta de rutas, al compartir y al unirse: ni encendido ni apagado por defecto.
+         [COPY-A-CARD-THAT-PROMISES-ROUTES-STAY-HOME-001] -->
+    <string name="shared_car_routes_question_title">Partager aussi mes trajets</string>
+    <string name="shared_car_routes_question_subtitle">Le groupe voit le tracé de votre trajet. Vous pouvez le changer quand vous voulez.</string>
+    <string name="shared_car_error_too_many_joined">Vous êtes déjà dans 10 voitures partagées. Quittez-en une pour en rejoindre une autre.</string>
 </resources>

@@ -35,11 +35,23 @@ class SharedCarEntitlementGateTest {
     }
 
     @Test
+    fun should_leaveRoomForEveryHonestGuest_when_cappingHowManyGroupsYouJoin() {
+        assertTrue(canJoinAnotherCar(alreadyJoined = 0))
+        assertTrue(canJoinAnotherCar(alreadyJoined = SHARED_CAR_MAX_JOINED - 1))
+        assertFalse(canJoinAnotherCar(alreadyJoined = SHARED_CAR_MAX_JOINED))
+        // ⛔ Alto A PROPÓSITO: alcanzarlo obliga a salirse de un grupo, y salirse borra tus viajes
+        // allí. Un tope que empuja a destruir datos propios sería una trampa, no un tope.
+        assertTrue(SHARED_CAR_MAX_JOINED >= 10)
+    }
+
+    @Test
     fun should_gateOnlyTheOwner_when_decidingWhoPaysForAGroup() {
         // Abrir el grupo es del dueño y exige Plus…
         assertTrue(canShareVehicle(isPlus = true))
         assertFalse(canShareVehicle(isPlus = false))
-        // …y no hay ninguna función que pregunte lo mismo al que ENTRA, a propósito: el Plus del
-        // dueño paga el grupo, así que cobrarle al invitado sería cobrar dos veces el mismo sitio.
+        // …y el tope del invitado NO recibe `isPlus` por ningún lado, a propósito: el Plus del dueño
+        // paga el grupo, así que cobrarle al invitado sería cobrar dos veces el mismo sitio. Si
+        // alguien le añade un parámetro de entitlement a `canJoinAnotherCar`, este test es el sitio
+        // donde tiene que discutirlo.
     }
 }

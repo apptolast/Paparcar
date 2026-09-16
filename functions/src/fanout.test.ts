@@ -87,8 +87,14 @@ test('skips a spot that died before the trigger ran', () => {
   });
 });
 
-test('a spot with no TTL at all is not treated as expired', () => {
-  assert.equal(verdictFor(spot({ expiresAt: 0 }), NOW).kind, 'announce');
+// [SEC-A-SPOT-IS-NOT-A-MEGAPHONE-001] Este test afirmaba lo contrario: que una plaza sin TTL se
+// anunciaba igual, por prudencia ante un campo que el cliente aun no ponia. Escrito a mano, ese
+// campo es una plaza que no caduca nunca y un aviso en el movil de desconocidos, asi que la
+// prudencia cambia de lado: sin caducidad valida no se anuncia.
+test('a spot with no TTL at all is not announced', () => {
+  assert.deepEqual(verdictFor(spot({ expiresAt: 0 }), NOW), {
+    kind: 'skip', reason: 'already-expired',
+  });
 });
 
 test('never tells you about the space you just left', () => {

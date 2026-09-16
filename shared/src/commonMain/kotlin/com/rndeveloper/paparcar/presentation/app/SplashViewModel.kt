@@ -3,6 +3,7 @@ package com.rndeveloper.paparcar.presentation.app
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.apptolast.baselogin.domain.AuthRepository
+import com.rndeveloper.paparcar.domain.usecase.user.SignOutUseCase
 import com.apptolast.baselogin.domain.model.AuthState
 import com.rndeveloper.paparcar.Routes
 import com.rndeveloper.paparcar.core.crash.CrashReporter
@@ -68,6 +69,8 @@ data class SplashState(
 
 class SplashViewModel(
     private val authRepository: AuthRepository,
+    /** Salir retira antes los tokens de push. [PRIV-A-SIGNED-OUT-PHONE-STILL-HEARS-THE-LAST-ACCOUNT-001] */
+    private val signOut: SignOutUseCase,
     private val getOrCreateUserProfile: GetOrCreateUserProfileUseCase,
     private val bootstrapUserData: BootstrapUserDataUseCase,
     private val vehicleRepository: VehicleRepository,
@@ -301,7 +304,9 @@ class SplashViewModel(
     /** Single exit point for any fatal bootstrap failure: sign out and notify UI. */
     private suspend fun abortBootstrap() {
         _state.value = SplashState(bootstrapFailure = BootstrapFailure.Fatal)
-        authRepository.signOut()
+        // Misma puerta que el logout de Ajustes: una salida forzada deja el móvil igual de expuesto
+        // que una voluntaria. [PRIV-A-SIGNED-OUT-PHONE-STILL-HEARS-THE-LAST-ACCOUNT-001]
+        signOut()
         _effect.emit(SplashEffect.ShowError(PaparcarError.Auth.ProfileSyncFailed))
     }
 

@@ -6,6 +6,7 @@ import com.rndeveloper.paparcar.domain.usecase.vehicle.DeleteVehicleUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.DeleteAccountUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.GetOrCreateUserProfileUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.SetFirstStepsDismissedUseCase
+import com.rndeveloper.paparcar.domain.usecase.user.SignOutUseCase
 import com.rndeveloper.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import com.rndeveloper.paparcar.domain.usecase.location.GetOneLocationUseCase
 import com.rndeveloper.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
@@ -60,6 +61,16 @@ val domainModule = module {
     // account fact behind one verb, so Home and Settings cannot drift.
     factory { SetFirstStepsDismissedUseCase(get(), get(), get()) }
     factory { BootstrapUserDataUseCase(get(), get(), get()) }
+    // Salir retira antes los tokens de push, con la sesion todavia abierta.
+    // [PRIV-A-SIGNED-OUT-PHONE-STILL-HEARS-THE-LAST-ACCOUNT-001]
+    factory {
+        SignOutUseCase(
+            authRepository = get(),
+            zoneAlertSubscriptions = get(),
+            sharedCarRepository = get(),
+            pushTokens = get(),
+        )
+    }
     // Borrar un coche disuelve o abandona el grupo que hubiera detras; vive en un caso de uso
     // porque el repositorio de coche compartido ya depende del de vehiculos y la dependencia
     // inversa seria un ciclo. [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001]

@@ -100,6 +100,9 @@ val iosPlatformModule = module {
             zoneWatch = get(),
             parkingRepository = get(),
             sharedCarFences = get(),
+            authRepository = get(),
+            zoneRepository = get(),
+            sharedCarRepository = get(),
         )
     }
 

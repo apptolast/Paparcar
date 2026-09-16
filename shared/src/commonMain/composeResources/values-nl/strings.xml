@@ -1024,7 +1024,7 @@
     <string name="notif_shared_car_left_text">Hij staat niet meer waar hij geparkeerd stond</string>
     <!-- Coche compartido / shared car. [VEH-SHARED-001] -->
     <string name="shared_car_title">Gedeelde auto</string>
-    <string name="shared_car_not_shared_body">Deel de auto met maximaal vier mensen. Wie rijdt markeert de parkeerplaats, en de hele groep ziet waar de auto staat. Persoonlijke routes worden nooit gedeeld.</string>
+    <string name="shared_car_not_shared_body">Deel de auto met maximaal vier personen. Wie rijdt markeert de parkeerplaats en de hele groep ziet waar hij staat. Je routes worden alleen gedeeld als je dat hier zegt.</string>
     <string name="shared_car_share_cta">Deze auto delen</string>
     <string name="shared_car_code_title">Toetredingscode</string>
     <string name="shared_car_code_body">Geef deze code aan wie de auto rijdt. Hij werkt één keer en verloopt na 24 uur.</string>
@@ -1078,4 +1078,9 @@
     <!-- Tope de coches propios compartidos: NO es un paywall, quien lo ve ya es Plus.
          [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] -->
     <string name="shared_car_error_too_many_shared">Je kunt maximaal 2 van je auto's delen. Stop met delen bij één om voor een andere een groep te openen.</string>
+    <!-- La pregunta de rutas, al compartir y al unirse: ni encendido ni apagado por defecto.
+         [COPY-A-CARD-THAT-PROMISES-ROUTES-STAY-HOME-001] -->
+    <string name="shared_car_routes_question_title">Ook mijn routes delen</string>
+    <string name="shared_car_routes_question_subtitle">De groep ziet de lijn van waar je hebt gereden. Je kunt het altijd wijzigen.</string>
+    <string name="shared_car_error_too_many_joined">Je zit al in 10 gedeelde auto's. Verlaat er een om je bij een andere aan te sluiten.</string>
 </resources>

@@ -24,6 +24,16 @@ setGlobalOptions({ region: 'europe-west1', maxInstances: 10 });
 const SUBS_COLLECTION = 'zoneAlertSubs';
 
 /**
+ * Cuantas plazas VIVAS puede tener a la vez la misma cuenta sin que se deje de anunciar.
+ * [SEC-A-SPOT-IS-NOT-A-MEGAPHONE-001]
+ *
+ * No es un limite de publicacion: las plazas se crean igual y el mapa las enseña. Lo que se corta
+ * es el aviso, que es lo que llega al movil de otra persona. Cinco es holgado para un humano --
+ * una plaza dura 2 h y nadie libera cinco a la vez -- y estrecho para un script.
+ */
+const MAX_LIVE_SPOTS_PER_AUTHOR = 5;
+
+/**
  * Lo que hace falta para que un mensaje de SOLO DATOS llegue a un iPhone que no está delante.
  * [IOS-THE-GROUP-CANNOT-REACH-AN-IPHONE-001]
  *
@@ -82,6 +92,24 @@ export const onSpotPublished = onDocumentCreated('spots/{spotId}', async (event)
   const verdict = verdictFor(spot, now);
   if (verdict.kind === 'skip') {
     logger.info('spot not announced', { spotId, reason: verdict.reason });
+    return;
+  }
+
+  // ⛔ Tercera capa de [SEC-A-SPOT-IS-NOT-A-MEGAPHONE-001], y la unica que ve el RITMO: una regla
+  // valida plaza a plaza y no puede contar cuantas lleva alguien en diez minutos. Publicar sigue
+  // permitido -- lo que se corta es GRITAR, que es lo caro para quien recibe.
+  const recent = await getFirestore()
+    .collection('spots')
+    .where('reportedBy', '==', spot.reportedBy)
+    .where('expiresAt', '>', now)
+    .count()
+    .get();
+  if (recent.data().count > MAX_LIVE_SPOTS_PER_AUTHOR) {
+    logger.warn('spot not announced: author is flooding', {
+      spotId,
+      reportedBy: spot.reportedBy,
+      live: recent.data().count,
+    });
     return;
   }
 

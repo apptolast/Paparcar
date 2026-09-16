@@ -1045,7 +1045,7 @@
     <string name="first_steps_explain_zone_note">Dotyczy parkowań oznaczonych po jej utworzeniu. Nie masz prywatnego garażu? Odpowiedz «Nie mam garażu» i krok jest zrobiony.</string>
     <!-- Coche compartido / shared car. [VEH-SHARED-001] -->
     <string name="shared_car_title">Wspólny samochód</string>
-    <string name="shared_car_not_shared_body">Udostępnij samochód maksymalnie czterem osobom. Kto prowadzi, ten zaznacza parkowanie, a cała grupa widzi, gdzie stoi auto. Osobiste trasy nigdy nie są udostępniane.</string>
+    <string name="shared_car_not_shared_body">Udostępnij samochód maksymalnie czterem osobom. Kto prowadzi, oznacza parkowanie, a cała grupa widzi, gdzie stoi. Twoje trasy są udostępniane tylko wtedy, gdy powiesz to tutaj.</string>
     <string name="shared_car_share_cta">Udostępnij ten samochód</string>
     <string name="shared_car_code_title">Kod dołączenia</string>
     <string name="shared_car_code_body">Podaj ten kod osobie, która prowadzi auto. Działa raz i wygasa po 24 godzinach.</string>
@@ -1101,4 +1101,9 @@
     <!-- Tope de coches propios compartidos: NO es un paywall, quien lo ve ya es Plus.
          [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] -->
     <string name="shared_car_error_too_many_shared">Możesz udostępnić maksymalnie 2 swoje samochody. Przestań udostępniać jeden, aby otworzyć grupę dla innego.</string>
+    <!-- La pregunta de rutas, al compartir y al unirse: ni encendido ni apagado por defecto.
+         [COPY-A-CARD-THAT-PROMISES-ROUTES-STAY-HOME-001] -->
+    <string name="shared_car_routes_question_title">Udostępniaj też moje trasy</string>
+    <string name="shared_car_routes_question_subtitle">Grupa widzi linię Twojego przejazdu. Możesz to zmienić w każdej chwili.</string>
+    <string name="shared_car_error_too_many_joined">Jesteś już w 10 udostępnionych samochodach. Opuść jeden, aby dołączyć do innego.</string>
 </resources>

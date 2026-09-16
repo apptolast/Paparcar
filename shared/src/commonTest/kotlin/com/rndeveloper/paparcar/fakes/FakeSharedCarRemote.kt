@@ -153,6 +153,8 @@ class FakeSharedCarRemote : RemoteSharedCarDataSource {
         // unreadable, so a sweep attempted after leaving deletes nothing — which is exactly the
         // ordering bug the real implementation has to avoid.
         // [PRIV-A-DELETED-ACCOUNT-LEAVES-TWO-TOKENS-BEHIND-001]
+        // La regla real permite borrar al AUTOR o al DUEÑO; para el fake basta con que el objetivo
+        // siga en el grupo, que es la condición de orden que importa aquí.
         val stillAMember = members.value[carId].orEmpty().any { it.uid == uid }
         if (!stillAMember) return
         sessions.value = sessions.value +

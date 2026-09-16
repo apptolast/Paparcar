@@ -309,7 +309,25 @@ class SharedCarRepositoryImpl(
         val me = requireUid()
         val car = remote.getCar(carId) ?: throw PaparcarError.SharedCar.SyncFailed
         if (car.ownerUid != me) throw PaparcarError.SharedCar.NotTheOwner
+        // ⛔ Lo MISMO que se lleva quien se va por su pie, y por una razón más fuerte: al expulsado
+        // se le cierra la puerta detrás. Su fila se desvincula al sincronizar, así que su propio
+        // borrado de cuenta ya no encontrará este grupo — si no se limpia aquí, sus recorridos se
+        // quedan dentro para siempre, firmados por alguien que ya no está.
+        // [PRIV-A-REMOVED-MEMBER-LEAVES-THEIR-TRIPS-BEHIND-001]
+        remote.deleteSessionsOf(carId, uid)
+        remote.clearMemberFromState(carId, uid)
         remote.deleteMember(carId, uid)
+    }
+
+    override suspend fun retirePushTokens(): Result<Unit> = runCatching {
+        val uid = requireUid()
+        val carIds = vehicleRepository.observeVehicles().first().mapNotNull { it.sharedCarId }.distinct()
+        carIds.forEach { carId ->
+            // Tolerante por coche, como el resto del espejo: un grupo inalcanzable no puede impedir
+            // que el usuario cierre sesion, que es lo que ha pedido.
+            runCatching { remote.setMemberTokens(carId, uid, emptyList()) }
+                .onFailure { PaparcarLogger.w(TAG, "no se pudo retirar el token de $carId — ${it.message}") }
+        }
     }
 
     override suspend fun syncFromRemote(): Result<Unit> = runCatching {

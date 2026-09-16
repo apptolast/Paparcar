@@ -75,6 +75,11 @@ sealed class VehiclesIntent {
     /** Borrarlo, con los viajes que hizo con él — que son suyos, y por eso se le dice cuántos. */
     data object DeleteDissolvedCar : VehiclesIntent()
 
+    /** La respuesta a la pregunta de rutas, mientras el diálogo está abierto.
+     *  [COPY-A-CARD-THAT-PROMISES-ROUTES-STAY-HOME-001] */
+    data class SetConfirmShareRoutes(val share: Boolean) : VehiclesIntent()
+    data class SetJoinShareRoutes(val share: Boolean) : VehiclesIntent()
+
     data class ShowJoinDialog(val open: Boolean) : VehiclesIntent()
     data class JoinCodeChanged(val code: String) : VehiclesIntent()
     data object SubmitJoinCode : VehiclesIntent()

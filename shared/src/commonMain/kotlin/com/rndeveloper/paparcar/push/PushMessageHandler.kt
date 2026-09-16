@@ -1,5 +1,9 @@
 package com.rndeveloper.paparcar.push
 
+import com.apptolast.baselogin.domain.AuthRepository
+import com.rndeveloper.paparcar.domain.repository.SharedCarRepository
+import com.rndeveloper.paparcar.domain.repository.ZoneRepository
+import kotlinx.coroutines.flow.first
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 import com.rndeveloper.paparcar.domain.push.PushPayload
 import com.rndeveloper.paparcar.domain.push.SharedCarFenceRefresher
@@ -31,19 +35,46 @@ class PushMessageHandler(
     private val zoneWatch: ZoneWatchRepository,
     private val parkingRepository: UserParkingRepository,
     private val sharedCarFences: SharedCarFenceRefresher,
+    /** Quien esta en el movil AHORA. Sin sesion no se pinta nada.
+     *  [PRIV-A-SIGNED-OUT-PHONE-STILL-HEARS-THE-LAST-ACCOUNT-001] */
+    private val authRepository: AuthRepository,
+    /** Mis zonas y mis coches, para no pintar los de otro. */
+    private val zoneRepository: ZoneRepository,
+    private val sharedCarRepository: SharedCarRepository,
     private val clock: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
 
     suspend fun handle(data: Map<String, String>) {
-        when (val payload = pushPayloadFor(data, clock())) {
+        val payload = pushPayloadFor(data, clock())
+        // ⛔ Un push no es una orden: es un mensaje a un TOKEN, y un token sobrevive al usuario que
+        // lo publico. Retirarlo al cerrar sesion es la otra mitad de esto y puede fallar —offline,
+        // o una fila que nadie barrio—, asi que aqui no se da por bueno el destinatario: se
+        // comprueba contra lo que este movil sabe de SU cuenta.
+        // [PRIV-A-SIGNED-OUT-PHONE-STILL-HEARS-THE-LAST-ACCOUNT-001]
+        if (payload !is PushPayload.Ignored && authRepository.getCurrentSession() == null) {
+            PaparcarLogger.i(TAG, "· push descartado: no hay sesion en este movil")
+            return
+        }
+        when (payload) {
             // ⛔ Antes del `when` interno a propósito: las dos noticias del coche compartido mueven
             // la valla, y la que trae una tarjeta imposible de pintar también.
             is PushPayload.SharedCarNews -> {
+                // La valla sigue yendo primero y sin condiciones -- pero solo si el coche es de un
+                // grupo MIO; si no, ni valla ni tarjeta, porque no hay nada que refrescar.
+                if (!isAGroupOfMine(payload)) {
+                    PaparcarLogger.i(TAG, "· push de coche compartido que no es de ningun grupo mio")
+                    return
+                }
                 sharedCarFences.refreshNow()
                 onSharedCarNews(payload)
             }
 
-            is PushPayload.ZoneSpot -> onZoneSpot(payload)
+            is PushPayload.ZoneSpot ->
+                if (zoneRepository.observeZones().first().any { it.id == payload.zoneId }) {
+                    onZoneSpot(payload)
+                } else {
+                    PaparcarLogger.i(TAG, "· push de una zona que no es mia: ${payload.zoneId}")
+                }
 
             is PushPayload.Ignored -> PaparcarLogger.d(TAG) { "· ${payload.reason}" }
         }
@@ -103,6 +134,21 @@ class PushMessageHandler(
             latitude = latitude,
             longitude = longitude,
         )
+    }
+
+    /**
+     * Si esta noticia habla de un coche de alguno de MIS grupos.
+     * [PRIV-A-SIGNED-OUT-PHONE-STILL-HEARS-THE-LAST-ACCOUNT-001]
+     *
+     * ⛔ `SharedCarLeft` no trae `carId` -- el servidor solo manda quien se lo llevo -- asi que ahi
+     * lo unico comprobable es que este movil pertenezca a ALGUN grupo. No es el mismo filtro y no
+     * se puede fingir que lo sea: si el dia de mañana esa tarjeta necesita mas, lo que hay que
+     * cambiar es el payload del servidor, no esta funcion.
+     */
+    private suspend fun isAGroupOfMine(payload: PushPayload.SharedCarNews): Boolean {
+        val mine = runCatching { sharedCarRepository.observeSharedCars().first() }.getOrNull().orEmpty()
+        val carId = (payload as? PushPayload.SharedCarParked)?.carId
+        return if (carId == null) mine.isNotEmpty() else mine.any { it.carId == carId }
     }
 
     /**

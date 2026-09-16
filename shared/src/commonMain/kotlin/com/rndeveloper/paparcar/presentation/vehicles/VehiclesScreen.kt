@@ -1,4 +1,7 @@
 package com.rndeveloper.paparcar.presentation.vehicles
+import paparcar.composeapp.generated.resources.shared_car_routes_question_title
+import paparcar.composeapp.generated.resources.shared_car_routes_question_subtitle
+import com.rndeveloper.paparcar.ui.components.PapSwitchRow
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -363,6 +366,7 @@ private fun VehiclesPager(
             onCodeChanged = { onIntent(VehiclesIntent.JoinCodeChanged(it)) },
             onSubmit = { onIntent(VehiclesIntent.SubmitJoinCode) },
             onDismiss = { onIntent(VehiclesIntent.ShowJoinDialog(false)) },
+            onShareRoutesChanged = { onIntent(VehiclesIntent.SetJoinShareRoutes(it)) },
         )
     }
 
@@ -378,6 +382,16 @@ private fun VehiclesPager(
             primaryLabel = stringResource(Res.string.shared_car_share_cta),
             onPrimary = { onIntent(VehiclesIntent.ShareCar(carId)) },
             cancelLabel = stringResource(Res.string.my_car_delete_cancel),
+            content = {
+                // La pregunta, no un default: lo que el grupo verá de tus rutas se decide AQUÍ.
+                // [COPY-A-CARD-THAT-PROMISES-ROUTES-STAY-HOME-001]
+                PapSwitchRow(
+                    label = stringResource(Res.string.shared_car_routes_question_title),
+                    description = stringResource(Res.string.shared_car_routes_question_subtitle),
+                    checked = state.confirmShareRoutes,
+                    onCheckedChange = { onIntent(VehiclesIntent.SetConfirmShareRoutes(it)) },
+                )
+            },
         )
     }
 

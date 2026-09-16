@@ -3356,7 +3356,15 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Unirse · código vacío", Placement.Surface) {
                 JoinSharedCarDialogContent(
                     dialog = JoinSharedCarDialog(),
-                    onCodeChanged = {}, onSubmit = {}, onDismiss = {},
+                    onCodeChanged = {}, onSubmit = {}, onDismiss = {}, onShareRoutesChanged = {},
+                )
+            },
+            // [COPY-A-CARD-THAT-PROMISES-ROUTES-STAY-HOME-001] Entrar decide qué compartes: la
+            // pregunta nace en NO y esta es la otra mitad, la que se contestó que sí.
+            Variant("Unirse · compartiendo también las rutas", Placement.Surface) {
+                JoinSharedCarDialogContent(
+                    dialog = JoinSharedCarDialog(code = "AB3K9P", shareRoutes = true),
+                    onCodeChanged = {}, onSubmit = {}, onDismiss = {}, onShareRoutesChanged = {},
                 )
             },
             Variant("Unirse · el código ha caducado", Placement.Surface) {
@@ -3365,7 +3373,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         code = "AB3K9P",
                         error = PaparcarError.SharedCar.InviteExpired,
                     ),
-                    onCodeChanged = {}, onSubmit = {}, onDismiss = {},
+                    onCodeChanged = {}, onSubmit = {}, onDismiss = {}, onShareRoutesChanged = {},
                 )
             },
         ),

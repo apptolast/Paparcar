@@ -1019,7 +1019,7 @@
     <string name="first_steps_explain_zone_note">Se aplica a los aparcamientos que marques después de crearla. ¿No tienes garaje privado? Responde «No tengo garaje» y el paso queda hecho.</string>
     <!-- Coche compartido / shared car. [VEH-SHARED-001] -->
     <string name="shared_car_title">Coche compartido</string>
-    <string name="shared_car_not_shared_body">Comparte el coche con hasta cuatro personas. Quien lo conduce marca el aparcamiento y todo el grupo ve dónde está. Las rutas personales no se comparten nunca.</string>
+    <string name="shared_car_not_shared_body">Comparte el coche con hasta cuatro personas. Quien lo conduce marca el aparcamiento y todo el grupo ve dónde está. Tus rutas se comparten solo si lo dices aquí.</string>
     <string name="shared_car_share_cta">Compartir este coche</string>
     <string name="shared_car_code_title">Código para unirse</string>
     <string name="shared_car_code_body">Dile este código a quien conduce el coche. Sirve una vez y caduca en 24 horas.</string>
@@ -1073,4 +1073,9 @@
     <!-- Tope de coches propios compartidos: NO es un paywall, quien lo ve ya es Plus.
          [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] -->
     <string name="shared_car_error_too_many_shared">Puedes compartir hasta 2 coches tuyos. Deja de compartir uno para abrir grupo en otro.</string>
+    <!-- La pregunta de rutas, al compartir y al unirse: ni encendido ni apagado por defecto.
+         [COPY-A-CARD-THAT-PROMISES-ROUTES-STAY-HOME-001] -->
+    <string name="shared_car_routes_question_title">Compartir también mis rutas</string>
+    <string name="shared_car_routes_question_subtitle">El grupo ve la línea de por dónde condujiste. Puedes cambiarlo cuando quieras.</string>
+    <string name="shared_car_error_too_many_joined">Ya estás en 10 coches compartidos. Sal de uno para entrar en otro.</string>
 </resources>

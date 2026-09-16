@@ -16,8 +16,20 @@ service cloud.firestore {
     match /spots/{spotId} {
       allow read:   if request.auth != null;
 
+      // ⛔ Publicar una plaza DISPARA una notificación a todo el que vigila esa celda, así que
+      // `create` no es solo escribir: es hablarle al móvil de desconocidos. Firmar con tu uid no
+      // basta como permiso para eso. [SEC-A-SPOT-IS-NOT-A-MEGAPHONE-001]
+      //
+      // El techo sale del código, no de la intuición: `SpotTtlPolicy.AUTO_SPOT_TTL_MS` son 2 h y
+      // `PROVISIONAL_SPOT_TTL_MS` 12 min, así que 3 h deja sitio al desfase de reloj del cliente
+      // —el `expiresAt` lo calcula ÉL— sin dejar publicar una plaza que grite durante un mes.
+      // Si el TTL sube, este número sube con él, y por eso está escrito de dónde viene.
       allow create: if request.auth != null
-                    && request.resource.data.reportedBy == request.auth.uid;
+                    && request.resource.data.reportedBy == request.auth.uid
+                    && request.resource.data.expiresAt is int
+                    && request.resource.data.expiresAt > request.time.toMillis()
+                    && request.resource.data.expiresAt < request.time.toMillis() + 3 * 60 * 60 * 1000
+                    && request.resource.data.status in ['CONFIRMED', 'PROVISIONAL'];
 
       allow update: if request.auth != null
                     && (
@@ -55,8 +67,13 @@ service cloud.firestore {
     // Coche compartido — el ESPEJO del grupo. [VEH-SHARED-001]
     //
     // La sesión personal (`users/{uid}/parkingHistory`) sigue siendo la fuente de verdad y no se
-    // toca: aquí vive solo la proyección que el grupo puede ver, sin ruta, sin provenance de
-    // detección y sin matrícula — lo garantiza el TIPO que la escribe, no estas reglas.
+    // toca: aquí vive solo la proyección que el grupo puede ver.
+    //
+    // ⛔ Este comentario decía «sin ruta … lo garantiza el TIPO». Era cierto al escribirlo y dejó
+    // de serlo con F8: `SharedCarSessionDto` tiene `routePolyline`. Lo correcto: la ruta viaja SOLO
+    // si su autor la comparte (`shareRoutesInGroup`, decidido en `sharedCarMirrorPayload`), y lo
+    // que sí garantiza el tipo —porque no tiene campo donde caber— es la ausencia de provenance de
+    // detección y de matrícula. [PRIV-A-ROUTE-LEAVES-THE-PHONE-BY-ONE-DOOR-001]
     //
     // La pertenencia es una SUBCOLECCIÓN y no un array, precisamente para que se pueda comprobar
     // aquí: `exists(.../members/{uid})` es una condición de regla; "el uid está en el array y solo
@@ -224,8 +241,17 @@ service cloud.firestore {
     // create/update y delete van aparte en vez de un `write` que fallaría al desuscribirse.
     match /zoneAlertSubs/{subId} {
       allow read: if request.auth != null && resource.data.uid == request.auth.uid;
-      allow create, update: if request.auth != null
-                            && request.resource.data.uid == request.auth.uid;
+      // ⛔ SEPARADOS, porque preguntan cosas distintas y juntarlos costaba una fila ajena: en
+      // `create` no existe `resource`, pero en `update` mirar solo lo que el escritor PROPONE deja
+      // reescribir encima la suscripción de otro poniendo tu uid. El id es `{uid}_{zoneId}` y un
+      // uid no es un secreto —viaja en cada plaza como `reportedBy`—, así que la víctima dejaba de
+      // recibir sus avisos y su fila acababa con los tokens del atacante. Tres líneas más abajo,
+      // `delete` ya lo hacía bien. [SEC-A-ZONE-ALERT-ROW-IS-ONLY-REWRITTEN-BY-ITS-OWNER-001]
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid;
+      allow update: if request.auth != null
+                    && resource.data.uid == request.auth.uid
+                    && request.resource.data.uid == request.auth.uid;
       allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
     }
 

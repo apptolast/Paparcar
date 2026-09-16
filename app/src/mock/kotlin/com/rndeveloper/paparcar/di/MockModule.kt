@@ -91,6 +91,11 @@ val mockModule = module {
     single<LocationDataSource> { FakeLocationDataSource(get<com.rndeveloper.paparcar.domain.detection.DetectionRuntimeState>()) }
     single<FirebaseDataSource> { FakeFirebaseDataSource() }
     single<AppNotificationManager> { FakeAppNotificationManager() }
+    // Un móvil mock no tiene FCM ni APNs: sin esto, cerrar sesión no resuelve.
+    // [PRIV-A-SIGNED-OUT-PHONE-STILL-HEARS-THE-LAST-ACCOUNT-001]
+    single<com.rndeveloper.paparcar.domain.push.PushTokenProvider> {
+        com.rndeveloper.paparcar.fakes.data.repository.FakeNoopPushTokenProvider()
+    }
     // Ajustes resuelve DeviceInfoProvider (reporte de soporte). Solo lo ata androidPlatformModule,
     // que el build mock NO carga, asi que el tab CRASHEABA al abrirlo: Koin
     // NoDefinitionFoundException. El fallback de dominio ya existe y basta aqui.

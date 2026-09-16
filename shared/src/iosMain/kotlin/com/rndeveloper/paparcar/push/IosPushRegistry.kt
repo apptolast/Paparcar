@@ -56,6 +56,17 @@ object IosPushRegistry : PushTokenProvider {
     private val token = MutableStateFlow<String?>(null)
 
     /** El delegate de Firebase, cada vez que APNs contesta o el token rota. */
+    /**
+     * ⛔ En iOS no se invalida un token de APNs desde Kotlin: lo que hay es lo que Swift entregó.
+     * Lo que sí se puede es OLVIDARLO, para que nada vuelva a publicarlo con la sesión cerrada; el
+     * registro se rehace bajo demanda en cuanto haya algo que suscribir, que es la doctrina de esta
+     * clase. La retirada real de las filas la hace el barrido de cierre de sesión.
+     * [PRIV-A-SIGNED-OUT-PHONE-STILL-HEARS-THE-LAST-ACCOUNT-001]
+     */
+    override suspend fun retireToken() {
+        token.value = null
+    }
+
     fun onToken(value: String) {
         val rotated = token.value != null && token.value != value
         token.value = value

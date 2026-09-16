@@ -80,6 +80,19 @@ interface SharedCarRepository : UserScopedRepository {
 
     /** One-shot pull of every mirror this user belongs to, into Room. Called at bootstrap next to
      *  the other syncs. */
+    /**
+     * Quita los tokens de push de este usuario en TODOS sus grupos, sin tocar nada mas.
+     * [PRIV-A-SIGNED-OUT-PHONE-STILL-HEARS-THE-LAST-ACCOUNT-001]
+     *
+     * No es `leave`: cerrar sesion no es salirse del grupo. La ficha de miembro se queda —la
+     * pertenencia no ha cambiado— y lo que se retira es el permiso para que este telefono siga
+     * recibiendo, que es lo unico que dejaba de ser cierto al salir el usuario.
+     *
+     * ⛔ Tiene que correr con la sesion TODAVIA abierta: escribir en `members/{uid}` exige ser ese
+     * uid, y despues de `signOut()` las reglas ya no dejan.
+     */
+    suspend fun retirePushTokens(): Result<Unit>
+
     suspend fun syncFromRemote(): Result<Unit>
 
     companion object {

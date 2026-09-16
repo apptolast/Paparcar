@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.presentation.settings
 
 import com.apptolast.baselogin.domain.AuthRepository
+import com.rndeveloper.paparcar.domain.usecase.user.SignOutUseCase
 import com.rndeveloper.paparcar.core.crash.CrashReporter
 import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.domain.error.PaparcarError
@@ -27,6 +28,8 @@ import kotlinx.coroutines.launch
 class SettingsViewModel(
     private val prefs: AppPreferences,
     private val authRepository: AuthRepository,
+    /** Salir retira antes los tokens de push. [PRIV-A-SIGNED-OUT-PHONE-STILL-HEARS-THE-LAST-ACCOUNT-001] */
+    private val signOut: SignOutUseCase,
     private val userProfileRepository: UserProfileRepository,
     private val deleteAccountUseCase: DeleteAccountUseCase,
     // [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001] The same verb Home
@@ -286,7 +289,10 @@ class SettingsViewModel(
             is SettingsIntent.ConfirmDeleteAccount -> deleteAccount()
             is SettingsIntent.Logout -> viewModelScope.launch {
                 CrashReporter.setUserId(null)
-                authRepository.signOut()
+                // ⛔ Por el caso de uso y no por `authRepository.signOut()` a secas: salir tiene que
+                // retirar antes los tokens de push, y eso exige la sesión todavía abierta.
+                // [PRIV-A-SIGNED-OUT-PHONE-STILL-HEARS-THE-LAST-ACCOUNT-001]
+                signOut()
             }
         }
     }

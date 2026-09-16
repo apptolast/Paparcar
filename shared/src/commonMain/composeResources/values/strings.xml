@@ -1064,7 +1064,7 @@
     <string name="first_steps_explain_zone_note">It applies to the parkings you mark after creating it. No private garage? Answer «I don't have one» and the step is done.</string>
     <!-- Coche compartido / shared car. [VEH-SHARED-001] -->
     <string name="shared_car_title">Shared car</string>
-    <string name="shared_car_not_shared_body">Share the car with up to four people. Whoever drives it marks the parking, and the whole group sees where it is. Personal routes are never shared.</string>
+    <string name="shared_car_not_shared_body">Share the car with up to four people. Whoever drives it marks the parking, and the whole group sees where it is. Your routes are shared only if you say so here.</string>
     <string name="shared_car_share_cta">Share this car</string>
     <string name="shared_car_code_title">Join code</string>
     <string name="shared_car_code_body">Read this code to whoever drives the car. It works once and expires in 24 hours.</string>
@@ -1118,4 +1118,9 @@
     <!-- Tope de coches propios compartidos: NO es un paywall, quien lo ve ya es Plus.
          [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] -->
     <string name="shared_car_error_too_many_shared">You can share up to 2 of your cars. Stop sharing one to open a group for another.</string>
+    <!-- La pregunta de rutas, al compartir y al unirse: ni encendido ni apagado por defecto.
+         [COPY-A-CARD-THAT-PROMISES-ROUTES-STAY-HOME-001] -->
+    <string name="shared_car_routes_question_title">Share my routes too</string>
+    <string name="shared_car_routes_question_subtitle">The group sees the line of where you drove. You can change it whenever you want.</string>
+    <string name="shared_car_error_too_many_joined">You are already in 10 shared cars. Leave one to join another.</string>
 </resources>

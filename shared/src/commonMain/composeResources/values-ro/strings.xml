@@ -1041,7 +1041,7 @@
     <string name="first_steps_explain_zone_note">Se aplică parcărilor marcate după ce o creezi. Nu ai garaj privat? Răspunde «Nu am garaj» și pasul e gata.</string>
     <!-- Coche compartido / shared car. [VEH-SHARED-001] -->
     <string name="shared_car_title">Mașină partajată</string>
-    <string name="shared_car_not_shared_body">Partajează mașina cu cel mult patru persoane. Cine conduce marchează parcarea, iar tot grupul vede unde este. Traseele personale nu se partajează niciodată.</string>
+    <string name="shared_car_not_shared_body">Partajează mașina cu cel mult patru persoane. Cine conduce marchează parcarea, iar tot grupul vede unde este. Traseele tale se partajează doar dacă spui asta aici.</string>
     <string name="shared_car_share_cta">Partajează această mașină</string>
     <string name="shared_car_code_title">Cod de alăturare</string>
     <string name="shared_car_code_body">Spune acest cod celui care conduce mașina. Este valabil o singură dată și expiră în 24 de ore.</string>
@@ -1096,4 +1096,9 @@
     <!-- Tope de coches propios compartidos: NO es un paywall, quien lo ve ya es Plus.
          [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] -->
     <string name="shared_car_error_too_many_shared">Poți partaja cel mult 2 mașini ale tale. Oprește partajarea uneia ca să deschizi un grup pentru alta.</string>
+    <!-- La pregunta de rutas, al compartir y al unirse: ni encendido ni apagado por defecto.
+         [COPY-A-CARD-THAT-PROMISES-ROUTES-STAY-HOME-001] -->
+    <string name="shared_car_routes_question_title">Partajează și traseele mele</string>
+    <string name="shared_car_routes_question_subtitle">Grupul vede linia pe unde ai condus. Poți schimba oricând.</string>
+    <string name="shared_car_error_too_many_joined">Ești deja în 10 mașini partajate. Ieși dintr-una ca să intri în alta.</string>
 </resources>

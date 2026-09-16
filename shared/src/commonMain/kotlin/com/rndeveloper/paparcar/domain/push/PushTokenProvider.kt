@@ -15,4 +15,13 @@ interface PushTokenProvider {
 
     /** El token actual, o `null` si no se pudo obtener — quien llama sigue adelante sin él. */
     suspend fun currentToken(): String?
+
+    /**
+     * Invalida el token de este dispositivo. [PRIV-A-SIGNED-OUT-PHONE-STILL-HEARS-THE-LAST-ACCOUNT-001]
+     *
+     * Es el cinturon del barrido de filas: aquel quita las que conocemos, este hace que una fila
+     * que se nos escapara —o una escritura que fallo por estar sin red— no alcance igualmente a
+     * este telefono. El siguiente que suscriba algo recibira un token nuevo.
+     */
+    suspend fun retireToken()
 }

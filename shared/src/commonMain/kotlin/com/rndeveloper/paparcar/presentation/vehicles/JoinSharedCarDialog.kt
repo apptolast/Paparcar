@@ -19,6 +19,10 @@ data class JoinSharedCarDialog(
     val code: String = "",
     val working: Boolean = false,
     val error: PaparcarError.SharedCar? = null,
+    /** Si este móvil compartirá también la RUTA de sus viajes con el grupo.
+     *  Nace en `false` a propósito: la pregunta se hace, y lo que no se contesta no se sube.
+     *  [COPY-A-CARD-THAT-PROMISES-ROUTES-STAY-HOME-001] */
+    val shareRoutes: Boolean = false,
 ) {
     /** Seis caracteres del alfabeto: la única forma que merece un viaje a la red. */
     val canSubmit: Boolean get() = !working && SharedCarInviteCode.normalize(code) != null
