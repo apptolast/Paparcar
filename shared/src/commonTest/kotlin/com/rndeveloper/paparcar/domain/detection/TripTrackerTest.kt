@@ -18,6 +18,9 @@ import kotlin.test.assertTrue
 
 class TripTrackerTest {
 
+    /** La cadencia del watchdog de shutoff: el veredicto se mira una vez por minuto. */
+    private val SHUTOFF_TICK = 60_000L
+
     private val primary = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 16)
     private val passive = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 16)
 
@@ -80,6 +83,47 @@ class TripTrackerTest {
         primary.emit(p(40.01, speed = 6f))
         runCurrent()
         assertEquals(2, store.points().size, "still recording after the window")
+        job.cancelAndJoin()
+    }
+
+    @Test
+    fun `should announce a proven ride once, and never for a garage radio`() = runTest {
+        // [SHARED-A-BT-CONNECT-PROVES-WHO-TOOK-THE-CAR-001] Es lo que le dice al grupo que me llevo
+        // el coche. Dispararlo en un null trip pondría en el espejo que un coche aparcado se ha
+        // movido — y dejaría a todo el grupo sin la valla del sitio donde SIGUE estando.
+        var proven = 0
+        val tracker = TripTracker(FakeDrivingRouteStore()) { currentTime }
+        val job = launch { tracker.track(primary, passive) { proven++ } }
+        runCurrent()
+
+        primary.emit(p(40.00, speed = 1f)) // la radio del garaje: un fix, nadie conduce
+        advanceTimeBy(SHUTOFF_TICK * 3)
+        runCurrent()
+        assertEquals(0, proven, "un null trip no puede anunciar nada")
+
+        primary.emit(p(40.00, speed = 6f))
+        advanceTimeBy(SHUTOFF_TICK * 3)
+        runCurrent()
+        assertEquals(1, proven, "una sola vez, aunque el viaje siga horas")
+
+        job.cancelAndJoin()
+    }
+
+    @Test
+    fun `should announce a crawling ride the speed field never reported`() = runTest {
+        // El campo `speed` miente BAJO: un viaje medido solo por posición es igual de viaje, y sin
+        // esto el aviso se perdería justo en los móviles cuyo GPS no declara velocidad.
+        var proven = 0
+        val tracker = TripTracker(FakeDrivingRouteStore()) { currentTime }
+        val job = launch { tracker.track(primary, passive) { proven++ } }
+        runCurrent()
+
+        primary.emit(p(40.000, speed = 1f))
+        primary.emit(p(40.002, speed = 1f)) // ~220 m: por encima del radio del null trip
+        advanceTimeBy(SHUTOFF_TICK * 2)
+        runCurrent()
+
+        assertEquals(1, proven, "el desplazamiento medido también prueba el viaje")
         job.cancelAndJoin()
     }
 

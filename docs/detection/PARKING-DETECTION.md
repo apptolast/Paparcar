@@ -611,6 +611,40 @@ salir cambiada en una sesión del grupo; las cifras, no. Lo que sigue fuera es a
 se lleva el coche — eso no lo registra el espejo hasta que esa persona para, y hacerlo visible exige
 una señal nueva en detección (etapa 2, con gate de campo).
 
+### SHARED-A-BT-CONNECT-PROVES-WHO-TOOK-THE-CAR-001 — el connect dice qué coche, el grabador dice que se mueve
+
+**Commit:** pending. **Tercera y última pieza del aviso al grupo.**
+
+**Causa raíz.** Las dos entradas anteriores solo contaban la salida cuando se llevaba el coche quien
+lo había aparcado, porque es el único caso que el espejo registraba. Si Marta aparca y **Antonio**
+coge el coche, el espejo calla hasta que Antonio para: el grupo ve el coche donde ya no está y todos
+menos Marta mantienen la valla compartida plantada ahí.
+
+**Fix — el reparto de la doctrina, literal.** Dos pruebas, ninguna válida sola:
+
+- el **connect de Bluetooth** dice EN QUÉ COCHE estoy (es su MAC: no es un autobús) y no dice que
+  vaya a ningún sitio — sentarse a oír la radio es un connect sin viaje;
+- el **grabador de viaje** dice QUE ESE COCHE SE MUEVE y no dice qué coche es.
+
+`TripTracker` gana un `onDrivingProven` que salta UNA vez, con las MISMAS dos pruebas que ya
+absuelven del null trip: velocidad declarada ≥ 5 m/s **o** desplazamiento ≥ 150 m. La segunda no es
+adorno — el campo `speed` miente bajo, y sin ella el aviso se perdería en los móviles cuyo GPS no
+declara velocidad. El veredicto (`EvaluateSharedCarTakeoverUseCase`) se calla cuando el aparcamiento
+es mío y mi sesión sigue viva: esa salida ya la cuenta el cierre de la sesión, con su medida.
+
+⛔ **El Coordinator NO llama aquí, y es la decisión de diseño del ticket.** Salir andando de la plaza
+y subirse a un autobús produce conducción medida igual de buena; sin el connect, nada ata ese
+movimiento al coche del grupo. Anunciarlo escribiría que un coche aparcado se ha movido y dejaría al
+grupo entero sin la valla del sitio donde SIGUE estando. Mejor no enterarse que contar algo falso.
+
+**Doctrina.** El grabador sigue sin influir en la detección: `onDrivingProven` no arma, no nomina, no
+confirma y no toca `DetectionRuntimeState` — reporta una medida. **Sin `detectionPath` nuevo.**
+
+**Riesgo del fix acompañante.** `setStateParked` ahora limpia `movedBy` al volver a aparcar; sin eso,
+la siguiente salida nombraría a quien condujo hace dos viajes (tiene test). Y el par `movedBy` **no
+se cachea en Room** a propósito: lo lee solo el reparto del servidor, y dos columnas serían una
+migración por un dato que ninguna pantalla pide.
+
 ### COM-002 — Adaptive geofence radius by vehicle size + GPS accuracy
 
 **Commit:** `c7b67ae`.

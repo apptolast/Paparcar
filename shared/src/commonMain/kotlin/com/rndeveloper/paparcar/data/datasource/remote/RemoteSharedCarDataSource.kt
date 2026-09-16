@@ -30,6 +30,15 @@ interface RemoteSharedCarDataSource {
     suspend fun putState(carId: String, state: SharedCarStateDto)
     /** Flips "still parked" without touching the position: the car keeps its last known spot. */
     suspend fun setStateParked(carId: String, isParked: Boolean, updatedAtMs: Long)
+
+    /**
+     * Otro miembro se lleva el coche: deja de estar aparcado y queda dicho QUIÉN lo conduce.
+     * [SHARED-A-BT-CONNECT-PROVES-WHO-TOOK-THE-CAR-001]
+     *
+     * La posición y la sesión no se tocan: la salida que esto anuncia es la de ESE aparcamiento, y
+     * el servidor comprueba justamente eso antes de contarla.
+     */
+    suspend fun setStateTakenBy(carId: String, uid: String, name: String?, updatedAtMs: Long)
     suspend fun putSession(carId: String, session: SharedCarSessionDto)
     suspend fun closeSession(carId: String, sessionId: String, endedAtMs: Long, updatedAtMs: Long)
     suspend fun updateSessionAddress(

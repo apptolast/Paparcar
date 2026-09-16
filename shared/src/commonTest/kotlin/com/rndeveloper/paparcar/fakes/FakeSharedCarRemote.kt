@@ -56,7 +56,28 @@ class FakeSharedCarRemote : RemoteSharedCarDataSource {
 
     override suspend fun setStateParked(carId: String, isParked: Boolean, updatedAtMs: Long) {
         states.value[carId]?.let { current ->
-            states.value = states.value + (carId to current.copy(isParked = isParked, updatedAtMs = updatedAtMs))
+            states.value = states.value + (
+                carId to current.copy(
+                    isParked = isParked,
+                    // Igual que el real: aparcar de nuevo borra quién se lo llevó la vez anterior.
+                    movedByUid = null,
+                    movedByName = null,
+                    updatedAtMs = updatedAtMs,
+                )
+                )
+        }
+    }
+
+    override suspend fun setStateTakenBy(carId: String, uid: String, name: String?, updatedAtMs: Long) {
+        states.value[carId]?.let { current ->
+            states.value = states.value + (
+                carId to current.copy(
+                    isParked = false,
+                    movedByUid = uid,
+                    movedByName = name,
+                    updatedAtMs = updatedAtMs,
+                )
+                )
         }
     }
 

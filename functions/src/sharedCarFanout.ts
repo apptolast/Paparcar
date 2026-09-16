@@ -18,6 +18,10 @@ export interface SharedCarState {
    *  si esta noticia es de su propio viaje. [SHARED-A-CAR-THAT-LEAVES-IS-NEWS-TOO-001] */
   parkedAtMs?: number;
   isParked?: boolean;
+  /** Quien se lleva el coche, cuando no es quien lo aparcó.
+   *  [SHARED-A-BT-CONNECT-PROVES-WHO-TOOK-THE-CAR-001] */
+  movedByUid?: string | null;
+  movedByName?: string | null;
   address?: { street?: string | null; city?: string | null } | null;
 }
 
@@ -80,18 +84,20 @@ export function verdictFor(before: SharedCarState | undefined, after: SharedCarS
  * car nobody has moved since yesterday, and every later write of that document — the group's name
  * changing, a stale sync landing — would re-announce a departure that happened a day ago.
  *
- * ⛔ The author is whoever PARKED it, and that is not a shortcut: the mirror is only flipped to
- * "gone" by the phone whose own session the state is showing. Somebody else taking the car does not
- * write this document at all — they write a new parking when they stop, which is the other verdict.
- * That is also why nobody needs to be told "the car is being driven by a person we cannot name".
+ * ⛔ **`movedBy` wins over `author`, and the whole point is who gets excluded.** `authorUid` answers
+ * a different question — who LEFT the car there — so on a takeover the naive reading would name the
+ * person who parked it and deliver the news to the person who is driving. When nobody wrote
+ * `movedBy`, the driver IS the parker: the mirror is only flipped to "gone" without it by the phone
+ * whose own session the state is showing. [SHARED-A-BT-CONNECT-PROVES-WHO-TOOK-THE-CAR-001]
  */
 function departureVerdict(before: SharedCarState | undefined, after: SharedCarState): FanoutVerdict {
   if (before?.isParked !== true) return { kind: 'skip', reason: 'not-parked' };
   const sessionId = after.sessionId;
   if (!sessionId || before.sessionId !== sessionId) return { kind: 'skip', reason: 'another-parking' };
-  const authorUid = after.authorUid;
+  const authorUid = after.movedByUid || after.authorUid;
   if (!authorUid) return { kind: 'skip', reason: 'no-author' };
-  return { kind: 'announce-left', sessionId, authorUid, authorName: after.authorName ?? '' };
+  const authorName = after.movedByUid ? after.movedByName ?? '' : after.authorName ?? '';
+  return { kind: 'announce-left', sessionId, authorUid, authorName };
 }
 
 /**

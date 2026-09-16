@@ -60,6 +60,28 @@ test('should_notReAnnounceTheDeparture_when_theDocumentIsWrittenAgain', () => {
   assert.deepEqual(verdictFor(parked, parked), { kind: 'skip', reason: 'not-parked' });
 });
 
+test('should_nameTheDriverAndSpareThem_when_anotherMemberTookTheCar', () => {
+  // [SHARED-A-BT-CONNECT-PROVES-WHO-TOOK-THE-CAR-001] Antonio se lleva el coche que aparcó Marta.
+  // Leer `authorUid` aquí nombraría a Marta y le mandaría el aviso a Antonio, que es quien conduce.
+  const after = state({ isParked: false, movedByUid: 'antonio', movedByName: 'Antonio' });
+  const v = verdictFor(state(), after);
+  assert.equal(v.kind, 'announce-left');
+  if (v.kind !== 'announce-left') return;
+  assert.equal(v.authorUid, 'antonio');
+  assert.equal(v.authorName, 'Antonio');
+  // Y el reparto excluye a quien conduce, no a quien aparcó.
+  const members = [member({ uid: 'marta' }), member({ uid: 'antonio' })];
+  assert.deepEqual(targetsFor(members, v.authorUid).map((m) => m.uid), ['marta']);
+});
+
+test('should_notLeakAStaleDriver_when_theTakeoverFieldsWereCleared', () => {
+  // `setStateParked` limpia `movedBy` al aparcar de nuevo; si no lo hiciera, la siguiente salida
+  // nombraría a quien condujo hace dos viajes.
+  const after = state({ isParked: false, movedByUid: null, movedByName: null });
+  const v = verdictFor(state(), after);
+  assert.equal(v.kind === 'announce-left' && v.authorUid, 'marta');
+});
+
 test('should_notCallItADeparture_when_itIsAnotherParkingBeingReplaced', () => {
   const before = state({ sessionId: 's-1' });
   const after = state({ sessionId: 's-2', isParked: false });

@@ -201,6 +201,9 @@ class CoordinatorDetectionService : LifecycleService() {
     // this service owns) — the receiver no longer computes it, so edge ordering is serialized here.
     private val evaluateBtArbitration: com.rndeveloper.paparcar.domain.usecase.detection.EvaluateBtArbitrationUseCase by inject()
     private val authRepository: com.apptolast.baselogin.domain.AuthRepository by inject()
+    // [SHARED-A-BT-CONNECT-PROVES-WHO-TOOK-THE-CAR-001] El grupo se entera de que me llevo el
+    // coche cuando el grabador mide conducción — nunca por el connect a secas.
+    private val sharedCarTakeover: com.rndeveloper.paparcar.data.sharedcar.SharedCarTakeoverAnnouncer by inject()
 
     /** [DET-RESIDENT-FGS-001 · F3] Alive only while resident in SENTRY — see [watchSentryPreconditions]. */
     private var sentryWatchJob: Job? = null
@@ -1750,6 +1753,15 @@ class CoordinatorDetectionService : LifecycleService() {
                 tripTracker.track(
                     primary = observeAdaptiveLocation(),
                     passive = locationDataSource.observePassiveLocation(),
+                    // [SHARED-A-BT-CONNECT-PROVES-WHO-TOOK-THE-CAR-001] El connect dijo EN QUÉ
+                    // coche estoy; esto dice que ese coche va a algún sitio. Con las dos, y solo
+                    // con las dos, el grupo puede saber que me lo llevo.
+                    onDrivingProven = {
+                        sharedCarTakeover.onDrivingProven(
+                            vehicleId = vehicleId,
+                            myUid = runCatching { authRepository.getCurrentSession()?.userId }.getOrNull(),
+                        )
+                    },
                 )
                 // Normal return = null trip (garage radio): sampling shut itself off.
                 PaparcarLogger.d(DIAG, "  ■ trip recorder ended — null trip")

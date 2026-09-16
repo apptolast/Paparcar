@@ -167,6 +167,15 @@ val dataModule = module {
             config = get(),
         )
     }
+    // [SHARED-A-BT-CONNECT-PROVES-WHO-TOOK-THE-CAR-001]
+    single {
+        com.rndeveloper.paparcar.data.sharedcar.SharedCarTakeoverAnnouncer(
+            sharedCarDao = get(),
+            parkingDao = get(),
+            profileDao = get(),
+            remote = get(),
+        )
+    }
     single<SharedCarRepository> {
         SharedCarRepositoryImpl(
             remote = get(),

@@ -25,6 +25,11 @@ import kotlinx.coroutines.launch
  * never touches `DetectionRuntimeState`. Its only output is route points; its only verdict is
  * about its own shutoff ([BtTripShutoff] — the garage-radio null trip).
  *
+ * [SHARED-A-BT-CONNECT-PROVES-WHO-TOOK-THE-CAR-001] …and `onDrivingProven` does not break that
+ * rule: it REPORTS a measurement, it does not act on one. Nothing it triggers arms, nominates or
+ * confirms a parking — it tells a shared car's group that the car is on the move, which is the one
+ * fact this class is the first to know for certain.
+ *
  * [track] returns normally ONLY on that null-trip shutoff; a real trip records until the caller
  * cancels (BT disconnect, or a detection job superseding the recorder with its own taps).
  */
@@ -33,7 +38,16 @@ class TripTracker(
     private val nowMs: () -> Long,
 ) {
 
-    suspend fun track(primary: Flow<GpsPoint>, passive: Flow<GpsPoint>): Unit = coroutineScope {
+    /**
+     * @param onDrivingProven se invoca **una sola vez**, en cuanto el viaje deja de poder ser un
+     *   null trip. Es el único instante en que este móvil sabe con certeza que el coche al que se
+     *   conectó va a algún sitio. Sus fallos no pueden tumbar la grabación.
+     */
+    suspend fun track(
+        primary: Flow<GpsPoint>,
+        passive: Flow<GpsPoint>,
+        onDrivingProven: suspend () -> Unit = {},
+    ): Unit = coroutineScope {
         val startedAtMs = nowMs()
         var firstFix: GpsPoint? = null
         var sawDrivingSpeed = false
@@ -60,8 +74,21 @@ class TripTracker(
             }
         }
 
+        var announced = false
         while (true) {
             delay(SHUTOFF_CHECK_INTERVAL_MS)
+            // ⛔ Las MISMAS dos pruebas que absuelven del null trip, no un umbral nuevo: la
+            // velocidad declarada cuando afirma movimiento, o el desplazamiento medido cuando esa
+            // velocidad nunca llega. Un viaje real de arrastre —el que el campo `speed` no cuenta—
+            // es tan viaje como el otro, y con una sola de las dos el aviso al grupo se perdería
+            // justo en los móviles cuyo GPS calla. [SHARED-A-BT-CONNECT-PROVES-WHO-TOOK-THE-CAR-001]
+            val proven = sawDrivingSpeed ||
+                (maxDisplacementM ?: 0.0) >= BtTripShutoff.NULL_TRIP_RADIUS_M
+            if (proven && !announced) {
+                announced = true
+                runCatching { onDrivingProven() }
+                    .onFailure { PaparcarLogger.w(DIAG, "⚠ onDrivingProven threw: ${it.message}") }
+            }
             if (sawDrivingSpeed) {
                 // Driving observed — the null-trip question is settled for this ride. Record until
                 // the caller cancels; join() suspends with the collectors.

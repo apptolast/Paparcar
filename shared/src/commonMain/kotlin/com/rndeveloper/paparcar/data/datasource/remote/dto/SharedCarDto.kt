@@ -59,6 +59,20 @@ data class SharedCarStateDto(
     val placeInfo: PlaceInfoDto? = null,
     /** False = the car has left; the position STAYS as the last known one, with its hour. */
     val isParked: Boolean = true,
+    /**
+     * Quién se ha llevado el coche, cuando no es quien lo aparcó.
+     * [SHARED-A-BT-CONNECT-PROVES-WHO-TOOK-THE-CAR-001]
+     *
+     * ⛔ Existe porque [authorUid] responde a otra pregunta —quién lo DEJÓ ahí— y la salida puede
+     * ser de otra persona. Sin este par, el aviso de «se lo han llevado» nombraría a quien aparcó y
+     * se lo mandaría a quien está conduciendo.
+     *
+     * ⛔ No se cachea en Room a propósito: el único que lo lee es el reparto del servidor, y añadir
+     * dos columnas obligaría a una migración para un dato que ninguna pantalla pide. Si algún día
+     * la ficha del coche quiere decir «lo lleva Marta», ESE será el ticket que pague la migración.
+     */
+    val movedByUid: String? = null,
+    val movedByName: String? = null,
     val updatedAtMs: Long = 0L,
 )
 

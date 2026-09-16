@@ -86,9 +86,34 @@ class RemoteSharedCarDataSourceImpl(
 
     override suspend fun setStateParked(carId: String, isParked: Boolean, updatedAtMs: Long) {
         runCatching {
-            state(carId).update(mapOf(FIELD_IS_PARKED to isParked, FIELD_UPDATED_AT_MS to updatedAtMs))
+            state(carId).update(
+                mapOf(
+                    FIELD_IS_PARKED to isParked,
+                    FIELD_UPDATED_AT_MS to updatedAtMs,
+                    // ⛔ Y se limpia quién se lo llevó la vez anterior. Un `movedBy` viejo colgando
+                    // de un aparcamiento nuevo haría que la siguiente salida nombrase a quien
+                    // condujo hace dos viajes. [SHARED-A-BT-CONNECT-PROVES-WHO-TOOK-THE-CAR-001]
+                    FIELD_MOVED_BY_UID to null,
+                    FIELD_MOVED_BY_NAME to null,
+                ),
+            )
         }.onFailure {
             PaparcarLogger.w(TAG, "setStateParked skipped — no state document yet for $carId")
+        }
+    }
+
+    override suspend fun setStateTakenBy(carId: String, uid: String, name: String?, updatedAtMs: Long) {
+        runCatching {
+            state(carId).update(
+                mapOf(
+                    FIELD_IS_PARKED to false,
+                    FIELD_MOVED_BY_UID to uid,
+                    FIELD_MOVED_BY_NAME to name,
+                    FIELD_UPDATED_AT_MS to updatedAtMs,
+                ),
+            )
+        }.onFailure {
+            PaparcarLogger.w(TAG, "setStateTakenBy skipped — no state document yet for $carId")
         }
     }
 
@@ -224,6 +249,8 @@ class RemoteSharedCarDataSourceImpl(
                 address = runCatching { get<AddressDto?>(FIELD_ADDRESS) }.getOrNull(),
                 placeInfo = runCatching { get<PlaceInfoDto?>(FIELD_PLACE_INFO) }.getOrNull(),
                 isParked = get<Boolean?>(FIELD_IS_PARKED) ?: false,
+                movedByUid = get<String?>(FIELD_MOVED_BY_UID),
+                movedByName = get<String?>(FIELD_MOVED_BY_NAME),
                 updatedAtMs = getLongCompat(FIELD_UPDATED_AT_MS),
             )
         }.getOrElse { e ->
@@ -352,6 +379,8 @@ class RemoteSharedCarDataSourceImpl(
         const val FIELD_ADDRESS = "address"
         const val FIELD_PLACE_INFO = "placeInfo"
         const val FIELD_IS_PARKED = "isParked"
+        const val FIELD_MOVED_BY_UID = "movedByUid"
+        const val FIELD_MOVED_BY_NAME = "movedByName"
         const val FIELD_IS_ACTIVE = "isActive"
         const val FIELD_ENDED_AT_MS = "endedAtMs"
         const val FIELD_UPDATED_AT_MS = "updatedAtMs"
