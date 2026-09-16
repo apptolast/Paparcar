@@ -62,6 +62,7 @@ class RoomFuelWatchRepository(
                     reportedAtMs = sample.reportedAtMs,
                     observedAtMs = sample.observedAtMs,
                     observedDay = sample.observedDay,
+                    isSelf = sample.isSelf,
                 )
             },
         )
@@ -108,6 +109,7 @@ class RoomFuelWatchRepository(
             reportedAtMs = reportedAtMs,
             observedAtMs = observedAtMs,
             observedDay = observedDay,
+            isSelf = isSelf,
         )
     }
 

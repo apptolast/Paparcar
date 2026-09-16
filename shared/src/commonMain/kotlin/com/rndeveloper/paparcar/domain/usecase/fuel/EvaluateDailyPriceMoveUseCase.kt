@@ -68,6 +68,14 @@ class EvaluateDailyPriceMoveUseCase {
         // its price, and 1,7 PLN is not cheaper than 1,6 EUR.
         if (current.perUnit.currency != previous.perUnit.currency) return@mapNotNull null
 
+        // ⛔ And the same argument, one unit down: an Italian forecourt that stops quoting `self`
+        // still quotes `servito`, measured up to **0,35 €/L** dearer. Comparing those two would
+        // wake a user at dawn to report a 35-cent rise at a pump whose price never moved — and it
+        // is the LOUDEST possible version of the mistake, because the delta is an order of
+        // magnitude above the three-cent threshold this whole verdict is tuned for.
+        // [FUEL-ITALY-A-PRICE-DEPENDS-ON-WHO-PUMPS-IT-001]
+        if (current.isSelf != previous.isSelf) return@mapNotNull null
+
         val delta = current.perUnit.amount - previous.perUnit.amount
         if (kotlin.math.abs(delta) < minDeltaPerUnit) return@mapNotNull null
 

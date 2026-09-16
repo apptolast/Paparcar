@@ -215,6 +215,7 @@
     <string name="licenses_source_minetur_purpose">Preços na bomba em Espanha</string>
     <string name="licenses_source_prix_carburants_purpose">Preços na bomba em França</string>
     <string name="licenses_source_tankerkoenig_purpose">Preços na bomba na Alemanha</string>
+    <string name="licenses_source_osservaprezzi_purpose">Preços na bomba em Itália</string>
 
     <!-- Mensagens de erro genéricas -->
     <string name="error_unknown">Algo correu mal</string>
@@ -939,6 +940,7 @@
     <string name="home_fuel_reported_at">Preços comunicados às %1$s</string>
     <string name="home_fuel_oldest_price">Preço mais antigo: %1$s</string>
     <string name="home_fuel_live_prices">Os preços são atualizados em tempo real</string>
+    <string name="home_fuel_attended_price">Com frentista</string>
     <string name="home_fuel_remembered">Sem ligação: estas são as bombas de combustível que vimos aqui %1$s.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
     <string name="subject_fuel_stations">Combustível</string>

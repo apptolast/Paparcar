@@ -28,7 +28,12 @@ class FuelWatchStoreTest {
 
     private val context: Context get() = ApplicationProvider.getApplicationContext()
 
-    private fun sample(day: Long, amount: Double, reportedAtMs: Long?) = FuelPriceHistoryEntity(
+    private fun sample(
+        day: Long,
+        amount: Double,
+        reportedAtMs: Long?,
+        isSelf: Boolean? = null,
+    ) = FuelPriceHistoryEntity(
         stationKey = "minetur|1234",
         fuelType = "DIESEL",
         priceAmount = amount,
@@ -36,6 +41,7 @@ class FuelWatchStoreTest {
         reportedAtMs = reportedAtMs,
         observedAtMs = day * 86_400_000L,
         observedDay = day,
+        isSelf = isSelf,
     )
 
     private val followed = FollowedFuelStationEntity(
@@ -56,7 +62,9 @@ class FuelWatchStoreTest {
         dao.follow(followed)
         dao.upsertSamples(listOf(sample(day = 100, amount = 1.659, reportedAtMs = 100_000L)))
         // Same day, later reading — the afternoon price, not a second measurement to compare with.
-        dao.upsertSamples(listOf(sample(day = 100, amount = 1.649, reportedAtMs = 150_000L)))
+        dao.upsertSamples(
+            listOf(sample(day = 100, amount = 1.649, reportedAtMs = 150_000L, isSelf = true)),
+        )
 
         val history = dao.historyFor("minetur|1234", "DIESEL", sinceDay = 0)
         db.close()
@@ -64,6 +72,10 @@ class FuelWatchStoreTest {
         assertEquals(1, history.size, "eight readings in one afternoon are ONE row")
         assertEquals(1.649, history.single().priceAmount, 1e-9)
         assertEquals(150_000L, history.single().reportedAtMs, "the last reading of the day wins")
+        // ⛔ MIGRATION_14_15's other half: without the mode on the history row, tomorrow's verdict
+        // cannot tell an Italian station that switched to attended service from one that raised
+        // its price by 0,35 €/L. [FUEL-ITALY-A-PRICE-DEPENDS-ON-WHO-PUMPS-IT-001]
+        assertEquals(true, history.single().isSelf, "the pump the reading came from is stored")
     }
 
     @Test

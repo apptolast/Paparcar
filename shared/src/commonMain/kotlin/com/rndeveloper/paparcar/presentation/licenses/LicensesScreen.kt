@@ -41,6 +41,7 @@ import paparcar.composeapp.generated.resources.licenses_source_minetur_purpose
 import paparcar.composeapp.generated.resources.licenses_source_openvan_purpose
 import paparcar.composeapp.generated.resources.licenses_source_osm_purpose
 import paparcar.composeapp.generated.resources.licenses_source_prix_carburants_purpose
+import paparcar.composeapp.generated.resources.licenses_source_osservaprezzi_purpose
 import paparcar.composeapp.generated.resources.licenses_source_tankerkoenig_purpose
 import paparcar.composeapp.generated.resources.licenses_count
 import paparcar.composeapp.generated.resources.licenses_error
@@ -100,9 +101,9 @@ fun LicensesContent(
 
             // ⛔ The data-source attribution survives this branch on purpose.
             // [FUEL-NATIONAL-AVERAGE-FROM-OPENVAN-001] The OSS list is read from a file the build
-            // generates, and it can fail to load. The five data sources are not read from
-            // anything — they are compiled in — and four of their licences (CC BY 4.0 ×2, ODbL,
-            // Licence Ouverte) REQUIRE the credit. Letting a missing library file take the attribution
+            // generates, and it can fail to load. The six data sources are not read from
+            // anything — they are compiled in — and five of their licences (CC BY 4.0 ×2, ODbL,
+            // Licence Ouverte, IODL 2.0) REQUIRE the credit. Letting a missing library file take the attribution
             // down with it would turn a cosmetic failure into a licence breach.
             state.failedToLoad || state.libraries.isEmpty() -> Column(
                 modifier = Modifier.fillMaxSize().padding(padding).padding(SCREEN_H_PADDING),
@@ -250,6 +251,19 @@ private val DATA_SOURCES = listOf(
         name = "Tankerkönig",
         purpose = Res.string.licenses_source_tankerkoenig_purpose,
         license = "CC BY 4.0",
+    ),
+    // The SERVICE again, by the same reasoning as the two above: Osservaprezzi Carburanti is what
+    // answers and what a reader can open, MIMIT is the ministry that runs it.
+    //
+    // ⚠️ The licence is the one MIMIT declares for this very register's open data — IODL 2.0,
+    // which asks for the publisher to be named and permits commercial reuse. The live search
+    // states none of its own, and inventing a laxer one because the endpoint is quiet about it
+    // would be the Portugal mistake with the sign reversed.
+    // [FUEL-ITALY-A-PRICE-DEPENDS-ON-WHO-PUMPS-IT-001]
+    DataSourceCredit(
+        name = "Osservaprezzi Carburanti (MIMIT)",
+        purpose = Res.string.licenses_source_osservaprezzi_purpose,
+        license = "IODL 2.0",
     ),
 )
 

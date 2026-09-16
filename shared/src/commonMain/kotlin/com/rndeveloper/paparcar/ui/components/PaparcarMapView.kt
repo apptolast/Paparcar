@@ -76,6 +76,7 @@ import com.rndeveloper.paparcar.domain.model.SpotFreshness
 import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
 import com.rndeveloper.paparcar.domain.usecase.parkings.NearbyPublicParking
 import com.rndeveloper.paparcar.presentation.home.model.formatPumpPrice
+import com.rndeveloper.paparcar.presentation.home.model.isAttendedService
 import com.rndeveloper.paparcar.presentation.util.isManualReport
 import com.rndeveloper.paparcar.presentation.util.freshness
 import com.rndeveloper.paparcar.presentation.util.zoneIconFor
@@ -825,6 +826,18 @@ fun PaparcarMapView(
     /** Localised name of the fuel those prices are for, muted beside each figure. Resolved by the
      *  caller (it needs a composable stringResource); null when the answer was fetched fuel-less. */
     fuelPricesLabel: String? = null,
+    /**
+     * Localised word for an attended pump, appended to [fuelPricesLabel] on the capsules whose
+     * price is one. [FUEL-ITALY-A-PRICE-DEPENDS-ON-WHO-PUMPS-IT-001]
+     *
+     * It rides the qualifier line rather than getting one of its own because that line's whole job
+     * is already to stop a bare figure from being read as anything — and the mode is the second
+     * half of the same sentence: not just *what* this price is for, but *which* price it is. Two
+     * Italian capsules side by side can be 0,35 €/L apart for that reason alone.
+     *
+     * Resolved by the caller for the same reason as the one above.
+     */
+    fuelAttendedLabel: String? = null,
     onFuelStationClick: (stationId: String) -> Unit = {},
     /** The public-parkings layer: empty = layer off. [PARKINGS-ON-THE-MAP-001] */
     publicParkings: List<NearbyPublicParking> = emptyList(),
@@ -987,7 +1000,7 @@ fun PaparcarMapView(
         // Cruzar el umbral del rotulo de zona cambia su contentId, asi que la lista tiene que
         // rehacerse. [UI-A-ZONE-IS-AN-AREA-NOT-A-PIN-001]
         zoneNamed,
-        fuelStations, selectedFuelStationId, fuelPricesLabel,
+        fuelStations, selectedFuelStationId, fuelPricesLabel, fuelAttendedLabel,
         publicParkings, selectedPublicParkingId,
         departure, arrival, freshnessMinute, themeKey,
         // The trip dots' ids carry the watch, so a change of watch has to rebuild this list — same
@@ -1037,7 +1050,9 @@ fun PaparcarMapView(
                         contentId = fuelStationContentId(
                             stationId = nearby.station.id,
                             priceText = priceText,
-                            fuelLabel = fuelPricesLabel.takeIf { priceText != null },
+                            fuelLabel = fuelCapsuleLabel(
+                                fuelPricesLabel, fuelAttendedLabel, nearby, priceText
+                            ),
                             selected = nearby.station.id == selectedFuelStationId,
                             themeKey = themeKey,
                             dim = dimSpots && nearby.station.id != selectedFuelStationId,
@@ -1201,7 +1216,7 @@ fun PaparcarMapView(
     // never refreshed reliably. [MAP-MARKERS-DIM-002]
     val customMarkerContent = remember(
         clusterCountByCoords, enRouteBuckets, parkedVehicles, zones,
-        fuelStations, selectedFuelStationId, fuelPricesLabel,
+        fuelStations, selectedFuelStationId, fuelPricesLabel, fuelAttendedLabel,
         publicParkings, selectedPublicParkingId,
         dimSpots,
         parkingVehicleSize, parkingVehicleCarbody, parkingVehicleColor, parkingIsActive,
@@ -1404,7 +1419,7 @@ fun PaparcarMapView(
         val fuelHandlers: Map<String, @Composable (Marker) -> Unit> =
             fuelStations.flatMap { nearby ->
                 val priceText = nearby.price?.let { formatPumpPrice(it.perUnit.amount) }
-                val label = fuelPricesLabel.takeIf { priceText != null }
+                val label = fuelCapsuleLabel(fuelPricesLabel, fuelAttendedLabel, nearby, priceText)
                 listOf<Pair<String, @Composable (Marker) -> Unit>>(
                     fuelStationContentId(nearby.station.id, priceText, label, selected = false, themeKey = themeKey) to { _: Marker ->
                         FuelStationMarker(priceText = priceText, fuelLabel = label, selected = false)
@@ -2259,3 +2274,34 @@ private fun FreeSpotWithOverlays(
         approximate = approximate,
     )
 }
+
+/**
+ * The muted line under a capsule's figure: which fuel it is, and who pumps it when that is a
+ * question. [FUEL-ITALY-A-PRICE-DEPENDS-ON-WHO-PUMPS-IT-001]
+ *
+ * ⛔ It is computed in ONE place because it is also part of `fuelStationContentId`, and kmpmaps
+ * caches the drawn bitmap by that key. A capsule built with the mode and registered without it —
+ * or the other way round — would ask for a bitmap nobody rendered, which is how a marker goes
+ * blank instead of wrong. Same trap the theme fell into. [UI-THE-ASK-SHOWS-ITS-PLACE-001]
+ *
+ * Null when there is no price: a qualifier with nothing to qualify is just noise on a pin.
+ */
+private fun fuelCapsuleLabel(
+    fuelLabel: String?,
+    attendedLabel: String?,
+    nearby: NearbyFuelStation,
+    priceText: String?,
+): String? {
+    if (priceText == null) return null
+    val attended = nearby.price?.isAttendedService() == true
+    return when {
+        fuelLabel != null && attended && attendedLabel != null ->
+            "$fuelLabel$CAPSULE_QUALIFIER_SEPARATOR$attendedLabel"
+        // The mode still gets said with no fuel name to hang it on: it is the half that changes
+        // WHICH price this is, so it is the half that cannot be dropped for lack of room.
+        attended -> attendedLabel
+        else -> fuelLabel
+    }
+}
+
+private const val CAPSULE_QUALIFIER_SEPARATOR = " · "

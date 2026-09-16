@@ -7,11 +7,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.rndeveloper.paparcar.domain.model.Money
+import com.rndeveloper.paparcar.domain.fuel.StationPrice
 import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
+import com.rndeveloper.paparcar.presentation.home.model.isAttendedService
 import com.rndeveloper.paparcar.presentation.home.model.pumpPriceLabel
 import com.rndeveloper.paparcar.presentation.util.formatDistance
 import com.rndeveloper.paparcar.ui.components.PapDivider
@@ -22,6 +24,7 @@ import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.home_fuel_attended_price
 import paparcar.composeapp.generated.resources.location_fallback_station
 
 /**
@@ -69,7 +72,7 @@ fun HomeFuelStationRow(
             // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
             PapIconTile(icon = PaparcarIcons.Fuel, tint = PapColor.actionText)
         },
-        trailing = station.price?.let { price -> { FuelPriceLabel(price.perUnit) } },
+        trailing = station.price?.let { price -> { FuelPriceLabel(price) } },
     )
 }
 
@@ -99,26 +102,42 @@ private fun subtitleFor(station: NearbyFuelStation, title: String, hasFix: Boole
 }
 
 /**
- * The price, at the pump's own precision.
+ * The price, at the pump's own precision — and who pumps it, when that is a question.
  *
  * ⛔ **Three decimals, not two.** Fuel is quoted per litre to a tenth of a cent, and that tenth is
  * frequently the entire difference between two forecourts — rounding 1,879 and 1,875 both to "1,88"
  * would erase exactly the comparison this list exists to make.
  *
+ * ⛔ And that same comparison is what the second line protects. In Italy the same pump quotes `self`
+ * and `servito` up to **0,35 €/L** apart, so an unqualified figure here could be either, and two
+ * rows side by side could be quoting two different products.
+ * [FUEL-ITALY-A-PRICE-DEPENDS-ON-WHO-PUMPS-IT-001]
+ *
  * LECTURA, not CIFRA: it shares a line box with a name in MARCA, and a figure inside a ROW stays in
  * the reading voice. [UI-TYPE-TWO-VOICES-ONE-ROW-001]
  */
 @Composable
-private fun FuelPriceLabel(price: Money) {
-    Text(
-        // The shared formatter: row, map capsule and peek must quote one price the same way.
-        // [FUEL-STATIONS-MAP-AND-PEEK-001]
-        text = price.pumpPriceLabel(),
-        style = PaparcarType.current.subtitle,
-        color = MaterialTheme.colorScheme.onSurface,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-    )
+private fun FuelPriceLabel(price: StationPrice) {
+    Column(horizontalAlignment = Alignment.End) {
+        Text(
+            // The shared formatter: row, map capsule and peek must quote one price the same way.
+            // [FUEL-STATIONS-MAP-AND-PEEK-001]
+            text = price.perUnit.pumpPriceLabel(),
+            style = PaparcarType.current.subtitle,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        if (price.isAttendedService()) {
+            Text(
+                text = stringResource(Res.string.home_fuel_attended_price),
+                style = PaparcarType.current.caption,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
 }
 
 /** Divider inset to clear the glyph, so the rows read as one column of names. */

@@ -371,6 +371,7 @@
     <string name="licenses_source_minetur_purpose">Pump prices in Spain</string>
     <string name="licenses_source_prix_carburants_purpose">Pump prices in France</string>
     <string name="licenses_source_tankerkoenig_purpose">Pump prices in Germany</string>
+    <string name="licenses_source_osservaprezzi_purpose">Pump prices in Italy</string>
     <string name="settings_contact">Contact</string>
     <string name="settings_send_diagnostics">Report a problem</string>
     <string name="settings_send_diagnostics_confirm_title">Send diagnostics?</string>
@@ -975,6 +976,8 @@
     <string name="home_fuel_reported_at">Prices reported at %1$s</string>
     <string name="home_fuel_oldest_price">Oldest price: %1$s</string>
     <string name="home_fuel_live_prices">Prices update in real time</string>
+    <!-- El precio de un surtidor atendido, que no es el mismo que el self [FUEL-ITALY-A-PRICE-DEPENDS-ON-WHO-PUMPS-IT-001] -->
+    <string name="home_fuel_attended_price">Attended service</string>
     <string name="home_fuel_remembered">No connection: these are the stations we saw here %1$s.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
     <string name="subject_fuel_stations">Fuel stations</string>

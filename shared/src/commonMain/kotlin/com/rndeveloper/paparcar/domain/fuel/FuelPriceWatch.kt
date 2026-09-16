@@ -66,6 +66,16 @@ data class FuelPriceSample(
     val observedAtMs: Long,
     /** Local day of [observedAtMs] — see [localDayOf]. The key that makes this a SERIES, not a log. */
     val observedDay: Long,
+    /**
+     * Which pump this reading was taken from, where the source distinguishes.
+     * [FUEL-ITALY-A-PRICE-DEPENDS-ON-WHO-PUMPS-IT-001]
+     *
+     * ⛔ It travels with the sample for exactly the reason the currency does: an Italian station
+     * that stops quoting `self` still quotes `servito`, and the two are measured up to 0,35 €/L
+     * apart — so yesterday's self reading against today's attended one is not a price that moved.
+     * Same product, same station, two different questions.
+     */
+    val isSelf: Boolean? = null,
 )
 
 /**

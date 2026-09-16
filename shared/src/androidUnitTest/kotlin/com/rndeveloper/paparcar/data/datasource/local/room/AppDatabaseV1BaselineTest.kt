@@ -180,6 +180,11 @@ class AppDatabaseV1BaselineTest {
                     priceCurrency = "EUR",
                     reportedAtMs = 1_788_204_119_405,
                     availability = null,
+                    // MIGRATION_14_15's witness [FUEL-ITALY-A-PRICE-DEPENDS-ON-WHO-PUMPS-IT-001]:
+                    // written as ATTENDED on purpose, because the default the column would have
+                    // taken is the opposite claim and a `false` that survives by accident proves
+                    // nothing. Nothing else in this file would notice the column missing.
+                    isSelf = false,
                 ),
             ),
         )
@@ -262,6 +267,12 @@ class AppDatabaseV1BaselineTest {
             1_788_204_119_405,
             cachedFuels.single().reportedAtMs,
             "a stored price keeps its own hour, which is what makes storing it honest at all",
+        )
+        assertEquals(
+            false,
+            cachedFuels.single().isSelf,
+            "the 14→15 migration must carry the pump's mode, or the disk relabels an attended " +
+                "Italian price as self-service on the next cold start",
         )
         assertEquals(
             8.3f,

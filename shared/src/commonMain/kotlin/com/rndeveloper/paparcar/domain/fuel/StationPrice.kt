@@ -19,8 +19,7 @@ import com.rndeveloper.paparcar.domain.model.Money
  *
  * So the invariant lives in one place and cannot drift: **you cannot hold a price without its
  * hour.** A parallel `Map<FuelType, ...>` of timestamps would be the version that silently
- * misaligns. It is also the box Italy's `isSelf` goes in — 33.483 station+fuel pairs there carry
- * `self` and `servito` prices 0,36 €/L apart, which makes it part of the price's identity too.
+ * misaligns. It is also the box Italy's [isSelf] goes in — same reasoning, second property.
  */
 data class StationPrice(
     /** Cost of one litre at this pump. Named like [FuelPrice.perUnit] so the two read as siblings —
@@ -38,4 +37,19 @@ data class StationPrice(
      * Null is a real answer, never a zero: an unparseable date costs the stamp, not the price.
      */
     val reportedAtMs: Long? = null,
+    /**
+     * Whether you pump it yourself, where the source distinguishes — and **null where it does not**.
+     * [FUEL-ITALY-A-PRICE-DEPENDS-ON-WHO-PUMPS-IT-001]
+     *
+     * It sits inside the price for the same reason the hour does: in Italy it is not metadata about
+     * the station, it is *which price this is*. The same pump quotes `self` and `servito`, and the
+     * measured gap reaches **0,35 €/L** — treble the disagreement that disqualified a whole data
+     * provider for this feature. A price shown without knowing which of the two it is cannot be
+     * compared against the one next door.
+     *
+     * ⛔ Null is NOT "servito" and NOT "self": it is Spain, France, Germany and OSM, whose feeds
+     * quote one price per pump and never raise the question. A `Boolean` with a default would have
+     * had four countries silently claiming self-service.
+     */
+    val isSelf: Boolean? = null,
 )

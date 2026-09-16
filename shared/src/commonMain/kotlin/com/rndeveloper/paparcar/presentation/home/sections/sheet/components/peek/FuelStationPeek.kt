@@ -28,6 +28,7 @@ import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapS
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetEyebrowTone
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetLead
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetStepper
+import com.rndeveloper.paparcar.presentation.home.model.isAttendedService
 import com.rndeveloper.paparcar.presentation.home.model.pumpPriceLabel
 import com.rndeveloper.paparcar.presentation.util.distanceMeters
 import com.rndeveloper.paparcar.presentation.util.formatDistance
@@ -45,6 +46,7 @@ import paparcar.composeapp.generated.resources.fuel_peek_follow
 import paparcar.composeapp.generated.resources.fuel_peek_following
 import paparcar.composeapp.generated.resources.fuel_peek_step_next
 import paparcar.composeapp.generated.resources.fuel_peek_step_prev
+import paparcar.composeapp.generated.resources.home_fuel_attended_price
 import paparcar.composeapp.generated.resources.home_fuel_live_prices
 import paparcar.composeapp.generated.resources.home_fuel_reported_at
 import paparcar.composeapp.generated.resources.location_fallback_station
@@ -159,6 +161,10 @@ internal fun FuelStationPeek(
                     // one place where France's per-price hours actually differ from each other.
                     // [FUEL-FRANCE-A-PRICE-CARRIES-ITS-OWN-HOUR-001]
                     reportedAtMs = price?.reportedAtMs,
+                    // And each pump's own MODE: this is the surface that itemises fuels, so it is
+                    // also where one Italian station can show petrol served and diesel self.
+                    // [FUEL-ITALY-A-PRICE-DEPENDS-ON-WHO-PUMPS-IT-001]
+                    attended = price?.isAttendedService() == true,
                 )
             }
             // Only where the SOURCE stamps the whole response — Spain does, France stamps each
@@ -232,7 +238,12 @@ internal fun FuelStationPeek(
  * [FUEL-FRANCE-A-PRICE-CARRIES-ITS-OWN-HOUR-001]
  */
 @Composable
-private fun FuelPriceRow(label: String, priceLabel: String?, reportedAtMs: Long?) {
+private fun FuelPriceRow(
+    label: String,
+    priceLabel: String?,
+    reportedAtMs: Long?,
+    attended: Boolean,
+) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -250,6 +261,16 @@ private fun FuelPriceRow(label: String, priceLabel: String?, reportedAtMs: Long?
                     style = PaparcarType.current.subtitle,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
+                // Who pumps it, then how old it is — in that order, because the mode changes WHICH
+                // price this is and the age only changes how much to trust it. Both are captions on
+                // purpose: a figure qualified in two voices would read as two figures.
+                if (attended) {
+                    Text(
+                        text = stringResource(Res.string.home_fuel_attended_price),
+                        style = PaparcarType.current.caption,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 // Only when the source dated THIS price. OSM has none, and an undated price simply
                 // says nothing rather than borrowing a neighbour's hour.
                 if (reportedAtMs != null) {

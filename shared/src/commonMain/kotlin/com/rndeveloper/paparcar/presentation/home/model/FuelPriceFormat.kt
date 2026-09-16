@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.presentation.home.model
 
+import com.rndeveloper.paparcar.domain.fuel.StationPrice
 import com.rndeveloper.paparcar.domain.model.Money
 import kotlin.math.roundToInt
 
@@ -21,6 +22,20 @@ internal fun formatPumpPrice(amount: Double): String {
 
 /** `1.879 EUR` — amount at the pump's precision, currency as the feed states it. */
 internal fun Money.pumpPriceLabel(): String = "${formatPumpPrice(amount)} $currency"
+
+/**
+ * Whether this figure needs saying out loud that somebody else pumps it.
+ * [FUEL-ITALY-A-PRICE-DEPENDS-ON-WHO-PUMPS-IT-001]
+ *
+ * ⛔ **Only the attended price is marked, never the self one.** Self-service is the default
+ * everywhere the question is even asked, and in the four countries that do not ask it
+ * [StationPrice.isSelf] is null — so marking "self" would put a word on every price in Europe to
+ * qualify the exception. The exception is what gets the word.
+ *
+ * Asked as a question so no call site spells `isSelf == false`, which is the comparison that reads
+ * as a typo and gets "simplified" into `!isSelf` — silently marking every French price attended.
+ */
+internal fun StationPrice.isAttendedService(): Boolean = isSelf == false
 
 private const val PRICE_SCALE = 1_000.0
 private const val PRICE_DECIMALS = 3

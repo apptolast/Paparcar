@@ -96,6 +96,9 @@ class RunFuelPriceWatchUseCase(
                     reportedAtMs = price.reportedAtMs,
                     observedAtMs = now,
                     observedDay = today,
+                    // Carried so tomorrow's comparison can refuse to compare two different pumps.
+                    // [FUEL-ITALY-A-PRICE-DEPENDS-ON-WHO-PUMPS-IT-001]
+                    isSelf = price.isSelf,
                 )
             }
         watchRepository.recordSamples(samples)

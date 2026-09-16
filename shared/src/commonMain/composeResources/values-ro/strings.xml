@@ -217,6 +217,7 @@
     <string name="licenses_source_minetur_purpose">Prețuri la pompă în Spania</string>
     <string name="licenses_source_prix_carburants_purpose">Prețuri la pompă în Franța</string>
     <string name="licenses_source_tankerkoenig_purpose">Prețuri la pompă în Germania</string>
+    <string name="licenses_source_osservaprezzi_purpose">Prețuri la pompă în Italia</string>
 
     <!-- Generic error messages -->
     <string name="error_unknown">Ceva a mers greșit</string>
@@ -957,6 +958,7 @@
     <string name="home_fuel_reported_at">Prețuri raportate la %1$s</string>
     <string name="home_fuel_oldest_price">Cel mai vechi preț: %1$s</string>
     <string name="home_fuel_live_prices">Prețurile se actualizează în timp real</string>
+    <string name="home_fuel_attended_price">Cu deservire</string>
     <string name="home_fuel_remembered">Fără conexiune: acestea sunt benzinăriile văzute aici %1$s.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
     <string name="subject_fuel_stations">Benzinării</string>

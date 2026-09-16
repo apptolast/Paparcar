@@ -324,4 +324,23 @@ private val MIGRATION_13_14 = object : Migration(13, 14) {
     }
 }
 
-val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14)
+/**
+ * v15 [FUEL-ITALY-A-PRICE-DEPENDS-ON-WHO-PUMPS-IT-001]: a remembered price says whether you pumped
+ * it yourself.
+ *
+ * ⛔ **Nullable on purpose, with no default.** Null is the honest value for every row already on
+ * disk and for every row Spain, France, Germany and OSM will ever write: their feeds quote one
+ * price per pump and the question does not arise. A `NOT NULL DEFAULT 0` would have written
+ * "attended service" across four countries' worth of cache in one statement.
+ */
+private val MIGRATION_14_15 = object : Migration(14, 15) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("ALTER TABLE `fuel_station_fuels` ADD COLUMN `isSelf` INTEGER")
+        // ⛔ BOTH tables, or the price watch keeps the half that lets it lie. A followed Italian
+        // station that stops quoting `self` still quotes `servito` — 0,35 €/L dearer, measured —
+        // and without the mode on the HISTORY row the overnight verdict reads that as a rise.
+        connection.execSQL("ALTER TABLE `fuel_price_history` ADD COLUMN `isSelf` INTEGER")
+    }
+}
+
+val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15)

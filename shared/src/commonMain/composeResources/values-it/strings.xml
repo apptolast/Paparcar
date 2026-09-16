@@ -215,6 +215,7 @@
     <string name="licenses_source_minetur_purpose">Prezzi alla pompa in Spagna</string>
     <string name="licenses_source_prix_carburants_purpose">Prezzi alla pompa in Francia</string>
     <string name="licenses_source_tankerkoenig_purpose">Prezzi alla pompa in Germania</string>
+    <string name="licenses_source_osservaprezzi_purpose">Prezzi alla pompa in Italia</string>
 
     <!-- Messaggi di errore generici -->
     <string name="error_unknown">Qualcosa è andato storto</string>
@@ -939,6 +940,7 @@
     <string name="home_fuel_reported_at">Prezzi comunicati alle %1$s</string>
     <string name="home_fuel_oldest_price">Prezzo più vecchio: %1$s</string>
     <string name="home_fuel_live_prices">I prezzi si aggiornano in tempo reale</string>
+    <string name="home_fuel_attended_price">Servito</string>
     <string name="home_fuel_remembered">Nessuna connessione: questi sono i distributori visti qui %1$s.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
     <string name="subject_fuel_stations">Distributori</string>

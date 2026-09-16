@@ -215,6 +215,7 @@
     <string name="licenses_source_minetur_purpose">Ceny na dystrybutorach w Hiszpanii</string>
     <string name="licenses_source_prix_carburants_purpose">Ceny na dystrybutorach we Francji</string>
     <string name="licenses_source_tankerkoenig_purpose">Ceny na dystrybutorach w Niemczech</string>
+    <string name="licenses_source_osservaprezzi_purpose">Ceny na dystrybutorach we Włoszech</string>
 
     <!-- Generic error messages -->
     <string name="error_unknown">Coś poszło nie tak</string>
@@ -961,6 +962,7 @@
     <string name="home_fuel_reported_at">Ceny zgłoszone o %1$s</string>
     <string name="home_fuel_oldest_price">Najstarsza cena: %1$s</string>
     <string name="home_fuel_live_prices">Ceny są aktualizowane w czasie rzeczywistym</string>
+    <string name="home_fuel_attended_price">Z obsługą</string>
     <string name="home_fuel_remembered">Brak połączenia: to stacje, które widzieliśmy tutaj %1$s.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
     <string name="subject_fuel_stations">Stacje paliw</string>

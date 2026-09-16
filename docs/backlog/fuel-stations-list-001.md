@@ -70,7 +70,7 @@ pudo probar está abajo, separado, y **no cuenta**.
 |---|---|---|---|---|---|
 | 🇪🇸 España | Ministerio (`PreciosCarburantes`) | no | por provincia | ~11.000 | sí |
 | 🇫🇷 Francia | `data.economie.gouv.fr` (flux instantané v2) | no | **por radio** | 9.805 | **no** |
-| 🇮🇹 Italia | MIMIT (2 CSV) | no | **ninguna: 7,5 MB enteros** | 23.984 | sí |
+| 🇮🇹 Italia | MIMIT (2 CSV) | no | **ninguna: 7,5 MB enteros** ⚠️ ver corrección abajo | 23.984 | sí |
 | 🇩🇪 Alemania | MTS-K vía Tankerkönig | sí (gratis) | por radio | — | sí |
 | 🇦🇹 Austria | E-Control | no | por radio/región, **con tope** | — | sí |
 | 🇲🇽 México | CRE (2 XML) | no | ninguna: 0,8 MB | — | sí |
@@ -109,8 +109,24 @@ Tankerkönig con CC BY 4.0 y clave gratuita. **🇲🇽 México** son dos XML de
 **🇵🇹 Portugal sigue excluido** por la prohibición de uso comercial de la DGEG.
 
 **Orden sugerido tras España:** Francia (la más limpia y la única con radio + nombre ausente que
-estrena el cruce con OSM) → Alemania → Italia (la más grande, pero exige descarga entera, umbral de
-antigüedad y `isSelf`) → el resto.
+estrena el cruce con OSM) → Alemania → Italia (la más grande; de las tres condiciones que se le
+ponían aquí sólo `isSelf` resultó cierta — ver la corrección justo debajo) → el resto.
+
+→ **🇮🇹 Italia HECHA** en
+[`fuel-italy-a-price-depends-on-who-pumps-it-001.md`](fuel-italy-a-price-depends-on-who-pumps-it-001.md),
+y **corrige lo que esta sección daba por medido**. Las dos frases de arriba sobre Italia —«ninguna:
+7,5 MB enteros» y la cola de trece meses— describen **el CSV, que no es el canal que se cableó**:
+
+- El CSV publica *«le informazioni in vigore alle ore 8 del giorno precedente»*, o sea 24-48 h por
+  construcción, y medido **discrepa del 71,6 %** de los precios vivos (mediana 0,02 €/L). Este mismo
+  documento descartó a FuelWide con **30 %** y uno o dos céntimos. El feed oficial es peor que el
+  proxy que rechazamos, así que cablearlo habría conservado el fichero y tirado el razonamiento.
+- El MISMO ministerio sirve una **consulta por radio** (`ospzApi/search/zone`, el backend del
+  buscador público): 229 estaciones a 5 km de Roma en **110 KB y menos de un segundo**. La tabla de
+  arriba decía «ninguna consulta» porque nadie había mirado el otro canal — el mismo error de forma
+  que el 404 de una sola letra, cometido con más cuidado.
+- La cola de trece meses es del `dtComu` del CSV. En el feed vivo, y sobre los productos que se
+  citan, la dispersión máxima dentro de una estación es de **24 horas**.
 
 → **🇫🇷 Francia HECHA** en [`fuel-france-a-price-carries-its-own-hour-001.md`](fuel-france-a-price-carries-its-own-hour-001.md).
 Dos cosas de ahí corrigen lo que este doc daba por sentado: **el cruce con OSM NO es por

@@ -3112,6 +3112,19 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
+            // Italia: el MISMO surtidor cotiza self y servito, y medido se separan hasta 0,35 €/L.
+            // La primera fila es self (no lleva marca, que es lo normal), la SEGUNDA es servito y
+            // por eso la lleva, y la tercera existe para que las dos se vean juntas: sin la marca
+            // sus dos cifras se leerían como la misma clase de precio.
+            // [FUEL-ITALY-A-PRICE-DEPENDS-ON-WHO-PUMPS-IT-001]
+            Variant("Precio SELF vs SERVITO (Italia)", Placement.Surface) {
+                HomeFuelLane(
+                    slice = HomeFuelSlice(
+                        stations = galleryItalianStations,
+                        reportedAt = null,
+                    ),
+                )
+            },
             Variant("Ninguna a menos de 5 km", Placement.Surface) {
                 HomeFuelLane(slice = HomeFuelSlice())
             },
@@ -3198,6 +3211,15 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     FuelStationMarker(priceText = "1.879", fuelLabel = "Gasoline", selected = false)
                     FuelStationMarker(priceText = null, selected = false)
                     FuelStationMarker(priceText = "1.759", fuelLabel = "Diesel", selected = true)
+                    // Italia: el modo entra en la MISMA línea de cualificación que ya dice de qué
+                    // carburante es la cifra, porque contesta la otra mitad de la misma pregunta —
+                    // no sólo para qué es este precio, sino CUÁL de los dos es.
+                    // [FUEL-ITALY-A-PRICE-DEPENDS-ON-WHO-PUMPS-IT-001]
+                    FuelStationMarker(
+                        priceText = "2.434",
+                        fuelLabel = "Gasoline · Atendido",
+                        selected = false,
+                    )
                 }
             },
             // ⛔ La variante que EJERCITA el ticket, y por eso lleva la lista de plazas LLENA: es el
@@ -3532,6 +3554,45 @@ private fun germanStation(
     price = StationPrice(Money(price, "EUR")),
 )
 
+/**
+ * Italia: el feed sella la ESTACIÓN (no la respuesta ni el precio) y, sobre todo, dice QUIÉN sirve.
+ * Los números son los medidos en Roma el 15-09: 2,084 self contra 2,434 servito en la misma
+ * estación son los 0,35 €/L que obligan a marcar la cifra.
+ * [FUEL-ITALY-A-PRICE-DEPENDS-ON-WHO-PUMPS-IT-001]
+ */
+private val galleryItalianStations: List<NearbyFuelStation> = listOf(
+    italianStation("it1", "Api-Ip", 2.084, 520.0, isSelf = true),
+    italianStation("it2", "Api-Ip", 2.149, 1_320.0, isSelf = false),
+    // ⛔ La misma estación que la primera pero servida: 0,35 € más cara, y sin la marca las dos
+    // cifras se ordenarían como si compararan lo mismo.
+    italianStation("it3", "AgipEni", 2.434, 2_600.0, isSelf = false),
+)
+
+private fun italianStation(
+    id: String,
+    name: String,
+    price: Double,
+    distanceMeters: Double,
+    isSelf: Boolean,
+): NearbyFuelStation {
+    // La hora de la ESTACIÓN, que es la única que este feed da — p50 medido 16,8 h.
+    val reportedAtMs = Clock.System.now().toEpochMilliseconds() - SIXTEEN_HOURS_MS
+    val stationPrice = StationPrice(Money(price, "EUR"), reportedAtMs, isSelf)
+    return NearbyFuelStation(
+        station = FuelStation(
+            // ⛔ Sin dirección: el zone search no trae ninguna, en 229 de 229.
+            id = id, name = name, address = null, town = null,
+            latitude = 41.9028, longitude = 12.4964,
+            prices = mapOf(FuelType.GASOLINE to stationPrice),
+        ),
+        distanceMeters = distanceMeters,
+        stationKey = "italy|$id",
+        source = "italy",
+        price = stationPrice,
+    )
+}
+
+private const val SIXTEEN_HOURS_MS = 16 * 60 * 60 * 1000L
 private const val TWO_HOURS_MS = 2 * 60 * 60 * 1000L
 private const val THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000L
 private const val FOUR_DAYS_MS = 4 * 24 * 60 * 60 * 1000L

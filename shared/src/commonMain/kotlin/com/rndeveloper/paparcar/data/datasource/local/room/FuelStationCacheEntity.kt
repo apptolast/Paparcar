@@ -92,4 +92,14 @@ data class FuelStationFuelEntity(
      * 56% as "no diesel" would hide most of the world's forecourts from most of its drivers.
      */
     val availability: String?,
+    /**
+     * Whether the remembered price is the self-service one — null where the source does not
+     * distinguish. [FUEL-ITALY-A-PRICE-DEPENDS-ON-WHO-PUMPS-IT-001]
+     *
+     * ⛔ It has to survive the disk or the cache would quietly upgrade an Italian attended price
+     * into a self one on the next cold start — the price is the same number, and the whole reason
+     * the flag exists is that the number does not say which of the two it is. The measured gap
+     * reaches 0,35 €/L, so the lie would be worth more than a rounding.
+     */
+    val isSelf: Boolean?,
 )

@@ -68,6 +68,7 @@ import com.rndeveloper.paparcar.domain.repository.FuelWatchRepository
 import com.rndeveloper.paparcar.data.fuel.AverageFuelPricesRepositoryImpl
 import com.rndeveloper.paparcar.data.fuel.FranceFuelStationsSource
 import com.rndeveloper.paparcar.data.fuel.GermanyFuelStationsSource
+import com.rndeveloper.paparcar.data.fuel.ItalyFuelStationsSource
 import com.rndeveloper.paparcar.data.fuel.FuelStationsRegistry
 import com.rndeveloper.paparcar.data.fuel.fuelHttpClient
 import com.rndeveloper.paparcar.data.fuel.MineturStationsSource
@@ -289,6 +290,11 @@ val dataModule = module {
                         // build sin ella (repo público) no reclama Alemania y cae al suelo de OSM
                         // sin fingir un feed roto. [FUEL-GERMANY-THE-FEED-ANSWERS-WHOLE-001]
                         GermanyFuelStationsSource(http) { germanyFuelFeedKey },
+                        // ⛔ El buscador del ministerio, NO el CSV abierto: ese publica «le
+                        // informazioni in vigore alle ore 8 del giorno precedente», y medido
+                        // discrepa del 71,6 % de los precios vivos — peor que el proxy que
+                        // rechazamos. [FUEL-ITALY-A-PRICE-DEPENDS-ON-WHO-PUMPS-IT-001]
+                        ItalyFuelStationsSource(http),
                     ),
                     fallback = OsmFuelStationsSource(http),
                 ),

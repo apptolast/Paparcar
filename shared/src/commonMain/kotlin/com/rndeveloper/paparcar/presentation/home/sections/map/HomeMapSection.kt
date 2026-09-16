@@ -30,6 +30,9 @@ import com.rndeveloper.paparcar.ui.components.PaparcarMapConfig
 import com.rndeveloper.paparcar.ui.components.PaparcarMapView
 import com.rndeveloper.paparcar.ui.theme.PapMotion
 import com.rndeveloper.paparcar.ui.theme.watch
+import org.jetbrains.compose.resources.stringResource
+import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.home_fuel_attended_price
 
 /**
  * The map tile layer with its right-side floating FAB column (location,
@@ -112,6 +115,9 @@ internal fun HomeMapSection(
         // Resolved HERE because the map's marker builders run outside composition and cannot call
         // stringResource. [FUEL-STATIONS-MAP-AND-PEEK-001]
         fuelPricesLabel = slice.fuelPricesFor?.let { fuelTypeLabel(it) },
+        // Unconditional, unlike the one above: which price a capsule is showing does not depend on
+        // what the active car burns. [FUEL-ITALY-A-PRICE-DEPENDS-ON-WHO-PUMPS-IT-001]
+        fuelAttendedLabel = stringResource(Res.string.home_fuel_attended_price),
         onFuelStationClick = onFuelStationClick,
         publicParkings = slice.publicParkings,
         selectedPublicParkingId = slice.selectedPublicParkingId,

@@ -174,6 +174,9 @@ class RoomFuelStationsCache(
                 priceCurrency = price?.perUnit?.currency,
                 reportedAtMs = price?.reportedAtMs,
                 availability = availability[fuel]?.name,
+                // ⛔ Rides along or the disk turns Italy's attended price into a self one on the
+                // next cold start. [FUEL-ITALY-A-PRICE-DEPENDS-ON-WHO-PUMPS-IT-001]
+                isSelf = price?.isSelf,
             )
         }
 
@@ -187,7 +190,7 @@ class RoomFuelStationsCache(
             val amount = row.priceAmount
             val currency = row.priceCurrency
             if (amount != null && currency != null) {
-                prices[fuel] = StationPrice(Money(amount, currency), row.reportedAtMs)
+                prices[fuel] = StationPrice(Money(amount, currency), row.reportedAtMs, row.isSelf)
             }
             row.availability
                 ?.let { name -> runCatching { FuelAvailability.valueOf(name) }.getOrNull() }

@@ -33,6 +33,7 @@ class EvaluateDailyPriceMoveUseCaseTest {
         amount: Double,
         reportedAtMs: Long?,
         currency: String = "EUR",
+        isSelf: Boolean? = null,
     ) = FuelPriceSample(
         stationKey = station.stationKey,
         fuelType = FuelType.DIESEL,
@@ -40,6 +41,7 @@ class EvaluateDailyPriceMoveUseCaseTest {
         reportedAtMs = reportedAtMs,
         observedAtMs = day * 86_400_000L,
         observedDay = day,
+        isSelf = isSelf,
     )
 
     @Test
@@ -158,6 +160,49 @@ class EvaluateDailyPriceMoveUseCaseTest {
         )
 
         assertTrue(moves.isEmpty())
+    }
+
+    /**
+     * ⛔ The same argument as the currency one, one unit down.
+     * [FUEL-ITALY-A-PRICE-DEPENDS-ON-WHO-PUMPS-IT-001]
+     *
+     * An Italian forecourt that stops quoting `self` still quotes `servito`, and the gap is
+     * measured up to 0,35 €/L — more than TEN times the threshold this verdict is tuned for. So
+     * this is not a near-miss: unguarded it is the loudest notification the feature can send, and
+     * it is about a price that never moved.
+     */
+    @Test
+    fun should_reportNothing_when_thePumpChangedButThePriceDidNot() {
+        val moves = useCase(
+            followed = listOf(station),
+            fuelType = FuelType.DIESEL,
+            samplesByStation = mapOf(
+                station.stationKey to listOf(
+                    sample(day = 100, amount = 2.084, reportedAtMs = 100_000L, isSelf = true),
+                    sample(day = 101, amount = 2.434, reportedAtMs = 200_000L, isSelf = false),
+                ),
+            ),
+        )
+
+        assertTrue(moves.isEmpty(), "a self reading and an attended one are two different questions")
+    }
+
+    /** And the mode staying put must not cost a real move its notification. */
+    @Test
+    fun should_reportADrop_when_thePumpStayedSelfAndThePriceFell() {
+        val moves = useCase(
+            followed = listOf(station),
+            fuelType = FuelType.DIESEL,
+            samplesByStation = mapOf(
+                station.stationKey to listOf(
+                    sample(day = 100, amount = 2.084, reportedAtMs = 100_000L, isSelf = true),
+                    sample(day = 101, amount = 2.034, reportedAtMs = 200_000L, isSelf = true),
+                ),
+            ),
+        )
+
+        assertEquals(1, moves.size)
+        assertEquals(PriceMoveDirection.DOWN, moves.single().direction)
     }
 
     @Test

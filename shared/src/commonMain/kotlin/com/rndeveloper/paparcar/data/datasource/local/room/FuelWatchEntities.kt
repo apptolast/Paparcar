@@ -68,4 +68,12 @@ data class FuelPriceHistoryEntity(
     val observedAtMs: Long,
     /** Local day of [observedAtMs], days since epoch. See `localDayOf` for why local and not UTC. */
     val observedDay: Long,
+    /**
+     * Which pump the reading came from; null where the source does not distinguish.
+     * [FUEL-ITALY-A-PRICE-DEPENDS-ON-WHO-PUMPS-IT-001]
+     *
+     * ⛔ Stored, not recomputed: the move is judged between a row written today and one written
+     * days ago, and the older row is the only place the older mode still exists.
+     */
+    val isSelf: Boolean?,
 )
