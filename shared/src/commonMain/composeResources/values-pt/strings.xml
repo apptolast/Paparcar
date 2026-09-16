@@ -259,7 +259,7 @@
     <string name="home_zone_private_hint">A vaga não será partilhada quando saíres</string>
 
     <!-- GPS accuracy banner -->
-    <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
+    <string name="home_gps_accuracy_banner">GPS ±%1$s</string>
 
     <!-- Separadores de navegação inferior -->
     <string name="nav_tab_home">Início</string>
@@ -435,7 +435,6 @@
     <string name="home_zone_delete_confirm_title">Eliminar esta zona?</string>
     <string name="home_zone_delete_confirm_body">A zona desaparece do mapa. Os teus estacionamentos e o histórico não mudam.</string>
     <string name="home_zone_radius_section">Raio</string>
-    <string name="home_zone_radius_meters">%1$d m</string>
 
     <!-- My Car — delete confirmation + edit -->
     <string name="my_car_delete_vehicle">Eliminar</string>
@@ -519,7 +518,7 @@
     <string name="carbody_van_commercial">Carrinha comercial</string>
     <string name="carbody_pickup">Pick-up</string>
 
-    <string name="parking_alert_high_ceiling">Atenção à altura. Evita garagens com gálibo inferior a 2,10 m.</string>
+    <string name="parking_alert_high_ceiling">Atenção à altura. Evita garagens com gálibo inferior a %1$s.</string>
     <string name="parking_alert_long_car">Carro comprido — cuidado com a saliência em lugares curtos.</string>
     <string name="parking_alert_wide_car">Veículo largo — prefere lugares sem colunas laterais.</string>
     <string name="parking_alert_standard">Tamanho padrão — cabe na grande maioria dos lugares.</string>
@@ -538,8 +537,8 @@
     <string name="home_peek_parking_duration_days">Estacionado há %1$d dias</string>
     <string name="home_peek_parking_duration_min">Estacionado há %1$d min</string>
     <string name="home_peek_parking_duration_now">Estacionado agora mesmo</string>
-    <string name="home_peek_parking_approximate">Algures dentro de %1$d m: perdemos o fim da viagem. Edita para o colocares.</string>
-    <string name="home_peek_spot_approximate">Algures dentro de %1$d m: quem o libertou não conseguiu fixar o ponto exato. Procura pela zona.</string>
+    <string name="home_peek_parking_approximate">Algures dentro de %1$s: perdemos o fim da viagem. Edita para o colocares.</string>
+    <string name="home_peek_spot_approximate">Algures dentro de %1$s: quem o libertou não conseguiu fixar o ponto exato. Procura pela zona.</string>
     <string name="home_peek_spot_age_hour">Publicado há %1$d h</string>
     <string name="home_peek_spot_age_min">Publicado há %1$d min</string>
     <string name="home_peek_spot_age_now">Publicado agora mesmo</string>
@@ -837,7 +836,9 @@
     <string name="fuel_type_plug_in_hybrid">Híbrido plug-in</string>
     <string name="fuel_type_electric">Elétrico</string>
     <string name="vehicle_registration_consumption_liters_label">Consumo (l/100 km)</string>
+    <string name="vehicle_registration_consumption_mpg_label">Consumo (mpg)</string>
     <string name="vehicle_registration_consumption_kwh_label">Consumo (kWh/100 km)</string>
+    <string name="vehicle_registration_consumption_kwh_mi_label">Consumo (kWh/100 mi)</string>
     <string name="vehicle_registration_fuel_help">Com isto estimamos gastos e emissões.</string>
     <string name="vehicle_registration_energy_label_title">Etiqueta ambiental (opcional)</string>
     <string name="energy_label_zero">Zero</string>
@@ -848,6 +849,8 @@
     <!-- Consumption units (universal notation, same in every locale) [VEH-FUEL-001] -->
     <string name="unit_l_per_100">l/100 km</string>
     <string name="unit_kwh_per_100">kWh/100 km</string>
+    <string name="unit_mpg">mpg</string>
+    <string name="unit_kwh_per_100_mi">kWh/100 mi</string>
     <!-- Widget en la comparativa + fila de Ajustes [WIDGET-ACTIONS-002] -->
     <string name="settings_add_widget">Adicionar o widget ao ecrã inicial</string>
     <!-- Vehicle figures block (STATS-UI-001) -->
@@ -940,7 +943,7 @@
 
     <!-- Gasolineras cercanas [FUEL-STATIONS-LIST-001] -->
     <string name="location_fallback_station">Posto de combustível</string>
-    <string name="home_fuel_empty">Não há postos num raio de 5 km.</string>
+    <string name="home_fuel_empty">Não há postos num raio de %1$s.</string>
     <string name="home_fuel_missing_fuel_type">Indica o combustível deste carro em Veículos para ver os postos próximos e os seus preços.</string>
     <string name="fuel_peek_eyebrow">Posto de combustível</string>
     <string name="fuel_peek_not_sold">Não vendem aqui</string>
@@ -949,7 +952,7 @@
     <string name="fuel_peek_follow">Seguir</string>
     <string name="fuel_peek_following">A seguir</string>
     <string name="home_fuel_error">Não conseguimos carregar os postos. Verifica a ligação e abre isto outra vez.</string>
-    <string name="home_fuel_too_far">Só mostramos postos a menos de %1$d km de ti. Aproxima o mapa para os veres.</string>
+    <string name="home_fuel_too_far">Só mostramos postos a menos de %1$s de ti. Aproxima o mapa para os veres.</string>
     <string name="home_fuel_no_prices">Neste país os preços não são publicados. Estes são os postos por perto.</string>
     <!-- [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] Fallback, not a verdict about the country -->
     <string name="home_fuel_prices_unavailable">Os preços oficiais não carregaram. Estes são os postos próximos; tente novamente daqui a pouco.</string>
@@ -962,9 +965,9 @@
     <string name="subject_fuel_stations">Combustível</string>
     <string name="subject_public_parkings">Parques</string>
     <string name="subject_free_spots">Lugares</string>
-    <string name="home_parkings_empty">Não há parques de estacionamento públicos a menos de 1,5 km.</string>
+    <string name="home_parkings_empty">Não há parques de estacionamento públicos a menos de %1$s.</string>
     <string name="home_parkings_error">Não conseguimos carregar os parques. Verifica a ligação e abre isto outra vez.</string>
-    <string name="home_parkings_too_far">Só mostramos parques de estacionamento públicos a menos de %1$d km de ti. Aproxima o mapa para os veres.</string>
+    <string name="home_parkings_too_far">Só mostramos parques de estacionamento públicos a menos de %1$s de ti. Aproxima o mapa para os veres.</string>
     <string name="home_parkings_remembered">Sem ligação: estes são os parques de estacionamento que vimos aqui %1$s.</string>
     <string name="parking_peek_eyebrow">Parque público</string>
     <string name="parking_peek_step_prev">Parque anterior</string>

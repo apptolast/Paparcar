@@ -9,6 +9,7 @@ import com.rndeveloper.paparcar.domain.model.EnergyLabel
 import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.VehicleColor
 import com.rndeveloper.paparcar.domain.model.VehicleSize
+import com.rndeveloper.paparcar.fakes.FakeAppPreferences
 import com.rndeveloper.paparcar.fakes.FakeAuthRepository
 import com.rndeveloper.paparcar.fakes.FakeVehicleRepository
 import kotlinx.coroutines.Dispatchers
@@ -23,6 +24,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -33,6 +35,7 @@ class VehicleRegistrationViewModelTest {
 
     private lateinit var vehicleRepo: FakeVehicleRepository
     private lateinit var auth: FakeAuthRepository
+    private lateinit var prefs: FakeAppPreferences
     private lateinit var vm: VehicleRegistrationViewModel
 
     private fun vehicle(id: String) = Vehicle(
@@ -49,7 +52,11 @@ class VehicleRegistrationViewModelTest {
         Dispatchers.setMain(testDispatcher)
         vehicleRepo = FakeVehicleRepository()
         auth = FakeAuthRepository(initialSession = FakeAuthRepository.authenticatedSession("user-1"))
-        vm = VehicleRegistrationViewModel(vehicleRepo, auth)
+        // Métrico por defecto: la mayoría de los casos de abajo no hablan de unidades, y en métrico
+        // el consumo entra y sale del formulario sin conversión ninguna.
+        // [I18N-A-RADIUS-WRITTEN-BY-HAND-IGNORES-MILES-001]
+        prefs = FakeAppPreferences()
+        vm = VehicleRegistrationViewModel(vehicleRepo, auth, prefs)
     }
 
     @AfterTest
@@ -272,6 +279,27 @@ class VehicleRegistrationViewModelTest {
     }
 
     @Test
+    fun `should_storeLitresPer100Km_when_theUserTypedMpg`() = runTest {
+        // ⛔ El campo dice mpg y el modelo sigue en l/100 km. Sin la conversión, «42.8» se guardaría
+        // tal cual: un coche que gasta 42,8 litros a los cien, y toda la aritmética de ahorro y
+        // consumo detrás leyendo ese número. [I18N-A-RADIUS-WRITTEN-BY-HAND-IGNORES-MILES-001]
+        prefs.setUseImperialUnits(true)
+        vm = VehicleRegistrationViewModel(vehicleRepo, auth, prefs)
+        fillCarForm()
+        vm.handleIntent(VehicleRegistrationIntent.SetFuelType(FuelType.DIESEL))
+        vm.handleIntent(VehicleRegistrationIntent.SetConsumption("42.8"))
+
+        vm.handleIntent(VehicleRegistrationIntent.Save)
+
+        val saved = vehicleRepo.observeVehicles().first().single().consumptionPer100
+        assertNotNull(saved)
+        assertTrue(
+            saved in LITRES_LOW..LITRES_HIGH,
+            "42.8 mpg son ~5,5 l/100 km (galón US) o ~6,6 (imperial) — llegó $saved",
+        )
+    }
+
+    @Test
     fun `should_persistNullOverride_when_theConsumptionFieldStaysBlank`() = runTest {
         fillCarForm()
         vm.handleIntent(VehicleRegistrationIntent.SetFuelType(FuelType.GASOLINE))
@@ -332,5 +360,15 @@ class VehicleRegistrationViewModelTest {
         assertEquals(FuelType.HYBRID, s.fuelType)
         assertEquals("4.5", s.consumptionText)
         assertEquals(EnergyLabel.ECO, s.energyLabel)
+    }
+
+    private companion object {
+        /**
+         * 42,8 mpg en litros a los cien: ~5,5 con el galón US y ~6,6 con el imperial. El rango cubre
+         * los dos porque el galón lo elige el locale de la MÁQUINA que corre el test, y lo que este
+         * caso vigila no es cuál se eligió — es que se convirtió.
+         */
+        const val LITRES_LOW = 5.4f
+        const val LITRES_HIGH = 6.7f
     }
 }

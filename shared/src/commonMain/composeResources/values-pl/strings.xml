@@ -259,7 +259,7 @@
     <string name="home_zone_private_hint">Miejsce nie zostanie udostępnione po wyjeździe</string>
 
     <!-- GPS accuracy banner -->
-    <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
+    <string name="home_gps_accuracy_banner">GPS ±%1$s</string>
 
     <!-- Dolna nawigacja -->
     <string name="nav_tab_home">Główna</string>
@@ -439,7 +439,6 @@
     <string name="home_zone_delete_confirm_title">Usunąć tę strefę?</string>
     <string name="home_zone_delete_confirm_body">Strefa zniknie z mapy. Twoje parkowania i historia pozostaną bez zmian.</string>
     <string name="home_zone_radius_section">Promień</string>
-    <string name="home_zone_radius_meters">%1$d m</string>
 
     <!-- My Car — delete confirmation + edit -->
     <string name="my_car_delete_vehicle">Usuń</string>
@@ -525,7 +524,7 @@
     <string name="carbody_van_commercial">Van dostawczy</string>
     <string name="carbody_pickup">Pick-up</string>
 
-    <string name="parking_alert_high_ceiling">Uważaj na wysokość. Omijaj garaże o prześwicie poniżej 2,10 m.</string>
+    <string name="parking_alert_high_ceiling">Uważaj na wysokość. Omijaj garaże o prześwicie poniżej %1$s.</string>
     <string name="parking_alert_long_car">Długie auto — uważaj na zwis nadwozia na krótkich miejscach.</string>
     <string name="parking_alert_wide_car">Szeroki pojazd — wybieraj miejsca bez bocznych słupów.</string>
     <string name="parking_alert_standard">Standardowy rozmiar — mieści się na zdecydowanej większości miejsc.</string>
@@ -544,8 +543,8 @@
     <string name="home_peek_parking_duration_days">Zaparkowano %1$d dni temu</string>
     <string name="home_peek_parking_duration_min">Zaparkowano %1$d min temu</string>
     <string name="home_peek_parking_duration_now">Zaparkowano przed chwilą</string>
-    <string name="home_peek_parking_approximate">Gdzieś w promieniu %1$d m: zgubiliśmy koniec trasy. Edytuj, aby ustawić dokładnie.</string>
-    <string name="home_peek_spot_approximate">Gdzieś w promieniu %1$d m: osoba, która je zwolniła, nie mogła wskazać dokładnego punktu. Poszukaj w okolicy.</string>
+    <string name="home_peek_parking_approximate">Gdzieś w promieniu %1$s: zgubiliśmy koniec trasy. Edytuj, aby ustawić dokładnie.</string>
+    <string name="home_peek_spot_approximate">Gdzieś w promieniu %1$s: osoba, która je zwolniła, nie mogła wskazać dokładnego punktu. Poszukaj w okolicy.</string>
     <string name="home_peek_spot_age_hour">Dodano %1$d godz. temu</string>
     <string name="home_peek_spot_age_min">Dodano %1$d min temu</string>
     <string name="home_peek_spot_age_now">Dodano przed chwilą</string>
@@ -851,7 +850,9 @@
     <string name="fuel_type_plug_in_hybrid">Hybryda plug-in</string>
     <string name="fuel_type_electric">Elektryczny</string>
     <string name="vehicle_registration_consumption_liters_label">Spalanie (l/100 km)</string>
+    <string name="vehicle_registration_consumption_mpg_label">Spalanie (mpg)</string>
     <string name="vehicle_registration_consumption_kwh_label">Zużycie (kWh/100 km)</string>
+    <string name="vehicle_registration_consumption_kwh_mi_label">Zużycie (kWh/100 mi)</string>
     <string name="vehicle_registration_fuel_help">Na tej podstawie szacujemy koszty i emisje.</string>
     <string name="vehicle_registration_energy_label_title">Naklejka ekologiczna (opcjonalnie)</string>
     <string name="energy_label_zero">Zero</string>
@@ -862,6 +863,8 @@
     <!-- Consumption units (universal notation, same in every locale) [VEH-FUEL-001] -->
     <string name="unit_l_per_100">l/100 km</string>
     <string name="unit_kwh_per_100">kWh/100 km</string>
+    <string name="unit_mpg">mpg</string>
+    <string name="unit_kwh_per_100_mi">kWh/100 mi</string>
     <!-- Widget en la comparativa + fila de Ajustes [WIDGET-ACTIONS-002] -->
     <string name="settings_add_widget">Dodaj widżet do ekranu głównego</string>
     <!-- Vehicle figures block (STATS-UI-001) -->
@@ -962,7 +965,7 @@
 
     <!-- Gasolineras cercanas [FUEL-STATIONS-LIST-001] -->
     <string name="location_fallback_station">Stacja paliw</string>
-    <string name="home_fuel_empty">Brak stacji paliw w promieniu 5 km.</string>
+    <string name="home_fuel_empty">Brak stacji paliw w promieniu %1$s.</string>
     <string name="home_fuel_missing_fuel_type">Ustaw paliwo tego auta w zakładce Pojazdy, aby zobaczyć pobliskie stacje i ich ceny.</string>
     <string name="fuel_peek_eyebrow">Stacja paliw</string>
     <string name="fuel_peek_not_sold">Tu niedostępne</string>
@@ -971,7 +974,7 @@
     <string name="fuel_peek_follow">Obserwuj</string>
     <string name="fuel_peek_following">Obserwowana</string>
     <string name="home_fuel_error">Nie udało się wczytać stacji. Sprawdź połączenie i otwórz to ponownie.</string>
-    <string name="home_fuel_too_far">Stacje paliw pokazujemy tylko w promieniu %1$d km od ciebie. Przesuń mapę bliżej, aby je zobaczyć.</string>
+    <string name="home_fuel_too_far">Stacje paliw pokazujemy tylko w promieniu %1$s od ciebie. Przesuń mapę bliżej, aby je zobaczyć.</string>
     <string name="home_fuel_no_prices">W tym kraju ceny nie są publikowane. Oto stacje w pobliżu.</string>
     <!-- [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] Fallback, not a verdict about the country -->
     <string name="home_fuel_prices_unavailable">Oficjalne ceny się nie wczytały. To są stacje w pobliżu; spróbuj ponownie za chwilę.</string>
@@ -984,9 +987,9 @@
     <string name="subject_fuel_stations">Stacje paliw</string>
     <string name="subject_public_parkings">Parkingi</string>
     <string name="subject_free_spots">Miejsca</string>
-    <string name="home_parkings_empty">Brak publicznych parkingów w promieniu 1,5 km.</string>
+    <string name="home_parkings_empty">Brak publicznych parkingów w promieniu %1$s.</string>
     <string name="home_parkings_error">Nie udało się wczytać parkingów. Sprawdź połączenie i otwórz to ponownie.</string>
-    <string name="home_parkings_too_far">Publiczne parkingi pokazujemy tylko w promieniu %1$d km od ciebie. Przesuń mapę bliżej, aby je zobaczyć.</string>
+    <string name="home_parkings_too_far">Publiczne parkingi pokazujemy tylko w promieniu %1$s od ciebie. Przesuń mapę bliżej, aby je zobaczyć.</string>
     <string name="home_parkings_remembered">Brak połączenia: to parkingi, które widzieliśmy tutaj %1$s.</string>
     <string name="parking_peek_eyebrow">Parking publiczny</string>
     <string name="parking_peek_step_prev">Poprzedni parking</string>

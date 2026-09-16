@@ -3,7 +3,9 @@ package com.rndeveloper.paparcar.ui.components
 import androidx.compose.runtime.Composable
 import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.domain.model.ParkingAlertKey
+import com.rndeveloper.paparcar.domain.model.STANDARD_GARAGE_CLEARANCE_METERS
 import com.rndeveloper.paparcar.domain.model.VehicleSize
+import com.rndeveloper.paparcar.presentation.util.heightString
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.carbody_family_long
@@ -65,11 +67,17 @@ fun VehicleSize.label(): String = stringResource(
 )
 
 @Composable
-fun ParkingAlertKey.label(): String = stringResource(
-    when (this) {
-        ParkingAlertKey.HIGH_CEILING -> Res.string.parking_alert_high_ceiling
-        ParkingAlertKey.LONG_CAR -> Res.string.parking_alert_long_car
-        ParkingAlertKey.WIDE_CAR -> Res.string.parking_alert_wide_car
-        ParkingAlertKey.STANDARD -> Res.string.parking_alert_standard
-    }
-)
+fun ParkingAlertKey.label(): String = when (this) {
+    // El único aviso que cita una MEDIDA, y por eso el único que no es un `stringResource` pelado:
+    // el gálibo llega desde el dominio y se dice en metros o en pies y pulgadas según el ajuste del
+    // usuario, en vez de estar tecleado como «2,10 m» en los nueve locales.
+    // [I18N-A-RADIUS-WRITTEN-BY-HAND-IGNORES-MILES-001]
+    ParkingAlertKey.HIGH_CEILING -> stringResource(
+        Res.string.parking_alert_high_ceiling,
+        heightString(STANDARD_GARAGE_CLEARANCE_METERS),
+    )
+
+    ParkingAlertKey.LONG_CAR -> stringResource(Res.string.parking_alert_long_car)
+    ParkingAlertKey.WIDE_CAR -> stringResource(Res.string.parking_alert_wide_car)
+    ParkingAlertKey.STANDARD -> stringResource(Res.string.parking_alert_standard)
+}

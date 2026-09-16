@@ -49,6 +49,7 @@ import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapS
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetBanner
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetEyebrowTone
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetLead
+import com.rndeveloper.paparcar.presentation.util.radiusString
 import com.rndeveloper.paparcar.presentation.util.zoneIconFor
 import com.rndeveloper.paparcar.ui.components.PapAlertDialog
 import com.rndeveloper.paparcar.ui.components.PapClearIconButton
@@ -76,10 +77,8 @@ import paparcar.composeapp.generated.resources.home_zone_name_placeholder
 import paparcar.composeapp.generated.resources.home_zone_private_hint
 import paparcar.composeapp.generated.resources.home_zone_form_notify_label
 import paparcar.composeapp.generated.resources.home_zone_private_label
-import paparcar.composeapp.generated.resources.home_zone_radius_meters
 import paparcar.composeapp.generated.resources.home_zone_radius_section
 import paparcar.composeapp.generated.resources.home_zone_save_action
-import kotlin.math.roundToInt
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
 import com.rndeveloper.paparcar.ui.theme.PapColor
 
@@ -373,7 +372,9 @@ private fun ZoneRadiusSlider(
             modifier = Modifier.weight(1f, fill = false),
         )
         Text(
-            text = stringResource(Res.string.home_zone_radius_meters, radius.roundToInt()),
+            // ⛔ The slider's own figure is a distance too: it said "250 m" to someone who had asked
+            // the app for miles. [I18N-A-RADIUS-WRITTEN-BY-HAND-IGNORES-MILES-001]
+            text = radiusString(radius),
             style = PaparcarType.current.label,
             color = PapColor.actionText,
         )

@@ -12,11 +12,22 @@ package com.rndeveloper.paparcar.domain.model
 data class VehicleParkingRules(
     /** Minimum useful plaza width in meters (door-opening clearance included). */
     val minPlazaWidthMeters: Double,
-    /** True when the vehicle does not fit under standard underground-garage clearance (~2.10 m). */
+    /** True when the vehicle does not fit under [STANDARD_GARAGE_CLEARANCE_METERS]. */
     val requiresHighCeiling: Boolean,
     /** Resolves to the user-visible alert label via the UI layer. */
     val alertKey: ParkingAlertKey,
 )
+
+/**
+ * Gálibo de un garaje subterráneo corriente — el número que decide [requiresHighCeiling] y el que
+ * el aviso le dice al usuario.
+ *
+ * Vivía en dos sitios y en ninguno de verdad: como «~2.10 m» dentro de un comentario, y otra vez
+ * tecleado en la frase, en los nueve locales. Ahora la frase lo recibe formateado, así que se dice
+ * en metros o en pies y pulgadas según lo que el usuario haya elegido.
+ * [I18N-A-RADIUS-WRITTEN-BY-HAND-IGNORES-MILES-001]
+ */
+const val STANDARD_GARAGE_CLEARANCE_METERS = 2.10f
 
 /** Identifies which advisory copy to show in the carbody info card. */
 enum class ParkingAlertKey {

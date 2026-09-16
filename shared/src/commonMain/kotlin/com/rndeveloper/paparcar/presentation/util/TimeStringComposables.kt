@@ -117,6 +117,24 @@ fun driveTimeString(meters: Float): String {
 fun distanceString(meters: Float): String = formatDistance(meters, LocalDistanceUnit.current)
 
 /**
+ * Composable wrapper for [formatRadius] — the one way a **radius** reaches the copy.
+ * [I18N-A-RADIUS-WRITTEN-BY-HAND-IGNORES-MILES-001]
+ *
+ * ⛔ A radius is never typed into `strings.xml`. Every sentence that names one takes it as `%1$s`
+ * from here, derived from the constant that actually bounds the query, so it can neither drift from
+ * that constant nor keep saying "km" to someone who chose miles.
+ */
+@Composable
+fun radiusString(meters: Float): String = formatRadius(meters, LocalDistanceUnit.current)
+
+/**
+ * Una ALTURA en la unidad activa — el gálibo de un garaje.
+ * [I18N-A-RADIUS-WRITTEN-BY-HAND-IGNORES-MILES-001]
+ */
+@Composable
+fun heightString(meters: Float): String = formatHeight(meters, LocalDistanceUnit.current)
+
+/**
  * A span of time as a figure — "42 min", "1 h 12 min". [STATS-UI-001]
  *
  * It lives with the other time formatters because TWO surfaces write durations now: the figures

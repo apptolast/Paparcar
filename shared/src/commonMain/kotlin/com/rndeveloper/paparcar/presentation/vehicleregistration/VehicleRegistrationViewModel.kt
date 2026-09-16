@@ -10,9 +10,15 @@ import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.model.VehicleType
 import com.rndeveloper.paparcar.domain.vehicle.VehicleActiveStatePolicy
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
+import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
+import com.rndeveloper.paparcar.localeGallonKind
 import com.rndeveloper.paparcar.presentation.base.BaseViewModel
+import com.rndeveloper.paparcar.presentation.util.DistanceUnit
+import com.rndeveloper.paparcar.presentation.util.consumptionFromDisplay
+import com.rndeveloper.paparcar.presentation.util.consumptionToDisplay
 import com.rndeveloper.paparcar.presentation.util.platformCurrencyCode
+import com.rndeveloper.paparcar.presentation.util.roundToTenth
 import com.rndeveloper.paparcar.presentation.vehicleregistration.data.VehicleCatalog
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -22,6 +28,10 @@ import kotlin.uuid.Uuid
 class VehicleRegistrationViewModel(
     private val vehicleRepository: VehicleRepository,
     private val authRepository: AuthRepository,
+    /** Sólo para saber en qué unidad se TECLEA el consumo: mpg si el usuario eligió imperial, y de
+     *  vuelta a l/100 km antes de guardar. El modelo nunca ve mpg.
+     *  [I18N-A-RADIUS-WRITTEN-BY-HAND-IGNORES-MILES-001] */
+    private val appPreferences: AppPreferences,
 ) : BaseViewModel<VehicleRegistrationState, VehicleRegistrationIntent, VehicleRegistrationEffect>() {
 
     // The money this phone is set in, read once: it labels whatever the user types into the price
@@ -272,8 +282,12 @@ class VehicleRegistrationViewModel(
                         fuelType = vehicle.fuelType,
                         // An override shows as text; a null shows blank so the DEFAULT placeholder
                         // stays visible and honest. [VEH-FUEL-001]
-                        consumptionText = vehicle.consumptionPer100?.let { formatConsumption(it) } ?: "",
-                        consumptionElectricText = vehicle.consumptionElectricPer100?.let { formatConsumption(it) } ?: "",
+                        consumptionText = vehicle.consumptionPer100?.let {
+                            consumptionToField(it, usesLiters = vehicle.fuelType?.usesLiters != false)
+                        } ?: "",
+                        consumptionElectricText = vehicle.consumptionElectricPer100?.let {
+                            consumptionToField(it, usesLiters = false)
+                        } ?: "",
                         fuelPriceText = vehicle.fuelPricePerLiter?.let { formatConsumption(it.amount.toFloat()) } ?: "",
                         energyPriceText = vehicle.energyPricePerKwh?.let { formatConsumption(it.amount.toFloat()) } ?: "",
                         energyLabel = vehicle.energyLabel,
@@ -350,10 +364,17 @@ class VehicleRegistrationViewModel(
                     // The fuel block only exists for a burning type; a typed value is an override
                     // even when it equals the default (the user ANSWERED). [VEH-FUEL-001]
                     fuelType = if (type.burnsFuel) current.fuelType else null,
-                    consumptionPer100 = if (type.burnsFuel) parseConsumption(current.consumptionText) else null,
+                    consumptionPer100 = if (type.burnsFuel) {
+                        consumptionFromField(
+                            text = current.consumptionText,
+                            usesLiters = current.fuelType?.usesLiters != false,
+                        )
+                    } else {
+                        null
+                    },
                     consumptionElectricPer100 =
                         if (type.burnsFuel && current.fuelType?.hasSecondaryElectric == true) {
-                            parseConsumption(current.consumptionElectricText)
+                            consumptionFromField(current.consumptionElectricText, usesLiters = false)
                         } else {
                             null
                         },
@@ -427,6 +448,32 @@ class VehicleRegistrationViewModel(
     /** Renders a stored override back into the field without a trailing ".0" for whole numbers. */
     private fun formatConsumption(value: Float): String =
         if (value == value.toInt().toFloat()) value.toInt().toString() else value.toString()
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // El consumo, entre la unidad del modelo y la unidad del campo.
+    // [I18N-A-RADIUS-WRITTEN-BY-HAND-IGNORES-MILES-001]
+    //
+    // ⛔ Las dos direcciones van SIEMPRE en pareja. Con el ajuste en millas el campo dice mpg, así
+    // que leer el consumo guardado sin convertir enseñaría «5,5» bajo una etiqueta que pone mpg, y
+    // guardar sin convertir metería 43 en un campo que el resto de la app lee como l/100 km — un
+    // coche que gasta 43 litros a los cien. Cada `formatConsumption` de una CIFRA DE CONSUMO tiene
+    // su `fromDisplay` al guardar; los precios no pasan por aquí, que son dinero, no consumo.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /** El sistema en el que el usuario teclea ahora mismo. */
+    private fun displayUnit(): DistanceUnit =
+        if (appPreferences.useImperialUnits) DistanceUnit.IMPERIAL else DistanceUnit.METRIC
+
+    /** Consumo guardado (l/100 km · kWh/100 km) → el texto que se le enseña en su campo. */
+    private fun consumptionToField(per100Km: Float, usesLiters: Boolean): String = formatConsumption(
+        roundToTenth(consumptionToDisplay(per100Km, usesLiters, displayUnit(), localeGallonKind())),
+    )
+
+    /** Lo que quedó escrito en el campo → la unidad del modelo, o null si no es un número válido. */
+    private fun consumptionFromField(text: String, usesLiters: Boolean): Float? =
+        parseConsumption(text)?.let {
+            consumptionFromDisplay(it, usesLiters, displayUnit(), localeGallonKind())
+        }
 
     private companion object {
         const val TAG = "VehicleRegistrationVM"

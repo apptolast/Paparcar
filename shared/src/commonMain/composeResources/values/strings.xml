@@ -320,13 +320,12 @@
     <string name="home_zone_delete_confirm_title">Delete this zone?</string>
     <string name="home_zone_delete_confirm_body">The zone disappears from the map. Your parkings and history stay as they are.</string>
     <string name="home_zone_radius_section">Radius</string>
-    <string name="home_zone_radius_meters">%1$d m</string>
     <string name="home_header_add_zone">Add habitual zone</string>
     <string name="home_header_add_zone_hint">Home, work, gym\u2026</string>
     <string name="home_header_add_zone_dismiss_cd">Dismiss</string>
 
     <!-- GPS accuracy banner — shown when signal is weak -->
-    <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
+    <string name="home_gps_accuracy_banner">GPS ±%1$s</string>
 
     <!-- SettingsScreen -->
     <string name="settings_title">Settings</string>
@@ -581,8 +580,8 @@
     <string name="home_peek_spot_size_unknown">Size not specified</string>
     <string name="home_peek_parking_duration_min">Parked %1$d min ago</string>
     <string name="home_peek_parking_duration_now">Parked just now</string>
-    <string name="home_peek_parking_approximate">Somewhere within %1$d m — we lost the end of the trip. Edit to place it exactly.</string>
-    <string name="home_peek_spot_approximate">Somewhere within %1$d m — the driver who freed it couldn't mark the exact spot. Search around this area.</string>
+    <string name="home_peek_parking_approximate">Somewhere within %1$s — we lost the end of the trip. Edit to place it exactly.</string>
+    <string name="home_peek_spot_approximate">Somewhere within %1$s — the driver who freed it couldn't mark the exact spot. Search around this area.</string>
     <string name="home_peek_parking_duration_hm">Parked %1$dh %2$dm ago</string>
     <string name="home_peek_parking_duration_day">Parked %1$d day ago</string>
     <string name="home_peek_parking_duration_days">Parked %1$d days ago</string>
@@ -615,7 +614,7 @@
     <string name="carbody_pickup">Pick-up</string>
 
     <!-- VEHICLE-CATEGORIZATION-001 — Carbody parking advice copy -->
-    <string name="parking_alert_high_ceiling">Watch the height. Skip garages with clearance under 2.10 m.</string>
+    <string name="parking_alert_high_ceiling">Watch the height. Skip garages with clearance under %1$s.</string>
     <string name="parking_alert_long_car">Long car — beware of overhang on short bays.</string>
     <string name="parking_alert_wide_car">Wide vehicle — prefer bays without lateral columns.</string>
     <string name="parking_alert_standard">Standard size — fits the vast majority of bays.</string>
@@ -873,7 +872,9 @@
     <string name="fuel_type_plug_in_hybrid">Plug-in hybrid</string>
     <string name="fuel_type_electric">Electric</string>
     <string name="vehicle_registration_consumption_liters_label">Consumption (l/100 km)</string>
+    <string name="vehicle_registration_consumption_mpg_label">Consumption (mpg)</string>
     <string name="vehicle_registration_consumption_kwh_label">Consumption (kWh/100 km)</string>
+    <string name="vehicle_registration_consumption_kwh_mi_label">Consumption (kWh/100 mi)</string>
     <string name="vehicle_registration_fuel_help">We estimate your fuel spend and emissions from this.</string>
     <string name="vehicle_registration_energy_label_title">Environmental label (optional)</string>
     <string name="energy_label_zero">Zero</string>
@@ -884,6 +885,8 @@
     <!-- Consumption units (universal notation, same in every locale) [VEH-FUEL-001] -->
     <string name="unit_l_per_100">l/100 km</string>
     <string name="unit_kwh_per_100">kWh/100 km</string>
+    <string name="unit_mpg">mpg</string>
+    <string name="unit_kwh_per_100_mi">kWh/100 mi</string>
     <!-- Widget en la comparativa + fila de Ajustes [WIDGET-ACTIONS-002] -->
     <string name="settings_add_widget">Add the widget to your home screen</string>
     <!-- Vehicle figures block (STATS-UI-001) -->
@@ -976,7 +979,7 @@
 
     <!-- Gasolineras cercanas [FUEL-STATIONS-LIST-001] -->
     <string name="location_fallback_station">Fuel station</string>
-    <string name="home_fuel_empty">No fuel stations within 5 km.</string>
+    <string name="home_fuel_empty">No fuel stations within %1$s.</string>
     <string name="home_fuel_missing_fuel_type">Set this car's fuel type in Vehicles to see nearby stations and their prices.</string>
     <string name="fuel_peek_eyebrow">Fuel station</string>
     <string name="fuel_peek_not_sold">Not sold here</string>
@@ -985,7 +988,7 @@
     <string name="fuel_peek_follow">Follow</string>
     <string name="fuel_peek_following">Following</string>
     <string name="home_fuel_error">We could not load the stations. Check your connection and open this again.</string>
-    <string name="home_fuel_too_far">Fuel stations are only shown within %1$d km of you. Move the map closer to see them.</string>
+    <string name="home_fuel_too_far">Fuel stations are only shown within %1$s of you. Move the map closer to see them.</string>
     <string name="home_fuel_no_prices">Prices are not published in this country. These are the stations nearby.</string>
     <!-- [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] Fallback, not a verdict about the country -->
     <string name="home_fuel_prices_unavailable">Official prices didn't load. These are the stations nearby — try again in a moment.</string>
@@ -1003,9 +1006,9 @@
          sujeto es como las dos superficies acaban llamandolo distinto.
          [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001] -->
     <string name="subject_free_spots">Free spots</string>
-    <string name="home_parkings_empty">No public car parks within 1.5 km.</string>
+    <string name="home_parkings_empty">No public car parks within %1$s.</string>
     <string name="home_parkings_error">We could not load the car parks. Check your connection and open this again.</string>
-    <string name="home_parkings_too_far">Car parks are only shown within %1$d km of you. Move the map closer to see them.</string>
+    <string name="home_parkings_too_far">Car parks are only shown within %1$s of you. Move the map closer to see them.</string>
     <string name="home_parkings_remembered">No connection: these are the car parks we saw here %1$s.</string>
     <string name="parking_peek_eyebrow">Public car park</string>
     <string name="parking_peek_step_prev">Previous car park</string>

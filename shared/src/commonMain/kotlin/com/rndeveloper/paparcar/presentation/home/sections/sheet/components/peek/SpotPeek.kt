@@ -34,10 +34,10 @@ import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.Spot
 import com.rndeveloper.paparcar.presentation.util.distanceMeters
 import com.rndeveloper.paparcar.presentation.util.isManualReport
 import com.rndeveloper.paparcar.presentation.util.freshness
+import com.rndeveloper.paparcar.presentation.util.radiusString
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
-import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.common_directions
@@ -158,7 +158,7 @@ internal fun SpotPeek(
                 spot.zoneRadiusMeters?.let { radius ->
                     PeekMetaRow(
                         icon = Icons.Rounded.Adjust,
-                        text = stringResource(Res.string.home_peek_spot_approximate, radius.roundToInt()),
+                        text = stringResource(Res.string.home_peek_spot_approximate, radiusString(radius)),
                         tint = palette.accent,
                         maxLines = SPOT_APPROXIMATE_ROW_MAX_LINES,
                     )

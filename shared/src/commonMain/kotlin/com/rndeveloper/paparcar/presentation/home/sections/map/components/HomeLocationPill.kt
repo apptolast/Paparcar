@@ -33,6 +33,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.ZONE_CHIP_HEIGHT
 import com.rndeveloper.paparcar.presentation.util.MAP_FLOATING_SHADOW_DP
+import com.rndeveloper.paparcar.presentation.util.radiusString
 import com.rndeveloper.paparcar.ui.theme.PapMotion
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
@@ -168,7 +169,10 @@ fun HomeLocationPill(
         val label = when (shown) {
             LocationPillMessage.NoLocation -> stringResource(Res.string.home_location_off_pill)
             is LocationPillMessage.PoorAccuracy ->
-                stringResource(Res.string.home_gps_accuracy_banner, shown.metres)
+                // The accuracy IS a radius — the circle the fix could be anywhere inside — so it
+                // goes through the same formatter and stops saying "m" to someone who asked for
+                // miles. [I18N-A-RADIUS-WRITTEN-BY-HAND-IGNORES-MILES-001]
+                stringResource(Res.string.home_gps_accuracy_banner, radiusString(shown.metres.toFloat()))
         }
 
         Surface(

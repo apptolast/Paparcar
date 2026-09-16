@@ -12,8 +12,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
+import com.rndeveloper.paparcar.domain.parkings.PublicParkingsQuery
 import com.rndeveloper.paparcar.presentation.home.model.HomeParkingsSlice
 import com.rndeveloper.paparcar.presentation.home.model.ViewportRefetch
+import com.rndeveloper.paparcar.presentation.util.radiusString
 import com.rndeveloper.paparcar.presentation.util.relativeTimeText
 import com.rndeveloper.paparcar.ui.illustrations.EmptyParkingsIllustration
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
@@ -55,7 +57,12 @@ fun HomeParkingsLane(
             // ⛔ Too far from the user to follow: nothing was asked, so neither the empty sentence nor
             // the failure one is true. The map is empty for the same reason, at the same moment.
             // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
-            slice.tooFar -> LaneNote(stringResource(Res.string.home_parkings_too_far, ViewportRefetch.maxFromUserKm))
+            slice.tooFar -> LaneNote(
+                stringResource(
+                    Res.string.home_parkings_too_far,
+                    radiusString(ViewportRefetch.MAX_FROM_USER_METERS.toFloat()),
+                ),
+            )
 
             // ⛔ A failure is NOT an empty list: saying "none nearby" when we could not ask sends the
             // user driving on a claim we never checked.
@@ -96,7 +103,14 @@ fun HomeParkingsLane(
     }
 }
 
-/** The honest "none within 1.5 km": illustrated, twin of [EmptyFuelStations] in the fuel lane. */
+/**
+ * The honest "none within the radius we actually asked for": illustrated, twin of
+ * [EmptyFuelStations] in the fuel lane.
+ *
+ * ⛔ The radius comes from [PublicParkingsQuery.DEFAULT_RADIUS_METERS], never from the copy. It was
+ * typed into the sentence in nine locales, the query moved to 3 km, and the sentence went on saying
+ * 1.5 km. [I18N-A-RADIUS-WRITTEN-BY-HAND-IGNORES-MILES-001]
+ */
 @Composable
 private fun EmptyParkings() {
     Column(
@@ -110,7 +124,10 @@ private fun EmptyParkings() {
             modifier = Modifier.size(EMPTY_ILLUSTRATION_W.dp, EMPTY_ILLUSTRATION_H.dp),
         )
         Text(
-            text = stringResource(Res.string.home_parkings_empty),
+            text = stringResource(
+                Res.string.home_parkings_empty,
+                radiusString(PublicParkingsQuery.DEFAULT_RADIUS_METERS.toFloat()),
+            ),
             style = PaparcarType.current.caption,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

@@ -33,6 +33,7 @@ import com.rndeveloper.paparcar.domain.model.displayName
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.SheetTokens
 import com.rndeveloper.paparcar.domain.model.SpotFreshness
 import com.rndeveloper.paparcar.presentation.util.distanceString
+import com.rndeveloper.paparcar.presentation.util.radiusString
 import com.rndeveloper.paparcar.presentation.util.driveTimeString
 import com.rndeveloper.paparcar.presentation.util.placeLineText
 import com.rndeveloper.paparcar.presentation.util.toPlaceLine
@@ -41,7 +42,6 @@ import com.rndeveloper.paparcar.ui.components.PapSectionHeader
 import com.rndeveloper.paparcar.ui.components.ReliabilityMeter
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.stateColors
-import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_address_unknown
@@ -143,7 +143,7 @@ internal fun ApproximateZoneRow(
     val radius = zoneRadiusMeters ?: return
     PeekMetaRow(
         icon = Icons.Rounded.Adjust,
-        text = stringResource(Res.string.home_peek_parking_approximate, radius.roundToInt()),
+        text = stringResource(Res.string.home_peek_parking_approximate, radiusString(radius)),
         tint = accentColor,
         maxLines = APPROXIMATE_ROW_MAX_LINES,
         onClick = onAdjust,

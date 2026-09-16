@@ -56,6 +56,8 @@ import com.rndeveloper.paparcar.domain.model.EnergyLabel
 import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.VehicleType
 import com.rndeveloper.paparcar.domain.vehicle.FuelDefaults
+import com.rndeveloper.paparcar.presentation.util.consumptionFieldLabel
+import com.rndeveloper.paparcar.presentation.util.consumptionFigure
 import com.rndeveloper.paparcar.presentation.util.energyLabelText
 import com.rndeveloper.paparcar.presentation.util.formatPer100
 import com.rndeveloper.paparcar.presentation.util.fuelTypeLabel
@@ -786,14 +788,11 @@ private fun FuelSection(
             PapTextField(
                 value = state.consumptionText,
                 onValueChange = { onIntent(VehicleRegistrationIntent.SetConsumption(it)) },
-                label = stringResource(
-                    if (fuel.usesLiters) {
-                        Res.string.vehicle_registration_consumption_liters_label
-                    } else {
-                        Res.string.vehicle_registration_consumption_kwh_label
-                    },
-                ),
-                placeholder = formatPer100(primaryDefault),
+                // ⛔ La etiqueta y el marcador van juntos SIEMPRE: una etiqueta que dice mpg sobre un
+                // marcador de 5,5 le pide al usuario un número en una unidad y le sugiere otro en la
+                // contraria. [I18N-A-RADIUS-WRITTEN-BY-HAND-IGNORES-MILES-001]
+                label = consumptionFieldLabel(fuel.usesLiters),
+                placeholder = consumptionFigure(primaryDefault, fuel.usesLiters),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -801,8 +800,8 @@ private fun FuelSection(
                 PapTextField(
                     value = state.consumptionElectricText,
                     onValueChange = { onIntent(VehicleRegistrationIntent.SetConsumptionElectric(it)) },
-                    label = stringResource(Res.string.vehicle_registration_consumption_kwh_label),
-                    placeholder = formatPer100(FuelDefaults.PHEV_KWH_PER_100),
+                    label = consumptionFieldLabel(usesLiters = false),
+                    placeholder = consumptionFigure(FuelDefaults.PHEV_KWH_PER_100, usesLiters = false),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
                     modifier = Modifier.fillMaxWidth(),
                 )

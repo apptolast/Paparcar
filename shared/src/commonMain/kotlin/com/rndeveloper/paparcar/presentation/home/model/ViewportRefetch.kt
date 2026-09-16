@@ -52,9 +52,9 @@ object ViewportRefetch {
      *  the user's GPS will be blocked. */
     const val MAX_FROM_USER_METERS = 20_000.0
 
-    /** [MAX_FROM_USER_METERS] as the lanes SAY it — derived, so the sentence cannot drift from the
-     *  rule it explains. [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001] */
-    val maxFromUserKm: Int get() = (MAX_FROM_USER_METERS / METERS_PER_KM).toInt()
-
-    private const val METERS_PER_KM = 1_000.0
+    // ⛔ No hay aquí un `maxFromUserKm`. Existió para que la frase del carril no divergiera de esta
+    // constante, y hacía media pregunta: derivaba la CIFRA y dejaba el «km» escrito en los nueve
+    // locales, o sea seguía diciendo kilómetros a quien había pedido millas. Las dos mitades las
+    // resuelve ahora `radiusString(MAX_FROM_USER_METERS)` en el sitio donde se dice.
+    // [I18N-A-RADIUS-WRITTEN-BY-HAND-IGNORES-MILES-001] [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
 }

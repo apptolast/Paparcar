@@ -261,7 +261,7 @@
     <string name="home_zone_private_hint">Locul nu va fi distribuit când pleci</string>
 
     <!-- GPS accuracy banner -->
-    <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
+    <string name="home_gps_accuracy_banner">GPS ±%1$s</string>
 
     <!-- Filele de navigare de jos -->
     <string name="nav_tab_home">Acasă</string>
@@ -440,7 +440,6 @@
     <string name="home_zone_delete_confirm_title">Ștergi această zonă?</string>
     <string name="home_zone_delete_confirm_body">Zona dispare de pe hartă. Parcările și istoricul tău rămân neschimbate.</string>
     <string name="home_zone_radius_section">Rază</string>
-    <string name="home_zone_radius_meters">%1$d m</string>
 
     <!-- My Car — delete confirmation + edit -->
     <string name="my_car_delete_vehicle">Șterge</string>
@@ -525,7 +524,7 @@
     <string name="carbody_van_commercial">Dubă comercială</string>
     <string name="carbody_pickup">Pick-up</string>
 
-    <string name="parking_alert_high_ceiling">Atenție la înălțime. Evită garajele cu gabarit sub 2.10 m.</string>
+    <string name="parking_alert_high_ceiling">Atenție la înălțime. Evită garajele cu gabarit sub %1$s.</string>
     <string name="parking_alert_long_car">Mașină lungă — atenție la depășire pe locurile scurte.</string>
     <string name="parking_alert_wide_car">Vehicul lat — preferă locurile fără stâlpi laterali.</string>
     <string name="parking_alert_standard">Dimensiune standard — încape pe marea majoritate a locurilor.</string>
@@ -544,8 +543,8 @@
     <string name="home_peek_parking_duration_days">Parcat acum %1$d zile</string>
     <string name="home_peek_parking_duration_min">Parcat acum %1$d min</string>
     <string name="home_peek_parking_duration_now">Parcat chiar acum</string>
-    <string name="home_peek_parking_approximate">Undeva pe o rază de %1$d m: am pierdut finalul călătoriei. Editează pentru a-l plasa.</string>
-    <string name="home_peek_spot_approximate">Undeva pe o rază de %1$d m: cine l-a eliberat nu a putut fixa punctul exact. Caută prin zonă.</string>
+    <string name="home_peek_parking_approximate">Undeva pe o rază de %1$s: am pierdut finalul călătoriei. Editează pentru a-l plasa.</string>
+    <string name="home_peek_spot_approximate">Undeva pe o rază de %1$s: cine l-a eliberat nu a putut fixa punctul exact. Caută prin zonă.</string>
     <string name="home_peek_spot_age_hour">Postat acum %1$d h</string>
     <string name="home_peek_spot_age_min">Postat acum %1$d min</string>
     <string name="home_peek_spot_age_now">Postat chiar acum</string>
@@ -851,7 +850,9 @@
     <string name="fuel_type_plug_in_hybrid">Hibrid plug-in</string>
     <string name="fuel_type_electric">Electric</string>
     <string name="vehicle_registration_consumption_liters_label">Consum (l/100 km)</string>
+    <string name="vehicle_registration_consumption_mpg_label">Consum (mpg)</string>
     <string name="vehicle_registration_consumption_kwh_label">Consum (kWh/100 km)</string>
+    <string name="vehicle_registration_consumption_kwh_mi_label">Consum (kWh/100 mi)</string>
     <string name="vehicle_registration_fuel_help">Cu aceasta estimăm costurile și emisiile.</string>
     <string name="vehicle_registration_energy_label_title">Etichetă de mediu (opțional)</string>
     <string name="energy_label_zero">Zero</string>
@@ -862,6 +863,8 @@
     <!-- Consumption units (universal notation, same in every locale) [VEH-FUEL-001] -->
     <string name="unit_l_per_100">l/100 km</string>
     <string name="unit_kwh_per_100">kWh/100 km</string>
+    <string name="unit_mpg">mpg</string>
+    <string name="unit_kwh_per_100_mi">kWh/100 mi</string>
     <!-- Widget en la comparativa + fila de Ajustes [WIDGET-ACTIONS-002] -->
     <string name="settings_add_widget">Adaugă widgetul pe ecranul principal</string>
     <!-- Vehicle figures block (STATS-UI-001) -->
@@ -958,7 +961,7 @@
 
     <!-- Gasolineras cercanas [FUEL-STATIONS-LIST-001] -->
     <string name="location_fallback_station">Benzinărie</string>
-    <string name="home_fuel_empty">Nicio benzinărie pe o rază de 5 km.</string>
+    <string name="home_fuel_empty">Nicio benzinărie pe o rază de %1$s.</string>
     <string name="home_fuel_missing_fuel_type">Setează combustibilul acestei mașini în Vehicule ca să vezi benzinăriile din apropiere și prețurile lor.</string>
     <string name="fuel_peek_eyebrow">Benzinărie</string>
     <string name="fuel_peek_not_sold">Nu se vinde aici</string>
@@ -967,7 +970,7 @@
     <string name="fuel_peek_follow">Urmărește</string>
     <string name="fuel_peek_following">Urmărită</string>
     <string name="home_fuel_error">Nu am putut încărca benzinăriile. Verifică conexiunea și deschide din nou.</string>
-    <string name="home_fuel_too_far">Afișăm benzinăriile doar pe o rază de %1$d km de tine. Apropie harta ca să le vezi.</string>
+    <string name="home_fuel_too_far">Afișăm benzinăriile doar pe o rază de %1$s de tine. Apropie harta ca să le vezi.</string>
     <string name="home_fuel_no_prices">În această țară prețurile nu sunt publicate. Acestea sunt benzinăriile din apropiere.</string>
     <!-- [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] Fallback, not a verdict about the country -->
     <string name="home_fuel_prices_unavailable">Prețurile oficiale nu s-au încărcat. Acestea sunt benzinăriile din apropiere; încearcă din nou într-un moment.</string>
@@ -980,9 +983,9 @@
     <string name="subject_fuel_stations">Benzinării</string>
     <string name="subject_public_parkings">Parcări</string>
     <string name="subject_free_spots">Locuri</string>
-    <string name="home_parkings_empty">Nicio parcare publică pe o rază de 1,5 km.</string>
+    <string name="home_parkings_empty">Nicio parcare publică pe o rază de %1$s.</string>
     <string name="home_parkings_error">Nu am putut încărca parcările. Verifică conexiunea și deschide din nou.</string>
-    <string name="home_parkings_too_far">Afișăm parcările publice doar pe o rază de %1$d km de tine. Apropie harta ca să le vezi.</string>
+    <string name="home_parkings_too_far">Afișăm parcările publice doar pe o rază de %1$s de tine. Apropie harta ca să le vezi.</string>
     <string name="home_parkings_remembered">Fără conexiune: acestea sunt parcările văzute aici %1$s.</string>
     <string name="parking_peek_eyebrow">Parcare publică</string>
     <string name="parking_peek_step_prev">Parcarea publică anterioară</string>

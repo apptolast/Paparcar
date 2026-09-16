@@ -11,9 +11,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.rndeveloper.paparcar.domain.fuel.FuelStationsQuery
 import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
 import com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice
 import com.rndeveloper.paparcar.presentation.home.model.ViewportRefetch
+import com.rndeveloper.paparcar.presentation.util.radiusString
 import com.rndeveloper.paparcar.presentation.util.relativeTimeText
 import com.rndeveloper.paparcar.ui.illustrations.EmptyFuelStationsIllustration
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
@@ -66,7 +68,12 @@ fun HomeFuelLane(
             // ⛔ Too far from the user to follow: nothing was asked, and the map is empty with it.
             // First, because it outranks every other sentence — none of them is about this place.
             // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
-            slice.tooFar -> LaneNote(stringResource(Res.string.home_fuel_too_far, ViewportRefetch.maxFromUserKm))
+            slice.tooFar -> LaneNote(
+                stringResource(
+                    Res.string.home_fuel_too_far,
+                    radiusString(ViewportRefetch.MAX_FROM_USER_METERS.toFloat()),
+                ),
+            )
 
             // ⛔ No fuel on the car means NO question was asked — its own sentence, never the empty
             // state, which is a verdict about the world.
@@ -179,7 +186,12 @@ private fun EmptyFuelStations() {
             modifier = Modifier.size(EMPTY_ILLUSTRATION_W.dp, EMPTY_ILLUSTRATION_H.dp),
         )
         Text(
-            text = stringResource(Res.string.home_fuel_empty),
+            // ⛔ The radius is [FuelStationsQuery.DEFAULT_RADIUS_METERS], not a number typed into
+            // nine translations. [I18N-A-RADIUS-WRITTEN-BY-HAND-IGNORES-MILES-001]
+            text = stringResource(
+                Res.string.home_fuel_empty,
+                radiusString(FuelStationsQuery.DEFAULT_RADIUS_METERS.toFloat()),
+            ),
             style = PaparcarType.current.caption,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
