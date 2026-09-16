@@ -571,6 +571,46 @@ coche: la regla del servidor («no eres el autor») es correcta y aun así es ru
 dos móviles del mismo viaje queda para la etapa 2 de F8 — y se resuelve mirando si el receptor
 estaba en el viaje, no tocando esta cadena.
 
+### SHARED-A-CAR-THAT-LEAVES-IS-NEWS-TOO-001 — la valla sale del sitio cuando el coche sale
+
+**Commit:** pending. **Cierra el «lo que NO hace» de las dos entradas anteriores.**
+
+**Causa raíz.** El aviso del grupo solo contaba los aparcamientos. Cuando el coche SE VA, el espejo
+escribe `isParked = false` y el reparto lo tiraba por «no está aparcado» — perdiendo lo que de
+verdad hay que hacer en ese momento: **quitar la valla compartida** del sitio que el coche acaba de
+dejar. Los demás miembros la tienen plantada ahí (todos menos quien aparcó), y una valla sin coche
+debajo es un trigger esperando a que su dueño pase andando por esa calle. Hasta este cambio se
+quitaba en la siguiente pasada del janitor, 15 min después.
+
+Y la otra mitad: **dos móviles del grupo en el mismo coche** espejaban la misma parada dos veces. No
+es un aviso duplicado, es una estadística falsa — el doble de kilómetros y el doble de tiempo
+buscando plaza para el grupo.
+
+**Fix.**
+
+1. `departureVerdict` en el fan-out, con el push `shared_car_left`. La salida es una **transición**
+   (`parked → no parked`, misma sesión), nunca un estado: `isParked:false` es el valor en reposo de
+   un coche que nadie ha movido desde ayer, y leerlo como estado re-anunciaría esa salida en cada
+   escritura posterior del documento.
+2. `isSameParking(mine, theirs)` en `domain/sharedcar/` — predicado puro, porque lo preguntan dos
+   veredictos: si espejar lo que acabo de aparcar, y si enseñar una tarjeta que habla de mi propio
+   viaje. ⛔ Compara **anclas, no confirmaciones**: los dos móviles confirman con minutos de
+   diferencia (Bluetooth en segundos, Coordinator tras pasos y egress) pero anclan el mismo frenazo.
+   Ventana de 3 min sobre el ancla; el radio de 150 m es el freno débil, porque el mismo coche no se
+   puede aparcar dos veces de verdad en tres minutos.
+3. En el servicio de push, el orden es ley: **la valla primero y sin condiciones**, la tarjeta
+   después. Una duda sobre si el aviso hablaba de mi propio viaje calla la tarjeta; nunca la valla.
+
+**Doctrina.** Sin cambios y sin `detectionPath` nuevo: la valla compartida sigue siendo de
+UBICACIÓN. Lo que se ha movido es cuándo desaparece.
+
+**Riesgo del fix acompañante.** El dedupe lo gana **quien llega primero**, y no se intenta adivinar
+quién conducía: el Coordinator mide el viaje igual desde los dos asientos, así que un criterio de
+«conductor» sería un dato inventado. Consecuencia asumida y medible: la ATRIBUCIÓN del autor puede
+salir cambiada en una sesión del grupo; las cifras, no. Lo que sigue fuera es anunciar que **otro**
+se lleva el coche — eso no lo registra el espejo hasta que esa persona para, y hacerlo visible exige
+una señal nueva en detección (etapa 2, con gate de campo).
+
 ### COM-002 — Adaptive geofence radius by vehicle size + GPS accuracy
 
 **Commit:** `c7b67ae`.

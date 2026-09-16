@@ -123,4 +123,8 @@
     <string name="notif_shared_car_parked_text">At %1$s · tap to see it on the map</string>
     <string name="notif_shared_car_parked_title_unknown">The shared car has been parked</string>
     <string name="notif_shared_car_parked_text_unknown">Tap to see where it is</string>
+    <!-- Coche compartido: se lo han llevado. [SHARED-A-CAR-THAT-LEAVES-IS-NEWS-TOO-001] -->
+    <string name="notif_shared_car_left_title">%1$s took the car</string>
+    <string name="notif_shared_car_left_title_unknown">The shared car is on the move</string>
+    <string name="notif_shared_car_left_text">It is no longer where it was parked</string>
 </resources>

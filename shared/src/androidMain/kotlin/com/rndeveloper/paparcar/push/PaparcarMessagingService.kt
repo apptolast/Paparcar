@@ -5,7 +5,10 @@ import com.google.firebase.messaging.RemoteMessage
 import androidx.work.WorkManager
 import com.rndeveloper.paparcar.detection.worker.GeofenceJanitorWorker
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
+import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneWatchRepository
+import com.rndeveloper.paparcar.domain.sharedcar.ParkingMark
+import com.rndeveloper.paparcar.domain.sharedcar.isSameParking
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,6 +31,7 @@ class PaparcarMessagingService : FirebaseMessagingService() {
     private val zoneWatch: ZoneWatchRepository by inject()
     private val subscriptions: ZoneAlertSubscriptionSync by inject()
     private val sharedCarMembers: SharedCarMemberSync by inject()
+    private val parkingRepository: UserParkingRepository by inject()
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -56,6 +60,10 @@ class PaparcarMessagingService : FirebaseMessagingService() {
         val data = message.data
         if (data["type"] == TYPE_SHARED_CAR_PARKED) {
             onSharedCarParked(data)
+            return
+        }
+        if (data["type"] == TYPE_SHARED_CAR_LEFT) {
+            onSharedCarLeft(data)
             return
         }
         if (data["type"] != TYPE_ZONE_SPOT) {
@@ -108,14 +116,7 @@ class PaparcarMessagingService : FirebaseMessagingService() {
      * del reparto. Un móvil no puede saber si el aviso era para otro.
      */
     private fun onSharedCarParked(data: Map<String, String>) {
-        // PRIMERO la valla, y sin condiciones: el reconciliador no lee nada de este mensaje —
-        // relee el espejo— así que un campo que falte puede costar la tarjeta, nunca la vigilancia.
-        // El janitor es el único sitio que registra vallas; esto solo le dice que pase ya.
-        // [DET-A-SHARED-FENCE-FOLLOWS-THE-CAR-001]
-        GeofenceJanitorWorker.enqueueOnce(
-            WorkManager.getInstance(applicationContext),
-            GeofenceJanitorWorker.TRIGGER_SHARED_CAR_PUSH,
-        )
+        moveTheGroupFenceNow()
 
         val latitude = data["latitude"]?.toDoubleOrNull()
         val longitude = data["longitude"]?.toDoubleOrNull()
@@ -123,11 +124,76 @@ class PaparcarMessagingService : FirebaseMessagingService() {
             PaparcarLogger.w(TAG, "shared-car push sin posición — valla movida, tarjeta no")
             return
         }
-        notificationPort.showSharedCarParked(
-            authorName = data["authorName"]?.takeIf { it.isNotBlank() },
-            addressLine = data["addressLine"]?.takeIf { it.isNotBlank() },
-            latitude = latitude,
-            longitude = longitude,
+        scope.launch {
+            if (isMyOwnTrip(data, latitude, longitude)) {
+                PaparcarLogger.d(TAG) { "· el aviso habla del viaje que acabo de hacer yo — no se muestra" }
+                return@launch
+            }
+            notificationPort.showSharedCarParked(
+                authorName = data["authorName"]?.takeIf { it.isNotBlank() },
+                addressLine = data["addressLine"]?.takeIf { it.isNotBlank() },
+                latitude = latitude,
+                longitude = longitude,
+            )
+        }
+    }
+
+    /**
+     * El coche compartido se ha ido. [SHARED-A-CAR-THAT-LEAVES-IS-NEWS-TOO-001]
+     *
+     * Las mismas dos cosas y el mismo orden, y aquí la valla pesa todavía más: lo que hay que hacer
+     * es QUITARLA de un sitio que el coche ha dejado. Una valla plantada donde ya no hay coche es un
+     * trigger de detección esperando a que su dueño pase andando por esa calle.
+     */
+    private fun onSharedCarLeft(data: Map<String, String>) {
+        moveTheGroupFenceNow()
+        notificationPort.showSharedCarLeft(data["authorName"]?.takeIf { it.isNotBlank() })
+    }
+
+    /**
+     * ⛔ Primero y sin condiciones: el reconciliador no lee ni un campo de estos mensajes —relee el
+     * espejo—, así que un campo que falte puede costar la tarjeta, nunca la vigilancia. Y el janitor
+     * sigue siendo el ÚNICO sitio que registra vallas; esto solo le dice que pase ya.
+     * [DET-A-SHARED-FENCE-FOLLOWS-THE-CAR-001]
+     */
+    private fun moveTheGroupFenceNow() {
+        GeofenceJanitorWorker.enqueueOnce(
+            WorkManager.getInstance(applicationContext),
+            GeofenceJanitorWorker.TRIGGER_SHARED_CAR_PUSH,
+        )
+    }
+
+    /**
+     * Si el aparcamiento que anuncia el grupo es el que acabo de hacer yo, desde el asiento de al
+     * lado. [SHARED-A-CAR-THAT-LEAVES-IS-NEWS-TOO-001]
+     *
+     * Dos personas del grupo en el mismo coche: los dos móviles detectan la misma parada, el espejo
+     * se queda con el primero que llega y el segundo recibe un aviso de un viaje en el que iba. La
+     * exclusión del autor la hace el servidor y aquí no alcanza — para el servidor son dos personas
+     * distintas, y lo son; lo que comparten es el viaje, y eso solo lo sabe este móvil.
+     *
+     * ⛔ Se calla la TARJETA, nunca la valla: una duda sobre si esto era mi viaje no puede dejar una
+     * geocerca donde el coche ya no está.
+     */
+    private suspend fun isMyOwnTrip(data: Map<String, String>, latitude: Double, longitude: Double): Boolean {
+        val carId = data["carId"] ?: return false
+        val sessionId = data["sessionId"] ?: return false
+        val parkedAtMs = data["parkedAtMs"]?.toLongOrNull() ?: return false
+        // El id local del coche vinculado ES el carId: compartir no re-keya nada. [VEH-SHARED-001]
+        val mine = runCatching { parkingRepository.getActiveSessionByVehicle(carId) }.getOrNull() ?: return false
+        return isSameParking(
+            mine = ParkingMark(
+                sessionId = mine.id,
+                atMs = mine.location.timestamp,
+                latitude = mine.location.latitude,
+                longitude = mine.location.longitude,
+            ),
+            theirs = ParkingMark(
+                sessionId = sessionId,
+                atMs = parkedAtMs,
+                latitude = latitude,
+                longitude = longitude,
+            ),
         )
     }
 
@@ -136,6 +202,7 @@ class PaparcarMessagingService : FirebaseMessagingService() {
 
         /** ⛔ Mirrored in `functions/src/index.ts`. */
         const val TYPE_SHARED_CAR_PARKED = "shared_car_parked"
+        const val TYPE_SHARED_CAR_LEFT = "shared_car_left"
         const val TYPE_ZONE_SPOT = "zone_spot"
     }
 }

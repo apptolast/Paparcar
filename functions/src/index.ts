@@ -98,8 +98,13 @@ export const onSpotPublished = onDocumentCreated('spots/{spotId}', async (event)
 });
 
 /**
- * Somebody parked the shared car: tell the rest of the group, and move their fence with it.
- * [SHARED-A-PARKING-TELLS-THE-GROUP-001]
+ * El coche compartido se ha movido: contárselo al resto del grupo y mover su valla con él.
+ * [SHARED-A-PARKING-TELLS-THE-GROUP-001] + [SHARED-A-CAR-THAT-LEAVES-IS-NEWS-TOO-001]
+ *
+ * Dos noticias por el mismo documento, porque son el mismo hecho contado por sus dos caras:
+ * **aparcado** dice dónde está el coche, y **se lo han llevado** dice que ya no está ahí — y
+ * esa segunda es, además, el momento en que la valla compartida tiene que salir de un sitio
+ * que el coche ha dejado, antes de que dispare por un coche que nadie ha movido.
  *
  * Why a push and not the app noticing on its own: the mirror is already written and the others
  * already *can* read it — but only while they have the app open, or on the janitor's next 15-minute
@@ -133,6 +138,7 @@ export const onSharedCarParked = onDocumentWritten('sharedCars/{carId}/state/cur
 
   logger.info('shared car fan-out', {
     carId,
+    kind: verdict.kind,
     sessionId: verdict.sessionId,
     members: snapshot.size,
     targets: targets.length,
@@ -140,50 +146,45 @@ export const onSharedCarParked = onDocumentWritten('sharedCars/{carId}/state/cur
 
   if (targets.length === 0) return;
 
+  const payload: Record<string, string> =
+    verdict.kind === 'announce'
+      ? {
+          type: 'shared_car_parked',
+          carId,
+          authorName: verdict.authorName,
+          addressLine: verdict.addressLine,
+          latitude: String(after!.latitude!),
+          longitude: String(after!.longitude!),
+          parkedAtMs: String(after!.parkedAtMs ?? 0),
+          sessionId: verdict.sessionId,
+        }
+      : { type: 'shared_car_left', carId, authorName: verdict.authorName, sessionId: verdict.sessionId };
+
   await Promise.all(
-    targets.map((member) =>
-      deliverSharedCarParked(
-        membersRef.doc(member.uid),
-        member,
-        carId,
-        verdict.authorName,
-        verdict.addressLine,
-        after!.latitude!,
-        after!.longitude!,
-      ),
-    ),
+    targets.map((member) => deliverToMember(membersRef.doc(member.uid), member, carId, payload)),
   );
 });
 
 /**
- * One member's devices.
+ * One member's devices, for either piece of news.
  *
  * A **data** message, like the zone one and for a cousin of the same reason: the wording lives in
  * the app, which is the only side that has the nine locales. A notification message would arrive in
- * whatever language the server guessed.
+ * whatever language the server guessed. It also lets the phone decide to stay quiet about a trip it
+ * was on itself — a decision only it can make. [SHARED-A-CAR-THAT-LEAVES-IS-NEWS-TOO-001]
  */
-async function deliverSharedCarParked(
+async function deliverToMember(
   ref: FirebaseFirestore.DocumentReference,
   member: SharedCarMember,
   carId: string,
-  authorName: string,
-  addressLine: string,
-  latitude: number,
-  longitude: number,
+  data: Record<string, string>,
 ): Promise<void> {
   const tokens = (member.tokens ?? []).filter((t) => !!t);
   if (tokens.length === 0) return;
 
   const response = await getMessaging().sendEachForMulticast({
     tokens,
-    data: {
-      type: 'shared_car_parked',
-      carId,
-      authorName,
-      addressLine,
-      latitude: String(latitude),
-      longitude: String(longitude),
-    },
+    data,
     android: {
       // High priority because the fence move rides on this message: a delivery held until the next
       // Doze window would put the geofence back exactly where this feature is trying not to leave it.

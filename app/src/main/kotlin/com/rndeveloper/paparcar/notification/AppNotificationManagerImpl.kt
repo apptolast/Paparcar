@@ -192,6 +192,31 @@ class AppNotificationManagerImpl(
     }
 
     /**
+     * El coche compartido se ha ido del sitio donde estaba.
+     * [SHARED-A-CAR-THAT-LEAVES-IS-NEWS-TOO-001]
+     *
+     * Sin `contentIntent` a un punto: la noticia es que ese punto ya no vale.
+     */
+    override fun showSharedCarLeft(authorName: String?) {
+        val title = authorName
+            ?.let { context.getString(R.string.notif_shared_car_left_title, it) }
+            ?: context.getString(R.string.notif_shared_car_left_title_unknown)
+        val notification = NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
+            .setContentTitle(title)
+            .setContentText(context.getString(R.string.notif_shared_car_left_text))
+            .setSmallIcon(R.drawable.ic_notification_logo)
+            .setColor(COLOR_SUCCESS)
+            .setCategory(NotificationCompat.CATEGORY_EVENT)
+            .setContentIntent(buildOpenAppIntent(RC_SHARED_CAR_LEFT))
+            .setAutoCancel(true)
+            .build()
+        notificationManager.notify(
+            AppNotificationManager.SHARED_CAR_LEFT_NOTIFICATION_ID,
+            notification,
+        )
+    }
+
+    /**
      * [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001] Plus fuel alert: a cheaper pump than
      * the driver's usual one, near them. Informative (UPLOAD channel), same tier and same
      * double-gating as the zone alert — the watch use case checks the switch at decision time and
@@ -724,6 +749,7 @@ class AppNotificationManagerImpl(
         private const val RC_CHEAPER_FUEL = 19
         private const val RC_FUEL_PRICE_MOVE = 20
         private const val RC_SHARED_CAR_PARKED = 21
+        private const val RC_SHARED_CAR_LEFT = 22
         private const val RC_CONFIRM_YES = 200
         private const val RC_CONFIRM_NO = 201
         // [REFACTOR-300] post-save notification request codes

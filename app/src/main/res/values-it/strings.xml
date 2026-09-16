@@ -110,4 +110,8 @@
     <string name="notif_shared_car_parked_text">In %1$s · tocca per vederla sulla mappa</string>
     <string name="notif_shared_car_parked_title_unknown">L\'auto condivisa è stata parcheggiata</string>
     <string name="notif_shared_car_parked_text_unknown">Tocca per vedere dov\'è</string>
+    <!-- Coche compartido: se lo han llevado. [SHARED-A-CAR-THAT-LEAVES-IS-NEWS-TOO-001] -->
+    <string name="notif_shared_car_left_title">%1$s ha preso l\'auto</string>
+    <string name="notif_shared_car_left_title_unknown">L\'auto condivisa è in movimento</string>
+    <string name="notif_shared_car_left_text">Non è più dov\'era parcheggiata</string>
 </resources>

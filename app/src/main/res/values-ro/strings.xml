@@ -110,4 +110,8 @@
     <string name="notif_shared_car_parked_text">Pe %1$s · atinge ca să o vezi pe hartă</string>
     <string name="notif_shared_car_parked_title_unknown">Mașina partajată a fost parcată</string>
     <string name="notif_shared_car_parked_text_unknown">Atinge ca să vezi unde este</string>
+    <!-- Coche compartido: se lo han llevado. [SHARED-A-CAR-THAT-LEAVES-IS-NEWS-TOO-001] -->
+    <string name="notif_shared_car_left_title">%1$s a luat mașina</string>
+    <string name="notif_shared_car_left_title_unknown">Mașina partajată este în mișcare</string>
+    <string name="notif_shared_car_left_text">Nu mai este unde era parcată</string>
 </resources>

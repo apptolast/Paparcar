@@ -43,10 +43,27 @@ test('announces when a member parks the shared car', () => {
   assert.equal(v.sessionId, 's-1');
 });
 
-test('should_stayQuiet_when_theCarIsLeaving', () => {
-  // The same document says "parked" and "gone". Announcing the second is exactly backwards.
+test('announces the departure, naming whoever had parked it', () => {
+  // [SHARED-A-CAR-THAT-LEAVES-IS-NEWS-TOO-001] The other half of the news, and the moment the rest
+  // of the group has to take their shared fence off a spot the car has vacated.
   const v = verdictFor(state(), state({ isParked: false }));
-  assert.deepEqual(v, { kind: 'skip', reason: 'not-parked' });
+  assert.equal(v.kind, 'announce-left');
+  if (v.kind !== 'announce-left') return;
+  assert.equal(v.authorUid, 'marta');
+  assert.equal(v.authorName, 'Marta');
+});
+
+test('should_notReAnnounceTheDeparture_when_theDocumentIsWrittenAgain', () => {
+  // A car nobody has moved since yesterday RESTS at isParked:false. Any later write of the
+  // document — a name change, a late sync — must not say it just left.
+  const parked = state({ isParked: false });
+  assert.deepEqual(verdictFor(parked, parked), { kind: 'skip', reason: 'not-parked' });
+});
+
+test('should_notCallItADeparture_when_itIsAnotherParkingBeingReplaced', () => {
+  const before = state({ sessionId: 's-1' });
+  const after = state({ sessionId: 's-2', isParked: false });
+  assert.deepEqual(verdictFor(before, after), { kind: 'skip', reason: 'another-parking' });
 });
 
 test('should_notAnnounceTwice_when_theGeocoderAnswersLate', () => {

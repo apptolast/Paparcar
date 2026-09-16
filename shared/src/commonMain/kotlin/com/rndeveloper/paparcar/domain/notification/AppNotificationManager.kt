@@ -214,6 +214,18 @@ interface AppNotificationManager {
     ) {}
 
     /**
+     * El coche compartido ya no está donde estaba: se lo ha llevado quien lo había aparcado.
+     * [SHARED-A-CAR-THAT-LEAVES-IS-NEWS-TOO-001]
+     *
+     * ⛔ **Sin sitio al que ir.** La otra tarjeta abre el mapa en el punto porque hay un punto; esta
+     * dice justo que ya no lo hay, y mandar al usuario al sitio del que el coche acaba de salir
+     * sería contarle lo contrario de lo que pone. Abre la app, y punto.
+     *
+     * @param authorName quién se lo ha llevado, o null si su perfil no tiene nombre.
+     */
+    fun showSharedCarLeft(authorName: String?) {}
+
+    /**
      * A pump near the user charges measurably less than the one they use (Paparcar Plus).
      * [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
      *
@@ -317,6 +329,11 @@ interface AppNotificationManager {
         /** El aviso de que alguien del grupo ha aparcado el coche compartido.
          *  [SHARED-A-PARKING-TELLS-THE-GROUP-001] */
         const val SHARED_CAR_PARKED_NOTIFICATION_ID = 2012
+
+        /** Y el aviso de que se lo han llevado. Id PROPIO: enterarse de que el coche se va no
+         *  puede borrar de la barra la tarjeta que dice dónde está otro coche del grupo.
+         *  [SHARED-A-CAR-THAT-LEAVES-IS-NEWS-TOO-001] */
+        const val SHARED_CAR_LEFT_NOTIFICATION_ID = 2013
 
         /** ID for the Plus "a cheaper pump nearby" alert. [FUEL-A-PRICE-REMEMBERED-…-001] */
         const val CHEAPER_FUEL_NOTIFICATION_ID = 2010

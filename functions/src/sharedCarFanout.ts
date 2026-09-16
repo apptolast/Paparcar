@@ -14,6 +14,9 @@ export interface SharedCarState {
   authorName?: string;
   latitude?: number;
   longitude?: number;
+  /** Cuándo se paró el coche: es lo que el móvil que recibe compara con su propio ancla para saber
+   *  si esta noticia es de su propio viaje. [SHARED-A-CAR-THAT-LEAVES-IS-NEWS-TOO-001] */
+  parkedAtMs?: number;
   isParked?: boolean;
   address?: { street?: string | null; city?: string | null } | null;
 }
@@ -27,21 +30,27 @@ export interface SharedCarMember {
 
 export type FanoutVerdict =
   | { kind: 'skip'; reason: string }
-  | { kind: 'announce'; sessionId: string; authorUid: string; authorName: string; addressLine: string };
+  | { kind: 'announce'; sessionId: string; authorUid: string; authorName: string; addressLine: string }
+  | { kind: 'announce-left'; sessionId: string; authorUid: string; authorName: string };
 
 /**
  * Whether this write is news, and what it says.
  *
- * Three refusals, and each one is a real event that must not reach a phone:
- *  - **Not parked** — the state also gets written when the car LEAVES. «Marta ha aparcado» would be
- *    exactly backwards.
- *  - **Same parking as before** — the geocoder answers late, so the same parking is written twice:
- *    once with coordinates and again with its street. Announcing both is the same car parked twice.
+ * Two kinds of news, and they are not symmetrical. **Parked** answers *where is the car*;
+ * **left** answers *the car is not there any more* — which for everyone else in the group is also
+ * the moment their shared fence has to come off a spot the car has vacated, or it sits there as a
+ * trigger for a car nobody moved. [DET-A-SHARED-FENCE-FOLLOWS-THE-CAR-001]
+ *
+ * Refusals, and each one is a real event that must not reach a phone:
+ *  - **Nothing happened to the parking** — a write that leaves the car where it was is the
+ *    geocoder answering late, not a departure.
+ *  - **Same parking as before** — that same late answer rewrites the parking with its street.
+ *    Announcing both is the same car parked twice.
  *  - **Nothing to point at** — a state with no session or no coordinates cannot open a map.
  */
 export function verdictFor(before: SharedCarState | undefined, after: SharedCarState | undefined): FanoutVerdict {
   if (!after) return { kind: 'skip', reason: 'state-deleted' };
-  if (after.isParked !== true) return { kind: 'skip', reason: 'not-parked' };
+  if (after.isParked !== true) return departureVerdict(before, after);
   const sessionId = after.sessionId;
   if (!sessionId) return { kind: 'skip', reason: 'no-session' };
   if (typeof after.latitude !== 'number' || typeof after.longitude !== 'number') {
@@ -62,6 +71,27 @@ export function verdictFor(before: SharedCarState | undefined, after: SharedCarS
     authorName: after.authorName ?? '',
     addressLine: addressLineOf(after),
   };
+}
+
+/**
+ * The car just left, and who took it.
+ *
+ * ⛔ The departure has to be a TRANSITION, not a state: `isParked: false` is the resting value of a
+ * car nobody has moved since yesterday, and every later write of that document — the group's name
+ * changing, a stale sync landing — would re-announce a departure that happened a day ago.
+ *
+ * ⛔ The author is whoever PARKED it, and that is not a shortcut: the mirror is only flipped to
+ * "gone" by the phone whose own session the state is showing. Somebody else taking the car does not
+ * write this document at all — they write a new parking when they stop, which is the other verdict.
+ * That is also why nobody needs to be told "the car is being driven by a person we cannot name".
+ */
+function departureVerdict(before: SharedCarState | undefined, after: SharedCarState): FanoutVerdict {
+  if (before?.isParked !== true) return { kind: 'skip', reason: 'not-parked' };
+  const sessionId = after.sessionId;
+  if (!sessionId || before.sessionId !== sessionId) return { kind: 'skip', reason: 'another-parking' };
+  const authorUid = after.authorUid;
+  if (!authorUid) return { kind: 'skip', reason: 'no-author' };
+  return { kind: 'announce-left', sessionId, authorUid, authorName: after.authorName ?? '' };
 }
 
 /**

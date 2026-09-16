@@ -110,4 +110,8 @@
     <string name="notif_shared_car_parked_text">Op %1$s · tik om hem op de kaart te zien</string>
     <string name="notif_shared_car_parked_title_unknown">De gedeelde auto is geparkeerd</string>
     <string name="notif_shared_car_parked_text_unknown">Tik om te zien waar hij staat</string>
+    <!-- Coche compartido: se lo han llevado. [SHARED-A-CAR-THAT-LEAVES-IS-NEWS-TOO-001] -->
+    <string name="notif_shared_car_left_title">%1$s is met de auto weg</string>
+    <string name="notif_shared_car_left_title_unknown">De gedeelde auto is onderweg</string>
+    <string name="notif_shared_car_left_text">Hij staat niet meer waar hij geparkeerd stond</string>
 </resources>

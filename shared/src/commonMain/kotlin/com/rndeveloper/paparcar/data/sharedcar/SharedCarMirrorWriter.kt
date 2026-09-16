@@ -13,7 +13,9 @@ import com.rndeveloper.paparcar.data.mapper.toPlaceInfoDto
 import com.rndeveloper.paparcar.domain.model.AddressInfo
 import com.rndeveloper.paparcar.domain.model.PlaceInfo
 import com.rndeveloper.paparcar.domain.model.UserParking
+import com.rndeveloper.paparcar.domain.sharedcar.ParkingMark
 import com.rndeveloper.paparcar.domain.sharedcar.SharedCarMirror
+import com.rndeveloper.paparcar.domain.sharedcar.isSameParking
 import com.rndeveloper.paparcar.domain.sharedcar.sharedCarMirrorPayload
 import com.rndeveloper.paparcar.domain.sharedcar.sharedCarStateOf
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
@@ -42,6 +44,12 @@ class SharedCarMirrorWriter(
     override suspend fun onSessionSaved(session: UserParking) {
         val carId = sharedCarIdOf(session.userId, session.vehicleId) ?: return
         guard("onSessionSaved", session.id) {
+            if (isEchoOfAParkingTheGroupAlreadyHas(carId, session)) {
+                PaparcarLogger.d(TAG) {
+                    "· ${session.id} es el mismo aparcamiento que el grupo ya tiene — no se espeja"
+                }
+                return@guard
+            }
             val payload = sharedCarMirrorPayload(
                 session = session,
                 authorUid = session.userId,
@@ -99,6 +107,42 @@ class SharedCarMirrorWriter(
                 )
             }
         }
+    }
+
+    /**
+     * Si esto que acabo de aparcar ya está en el espejo, contado por el móvil de quien iba al lado.
+     * [SHARED-A-CAR-THAT-LEAVES-IS-NEWS-TOO-001]
+     *
+     * ⛔ **Solo se calla el ESPEJO.** La sesión personal ya está escrita y no se toca: es la fuente
+     * de verdad de quien la vivió, y su historial propio tiene que seguir contándola. Lo que no
+     * puede haber es el mismo frenazo dos veces en las cifras del grupo.
+     *
+     * ⛔ Gana quien llega primero, y no se intenta adivinar quién conducía. Ningún dato de los que
+     * tenemos distingue al conductor del copiloto —el Coordinator mide el viaje igual desde los dos
+     * asientos—, así que inventar un criterio sería inventar un dato. Lo que sí se conserva es lo
+     * único que importa para el grupo: un aparcamiento por frenazo, con sus kilómetros contados una
+     * vez. La atribución del autor puede salir cambiada; las cifras, no.
+     *
+     * Solo se compara contra un aparcamiento VIVO, y solo si el mío también lo está: un guardado
+     * reproducido desde el buffer offline llega ya cerrado y no está compitiendo con nadie.
+     */
+    private suspend fun isEchoOfAParkingTheGroupAlreadyHas(carId: String, session: UserParking): Boolean {
+        if (!session.isActive) return false
+        val state = remote.getState(carId)?.takeIf { it.isParked } ?: return false
+        return isSameParking(
+            mine = ParkingMark(
+                sessionId = session.id,
+                atMs = session.location.timestamp,
+                latitude = session.location.latitude,
+                longitude = session.location.longitude,
+            ),
+            theirs = ParkingMark(
+                sessionId = state.sessionId,
+                atMs = state.parkedAtMs,
+                latitude = state.latitude,
+                longitude = state.longitude,
+            ),
+        )
     }
 
     /** The group this parking belongs to, or null — which is every parking of every ordinary car. */
