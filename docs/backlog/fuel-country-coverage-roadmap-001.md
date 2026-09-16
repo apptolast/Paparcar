@@ -4,6 +4,10 @@
 contra master `e575350e`, leyendo el código (no el recuerdo): `FuelStationsRegistry`,
 `DataModule.kt:283` y las cuatro fuentes nacionales.
 
+🔴 **F1 (UK) está bloqueada por ACCESO desde el mismo día que se escribió esto**: el portal —y el
+sitio público— devuelven **403 desde España** en el borde de CloudFront. Medición y consecuencias en
+F1; el orden de ejecución (§8) ya está reordenado en consecuencia: **empieza México**.
+
 Continúa [`fuel-stations-list-001.md`](fuel-stations-list-001.md), cuyo «barrido medido» del 09-09
 abrió esta cola y **ya ha quedado desfasado en dos puntos** (ver §3). Sucede en la cola menor de
 [`plus-roadmap-001.md`](plus-roadmap-001.md) a la entrada «Italia, siguiente país del orden medido»,
@@ -124,6 +128,46 @@ entidad legal?), la **unidad del precio** (peniques, casi seguro), y el mapeo de
 una es peor que ignorarlos** — un HVO enseñado como diésel es un precio que no se puede comparar con
 el de al lado.
 
+#### 🔴 Medición del 16-09 — F1 está BLOQUEADA antes de empezar, y no por código
+
+Primer intento de abrir el portal (navegador del user, desde España) → **403**. Caracterizado con
+`curl` desde la misma máquina y desde un segundo punto de salida:
+
+| Host | Desde Madrid | Cabeceras |
+|---|---|---|
+| `www.developer.fuel-finder.service.gov.uk` (portal + `/api/v1/oauth/generate_access_token`) | **403** | `Server: CloudFront`, `Content-Length: 0`, `X-Cache: Error from cloudfront`, `X-Amz-Cf-Pop: MAD56-P1` |
+| `www.fuel-finder.service.gov.uk` (el sitio **público**, el del ciudadano) | **403** | idéntico |
+| `www.gov.uk/guidance/…` (otra infraestructura, nginx/varnish) | **200** | — |
+
+**Lo que eso descarta y lo que deja vivo:**
+- ⛔ No es autenticación. Un rechazo de la aplicación sería **401 con cuerpo**; esto es un 403 **con
+  cuerpo vacío desde el borde de CloudFront**, y cae igual sobre el sitio público que cualquier
+  británico debe poder abrir sin cuenta.
+- ⛔ No es el User-Agent: mismo resultado con UA de Chrome, y el user lo vio en un navegador real.
+- ⛔ No es «la red del user»: un segundo punto de salida, fuera de España, devuelve el mismo 403.
+- 🔵 **Hipótesis, no hecho**: geo-restricción de CloudFront (o regla WAF) que solo admite tráfico del
+  Reino Unido. **La prueba que falta es una sola**: abrirlo desde una IP británica. Si carga, queda
+  confirmado; si no, hay que escribir al equipo de Fuel Finder.
+
+**Lo que NO significa, y conviene no exagerarlo:** si el geobloqueo es real, **el producto sigue en
+pie**, porque quien pregunta por gasolineras del Reino Unido está en el Reino Unido. Lo que rompe es
+**nuestra Fase 0**: no se puede medir, ni capturar el fixture, ni depurar desde aquí — y aquí no
+entra ningún país sin medición. F1 no está bloqueada por dificultad, está bloqueada por **acceso**.
+
+⚠️ Y deja un riesgo de runtime que habrá que verificar el día que se cablee: un usuario británico
+cuyo tráfico salga por VPN o CGNAT extranjero recibiría 403. El camino ya existe y es el correcto
+(`Result.failure` → OSM), pero hay que comprobar que no se queda pegado disculpándose.
+
+#### Corrección a este mismo doc: UK **no** consulta por radio
+
+El proyecto de terceros que ya integra el feed usa `GET /api/v1/pfs?batch-number=N` y
+`GET /api/v1/pfs/fuel-prices?batch-number=N` — es decir, **descarga paginada del país entero**, no
+una consulta por radio, con `POST /api/v1/oauth/generate_access_token` y **bearer de 1 h de TTL**.
+O sea que UK se parece mucho más a **México** (bulk + filtrado en el móvil) de lo que sugería este
+plan, y el sobrecoste del token se suma al del bulk en vez de compensarse. ⚠️ Esto es lectura de un
+repo ajeno, **no medición nuestra**: entra en la Fase 0 como lo primero a confirmar el día que haya
+acceso.
+
 **Riesgo que puede reordenar el plan:** si el registro OAuth2 tarda o exige algo que no tenemos, F1
 se bloquea y **F2 pasa delante**. Eso se decide al medir, no después de empezar.
 
@@ -235,11 +279,20 @@ del locale.
 
 ## 8 · Orden recomendado de ejecución
 
+⚠️ **Reordenado el mismo 16-09, horas después de escribirlo**, por el 403 medido en F1. El orden
+original era «F1 UK primero»; UK no puede ir primero mientras no se pueda ni abrir el portal.
+
 1. **El ticket del galón** — pequeño, cierra deuda ya escrita, y arregla un fallo que **hoy corrompe
-   datos en silencio** en cualquier US que use la app. No depende de ningún feed.
-2. **En paralelo: lanzar el registro OAuth2 de UK.** Es el único plazo que no controlamos.
-3. F1 UK → F2 MX → F3 RO (medición) → F4 AT (solo con el contrato ya decidido).
-4. F5 US solo como medias EIA, y solo si el peldaño 1,5 se gana su propia frase en la UI.
+   datos en silencio** en cualquier US que use la app. No depende de ningún feed, ni de ningún
+   acceso: es lo único de esta lista que se puede empezar sin pedirle permiso a nadie.
+2. **F2 México** sube al primer puesto de países: sin clave, sin OAuth, y **medible hoy mismo desde
+   aquí**, que es justo lo que UK ya no es.
+3. **En paralelo, desbloquear UK** — tres vías, por orden de coste: (a) abrir el portal desde una IP
+   británica para confirmar o descartar el geobloqueo; (b) cuenta **GOV.UK One Login** y alta en
+   `https://www.developer.fuel-finder.service.gov.uk/access-latest-fuelprices`; (c) escribir al
+   equipo de Fuel Finder si (a) confirma el bloqueo. **F1 arranca el día que haya acceso, no antes.**
+4. Luego F3 RO (medición) → F4 AT (solo con el contrato ya decidido).
+5. F5 US solo como medias EIA, y solo si el peldaño 1,5 se gana su propia frase en la UI.
 
 ## 9 · Fuentes consultadas el 16-09-2026
 
