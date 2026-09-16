@@ -61,6 +61,33 @@ class FakeUserProfileRepository : UserProfileRepository {
         return firstStepsDismissedResult
     }
 
+    /** Every detection-state report, newest last. COUNTING them is the point: the dedupe is what
+     *  keeps this from costing a Firestore write per app opening.
+     *  [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001] */
+    val detectionStateWrites = mutableListOf<DetectionStateWrite>()
+    var detectionStateResult: Result<Unit> = Result.success(Unit)
+
+    data class DetectionStateWrite(
+        val userId: String,
+        val autoDetectParking: Boolean,
+        val blockers: List<String>,
+        val batteryOptimizationExempt: Boolean,
+        val updatedAtMs: Long,
+    )
+
+    override suspend fun publishDetectionState(
+        userId: String,
+        autoDetectParking: Boolean,
+        detectionBlockers: List<String>,
+        batteryOptimizationExempt: Boolean,
+        updatedAtMs: Long,
+    ): Result<Unit> {
+        detectionStateWrites += DetectionStateWrite(
+            userId, autoDetectParking, detectionBlockers, batteryOptimizationExempt, updatedAtMs,
+        )
+        return detectionStateResult
+    }
+
     var deleteAllDataCallCount = 0
         private set
     var deleteAllDataResult: Result<Unit> = Result.success(Unit)

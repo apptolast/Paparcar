@@ -29,6 +29,21 @@ interface RemoteUserProfileDataSource {
         updatedAt: Long,
     )
 
+    /**
+     * Field-targeted update of whether automatic detection can run for this account.
+     * [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001]
+     *
+     * Primitives rather than a domain type, like [updateIdentityFields]: the data layer writes
+     * fields, it does not model detection. The caller decides WHEN — this only writes.
+     */
+    suspend fun updateDetectionState(
+        userId: String,
+        autoDetectParking: Boolean,
+        detectionBlockers: List<String>,
+        batteryOptimizationExempt: Boolean,
+        updatedAtMs: Long,
+    )
+
     // ─── Parking History ──────────────────────────────────────────────────────
 
     suspend fun saveParkingSession(userId: String, session: ParkingHistoryDto)

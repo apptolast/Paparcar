@@ -316,6 +316,14 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
 
     override fun setSyncRouteGeometry(enabled: Boolean) = set(Keys.SYNC_ROUTE_GEOMETRY, enabled)
 
+    // [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001] No default: absent means "never published",
+    // which is exactly what null says. A default would claim a snapshot had already been sent.
+    override val lastPublishedDetectionState: String?
+        get() = snapshot[Keys.LAST_PUBLISHED_DETECTION_STATE]
+
+    override fun setLastPublishedDetectionState(fingerprint: String) =
+        set(Keys.LAST_PUBLISHED_DETECTION_STATE, fingerprint)
+
     // ── Theme ────────────────────────────────────────────────────────────────
 
     override val themeMode: ThemeMode
@@ -373,6 +381,8 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         val NOTIFY_FUEL_PRICES = booleanPreferencesKey("notify_fuel_prices")
         val LAST_MONTH_RECAP = intPreferencesKey("last_month_recap_announced")
         val SYNC_ROUTE_GEOMETRY = booleanPreferencesKey("sync_route_geometry") // [PRIV-A-TRACE-IS-NOT-A-STAT-001]
+        // [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001] What was last reported to the account doc.
+        val LAST_PUBLISHED_DETECTION_STATE = stringPreferencesKey("last_published_detection_state")
         // "notify_spot_freed" removed 2026-08-28: it gated a notification that never existed.
         // Stale values may linger in the DataStore file; they are inert. [SETTINGS-AUDIT-REMEDIATION-001]
         val THEME_MODE              = stringPreferencesKey("theme_mode")
@@ -404,6 +414,11 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         val USER_SCOPED_KEYS: List<Preferences.Key<*>> = listOf(
             // [PRIV-A-TRACE-IS-NOT-A-STAT-001] Consent belongs to the account, not the device.
             Keys.SYNC_ROUTE_GEOMETRY,
+            // What was last reported to the OUTGOING account's doc. Kept, it would make the next
+            // account's first snapshot look already-published and stay silent forever — the doc
+            // belongs to the account, so the memory of having written it does too.
+            // [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001]
+            Keys.LAST_PUBLISHED_DETECTION_STATE,
             // The guided tutorial: all three halves, so nothing is left claiming progress the next
             // account never made. The dismissal comes back from the ACCOUNT, not from here.
             Keys.FIRST_STEPS_DONE,

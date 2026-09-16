@@ -23,6 +23,44 @@ import com.rndeveloper.paparcar.domain.model.SpotType
  */
 interface AnalyticsTracker {
     fun track(event: AnalyticsEvent)
+
+    /**
+     * Sets a durable dimension on this install — a state the user LIVES IN, not something that
+     * happened. [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001]
+     *
+     * A property rather than an event because the question is "what share of the install base has
+     * detection broken", and because it segments the events that already exist
+     * ([AnalyticsEvent.TriggerFired], [AnalyticsEvent.ParkingSessionStarted]) backwards — an event
+     * could only ever describe the moment it fired.
+     *
+     * Same fire-and-forget contract as [track]: never throws, never blocks. Unlike [track] it costs
+     * no network call of its own — the SDK attaches the value to subsequent events — so callers may
+     * set it on every emission without dedupe.
+     */
+    fun setUserProperty(property: AnalyticsUserProperty)
+}
+
+/**
+ * The durable dimensions. Closed vocabulary, low cardinality: Firebase caps an install at 25 user
+ * properties, and a property with many values does not aggregate into anything readable.
+ */
+sealed class AnalyticsUserProperty {
+
+    /** Whether automatic detection can actually run for this user, and if not, why not.
+     *  [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001] */
+    data class DetectionState(
+        val label: com.rndeveloper.paparcar.domain.detection.DetectionStateLabel,
+    ) : AnalyticsUserProperty()
+
+    /** The promise the app can make to this user, given their setup.
+     *
+     *  Reuses the existing [com.rndeveloper.paparcar.domain.model.DetectionTier] rather than a
+     *  boolean of its own: the vocabulary already exists, is already closed at three values, and a
+     *  second spelling of "how automatic is this install" would be free to drift from the one the
+     *  UI promises. [DET-TIERS-001] */
+    data class DetectionTier(
+        val tier: com.rndeveloper.paparcar.domain.model.DetectionTier,
+    ) : AnalyticsUserProperty()
 }
 
 /** The facts worth counting. Adding one = adding a case here + one call site — names and wire
@@ -109,4 +147,5 @@ enum class SessionEndReason {
  *  as [com.rndeveloper.paparcar.domain.diagnostics.NoOpDetectionEventLogger]. */
 class NoOpAnalyticsTracker : AnalyticsTracker {
     override fun track(event: AnalyticsEvent) = Unit
+    override fun setUserProperty(property: AnalyticsUserProperty) = Unit
 }

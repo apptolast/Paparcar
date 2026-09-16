@@ -20,6 +20,26 @@ interface UserProfileRepository : UserScopedRepository {
      */
     suspend fun setFirstStepsDismissedAt(userId: String, dismissedAtMs: Long?): Result<Unit>
 
+    /**
+     * Publishes whether automatic detection can run for this account.
+     * [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001]
+     *
+     * Remote-only, like [setFirstStepsDismissedAt], but for the opposite reason: this is not state
+     * the app ever reads back — it is a report ABOUT the device, and the device already knows. The
+     * local half that matters (what was last published, so the next observation can stay silent)
+     * lives in `AppPreferences`, not here.
+     *
+     * Best-effort by contract: a failure is swallowed by the caller. Losing a snapshot offline is
+     * acceptable — the next real change republishes, and the field is a photo of now, not a log.
+     */
+    suspend fun publishDetectionState(
+        userId: String,
+        autoDetectParking: Boolean,
+        detectionBlockers: List<String>,
+        batteryOptimizationExempt: Boolean,
+        updatedAtMs: Long,
+    ): Result<Unit>
+
     /** Deletes all Firestore and local data for [userId]. Called during account deletion. */
     override suspend fun deleteAllData(userId: String): Result<Unit>
 }

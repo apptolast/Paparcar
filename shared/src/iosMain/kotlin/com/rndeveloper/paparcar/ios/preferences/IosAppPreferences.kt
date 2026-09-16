@@ -35,6 +35,8 @@ private const val KEY_NOTIFY_ZONE_SPOTS = "notify_zone_spots"
 private const val KEY_NOTIFY_FUEL_PRICES = "notify_fuel_prices"
 private const val KEY_LAST_MONTH_RECAP = "last_month_recap_announced"
 private const val KEY_SYNC_ROUTE_GEOMETRY = "sync_route_geometry" // [PRIV-A-TRACE-IS-NOT-A-STAT-001]
+// [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001] What was last reported to the account doc.
+private const val KEY_LAST_PUBLISHED_DETECTION_STATE = "last_published_detection_state"
 private const val KEY_DARK_MODE_ENABLED = "dark_mode_enabled"
 private const val KEY_THEME_MODE = "theme_mode"
 private const val KEY_USE_IMPERIAL_UNITS = "use_imperial_units"
@@ -65,6 +67,10 @@ private val USER_SCOPED_KEYS = listOf(
     KEY_PENDING_NUDGE_VEHICLE_ID,
     KEY_PENDING_PROMPT_SHOWN_AT,
     KEY_PENDING_PROMPT_VEHICLE_NAME,
+    // The memory of having reported this account's detection state. Kept across a sign-out it would
+    // make the NEXT account's first snapshot look already-sent and stay silent forever.
+    // [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001]
+    KEY_LAST_PUBLISHED_DETECTION_STATE,
 )
 
 /**
@@ -316,6 +322,15 @@ class IosAppPreferences : AppPreferences {
 
     override fun setSyncRouteGeometry(enabled: Boolean) {
         userDefaults.setBool(enabled, forKey = KEY_SYNC_ROUTE_GEOMETRY)
+    }
+
+    // [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001] `stringForKey` already answers null when the
+    // key was never written, which is the "never published" the publisher expects.
+    override val lastPublishedDetectionState: String?
+        get() = userDefaults.stringForKey(KEY_LAST_PUBLISHED_DETECTION_STATE)
+
+    override fun setLastPublishedDetectionState(fingerprint: String) {
+        userDefaults.setObject(fingerprint, forKey = KEY_LAST_PUBLISHED_DETECTION_STATE)
     }
 
     override val themeMode: ThemeMode

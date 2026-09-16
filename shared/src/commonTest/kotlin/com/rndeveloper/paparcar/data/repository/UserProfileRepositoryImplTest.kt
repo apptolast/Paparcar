@@ -105,6 +105,21 @@ private class RecordingRemoteUserProfileDataSource : RemoteUserProfileDataSource
 
     override suspend fun updateDefaultVehicleId(userId: String, vehicleId: String?) = Unit
     override suspend fun updateFirstStepsDismissedAt(userId: String, dismissedAtMs: Long?) = Unit
+
+    /** [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001] Recorded, not swallowed: the whole point of
+     *  the field-targeted writer is WHICH fields it sends, and a `= Unit` double cannot say. */
+    var detectionStateWrites = 0
+    var lastDetectionState: List<Any?>? = null
+    override suspend fun updateDetectionState(
+        userId: String,
+        autoDetectParking: Boolean,
+        detectionBlockers: List<String>,
+        batteryOptimizationExempt: Boolean,
+        updatedAtMs: Long,
+    ) {
+        detectionStateWrites++
+        lastDetectionState = listOf(userId, autoDetectParking, detectionBlockers, batteryOptimizationExempt, updatedAtMs)
+    }
     override suspend fun updateIdentityFields(
         userId: String,
         email: String?,

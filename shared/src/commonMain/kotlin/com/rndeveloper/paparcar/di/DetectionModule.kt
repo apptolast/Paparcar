@@ -15,6 +15,7 @@ import com.rndeveloper.paparcar.domain.usecase.detection.EvaluateGeofenceExitUse
 import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDepartureWatchGapUseCase
 import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDetectionReadinessUseCase
 import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
+import com.rndeveloper.paparcar.domain.usecase.detection.PublishDetectionStateUseCase
 import com.rndeveloper.paparcar.domain.usecase.notification.NotifyParkingConfirmationUseCase
 import com.rndeveloper.paparcar.domain.usecase.notification.ResolveAskedStreetUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.CalculateParkingConfidenceUseCase
@@ -337,6 +338,19 @@ val detectionModule = module {
             oemBackgroundReliabilityManager = get(),
             strategyResolver = get(),
             evaluateDetectionReliability = get(),
+        )
+    }
+
+    // [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001] Reports off-device whether detection can run.
+    // Collected once, by AppViewModel.
+    factory {
+        PublishDetectionStateUseCase(
+            permissionManager = get(),
+            appPreferences = get(),
+            observeDetectionReliability = get(),
+            userProfileRepository = get(),
+            authRepository = get(),
+            analyticsTracker = get(),
         )
     }
 

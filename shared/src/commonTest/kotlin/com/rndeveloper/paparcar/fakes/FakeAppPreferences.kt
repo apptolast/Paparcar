@@ -138,6 +138,13 @@ class FakeAppPreferences(
     override val syncRouteGeometry: Boolean get() = _syncRouteGeometry
     override fun setSyncRouteGeometry(enabled: Boolean) { _syncRouteGeometry = enabled }
 
+    // [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001] Starts null = nothing published yet.
+    private var _lastPublishedDetectionState: String? = null
+    override val lastPublishedDetectionState: String? get() = _lastPublishedDetectionState
+    override fun setLastPublishedDetectionState(fingerprint: String) {
+        _lastPublishedDetectionState = fingerprint
+    }
+
     private var _themeMode = initialThemeMode
     override val themeMode: ThemeMode get() = _themeMode
     override fun setThemeMode(mode: ThemeMode) { _themeMode = mode }

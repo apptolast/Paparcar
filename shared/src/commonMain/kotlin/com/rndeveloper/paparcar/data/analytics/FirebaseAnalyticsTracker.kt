@@ -3,6 +3,7 @@ package com.rndeveloper.paparcar.data.analytics
 import com.rndeveloper.paparcar.data.geohash.encodeGeohash
 import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
 import com.rndeveloper.paparcar.domain.analytics.AnalyticsTracker
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsUserProperty
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.analytics.analytics
@@ -70,6 +71,22 @@ class FirebaseAnalyticsTracker : AnalyticsTracker {
         }
     }
 
+    override fun setUserProperty(property: AnalyticsUserProperty) {
+        runCatching {
+            when (property) {
+                is AnalyticsUserProperty.DetectionState ->
+                    Firebase.analytics.setUserProperty(PROPERTY_DETECTION_STATE, property.label.wire)
+                is AnalyticsUserProperty.DetectionTier ->
+                    Firebase.analytics.setUserProperty(
+                        PROPERTY_DETECTION_TIER,
+                        property.tier.name.lowercase(),
+                    )
+            }
+        }.onFailure { e ->
+            PaparcarLogger.w(TAG, "analytics property dropped (${property::class.simpleName}): ${e.message}")
+        }
+    }
+
     private fun log(name: String, params: Map<String, String>) {
         Firebase.analytics.logEvent(name, params)
     }
@@ -108,5 +125,11 @@ class FirebaseAnalyticsTracker : AnalyticsTracker {
         const val PARAM_ARM_EVIDENCE = "arm_evidence"
         const val PARAM_TRIGGER = "trigger"
         const val PARAM_DISPOSITION = "disposition"
+
+        /** [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001] The two durable dimensions. Their VALUES
+         *  are closed vocabularies owned by the domain (`DetectionStateLabel.wire`) or by the two
+         *  constants below — a free-form string here would make the property un-aggregatable. */
+        const val PROPERTY_DETECTION_STATE = "detection_state"
+        const val PROPERTY_DETECTION_TIER = "detection_tier"
     }
 }

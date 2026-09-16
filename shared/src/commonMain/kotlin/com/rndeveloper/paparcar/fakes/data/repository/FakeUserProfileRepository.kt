@@ -31,5 +31,14 @@ class FakeUserProfileRepository : UserProfileRepository {
     override suspend fun setFirstStepsDismissedAt(userId: String, dismissedAtMs: Long?): Result<Unit> =
         Result.success(Unit)
 
+    // [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001] The Dev Catalog reports nothing anywhere.
+    override suspend fun publishDetectionState(
+        userId: String,
+        autoDetectParking: Boolean,
+        detectionBlockers: List<String>,
+        batteryOptimizationExempt: Boolean,
+        updatedAtMs: Long,
+    ): Result<Unit> = Result.success(Unit)
+
     override suspend fun deleteAllData(userId: String): Result<Unit> = Result.success(Unit)
 }

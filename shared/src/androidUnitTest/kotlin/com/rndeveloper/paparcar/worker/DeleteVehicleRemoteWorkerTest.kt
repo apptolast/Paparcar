@@ -131,6 +131,7 @@ private class DeleteRecordingDataSource : RemoteUserProfileDataSource {
     override suspend fun updateDefaultVehicleId(userId: String, vehicleId: String?) = Unit
     override suspend fun updateFirstStepsDismissedAt(userId: String, dismissedAtMs: Long?) = Unit
     override suspend fun updateIdentityFields(userId: String, email: String?, displayName: String?, photoUrl: String?, updatedAt: Long) = Unit
+    override suspend fun updateDetectionState(userId: String, autoDetectParking: Boolean, detectionBlockers: List<String>, batteryOptimizationExempt: Boolean, updatedAtMs: Long) = Unit
     override suspend fun getParkingHistory(userId: String): List<ParkingHistoryDto> = emptyList()
     override suspend fun deleteUserData(userId: String) = Unit
     override suspend fun getVehicles(userId: String): List<VehicleDto> = emptyList()

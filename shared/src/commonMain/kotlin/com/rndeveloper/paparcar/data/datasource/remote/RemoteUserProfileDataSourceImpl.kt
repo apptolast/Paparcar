@@ -74,6 +74,26 @@ class RemoteUserProfileDataSourceImpl(
         )
     }
 
+    // Field-targeted like its three siblings above, and for the same reason. Four fields in ONE
+    // update so a reader never sees a half-written snapshot (blockers from now, timestamp from
+    // before). [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001]
+    override suspend fun updateDetectionState(
+        userId: String,
+        autoDetectParking: Boolean,
+        detectionBlockers: List<String>,
+        batteryOptimizationExempt: Boolean,
+        updatedAtMs: Long,
+    ) {
+        usersCollection().document(userId).update(
+            mapOf(
+                FIELD_AUTO_DETECT_PARKING to autoDetectParking,
+                FIELD_DETECTION_BLOCKERS to detectionBlockers,
+                FIELD_BATTERY_OPTIMIZATION_EXEMPT to batteryOptimizationExempt,
+                FIELD_DETECTION_STATE_UPDATED_AT to updatedAtMs,
+            ),
+        )
+    }
+
     override suspend fun saveParkingSession(userId: String, session: ParkingHistoryDto) {
         // [PRIV-A-TRACE-IS-NOT-A-STAT-001] A trace is not a stat: without the user's cloud-routes
         // consent the FIGURES travel (distance, search time) and the GEOMETRY stays home. Applied
@@ -184,6 +204,13 @@ class RemoteUserProfileDataSourceImpl(
                 // Absent on every doc written before the tutorial became an account fact → null.
                 // [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001]
                 firstStepsDismissedAt = getLongOrNullCompat(FIELD_FIRST_STEPS_DISMISSED_AT),
+                // Detection state — read back only so a full-document write can never drop it; the
+                // app itself never consumes these. Absent before this ticket → null → unknown,
+                // NOT "off". [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001]
+                autoDetectParking = runCatching { get<Boolean?>(FIELD_AUTO_DETECT_PARKING) }.getOrNull(),
+                detectionBlockers = runCatching { get<List<String>?>(FIELD_DETECTION_BLOCKERS) }.getOrNull(),
+                batteryOptimizationExempt = runCatching { get<Boolean?>(FIELD_BATTERY_OPTIMIZATION_EXEMPT) }.getOrNull(),
+                detectionStateUpdatedAt = getLongOrNullCompat(FIELD_DETECTION_STATE_UPDATED_AT),
             )
         }.getOrElse { e ->
             PaparcarLogger.e(TAG, "toUserProfileDto failed — doc=$id", e)
@@ -313,6 +340,12 @@ class RemoteUserProfileDataSourceImpl(
         const val FIELD_DEFAULT_VEHICLE_ID = "defaultVehicleId"
         // The tutorial's one account-scoped fact. [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001]
         const val FIELD_FIRST_STEPS_DISMISSED_AT = "firstStepsDismissedAt"
+
+        // Whether detection can run for this account. [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001]
+        const val FIELD_AUTO_DETECT_PARKING = "autoDetectParking"
+        const val FIELD_DETECTION_BLOCKERS = "detectionBlockers"
+        const val FIELD_BATTERY_OPTIMIZATION_EXEMPT = "batteryOptimizationExempt"
+        const val FIELD_DETECTION_STATE_UPDATED_AT = "detectionStateUpdatedAt"
 
         const val FIELD_VEHICLE_ID = "vehicleId"
         const val FIELD_NAME = "name"

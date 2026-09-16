@@ -175,6 +175,25 @@ interface AppPreferences {
     val syncRouteGeometry: Boolean
     fun setSyncRouteGeometry(enabled: Boolean)
 
+    /**
+     * Fingerprint of the detection state last published to the account's Firestore doc, or null if
+     * nothing has been published yet. [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001]
+     *
+     * ⛔ This is what makes the feature affordable. `PermissionManager.permissionState` is refreshed
+     * on every resume, so publishing on observation would mean one Firestore write per app opening
+     * per user. Comparing against this makes the write happen when the state CHANGES instead — and
+     * it has to be PERSISTED rather than a `distinctUntilChanged`, which forgets across processes
+     * and would put the storm back on every cold start.
+     *
+     * An opaque string on purpose: its only operation is equality, and giving it structure would
+     * invite someone to parse it back into state it is not.
+     *
+     * USER-scoped — cleared on sign-out, so the next account publishes its own snapshot instead of
+     * inheriting the previous one's silence.
+     */
+    val lastPublishedDetectionState: String?
+    fun setLastPublishedDetectionState(fingerprint: String)
+
     val themeMode: ThemeMode
     fun setThemeMode(mode: ThemeMode)
 

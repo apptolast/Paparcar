@@ -10,6 +10,7 @@ import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneRepository
+import com.rndeveloper.paparcar.domain.usecase.detection.PublishDetectionStateUseCase
 import com.rndeveloper.paparcar.domain.usecase.zone.ObserveZoneSpotAlertsUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import com.rndeveloper.paparcar.presentation.base.BaseViewModel
@@ -32,6 +33,11 @@ class AppViewModel(
     // ViewModel alive for the whole UI session, whatever tab is open.
     private val observeZoneSpotAlerts: ObserveZoneSpotAlertsUseCase,
     private val appNotificationManager: AppNotificationManager,
+    // [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001] Collected HERE for the same reason the zone
+    // alerts are: the one ViewModel alive for the whole UI session, whatever tab is open. A
+    // per-screen collector would report a permission revocation only if the user happened to open
+    // that screen afterwards.
+    private val publishDetectionState: PublishDetectionStateUseCase,
 // `Nothing` as the effect type: the root ViewModel has no one-shot side effects to emit, and saying
 // so in the type stops one from being smuggled in. Its only effect used to be applying a language
 // the OS owns. [SETTINGS-LANGUAGE-LIVES-IN-THE-SYSTEM-001]
@@ -135,6 +141,14 @@ class AppViewModel(
                 )
             }
             .catch { e -> PaparcarLogger.w(TAG, "zone-alert delivery stream failed", e) }
+            .launchIn(viewModelScope)
+
+        // [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001] Report whether detection can actually run.
+        // The use case owns every rule (what counts as a change, the Firestore dedupe, the signed-out
+        // no-op); this collector only delivers, exactly like the zone-alert one above.
+        publishDetectionState.observe()
+            .onEach { (snapshot, reliability) -> publishDetectionState.publish(snapshot, reliability) }
+            .catch { e -> PaparcarLogger.w(TAG, "detection-state stream failed", e) }
             .launchIn(viewModelScope)
     }
 

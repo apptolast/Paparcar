@@ -83,6 +83,22 @@ class UserProfileRepositoryImpl(
     override suspend fun setFirstStepsDismissedAt(userId: String, dismissedAtMs: Long?): Result<Unit> =
         runCatching { remoteDataSource.updateFirstStepsDismissedAt(userId, dismissedAtMs) }
 
+    override suspend fun publishDetectionState(
+        userId: String,
+        autoDetectParking: Boolean,
+        detectionBlockers: List<String>,
+        batteryOptimizationExempt: Boolean,
+        updatedAtMs: Long,
+    ): Result<Unit> = runCatching {
+        remoteDataSource.updateDetectionState(
+            userId = userId,
+            autoDetectParking = autoDetectParking,
+            detectionBlockers = detectionBlockers,
+            batteryOptimizationExempt = batteryOptimizationExempt,
+            updatedAtMs = updatedAtMs,
+        )
+    }
+
     override suspend fun deleteAllData(userId: String): Result<Unit> = runCatching {
         remoteDataSource.deleteUserData(userId)
         profileDao.deleteByUser(userId)
