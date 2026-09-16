@@ -39,20 +39,20 @@ class PeriodCloseTest {
 
     @Test
     fun should_mapEachCalendarPeriod_toItsOwnUnit() {
-        assertEquals(PeriodClose.WEEK, HistoryFilter.ThisWeek.close())
-        assertEquals(PeriodClose.MONTH, HistoryFilter.ThisMonth.close())
-        assertEquals(PeriodClose.MONTH, HistoryFilter.LastMonth.close())
-        assertEquals(PeriodClose.YEAR, HistoryFilter.ThisYear.close())
-        assertEquals(PeriodClose.YEAR, HistoryFilter.Year(2025).close())
+        assertEquals(PeriodClose.WEEK, StatsPeriod.ThisWeek.close())
+        assertEquals(PeriodClose.MONTH, StatsPeriod.ThisMonth.close())
+        assertEquals(PeriodClose.MONTH, StatsPeriod.LastMonth.close())
+        assertEquals(PeriodClose.YEAR, StatsPeriod.ThisYear.close())
+        assertEquals(PeriodClose.YEAR, StatsPeriod.Year(2025).close())
     }
 
     /** Ventanas RODANTES: cubren siempre el mismo tramo y no terminan nunca, así que su final no
      *  tiene nombre porque no tiene fecha. */
     @Test
     fun should_haveNoClose_forTheRollingWindows() {
-        assertNull(HistoryFilter.Last7Days.close())
-        assertNull(HistoryFilter.Last3Months.close())
-        assertNull(HistoryFilter.All.close())
+        assertNull(StatsPeriod.Last7Days.close())
+        assertNull(StatsPeriod.Last3Months.close())
+        assertNull(StatsPeriod.All.close())
     }
 
     /** Y el que sí lo tiene, lo tiene de verdad: que el testigo no pueda pasar por vacío. */
@@ -73,26 +73,26 @@ class PeriodCloseTest {
         assertEquals(EXPECTED_FILTERS, allFilters.map { it.tag() }.toSet().size)
     }
 
-    private fun HistoryFilter.tag(): String = when (this) {
-        HistoryFilter.All -> "all"
-        HistoryFilter.ThisWeek -> "this-week"
-        HistoryFilter.Last7Days -> "last-7-days"
-        HistoryFilter.ThisMonth -> "this-month"
-        HistoryFilter.LastMonth -> "last-month"
-        HistoryFilter.Last3Months -> "last-3-months"
-        HistoryFilter.ThisYear -> "this-year"
-        is HistoryFilter.Year -> "year"
+    private fun StatsPeriod.tag(): String = when (this) {
+        StatsPeriod.All -> "all"
+        StatsPeriod.ThisWeek -> "this-week"
+        StatsPeriod.Last7Days -> "last-7-days"
+        StatsPeriod.ThisMonth -> "this-month"
+        StatsPeriod.LastMonth -> "last-month"
+        StatsPeriod.Last3Months -> "last-3-months"
+        StatsPeriod.ThisYear -> "this-year"
+        is StatsPeriod.Year -> "year"
     }
 
     private val allFilters = listOf(
-        HistoryFilter.All,
-        HistoryFilter.ThisWeek,
-        HistoryFilter.Last7Days,
-        HistoryFilter.ThisMonth,
-        HistoryFilter.LastMonth,
-        HistoryFilter.Last3Months,
-        HistoryFilter.ThisYear,
-        HistoryFilter.Year(2025),
+        StatsPeriod.All,
+        StatsPeriod.ThisWeek,
+        StatsPeriod.Last7Days,
+        StatsPeriod.ThisMonth,
+        StatsPeriod.LastMonth,
+        StatsPeriod.Last3Months,
+        StatsPeriod.ThisYear,
+        StatsPeriod.Year(2025),
     )
 
     private companion object {

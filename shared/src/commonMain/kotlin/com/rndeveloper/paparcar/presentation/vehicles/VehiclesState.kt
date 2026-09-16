@@ -20,7 +20,7 @@ data class VehiclesState(
     val pendingFocusVehicleId: String? = null,
     val bluetoothConnectedVehicleId: String? = null,
     val historyCache: Map<String, HistoryState> = emptyMap(),
-    /** Live Plus entitlement — what SetHistoryFilter re-resolves the timeline with. [MONEY-001] */
+    /** Live Plus entitlement — what SetStatsPeriod re-resolves the timeline with. [MONEY-001] */
     val isPlus: Boolean = false,
     /**
      * Why the next trip will NOT be measured, or null when it will — what the notice above the

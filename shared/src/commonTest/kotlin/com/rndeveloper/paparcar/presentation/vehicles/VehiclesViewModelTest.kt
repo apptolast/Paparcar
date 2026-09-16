@@ -194,10 +194,10 @@ class VehiclesViewModelTest {
         entitlementRepo.emitEntitlement(com.rndeveloper.paparcar.domain.model.Entitlement.FREE)
         vehicleRepo.saveVehicle(vehicle("v1"))
         parkingRepo.saveNewParkingSession(session("s-ancient", "v1"))
-        val before = vm.state.value.historyState.activeFilter
+        val before = vm.state.value.historyState.activePeriod
 
         vm.effect.test {
-            vm.handleIntent(VehiclesIntent.SetHistoryFilter(HistoryFilter.ThisYear))
+            vm.handleIntent(VehiclesIntent.SetStatsPeriod(StatsPeriod.ThisYear))
             assertEquals(
                 VehiclesEffect.NavigateToPaywall(
                     com.rndeveloper.paparcar.domain.entitlement.PaywallReason.STATS,
@@ -206,7 +206,7 @@ class VehiclesViewModelTest {
             )
             cancelAndIgnoreRemainingEvents()
         }
-        assertEquals(before, vm.state.value.historyState.activeFilter, "the lit chip does not move")
+        assertEquals(before, vm.state.value.historyState.activePeriod, "the lit chip does not move")
     }
 
     @Test
@@ -215,9 +215,9 @@ class VehiclesViewModelTest {
         vehicleRepo.saveVehicle(vehicle("v1"))
         parkingRepo.saveNewParkingSession(session("s-ancient", "v1"))
 
-        vm.handleIntent(VehiclesIntent.SetHistoryFilter(HistoryFilter.ThisWeek))
+        vm.handleIntent(VehiclesIntent.SetStatsPeriod(StatsPeriod.ThisWeek))
 
-        assertEquals(HistoryFilter.ThisWeek, vm.state.value.historyState.activeFilter)
+        assertEquals(StatsPeriod.ThisWeek, vm.state.value.historyState.activePeriod)
     }
 
     @Test

@@ -50,7 +50,7 @@ class ClosedPeriodWindowTest {
             session(today),                  // this month
         )
 
-        val kept = VehicleHistoryCalculator.filter(sessions, HistoryFilter.LastMonth, nowMs)
+        val kept = VehicleHistoryCalculator.filter(sessions, StatsPeriod.LastMonth, nowMs)
 
         assertEquals(
             listOf("s-2026-08-01", "s-2026-08-31"),
@@ -68,7 +68,7 @@ class ClosedPeriodWindowTest {
             session(LocalDate(2026, 1, 1)),
         )
 
-        val kept = VehicleHistoryCalculator.filter(sessions, HistoryFilter.Year(2025), nowMs)
+        val kept = VehicleHistoryCalculator.filter(sessions, StatsPeriod.Year(2025), nowMs)
 
         assertEquals(listOf("s-2025-01-01", "s-2025-12-31"), kept.map { it.id })
     }
@@ -77,16 +77,16 @@ class ClosedPeriodWindowTest {
     fun should_haveAnEnd_when_thePeriodIsCalendarAndNotRolling() {
         // The type IS the rule: only a period that can finish may be projected.
         // [STATS-AN-ESTIMATE-SAYS-IT-IS-ONE-001]
-        assertTrue(VehicleHistoryCalculator.windowEndMs(HistoryFilter.ThisYear, nowMs) != null)
-        assertTrue(VehicleHistoryCalculator.windowEndMs(HistoryFilter.LastMonth, nowMs) != null)
-        assertTrue(VehicleHistoryCalculator.windowEndMs(HistoryFilter.Year(2025), nowMs) != null)
-        assertTrue(VehicleHistoryCalculator.windowEndMs(HistoryFilter.Last3Months, nowMs) == null)
-        assertTrue(VehicleHistoryCalculator.windowEndMs(HistoryFilter.All, nowMs) == null)
+        assertTrue(VehicleHistoryCalculator.windowEndMs(StatsPeriod.ThisYear, nowMs) != null)
+        assertTrue(VehicleHistoryCalculator.windowEndMs(StatsPeriod.LastMonth, nowMs) != null)
+        assertTrue(VehicleHistoryCalculator.windowEndMs(StatsPeriod.Year(2025), nowMs) != null)
+        assertTrue(VehicleHistoryCalculator.windowEndMs(StatsPeriod.Last3Months, nowMs) == null)
+        assertTrue(VehicleHistoryCalculator.windowEndMs(StatsPeriod.All, nowMs) == null)
     }
 
     @Test
     fun should_compareAYearAgainstThePreviousYear_when_thePeriodIsAYear() {
-        val window = VehicleHistoryCalculator.previousWindow(HistoryFilter.Year(2025), nowMs)!!
+        val window = VehicleHistoryCalculator.previousWindow(StatsPeriod.Year(2025), nowMs)!!
 
         val startOf2024 = LocalDate(2024, 1, 1).atStartOfDayIn(tz).toEpochMilliseconds()
         val startOf2025 = LocalDate(2025, 1, 1).atStartOfDayIn(tz).toEpochMilliseconds()
@@ -99,8 +99,8 @@ class ClosedPeriodWindowTest {
         val sessions = listOf(session(LocalDate(2025, 3, 4)), session(LocalDate(2025, 11, 20)))
 
         val bars = VehicleHistoryCalculator.buildActivityBuckets(
-            sessions = VehicleHistoryCalculator.filter(sessions, HistoryFilter.Year(2025), nowMs),
-            filter = HistoryFilter.Year(2025),
+            sessions = VehicleHistoryCalculator.filter(sessions, StatsPeriod.Year(2025), nowMs),
+            filter = StatsPeriod.Year(2025),
             dayLabels = dayLabels,
             monthNamesShort = monthNames,
             nowMs = nowMs,
@@ -125,7 +125,7 @@ class ClosedPeriodWindowTest {
 
         val bars = VehicleHistoryCalculator.buildActivityBuckets(
             sessions = sessions,
-            filter = HistoryFilter.All,
+            filter = StatsPeriod.All,
             dayLabels = dayLabels,
             monthNamesShort = monthNames,
             nowMs = nowMs,
@@ -142,7 +142,7 @@ class ClosedPeriodWindowTest {
 
         val bars = VehicleHistoryCalculator.buildActivityBuckets(
             sessions = sessions,
-            filter = HistoryFilter.All,
+            filter = StatsPeriod.All,
             dayLabels = dayLabels,
             monthNamesShort = monthNames,
             nowMs = nowMs,
@@ -162,12 +162,12 @@ class ClosedPeriodWindowTest {
     @Test
     fun should_spanTheSameWindow_whicheverAuthorityIsAsked() {
         val closed = closedMonthWindow(nowMs, tz)
-        assertEquals(closed.startMs, VehicleHistoryCalculator.windowStartMs(HistoryFilter.LastMonth, nowMs))
-        assertEquals(closed.endMs, VehicleHistoryCalculator.windowEndMs(HistoryFilter.LastMonth, nowMs))
+        assertEquals(closed.startMs, VehicleHistoryCalculator.windowStartMs(StatsPeriod.LastMonth, nowMs))
+        assertEquals(closed.endMs, VehicleHistoryCalculator.windowEndMs(StatsPeriod.LastMonth, nowMs))
 
         // Y la comparación ▲/▼ también: el mes anterior al cerrado es el mismo por los dos caminos.
         val before = previousToClosedMonthWindow(nowMs, tz)
-        val previous = VehicleHistoryCalculator.previousWindow(HistoryFilter.LastMonth, nowMs)
+        val previous = VehicleHistoryCalculator.previousWindow(StatsPeriod.LastMonth, nowMs)
         assertEquals(before.startMs until before.endMs, previous)
     }
 }

@@ -238,7 +238,7 @@ class VehiclesViewModel(
                     val updatedCache = vehiclesWithStats.associate { vws ->
                         val vId = vws.vehicle.id
                         val vSessions = sessionsByVehicle[vId].orEmpty()
-                        val existingFilter = historyCache[vId]?.activeFilter ?: HistoryFilter.Default
+                        val existingFilter = historyCache[vId]?.activePeriod ?: StatsPeriod.Default
                         // This emission IS the answer to "¿ha llegado el historial?" — resolving it
                         // here is what keeps the skeleton from being replaced by a false "no hay
                         // nada". [UI-HISTORY-A-LOADING-LIST-MUST-NOT-CLAIM-TO-BE-EMPTY-001]
@@ -260,7 +260,7 @@ class VehiclesViewModel(
                                 nowMs = nowMs,
                                 resolveFuelPrice = resolveFuelPrice,
                             ),
-                            activeFilter = existingFilter,
+                            activePeriod = existingFilter,
                         )
                     }
                     // El coche a la vista manda a quién se escucha.
@@ -327,7 +327,7 @@ class VehiclesViewModel(
                 } else {
                     sendEffect(VehiclesEffect.NavigateToPaywall(PaywallReason.VEHICLES))
                 }
-            is VehiclesIntent.SetHistoryFilter -> {
+            is VehiclesIntent.SetStatsPeriod -> {
                 val vehicleId = state.value.currentVehicleId ?: return
                 val currentHistory = state.value.historyCache[vehicleId] ?: return
                 // Nothing to re-scope until the history has arrived: an unresolved timeline has no
@@ -355,7 +355,7 @@ class VehiclesViewModel(
                             nowMs = nowMs,
                             resolveFuelPrice = resolveFuelPrice,
                         ),
-                        activeFilter = intent.filter,
+                        activePeriod = intent.filter,
                     )
                     copy(historyCache = historyCache + (vehicleId to updated))
                 }
@@ -456,7 +456,7 @@ class VehiclesViewModel(
             ?.takeIf { !mineOnly }
             ?.rows(vehicleId)
         val source = groupRows ?: personalSessions[vehicleId].orEmpty()
-        val filter = personal?.activeFilter ?: HistoryFilter.Default
+        val filter = personal?.activePeriod ?: StatsPeriod.Default
         updateState {
             copy(
                 sharedHistoryMineOnly = mineOnly,
@@ -470,7 +470,7 @@ class VehiclesViewModel(
                             nowMs = nowMs,
                             resolveFuelPrice = resolveFuelPrice,
                         ),
-                        activeFilter = filter,
+                        activePeriod = filter,
                     )
                     ),
             )

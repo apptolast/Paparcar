@@ -45,14 +45,14 @@ class VehicleHistoryCalculatorTest {
     @Test
     fun should_returnAll_forAllFilter() {
         val sessions = listOf(session(nowMs - 100 * dayMs), session(nowMs))
-        assertEquals(sessions, VehicleHistoryCalculator.filter(sessions, HistoryFilter.All, nowMs))
+        assertEquals(sessions, VehicleHistoryCalculator.filter(sessions, StatsPeriod.All, nowMs))
     }
 
     @Test
     fun should_dropOlderThan3Months_forLast3MonthsFilter() {
         val recent = session(nowMs - 10 * dayMs)
         val old = session(nowMs - 100 * dayMs)
-        val result = VehicleHistoryCalculator.filter(listOf(recent, old), HistoryFilter.Last3Months, nowMs)
+        val result = VehicleHistoryCalculator.filter(listOf(recent, old), StatsPeriod.Last3Months, nowMs)
         assertEquals(listOf(recent), result)
     }
 
@@ -61,13 +61,13 @@ class VehicleHistoryCalculatorTest {
     @Test
     fun should_haveNoPreviousWindow_forAllFilter() {
         // "Everything ever" has no previous everything — the comparison simply does not exist.
-        assertNull(VehicleHistoryCalculator.previousWindow(HistoryFilter.All, nowMs))
+        assertNull(VehicleHistoryCalculator.previousWindow(StatsPeriod.All, nowMs))
     }
 
     @Test
     fun should_endThePreviousWindow_exactlyWhereTheCurrentOneStarts() {
         // ▲/▼ compares ADJACENT periods: a gap or an overlap would count a session twice or never.
-        listOf(HistoryFilter.ThisWeek, HistoryFilter.ThisMonth, HistoryFilter.Last3Months).forEach { f ->
+        listOf(StatsPeriod.ThisWeek, StatsPeriod.ThisMonth, StatsPeriod.Last3Months).forEach { f ->
             val currentStart = VehicleHistoryCalculator.windowStartMs(f, nowMs)!!
             val previous = VehicleHistoryCalculator.previousWindow(f, nowMs)!!
             assertEquals(currentStart - 1, previous.last, "$f must touch the current window")
@@ -77,8 +77,8 @@ class VehicleHistoryCalculatorTest {
 
     @Test
     fun should_spanExactlySevenDays_forThePreviousWeek() {
-        val currentStart = VehicleHistoryCalculator.windowStartMs(HistoryFilter.ThisWeek, nowMs)!!
-        val previous = VehicleHistoryCalculator.previousWindow(HistoryFilter.ThisWeek, nowMs)!!
+        val currentStart = VehicleHistoryCalculator.windowStartMs(StatsPeriod.ThisWeek, nowMs)!!
+        val previous = VehicleHistoryCalculator.previousWindow(StatsPeriod.ThisWeek, nowMs)!!
         assertEquals(7 * dayMs, currentStart - previous.first)
     }
 
@@ -258,7 +258,7 @@ class VehicleHistoryCalculatorTest {
         )
         fun seriesOf(metric: ChartMetric) = VehicleHistoryCalculator.buildActivityBuckets(
             sessions = sessions,
-            filter = HistoryFilter.Last7Days,
+            filter = StatsPeriod.Last7Days,
             dayLabels = listOf("L", "M", "X", "J", "V", "S", "D"),
             monthNamesShort = List(12) { "m" },
             metric = metric,
@@ -291,24 +291,24 @@ class VehicleHistoryCalculatorTest {
      */
     @Test
     fun should_haveNoEnd_forRollingWindows() {
-        assertNull(VehicleHistoryCalculator.windowEndMs(HistoryFilter.Last7Days, nowMs))
-        assertNull(VehicleHistoryCalculator.windowEndMs(HistoryFilter.Last3Months, nowMs))
-        assertNull(VehicleHistoryCalculator.windowEndMs(HistoryFilter.All, nowMs))
+        assertNull(VehicleHistoryCalculator.windowEndMs(StatsPeriod.Last7Days, nowMs))
+        assertNull(VehicleHistoryCalculator.windowEndMs(StatsPeriod.Last3Months, nowMs))
+        assertNull(VehicleHistoryCalculator.windowEndMs(StatsPeriod.All, nowMs))
     }
 
     @Test
     fun should_closeTheCalendarPeriods_afterTheirStart() {
-        listOf(HistoryFilter.ThisWeek, HistoryFilter.ThisMonth).forEach { filter ->
+        listOf(StatsPeriod.ThisWeek, StatsPeriod.ThisMonth).forEach { filter ->
             val start = VehicleHistoryCalculator.windowStartMs(filter, nowMs)!!
             val end = VehicleHistoryCalculator.windowEndMs(filter, nowMs)!!
             assertTrue(end > nowMs, "$filter todavía no ha terminado")
             assertTrue(start < nowMs, "$filter ya ha empezado")
         }
         // Una semana dura menos que un mes, que es lo que hace que las dos proyecciones difieran.
-        val week = VehicleHistoryCalculator.windowEndMs(HistoryFilter.ThisWeek, nowMs)!! -
-            VehicleHistoryCalculator.windowStartMs(HistoryFilter.ThisWeek, nowMs)!!
-        val month = VehicleHistoryCalculator.windowEndMs(HistoryFilter.ThisMonth, nowMs)!! -
-            VehicleHistoryCalculator.windowStartMs(HistoryFilter.ThisMonth, nowMs)!!
+        val week = VehicleHistoryCalculator.windowEndMs(StatsPeriod.ThisWeek, nowMs)!! -
+            VehicleHistoryCalculator.windowStartMs(StatsPeriod.ThisWeek, nowMs)!!
+        val month = VehicleHistoryCalculator.windowEndMs(StatsPeriod.ThisMonth, nowMs)!! -
+            VehicleHistoryCalculator.windowStartMs(StatsPeriod.ThisMonth, nowMs)!!
         assertEquals(7L * 24 * 60 * 60 * 1000, week)
         assertTrue(month >= 28L * 24 * 60 * 60 * 1000)
     }

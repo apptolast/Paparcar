@@ -108,7 +108,7 @@ import com.rndeveloper.paparcar.presentation.vehicleregistration.VehicleRegistra
 import com.rndeveloper.paparcar.presentation.vehicleregistration.VehicleRegistrationState
 import com.rndeveloper.paparcar.presentation.vehicles.HistoryContent
 import com.rndeveloper.paparcar.presentation.vehicles.ChartMetric
-import com.rndeveloper.paparcar.presentation.vehicles.HistoryFilter
+import com.rndeveloper.paparcar.presentation.vehicles.StatsPeriod
 import com.rndeveloper.paparcar.presentation.vehicles.HistoryState
 import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.model.AddressInfo
@@ -398,7 +398,7 @@ private fun resolvedHistory(
     sessions: List<UserParking>,
     // El MISMO periodo con el que abre la pantalla real: si aqui fuera otro, la barra de la galeria
     // encenderia un chip y la lista de debajo estaria filtrada por otro. [STATS-FIRST-CHIP-ANSWERS-NOW-001]
-    filter: HistoryFilter = HistoryFilter.Default,
+    filter: StatsPeriod = StatsPeriod.Default,
     isPlus: Boolean = true,
     // Sin coche no hay consumo, y sin consumo la tarjeta de cifras se queda sin CO2 ni gasto: la
     // galeria pasa uno para ensenar el bloque como se ve de verdad. [STATS-UI-001]
@@ -524,7 +524,7 @@ private fun plugInHybridFleet(): List<VehicleWithStats> =
 /** Estado del panel de cifras, resuelto por el MISMO sitio que lo resuelve en produccion, para que
  *  la galeria no pueda ensenar una rejilla que la pantalla real no daria. [STATS-PANEL-001] */
 private fun statsPanelState(
-    filter: HistoryFilter = HistoryFilter.Default,
+    filter: StatsPeriod = StatsPeriod.Default,
     isPlus: Boolean = true,
     sessions: List<UserParking> = FakeData.allSessions,
     vehiclesOverride: List<VehicleWithStats>? = null,
@@ -608,12 +608,12 @@ private fun history(
  * pura y el estado es un `remember` de esta pantalla.
  */
 @Composable
-private fun interactiveHistory(sessions: List<UserParking>, initial: HistoryFilter) {
+private fun interactiveHistory(sessions: List<UserParking>, initial: StatsPeriod) {
     var filter by remember(initial) { mutableStateOf(initial) }
     HistoryContent(
         state = HistoryState(
             timeline = resolvedHistory(sessions, filter),
-            activeFilter = filter,
+            activePeriod = filter,
         ),
         contentPadding = PaddingValues(0.dp),
         onViewOnMap = { _, _, _ -> },
@@ -2165,7 +2165,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             // final— no puede, y así se ven las dos caras.
             Variant("Ritmo · a dónde va el mes") {
                 StatsContent(
-                    state = statsPanelState(filter = HistoryFilter.ThisMonth),
+                    state = statsPanelState(filter = StatsPeriod.ThisMonth),
                     onNavigateBack = {},
                     onIntent = {},
                 )
@@ -2176,14 +2176,14 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             // dicha dos veces. [STATS-A-PACE-ROW-NAMES-THE-PERIOD-IT-PROJECTS-001]
             Variant("Ritmo · a dónde va el año") {
                 StatsContent(
-                    state = statsPanelState(filter = HistoryFilter.ThisYear),
+                    state = statsPanelState(filter = StatsPeriod.ThisYear),
                     onNavigateBack = {},
                     onIntent = {},
                 )
             },
             Variant("Ritmo · un periodo sin final (no proyecta)") {
                 StatsContent(
-                    state = statsPanelState(filter = HistoryFilter.All),
+                    state = statsPanelState(filter = StatsPeriod.All),
                     onNavigateBack = {},
                     onIntent = {},
                 )
@@ -2195,7 +2195,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             // [STATS-A-PACE-ROW-NAMES-THE-PERIOD-IT-PROJECTS-001] [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
             Variant("Ritmo · free con el chip del mes (no proyecta nada)") {
                 StatsContent(
-                    state = statsPanelState(filter = HistoryFilter.ThisMonth, isPlus = false),
+                    state = statsPanelState(filter = StatsPeriod.ThisMonth, isPlus = false),
                     onNavigateBack = {},
                     onIntent = {},
                 )
@@ -2208,7 +2208,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                 StatsContent(
                     state = statsPanelState(
                         sessions = FakeData.allSessions.withAnExpensiveSlot(),
-                        filter = HistoryFilter.All,
+                        filter = StatsPeriod.All,
                     ),
                     onNavigateBack = {},
                     onIntent = {},
@@ -2220,7 +2220,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                 StatsContent(
                     state = statsPanelState(
                         sessions = FakeData.allSessions.withAPlaceThatGotWorse(),
-                        filter = HistoryFilter.ThisMonth,
+                        filter = StatsPeriod.ThisMonth,
                     ),
                     onNavigateBack = {},
                     onIntent = {},
@@ -2278,8 +2278,8 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Filtro: esta semana") {
                 history(
                     HistoryState(
-                        timeline = resolvedHistory(FakeData.allSessions, HistoryFilter.ThisWeek),
-                        activeFilter = HistoryFilter.ThisWeek,
+                        timeline = resolvedHistory(FakeData.allSessions, StatsPeriod.ThisWeek),
+                        activePeriod = StatsPeriod.ThisWeek,
                     ),
                 )
             },
@@ -2288,7 +2288,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Filtro: mes pasado (periodo cerrado)") {
                 interactiveHistory(
                     sessions = FakeData.allSessions + FakeData.allSessions.shiftedBack(DAYS_IN_MONTH),
-                    initial = HistoryFilter.LastMonth,
+                    initial = StatsPeriod.LastMonth,
                 )
             },
             // Con más de un trimestre por detrás aparece «Este año» — y es el único periodo que
@@ -2296,7 +2296,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Filtro: este año") {
                 interactiveHistory(
                     sessions = FakeData.allSessions + FakeData.allSessions.shiftedBack(DAYS_IN_HALF_YEAR),
-                    initial = HistoryFilter.ThisYear,
+                    initial = StatsPeriod.ThisYear,
                 )
             },
             // Tres años de historia: el chip de años aparece, y «Todos» pasa a dibujar AÑOS. Antes
@@ -2306,7 +2306,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     sessions = FakeData.allSessions +
                         FakeData.allSessions.shiftedBack(DAYS_IN_YEAR) +
                         FakeData.allSessions.shiftedBack(2 * DAYS_IN_YEAR),
-                    initial = HistoryFilter.All,
+                    initial = StatsPeriod.All,
                 )
             },
             // [UI-HISTORY-A-PARTIAL-SUM-IS-NOT-A-TOTAL-001] Los km del bloque salen sólo de las
@@ -2332,8 +2332,8 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Gráfico · serie de kilómetros") {
                 history(
                     HistoryState(
-                        timeline = resolvedHistory(FakeData.allSessions, HistoryFilter.ThisMonth),
-                        activeFilter = HistoryFilter.ThisMonth,
+                        timeline = resolvedHistory(FakeData.allSessions, StatsPeriod.ThisMonth),
+                        activePeriod = StatsPeriod.ThisMonth,
                         chartMetric = ChartMetric.DISTANCE,
                     ),
                 )
@@ -2341,8 +2341,8 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Gráfico · serie de tiempo buscando plaza") {
                 history(
                     HistoryState(
-                        timeline = resolvedHistory(FakeData.allSessions, HistoryFilter.ThisMonth),
-                        activeFilter = HistoryFilter.ThisMonth,
+                        timeline = resolvedHistory(FakeData.allSessions, StatsPeriod.ThisMonth),
+                        activePeriod = StatsPeriod.ThisMonth,
                         chartMetric = ChartMetric.SEARCH_TIME,
                     ),
                 )
@@ -2356,9 +2356,9 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                             FakeData.allSessions.map {
                                 it.copy(routeDistanceMeters = null, searchTimeMs = null)
                             },
-                            HistoryFilter.ThisMonth,
+                            StatsPeriod.ThisMonth,
                         ),
-                        activeFilter = HistoryFilter.ThisMonth,
+                        activePeriod = StatsPeriod.ThisMonth,
                     ),
                 )
             },
@@ -2368,8 +2368,8 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Cifras · Plus (todo visible)") {
                 history(
                     HistoryState(
-                        timeline = resolvedHistory(FakeData.allSessions, HistoryFilter.ThisMonth),
-                        activeFilter = HistoryFilter.ThisMonth,
+                        timeline = resolvedHistory(FakeData.allSessions, StatsPeriod.ThisMonth),
+                        activePeriod = StatsPeriod.ThisMonth,
                     ),
                     isPlus = true,
                 )
@@ -2382,9 +2382,9 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                 history(
                     HistoryState(
                         timeline = resolvedHistory(
-                            FakeData.allSessions, HistoryFilter.ThisMonth, isPlus = false,
+                            FakeData.allSessions, StatsPeriod.ThisMonth, isPlus = false,
                         ),
-                        activeFilter = HistoryFilter.ThisMonth,
+                        activePeriod = StatsPeriod.ThisMonth,
                     ),
                     isPlus = false,
                 )
@@ -2394,8 +2394,8 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Cifras · por debajo de los umbrales") {
                 history(
                     HistoryState(
-                        timeline = resolvedHistory(FakeData.allSessions.take(2), HistoryFilter.ThisMonth),
-                        activeFilter = HistoryFilter.ThisMonth,
+                        timeline = resolvedHistory(FakeData.allSessions.take(2), StatsPeriod.ThisMonth),
+                        activePeriod = StatsPeriod.ThisMonth,
                     ),
                 )
             },
@@ -2410,9 +2410,9 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                                 if (i % 3 == 0) session
                                 else session.copy(routeDistanceMeters = null, searchTimeMs = null)
                             },
-                            HistoryFilter.ThisMonth,
+                            StatsPeriod.ThisMonth,
                         ),
-                        activeFilter = HistoryFilter.ThisMonth,
+                        activePeriod = StatsPeriod.ThisMonth,
                     ),
                     isPlus = true,
                 )
@@ -2431,7 +2431,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                                     ),
                                 )
                             },
-                            HistoryFilter.All,
+                            StatsPeriod.All,
                         ),
                     ),
                 )

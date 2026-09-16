@@ -9,7 +9,7 @@ import com.rndeveloper.paparcar.domain.stats.HeatMeasure
 import com.rndeveloper.paparcar.domain.stats.PeriodStats
 import com.rndeveloper.paparcar.domain.stats.insights.StatsInsight
 import com.rndeveloper.paparcar.presentation.vehicles.ChartMetric
-import com.rndeveloper.paparcar.presentation.vehicles.HistoryFilter
+import com.rndeveloper.paparcar.presentation.vehicles.StatsPeriod
 
 /**
  * The stats panel — the whole picture for one car and one period. [STATS-PANEL-001]
@@ -26,7 +26,7 @@ data class StatsState(
     /** ⛔ The SHARED opening period, not this screen's own. It was `ThisMonth` here and `All` in the
      *  ficha, so the same car opened on a different window depending on the door.
      *  [STATS-FIRST-CHIP-ANSWERS-NOW-001] */
-    val filter: HistoryFilter = HistoryFilter.Default,
+    val filter: StatsPeriod = StatsPeriod.Default,
     /** What the chart's bars measure. [STATS-A-PERIOD-IS-A-SERIES-NOT-A-NUMBER-001] */
     val chartMetric: ChartMetric = ChartMetric.PARKINGS,
     /** What the day x band grid measures. A SECOND choice and not the chart's, because the two
@@ -44,7 +44,7 @@ data class StatsState(
      * has to read this and not [filter], or it measures a window nobody computed.
      * [STATS-A-PACE-ROW-NAMES-THE-PERIOD-IT-PROJECTS-001]
      */
-    val statsPeriod: HistoryFilter = HistoryFilter.Default,
+    val statsPeriod: StatsPeriod = StatsPeriod.Default,
     /** The period's sessions, for the chart's buckets — the same list the figures came from. */
     val filteredSessions: List<UserParking> = emptyList(),
     /**
@@ -55,11 +55,11 @@ data class StatsState(
      * still SEE "this year" on the row and get the paywall when it taps it — hiding the chip would
      * be a hard gate on a button, which is exactly what [MONEY-001] forbids.
      */
-    val periodFilters: List<HistoryFilter> = listOf(
-        HistoryFilter.Last7Days,
-        HistoryFilter.ThisWeek,
-        HistoryFilter.ThisMonth,
-        HistoryFilter.All,
+    val periodFilters: List<StatsPeriod> = listOf(
+        StatsPeriod.Last7Days,
+        StatsPeriod.ThisWeek,
+        StatsPeriod.ThisMonth,
+        StatsPeriod.All,
     ),
     /** Where the spend figure's price came from — the panel owes the same caveat the ficha gives,
      *  or the same number carries a warning on one screen and none on the other.

@@ -23,7 +23,7 @@ import kotlin.test.assertTrue
  * its neighbour draws is not a view of the data. "Last 3 months" over an account three weeks old IS
  * "this month"; "2024" to someone who installed in 2026 is an empty chart with a lit chip.
  */
-class AvailableFiltersTest {
+class AvailablePeriodsTest {
 
     private val tz = TimeZone.currentSystemDefault()
 
@@ -44,14 +44,14 @@ class AvailableFiltersTest {
     fun should_offerOnlyTheAlwaysTruePeriods_when_theHistoryIsDaysOld() {
         val sessions = listOf(session(today), session(today.minus(3, DateTimeUnit.DAY)))
 
-        val filters = availableFilters(sessions, nowMs)
+        val filters = availablePeriods(sessions, nowMs)
 
         assertEquals(
             listOf(
-                HistoryFilter.Last7Days,
-                HistoryFilter.ThisWeek,
-                HistoryFilter.ThisMonth,
-                HistoryFilter.All,
+                StatsPeriod.Last7Days,
+                StatsPeriod.ThisWeek,
+                StatsPeriod.ThisMonth,
+                StatsPeriod.All,
             ),
             filters,
             "A three-day-old history was offered a period it cannot answer differently",
@@ -70,19 +70,19 @@ class AvailableFiltersTest {
             session(LocalDate(2024, 6, 1)),
         )
 
-        val filters = availableFilters(sessions, nowMs)
+        val filters = availablePeriods(sessions, nowMs)
 
-        assertEquals(HistoryFilter.Last7Days, filters.first(), "The row must open on NOW")
+        assertEquals(StatsPeriod.Last7Days, filters.first(), "The row must open on NOW")
         assertEquals(
-            HistoryFilter.All,
+            StatsPeriod.All,
             filters.last(),
             "\"All\" is the way out of the row, after the closed years — never its cover",
         )
         // And the closed years sit between the periods about now and the way out, so the one chip
         // the bar collapses them into lands in that gap.
         assertEquals(
-            listOf(HistoryFilter.Year(2024)),
-            filters.drop(filters.indexOfFirst { it is HistoryFilter.Year }).dropLast(1),
+            listOf(StatsPeriod.Year(2024)),
+            filters.drop(filters.indexOfFirst { it is StatsPeriod.Year }).dropLast(1),
         )
     }
 
@@ -93,16 +93,16 @@ class AvailableFiltersTest {
      */
     @Test
     fun should_openOnTheFirstChipOfTheRow_when_theUserHasChosenNothingYet() {
-        val filters = availableFilters(listOf(session(today)), nowMs)
+        val filters = availablePeriods(listOf(session(today)), nowMs)
 
-        assertEquals(HistoryFilter.Default, filters.first())
+        assertEquals(StatsPeriod.Default, filters.first())
         assertEquals(
-            HistoryFilter.Default,
-            HistoryState(timeline = HistoryTimeline.Unresolved).activeFilter,
+            StatsPeriod.Default,
+            HistoryState(timeline = HistoryTimeline.Unresolved).activePeriod,
             "The ficha opened on a period other than the one its row leads with",
         )
         assertEquals(
-            HistoryFilter.Default,
+            StatsPeriod.Default,
             StatsState().filter,
             "The stats panel and the ficha opened the same car on different windows",
         )
@@ -112,11 +112,11 @@ class AvailableFiltersTest {
     fun should_offerLastMonth_when_somethingHappenedInTheClosedMonth() {
         val sessions = listOf(session(today), session(LocalDate(2026, 8, 20)))
 
-        val filters = availableFilters(sessions, nowMs)
+        val filters = availablePeriods(sessions, nowMs)
 
-        assertTrue(HistoryFilter.LastMonth in filters)
+        assertTrue(StatsPeriod.LastMonth in filters)
         // And a quarter, because there is now history older than this month.
-        assertTrue(HistoryFilter.Last3Months in filters)
+        assertTrue(StatsPeriod.Last3Months in filters)
     }
 
     @Test
@@ -124,10 +124,10 @@ class AvailableFiltersTest {
         // Old history, but NOTHING in August: "last month" would draw five empty bars.
         val sessions = listOf(session(today), session(LocalDate(2026, 5, 4)))
 
-        val filters = availableFilters(sessions, nowMs)
+        val filters = availablePeriods(sessions, nowMs)
 
-        assertFalse(HistoryFilter.LastMonth in filters)
-        assertTrue(HistoryFilter.Last3Months in filters)
+        assertFalse(StatsPeriod.LastMonth in filters)
+        assertTrue(StatsPeriod.Last3Months in filters)
     }
 
     @Test
@@ -136,10 +136,10 @@ class AvailableFiltersTest {
         val beyondIt = listOf(session(today), session(LocalDate(2026, 2, 2)))
 
         assertFalse(
-            HistoryFilter.ThisYear in availableFilters(justInsideTheQuarter, nowMs),
+            StatsPeriod.ThisYear in availablePeriods(justInsideTheQuarter, nowMs),
             "Inside the quarter, a year draws what the quarter already drew",
         )
-        assertTrue(HistoryFilter.ThisYear in availableFilters(beyondIt, nowMs))
+        assertTrue(StatsPeriod.ThisYear in availablePeriods(beyondIt, nowMs))
     }
 
     @Test
@@ -151,16 +151,16 @@ class AvailableFiltersTest {
             session(LocalDate(2024, 11, 3)),
         )
 
-        val years = availableFilters(sessions, nowMs).filterIsInstance<HistoryFilter.Year>()
+        val years = availablePeriods(sessions, nowMs).filterIsInstance<StatsPeriod.Year>()
 
-        assertEquals(listOf(HistoryFilter.Year(2024)), years)
+        assertEquals(listOf(StatsPeriod.Year(2024)), years)
     }
 
     @Test
     fun should_neverOfferTheRunningYearAsAClosedOne_when_thisYearHasData() {
         val sessions = listOf(session(today), session(LocalDate(2026, 1, 9)))
 
-        val years = availableFilters(sessions, nowMs).filterIsInstance<HistoryFilter.Year>()
+        val years = availablePeriods(sessions, nowMs).filterIsInstance<StatsPeriod.Year>()
 
         assertTrue(
             years.isEmpty(),

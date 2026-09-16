@@ -23,8 +23,8 @@ import com.rndeveloper.paparcar.domain.usecase.stats.DeriveStatsInsightsUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import com.rndeveloper.paparcar.presentation.base.BaseViewModel
-import com.rndeveloper.paparcar.presentation.vehicles.HistoryFilter
-import com.rndeveloper.paparcar.presentation.vehicles.availableFilters
+import com.rndeveloper.paparcar.presentation.vehicles.StatsPeriod
+import com.rndeveloper.paparcar.presentation.vehicles.availablePeriods
 import com.rndeveloper.paparcar.presentation.vehicles.isMeasurableBy
 import com.rndeveloper.paparcar.presentation.vehicles.resolveChartMetric
 import com.rndeveloper.paparcar.presentation.vehicles.HistoryTimeline
@@ -189,7 +189,7 @@ class StatsViewModel(
      */
     private fun StatsState.withResolvedStats(
         vehicle: Vehicle?,
-        filter: HistoryFilter,
+        filter: StatsPeriod,
         isPlus: Boolean,
     ): StatsState {
         if (vehicle == null) {
@@ -229,7 +229,7 @@ class StatsViewModel(
             filteredSessions = resolved.filteredSessions,
             // Over the FULL list: what the row may OFFER is a question about the data, not about the
             // plan. [STATS-A-FILTER-THAT-CANNOT-ANSWER-IS-NOT-OFFERED-001]
-            periodFilters = availableFilters(allSessions),
+            periodFilters = availablePeriods(allSessions),
             costPrice = resolved.costPrice,
             lifetimeParkings = resolved.lifetimeParkings,
             lifetimeSpotsReleased = resolved.lifetimeSpotsReleased,
@@ -258,7 +258,7 @@ class StatsViewModel(
         if (!closedMonthIsFullyVisible(historyVisibleFromMs(isPlus, nowMs), nowMs)) return null
         return HistoryTimeline.resolve(
             sessions = sessionsByVehicle[vehicle.id].orEmpty(),
-            filter = HistoryFilter.LastMonth,
+            filter = StatsPeriod.LastMonth,
             isPlus = isPlus,
             vehicle = vehicle,
             zones = zones,
@@ -271,7 +271,7 @@ class StatsViewModel(
             // the panel's does. Unreachable while the free window is seven days; a structural
             // answer instead of a promise that it will stay that way.
             // [STATS-A-PACE-ROW-NAMES-THE-PERIOD-IT-PROJECTS-001]
-            it.periodStats != null && it.statsPeriod == HistoryFilter.LastMonth
+            it.periodStats != null && it.statsPeriod == StatsPeriod.LastMonth
         }
     }
 

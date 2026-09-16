@@ -42,7 +42,7 @@ import com.rndeveloper.paparcar.presentation.vehicles.components.ActiveSectionHe
 import com.rndeveloper.paparcar.presentation.vehicles.components.DayHeaderRow
 import com.rndeveloper.paparcar.presentation.vehicles.components.EmptyHistoryState
 import com.rndeveloper.paparcar.presentation.vehicles.components.EndedSessionTimelineNode
-import com.rndeveloper.paparcar.presentation.vehicles.components.HistoryFilterBar
+import com.rndeveloper.paparcar.presentation.vehicles.components.StatsPeriodBar
 import com.rndeveloper.paparcar.presentation.vehicles.components.ActivityCard
 import com.rndeveloper.paparcar.presentation.vehicles.components.chartQualifierText
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
@@ -155,7 +155,7 @@ fun HistoryContent(
     state: HistoryState,
     contentPadding: PaddingValues,
     onViewOnMap: (lat: Double, lon: Double, sessionId: String) -> Unit,
-    onFilterSelected: (HistoryFilter) -> Unit = {},
+    onFilterSelected: (StatsPeriod) -> Unit = {},
     /** Which series the activity chart draws. [STATS-A-PERIOD-IS-A-SERIES-NOT-A-NUMBER-001] */
     onMetricSelected: (ChartMetric) -> Unit = {},
     /** The "Ver todo con Plus" footer under a gated timeline. [MONEY-001] */
@@ -212,11 +212,11 @@ fun HistoryContent(
         resolveChartMetric(state.chartMetric, filteredSessions)
     }
     val activityBuckets = remember(
-        filteredSessions, state.activeFilter, chartMetric, dayLabels, monthNamesShort,
+        filteredSessions, state.activePeriod, chartMetric, dayLabels, monthNamesShort,
     ) {
         VehicleHistoryCalculator.buildActivityBuckets(
             sessions = filteredSessions,
-            filter = state.activeFilter,
+            filter = state.activePeriod,
             metric = chartMetric,
             dayLabels = dayLabels,
             monthNamesShort = monthNamesShort,
@@ -326,9 +326,9 @@ fun HistoryContent(
                 }
 
                 item(key = "filter_bar") {
-                    HistoryFilterBar(
+                    StatsPeriodBar(
                         filters = state.periodFilters,
-                        activeFilter = state.activeFilter,
+                        activePeriod = state.activePeriod,
                         onFilterSelected = onFilterSelected,
                         // The tone of THIS page, said out loud instead of assumed.
                         // [STATS-A-FILTER-THAT-CANNOT-ANSWER-IS-NOT-OFFERED-001]
@@ -366,12 +366,12 @@ fun HistoryContent(
                         Box(Modifier.padding(horizontal = 16.dp)) {
                             VehicleStatsBlock(
                                 stats = periodStats,
-                                periodLabel = vehicleStatsPeriodLabel(state.activeFilter, isPlus),
+                                periodLabel = vehicleStatsPeriodLabel(state.activePeriod, isPlus),
                                 lifetimeParkings = resolved.lifetimeParkings,
                                 lifetimeSpotsReleased = resolved.lifetimeSpotsReleased,
                                 // "All time" selected means the tiles ARE the whole life already — for
                                 // Plus. Free figures are always seven days, so the line always helps.
-                                showLifetime = !isPlus || state.activeFilter != HistoryFilter.All,
+                                showLifetime = !isPlus || state.activePeriod != StatsPeriod.All,
                                 costPrice = resolved.costPrice,
                                 isPlus = isPlus,
                                 onOpenPaywall = onOpenStatsPaywall,

@@ -50,7 +50,7 @@ class HistoryTimelineScopeTest {
         // Anchored to the window the calculator actually decides, not to a guess about it: `nowMs`
         // happens to be a Monday, so "days ago" would have put two of these three in LAST week and
         // the test would have been measuring the calendar instead of the rescoping.
-        val weekStart = VehicleHistoryCalculator.windowStartMs(HistoryFilter.ThisWeek, nowMs)!!
+        val weekStart = VehicleHistoryCalculator.windowStartMs(StatsPeriod.ThisWeek, nowMs)!!
         val sessions = listOf(
             // This week: Gran Vía three times, enough to be a habit.
             sessionAt(weekStart + 3_600_000L, street = "Gran Vía"),
@@ -61,8 +61,8 @@ class HistoryTimelineScopeTest {
             session(42, street = "Alcalá"), session(43, street = "Alcalá"),
         )
 
-        val allTime = HistoryTimeline.resolve(sessions, HistoryFilter.All, isPlus = true, nowMs = nowMs)
-        val thisWeek = HistoryTimeline.resolve(sessions, HistoryFilter.ThisWeek, isPlus = true, nowMs = nowMs)
+        val allTime = HistoryTimeline.resolve(sessions, StatsPeriod.All, isPlus = true, nowMs = nowMs)
+        val thisWeek = HistoryTimeline.resolve(sessions, StatsPeriod.ThisWeek, isPlus = true, nowMs = nowMs)
 
         assertEquals("Alcalá", allTime.periodStats?.usualPlaceName)
         assertEquals("Gran Vía", thisWeek.periodStats?.usualPlaceName)
@@ -74,7 +74,7 @@ class HistoryTimelineScopeTest {
         // Two parkings this week, one the week before → the card can say how the week moved.
         val sessions = listOf(session(0), session(1), session(8))
         val resolved = HistoryTimeline.resolve(
-            sessions, HistoryFilter.ThisWeek, isPlus = true, nowMs = nowMs,
+            sessions, StatsPeriod.ThisWeek, isPlus = true, nowMs = nowMs,
         )
         assertNotNull(resolved.periodStats?.previous, "the week before must be available to compare")
     }
@@ -82,7 +82,7 @@ class HistoryTimelineScopeTest {
     @Test
     fun `should_haveNoPreviousPeriod_forTheAllTimeFilter`() {
         val resolved = HistoryTimeline.resolve(
-            listOf(session(0), session(40)), HistoryFilter.All, isPlus = true, nowMs = nowMs,
+            listOf(session(0), session(40)), StatsPeriod.All, isPlus = true, nowMs = nowMs,
         )
         assertNull(resolved.periodStats?.previous, "there is no previous everything")
     }
@@ -97,7 +97,7 @@ class HistoryTimelineScopeTest {
             session(40, publishedSpot = true),
             session(80),
         )
-        val free = HistoryTimeline.resolve(sessions, HistoryFilter.All, isPlus = false, nowMs = nowMs)
+        val free = HistoryTimeline.resolve(sessions, StatsPeriod.All, isPlus = false, nowMs = nowMs)
 
         assertEquals(4, free.lifetimeParkings)
         assertEquals(2, free.lifetimeSpotsReleased)
@@ -111,8 +111,8 @@ class HistoryTimelineScopeTest {
         // Anything else would be a paywall with a hole: figures derived from rows the user is not
         // allowed to read. [MONEY-001]
         val sessions = listOf(session(1), session(2), session(40), session(80))
-        val free = HistoryTimeline.resolve(sessions, HistoryFilter.All, isPlus = false, nowMs = nowMs)
-        val plus = HistoryTimeline.resolve(sessions, HistoryFilter.All, isPlus = true, nowMs = nowMs)
+        val free = HistoryTimeline.resolve(sessions, StatsPeriod.All, isPlus = false, nowMs = nowMs)
+        val plus = HistoryTimeline.resolve(sessions, StatsPeriod.All, isPlus = true, nowMs = nowMs)
 
         assertEquals(2, free.periodStats?.parkings)
         assertEquals(4, plus.periodStats?.parkings)
@@ -124,7 +124,7 @@ class HistoryTimelineScopeTest {
         // applies to durations.
         val resolved = HistoryTimeline.resolve(
             listOf(session(0, active = true), session(1), session(2)),
-            HistoryFilter.All,
+            StatsPeriod.All,
             isPlus = true,
             nowMs = nowMs,
         )
@@ -146,15 +146,15 @@ class HistoryTimelineScopeTest {
     fun `should_sayWhichPeriodTheFiguresActuallyCover`() {
         val sessions = listOf(session(1), session(2), session(20))
 
-        val free = HistoryTimeline.resolve(sessions, HistoryFilter.ThisMonth, isPlus = false, nowMs = nowMs)
+        val free = HistoryTimeline.resolve(sessions, StatsPeriod.ThisMonth, isPlus = false, nowMs = nowMs)
         assertEquals(
-            HistoryFilter.Last7Days,
+            StatsPeriod.Last7Days,
             free.statsPeriod,
             "pidió el mes y midió la ventana del plan: tiene que decir cuál midió",
         )
 
-        val plus = HistoryTimeline.resolve(sessions, HistoryFilter.ThisMonth, isPlus = true, nowMs = nowMs)
-        assertEquals(HistoryFilter.ThisMonth, plus.statsPeriod, "para Plus el chip ES el periodo")
+        val plus = HistoryTimeline.resolve(sessions, StatsPeriod.ThisMonth, isPlus = true, nowMs = nowMs)
+        assertEquals(StatsPeriod.ThisMonth, plus.statsPeriod, "para Plus el chip ES el periodo")
     }
 
     /**
@@ -167,13 +167,13 @@ class HistoryTimelineScopeTest {
     fun `should_leaveAFreeAccountWithNothingToProject`() {
         val free = HistoryTimeline.resolve(
             listOf(session(1), session(20)),
-            HistoryFilter.ThisMonth,
+            StatsPeriod.ThisMonth,
             isPlus = false,
             nowMs = nowMs,
         )
         assertNull(free.statsPeriod.close(), "una ventana rodante no tiene final que proyectar")
         assertNull(VehicleHistoryCalculator.windowEndMs(free.statsPeriod, nowMs))
         // Mientras que el chip que pidió sí lo tiene — que es por lo que leerlo era el error.
-        assertNotNull(HistoryFilter.ThisMonth.close())
+        assertNotNull(StatsPeriod.ThisMonth.close())
     }
 }

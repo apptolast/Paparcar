@@ -504,22 +504,22 @@ private fun PlusStatsRow(onClick: () -> Unit, modifier: Modifier = Modifier) {
  * longer period is offered. [STATS-UI-001] [MONEY-001] [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
  */
 @Composable
-internal fun vehicleStatsPeriodLabel(filter: HistoryFilter, isPlus: Boolean): String =
+internal fun vehicleStatsPeriodLabel(filter: StatsPeriod, isPlus: Boolean): String =
     if (!isPlus) {
         stringResource(Res.string.stats_period_free_window, FREE_HISTORY_WINDOW_DAYS)
     } else {
         when (filter) {
             // The chip says "Todos" because it qualifies a plural of parkings; as this card's title
             // the same window needs its own words.
-            HistoryFilter.All -> stringResource(Res.string.stats_period_all)
-            HistoryFilter.ThisWeek -> stringResource(Res.string.history_filter_this_week)
-            HistoryFilter.Last7Days -> stringResource(Res.string.history_filter_last_7_days)
-            HistoryFilter.ThisMonth -> stringResource(Res.string.history_filter_this_month)
-            HistoryFilter.Last3Months -> stringResource(Res.string.history_filter_last_3_months)
-            HistoryFilter.LastMonth -> stringResource(Res.string.history_filter_last_month)
-            HistoryFilter.ThisYear -> stringResource(Res.string.history_filter_this_year)
+            StatsPeriod.All -> stringResource(Res.string.stats_period_all)
+            StatsPeriod.ThisWeek -> stringResource(Res.string.history_filter_this_week)
+            StatsPeriod.Last7Days -> stringResource(Res.string.history_filter_last_7_days)
+            StatsPeriod.ThisMonth -> stringResource(Res.string.history_filter_this_month)
+            StatsPeriod.Last3Months -> stringResource(Res.string.history_filter_last_3_months)
+            StatsPeriod.LastMonth -> stringResource(Res.string.history_filter_last_month)
+            StatsPeriod.ThisYear -> stringResource(Res.string.history_filter_this_year)
             // A year names itself. [STATS-A-FILTER-THAT-CANNOT-ANSWER-IS-NOT-OFFERED-001]
-            is HistoryFilter.Year -> filter.value.toString()
+            is StatsPeriod.Year -> filter.value.toString()
         }
     }
 

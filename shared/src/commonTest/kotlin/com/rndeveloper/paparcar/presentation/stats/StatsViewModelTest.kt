@@ -14,7 +14,7 @@ import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
 import com.rndeveloper.paparcar.fakes.FakeEntitlementRepository
 import com.rndeveloper.paparcar.fakes.FakeUserParkingRepository
 import com.rndeveloper.paparcar.fakes.FakeVehicleRepository
-import com.rndeveloper.paparcar.presentation.vehicles.HistoryFilter
+import com.rndeveloper.paparcar.presentation.vehicles.StatsPeriod
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -134,10 +134,10 @@ class StatsViewModelTest {
         parkingRepo.saveNewParkingSession(session("s-old", "v1", ageDays = 200))
         val vm = viewModel()
 
-        vm.handleIntent(StatsIntent.SetFilter(HistoryFilter.All))
+        vm.handleIntent(StatsIntent.SetFilter(StatsPeriod.All))
         assertEquals(2, vm.state.value.periodStats?.parkings)
 
-        vm.handleIntent(StatsIntent.SetFilter(HistoryFilter.ThisMonth))
+        vm.handleIntent(StatsIntent.SetFilter(StatsPeriod.ThisMonth))
         assertEquals(1, vm.state.value.periodStats?.parkings, "a 200-day-old parking is not this month")
     }
 
@@ -167,7 +167,7 @@ class StatsViewModelTest {
         val before = vm.state.value
 
         vm.effect.test {
-            vm.handleIntent(StatsIntent.SetFilter(HistoryFilter.All))
+            vm.handleIntent(StatsIntent.SetFilter(StatsPeriod.All))
             val effect = awaitItem()
             assertIs<StatsEffect.NavigateToPaywall>(effect)
             assertEquals(PaywallReason.STATS, effect.reason)
@@ -187,10 +187,10 @@ class StatsViewModelTest {
         val vm = viewModel(entitlement = Entitlement.FREE)
 
         vm.effect.test {
-            vm.handleIntent(StatsIntent.SetFilter(HistoryFilter.ThisWeek))
+            vm.handleIntent(StatsIntent.SetFilter(StatsPeriod.ThisWeek))
             expectNoEvents()
         }
-        assertEquals(HistoryFilter.ThisWeek, vm.state.value.filter)
+        assertEquals(StatsPeriod.ThisWeek, vm.state.value.filter)
     }
 
     /** Plus is not gated by any of this — the same tap that stops a free account answers for Plus. */
@@ -201,10 +201,10 @@ class StatsViewModelTest {
         val vm = viewModel(entitlement = Entitlement.PLUS)
 
         vm.effect.test {
-            vm.handleIntent(StatsIntent.SetFilter(HistoryFilter.All))
+            vm.handleIntent(StatsIntent.SetFilter(StatsPeriod.All))
             expectNoEvents()
         }
-        assertEquals(HistoryFilter.All, vm.state.value.filter)
+        assertEquals(StatsPeriod.All, vm.state.value.filter)
         assertEquals(1, vm.state.value.periodStats?.parkings)
     }
 

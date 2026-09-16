@@ -39,28 +39,28 @@ object VehicleHistoryCalculator {
      * rolling days did — correct, because what it showed could not be located on the chart.
      */
     fun windowStartMs(
-        filter: HistoryFilter,
+        filter: StatsPeriod,
         nowMs: Long = Clock.System.now().toEpochMilliseconds(),
     ): Long? {
-        if (filter == HistoryFilter.All) return null
+        if (filter == StatsPeriod.All) return null
         val tz = TimeZone.currentSystemDefault()
         val today = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(tz).date
         val startDate = when (filter) {
-            HistoryFilter.All -> return null
-            HistoryFilter.ThisWeek -> today.minus(today.dayOfWeek.isoDayNumber - 1, DateTimeUnit.DAY)
+            StatsPeriod.All -> return null
+            StatsPeriod.ThisWeek -> today.minus(today.dayOfWeek.isoDayNumber - 1, DateTimeUnit.DAY)
             // Rolling: today and the six days before it. [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
-            HistoryFilter.Last7Days -> today.minus(DAYS_PER_WEEK - 1, DateTimeUnit.DAY)
-            HistoryFilter.ThisMonth -> LocalDate(today.year, today.month, 1)
+            StatsPeriod.Last7Days -> today.minus(DAYS_PER_WEEK - 1, DateTimeUnit.DAY)
+            StatsPeriod.ThisMonth -> LocalDate(today.year, today.month, 1)
             // The 1st of the month (MONTHLY_BUCKETS - 1) months back: three calendar months
             // INCLUDING the current one, which is exactly the span the three bars cover.
-            HistoryFilter.Last3Months ->
+            StatsPeriod.Last3Months ->
                 LocalDate(today.year, today.month, 1).minus(MONTHLY_BUCKETS - 1, DateTimeUnit.MONTH)
             // The three periods that CLOSED in the past, or are about to.
             // [STATS-A-FILTER-THAT-CANNOT-ANSWER-IS-NOT-OFFERED-001]
-            HistoryFilter.LastMonth ->
+            StatsPeriod.LastMonth ->
                 LocalDate(today.year, today.month, 1).minus(1, DateTimeUnit.MONTH)
-            HistoryFilter.ThisYear -> LocalDate(today.year, 1, 1)
-            is HistoryFilter.Year -> LocalDate(filter.value, 1, 1)
+            StatsPeriod.ThisYear -> LocalDate(today.year, 1, 1)
+            is StatsPeriod.Year -> LocalDate(filter.value, 1, 1)
         }
         return startDate.atStartOfDayIn(tz).toEpochMilliseconds()
     }
@@ -78,23 +78,23 @@ object VehicleHistoryCalculator {
      * It lives next to [windowStartMs] because a window's two ends are one decision.
      */
     fun windowEndMs(
-        filter: HistoryFilter,
+        filter: StatsPeriod,
         nowMs: Long = Clock.System.now().toEpochMilliseconds(),
     ): Long? {
         val tz = TimeZone.currentSystemDefault()
         val today = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(tz).date
         val endDate = when (filter) {
-            HistoryFilter.ThisWeek ->
+            StatsPeriod.ThisWeek ->
                 today.minus(today.dayOfWeek.isoDayNumber - 1, DateTimeUnit.DAY)
                     .plus(DAYS_PER_WEEK, DateTimeUnit.DAY)
-            HistoryFilter.ThisMonth -> LocalDate(today.year, today.month, 1).plus(1, DateTimeUnit.MONTH)
+            StatsPeriod.ThisMonth -> LocalDate(today.year, today.month, 1).plus(1, DateTimeUnit.MONTH)
             // A period that has ALREADY closed has an end too, and it is in the past — which is
             // what stops [filter] from letting this month's sessions leak into last month's
             // figures. [STATS-A-FILTER-THAT-CANNOT-ANSWER-IS-NOT-OFFERED-001]
-            HistoryFilter.LastMonth -> LocalDate(today.year, today.month, 1)
-            HistoryFilter.ThisYear -> LocalDate(today.year + 1, 1, 1)
-            is HistoryFilter.Year -> LocalDate(filter.value + 1, 1, 1)
-            HistoryFilter.Last7Days, HistoryFilter.Last3Months, HistoryFilter.All -> return null
+            StatsPeriod.LastMonth -> LocalDate(today.year, today.month, 1)
+            StatsPeriod.ThisYear -> LocalDate(today.year + 1, 1, 1)
+            is StatsPeriod.Year -> LocalDate(filter.value + 1, 1, 1)
+            StatsPeriod.Last7Days, StatsPeriod.Last3Months, StatsPeriod.All -> return null
         }
         return endDate.atStartOfDayIn(tz).toEpochMilliseconds()
     }
@@ -109,7 +109,7 @@ object VehicleHistoryCalculator {
      */
     fun filter(
         sessions: List<UserParking>,
-        filter: HistoryFilter,
+        filter: StatsPeriod,
         nowMs: Long = Clock.System.now().toEpochMilliseconds(),
     ): List<UserParking> {
         val startMs = windowStartMs(filter, nowMs) ?: return sessions
@@ -133,25 +133,25 @@ object VehicleHistoryCalculator {
 
     /**
      * The [startMs, endMs) window of the period IMMEDIATELY BEFORE [filter]'s, for the ▲/▼
-     * comparison — or null for [HistoryFilter.All], which has no "previous everything".
+     * comparison — or null for [StatsPeriod.All], which has no "previous everything".
      * Same calendar-natural rules as [windowStartMs], same single owner. [STATS-CORE-001]
      */
     fun previousWindow(
-        filter: HistoryFilter,
+        filter: StatsPeriod,
         nowMs: Long = Clock.System.now().toEpochMilliseconds(),
     ): LongRange? {
         val currentStart = windowStartMs(filter, nowMs) ?: return null
         val tz = TimeZone.currentSystemDefault()
         val currentStartDate = Instant.fromEpochMilliseconds(currentStart).toLocalDateTime(tz).date
         val previousStartDate = when (filter) {
-            HistoryFilter.All -> return null
-            HistoryFilter.ThisWeek -> currentStartDate.minus(DAYS_PER_WEEK, DateTimeUnit.DAY)
-            HistoryFilter.Last7Days -> currentStartDate.minus(DAYS_PER_WEEK, DateTimeUnit.DAY)
-            HistoryFilter.ThisMonth -> currentStartDate.minus(1, DateTimeUnit.MONTH)
-            HistoryFilter.Last3Months -> currentStartDate.minus(MONTHLY_BUCKETS, DateTimeUnit.MONTH)
+            StatsPeriod.All -> return null
+            StatsPeriod.ThisWeek -> currentStartDate.minus(DAYS_PER_WEEK, DateTimeUnit.DAY)
+            StatsPeriod.Last7Days -> currentStartDate.minus(DAYS_PER_WEEK, DateTimeUnit.DAY)
+            StatsPeriod.ThisMonth -> currentStartDate.minus(1, DateTimeUnit.MONTH)
+            StatsPeriod.Last3Months -> currentStartDate.minus(MONTHLY_BUCKETS, DateTimeUnit.MONTH)
             // The month before the closed one, and the year before the year.
-            HistoryFilter.LastMonth -> currentStartDate.minus(1, DateTimeUnit.MONTH)
-            HistoryFilter.ThisYear, is HistoryFilter.Year ->
+            StatsPeriod.LastMonth -> currentStartDate.minus(1, DateTimeUnit.MONTH)
+            StatsPeriod.ThisYear, is StatsPeriod.Year ->
                 currentStartDate.minus(1, DateTimeUnit.YEAR)
         }
         return previousStartDate.atStartOfDayIn(tz).toEpochMilliseconds() until currentStart
@@ -172,7 +172,7 @@ object VehicleHistoryCalculator {
      */
     fun buildActivityBuckets(
         sessions: List<UserParking>,
-        filter: HistoryFilter,
+        filter: StatsPeriod,
         dayLabels: List<String>,
         monthNamesShort: List<String>,
         /** What each bar MEASURES. The default is the chart as it always was - counting parkings -
@@ -181,20 +181,20 @@ object VehicleHistoryCalculator {
         metric: ChartMetric = ChartMetric.PARKINGS,
         nowMs: Long = Clock.System.now().toEpochMilliseconds(),
     ): List<ActivityBucket> = when (filter) {
-        HistoryFilter.ThisWeek -> weekDayBuckets(sessions, dayLabels, metric, nowMs)
-        HistoryFilter.Last7Days -> rollingDayBuckets(sessions, dayLabels, metric, nowMs)
-        HistoryFilter.ThisMonth -> monthWeekBuckets(sessions, metric, nowMs, monthsBack = 0)
+        StatsPeriod.ThisWeek -> weekDayBuckets(sessions, dayLabels, metric, nowMs)
+        StatsPeriod.Last7Days -> rollingDayBuckets(sessions, dayLabels, metric, nowMs)
+        StatsPeriod.ThisMonth -> monthWeekBuckets(sessions, metric, nowMs, monthsBack = 0)
         // The closed month draws in the same unit as the current one — weeks — because what makes
         // them comparable at a glance is the SHAPE, and a month redrawn in another unit cannot be
         // compared to the one beside it. [STATS-A-FILTER-THAT-CANNOT-ANSWER-IS-NOT-OFFERED-001]
-        HistoryFilter.LastMonth -> monthWeekBuckets(sessions, metric, nowMs, monthsBack = 1)
-        HistoryFilter.Last3Months ->
+        StatsPeriod.LastMonth -> monthWeekBuckets(sessions, metric, nowMs, monthsBack = 1)
+        StatsPeriod.Last3Months ->
             monthlyBuckets(sessions, monthNamesShort, MONTHLY_BUCKETS, metric, nowMs)
         // A year is always its twelve months, whether it is running or finished.
-        HistoryFilter.ThisYear -> calendarYearBuckets(sessions, monthNamesShort, metric, nowMs, nowMs.yearIn())
-        is HistoryFilter.Year ->
+        StatsPeriod.ThisYear -> calendarYearBuckets(sessions, monthNamesShort, metric, nowMs, nowMs.yearIn())
+        is StatsPeriod.Year ->
             calendarYearBuckets(sessions, monthNamesShort, metric, nowMs, filter.value)
-        HistoryFilter.All -> allBuckets(sessions, monthNamesShort, metric, nowMs)
+        StatsPeriod.All -> allBuckets(sessions, monthNamesShort, metric, nowMs)
     }
 
     /**

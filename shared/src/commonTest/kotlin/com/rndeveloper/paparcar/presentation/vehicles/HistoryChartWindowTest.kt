@@ -53,7 +53,7 @@ class HistoryChartWindowTest {
         isActive = false,
     )
 
-    private fun bucketsFor(sessions: List<UserParking>, filter: HistoryFilter, nowMs: Long) =
+    private fun bucketsFor(sessions: List<UserParking>, filter: StatsPeriod, nowMs: Long) =
         VehicleHistoryCalculator.buildActivityBuckets(
             sessions = VehicleHistoryCalculator.filter(sessions, filter, nowMs),
             filter = filter,
@@ -64,7 +64,7 @@ class HistoryChartWindowTest {
 
     private fun assertEveryCountedSessionHasABar(
         sessions: List<UserParking>,
-        filter: HistoryFilter,
+        filter: StatsPeriod,
         nowMs: Long,
     ) {
         val kept = VehicleHistoryCalculator.filter(sessions, filter, nowMs).size
@@ -92,12 +92,12 @@ class HistoryChartWindowTest {
             session(monday.minus(3, DateTimeUnit.DAY)), // last Friday — outside the window
         )
 
-        val bars = bucketsFor(sessions, HistoryFilter.ThisWeek, nowMs)
+        val bars = bucketsFor(sessions, StatsPeriod.ThisWeek, nowMs)
 
         assertEquals(7, bars.size)
         assertEquals(dayLabels, bars.map { it.label }, "the week reads Monday → Sunday")
         assertEquals(1, bars.first().value.toInt(), "today's parking lands on Monday")
-        assertEveryCountedSessionHasABar(sessions, HistoryFilter.ThisWeek, nowMs)
+        assertEveryCountedSessionHasABar(sessions, StatsPeriod.ThisWeek, nowMs)
     }
 
     @Test
@@ -108,14 +108,14 @@ class HistoryChartWindowTest {
         val monday = wednesday.minus(2, DateTimeUnit.DAY)
 
         val sessions = (0..2).map { session(monday.plus(it, DateTimeUnit.DAY)) }
-        val bars = bucketsFor(sessions, HistoryFilter.ThisWeek, nowMs)
+        val bars = bucketsFor(sessions, StatsPeriod.ThisWeek, nowMs)
 
         // Mon–Wed happened and are filled; Thu–Sun have not arrived yet. An empty FUTURE day claims
         // nothing; an empty PAST day outside the window was the lie.
         assertTrue(bars.take(3).all { it.value.toInt() == 1 })
         assertTrue(bars.drop(3).all { it.value.toInt() == 0 })
         assertTrue(bars[2].isCurrent, "today is the highlighted bar")
-        assertEveryCountedSessionHasABar(sessions, HistoryFilter.ThisWeek, nowMs)
+        assertEveryCountedSessionHasABar(sessions, StatsPeriod.ThisWeek, nowMs)
     }
 
     // ── Last 3 months ─────────────────────────────────────────────────────────
@@ -134,10 +134,10 @@ class HistoryChartWindowTest {
             session(firstOfSeptember),
         )
 
-        val bars = bucketsFor(sessions, HistoryFilter.Last3Months, nowMs)
+        val bars = bucketsFor(sessions, StatsPeriod.Last3Months, nowMs)
 
         assertEquals(listOf("jul", "ago", "sep"), bars.map { it.label })
-        assertEveryCountedSessionHasABar(sessions, HistoryFilter.Last3Months, nowMs)
+        assertEveryCountedSessionHasABar(sessions, StatsPeriod.Last3Months, nowMs)
     }
 
     @Test
@@ -151,7 +151,7 @@ class HistoryChartWindowTest {
             emptyList(),
             VehicleHistoryCalculator.filter(
                 listOf(june),
-                HistoryFilter.Last3Months,
+                StatsPeriod.Last3Months,
                 at(firstOfSeptember),
             ),
         )
@@ -169,7 +169,7 @@ class HistoryChartWindowTest {
         ).map { session(it) }
 
         // "All" is exempt on purpose: its chart caps at 6 months while the total counts everything.
-        listOf(HistoryFilter.ThisWeek, HistoryFilter.ThisMonth, HistoryFilter.Last3Months)
+        listOf(StatsPeriod.ThisWeek, StatsPeriod.ThisMonth, StatsPeriod.Last3Months)
             .forEach { assertEveryCountedSessionHasABar(sessions, it, nowMs) }
     }
 
@@ -185,7 +185,7 @@ class HistoryChartWindowTest {
         val today = LocalDate(2026, 9, 16)
         val bars = bucketsFor(
             listOf(session(today), session(today.minus(200, DateTimeUnit.DAY))),
-            HistoryFilter.All,
+            StatsPeriod.All,
             at(today),
         )
         assertEquals(VehicleHistoryCalculator.ALL_MONTHS_CAP, bars.size)

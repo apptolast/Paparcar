@@ -44,7 +44,7 @@ import com.rndeveloper.paparcar.domain.stats.buildParkingHeatmap
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rndeveloper.paparcar.presentation.util.distanceString
 import com.rndeveloper.paparcar.presentation.vehicles.DAY_SHORT_RES
-import com.rndeveloper.paparcar.presentation.vehicles.HistoryFilter
+import com.rndeveloper.paparcar.presentation.vehicles.StatsPeriod
 import com.rndeveloper.paparcar.presentation.vehicles.MONTH_SHORT_RES
 import com.rndeveloper.paparcar.presentation.vehicles.PeriodClose
 import com.rndeveloper.paparcar.presentation.vehicles.close
@@ -54,7 +54,7 @@ import com.rndeveloper.paparcar.presentation.vehicles.resolveChartMetric
 import com.rndeveloper.paparcar.presentation.vehicles.components.ActivityCard
 import com.rndeveloper.paparcar.presentation.vehicles.components.chartQualifierText
 import com.rndeveloper.paparcar.presentation.vehicles.VehicleStatsBlock
-import com.rndeveloper.paparcar.presentation.vehicles.components.HistoryFilterBar
+import com.rndeveloper.paparcar.presentation.vehicles.components.StatsPeriodBar
 import com.rndeveloper.paparcar.presentation.vehicles.components.PapVehicleSelectorPill
 import com.rndeveloper.paparcar.presentation.vehicles.vehicleStatsPeriodLabel
 import com.rndeveloper.paparcar.ui.components.PapShimmerBlockScale
@@ -162,9 +162,9 @@ fun StatsContent(
             }
 
             item(key = "filters") {
-                HistoryFilterBar(
+                StatsPeriodBar(
                     filters = state.periodFilters,
-                    activeFilter = state.filter,
+                    activePeriod = state.filter,
                     onFilterSelected = { onIntent(StatsIntent.SetFilter(it)) },
                     // This screen's Scaffold is `surface`; the bar used to assume the tone of the
                     // OTHER screen it lives on and painted a band across this one.
@@ -253,7 +253,7 @@ fun StatsContent(
                             periodLabel = vehicleStatsPeriodLabel(state.filter, state.isPlus),
                             lifetimeParkings = state.lifetimeParkings,
                             lifetimeSpotsReleased = state.lifetimeSpotsReleased,
-                            showLifetime = !state.isPlus || state.filter != HistoryFilter.All,
+                            showLifetime = !state.isPlus || state.filter != StatsPeriod.All,
                             costPrice = state.costPrice,
                             isPlus = state.isPlus,
                             onOpenPaywall = { onIntent(StatsIntent.OpenPaywall) },

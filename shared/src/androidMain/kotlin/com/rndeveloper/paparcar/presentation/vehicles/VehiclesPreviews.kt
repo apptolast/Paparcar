@@ -21,8 +21,8 @@ private fun previewHistory(sessions: List<com.rndeveloper.paparcar.domain.model.
             // gated (free) variant lives in the Dev Catalog gallery. [MONEY-001]
             // The period the screen actually opens on — one value, so the lit chip and the list
             // below it cannot answer to different filters. [STATS-FIRST-CHIP-ANSWERS-NOW-001]
-            timeline = HistoryTimeline.resolve(sessions, HistoryFilter.Default, isPlus = true),
-            activeFilter = HistoryFilter.Default,
+            timeline = HistoryTimeline.resolve(sessions, StatsPeriod.Default, isPlus = true),
+            activePeriod = StatsPeriod.Default,
         )
     }
 

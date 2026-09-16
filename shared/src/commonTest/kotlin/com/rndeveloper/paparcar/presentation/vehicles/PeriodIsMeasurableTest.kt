@@ -32,9 +32,9 @@ class PeriodIsMeasurableTest {
     @Test
     fun `should_honourEveryPeriod_when_thePlanIsPlus`() {
         val everyFilter = listOf(
-            HistoryFilter.Last7Days, HistoryFilter.ThisWeek, HistoryFilter.ThisMonth,
-            HistoryFilter.LastMonth, HistoryFilter.Last3Months, HistoryFilter.ThisYear,
-            HistoryFilter.Year(2025), HistoryFilter.All,
+            StatsPeriod.Last7Days, StatsPeriod.ThisWeek, StatsPeriod.ThisMonth,
+            StatsPeriod.LastMonth, StatsPeriod.Last3Months, StatsPeriod.ThisYear,
+            StatsPeriod.Year(2025), StatsPeriod.All,
         )
         everyFilter.forEach { filter ->
             assertTrue(filter.isMeasurableBy(isPlus = true, nowMs = midMonth), "$filter")
@@ -45,16 +45,16 @@ class PeriodIsMeasurableTest {
     fun `should_honourTheRollingWeekAndTheCalendarWeek_when_thePlanIsFree`() {
         // The two windows a seven-day history always covers whole, whatever day it is.
         listOf(midMonth, at("2026-09-14T00:30:00"), at("2026-09-20T23:30:00")).forEach { now ->
-            assertTrue(HistoryFilter.Last7Days.isMeasurableBy(isPlus = false, nowMs = now), "7d @$now")
-            assertTrue(HistoryFilter.ThisWeek.isMeasurableBy(isPlus = false, nowMs = now), "week @$now")
+            assertTrue(StatsPeriod.Last7Days.isMeasurableBy(isPlus = false, nowMs = now), "7d @$now")
+            assertTrue(StatsPeriod.ThisWeek.isMeasurableBy(isPlus = false, nowMs = now), "week @$now")
         }
     }
 
     @Test
     fun `should_refuseEveryPeriodLongerThanItsWindow_when_thePlanIsFree`() {
         listOf(
-            HistoryFilter.LastMonth, HistoryFilter.Last3Months,
-            HistoryFilter.ThisYear, HistoryFilter.Year(2025), HistoryFilter.All,
+            StatsPeriod.LastMonth, StatsPeriod.Last3Months,
+            StatsPeriod.ThisYear, StatsPeriod.Year(2025), StatsPeriod.All,
         ).forEach { filter ->
             assertFalse(filter.isMeasurableBy(isPlus = false, nowMs = midMonth), "$filter")
         }
@@ -67,10 +67,10 @@ class PeriodIsMeasurableTest {
      */
     @Test
     fun `should_honourThisMonth_when_freeAndTheMonthIsYoungerThanTheWindow`() {
-        assertTrue(HistoryFilter.ThisMonth.isMeasurableBy(isPlus = false, nowMs = at("2026-10-03T12:00:00")))
-        assertTrue(HistoryFilter.ThisMonth.isMeasurableBy(isPlus = false, nowMs = at("2026-10-07T23:59:00")))
-        assertFalse(HistoryFilter.ThisMonth.isMeasurableBy(isPlus = false, nowMs = at("2026-10-08T00:01:00")))
-        assertFalse(HistoryFilter.ThisMonth.isMeasurableBy(isPlus = false, nowMs = midMonth))
+        assertTrue(StatsPeriod.ThisMonth.isMeasurableBy(isPlus = false, nowMs = at("2026-10-03T12:00:00")))
+        assertTrue(StatsPeriod.ThisMonth.isMeasurableBy(isPlus = false, nowMs = at("2026-10-07T23:59:00")))
+        assertFalse(StatsPeriod.ThisMonth.isMeasurableBy(isPlus = false, nowMs = at("2026-10-08T00:01:00")))
+        assertFalse(StatsPeriod.ThisMonth.isMeasurableBy(isPlus = false, nowMs = midMonth))
     }
 
     /** "Since forever" is a period nobody with a window can cover — not even an enormous one. */
@@ -90,7 +90,7 @@ class PeriodIsMeasurableTest {
         listOf(at("2026-10-01T09:00:00"), at("2026-10-07T09:00:00"), midMonth).forEach { now ->
             listOf(true, false).forEach { isPlus ->
                 assertEquals(
-                    HistoryFilter.LastMonth.isMeasurableBy(isPlus, now),
+                    StatsPeriod.LastMonth.isMeasurableBy(isPlus, now),
                     closedMonthIsFullyVisible(historyVisibleFromMs(isPlus, now), now),
                     "isPlus=$isPlus @$now",
                 )

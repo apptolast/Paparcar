@@ -14,14 +14,14 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.Instant
 
-sealed class HistoryFilter {
-    data object All : HistoryFilter()
-    data object ThisWeek : HistoryFilter()
+sealed class StatsPeriod {
+    data object All : StatsPeriod()
+    data object ThisWeek : StatsPeriod()
 
     /** The last seven days, today included — rolling, unlike [ThisWeek]'s calendar week. It is also
      *  the free plan's whole stats window. [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001] */
-    data object Last7Days : HistoryFilter()
-    data object ThisMonth : HistoryFilter()
+    data object Last7Days : StatsPeriod()
+    data object ThisMonth : StatsPeriod()
 
     /**
      * The calendar month that just closed. [STATS-A-FILTER-THAT-CANNOT-ANSWER-IS-NOT-OFFERED-001]
@@ -30,25 +30,25 @@ sealed class HistoryFilter {
      * the first week of the new one [STATS-PLUS-THE-RECAP-KNOCKS-001] — so from the 8th onwards
      * "last month" was a thing the app knew and had no way to be asked about.
      */
-    data object LastMonth : HistoryFilter()
-    data object Last3Months : HistoryFilter()
+    data object LastMonth : StatsPeriod()
+    data object Last3Months : StatsPeriod()
 
     /**
      * The current calendar year. The ONLY period whose end is far enough away to make a yearly
      * projection mean something — `projectYear` was written in
      * [STATS-AN-ESTIMATE-SAYS-IT-IS-ONE-001] and until this filter existed nothing could reach it.
      */
-    data object ThisYear : HistoryFilter()
+    data object ThisYear : StatsPeriod()
 
     /** A CLOSED calendar year — 2025, 2024… Derived from the data, never from a list. */
-    data class Year(val value: Int) : HistoryFilter()
+    data class Year(val value: Int) : StatsPeriod()
 
     companion object {
         /**
          * The period every screen opens on. [STATS-FIRST-CHIP-ANSWERS-NOW-001]
          *
          * ⛔ **One value, not four.** This used to be written at each door — `All` in the history
-         * state, `ThisMonth` in the stats panel, and `?: HistoryFilter.All` twice more in
+         * state, `ThisMonth` in the stats panel, and `?: StatsPeriod.All` twice more in
          * `VehiclesViewModel` — so the same car opened on a different window depending on which
          * screen you came through.
          *
@@ -58,7 +58,7 @@ sealed class HistoryFilter {
          * chip that is lit on arrival has to be the one the eye lands on first, or the selector
          * opens scrolled away from its own answer.
          */
-        val Default: HistoryFilter = Last7Days
+        val Default: StatsPeriod = Last7Days
     }
 }
 
@@ -79,22 +79,22 @@ enum class PeriodClose { WEEK, MONTH, YEAR }
  * `PeriodCloseTest` walks every filter and fails if one of them can end without being nameable.
  *
  * It lives here rather than in the calculator because it is a property of the PERIOD — the same
- * reason `availableFilters` does — while the calculator owns the date arithmetic.
+ * reason `availablePeriods` does — while the calculator owns the date arithmetic.
  */
-fun HistoryFilter.close(): PeriodClose? = when (this) {
-    HistoryFilter.ThisWeek -> PeriodClose.WEEK
-    HistoryFilter.ThisMonth, HistoryFilter.LastMonth -> PeriodClose.MONTH
-    HistoryFilter.ThisYear, is HistoryFilter.Year -> PeriodClose.YEAR
+fun StatsPeriod.close(): PeriodClose? = when (this) {
+    StatsPeriod.ThisWeek -> PeriodClose.WEEK
+    StatsPeriod.ThisMonth, StatsPeriod.LastMonth -> PeriodClose.MONTH
+    StatsPeriod.ThisYear, is StatsPeriod.Year -> PeriodClose.YEAR
     // Rolling windows and "everything": they always cover the same span and never finish, so their
     // end has no name because it has no date.
-    HistoryFilter.Last7Days, HistoryFilter.Last3Months, HistoryFilter.All -> null
+    StatsPeriod.Last7Days, StatsPeriod.Last3Months, StatsPeriod.All -> null
 }
 
 /**
  * Whether THIS ACCOUNT can be answered this period — the question the chips never asked.
  * [STATS-A-CHIP-YOU-CANNOT-MEASURE-MUST-NOT-REDRAW-001]
  *
- * ⛔ Not the same question as [availableFilters], and the two must never be confused: that one asks
+ * ⛔ Not the same question as [availablePeriods], and the two must never be confused: that one asks
  * the DATA what it could show and decides which chips EXIST; this one asks the PLAN whether a chip
  * can be honoured and decides what a tap DOES. Every chip stays on screen either way — hiding one
  * would be a hard gate on a button [MONEY-001].
@@ -111,7 +111,7 @@ fun HistoryFilter.close(): PeriodClose? = when (this) {
  * the 8th), which is why `HistoryTimeline.resolve` keeps substituting the window it really measured
  * [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001] instead of trusting this to have been asked.
  */
-fun HistoryFilter.isMeasurableBy(
+fun StatsPeriod.isMeasurableBy(
     isPlus: Boolean,
     nowMs: Long = Clock.System.now().toEpochMilliseconds(),
 ): Boolean = periodIsFullyVisible(
@@ -143,10 +143,10 @@ fun HistoryFilter.isMeasurableBy(
  * does not change from one day to the next, while the window that actually governs a free account's
  * figures sat second. "All" keeps its place as the way out of the row, at the end.
  */
-fun availableFilters(
+fun availablePeriods(
     sessions: List<UserParking>,
     nowMs: Long = Clock.System.now().toEpochMilliseconds(),
-): List<HistoryFilter> {
+): List<StatsPeriod> {
     val tz = TimeZone.currentSystemDefault()
     val today = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(tz).date
     val firstOfThisMonth = LocalDate(today.year, today.month, 1)
@@ -158,30 +158,30 @@ fun availableFilters(
     return buildList {
         // The rolling week leads: it is the period the app opens on and the one a free account's
         // figures always report. [STATS-FIRST-CHIP-ANSWERS-NOW-001]
-        add(HistoryFilter.Last7Days)
-        add(HistoryFilter.ThisWeek)
-        add(HistoryFilter.ThisMonth)
+        add(StatsPeriod.Last7Days)
+        add(StatsPeriod.ThisWeek)
+        add(StatsPeriod.ThisMonth)
         // A closed month only exists as a question once something happened in it.
         val firstOfLastMonth = firstOfThisMonth.minus(1, DateTimeUnit.MONTH)
         val lastMonthRange = firstOfLastMonth.atStartOfDayIn(tz).toEpochMilliseconds() until
             firstOfThisMonth.atStartOfDayIn(tz).toEpochMilliseconds()
-        if (sessions.any { it.location.timestamp in lastMonthRange }) add(HistoryFilter.LastMonth)
+        if (sessions.any { it.location.timestamp in lastMonthRange }) add(StatsPeriod.LastMonth)
         // Anything older than this month makes a quarter say something this month does not.
-        if (hasDataBefore(firstOfThisMonth)) add(HistoryFilter.Last3Months)
+        if (hasDataBefore(firstOfThisMonth)) add(StatsPeriod.Last3Months)
         // And anything older than the quarter is what makes a YEAR a different question.
         if (hasDataBefore(firstOfThisMonth.minus(QUARTER_MONTHS - 1, DateTimeUnit.MONTH))) {
-            add(HistoryFilter.ThisYear)
+            add(StatsPeriod.ThisYear)
         }
-        addAll(closedYearsWithData(sessions, today.year, tz).map(HistoryFilter::Year))
+        addAll(closedYearsWithData(sessions, today.year, tz).map(StatsPeriod::Year))
         // Last, and last on purpose: "everything" is the way OUT of the row, not its cover.
-        add(HistoryFilter.All)
+        add(StatsPeriod.All)
     }
 }
 
 /**
  * The closed calendar years this history has something in, newest first.
  *
- * Separate from [availableFilters] because the UI groups them behind ONE chip rather than spending
+ * Separate from [availablePeriods] because the UI groups them behind ONE chip rather than spending
  * a chip per year: four years of driving would otherwise push the periods that answer "what is
  * happening now" off the edge of a scrolling row.
  * [STATS-A-FILTER-THAT-CANNOT-ANSWER-IS-NOT-OFFERED-001]

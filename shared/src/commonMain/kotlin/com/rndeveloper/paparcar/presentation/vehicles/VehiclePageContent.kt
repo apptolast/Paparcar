@@ -97,7 +97,7 @@ internal fun VehiclePageContent(
         state = historyState,
         contentPadding = contentPadding,
         onViewOnMap = { lat, lon, sessionId -> onIntent(VehiclesIntent.ViewOnMap(lat, lon, sessionId)) },
-        onFilterSelected = { filter -> onIntent(VehiclesIntent.SetHistoryFilter(filter)) },
+        onFilterSelected = { filter -> onIntent(VehiclesIntent.SetStatsPeriod(filter)) },
         onMetricSelected = { metric -> onIntent(VehiclesIntent.SetChartMetric(metric)) },
         onOpenPlusPaywall = { onIntent(VehiclesIntent.OpenPlusPaywall) },
         isPlus = isPlus,

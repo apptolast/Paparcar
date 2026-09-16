@@ -70,7 +70,7 @@ sealed interface HistoryTimeline {
          * Same doctrine as the coverage on a partial sum: a figure that cannot describe itself gets
          * described by whoever reads it. [STATS-A-MEASURE-CARRIES-ITS-COVERAGE-001]
          */
-        val statsPeriod: HistoryFilter,
+        val statsPeriod: StatsPeriod,
         /**
          * The price behind [periodStats]'s cost, or null when there is no cost. The card says it
          * out loud: a spend computed from a national average and one computed from what the user
@@ -101,7 +101,7 @@ sealed interface HistoryTimeline {
          */
         fun resolve(
             sessions: List<UserParking>,
-            filter: HistoryFilter,
+            filter: StatsPeriod,
             isPlus: Boolean,
             vehicle: Vehicle? = null,
             /**
@@ -130,7 +130,7 @@ sealed interface HistoryTimeline {
             // [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001] The period chips govern the CHART for
             // everyone, but the figures of a free account are always its last seven days, whatever
             // chip is selected — that window is the plan, and Plus is what lets the chip reach them.
-            val statsFilter = if (isPlus) filter else HistoryFilter.Last7Days
+            val statsFilter = if (isPlus) filter else StatsPeriod.Last7Days
             val statsSessions = if (statsFilter == filter) {
                 filtered
             } else {
@@ -190,9 +190,9 @@ data class HistoryState(
     /** No default — see [HistoryTimeline]. A state that cannot say "aún no lo sé" ends up lying. */
     val timeline: HistoryTimeline,
     /** The user's filter choice, which outlives any single emission, so it sits outside the timeline.
-     *  Until they make one it is [HistoryFilter.Default] — the same period the stats panel opens on,
+     *  Until they make one it is [StatsPeriod.Default] — the same period the stats panel opens on,
      *  and the first chip of the row. [STATS-FIRST-CHIP-ANSWERS-NOW-001] */
-    val activeFilter: HistoryFilter = HistoryFilter.Default,
+    val activePeriod: StatsPeriod = StatsPeriod.Default,
     /**
      * What the chart's bars measure. Beside the filter and for the same reason: it is a CHOICE,
      * it survives the next emission of the history, and a `remember` inside the card would lose it
@@ -217,6 +217,6 @@ data class HistoryState(
      * While the history is unresolved the row holds only the periods that are always true, so it
      * never flickers a chip in and out as Room answers.
      */
-    val periodFilters: List<HistoryFilter>
-        get() = availableFilters((timeline as? HistoryTimeline.Resolved)?.sessions.orEmpty())
+    val periodFilters: List<StatsPeriod>
+        get() = availablePeriods((timeline as? HistoryTimeline.Resolved)?.sessions.orEmpty())
 }
