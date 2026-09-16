@@ -24,6 +24,7 @@ describe('sharedCars · pertenencia e historial', () => {
       await setDoc(doc(ctx.firestore(), 'sharedCarInvites/MUERTA'), {
         code: 'MUERTA', carId: CAR, ownerUid: OWNER, claimedByUid: null, expiresAtMs: NOW() - 1,
       });
+      await setDoc(doc(ctx.firestore(), `sharedCars/${CAR}`), { inviteCode: 'VIVA' }, { merge: true });
     });
     await assertSucceeds(setDoc(doc(as(OUTSIDER), `sharedCars/${CAR}/members/${OUTSIDER}`),
       { uid: OUTSIDER, inviteCode: 'VIVA' }));
@@ -32,6 +33,25 @@ describe('sharedCars · pertenencia e historial', () => {
     });
     await assertFails(setDoc(doc(as(OUTSIDER), `sharedCars/${CAR}/members/${OUTSIDER}`),
       { uid: OUTSIDER, inviteCode: 'MUERTA' }));
+  });
+
+  // [SEC-A-REPLACED-INVITE-STILL-OPENS-THE-DOOR-001] — un código reemplazado no puede volver a
+  // abrir la puerta aunque su documento no se haya borrado (el propio bug reportado en pap-26).
+  test('un código reemplazado no abre la puerta aunque su documento siga vivo', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'sharedCarInvites/VIEJO'), {
+        code: 'VIEJO', carId: CAR, ownerUid: OWNER, claimedByUid: null, expiresAtMs: NOW() + 60_000,
+      });
+      await setDoc(doc(ctx.firestore(), 'sharedCarInvites/NUEVO'), {
+        code: 'NUEVO', carId: CAR, ownerUid: OWNER, claimedByUid: null, expiresAtMs: NOW() + 60_000,
+      });
+      // El dueño ya pidió un código nuevo: el coche solo señala a NUEVO.
+      await setDoc(doc(ctx.firestore(), `sharedCars/${CAR}`), { inviteCode: 'NUEVO' }, { merge: true });
+    });
+    await assertFails(setDoc(doc(as(OUTSIDER), `sharedCars/${CAR}/members/${OUTSIDER}`),
+      { uid: OUTSIDER, inviteCode: 'VIEJO' }));
+    await assertSucceeds(setDoc(doc(as(OUTSIDER), `sharedCars/${CAR}/members/${OUTSIDER}`),
+      { uid: OUTSIDER, inviteCode: 'NUEVO' }));
   });
 
   test('cada uno mantiene SU ficha y no la de otro', async () => {

@@ -54,6 +54,7 @@ import paparcar.composeapp.generated.resources.my_car_delete_cancel
 import paparcar.composeapp.generated.resources.shared_car_error_already_joined
 import paparcar.composeapp.generated.resources.shared_car_error_code_expired
 import paparcar.composeapp.generated.resources.shared_car_error_code_not_found
+import paparcar.composeapp.generated.resources.shared_car_error_code_superseded
 import paparcar.composeapp.generated.resources.shared_car_error_code_used
 import paparcar.composeapp.generated.resources.shared_car_error_group_full
 import paparcar.composeapp.generated.resources.shared_car_error_too_many_joined
@@ -356,6 +357,7 @@ fun sharedCarErrorMessage(error: PaparcarError): String = when (error) {
     PaparcarError.SharedCar.InviteNotFound -> stringResource(Res.string.shared_car_error_code_not_found)
     PaparcarError.SharedCar.InviteExpired -> stringResource(Res.string.shared_car_error_code_expired)
     PaparcarError.SharedCar.InviteAlreadyUsed -> stringResource(Res.string.shared_car_error_code_used)
+    PaparcarError.SharedCar.InviteSuperseded -> stringResource(Res.string.shared_car_error_code_superseded)
     PaparcarError.SharedCar.GroupFull -> stringResource(Res.string.shared_car_error_group_full)
     PaparcarError.SharedCar.TooManySharedCars ->
         stringResource(Res.string.shared_car_error_too_many_shared)

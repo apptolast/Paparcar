@@ -46,6 +46,7 @@ class SharedCarRepositoryImplTest {
         remote: FakeSharedCarRemote = FakeSharedCarRemote(),
         dao: FakeSharedCarDao = FakeSharedCarDao(),
         prefs: FakeAppPreferences = FakeAppPreferences(),
+        randomBytes: (Int) -> ByteArray = { size -> ByteArray(size) { 7 } },
     ) = SharedCarRepositoryImpl(
         remote = remote,
         dao = dao,
@@ -64,7 +65,7 @@ class SharedCarRepositoryImplTest {
             UserSession(userId = uid, email = null, displayName = null, photoUrl = null),
         ),
         appPreferences = prefs,
-        randomBytes = { size -> ByteArray(size) { 7 } },
+        randomBytes = randomBytes,
         clock = { now },
     )
 
@@ -102,6 +103,54 @@ class SharedCarRepositoryImplTest {
         // Y el código existe de verdad al otro lado, no solo en el objeto que devolvemos.
         assertEquals(car.activeInviteCode, remote.getCar("car-1")!!.inviteCode)
         assertNotNull(remote.getInvite(car.activeInviteCode))
+    }
+
+    // [SEC-A-REPLACED-INVITE-STILL-OPENS-THE-DOOR-001] — reported bug: tapping "new code"
+    // repeatedly left every previous invite alive in Firestore, still usable to join.
+    @Test
+    fun should_replaceTheOldCode_when_askingForANewOne() = runTest {
+        var counter = 0
+        val remote = FakeSharedCarRemote()
+        val repo = repository(
+            "marta",
+            FakeVehicleRepository(defaultVehicle = ownerCar),
+            remote,
+            randomBytes = { size -> counter++; ByteArray(size) { (counter + it).toByte() } },
+        )
+        val firstCode = repo.shareVehicle(ownerCar).getOrThrow().activeInviteCode!!
+
+        val secondCode = repo.createInvite("car-1").getOrThrow().code
+
+        assertTrue(firstCode != secondCode)
+        // El código viejo no queda huérfano en la colección...
+        assertNull(remote.getInvite(firstCode))
+        // ...y el coche solo señala al nuevo.
+        assertEquals(secondCode, remote.getCar("car-1")!!.inviteCode)
+        assertEquals(1, remote.invites.value.size)
+    }
+
+    // Defensa en profundidad: aunque el documento del código viejo sobreviviera (el propio bug
+    // reportado), dejar de ser el código ACTIVO del coche lo invalida igualmente.
+    @Test
+    fun should_refuseToJoin_when_theCodeWasReplaced() = runTest {
+        var counter = 0
+        val remote = FakeSharedCarRemote()
+        val owner = repository(
+            "marta",
+            FakeVehicleRepository(defaultVehicle = ownerCar),
+            remote,
+            randomBytes = { size -> counter++; ByteArray(size) { (counter + it).toByte() } },
+        )
+        val firstCode = owner.shareVehicle(ownerCar).getOrThrow().activeInviteCode!!
+        val firstInvite = remote.getInvite(firstCode)!!
+        owner.createInvite("car-1").getOrThrow()
+        // Simula el propio bug reportado: el borrado del invite viejo no llegó a pasar.
+        remote.putInvite(firstInvite)
+
+        val error = repository("nacho", FakeVehicleRepository(), remote)
+            .joinByCode(firstCode, null).exceptionOrNull()
+
+        assertEquals(PaparcarError.SharedCar.InviteSuperseded, error)
     }
 
     @Test
@@ -146,7 +195,7 @@ class SharedCarRepositoryImplTest {
         val remote = FakeSharedCarRemote()
         repository("marta", FakeVehicleRepository(defaultVehicle = ownerCar), remote)
             .shareVehicle(ownerCar).getOrThrow()
-        remote.putInvite(liveInvite())
+        remote.seedActiveInvite(liveInvite())
         val memberVehicles = FakeVehicleRepository()
         val member = repository("nacho", memberVehicles, remote)
 
@@ -166,7 +215,7 @@ class SharedCarRepositoryImplTest {
         val remote = FakeSharedCarRemote()
         repository("marta", FakeVehicleRepository(defaultVehicle = ownerCar), remote)
             .shareVehicle(ownerCar).getOrThrow()
-        remote.putInvite(liveInvite())
+        remote.seedActiveInvite(liveInvite())
         repository("nacho", FakeVehicleRepository(), remote)
             .joinByCode("AB3K9P", null).getOrThrow()
 
@@ -181,7 +230,7 @@ class SharedCarRepositoryImplTest {
         val remote = FakeSharedCarRemote()
         repository("marta", FakeVehicleRepository(defaultVehicle = ownerCar), remote)
             .shareVehicle(ownerCar).getOrThrow()
-        remote.putInvite(liveInvite().copy(expiresAtMs = now - 1))
+        remote.seedActiveInvite(liveInvite().copy(expiresAtMs = now - 1))
 
         val error = repository("nacho", FakeVehicleRepository(), remote)
             .joinByCode("AB3K9P", null).exceptionOrNull()
@@ -194,7 +243,7 @@ class SharedCarRepositoryImplTest {
         val remote = FakeSharedCarRemote()
         repository("marta", FakeVehicleRepository(defaultVehicle = ownerCar), remote)
             .shareVehicle(ownerCar).getOrThrow()
-        remote.putInvite(liveInvite())
+        remote.seedActiveInvite(liveInvite())
         val memberVehicles = FakeVehicleRepository()
         val member = repository("nacho", memberVehicles, remote)
         member.joinByCode("AB3K9P", null).getOrThrow()
@@ -216,7 +265,7 @@ class SharedCarRepositoryImplTest {
         val remote = FakeSharedCarRemote()
         val owner = repository("marta", FakeVehicleRepository(defaultVehicle = ownerCar), remote)
         owner.shareVehicle(ownerCar).getOrThrow()
-        remote.putInvite(liveInvite())
+        remote.seedActiveInvite(liveInvite())
         val member = repository("nacho", FakeVehicleRepository(), remote)
         member.joinByCode("AB3K9P", null).getOrThrow()
         remote.putSession("car-1", session("s-marta", "marta"))
@@ -254,7 +303,7 @@ class SharedCarRepositoryImplTest {
         val prefs = FakeAppPreferences()
         val owner = repository("marta", FakeVehicleRepository(defaultVehicle = ownerCar), remote)
         owner.shareVehicle(ownerCar).getOrThrow()
-        remote.putInvite(liveInvite())
+        remote.seedActiveInvite(liveInvite())
         val member = repository("nacho", FakeVehicleRepository(), remote, prefs = prefs)
         member.joinByCode("AB3K9P", null).getOrThrow()
 
@@ -270,7 +319,7 @@ class SharedCarRepositoryImplTest {
         val remote = FakeSharedCarRemote()
         val owner = repository("marta", FakeVehicleRepository(defaultVehicle = ownerCar), remote)
         owner.shareVehicle(ownerCar).getOrThrow()
-        remote.putInvite(liveInvite())
+        remote.seedActiveInvite(liveInvite())
         repository("nacho", FakeVehicleRepository(), remote).joinByCode("AB3K9P", null).getOrThrow()
         remote.putSession("car-1", session("s-marta", "marta"))
         remote.putSession("car-1", session("s-nacho", "nacho"))
@@ -293,7 +342,7 @@ class SharedCarRepositoryImplTest {
         val remote = FakeSharedCarRemote()
         val owner = repository("marta", FakeVehicleRepository(defaultVehicle = ownerCar), remote)
         owner.shareVehicle(ownerCar).getOrThrow()
-        remote.putInvite(liveInvite())
+        remote.seedActiveInvite(liveInvite())
         val member = repository("nacho", FakeVehicleRepository(), remote)
         member.joinByCode("AB3K9P", null).getOrThrow()
         // Nacho aparcó el coche y luego se lo llevó él mismo: su nombre está en las DOS caras de la
@@ -329,7 +378,7 @@ class SharedCarRepositoryImplTest {
         val remote = FakeSharedCarRemote()
         val owner = repository("marta", FakeVehicleRepository(defaultVehicle = ownerCar), remote)
         owner.shareVehicle(ownerCar).getOrThrow()
-        remote.putInvite(liveInvite())
+        remote.seedActiveInvite(liveInvite())
         val member = repository("nacho", FakeVehicleRepository(), remote)
         member.joinByCode("AB3K9P", null).getOrThrow()
         // La cabecera la firma MARTA. Que se vaya Nacho no puede tocarla.
@@ -348,7 +397,7 @@ class SharedCarRepositoryImplTest {
         val remote = FakeSharedCarRemote()
         val owner = repository("marta", FakeVehicleRepository(defaultVehicle = ownerCar), remote)
         owner.shareVehicle(ownerCar).getOrThrow()
-        remote.putInvite(liveInvite())
+        remote.seedActiveInvite(liveInvite())
         val memberVehicles = FakeVehicleRepository()
         val member = repository("nacho", memberVehicles, remote)
         member.joinByCode("AB3K9P", null).getOrThrow()
@@ -370,7 +419,7 @@ class SharedCarRepositoryImplTest {
         val vehicles = FakeVehicleRepository(defaultVehicle = ownerCar)
         val owner = repository("marta", vehicles, remote)
         owner.shareVehicle(ownerCar).getOrThrow()
-        remote.putInvite(liveInvite())
+        remote.seedActiveInvite(liveInvite())
         repository("nacho", FakeVehicleRepository(), remote).joinByCode("AB3K9P", null).getOrThrow()
         remote.putSession("car-1", session("s-nacho", "nacho"))
 
@@ -397,7 +446,7 @@ class SharedCarRepositoryImplTest {
         val vehicles = FakeVehicleRepository(defaultVehicle = ownerCar)
         val owner = repository("marta", vehicles, remote)
         owner.shareVehicle(ownerCar).getOrThrow()
-        remote.putInvite(liveInvite())
+        remote.seedActiveInvite(liveInvite())
 
         owner.stopSharing("car-1").getOrThrow()
 

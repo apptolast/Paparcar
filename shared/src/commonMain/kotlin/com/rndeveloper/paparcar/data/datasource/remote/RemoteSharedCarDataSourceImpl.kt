@@ -218,12 +218,16 @@ class RemoteSharedCarDataSourceImpl(
         members(carId).document(uid).delete()
     }
 
-    override suspend fun putInvite(invite: SharedCarInviteDto) {
-        invites().document(invite.code).set(invite)
-    }
-
-    override suspend fun setActiveInvite(carId: String, code: String?, expiresAtMs: Long?) {
-        car(carId).update(mapOf(FIELD_INVITE_CODE to code, FIELD_INVITE_EXPIRES_AT_MS to expiresAtMs))
+    override suspend fun replaceInvite(carId: String, invite: SharedCarInviteDto) {
+        firestore.runTransaction {
+            val carSnapshot = get(car(carId))
+            val previousCode = carSnapshot.takeIf { it.exists }?.get<String?>(FIELD_INVITE_CODE)
+            if (previousCode != null && previousCode != invite.code) {
+                delete(invites().document(previousCode))
+            }
+            set(invites().document(invite.code), invite)
+            update(car(carId), mapOf(FIELD_INVITE_CODE to invite.code, FIELD_INVITE_EXPIRES_AT_MS to invite.expiresAtMs))
+        }
     }
 
     override suspend fun getInvite(code: String): SharedCarInviteDto? =
@@ -241,7 +245,9 @@ class RemoteSharedCarDataSourceImpl(
         // last one, and dissolving the group takes it with it.
         val code = getCar(carId)?.inviteCode ?: return
         runCatching { invites().document(code).delete() }
+            .onFailure { PaparcarLogger.w(TAG, "deleteInvitesFor: no se pudo borrar el invite $code de $carId", it) }
         runCatching { car(carId).update(mapOf(FIELD_INVITE_CODE to null, FIELD_INVITE_EXPIRES_AT_MS to null)) }
+            .onFailure { PaparcarLogger.w(TAG, "deleteInvitesFor: no se pudo limpiar el puntero de $carId", it) }
     }
 
     // ─── Deserialization ──────────────────────────────────────────────────────

@@ -1078,6 +1078,7 @@
     <string name="shared_car_error_code_not_found">Ten kod nie pasuje do żadnego samochodu. Sprawdź go albo poproś o nowy.</string>
     <string name="shared_car_error_code_expired">Ten kod wygasł. Poproś właściciela o nowy.</string>
     <string name="shared_car_error_code_used">Ten kod został już użyty. Poproś właściciela o nowy.</string>
+    <string name="shared_car_error_code_superseded">Ten kod nie jest już aktywny — właściciel wygenerował nowy. Poproś go o niego.</string>
     <string name="shared_car_error_group_full">Ten samochód jest pełny: właściciel i cztery osoby. Najpierw ktoś musi wyjść.</string>
     <string name="shared_car_error_already_joined">Już jesteś w tym samochodzie.</string>
     <string name="shared_car_error_not_owner">Tylko właściciel może zmienić tę grupę.</string>

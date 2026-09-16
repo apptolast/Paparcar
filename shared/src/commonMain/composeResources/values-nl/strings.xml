@@ -1057,6 +1057,7 @@
     <string name="shared_car_error_code_not_found">Die code hoort bij geen enkele auto. Controleer hem of vraag een nieuwe.</string>
     <string name="shared_car_error_code_expired">Die code is verlopen. Vraag de eigenaar om een nieuwe.</string>
     <string name="shared_car_error_code_used">Die code is al gebruikt. Vraag de eigenaar om een nieuwe.</string>
+    <string name="shared_car_error_code_superseded">Die code is niet meer actief — de eigenaar heeft een nieuwe gemaakt. Vraag ernaar.</string>
     <string name="shared_car_error_group_full">Deze auto is vol: de eigenaar en vier anderen. Er moet eerst iemand weg.</string>
     <string name="shared_car_error_already_joined">Je zit al in deze auto.</string>
     <string name="shared_car_error_not_owner">Alleen de eigenaar kan deze groep wijzigen.</string>

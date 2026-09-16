@@ -1097,6 +1097,7 @@
     <string name="shared_car_error_code_not_found">That code does not match any car. Check it, or ask for a new one.</string>
     <string name="shared_car_error_code_expired">That code has expired. Ask the owner for a new one.</string>
     <string name="shared_car_error_code_used">That code has already been used. Ask the owner for a new one.</string>
+    <string name="shared_car_error_code_superseded">That code is no longer active — the owner generated a new one. Ask them for it.</string>
     <string name="shared_car_error_group_full">This car is full: the owner and four more. Someone has to leave first.</string>
     <string name="shared_car_error_already_joined">You are already in this car.</string>
     <string name="shared_car_error_not_owner">Only the owner can change this group.</string>

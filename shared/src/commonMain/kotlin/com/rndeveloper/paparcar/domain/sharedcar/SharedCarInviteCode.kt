@@ -45,16 +45,26 @@ object SharedCarInviteCode {
 
 /** Why an invite cannot be used. `null` = it can. Order matters: expired before claimed, because
  *  "caducó" is the one the user can fix by asking for another. */
-enum class SharedCarInviteRejection { EXPIRED, ALREADY_USED, WRONG_CAR }
+enum class SharedCarInviteRejection { EXPIRED, ALREADY_USED, WRONG_CAR, SUPERSEDED }
 
-/** The verdict on an invite, at the moment somebody tries to redeem it. */
+/**
+ * The verdict on an invite, at the moment somebody tries to redeem it.
+ *
+ * [activeCode] is the car's CURRENT live code (`SharedCar.activeInviteCode`), when known. Without
+ * it, "one live code per car, the previous one dies here" depends entirely on the replace being
+ * cleaned up successfully — and a code that survives a failed cleanup would still work.
+ * [SEC-A-REPLACED-INVITE-STILL-OPENS-THE-DOOR-001] checks the invariant here instead, so an
+ * orphaned document is inert regardless of why it was never deleted.
+ */
 fun rejectionFor(
     invite: SharedCarInvite,
     carId: String? = null,
+    activeCode: String? = null,
     nowMs: Long,
 ): SharedCarInviteRejection? = when {
     invite.expiresAtMs <= nowMs -> SharedCarInviteRejection.EXPIRED
     invite.claimedByUid != null -> SharedCarInviteRejection.ALREADY_USED
     carId != null && invite.carId != carId -> SharedCarInviteRejection.WRONG_CAR
+    activeCode != null && activeCode != invite.code -> SharedCarInviteRejection.SUPERSEDED
     else -> null
 }

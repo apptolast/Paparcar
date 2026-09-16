@@ -1052,6 +1052,7 @@
     <string name="shared_car_error_code_not_found">Ese código no corresponde a ningún coche. Revísalo o pide uno nuevo.</string>
     <string name="shared_car_error_code_expired">Ese código ha caducado. Pide uno nuevo al propietario.</string>
     <string name="shared_car_error_code_used">Ese código ya se ha usado. Pide uno nuevo al propietario.</string>
+    <string name="shared_car_error_code_superseded">Ese código ya no está activo — el propietario ha generado uno nuevo. Pídeselo.</string>
     <string name="shared_car_error_group_full">Este coche está completo: el propietario y cuatro personas más. Alguien tiene que salir primero.</string>
     <string name="shared_car_error_already_joined">Ya estás en este coche.</string>
     <string name="shared_car_error_not_owner">Solo el propietario puede cambiar este grupo.</string>

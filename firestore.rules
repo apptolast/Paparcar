@@ -116,13 +116,22 @@ service cloud.firestore {
         function invite(code) {
           return get(/databases/$(database)/documents/sharedCarInvites/$(code)).data;
         }
+        // ⛔ El código VIVO del coche es el que manda, no solo "existe y no ha expirado": un
+        // código reemplazado por uno nuevo tiene que dejar de abrir la puerta aunque su documento
+        // siga sin borrarse (un hipo de red, una carrera entre dos taps). Sin esto la promesa de
+        // "un solo código vivo, el anterior muere" dependía enteramente de que ese borrado tuviera
+        // éxito. [SEC-A-REPLACED-INVITE-STILL-OPENS-THE-DOOR-001]
+        function carActiveInviteCode() {
+          return get(/databases/$(database)/documents/sharedCars/$(carId)).data.get('inviteCode', null);
+        }
         function holdsValidInvite(code) {
           return code is string
                  && exists(/databases/$(database)/documents/sharedCarInvites/$(code))
                  && invite(code).carId == carId
                  && invite(code).expiresAtMs > request.time.toMillis()
                  && (invite(code).claimedByUid == null
-                     || invite(code).claimedByUid == request.auth.uid);
+                     || invite(code).claimedByUid == request.auth.uid)
+                 && code == carActiveInviteCode();
         }
 
         allow read: if request.auth != null

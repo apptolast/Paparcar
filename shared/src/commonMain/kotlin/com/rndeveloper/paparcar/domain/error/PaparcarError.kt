@@ -94,6 +94,9 @@ sealed class PaparcarError : Exception() {
         data object InviteExpired : SharedCar()
         /** Single use, and somebody already used it. */
         data object InviteAlreadyUsed : SharedCar()
+        /** The code was real and unclaimed, but the owner has since issued a new one.
+         *  [SEC-A-REPLACED-INVITE-STILL-OPENS-THE-DOOR-001] */
+        data object InviteSuperseded : SharedCar()
         /** The owner plus four is the whole group; somebody has to leave first. */
         data object GroupFull : SharedCar()
 

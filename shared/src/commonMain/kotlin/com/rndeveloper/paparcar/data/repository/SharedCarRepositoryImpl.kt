@@ -186,14 +186,15 @@ class SharedCarRepositoryImpl(
      * abrir el grupo y pedir uno nuevo. [SHARED-A-GROUP-YOU-CANNOT-JOIN-IS-NOT-A-GROUP-001]
      *
      * ⛔ Un código por coche y solo uno: el anterior muere aquí, así que un código dictado en voz
-     * alta ayer no lo puede usar mañana quien lo oyó de paso.
+     * alta ayer no lo puede usar mañana quien lo oyó de paso. `replaceInvite` lo hace en una sola
+     * transacción — borrar el viejo, crear el nuevo y apuntar el puntero pasan los tres o ninguno.
+     * [SEC-A-REPLACED-INVITE-STILL-OPENS-THE-DOOR-001]
      */
     private suspend fun issueInvite(
         carId: String,
         ownerUid: String,
         carName: String,
     ): SharedCarInvite {
-        remote.deleteInvitesFor(carId)
         val now = clock()
         val invite = SharedCarInvite(
             code = SharedCarInviteCode.of(randomBytes(SharedCarInviteCode.LENGTH)),
@@ -202,8 +203,7 @@ class SharedCarRepositoryImpl(
             createdAtMs = now,
             expiresAtMs = now + SharedCarInviteCode.INVITE_TTL_MS,
         )
-        remote.putInvite(invite.toDto(carName = carName))
-        remote.setActiveInvite(carId, invite.code, invite.expiresAtMs)
+        remote.replaceInvite(carId, invite.toDto(carName = carName))
         return invite
     }
 
@@ -212,7 +212,11 @@ class SharedCarRepositoryImpl(
             ?: throw PaparcarError.SharedCar.InviteNotFound
         val invite = remote.getInvite(normalized)?.toDomain()
             ?: throw PaparcarError.SharedCar.InviteNotFound
-        rejectionFor(invite, nowMs = clock())?.let { throw it.asError() }
+        // ⛔ La validez de un código no puede depender solo de que su reemplazo se haya limpiado
+        // bien: se comprueba aquí, contra el puntero ACTUAL del coche, además de en la regla de
+        // Firestore. [SEC-A-REPLACED-INVITE-STILL-OPENS-THE-DOOR-001]
+        val activeCode = remote.getCar(invite.carId)?.inviteCode
+        rejectionFor(invite, activeCode = activeCode, nowMs = clock())?.let { throw it.asError() }
         invite
     }
 
@@ -385,6 +389,7 @@ class SharedCarRepositoryImpl(
         SharedCarInviteRejection.EXPIRED -> PaparcarError.SharedCar.InviteExpired
         SharedCarInviteRejection.ALREADY_USED -> PaparcarError.SharedCar.InviteAlreadyUsed
         SharedCarInviteRejection.WRONG_CAR -> PaparcarError.SharedCar.InviteNotFound
+        SharedCarInviteRejection.SUPERSEDED -> PaparcarError.SharedCar.InviteSuperseded
     }
 
     private companion object {

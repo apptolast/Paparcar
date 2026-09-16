@@ -83,10 +83,20 @@ interface RemoteSharedCarDataSource {
     suspend fun setMemberTokens(carId: String, uid: String, tokens: List<String>)
     suspend fun deleteMember(carId: String, uid: String)
 
-    suspend fun putInvite(invite: SharedCarInviteDto)
-    /** Points the car at its one live code, so the owner can read it again and revoke it later. */
-    suspend fun setActiveInvite(carId: String, code: String?, expiresAtMs: Long?)
+    /**
+     * Reemplaza ATÓMICAMENTE el código vivo del coche: borra el anterior (si lo hay), escribe el
+     * nuevo y apunta el coche a él, todo en una sola transacción de Firestore.
+     * [SEC-A-REPLACED-INVITE-STILL-OPENS-THE-DOOR-001]
+     *
+     * Antes eran tres escrituras sueltas (borrar el viejo, crear el nuevo, apuntar el puntero) con
+     * el borrado tragado en silencio si fallaba: un hipo de red o una carrera entre dos taps dejaba
+     * el código viejo vivo y VÁLIDO — el puntero avanzaba igual, y sin `list` sobre la colección no
+     * había forma de volver a encontrarlo. Con la transacción, o pasan las tres cosas o no pasa
+     * ninguna: nunca hay un instante con dos códigos utilizables para el mismo coche.
+     */
+    suspend fun replaceInvite(carId: String, invite: SharedCarInviteDto)
     suspend fun getInvite(code: String): SharedCarInviteDto?
     suspend fun claimInvite(code: String, uid: String)
+    /** Best-effort: borra el código vivo del coche (si lo hay) al disolver el grupo entero. */
     suspend fun deleteInvitesFor(carId: String)
 }

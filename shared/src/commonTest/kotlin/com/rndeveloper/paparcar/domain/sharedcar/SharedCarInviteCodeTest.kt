@@ -69,6 +69,41 @@ class SharedCarInviteCodeTest {
         assertNull(rejectionFor(invite(expiresAtMs = 10_000L), nowMs = 9_999L))
     }
 
+    // [SEC-A-REPLACED-INVITE-STILL-OPENS-THE-DOOR-001]
+    @Test
+    fun should_rejectAnInvite_when_theOwnerHasIssuedANewOne() {
+        val invite = invite(expiresAtMs = 10_000L)
+
+        assertEquals(
+            SharedCarInviteRejection.SUPERSEDED,
+            rejectionFor(invite, activeCode = "OTHER1", nowMs = 1_000L),
+        )
+    }
+
+    @Test
+    fun should_acceptAnInvite_when_itIsStillTheActiveCode() {
+        val invite = invite(expiresAtMs = 10_000L)
+
+        assertNull(rejectionFor(invite, activeCode = invite.code, nowMs = 1_000L))
+    }
+
+    @Test
+    fun should_notRejectAsSuperseded_when_theActiveCodeIsUnknown() {
+        // No car to compare against (deleted, or the caller never asked) — the orphan check is a
+        // defense in depth, not a requirement to know the car's state.
+        assertNull(rejectionFor(invite(expiresAtMs = 10_000L), activeCode = null, nowMs = 1_000L))
+    }
+
+    @Test
+    fun should_preferExpiredOverSuperseded_when_anInviteIsBoth() {
+        val invite = invite(expiresAtMs = 1_000L)
+
+        assertEquals(
+            SharedCarInviteRejection.EXPIRED,
+            rejectionFor(invite, activeCode = "OTHER1", nowMs = 2_000L),
+        )
+    }
+
     private fun invite(expiresAtMs: Long, claimedByUid: String? = null) = SharedCarInvite(
         code = "AB3K9P",
         carId = "car-1",

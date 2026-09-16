@@ -1074,6 +1074,7 @@
     <string name="shared_car_error_code_not_found">Codul nu corespunde niciunei mașini. Verifică-l sau cere altul.</string>
     <string name="shared_car_error_code_expired">Codul a expirat. Cere proprietarului unul nou.</string>
     <string name="shared_car_error_code_used">Codul a fost deja folosit. Cere proprietarului unul nou.</string>
+    <string name="shared_car_error_code_superseded">Codul nu mai este activ — proprietarul a generat unul nou. Cere-i-l.</string>
     <string name="shared_car_error_group_full">Mașina este plină: proprietarul și încă patru persoane. Cineva trebuie să iasă mai întâi.</string>
     <string name="shared_car_error_already_joined">Ești deja în această mașină.</string>
     <string name="shared_car_error_not_owner">Doar proprietarul poate schimba acest grup.</string>

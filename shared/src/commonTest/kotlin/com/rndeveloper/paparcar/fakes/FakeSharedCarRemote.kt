@@ -41,11 +41,13 @@ class FakeSharedCarRemote : RemoteSharedCarDataSource {
     }
 
     override suspend fun deleteCar(carId: String) {
+        // Igual que el real: el invite vivo se limpia ANTES de borrar el coche, porque es el
+        // documento del coche el que dice cuál es ese código. [SEC-A-REPLACED-INVITE-STILL-OPENS-THE-DOOR-001]
+        deleteInvitesFor(carId)
         cars.value = cars.value - carId
         members.value = members.value - carId
         sessions.value = sessions.value - carId
         states.value = states.value - carId
-        deleteInvitesFor(carId)
     }
 
     override suspend fun getState(carId: String): SharedCarStateDto? = states.value[carId]
@@ -165,13 +167,39 @@ class FakeSharedCarRemote : RemoteSharedCarDataSource {
         members.value = members.value + (carId to members.value[carId].orEmpty().filterNot { it.uid == uid })
     }
 
-    override suspend fun putInvite(invite: SharedCarInviteDto) {
+    /**
+     * Test-only: siembra un invite en crudo, SIN tocar el puntero del coche.
+     *
+     * Para un código determinista con el que unirse (en vez del aleatorio que generaría
+     * `issueInvite()` de verdad), usar [seedActiveInvite]. Este método deja el invite
+     * DESVINCULADO del puntero a propósito — sirve para simular el propio bug de
+     * [SEC-A-REPLACED-INVITE-STILL-OPENS-THE-DOOR-001]: un documento huérfano que sobrevivió a
+     * un reemplazo y ya no es el código activo del coche.
+     */
+    fun putInvite(invite: SharedCarInviteDto) {
         invites.value = invites.value + (invite.code to invite)
     }
 
-    override suspend fun setActiveInvite(carId: String, code: String?, expiresAtMs: Long?) {
+    /**
+     * Test-only: siembra un invite con un código determinista como si `issueInvite()` lo hubiera
+     * emitido de verdad — reemplaza correctamente cualquier código anterior del coche, incluido el
+     * aleatorio que `shareVehicle()` ya le hubiera puesto.
+     */
+    suspend fun seedActiveInvite(invite: SharedCarInviteDto) = replaceInvite(invite.carId, invite)
+
+    override suspend fun replaceInvite(carId: String, invite: SharedCarInviteDto) {
+        // Mismo comportamiento que la transacción real: el código anterior del coche muere, el
+        // nuevo se escribe y el puntero avanza — en un único paso, sin ventana intermedia.
+        // [SEC-A-REPLACED-INVITE-STILL-OPENS-THE-DOOR-001]
+        val previousCode = cars.value[carId]?.inviteCode
+        if (previousCode != null && previousCode != invite.code) {
+            invites.value = invites.value - previousCode
+        }
+        invites.value = invites.value + (invite.code to invite)
         cars.value[carId]?.let { car ->
-            cars.value = cars.value + (carId to car.copy(inviteCode = code, inviteExpiresAtMs = expiresAtMs))
+            cars.value = cars.value + (
+                carId to car.copy(inviteCode = invite.code, inviteExpiresAtMs = invite.expiresAtMs)
+                )
         }
     }
 
@@ -182,7 +210,13 @@ class FakeSharedCarRemote : RemoteSharedCarDataSource {
     }
 
     override suspend fun deleteInvitesFor(carId: String) {
-        invites.value = invites.value.filterValues { it.carId != carId }
+        // Igual que el real: solo se sabe borrar el código que el propio coche señala como vivo —
+        // no "todos los invites de este carId", que el real no puede hacer sin `list`.
+        val code = cars.value[carId]?.inviteCode ?: return
+        invites.value = invites.value - code
+        cars.value[carId]?.let { car ->
+            cars.value = cars.value + (carId to car.copy(inviteCode = null, inviteExpiresAtMs = null))
+        }
     }
 }
 
