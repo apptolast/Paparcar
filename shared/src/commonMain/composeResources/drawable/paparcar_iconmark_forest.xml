@@ -5,7 +5,7 @@
   neon green has poor contrast on near-white, so the light theme uses the deep
   forest brand green (#0D1C14 ≈ PapForest). Brand fill baked in — do NOT tint.
 
-  Wheel stroke is 8 vs the green iconmark's 6 — deliberate polarity compensation:
+  Wheel stroke is 7 vs the green iconmark's 6 — deliberate polarity compensation:
   these dark forest strokes sit on light surfaces and optically shrink (irradiation),
   same as paparcar_logo_dark. The green iconmark (bright-on-dark) stays 6. Keep them
   in sync by PERCEIVED weight, not by number.
@@ -36,7 +36,7 @@
             <path
                 android:fillColor="#00000000"
                 android:strokeColor="#0D1C14"
-                android:strokeWidth="9"
+                android:strokeWidth="7"
                 android:pathData="M66.01,82.86a8.73,6.15 0 1 0 17.46,0a8.73,6.15 0 1 0 -17.46,0Z" />
         </group>
         <group
@@ -48,7 +48,7 @@
             <path
                 android:fillColor="#00000000"
                 android:strokeColor="#0D1C14"
-                android:strokeWidth="9"
+                android:strokeWidth="7"
                 android:pathData="M30.45,82.86a8.73,6.15 0 1 0 17.46,0a8.73,6.15 0 1 0 -17.46,0Z" />
         </group>
     </group>

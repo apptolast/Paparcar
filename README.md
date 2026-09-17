@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Kotlin-2.4.10-25F48C?logo=kotlin&logoColor=white&labelColor=0D1117" alt="Kotlin 2.4.10"/>
+  <img src="https://img.shields.io/badge/Kotlin-2.4.20-25F48C?logo=kotlin&logoColor=white&labelColor=0D1117" alt="Kotlin 2.4.20"/>
   <img src="https://img.shields.io/badge/Compose_Multiplatform-1.12.0-25F48C?logo=jetpackcompose&logoColor=white&labelColor=0D1117" alt="Compose Multiplatform 1.12.0"/>
   <img src="https://img.shields.io/badge/Android-principal-25F48C?logo=android&logoColor=white&labelColor=0D1117" alt="Android"/>
   <img src="https://img.shields.io/badge/iOS-en_progreso-F4A825?logo=apple&logoColor=white&labelColor=0D1117" alt="iOS en progreso"/>
@@ -20,12 +20,13 @@
 
 ---
 
-## Estado del proyecto · 2026-08-30 (master `46621e7f`)
+## Estado del proyecto · 2026-09-17 (master `469e22b0`)
 
 **Pre-lanzamiento, en field-testing diario.** El producto está completo y mergeado en `master`; la
 cadena de detección se mide cada día en dispositivos reales (Oppo + Redmi) con telemetría remota, con
-política *fix-forward* ante regresiones. Lo que falta para publicar **no es código de producto**: es
-la ficha de Play, las verificaciones de la cuenta de desarrollador y el endurecimiento de claves.
+política *fix-forward* ante regresiones. Lo que falta para publicar **no es código de producto**: la
+ficha de Play está completa (textos y capturas en 9 idiomas); restan las verificaciones de la cuenta
+de desarrollador, el formulario de Data Safety y el endurecimiento de claves.
 
 | Área | Estado |
 |------|--------|
@@ -43,7 +44,7 @@ la ficha de Play, las verificaciones de la cuenta de desarrollador y el endureci
 | CI: build + tests + **compilación de `iosMain` en `macos-latest`** | ✅ |
 | Superficie legal (privacidad, borrado de cuenta por web, data safety) | ✅ código · ⏳ acciones de cuenta |
 | Detección iOS | 🟡 nativos listos; el lazo GPS → coordinator, en rama `IOS-F0-001` sin mergear |
-| Publicación en Play | 🔴 ficha sin capturas · trader status y verificaciones pendientes |
+| Publicación en Play | 🟡 ficha y capturas (9 idiomas) listas · trader status y verificaciones ⏳ |
 
 Roadmap y bloqueantes en [`docs/ROADMAP.md`](./docs/ROADMAP.md).
 
@@ -59,6 +60,11 @@ verdad en la app es [`paparcar_logo.xml`](./shared/src/commonMain/composeResourc
 (VectorDrawable, con variante `_dark`); para docs se usa
 [`docs/assets/paparcar-logo.svg`](./docs/assets/paparcar-logo.svg). Es un asset **Nivel 3**:
 trae su color de marca horneado, **nunca se tinta**.
+
+Para mantener la consistencia visual ante el efecto óptico de irradiación, el logo aplica una
+**compensación de grosor** en sus trazos (ruedas):
+- **Coche claro sobre fondo oscuro**: grosor **`6`** (fuente de verdad).
+- **Coche oscuro sobre fondo claro**: grosor **`7`** (compensación óptica).
 
 ### Colores corporativos
 
@@ -115,18 +121,18 @@ multicolor sin tintar* (hero, onboarding, marcadores, vehículos). Detalle en [`
 
 > Fuente de verdad: [`gradle/libs.versions.toml`](./gradle/libs.versions.toml).
 
-- **Lenguaje:** Kotlin 2.4.10 (KSP 2.3.11) · JVM 17 · Gradle 9.7.1
-- **Build:** AGP 9.3.2 · compileSdk 37 · targetSdk 37 (Android 17) · minSdk 26
+- **Lenguaje:** Kotlin 2.4.20 (KSP 2.3.12) · JVM 17 · Gradle 9.7.1
+- **Build:** AGP 9.4.0 · compileSdk 37 · targetSdk 37 (Android 17) · minSdk 26
 - **UI:** Compose Multiplatform 1.12.0 · Material3 (JB) 1.9.0 · Navigation Compose 2.9.2
 - **Arquitectura:** Clean Architecture + MVI (State + Intent + Effect)
 - **DI:** Koin 4.2.2
-- **DB local:** Room KMP 2.8.4 (SQLite bundled 2.7.0)
-- **Backend:** Firebase vía GitLive KMP 2.6.0 (Auth + Firestore + Crashlytics) · firebase-bom 34.18.0
-- **Mapas:** `io.github.rndevelo.kmpmaps:core:0.9.1-puck4` — **fork propio** en Maven Central
+- **DB local:** Room KMP 2.8.5 (SQLite bundled 2.7.1)
+- **Backend:** Firebase vía GitLive KMP 2.7.0 (Auth + Firestore + Crashlytics) · firebase-bom 34.19.0
+- **Mapas:** `io.github.rndevelo.kmpmaps:core:0.9.1-puck6` — **fork propio** en Maven Central
   (Google Maps en Android / Apple Maps en iOS); da el marker de id estable que necesita el puck
-- **Auth:** BaseLogin 1.1.0 (librería propia, JitPack) — ⛔ no se toca desde este repo
+- **Auth:** BaseLogin 3.0.0 (librería propia, Maven Central) — ⛔ no se toca desde este repo
 - **Async:** Coroutines 1.11.0 + Flow · Serialization 1.11.0 · Datetime 0.8.0
-- **Imágenes:** Coil 3.6.0 + Ktor 3.5.2 (motor de red)
+- **Imágenes:** Coil 3.6.2 + Ktor 3.5.2 (motor de red)
 - **Logging:** Napier 2.7.1 · **Background:** WorkManager 2.11.2 (Android)
 - **Tests:** JUnit 4 · Turbine · Robolectric · **Konsist** (10 guardarraíles de arquitectura)
 

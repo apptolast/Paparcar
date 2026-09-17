@@ -17,6 +17,36 @@
     "ignore": [
       "firebase.json",
       "**/.*"
+    ],
+    "headers": [
+      {
+        "source": "/assets/img/**",
+        "headers": [{ "key": "Cache-Control", "value": "public, max-age=2592000, stale-while-revalidate=86400" }]
+      },
+      {
+        "source": "/assets/font/**",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" },
+          { "key": "Access-Control-Allow-Origin", "value": "*" }
+        ]
+      },
+      {
+        "source": "/assets/**/*.@(css|js)",
+        "headers": [{ "key": "Cache-Control", "value": "public, max-age=900, must-revalidate" }]
+      },
+      {
+        "source": "**/*.@(html|xml|txt)",
+        "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
+      },
+      {
+        "source": "**",
+        "headers": [
+          { "key": "X-Content-Type-Options", "value": "nosniff" },
+          { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+          { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+          { "key": "Permissions-Policy", "value": "geolocation=(), camera=(), microphone=(), interest-cohort=()" }
+        ]
+      }
     ]
   },
   "functions": [

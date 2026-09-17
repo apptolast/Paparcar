@@ -140,6 +140,10 @@ Regla mental: *plumbing de UI → Material; concepto de Paparcar → vector prop
   `composeResources/drawable/` con variante `_dark`. Si usa `stroke-dasharray`, nested-svg, filtros
   o texto → **Compose Canvas** en commonMain (VectorDrawable NO soporta trazos discontinuos).
 - Nivel 1/2 se tintan con el tema; Nivel 3 trae su color.
+- **Compensación Óptica del Logo**: para que el logo se perciba igual en cualquier fondo,
+  el grosor de trazo de las ruedas varía según el contraste (irradiación):
+    - **Claro sobre Oscuro (Base)**: grosor **`6`** (fiel al SVG).
+    - **Oscuro sobre Claro (Compensado)**: grosor **`7`** (para evitar que el fondo se lo coma).
 
 ### ⛔ Tipografía — tres voces y un rol que manda [UI-TYPE-TWO-VOICES-ONE-ROW-001]
 Familia, tamaño **y peso** son propiedad del **ROL**, no del widget. Nunca elijas fuente, tamaño ni
