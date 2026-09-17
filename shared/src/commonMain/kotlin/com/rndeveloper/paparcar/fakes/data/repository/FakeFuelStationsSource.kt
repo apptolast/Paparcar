@@ -31,13 +31,20 @@ class FakeFuelStationsSource : FuelStationsSource {
     override suspend fun stationsNear(query: FuelStationsQuery): Result<FuelStationsResult> =
         Result.success(
             FuelStationsResult(
+                // ⛔ Generic names and LOCAL addresses, both on purpose
+                // [PLAY-SHOTS-EVERY-LANGUAGE-SHOWS-ITS-OWN-UI-001]. This fixture used to quote
+                // "Repsol" and "Cepsa" at Madrid addresses while the header above the list said
+                // Puerto de Santa María — a third-party trademark inside a store capture (the same
+                // policy that sent "Mercadona"/"Repsol" out of the 01-09 raws) sitting on top of an
+                // address 600 km from the pin. A fake that contradicts its own header teaches the
+                // reader to distrust the screen.
                 stations = listOf(
                     station(
                         query = query,
                         id = "mock-1",
-                        name = "Repsol",
-                        address = "Avenida de la Constitución 121",
-                        town = "Madrid",
+                        name = "Área de Servicio La Bahía",
+                        address = "Avenida de la Libertad 24",
+                        town = "El Puerto de Santa María",
                         northMeters = 400.0,
                         eastMeters = 250.0,
                         cents = 3,
@@ -45,9 +52,9 @@ class FakeFuelStationsSource : FuelStationsSource {
                     station(
                         query = query,
                         id = "mock-2",
-                        name = "Cepsa",
-                        address = "Calle de Alcalá 480",
-                        town = "Madrid",
+                        name = "Estación de Servicio Valdelagrana",
+                        address = "Avenida de Valencia 8",
+                        town = "El Puerto de Santa María",
                         northMeters = -900.0,
                         eastMeters = 600.0,
                         cents = 0,
@@ -58,11 +65,31 @@ class FakeFuelStationsSource : FuelStationsSource {
                         query = query,
                         id = "mock-3",
                         name = null,
-                        address = "Carretera de Burgos km 14",
-                        town = "Alcobendas",
+                        address = "Carretera de Rota km 3",
+                        town = "El Puerto de Santa María",
                         northMeters = 2_600.0,
                         eastMeters = -1_500.0,
                         cents = 6,
+                    ),
+                    station(
+                        query = query,
+                        id = "mock-4",
+                        name = "Estación de Servicio El Palmar",
+                        address = "Calle Aurora 51",
+                        town = "El Puerto de Santa María",
+                        northMeters = -1_400.0,
+                        eastMeters = -800.0,
+                        cents = 1,
+                    ),
+                    station(
+                        query = query,
+                        id = "mock-5",
+                        name = "Área de Servicio Puerto Sherry",
+                        address = "Carretera de Sanlúcar km 2",
+                        town = "El Puerto de Santa María",
+                        northMeters = 1_900.0,
+                        eastMeters = 2_400.0,
+                        cents = 4,
                     ),
                 ),
                 reportedAt = "09/09/2026 08:30:00",

@@ -44,10 +44,15 @@ import com.rndeveloper.paparcar.ui.theme.PaparcarTheme
  *   catalog, state gallery, and the real [App] (which themes from `ThemeMode.SYSTEM →
  *   isSystemInDarkTheme()` by default in mock). `null` = follow the device.
  * - A **DEV** button, shown only away from the catalog (live app or gallery), that returns to it.
+ *
+ * [PLAY-SHOTS-EVERY-LANGUAGE-SHOWS-ITS-OWN-UI-001] With [shotSession] the catalog is skipped (the
+ * scenario already came in the launch intent) and **both chips are gone** — a Play capture cannot
+ * carry dev scaffolding. ⛔ Hiding them with `alpha(0f)` does not work: the emoji glyph skips the
+ * alpha layer. They have to not compose.
  */
 @Composable
-fun DevRoot(scenario: MockScenario) {
-    var inApp by rememberSaveable { mutableStateOf(false) }
+fun DevRoot(scenario: MockScenario, shotSession: Boolean = false) {
+    var inApp by rememberSaveable { mutableStateOf(shotSession) }
     var showGallery by rememberSaveable { mutableStateOf(false) }
     // Bumped on each entry so the ViewModelStoreOwner (and thus all app ViewModels) is recreated.
     var session by rememberSaveable { mutableIntStateOf(0) }
@@ -101,7 +106,7 @@ fun DevRoot(scenario: MockScenario) {
             // a dev build exists to look at. The left edge at mid-height is the one region no screen
             // uses (map on Home and on the detail, margin on the lists).
             // [MOCK-THE-DEV-CHIPS-MUST-NOT-COVER-THE-APPS-CONTROLS-001]
-            PaparcarTheme(darkTheme = effectiveDark) {
+            if (!shotSession) PaparcarTheme(darkTheme = effectiveDark) {
                 Column(
                     modifier = Modifier
                         .align(Alignment.CenterStart)

@@ -54,7 +54,58 @@ CHROME="/c/Program Files/Google/Chrome/Application/chrome.exe"
 > Copy vigente y su auditoría: `LISTING.md`. El razonamiento completo (qué se promete,
 > qué se descarta y por qué) está en `PLAN-OPTIMIZACION.md`.
 
-### ✅ Capturas de teléfono — hechas el 01-09 (en-US), localizadas el 02-09 (9 idiomas)
+### ✅ Capturas de teléfono — rehechas el 17-09 en **Pixel 8**, con la UI en los 9 idiomas
+[PLAY-SHOTS-EVERY-LANGUAGE-SHOWS-ITS-OWN-UI-001]
+
+`assets/screenshots/{en,es,it,pt,fr,de,nl,pl,ro}/play-shot-{1..8}.png` (1080×1920).
+**Lo que cambia respecto al set del 01-09**: el móvil de dentro del marco ya **no está en inglés
+en las nueve fichas** — cada idioma tiene sus 8 capturas tomadas con la app en ese idioma. Y el
+guion se rebalanceó a lo que entró después: gasolineras con precio, parkings públicos, panel de
+cifras y coche compartido (caen SpotFit, garaje y conducción).
+
+| # | Pantalla | Preset |
+|---|---|---|
+| 1 | Home, coche propio aparcado | `parked` |
+| 2 | Íd. con la hoja abierta: tus coches con calle y minuto | `parked` |
+| 3 | Carril de plazas libres | `map` |
+| 4 | Carril de gasolineras, precio por surtidor | `map` |
+| 5 | Peek de un parking público: tarifa, plazas, gálibo | `map` |
+| 6 | Panel de cifras: gasto, combustible, CO₂, sitio habitual | `numbers` |
+| 7 | Coche compartido: miembros e interruptor de rutas | `sharedcar` |
+| 8 | Ajustes: alertas y dónde se guardan tus viajes | `settings` |
+
+**Cómo se repite** (el flujo entero es reproducible, ya no hay parche manual que reaplicar):
+- **AVD `Pixel_8`** (1080×2400 @ 420 dpi — se creó a mano, el SDK solo traía el Pro). Mismo ratio
+  9:20 que el Pixel 8 Pro del set viejo, así que la plantilla del marco no cambió.
+- **`DevMainActivity` acepta `--es shot <preset>`** ([`ShotPresets.kt`]): aplica el escenario y monta
+  la app real con los chips DEV ocultos. ⛔ Ya **no** hace falta el parche `if (false)` en `DevRoot`
+  que el guion del 01-09 mandaba aplicar y revertir a mano.
+- **`-PmockAsProd`** quita el sufijo `.mock` del applicationId **y del versionName**. Hace falta
+  porque la clave de Maps está restringida a `com.rndeveloper.paparcar` + SHA-1 y `.mock` nunca se
+  añadió a esa lista: **desde el 03-09 el mapa del Dev Catalog sale NEGRO**. Es un apaño; el
+  arreglo de verdad es añadir el paquete `.mock` a la clave en la consola de GCP.
+- Idioma por captura vía `adb shell cmd locale set-app-locales <pkg> --locales <L>` (per-app locale,
+  Android 13+). ⛔ `setprop persist.sys.locale` **no** vale: la imagen de sistema Play Store no
+  deja rootear.
+- Tema oscuro (`cmd uimode night yes`) + barra de estado en modo demo de SystemUI.
+- Script de captura y de render: ver el ticket `docs/backlog/play-shots-every-language-shows-its-own-ui-001.md`.
+
+⚠️ **Los taps dentro de la hoja se resuelven por `uiautomator dump`, no por coordenada fija.** La
+hoja de Home no cae siempre en el mismo detente (medido: la misma gesto la dejó en 0, 642, 888 y
+sin abrir), así que cualquier `y` calibrado a ojo es una moneda al aire. Se busca el nodo por
+TEXTO: las pestañas por su **badge numérico** (`6`/`4`/`5`, cifras árabes iguales en los 9 idiomas)
+y la fila del parking por **«Parking Plaza Mayor»**, que es nombre propio y no se traduce.
+
+⚠️ **El emulador se cayó dos veces a media tanda** (WHPX `hr=80070005` tras muchos relanzamientos
+seguidos). Las capturas de esa ventana salen en **0 bytes**, no con contenido malo: verificar
+siempre tamaño antes de dar una tanda por buena.
+
+Los fakes de gasolineras se saneron para poder publicar: las marcas reales (`Repsol`, `Cepsa`) y
+las direcciones de Madrid pasaron a nombres genéricos y calles de El Puerto — una marca de terceros
+dentro de una captura de tienda, encima con una dirección a 600 km del pin de la cabecera.
+
+<details>
+<summary>Set anterior — 01-09 (en-US), localizado el 02-09 (superseded)</summary>
 **Una carpeta por idioma con TODO lo que se sube a su ficha**:
 `assets/screenshots/{en,es,it,pt,fr,de,nl,pl,ro}/` → `play-shot-{1..8}.png`
 (1080×1920, orden del carrusel ya en el nombre) + `feature-graphic-1024x500.png`.
@@ -105,6 +156,8 @@ guion viejo cayeron en la revisión del 29-08: «No necesitas hacer nada» (dema
 (promesa de resultado que la estrategia evita). Los frames finales usan los titulares
 corregidos, en EN (la ficha predeterminada es en-US; localizarlos es opcional y barato:
 están en el objeto `FRAMES` de `screenshot-frame.html`).
+
+</details>
 
 ### ⏳ Pendiente — fuera de esta ficha, pero bloquea la publicación
 - [ ] **Cuenta de trader** en Play Console (lo tienes marcado como pendiente tuyo)

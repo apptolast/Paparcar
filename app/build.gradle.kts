@@ -119,8 +119,20 @@ extensions.configure<ApplicationExtension> {
         }
         create("mock") {
             dimension = "environment"
-            applicationIdSuffix = ".mock"
-            versionNameSuffix = "-mock"
+            // [PLAY-SHOTS-EVERY-LANGUAGE-SHOWS-ITS-OWN-UI-001] ⛔ The Maps key is restricted to
+            // `com.rndeveloper.paparcar` + SHA-1 (created 03-09), and `.mock` was never added to
+            // that list — so since then the Dev Catalog's map paints BLACK and only the puck shows.
+            // `-PmockAsProd` drops the suffix for a store-shot session, so the emulator build passes
+            // the restriction. It is a WORKAROUND: the durable fix is adding the `.mock` package to
+            // the key in the GCP console. Never pass it for a build that lands on a phone which also
+            // carries prod — same applicationId means one replaces the other.
+            if (!project.hasProperty("mockAsProd")) {
+                applicationIdSuffix = ".mock"
+                // Settings prints the version name, so a store capture of that screen would read
+                // "1.2.0-mock". The suffix goes with the package: both exist to say "this is not
+                // the app", and the shot session is the one build where that must not be said.
+                versionNameSuffix = "-mock"
+            }
         }
     }
 
