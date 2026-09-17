@@ -233,6 +233,17 @@ app/                    Shell Android — entry points, manifest, res, flavors, 
 └── src/mock/           Dev Catalog — modo demo sin backend (kotlin + res/manifest)
 
 iosApp/                 SwiftUI shell (delegado a Compose vía MainViewController)
+
+web/                    paparcar.com — generador estático propio (Node, cero dependencias)
+├── content/{es,en}.json  TODO el copy de la web
+├── lib/                  config (los hechos verificables) · icons · components · layout
+├── pages/                home · support · terms · 404
+├── assets/               css · js · font · img (generados, versionados)
+└── tools/                preparación de assets, preview, auditoría y capturas
+
+hosting/public/         SALIDA de `node web/build.mjs` + las dos páginas legales escritas A MANO
+                        (`privacy-policy.html`, `delete-account.html`) que la app enlaza
+functions/              Cloud Functions
 ```
 
 Visión arquitectónica completa en [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md).
@@ -326,6 +337,7 @@ que fue verificado. Si no coinciden con el código, es un bug del doc.
 | [`docs/IOS_PLAN.md`](./docs/IOS_PLAN.md) | Estado real de iOS y qué falta para un beta |
 | [`docs/CODE-READING-CHECKLIST.md`](./docs/CODE-READING-CHECKLIST.md) | Leer el proyecto entero por orden de dependencia |
 | [`docs/release/RELEASE-PROCESS.md`](./docs/release/RELEASE-PROCESS.md) · [`RELEASE-SECURITY.md`](./docs/release/RELEASE-SECURITY.md) | Keystore, firma, distribución y endurecimiento de claves |
+| [`web/README.md`](./web/README.md) | **La web** — qué tocar en `web/` cuando cambia el producto, y qué lo vigila |
 | [`docs/legal/`](./docs/legal/) | Data safety y runbook de borrado de cuenta |
 | [`docs/backlog/README.md`](./docs/backlog/README.md) | **Índice de lo que sigue abierto** — 285 tickets, 195 cerrados; aquí solo lo que queda |
 | [`diagnostics/README.md`](./diagnostics/README.md) | Captura y procesado de logs de detección |

@@ -20,22 +20,30 @@
     ],
     "headers": [
       {
-        "source": "/assets/img/**",
-        "headers": [{ "key": "Cache-Control", "value": "public, max-age=2592000, stale-while-revalidate=86400" }]
+        "//": "Everything under /assets is content-hashed by web/build.mjs (site.<hash>.css), so a changed file is a different URL and a cached copy can never be the wrong one. That is what earns `immutable`. ⛔ The previous max-age=900 on unhashed css/js shipped a real bug: HTML revalidates immediately, css did not, so a returning visitor got new markup painted by the previous stylesheet for a quarter of an hour.",
+        "source": "/assets/**",
+        "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
       },
       {
         "source": "/assets/font/**",
-        "headers": [
-          { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" },
-          { "key": "Access-Control-Allow-Origin", "value": "*" }
-        ]
+        "headers": [{ "key": "Access-Control-Allow-Origin", "value": "*" }]
       },
       {
-        "source": "/assets/**/*.@(css|js)",
-        "headers": [{ "key": "Cache-Control", "value": "public, max-age=900, must-revalidate" }]
+        "//": "The manifest is the one file under /assets that is NOT hashed; it must never be pinned.",
+        "source": "/assets/manifest.json",
+        "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
       },
       {
         "source": "**/*.@(html|xml|txt)",
+        "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
+      },
+      {
+        "//": "With cleanUrls the browser asks for /terms, not /terms.html, and header rules match the REQUEST path — so the rule above never fires for a page and Hosting's default max-age=3600 applies, hiding a redeploy for an hour. These two cover the extensionless paths and the directory roots.",
+        "source": "**/!(*.*)",
+        "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
+      },
+      {
+        "source": "@(/|/en/|/en)",
         "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
       },
       {

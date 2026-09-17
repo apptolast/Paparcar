@@ -1,0 +1,503 @@
+{
+  "lang": "en",
+  "dir": "ltr",
+  "locale": "en_GB",
+  "site": {
+    "title": "Paparcar — Where did you park? Paparcar remembers for you",
+    "description": "Paparcar automatically detects when you park and saves where you left your car, without taking out your phone. Free spots, car parks and fuel prices.",
+    "ogAlt": "Paparcar on a phone: the map with the parked car and the street it is on.",
+    "skipToContent": "Skip to content"
+  },
+  "nav": {
+    "home": "Home",
+    "how": "How it works",
+    "features": "Features",
+    "plus": "Paparcar Plus",
+    "faq": "FAQ",
+    "menuOpen": "Open menu",
+    "menuClose": "Close menu",
+    "cta": "Get Paparcar"
+  },
+  "hero": {
+    "eyebrow": "Automatic parking detection",
+    "title": [
+      "Where did you park?",
+      "Paparcar remembers for you."
+    ],
+    "lead": "Paparcar automatically detects when you park and saves your car's location. When you come back you will know where it is and how long it has been there — without ever having taken your phone out.",
+    "cta": "Get Paparcar",
+    "ctaSecondary": "See how it works",
+    "meta": "Free on Google Play · Android {{minAndroid}} or later · No ads",
+    "shotAlt": "Paparcar home screen: the map with the car parked on Avenida de la Concepción and the summary below.",
+    "shotAltSecondary": "Paparcar sheet showing the free spots nearby and the user's vehicles.",
+    "badge": {
+      "eyebrow": "Saved automatically",
+      "title": "Av. de la Concepción, 21",
+      "meta": "Parked 40 min ago · 52 m from you"
+    }
+  },
+  "proof": [
+    {
+      "value": "Automatic",
+      "label": "No app to open, no pin to drop"
+    },
+    {
+      "value": "9 languages",
+      "label": "English, Spanish, Italian, Portuguese…"
+    },
+    {
+      "value": "No ads",
+      "label": "Your location is never sold"
+    },
+    {
+      "value": "On your phone",
+      "label": "Your plate never leaves it"
+    }
+  ],
+  "how": {
+    "eyebrow": "How it works",
+    "title": "Three steps, and two of them aren't yours",
+    "lead": "Paparcar works while you drive. The only thing you do is open the app when you want to walk back to the car.",
+    "steps": [
+      {
+        "n": "01",
+        "title": "Drive",
+        "body": "Paparcar recognises that you are using your car. If the car has Bluetooth and you pair it once, detection is faster and more precise. If it doesn't, the app falls back on movement and location.",
+        "art": "art-drive"
+      },
+      {
+        "n": "02",
+        "title": "Park",
+        "body": "When the trip ends, Paparcar confirms the parking and saves where the car was left. If it isn't sure what happened, it asks you — it would rather not assume.",
+        "art": "art-automatic"
+      },
+      {
+        "n": "03",
+        "title": "Find your car",
+        "body": "Open Paparcar and there it is: the street, how long it has been parked and how far away you are. Not quite the right spot? Drag it on the map and save it again.",
+        "art": "art-welcome"
+      }
+    ],
+    "keyIdea": "You don't need to take out your phone to save where you parked.",
+    "shotAlt": "Paparcar showing the parked car with its address and how long it has been there."
+  },
+  "features": {
+    "eyebrow": "Features",
+    "title": "Paparcar does more",
+    "lead": "Everything below is free and complete. None of the map layers sits behind a paywall.",
+    "cards": [
+      {
+        "icon": "pin",
+        "title": "Your car, always located",
+        "body": "The street you left it on, how long it has been there and how far away you are. Plus the history of your parkings, so you can see where you usually leave it."
+      },
+      {
+        "icon": "auto",
+        "title": "Automatic detection",
+        "body": "Through your car's Bluetooth, which is the most precise method, or through movement and location if your car doesn't have it. Either way the parking is saved without you doing anything."
+      },
+      {
+        "icon": "spot",
+        "title": "Community spots",
+        "body": "When you leave, the spot you free up can be published for drivers nearby; and you get to see the ones others have just left, each with how long ago it was freed. This information comes from drivers: the more people use Paparcar in your city, the more spots will show up."
+      },
+      {
+        "icon": "parking",
+        "title": "Public car parks",
+        "body": "Where they are, whether they charge, opening hours, how many spaces they have and their maximum height. With directions to the entrance."
+      },
+      {
+        "icon": "fuel",
+        "title": "Petrol stations",
+        "body": "With the price of each fuel and when it was measured. Prices come from official registries; coverage depends on the country."
+      },
+      {
+        "icon": "car",
+        "title": "Your vehicles",
+        "body": "Your cars and motorbikes, each with its size and body type, so Paparcar can compare a gap with yours before you drive out of your way. And you can share a car with up to four people."
+      }
+    ]
+  },
+  "map": {
+    "eyebrow": "One map",
+    "title": "Everything you need in order to park, on a single map.",
+    "lead": "Paparcar brings together what the community frees up and the information about your surroundings that already exists. Not every layer has the same coverage, and the app says so: every spot carries when it was freed, and every price, when it was measured.",
+    "layers": [
+      {
+        "key": "car",
+        "title": "Your car",
+        "body": "Where you left it and since when."
+      },
+      {
+        "key": "spot",
+        "title": "Free spots",
+        "body": "The ones other drivers have just left. They depend on people using Paparcar near you."
+      },
+      {
+        "key": "parking",
+        "title": "Public car parks",
+        "body": "Rates, opening hours, spaces and maximum height, from public sources."
+      },
+      {
+        "key": "fuel",
+        "title": "Petrol stations",
+        "body": "Price per fuel, with the date it was measured."
+      }
+    ],
+    "shots": [
+      {
+        "n": 2,
+        "alt": "Free spots nearby in Paparcar, each with how long it has been free."
+      },
+      {
+        "n": 5,
+        "alt": "A public car park in Paparcar with its rate, spaces and maximum height."
+      },
+      {
+        "n": 4,
+        "alt": "Petrol stations nearby in Paparcar with the price of each one."
+      }
+    ]
+  },
+  "automation": {
+    "eyebrow": "Built so you never take out your phone",
+    "title": "Park. Paparcar takes it from there.",
+    "lead": "The app is made so you don't have to remember to use it. Nothing to open when the trip starts or ends, nothing to tap when you step out of the car.",
+    "steps": [
+      {
+        "title": "You drive",
+        "body": "The app recognises the trip"
+      },
+      {
+        "title": "You park",
+        "body": "It detects that you are done"
+      },
+      {
+        "title": "It's saved",
+        "body": "Your car lands on the map"
+      },
+      {
+        "title": "You leave",
+        "body": "And your spot goes to the next driver"
+      }
+    ],
+    "note": {
+      "title": "The one moment Paparcar asks you for something",
+      "body": "It's when it isn't sure. In doubt the app asks instead of dropping a pin in the wrong place: it would rather come up short than invent a parking that never happened."
+    }
+  },
+  "plus": {
+    "eyebrow": "Paparcar Plus",
+    "title": "Looking is free. The app watching for you is Plus.",
+    "lead": "Seeing spots, car parks and petrol stations — with their prices, their rates and how to get there — is free and complete, and it will stay that way. Plus is for when you want the app to work while you are not looking, and to remember beyond the last week.",
+    "columns": [
+      {
+        "name": "Free",
+        "tagline": "You ask, the app answers",
+        "items": [
+          "Automatic parking detection",
+          "The full map: spots, car parks and petrol stations",
+          "Report a free spot you come across",
+          "History and stats for the last {{historyDays}} days",
+          "{{freeVehicles}} car and {{freeZones}} zones"
+        ]
+      },
+      {
+        "name": "Plus",
+        "tagline": "The app tells you, and remembers for you",
+        "featured": true,
+        "items": [
+          "History and stats for any period",
+          "Unlimited cars and zones",
+          "An alert when a spot frees up in your zones",
+          "An alert when a station you follow drops its price",
+          "A month recap: what you spent and how long you spent parking",
+          "Your routes kept in your account, not only on this phone",
+          "Share a car with up to four people"
+        ]
+      }
+    ],
+    "footnote": "Plus is activated from inside the app, where you'll see the plans and the price in your currency. If it lapses, nothing is deleted: alerts are paused, not forgotten.",
+    "cta": "Get Paparcar"
+  },
+  "trust": {
+    "eyebrow": "Privacy",
+    "title": "Your data, in plain words.",
+    "lead": "Paparcar needs to know where you are in order to tell you where you left the car. This is everything it uses, and what for.",
+    "points": [
+      {
+        "icon": "location",
+        "title": "Location, including in the background",
+        "body": "This is the permission that makes automatic detection possible: parking happens exactly when you are not looking at your phone. Without it the app still works, but you will have to mark and release your parkings by hand."
+      },
+      {
+        "icon": "steps",
+        "title": "Physical activity",
+        "body": "To tell whether you are driving or walking. It is what keeps the app from mistaking a stroll for a trip."
+      },
+      {
+        "icon": "lock",
+        "title": "Private zones",
+        "body": "Mark places such as your home or your workplace and Paparcar will not publish a spot there when you leave."
+      },
+      {
+        "icon": "shield",
+        "title": "What never leaves your phone",
+        "body": "Your number plate stays on the device. Your car's make and model only appear on the spot you free up if you turn that on. Your location is neither sold nor used for advertising, and there are no ads."
+      },
+      {
+        "icon": "account",
+        "title": "Your account, whenever you want",
+        "body": "You can delete your account and its data from Settings, right away, or request it by email if you no longer have the app."
+      }
+    ],
+    "links": {
+      "privacy": "Read the privacy policy",
+      "delete": "How to delete your account"
+    }
+  },
+  "faq": {
+    "eyebrow": "FAQ",
+    "title": "What people usually ask us",
+    "items": [
+      {
+        "q": "What is Paparcar?",
+        "a": "A mobile app that remembers where you parked. It automatically detects when you finish driving and saves your car's location, so getting back to it doesn't depend on your memory. It also shows free spots left by other drivers, public car parks and petrol stations on the map."
+      },
+      {
+        "q": "How does Paparcar know where I parked?",
+        "a": "Two ways. If you pair your car's Bluetooth, the disconnection as you step out is a precise sign that the trip is over. If your car has no Bluetooth, the app uses movement and location to recognise when you start driving and where you stop. Either way there has to have been real driving: a single stray event never drops a pin."
+      },
+      {
+        "q": "Do I have to mark where I park manually?",
+        "a": "No — that is the whole point of the app. The button is still there though: you can mark a parking by hand whenever you want, and correct the spot by dragging it on the map if detection left it a few metres off."
+      },
+      {
+        "q": "Does Paparcar need access to my location?",
+        "a": "Yes, including when the app is closed or not in use, because parking happens when you are not looking at your phone. Without that permission Paparcar still works, but you lose the automatic part: marking and releasing parkings will be up to you."
+      },
+      {
+        "q": "Does it work with my phone in my pocket?",
+        "a": "Yes. Detection runs in the background and needs neither the app open nor the screen touched. On some phones it helps to remove Paparcar's battery restrictions, since the system can delay background work; the app itself tells you in Settings when that's the case."
+      },
+      {
+        "q": "Can I use Paparcar with several vehicles?",
+        "a": "Yes. Each vehicle has its own size, body type and Bluetooth, and a parking is saved against the right car. The free version includes one vehicle of your own; with Plus there is no limit. You can also share a car with up to four people so everyone sees where it was left."
+      },
+      {
+        "q": "What are community spots?",
+        "a": "They are street spots other drivers have just freed up, which show on the map for a while. They come from community activity: when someone leaves, their spot can be published for whoever is nearby. That is why the more drivers use Paparcar in your city, the more spots you will see. We don't promise a spot will always be there, and each one says when it was freed so you can decide whether it is worth the drive."
+      },
+      {
+        "q": "What if automatic detection gets it wrong?",
+        "a": "Paparcar is built to come up short rather than be wrong: in doubt it asks you instead of assuming a parking. If a trip slips through, you can mark the spot by hand in two taps, and you can correct or delete any parking in your history."
+      },
+      {
+        "q": "What is Paparcar Plus?",
+        "a": "The paid tier. Seeing the map — spots, car parks and petrol stations — is free and complete. Plus adds what requires the app to work for you: alerts when a spot appears in your zones or when a station you follow drops its price, history and stats without the {{historyDays}}-day limit, unlimited cars and zones, and the shared car. Plans and pricing are shown inside the app."
+      },
+      {
+        "q": "How can I delete my account?",
+        "a": "From the app, in Settings → Delete account, and it is removed straight away. If you no longer have the app, email us from your account's address and we will delete it within 30 days."
+      }
+    ]
+  },
+  "finalCta": {
+    "title": [
+      "Stop remembering where you parked.",
+      "Paparcar remembers for you."
+    ],
+    "lead": "Download it, pair your car once, and forget about it. Next time you have no idea where you left it, the app will already know.",
+    "cta": "Get Paparcar",
+    "meta": "Free · Android {{minAndroid}} or later",
+    "shotAlt": "Paparcar showing the map with the parked car and free spots nearby."
+  },
+  "footer": {
+    "tagline": "Paparcar remembers where you parked.",
+    "columns": [
+      {
+        "title": "Product",
+        "links": [
+          {
+            "label": "Home",
+            "href": "#top"
+          },
+          {
+            "label": "How it works",
+            "href": "#how"
+          },
+          {
+            "label": "Features",
+            "href": "#features"
+          },
+          {
+            "label": "Paparcar Plus",
+            "href": "#plus"
+          },
+          {
+            "label": "FAQ",
+            "href": "#faq"
+          }
+        ]
+      },
+      {
+        "title": "Legal",
+        "links": [
+          {
+            "label": "Privacy policy",
+            "href": "/privacy-policy"
+          },
+          {
+            "label": "Terms and conditions",
+            "href": "/en/terms"
+          },
+          {
+            "label": "Delete my account",
+            "href": "/delete-account",
+            "quiet": true
+          }
+        ]
+      },
+      {
+        "title": "Support",
+        "links": [
+          {
+            "label": "Support centre",
+            "href": "/en/support"
+          },
+          {
+            "label": "support@paparcar.com",
+            "href": "mailto:support@paparcar.com"
+          }
+        ]
+      }
+    ],
+    "downloadTitle": "Download",
+    "storeSoon": "App Store · soon",
+    "rights": "Paparcar. All rights reserved.",
+    "langLabel": "Language"
+  },
+  "store": {
+    "google": "Get it on",
+    "googleName": "Google Play",
+    "appleSoon": "Coming soon to",
+    "appleName": "App Store"
+  },
+  "support": {
+    "title": "Support — Paparcar",
+    "description": "How to reach the Paparcar team and fix the most common issues with automatic parking detection.",
+    "h1": "Support",
+    "lead": "Email us at support@paparcar.com and we'll get back to you. If it's a detection problem, tell us roughly when the trip was and what you expected to happen — that's enough for us to look at your session diagnostics.",
+    "cta": "Email support",
+    "blocks": [
+      {
+        "title": "The app missed a parking",
+        "body": "Check in Settings that detection has everything it needs: background location, physical activity and unrestricted battery. On some phones the system delays background work, and lifting the battery restriction is what makes the biggest difference. If your car has Bluetooth, pairing it under Settings → Car Bluetooth makes detection faster and more precise."
+      },
+      {
+        "title": "A parking was saved in the wrong place",
+        "body": "You can fix it: open the parking, drag it on the map and save it again, or delete it from your history. If it keeps happening, write to us with roughly when the trip was."
+      },
+      {
+        "title": "I can't see any free spots on the map",
+        "body": "Spots are freed by other drivers as they leave, so they depend on how many people are using Paparcar near you. An empty map isn't a bug in the app: it means nothing is published in that area right now."
+      },
+      {
+        "title": "Billing and Paparcar Plus",
+        "body": "Subscriptions are managed from your Google Play account: that's where you can see the renewal, change plan or cancel. If something doesn't add up, write to us and we'll look into it."
+      },
+      {
+        "title": "Deleting your account",
+        "body": "Settings → Delete account removes it straight away. If you no longer have the app installed, there's a page with the steps and the address to request it from."
+      }
+    ],
+    "deleteLink": "See how to delete your account"
+  },
+  "terms": {
+    "title": "Terms and conditions — Paparcar",
+    "description": "Terms and conditions of use for the Paparcar application.",
+    "h1": "Terms and conditions",
+    "updated": "Last updated: 17 September 2026",
+    "draftNotice": {
+      "title": "Draft pending legal review",
+      "body": "This text describes how Paparcar works today and serves as a working basis, but it has not yet been through legal review. The privacy policy is a final document and prevails on everything concerning personal data."
+    },
+    "sections": [
+      {
+        "h": "1. Who provides the service",
+        "p": [
+          "Paparcar is a mobile application developed and operated by the holder of the Paparcar trademark, reachable at support@paparcar.com.",
+          "By downloading, installing or using the application you accept these terms. If you do not agree with them, do not use the application."
+        ]
+      },
+      {
+        "h": "2. What the service is",
+        "p": [
+          "Paparcar automatically detects vehicle trips and saves the location where you parked, so that you can find your vehicle again. It also shows spots freed by other users, public car parks and petrol stations on a map.",
+          "The service is provided \"as is\". Automatic detection depends on device sensors, on the permissions granted and on operating-system behaviour, so it cannot be guaranteed that every parking is detected, or that detection is always equally precise."
+        ]
+      },
+      {
+        "h": "3. Your account",
+        "p": [
+          "Using Paparcar requires an account, which you can create with the sign-in methods available in the application. You are responsible for keeping control of access to your account.",
+          "You may delete your account at any time from Settings or by requesting it by email, as explained on the account deletion page."
+        ]
+      },
+      {
+        "h": "4. Responsible use",
+        "p": [
+          "Do not use the application while driving. Paparcar is designed precisely so that you do not have to handle your phone during a trip.",
+          "Information about spots, car parks and petrol stations is indicative and may not be up to date at the moment you read it. Checking signage, parking rules and the conditions of the place is always the driver's responsibility.",
+          "Publishing false information, automating use of the application, or attempting to access other users' data is not permitted."
+        ]
+      },
+      {
+        "h": "5. Community content",
+        "p": [
+          "Spots published when you leave, or reported manually by you, are shared with other users without your identity and expire on their own shortly afterwards.",
+          "You can prevent a spot from being published in specific places by marking them as a private zone inside the application."
+        ]
+      },
+      {
+        "h": "6. Paparcar Plus",
+        "p": [
+          "Paparcar offers additional features through a paid subscription. Purchase, renewal, pricing and cancellation are handled by the app store the purchase was made through, in accordance with its own terms.",
+          "If the subscription lapses, Plus features stop being available, but none of your data is deleted."
+        ]
+      },
+      {
+        "h": "7. Availability and changes",
+        "p": [
+          "The application evolves: features may be added, changed or withdrawn. When a change significantly affects the service or these terms, it will be communicated inside the application or on this page."
+        ]
+      },
+      {
+        "h": "8. Liability",
+        "p": [
+          "Paparcar is not liable for fines, vehicle removals, damage or other losses resulting from decisions taken on the basis of information shown in the application, nor for failing to find a parking spot.",
+          "Nothing in these terms limits the rights granted to you by applicable consumer law."
+        ]
+      },
+      {
+        "h": "9. Personal data",
+        "p": [
+          "The processing of personal data is described in the privacy policy, which forms part of these terms."
+        ]
+      },
+      {
+        "h": "10. Governing law",
+        "p": [
+          "These terms are governed by Spanish law. Any dispute will be heard by the courts designated by the applicable consumer-protection rules."
+        ]
+      }
+    ]
+  },
+  "legalNav": {
+    "privacy": "Privacy policy",
+    "terms": "Terms and conditions",
+    "delete": "Delete my account",
+    "support": "Support",
+    "back": "Back to paparcar.com"
+  }
+}

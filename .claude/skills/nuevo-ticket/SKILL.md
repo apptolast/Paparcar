@@ -104,6 +104,17 @@ Grep de todos los sitios que asumen lo contrario del invariante → cerrado / cu
   Verificar `assembleMockDebug`.
 - **Toda UseCase nueva lleva test unitario.** Fakes, no mocks. Naming
   `should_expectedBehavior_when_condition`.
+- **¿El cambio toca algo que `paparcar.com` promete? → la web entra en la MISMA tarea.**
+  Dispara con: un límite del plan free, una feature que la web nombra (plazas, parkings,
+  gasolineras, Plus, coche compartido, detección), `applicationId` / `versionName` / `minSdk`, la
+  política de privacidad, el logo o un token de color. La tabla de qué tocar está en
+  [`web/README.md`](../../../web/README.md); el resumen, en CLAUDE.md § *La web es un consumidor
+  más de la verdad del producto*.
+  ```bash
+  node web/build.mjs --check                 # ⛔ editar el copy y no reconstruir = desplegar lo de antes
+  ./gradlew :shared:testDebugUnitTest --tests '*WebSiteParity*' --rerun-tasks
+  firebase deploy --only hosting             # solo con permiso del user, como cualquier despliegue
+  ```
 
 ## C · CERRAR
 

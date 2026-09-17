@@ -1,0 +1,140 @@
+@charset "utf-8";
+
+/* =============================================================================
+   Long-form legal pages — `privacy-policy.html` and `delete-account.html`.
+   -----------------------------------------------------------------------------
+   These two are HAND-WRITTEN documents, not build output: the privacy policy is the page the app
+   itself opens (`SettingsViewModel.PRIVACY_POLICY_URL`), the one Play's Data Safety form has to
+   agree with, and the one `PrivacyPolicyParityGuardrailTest` reads to check that its English and
+   Spanish halves still say the same thing. So this file dresses them in the site's system without
+   touching a word of their markup: it styles the elements that are already there.
+
+   Loaded AFTER `site.css`, whose tokens it reuses.
+   ========================================================================== */
+
+.legal-main {
+  max-width: 820px;
+  margin-inline: auto;
+  padding: clamp(2.5rem, 6vw, 4rem) var(--gutter) var(--section-y);
+}
+
+.legal-main h1 {
+  font-size: clamp(1.9rem, 1.4rem + 2.2vw, 2.75rem);
+  font-weight: 800; letter-spacing: -0.03em; line-height: 1.12;
+  text-wrap: balance;
+}
+
+.legal-main h2 {
+  font-size: clamp(1.25rem, 1.1rem + 0.7vw, 1.5rem);
+  font-weight: 700; letter-spacing: -0.02em;
+  color: var(--on-dark);
+  margin: 2.75rem 0 0.75rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--hairline);
+}
+
+.legal-main h3 {
+  font-size: var(--t-row-name);
+  font-weight: 700; letter-spacing: -0.01em;
+  color: var(--brand);
+  margin: 1.9rem 0 0.4rem;
+}
+
+.legal-main p,
+.legal-main li {
+  color: var(--muted);
+  font-size: var(--t-label);
+  line-height: 1.72;
+  text-wrap: pretty;
+}
+.legal-main p { margin: 0.7rem 0; }
+
+.legal-main ul { margin: 0.8rem 0; padding: 0; list-style: none; display: grid; gap: 0.55rem; }
+.legal-main li { position: relative; padding-left: 1.4rem; }
+.legal-main li::before {
+  content: ''; position: absolute; left: 0.25rem; top: 0.72em;
+  width: 6px; height: 6px; border-radius: 50%; background: var(--brand-outline);
+}
+
+.legal-main strong { color: var(--on-dark); font-weight: 700; }
+
+.legal-main a {
+  color: var(--brand);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  /* Inline links inside prose keep the line box; the generous hit area belongs to the standalone
+     links (nav, footer, CTA), which are sized by `site.css`. */
+  text-decoration-color: rgba(37, 244, 140, 0.45);
+}
+.legal-main a:hover { text-decoration-color: currentColor; }
+
+.legal-main .meta { color: var(--muted); font-size: var(--t-caption); margin-top: 0.75rem; }
+
+.legal-main .lang-nav {
+  display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; align-items: center;
+  margin-top: 2rem; padding: 0.85rem 1.15rem;
+  background: var(--ink-container);
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  font-size: var(--t-caption);
+}
+.legal-main .lang-nav a { min-height: 40px; display: inline-flex; align-items: center; }
+
+.legal-main .callout {
+  display: block;
+  margin: 1.25rem 0;
+  padding: 1.1rem 1.25rem;
+  background: var(--ink-container);
+  border: 1px solid var(--hairline);
+  border-left: 3px solid var(--brand);
+  border-radius: 14px;
+}
+.legal-main .callout p:first-child { margin-top: 0; }
+.legal-main .callout p:last-child { margin-bottom: 0; }
+
+.legal-main .cta {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 52px; padding: 0.85rem 1.6rem;
+  background: var(--brand); color: var(--on-brand);
+  border-radius: var(--r-pill); font-weight: 700; text-decoration: none;
+  box-shadow: 0 10px 30px -14px rgba(37, 244, 140, 0.9);
+}
+.legal-main .cta:hover { background: #3cf99a; text-decoration: none; }
+
+/* The table of recipients: it is the densest thing on the page and the first to break on a phone,
+   so it scrolls inside its own box rather than widening the document. */
+.legal-main table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.25rem 0;
+  font-size: var(--t-caption);
+}
+.legal-main th,
+.legal-main td {
+  border: 1px solid var(--hairline);
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+  color: var(--muted);
+}
+.legal-main th { background: var(--ink-container); color: var(--on-dark); font-weight: 700; }
+
+.legal-main .table-scroll { overflow-x: auto; }
+
+.legal-main hr.split {
+  border: 0;
+  border-top: 1px solid var(--hairline);
+  margin: clamp(3rem, 7vw, 5rem) 0;
+}
+
+.legal-main footer {
+  margin-top: 3rem; padding-top: 1.75rem;
+  border-top: 1px solid var(--hairline);
+  color: var(--muted); font-size: var(--t-caption);
+}
+
+@media (max-width: 560px) {
+  .legal-main table { display: block; overflow-x: auto; white-space: nowrap; }
+  .legal-main td, .legal-main th { white-space: normal; min-width: 9rem; }
+}

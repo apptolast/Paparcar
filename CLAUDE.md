@@ -260,6 +260,32 @@ detección y "Marcar mi **plaza**" en el nudge — usando para lo TUYO la palabr
   (*parcheggio pubblico*, *parcare publică*). Y no es una **plaza**: una plaza la libera la comunidad
   en la calle, un parking público lo explota alguien y se entra con el coche.
 
+### ⛔ La web es un consumidor más de la verdad del producto [WEB-THE-SITE-SAYS-ONLY-WHAT-THE-APP-DOES-001]
+`paparcar.com` se genera con `node web/build.mjs` desde `web/` hacia `hosting/public`, y **se
+despliega con `firebase deploy --only hosting`**. No es material de marketing aparte: es la URL que
+enlaza la ficha de Play, y dice cosas que viven en este repo. Un cambio de producto que no llegue
+ahí deja la web prometiendo lo de antes, en dos idiomas, para siempre.
+
+**Al cambiar cualquiera de estas cosas, la web entra en la MISMA tarea** (detalle y checklist:
+[`web/README.md`](web/README.md)):
+
+| Si tocas… | La web… |
+|---|---|
+| un límite del plan free (`FREE_*` de `domain/entitlement/`) | `FREE_LIMITS` en `web/lib/config.mjs` — el copy **no** escribe el número, escribe `{{historyDays}}` · `{{freeVehicles}}` · `{{freeZones}}` |
+| `applicationId` · `versionName` · `minSdk` · `PRIVACY_POLICY_URL` · el correo de soporte | los hechos de `web/lib/config.mjs` |
+| una feature que la web nombra (plazas, parkings, gasolineras, Plus, coche compartido, detección) | `web/content/{es,en}.json` — **los dos**, en la misma tarea |
+| la política de privacidad o el borrado de cuenta | `hosting/public/{privacy-policy,delete-account}.html` **a mano** (⛔ no son salida del build) |
+| el logo, un color o un rol de tipografía | `web/lib/icons.mjs` · los tokens de `web/assets/css/site.css` |
+| la UI que sale en las capturas | regenerar con `web/tools/prepare-assets.py` desde los raws de la sesión de Play |
+
+- ⛔ **Editar el copy y no reconstruir es desplegar lo anterior.** `node web/build.mjs --check`
+  antes de dar nada por hecho.
+- ⛔ **Lo mecánicamente comprobable lo vigila `WebSiteParityGuardrailTest`** (5 chequeos, los cinco
+  falsificados): hechos vs. su fuente, paridad de claves ES/EN, plan free vs. los gates, los tokens
+  en uso, y la salida construida vs. el copy. Como no toca bytecode, sale **UP-TO-DATE** →
+  `--rerun-tasks`. Lo que NO vigila —que el copy sea bueno, que una feature nueva tenga sección—
+  es esta tabla.
+
 ### ⛔ Un caso de uso por VEREDICTO, nunca por PREDICADO [DET-VERDICT-NOT-PREDICATE-001]
 Regla mental: *si su resultado no se puede citar en un diagnóstico, no es un caso de uso.*
 - Es **veredicto** si su resultado aparece en el vocabulario de diagnóstico (`detectionPath`,

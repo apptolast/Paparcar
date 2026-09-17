@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://paparcar.com/</loc>
+    <xhtml:link rel="alternate" hreflang="es" href="https://paparcar.com/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://paparcar.com/en/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://paparcar.com/"/>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://paparcar.com/support</loc>
+    <xhtml:link rel="alternate" hreflang="es" href="https://paparcar.com/support"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://paparcar.com/en/support"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://paparcar.com/support"/>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://paparcar.com/terms</loc>
+    <xhtml:link rel="alternate" hreflang="es" href="https://paparcar.com/terms"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://paparcar.com/en/terms"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://paparcar.com/terms"/>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://paparcar.com/en/</loc>
+    <xhtml:link rel="alternate" hreflang="es" href="https://paparcar.com/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://paparcar.com/en/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://paparcar.com/"/>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://paparcar.com/en/support</loc>
+    <xhtml:link rel="alternate" hreflang="es" href="https://paparcar.com/support"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://paparcar.com/en/support"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://paparcar.com/support"/>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://paparcar.com/en/terms</loc>
+    <xhtml:link rel="alternate" hreflang="es" href="https://paparcar.com/terms"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://paparcar.com/en/terms"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://paparcar.com/terms"/>
+    <priority>0.6</priority>
+  </url>
+  <url><loc>https://paparcar.com/privacy-policy</loc><priority>0.4</priority></url>
+  <url><loc>https://paparcar.com/delete-account</loc><priority>0.3</priority></url>
+</urlset>
