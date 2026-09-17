@@ -1,0 +1,72 @@
+<en-US>
+• Join a shared car with its code: the invite now works end to end.
+• Sharing a car no longer hides the history it already had.
+• Your figures by period — today, this week, this month — and the monthly recap has its own switch.
+• Prices, volumes and distances in the units you actually buy in.
+• A spot you report now shows on the map with the area it covers.
+• Privacy: leaving a group takes your trips with you, and deleting your account closes the group.
+</en-US>
+<es-ES>
+• Entra en un coche compartido con su código: la invitación ya funciona de principio a fin.
+• Compartir un coche deja de ocultar el historial que ya tenía.
+• Tus cifras por periodo —hoy, esta semana, este mes— y el resumen mensual con su interruptor.
+• Precios, volúmenes y distancias en las unidades en las que compras.
+• Una plaza que avisas se ve en el mapa con la zona que abarca.
+• Privacidad: salir de un grupo se lleva tus viajes, y borrar tu cuenta cierra el grupo.
+</es-ES>
+<de-DE>
+• Tritt einem geteilten Auto mit seinem Code bei: Die Einladung funktioniert jetzt.
+• Ein Auto zu teilen verbirgt nicht mehr seinen bisherigen Verlauf.
+• Deine Zahlen nach Zeitraum — heute, diese Woche, dieser Monat — mit eigenem Schalter für den Monatsrückblick.
+• Preise, Mengen und Entfernungen in deinen Einheiten.
+• Ein gemeldeter Platz erscheint auf der Karte mit seinem Bereich.
+• Datenschutz: Verlässt du eine Gruppe, gehen deine Fahrten mit; löschst du dein Konto, schließt die Gruppe.
+</de-DE>
+<fr-FR>
+• Rejoignez une voiture partagée avec son code : l'invitation fonctionne désormais de bout en bout.
+• Partager une voiture ne masque plus l'historique qu'elle avait déjà.
+• Vos chiffres par période — aujourd'hui, cette semaine, ce mois — avec un réglage pour le bilan mensuel.
+• Prix, volumes et distances dans vos unités.
+• Une place signalée apparaît sur la carte avec sa zone.
+• Confidentialité : quitter un groupe emporte vos trajets, supprimer votre compte ferme le groupe.
+</fr-FR>
+<it-IT>
+• Entra in un'auto condivisa con il suo codice: l'invito ora funziona dall'inizio alla fine.
+• Condividere un'auto non nasconde più lo storico che aveva già.
+• I tuoi numeri per periodo — oggi, questa settimana, questo mese — e il riepilogo mensile ha il suo interruttore.
+• Prezzi, volumi e distanze nelle unità in cui compri davvero.
+• Un posto che segnali si vede sulla mappa con l'area che copre.
+• Privacy: uscire da un gruppo porta via i tuoi viaggi, ed eliminare l'account chiude il gruppo.
+</it-IT>
+<nl-NL>
+• Doe mee aan een gedeelde auto met de code: de uitnodiging werkt nu van begin tot eind.
+• Een auto delen verbergt niet langer de geschiedenis die hij al had.
+• Je cijfers per periode — vandaag, deze week, deze maand — met een eigen schakelaar voor het maandoverzicht.
+• Prijzen, volumes en afstanden in jouw eenheden.
+• Een plek die je meldt, staat op de kaart met zijn gebied.
+• Privacy: een groep verlaten neemt je ritten mee, en je account verwijderen sluit de groep.
+</nl-NL>
+<pl-PL>
+• Dołącz do współdzielonego auta jego kodem: zaproszenie działa teraz od początku do końca.
+• Udostępnienie auta nie ukrywa już historii, którą miało wcześniej.
+• Twoje liczby według okresu — dziś, ten tydzień, ten miesiąc — a podsumowanie miesiąca ma własny przełącznik.
+• Ceny, objętości i odległości w jednostkach, w których naprawdę kupujesz.
+• Zgłoszone miejsce widać na mapie wraz z obszarem, który obejmuje.
+• Prywatność: wyjście z grupy zabiera Twoje podróże, a usunięcie konta zamyka grupę.
+</pl-PL>
+<pt-PT>
+• Entra num carro partilhado com o seu código: o convite funciona agora de ponta a ponta.
+• Partilhar um carro deixa de esconder o histórico que já tinha.
+• Os teus números por período — hoje, esta semana, este mês — e o resumo mensal tem o seu próprio interruptor.
+• Preços, volumes e distâncias nas unidades em que realmente compras.
+• Um lugar que avisas aparece no mapa com a zona que abrange.
+• Privacidade: sair de um grupo leva as tuas viagens, e apagar a conta fecha o grupo.
+</pt-PT>
+<ro>
+• Intră într-o mașină partajată cu codul ei: invitația funcționează acum de la cap la coadă.
+• Partajarea unei mașini nu mai ascunde istoricul pe care îl avea deja.
+• Cifrele tale pe perioadă — azi, această săptămână, această lună — cu comutator pentru rezumatul lunar.
+• Prețuri, volume și distanțe în unitățile tale.
+• Un loc raportat apare pe hartă cu zona lui.
+• Confidențialitate: ieșirea dintr-un grup îți ia călătoriile, iar ștergerea contului închide grupul.
+</ro>
