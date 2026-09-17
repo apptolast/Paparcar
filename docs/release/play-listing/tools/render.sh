@@ -16,10 +16,13 @@ for L in en es it pt fr de nl pl ro; do
   # Swap the shared raw/ dir to THIS locale's captures.
   cp "$SP/raw/$L/"shot*.png "$ASSETS/screenshots/raw/"
   mkdir -p "$ASSETS/screenshots/$L"
+  # El nombre lleva el locale DELANTE, no sólo la carpeta: las 72 acaban juntas en la bandeja de
+  # descargas o en el selector del Console, y nueve ficheros llamados `play-shot-1.png` se pisan
+  # entre ellos y no hay forma de saber cuál es cuál sin abrirlos.
   for n in 1 2 3 4 5 6 7 8; do
     "$CHROME" --headless=new --disable-gpu --hide-scrollbars --allow-file-access-from-files \
       --force-device-scale-factor=1 --window-size=1080,1920 \
-      --screenshot="$ASSETS/screenshots/$L/play-shot-$n.png" \
+      --screenshot="$ASSETS/screenshots/$L/$L-play-shot-$n.png" \
       "$HTML?n=$n&lang=$L" >/dev/null 2>&1
   done
   echo "rendered $L"

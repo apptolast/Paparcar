@@ -57,7 +57,11 @@ CHROME="/c/Program Files/Google/Chrome/Application/chrome.exe"
 ### ✅ Capturas de teléfono — rehechas el 17-09 en **Pixel 8**, con la UI en los 9 idiomas
 [PLAY-SHOTS-EVERY-LANGUAGE-SHOWS-ITS-OWN-UI-001]
 
-`assets/screenshots/{en,es,it,pt,fr,de,nl,pl,ro}/play-shot-{1..8}.png` (1080×1920).
+`assets/screenshots/{en,es,it,pt,fr,de,nl,pl,ro}/<locale>-play-shot-{1..8}.png` (1080×1920),
+p. ej. `de/de-play-shot-4.png`. El gráfico de funciones va igual: `de/de-feature-graphic-1024x500.png`.
+⛔ **El locale va en el NOMBRE, no sólo en la carpeta**: las 72 acaban juntas en la bandeja de
+descargas y en el selector del Console, y nueve ficheros llamados `play-shot-1.png` se pisan entre
+ellos sin forma de saber cuál es cuál sin abrirlos.
 **Lo que cambia respecto al set del 01-09**: el móvil de dentro del marco ya **no está en inglés
 en las nueve fichas** — cada idioma tiene sus 8 capturas tomadas con la app en ese idioma. Y el
 guion se rebalanceó a lo que entró después: gasolineras con precio, parkings públicos, panel de
@@ -98,8 +102,8 @@ y la fila del parking por **«Parking Plaza Mayor»**, que es nombre propio y no
 
 ⛔ **Revisar las 72 con `tools/framescan.ps1` ANTES de subir. Verificar una muestra no vale.**
 Se hizo así la primera vez —las 8 de `en` y sólo shot4/shot5 del resto— y se colaron dos:
-`de/play-shot-2` con el diálogo **«Paparcar isn't responding»** del sistema encima, y
-`fr/play-shot-1` con el **mapa sin cargar** (negro). Ninguno de los dos lo avisa nada: el fichero
+`de/de-play-shot-2` con el diálogo **«Paparcar isn't responding»** del sistema encima, y
+`fr/fr-play-shot-1` con el **mapa sin cargar** (negro). Ninguno de los dos lo avisa nada: el fichero
 pesa lo normal y la captura *parece* una captura. El script los caza por color — el diálogo del
 sistema es gris **neutro** (`B−R ≤ 10`) mientras el mapa (28,42,64) y la hoja (19,26,36) son
 azulados, y el mapa sin tiles es casi negro.
