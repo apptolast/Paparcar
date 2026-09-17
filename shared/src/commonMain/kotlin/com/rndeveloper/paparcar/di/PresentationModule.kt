@@ -86,6 +86,7 @@ val presentationModule = module {
         SettingsViewModel(
             prefs = get(),
             authRepository = get(),
+            signOut = get(),
             userProfileRepository = get(),
             deleteAccountUseCase = get(),
             setFirstStepsDismissed = get(),
