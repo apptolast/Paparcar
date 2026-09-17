@@ -96,9 +96,37 @@ sin abrir), así que cualquier `y` calibrado a ojo es una moneda al aire. Se bus
 TEXTO: las pestañas por su **badge numérico** (`6`/`4`/`5`, cifras árabes iguales en los 9 idiomas)
 y la fila del parking por **«Parking Plaza Mayor»**, que es nombre propio y no se traduce.
 
+⛔ **Revisar las 72 con `tools/framescan.ps1` ANTES de subir. Verificar una muestra no vale.**
+Se hizo así la primera vez —las 8 de `en` y sólo shot4/shot5 del resto— y se colaron dos:
+`de/play-shot-2` con el diálogo **«Paparcar isn't responding»** del sistema encima, y
+`fr/play-shot-1` con el **mapa sin cargar** (negro). Ninguno de los dos lo avisa nada: el fichero
+pesa lo normal y la captura *parece* una captura. El script los caza por color — el diálogo del
+sistema es gris **neutro** (`B−R ≤ 10`) mientras el mapa (28,42,64) y la hoja (19,26,36) son
+azulados, y el mapa sin tiles es casi negro.
+
 ⚠️ **El emulador se cayó dos veces a media tanda** (WHPX `hr=80070005` tras muchos relanzamientos
 seguidos). Las capturas de esa ventana salen en **0 bytes**, no con contenido malo: verificar
 siempre tamaño antes de dar una tanda por buena.
+
+### Sobre el ANR que se coló (leído de su traza, no supuesto)
+
+`dumpsys dropbox --print data_app_anr` → la entrada cuadra al segundo con la captura (⚠️ el reloj
+del emulador va en **UTC**: device 01:02 = host 03:02). El hilo principal estaba así:
+
+```
+"main" prio=5 tid=1 Native
+  DrawFrameTask::drawFrame  ← pthread_cond_wait
+  HardwareRenderer.syncAndDrawFrame / ViewRootImpl.performDraw / Choreographer.doFrame
+```
+
+**Ni un solo frame de Paparcar ni de Compose en la pila**: el main estaba parado esperando al
+RenderThread dentro del pipeline de la plataforma. Y alrededor, `39%` del compositor `ranchu` (el
+virtual del emulador) + `13%` de surfaceflinger, **29% iowait** y presión de IO `full avg300=51%`,
+con sólo `3.2%` de CPU de usuario. Es decir: **el host se quedó sin disco y el emulador no pintó el
+frame a tiempo**, no que la app hiciera trabajo en el hilo principal. Confirmado además porque el
+mismo preset y el mismo gesto salieron limpios en los otros 8 idiomas. ⛔ No es un bug de producto
+y no hay nada que arreglar en el código — pero **sí hay que mirar las 72**, porque el sistema
+estampa su diálogo encima de la app y la captura sale publicable a la vista.
 
 Los fakes de gasolineras se saneron para poder publicar: las marcas reales (`Repsol`, `Cepsa`) y
 las direcciones de Madrid pasaron a nombres genéricos y calles de El Puerto — una marca de terceros
