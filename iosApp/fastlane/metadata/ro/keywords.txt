@@ -1,0 +1,1 @@
+loc,liber,mașină,hartă,stradă,parcare publică,benzină,preț,oraș,condus,garaj,parcare

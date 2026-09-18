@@ -1,0 +1,6 @@
+• Entra en un coche compartido con su código: la invitación ya funciona de principio a fin.
+• Compartir un coche deja de ocultar el historial que ya tenía.
+• Tus cifras por periodo —hoy, esta semana, este mes— y el resumen mensual con su interruptor.
+• Precios, volúmenes y distancias en las unidades en las que compras.
+• Una plaza que avisas se ve en el mapa con la zona que abarca.
+• Privacidad: salir de un grupo se lleva tus viajes, y borrar tu cuenta cierra el grupo.

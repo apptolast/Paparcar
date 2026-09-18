@@ -1,0 +1,50 @@
+# Snapfile — App Store screenshots for Paparcar.
+#
+# Frames come from `ScreenshotUITests`, which launches the app once per frame with the ShotPreset
+# that frame needs (`-PaparcarShot Parked`). Same presets the Play carousel uses on Android, so the
+# two stores tell the same story from one definition. [PLAY-SHOTS-EVERY-LANGUAGE-SHOWS-ITS-OWN-UI-001]
+#
+# ⛔ Nothing here reaches the App Store binary. The run links :mockkit's framework instead of
+# :shared's and compiles the Swift hook behind PAPARCAR_SCREENSHOTS; both are set by the lane and
+# nowhere else. [IOS-STORE-SHOTS-WITHOUT-SHIPPING-THE-DEMO-CODE-001]
+#
+# Run:  cd iosApp && fastlane ios screenshots
+
+# One device class: App Store Connect derives every other iPhone size from the 6.9" set, and the
+# app ships iPhone-only (TARGETED_DEVICE_FAMILY = 1), so there is no iPad set to keep in sync.
+devices([
+  "iPhone 17 Pro Max",
+])
+
+# The nine the product speaks, in App Store Connect's codes — which are NOT Play's for three of
+# them: it (not it-IT), pl (not pl-PL), ro (not ro-RO). A folder named with the wrong code is not
+# an error, it is ignored, so the listing silently keeps the old copy.
+languages([
+  "es-ES",
+  "en-US",
+  "it",
+  "pt-PT",
+  "fr-FR",
+  "de-DE",
+  "nl-NL",
+  "pl",
+  "ro",
+])
+
+# Pinned: fastlane/simctl and xcodebuild must agree on the runtime string, and 26.0 does not agree
+# with itself (runtime "26.0", build "26.0.1"). 26.2 matches on both layers and the device above
+# exists there. Check with `xcrun simctl list runtimes` before changing it.
+ios_version("26.2")
+
+scheme("iosApp")
+only_testing("iosAppUITests/ScreenshotUITests")
+
+output_directory("./screenshots")
+clear_previous_screenshots(true)   # a stale frame is worse than a missing one
+reinstall_app(true)                # so a previous run's state cannot leak into this one
+app_identifier("com.rndeveloper.paparcar")
+
+concurrent_simulators(false)       # Compose + nine languages on one Mac: serial is the honest speed
+override_status_bar(true)          # 9:41, full battery — App Store-ready frames
+stop_after_first_error(false)
+skip_open_summary(true)

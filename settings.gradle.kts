@@ -22,3 +22,6 @@ dependencyResolutionManagement {
 
 include(":app")
 include(":shared")
+// Fakes and mock graphs. Deliberately NOT part of :shared — see mockkit/build.gradle.kts.
+// [IOS-STORE-SHOTS-WITHOUT-SHIPPING-THE-DEMO-CODE-001]
+include(":mockkit")

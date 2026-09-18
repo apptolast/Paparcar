@@ -219,6 +219,11 @@ kotlin {
 
         // ── commonTest ────────────────────────────────────────────────────────
         commonTest.dependencies {
+
+            // The fakes moved to :mockkit so they stop reaching production; the suite is
+            // their other consumer. A test binary never ships, so this costs nothing.
+            // [IOS-STORE-SHOTS-WITHOUT-SHIPPING-THE-DEMO-CODE-001]
+            implementation(project(":mockkit"))
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.turbine)

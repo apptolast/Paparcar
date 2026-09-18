@@ -225,6 +225,11 @@ extensions.configure<ApplicationExtension> {
 dependencies {
     implementation(project(":shared"))
 
+    // Fakes + mock Koin graph. `mockImplementation` ON PURPOSE: prod must not even compile
+    // it, which is the whole point of the module existing.
+    // [IOS-STORE-SHOTS-WITHOUT-SHIPPING-THE-DEMO-CODE-001]
+    "mockImplementation"(project(":mockkit"))
+
     // App-shell AndroidX (entry points + splash + notifications PendingIntents)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.core.ktx)

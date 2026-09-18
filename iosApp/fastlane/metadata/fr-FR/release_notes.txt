@@ -1,0 +1,6 @@
+• Rejoignez une voiture partagée avec son code : l'invitation fonctionne désormais de bout en bout.
+• Partager une voiture ne masque plus l'historique qu'elle avait déjà.
+• Vos chiffres par période — aujourd'hui, cette semaine, ce mois — avec un réglage pour le bilan mensuel.
+• Prix, volumes et distances dans vos unités.
+• Une place signalée apparaît sur la carte avec sa zone.
+• Confidentialité : quitter un groupe emporte vos trajets, supprimer votre compte ferme le groupe.

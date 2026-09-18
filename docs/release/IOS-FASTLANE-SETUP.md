@@ -52,8 +52,13 @@ Comprobar y responder:
 
 - `Gemfile` en la raíz (`gem "fastlane"`), igual que Munición.
 - `iosApp/fastlane/Appfile`, `Matchfile`, `Fastfile` y `.env.example`, adaptados de Munición con el
-  bundle `com.rndeveloper.paparcar`. Sin lanes de metadata ni de tag/CI por ahora: solo
-  `bootstrap_match`, `match_certificates`, `build` y `beta`.
+  bundle `com.rndeveloper.paparcar`. Sin lanes de tag/CI por ahora: `bootstrap_match`,
+  `match_certificates`, `build` y `beta`.
+  **18-09** — añadidas `screenshots` y `upload_metadata`, con `Snapfile`, `metadata/` en los nueve
+  idiomas y el target `iosAppUITests`. La ficha NO se edita a mano: se genera desde
+  `docs/release/play-listing` con `iosApp/fastlane/tools/metadata_from_play.py`, y `upload_metadata`
+  corre ese generador en modo `--check` y se niega a subir si la ficha ha derivado de su fuente.
+  [IOS-STORE-SHOTS-WITHOUT-SHIPPING-THE-DEMO-CODE-001]
 - `iosApp/fastlane/.env` local, con los valores del de Munición (gitignored; se comprueba con
   `git check-ignore` antes de escribirlo).
 - `.gitignore`: añadir `*.p8`, `**/fastlane/.env` y `**/fastlane/README.md` (lo regenera fastlane).

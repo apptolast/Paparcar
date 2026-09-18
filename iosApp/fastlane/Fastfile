@@ -133,6 +133,53 @@ platform :ios do
     UI.success "Uploaded build #{next_build} to TestFlight"
   end
 
+
+  desc "Capture App Store screenshots: iPhone 6.9\", nine languages, from the mock graph. Reads Snapfile."
+  lane :screenshots do
+    # ⛔ These two settings are the ONLY place the mock graph enters an iOS build, and they are
+    # deliberately not defaults anywhere:
+    #   · PAPARCAR_SCREENSHOTS compiles the Swift hook (ScreenshotMode + the ContentView branch).
+    #   · PAPARCAR_FRAMEWORK_PROJECT makes the Run Script phase embed :mockkit's framework, which
+    #     carries the fakes, instead of :shared's, which does not.
+    # Miss either one and the run fails loudly (missing symbol / no mock data) rather than quietly
+    # shooting the real app or, far worse, leaving demo code in something shippable.
+    # [IOS-STORE-SHOTS-WITHOUT-SHIPPING-THE-DEMO-CODE-001]
+    snapshot(
+      xcargs: "SWIFT_ACTIVE_COMPILATION_CONDITIONS='$(inherited) PAPARCAR_SCREENSHOTS' " \
+              "PAPARCAR_FRAMEWORK_PROJECT=mockkit",
+    )
+    UI.success "Screenshots in #{File.join(IOS_APP_DIR, 'fastlane', 'screenshots')} — review them before uploading."
+  end
+
+  desc "Upload the store listing (metadata + screenshots) to App Store Connect. No binary, no submission."
+  lane :upload_metadata do
+    # The listing has ONE source of truth: docs/release/play-listing. This refuses to upload a
+    # metadata folder that has drifted from it, because a listing edited in place is a listing that
+    # silently disagrees with Play in eight languages nobody re-reads.
+    Dir.chdir(ROOT_DIR) do
+      sh("python3", "iosApp/fastlane/tools/metadata_from_play.py", "--check")
+    end
+
+    api_key = app_store_connect_api_key_token
+    deliver(
+      api_key: api_key,
+      app_identifier: BUNDLE_ID,
+      metadata_path: File.join(IOS_APP_DIR, "fastlane", "metadata"),
+      screenshots_path: File.join(IOS_APP_DIR, "fastlane", "screenshots"),
+      # Binaries go up through `beta`; this lane only ever touches the listing.
+      skip_binary_upload: true,
+      skip_metadata: false,
+      skip_screenshots: false,
+      overwrite_screenshots: true,
+      # Nothing is submitted and nothing is released: a human presses that button.
+      submit_for_review: false,
+      automatic_release: false,
+      run_precheck_before_submit: false,
+      force: true, # no HTML preview prompt — the review step is the human reading the diff on ASC
+    )
+    UI.success "Listing uploaded. Nothing was submitted for review."
+  end
+
   error do |lane, exception|
     UI.error "Lane `#{lane}` failed: #{exception.message}"
   end

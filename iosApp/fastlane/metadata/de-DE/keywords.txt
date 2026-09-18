@@ -1,0 +1,1 @@
+Platz,frei,Auto,Karte,Straße,Parkhaus,Benzin,Preis,Stadt,fahren,Garage,Parkplatzsuche

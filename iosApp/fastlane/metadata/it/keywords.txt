@@ -1,0 +1,1 @@
+posto,libero,auto,mappa,strada,parcheggio pubblico,benzina,prezzo,città,guidare,sosta

@@ -84,6 +84,13 @@ class SwiftPushRegistrationBridge: PushRegistrationBridge {
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        #if DEBUG && PAPARCAR_SCREENSHOTS
+        // A screenshot run touches no Firebase, no APNs and no real bootstrap: MockMainViewController
+        // starts its OWN Koin over the fake graph, and letting `ensureStarted()` run first would hit
+        // `startKoin` twice and crash before the first frame.
+        // [IOS-STORE-SHOTS-WITHOUT-SHIPPING-THE-DEMO-CODE-001]
+        if ScreenshotMode.isActive { return true }
+        #endif
         FirebaseApp.configure()
         // Until this line runs every recordNonFatal/setUserId from Kotlin is a silent no-op —
         // install right after Firebase is up so nothing reported at launch is lost.
