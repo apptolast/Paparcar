@@ -191,6 +191,37 @@ class CoordinatorParkingDetectorTest {
             assertEquals(1, env.geofence.createGeofenceCallCount, "geofence should be registered for the saved session")
         }
 
+    /**
+     * [NOTIF-ONE-QUESTION-DESERVES-ONE-NOTIFICATION-001] The owner reported it as two notifications
+     * (#34): "¿Has aparcado?" → tap "Sí, confirmar" → a card that offers "Sí, confirmar" again.
+     *
+     * They are not two ids — the card morphs the ask in place — they are one question asked twice,
+     * because the post-save card was written for the SILENT path and kept its acknowledge button on
+     * the path where the user had just acknowledged. This pins the flag that tells them apart; the
+     * surfaces read it to drop the button and stop re-alerting.
+     */
+    @Test
+    fun should_not_ask_again_when_the_user_already_answered_the_ask() =
+        runTest(UnconfinedTestDispatcher()) {
+            val env = setup()
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
+            locations.emit(GpsPoint(40.002, -3.7, accuracy = 5f, timestamp = 0L, speed = 10f))
+            env.coordinator.onUserConfirmedParking()
+            locations.emit(stationaryFix(lat = 40.002, lon = -3.7))
+
+            job.cancelAndJoin()
+
+            assertEquals(
+                listOf(true),
+                env.notification.savedConfirmUserAnswered,
+                "the post-save card must know the user already said yes, so it drops the acknowledge " +
+                    "and posts silently",
+            )
+        }
+
     @Test
     fun should_attribute_the_park_to_the_nominating_vehicle_not_the_active_one() =
         runTest(UnconfinedTestDispatcher()) {

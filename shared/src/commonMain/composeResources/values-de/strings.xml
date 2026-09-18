@@ -814,6 +814,7 @@
     <string name="notif_parking_saved_confirm_title_vehicle">%1$s geparkt</string>
     <string name="notif_parking_saved_confirm_text">Tippen, um die Karte zu öffnen, oder abbrechen, wenn es nicht Ihr Fahrzeug war.</string>
     <string name="notif_action_confirm">Ja, bestätigen</string>
+    <string name="notif_action_ack">Verstanden</string>
     <string name="notif_action_cancel_save">Nein, abbrechen</string>
     <string name="notif_confirmation_failed_title">Parken nicht gespeichert</string>
     <string name="notif_confirmation_failed_text">Parkplatz konnte nicht gespeichert werden. Öffne Paparcar, um es erneut zu versuchen.</string>

@@ -1008,6 +1008,7 @@
     <string name="notif_parking_saved_confirm_title_vehicle">%1$s geparkeerd</string>
     <string name="notif_parking_saved_confirm_text">Tik om de kaart te openen, of annuleer als het niet uw voertuig was.</string>
     <string name="notif_action_confirm">Ja, bevestigen</string>
+    <string name="notif_action_ack">Begrepen</string>
     <string name="notif_action_cancel_save">Nee, annuleren</string>
     <string name="notif_confirmation_failed_title">Parkeren niet opgeslagen</string>
     <string name="notif_confirmation_failed_text">Parkeerplaats kon niet worden opgeslagen. Open Paparcar om het opnieuw te proberen.</string>

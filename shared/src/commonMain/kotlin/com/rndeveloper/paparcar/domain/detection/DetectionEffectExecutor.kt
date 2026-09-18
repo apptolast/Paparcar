@@ -212,6 +212,11 @@ class DetectionEffectExecutor(
                         vehicleName = activeVehicleName(),
                         latitude = saved.location.latitude,
                         longitude = saved.location.longitude,
+                        // [NOTIF-ONE-QUESTION-DESERVES-ONE-NOTIFICATION-001] If this confirm came
+                        // from the user tapping "Sí" on the ask, the card must not ask again — it
+                        // keeps only the undo, and it does not alert. The flag is the session's own
+                        // answer, not a guess about how loud the last notification was.
+                        userAnswered = state.confirmation.userConfirmed,
                     )
                     // ⚠️ The WALL clock, not the injected one: this timestamp is compared against a
                     // future session's start to age a notification, and a test clock that resets

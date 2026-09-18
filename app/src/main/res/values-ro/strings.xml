@@ -26,6 +26,7 @@
     <string name="notif_parking_saved_confirm_title_vehicle">%1$s parcat</string>
     <string name="notif_parking_saved_confirm_text">Atinge pentru a deschide harta, sau anulează dacă nu era vehiculul tău.</string>
     <string name="notif_action_confirm">Da, confirmă</string>
+    <string name="notif_action_ack">Am înțeles</string>
     <string name="notif_action_cancel_save">Nu, anulează</string>
 
     <!-- Notificare: permisiune revocată în timp ce serviciul era activ -->

@@ -26,6 +26,7 @@
     <string name="notif_parking_saved_confirm_title_vehicle">%1$s zaparkowany</string>
     <string name="notif_parking_saved_confirm_text">Dotknij, aby otworzyć mapę, lub anuluj, jeśli to nie był twój pojazd.</string>
     <string name="notif_action_confirm">Tak, potwierdź</string>
+    <string name="notif_action_ack">Rozumiem</string>
     <string name="notif_action_cancel_save">Nie, anuluj</string>
 
     <!-- Powiadomienie: uprawnienie odwołane podczas działania usługi -->

@@ -122,6 +122,7 @@ class IosAppNotificationManagerImpl(
         vehicleName: String?,
         latitude: Double,
         longitude: Double,
+        userAnswered: Boolean,
     ) {
         postLocalized(PARKING_CONFIRMATION_NOTIFICATION_ID) {
             // Replaces the pre-save prompt at the same notification ID. [REFACTOR-300]
@@ -133,9 +134,16 @@ class IosAppNotificationManagerImpl(
             val body = getString(Res.string.notif_parking_saved_confirm_text)
             setTitle(title)
             setBody(body)
-            setCategoryIdentifier(CATEGORY_PARKING_SAVED_CONFIRM)
+            // [NOTIF-ONE-QUESTION-DESERVES-ONE-NOTIFICATION-001] A category IS its buttons on
+            // iOS, so "no acknowledge button" needs its own category rather than an if.
+            setCategoryIdentifier(
+                if (userAnswered) CATEGORY_PARKING_SAVED_REVERT_ONLY else CATEGORY_PARKING_SAVED_CONFIRM,
+            )
             setUserInfo(mapOf<Any?, Any?>(EXTRA_PARKING_ID to parkingId))
-            setSound(platform.UserNotifications.UNNotificationSound.defaultSound)
+            // Silent when the user just answered: the phone already buzzed for the question.
+            if (!userAnswered) {
+                setSound(platform.UserNotifications.UNNotificationSound.defaultSound)
+            }
         }
     }
 
@@ -293,6 +301,10 @@ class IosAppNotificationManagerImpl(
         val yesParked = getString(Res.string.notif_action_yes_parked)
         val noNotParked = getString(Res.string.notif_action_no_not_parked)
         val confirm = getString(Res.string.notif_action_confirm)
+        // The post-save card acknowledges, it does not confirm — the parking is already saved.
+        // It used to borrow the ask's own button, which is what made it read as a second
+        // question. [NOTIF-ONE-QUESTION-DESERVES-ONE-NOTIFICATION-001]
+        val ack = getString(Res.string.notif_action_ack)
         val cancelSave = getString(Res.string.notif_action_cancel_save)
         val iveLeft = getString(Res.string.notif_action_ive_left)
         val markParking = getString(Res.string.notif_action_mark_parking)
@@ -319,9 +331,23 @@ class IosAppNotificationManagerImpl(
             actions = listOf(
                 UNNotificationAction.actionWithIdentifier(
                     identifier = ACTION_ACK,
-                    title = confirm,
+                    title = ack,
                     options = UNNotificationActionOptionForeground,
                 ),
+                UNNotificationAction.actionWithIdentifier(
+                    identifier = ACTION_REVERT,
+                    title = cancelSave,
+                    options = UNNotificationActionOptionDestructive,
+                ),
+            ),
+            intentIdentifiers = emptyList<String>(),
+            options = UNNotificationCategoryOptionNone,
+        )
+        // Same card, one button: the path where the user already said yes.
+        // [NOTIF-ONE-QUESTION-DESERVES-ONE-NOTIFICATION-001]
+        val savedRevertOnlyCategory = UNNotificationCategory.categoryWithIdentifier(
+            identifier = CATEGORY_PARKING_SAVED_REVERT_ONLY,
+            actions = listOf(
                 UNNotificationAction.actionWithIdentifier(
                     identifier = ACTION_REVERT,
                     title = cancelSave,
@@ -348,7 +374,9 @@ class IosAppNotificationManagerImpl(
             intentIdentifiers = emptyList<String>(),
             options = UNNotificationCategoryOptionNone,
         )
-        center.setNotificationCategories(setOf(parkingCategory, savedConfirmCategory, stillParkedCategory))
+        center.setNotificationCategories(
+            setOf(parkingCategory, savedConfirmCategory, savedRevertOnlyCategory, stillParkedCategory),
+        )
     }
 
     private fun identifierFor(notificationId: Int): String = "$ID_PREFIX$notificationId"
@@ -357,6 +385,7 @@ class IosAppNotificationManagerImpl(
         const val ID_PREFIX = "paparcar_"
         const val CATEGORY_PARKING_CONFIRMATION = "paparcar_parking_confirmation"
         const val CATEGORY_PARKING_SAVED_CONFIRM = "paparcar_parking_saved_confirm"
+        const val CATEGORY_PARKING_SAVED_REVERT_ONLY = "paparcar_saved_revert_only"
         const val ACTION_CONFIRMED = "paparcar_action_confirmed"
         const val ACTION_DENIED = "paparcar_action_denied"
         const val ACTION_ACK = "paparcar_action_ack"

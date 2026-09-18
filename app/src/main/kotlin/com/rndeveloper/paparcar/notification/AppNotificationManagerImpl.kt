@@ -329,6 +329,7 @@ class AppNotificationManagerImpl(
         vehicleName: String?,
         latitude: Double,
         longitude: Double,
+        userAnswered: Boolean,
     ) {
         // [DET-ASK-STATE-001] This card MORPHS the prompt at the same notification id: whatever the
         // question was, it is now answered ("parked — revert?"). Closing the window here is what
@@ -356,18 +357,27 @@ class AppNotificationManagerImpl(
         } else {
             context.getString(R.string.notif_parking_saved_confirm_title)
         }
-        val notification = NotificationCompat.Builder(context, ACTION_CHANNEL_ID)
+        val builder = NotificationCompat.Builder(context, ACTION_CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(context.getString(R.string.notif_parking_saved_confirm_text))
             .setSmallIcon(R.drawable.ic_notification_logo)
             .setColor(COLOR_SUCCESS)
             .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
             .setContentIntent(buildFocusIntent(RC_SAVED_FOCUS, latitude, longitude))
-            .addAction(0, context.getString(R.string.notif_action_confirm), ackPi)
-            .addAction(0, context.getString(R.string.notif_action_cancel_save), revertPi)
             .setOnlyAlertOnce(true)
             .setAutoCancel(true)
-            .build()
+        // [NOTIF-ONE-QUESTION-DESERVES-ONE-NOTIFICATION-001] The acknowledge exists for the SILENT
+        // path, where this card is the first the user hears of the parking. If they just tapped
+        // "Sí, confirmar" on the ask, re-offering it asks the same question twice — and the string
+        // it used was literally the ask's own button. Their answer was the acknowledgement.
+        if (!userAnswered) {
+            builder.addAction(0, context.getString(R.string.notif_action_ack), ackPi)
+        }
+        // The undo survives both paths: "yes, I parked" is not a statement about WHICH vehicle.
+        builder.addAction(0, context.getString(R.string.notif_action_cancel_save), revertPi)
+        // And it does not buzz again for an answer the user just gave.
+        if (userAnswered) builder.setSilent(true)
+        val notification = builder.build()
         notificationManager.notify(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID, notification)
     }
 

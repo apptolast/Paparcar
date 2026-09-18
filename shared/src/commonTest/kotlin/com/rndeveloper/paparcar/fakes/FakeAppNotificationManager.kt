@@ -46,10 +46,17 @@ open class FakeAppNotificationManager : AppNotificationManager {
         vehicleName: String?,
         latitude: Double,
         longitude: Double,
+        userAnswered: Boolean,
     ) {
         parkingSavedConfirmCallCount++
         confirmationNotifOps.add("savedConfirm")
+        // [NOTIF-ONE-QUESTION-DESERVES-ONE-NOTIFICATION-001] Recorded because the whole fix is in
+        // this flag: the card is the same, what changes is whether it asks again.
+        savedConfirmUserAnswered.add(userAnswered)
     }
+
+    /** One entry per [showParkingSavedConfirm], in call order. */
+    val savedConfirmUserAnswered = mutableListOf<Boolean>()
 
     /** [DET-AR-FIRST-001] "Where did you leave your car?" nudge invocations. */
     var markParkingNudgeCallCount = 0

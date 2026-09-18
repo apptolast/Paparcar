@@ -809,6 +809,7 @@
     <string name="notif_parking_saved_confirm_title_vehicle">%1$s aparcado</string>
     <string name="notif_parking_saved_confirm_text">Toca para abrir el mapa, o cancela si no era tu vehículo.</string>
     <string name="notif_action_confirm">Sí, confirmar</string>
+    <string name="notif_action_ack">Vale</string>
     <string name="notif_action_cancel_save">No, cancelar</string>
     <string name="notif_confirmation_failed_title">Aparcamiento no guardado</string>
     <string name="notif_confirmation_failed_text">No se pudo guardar tu aparcamiento. Abre Paparcar para intentarlo de nuevo.</string>

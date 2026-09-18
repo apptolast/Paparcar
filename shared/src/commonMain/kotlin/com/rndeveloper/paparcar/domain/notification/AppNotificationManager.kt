@@ -75,6 +75,20 @@ interface AppNotificationManager {
         vehicleName: String?,
         latitude: Double,
         longitude: Double,
+        /**
+         * [NOTIF-ONE-QUESTION-DESERVES-ONE-NOTIFICATION-001] Did the user ALREADY answer the ask?
+         *
+         * The card was written for the silent path — auto-confirm fired while the user walked away
+         * — where it is the first thing they hear about the parking, so it offers an acknowledge
+         * and an undo. On the path where they tapped "Sí, confirmar" on "¿Has aparcado?" one second
+         * earlier, the same card re-alerts and offers to confirm what they just confirmed. That is
+         * the double notification the owner reported (#34): not two ids, one question asked twice.
+         *
+         * `true` drops the acknowledge action (their answer WAS the acknowledgement) and posts
+         * without alerting. The undo stays: saying yes to "did you park" is not the same as
+         * vouching for WHICH car, and that is what the revert is for.
+         */
+        userAnswered: Boolean = false,
     ) {}
 
     /**
