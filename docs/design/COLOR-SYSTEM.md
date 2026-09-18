@@ -247,6 +247,7 @@ anillo de TTL recuperado**.
 | Plaza libre fresca / enfriándose / caducando | verde / ámbar / rojo |
 | Reporte manual | color de frescura + badge persona + anillo TTL (F5) |
 | Plaza a la que va otro usuario | `PapLiveMap` (movimiento ajeno, solo mapa) |
+| Parking público (marcador y fila) | `PapColor.carPark` — puck AZUL relleno con la P blanca [MAP-A-CAR-PARK-MARKER-WEARS-ITS-OWN-BLUE-001] |
 | Traza · origen · salida · halo del puck · FAB que sigue al coche | identidad de vigilancia del coche seguido [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001] |
 | Marcador de mi coche en mapa | tag cuadrado con marco verde/azul/gris según método |
 | CTA | verde `primary`, pastilla rellena |
@@ -327,6 +328,29 @@ entre patas; si un trabajo nuevo necesita otro par, se añade aquí, no en la pa
 ---
 
 ## 8. Decisiones registradas
+
+### Un parking público es un SITIO, no un coche ni una plaza [MAP-A-CAR-PARK-MARKER-WEARS-ITS-OWN-BLUE-001]
+
+Los dos azules del mapa hablaban de MOVIMIENTO: `papCarBlue` es el método de vigilancia de un coche
+y `PapLiveMap` es movimiento que no es tuyo. Un parking público no es ninguna de las dos cosas: es
+una instalación de un tercero en la que entras, y la P blanca sobre azul es la señal que cualquier
+conductor ya lee en la calle.
+
+Por eso lleva **token propio** (`PapCarParkBlueDark` / `PapCarParkBlueLight`) y no toma prestado el
+azul del BT. Un color aquí significa UNA cosa: un parking vistiendo el azul del Bluetooth haría que
+el mismo tono dijera «este coche está vigilado por BT» y «esto es un parking» en la misma pantalla.
+
+**Por qué el relleno y no el borde.** Antes era cuerpo papel con borde verde, y la razón escrita era
+buena: una plaza libre es un puck RELLENO con su nivel de frescura (verde → ámbar → rojo), y
+compartir ese relleno habría convertido cada parking en lo que parece una plaza recién liberada.
+El azul resuelve eso mejor que el borde, porque **el azul no está en la rampa de frescura**: no hay
+forma de confundirlo con un nivel. El relleno pasa a decir de QUIÉN es la cosa, nunca cómo de fresca
+está.
+
+⚠️ **El azul está apretado.** En superficie oscura este tono queda a 87/765 de `PapCarBlueDark` y a
+94/765 de `PapLiveMap`. Lo que los separa en uso no es el tono sino QUÉ los lleva: un puck relleno
+(parking), un glifo de vehículo (BT) y una traza (movimiento ajeno). Si en device se leen como un
+solo azul, el plan B es un navy fijo en ambos temas, como ya hace `PapLiveMap`.
 
 ### Un mapa de calor es INTENSIDAD, no un tono nuevo [STATS-THE-EXPENSIVE-HOUR-IS-MEASURED-001]
 

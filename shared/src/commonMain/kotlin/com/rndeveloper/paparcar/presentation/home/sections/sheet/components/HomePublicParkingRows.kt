@@ -63,7 +63,13 @@ fun HomePublicParkingRow(
             // glifos grises no se lee como «esto es una etiqueta», se lee como una lista apagada.
             // El verde aquí no compite con ninguna acción — en estas filas no hay ninguna.
             // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
-            PapIconTile(icon = PaparcarIcons.CarParkMark, tint = PapColor.actionText)
+            // Azul de parking, no verde de marca: el pin del mapa y su fila son la MISMA cosa
+            // y ahora el pin es azul. La decisión del user del 10-09 («verde, no neutro»,
+            // viéndolo en el Oppo) era contra el gris de una lista apagada, no a favor del
+            // verde en sí; el azul la respeta y además devuelve el invariante de que una
+            // cosa se dibuja igual en el mapa y en la lista.
+            // [MAP-A-CAR-PARK-MARKER-WEARS-ITS-OWN-BLUE-001]
+            PapIconTile(icon = PaparcarIcons.CarParkMark, tint = PapColor.carPark)
         },
         trailing = feeLabel(parking.parking.fee)?.let { label -> { FeeLabel(label) } },
     )

@@ -116,6 +116,24 @@ object PapColor {
      *  identity: a moving car is told by ANIMATION in its own identity colour. */
     val live: Color get() = PapLiveMap
 
+    /** A PUBLIC CAR PARK — the third-party facility you drive into, on the map and in every row
+     *  that lists one. The P-on-blue every driver already reads on the street.
+     *
+     *  Resolved per theme like [actionText], and for the same reason: one hue that stays legible on
+     *  dark tiles would wash out on paper. It is NOT [live] and NOT a vehicle's blue — those two say
+     *  movement, this one says place. [MAP-A-CAR-PARK-MARKER-WEARS-ITS-OWN-BLUE-001] */
+    val carPark: Color
+        @Composable get() =
+            if (MaterialTheme.colorScheme.surface.luminance() < SURFACE_DARK_LUMINANCE) {
+                PapCarParkBlueDark
+            } else {
+                PapCarParkBlueLight
+            }
+
+    /** What sits ON [carPark]: the P itself. White in both themes — it is the sign's own contrast,
+     *  and it is what makes the marker readable at map size without a second outline. */
+    val onCarPark: Color get() = Color.White
+
     // An `unknown` role ("a datum we do NOT have") lived here and was read by nobody: the one call
     // site it was written for, `VehicleColorLabels.swatchColor()`, always went straight to
     // `onSurfaceVariant`. It was retired with the reasoning that created it — a vehicle with no

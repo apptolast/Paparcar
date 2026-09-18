@@ -230,6 +230,22 @@ val PapPremiumSheen  = Color(0xFF64D48D)
 val PapCarBlueDark   = Color(0xFF5B9EFF)   // BT identity on dark surfaces — 7.0:1 on PapInk
 val PapCarBlueLight  = Color(0xFF0057CA)   // BT identity on light surfaces — 6.5:1 on white
 
+// ── Car-park blue — a THIRD PARTY'S facility, not a vehicle and not a free spot. ───────────────
+// The map's blues used to be about movement: [papCarBlue] is a vehicle's WATCH METHOD and
+// [PapLiveMap] is movement that is not yours. A public car park is neither — it is a PLACE you
+// drive into, run by someone else, and the P on blue is the sign every driver already reads on the
+// street. It gets its own token instead of borrowing the BT blue because a colour here means one
+// thing: a car park wearing the BT blue would make the same hue say "this car is watched by
+// Bluetooth" and "this is a car park" on the same screen. [UI-COLOR-DOCTRINE-001]
+//
+// ⚠️ Blue is CROWDED, and these values are the closest call in the palette: on dark surfaces this
+// sits 87/765 from PapCarBlueDark and 94/765 from PapLiveMap. What separates them in practice is
+// what wears them — a filled puck (car park), a vehicle glyph (BT) and a trail (live) — not the
+// hue alone. If the device test says they read as one blue, the fallback is a deep navy fixed in
+// both themes. [MAP-A-CAR-PARK-MARKER-WEARS-ITS-OWN-BLUE-001]
+val PapCarParkBlueDark  = Color(0xFF3E8FD4)   // car-park fill on dark surfaces — white P at 3.45:1
+val PapCarParkBlueLight = Color(0xFF00468F)   // car-park fill on light surfaces — white P at 9.24:1
+
 // ── Light theme counterparts ──────────────────────────────────────────────────
 
 // ── Azure ramp — blue-navy surfaces for light theme (H≈217°, mirrors PapInk DNA) ─

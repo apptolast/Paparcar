@@ -1304,14 +1304,16 @@ private fun nearbyMarkerGreen(): Color = PapColor.actionText
  * A public car park on the map — **the spot puck's shape, wearing the car park's colours**.
  * [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] [PARKINGS-ON-THE-MAP-001]
  *
- * It is a rounded label with the canonical public-parking `P` mark, and beside the given-spot
- * pucks it reads as a different KIND of thing — a fixed place rather than a report.
+ * It is the spot puck's silhouette carrying the canonical public-parking `P`, so beside the
+ * given-spot pucks it reads as a different KIND of thing — a fixed place rather than a report.
  *
- * ⛔ **The colours do NOT come across with the shape.** A free spot is a puck FILLED with its
- * freshness tier — that fill is what says "somebody just left this, and it is going stale". A car
- * park is neither free nor expiring: it keeps the paper body and the green outline it already had,
- * so the two are one family and never one thing. Sharing the fill would have turned every car park
- * into what looks like a fresh community spot, which is the one confusion this map cannot afford.
+ * ⛔ **The fill says WHOSE it is, never how fresh it is.** A free spot is a puck filled with its
+ * freshness tier, and that ramp (green → amber → red) is the community's clock. A car park is
+ * neither free nor expiring, so it is filled with [PapColor.carPark] instead: the P-on-blue every
+ * driver reads on the street. Blue can never be mistaken for a freshness tier, which is the one
+ * confusion this map cannot afford — the reason the puck used to stay paper-bodied with a green
+ * outline, now solved by a colour that is not on the ramp at all.
+ * [MAP-A-CAR-PARK-MARKER-WEARS-ITS-OWN-BLUE-001]
  */
 @Composable
 fun PublicParkingMarker(
@@ -1320,7 +1322,7 @@ fun PublicParkingMarker(
 ) {
     val paper = MaterialTheme.colorScheme.surface
     val ink = MaterialTheme.colorScheme.onSurface
-    val brand = nearbyMarkerGreen()
+    val blue = PapColor.carPark
     val markerW = if (selected) SPOT_PIN_SEL_W else SPOT_PIN_W
     val sDp = markerW.value / SPOT_VIEWBOX_W
     val s = with(LocalDensity.current) { markerW.toPx() / SPOT_VIEWBOX_W }
@@ -1328,23 +1330,28 @@ fun PublicParkingMarker(
     Box(modifier.size(markerW, markerW * (SPOT_VIEWBOX_H / SPOT_VIEWBOX_W))) {
         Canvas(Modifier.matchParentSize()) {
             drawSpotShadow(s, ink, centerX = 36f)
-            drawSpotDot(s, brand, centerX = 36f)
+            drawSpotDot(s, blue, centerX = 36f)
             val c = Offset(36f * s, 34f * s)
             if (selected) {
                 drawCircle(ink, radius = (PARKING_PUCK_R + 3.4f) * s, center = c, style = Stroke(width = 3.2f * s))
             }
-            drawCircle(paper, radius = PARKING_PUCK_R * s, center = c)
+            // Filled, not outlined: on a blue body the white P is the contrast, so the marker holds
+            // at map size without the paper disc the green version needed to stay legible.
+            drawCircle(blue, radius = PARKING_PUCK_R * s, center = c)
+            // A hairline of surface around the fill, so a dark-blue puck does not merge into dark
+            // tiles (and a light one not into paper). Same job the outline used to do, one third
+            // the weight because the fill now carries the colour.
             drawCircle(
-                brand,
+                paper,
                 radius = PARKING_PUCK_R * s,
                 center = c,
-                style = Stroke(width = if (selected) 4.2f * s else 3.2f * s),
+                style = Stroke(width = if (selected) 2.4f * s else 1.6f * s),
             )
         }
         Icon(
             imageVector = PaparcarIcons.CarParkMark,
             contentDescription = null,
-            tint = brand,
+            tint = PapColor.onCarPark,
             modifier = Modifier
                 .offset(x = (18f * sDp).dp, y = (16f * sDp).dp)
                 .size((36f * sDp).dp),
