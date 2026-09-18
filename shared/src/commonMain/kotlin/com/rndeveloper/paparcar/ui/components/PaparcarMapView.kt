@@ -73,6 +73,7 @@ import com.rndeveloper.paparcar.domain.model.Spot
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.model.Zone
 import com.rndeveloper.paparcar.presentation.map.CameraTarget
+import com.rndeveloper.paparcar.presentation.map.settleZoom
 import com.rndeveloper.paparcar.domain.model.SpotFreshness
 import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
 import com.rndeveloper.paparcar.domain.usecase.parkings.NearbyPublicParking
@@ -2242,7 +2243,11 @@ private fun rememberCameraAnimationState(
         } else {
             targetLat = target.lat.toFloat()
             targetLon = target.lon.toFloat()
-            targetZoom = target.zoom  // null → preserve current zoom
+            // null → preserve current zoom. Y cuando hay valor, la intención decide si es un suelo
+            // («acércame al menos así») o un encuadre que manda. Antes se aplicaba siempre en
+            // absoluto, así que tocar una zona desde nivel calle te alejaba a 15 y había que volver
+            // a acercar a mano. [MAP-A-CAMERA-MOVE-MUST-NOT-COST-A-PINCH-001]
+            targetZoom = target.zoom?.let { settleZoom(actualCamZoom, it, target.zoomIntent) }
         }
         val spec = tween<Float>(CAMERA_ANIM_MS, easing = FastOutSlowInEasing)
         launch { animLat.animateTo(targetLat, spec) }

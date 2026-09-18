@@ -84,6 +84,8 @@ import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.peek
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.peek.nextLaneHeaderLatch
 import com.rndeveloper.paparcar.presentation.util.rememberOpenExternalNavigation
 import com.rndeveloper.paparcar.presentation.util.zoneIconFor
+import com.rndeveloper.paparcar.presentation.map.ZoomIntent
+import com.rndeveloper.paparcar.presentation.map.zoomForZoneRadius
 import com.rndeveloper.paparcar.ui.components.CenterPinKind
 import com.rndeveloper.paparcar.ui.components.LocalMapInteracting
 import androidx.compose.material.icons.Icons
@@ -146,17 +148,18 @@ private const val MAP_INTERACTION_IDLE_DELAY_MS = 320L
 // animating to a tapped spot / "my location" / bounds fit.
 private const val PROGRAMMATIC_MOVE_GUARD_MS = 1100L
 
-// Zoom per camera PURPOSE (see CameraFrame) — the screen owns these numbers, the VM
-// only says what the move is for.
-//   · Navigate: land on a place with its street context (zone chip, search result, recentre).
-//   · ZoneEditing: a zone radius reaches 500 m, so its circle needs ~1 km of screen to read
-//     whole while it is being sized. [UI-ZONE-MANAGE-001]
+// Zoom per camera PURPOSE (see CameraFrame) — the screen owns these numbers, the VM only says what
+// the move is for.
+//   · Navigate: a SUELO, no un destino. Aterrizar en un sitio con su contexto de calle si venías
+//     lejos, y no tocar el zoom si ya estabas más cerca. [MAP-A-CAMERA-MOVE-MUST-NOT-COST-A-PINCH-001]
+//   · ZoneEditing: ya no tiene número fijo. El círculo hay que verlo entero, pero eso depende de su
+//     RADIO — `zoomForZoneRadius` —, no de un 14 que mandaba a 4 km para dimensionar un garaje.
+//     [UI-ZONE-MANAGE-001]
 private const val NAVIGATE_ZOOM = 15f
 
 // How long a checklist step's highlight stays on the control it points at.
 // [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001]
 private const val FIRST_STEP_GUIDE_MS = 6_000L
-private const val ZONE_EDITING_ZOOM = 14f
 
 /** Which tier the permissions screen opens focused on. Two callers since the location warning moved
  *  from the peek badge to the map pill, and they have to land on the SAME place.
@@ -1146,11 +1149,18 @@ private fun HomeCameraEffects(
     LaunchedEffect(Unit) {
         effects.collect { effect ->
             if (effect is HomeEffect.MoveCameraTo) {
-                val zoom = when (effect.frame) {
-                    CameraFrame.Navigate -> NAVIGATE_ZOOM
-                    CameraFrame.ZoneEditing -> ZONE_EDITING_ZOOM
+                // [MAP-A-CAMERA-MOVE-MUST-NOT-COST-A-PINCH-001] Dos intenciones distintas, y antes
+                // las dos se aplicaban en absoluto:
+                //  · Navegar es un SUELO. Tocar una zona desde nivel calle te alejaba a 15 y había
+                //    que volver a acercar a mano — la queja de la issue #31.
+                //  · Editar una zona SÍ es un encuadre (hay que ver el círculo entero), pero por su
+                //    RADIO: un garaje de 40 m no necesita el zoom 14 fijo de antes, que enseña 4 km.
+                val (zoom, intent) = when (effect.frame) {
+                    CameraFrame.Navigate -> NAVIGATE_ZOOM to ZoomIntent.AtLeast
+                    CameraFrame.ZoneEditing ->
+                        zoomForZoneRadius(state.addingZoneRadius) to ZoomIntent.Fit
                 }
-                uiController.goToPlace(effect.lat, effect.lon, zoom = zoom)
+                uiController.goToPlace(effect.lat, effect.lon, zoom = zoom, zoomIntent = intent)
             }
         }
     }

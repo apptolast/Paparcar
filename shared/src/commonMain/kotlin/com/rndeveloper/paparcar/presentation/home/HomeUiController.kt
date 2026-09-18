@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.rndeveloper.paparcar.presentation.map.CameraTarget
+import com.rndeveloper.paparcar.presentation.map.ZoomIntent
 import com.rndeveloper.paparcar.presentation.util.distanceMeters
 
 @Stable
@@ -128,9 +129,16 @@ class HomeUiController {
      * it is declared at the door instead, and the low-level setters are private: a name that doesn't
      * state its rank is exactly what lets the next call site be born broken.
      */
-    fun goToPlace(lat: Double, lon: Double, zoom: Float? = null) {
+    fun goToPlace(
+        lat: Double,
+        lon: Double,
+        zoom: Float? = null,
+        /** Por defecto un SUELO: ir a un sitio no puede costarle al usuario volver a acercar.
+         *  [MAP-A-CAMERA-MOVE-MUST-NOT-COST-A-PINCH-001] */
+        zoomIntent: ZoomIntent = ZoomIntent.AtLeast,
+    ) {
         followingDriver = false
-        setTarget(lat, lon, zoom)
+        setTarget(lat, lon, zoom, zoomIntent)
     }
 
     /** Deliberate two-point framing (the midpoint FAB: your car AND you). Outranks follow, as [goToPlace]. */
@@ -139,9 +147,18 @@ class HomeUiController {
         setBoundsTarget(lat1, lon1, lat2, lon2)
     }
 
-    private fun setTarget(lat: Double, lon: Double, zoom: Float? = null) {
+    private fun setTarget(
+        lat: Double,
+        lon: Double,
+        zoom: Float? = null,
+        zoomIntent: ZoomIntent = ZoomIntent.AtLeast,
+    ) {
         isProgrammaticMove = true
-        cameraTarget = CameraTarget(lat, lon, zoom, token = (cameraTarget?.token ?: 0) + 1)
+        cameraTarget = CameraTarget(
+            lat, lon, zoom,
+            token = (cameraTarget?.token ?: 0) + 1,
+            zoomIntent = zoomIntent,
+        )
     }
 
     private fun setBoundsTarget(lat1: Double, lon1: Double, lat2: Double, lon2: Double) {
