@@ -50,6 +50,15 @@ final class ScreenshotUITests: XCTestCase {
 
     private enum Tab: Int {
         case home = 0, vehicles = 1, settings = 2
+
+        /// `Modifier.testTag` de la barra, derivado de la RUTA — ver AppBottomNavigation.
+        var identifier: String {
+            switch self {
+            case .home: return "nav_home"
+            case .vehicles: return "nav_vehicles"
+            case .settings: return "nav_settings"
+            }
+        }
     }
 
     @MainActor
@@ -73,17 +82,24 @@ final class ScreenshotUITests: XCTestCase {
         Thread.sleep(forTimeInterval: 3.0)
     }
 
-    /// ⚠️ Tapped by COORDINATE, and it is worth knowing why before someone calls it sloppy: the
-    /// shared UI carries no `testTag` anywhere (checked: zero in commonMain), so there is no
-    /// accessibility identifier to query, and matching the visible label would break in eight of
-    /// the nine languages we shoot. The bar is a fixed three-item row, so thirds are stable — but
-    /// if a fourth destination ever lands, this is the line that silently shoots the wrong tab.
-    /// Adding `Modifier.testTag` to the three items and querying it here is the real fix.
+    /// Cambia de pestaña por IDENTIFICADOR, y falla si no puede.
+    ///
+    /// ⛔ La primera versión tocaba por COORDENADA porque el proyecto no tenía un solo `testTag`.
+    /// El toque no cambiaba de pestaña y el test seguía en VERDE: tres de las cinco capturas eran
+    /// Home con el nombre de otra pantalla, y eso se sube a la tienda sin que nadie lo note. Por eso
+    /// aquí no hay respaldo silencioso — si el identificador no aparece, la tanda se pone roja.
+    /// [IOS-STORE-SHOTS-WITHOUT-SHIPPING-THE-DEMO-CODE-001]
     @MainActor
     private func select(_ tab: Tab, in app: XCUIApplication) {
-        guard tab != .home else { return }   // Home is the start destination: no tap needed
-        let x = (CGFloat(tab.rawValue) + 0.5) / 3.0
-        app.coordinate(withNormalizedOffset: CGVector(dx: x, dy: 0.965)).tap()
+        guard tab != .home else { return }   // Home es el destino inicial: no hay que tocar nada
+        let item = app.descendants(matching: .any).matching(identifier: tab.identifier).firstMatch
+        XCTAssertTrue(
+            item.waitForExistence(timeout: 10),
+            "No aparece '\(tab.identifier)' en la barra. Sin identificador esta captura sería la " +
+                "pantalla de inicio con el nombre de otra — que es exactamente el fallo que este " +
+                "assert existe para impedir."
+        )
+        item.tap()
         Thread.sleep(forTimeInterval: 1.5)
     }
 }

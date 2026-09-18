@@ -135,7 +135,7 @@ platform :ios do
 
 
   desc "Capture App Store screenshots: iPhone 6.9\", nine languages, from the mock graph. Reads Snapfile."
-  lane :screenshots do
+  lane :screenshots do |options|
     # ⛔ These two settings are the ONLY place the mock graph enters an iOS build, and they are
     # deliberately not defaults anywhere:
     #   · PAPARCAR_SCREENSHOTS compiles the Swift hook (ScreenshotMode + the ContentView branch).
@@ -144,10 +144,21 @@ platform :ios do
     # Miss either one and the run fails loudly (missing symbol / no mock data) rather than quietly
     # shooting the real app or, far worse, leaving demo code in something shippable.
     # [IOS-STORE-SHOTS-WITHOUT-SHIPPING-THE-DEMO-CODE-001]
-    snapshot(
+    # `languages:es-ES` acota la tanda a un idioma. No es un capricho: la tanda completa son nueve
+    # arranques de simulador y ~40 minutos, así que la cadena se valida con UNO y solo entonces se
+    # tiran los nueve. Sin argumento manda el Snapfile, que es la tanda de verdad.
+    langs = options[:languages]&.split(",")&.map(&:strip)
+    snapshot_args = {
       xcargs: "SWIFT_ACTIVE_COMPILATION_CONDITIONS='$(inherited) PAPARCAR_SCREENSHOTS' " \
               "PAPARCAR_FRAMEWORK_PROJECT=mockkit",
-    )
+    }
+    if langs && !langs.empty?
+      snapshot_args[:languages] = langs
+      # Una tanda de un idioma NO puede borrar las capturas de los otros ocho.
+      snapshot_args[:clear_previous_screenshots] = false
+      UI.important "Tanda acotada a: #{langs.join(', ')} (sin borrar las demás capturas)"
+    end
+    snapshot(**snapshot_args)
     UI.success "Screenshots in #{File.join(IOS_APP_DIR, 'fastlane', 'screenshots')} — review them before uploading."
   end
 
@@ -161,10 +172,33 @@ platform :ios do
     end
 
     api_key = app_store_connect_api_key_token
+
+    # ⛔ «Novedades» NO existe en una primera versión. Medido contra la API el 18-09: escribir
+    # `whatsNew` en la versión editable devuelve *Attribute 'whatsNew' cannot be edited at this
+    # time* mientras no haya una versión publicada — y `deliver` lo intentaría para los diez
+    # idiomas y moriría al final, después de subir todo lo demás.
+    #
+    # Los release_notes.txt NO se borran del repo (los genera `metadata_from_play.py` y valen para
+    # la siguiente versión): se subtrae una COPIA sin ellos, y en cuanto la app tenga una versión
+    # publicada esta rama deja de entrar sola. [IOS-STORE-SHOTS-WITHOUT-SHIPPING-THE-DEMO-CODE-001]
+    metadata_dir = File.join(IOS_APP_DIR, "fastlane", "metadata")
+    app = Spaceship::ConnectAPI::App.find(BUNDLE_ID)
+    if app&.get_live_app_store_version.nil?
+      require "tmpdir"
+      require "fileutils"
+      staged = Dir.mktmpdir("paparcar-metadata")
+      FileUtils.cp_r("#{metadata_dir}/.", staged)
+      dropped = Dir.glob(File.join(staged, "*", "release_notes.txt"))
+      dropped.each { |f| File.delete(f) }
+      metadata_dir = staged
+      UI.important "Primera versión: se omiten las notas de #{dropped.size} idiomas — App Store " \
+                   "Connect no acepta «Novedades» hasta que hay una versión publicada."
+    end
+
     deliver(
       api_key: api_key,
       app_identifier: BUNDLE_ID,
-      metadata_path: File.join(IOS_APP_DIR, "fastlane", "metadata"),
+      metadata_path: metadata_dir,
       screenshots_path: File.join(IOS_APP_DIR, "fastlane", "screenshots"),
       # Binaries go up through `beta`; this lane only ever touches the listing.
       skip_binary_upload: true,

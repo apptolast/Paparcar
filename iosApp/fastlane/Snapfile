@@ -39,7 +39,15 @@ ios_version("26.2")
 scheme("iosApp")
 only_testing("iosAppUITests/ScreenshotUITests")
 
-output_directory("./screenshots")
+# Carpeta de build FIJA. Por defecto `snapshot` crea un derivedDataPath temporal nuevo en cada
+# ejecución, así que cada reintento recompila Firebase entero (~4 min) antes de llegar a nuestro
+# código. Con una fija, el segundo intento tarda segundos. Está bajo build/, que ya está ignorado.
+derived_data_path("../build/snapshot-derived")
+
+# ⛔ Bajo fastlane/, no en iosApp/screenshots. `deliver` lee de fastlane/screenshots y ahí es donde
+# la lane `upload_metadata` apunta: con la ruta de antes las capturas se generaban en un sitio y la
+# subida miraba en otro, así que la ficha habría subido SIN imágenes y sin que nada fallara.
+output_directory("./fastlane/screenshots")
 clear_previous_screenshots(true)   # a stale frame is worse than a missing one
 reinstall_app(true)                # so a previous run's state cannot leak into this one
 app_identifier("com.rndeveloper.paparcar")

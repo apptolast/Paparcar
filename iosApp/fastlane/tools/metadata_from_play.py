@@ -29,6 +29,12 @@ OUT = ROOT / "iosApp" / "fastlane" / "metadata"
 LOCALES = {
     "es-ES": "es-ES",
     "en-US": "en-US",
+    # ⛔ en-GB es el idioma PRINCIPAL de la ficha en App Store Connect (comprobado con la API el
+    # 18-09), y Apple exige que el principal esté completo o no deja enviar. Sale del MISMO copy
+    # inglés que en-US: la app no tiene recursos en-GB —cae a la base inglesa— así que las dos
+    # fichas dicen y enseñan exactamente lo mismo. Duplicar aquí es más honesto que dejar vacío el
+    # idioma que manda. [IOS-STORE-SHOTS-WITHOUT-SHIPPING-THE-DEMO-CODE-001]
+    "en-US|en-GB": "en-GB",
     "it-IT": "it",
     "pt-PT": "pt-PT",
     "fr-FR": "fr-FR",
@@ -42,6 +48,19 @@ LOCALES = {
 # seven languages, so they point at the English one — an existing page beats an invented path.
 ORIGIN = "https://paparcar.com"
 PRIVACY_URL = f"{ORIGIN}/privacy-policy"          # single page, no locale prefix
+
+# Categorías de la ficha, a nivel de APP (no por idioma). Decisión del user el 19-09: Navegación
+# como primaria —es donde viven Parkopedia, EasyPark y compañía, y donde Play ya tiene a Paparcar
+# (Mapas y navegación)— y Viajes como secundaria.
+#
+# ⛔ Viven aquí y no en la web de App Store Connect porque SIN ELLAS la subida entera muere: `deliver`
+# intenta actualizar la app info, la API devuelve vacío y fastlane lo reporta como `No data`, un
+# error que no menciona la palabra «categoría» por ningún lado. Medido el 19-09 en la primera
+# subida real. [IOS-STORE-SHOTS-WITHOUT-SHIPPING-THE-DEMO-CODE-001]
+CATEGORIES = {
+    "primary_category": "NAVIGATION",
+    "secondary_category": "TRAVEL",
+}
 
 # App Store Connect's hard limits. A field over the limit is rejected at upload, not at review.
 LIMITS = {"name": 30, "subtitle": 30, "promotional_text": 170, "keywords": 100, "description": 4000}
@@ -84,7 +103,8 @@ def main() -> int:
 
     problems, written = [], 0
     for play_locale, app_locale in LOCALES.items():
-        src = PASTE / f"play-{play_locale}.txt"
+        play_file = play_locale.split("|")[0]
+        src = PASTE / f"play-{play_file}.txt"
         if not src.exists():
             problems.append(f"{play_locale}: falta {src.name}")
             continue
@@ -98,8 +118,8 @@ def main() -> int:
             "support_url": f"{base}/support",
             "privacy_url": PRIVACY_URL,
         }
-        if play_locale in notes:
-            fields["release_notes"] = notes[play_locale]
+        if play_file in notes:
+            fields["release_notes"] = notes[play_file]
         else:
             problems.append(f"{app_locale}: sin notas de versión en {notes_file.name}")
 
@@ -120,6 +140,17 @@ def main() -> int:
         for hand_written in ("subtitle", "keywords"):
             if not (folder / f"{hand_written}.txt").exists():
                 problems.append(f"{app_locale}/{hand_written}.txt PENDIENTE (se escribe a mano)")
+
+    # Las categorías son de la app, no de un idioma: fichero suelto en la raíz de metadata/.
+    for field, value in CATEGORIES.items():
+        target = OUT / f"{field}.txt"
+        if args.check:
+            if not target.exists() or target.read_text(encoding="utf-8").strip() != value:
+                problems.append(f"{field}.txt desactualizado (debe decir {value})")
+        else:
+            OUT.mkdir(parents=True, exist_ok=True)
+            target.write_text(value + "\n", encoding="utf-8")
+            written += 1
 
     print(f"{'verificados' if args.check else 'escritos'} {written or len(LOCALES)*7} ficheros "
           f"en {len(LOCALES)} idiomas")

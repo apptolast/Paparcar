@@ -1,0 +1,6 @@
+• Join a shared car with its code: the invite now works end to end.
+• Sharing a car no longer hides the history it already had.
+• Your figures by period — today, this week, this month — and the monthly recap has its own switch.
+• Prices, volumes and distances in the units you actually buy in.
+• A spot you report now shows on the map with the area it covers.
+• Privacy: leaving a group takes your trips with you, and deleting your account closes the group.

@@ -590,6 +590,13 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+# ⛔ Las reglas de arriba están ancladas a la RAÍZ (llevan `/` en medio), y el fastlane de este
+# repo vive en `iosApp/`: nunca han llegado a tapar nada. Sin el prefijo `**/` los 27 MB de PNG
+# de la tanda de capturas entran al repo, y son regenerables con `fastlane ios screenshots`.
+# [IOS-STORE-SHOTS-WITHOUT-SHIPPING-THE-DEMO-CODE-001]
+**/fastlane/screenshots/**/*.png
+**/fastlane/screenshots/screenshots.html
+**/fastlane/test_output
 # Secrets of the iOS release lane: match passphrase, API key path, GitHub PAT — never committed.
 **/fastlane/.env
 **/fastlane/README.md

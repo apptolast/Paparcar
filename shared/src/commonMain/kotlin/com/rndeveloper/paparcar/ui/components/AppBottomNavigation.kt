@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,6 +48,16 @@ fun AppBottomNavigation(
                 val label = item.label()
                 val cs = MaterialTheme.colorScheme
                 NavigationBarItem(
+                    // Identificador estable para automatización, derivado de la RUTA — no del
+                    // texto, que cambia en nueve idiomas, ni de la posición, que cambia si entra
+                    // una pestaña. En iOS Compose lo expone como accessibilityIdentifier, que es
+                    // por donde XCUITest encuentra la pestaña al sacar las capturas de tienda.
+                    //
+                    // ⛔ Antes no había ninguno y el test tocaba por COORDENADA: el toque no
+                    // cambiaba de pestaña y tres de las cinco capturas salían siendo Home, con el
+                    // nombre de otra pantalla. Un fallo mudo — el test pasaba en verde.
+                    // [IOS-STORE-SHOTS-WITHOUT-SHIPPING-THE-DEMO-CODE-001]
+                    modifier = Modifier.testTag("nav_${item.route.substringBefore('/').lowercase()}"),
                     selected = selected,
                     onClick = { onNavigate(item.route) },
                     icon = {
