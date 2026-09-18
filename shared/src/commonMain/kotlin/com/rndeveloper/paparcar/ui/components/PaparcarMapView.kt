@@ -72,6 +72,7 @@ import com.rndeveloper.paparcar.domain.model.ParkedVehicleSummary
 import com.rndeveloper.paparcar.domain.model.Spot
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.model.Zone
+import com.rndeveloper.paparcar.domain.zone.zoneContaining
 import com.rndeveloper.paparcar.presentation.map.CameraTarget
 import com.rndeveloper.paparcar.presentation.map.settleZoom
 import com.rndeveloper.paparcar.domain.model.SpotFreshness
@@ -282,6 +283,11 @@ internal fun vehicleBadgeContentId(
     selected: Boolean,
     dim: Boolean = false,
     themeKey: String,
+    /** Zone id + privacy of the zone this car sits in, or "none". Baked into the key for the same
+     *  reason every other segment is: the glyph is part of the BITMAP, and kmpmaps caches by
+     *  contentId — without it, driving into a zone would serve the cached mark-less raster forever.
+     *  [MAP-A-PARKED-CAR-INSIDE-A-ZONE-WEARS-THE-ZONE-001] */
+    zoneKey: String = "nz",
 ): String {
     val state = when {
         selected -> "sel"
@@ -302,7 +308,7 @@ internal fun vehicleBadgeContentId(
     // the target ⊙ on the tag's corner. Same reason as every other segment here: the doubt is baked
     // into the bitmap, so a session that turns out to be a zone needs a key the cache has never seen.
     return "$MARKER_VEHICLE_BADGE_PREFIX${v.vehicleId.take(8)}_${v.sizeCategory?.name ?: "def"}_" +
-        "${v.color?.name ?: "def"}_${state}_${tone}_${v.doubtKey()}_$themeKey"
+        "${v.color?.name ?: "def"}_${state}_${tone}_${v.doubtKey()}_${zoneKey}_$themeKey"
 }
 
 /** `apx` when the session is an area, `pt` when it is a point — one segment of the marker cache key. */
@@ -1031,7 +1037,15 @@ fun PaparcarMapView(
             // Zone markers — added FIRST (lowest zIndex) so spot/parking markers
             // always render on top. Zones are never the selected marker, so they
             // route through the dim suffix uniformly.
+            // ⛔ Una zona que ALOJA un coche aparcado no se rotula: su glifo y su nombre caerían
+            // encima del coche, que es el sujeto, y el coche ya lleva el glifo en su esquina. El
+            // ANILLO se queda — el anillo es el área y el área sigue siendo verdad; lo que se
+            // retira es la ETIQUETA. [MAP-A-PARKED-CAR-INSIDE-A-ZONE-WEARS-THE-ZONE-001]
+            val zonesHostingAParkedCar = parkedVehicles
+                .mapNotNull { zones.zoneContaining(it.location.latitude, it.location.longitude)?.id }
+                .toSet()
             zones.forEach { zone ->
+                if (zone.id in zonesHostingAParkedCar) return@forEach
                 add(
                     Marker(
                         coordinates = Coordinates(zone.lat, zone.lon),
@@ -1354,8 +1368,13 @@ fun PaparcarMapView(
         // ── Per-vehicle badge bitmaps (one per vehicle × selected × dim) ──
         val vehicleHandlers: Map<String, @Composable (Marker) -> Unit> =
             parkedVehicles.flatMap { v ->
+                // The zone this car is standing in, if any — read once per vehicle and used for both
+                // the bitmap and its key. [MAP-A-PARKED-CAR-INSIDE-A-ZONE-WEARS-THE-ZONE-001]
+                val zone = zones.zoneContaining(v.location.latitude, v.location.longitude)
+                val zoneMark = zone?.let { VehicleZoneMark(zoneIconFor(it.iconKey), it.isPrivate) }
+                val zoneKey = zone?.let { "z${it.id.take(6)}${if (it.isPrivate) "p" else "o"}" } ?: "nz"
                 listOf<Pair<String, @Composable (Marker) -> Unit>>(
-                    vehicleBadgeContentId(v, selected = false, dim = false, themeKey = themeKey) to { _: Marker ->
+                    vehicleBadgeContentId(v, selected = false, dim = false, themeKey = themeKey, zoneKey = zoneKey) to { _: Marker ->
                         VehicleBadgeMarker(
                             sizeCategory = v.sizeCategory,
                             carbodyType = v.carbodyType,
@@ -1366,9 +1385,10 @@ fun PaparcarMapView(
                             // Same field that draws the ring around it, so circle and badge cannot
                             // disagree. [UI-A-SAVED-ZONE-WEARS-ITS-DOUBT-TOO-001]
                             doubt = parkingDoubt(v.zoneRadiusMeters),
+                            zoneMark = zoneMark,
                         )
                     },
-                    vehicleBadgeContentId(v, selected = false, dim = true, themeKey = themeKey) to { _: Marker ->
+                    vehicleBadgeContentId(v, selected = false, dim = true, themeKey = themeKey, zoneKey = zoneKey) to { _: Marker ->
                         DimWrapper {
                             VehicleBadgeMarker(
                                 sizeCategory = v.sizeCategory,
@@ -1378,10 +1398,11 @@ fun PaparcarMapView(
                                 isBluetoothPaired = v.isBluetoothPaired,
                                 color = v.color,
                                 doubt = parkingDoubt(v.zoneRadiusMeters),
+                                zoneMark = zoneMark,
                             )
                         }
                     },
-                    vehicleBadgeContentId(v, selected = true, themeKey = themeKey) to { _: Marker ->
+                    vehicleBadgeContentId(v, selected = true, themeKey = themeKey, zoneKey = zoneKey) to { _: Marker ->
                         VehicleBadgeMarker(
                             selected = true,
                             sizeCategory = v.sizeCategory,
@@ -1391,6 +1412,7 @@ fun PaparcarMapView(
                             isBluetoothPaired = v.isBluetoothPaired,
                             color = v.color,
                             doubt = parkingDoubt(v.zoneRadiusMeters),
+                            zoneMark = zoneMark,
                         )
                     },
                 )

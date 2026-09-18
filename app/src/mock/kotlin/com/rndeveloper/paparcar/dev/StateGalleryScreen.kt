@@ -149,6 +149,7 @@ import com.rndeveloper.paparcar.ui.components.VehicleBadgeMarker
 import com.rndeveloper.paparcar.ui.components.VehicleTopdownIcon
 import com.rndeveloper.paparcar.ui.components.VehicleIcon
 import com.rndeveloper.paparcar.ui.components.VehicleMarkerDoubt
+import com.rndeveloper.paparcar.ui.components.VehicleZoneMark
 import com.rndeveloper.paparcar.ui.components.MyVehicleMarker
 import com.rndeveloper.paparcar.ui.components.ParkingCenterPin
 import com.rndeveloper.paparcar.ui.components.ReportCenterPin
@@ -840,6 +841,32 @@ private fun markersShowcase() {
         // poder ver de un vistazo que la ZONA GUARDADA no es «una pregunta abierta» (borde sólido,
         // etiqueta opaca, diana en vez de `?`) ni un pin exacto. En el mapa lleva además su anillo
         // alrededor; aquí se mira el marcador solo, que es lo que sobrevive al zoom de calle.
+        // [MAP-A-PARKED-CAR-INSIDE-A-ZONE-WEARS-THE-ZONE-001] Aparcado DENTRO de una zona: el
+        // coche lleva el glifo de la zona en su esquina y la zona deja de rotularse en el mapa.
+        // Las cuatro combinaciones que importan, porque la esquina es disputada: pública y privada,
+        // con y sin duda — con duda, la diana se queda la derecha y la zona se va a la izquierda.
+        MarkerSectionLabel("VehicleBadge · DENTRO DE UNA ZONA — pública · privada · privada+diana · pública+pregunta")
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.Bottom) {
+            VehicleBadgeMarker(
+                carbodyType = CarbodyType.SUV_MEDIUM,
+                zoneMark = VehicleZoneMark(zoneIconFor("home"), isPrivate = false),
+            )
+            VehicleBadgeMarker(
+                carbodyType = CarbodyType.SUV_MEDIUM,
+                zoneMark = VehicleZoneMark(zoneIconFor("home"), isPrivate = true),
+            )
+            VehicleBadgeMarker(
+                carbodyType = CarbodyType.SEDAN,
+                doubt = VehicleMarkerDoubt.APPROXIMATE,
+                zoneMark = VehicleZoneMark(zoneIconFor("home"), isPrivate = true),
+            )
+            VehicleBadgeMarker(
+                carbodyType = CarbodyType.SEDAN,
+                doubt = VehicleMarkerDoubt.ASKING,
+                zoneMark = VehicleZoneMark(zoneIconFor("work"), isPrivate = false),
+            )
+        }
+
         MarkerSectionLabel("VehicleBadge · ZONA GUARDADA — vigilado · Bluetooth · sin vigilancia · seleccionado")
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.Bottom) {
             VehicleBadgeMarker(carbodyType = CarbodyType.SEDAN, doubt = VehicleMarkerDoubt.APPROXIMATE)

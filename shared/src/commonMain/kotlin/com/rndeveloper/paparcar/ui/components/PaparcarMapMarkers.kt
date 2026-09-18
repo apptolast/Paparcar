@@ -161,6 +161,24 @@ private const val GROUND_SHADOW_ALPHA = 0.35f
  * expressed by doubting WHICH CAR — a dimmed carbody reads as "this vehicle is going away", the
  * failure mode the inactive state was explicitly designed around. Identity is not status.
  */
+/**
+ * The zone a parked car sits inside, worn by its own marker.
+ * [MAP-A-PARKED-CAR-INSIDE-A-ZONE-WEARS-THE-ZONE-001]
+ *
+ * When a car is parked inside a saved zone, the zone stops labelling itself — its glyph and name
+ * would sit on top of the car that is the subject — and the car carries the zone's glyph instead.
+ * The ring stays: the ring is the AREA and the area is still true. What moves is the LABEL.
+ *
+ * @param icon the zone's own preset glyph, resolved from `zone.iconKey` by the caller.
+ * @param isPrivate a private zone reads neutral and carries the padlock, exactly as
+ *   [ZoneMarker] does — one rule said on both surfaces.
+ *   [UI-A-PRIVATE-ZONE-IS-PRIVATE-ON-EVERY-SURFACE-001]
+ */
+data class VehicleZoneMark(
+    val icon: ImageVector,
+    val isPrivate: Boolean,
+)
+
 enum class VehicleMarkerDoubt {
     /** A fact with a point behind it: solid frame, opaque tag, empty corner. */
     NONE,
@@ -226,6 +244,8 @@ fun VehicleBadgeMarker(
      * of them may break (the carbody never fades).
      */
     doubt: VehicleMarkerDoubt = VehicleMarkerDoubt.NONE,
+    /** Non-null when this car is parked inside a saved zone. See [VehicleZoneMark]. */
+    zoneMark: VehicleZoneMark? = null,
 ) {
     // Method-coloured frame, fixed light-theme tones (markers float over map tiles, not surfaces):
     // BT blue wins (matches Vehicle.monitoringStatus), then active green, grey when unwatched.
@@ -246,6 +266,15 @@ fun VehicleBadgeMarker(
 
     // dp-per-viewBox-unit, so the overlaid carbody lands exactly inside the drawn tag interior.
     val u = TAG_MARKER_W / TAG_VB_W
+
+    // Where the zone disc lands, and it is a rule rather than a constant: the right corner belongs
+    // to the doubt when there is one — whether the pin is real outranks where it is — so the zone
+    // mirrors to the left instead of stacking. With no doubt it takes the right corner, which is
+    // where the owner asked for it. [MAP-A-PARKED-CAR-INSIDE-A-ZONE-WEARS-THE-ZONE-001]
+    val zoneBadgeCx = if (doubt == VehicleMarkerDoubt.NONE) BADGE_CX else BADGE_ZONE_CX_LEFT
+    // The zone's own colour, not the vehicle's: this disc says WHICH PLACE, and privacy is a
+    // category the glyph carries — the same resolver the zone's label uses on the map.
+    val zoneDiscColor = zoneMark?.let { zoneIdentityColor(it.isPrivate) } ?: Color.Transparent
 
     // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] The `?` is measured here, not drawn as a
     // hand-built path: a glyph at ~9 dp lives or dies on its hinting, and the app's own family
@@ -382,7 +411,70 @@ fun VehicleBadgeMarker(
                     }
                 }
             }
+            // The zone disc — same grammar as the doubt above (filled disc, tag-fill ring), in the
+            // ZONE's identity colour so it says WHICH zone family this is, neutral when private.
+            //
+            // ⛔ It does not share the corner with a doubt. The corner was modelled as exclusive on
+            // purpose ([VehicleMarkerDoubt]) and that reasoning still holds: two discs on the same
+            // 16-unit corner is one blob at map size. So the doubt keeps the right corner — it says
+            // whether the pin is even real — and the zone takes the mirrored LEFT one when both are
+            // present. Neither piece of information is ever dropped.
+            // [MAP-A-PARKED-CAR-INSIDE-A-ZONE-WEARS-THE-ZONE-001]
+            if (zoneMark != null) {
+                val zoneCenter = Offset(zoneBadgeCx * s, BADGE_CY * s)
+                drawCircle(color = zoneDiscColor, radius = BADGE_R * s, center = zoneCenter)
+                drawCircle(
+                    color = tagFill,
+                    radius = BADGE_R * s,
+                    center = zoneCenter,
+                    style = Stroke(width = BADGE_BORDER_U * s),
+                )
+                if (zoneMark.isPrivate) {
+                    // The padlock rides the zone disc's own bottom corner — a badge on a badge, the
+                    // only place left that is neither the car nor the ground point.
+                    val lockCenter = Offset(
+                        (zoneBadgeCx + BADGE_LOCK_DX) * s,
+                        (BADGE_CY + BADGE_LOCK_DY) * s,
+                    )
+                    drawCircle(color = zoneDiscColor, radius = BADGE_LOCK_R * s, center = lockCenter)
+                    drawCircle(
+                        color = tagFill,
+                        radius = BADGE_LOCK_R * s,
+                        center = lockCenter,
+                        style = Stroke(width = BADGE_BORDER_U * 0.7f * s),
+                    )
+                }
+            }
             } // translate — the badge's breathing room
+        }
+        // 4b · the zone glyph (and its padlock) knocked out of the discs the Canvas just drew. An
+        // ImageVector cannot be drawn into a Canvas, so they ride as overlaid Icons the same way
+        // the carbody does. [MAP-A-PARKED-CAR-INSIDE-A-ZONE-WEARS-THE-ZONE-001]
+        if (zoneMark != null) {
+            Icon(
+                imageVector = zoneMark.icon,
+                contentDescription = null,
+                tint = tagFill,
+                modifier = Modifier
+                    .offset(
+                        x = u * (zoneBadgeCx - BADGE_ZONE_GLYPH_U / 2f + TAG_PAD_X),
+                        y = u * (BADGE_CY - BADGE_ZONE_GLYPH_U / 2f + TAG_PAD_TOP),
+                    )
+                    .size(u * BADGE_ZONE_GLYPH_U),
+            )
+            if (zoneMark.isPrivate) {
+                Icon(
+                    imageVector = Icons.Rounded.Lock,
+                    contentDescription = null,
+                    tint = tagFill,
+                    modifier = Modifier
+                        .offset(
+                            x = u * (zoneBadgeCx + BADGE_LOCK_DX - BADGE_LOCK_GLYPH_U / 2f + TAG_PAD_X),
+                            y = u * (BADGE_CY + BADGE_LOCK_DY - BADGE_LOCK_GLYPH_U / 2f + TAG_PAD_TOP),
+                        )
+                        .size(u * BADGE_LOCK_GLYPH_U),
+                )
+            }
         }
         // 4 · the isometric carbody, centred in the tag interior (ContentScale.Fit); faded with the
         // tag. Offsets are design-viewBox coords, so they shift by the same pads the Canvas does.
@@ -428,6 +520,15 @@ private const val BADGE_CY          = 12f  // tag spans y 6..72
 private const val BADGE_R           = 16f
 private const val BADGE_BORDER_U    = 3f
 private const val BADGE_GLYPH_U     = 22f  // `?` cap size, in the same viewBox units
+
+// The zone disc mirrors the doubt's corner across the tag (x 10..94), so both sit on the top edge
+// at the same height. [MAP-A-PARKED-CAR-INSIDE-A-ZONE-WEARS-THE-ZONE-001]
+private const val BADGE_ZONE_CX_LEFT  = 14f
+private const val BADGE_ZONE_GLYPH_U  = 18f   // a preset glyph reads smaller than a `?` cap
+private const val BADGE_LOCK_R        = 9f
+private const val BADGE_LOCK_DX       = 11f
+private const val BADGE_LOCK_DY       = 12f
+private const val BADGE_LOCK_GLYPH_U  = 10f
 
 // [UI-A-SAVED-ZONE-WEARS-ITS-DOUBT-TOO-001] The target ⊙ of a saved approximate zone, knocked out
 // of the same BADGE_R disc the `?` uses (viewBox units) — ring + centre, like Icons.Rounded.Adjust.
