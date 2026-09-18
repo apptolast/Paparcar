@@ -51,7 +51,7 @@ scheme. Detalle en el ticket.
 **Confirmar:** que la app arranca en el iPhone, se ve la pantalla de login con los botones de
 Google y Apple, y cualquier aviso que salga en *Signing & Capabilities*.
 
-## Paso 3 · Apple Key (.p8) + proveedores en Firebase — ⏸️ (tras confirmar el paso 2)
+## Paso 3 · Apple Key (.p8) + proveedores en Firebase — ✅ (17-09-2026, lo montó el user)
 
 Por qué la key: `AppleSignInCoordinator` revoca con `Auth.auth().revokeToken(withAuthorizationCode:)`
 (guideline 5.1.1(v)). Firebase solo puede llamar al endpoint de revocación de Apple si en la
@@ -78,8 +78,9 @@ login funciona, pero **borrar la cuenta falla** — y es justo lo que mira App R
 
 **Confirmar:** Apple y Google en *Enabled* y que la configuración de OAuth code flow se guardó.
 
-## Paso 4 · Prueba en el iPhone — 🔴 Google: entra pero la app lo echa (*Couldn't load your
-account*). Diagnóstico y plan en el ticket, sección «Bloqueo abierto»
+## Paso 4 · Prueba del login — 🟡 Google ✅ en simulador (el fallo *«Couldn't load your
+account»* era la BD vieja del simulador, no el login) · **Apple sin probar** · iPhone real pendiente
+de TestFlight
 
 Con la app ya instalada del paso 2 (no hace falta recompilar):
 

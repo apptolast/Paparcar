@@ -240,3 +240,52 @@ así que `isLocationServicesEnabled = hasLocation || valor anterior` hasta que l
   al devolver Settings a `viewModelOf` → rojo, `::SettingsViewModel(widgetPinRequester: WidgetPinRequester?)`.
 - Verde: `KoinOptionalDependencyGuardrailTest` (1), `KoinModuleVerifyTest` (2), `SettingsViewModelTest` (56),
   `PaywallViewModelTest` (6) · `:shared:compileKotlinIosSimulatorArm64` ✅.
+
+### 17-09 · Rama lista para mergear y Apple listo para probar
+- Rama rebasada sobre master (0 detrás, 9 delante). `3734bf2c`: el registro explícito de Ajustes
+  absorbe el `signOut` que llegó en master. `09550251`: **fuera el `mavenLocal` temporal** —
+  `io.github.rndevelo.kmpmaps:core:0.9.1-puck6` ya está liberado en Maven Central
+  (índice `lastUpdated 20260915014801`). Era lo único que impedía mergear.
+- **Paso 3 ✅ (user):** key `.p8` de Sign in with Apple creada y el proveedor Apple configurado en
+  Firebase `pap-26` con Team ID + Key ID + clave privada. Con eso ya se puede revocar el token al
+  borrar la cuenta (guideline 5.1.1(v)).
+- **Firma verificada, no hace falta `bootstrap_match`:** el perfil `match AppStore
+  com.rndeveloper.paparcar` (UUID `70c0ed51-…`, caduca 2027-06-07) **ya trae
+  `com.apple.developer.applesignin`**, así que se creó DESPUÉS de activar la capability en el App ID.
+  Comprobado descifrando el `.mobileprovision` que instala `fastlane ios match_certificates`.
+- `.env` de fastlane completo salvo `FASTLANE_ITC_TEAM_ID`, que está vacío y **no hace falta**: las
+  lanes pasan `api_key`, y `pilot` con API key no usa el itc team id.
+- Pendiente: probar Apple (nunca se ha probado, ni en simulador) y la primera subida a TestFlight
+  (`fastlane ios beta`) para que el compañero lo pruebe en iPhone real.
+
+### 18-09 · Primera subida a TestFlight: tres bloqueos, ninguno del login
+El paso 3 quedó ✅ (el user montó la key `.p8` y el proveedor Apple en Firebase), así que se lanzó
+`fastlane ios beta`. Cayó tres veces, por tres causas distintas:
+
+1. **Heap del link Release.** `linkReleaseFrameworkIosArm64` murió con
+   `e: Compilation failed: Java heap space` en `CallGraphBuilder` (la fase de LTO), a los 8m36s.
+   ⛔ **El compilador Kotlin/Native corre DENTRO del daemon de Gradle**, no en un proceso propio:
+   medido con `ps` mientras la tarea corría — los únicos JVM vivos son el daemon y el wrapper. Por
+   eso `kotlin.native.jvmArgs=-Xmx6g` no arregló nada (no hay proceso al que aplicarse; solo tardó
+   13m45s en reventar en vez de 8m36s) y la pista buena estaba en el log: el `OutOfMemoryError`
+   saltaba en `org.gradle.fileevents`, el file watcher, que vive en el daemon.
+   **Arreglo: `org.gradle.jvmargs` 4096M → 8192M.** Con eso el link pasa en 14m52s. El framework
+   debug del simulador nunca lo sufrió porque no lleva LTO.
+2. **El perfil de firma iba atrasado.** `xcodebuild`: *«Provisioning profile "match AppStore
+   com.rndeveloper.paparcar" doesn't include the aps-environment entitlement»*. Quitar el
+   entitlement no era opción: la app declara push de verdad (`iosApp.entitlements` +
+   `IosPushRegistry.kt`, [IOS-THE-GROUP-CANNOT-REACH-AN-IPHONE-001]).
+   Consultadas las capabilities del App ID con la API de ASC (`Spaceship::ConnectAPI::BundleId`):
+   el portal ya tenía `PUSH_NOTIFICATIONS`, `APPLE_ID_AUTH` e `IN_APP_PURCHASE`. El desfasado era
+   el perfil, creado el 14-09 antes de activar push.
+   **Arreglo: `fastlane ios bootstrap_match`** (renueva SOLO el perfil de Paparcar, nunca el
+   certificado compartido), verificado descifrando el `.mobileprovision`: ya trae `aps-environment`
+   y `com.apple.developer.applesignin`.
+   ⛔ **Regla que esto deja**: activar una capability en el App ID NO actualiza el perfil. Cada vez
+   que se active una hay que pasar por `bootstrap_match` o el Release peta en firma. Hoy mordió por
+   primera vez porque es el primer Release que se firma.
+3. `FASTLANE_ITC_TEAM_ID` está vacío en el `.env` y **no hace falta**: las lanes pasan `api_key`, y
+   `pilot` con API key no usa el itc team id.
+
+La beta sube como **0.1.0** (decisión del user: es la primera de iOS; Android va por 1.3.0 y no se
+busca paridad). `latest_testflight_build_number` no encuentra builds previos → build 1.
