@@ -985,6 +985,9 @@
     <string name="home_fuel_oldest_price">Ältester Preis: %1$s</string>
     <string name="home_fuel_live_prices">Preise werden in Echtzeit aktualisiert</string>
     <string name="home_fuel_attended_price">Bedient</string>
+    <string name="home_fuel_badge_cheapest">GÜNSTIGSTE</string>
+    <string name="home_fuel_badge_nearest">NÄCHSTE</string>
+    <string name="home_fuel_badge_cheapest_nearest">GÜNSTIGSTE UND NÄCHSTE</string>
     <string name="home_fuel_remembered">Keine Verbindung: Das sind die Tankstellen, die wir hier %1$s gesehen haben.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
     <string name="subject_fuel_stations">Tankstellen</string>

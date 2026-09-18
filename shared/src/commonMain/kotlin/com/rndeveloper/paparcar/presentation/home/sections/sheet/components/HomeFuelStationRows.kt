@@ -1,22 +1,28 @@
 package com.rndeveloper.paparcar.presentation.home.sections.sheet.components
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.rndeveloper.paparcar.domain.fuel.FuelStandoutBadge
 import com.rndeveloper.paparcar.domain.fuel.StationPrice
+import com.rndeveloper.paparcar.domain.fuel.fuelStandouts
 import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
 import com.rndeveloper.paparcar.presentation.home.model.isAttendedService
 import com.rndeveloper.paparcar.presentation.home.model.pumpPriceLabel
 import com.rndeveloper.paparcar.presentation.util.LocalPumpGallon
 import com.rndeveloper.paparcar.presentation.util.formatDistance
+import com.rndeveloper.paparcar.ui.components.PapBadge
 import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.ui.components.PapIconTile
 import com.rndeveloper.paparcar.ui.components.PapListItem
@@ -26,6 +32,9 @@ import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_fuel_attended_price
+import paparcar.composeapp.generated.resources.home_fuel_badge_cheapest
+import paparcar.composeapp.generated.resources.home_fuel_badge_cheapest_nearest
+import paparcar.composeapp.generated.resources.home_fuel_badge_nearest
 import paparcar.composeapp.generated.resources.location_fallback_station
 
 /**
@@ -44,6 +53,9 @@ fun HomeFuelStationRow(
     /** Whether that distance is a distance TO THE USER. See [subtitleFor].
      *  [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001] */
     hasFix: Boolean = true,
+    /** What this forecourt can claim over the others in the same answer, if anything.
+     *  [FUEL-THE-CHEAPEST-AND-THE-NEAREST-WEAR-A-BADGE-001] */
+    badge: FuelStandoutBadge? = null,
 ) {
     // A source can hold a forecourt with no name — France's official feed carries none at all, and
     // 1 in 25 OSM entries has neither name nor brand. Where it cannot name itself it is placed
@@ -62,8 +74,32 @@ fun HomeFuelStationRow(
         contentPadding = PaddingValues(0.dp),
         titleStyle = PaparcarType.current.rowName,
         titleMaxLines = 1,
-        subtitle = subtitleFor(station, title, hasFix),
+        subtitle = subtitleFor(station, title, hasFix).takeIf { badge == null },
         subtitleMaxLines = 1,
+        // The badge rides the subtitle line, not the trailing slot: the price lives there and a
+        // forecourt's claim is about the forecourt, not about the number. One badge per row — a row
+        // is a name, never a scoreboard. [FUEL-THE-CHEAPEST-AND-THE-NEAREST-WEAR-A-BADGE-001]
+        subtitleSlot = badge?.let {
+            {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    FuelStandoutBadgeChip(it)
+                    // A forecourt can have no subtitle at all (no fix, no address): then the badge
+                    // is the whole line rather than a badge next to an empty string.
+                    subtitleFor(station, title, hasFix)?.let { line ->
+                        Text(
+                            text = line,
+                            style = PaparcarType.current.caption,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
+        },
         leading = {
             // ⛔ VERDE, no neutro (user, 10-09, viéndolo en el Oppo). El barrido de
             // `UI-A-NEUTRAL-TILE-MUST-NOT-MUTE-AN-ACTION-001` dejó neutro todo tile que ETIQUETA su
@@ -143,6 +179,38 @@ private fun FuelPriceLabel(price: StationPrice) {
     }
 }
 
+/**
+ * The claim itself. Brand container for anything involving the price — the cheapest forecourt is the
+ * useful answer to the question that opened this lane — and a neutral one for distance alone, which
+ * the row already states in metres two words later.
+ * [FUEL-THE-CHEAPEST-AND-THE-NEAREST-WEAR-A-BADGE-001]
+ */
+@Composable
+private fun FuelStandoutBadgeChip(badge: FuelStandoutBadge) {
+    val label = stringResource(
+        when (badge) {
+            FuelStandoutBadge.CHEAPEST -> Res.string.home_fuel_badge_cheapest
+            FuelStandoutBadge.NEAREST -> Res.string.home_fuel_badge_nearest
+            FuelStandoutBadge.CHEAPEST_AND_NEAREST -> Res.string.home_fuel_badge_cheapest_nearest
+        },
+    )
+    val isPriceClaim = badge != FuelStandoutBadge.NEAREST
+    PapBadge(
+        label = label,
+        containerColor = if (isPriceClaim) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant
+        },
+        contentColor = if (isPriceClaim) {
+            MaterialTheme.colorScheme.onPrimaryContainer
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        textStyle = PaparcarType.current.badge,
+    )
+}
+
 /** Divider inset to clear the glyph, so the rows read as one column of names. */
 @Composable
 fun HomeFuelStationRows(
@@ -151,6 +219,10 @@ fun HomeFuelStationRows(
     onStationClick: ((String) -> Unit)? = null,
     hasFix: Boolean = true,
 ) {
+    // Read ONCE for the whole answer, never per row: "the cheapest" is a claim about the list, and
+    // asking each row to work it out would let two rows disagree.
+    // [FUEL-THE-CHEAPEST-AND-THE-NEAREST-WEAR-A-BADGE-001]
+    val standouts = remember(stations) { stations.fuelStandouts() }
     Column(modifier = modifier) {
         stations.forEachIndexed { index, station ->
             HomeFuelStationRow(
@@ -158,6 +230,10 @@ fun HomeFuelStationRows(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 onClick = onStationClick?.let { cb -> { cb(station.station.id) } },
                 hasFix = hasFix,
+                // ⛔ Only when the distance is a real distance to the user: without a fix, "nearest"
+                // is a claim about nothing. [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
+                badge = standouts.badgeFor(station.stationKey)
+                    ?.takeIf { hasFix || it == FuelStandoutBadge.CHEAPEST },
             )
             if (index < stations.lastIndex) {
                 PapDivider(modifier = Modifier.padding(start = 70.dp, end = 16.dp))

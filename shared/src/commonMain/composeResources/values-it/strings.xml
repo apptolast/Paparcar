@@ -984,6 +984,9 @@
     <string name="home_fuel_oldest_price">Prezzo più vecchio: %1$s</string>
     <string name="home_fuel_live_prices">I prezzi si aggiornano in tempo reale</string>
     <string name="home_fuel_attended_price">Servito</string>
+    <string name="home_fuel_badge_cheapest">PIÙ ECONOMICA</string>
+    <string name="home_fuel_badge_nearest">PIÙ VICINA</string>
+    <string name="home_fuel_badge_cheapest_nearest">PIÙ ECONOMICA E VICINA</string>
     <string name="home_fuel_remembered">Nessuna connessione: questi sono i distributori visti qui %1$s.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
     <string name="subject_fuel_stations">Distributori</string>

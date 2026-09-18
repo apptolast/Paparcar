@@ -1002,6 +1002,9 @@
     <string name="home_fuel_oldest_price">Cel mai vechi preț: %1$s</string>
     <string name="home_fuel_live_prices">Prețurile se actualizează în timp real</string>
     <string name="home_fuel_attended_price">Cu deservire</string>
+    <string name="home_fuel_badge_cheapest">CEA MAI IEFTINĂ</string>
+    <string name="home_fuel_badge_nearest">CEA MAI APROPIATĂ</string>
+    <string name="home_fuel_badge_cheapest_nearest">CEA MAI IEFTINĂ ȘI APROPIATĂ</string>
     <string name="home_fuel_remembered">Fără conexiune: acestea sunt benzinăriile văzute aici %1$s.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
     <string name="subject_fuel_stations">Benzinării</string>
