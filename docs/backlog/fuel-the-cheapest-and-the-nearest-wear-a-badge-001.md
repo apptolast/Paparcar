@@ -54,3 +54,22 @@ neutro cuando es solo distancia (que la fila ya dice en metros dos palabras desp
 ## Verificación
 
 `FuelStandoutsTest` — 6 tests en verde, cinco de ellos sobre afirmaciones que NO se deben hacer.
+
+## Decisiones de la revisión (#37, rndevelo, 18-09)
+
+> «El badge apenas destaca y no se nota debido a sus tonos, ¿podrías hacerlo más pequeño y
+> compacto?»
+
+Las dos cosas que pide son la misma: un badge tonal (`primaryContainer` sobre la superficie de la
+hoja) se separa del fondo en unos pocos puntos de luminancia, y la salida NO es agrandarlo —eso lo
+convierte en una segunda fila dentro de la fila— sino hacerlo **más pequeño y macizo**, que es como
+se lee un token dentro de una línea.
+
+- **Relleno macizo**: `primary` + `onPrimary` para lo que habla del precio, `inverseSurface` +
+  `inverseOnSurface` para la distancia sola. Los dos al máximo contraste; lo que los separa es el
+  tono, no el peso.
+- **Caja densa**: `PapBadgeDensePadding` (6×1 dp) + píldora, frente a los 8×4 dp y el corte
+  `extraSmall` del badge de pie. `PapBadge` gana `contentPadding` y `shape` **opcionales**, con los
+  valores de hoy por defecto: ningún otro badge de la app cambia.
+- El rol tipográfico sigue siendo `badge` — el tamaño es propiedad del rol, y lo que se ha encogido
+  es la CAJA, no la letra. [UI-TYPE-TWO-VOICES-ONE-ROW-001]

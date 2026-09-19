@@ -3,9 +3,10 @@ package com.rndeveloper.paparcar.presentation.home.sections.sheet.components
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,6 +24,7 @@ import com.rndeveloper.paparcar.presentation.home.model.pumpPriceLabel
 import com.rndeveloper.paparcar.presentation.util.LocalPumpGallon
 import com.rndeveloper.paparcar.presentation.util.formatDistance
 import com.rndeveloper.paparcar.ui.components.PapBadge
+import com.rndeveloper.paparcar.ui.components.PapBadgeDensePadding
 import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.ui.components.PapIconTile
 import com.rndeveloper.paparcar.ui.components.PapListItem
@@ -180,9 +182,18 @@ private fun FuelPriceLabel(price: StationPrice) {
 }
 
 /**
- * The claim itself. Brand container for anything involving the price — the cheapest forecourt is the
- * useful answer to the question that opened this lane — and a neutral one for distance alone, which
- * the row already states in metres two words later.
+ * The claim itself — a small SOLID pill, not a tinted rectangle.
+ *
+ * ⛔ **Relleno macizo, no `primaryContainer`** (review de #37: «el badge apenas destaca y no se nota
+ * debido a sus tonos, podrías hacerlo más pequeño y compacto?»). Un container tonal sobre la
+ * superficie de la hoja se diferencia del fondo en unos pocos puntos de luminancia: de lejos, en la
+ * calle y con sol, no hay badge. La respuesta NO es hacerlo más grande —eso lo convertiría en una
+ * segunda fila— sino al revés: más pequeño y con el contraste al máximo, que es como se lee un
+ * token de una línea. Caja [PapBadgeDensePadding] + píldora.
+ *
+ * Verde de marca para lo que habla del PRECIO — la gasolinera más barata es la respuesta útil a la
+ * pregunta que abrió este carril — y el neutro invertido para la distancia sola, que la fila ya
+ * dice en metros dos palabras después. Los dos macizos: lo que cambia es el tono, no el peso.
  * [FUEL-THE-CHEAPEST-AND-THE-NEAREST-WEAR-A-BADGE-001]
  */
 @Composable
@@ -198,16 +209,18 @@ private fun FuelStandoutBadgeChip(badge: FuelStandoutBadge) {
     PapBadge(
         label = label,
         containerColor = if (isPriceClaim) {
-            MaterialTheme.colorScheme.primaryContainer
+            MaterialTheme.colorScheme.primary
         } else {
-            MaterialTheme.colorScheme.surfaceVariant
+            MaterialTheme.colorScheme.inverseSurface
         },
         contentColor = if (isPriceClaim) {
-            MaterialTheme.colorScheme.onPrimaryContainer
+            MaterialTheme.colorScheme.onPrimary
         } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
+            MaterialTheme.colorScheme.inverseOnSurface
         },
         textStyle = PaparcarType.current.badge,
+        contentPadding = PapBadgeDensePadding,
+        shape = CircleShape,
     )
 }
 

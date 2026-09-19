@@ -2,6 +2,7 @@ package com.rndeveloper.paparcar.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -13,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
@@ -23,6 +25,10 @@ private val BadgeIconSize       = 12.dp
 private val BadgeHorizontalPad  = 8.dp
 private val BadgeVerticalPad    = 4.dp
 
+/** The box of a badge that rides inside somebody else's line. Public so the two or three call sites
+ *  that need it share ONE definition of "dense" instead of each inventing its own numbers. */
+val PapBadgeDensePadding: PaddingValues = PaddingValues(horizontal = 6.dp, vertical = 1.dp)
+
 /**
  * Generic pill-shaped status badge.
  *
@@ -32,6 +38,11 @@ private val BadgeVerticalPad    = 4.dp
  * @param icon Optional leading icon.
  * @param textStyle Label style — data-token callers (TTL, counts) pass a condensed
  *   [com.rndeveloper.paparcar.ui.theme.PaparcarType] role; prose callers keep the default.
+ * @param contentPadding The badge's own box. Defaults to the standing size; a badge that rides
+ *   INSIDE another line (the fuel standout, sharing the subtitle with the distance) passes
+ *   [PapBadgeDensePadding] so it reads as a token in the line and not as a second row.
+ * @param shape Defaults to the standing cut; a dense badge takes a pill so that, small, it still
+ *   reads as a badge and not as a coloured rectangle.
  */
 @Composable
 fun PapBadge(
@@ -41,12 +52,17 @@ fun PapBadge(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     textStyle: TextStyle = PaparcarType.current.label,
+    contentPadding: PaddingValues = PaddingValues(
+        horizontal = BadgeHorizontalPad,
+        vertical = BadgeVerticalPad,
+    ),
+    shape: Shape = MaterialTheme.shapes.extraSmall,
 ) {
     Row(
         modifier = modifier
-            .clip(MaterialTheme.shapes.extraSmall)
+            .clip(shape)
             .background(containerColor)
-            .padding(horizontal = BadgeHorizontalPad, vertical = BadgeVerticalPad),
+            .padding(contentPadding),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.xs),
     ) {
