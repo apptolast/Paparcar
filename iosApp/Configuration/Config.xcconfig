@@ -3,8 +3,8 @@ TEAM_ID=3NXH5U7C5A
 PRODUCT_NAME=Paparcar
 PRODUCT_BUNDLE_IDENTIFIER=com.rndeveloper.paparcar
 
-CURRENT_PROJECT_VERSION=1
-MARKETING_VERSION=0.1.0
+CURRENT_PROJECT_VERSION=2
+MARKETING_VERSION=0.1.1
 
 // Google Sign-In redirect scheme = REVERSED_CLIENT_ID of iosApp/iosApp/GoogleService-Info.plist
 // (Firebase project pap-26). Not a secret: it ships inside every build. Change both together.
