@@ -8,6 +8,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -57,6 +58,7 @@ import com.rndeveloper.paparcar.presentation.vehicles.ChartMetric
 import kotlin.math.roundToInt
 import com.rndeveloper.paparcar.ui.components.PapTextSwap
 import com.rndeveloper.paparcar.ui.components.chips.PaparcarFilterChip
+import com.rndeveloper.paparcar.ui.components.papHorizontalFadingEdges
 import com.rndeveloper.paparcar.ui.components.rememberCountUp
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.pluralStringResource
@@ -290,7 +292,18 @@ private fun ChartMetricRow(
     // chips do not fit 360 dp, and a plain Row does not overflow — it WRAPS the text inside the
     // last chip, so "buscando plaza" broke mid-word into "buscand / o plaza". A chip is a label, and
     // a label that hyphenates itself has stopped being one.
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(METRIC_CHIP_GAP_DP.dp)) {
+    //
+    // ⛔ …y ahora DICE que se desplaza. Que quepa a base de scroll no bastaba: el tercer chip moría
+    // a hueso contra el canto de la pantalla («buscando |»), que se lee como un fallo de layout y no
+    // como «hay más». El desvanecido del borde lo convierte en un gesto sugerido sin acortar la
+    // etiqueta — acortarla habría costado el vocabulario, y «tiempo de búsqueda» es MÁS largo que
+    // «buscando plaza», así que tampoco habría cabido. [UI-A-SCROLLING-CHIP-ROW-SAYS-SO-001]
+    val listState = rememberLazyListState()
+    LazyRow(
+        state = listState,
+        modifier = Modifier.papHorizontalFadingEdges(listState),
+        horizontalArrangement = Arrangement.spacedBy(METRIC_CHIP_GAP_DP.dp),
+    ) {
         items(metrics) { metric ->
             PaparcarFilterChip(
                 label = metric.label(),

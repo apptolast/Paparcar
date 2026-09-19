@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Campaign
@@ -12,6 +13,7 @@ import androidx.compose.material.icons.rounded.LocationOff
 import androidx.compose.material.icons.rounded.WrongLocation
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.rndeveloper.paparcar.ui.components.papHorizontalFadingEdges
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.model.SpotReportGate
 import com.rndeveloper.paparcar.domain.model.SpotReportPolicy
@@ -128,8 +130,12 @@ private fun SizeChipRow(selected: VehicleSize?, onSelect: (VehicleSize?) -> Unit
 
     // One canonical chip for filter bars AND this size selector — selection reads
     // as tinted container + primary accents, never a solid green fill. [UI-SHEET-001]
+    // Cinco tamaños no caben en 360 dp: la fila se desplaza, y el desvanecido del borde lo dice.
+    // [UI-A-SCROLLING-CHIP-ROW-SAYS-SO-001]
+    val sizeChipsScroll = rememberLazyListState()
     LazyRow(
-        modifier = Modifier.fillMaxWidth(),
+        state = sizeChipsScroll,
+        modifier = Modifier.fillMaxWidth().papHorizontalFadingEdges(sizeChipsScroll),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item(key = "unknown") {

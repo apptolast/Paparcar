@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.Icon
@@ -33,6 +34,7 @@ import kotlin.math.roundToInt
 import kotlin.time.Clock
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.rndeveloper.paparcar.ui.components.papHorizontalFadingEdges
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.presentation.permissions.PermissionsFocus
@@ -552,7 +554,12 @@ private fun VehicleChips(state: StatsState, onIntent: (StatsIntent) -> Unit) {
     // `PaparcarFilterChip` con el nombre y nada más: sin glifo, sin el color de VIGILANCIA y sin el
     // punto, o sea la mitad de la identidad del coche perdida por copiar un control en vez de
     // compartirlo. [UI-STATS-ONE-QUESTION-ONE-COMPONENT-001] [UI-COLOR-DOCTRINE-001]
+    // Un garaje de tres coches ya se sale de la pantalla: la fila se desplaza, y se nota.
+    // [UI-A-SCROLLING-CHIP-ROW-SAYS-SO-001]
+    val vehiclePillsScroll = rememberLazyListState()
     LazyRow(
+        state = vehiclePillsScroll,
+        modifier = Modifier.papHorizontalFadingEdges(vehiclePillsScroll),
         contentPadding = PaddingValues(horizontal = H_PAD_DP.dp),
         horizontalArrangement = Arrangement.spacedBy(CHIP_GAP_DP.dp),
     ) {
