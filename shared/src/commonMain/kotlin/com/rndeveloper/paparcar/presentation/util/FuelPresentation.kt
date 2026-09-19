@@ -9,6 +9,7 @@ import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.vehicle.FuelDefaults
 import com.rndeveloper.paparcar.localeGallonKind
 import com.rndeveloper.paparcar.localePumpGallon
+import com.rndeveloper.paparcar.pumpGallonForCurrency
 import kotlin.math.round
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -142,10 +143,12 @@ fun consumptionFieldLabel(usesLiters: Boolean): String {
  * La etiqueta del CAMPO donde se teclea el precio — «Precio por litro (EUR)» · «Price per gallon
  * (USD)». [I18N-A-PRICE-IS-QUOTED-IN-THE-UNIT-YOU-BUY-IT-001]
  *
- * ⛔ **La unidad la manda el LOCALE, no el ajuste de millas** — y ahí se separa de
- * [consumptionFieldLabel], que está tres líneas más arriba y parece su gemela. Son ejes distintos:
- * un español que pone la app en millas sigue repostando litros, porque el surtidor de su calle no
- * cambia con un interruptor de su móvil. El consumo es del coche; el precio, del país.
+ * ⛔ **La unidad la manda la MONEDA en la que se teclea el precio, no el ajuste de millas ni la
+ * región del móvil** — y ahí se separa de [consumptionFieldLabel], que está tres líneas más arriba
+ * y parece su gemela. Son ejes distintos: un español que pone la app en millas sigue repostando
+ * litros, porque el surtidor de su calle no cambia con un interruptor de su móvil. El consumo es
+ * del coche; el precio, del mercado — y la moneda es quien nombra el mercado.
+ * [FUEL-A-PRICE-IS-QUOTED-WHERE-IT-IS-SOLD-001]
  *
  * Y va en pareja con la conversión de [com.rndeveloper.paparcar.presentation.util.pumpPriceToDisplay]:
  * una etiqueta que cambia sin que cambie el número es precisamente el bug que este ticket cierra —
@@ -153,7 +156,7 @@ fun consumptionFieldLabel(usesLiters: Boolean): String {
  */
 @Composable
 fun fuelPriceFieldLabel(currency: String): String = stringResource(
-    if (LocalPumpGallon.current != null) {
+    if (pumpGallonForCurrency(currency) != null) {
         Res.string.vehicle_registration_fuel_price_gallon_label
     } else {
         Res.string.vehicle_registration_fuel_price_label

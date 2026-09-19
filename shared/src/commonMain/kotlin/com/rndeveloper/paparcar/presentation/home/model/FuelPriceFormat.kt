@@ -4,6 +4,7 @@ import com.rndeveloper.paparcar.GallonKind
 import com.rndeveloper.paparcar.domain.fuel.StationPrice
 import com.rndeveloper.paparcar.domain.model.Money
 import com.rndeveloper.paparcar.presentation.util.pumpPriceToDisplay
+import com.rndeveloper.paparcar.pumpGallonForCurrency
 import kotlin.math.roundToInt
 
 /**
@@ -32,11 +33,37 @@ internal fun formatPumpPrice(amount: Double): String {
  * `FuelPriceWatchWorker`, which writes both alert bodies through here. A second place converting the
  * same number is how one of them would some day quote litres to an American.
  */
-internal fun Money.pumpPriceFigure(gallon: GallonKind?): String =
-    formatPumpPrice(pumpPriceToDisplay(amount, gallon))
+internal fun Money.pumpPriceFigure(): String =
+    formatPumpPrice(pumpPriceToDisplay(amount, pumpGallon()))
 
-/** `1.879 EUR` — amount in the unit it is sold in, currency as the feed states it. */
-internal fun Money.pumpPriceLabel(gallon: GallonKind?): String = "${pumpPriceFigure(gallon)} $currency"
+/**
+ * La unidad en la que está cotizado ESTE dinero. La decide la MONEDA, no el móvil.
+ * [FUEL-A-PRICE-IS-QUOTED-WHERE-IT-IS-SOLD-001]
+ *
+ * ⛔ Antes entraba como parámetro y cada superficie lo resolvía por su cuenta desde
+ * `LocalPumpGallon` — o sea, desde la región del teléfono. Cinco call sites haciendo la misma
+ * pregunta equivocada es un bug con cinco copias: un usuario en España con el móvil en región US
+ * veía «7.552 EUR» en las gasolineras de su calle. Ahora el precio trae su unidad consigo y no hay
+ * parámetro que pasar mal.
+ */
+private fun Money.pumpGallon(): GallonKind? = pumpGallonForCurrency(currency)
+
+/**
+ * `1.879 EUR/l` — importe en la unidad en la que se vende, moneda tal y como la da el feed, **y la
+ * unidad dicha en voz alta**. [FUEL-A-PRICE-IS-QUOTED-WHERE-IT-IS-SOLD-001]
+ *
+ * ⛔ **La unidad no es opcional.** Un precio de combustible sin unidad es ambiguo por un factor de
+ * 3,785, y cuando el número se desvió fue precisamente lo que impidió verlo: «7.552 EUR» no dice si
+ * miente el número o la unidad. El símbolo (`l`, `gal`) es el mismo en los nueve idiomas —es
+ * notación, no prosa, igual que la `m`/`km` de `formatDistance`— así que no lleva recurso.
+ */
+internal fun Money.pumpPriceLabel(): String = "${pumpPriceFigure()} $currency/${pumpUnitSymbol()}"
+
+/** `l` o `gal`: el símbolo de la unidad en la que está cotizado este precio. */
+private fun Money.pumpUnitSymbol(): String = if (pumpGallon() == null) LITRE_SYMBOL else GALLON_SYMBOL
+
+private const val LITRE_SYMBOL = "l"
+private const val GALLON_SYMBOL = "gal"
 
 /**
  * Whether this figure needs saying out loud that somebody else pumps it.

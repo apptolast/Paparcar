@@ -157,7 +157,7 @@ internal fun FuelStationPeek(
                 val price = station.prices[fuel]
                 FuelPriceRow(
                     label = fuelTypeLabel(fuel),
-                    priceLabel = price?.perUnit?.pumpPriceLabel(LocalPumpGallon.current),
+                    priceLabel = price?.perUnit?.pumpPriceLabel(),
                     // Each pump's OWN hour: this is the surface that itemises fuels, so it is the
                     // one place where France's per-price hours actually differ from each other.
                     // [FUEL-FRANCE-A-PRICE-CARRIES-ITS-OWN-HOUR-001]

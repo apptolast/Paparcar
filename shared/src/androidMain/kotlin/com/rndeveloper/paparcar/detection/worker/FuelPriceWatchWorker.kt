@@ -14,7 +14,7 @@ import com.rndeveloper.paparcar.domain.usecase.fuel.FuelWatchOutcome
 import com.rndeveloper.paparcar.domain.usecase.fuel.PriceMoveDirection
 import com.rndeveloper.paparcar.domain.usecase.fuel.RunFuelPriceWatchUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
-import com.rndeveloper.paparcar.localePumpGallon
+import com.rndeveloper.paparcar.pumpGallonForCurrency
 import com.rndeveloper.paparcar.presentation.home.model.pumpPriceLabel
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -67,11 +67,14 @@ class FuelPriceWatchWorker(
         val lead = outcome.moves.maxByOrNull { abs(it.deltaPerUnit) } ?: return
         notificationPort.showFuelPriceMove(
             stationName = lead.station.name,
-            deltaLabel = Money(abs(lead.deltaPerUnit), lead.current.perUnit.currency).pumpPriceLabel(localePumpGallon()),
+            deltaLabel = Money(abs(lead.deltaPerUnit), lead.current.perUnit.currency).pumpPriceLabel(),
             wentUp = lead.direction == PriceMoveDirection.UP,
             otherMovesCount = outcome.moves.size - 1,
             latitude = lead.station.latitude,
             longitude = lead.station.longitude,
+            // La unidad la dice la MONEDA del precio, no la región del móvil: la frase tiene que
+            // decir lo mismo que la cifra. [FUEL-A-PRICE-IS-QUOTED-WHERE-IT-IS-SOLD-001]
+            quotesPerGallon = pumpGallonForCurrency(lead.current.perUnit.currency) != null,
         )
     }
 
@@ -79,13 +82,14 @@ class FuelPriceWatchWorker(
         val cheaper = outcome.cheaper ?: return
         notificationPort.showCheaperFuelNearby(
             stationName = cheaper.station.name,
-            savingLabel = Money(cheaper.savingPerUnit, cheaper.price.currency).pumpPriceLabel(localePumpGallon()),
+            savingLabel = Money(cheaper.savingPerUnit, cheaper.price.currency).pumpPriceLabel(),
             // Null when the reference was the area's median — the words for that live where the
             // string table does. A followed station with no name in its feed reads the same way,
             // which is right: neither can be quoted by name.
             referenceName = cheaper.referenceName.takeIf { cheaper.reference == CheaperReference.FOLLOWED },
             latitude = cheaper.station.latitude,
             longitude = cheaper.station.longitude,
+            quotesPerGallon = pumpGallonForCurrency(cheaper.price.currency) != null,
         )
     }
 

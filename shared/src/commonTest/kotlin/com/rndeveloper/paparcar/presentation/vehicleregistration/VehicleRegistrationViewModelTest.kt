@@ -3,7 +3,6 @@
 package com.rndeveloper.paparcar.presentation.vehicleregistration
 
 import app.cash.turbine.test
-import com.rndeveloper.paparcar.GallonKind
 import com.rndeveloper.paparcar.domain.model.Money
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.CarbodyType
@@ -379,6 +378,9 @@ class VehicleRegistrationViewModelTest {
 
     // ── El precio, entre la unidad del surtidor y la del modelo ──────────────
     // [I18N-A-PRICE-IS-QUOTED-IN-THE-UNIT-YOU-BUY-IT-001]
+    // ⛔ Lo que se inyecta es la MONEDA, no el galón: la unidad del surtidor se deduce de ella, que
+    // es la regla única de toda la app desde [FUEL-A-PRICE-IS-QUOTED-WHERE-IT-IS-SOLD-001]. Con
+    // «USD» el formulario habla en galones sin que nadie se lo diga aparte.
 
     @Test
     fun `should_storePricePerLitre_when_theUserTypedPerGallon`() = runTest {
@@ -386,7 +388,7 @@ class VehicleRegistrationViewModelTest {
         // su galón, se guarda como precio del LITRO y el gasto de todos sus viajes sale ×3,785 —
         // con un número que parece perfectamente correcto en todas las pantallas. Sin un test que
         // lo mire, vuelve.
-        vm = VehicleRegistrationViewModel(vehicleRepo, auth, deleteVehicleUseCase(vehicleRepo, prefs), prefs) { GallonKind.US }
+        vm = VehicleRegistrationViewModel(vehicleRepo, auth, deleteVehicleUseCase(vehicleRepo, prefs), prefs) { "USD" }
         val currency = vm.state.value.priceCurrency
         assertNotNull(currency, "sin moneda el campo de precio no se ofrece y este testigo no mira nada")
         fillCarForm()
@@ -406,7 +408,8 @@ class VehicleRegistrationViewModelTest {
     @Test
     fun `should_keepThePriceUntouched_when_thePumpChargesByTheLitre`() = runTest {
         // El otro lado del mismo borde, y el caso de 193 países: lo tecleado se guarda tal cual.
-        vm = VehicleRegistrationViewModel(vehicleRepo, auth, deleteVehicleUseCase(vehicleRepo, prefs), prefs) { null }
+        // «EUR» ES el caso del litro — no hay moneda europea que cotice por galón.
+        vm = VehicleRegistrationViewModel(vehicleRepo, auth, deleteVehicleUseCase(vehicleRepo, prefs), prefs) { "EUR" }
         assertNotNull(vm.state.value.priceCurrency, "sin moneda el campo de precio no se ofrece")
         fillCarForm()
         vm.handleIntent(VehicleRegistrationIntent.SetFuelType(FuelType.GASOLINE))
@@ -429,7 +432,7 @@ class VehicleRegistrationViewModelTest {
                 fuelPricePerLiter = Money(0.9243, "USD"),
             ),
         )
-        vm = VehicleRegistrationViewModel(vehicleRepo, auth, deleteVehicleUseCase(vehicleRepo, prefs), prefs) { GallonKind.US }
+        vm = VehicleRegistrationViewModel(vehicleRepo, auth, deleteVehicleUseCase(vehicleRepo, prefs), prefs) { "USD" }
 
         vm.handleIntent(VehicleRegistrationIntent.LoadVehicle("v-price"))
 

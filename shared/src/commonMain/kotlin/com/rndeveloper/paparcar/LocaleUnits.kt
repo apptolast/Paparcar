@@ -59,6 +59,32 @@ fun localeGallonKind(): GallonKind = if (localeUsesUsGallon()) GallonKind.US els
  */
 fun localePumpGallon(): GallonKind? = if (localeUsesUsGallon()) GallonKind.US else null
 
+/**
+ * En qué unidad está COTIZADO un precio, según la moneda en la que viene.
+ * [FUEL-A-PRICE-IS-QUOTED-WHERE-IT-IS-SOLD-001]
+ *
+ * ⛔ **Esto manda sobre [localePumpGallon] siempre que el precio traiga moneda**, y la razón es que
+ * son preguntas distintas: aquélla dice *en qué unidad reposta el DUEÑO DEL MÓVIL en su país*, ésta
+ * dice *en qué unidad está vendida ESTA gasolina*. Mientras las dos coinciden no se nota; el día que
+ * no coinciden, la que vale es ésta, porque el surtidor de la calle no cambia con la región del
+ * teléfono.
+ *
+ * El caso medido (issue #40, 18-09): un usuario en El Puerto de Santa María con el móvil en región
+ * US veía «7.552 EUR» en las gasolineras de su calle — 1,995 €/l × 3,785. El número era el de un
+ * galón, la moneda era la de un litro y la etiqueta no decía ninguna de las dos cosas, así que se
+ * leía como un precio inventado. Ningún país que cotiza en euros vende por galón, y ésa es
+ * exactamente la comprobación que faltaba.
+ *
+ * Devuelve `null` —litro— para cualquier moneda que no sea de un mercado de galón, y también cuando
+ * no hay moneda que mirar: un precio sin moneda no autoriza a multiplicar por 3,785.
+ */
+fun pumpGallonForCurrency(currency: String?): GallonKind? =
+    if (!currency.isNullOrBlank() && currency.uppercase() in US_GALLON_CURRENCIES) GallonKind.US else null
+
+/** Las monedas de los mercados que venden por galón US. Liberia cotiza en dólar liberiano y sigue
+ *  el mercado del automóvil estadounidense, igual que en [US_GALLON_COUNTRIES]. */
+private val US_GALLON_CURRENCIES = setOf("USD", "LRD")
+
 /** El galón US es de los EE. UU. y de quienes siguen su mercado del automóvil (Liberia lo hace). */
 private val US_GALLON_COUNTRIES = setOf("US", "LR")
 

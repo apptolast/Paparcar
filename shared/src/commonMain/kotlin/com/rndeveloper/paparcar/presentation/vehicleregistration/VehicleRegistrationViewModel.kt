@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.presentation.vehicleregistration
 
 import com.apptolast.baselogin.domain.AuthRepository
+import com.rndeveloper.paparcar.GallonKind
 import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.domain.model.FuelType
@@ -8,28 +9,27 @@ import com.rndeveloper.paparcar.domain.model.Money
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.model.VehicleType
-import com.rndeveloper.paparcar.domain.vehicle.VehicleActiveStatePolicy
+import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.usecase.vehicle.DeleteVehicleUseCase
-import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
-import com.rndeveloper.paparcar.GallonKind
+import com.rndeveloper.paparcar.domain.vehicle.VehicleActiveStatePolicy
 import com.rndeveloper.paparcar.localeGallonKind
-import com.rndeveloper.paparcar.localePumpGallon
-import com.rndeveloper.paparcar.presentation.util.pumpPriceFromDisplay
-import com.rndeveloper.paparcar.presentation.util.pumpPriceToDisplay
 import com.rndeveloper.paparcar.presentation.base.BaseViewModel
 import com.rndeveloper.paparcar.presentation.util.DistanceUnit
 import com.rndeveloper.paparcar.presentation.util.consumptionFromDisplay
 import com.rndeveloper.paparcar.presentation.util.consumptionToDisplay
 import com.rndeveloper.paparcar.presentation.util.platformCurrencyCode
+import com.rndeveloper.paparcar.presentation.util.pumpPriceFromDisplay
+import com.rndeveloper.paparcar.presentation.util.pumpPriceToDisplay
 import com.rndeveloper.paparcar.presentation.util.roundToTenth
 import com.rndeveloper.paparcar.presentation.vehicleregistration.data.VehicleCatalog
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
+import com.rndeveloper.paparcar.pumpGallonForCurrency
 import kotlin.math.round
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 class VehicleRegistrationViewModel(
     private val vehicleRepository: VehicleRepository,
@@ -41,19 +41,29 @@ class VehicleRegistrationViewModel(
      *  vuelta a l/100 km antes de guardar. El modelo nunca ve mpg.
      *  [I18N-A-RADIUS-WRITTEN-BY-HAND-IGNORES-MILES-001] */
     private val appPreferences: AppPreferences,
-    /** En qué unidad cobra el surtidor de este usuario — `null` = litros, que es el caso de 193
-     *  países. Entra por el constructor y no se lee del locale aquí dentro porque es la ÚNICA forma
-     *  de que un test pueda mirar el caso de EE. UU., que es justo el que no tiene síntoma visible.
-     *  [I18N-A-PRICE-IS-QUOTED-IN-THE-UNIT-YOU-BUY-IT-001] */
-    private val pumpGallon: () -> GallonKind? = ::localePumpGallon,
+    /** La MONEDA en la que este usuario teclea un precio, que es la que decide si el campo pide
+     *  litros o galones. Entra por el constructor —y no se lee del locale aquí dentro— porque es la
+     *  ÚNICA forma de que un test pueda mirar el caso de EE. UU., que es justo el que no tiene
+     *  síntoma visible.
+     *
+     *  ⛔ Antes esto era `pumpGallon: () -> GallonKind?` leído del LOCALE. Es la misma pregunta
+     *  equivocada que ponía «7.552 EUR» en una gasolinera de Cádiz: la unidad es del mercado, y
+     *  quien nombra el mercado es la moneda. Aquí las dos coinciden casi siempre, pero la regla
+     *  tiene que ser UNA en toda la app o vuelve a divergir por donde no se mira.
+     *  [FUEL-A-PRICE-IS-QUOTED-WHERE-IT-IS-SOLD-001] [I18N-A-PRICE-IS-QUOTED-IN-THE-UNIT-YOU-BUY-IT-001] */
+    private val priceCurrency: () -> String? = ::platformCurrencyCode,
 ) : BaseViewModel<VehicleRegistrationState, VehicleRegistrationIntent, VehicleRegistrationEffect>() {
 
-    // The money this phone is set in, read once: it labels whatever the user types into the price
-    // fields, and its absence is what hides them. [FUEL-PRICE-RESOLVER-001]
-    override fun initState(): VehicleRegistrationState =
-        VehicleRegistrationState(priceCurrency = platformCurrencyCode())
+    override fun initState(): VehicleRegistrationState = VehicleRegistrationState()
 
     init {
+        // The money this phone is set in, read once: it labels whatever the user types into the
+        // price fields, and its absence is what hides them. [FUEL-PRICE-RESOLVER-001]
+        //
+        // ⛔ Aquí y no en [initState]: `initState()` lo llama el constructor de la clase BASE, que
+        // corre ANTES de que se asignen las propiedades de ésta — leer `priceCurrency` allí lo
+        // encuentra nulo y revienta. Es síncrono, así que el estado ya sale de aquí con su moneda.
+        updateState { copy(priceCurrency = priceCurrency()) }
         viewModelScope.launch {
             runCatching {
                 val count = vehicleRepository.observeVehicles().first().size
@@ -513,6 +523,7 @@ class VehicleRegistrationViewModel(
     private fun fuelPriceToField(perLitre: Double): String =
         formatPumpAmount(pumpPriceToDisplay(perLitre, pumpGallon()))
 
+
     /**
      * Lo que quedó escrito en el campo → €/litro, o null si no es un número válido.
      *
@@ -523,6 +534,10 @@ class VehicleRegistrationViewModel(
      */
     private fun fuelPriceFromField(text: String): Double? =
         parsePrice(text)?.let { pumpPriceFromDisplay(it, pumpGallon()) }
+
+    /** La unidad del surtidor para ESTE formulario: la que cotiza la moneda en la que se teclea.
+     *  [FUEL-A-PRICE-IS-QUOTED-WHERE-IT-IS-SOLD-001] */
+    private fun pumpGallon(): GallonKind? = pumpGallonForCurrency(state.value.priceCurrency)
 
     /** Mismo criterio que [parseConsumption] —coma o punto, positivo— pero sin pasar por Float. */
     private fun parsePrice(text: String): Double? =

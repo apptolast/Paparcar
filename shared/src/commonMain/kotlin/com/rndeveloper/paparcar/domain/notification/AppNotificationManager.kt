@@ -261,6 +261,12 @@ interface AppNotificationManager {
         referenceName: String?,
         latitude: Double,
         longitude: Double,
+        /** Whether [savingLabel] is quoted per gallon, so the sentence can say the same unit the
+         *  figure is written in. ⛔ It travels WITH the figure instead of being asked to the device:
+         *  the unit is a property of the market the price came from, and a phone set to another
+         *  region would otherwise word the sentence in a unit the number is not in.
+         *  [FUEL-A-PRICE-IS-QUOTED-WHERE-IT-IS-SOLD-001] */
+        quotesPerGallon: Boolean = false,
     ) {}
 
     /**
@@ -278,6 +284,9 @@ interface AppNotificationManager {
         otherMovesCount: Int,
         latitude: Double,
         longitude: Double,
+        /** Whether [deltaLabel] is quoted per gallon. Same contract as in [showCheaperFuelNearby].
+         *  [FUEL-A-PRICE-IS-QUOTED-WHERE-IT-IS-SOLD-001] */
+        quotesPerGallon: Boolean = false,
     ) {}
 
     /**

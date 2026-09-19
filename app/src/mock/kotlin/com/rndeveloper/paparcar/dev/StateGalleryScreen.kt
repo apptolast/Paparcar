@@ -161,8 +161,6 @@ import com.rndeveloper.paparcar.ui.theme.PaparcarTheme
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import com.rndeveloper.paparcar.domain.detection.DetectionPath
 import androidx.compose.runtime.CompositionLocalProvider
-import com.rndeveloper.paparcar.GallonKind
-import com.rndeveloper.paparcar.presentation.util.LocalPumpGallon
 import com.rndeveloper.paparcar.presentation.util.DistanceUnit
 import com.rndeveloper.paparcar.presentation.util.LocalDistanceUnit
 import com.rndeveloper.paparcar.domain.fuel.FuelStation
@@ -3198,21 +3196,22 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             // par que NO se puede romper — una etiqueta que cambia sin que cambie el número es el
             // bug entero. El estado se teclea aquí a mano porque el ViewModel no vive en la galería.
             Variant("Edición · precio por galón (EE. UU.)") {
-                CompositionLocalProvider(LocalPumpGallon provides GallonKind.US) {
-                    VehicleRegistrationContent(
-                        state = VehicleRegistrationState(
-                            editingVehicleId = "v-us",
-                            brand = "Ford",
-                            model = "F-150",
-                            vehicleType = com.rndeveloper.paparcar.domain.model.VehicleType.CAR,
-                            carbodyType = com.rndeveloper.paparcar.domain.model.CarbodyType.PICKUP,
-                            sizeCategory = VehicleSize.VAN_HIGH,
-                            fuelType = com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE,
-                            priceCurrency = "USD",
-                            fuelPriceText = "3.499",
-                        ),
-                    )
-                }
+                // ⛔ Lo que pone el campo en galones es `priceCurrency = "USD"`, no un
+                // `LocalPumpGallon` a mano: la unidad la nombra la moneda en la que se teclea.
+                // [FUEL-A-PRICE-IS-QUOTED-WHERE-IT-IS-SOLD-001]
+                VehicleRegistrationContent(
+                    state = VehicleRegistrationState(
+                        editingVehicleId = "v-us",
+                        brand = "Ford",
+                        model = "F-150",
+                        vehicleType = com.rndeveloper.paparcar.domain.model.VehicleType.CAR,
+                        carbodyType = com.rndeveloper.paparcar.domain.model.CarbodyType.PICKUP,
+                        sizeCategory = VehicleSize.VAN_HIGH,
+                        fuelType = com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE,
+                        priceCurrency = "USD",
+                        fuelPriceText = "3.499",
+                    ),
+                )
             },
         ),
     ),
@@ -3583,19 +3582,19 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
-            // [I18N-A-PRICE-IS-QUOTED-IN-THE-UNIT-YOU-BUY-IT-001] Las mismas filas, en un movil
-            // estadounidense: el precio guardado sigue siendo por litro y lo que cambia es el borde.
-            // Hoy no hay fuente per-surtidor en EE. UU., asi que esta variante es el UNICO sitio
-            // donde se puede mirar esa conversion con los ojos.
+            // [FUEL-A-PRICE-IS-QUOTED-WHERE-IT-IS-SOLD-001] Las mismas filas en un mercado que cobra
+            // por galon: el precio guardado sigue siendo por litro y lo que cambia es el borde.
+            // ⛔ Lo que hace galones a estas filas es la MONEDA del precio (USD), no un
+            // `LocalPumpGallon` puesto a mano: la variante tiene que mentir exactamente igual que
+            // miente produccion, o deja de servir para verlo. Hoy no hay fuente per-surtidor en
+            // EE. UU., asi que este es el UNICO sitio donde se puede mirar esa conversion con los ojos.
             Variant("Con precios · por galon (EE. UU.)", Placement.Surface) {
-                CompositionLocalProvider(LocalPumpGallon provides GallonKind.US) {
-                    HomeFuelLane(
-                        slice = HomeFuelSlice(
-                            stations = galleryFuelStations,
-                            reportedAt = "09/09/2026 08:30:00",
-                        ),
-                    )
-                }
+                HomeFuelLane(
+                    slice = HomeFuelSlice(
+                        stations = galleryFuelStationsUsd,
+                        reportedAt = "09/09/2026 08:30:00",
+                    ),
+                )
             },
             // El resto del mundo: gasolineras reales de OSM y ni un precio. Se dice ANTES de las
             // filas, para que una columna de distancias sin cifras no se lea como un fallo de carga.
@@ -4007,6 +4006,23 @@ private val galleryFuelStations: List<NearbyFuelStation> = listOf(
         price = StationPrice(Money(1.765, "EUR"), SPAIN_FEED_MS),
     ),
 )
+
+/**
+ * Las mismas gasolineras cotizadas en DOLARES — lo que convierte la fila a galones.
+ * [FUEL-A-PRICE-IS-QUOTED-WHERE-IT-IS-SOLD-001]
+ *
+ * El importe no se toca: el dominio guarda euros-por-litro y dolares-por-litro igual, y el borde de
+ * salida es el que multiplica por 3,785 al escribirlo. Cambiar aqui el numero ademas de la moneda
+ * escondería justo la conversion que esta variante existe para enseñar.
+ */
+private val galleryFuelStationsUsd: List<NearbyFuelStation> = galleryFuelStations.map { nearby ->
+    nearby.copy(
+        station = nearby.station.copy(
+            prices = nearby.station.prices.mapValues { (_, p) -> p.copy(perUnit = p.perUnit.copy(currency = "USD")) },
+        ),
+        price = nearby.price?.let { p -> p.copy(perUnit = p.perUnit.copy(currency = "USD")) },
+    )
+}
 
 /**
  * Francia: el feed no trae nombre — la primera lleva el que OSM le presta por su id oficial, la

@@ -16,7 +16,6 @@ import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
-import com.rndeveloper.paparcar.localePumpGallon
 
 class AppNotificationManagerImpl(
     private val context: Context,
@@ -229,6 +228,7 @@ class AppNotificationManagerImpl(
         referenceName: String?,
         latitude: Double,
         longitude: Double,
+        quotesPerGallon: Boolean,
     ) {
         if (!appPreferences.notifyFuelPrices) return
         val title = stationName
@@ -239,7 +239,7 @@ class AppNotificationManagerImpl(
         val referenceLabel = referenceName ?: context.getString(R.string.notif_fuel_reference_area)
         // The saving arrives already written in the unit this driver buys in, so the sentence has to
         // agree with it. [I18N-A-PRICE-IS-QUOTED-IN-THE-UNIT-YOU-BUY-IT-001]
-        val cheaperText = if (quotesPerGallon()) {
+        val cheaperText = if (quotesPerGallon) {
             R.string.notif_fuel_cheaper_text_gallon
         } else {
             R.string.notif_fuel_cheaper_text
@@ -268,6 +268,7 @@ class AppNotificationManagerImpl(
         otherMovesCount: Int,
         latitude: Double,
         longitude: Double,
+        quotesPerGallon: Boolean,
     ) {
         if (!appPreferences.notifyFuelPrices) return
         val title = stationName
@@ -278,7 +279,7 @@ class AppNotificationManagerImpl(
         // silently. The count is a separate variant for the same reason.
         // ⛔ Y ocho, no cuatro: la unidad del surtidor multiplica las variantes porque tampoco es un
         // sufijo pegable. [I18N-A-PRICE-IS-QUOTED-IN-THE-UNIT-YOU-BUY-IT-001]
-        val gallon = quotesPerGallon()
+        val gallon = quotesPerGallon
         val body = when {
             wentUp && otherMovesCount > 0 -> context.getString(
                 if (gallon) R.string.notif_fuel_move_text_up_more_gallon else R.string.notif_fuel_move_text_up_more,
@@ -758,12 +759,11 @@ class AppNotificationManagerImpl(
         )
     }
 
-    /**
-     * Si el surtidor de este usuario cobra por galón, la frase del aviso tiene que decir «galón».
-     * Misma señal que usa la etiqueta del precio en la ficha del coche — el LOCALE, no el GPS ni el
-     * ajuste de millas. [I18N-A-PRICE-IS-QUOTED-IN-THE-UNIT-YOU-BUY-IT-001]
-     */
-    private fun quotesPerGallon(): Boolean = localePumpGallon() != null
+    // ⛔ Aquí vivía `quotesPerGallon()`, que leía el LOCALE del móvil para decidir si la frase decía
+    // «galón». Era la misma pregunta equivocada que ponía «7.552 EUR» en una gasolinera de Cádiz: la
+    // unidad es del MERCADO del que viene el precio, no de la región del teléfono, así que ahora
+    // llega como parámetro pegada a la cifra que describe.
+    // [FUEL-A-PRICE-IS-QUOTED-WHERE-IT-IS-SOLD-001]
 
     companion object {
         const val DETECTION_CHANNEL_ID = "detection_channel"

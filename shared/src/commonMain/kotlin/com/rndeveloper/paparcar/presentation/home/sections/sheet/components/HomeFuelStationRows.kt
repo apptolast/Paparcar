@@ -125,7 +125,7 @@ private fun FuelPriceLabel(price: StationPrice) {
         Text(
             // The shared formatter: row, map capsule and peek must quote one price the same way.
             // [FUEL-STATIONS-MAP-AND-PEEK-001]
-            text = price.perUnit.pumpPriceLabel(LocalPumpGallon.current),
+            text = price.perUnit.pumpPriceLabel(),
             style = PaparcarType.current.subtitle,
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
