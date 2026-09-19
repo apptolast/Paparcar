@@ -102,7 +102,7 @@ login funciona, pero **borrar la cuenta falla** — y es justo lo que mira App R
 ### 3b · Firebase console (`pap-26`) → Authentication → Sign-in method
 
 1. **Apple** → *Enable*.
-    - *Services ID*: vacío (solo para web/Android).
+    - *Services ID*: **vacío** — ver el ⛔ de abajo.
     - *OAuth code flow configuration*: Apple Team ID `3NXH5U7C5A`, Key ID del 3a, y pegar el
       contenido completo del `.p8` (incluidas las líneas `BEGIN/END PRIVATE KEY`).
     - *Save*.
@@ -110,6 +110,31 @@ login funciona, pero **borrar la cuenta falla** — y es justo lo que mira App R
    client iOS lo creó Firebase al registrar la app iOS (`IS_SIGNIN_ENABLED = true` en el plist).
 
 **Confirmar:** Apple y Google en *Enabled* y que la configuración de OAuth code flow se guardó.
+
+### ⛔ El *Services ID* se queda VACÍO, y no es un descuido (19-09-2026)
+
+La consola misma lo rotula *«Services ID (**not required for Apple**)»*. Ese campo es el `client_id`
+del flujo **OAuth web** — el que pasa por `https://pap-26.firebaseapp.com/__/auth/handler`, la URL
+que la propia pantalla enseña debajo. Paparcar hace Sign in with Apple **nativo**: el identity token
+que devuelve `ASAuthorizationController` lleva `aud = com.rndeveloper.paparcar`, el **bundle ID**, y
+Firebase lo valida contra la app iOS ya registrada en el proyecto. Nada lee el Services ID.
+
+⛔ **Y un Services ID escrito a mano no es inocuo.** No es texto libre: es una entidad que se crea en
+Apple. Una cadena con pinta correcta (`com.rndeveloper.paparcar.applesignin`) que no existe allí
+—o que existe sin *Primary App ID*, dominio y return URL— apunta a nada: hoy no la toca nadie, y el
+día que algo la use (Apple en web/Android, o la **revocación** al borrar la cuenta) Apple contesta
+`invalid_client`. Justo el camino que App Review mira.
+
+**Cómo comprobar si existe de verdad** (la trampa que hace creer que sí): developer.apple.com →
+*Certificates, Identifiers & Profiles* → **Identifiers** → en el desplegable de la derecha cambiar
+*App IDs* por **Services IDs**. Por defecto la lista enseña App IDs, así que un Services ID
+inexistente no se echa de menos.
+
+**Si algún día hiciera falta** (solo para Apple en web o Android, que hoy no montamos): *Identifiers*
+→ **+** → *Services IDs* → identificador en DNS inverso, **distinto del bundle ID** → *Configure* →
+*Primary App ID* `com.rndeveloper.paparcar`, *Domains and Subdomains* `pap-26.firebaseapp.com`,
+*Return URLs* `https://pap-26.firebaseapp.com/__/auth/handler` → y encima verificar la propiedad del
+dominio ante Apple. Trabajo real para una vía que no usamos: por eso, vacío.
 
 ## Paso 4 · Prueba del login — 🟡 Google ✅ en simulador (el fallo *«Couldn't load your
 account»* era la BD vieja del simulador, no el login) · **Apple: falló en iPhone real (19-09) por el
