@@ -57,3 +57,32 @@ reabre exactamente ese conflicto, así que **no se apila**:
 
 `ZoneContainmentTest` — 5 tests en verde · `:shared:compileDebugKotlinAndroid` y
 `:app:compileMockDebugKotlin` ✅.
+
+## Decisiones de la revisión (#38, rndevelo, 19-09)
+
+> «¿Por qué se ve así? Revisa bien la implementación […] la opción de dejar el icono de zona y su
+> candado arriba a la izquierda de la zona también lo veo bien y así evitamos tener que transformar
+> el marker. Si no, déjalo como mejor veas que sea más intuitivo.»
+
+**No era el diseño: era un fallo de CACHÉ, y la captura lo dice.** En el pantallazo el coche sale
+como el pin rojo por defecto de Google, no como el marcador de Paparcar. Eso pasa cuando kmpmaps
+recibe un `contentId` para el que **no hay handler registrado**: dibuja su marcador propio.
+
+Causa exacta: la primera pasada metió la zona en la clave con un parámetro `zoneKey` **con valor por
+defecto**. El mapa de handlers lo pasaba (`z<id>p`), la creación del `Marker` se lo dejaba (`nz`), y
+las dos claves dejaron de casar **justo cuando el coche entraba en una zona** — el único caso que la
+feature añadía, y por eso no se vio compilando. La zona sí se des-rotulaba (ese lado funcionaba), así
+que en pantalla quedaba un pin rojo desnudo encima del sitio.
+
+**Arreglo de sistema, no parche**: la clave la construye **un solo sitio**.
+`vehicleBadgeContentId` recibe ahora `zones: List<Zone>` —**obligatorio, sin defecto**— y resuelve él
+mismo la contención (`List<Zone>.zoneMarkKey`). Omitirla no compila, y los dos call sites no pueden
+volver a discrepar. `MapMarkerIdsTest` gana el caso que faltaba: el mismo coche dentro y fuera de una
+zona emite ids distintos, y una zona lejana no cambia nada.
+
+**Sobre la alternativa (glifo arriba a la izquierda de la zona):** me quedo con la insignia en el
+marcador, que es lo que pedía la issue #32 («el marcador del coche pasa a llevar el icono de la zona
+y el candado»). El motivo por el que se veía mal ya no existe, y separar glifo y sujeto obliga al
+usuario a unir dos cosas con la vista para responder «¿está en casa?». Si en device sigue sin
+convencer, el cambio a la esquina de la zona es local a `zones.forEach` + `VehicleZoneMark` y lo hago
+en un PR pequeño.

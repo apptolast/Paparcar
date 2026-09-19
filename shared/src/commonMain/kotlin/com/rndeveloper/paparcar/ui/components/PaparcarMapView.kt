@@ -283,11 +283,18 @@ internal fun vehicleBadgeContentId(
     selected: Boolean,
     dim: Boolean = false,
     themeKey: String,
-    /** Zone id + privacy of the zone this car sits in, or "none". Baked into the key for the same
-     *  reason every other segment is: the glyph is part of the BITMAP, and kmpmaps caches by
-     *  contentId — without it, driving into a zone would serve the cached mark-less raster forever.
+    /** The saved zones, so THIS function — and nobody else — decides the zone segment of the key.
+     *
+     *  The glyph of the hosting zone is part of the BITMAP and kmpmaps caches by contentId, so the
+     *  zone has to be in the key or driving into a zone would serve the cached mark-less raster
+     *  forever. It is a required parameter, and the containment is resolved in here, because the
+     *  first cut took a ready-made `zoneKey` with a default: the handler map passed it and the
+     *  marker list forgot to, the two ids stopped matching, and kmpmaps — finding no handler for
+     *  the marker's id — drew its own default red pin on top of the car (review de #38). A key that
+     *  two call sites build separately is a key that can disagree; now there is one builder and
+     *  omitting the zones does not compile.
      *  [MAP-A-PARKED-CAR-INSIDE-A-ZONE-WEARS-THE-ZONE-001] */
-    zoneKey: String = "nz",
+    zones: List<Zone>,
 ): String {
     val state = when {
         selected -> "sel"
@@ -307,9 +314,18 @@ internal fun vehicleBadgeContentId(
     // [UI-A-SAVED-ZONE-WEARS-ITS-DOUBT-TOO-001] …and so is "this session is an AREA", which puts
     // the target ⊙ on the tag's corner. Same reason as every other segment here: the doubt is baked
     // into the bitmap, so a session that turns out to be a zone needs a key the cache has never seen.
+    val zoneKey = zones.zoneMarkKey(v)
     return "$MARKER_VEHICLE_BADGE_PREFIX${v.vehicleId.take(8)}_${v.sizeCategory?.name ?: "def"}_" +
         "${v.color?.name ?: "def"}_${state}_${tone}_${v.doubtKey()}_${zoneKey}_$themeKey"
 }
+
+/** The zone segment of a vehicle marker's key: which saved zone hosts this car, and whether it is
+ *  private — the two facts the badge draws. `nz` when no zone contains it.
+ *  [MAP-A-PARKED-CAR-INSIDE-A-ZONE-WEARS-THE-ZONE-001] */
+internal fun List<Zone>.zoneMarkKey(v: ParkedVehicleSummary): String =
+    zoneContaining(v.location.latitude, v.location.longitude)
+        ?.let { "z${it.id.take(6)}${if (it.isPrivate) "p" else "o"}" }
+        ?: "nz"
 
 /** `apx` when the session is an area, `pt` when it is a point — one segment of the marker cache key. */
 private fun ParkedVehicleSummary.doubtKey(): String = if (isApproximate) "apx" else "pt"
@@ -1120,6 +1136,7 @@ fun PaparcarMapView(
                                 selected = selected,
                                 dim = !selected && dimSpots,
                                 themeKey = themeKey,
+                                zones = zones,
                             ),
                             androidMarkerOptions = if (selected) SELECTED_MARKER_OPTIONS else NORMAL_MARKER_OPTIONS,
                         ),
@@ -1368,13 +1385,14 @@ fun PaparcarMapView(
         // ── Per-vehicle badge bitmaps (one per vehicle × selected × dim) ──
         val vehicleHandlers: Map<String, @Composable (Marker) -> Unit> =
             parkedVehicles.flatMap { v ->
-                // The zone this car is standing in, if any — read once per vehicle and used for both
-                // the bitmap and its key. [MAP-A-PARKED-CAR-INSIDE-A-ZONE-WEARS-THE-ZONE-001]
+                // The zone this car is standing in, if any — what the BITMAP draws. The KEY is not
+                // derived here: `vehicleBadgeContentId` resolves it from the same `zones`, so the
+                // marker and its handler cannot register different ids again.
+                // [MAP-A-PARKED-CAR-INSIDE-A-ZONE-WEARS-THE-ZONE-001]
                 val zone = zones.zoneContaining(v.location.latitude, v.location.longitude)
                 val zoneMark = zone?.let { VehicleZoneMark(zoneIconFor(it.iconKey), it.isPrivate) }
-                val zoneKey = zone?.let { "z${it.id.take(6)}${if (it.isPrivate) "p" else "o"}" } ?: "nz"
                 listOf<Pair<String, @Composable (Marker) -> Unit>>(
-                    vehicleBadgeContentId(v, selected = false, dim = false, themeKey = themeKey, zoneKey = zoneKey) to { _: Marker ->
+                    vehicleBadgeContentId(v, selected = false, dim = false, themeKey = themeKey, zones = zones) to { _: Marker ->
                         VehicleBadgeMarker(
                             sizeCategory = v.sizeCategory,
                             carbodyType = v.carbodyType,
@@ -1388,7 +1406,7 @@ fun PaparcarMapView(
                             zoneMark = zoneMark,
                         )
                     },
-                    vehicleBadgeContentId(v, selected = false, dim = true, themeKey = themeKey, zoneKey = zoneKey) to { _: Marker ->
+                    vehicleBadgeContentId(v, selected = false, dim = true, themeKey = themeKey, zones = zones) to { _: Marker ->
                         DimWrapper {
                             VehicleBadgeMarker(
                                 sizeCategory = v.sizeCategory,
@@ -1402,7 +1420,7 @@ fun PaparcarMapView(
                             )
                         }
                     },
-                    vehicleBadgeContentId(v, selected = true, themeKey = themeKey, zoneKey = zoneKey) to { _: Marker ->
+                    vehicleBadgeContentId(v, selected = true, themeKey = themeKey, zones = zones) to { _: Marker ->
                         VehicleBadgeMarker(
                             selected = true,
                             sizeCategory = v.sizeCategory,

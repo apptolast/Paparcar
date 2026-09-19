@@ -6,6 +6,7 @@ import com.rndeveloper.paparcar.domain.model.ParkedVehicleSummary
 import com.rndeveloper.paparcar.domain.model.SpotFreshness
 import com.rndeveloper.paparcar.domain.model.VehicleColor
 import com.rndeveloper.paparcar.domain.model.VehicleSize
+import com.rndeveloper.paparcar.domain.model.Zone
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -56,13 +57,29 @@ class MapMarkerIdsTest {
         summary("999888777666", approximate = true, bluetooth = false, active = false, color = VehicleColor.BLACK),
     )
 
+    /** A zone wide enough to contain every [summary] above — they all park at the same point. */
+    private val hostingZone = Zone(
+        id = "home-zone",
+        userId = "u1",
+        name = "Casa",
+        lat = 40.4168,
+        lon = -3.7038,
+        iconKey = "home",
+        createdAt = 0L,
+        radiusMeters = 120f,
+        isPrivate = true,
+    )
+
     /** Badge markers — the normal parked-car surface, one per parked vehicle. */
     private val badgeIds: List<EmittedId> = summaries.flatMap { v ->
         themes.flatMap { theme ->
             listOf(
-                vehicleBadgeContentId(v, selected = true, themeKey = theme),
-                vehicleBadgeContentId(v, selected = false, dim = true, themeKey = theme),
-                vehicleBadgeContentId(v, selected = false, dim = false, themeKey = theme),
+                vehicleBadgeContentId(v, selected = true, themeKey = theme, zones = emptyList()),
+                vehicleBadgeContentId(v, selected = false, dim = true, themeKey = theme, zones = emptyList()),
+                vehicleBadgeContentId(v, selected = false, dim = false, themeKey = theme, zones = emptyList()),
+                vehicleBadgeContentId(v, selected = true, themeKey = theme, zones = listOf(hostingZone)),
+                vehicleBadgeContentId(v, selected = false, dim = true, themeKey = theme, zones = listOf(hostingZone)),
+                vehicleBadgeContentId(v, selected = false, dim = false, themeKey = theme, zones = listOf(hostingZone)),
             )
         }
     }.map { EmittedId(it, MarkerTapTarget.ParkedVehicle) }
@@ -245,6 +262,30 @@ class MapMarkerIdsTest {
                 }
             }
         }
+    }
+
+    /**
+     * The regression from the review of #38: the marker asked for an id built with no zones while
+     * its handler registered one built WITH them. kmpmaps finds no handler for an unknown id and
+     * draws its own default red pin, so the parked car came out as a Google teardrop on top of the
+     * badge. Now a single builder resolves the containment, and this pins that it actually reads the
+     * zones it is handed. [MAP-A-PARKED-CAR-INSIDE-A-ZONE-WEARS-THE-ZONE-001]
+     */
+    @Test
+    fun should_changeTheId_when_theCarSitsInsideAZone() {
+        val v = summaries.first()
+        val outside = vehicleBadgeContentId(v, selected = false, themeKey = "dk", zones = emptyList())
+        val inside = vehicleBadgeContentId(v, selected = false, themeKey = "dk", zones = listOf(hostingZone))
+        assertTrue(outside != inside, "a car inside a zone must not reuse the mark-less raster")
+        assertTrue(inside.contains(hostingZone.id.take(6)), "the id must name the hosting zone")
+
+        // A zone that does NOT contain the car changes nothing — otherwise every saved zone in the
+        // account would invalidate every marker bitmap.
+        val faraway = hostingZone.copy(id = "far", lat = 41.0, lon = -3.0)
+        assertEquals(
+            outside,
+            vehicleBadgeContentId(v, selected = false, themeKey = "dk", zones = listOf(faraway)),
+        )
     }
 
     @Test
