@@ -364,8 +364,18 @@ internal sealed interface PapSheetLead {
         val isLoading: Boolean = false,
     ) : PapSheetLead
 
-    /** Generic escape (AddingZone's picked icon). */
-    data class GenericIcon(val icon: ImageVector) : PapSheetLead
+    /** Generic escape (AddingZone's picked icon).
+     *
+     * [container]/[tint] override the default tonal pair for a subject that already HAS a colour of
+     * its own on the map: a car park's peek must wear the same blue disc as its marker and its row,
+     * or the same thing is three different colours across three surfaces. Null = the generic tonal
+     * pair, which is what an icon with no subject colour (a zone's picked glyph) wants.
+     * [MAP-A-CAR-PARK-MARKER-WEARS-ITS-OWN-BLUE-001] */
+    data class GenericIcon(
+        val icon: ImageVector,
+        val container: Color? = null,
+        val tint: Color? = null,
+    ) : PapSheetLead
 }
 
 /** Eyebrow tint: green = own action, muted = neutral context. (The old blue "Manual" tone died
@@ -529,11 +539,11 @@ private fun PapSheetLeadTile(lead: PapSheetLead) {
             )
         }
 
-        is PapSheetLead.GenericIcon -> LeadTileBox(container = cs.primaryContainer) {
+        is PapSheetLead.GenericIcon -> LeadTileBox(container = lead.container ?: cs.primaryContainer) {
             Icon(
                 imageVector = lead.icon,
                 contentDescription = null,
-                tint = cs.primary,
+                tint = lead.tint ?: cs.primary,
                 modifier = Modifier.size(LEAD_ICON_DP.dp),
             )
         }

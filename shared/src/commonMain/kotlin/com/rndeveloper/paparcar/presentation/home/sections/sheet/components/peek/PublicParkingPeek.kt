@@ -27,6 +27,7 @@ import com.rndeveloper.paparcar.presentation.util.distanceMeters
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
 import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
+import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -74,7 +75,11 @@ internal fun PublicParkingPeek(
     PapSheet(
         // La misma P que el marcador que acabas de tocar: un parking público se dibuja igual en el
         // mapa, en la fila, en la pestaña y aquí. [UI-THE-CAR-PARK-WEARS-OUR-OWN-P-001]
-        lead = PapSheetLead.GenericIcon(PaparcarIcons.CarParkMark),
+        lead = PapSheetLead.GenericIcon(
+            icon = PaparcarIcons.CarParkMark,
+            container = PapColor.carPark,
+            tint = PapColor.onCarPark,
+        ),
         eyebrow = stringResource(Res.string.parking_peek_eyebrow).uppercase(),
         eyebrowTone = PapSheetEyebrowTone.Action,
         title = title,

@@ -68,8 +68,17 @@ fun HomePublicParkingRow(
             // viéndolo en el Oppo) era contra el gris de una lista apagada, no a favor del
             // verde en sí; el azul la respeta y además devuelve el invariante de que una
             // cosa se dibuja igual en el mapa y en la lista.
+            //
+            // ⛔ El azul va en el CONTAINER y la P en blanco, no al revés (review de #35): teñir
+            // solo el glifo sobre el tile neutro deja la fila leyéndose como una fila apagada con
+            // un detalle azul, mientras el marcador es un disco azul macizo. La simetría con el
+            // mapa es la del DISCO, que es lo que el ojo reconoce a tamaño de lista.
             // [MAP-A-CAR-PARK-MARKER-WEARS-ITS-OWN-BLUE-001]
-            PapIconTile(icon = PaparcarIcons.CarParkMark, tint = PapColor.carPark)
+            PapIconTile(
+                icon = PaparcarIcons.CarParkMark,
+                container = PapColor.carPark,
+                tint = PapColor.onCarPark,
+            )
         },
         trailing = feeLabel(parking.parking.fee)?.let { label -> { FeeLabel(label) } },
     )

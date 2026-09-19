@@ -40,11 +40,11 @@ Ninguna, pero roza dos y por eso el cambio no es «pintarlo de azul»:
 | Sitio | Qué hace | Decisión |
 |---|---|---|
 | `PaparcarMapMarkers.PublicParkingMarker` | el marcador | ✅ azul relleno + P blanca |
-| `HomePublicParkingRows` | tile de la fila | ✅ pasa a `PapColor.carPark` |
+| `HomePublicParkingRows` | tile de la fila | ✅ container azul + P blanca (review de #35) |
 | `StateGalleryScreen` (Dev Catalog) | ya muestra ambos estados | ✅ sin cambios, refleja el color nuevo |
 | `HomeNearbyLensRow` (LensTab) | pestaña de lente | ❌ su color dice SELECCIONADA, no qué entidad es |
 | `BrowsePeek` (NearbyCounter) | contador de la lente | ❌ igual: es mobiliario del contador |
-| `PublicParkingPeek` (`PapSheetLead.GenericIcon`) | tile del peek | ⚠️ **queda verde** — ver Preguntas |
+| `PublicParkingPeek` (`PapSheetLead.GenericIcon`) | tile del peek | ✅ container azul + P blanca (review de #35) |
 | `FirstStepExplainer`, `OnboardingScreen` | explicación de onboarding | ❌ ilustran la P, no el color del mapa |
 
 ## Criterio de éxito
@@ -53,9 +53,24 @@ Ninguna, pero roza dos y por eso el cambio no es «pintarlo de azul»:
 - El pin y su fila van del mismo color.
 - No se confunde en device con el coche vigilado por BT ni con el movimiento ajeno.
 
+## Decisiones de la revisión (#35, rndevelo, 18-09)
+
+> «Mete esos tonos también para la lista de la modal de parkings, container azul y el icono blanco,
+> haciendo simetría también con los tonos de markers».
+
+- **El azul va en el CONTAINER, no en el glifo.** La primera pasada tiñó la P y dejó el tile neutro:
+  en el mapa el parking es un DISCO azul macizo, y eso es lo que el ojo reconoce. Una fila con tile
+  gris y P azul no es el mismo objeto. `HomePublicParkingRow` pasa a
+  `container = PapColor.carPark` + `tint = PapColor.onCarPark`.
+- **Pregunta 1 resuelta: el peek también.** `PapSheetLead.GenericIcon` gana `container`/`tint`
+  opcionales (null = par tonal genérico, que es lo que quiere el glifo elegido de una zona) y
+  `PublicParkingPeek` pasa el azul. Una cosa, un color, en las tres superficies: mapa, fila y peek.
+- Lo que NO cambia y por qué: `HomeNearbyLensRow` y el contador de `BrowsePeek` siguen con su color
+  de SELECCIÓN — ahí el azul diría «pestaña activa», no «parking».
+
 ## Preguntas (para la revisión)
 
-1. **El tile del peek se queda verde.** `PapSheetLead.GenericIcon` pinta con `primary` y lo comparten
+1. ✅ **Resuelto arriba.** ~~El tile del peek se queda verde.~~ `PapSheetLead.GenericIcon` pinta con `primary` y lo comparten
    todos los peeks; teñirlo exige un parámetro nuevo en un componente compartido. ¿Lo hago en otro PR
    o entra aquí?
 2. **El azul está apretado** (87/765 de `PapCarBlueDark` en oscuro). Lo que los separa en uso es qué
