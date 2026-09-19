@@ -33,6 +33,8 @@ import com.rndeveloper.paparcar.ui.theme.watch
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_fuel_attended_price
+import paparcar.composeapp.generated.resources.parking_fee_free
+import paparcar.composeapp.generated.resources.parking_fee_paid
 
 /**
  * The map tile layer with its right-side floating FAB column (location,
@@ -118,6 +120,10 @@ internal fun HomeMapSection(
         // Unconditional, unlike the one above: which price a capsule is showing does not depend on
         // what the active car burns. [FUEL-ITALY-A-PRICE-DEPENDS-ON-WHO-PUMPS-IT-001]
         fuelAttendedLabel = stringResource(Res.string.home_fuel_attended_price),
+        // Las mismas dos palabras que ya usa la FILA del parking: una idea, una redacción.
+        // [MAP-A-CAR-PARK-MARKER-SAYS-WHAT-IT-COSTS-001]
+        carParkPaidLabel = stringResource(Res.string.parking_fee_paid),
+        carParkFreeLabel = stringResource(Res.string.parking_fee_free),
         onFuelStationClick = onFuelStationClick,
         publicParkings = slice.publicParkings,
         selectedPublicParkingId = slice.selectedPublicParkingId,

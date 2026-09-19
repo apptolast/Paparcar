@@ -1109,6 +1109,19 @@ private val SPOT_PIN_W     = 46.dp
 private val SPOT_PIN_SEL_W  = 56.dp
 private const val SPOT_VIEWBOX_W = 72f
 private const val SPOT_VIEWBOX_H = 82f
+/**
+ * **La línea sobre la que se apoya el CUERPO de cualquier marcador de la familia del puck** — el
+ * borde inferior del disco (centro 34 + radio 29), a 3,5 unidades del borde superior del punto de
+ * posición. [MAP-EVERY-MARKER-SITS-THE-SAME-HEIGHT-OVER-ITS-DOT-001]
+ *
+ * Esa distancia es un RASGO de la familia, no un número de cada marcador: el puck de plaza la tiene
+ * por construcción y el tag del coche la tiene equivalente en su propio viewBox (4 de 104 de ancho,
+ * frente a 3,5 de 72). La cápsula colgaba del borde SUPERIOR, así que su distancia al punto la
+ * decidía su propio alto — ~18 unidades, cinco veces la de sus hermanos, y encima variable entre una
+ * línea y dos.
+ */
+private const val MARKER_BODY_BOTTOM_Y = 63f
+
 private const val SPOT_DOT_R = 4.5f // position-dot radius (viewBox units)
 private const val SPOT_DOT_CY = 71f // position-dot centre Y (viewBox units) — the visual ground point
 // [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] Target ⊙ of an area spot's ground point (viewBox units):
@@ -1290,8 +1303,8 @@ private val ZONE_HALO_OFFSETS: List<Pair<Float, Float>> = List(ZONE_HALO_DIRECTI
  *
  * ⛔ The price is never coloured cheap/expensive — the green/amber/red ramp belongs exclusively to
  * spot freshness [UI-COLOR-DOCTRINE-001] — and an unpriced station shows the glyph alone, never a
- * zero. Same capsule grammar as [ZoneMarker] so the map's labels read as one family; the glyph is
- * the canonical [PaparcarIcons.Fuel] used by the station list.
+ * zero. The shape itself is [NearbyCapsuleMarker], shared with the car park: what changes between
+ * the two is the accent and what they have to say, never the grammar.
  */
 @Composable
 fun FuelStationMarker(
@@ -1301,43 +1314,73 @@ fun FuelStationMarker(
     /** WHICH fuel the price is — a figure with no subject makes the reader remember what their car
      *  burns. Muted beside the price; drawn only when there IS a price to qualify. */
     fuelLabel: String? = null,
+) = NearbyCapsuleMarker(
+    glyph = PaparcarIcons.Fuel,
+    accent = nearbyMarkerGreen(),
+    selected = selected,
+    modifier = modifier,
+    primaryText = priceText,
+    secondaryText = fuelLabel?.replaceFirstChar { it.uppercase() },
+)
+
+/**
+ * **La cápsula de un sitio CERCANO: glifo + lo que ese sitio tenga que decir.** Gasolinera y parking
+ * público son el mismo marcador con distinto acento y distinta frase.
+ * [MAP-A-CAR-PARK-MARKER-SAYS-WHAT-IT-COSTS-001] [FUEL-STATIONS-MAP-AND-PEEK-001]
+ *
+ * Existe porque la issue #46 pidió literalmente que el parking siguiera «la misma estructura de
+ * diseño y contenido que gasolineras». Copiar la cápsula habría dado dos definiciones de la misma
+ * forma, y la forma tiene seis números (corner, dos grosores de borde, dos alphas, tamaño del
+ * glifo): dos copias es el día que una se ajusta y la otra no.
+ *
+ * ⛔ **El cuerpo se APOYA en [MARKER_BODY_BOTTOM_Y]**, no cuelga del borde de arriba. Colgando, la
+ * distancia al punto de posición la decide el alto de la cápsula — cambia entre una línea y dos —
+ * y quedaba a ~18 unidades del punto cuando el puck de plaza y el de parking dejan 3,5.
+ * [MAP-EVERY-MARKER-SITS-THE-SAME-HEIGHT-OVER-ITS-DOT-001]
+ */
+@Composable
+private fun NearbyCapsuleMarker(
+    glyph: ImageVector,
+    accent: Color,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    /** La línea que manda: el precio, la tarifa. Null = sólo el glifo, nunca un cero ni un hueco. */
+    primaryText: String? = null,
+    /** La que matiza a la de arriba (qué combustible). Sólo se dibuja si hay primera. */
+    secondaryText: String? = null,
 ) {
     val paper = MaterialTheme.colorScheme.surface
     val ink = MaterialTheme.colorScheme.onSurface
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
-    val brand = nearbyMarkerGreen()
     val labelFamily = PaparcarType.current.cardTitle.fontFamily
     val density = LocalDensity.current
 
-    // [FUEL-STATIONS-MAP-AND-PEEK-001] Redesigned to share the "puck + dot" style with the rest of
-    // the family. The capsule now sits over a separated position dot, marking the ground point.
-    // [PARKINGS-ON-THE-MAP-001] [FUEL-STATION-CLIPPING-FIX]
+    // Misma escala que el marcador de plaza (s = alto / 82) para que el punto y la sombra pesen
+    // igual que los de sus vecinos. [FUEL-STATION-CLIPPING-FIX]
     val s = with(density) { SPOT_PIN_W.toPx() / SPOT_VIEWBOX_W }
     val markerH = with(density) { (SPOT_VIEWBOX_H * s).toDp() }
+    val bodyBottomPad = with(density) { ((SPOT_VIEWBOX_H - MARKER_BODY_BOTTOM_Y) * s).toDp() }
 
     Box(
         modifier = modifier
             .height(markerH)
             .width(IntrinsicSize.Min),
-        contentAlignment = Alignment.TopCenter
+        contentAlignment = Alignment.BottomCenter,
     ) {
         Canvas(Modifier.fillMaxSize()) {
-            // We use the same scale as the free-spot marker (s = height / 82) so the dot and shadow
-            // read with the same visual weight. The capsule is horizontally centered.
             val canvasS = size.height / SPOT_VIEWBOX_H
             val centerX = (size.width / 2f) / canvasS
             drawSpotShadow(canvasS, ink, centerX = centerX)
-            drawSpotDot(canvasS, brand, centerX = centerX)
+            drawSpotDot(canvasS, accent, centerX = centerX)
         }
         Row(
             modifier = Modifier
-                .offset(y = 0.dp)
-                .padding(horizontal = 4.dp) // extra air inside the Row so it doesn't clip its own border
+                .padding(start = 4.dp, end = 4.dp, bottom = bodyBottomPad) // aire: el borde no se recorta
                 .clip(RoundedCornerShape(FUEL_LABEL_CORNER))
                 .background(paper.copy(alpha = FUEL_LABEL_BG_ALPHA))
                 .border(
                     width = if (selected) FUEL_LABEL_BORDER_SEL else FUEL_LABEL_BORDER,
-                    color = brand.copy(alpha = if (selected) 1f else FUEL_LABEL_BORDER_ALPHA),
+                    color = accent.copy(alpha = if (selected) 1f else FUEL_LABEL_BORDER_ALPHA),
                     shape = RoundedCornerShape(FUEL_LABEL_CORNER),
                 )
                 .padding(horizontal = 10.dp, vertical = 3.dp)
@@ -1345,35 +1388,35 @@ fun FuelStationMarker(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                imageVector = PaparcarIcons.Fuel,
+                imageVector = glyph,
                 contentDescription = null,
-                tint = brand,
+                tint = accent,
                 modifier = Modifier.size(FUEL_GLYPH_SIZE),
             )
-            if (priceText != null) {
+            if (primaryText != null) {
                 Spacer(Modifier.width(8.dp))
                 Column(verticalArrangement = Arrangement.Center) {
                     Text(
-                        text = priceText,
+                        text = primaryText,
                         color = ink,
                         maxLines = 1,
                         style = TextStyle(
                             fontFamily = labelFamily,
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp,
-                            lineHeight = 12.sp
+                            lineHeight = 12.sp,
                         ),
                     )
-                    if (fuelLabel != null) {
+                    if (secondaryText != null) {
                         Text(
-                            text = fuelLabel.replaceFirstChar { it.uppercase() },
+                            text = secondaryText,
                             color = muted,
                             maxLines = 1,
                             style = TextStyle(
                                 fontFamily = labelFamily,
                                 fontWeight = FontWeight.Medium,
                                 fontSize = 10.sp,
-                                lineHeight = 10.sp
+                                lineHeight = 10.sp,
                             ),
                         )
                     }
@@ -1402,66 +1445,39 @@ fun FuelStationMarker(
 private fun nearbyMarkerGreen(): Color = PapColor.actionText
 
 /**
- * A public car park on the map — **the spot puck's shape, wearing the car park's colours**.
- * [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] [PARKINGS-ON-THE-MAP-001]
+ * A public car park on the map — **the nearby capsule, wearing the car park's blue and saying what
+ * it costs**. [MAP-A-CAR-PARK-MARKER-SAYS-WHAT-IT-COSTS-001] [PARKINGS-ON-THE-MAP-001]
  *
- * It is the spot puck's silhouette carrying the canonical public-parking `P`, so beside the
- * given-spot pucks it reads as a different KIND of thing — a fixed place rather than a report.
+ * La misma [NearbyCapsuleMarker] que la gasolinera, y a propósito: las dos son SITIOS a los que se
+ * conduce —contexto, no producto—, así que se dibujan con la misma gramática y lo que las separa es
+ * el acento y lo que tienen que decir. Lo que decía antes era sólo «P»: un disco relleno no puede
+ * llevar una frase, y la tarifa es justo lo que decide entre dos parkings a la misma distancia.
  *
- * ⛔ **The fill says WHOSE it is, never how fresh it is.** A free spot is a puck filled with its
- * freshness tier, and that ramp (green → amber → red) is the community's clock. A car park is
- * neither free nor expiring, so it is filled with [PapColor.carPark] instead: the P-on-blue every
- * driver reads on the street. Blue can never be mistaken for a freshness tier, which is the one
- * confusion this map cannot afford — the reason the puck used to stay paper-bodied with a green
- * outline, now solved by a colour that is not on the ramp at all.
- * [MAP-A-CAR-PARK-MARKER-WEARS-ITS-OWN-BLUE-001]
+ * ⛔ **El azul es el acento, no el relleno.** La P-sobre-azul de la calle sigue siendo la identidad
+ * [MAP-A-CAR-PARK-MARKER-WEARS-ITS-OWN-BLUE-001] y sobrevive entera en la FILA y en el peek, que es
+ * donde hay sitio para un tile. Aquí el azul pasa al glifo, al borde y al punto de posición, igual
+ * que el verde de la gasolinera: dos cuerpos macizos de colores distintos uno al lado del otro
+ * compiten con el producto (las plazas), y ninguno de los dos es el producto.
+ *
+ * ⛔ **Y nunca una tarifa inventada**: `FeeInfo.UNKNOWN` —el 71 % de los parkings que nadie ha
+ * tarifado— dibuja el glifo solo. Un conductor al que le dijimos «gratuito» y se encontró una
+ * barrera fue engañado por nosotros, no por OpenStreetMap.
  */
 @Composable
 fun PublicParkingMarker(
     selected: Boolean,
     modifier: Modifier = Modifier,
-) {
-    val paper = MaterialTheme.colorScheme.surface
-    val ink = MaterialTheme.colorScheme.onSurface
-    val blue = PapColor.carPark
-    val markerW = if (selected) SPOT_PIN_SEL_W else SPOT_PIN_W
-    val sDp = markerW.value / SPOT_VIEWBOX_W
-    val s = with(LocalDensity.current) { markerW.toPx() / SPOT_VIEWBOX_W }
+    /** «De pago» / «Gratuito», ya traducido por quien sí puede leer recursos. Null cuando la tarifa
+     *  es desconocida — y entonces la cápsula es sólo la P. */
+    feeLabel: String? = null,
+) = NearbyCapsuleMarker(
+    glyph = PaparcarIcons.CarParkMark,
+    accent = PapColor.carPark,
+    selected = selected,
+    modifier = modifier,
+    primaryText = feeLabel,
+)
 
-    Box(modifier.size(markerW, markerW * (SPOT_VIEWBOX_H / SPOT_VIEWBOX_W))) {
-        Canvas(Modifier.matchParentSize()) {
-            drawSpotShadow(s, ink, centerX = 36f)
-            drawSpotDot(s, blue, centerX = 36f)
-            val c = Offset(36f * s, 34f * s)
-            if (selected) {
-                drawCircle(ink, radius = (PARKING_PUCK_R + 3.4f) * s, center = c, style = Stroke(width = 3.2f * s))
-            }
-            // Filled, not outlined: on a blue body the white P is the contrast, so the marker holds
-            // at map size without the paper disc the green version needed to stay legible.
-            drawCircle(blue, radius = PARKING_PUCK_R * s, center = c)
-            // A hairline of surface around the fill, so a dark-blue puck does not merge into dark
-            // tiles (and a light one not into paper). Same job the outline used to do, one third
-            // the weight because the fill now carries the colour.
-            drawCircle(
-                paper,
-                radius = PARKING_PUCK_R * s,
-                center = c,
-                style = Stroke(width = if (selected) 2.4f * s else 1.6f * s),
-            )
-        }
-        Icon(
-            imageVector = PaparcarIcons.CarParkMark,
-            contentDescription = null,
-            tint = PapColor.onCarPark,
-            modifier = Modifier
-                .offset(x = (18f * sDp).dp, y = (16f * sDp).dp)
-                .size((36f * sDp).dp),
-        )
-    }
-}
-
-/** Igual que el del spot (29): la silueta compartida es el punto de este marcador. */
-private const val PARKING_PUCK_R = 29f
 
 private val PARKING_LABEL_PAD_H = 9.dp
 

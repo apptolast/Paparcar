@@ -72,6 +72,7 @@ import com.rndeveloper.paparcar.domain.model.ParkedVehicleSummary
 import com.rndeveloper.paparcar.domain.model.Spot
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.model.Zone
+import com.rndeveloper.paparcar.domain.parkings.FeeInfo
 import com.rndeveloper.paparcar.domain.zone.zoneContaining
 import com.rndeveloper.paparcar.presentation.map.CameraTarget
 import com.rndeveloper.paparcar.presentation.map.settleZoom
@@ -853,6 +854,11 @@ fun PaparcarMapView(
     /** Localised name of the fuel those prices are for, muted beside each figure. Resolved by the
      *  caller (it needs a composable stringResource); null when the answer was fetched fuel-less. */
     fuelPricesLabel: String? = null,
+    /** «De pago» / «Gratuito», ya traducidos, para la cápsula del parking público: los constructores
+     *  de marcadores corren FUERA de composición y no pueden llamar a `stringResource`. Misma razón
+     *  y mismo sitio que [fuelPricesLabel]. [MAP-A-CAR-PARK-MARKER-SAYS-WHAT-IT-COSTS-001] */
+    carParkPaidLabel: String? = null,
+    carParkFreeLabel: String? = null,
     /**
      * Localised word for an attended pump, appended to [fuelPricesLabel] on the capsules whose
      * price is one. [FUEL-ITALY-A-PRICE-DEPENDS-ON-WHO-PUMPS-IT-001]
@@ -1033,7 +1039,7 @@ fun PaparcarMapView(
         // rehacerse. [UI-A-ZONE-IS-AN-AREA-NOT-A-PIN-001]
         zoneNamed,
         fuelStations, selectedFuelStationId, fuelPricesLabel, fuelAttendedLabel,
-        publicParkings, selectedPublicParkingId,
+        publicParkings, selectedPublicParkingId, carParkPaidLabel, carParkFreeLabel,
         departure, arrival, freshnessMinute, themeKey,
         // The trip dots' ids carry the watch, so a change of watch has to rebuild this list — same
         // reason `themeKey` is here. [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001]
@@ -1113,6 +1119,7 @@ fun PaparcarMapView(
                             selected = nearby.parking.id == selectedPublicParkingId,
                             themeKey = themeKey,
                             dim = dimSpots && nearby.parking.id != selectedPublicParkingId,
+                            feeLabel = carParkFeeLabel(nearby, carParkPaidLabel, carParkFreeLabel),
                         ),
                         androidMarkerOptions = NORMAL_MARKER_OPTIONS,
                     ),
@@ -1258,7 +1265,7 @@ fun PaparcarMapView(
     val customMarkerContent = remember(
         clusterCountByCoords, enRouteBuckets, parkedVehicles, zones,
         fuelStations, selectedFuelStationId, fuelPricesLabel, fuelAttendedLabel,
-        publicParkings, selectedPublicParkingId,
+        publicParkings, selectedPublicParkingId, carParkPaidLabel, carParkFreeLabel,
         dimSpots,
         parkingVehicleSize, parkingVehicleCarbody, parkingVehicleColor, parkingIsActive,
         askVehicleCarbody, askVehicleSize, askVehicleColor, themeKey,
@@ -1489,17 +1496,21 @@ fun PaparcarMapView(
         // [PARKINGS-ON-THE-MAP-001]
         val parkingHandlers: Map<String, @Composable (Marker) -> Unit> =
             publicParkings.flatMap { nearby ->
+                // La tarifa se resuelve UNA vez por parking y alimenta a la vez la clave y el
+                // bitmap: dos lecturas separadas es como se registra un handler para un id que el
+                // marcador no pide. [MAP-A-PARKED-CAR-INSIDE-A-ZONE-WEARS-THE-ZONE-001]
+                val fee = carParkFeeLabel(nearby, carParkPaidLabel, carParkFreeLabel)
                 listOf<Pair<String, @Composable (Marker) -> Unit>>(
-                    publicParkingContentId(nearby.parking.id, selected = false, themeKey = themeKey) to { _: Marker ->
-                        PublicParkingMarker(selected = false)
+                    publicParkingContentId(nearby.parking.id, selected = false, themeKey = themeKey, feeLabel = fee) to { _: Marker ->
+                        PublicParkingMarker(selected = false, feeLabel = fee)
                     },
-                    publicParkingContentId(nearby.parking.id, selected = false, themeKey = themeKey, dim = true) to { _: Marker ->
+                    publicParkingContentId(nearby.parking.id, selected = false, themeKey = themeKey, dim = true, feeLabel = fee) to { _: Marker ->
                         DimWrapper {
-                            PublicParkingMarker(selected = false)
+                            PublicParkingMarker(selected = false, feeLabel = fee)
                         }
                     },
-                    publicParkingContentId(nearby.parking.id, selected = true, themeKey = themeKey) to { _: Marker ->
-                        PublicParkingMarker(selected = true)
+                    publicParkingContentId(nearby.parking.id, selected = true, themeKey = themeKey, feeLabel = fee) to { _: Marker ->
+                        PublicParkingMarker(selected = true, feeLabel = fee)
                     },
                 )
             }.toMap()
@@ -2409,6 +2420,28 @@ private fun fuelCapsuleLabel(
         attended -> attendedLabel
         else -> fuelLabel
     }
+}
+
+/**
+ * Lo que la cápsula de un parking público tiene que decir: «De pago», «Gratuito», o **nada**.
+ * [MAP-A-CAR-PARK-MARKER-SAYS-WHAT-IT-COSTS-001]
+ *
+ * ⛔ `FeeInfo.UNKNOWN` —el 71 % de los parkings que nadie ha tarifado— devuelve null, nunca
+ * «gratuito». Un conductor al que le dijimos que era gratis y se encontró una barrera fue engañado
+ * por nosotros, no por OpenStreetMap. Es la misma regla que ya cumple la FILA (`feeLabel` en
+ * `HomePublicParkingRows`), y está aquí y no allí porque el marcador se dibuja fuera de composición.
+ *
+ * ⛔ Y en UN solo sitio, porque la palabra viaja a la vez al `contentId` y al bitmap: calcularla dos
+ * veces es como se registra un handler para un id que el marcador no pide.
+ */
+private fun carParkFeeLabel(
+    nearby: NearbyPublicParking,
+    paidLabel: String?,
+    freeLabel: String?,
+): String? = when (nearby.parking.fee) {
+    FeeInfo.PAID -> paidLabel
+    FeeInfo.FREE -> freeLabel
+    FeeInfo.UNKNOWN -> null
 }
 
 private const val CAPSULE_QUALIFIER_SEPARATOR = " · "
