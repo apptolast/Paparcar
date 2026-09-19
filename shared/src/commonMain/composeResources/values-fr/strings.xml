@@ -925,7 +925,7 @@
     <string name="stats_value_hours_minutes">%1$d h %2$d min</string>
     <string name="stats_value_hours">%1$d h</string>
     <string name="stats_value_minutes">%1$d min</string>
-    <string name="stats_value_share">%1$d/%2$d</string>
+    <string name="stats_value_percent">%1$d%</string>
     <string name="stats_lifetime">Depuis toujours : %1$s stationnements · %2$s places cédées</string>
     <string name="stats_plus_row_title">Choisissez la période</string>
     <string name="stats_plus_row_subtitle">Gratuit : vos %1$d derniers jours ; avec Plus, la période de votre choix</string>

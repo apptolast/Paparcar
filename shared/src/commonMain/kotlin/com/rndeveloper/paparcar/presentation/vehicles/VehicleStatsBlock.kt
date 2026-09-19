@@ -117,7 +117,7 @@ import paparcar.composeapp.generated.resources.stats_value_gallons
 import paparcar.composeapp.generated.resources.stats_value_kwh
 import paparcar.composeapp.generated.resources.stats_value_liters
 import paparcar.composeapp.generated.resources.stats_value_minutes
-import paparcar.composeapp.generated.resources.stats_value_share
+import paparcar.composeapp.generated.resources.stats_value_percent
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -301,6 +301,7 @@ private fun StatTileGrid(tiles: List<StatTileData>) {
                         animatedNumber = tile.animated,
                         icon = tile.icon,
                         note = tile.note,
+                        progress = tile.progress,
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -535,6 +536,26 @@ internal fun vehicleStatsPeriodLabel(filter: StatsPeriod, isPlus: Boolean): Stri
 // emphasized lead figure, so it must be the most concrete figure available.
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Qué parte de los aparcamientos con procedencia conocida detectó la app sola, en porcentaje entero.
+ * [STATS-THE-DETECTION-SHOWS-ITS-HIT-RATE-001]
+ *
+ * ⛔ **Redondea, pero nunca a 100 si falta uno.** «100%» con un aparcamiento marcado a mano es la
+ * app diciendo que no falla nunca justo en la pantalla donde el usuario puede comprobar que sí —
+ * y la doctrina de detección entera está construida sobre no reclamar más certeza de la que hay.
+ * 99% es la respuesta honesta al 99,6%.
+ *
+ * El denominador es [detectionKnownCount], que el llamante ya garantiza > 0: la baldosa sólo existe
+ * cuando hay procedencia que contar.
+ */
+internal fun detectionSharePercent(auto: Int, known: Int): Int {
+    val exact = auto * PERCENT_SCALE.toDouble() / known
+    val rounded = exact.roundToInt()
+    return if (rounded == PERCENT_SCALE && auto < known) PERCENT_SCALE - 1 else rounded
+}
+
+private const val PERCENT_SCALE = 100
+
 internal data class StatTileData(
     val value: String,
     val label: String,
@@ -545,6 +566,9 @@ internal data class StatTileData(
     /** What the figure covers, on the MEASURED figures that do not cover the whole period.
      *  [STATS-A-MEASURE-CARRIES-ITS-COVERAGE-001] */
     val note: String? = null,
+    /** La figura, dibujada como anillo, cuando la figura ES una proporción.
+     *  [STATS-THE-DETECTION-SHOWS-ITS-HIT-RATE-001] */
+    val progress: Float? = null,
 )
 
 /**
@@ -753,14 +777,25 @@ internal fun statTiles(stats: PeriodStats): List<StatTileData> {
                 value = requireNotNull(stats.usualPlaceName),
                 label = stringResource(Res.string.stats_tile_usual_place),
             )
+            // ⛔ El PORCENTAJE arriba y el recuento debajo, no al revés.
+            // «12/13» obliga a dividir mentalmente para saber si la detección va bien, que es la
+            // única pregunta que esta cifra contesta. El porcentaje la contesta sola, el anillo la
+            // contesta sin leer, y «12 de 13 viajes» —la misma frase que ya usa la cobertura— se
+            // queda debajo para que el porcentaje no se lea como una nota sobre nada.
+            // [STATS-THE-DETECTION-SHOWS-ITS-HIT-RATE-001]
             StatTileKey.AUTO_DETECTED -> StatTileData(
                 icon = icon,
                 value = stringResource(
-                    Res.string.stats_value_share,
+                    Res.string.stats_value_percent,
+                    detectionSharePercent(stats.autoDetectedCount, stats.detectionKnownCount),
+                ),
+                label = stringResource(Res.string.stats_tile_auto_detected),
+                note = stringResource(
+                    Res.string.stats_tile_coverage,
                     stats.autoDetectedCount,
                     stats.detectionKnownCount,
                 ),
-                label = stringResource(Res.string.stats_tile_auto_detected),
+                progress = stats.autoDetectedCount.toFloat() / stats.detectionKnownCount,
             )
             StatTileKey.SPOTS_SHARED -> StatTileData(
                 icon = icon,

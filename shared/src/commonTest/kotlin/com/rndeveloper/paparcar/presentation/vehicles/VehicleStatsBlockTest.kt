@@ -246,4 +246,26 @@ class VehicleStatsBlockTest {
             "una búsqueda medida es una cifra medida: la tarjeta se la gana",
         )
     }
+
+    // ── El porcentaje de la detección [STATS-THE-DETECTION-SHOWS-ITS-HIT-RATE-001] ──────────────
+
+    @Test
+    fun should_roundTheShare_when_theDetectionDidMostOfTheWork() {
+        assertEquals(92, detectionSharePercent(auto = 12, known = 13))
+        assertEquals(100, detectionSharePercent(auto = 13, known = 13))
+        assertEquals(0, detectionSharePercent(auto = 0, known = 7))
+        assertEquals(50, detectionSharePercent(auto = 1, known = 2))
+    }
+
+    /**
+     * ⛔ EL TESTIGO. 249 de 250 es un 99,6% que redondea a 100, y «100%» con un aparcamiento
+     * marcado a mano es la app diciendo que no falla nunca justo en la pantalla donde el usuario
+     * puede comprobar que sí. La doctrina entera de detección está construida sobre no reclamar más
+     * certeza de la que hay.
+     */
+    @Test
+    fun should_notClaimAHundred_when_evenOneParkingWasNotDetected() {
+        assertEquals(99, detectionSharePercent(auto = 249, known = 250))
+        assertEquals(99, detectionSharePercent(auto = 999, known = 1_000))
+    }
 }

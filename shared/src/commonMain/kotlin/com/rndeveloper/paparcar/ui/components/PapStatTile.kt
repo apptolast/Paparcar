@@ -3,6 +3,7 @@ package com.rndeveloper.paparcar.ui.components
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,9 +23,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 
 /**
@@ -61,6 +67,19 @@ fun PapStatTile(
      * [STATS-A-MEASURE-CARRIES-ITS-COVERAGE-001]
      */
     note: String? = null,
+    /**
+     * La misma cifra, DIBUJADA: un anillo de 0 a 1 delante del número.
+     * [STATS-THE-DETECTION-SHOWS-ITS-HIT-RATE-001]
+     *
+     * ⛔ Sólo para figuras que SON una proporción de algo — hoy, cuántos aparcamientos detectó la
+     * app sola. Un anillo sobre un gasto o unos kilómetros tendría que inventarse un máximo, y un
+     * máximo inventado es una barra que miente. Null en todas las demás, que son casi todas.
+     *
+     * El verde es deliberado y es el único de esta rejilla: el anillo dice «esto lo ha hecho la
+     * app», que es lo más cerca que hay de identidad de marca en una pantalla de cifras. La cifra
+     * de al lado sigue en `onSurface`. [UI-ONE-SKELETON-ONE-EMPHASIS-ONE-GREEN-001]
+     */
+    progress: Float? = null,
 ) {
     val cs = MaterialTheme.colorScheme
     Column(modifier = modifier.padding(horizontal = TILE_H_PAD_DP.dp, vertical = TILE_V_PAD_DP.dp)) {
@@ -68,6 +87,7 @@ fun PapStatTile(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(VALUE_DELTA_GAP_DP.dp),
         ) {
+            progress?.let { StatProgressRing(fraction = it) }
             // A figure that is the subject of its own block is CIFRA — and the size is the
             // role's, never the call site's. [UI-TYPE-TWO-VOICES-ONE-ROW-001]
             val valueStyle = if (emphasized) {
@@ -191,6 +211,46 @@ fun rememberCountUp(target: Float): Float {
     return animated.value
 }
 
+/**
+ * El anillo: pista tenue completa + arco de la fracción, creciendo desde arriba.
+ * [STATS-THE-DETECTION-SHOWS-ITS-HIT-RATE-001]
+ *
+ * Crece con el mismo `rememberCountUp` que trepan las cifras, así que anillo y número llegan juntos
+ * — dos velocidades en una misma tarjeta se leen como dos sucesos.
+ */
+@Composable
+private fun StatProgressRing(fraction: Float) {
+    val cs = MaterialTheme.colorScheme
+    val accent = PapColor.actionText
+    val track = cs.onSurfaceVariant.copy(alpha = RING_TRACK_ALPHA)
+    val animated = rememberCountUp(fraction.coerceIn(0f, 1f))
+    Canvas(Modifier.size(RING_DP.dp)) {
+        val stroke = RING_STROKE_DP.dp.toPx()
+        val inset = stroke / 2f
+        val arcSize = Size(size.width - stroke, size.height - stroke)
+        drawArc(
+            color = track,
+            startAngle = 0f,
+            sweepAngle = FULL_TURN_DEGREES,
+            useCenter = false,
+            topLeft = Offset(inset, inset),
+            size = arcSize,
+            style = Stroke(width = stroke, cap = StrokeCap.Round),
+        )
+        drawArc(
+            color = accent,
+            // Desde las 12 en punto: un arco que empieza a las 3 se lee como un trozo de tarta,
+            // no como una cuenta.
+            startAngle = -QUARTER_TURN_DEGREES,
+            sweepAngle = FULL_TURN_DEGREES * animated,
+            useCenter = false,
+            topLeft = Offset(inset, inset),
+            size = arcSize,
+            style = Stroke(width = stroke, cap = StrokeCap.Round),
+        )
+    }
+}
+
 @Composable
 private fun StatDelta(delta: PapStatDelta) {
     val cs = MaterialTheme.colorScheme
@@ -228,3 +288,8 @@ private const val DELTA_ICON_DP = 12
 private const val DELTA_ICON_GAP_DP = 2
 /** Long enough to read as a climb, short enough not to delay the number anyone came for. */
 private const val COUNT_UP_MS = 700
+private const val RING_DP = 22
+private const val RING_STROKE_DP = 3
+private const val RING_TRACK_ALPHA = 0.22f
+private const val FULL_TURN_DEGREES = 360f
+private const val QUARTER_TURN_DEGREES = 90f

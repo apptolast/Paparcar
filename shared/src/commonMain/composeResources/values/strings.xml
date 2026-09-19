@@ -961,7 +961,7 @@
     <string name="stats_value_hours_minutes">%1$dh %2$dm</string>
     <string name="stats_value_hours">%1$d h</string>
     <string name="stats_value_minutes">%1$d min</string>
-    <string name="stats_value_share">%1$d/%2$d</string>
+    <string name="stats_value_percent">%1$d%</string>
     <string name="stats_lifetime">All time: %1$s parkings · %2$s spots shared</string>
     <string name="stats_plus_row_title">Choose the period</string>
     <string name="stats_plus_row_subtitle">Free shows your last %1$d days; Plus, any period you pick</string>
