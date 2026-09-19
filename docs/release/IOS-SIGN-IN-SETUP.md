@@ -35,6 +35,17 @@ scheme. Detalle en el ticket.
 ## Paso 2 · Xcode: firma y capability en un iPhone real — 🟡 (14-09: arranca en el **simulador
 **, salen los dos botones; sin iPhone real → TestFlight con fastlane, pendiente)
 
+> 🔴 **19-09-2026 — aquí estaba el fallo que reportaron los testers.** El botón de Apple en iPhone
+> físico daba un parpadeo de milisegundos y nada más. Causa: `iosApp.entitlements` **no tenía**
+> `com.apple.developer.applesignin`. Este paso lo daba por puesto («sale del `iosApp.entitlements`»)
+> y el diseño del ticket también, pero `git log --follow` sobre el fichero devuelve un único commit
+> — el de push (`47b54044`, 16-09), que lo creó con `aps-environment` y nada más. `CODE_SIGN_ENTITLEMENTS`
+> sí estaba en Debug y Release; lo que faltaba era la clave.
+>
+> Sin ella `performRequests()` falla en el acto con `ASAuthorizationError.unknown` (1000): la hoja
+> del sistema nunca se presenta y sólo se ve encenderse y apagarse el estado de carga del botón.
+> **Ése es el parpadeo.** Arreglado en la rama del ticket.
+
 1. Xcode → **Settings → Accounts**: la Apple ID del equipo `3NXH5U7C5A` tiene que estar añadida.
 2. Abrir `iosApp/iosApp.xcodeproj` desde el repo principal (`PaparcarKMP`, rama
    `feature/IOS-APPLE-SIGN-IN-ON-BASELOGIN-3-001`).
@@ -50,6 +61,28 @@ scheme. Detalle en el ticket.
 
 **Confirmar:** que la app arranca en el iPhone, se ve la pantalla de login con los botones de
 Google y Apple, y cualquier aviso que salga en *Signing & Capabilities*.
+
+### ⛔ 2b · Tras tocar el entitlement: regenerar el perfil de match
+
+**Un perfil de aprovisionamiento no puede firmar un entitlement que no lleva dentro**, así que
+añadir la capability no basta: hay que volver a emitir el perfil. Y aquí no falla el botón — falla
+la **firma**, con un *"Provisioning profile … doesn't include the com.apple.developer.applesignin
+entitlement"*.
+
+- **Release / TestFlight** firma manual con `match AppStore com.rndeveloper.paparcar`
+  (`PROVISIONING_PROFILE_SPECIFIER` del pbxproj), así que el perfil lo tiene que renovar match:
+
+  ```bash
+  cd iosApp && bundle exec fastlane ios bootstrap_match
+  ```
+
+  Es exactamente para lo que existe esa lane — su propia descripción dice *«Once (or **after
+  changing App ID capabilities**)»*. `force` sólo renueva perfiles; nunca recrea el certificado de
+  distribución compartido.
+- **Debug por cable** va con *Automatically manage signing*: Xcode regenera el perfil de desarrollo
+  solo al darle a Run. Si sale un aviso rojo, *Signing & Capabilities → Try Again*.
+- **Orden que importa**: la capability tiene que estar activa en el App ID (paso 1) **antes** de
+  emitir el perfil. Un perfil emitido antes de activarla no la lleva, aunque el fichero local sí.
 
 ## Paso 3 · Apple Key (.p8) + proveedores en Firebase — ✅ (17-09-2026, lo montó el user)
 
@@ -79,8 +112,8 @@ login funciona, pero **borrar la cuenta falla** — y es justo lo que mira App R
 **Confirmar:** Apple y Google en *Enabled* y que la configuración de OAuth code flow se guardó.
 
 ## Paso 4 · Prueba del login — 🟡 Google ✅ en simulador (el fallo *«Couldn't load your
-account»* era la BD vieja del simulador, no el login) · **Apple sin probar** · iPhone real pendiente
-de TestFlight
+account»* era la BD vieja del simulador, no el login) · **Apple: falló en iPhone real (19-09) por el
+entitlement, ver paso 2; pendiente de re-probar con un build firmado con el perfil nuevo**
 
 Con la app ya instalada del paso 2 (no hace falta recompilar):
 
@@ -91,3 +124,19 @@ Con la app ya instalada del paso 2 (no hace falta recompilar):
    y seguridad → Iniciar sesión con Apple*: Paparcar ya no aparece.
 
 **Confirmar:** cada punto, y si algo falla, el texto exacto del error o el log de la consola de Xcode.
+
+### Cómo sacar la traza cuando el botón «no hace nada»
+
+`AppleSignInCoordinator` escribe **todos** sus fallos con `NSLog` bajo el prefijo `[AppleSignIn]`.
+Con el iPhone conectado por cable: **Console.app → el dispositivo → filtrar `AppleSignIn`**, y
+reproducir. Lectura:
+
+| Lo que sale | Qué significa |
+|---|---|
+| `Failed: … (1000)` | entitlement / capability / perfil, o el iPhone sin sesión de iCloud |
+| `Cancelled by the user.` | la hoja SÍ se presentó y se cerró: el problema es otro |
+| nada en absoluto | el handler no se registró — `AppleSignInCoordinator.shared.register()` corre en `didFinishLaunching`, antes del bootstrap |
+
+Dos requisitos del **dispositivo** que dan el mismo 1000 y no son del proyecto: la sesión de iCloud
+iniciada y **2FA activada** en ese Apple ID (Sign in with Apple la exige). Y en *Tiempo de uso*,
+*Cambios de cuenta* no puede estar restringido.

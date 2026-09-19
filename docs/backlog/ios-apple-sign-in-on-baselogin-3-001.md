@@ -41,6 +41,23 @@ Apple es obligatorio) y 5.1.1(v) (la app borra cuentas → hay que revocar el to
   Debug/Release (y fuera de la copia de recursos del grupo sincronizado), URL scheme
   `$(GOOGLE_REVERSED_CLIENT_ID)` definido en `Config.xcconfig`.
 
+  > 🔴 **Esta línea describía una intención, no el repo (corregido el 19-09).** El
+  > `CODE_SIGN_ENTITLEMENTS` sí entró en las dos configuraciones y la exclusión del grupo
+  > sincronizado también, pero **la clave `com.apple.developer.applesignin` nunca llegó al
+  > fichero**: `git log --follow iosApp/iosApp/iosApp.entitlements` devuelve un único commit, el de
+  > push (`47b54044`, 16-09), que lo creó con `aps-environment` y nada más.
+  >
+  > Coste: el build 2 de TestFlight salió sin la capability y el botón de Apple no presentaba la
+  > hoja del sistema —`performRequests()` devolvía `ASAuthorizationError.unknown` (1000) en el
+  > acto—, que es el «parpadeo de milisegundos» que reportaron los testers en iPhone físico el
+  > 19-09. La verificación del ticket era `xcodebuild -sdk iphonesimulator CODE_SIGNING_ALLOWED=NO`:
+  > **un build sin firma no puede ver que falta un entitlement**, y el paso 4 de la guía dejó Apple
+  > sin probar. Lo que habría cazado esto es abrir *Signing & Capabilities* una vez, que es
+  > justamente lo que el paso 2 manda mirar y quedó en 🟡.
+  >
+  > Al reponerla hay que **reemitir el perfil** (`fastlane ios bootstrap_match`): un perfil no firma
+  > un entitlement que no lleva dentro. Paso 2b de la guía.
+
 ### ⚠️ Lo que el README de BaseLogin no cuenta: `export(libs.baselogin)`
 
 Sin él, `GoogleSignInProviderIOS` / `AppleSignInProviderIOS` **no existen en `ComposeApp.h`**
