@@ -38,11 +38,17 @@ private val TRAILING_ICON_ALPHA = PapAlpha.muted
  * Paparcar's canonical chip — the single base used for filter chips, zone
  * chips, and any other label-plus-state pill across the app.
  *
- * Selected state uses the primary container fill + `primary` border and text —
- * "on" reads through tinted CONTAINER + accents, never a solid primary fill
- * (solid green is reserved for the primary CTA). Unselected uses
- * [PapBorders.DEFAULT_OUTLINE_ALPHA] — the same subtle outline used by
- * ordinary cards — so chips feel like part of the card family. [UI-SHEET-001]
+ * **Seleccionado = BORDE + TEXTO verdes sobre el MISMO fondo que sin seleccionar.**
+ * [UI-A-SELECTED-CHIP-IS-OUTLINED-NOT-FILLED-001]
+ *
+ * ⛔ El fondo NO cambia con la selección. Tenía `primaryContainer`, y una fila de filtros con uno
+ * relleno de verde convierte el filtro en lo más llamativo de la pantalla: el verde de Paparcar es
+ * la tinta más escasa que hay —es lo que se puede HACER ahora y la identidad de un coche vigilado—
+ * y un filtro no es ninguna de las dos cosas. El estado se lee igual de bien con el borde y el
+ * texto, que es lo que el ojo sigue en una fila de píldoras, y deja el neón para el CTA.
+ * Sin seleccionar sigue con [PapBorders.DEFAULT_OUTLINE_ALPHA] —el mismo contorno tenue de una
+ * card— así que los chips siguen siendo de la familia de las cards. [UI-SHEET-001]
+ * [UI-ONE-SKELETON-ONE-EMPHASIS-ONE-GREEN-001]
  *
  * Optional [trailingIcon] + [onTrailingClick] add a tap-handled icon slot
  * (e.g. `×` for delete on a saved zone chip) without forking the composable.
@@ -60,9 +66,10 @@ fun PaparcarFilterChip(
     enabled: Boolean = true,
 ) {
     val cs = MaterialTheme.colorScheme
+    // ⛔ `selected` NO entra aquí a propósito: el fondo es el mismo esté o no elegido. Ver el KDoc.
+    // [UI-A-SELECTED-CHIP-IS-OUTLINED-NOT-FILLED-001]
     val bg = when {
         !enabled -> cs.surfaceContainerHigh.copy(alpha = DISABLED_BG_ALPHA)
-        selected -> cs.primaryContainer
         else -> cs.surfaceContainerHigh
     }
     val borderColor = when {
@@ -70,9 +77,15 @@ fun PaparcarFilterChip(
         selected -> PapColor.selected
         else -> cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA)
     }
+    // ⛔ El TEXTO va en `actionText`, no en `selected`, y es consecuencia directa de quitar el
+    // relleno: el verde elegido se apoyaba en `primaryContainer`, un par de color diseñado junto.
+    // Sobre la superficie neutra ese mismo verde es una palabra verde sobre gris claro, que es
+    // exactamente lo que [UI-COLOR-GREEN-TEXT-EARNS-ITS-CONTRAST-001] existe para impedir. El BORDE
+    // sí se queda en `selected`: un trazo no se lee, se ve.
+    // [UI-A-SELECTED-CHIP-IS-OUTLINED-NOT-FILLED-001]
     val contentColor = when {
         !enabled -> cs.onSurface.copy(alpha = DISABLED_FG_ALPHA)
-        selected -> PapColor.selected
+        selected -> PapColor.actionText
         else -> cs.onSurface
     }
 
