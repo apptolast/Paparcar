@@ -26,8 +26,12 @@ private val BadgeHorizontalPad  = 8.dp
 private val BadgeVerticalPad    = 4.dp
 
 /** The box of a badge that rides inside somebody else's line. Public so the two or three call sites
- *  that need it share ONE definition of "dense" instead of each inventing its own numbers. */
-val PapBadgeDensePadding: PaddingValues = PaddingValues(horizontal = 6.dp, vertical = 1.dp)
+ *  that need it share ONE definition of "dense" instead of each inventing its own numbers.
+ *
+ *  ⛔ La caja es lo ÚNICO que encoge aquí: el tamaño de letra es propiedad del rol
+ *  (`PaparcarType.badge`, 12 sp) y no se toca desde un call site.
+ *  [UI-TYPE-TWO-VOICES-ONE-ROW-001] */
+val PapBadgeDensePadding: PaddingValues = PaddingValues(horizontal = 5.dp, vertical = 0.dp)
 
 /**
  * Generic pill-shaped status badge.

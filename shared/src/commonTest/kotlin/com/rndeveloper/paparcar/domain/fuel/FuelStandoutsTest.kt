@@ -38,7 +38,7 @@ class FuelStandoutsTest {
             station("cheap", distance = 900.0, price = 1.55),
         ).fuelStandouts()
 
-        assertEquals("test|cheap", standouts.cheapestKey)
+        assertEquals(setOf("test|cheap"), standouts.cheapestKeys)
         assertEquals("test|near", standouts.nearestKey)
         assertEquals(FuelStandoutBadge.CHEAPEST, standouts.badgeFor("test|cheap"))
         assertEquals(FuelStandoutBadge.NEAREST, standouts.badgeFor("test|near"))
@@ -51,7 +51,6 @@ class FuelStandoutsTest {
             station("other", distance = 900.0, price = 1.80),
         ).fuelStandouts()
 
-        assertTrue(standouts.bothAreTheSame)
         assertEquals(FuelStandoutBadge.CHEAPEST_AND_NEAREST, standouts.badgeFor("test|both"))
         assertNull(standouts.badgeFor("test|other"), "the other one claims nothing")
     }
@@ -60,19 +59,55 @@ class FuelStandoutsTest {
     fun should_claim_nothing_when_there_is_a_single_station() {
         val standouts = listOf(station("only", distance = 100.0, price = 1.55)).fuelStandouts()
 
-        assertNull(standouts.cheapestKey, "with one station there is no cheapest, just a station")
+        assertTrue(standouts.cheapestKeys.isEmpty(), "with one station there is no cheapest, just a station")
         assertNull(standouts.nearestKey)
     }
 
+    /**
+     * ⛔ EL TESTIGO DE LA REVIEW DE #37. Exigir ser *estrictamente* la más barata borraba el badge
+     * casi siempre: los surtidores se copian el precio a la milésima, y en la captura del owner
+     * había dos a 1,809 €, así que la que era la más barata Y la más cercana sólo llevaba
+     * «MÁS CERCANA». Un empate se COMPARTE — las dos son las más baratas, y eso se comprueba en el
+     * surtidor.
+     */
     @Test
-    fun should_not_call_one_cheapest_when_two_charge_the_same() {
+    fun should_share_the_cheapest_badge_when_two_charge_the_same() {
+        val standouts = listOf(
+            station("a", distance = 100.0, price = 1.55),
+            station("b", distance = 900.0, price = 1.55),
+            station("pricier", distance = 300.0, price = 1.80),
+        ).fuelStandouts()
+
+        assertEquals(setOf("test|a", "test|b"), standouts.cheapestKeys, "las dos SON las más baratas")
+        assertEquals(FuelStandoutBadge.CHEAPEST_AND_NEAREST, standouts.badgeFor("test|a"))
+        assertEquals(FuelStandoutBadge.CHEAPEST, standouts.badgeFor("test|b"))
+        assertNull(standouts.badgeFor("test|pricier"))
+    }
+
+    /** Pero un empate UNIVERSAL no distingue nada: sería ruido en todas las filas. */
+    @Test
+    fun should_claim_nothing_when_every_priced_station_charges_the_same() {
         val standouts = listOf(
             station("a", distance = 100.0, price = 1.55),
             station("b", distance = 900.0, price = 1.55),
         ).fuelStandouts()
 
-        assertNull(standouts.cheapestKey, "a tie has no winner, and the user can check it at the pump")
+        assertTrue(standouts.cheapestKeys.isEmpty(), "si todas cuestan lo mismo, «la más barata» no dice nada")
         assertEquals("test|a", standouts.nearestKey, "distance still has one")
+    }
+
+    /** El orden que la lista usa para subir las destacadas arriba. */
+    @Test
+    fun should_rankTheCheapestFirst_when_theListIsOrdered() {
+        val standouts = listOf(
+            station("near", distance = 100.0, price = 1.80),
+            station("cheap", distance = 900.0, price = 1.55),
+            station("plain", distance = 500.0, price = 1.70),
+        ).fuelStandouts()
+
+        assertEquals(0, standouts.rankOf("test|cheap"), "la más barata sube")
+        assertEquals(1, standouts.rankOf("test|near"), "la más cercana NO sube: ver el ⛔ de rankOf")
+        assertEquals(1, standouts.rankOf("test|plain"))
     }
 
     @Test
@@ -84,7 +119,7 @@ class FuelStandoutsTest {
             station("es", distance = 100.0, price = 1.65, currency = "EUR"),
         ).fuelStandouts()
 
-        assertNull(standouts.cheapestKey, "mixed currencies cannot be ranked")
+        assertTrue(standouts.cheapestKeys.isEmpty(), "mixed currencies cannot be ranked")
         assertEquals("test|es", standouts.nearestKey, "metres are metres")
     }
 
@@ -97,7 +132,7 @@ class FuelStandoutsTest {
             station("pricier", distance = 800.0, price = 1.90),
         ).fuelStandouts()
 
-        assertEquals("test|priced", standouts.cheapestKey)
+        assertEquals(setOf("test|priced"), standouts.cheapestKeys)
         assertEquals(
             "test|unpriced", standouts.nearestKey,
             "the nearest forecourt is the nearest one, priced or not — that is what the ordering " +

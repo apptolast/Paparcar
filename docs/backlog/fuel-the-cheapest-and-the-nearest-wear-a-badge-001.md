@@ -73,3 +73,27 @@ se lee un token dentro de una línea.
   valores de hoy por defecto: ningún otro badge de la app cambia.
 - El rol tipográfico sigue siendo `badge` — el tamaño es propiedad del rol, y lo que se ha encogido
   es la CAJA, no la letra. [UI-TYPE-TWO-VOICES-ONE-ROW-001]
+
+## Decisiones de la review (#37, rndevelo, 20-09)
+
+> «Solo veo el badge de MÁS CERCANA, no veo el de MÁS BARATA cuando debería de haber también para
+> barato y ordenado arriba. El chip lo veo un poco grande.»
+
+**Era un bug de diseño mío, y la captura lo prueba.** La regla decía que en un empate nadie es *la*
+más barata, así que el badge se caía entero. En un mapa real los surtidores se copian el precio a la
+milésima: en su pantalla había **dos a 1,809 €**, de modo que la gasolinera que era a la vez la más
+barata y la más cercana sólo llevaba «MÁS CERCANA».
+
+- **Un empate se COMPARTE**: el badge va a TODAS las que cotizan el mínimo. «Las dos son las más
+  baratas» es verdad y se comprueba en el surtidor; la mentira habría sido inventar un ganador
+  único. `cheapestKey: String?` pasa a `cheapestKeys: Set<String>`.
+- **Lo que sí se calla es el empate UNIVERSAL**: si todas las que tienen precio cobran lo mismo, «la
+  más barata» no distingue nada — sería ruido en todas las filas.
+- **La más barata sube al principio de la lista** (`FuelStandouts.rankOf` + `NearbyOrdering`). Un
+  badge que hay que buscar con scroll no es un badge.
+- ⛔ **La más cercana NO sube**, y es deliberado: la lista pone las gasolineras con precio primero, y
+  la más cercana suele ser una SIN precio — subirla deja la lista encabezada por una fila sin cifra,
+  que es justo lo que ese orden existe para evitar. Un test lo fija.
+- **Caja del badge**: 6×1 → 5×0 dp. La letra no se toca: 12 sp es propiedad del rol `badge`, no del
+  call site. Si sigue pareciendo grande, lo que falta es un ROL nuevo (un `badgeInline` de 10 sp),
+  no un `fontSize` suelto — ver Preguntas.
