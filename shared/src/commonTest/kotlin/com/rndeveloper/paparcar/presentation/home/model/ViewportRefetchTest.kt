@@ -29,19 +29,43 @@ class ViewportRefetchTest {
     }
 
     @Test
-    fun should_followTheCamera_onlyWithinTheUsersOwnRegion() {
+    fun should_followTheCamera_asFarAsTodaysTrip() {
         val madridLat = 40.4168
         val madridLon = -3.7038
-        // Toledo (~65 km): past the limit — a refuel question nobody is asking.
-        assertEquals(false, ViewportRefetch.isWorthAsking(39.8628, -4.0273, madridLat, madridLon))
-        // Alcalá de Henares (~29 km): also past it since the limit dropped from 50 to 20 km. ⛔ This
-        // assertion kept saying `true` and failed on master from that commit on.
-        // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
-        assertEquals(false, ViewportRefetch.isWorthAsking(40.4820, -3.3635, madridLat, madridLon))
-        // Getafe (~13 km): inside — the neighbouring town you are heading to.
+        // Getafe (~13 km) y Alcalá (~29 km): el pueblo de al lado, dentro de toda la vida.
         assertEquals(true, ViewportRefetch.isWorthAsking(40.3057, -3.7329, madridLat, madridLon))
+        assertEquals(true, ViewportRefetch.isWorthAsking(40.4820, -3.3635, madridLat, madridLon))
+        // Toledo (~65 km): el destino de hoy. Con el tope en 20 km caía fuera, que es la queja de
+        // la issue #44 — «salgo de casa y quiero ver los parkings de la otra ciudad».
+        assertEquals(true, ViewportRefetch.isWorthAsking(39.8628, -4.0273, madridLat, madridLon))
+        // Valencia (~300 km): eso ya no es seguir la cámara, es otro viaje. Arrastrar hasta allí
+        // son cientos de asentamientos, y para eso está `deliberate`.
+        assertEquals(false, ViewportRefetch.isWorthAsking(39.4699, -0.3763, madridLat, madridLon))
         // No fix yet: nothing to measure against, so the camera is trusted.
         assertEquals(true, ViewportRefetch.isWorthAsking(48.8566, 2.3522, null, null))
+    }
+
+    /**
+     * ⛔ EL TESTIGO DE LA ISSUE #44. Pedir un sitio no es arrastrar hasta él: quien busca otra
+     * ciudad y abre el carril ha hecho UNA pregunta, y contestarle «demasiado lejos» es negarle lo
+     * único que pidió. [NEARBY-A-DELIBERATE-LOOK-IS-NOT-A-PAN-001]
+     */
+    @Test
+    fun should_answer_when_theUserDeliberatelyAsksAboutAFarPlace() {
+        val madridLat = 40.4168
+        val madridLon = -3.7038
+        // Valencia, a 300 km: bloqueada al arrastrar, contestada al pedirla.
+        assertEquals(false, ViewportRefetch.isWorthAsking(39.4699, -0.3763, madridLat, madridLon))
+        assertEquals(
+            true,
+            ViewportRefetch.isWorthAsking(39.4699, -0.3763, madridLat, madridLon, deliberate = true),
+        )
+    }
+
+    /** Lo único que ni pedirlo salva: (0,0) no es un sitio, es lo que dice un mapa sin cámara. */
+    @Test
+    fun should_stillRefuse_theGulfOfGuinea_evenWhenAsked() {
+        assertEquals(false, ViewportRefetch.isWorthAsking(0.0, 0.0, 40.4168, -3.7038, deliberate = true))
     }
 
     @Test

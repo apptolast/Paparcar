@@ -790,7 +790,15 @@ class HomeViewModel(
         val (lat, lon) = centre
         val wasAwaitingCentre = subject in nearbyAwaitingCentre
 
-        if (!ViewportRefetch.isWorthAsking(lat, lon, s.userGpsPoint?.latitude, s.userGpsPoint?.longitude)) {
+        // Abrir el carril ES la pregunta: quien busca otra ciudad y entra en parkings ha pedido una
+        // respuesta sobre ELLA, y «demasiado lejos» sería negarle lo único que pidió. El tope de
+        // distancia queda para lo que se multiplica: el seguimiento automático de un arrastre y el
+        // precalentamiento que nadie pidió. [NEARBY-A-DELIBERATE-LOOK-IS-NOT-A-PAN-001]
+        val deliberate = trigger == NearbyTrigger.ENTER
+        if (!ViewportRefetch.isWorthAsking(
+                lat, lon, s.userGpsPoint?.latitude, s.userGpsPoint?.longitude, deliberate = deliberate,
+            )
+        ) {
             nearbyAwaitingCentre -= subject
             emptyNearbyAsTooFar(subject)
             return

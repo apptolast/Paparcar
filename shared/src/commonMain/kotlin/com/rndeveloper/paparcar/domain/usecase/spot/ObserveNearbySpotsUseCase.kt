@@ -12,6 +12,14 @@ class ObserveNearbySpotsUseCase(private val spotRepository: SpotRepository) {
     }
 
     companion object {
-        const val DEFAULT_SEARCH_RADIUS_METERS = 2000.0
+        /**
+         * Cuánto alcanza la suscripción de plazas alrededor de donde MIRA la cámara.
+         * [NEARBY-A-DELIBERATE-LOOK-IS-NOT-A-PAN-001]
+         *
+         * 5 km — el mismo alcance que las gasolineras, que era el mayor de los tres carriles. Eran
+         * 2 km, y en el sitio donde más se nota: el producto de la app son las plazas, y el carril
+         * que menos lejos veía era justo ése. Pedido en la issue #44.
+         */
+        const val DEFAULT_SEARCH_RADIUS_METERS = 5000.0
     }
 }
