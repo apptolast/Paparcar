@@ -218,13 +218,6 @@ class ObserveDepartureWatchGapUseCaseTest {
         return ObserveDepartureWatchGapUseCase(
             userParkingRepository = parkingRepository,
             vehicleRepository = vehicleRepository,
-            strategyResolver = ParkingStrategyResolver(
-                vehicleRepository,
-                FakeBluetoothScanner(
-                    bluetoothEnabled = btConnected,
-                    connectedVehicleIds = if (btConnected) setOf(VEHICLE_ID) else emptySet(),
-                ),
-            ),
             appPreferences = FakeAppPreferences(initialAutoDetect = autoDetectEnabled),
             detectionRuntime = runtime,
             permissionManager = permissionManager,

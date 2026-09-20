@@ -46,6 +46,7 @@ import com.rndeveloper.paparcar.domain.detection.sentry.SentryKillVerdict
 import com.rndeveloper.paparcar.domain.detection.ServicePresence
 import com.rndeveloper.paparcar.domain.detection.fence.VehicleFenceOwnershipPolicy
 import com.rndeveloper.paparcar.domain.detection.sentry.nextSentryWakeAbortStreak
+import com.rndeveloper.paparcar.domain.detection.sentry.parkedCarNeedsWatcher
 import com.rndeveloper.paparcar.domain.detection.sentry.resolvePostDetectionLifecycle
 import com.rndeveloper.paparcar.domain.detection.sentry.sentryWakeRearmCooldownMs
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
@@ -1909,16 +1910,32 @@ class CoordinatorDetectionService : LifecycleService() {
                 )
             }
         }
-        // [DET-STRATEGY-GATE-001] Residency is strategy-aware: under BLUETOOTH the ACL broadcast
-        // wakes the process by itself (manifest receiver, FGS-from-bg exempt), so the resident
-        // watcher would only burn battery + pin a permanent notification. Resolved fresh on every
-        // epilogue, so pairing/unpairing BT or toggling the adapter self-corrects one cycle later.
-        val strategy = runCatching { strategyResolver.resolve() }.getOrDefault(ParkingStrategy.COORDINATOR)
+        // [DET-A-PARKED-BT-CAR-NEEDS-NO-RESIDENT-WATCHER-001] La residencia se decide POR COCHE
+        // APARCADO: el emparejado por BT trae su propio despertador (su ACL CONNECT es su salida,
+        // y lo entrega un receptor de manifiesto al proceso muerto), el que no, sólo tiene el
+        // sensor de movimiento, que no se entrega a un proceso muerto.
+        //
+        // ⛔ Aquí se preguntaba por `strategyResolver.resolve()`, y desde
+        // [DET-BT-CONNECTED-NOT-PAIRED-001] esa respuesta es «BLUETOOTH sólo si estás CONECTADO
+        // ahora». Este epílogo corre justo después de aparcar — cuando el coche acaba de
+        // desconectarse —, así que el gate era inalcanzable y el usuario de un solo coche BT se
+        // quedaba con el centinela y su notificación permanente (issue #57).
+        //
+        // Emparejado, no conectado: se lee de la flota, no del adaptador.
+        val needNoWatcher = runCatching {
+            vehicleRepository.observeVehicles().firstOrNull().orEmpty()
+                // Se despierta solo (BT) o nunca aparca en una plaza (patinete/bici).
+                .filter { it.bluetoothDeviceId != null || !it.vehicleType.parksInASpot }
+                .map { it.id }
+                .toSet()
+        }.getOrElse { emptySet<String>() } // una flota ilegible no declara despertadores: se vigila
         when (
             resolvePostDetectionLifecycle(
                 autoDetectEnabled = appPreferences.autoDetectParking, // [F3] Settings toggle IS the sentry gate
-                hasParkedSession = parkedSessions.isNotEmpty(),
-                strategy = strategy,
+                parkedCarNeedsWatcher = parkedCarNeedsWatcher(
+                    parkedVehicleIds = parkedSessions.map { it.vehicleId },
+                    vehiclesThatNeedNoWatcher = needNoWatcher,
+                ),
             )
         ) {
             PostDetectionLifecycle.EnterSentry ->

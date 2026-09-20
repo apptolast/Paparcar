@@ -476,6 +476,41 @@ See `diagnostics/README.md` at the repo root for the recommended layout when arc
 
 Each entry is one issue we shipped a fix for. Listed roughly in dependency order (mappers first, then pipeline, then algorithm). Every entry should explain *what was wrong*, *why it was wrong*, and *what guard exists today*. If you ever want to remove a guard, find its entry here first.
 
+### DET-A-PARKED-BT-CAR-NEEDS-NO-RESIDENT-WATCHER-001 — el centinela vivía también para quien sólo tiene un coche BT
+
+**Commit:** pending. **Reporte (2026-09-19, issue #57):** *«la notificación de FGS está siempre,
+incluso para personas que sólo tienen un vehículo con Bluetooth; creía que habíamos acordado
+despertar el servicio por BT receiver»*. Y el acuerdo existía: `DET-STRATEGY-GATE-001` puso la
+residencia detrás de `strategy == COORDINATOR` precisamente porque bajo BLUETOOTH el broadcast ACL
+despierta el proceso solo (receptor de **manifiesto**, exento de la restricción de FGS-desde-fondo
+de Android 12+), así que el centinela sólo costaría batería y una notificación permanente.
+
+**Causa raíz — dos tickets correctos que chocan.** `DET-BT-CONNECTED-NOT-PAIRED-001` redefinió
+después `BLUETOOTH` como «**conectado ahora mismo** al coche emparejado», para que un coche BT
+aparcado en casa dejara de secuestrar la estrategia mientras conduces otro. Bien por separado; el
+choque es el momento: el epílogo de inactividad que consulta la residencia corre **justo después de
+aparcar**, que es exactamente cuando el coche acaba de **desconectarse**. `resolve()` devolvía
+COORDINATOR siempre, el gate era inalcanzable, y el usuario de un solo coche BT se quedaba con el
+centinela y su notificación permanente. Ningún test lo vio porque los de
+`resolvePostDetectionLifecycle` pasaban la estrategia a mano.
+
+**Fix.** La residencia deja de preguntar *qué estrategia conduce ahora* y pregunta *si el coche
+**aparcado** tiene despertador propio*: `parkedCarNeedsWatcher(parkedVehicleIds,
+vehiclesThatNeedNoWatcher)`, pura, en `commonMain`. Un coche queda fuera si está **emparejado**
+—emparejado, no conectado— porque su siguiente ACL CONNECT es su propia salida
+[DET-A-BT-CONNECT-IS-A-DEPARTURE-001], o si es de un tipo que nunca aparca (patinete/bici), que es
+la red que el gate de estrategia ya daba por `NONE`. Se decide **por coche**: con un BT aparcado y
+otro sin BT también aparcado, el segundo se queda el centinela — que es lo que el reporte pedía.
+
+**Riesgo asumido.** Un coche BT del que te alejas **sin que el móvil llegue a conectarse** (BT
+apagado, manos libres que no engancha) ya no tiene proceso residente. No queda ciego: su geocerca
+sigue registrada y el EXIT nomina igual, y `ParkingSafetyNetWorker` pasa cada 15 minutos. Es la
+misma cobertura que tenía la estrategia BLUETOOTH antes de que el gate se volviera inalcanzable.
+
+**Guard hoy:** `SentryLifecycleDecisionTest` — el testigo (un solo coche BT aparcado → `Stop`), el
+caso de dos coches (uno sin BT → `EnterSentry`), y la sesión sin coche conocido, que cuenta como que
+necesita vigilante porque ante la duda se vigila.
+
 ### PARK-A-CORRECTION-MOVES-THE-PLACE-NOT-THE-CLOCK-001 — corregir el pin reiniciaba el nacimiento de la sesión
 
 **Commit:** pending. **Campo (2026-09-16, Nothing A001, sesión `b9b9dacc`):** un pin colocado a las

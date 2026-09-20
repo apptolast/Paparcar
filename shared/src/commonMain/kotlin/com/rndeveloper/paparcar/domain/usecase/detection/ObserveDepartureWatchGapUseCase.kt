@@ -1,9 +1,9 @@
 package com.rndeveloper.paparcar.domain.usecase.detection
 
 import com.rndeveloper.paparcar.domain.detection.DetectionRuntimeState
-import com.rndeveloper.paparcar.domain.detection.ParkingStrategyResolver
 import com.rndeveloper.paparcar.domain.detection.sentry.PostDetectionLifecycle
 import com.rndeveloper.paparcar.domain.detection.ServicePresence
+import com.rndeveloper.paparcar.domain.detection.sentry.parkedCarNeedsWatcher
 import com.rndeveloper.paparcar.domain.detection.sentry.resolvePostDetectionLifecycle
 import com.rndeveloper.paparcar.domain.permissions.PermissionManager
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
@@ -31,7 +31,6 @@ import kotlinx.coroutines.flow.map
 class ObserveDepartureWatchGapUseCase(
     private val userParkingRepository: UserParkingRepository,
     private val vehicleRepository: VehicleRepository,
-    private val strategyResolver: ParkingStrategyResolver,
     private val appPreferences: AppPreferences,
     private val detectionRuntime: DetectionRuntimeState,
     private val permissionManager: PermissionManager,
@@ -46,15 +45,20 @@ class ObserveDepartureWatchGapUseCase(
         presence == ServicePresence.Dead &&
             resolvePostDetectionLifecycle(
                 autoDetectEnabled = autoDetectEnabled,
-                hasParkedSession = sessions.isNotEmpty(),
-                // Reads the BT adapter at call time, exactly like the service's epilogue: a car
-                // connected over Bluetooth is covered by the ACL receiver and needs no resident
-                // watcher, so that is NOT a gap. [DET-STRATEGY-GATE-001]
-                // [DET-A-BT-CONNECT-IS-A-DEPARTURE-001] That sentence was half true when written:
-                // the ACL receiver covered the PARK (disconnect) and nothing covered the departure,
-                // so standing the sentry down on connect left the drive-away to the geofence alone.
-                // The CONNECT now arms its own drive-away watch, so the claim holds in full.
-                strategy = strategyResolver.strategyFor(vehicles),
+                // La misma regla que el epílogo del servicio, por coche aparcado: el emparejado por
+                // BT se despierta solo (su ACL CONNECT es su salida, receptor de manifiesto), así
+                // que su ausencia de centinela NO es un hueco.
+                // [DET-A-PARKED-BT-CAR-NEEDS-NO-RESIDENT-WATCHER-001]
+                // [DET-A-BT-CONNECT-IS-A-DEPARTURE-001] Esa frase era media verdad cuando se
+                // escribió: el receptor cubría el APARCAR (disconnect) y nada cubría la salida. El
+                // CONNECT arma ya su propia vigilancia de alejamiento, así que ahora se sostiene.
+                parkedCarNeedsWatcher = parkedCarNeedsWatcher(
+                    parkedVehicleIds = sessions.map { it.vehicleId },
+                    vehiclesThatNeedNoWatcher = vehicles
+                        .filter { it.bluetoothDeviceId != null || !it.vehicleType.parksInASpot }
+                        .map { it.id }
+                        .toSet(),
+                ),
             ) == PostDetectionLifecycle.EnterSentry
     }.distinctUntilChanged()
 
