@@ -57,3 +57,20 @@ parkings a la misma distancia.
 - Un parking de pago y uno gratuito se distinguen sin abrirlos.
 - Uno sin tarifa conocida enseña sólo la P.
 - Parking y gasolinera, uno al lado del otro, son la misma forma con distinto acento.
+
+## Decisiones de la review (#59, rndevelo, 20-09)
+
+> «La P debería ir en un círculo azul con la P en medio del círculo en blanco dentro de la propia
+> cápsula. Y "De pago" no cabe en el marker, valorar si aumentar el tamaño del marker o qué hacer.
+> Valorar si cambiar también color de recuento del peek "17" y el antetítulo "PARKINGS".»
+
+- **«De pago» no cabía, y el marcador no era el problema.** La cápsula pedía
+  `Modifier.width(IntrinsicSize.Min)`, y el ancho mínimo intrínseco de un texto es el de su palabra
+  **más larga**: con `maxLines = 1` quedaba en «De» y tiraba «pago» fuera. Se le estaba pidiendo el
+  ancho de una palabra para pintar una frase. `IntrinsicSize.Max` es el ancho de la línea entera.
+  La gasolinera nunca lo enseñó porque sus dos líneas son de una palabra («1.879», «Diésel»).
+- **La P va en disco**: `NearbyCapsuleMarker` gana `glyphOnDisc`/`onAccent`, y el parking los pide.
+  El mismo disco azul con la P blanca de la fila y el peek, ahora también en el mapa: las tres
+  superficies dibujan el mismo objeto y lo que cambia es el tamaño. La gasolinera NO lo lleva — su
+  glifo suelto ya es el surtidor.
+- **El contador «17» y el antetítulo se quedan verdes de momento** — ver Preguntas.

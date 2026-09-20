@@ -1344,6 +1344,12 @@ private fun NearbyCapsuleMarker(
     accent: Color,
     selected: Boolean,
     modifier: Modifier = Modifier,
+    /** El glifo va dentro de un DISCO relleno de [accent], en [onAccent], en vez de suelto y
+     *  teñido. Lo lleva el parking, cuya identidad en la calle es la P sobre azul; la gasolinera no,
+     *  porque su glifo suelto ya es el surtidor. [MAP-A-CAR-PARK-MARKER-SAYS-WHAT-IT-COSTS-001] */
+    glyphOnDisc: Boolean = false,
+    /** Lo que se dibuja SOBRE [accent] cuando [glyphOnDisc]. */
+    onAccent: Color = Color.White,
     /** La línea que manda: el precio, la tarifa. Null = sólo el glifo, nunca un cero ni un hueco. */
     primaryText: String? = null,
     /** La que matiza a la de arriba (qué combustible). Sólo se dibuja si hay primera. */
@@ -1361,10 +1367,16 @@ private fun NearbyCapsuleMarker(
     val markerH = with(density) { (SPOT_VIEWBOX_H * s).toDp() }
     val bodyBottomPad = with(density) { ((SPOT_VIEWBOX_H - MARKER_BODY_BOTTOM_Y) * s).toDp() }
 
+    // ⛔ `IntrinsicSize.Max`, NO `Min` (review de #59: «De pago no cabe en el marker»). El ancho
+    // mínimo intrínseco de un texto es el de su palabra MÁS LARGA, así que con `maxLines = 1` la
+    // cápsula se quedaba en «De» y tiraba «pago» fuera. No era que el marcador fuese pequeño: era
+    // que se le pedía el ancho de una palabra para pintar una frase. `Max` es el ancho de la línea
+    // entera, que es lo que una cápsula de una línea necesita.
+    // [MAP-A-CAR-PARK-MARKER-SAYS-WHAT-IT-COSTS-001]
     Box(
         modifier = modifier
             .height(markerH)
-            .width(IntrinsicSize.Min),
+            .width(IntrinsicSize.Max),
         contentAlignment = Alignment.BottomCenter,
     ) {
         Canvas(Modifier.fillMaxSize()) {
@@ -1387,12 +1399,30 @@ private fun NearbyCapsuleMarker(
                 .heightIn(min = with(density) { (48f * s).toDp() }),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = glyph,
-                contentDescription = null,
-                tint = accent,
-                modifier = Modifier.size(FUEL_GLYPH_SIZE),
-            )
+            if (glyphOnDisc) {
+                // El mismo disco azul con la P blanca que llevan la FILA y el peek, aquí dentro de
+                // la cápsula (user, review de #59). Es la identidad de la calle —P sobre azul— y
+                // ahora se dibuja igual en las tres superficies; lo que cambia entre ellas es el
+                // tamaño, no el objeto. [MAP-A-CAR-PARK-MARKER-WEARS-ITS-OWN-BLUE-001]
+                Box(
+                    modifier = Modifier.size(CAPSULE_DISC_SIZE).clip(CircleShape).background(accent),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = glyph,
+                        contentDescription = null,
+                        tint = onAccent,
+                        modifier = Modifier.size(CAPSULE_DISC_GLYPH_SIZE),
+                    )
+                }
+            } else {
+                Icon(
+                    imageVector = glyph,
+                    contentDescription = null,
+                    tint = accent,
+                    modifier = Modifier.size(FUEL_GLYPH_SIZE),
+                )
+            }
             if (primaryText != null) {
                 Spacer(Modifier.width(8.dp))
                 Column(verticalArrangement = Arrangement.Center) {
@@ -1475,6 +1505,8 @@ fun PublicParkingMarker(
     accent = PapColor.carPark,
     selected = selected,
     modifier = modifier,
+    glyphOnDisc = true,
+    onAccent = PapColor.onCarPark,
     primaryText = feeLabel,
 )
 
@@ -1489,6 +1521,11 @@ private val FUEL_LABEL_CORNER = 999.dp
 private val FUEL_LABEL_BORDER = 1.dp
 private val FUEL_LABEL_BORDER_SEL = 2.dp
 private val FUEL_GLYPH_SIZE = 16.dp
+
+/** El disco de la cápsula y la P que lleva dentro. Proporción de la fila (tile 40 / glifo 20), a la
+ *  escala del marcador. [MAP-A-CAR-PARK-MARKER-SAYS-WHAT-IT-COSTS-001] */
+private val CAPSULE_DISC_SIZE = 20.dp
+private val CAPSULE_DISC_GLYPH_SIZE = 13.dp
 private const val FUEL_LABEL_BG_ALPHA = 0.92f
 private const val FUEL_LABEL_BORDER_ALPHA = 0.55f
 
