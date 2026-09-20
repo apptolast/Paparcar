@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -189,6 +190,16 @@ internal fun HomeBottomSheet(
             // rest (one continuous hairline) and rides above the nav as the sheet is dragged up — no
             // hide-trick / hysteresis-reveal needed. [BUG-PEEK-DIVIDER-ALIGN]
             if (showList) {
+                // [HOME-A-LANE-CHANGE-TAKES-THE-CAMERA-WITH-IT-001] Cambiar de carril devuelve la
+                // lista a su principio, que es donde está la primera fila del carril nuevo. Sin
+                // esto, quien estaba diez filas abajo mirando plazas aterriza en mitad de las
+                // gasolineras, y las que se ven no son las primeras — ni las que la cámara acaba de
+                // encuadrar. Mapa y lista tienen que estar mirando lo mismo.
+                //
+                // Ya en el principio es un no-op, así que no interfiere con la primera composición.
+                LaunchedEffect(browse.nearbyLens) {
+                    frame.lazyListState.animateScrollToItem(0)
+                }
                 PapDivider()
                 LazyColumn(
                     state = frame.lazyListState,

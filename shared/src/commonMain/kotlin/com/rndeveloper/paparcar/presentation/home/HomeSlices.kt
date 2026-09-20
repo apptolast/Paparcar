@@ -659,6 +659,23 @@ fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
  * - an UNCONFIRMED one is offered, but last. [sortedBy] is stable, so within each group the
  *   existing order survives untouched.
  */
+/**
+ * El primer elemento del carril que se está mirando, como coordenada — o null si ese carril aún no
+ * tiene nada. [HOME-A-LANE-CHANGE-TAKES-THE-CAMERA-WITH-IT-001]
+ *
+ * ⛔ Lee **las mismas listas que pinta la hoja**, no una consulta propia: el «primer elemento» tiene
+ * que ser el que el usuario ve arriba del todo, y una segunda fuente con otro orden convertiría el
+ * encuadre en una coordenada que no corresponde a ninguna fila.
+ */
+internal fun HomeState.laneFirstPoint(): Pair<Double, Double>? = when (nearbyLens) {
+    HomeNearbyLens.SPOTS -> filteredNearbySpots().firstOrNull()
+        ?.let { it.location.latitude to it.location.longitude }
+    HomeNearbyLens.PARKINGS -> parkings.parkings.firstOrNull()
+        ?.let { it.parking.latitude to it.parking.longitude }
+    HomeNearbyLens.FUEL -> fuel.stations.firstOrNull()
+        ?.let { it.station.latitude to it.station.longitude }
+}
+
 internal fun HomeState.filteredNearbySpots(): List<Spot> =
     nearbySpots
         .filter { it.status.isAvailable }
