@@ -1,7 +1,6 @@
 package com.rndeveloper.paparcar.domain.usecase.detection
 
 import com.rndeveloper.paparcar.domain.detection.MutableDetectionRuntimeState
-import com.rndeveloper.paparcar.domain.detection.ParkingStrategyResolver
 import com.rndeveloper.paparcar.domain.detection.ServicePresence
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.UserParking
@@ -10,7 +9,6 @@ import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.model.VehicleType
 import com.rndeveloper.paparcar.domain.permissions.AppPermissionState
 import com.rndeveloper.paparcar.fakes.FakeAppPreferences
-import com.rndeveloper.paparcar.fakes.FakeBluetoothScanner
 import com.rndeveloper.paparcar.fakes.FakePermissionManager
 import com.rndeveloper.paparcar.fakes.FakeUserParkingRepository
 import com.rndeveloper.paparcar.fakes.FakeVehicleRepository
