@@ -106,6 +106,7 @@
     <!-- Widget actions [WIDGET-ACTIONS-002] — same wording as in-app -->
     <string name="widget_action_navigate">Indicații</string>
     <string name="widget_action_more">Mai multe opțiuni</string>
+    <string name="widget_action_mark_parking">Marchează parcarea</string>
     <string name="notif_month_recap_title">Luna trecută</string>
     <string name="notif_month_recap_text_both">%1$s și %2$s min de căutat loc</string>
     <string name="notif_month_recap_text_spend">%1$s pe combustibil</string>

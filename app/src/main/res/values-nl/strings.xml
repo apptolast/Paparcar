@@ -106,6 +106,7 @@
     <!-- Widget actions [WIDGET-ACTIONS-002] — same wording as in-app -->
     <string name="widget_action_navigate">Route</string>
     <string name="widget_action_more">Meer opties</string>
+    <string name="widget_action_mark_parking">Parkeerplaats markeren</string>
     <string name="notif_month_recap_title">Vorige maand</string>
     <string name="notif_month_recap_text_both">%1$s en %2$s min plek zoeken</string>
     <string name="notif_month_recap_text_spend">%1$s aan brandstof</string>

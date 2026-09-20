@@ -106,6 +106,7 @@
     <!-- Widget actions [WIDGET-ACTIONS-002] — same wording as in-app -->
     <string name="widget_action_navigate">Indicazioni</string>
     <string name="widget_action_more">Altre opzioni</string>
+    <string name="widget_action_mark_parking">Segna parcheggio</string>
     <string name="notif_month_recap_title">Il mese scorso</string>
     <string name="notif_month_recap_text_both">%1$s e %2$s min a cercare posto</string>
     <string name="notif_month_recap_text_spend">%1$s di carburante</string>
