@@ -8,6 +8,7 @@ import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.PurchasePlusUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.RestorePurchasesUseCase
 import com.rndeveloper.paparcar.presentation.base.BaseViewModel
+import com.rndeveloper.paparcar.presentation.util.storeRedeemCodeUrl
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -57,6 +58,13 @@ class PaywallViewModel(
             is PaywallIntent.SelectPlan -> updateState { copy(selectedPlan = intent.plan) }
             PaywallIntent.Purchase -> purchaseSelected()
             PaywallIntent.Restore -> restore()
+            // ⛔ No hay llamada de compra aquí, y no es un olvido: un código lo canjea la TIENDA.
+            // Nosotros abrimos su puerta y la suscripción entra por donde entra cualquier compra —
+            // el `CustomerInfo` que empuja RevenueCat —, así que el paywall se cierra solo cuando
+            // llegue. Inventarnos un campo de código propio sería teclear lo mismo en dos sitios,
+            // con el nuestro sin la validación ni los errores de la tienda.
+            // [MONEY-A-PROMO-CODE-IS-REDEEMED-WHERE-THE-STORE-LIVES-001]
+            PaywallIntent.RedeemCode -> storeRedeemCodeUrl()?.let { sendEffect(PaywallEffect.OpenUrl(it)) }
         }
     }
 

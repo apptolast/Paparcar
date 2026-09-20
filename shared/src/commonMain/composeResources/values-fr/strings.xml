@@ -784,6 +784,7 @@
     <string name="paywall_cta_buy">Obtenir Plus pour %1$s</string>
     <string name="paywall_billing_note">Renouvellement automatique. Annule quand tu veux depuis le store. Ton abonnement paie les serveurs.</string>
     <string name="paywall_restore">Déjà abonné ? Restaurer</string>
+    <string name="paywall_redeem_code">J'ai un code</string>
     <string name="paywall_restore_none">Aucun abonnement sur ce compte Google.</string>
     <string name="paywall_purchase_failed">L'achat n'a pas abouti — rien ne t'a été facturé.</string>
     <string name="settings_plus_title">Paparcar Plus</string>

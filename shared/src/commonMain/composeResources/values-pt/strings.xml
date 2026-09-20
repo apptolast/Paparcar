@@ -784,6 +784,7 @@
     <string name="paywall_cta_buy">Obter Plus por %1$s</string>
     <string name="paywall_billing_note">Renova automaticamente. Cancela quando quiseres na loja. A tua subscrição paga os servidores.</string>
     <string name="paywall_restore">Já subscreveste? Restaurar</string>
+    <string name="paywall_redeem_code">Tenho um código</string>
     <string name="paywall_restore_none">Nenhuma subscrição nesta conta Google.</string>
     <string name="paywall_purchase_failed">A compra não foi concluída — não te foi cobrado nada.</string>
     <string name="settings_plus_title">Paparcar Plus</string>

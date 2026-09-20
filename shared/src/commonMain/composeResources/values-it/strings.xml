@@ -784,6 +784,7 @@
     <string name="paywall_cta_buy">Ottieni Plus per %1$s</string>
     <string name="paywall_billing_note">Si rinnova automaticamente. Disdici quando vuoi dallo store. Il tuo abbonamento paga i server.</string>
     <string name="paywall_restore">Già abbonato? Ripristina</string>
+    <string name="paywall_redeem_code">Ho un codice</string>
     <string name="paywall_restore_none">Nessun abbonamento su questo account Google.</string>
     <string name="paywall_purchase_failed">L'acquisto non è andato a buon fine — non ti è stato addebitato nulla.</string>
     <string name="settings_plus_title">Paparcar Plus</string>

@@ -14,4 +14,8 @@ sealed class PaywallIntent {
 
     /** "I already paid" — re-grant whatever this store account owns. Charges nothing. */
     data object Restore : PaywallIntent()
+
+    /** «Tengo un código» — abre la pantalla de canje de la TIENDA. La app no canjea nada.
+     *  [MONEY-A-PROMO-CODE-IS-REDEEMED-WHERE-THE-STORE-LIVES-001] */
+    data object RedeemCode : PaywallIntent()
 }

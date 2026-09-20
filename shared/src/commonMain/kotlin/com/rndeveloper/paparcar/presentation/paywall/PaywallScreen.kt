@@ -40,6 +40,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -48,6 +49,7 @@ import com.rndeveloper.paparcar.domain.model.PlusOffer
 import com.rndeveloper.paparcar.domain.model.PlusPlan
 import com.rndeveloper.paparcar.ui.components.PAPARCAR_LOGO_BESIDE_NAME_SIZE
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.rndeveloper.paparcar.presentation.util.storeRedeemCodeUrl
 import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
 import com.rndeveloper.paparcar.ui.components.PapPremiumButton
@@ -86,6 +88,7 @@ import paparcar.composeapp.generated.resources.paywall_plan_per_month
 import paparcar.composeapp.generated.resources.paywall_plan_savings_badge
 import paparcar.composeapp.generated.resources.paywall_plan_yearly
 import paparcar.composeapp.generated.resources.paywall_purchase_failed
+import paparcar.composeapp.generated.resources.paywall_redeem_code
 import paparcar.composeapp.generated.resources.paywall_restore
 import paparcar.composeapp.generated.resources.paywall_restore_none
 import paparcar.composeapp.generated.resources.paywall_store_unavailable
@@ -133,10 +136,16 @@ fun PaywallScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
+    val uriHandler = LocalUriHandler.current
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
                 PaywallEffect.Dismiss -> onClose()
+                // El canje ocurre FUERA. Al volver, la suscripción entra por el mismo sitio que
+                // cualquier compra —el `CustomerInfo` que empuja el SDK— y el paywall se cierra
+                // solo, igual que si hubiera pagado aquí.
+                // [MONEY-A-PROMO-CODE-IS-REDEEMED-WHERE-THE-STORE-LIVES-001]
+                is PaywallEffect.OpenUrl -> uriHandler.openUri(effect.url)
             }
         }
     }
@@ -703,6 +712,27 @@ private fun ColumnScope.PurchaseAction(state: PaywallState, onIntent: (PaywallIn
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth(),
         )
+    }
+
+    // «Tengo un código». Va PEGADO a restaurar y no al lado del botón de comprar, porque es de la
+    // misma familia: las dos son «ya tengo derecho a esto, dámelo», no «cóbrame».
+    //
+    // ⛔ Sólo si esta plataforma tiene puerta de canje ([storeRedeemCodeUrl]). En iOS un código de
+    // oferta se canjea con una hoja de StoreKit, no con una URL, y mandar a un iPhone a la tienda
+    // de Android sería peor que no ofrecerlo.
+    // [MONEY-A-PROMO-CODE-IS-REDEEMED-WHERE-THE-STORE-LIVES-001]
+    if (storeRedeemCodeUrl() != null) {
+        TextButton(
+            onClick = { onIntent(PaywallIntent.RedeemCode) },
+            enabled = !state.restoring && !state.purchasing,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+        ) {
+            Text(
+                text = stringResource(Res.string.paywall_redeem_code),
+                style = PaparcarType.current.cta,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
     }
 }
 

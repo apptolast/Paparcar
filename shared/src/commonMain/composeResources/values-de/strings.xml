@@ -785,6 +785,7 @@
     <string name="paywall_cta_buy">Plus für %1$s holen</string>
     <string name="paywall_billing_note">Verlängert sich automatisch. Jederzeit im Store kündbar. Dein Abo zahlt die Server.</string>
     <string name="paywall_restore">Schon Abonnent? Wiederherstellen</string>
+    <string name="paywall_redeem_code">Ich habe einen Code</string>
     <string name="paywall_restore_none">Kein Abo auf diesem Google-Konto gefunden.</string>
     <string name="paywall_purchase_failed">Der Kauf kam nicht zustande — es wurde nichts abgebucht.</string>
     <string name="settings_plus_title">Paparcar Plus</string>

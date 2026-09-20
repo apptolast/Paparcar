@@ -798,6 +798,7 @@
     <string name="paywall_cta_buy">Kup Plus za %1$s</string>
     <string name="paywall_billing_note">Odnawia się automatycznie. Anuluj w każdej chwili w sklepie. Twoja subskrypcja opłaca serwery.</string>
     <string name="paywall_restore">Masz już subskrypcję? Przywróć</string>
+    <string name="paywall_redeem_code">Mam kod</string>
     <string name="paywall_restore_none">Nie znaleziono subskrypcji na tym koncie Google.</string>
     <string name="paywall_purchase_failed">Zakup nie doszedł do skutku — nic nie zostało pobrane.</string>
     <string name="settings_plus_title">Paparcar Plus</string>
