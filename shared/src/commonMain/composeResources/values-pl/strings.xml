@@ -1012,6 +1012,8 @@
     <string name="subject_public_parkings">Parkingi</string>
     <string name="subject_free_spots">Miejsca</string>
     <string name="home_parkings_empty">Brak publicznych parkingów w promieniu %1$s.</string>
+    <string name="home_parkings_filter_covered">Zadaszone</string>
+    <string name="home_parkings_empty_filtered">Żaden parking nie spełnia tego filtru</string>
     <string name="home_parkings_error">Nie udało się wczytać parkingów. Sprawdź połączenie i otwórz to ponownie.</string>
     <string name="home_parkings_too_far">Publiczne parkingi pokazujemy tylko w promieniu %1$s od ciebie. Przesuń mapę bliżej, aby je zobaczyć.</string>
     <string name="home_parkings_remembered">Brak połączenia: to parkingi, które widzieliśmy tutaj %1$s.</string>

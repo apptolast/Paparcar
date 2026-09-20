@@ -7,6 +7,7 @@ import com.rndeveloper.paparcar.domain.model.SearchResult
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
+import com.rndeveloper.paparcar.presentation.home.model.PublicParkingFilter
 
 sealed class HomeIntent {
 
@@ -39,6 +40,10 @@ sealed class HomeIntent {
      * one concept. [FUEL-STATIONS-MAP-AND-PEEK-001] [PARKINGS-ON-THE-MAP-001]
      */
     data class SetNearbyLens(val lens: HomeNearbyLens) : HomeIntent()
+
+    /** Filtrar el carril de parkings. `null` quita el filtro.
+     *  [PARKINGS-THE-LANE-FILTERS-BY-WHAT-WE-KNOW-001] */
+    data class SetParkingFilter(val filter: PublicParkingFilter?) : HomeIntent()
     /** null clears the selection; a spot or session id sets it. */
     /** [UI-PROVISIONAL-SPOT-IS-NOT-ITS-SESSION-001] Carries WHAT was tapped, not just its id — the
      *  kind is free at every tap site and a spot may legitimately share its session's id. */

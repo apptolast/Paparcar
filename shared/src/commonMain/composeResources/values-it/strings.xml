@@ -990,6 +990,8 @@
     <string name="subject_public_parkings">Parcheggi</string>
     <string name="subject_free_spots">Posti</string>
     <string name="home_parkings_empty">Nessun parcheggio pubblico entro %1$s.</string>
+    <string name="home_parkings_filter_covered">Coperti</string>
+    <string name="home_parkings_empty_filtered">Nessun parcheggio con quel filtro</string>
     <string name="home_parkings_error">Non siamo riusciti a caricare i parcheggi. Controlla la connessione e riapri.</string>
     <string name="home_parkings_too_far">Mostriamo i parcheggi pubblici solo entro %1$s da te. Avvicina la mappa per vederli.</string>
     <string name="home_parkings_remembered">Nessuna connessione: questi sono i parcheggi pubblici visti qui %1$s.</string>

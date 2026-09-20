@@ -956,6 +956,8 @@
     <string name="subject_public_parkings">Parkeergarages</string>
     <string name="subject_free_spots">Plekken</string>
     <string name="home_parkings_empty">Geen openbare parkeergarages binnen %1$s.</string>
+    <string name="home_parkings_filter_covered">Overdekt</string>
+    <string name="home_parkings_empty_filtered">Geen parkeergarage met dat filter</string>
     <string name="home_parkings_error">We konden de parkeergarages niet laden. Controleer je verbinding en open dit opnieuw.</string>
     <string name="home_parkings_too_far">Openbare parkeergarages worden alleen binnen %1$s van je getoond. Schuif de kaart dichterbij om ze te zien.</string>
     <string name="home_parkings_remembered">Geen verbinding: dit zijn de parkeergarages die we hier %1$s zagen.</string>

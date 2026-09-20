@@ -990,6 +990,8 @@
     <string name="subject_public_parkings">Parques</string>
     <string name="subject_free_spots">Lugares</string>
     <string name="home_parkings_empty">Não há parques de estacionamento públicos a menos de %1$s.</string>
+    <string name="home_parkings_filter_covered">Cobertos</string>
+    <string name="home_parkings_empty_filtered">Nenhum parque com esse filtro</string>
     <string name="home_parkings_error">Não conseguimos carregar os parques. Verifica a ligação e abre isto outra vez.</string>
     <string name="home_parkings_too_far">Só mostramos parques de estacionamento públicos a menos de %1$s de ti. Aproxima o mapa para os veres.</string>
     <string name="home_parkings_remembered">Sem ligação: estes são os parques de estacionamento que vimos aqui %1$s.</string>

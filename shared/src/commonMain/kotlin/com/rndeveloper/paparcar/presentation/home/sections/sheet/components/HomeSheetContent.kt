@@ -531,6 +531,7 @@ private fun LazyListScope.nearbyLane(
                 // Sin fix la fila se calla la distancia: se midió desde la cámara, no desde ti.
                 // [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
                 hasFix = slice.userGpsPoint != null,
+                onFilterSelect = { filter -> onIntent(HomeIntent.SetParkingFilter(filter)) },
             )
         }
 

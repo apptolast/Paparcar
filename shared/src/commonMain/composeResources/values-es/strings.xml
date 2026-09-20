@@ -986,6 +986,8 @@
     <string name="subject_public_parkings">Parkings</string>
     <string name="subject_free_spots">Plazas</string>
     <string name="home_parkings_empty">No hay parkings públicos a menos de %1$s.</string>
+    <string name="home_parkings_filter_covered">Cubiertos</string>
+    <string name="home_parkings_empty_filtered">Ningún parking cumple ese filtro</string>
     <string name="home_parkings_error">No hemos podido cargar los parkings. Revisa la conexión y vuelve a abrir esto.</string>
     <string name="home_parkings_too_far">Solo mostramos parkings públicos a menos de %1$s de ti. Acerca el mapa para verlos.</string>
     <string name="home_parkings_remembered">Sin conexión: estos son los parkings que vimos aquí %1$s.</string>

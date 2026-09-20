@@ -991,6 +991,8 @@
     <string name="subject_public_parkings">Parkhäuser</string>
     <string name="subject_free_spots">Stellplätze</string>
     <string name="home_parkings_empty">Keine öffentlichen Parkhäuser im Umkreis von %1$s.</string>
+    <string name="home_parkings_filter_covered">Überdacht</string>
+    <string name="home_parkings_empty_filtered">Kein Parkhaus passt zu diesem Filter</string>
     <string name="home_parkings_error">Die Parkhäuser konnten nicht geladen werden. Prüfe deine Verbindung und öffne das erneut.</string>
     <string name="home_parkings_too_far">Öffentliche Parkhäuser werden nur im Umkreis von %1$s um dich angezeigt. Bewege die Karte näher heran.</string>
     <string name="home_parkings_remembered">Keine Verbindung: Das sind die Parkhäuser, die wir hier %1$s gesehen haben.</string>

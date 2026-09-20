@@ -179,6 +179,7 @@ import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.VehicleWithStats
 import com.rndeveloper.paparcar.domain.model.Money
 import kotlin.time.Clock
+import com.rndeveloper.paparcar.presentation.home.model.PublicParkingFilter
 
 /**
  * How a variant should be presented in the viewer.
@@ -3823,6 +3824,28 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             },
             // El caso NORMAL en el mundo: sin nombre y sin un solo dato mas. El peek se queda corto
             // a proposito — inventar "gratis" sobre un fee ausente manda al conductor a una barrera.
+            // Los filtros del carril: los tres, y el vacío que distingue «no hay» de «ninguno
+            // cumple lo que pediste». [PARKINGS-THE-LANE-FILTERS-BY-WHAT-WE-KNOW-001]
+            Variant("Carril con filtros", Placement.Surface) {
+                HomeParkingsLane(
+                    slice = HomeParkingsSlice(
+                        parkings = galleryParkings,
+                        hasAnyBeforeFilter = true,
+                        filter = PublicParkingFilter.COVERED,
+                    ),
+                    onFilterSelect = {},
+                )
+            },
+            Variant("Carril · el filtro no deja ninguno", Placement.Surface) {
+                HomeParkingsLane(
+                    slice = HomeParkingsSlice(
+                        parkings = emptyList(),
+                        hasAnyBeforeFilter = true,
+                        filter = PublicParkingFilter.FREE,
+                    ),
+                    onFilterSelect = {},
+                )
+            },
             Variant("Peek de parking (sin nombre, sin datos)", Placement.Surface) {
                 peek(
                     HomeState(
