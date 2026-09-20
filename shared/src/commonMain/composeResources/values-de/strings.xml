@@ -987,6 +987,8 @@
     <string name="home_fuel_attended_price">Bedient</string>
     <string name="home_fuel_badge_cheapest">GÜNSTIGSTE</string>
     <string name="home_fuel_badge_nearest">NÄCHSTE</string>
+    <string name="home_fuel_sort_nearest">Am nächsten</string>
+    <string name="home_fuel_sort_cheapest">Günstigste</string>
     <string name="home_fuel_badge_cheapest_nearest">GÜNSTIGSTE UND NÄCHSTE</string>
     <string name="home_fuel_remembered">Keine Verbindung: Das sind die Tankstellen, die wir hier %1$s gesehen haben.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->

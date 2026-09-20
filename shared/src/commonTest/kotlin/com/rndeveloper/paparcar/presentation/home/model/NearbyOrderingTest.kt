@@ -13,6 +13,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import com.rndeveloper.paparcar.presentation.home.model.FuelLaneSort
 
 /** [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001] */
 class NearbyOrderingTest {
@@ -125,5 +126,44 @@ class NearbyOrderingTest {
     private companion object {
         const val METERS_PER_DEGREE = 111_195.0
         const val DISTANCE_TOLERANCE_M = 2.0
+    }
+
+    // ── El orden que elige el usuario [FUEL-THE-LANE-IS-FILTERED-BY-WHAT-YOU-BURN-001] ─────────
+
+    @Test
+    fun should_listTheCheapestFirst_when_theUserSortsByPrice() {
+        val shown = NearbyOrdering.fuelStations(
+            stations = listOf(
+                station("near-pricey", northMeters = 100.0, gasoline = 1.9),
+                station("far-cheap", northMeters = 3_000.0, gasoline = 1.5),
+                station("mid", northMeters = 1_000.0, gasoline = 1.7),
+                station("unpriced", northMeters = 200.0),
+            ),
+            pricedFor = FuelType.GASOLINE,
+            user = user,
+            sort = FuelLaneSort.CHEAPEST,
+        )
+
+        assertEquals(
+            listOf("far-cheap", "mid", "near-pricey", "unpriced"),
+            shown.map { it.station.id },
+            "por precio manda el precio; las que no tienen se van al final, ordenadas por distancia",
+        )
+    }
+
+    /** Los surtidores se copian el precio a la milésima: el empate lo rompe la distancia. */
+    @Test
+    fun should_breakAPriceTie_byDistance_when_sortingByPrice() {
+        val shown = NearbyOrdering.fuelStations(
+            stations = listOf(
+                station("far-same", northMeters = 3_000.0, gasoline = 1.5),
+                station("near-same", northMeters = 300.0, gasoline = 1.5),
+            ),
+            pricedFor = FuelType.GASOLINE,
+            user = user,
+            sort = FuelLaneSort.CHEAPEST,
+        )
+
+        assertEquals(listOf("near-same", "far-same"), shown.map { it.station.id })
     }
 }

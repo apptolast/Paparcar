@@ -30,6 +30,8 @@ object NearbyOrdering {
         stations: List<NearbyFuelStation>,
         pricedFor: FuelType?,
         user: GpsPoint?,
+        /** Qué pregunta está haciendo el usuario. [FUEL-THE-LANE-IS-FILTERED-BY-WHAT-YOU-BURN-001] */
+        sort: FuelLaneSort = FuelLaneSort.NEAREST,
     ): List<NearbyFuelStation> =
         stations
             .map { nearby ->
@@ -56,11 +58,22 @@ object NearbyOrdering {
                 // aquí que en la fila que pinta el badge: las dos preguntan sobre la misma lista.
                 // [FUEL-THE-CHEAPEST-AND-THE-NEAREST-WEAR-A-BADGE-001]
                 val standouts = priced.fuelStandouts()
-                priced.sortedWith(
-                    compareBy<NearbyFuelStation> { standouts.rankOf(it.stationKey) }
-                        .thenBy { it.price == null }
-                        .thenBy { it.distanceMeters },
-                )
+                when (sort) {
+                    // ⛔ Con el orden por PRECIO el adelanto de la más barata no se aplica: ya es la
+                    // primera por definición, y sumar el rango encima haría que dos reglas dijeran
+                    // lo mismo — el día que una cambie, discrepan.
+                    FuelLaneSort.CHEAPEST -> priced.sortedWith(
+                        compareBy<NearbyFuelStation> { it.price == null }
+                            .thenBy { it.price?.perUnit?.amount ?: Double.MAX_VALUE }
+                            // Mismo precio (que es lo normal: se copian a la milésima) → la de al lado.
+                            .thenBy { it.distanceMeters },
+                    )
+                    FuelLaneSort.NEAREST -> priced.sortedWith(
+                        compareBy<NearbyFuelStation> { standouts.rankOf(it.stationKey) }
+                            .thenBy { it.price == null }
+                            .thenBy { it.distanceMeters },
+                    )
+                }
             }
 
     fun publicParkings(

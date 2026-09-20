@@ -1023,6 +1023,8 @@
     <string name="home_fuel_attended_price">Attended service</string>
     <string name="home_fuel_badge_cheapest">CHEAPEST</string>
     <string name="home_fuel_badge_nearest">NEAREST</string>
+    <string name="home_fuel_sort_nearest">Nearest</string>
+    <string name="home_fuel_sort_cheapest">Cheapest</string>
     <string name="home_fuel_badge_cheapest_nearest">CHEAPEST AND NEAREST</string>
     <string name="home_fuel_remembered">No connection: these are the stations we saw here %1$s.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->

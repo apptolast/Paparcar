@@ -6,6 +6,8 @@ import com.rndeveloper.paparcar.domain.model.ParkingReleaseReason
 import com.rndeveloper.paparcar.domain.model.SearchResult
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
+import com.rndeveloper.paparcar.presentation.home.model.FuelLaneSort
+import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
 
 sealed class HomeIntent {
@@ -39,6 +41,14 @@ sealed class HomeIntent {
      * one concept. [FUEL-STATIONS-MAP-AND-PEEK-001] [PARKINGS-ON-THE-MAP-001]
      */
     data class SetNearbyLens(val lens: HomeNearbyLens) : HomeIntent()
+
+    /** Ordenar el carril de gasolineras por cercanía o por precio. No esconde ninguna.
+     *  [FUEL-THE-LANE-IS-FILTERED-BY-WHAT-YOU-BURN-001] */
+    data class SetFuelSort(val sort: FuelLaneSort) : HomeIntent()
+
+    /** Cotizar el carril por ESTE producto. `null` vuelve al del coche activo.
+     *  [FUEL-THE-LANE-IS-FILTERED-BY-WHAT-YOU-BURN-001] */
+    data class SetFuelProduct(val product: FuelType?) : HomeIntent()
     /** null clears the selection; a spot or session id sets it. */
     /** [UI-PROVISIONAL-SPOT-IS-NOT-ITS-SESSION-001] Carries WHAT was tapped, not just its id — the
      *  kind is free at every tap site and a spot may legitimately share its session's id. */

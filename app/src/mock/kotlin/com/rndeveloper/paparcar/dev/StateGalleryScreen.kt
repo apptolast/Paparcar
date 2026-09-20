@@ -179,6 +179,7 @@ import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.VehicleWithStats
 import com.rndeveloper.paparcar.domain.model.Money
 import kotlin.time.Clock
+import com.rndeveloper.paparcar.presentation.home.model.FuelLaneSort
 
 /**
  * How a variant should be presented in the viewer.
@@ -3588,6 +3589,30 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             // `LocalPumpGallon` puesto a mano: la variante tiene que mentir exactamente igual que
             // miente produccion, o deja de servir para verlo. Hoy no hay fuente per-surtidor en
             // EE. UU., asi que este es el UNICO sitio donde se puede mirar esa conversion con los ojos.
+            // La barra de filtros: los dos órdenes y los productos que la respuesta cotiza.
+            // ⛔ Con `availableProducts` VACÍO tambien, que es el caso de un pais sin feed de
+            // precios: la barra tiene que seguir dejando ordenar y no debe enseñar chips de
+            // productos que nadie vende. [FUEL-THE-LANE-IS-FILTERED-BY-WHAT-YOU-BURN-001]
+            Variant("Filtros · orden y producto", Placement.Surface) {
+                HomeFuelLane(
+                    slice = HomeFuelSlice(
+                        stations = galleryFuelStations,
+                        reportedAt = "09/09/2026 08:30:00",
+                        sort = FuelLaneSort.CHEAPEST,
+                        product = FuelType.DIESEL,
+                        availableProducts = listOf(FuelType.DIESEL, FuelType.GASOLINE, FuelType.LPG_CNG),
+                    ),
+                    onSortSelect = {},
+                    onProductSelect = {},
+                )
+            },
+            Variant("Filtros · sin productos que ofrecer", Placement.Surface) {
+                HomeFuelLane(
+                    slice = HomeFuelSlice(stations = galleryFuelStations, availableProducts = emptyList()),
+                    onSortSelect = {},
+                    onProductSelect = {},
+                )
+            },
             Variant("Con precios · por galon (EE. UU.)", Placement.Surface) {
                 HomeFuelLane(
                     slice = HomeFuelSlice(
