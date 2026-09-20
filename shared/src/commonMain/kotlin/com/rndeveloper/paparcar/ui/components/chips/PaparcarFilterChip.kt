@@ -77,15 +77,16 @@ fun PaparcarFilterChip(
         selected -> PapColor.selected
         else -> cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA)
     }
-    // ⛔ El TEXTO va en `actionText`, no en `selected`, y es consecuencia directa de quitar el
-    // relleno: el verde elegido se apoyaba en `primaryContainer`, un par de color diseñado junto.
-    // Sobre la superficie neutra ese mismo verde es una palabra verde sobre gris claro, que es
-    // exactamente lo que [UI-COLOR-GREEN-TEXT-EARNS-ITS-CONTRAST-001] existe para impedir. El BORDE
-    // sí se queda en `selected`: un trazo no se lee, se ve.
+    // ⛔ **El texto NO cambia con la selección**: elegido o no, `onSurface` (user, review de #49).
+    // El verde se queda en el BORDE y sólo ahí. Dos razones, y la segunda es la que manda:
+    //  · un trazo no se lee, se ve — el borde marca el estado sin competir con la palabra;
+    //  · el verde de `primary` se apoyaba en `primaryContainer`, un par de color diseñado junto;
+    //    al quitar el relleno se quedaba sobre superficie neutra, que es una palabra verde sobre
+    //    gris claro — justo lo que [UI-COLOR-GREEN-TEXT-EARNS-ITS-CONTRAST-001] existe para
+    //    impedir. Dejarlo en `onSurface` cierra las dos cosas a la vez.
     // [UI-A-SELECTED-CHIP-IS-OUTLINED-NOT-FILLED-001]
     val contentColor = when {
         !enabled -> cs.onSurface.copy(alpha = DISABLED_FG_ALPHA)
-        selected -> PapColor.actionText
         else -> cs.onSurface
     }
 

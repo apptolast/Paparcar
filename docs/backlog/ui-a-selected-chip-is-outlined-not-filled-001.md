@@ -22,11 +22,11 @@ de la pantalla.
 
 - **Fondo**: `surfaceContainerHigh` esté elegido o no — `selected` deja de entrar en el `when`.
 - **Borde**: sigue verde (`PapColor.selected`) cuando está elegido; contorno tenue cuando no.
-- **Texto e icono**: pasan de `PapColor.selected` a `PapColor.actionText`. Es consecuencia directa
-  de quitar el relleno: el verde de `primary` se apoyaba en `primaryContainer`, un par de color
-  diseñado junto; sobre la superficie neutra es una palabra verde sobre gris claro, justo lo que
-  `UI-COLOR-GREEN-TEXT-EARNS-ITS-CONTRAST-001` existe para impedir. El BORDE se queda en `selected`
-  porque un trazo no se lee, se ve.
+- **Texto e icono**: `onSurface`, **elegido o no** (decisión del user en la review de #49). El verde
+  se queda en el BORDE y sólo ahí. Un trazo no se lee, se ve: marca el estado sin competir con la
+  palabra. Y de paso cierra el problema de contraste — el verde de `primary` se apoyaba en
+  `primaryContainer`, un par diseñado junto, y sin relleno quedaba como palabra verde sobre gris
+  claro, justo lo que `UI-COLOR-GREEN-TEXT-EARNS-ITS-CONTRAST-001` impide.
 
 ## Criterio de éxito
 
