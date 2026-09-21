@@ -38,11 +38,20 @@ private val TRAILING_ICON_ALPHA = PapAlpha.muted
  * Paparcar's canonical chip — the single base used for filter chips, zone
  * chips, and any other label-plus-state pill across the app.
  *
- * Selected state uses the primary container fill + `primary` border and text —
- * "on" reads through tinted CONTAINER + accents, never a solid primary fill
- * (solid green is reserved for the primary CTA). Unselected uses
- * [PapBorders.DEFAULT_OUTLINE_ALPHA] — the same subtle outline used by
- * ordinary cards — so chips feel like part of the card family. [UI-SHEET-001]
+ * **Seleccionado = FONDO y BORDE verdes, con el texto en `onSurface`.**
+ * [UI-A-SELECTED-CHIP-IS-GREEN-BUT-ITS-WORD-IS-NOT-001]
+ *
+ * El verde marca el chip elegido con el contenedor de marca (`primaryContainer`) y su borde
+ * `primary`; sin seleccionar, [PapBorders.DEFAULT_OUTLINE_ALPHA] —el mismo contorno tenue de una
+ * card— mantiene los chips en la familia de las cards. [UI-SHEET-001]
+ *
+ * ⛔ **El texto NO se tiñe: `onSurface`, elegido o no.** Es lo que cambió respecto al diseño
+ * anterior y no es un detalle — *lo verde es la superficie, no la palabra*. Con el texto también en
+ * verde, un chip encendido tenía dos señales diciendo lo mismo y la etiqueta perdía legibilidad
+ * justo cuando más se lee. Medido en los dos temas, `onSurface` sobre `primaryContainer` da
+ * **13,8:1** en claro y **10,7:1** en oscuro — por encima del par de diseño `onPrimaryContainer`
+ * (12,6:1 en claro), así que el contraste no es el precio de nada.
+ * [UI-COLOR-GREEN-TEXT-EARNS-ITS-CONTRAST-001]
  *
  * Optional [trailingIcon] + [onTrailingClick] add a tap-handled icon slot
  * (e.g. `×` for delete on a saved zone chip) without forking the composable.
@@ -70,9 +79,11 @@ fun PaparcarFilterChip(
         selected -> PapColor.selected
         else -> cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA)
     }
+    // ⛔ `selected` NO entra aquí a propósito: la palabra se queda en `onSurface` esté o no elegido
+    // el chip, y el verde vive sólo en la superficie y el borde. Ver el KDoc para la medida.
+    // [UI-A-SELECTED-CHIP-IS-GREEN-BUT-ITS-WORD-IS-NOT-001]
     val contentColor = when {
         !enabled -> cs.onSurface.copy(alpha = DISABLED_FG_ALPHA)
-        selected -> PapColor.selected
         else -> cs.onSurface
     }
 
@@ -96,12 +107,13 @@ fun PaparcarFilterChip(
                 Icon(
                     imageVector = leadingIcon,
                     contentDescription = null,
-                    // ⛔ The glyph wears the CHIP's own content colour — green only when the chip is
-                    // selected, because then the green means "this one is on". It used to be green
-                    // always, "so chips read as branded accents": with a row of chips that painted
-                    // five greens whose only message was that they were chips, and left the selected
-                    // one competing with its own unselected siblings.
+                    // ⛔ El glifo lleva el MISMO color que la etiqueta, y por tanto tampoco se tiñe
+                    // de verde al seleccionar. Fue verde siempre, «para que los chips se leyeran
+                    // como acentos de marca»: una fila pintaba cinco verdes cuyo único mensaje era
+                    // que eran chips, y el elegido competía con sus propios hermanos apagados. Lo
+                    // que dice cuál está encendido es la superficie, no la tinta del contenido.
                     // [UI-ONE-SKELETON-ONE-EMPHASIS-ONE-GREEN-001]
+                    // [UI-A-SELECTED-CHIP-IS-GREEN-BUT-ITS-WORD-IS-NOT-001]
                     tint = contentColor,
                     modifier = Modifier.size(CHIP_ICON_SIZE),
                 )
