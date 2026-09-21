@@ -274,6 +274,29 @@ val PapCarParkBlueLight = Color(0xFF00468F)   // car-park fill on light surfaces
  *   un fondo que ya casi era blanco. Lo que separa la card no es ese salto sino su contorno
  *   (`PapBorders.thin`), que es la regla de esta paleta desde que existe.
  *
+ * ## ⛔ El 1,074 mide el par equivocado, y por eso no hay nada que corregir
+ *
+ * En la review se preguntó si la card debía **subir o bajar** para diferenciarse mejor. **Subir no
+ * existe**: `PapCardLight` es `#FFFFFF`, blanco puro, ya está en el techo. Y bajarla la acercaría al
+ * fondo, que es lo contrario de separar.
+ *
+ * Pero la pregunta se cae sola al medir lo que de verdad dibuja el límite de una card, que es su
+ * **borde**: `outline` (`#7A8FA0`) al `DEFAULT_OUTLINE_ALPHA` de 0,4 sobre el blanco de la card,
+ * o sea un trazo efectivo de **`#CAD2D9`**. Contra el fondo:
+ *
+ * | | Fondo | Contraste del BORDE |
+ * |---|---|---|
+ * | Antes | #F0F4FB | 1,385:1 |
+ * | Ahora | #F4F7FC | **1,423:1** |
+ *
+ * El borde es más oscuro que los dos fondos, así que aclarar el fondo **le sube el contraste**: el
+ * filo de la card se lee un 3 % MEJOR que antes del ticket. Lo que bajó (1,103 → 1,074) es el salto
+ * relleno-contra-relleno, que en esta paleta nunca fue lo que separaba una card.
+ *
+ * Si aun así en device la card se ve flotando, el mando no es el blanco de la card: es bajar el
+ * fondo a `#F2F5FC` (L* 96,6), que recupera 1,09 de relleno conservando dos tercios de la subida.
+ * No se hace a priori porque hoy no hay nada medible que lo pida.
+ *
  * ⛔ **El suelo del MAPA no sube**, aunque el user lo pidiera «un poquito también». Su #cdd8ea está
  * elegido con dos medidas (1,26:1 y ΔE00 6,8 contra la hoja) precisamente para separarse de ella;
  * subirlo en paralelo devolvía 1,221 — **peor de lo que había**, que es justo lo que pidió no
