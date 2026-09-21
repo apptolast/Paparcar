@@ -1396,7 +1396,7 @@ private fun NearbyCapsuleMarker(
                     shape = RoundedCornerShape(FUEL_LABEL_CORNER),
                 )
                 .padding(horizontal = 10.dp, vertical = 3.dp)
-                .heightIn(min = with(density) { (48f * s).toDp() }),
+                .heightIn(min = with(density) { (CAPSULE_BODY_MIN_U * s).toDp() }),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (glyphOnDisc) {
@@ -1498,17 +1498,104 @@ fun PublicParkingMarker(
     selected: Boolean,
     modifier: Modifier = Modifier,
     /** «De pago» / «Gratuito», ya traducido por quien sí puede leer recursos. Null cuando la tarifa
-     *  es desconocida — y entonces la cápsula es sólo la P. */
+     *  es desconocida — y entonces no hay cápsula que dibujar, sólo el disco. */
     feeLabel: String? = null,
-) = NearbyCapsuleMarker(
-    glyph = PaparcarIcons.CarParkMark,
-    accent = PapColor.carPark,
-    selected = selected,
-    modifier = modifier,
-    glyphOnDisc = true,
-    onAccent = PapColor.onCarPark,
-    primaryText = feeLabel,
-)
+) = if (feeLabel != null) {
+    NearbyCapsuleMarker(
+        glyph = PaparcarIcons.CarParkMark,
+        accent = PapColor.carPark,
+        selected = selected,
+        modifier = modifier,
+        glyphOnDisc = true,
+        onAccent = PapColor.onCarPark,
+        primaryText = feeLabel,
+    )
+} else {
+    // ⛔ **Sin tarifa NO hay cápsula** (user, review de #59). Una cápsula es un papel con contorno
+    // que existe para SOSTENER una frase; sin tarifa no hay frase, así que lo que quedaba era un
+    // disco azul metido dentro de una caja blanca vacía — dos cuerpos, dos bordes y dos colores
+    // para decir una sola letra. El marcador ES el disco: azul macizo, P blanca dentro, sin papel y
+    // sin contorno. Y es el 71 % de los parkings, o sea el caso NORMAL, no el raro.
+    // [MAP-A-CAR-PARK-MARKER-SAYS-WHAT-IT-COSTS-001] [MAP-A-CAR-PARK-MARKER-WEARS-ITS-OWN-BLUE-001]
+    NearbyDiscMarker(
+        glyph = PaparcarIcons.CarParkMark,
+        accent = PapColor.carPark,
+        onAccent = PapColor.onCarPark,
+        selected = selected,
+        modifier = modifier,
+    )
+}
+
+/**
+ * El marcador de un sitio que **no tiene nada que decir además de qué es**: un disco macizo del
+ * acento con su glifo dentro, sobre el mismo punto y la misma sombra que el resto de la familia.
+ * [MAP-A-CAR-PARK-MARKER-SAYS-WHAT-IT-COSTS-001]
+ *
+ * Es la hermana callada de [NearbyCapsuleMarker] y comparte con ella **toda** la geometría: la misma
+ * escala `s`, el mismo `markerH`, el mismo apoyo en [MARKER_BODY_BOTTOM_Y] y el mismo alto de cuerpo
+ * ([CAPSULE_BODY_MIN_U]). Por eso el disco mide **exactamente lo que mide una cápsula que sólo
+ * lleva glifo** —la gasolinera sin precio— y las dos se leen como el mismo objeto a distinta carga,
+ * que es lo que pidió la review.
+ *
+ * ⛔ **En reposo no lleva borde**: el cuerpo es el color. La selección sí dibuja un anillo de papel,
+ * porque sin ninguna diferencia un parking tocado se vería idéntico a uno sin tocar y toda la
+ * familia marca la selección de alguna forma. El anillo va FUERA del disco (`border` sobre el `clip`
+ * circular), así que no le come tamaño al glifo.
+ */
+@Composable
+private fun NearbyDiscMarker(
+    glyph: ImageVector,
+    accent: Color,
+    onAccent: Color,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val ink = MaterialTheme.colorScheme.onSurface
+    val paper = MaterialTheme.colorScheme.surface
+    val density = LocalDensity.current
+
+    val s = with(density) { SPOT_PIN_W.toPx() / SPOT_VIEWBOX_W }
+    val markerH = with(density) { (SPOT_VIEWBOX_H * s).toDp() }
+    val bodyBottomPad = with(density) { ((SPOT_VIEWBOX_H - MARKER_BODY_BOTTOM_Y) * s).toDp() }
+    val discSize = with(density) { (CAPSULE_BODY_MIN_U * s).toDp() }
+
+    Box(
+        modifier = modifier.height(markerH).width(IntrinsicSize.Max),
+        contentAlignment = Alignment.BottomCenter,
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            val canvasS = size.height / SPOT_VIEWBOX_H
+            val centerX = (size.width / 2f) / canvasS
+            drawSpotShadow(canvasS, ink, centerX = centerX)
+            drawSpotDot(canvasS, accent, centerX = centerX)
+        }
+        Box(
+            modifier = Modifier
+                .padding(bottom = bodyBottomPad)
+                .size(discSize)
+                .clip(CircleShape)
+                .background(accent)
+                .then(
+                    if (selected) {
+                        Modifier.border(FUEL_LABEL_BORDER_SEL, paper, CircleShape)
+                    } else {
+                        Modifier
+                    },
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = glyph,
+                contentDescription = null,
+                tint = onAccent,
+                // ⛔ La MISMA proporción glifo/disco que dentro de la cápsula (13 de 20), no los
+                // 13 dp literales: aquí el disco es mayor, y un glifo fijo se vería perdido en el
+                // centro. Lo que se comparte entre superficies es el objeto, no la cifra.
+                modifier = Modifier.size(discSize * (CAPSULE_DISC_GLYPH_SIZE / CAPSULE_DISC_SIZE)),
+            )
+        }
+    }
+}
 
 
 private val PARKING_LABEL_PAD_H = 9.dp
@@ -1524,6 +1611,11 @@ private val FUEL_GLYPH_SIZE = 16.dp
 
 /** El disco de la cápsula y la P que lleva dentro. Proporción de la fila (tile 40 / glifo 20), a la
  *  escala del marcador. [MAP-A-CAR-PARK-MARKER-SAYS-WHAT-IT-COSTS-001] */
+/** Alto mínimo del CUERPO de la cápsula, en unidades del viewBox — y por tanto el diámetro del
+ *  disco de [NearbyDiscMarker], para que un sitio sin nada que decir mida lo mismo que una cápsula
+ *  que sólo lleva glifo. [MAP-A-CAR-PARK-MARKER-SAYS-WHAT-IT-COSTS-001] */
+private const val CAPSULE_BODY_MIN_U = 48f
+
 private val CAPSULE_DISC_SIZE = 20.dp
 private val CAPSULE_DISC_GLYPH_SIZE = 13.dp
 private const val FUEL_LABEL_BG_ALPHA = 0.92f

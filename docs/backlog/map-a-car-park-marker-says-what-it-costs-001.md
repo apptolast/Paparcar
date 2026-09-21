@@ -74,3 +74,46 @@ parkings a la misma distancia.
   superficies dibujan el mismo objeto y lo que cambia es el tamaño. La gasolinera NO lo lleva — su
   glifo suelto ya es el surtidor.
 - **El contador «17» y el antetítulo se quedan verdes de momento** — ver Preguntas.
+
+## Tercera vuelta (review del user, 20-09): sin tarifa, no hay cápsula
+
+> «El marker de parking que no tenga ese dato y solo tengamos la P será del mismo tamaño que el
+> marker de gasolinera que tampoco tenga datos de precio, o sea, que sea un marker redondo también
+> porque no tiene más datos que mostrar. Y en este caso, la P y su disco no irán dentro de un
+> contenido surface con contorno: el propio marker será el azul de parking con su P blanca dentro.»
+
+Tiene razón, y el argumento es el mismo que sostiene toda la cápsula al revés: **una cápsula es un
+papel con contorno que existe para SOSTENER una frase.** Sin tarifa no hay frase, así que lo que
+quedaba era un disco azul metido dentro de una caja blanca vacía — **dos cuerpos, dos bordes y dos
+colores para decir una sola letra**.
+
+Y no es el caso raro: `FeeInfo.UNKNOWN` es el **71 %** de los parkings. La forma que se estaba
+puliendo era la de la minoría.
+
+### Qué se ha hecho
+
+Nace `NearbyDiscMarker`, la hermana callada de `NearbyCapsuleMarker` — para un sitio que no tiene
+nada que decir además de qué es. `PublicParkingMarker` elige: con tarifa, cápsula; sin tarifa, disco.
+
+⛔ **Comparte TODA la geometría con la cápsula**: misma escala `s`, mismo `markerH`, mismo apoyo en
+`MARKER_BODY_BOTTOM_Y`, y el diámetro del disco es el **alto mínimo del cuerpo de la cápsula**. Ese
+48 estaba inline y ahora es `CAPSULE_BODY_MIN_U`, usado por las dos. Así el disco mide **exactamente
+lo que mide una cápsula que sólo lleva glifo** —la gasolinera sin precio—, que es literalmente lo que
+se pidió, y no puede desincronizarse aunque alguien ajuste la cápsula.
+
+El glifo entra por **proporción** (13 de 20), no por sus 13 dp literales: el disco suelto es mayor y
+un glifo fijo se vería perdido en el centro. Lo que se comparte entre superficies es el objeto, no la
+cifra.
+
+### La única licencia que me he tomado
+
+**En reposo no lleva borde** —el cuerpo es el color, como se pidió—, pero la **selección** sí dibuja
+un anillo de papel. Sin ninguna diferencia, un parking tocado se vería idéntico a uno sin tocar, y
+toda la familia marca la selección de alguna forma. El anillo va por fuera del disco, así que no le
+come tamaño al glifo. Si sobra, es una línea.
+
+### Verificación
+
+`./gradlew testAll :app:compileMockDebugKotlin` → BUILD SUCCESSFUL.
+
+⏳ **Sin captura del estado final**: no hay device conectado (`PR-A-VISUAL-CHANGE-SHOWS-ITSELF-001`).
