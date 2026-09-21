@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.ios.preferences
 
+import com.rndeveloper.paparcar.domain.spot.VouchedSpot
 import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
 import com.rndeveloper.paparcar.localePrefersImperialUnits
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
@@ -35,6 +36,10 @@ private const val KEY_NOTIFY_ZONE_SPOTS = "notify_zone_spots"
 private const val KEY_NOTIFY_FUEL_PRICES = "notify_fuel_prices"
 private const val KEY_NOTIFY_MONTH_RECAP = "notify_month_recap"
 private const val KEY_LAST_MONTH_RECAP = "last_month_recap_announced"
+private const val KEY_VOUCHED_SPOT = "vouched_spot" // [SPOT-A-SPACE-THE-COMMUNITY-GAVE-YOU-IS-ONE-YOU-VOUCHED-FOR-001]
+/** ⛔ El MISMO separador y el MISMO número de campos que Android: un registro, un formato. */
+private const val VOUCH_SEPARATOR = "|"
+private const val VOUCH_FIELDS = 4
 private const val KEY_SYNC_ROUTE_GEOMETRY = "sync_route_geometry" // [PRIV-A-TRACE-IS-NOT-A-STAT-001]
 // [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001] What was last reported to the account doc.
 private const val KEY_LAST_PUBLISHED_DETECTION_STATE = "last_published_detection_state"
@@ -338,6 +343,39 @@ class IosAppPreferences : AppPreferences {
 
     override fun setSyncRouteGeometry(enabled: Boolean) {
         userDefaults.setBool(enabled, forKey = KEY_SYNC_ROUTE_GEOMETRY)
+    }
+
+    /**
+     * La plaza por la que el usuario dio fe, serializada en UNA cadena igual que en Android.
+     * [SPOT-A-SPACE-THE-COMMUNITY-GAVE-YOU-IS-ONE-YOU-VOUCHED-FOR-001]
+     *
+     * ⚠️ El MISMO formato que el lado Android, y a propósito: es el mismo registro, y dos
+     * serializaciones distintas para un dato que se lee en un solo sitio son dos formas de leerlo
+     * mal. Una cadena que no se entiende se lee como null — deja la cifra pequeña, no revienta un
+     * aparcamiento.
+     */
+    override val vouchedSpot: VouchedSpot?
+        get() = userDefaults.stringForKey(KEY_VOUCHED_SPOT)?.takeIf { it.isNotBlank() }?.let { raw ->
+            val parts = raw.split(VOUCH_SEPARATOR)
+            if (parts.size != VOUCH_FIELDS) return null
+            VouchedSpot(
+                spotId = parts[0].ifBlank { return null },
+                latitude = parts[1].toDoubleOrNull() ?: return null,
+                longitude = parts[2].toDoubleOrNull() ?: return null,
+                expiresAtMs = parts[3].toLongOrNull() ?: return null,
+            )
+        }
+
+    override fun setVouchedSpot(spot: VouchedSpot?) {
+        if (spot == null) {
+            userDefaults.removeObjectForKey(KEY_VOUCHED_SPOT)
+            return
+        }
+        userDefaults.setObject(
+            listOf(spot.spotId, spot.latitude, spot.longitude, spot.expiresAtMs)
+                .joinToString(VOUCH_SEPARATOR),
+            forKey = KEY_VOUCHED_SPOT,
+        )
     }
 
     // [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001] `stringForKey` already answers null when the
