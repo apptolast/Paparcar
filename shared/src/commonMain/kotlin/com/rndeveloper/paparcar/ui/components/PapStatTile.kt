@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -31,6 +33,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.theme.PapColor
+import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 
 /**
@@ -54,6 +57,24 @@ fun PapStatTile(
     icon: ImageVector? = null,
     /** The lead figure of its grid. Larger, never coloured. */
     emphasized: Boolean = false,
+    /**
+     * Esta cifra es lo que el usuario APORTA, no lo que gasta: viste el contenedor de marca.
+     * [STATS-THE-ONE-GREEN-BELONGS-TO-WHAT-YOU-GAVE-001]
+     *
+     * ⛔ **No es un verde nuevo, es el mismo de siempre.** Lo que la doctrina prohíbe es que el
+     * verde signifique una COSA nueva, no que aparezca dos veces por la misma: aquí dice «marca y
+     * acción», exactamente igual que el anillo de detección de al lado, y exactamente igual que un
+     * chip elegido. Ceder una plaza a la comunidad **es** la acción de este producto.
+     *
+     * ⛔ Y la palabra NO se tiñe: `onSurface`, como en el chip. *Lo verde es la superficie, no la
+     * palabra* [UI-A-SELECTED-CHIP-IS-GREEN-BUT-ITS-WORD-IS-NOT-001].
+     *
+     * ⚠️ Lo que este verde NO puede tocar es el gasto ni el CO₂. El CO₂ de la rejilla es lo que
+     * EMITES y el coste es lo que PAGAS: pintarlos de «impacto positivo» le diría al usuario que
+     * emitir está bien. Por eso el veredicto vive en quien construye el tile, no en un booleano que
+     * cualquiera pueda encender.
+     */
+    contribution: Boolean = false,
     /**
      * The number behind [value], for the count-up. Null = no animation, and that is the honest
      * default: most tiles hold a day of the week or a street name, which do not count up to
@@ -82,7 +103,22 @@ fun PapStatTile(
     progress: Float? = null,
 ) {
     val cs = MaterialTheme.colorScheme
-    Column(modifier = modifier.padding(horizontal = TILE_H_PAD_DP.dp, vertical = TILE_V_PAD_DP.dp)) {
+    Column(
+        modifier = modifier
+            // ⛔ El fondo va ANTES del padding: pintado después, el color se quedaría dentro del
+            // hueco del texto y el tile se vería como una etiqueta flotando, no como una superficie.
+            // [STATS-THE-ONE-GREEN-BELONGS-TO-WHAT-YOU-GAVE-001]
+            .then(
+                if (contribution) {
+                    Modifier
+                        .clip(PapShapes.chip)
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                } else {
+                    Modifier
+                },
+            )
+            .padding(horizontal = TILE_H_PAD_DP.dp, vertical = TILE_V_PAD_DP.dp),
+    ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(VALUE_DELTA_GAP_DP.dp),
