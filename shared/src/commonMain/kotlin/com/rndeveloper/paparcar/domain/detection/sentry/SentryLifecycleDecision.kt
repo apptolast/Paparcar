@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.domain.detection.sentry
 
 import com.rndeveloper.paparcar.domain.detection.ServicePresence
+import com.rndeveloper.paparcar.domain.model.Vehicle
 
 
 /**
@@ -90,6 +91,39 @@ fun parkedCarNeedsWatcher(
     parkedVehicleIds: List<String?>,
     vehiclesThatNeedNoWatcher: Set<String>,
 ): Boolean = parkedVehicleIds.any { it == null || it !in vehiclesThatNeedNoWatcher }
+
+/**
+ * Qué coches de la flota **no necesitan centinela**, por los dos motivos de [parkedCarNeedsWatcher].
+ * [DET-A-PARKED-BT-CAR-NEEDS-NO-RESIDENT-WATCHER-001]
+ *
+ * ⛔ Existe porque este `filter` se escribía a mano en cada sitio que preguntaba por la residencia, y
+ * la lista de motivos es justo la clase de cosa que crece: el día que entre un tercero (un coche
+ * compartido que vigila otro móvil, por ejemplo), un sitio se enteraría y los demás no. Es un
+ * predicado compartido por 2+ veredictos, así que vive suelto en `domain/detection/` y no dentro de
+ * ninguno. [DET-VERDICT-NOT-PREDICATE-001]
+ */
+fun vehiclesThatNeedNoWatcher(
+    vehicles: List<VehicleWatchFacts>,
+): Set<String> = vehicles
+    .filter { it.isBluetoothPaired || !it.parksInASpot }
+    .map { it.id }
+    .toSet()
+
+/** Lo ÚNICO que la residencia necesita saber de un coche. Un tipo propio y no `Vehicle` porque esto
+ *  vive en la capa de decisión: marca, matrícula o consumo no deciden nada aquí. */
+data class VehicleWatchFacts(
+    val id: String,
+    /** Emparejado, **no** conectado: un coche aparcado está por definición desconectado. */
+    val isBluetoothPaired: Boolean,
+    val parksInASpot: Boolean,
+)
+
+/** El único sitio donde un [Vehicle] se traduce a lo que la residencia necesita de él. */
+fun Vehicle.watchFacts(): VehicleWatchFacts = VehicleWatchFacts(
+    id = id,
+    isBluetoothPaired = bluetoothDeviceId != null,
+    parksInASpot = vehicleType.parksInASpot,
+)
 
 /**
  * [DET-RESIDENT-FGS-001 · F2] Pure verdict for a sentry-residency stamp found on disk. The service

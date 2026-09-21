@@ -511,6 +511,50 @@ misma cobertura que tenía la estrategia BLUETOOTH antes de que el gate se volvi
 caso de dos coches (uno sin BT → `EnterSentry`), y la sesión sin coche conocido, que cuenta como que
 necesita vigilante porque ante la duda se vigila.
 
+#### Segunda vuelta (2026-09-21): el arreglo era correcto y el bug seguía, porque había una TERCERA regla
+
+**Reporte:** *«he vinculado mi vehículo con un dispositivo BT y la notificación de FGS ha aparecido;
+solo debe aparecer cuando detectamos BT conectado»*, con captura.
+
+**Causa raíz.** El arreglo de arriba toca el **epílogo**, que corre cuando termina un viaje. Pero
+emparejar un Bluetooth no termina ningún viaje: el coche ya estaba aparcado y el centinela ya estaba
+residente. La única pieza que puede **derribar** una residencia en curso es
+`watchSentryPreconditions()` dentro del servicio… y se había escrito **su propia** versión de la
+regla:
+
+```kotlin
+{ enabled, sessions -> enabled && sessions.isNotEmpty() }   // la regla de ANTES de parkedCarNeedsWatcher
+```
+
+O sea: la residencia tenía **una puerta de entrada y una puerta de salida que hablaban idiomas
+distintos**. Emparejas por BT → la sesión sigue viva → ese vigilante concluye que la residencia sigue
+haciendo falta → la notificación permanente se queda. Es el bug de #57 entrando por la otra puerta, y
+es el patrón que este proyecto ya tiene nombrado: **dos definiciones de la misma cosa**.
+
+Ni siquiera re-emitía: la flota no estaba entre sus entradas, así que el cambio que importaba era
+invisible para él.
+
+**Fix — una regla, dos lectores (y ahora de verdad).**
+- `ObserveDepartureWatchGapUseCase.residencyStillWanted()` sirve la regla de
+  `resolvePostDetectionLifecycle` como stream, con la **flota dentro del `combine`**. `invoke()`
+  (¿falta el vigilante?) pasa a derivarse de ella (¿sobra?), así que las dos preguntas comparten
+  definición por construcción.
+- El servicio **deja de decidir**: `watchSentryPreconditions` colecta ese stream. La decisión vuelve
+  a `commonMain`, que es donde manda el proyecto, y de paso se vuelve testeable con fakes.
+- `vehiclesThatNeedNoWatcher(vehicles)` + `Vehicle.watchFacts()` — el `filter` de «quién se despierta
+  solo» estaba copiado a mano en los **tres** sitios que preguntan por la residencia. Ahora es una
+  función pura y un mapper, en un solo sitio. La lista de motivos es justo lo que crece.
+
+**Guard nuevo:** `ObserveDepartureWatchGapUseCaseTest ·
+should_standDownTheSentry_when_theOnlyParkedCarGetsPairedByBluetooth` — coche aparcado sin BT →
+residencia querida; se **empareja por BT sin que termine ningún viaje** → residencia no querida.
+⚠️ **Falsificado**: reinyectada la regla vieja (`sessions.isNotEmpty()`), el test falla. Sin esa
+comprobación sería una prohibición sin testigo.
+
+**Lo que este fix NO cubre.** El stand-down sólo corre mientras el proceso vive, que es precisamente
+cuando hay algo que derribar. Si el OS mata el centinela antes, no queda notificación que quitar y el
+hueco lo cubre el detector de kills de siempre.
+
 ### PARK-A-CORRECTION-MOVES-THE-PLACE-NOT-THE-CLOCK-001 — corregir el pin reiniciaba el nacimiento de la sesión
 
 **Commit:** pending. **Campo (2026-09-16, Nothing A001, sesión `b9b9dacc`):** un pin colocado a las

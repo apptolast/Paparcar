@@ -203,16 +203,10 @@ class ObserveDepartureWatchGapUseCaseTest {
             initialSession = if (parked) session() else null,
         ),
         permissionManager: FakePermissionManager = FakePermissionManager(),
+        vehicleRepository: FakeVehicleRepository = FakeVehicleRepository(
+            defaultVehicle = car(bluetoothPaired = btConnected, vehicleType = vehicleType),
+        ),
     ): ObserveDepartureWatchGapUseCase {
-        val vehicle = Vehicle(
-            id = VEHICLE_ID,
-            userId = "u-1",
-            sizeCategory = VehicleSize.MEDIUM_SUV,
-            vehicleType = vehicleType,
-            isActive = true,
-            bluetoothDeviceId = if (btConnected) "AA:BB:CC:DD:EE:FF" else null,
-        )
-        val vehicleRepository = FakeVehicleRepository(defaultVehicle = vehicle)
         return ObserveDepartureWatchGapUseCase(
             userParkingRepository = parkingRepository,
             vehicleRepository = vehicleRepository,
@@ -230,6 +224,61 @@ class ObserveDepartureWatchGapUseCaseTest {
         geofenceId = "geof-1",
         isActive = true,
     )
+
+    private fun car(bluetoothPaired: Boolean, vehicleType: VehicleType = VehicleType.CAR) = Vehicle(
+        id = VEHICLE_ID,
+        userId = "u-1",
+        sizeCategory = VehicleSize.MEDIUM_SUV,
+        vehicleType = vehicleType,
+        isActive = true,
+        bluetoothDeviceId = if (bluetoothPaired) "AA:BB:CC:DD:EE:FF" else null,
+    )
+
+    // ── La puerta de SALIDA de la residencia [DET-A-PARKED-BT-CAR-NEEDS-NO-RESIDENT-WATCHER-001] ──
+    // El epílogo decide quedarse residente cuando termina un viaje y no se vuelve a preguntar. El
+    // único que podía derribar el centinela se había escrito su propia regla —«detección encendida
+    // y algo aparcado»—, la de antes de que existiera parkedCarNeedsWatcher. Reporte del user
+    // (20-09): emparejas por BT el coche YA aparcado y la notificación permanente se queda puesta.
+
+    @Test
+    fun should_standDownTheSentry_when_theOnlyParkedCarGetsPairedByBluetooth() = runTest {
+        val fleet = FakeVehicleRepository(defaultVehicle = car(bluetoothPaired = false))
+        val useCase = buildUseCase(presence = ServicePresence.Sentry, vehicleRepository = fleet)
+
+        assertTrue(
+            useCase.residencyStillWanted().first(),
+            "sin BT el coche aparcado sólo tiene el sensor de movimiento: la residencia hace falta",
+        )
+
+        // Emparejar por Bluetooth: ningún viaje termina, así que el epílogo NO se consulta. Lo único
+        // que cambia es la flota — y por eso tiene que ser una entrada de esta regla.
+        fleet.saveVehicle(car(bluetoothPaired = true))
+
+        assertFalse(
+            useCase.residencyStillWanted().first(),
+            "emparejado por BT, su ACL CONNECT es su propia salida: el centinela sobra y debe caer",
+        )
+    }
+
+    @Test
+    fun should_keepTheSentry_when_anotherParkedCarStillHasNoWakeUpOfItsOwn() = runTest {
+        // La residencia se decide POR COCHE, no por flota: con un BT aparcado y otro sin BT también
+        // aparcado, el segundo la sigue pagando. Es lo que pidió el user en la issue #57.
+        val withBt = car(bluetoothPaired = true)
+        val withoutBt = withBt.copy(id = "v-2", bluetoothDeviceId = null)
+        val fleet = FakeVehicleRepository(defaultVehicle = withBt)
+        fleet.saveVehicle(withoutBt)
+        val parking = FakeUserParkingRepository(initialSession = session())
+        parking.saveNewParkingSession(session().copy(id = "s-2", vehicleId = "v-2"))
+
+        val useCase = buildUseCase(
+            presence = ServicePresence.Sentry,
+            parkingRepository = parking,
+            vehicleRepository = fleet,
+        )
+
+        assertTrue(useCase.residencyStillWanted().first())
+    }
 
     private companion object {
         const val VEHICLE_ID = "v-1"
