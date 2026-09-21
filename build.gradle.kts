@@ -28,6 +28,19 @@ plugins {
  */
 tasks.register("testAll") {
     group = "verification"
-    description = "Los tests de :shared Y los de :app (incluido el verify del grafo mock)."
-    dependsOn(":shared:testDebugUnitTest", ":app:testMockDebugUnitTest")
+    description = "Los tests de :shared Y los de :app, y que iOS siga compilando."
+    dependsOn(
+        ":shared:testDebugUnitTest",
+        ":app:testMockDebugUnitTest",
+        // ⛔ **Y que iOS COMPILE** [IOS-THE-ANDROID-SUITE-DOES-NOT-COMPILE-IOS-001]. Medido el
+        // 21-09: once PRs verdes seguidas dejaron `IosAppPreferences` sin implementar dos miembros
+        // nuevos de `AppPreferences`, y la suite no se enteró — porque no miraba. Es el mismo
+        // agujero que el del grafo mock, un peldaño más arriba: un comando que no se puede escribir
+        // a medias tiene que incluir TODO lo que puede romperse en silencio.
+        //
+        // ⚠️ Compila el **klib**, que sí se puede en Windows y en Linux. Enlazar el framework de
+        // verdad necesita macOS, y ése sigue siendo un hueco declarado: esto caza firmas que faltan
+        // y `expect/actual` sin pareja, no problemas del enlazado.
+        ":shared:compileKotlinIosSimulatorArm64",
+    )
 }
