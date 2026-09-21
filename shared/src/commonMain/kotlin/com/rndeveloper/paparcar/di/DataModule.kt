@@ -348,7 +348,10 @@ val dataModule = module {
     //   CachingPublicParkingsSource  → «¿vuelvo a preguntar?»            (memoria, 30 min)
     //   DiskBackedPublicParkingsSource → «¿qué enseño si NO puedo preguntar?» (Room, 30 días)
     //   OsmPublicParkingsSource      → la red
-    // El disco va DEBAJO de la red y solo se lee cuando esta falla: la respuesta de hoy gana siempre.
+    // El disco va DEBAJO de la red: **la respuesta de hoy gana siempre**. Lo que sí hace desde
+    // [PARKINGS-A-REMEMBERED-MAP-ANSWERS-BEFORE-THE-NETWORK-001] es contestar además a «¿qué puedo
+    // enseñar MIENTRAS pregunto?» (`remembered`), que es otra pregunta y no pisa a ninguna de las
+    // dos: lo recordado se pinta y la respuesta viva lo sustituye.
     single<PublicParkingsSource> {
         CachingPublicParkingsSource(
             DiskBackedPublicParkingsSource(

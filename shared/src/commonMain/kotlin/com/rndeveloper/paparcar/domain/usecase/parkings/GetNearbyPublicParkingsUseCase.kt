@@ -1,10 +1,10 @@
 package com.rndeveloper.paparcar.domain.usecase.parkings
 
 import com.rndeveloper.paparcar.domain.parkings.ParkingZoneGrid
-import com.rndeveloper.paparcar.domain.geocoder.GeocoderDataSource
 import com.rndeveloper.paparcar.domain.parkings.FeeInfo
 import com.rndeveloper.paparcar.domain.parkings.PublicParking
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingsQuery
+import com.rndeveloper.paparcar.domain.parkings.PublicParkingsResult
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingsSource
 import com.rndeveloper.paparcar.domain.util.haversineMeters
 
@@ -33,13 +33,27 @@ data class NearbyPublicParkings(
  * A verdict, not a predicate: its result is what the sheet lists, what the layer draws, and what a
  * diagnosis would quote.
  *
- * The geocode routes the request exactly as it does for fuel — `AddressInfo` already carries the
- * `countryCode`, so no new lookup is invented here — and a failed geocode is not a failed request:
- * OSM covers the world and needs no country to answer.
+ * ⛔ **No geocode, and its absence is the point.**
+ * [PARKINGS-A-REMEMBERED-MAP-ANSWERS-BEFORE-THE-NETWORK-001]
+ *
+ * This used to mirror the fuel lane and look up the address before asking, "so the request is routed
+ * like fuel's". It never was: there is no registry over this port —
+ * `OsmPublicParkingsSource.covers()` answers `true` for everywhere — so **nobody read the country**.
+ * What it did instead was cost two things:
+ * - the platform geocoder's latency, in front of every ask, with no deadline of its own (it leans on
+ *   a Play-services component that is regularly mute for the first seconds after a fresh install —
+ *   which is exactly when a new user opens the map);
+ * - a **duplicate request per zone**, because the country lands in the memory cache key: the first
+ *   ask keys on `""`, the geocoder wakes up, the second keys on `"es"`, and the same zone is fetched
+ *   from Overpass twice.
+ *
+ * `PublicParkingsQuery.countryCode` stays on the query because `PARKINGS-LIVE-OCCUPANCY-001` will
+ * need it the day a city feed enriches this base. ⚠️ When that day comes, the country must NOT come
+ * back as a blocking lookup in front of the ask — the geocoder cache (`geocoder_cache`, 30 days) is
+ * where to get it from.
  */
 class GetNearbyPublicParkingsUseCase(
     private val parkings: PublicParkingsSource,
-    private val geocoder: GeocoderDataSource,
 ) {
 
     /**
@@ -58,36 +72,70 @@ class GetNearbyPublicParkingsUseCase(
         latitude: Double,
         longitude: Double,
         radiusMeters: Int = PublicParkingsQuery.DEFAULT_RADIUS_METERS,
-    ): Result<NearbyPublicParkings> {
-        val zone = ParkingZoneGrid.zoneOf(latitude, longitude)
-        val address = geocoder.getAddress(latitude, longitude).getOrNull()
+    ): Result<NearbyPublicParkings> =
+        parkings.parkingsNear(queryFor(latitude, longitude))
+            .map { answeredFor(it, latitude, longitude, radiusMeters) }
 
-        val query = PublicParkingsQuery(
+    /**
+     * What the app can already say about this area **without asking anybody**, or null when it has
+     * never been here. [PARKINGS-A-REMEMBERED-MAP-ANSWERS-BEFORE-THE-NETWORK-001]
+     *
+     * ⛔ Not an alternative to [invoke] and never a substitute for it: it is what the lane paints
+     * **while** [invoke] is in flight, so a zone that was visited in the last 30 days appears at
+     * once instead of behind a skeleton for however long Overpass takes. It always carries
+     * `rememberedAtMs`, so no surface can mistake it for a fresh answer.
+     *
+     * The same zone, the same filtering and the same distances as [invoke] — sharing
+     * [queryFor] and [answeredFor] rather than repeating them, because two copies of "which car
+     * parks are worth showing" is how the remembered list and the live one end up disagreeing.
+     */
+    suspend fun remembered(
+        latitude: Double,
+        longitude: Double,
+        radiusMeters: Int = PublicParkingsQuery.DEFAULT_RADIUS_METERS,
+    ): NearbyPublicParkings? = parkings
+        .remembered(queryFor(latitude, longitude))
+        ?.let { answeredFor(it, latitude, longitude, radiusMeters) }
+
+    private fun queryFor(latitude: Double, longitude: Double): PublicParkingsQuery {
+        val zone = ParkingZoneGrid.zoneOf(latitude, longitude)
+        return PublicParkingsQuery(
             latitude = zone.centreLatitude,
             longitude = zone.centreLongitude,
-            countryCode = address?.countryCode.orEmpty(),
-            regionName = address?.province ?: address?.region,
+            countryCode = "",
             radiusMeters = ParkingZoneGrid.ZONE_RADIUS_METERS,
         )
-
-        return parkings.parkingsNear(query).map { found ->
-            NearbyPublicParkings(
-                parkings = found.parkings
-                    .filter { it.isIdentifiable }
-                    .map {
-                        NearbyPublicParking(
-                            parking = it,
-                            distanceMeters = haversineMeters(latitude, longitude, it.latitude, it.longitude),
-                        )
-                    }
-                    .filter { it.distanceMeters <= radiusMeters }
-                    .sortedBy { it.distanceMeters },
-                // Carried through untouched: the filtering above changes WHICH car parks are worth
-                // showing, never when the app last managed to ask.
-                rememberedAtMs = found.rememberedAtMs,
-            )
-        }
     }
+
+    /**
+     * The one place an answer ABOUT AN AREA becomes an answer ABOUT THE CALLER: dropped to the car
+     * parks somebody could be sent to, measured from where the user actually is, and cut at the
+     * display radius.
+     *
+     * ⛔ Takes the result as a parameter instead of being an extension on it, because `parkings`
+     * names two different things in this file — the source this class holds, and the list inside the
+     * result — and a reader who resolves it the other way reads a different program.
+     */
+    private fun answeredFor(
+        found: PublicParkingsResult,
+        latitude: Double,
+        longitude: Double,
+        radiusMeters: Int,
+    ) = NearbyPublicParkings(
+        parkings = found.parkings
+            .filter { it.isIdentifiable }
+            .map {
+                NearbyPublicParking(
+                    parking = it,
+                    distanceMeters = haversineMeters(latitude, longitude, it.latitude, it.longitude),
+                )
+            }
+            .filter { it.distanceMeters <= radiusMeters }
+            .sortedBy { it.distanceMeters },
+        // Carried through untouched: the filtering above changes WHICH car parks are worth
+        // showing, never when the app last managed to ask.
+        rememberedAtMs = found.rememberedAtMs,
+    )
 }
 
 /**

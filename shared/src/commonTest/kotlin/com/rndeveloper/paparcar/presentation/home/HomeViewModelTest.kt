@@ -268,15 +268,9 @@ class HomeViewModelTest {
                         Result.success(emptyList<SearchResult>())
                 },
             ),
-            getNearbyPublicParkings = GetNearbyPublicParkingsUseCase(
-                parkings = parkingsSource,
-                geocoder = object : GeocoderDataSource {
-                    override suspend fun getAddress(lat: Double, lon: Double) =
-                        Result.failure<AddressInfo>(IllegalStateException("no geocoder in tests"))
-                    override suspend fun searchByName(query: String, maxResults: Int) =
-                        Result.success(emptyList<SearchResult>())
-                },
-            ),
+            // ⛔ No geocoder here, and not because tests do not have one: the car-park lane does not
+            // ask for an address at all. [PARKINGS-A-REMEMBERED-MAP-ANSWERS-BEFORE-THE-NETWORK-001]
+            getNearbyPublicParkings = GetNearbyPublicParkingsUseCase(parkings = parkingsSource),
             // [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001] The two watch-store doors, at
             // the END of the constructor where PresentationModule's positional `get()`s expect them.
             toggleFollowFuelStation = ToggleFollowFuelStationUseCase(fuelWatchRepo),
@@ -2932,21 +2926,26 @@ class HomeViewModelTest {
         // por IP y una IP es un operador entero de usuarios. Lanzar los dos carriles a la vez
         // pondría al segundo en una cola que abandona a los 10 s — un calentamiento que falla de
         // forma fiable es peor que ninguno, porque además deja al carril creyendo que ya preguntó.
+        //
+        // ⛔ Y el ORDEN no es casual: como se espera al primero, el segundo paga la respuesta entera
+        // del primero. Los parkings van delante porque su pregunta es la lenta y la que no tiene
+        // alternativa —un país con feed nacional de carburante no pasa por Overpass; un parking del
+        // mundo, siempre—. [PARKINGS-A-REMEMBERED-MAP-ANSWERS-BEFORE-THE-NETWORK-001]
         saveActiveCar(fuelType = com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE)
         val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
-        fuelSource.holdNextUntil = gate
+        parkingsSource.holdNextUntil = gate
 
         permissions.emit(FakePermissionManager.allGranted())
         locationDataSource.emitHighAccuracy(location)
         advanceUntilIdle()
 
-        assertEquals(1, fuelSource.askCount, "el primer carril ya preguntó")
-        assertEquals(0, parkingsSource.askCount, "y el segundo espera su turno, no se solapa")
+        assertEquals(1, parkingsSource.askCount, "los parkings preguntan primero")
+        assertEquals(0, fuelSource.askCount, "y el segundo espera su turno, no se solapa")
 
         gate.complete(Unit)
         advanceUntilIdle()
 
-        assertEquals(1, parkingsSource.askCount, "al soltarse el primero, entra el segundo")
+        assertEquals(1, fuelSource.askCount, "al soltarse el primero, entra el segundo")
     }
 
     /** Counts the questions actually asked — what separates an honest empty from a fabricated one. */
@@ -3014,6 +3013,64 @@ class HomeViewModelTest {
         // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001] [PARKINGS-ON-THE-MAP-001]
         assertEquals(1, vm.state.value.parkings.parkings.size)
         assertEquals(1, vm.state.value.toMapSlice().publicParkings.size, "and the pins are drawn")
+    }
+
+    /**
+     * ⛔ Lo que ya sabemos se pinta ANTES de que conteste nadie.
+     * [PARKINGS-A-REMEMBERED-MAP-ANSWERS-BEFORE-THE-NETWORK-001]
+     *
+     * El disco guarda hasta 30 días de esta misma zona y el carril enseñaba un esqueleto encima
+     * durante lo que tardase Overpass — 1,4 s en caliente, 4,7–7,7 s en frío, y hasta 40 s contando
+     * la espera de turno y la caminata de espejos.
+     *
+     * Las dos mitades van juntas en un solo testigo porque separadas no dicen nada: pintar pronto
+     * solo vale si lo pintado **se rinde** ante la respuesta de verdad.
+     */
+    @Test
+    fun `should_paintWhatItRemembers_whileTheLiveAskIsStillFlying`() = runTest(testDispatcher) {
+        parkingsSource.held = listOf(spyParking("recordado")) to REMEMBERED_AT_MS
+        parkingsSource.result = Result.success(listOf(spyParking("de-la-red")))
+        val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
+        parkingsSource.holdNextUntil = gate
+
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+
+        val mientrasVuela = vm.state.value.parkings
+        assertEquals(listOf("recordado"), mientrasVuela.parkings.map { it.parking.id })
+        assertEquals(REMEMBERED_AT_MS, mientrasVuela.rememberedAtMs)
+        // ⛔ Sigue cargando, y eso es lo que calla el «sin conexión» del pie: AHORA sí se puede
+        // preguntar, y se está preguntando. Con filas, `isLoading` ya no dibuja esqueleto.
+        assertTrue(mientrasVuela.isLoading, "la pregunta de verdad sigue en el aire")
+
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        val respuesta = vm.state.value.parkings
+        assertEquals(listOf("de-la-red"), respuesta.parkings.map { it.parking.id })
+        assertTrue(!respuesta.isLoading)
+        assertNull(respuesta.rememberedAtMs, "una respuesta de hoy no lleva sello de recuerdo")
+    }
+
+    /** Y si nunca hemos estado aquí, no se inventa nada: el esqueleto es la respuesta honesta. */
+    @Test
+    fun `should_showNothingButTheSkeleton_when_itHasNeverBeenHere`() = runTest(testDispatcher) {
+        parkingsSource.result = Result.success(listOf(spyParking()))
+        val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
+        parkingsSource.holdNextUntil = gate
+
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+
+        val mientrasVuela = vm.state.value.parkings
+        assertTrue(mientrasVuela.parkings.isEmpty())
+        assertTrue(mientrasVuela.isLoading)
+        assertNull(mientrasVuela.rememberedAtMs)
+
+        gate.complete(Unit)
+        advanceUntilIdle()
     }
 
     @Test
@@ -3353,6 +3410,9 @@ class HomeViewModelTest {
     private val LEJOS_LAT = location.latitude + 0.07
     private val LEJOS_LON = location.longitude + 0.07
 
+    /** Cuándo se preguntó por última vez por una zona que el disco ya tenía. */
+    private val REMEMBERED_AT_MS = 1_725_000_000_000L
+
     /** ~11 km: más de medio radio de gasolineras (2,5 km), dentro del límite de 20 km. */
     private val OTRO_BARRIO_LAT = 40.4800
     private val OTRO_BARRIO_LON = -3.6000
@@ -3370,7 +3430,21 @@ class HomeViewModelTest {
 
         /** One-shot: the next ask suspends until this completes — an Overpass answer still flying. */
         var holdNextUntil: kotlinx.coroutines.CompletableDeferred<Unit>? = null
+
+        /**
+         * What the stack would already hold for this area, and when it was last asked for.
+         * [PARKINGS-A-REMEMBERED-MAP-ANSWERS-BEFORE-THE-NETWORK-001]
+         *
+         * A knob on the same spy rather than a second one, for the reason `FakePublicParkingsSource`
+         * already gives: a remembered answer is not a different SHAPE of answer, and two fakes would
+         * drift.
+         */
+        var held: Pair<List<PublicParking>, Long>? = null
         override fun covers(countryCode: String) = true
+
+        override suspend fun remembered(query: PublicParkingsQuery): PublicParkingsResult? =
+            held?.let { (parkings, at) -> PublicParkingsResult(parkings, at) }
+
         override suspend fun parkingsNear(query: PublicParkingsQuery): Result<PublicParkingsResult> {
             askCount++
             seen = query

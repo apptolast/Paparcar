@@ -201,7 +201,11 @@ val domainModule = module {
     // [FUEL-NATIONAL-AVERAGE-FROM-OPENVAN-001]
     factory { ResolveFuelPriceUseCase(averages = get<AverageFuelPricesRepository>()::current) }
 
-    // Parkings públicos cercanos — mismo geocoder, misma forma. [PARKINGS-ON-THE-MAP-001]
-    factory { GetNearbyPublicParkingsUseCase(parkings = get(), geocoder = get()) }
+    // Parkings públicos cercanos. [PARKINGS-ON-THE-MAP-001]
+    // ⛔ SIN geocoder, a diferencia del carril de gasolineras: no hay registro por país sobre este
+    // puerto, así que el país no lo leía nadie — solo costaba latencia delante de cada pregunta y
+    // una petición duplicada por zona al cambiar la clave de caché.
+    // [PARKINGS-A-REMEMBERED-MAP-ANSWERS-BEFORE-THE-NETWORK-001]
+    factory { GetNearbyPublicParkingsUseCase(parkings = get()) }
 
 }

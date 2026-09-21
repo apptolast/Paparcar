@@ -31,11 +31,18 @@ data class HomeParkingsSlice(
     val anchorLat: Double? = null,
     val anchorLon: Double? = null,
     /**
-     * Set when this list came off the DISK because the live answer failed — the moment the app last
-     * actually managed to ask. [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]
+     * Set when this list came off the DISK — the moment the app last actually managed to ask.
+     * [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]
      *
      * ⛔ A third sentence, not a shade of the other two. `failed` means "we could not ask and have
-     * nothing"; this means "we could not ask, and here is what was there when we last could".
+     * nothing"; this means "here is what was there when we last could".
+     *
+     * ⚠️ **Read together with [isLoading], because the pair says two different things.**
+     * [PARKINGS-A-REMEMBERED-MAP-ANSWERS-BEFORE-THE-NETWORK-001]
+     * - set **while loading** → these are last visit's car parks, painted so the lane is not a
+     *   skeleton while the real ask flies. Nothing is claimed about the network, and the lane says
+     *   nothing: the "no connection" note is suppressed for exactly this case.
+     * - set **and not loading** → the ask is over and it failed. Now the note is true, and it shows.
      */
     val rememberedAtMs: Long? = null,
     /**

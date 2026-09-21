@@ -82,4 +82,19 @@ interface PublicParkingsSource {
      * means the second. A remembered answer is a third: it says something, and says how old it is.
      */
     suspend fun parkingsNear(query: PublicParkingsQuery): Result<PublicParkingsResult>
+
+    /**
+     * What this source can already say about [query] **without asking anybody**, or null when
+     * nothing was ever recorded about it.
+     * [PARKINGS-A-REMEMBERED-MAP-ANSWERS-BEFORE-THE-NETWORK-001]
+     *
+     * ⛔ This is NOT a second flavour of [parkingsNear] and it must never replace it. It exists so
+     * the lane can paint the area it already knows **while** the live answer is in flight, instead
+     * of showing a skeleton for the 1,4–8 s Overpass takes (40 s in the worst case, once the quota
+     * wait and the mirror walk are counted). The live answer still wins the moment it arrives.
+     *
+     * Null is the honest default: a source that can only ask remembers nothing. Only the layers
+     * that HOLD something — memory, disk — override it.
+     */
+    suspend fun remembered(query: PublicParkingsQuery): PublicParkingsResult? = null
 }

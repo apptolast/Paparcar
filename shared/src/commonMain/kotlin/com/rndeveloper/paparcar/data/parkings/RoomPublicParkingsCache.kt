@@ -30,8 +30,11 @@ data class CachedPublicParkings(
  * The public-car-park layer's disk, so a cold start or a dead radio does not leave the map empty.
  * [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]
  *
- * ⛔ This is **L2, and it is read only when the network fails**, never ahead of it. Today's answer
- * wins whenever there is one; the disk is what there is instead of nothing.
+ * ⛔ This is **L2: today's answer wins whenever there is one**, and the disk is what there is
+ * instead of nothing. Since
+ * [PARKINGS-A-REMEMBERED-MAP-ANSWERS-BEFORE-THE-NETWORK-001] it is also what the lane paints
+ * **while** it asks — see `DiskBackedPublicParkingsSource.remembered`. What it never does is
+ * override a live answer.
  *
  * The whole design rests on `osm_coverage`: rows are facilities, but the thing with an age is the
  * *question* — "everything of this kind within R metres of P, as of then". See [OsmCoverageEntity]
@@ -123,11 +126,30 @@ class RoomPublicParkingsCache(
      */
     private suspend fun evict(now: Long) {
         val expiry = now - RETENTION_MS
+        // Counted BEFORE the prune, because the sweep below is only owed when a disc actually left.
+        val before = coverageDao.getLive(CoverageLayer.PUBLIC_PARKINGS, expiry).size
+
         coverageDao.evictExpired(expiry)
         coverageDao.evictBeyond(CoverageLayer.PUBLIC_PARKINGS, MAX_DISCS)
         parkingDao.evictExpired(expiry)
 
         val live = coverageDao.getLive(CoverageLayer.PUBLIC_PARKINGS, expiry).map { it.toDisc() }
+        // ⛔ **A row is only orphaned when a disc DISAPPEARS.** Re-asking an area replaces its disc
+        // in place (`coverageKey` is stable) and `put` has already reconciled what is inside it, so
+        // the common write — panning a city that is already cached — orphans nothing and this sweep
+        // would find nothing.
+        //
+        // It is skipped rather than kept "just in case" because it is the most expensive thing on
+        // the write path — `getAll()` is the WHOLE table, up to 60 discs × the parser's 1.000-row
+        // cap, cross-checked against every live disc in Kotlin — and `put` is awaited **before** the
+        // fresh answer reaches the lane, so every millisecond here is a millisecond the user waits.
+        //
+        // ⚠️ What this leaves behind, stated rather than hidden: a disc that aged out between two
+        // writes is gone from both counts, so a row it backed can linger. That row is never SERVED —
+        // [get] answers only through a live disc that contains the query — so the residue is disk
+        // space, bounded by the row's own 30-day expiry and swept the next time a count does drop.
+        if (live.size == before) return
+
         val orphans = parkingDao.getAll()
             .filterNot { row -> live.any { it.covers(row.latitude, row.longitude, 0) } }
             .map { it.id }

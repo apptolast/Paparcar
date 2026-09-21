@@ -740,8 +740,8 @@ class HomeViewModel(
         hasWarmedUpLanes = true
 
         warmUpJob = viewModelScope.launch {
-            HomeNearbyLens.entries
-                .filter { it != HomeNearbyLens.SPOTS && it != state.value.nearbyLens }
+            WARM_UP_ORDER
+                .filter { it != state.value.nearbyLens }
                 .forEach { lens ->
                     refreshNearby(lens, NearbyTrigger.WARM_UP, centre)
                     // Wait for the answer before asking the next question — see above.
@@ -1072,6 +1072,39 @@ class HomeViewModel(
             )
         }
         parkingsJob = viewModelScope.launch {
+            // ⛔ **What we already know, BEFORE the wire.**
+            // [PARKINGS-A-REMEMBERED-MAP-ANSWERS-BEFORE-THE-NETWORK-001]
+            //
+            // The disk holds up to 30 days of this very zone and the lane used to show a skeleton
+            // over it for however long Overpass took — 1,4 s warm, 4,7–7,7 s cold, and up to 40 s
+            // once the quota wait and the mirror walk are counted.
+            //
+            // The lane needs no new sentence for this and that is not luck, it is the shape the
+            // remembered answer already had: rows with `isLoading` true skip the skeleton, and the
+            // "no connection, these are the ones we saw here" note is ALREADY suppressed while
+            // loading — which is exactly right, because right now we CAN ask and are asking. If the
+            // ask then fails, `isLoading` drops, the note appears, and the sentence becomes true.
+            //
+            // ⛔ The selection is deliberately left alone here: a remembered list is not a verdict
+            // about what still exists, so it must not be the thing that closes somebody's peek.
+            getNearbyPublicParkings.remembered(lat, lon)
+                ?.takeIf { it.parkings.isNotEmpty() }
+                ?.let { known ->
+                    ensureActive()
+                    PaparcarLogger.d(
+                        TAG,
+                        "parkings: painting ${known.parkings.size} remembered car parks while asking",
+                    )
+                    updateState {
+                        copy(
+                            parkings = parkings.copy(
+                                parkings = known.parkings,
+                                rememberedAtMs = known.rememberedAtMs,
+                            ),
+                        )
+                    }
+                }
+
             val result = getNearbyPublicParkings(lat, lon)
             ensureActive()
             result
@@ -1924,6 +1957,25 @@ class HomeViewModel(
 
     private companion object {
         const val TAG = "HomeViewModel"
+
+        /**
+         * Which hidden lane is warmed FIRST — a decision, not the order somebody happened to declare
+         * an enum in. [PARKINGS-A-REMEMBERED-MAP-ANSWERS-BEFORE-THE-NETWORK-001]
+         *
+         * The warm-up is sequential because the Overpass budget is one ask at a time
+         * (`OverpassQuota.CONCURRENT_ASKS`), so whoever goes second waits out the first lane's WHOLE
+         * answer before it even starts. That used to be car parks, by nothing better than
+         * `HomeNearbyLens.entries` reading `SPOTS, FUEL, PARKINGS`.
+         *
+         * Car parks go first because theirs is the slower question and the one with the weaker
+         * fallback: fuel in a country with a national feed never touches Overpass, while every car
+         * park in the world does.
+         *
+         * ⛔ [HomeNearbyLens.SPOTS] is absent rather than filtered out: free spots come from
+         * Firestore and the default lens already loads them, so there has never been anything here
+         * to warm.
+         */
+        val WARM_UP_ORDER = listOf(HomeNearbyLens.PARKINGS, HomeNearbyLens.FUEL)
 
         // Timing
         const val CAMERA_SETTLED_MS = 280L

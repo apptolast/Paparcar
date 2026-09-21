@@ -92,6 +92,12 @@ fun HomeParkingsLane(
         //
         // La EDAD, no la fecha: `relativeTimeText` ya responde "cuanto de vieja es" en los nueve
         // locales, asi que cuesta una key en vez de un formateador de meses por nueve.
+        //
+        // ⛔ El `takeUnless { isLoading }` es lo que mantiene la frase VERDADERA, y desde
+        // [PARKINGS-A-REMEMBERED-MAP-ANSWERS-BEFORE-THE-NETWORK-001] es lo unico que la separa de
+        // una mentira: mientras se pregunta, el carril ya pinta lo recordado, y decir ahi «sin
+        // conexion» seria afirmar un fallo que no ha ocurrido. Cuando la pregunta termina mal,
+        // `isLoading` cae, la nota aparece, y entonces si es cierta.
         slice.rememberedAtMs?.takeUnless { slice.isLoading }?.let { rememberedAt ->
             LaneNote(
                 stringResource(

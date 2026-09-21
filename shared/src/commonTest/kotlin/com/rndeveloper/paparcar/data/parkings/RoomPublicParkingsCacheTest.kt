@@ -148,10 +148,61 @@ class RoomPublicParkingsCacheTest {
         assertTrue(parkingDao.rows.isEmpty(), "expected the orphaned facility to be gone")
         assertNull(cache.get(query))
     }
+
+    /**
+     * The other way a disc disappears: the **count cap**, with nothing expired.
+     * [PARKINGS-A-REMEMBERED-MAP-ANSWERS-BEFORE-THE-NETWORK-001]
+     *
+     * ⛔ This is the witness the orphan sweep was missing. The test above it passes through row
+     * expiry — every row was 31 days old — so it never proved the sweep ran, and the sweep is now
+     * skipped when no disc left. Here nothing is old enough to expire and the cap is what drops a
+     * disc, which is the only path that can orphan a row that is still young.
+     */
+    @Test
+    fun `should_deleteFacilities_when_theDiscCapDropsTheirDisc`() = runTest {
+        // The oldest disc, far from everything else, with a facility only it covers.
+        cache.put(query, listOf(parking("orphan-to-be", 200.0)))
+
+        // Sixty younger discs elsewhere, each its own cell: the cap keeps the newest sixty.
+        repeat(MAX_DISCS) { i ->
+            now += 1_000
+            cache.put(query.copy(latitude = 10.0 + i, longitude = 10.0 + i), emptyList())
+        }
+
+        assertTrue(
+            parkingDao.rows.none { it.key == "orphan-to-be" },
+            "the capped disc's facility must go with it, not linger uncovered",
+        )
+        assertNull(cache.get(query))
+    }
+
+    /**
+     * ⛔ The common write must not read the whole table. `put` is awaited **before** the fresh
+     * answer reaches the lane, so the orphan sweep is time the user spends looking at a spinner —
+     * and re-asking a zone orphans nothing, because its disc is replaced in place.
+     */
+    @Test
+    fun `should_notScanEveryRow_when_reAskingAZoneThatIsAlreadyCached`() = runTest {
+        cache.put(query, listOf(parking("a", 200.0)))
+        val scansAfterTheFirstWrite = parkingDao.getAllCalls
+
+        now += 60_000
+        cache.put(query, listOf(parking("a", 200.0), parking("b", 400.0)))
+
+        assertEquals(scansAfterTheFirstWrite, parkingDao.getAllCalls)
+    }
+
+    private companion object {
+        /** Mirrors `RoomPublicParkingsCache.MAX_DISCS`, which is private to the class under test. */
+        const val MAX_DISCS = 60
+    }
 }
 
-private class FakePublicParkingCacheDao : PublicParkingCacheDao {
+internal class FakePublicParkingCacheDao : PublicParkingCacheDao {
     val rows = mutableMapOf<String, PublicParkingCacheEntity>()
+
+    /** How many times the orphan sweep read the WHOLE table — the write path's dearest line. */
+    var getAllCalls = 0
 
     override suspend fun getInBoundingBox(
         minLat: Double,
@@ -174,12 +225,15 @@ private class FakePublicParkingCacheDao : PublicParkingCacheDao {
         rows.values.filter { it.cachedAt < expiryMs }.forEach { rows.remove(it.id) }
     }
 
-    override suspend fun getAll(): List<PublicParkingCacheEntity> = rows.values.toList()
+    override suspend fun getAll(): List<PublicParkingCacheEntity> {
+        getAllCalls++
+        return rows.values.toList()
+    }
 
     override suspend fun deleteAll() = rows.clear()
 }
 
-private class FakeOsmCoverageDao : OsmCoverageDao {
+internal class FakeOsmCoverageDao : OsmCoverageDao {
     val discs = mutableMapOf<String, OsmCoverageEntity>()
 
     override suspend fun getLive(layer: String, minFetchedAt: Long): List<OsmCoverageEntity> =

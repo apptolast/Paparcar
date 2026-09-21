@@ -40,6 +40,20 @@ class CachingPublicParkingsSource(
         return delegate.parkingsNear(query).onSuccess { cache.put(key, it) }
     }
 
+    /**
+     * Memory first, disk second. [PARKINGS-A-REMEMBERED-MAP-ANSWERS-BEFORE-THE-NETWORK-001]
+     *
+     * ⛔ Asking the disk when memory already holds the answer would pay a Room round-trip for
+     * something this object has in a map — on every camera settle, for a list the very next line is
+     * about to serve from the same entry.
+     */
+    override suspend fun remembered(query: PublicParkingsQuery): PublicParkingsResult? {
+        val key = with(query) {
+            locationCacheKey(latitude, longitude, radiusMeters, countryCode, regionName)
+        }
+        return cache.get(key) ?: delegate.remembered(query)
+    }
+
     private companion object {
         const val DEFAULT_TTL_MS = 30L * 60 * 1_000
     }
