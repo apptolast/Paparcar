@@ -38,17 +38,20 @@ private val TRAILING_ICON_ALPHA = PapAlpha.muted
  * Paparcar's canonical chip — the single base used for filter chips, zone
  * chips, and any other label-plus-state pill across the app.
  *
- * **Seleccionado = BORDE + TEXTO verdes sobre el MISMO fondo que sin seleccionar.**
- * [UI-A-SELECTED-CHIP-IS-OUTLINED-NOT-FILLED-001]
+ * **Seleccionado = FONDO y BORDE verdes, con el texto en `onSurface`.**
+ * [UI-A-SELECTED-CHIP-IS-GREEN-BUT-ITS-WORD-IS-NOT-001]
  *
- * ⛔ El fondo NO cambia con la selección. Tenía `primaryContainer`, y una fila de filtros con uno
- * relleno de verde convierte el filtro en lo más llamativo de la pantalla: el verde de Paparcar es
- * la tinta más escasa que hay —es lo que se puede HACER ahora y la identidad de un coche vigilado—
- * y un filtro no es ninguna de las dos cosas. El estado se lee igual de bien con el borde y el
- * texto, que es lo que el ojo sigue en una fila de píldoras, y deja el neón para el CTA.
- * Sin seleccionar sigue con [PapBorders.DEFAULT_OUTLINE_ALPHA] —el mismo contorno tenue de una
- * card— así que los chips siguen siendo de la familia de las cards. [UI-SHEET-001]
- * [UI-ONE-SKELETON-ONE-EMPHASIS-ONE-GREEN-001]
+ * El verde marca el chip elegido con el contenedor de marca (`primaryContainer`) y su borde
+ * `primary`; sin seleccionar, [PapBorders.DEFAULT_OUTLINE_ALPHA] —el mismo contorno tenue de una
+ * card— mantiene los chips en la familia de las cards. [UI-SHEET-001]
+ *
+ * ⛔ **El texto NO se tiñe: `onSurface`, elegido o no.** Es lo que cambió respecto al diseño
+ * anterior y no es un detalle — *lo verde es la superficie, no la palabra*. Con el texto también en
+ * verde, un chip encendido tenía dos señales diciendo lo mismo y la etiqueta perdía legibilidad
+ * justo cuando más se lee. Medido en los dos temas, `onSurface` sobre `primaryContainer` da
+ * **13,8:1** en claro y **10,7:1** en oscuro — por encima del par de diseño `onPrimaryContainer`
+ * (12,6:1 en claro), así que el contraste no es el precio de nada.
+ * [UI-COLOR-GREEN-TEXT-EARNS-ITS-CONTRAST-001]
  *
  * Optional [trailingIcon] + [onTrailingClick] add a tap-handled icon slot
  * (e.g. `×` for delete on a saved zone chip) without forking the composable.
@@ -66,10 +69,9 @@ fun PaparcarFilterChip(
     enabled: Boolean = true,
 ) {
     val cs = MaterialTheme.colorScheme
-    // ⛔ `selected` NO entra aquí a propósito: el fondo es el mismo esté o no elegido. Ver el KDoc.
-    // [UI-A-SELECTED-CHIP-IS-OUTLINED-NOT-FILLED-001]
     val bg = when {
         !enabled -> cs.surfaceContainerHigh.copy(alpha = DISABLED_BG_ALPHA)
+        selected -> cs.primaryContainer
         else -> cs.surfaceContainerHigh
     }
     val borderColor = when {
@@ -77,14 +79,9 @@ fun PaparcarFilterChip(
         selected -> PapColor.selected
         else -> cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA)
     }
-    // ⛔ **El texto NO cambia con la selección**: elegido o no, `onSurface` (user, review de #49).
-    // El verde se queda en el BORDE y sólo ahí. Dos razones, y la segunda es la que manda:
-    //  · un trazo no se lee, se ve — el borde marca el estado sin competir con la palabra;
-    //  · el verde de `primary` se apoyaba en `primaryContainer`, un par de color diseñado junto;
-    //    al quitar el relleno se quedaba sobre superficie neutra, que es una palabra verde sobre
-    //    gris claro — justo lo que [UI-COLOR-GREEN-TEXT-EARNS-ITS-CONTRAST-001] existe para
-    //    impedir. Dejarlo en `onSurface` cierra las dos cosas a la vez.
-    // [UI-A-SELECTED-CHIP-IS-OUTLINED-NOT-FILLED-001]
+    // ⛔ `selected` NO entra aquí a propósito: la palabra se queda en `onSurface` esté o no elegido
+    // el chip, y el verde vive sólo en la superficie y el borde. Ver el KDoc para la medida.
+    // [UI-A-SELECTED-CHIP-IS-GREEN-BUT-ITS-WORD-IS-NOT-001]
     val contentColor = when {
         !enabled -> cs.onSurface.copy(alpha = DISABLED_FG_ALPHA)
         else -> cs.onSurface
@@ -110,12 +107,13 @@ fun PaparcarFilterChip(
                 Icon(
                     imageVector = leadingIcon,
                     contentDescription = null,
-                    // ⛔ The glyph wears the CHIP's own content colour — green only when the chip is
-                    // selected, because then the green means "this one is on". It used to be green
-                    // always, "so chips read as branded accents": with a row of chips that painted
-                    // five greens whose only message was that they were chips, and left the selected
-                    // one competing with its own unselected siblings.
+                    // ⛔ El glifo lleva el MISMO color que la etiqueta, y por tanto tampoco se tiñe
+                    // de verde al seleccionar. Fue verde siempre, «para que los chips se leyeran
+                    // como acentos de marca»: una fila pintaba cinco verdes cuyo único mensaje era
+                    // que eran chips, y el elegido competía con sus propios hermanos apagados. Lo
+                    // que dice cuál está encendido es la superficie, no la tinta del contenido.
                     // [UI-ONE-SKELETON-ONE-EMPHASIS-ONE-GREEN-001]
+                    // [UI-A-SELECTED-CHIP-IS-GREEN-BUT-ITS-WORD-IS-NOT-001]
                     tint = contentColor,
                     modifier = Modifier.size(CHIP_ICON_SIZE),
                 )
