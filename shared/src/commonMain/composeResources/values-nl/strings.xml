@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="home_nearby_section_header">In dit gebied</string>
+    <string name="zone_alert_in_app">Er is net een plek vrijgekomen in %1$s</string>
     <!-- HomeScreen -->
     <string name="home_search_placeholder">Zoek een gebied, straat…</string>
     <string name="home_search_no_results">Geen resultaten voor deze zoekopdracht</string>

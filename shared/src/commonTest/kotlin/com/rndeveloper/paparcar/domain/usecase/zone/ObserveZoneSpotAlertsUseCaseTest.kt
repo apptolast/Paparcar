@@ -18,8 +18,11 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /**
- * The zone-alert stream and its downgrade rules [MONEY-001]: Plus gates delivery LIVE, the
- * per-zone opt-in survives untouched, and losing Plus pauses — never deletes — the alerts.
+ * El stream de alertas de zona: qué cuenta como NOVEDAD, y qué no.
+ *
+ * ⛔ Ya no gatea por Plus [ZONE-AN-ALERT-IS-DELIVERED-WHERE-YOU-CAN-SEE-IT-001]. El entitlement
+ * sigue apareciendo en los fixtures porque el resto de reglas —baseline, dedupe, interruptor
+ * maestro— tienen que seguir valiendo con y sin él.
  */
 class ObserveZoneSpotAlertsUseCaseTest {
 
@@ -35,7 +38,6 @@ class ObserveZoneSpotAlertsUseCaseTest {
         zoneRepository = zoneRepo,
         spotRepository = spotRepo,
         watchRepository = watchRepo,
-        observeIsPlus = ObserveIsPlusUseCase(entitlementRepo),
         appPreferences = prefs,
         authRepository = FakeAuthRepository(initialSession = FakeAuthRepository.authenticatedSession(userId = "me")),
     )
@@ -80,13 +82,21 @@ class ObserveZoneSpotAlertsUseCaseTest {
     }
 
     @Test
-    fun `should_stayQuiet_when_free`() = runTest {
+    fun `should_alertAFreeUserToo_because_theGateIsGone`() = runTest {
+        // ⛔ Este test decía lo CONTRARIO («should_stayQuiet_when_free») y se invierte a propósito,
+        // no se borra: decisión del user el 21-09, «no será de pago, al menos al principio»
+        // [ZONE-AN-ALERT-IS-DELIVERED-WHERE-YOU-CAN-SEE-IT-001]. Dejarlo escrito como afirmación es
+        // lo que impide que el gate vuelva sin querer con el próximo refactor de entitlements.
+        //
+        // ⚠️ Y va contra el eje del producto —free = tú preguntas, Plus = la app te avisa—, así que
+        // el día que se cierre, se cierra aquí y este testigo es el que hay que dar la vuelta.
         entitlementRepo.emitEntitlement(Entitlement.FREE)
         zoneRepo.zones = listOf(zone())
 
         useCase().test {
             spotRepo.spots = listOf(spot("s-new"))
-            expectNoEvents()
+            val alert = awaitItem()
+            assertEquals("s-new", alert.spot.id)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -199,7 +209,11 @@ class ObserveZoneSpotAlertsUseCaseTest {
      * honouring that cannot mean telling them everything at once when they unmute.
      */
     @Test
-    fun `should_pauseAndResumeWithoutTouchingTheOptIn_when_plusIsLostAndRegained`() = runTest {
+    fun `should_keepAnnouncingAndKeepItsMemory_when_theEntitlementChanges`() = runTest {
+        // ⛔ Este test comprobaba la PAUSA por downgrade de Plus, y esa regla ya no existe
+        // [ZONE-AN-ALERT-IS-DELIVERED-WHERE-YOU-CAN-SEE-IT-001]. Lo que sí sigue valiendo —y es lo
+        // que de verdad protegía— es la MEMORIA: pase lo que pase con el plan, una plaza ya contada
+        // no vuelve a contarse. Por eso se reescribe en vez de borrarse.
         entitlementRepo.emitEntitlement(Entitlement.PLUS)
         zoneRepo.zones = listOf(zone())
 
@@ -207,20 +221,18 @@ class ObserveZoneSpotAlertsUseCaseTest {
             spotRepo.spots = listOf(spot("s-1"))
             assertEquals("s-1", awaitItem().spot.id)
 
+            // Perder Plus ya no calla nada: la plaza nueva se cuenta igual, en el momento.
             entitlementRepo.emitEntitlement(Entitlement.FREE)
             spotRepo.spots = listOf(spot("s-1"), spot("s-while-free"))
-            expectNoEvents()
-
-            entitlementRepo.emitEntitlement(Entitlement.PLUS)
-            // Still free, still in the zone → announced once on return. What must NOT happen is
-            // `s-1` coming back with it: that one was already said, and the memory survived.
             assertEquals("s-while-free", awaitItem().spot.id)
 
+            // Y recuperarlo tampoco repite lo ya dicho: `s-1` no vuelve con el cambio de plan.
+            entitlementRepo.emitEntitlement(Entitlement.PLUS)
             spotRepo.spots = listOf(spot("s-1"), spot("s-while-free"), spot("s-after-return"))
             assertEquals("s-after-return", awaitItem().spot.id)
             cancelAndIgnoreRemainingEvents()
         }
-        assertEquals(true, zoneRepo.zones.single().notifyOnSpot, "the opt-in must survive the downgrade")
+        assertEquals(true, zoneRepo.zones.single().notifyOnSpot, "el opt-in de la zona no lo toca nadie")
     }
 
     @Test

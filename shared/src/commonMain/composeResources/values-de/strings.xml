@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="home_nearby_section_header">In dieser Gegend</string>
+    <string name="zone_alert_in_app">In %1$s ist gerade ein Platz frei geworden</string>
     <!-- HomeScreen -->
     <string name="home_search_placeholder">Zone, Straße suchen…</string>
     <string name="home_search_no_results">Keine Treffer für diese Suche</string>

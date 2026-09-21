@@ -11,6 +11,9 @@ import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.usecase.detection.PublishDetectionStateUseCase
+import com.rndeveloper.paparcar.domain.notification.AlertChannel
+import com.rndeveloper.paparcar.domain.notification.MapVisibility
+import com.rndeveloper.paparcar.domain.notification.alertChannelFor
 import com.rndeveloper.paparcar.domain.usecase.zone.ObserveZoneSpotAlertsUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import com.rndeveloper.paparcar.presentation.base.BaseViewModel
@@ -32,6 +35,8 @@ class AppViewModel(
     // [MONEY-001] Plus zone alerts, client-side for 1.x: collected HERE because this is the one
     // ViewModel alive for the whole UI session, whatever tab is open.
     private val observeZoneSpotAlerts: ObserveZoneSpotAlertsUseCase,
+    /** Decide por qué canal sale el aviso. [ZONE-AN-ALERT-IS-DELIVERED-WHERE-YOU-CAN-SEE-IT-001] */
+    private val mapVisibility: MapVisibility,
     private val appNotificationManager: AppNotificationManager,
     // [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001] Collected HERE for the same reason the zone
     // alerts are: the one ViewModel alive for the whole UI session, whatever tab is open. A
@@ -134,11 +139,36 @@ class AppViewModel(
         // gate, per-zone opt-in, master switch, dedupe, baseline); this collector only delivers.
         observeZoneSpotAlerts()
             .onEach { alert ->
-                appNotificationManager.showZoneSpotAlert(
-                    zoneName = alert.zoneName,
-                    latitude = alert.spot.location.latitude,
-                    longitude = alert.spot.location.longitude,
-                )
+                // ⛔ UN colector y UNA decisión. El stream apunta cada plaza en su registro durable
+                // ANTES de emitirla, así que dos consumidores harían que el segundo no viera nada:
+                // el primero ya la marcó como contada. El canal se elige aquí.
+                // [ZONE-AN-ALERT-IS-DELIVERED-WHERE-YOU-CAN-SEE-IT-001]
+                when (alertChannelFor(mapVisibility.onScreen.value)) {
+                    AlertChannel.IN_APP -> {
+                        // Se retira solo: un aviso que habla de algo que ya está en el mapa no
+                        // tiene por qué esperar a que lo cierren.
+                        spotAlertHideJob?.cancel()
+                        spotAlertHideJob = viewModelScope.launch {
+                            delay(SPOT_ALERT_VISIBLE_MS)
+                            updateState { copy(spotAlert = null) }
+                        }
+                        updateState {
+                        copy(
+                            spotAlert = SpotAlertCue(
+                                spotId = alert.spot.id,
+                                zoneName = alert.zoneName,
+                                latitude = alert.spot.location.latitude,
+                                longitude = alert.spot.location.longitude,
+                            ),
+                        )
+                        }
+                    }
+                    AlertChannel.SYSTEM_NOTIFICATION -> appNotificationManager.showZoneSpotAlert(
+                        zoneName = alert.zoneName,
+                        latitude = alert.spot.location.latitude,
+                        longitude = alert.spot.location.longitude,
+                    )
+                }
             }
             .catch { e -> PaparcarLogger.w(TAG, "zone-alert delivery stream failed", e) }
             .launchIn(viewModelScope)
@@ -151,6 +181,11 @@ class AppViewModel(
             .catch { e -> PaparcarLogger.w(TAG, "detection-state stream failed", e) }
             .launchIn(viewModelScope)
     }
+
+    /** El temporizador del aviso in-app de plaza. Uno solo: una plaza nueva REEMPLAZA a la
+     *  anterior en vez de encolarse — nadie quiere leer una cola de avisos sobre un mapa que ya
+     *  los está enseñando. [ZONE-AN-ALERT-IS-DELIVERED-WHERE-YOU-CAN-SEE-IT-001] */
+    private var spotAlertHideJob: Job? = null
 
     /** Auto-hide timer for the transient [ConnectivityBannerPhase.Restored] banner. */
     private var restoredHideJob: Job? = null
@@ -176,6 +211,10 @@ class AppViewModel(
     override fun handleIntent(intent: AppIntent) {
         when (intent) {
             AppIntent.MarkOnboardingCompleted -> appPreferences.setOnboardingCompleted()
+            AppIntent.DismissSpotAlert -> {
+                spotAlertHideJob?.cancel()
+                updateState { copy(spotAlert = null) }
+            }
             AppIntent.DismissGpsAccuracyDisclaimer -> {
                 appPreferences.setGpsAccuracyDisclaimerSeen()
                 updateState { copy(hasSeenGpsAccuracyDisclaimer = true) }
@@ -195,3 +234,8 @@ class AppViewModel(
         }
     }
 }
+
+/** Lo que el aviso in-app se queda en pantalla. Cuatro segundos: lo que se tarda en leer una línea
+ *  y mirar el mapa, sin llegar a estorbar lo que el propio aviso quiere que mires.
+ *  [ZONE-AN-ALERT-IS-DELIVERED-WHERE-YOU-CAN-SEE-IT-001] */
+private const val SPOT_ALERT_VISIBLE_MS = 4_000L
