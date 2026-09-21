@@ -29,6 +29,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import com.rndeveloper.paparcar.presentation.home.model.PublicParkingFilter
 
 /**
  * Projection tests for the per-section slices of [HomeState]. [HOME-ATOMIZE-001 F1]
@@ -252,6 +253,72 @@ class HomeSlicesTest {
         assertEquals(
             state.toBrowseListSlice().parkings.parkings.map { it.parking.id },
             state.toMapSlice().publicParkings.map { it.parking.id },
+        )
+    }
+
+    // ── Qué encuadra la cámara al cambiar de carril [HOME-THE-CAMERA-FRAMES-WHAT-THE-LIST-SHOWS-001] ──
+
+    @Test
+    fun should_frameTheFilteredFirstRow_when_aFilterHidesTheNearestCarPark() {
+        // ⛔ EL TESTIGO. `laneFirstPoint` leía la lista CRUDA mientras la hoja pintaba la filtrada,
+        // así que con «Covered» puesto la cámara volaba a un parking que la lista no enseñaba — y al
+        // quitar el filtro, aparecía. Reportado en device (issue #87).
+        // ⛔ Coordenadas DISTINTAS a propósito: con las mismas, el assert de abajo pasaría también
+        // con la regla vieja y el test no probaría nada.
+        val surface = nearbyParking("surface", dist = 50.0)
+        val covered = nearbyParking("covered", dist = 900.0)
+            .let {
+                it.copy(
+                    parking = it.parking.copy(
+                        kind = PublicParkingKind.UNDERGROUND,
+                        latitude = 2.0,
+                        longitude = 2.0,
+                    ),
+                )
+            }
+        val state = HomeState(
+            nearbyLens = HomeNearbyLens.PARKINGS,
+            parkingFilter = PublicParkingFilter.COVERED,
+            parkings = HomeParkingsSlice(
+                parkings = listOf(surface, covered),
+                anchorLat = 1.0,
+                anchorLon = 1.0,
+            ),
+        )
+
+        val framed = state.laneFirstPoint(cameraLat = 1.0, cameraLon = 1.0)
+        val shown = state.toBrowseListSlice().parkings.parkings.first()
+
+        assertEquals(shown.parking.latitude to shown.parking.longitude, framed)
+        assertEquals(2.0 to 2.0, framed, "encuadra la cubierta (2.0), no la de superficie (1.0)")
+        assertEquals(
+            "covered",
+            state.publicParkingsShown.first().parking.id,
+            "la primera fila que la hoja pinta es la cubierta, no la más cercana",
+        )
+    }
+
+    @Test
+    fun should_frameNothing_when_theAnswerIsAboutSomewhereElse() {
+        // ⛔ Buscas Madrid estando en Italia: la lista todavía contesta de Italia, y encuadrar su
+        // primer elemento devolvía la cámara de donde el usuario acababa de sacarla. Se espera a la
+        // respuesta de aquí, que el carril ya está pidiendo.
+        val state = HomeState(
+            nearbyLens = HomeNearbyLens.PARKINGS,
+            parkings = HomeParkingsSlice(
+                parkings = listOf(nearbyParking("in-italy")),
+                anchorLat = 41.9028,
+                anchorLon = 12.4964,
+            ),
+        )
+
+        assertNull(
+            state.laneFirstPoint(cameraLat = 40.4168, cameraLon = -3.7038),
+            "una respuesta sobre Roma no encuadra una cámara puesta en Madrid",
+        )
+        assertNotNull(
+            state.laneFirstPoint(cameraLat = 41.9028, cameraLon = 12.4964),
+            "…y la misma respuesta sí encuadra cuando la cámara sigue en Roma",
         )
     }
 

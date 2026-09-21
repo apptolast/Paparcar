@@ -42,6 +42,7 @@ import com.rndeveloper.paparcar.ui.theme.PapShapes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.nearbyLensIndexOrNull
 
 /**
  * The drag/layout plumbing of the sheet, bundled so [HomeBottomSheet]'s signature
@@ -214,7 +215,17 @@ internal fun HomeBottomSheet(
                 // alguien toque una pestaña. Por eso el primer paso del efecto sólo arma.
                 var laneMotionArmed by remember { mutableStateOf(false) }
                 LaunchedEffect(browse.nearbyLens) {
-                    frame.lazyListState.animateScrollToItem(0)
+                    // ⛔ A la CABECERA DEL CARRIL, no al índice 0
+                    // [HOME-THE-CAMERA-FRAMES-WHAT-THE-LIST-SHOWS-001]. El 0 es el principio de toda
+                    // la hoja —por encima de la tira de coches y de la superficie de detección—, así
+                    // que «volver al principio del carril» dejaba al usuario por encima de todo eso
+                    // y obligándole a bajar otra vez. Reportado en uso: «cada vez que cambie tiene
+                    // que volver a scrollear para bajar al contenido».
+                    //
+                    // Sin cabecera compuesta no se mueve nada: quien está mirando sus coches no ha
+                    // pedido que le desplacen la hoja.
+                    frame.lazyListState.nearbyLensIndexOrNull()
+                        ?.let { frame.lazyListState.animateScrollToItem(it) }
                     if (!laneMotionArmed) {
                         laneMotionArmed = true
                         return@LaunchedEffect

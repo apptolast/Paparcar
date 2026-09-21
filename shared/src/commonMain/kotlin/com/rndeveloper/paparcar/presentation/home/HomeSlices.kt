@@ -34,6 +34,9 @@ import com.rndeveloper.paparcar.domain.usecase.parkings.NearbyPublicParking
 import com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice
 import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
 import com.rndeveloper.paparcar.presentation.home.model.HomeParkingsSlice
+import com.rndeveloper.paparcar.presentation.home.model.ViewportRefetch
+import com.rndeveloper.paparcar.domain.parkings.PublicParkingsQuery
+import com.rndeveloper.paparcar.domain.fuel.FuelStationsQuery
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HomeSlices — per-section projections of [HomeState]. [HOME-ATOMIZE-001 F1]
@@ -677,13 +680,44 @@ fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
  * ⛔ Lee **las mismas listas que pinta la hoja**, no una consulta propia: el «primer elemento» tiene
  * que ser el que el usuario ve arriba del todo, y una segunda fuente con otro orden convertiría el
  * encuadre en una coordenada que no corresponde a ninguna fila.
+ *
+ * Eso era lo que decía, y **dejó de ser verdad en cuanto entraron los filtros**
+ * [HOME-THE-CAMERA-FRAMES-WHAT-THE-LIST-SHOWS-001]: parkings y gasolineras leían la lista CRUDA
+ * (`parkings.parkings`, `fuel.stations`) mientras la hoja pintaba `publicParkingsShown` y
+ * `fuelStationsShown`, que son las que llevan orden y filtro. Con «Covered» puesto, la cámara volaba
+ * a un parking que la lista no enseñaba — y al quitar el filtro aparecía. Ahora las tres ramas leen
+ * la lista PINTADA, que es lo que el párrafo de arriba prometía.
+ *
+ * ⛔ **Y no se encuadra una respuesta que va de otro sitio.** Si la lista contesta sobre donde la
+ * cámara ya no está —buscas Madrid estando en Italia— el primer elemento es italiano, y encuadrarlo
+ * devuelve la cámara de donde el usuario acaba de sacarla. Se espera a que llegue la respuesta de
+ * aquí, que es lo que el carril ya está pidiendo. La pregunta la contesta
+ * [ViewportRefetch.answerCoversCamera], la misma que decide si hay que repreguntar.
  */
-internal fun HomeState.laneFirstPoint(): Pair<Double, Double>? = when (nearbyLens) {
+internal fun HomeState.laneFirstPoint(
+    cameraLat: Double?,
+    cameraLon: Double?,
+): Pair<Double, Double>? = when (nearbyLens) {
+    // Las plazas son una suscripción viva sobre el área: no tienen ancla que comparar.
     HomeNearbyLens.SPOTS -> filteredNearbySpots().firstOrNull()
         ?.let { it.location.latitude to it.location.longitude }
-    HomeNearbyLens.PARKINGS -> parkings.parkings.firstOrNull()
+
+    HomeNearbyLens.PARKINGS -> publicParkingsShown.firstOrNull()
+        ?.takeIf {
+            ViewportRefetch.answerCoversCamera(
+                parkings.anchorLat, parkings.anchorLon, cameraLat, cameraLon,
+                radiusMeters = PublicParkingsQuery.DEFAULT_RADIUS_METERS, byZone = true,
+            )
+        }
         ?.let { it.parking.latitude to it.parking.longitude }
-    HomeNearbyLens.FUEL -> fuel.stations.firstOrNull()
+
+    HomeNearbyLens.FUEL -> fuelStationsShown.firstOrNull()
+        ?.takeIf {
+            ViewportRefetch.answerCoversCamera(
+                fuel.anchorLat, fuel.anchorLon, cameraLat, cameraLon,
+                radiusMeters = FuelStationsQuery.DEFAULT_RADIUS_METERS,
+            )
+        }
         ?.let { it.station.latitude to it.station.longitude }
 }
 
