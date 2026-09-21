@@ -13,6 +13,7 @@ import com.rndeveloper.paparcar.domain.model.PlaceInfo
 import com.rndeveloper.paparcar.domain.model.Spot
 import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.domain.model.UserParking
+import com.rndeveloper.paparcar.presentation.home.model.FuelLaneSort
 import com.rndeveloper.paparcar.presentation.home.model.HomeParkingsSlice
 import com.rndeveloper.paparcar.domain.usecase.parkings.NearbyPublicParking
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingKind
@@ -28,6 +29,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import com.rndeveloper.paparcar.presentation.home.model.PublicParkingFilter
 
@@ -250,9 +252,12 @@ class HomeSlicesTest {
             parkings = HomeParkingsSlice(parkings = listOf(nearbyParking("lane"), nearbyParking("camera"))),
         )
 
+        // ⛔ El mismo CONJUNTO, comparado como conjunto. El mapa ya no hereda el orden del carril
+        // —un pin no tiene fila— y escribir el invariante como una lista ordenada era atar «misma
+        // tienda» a «mismo orden», que son dos cosas. [MAP-THE-MAP-READS-THE-SET-NOT-THE-ORDER-001]
         assertEquals(
-            state.toBrowseListSlice().parkings.parkings.map { it.parking.id },
-            state.toMapSlice().publicParkings.map { it.parking.id },
+            state.toBrowseListSlice().parkings.parkings.map { it.parking.id }.sorted(),
+            state.toMapSlice().publicParkings.map { it.parking.id }.sorted(),
         )
     }
 
@@ -987,10 +992,13 @@ class HomeSlicesTest {
                 stations = listOf(fuelStation("c", 300.0), fuelStation("a", 100.0), fuelStation("b", 200.0)),
             ),
         )
-        assertEquals(listOf("a", "b", "c"), state.toMapSlice().fuelStations.map { it.station.id })
+        // Las MISMAS gasolineras que lista el carril — comparadas como conjunto, que es lo que el
+        // invariante dice. El orden es del carril y no viaja al mapa.
+        // [MAP-THE-MAP-READS-THE-SET-NOT-THE-ORDER-001]
+        assertEquals(listOf("a", "b", "c"), state.toMapSlice().fuelStations.map { it.station.id }.sorted())
         assertEquals(
-            state.toBrowseListSlice().fuel.stations.map { it.station.id },
-            state.toMapSlice().fuelStations.map { it.station.id },
+            state.toBrowseListSlice().fuel.stations.map { it.station.id }.sorted(),
+            state.toMapSlice().fuelStations.map { it.station.id }.sorted(),
         )
 
         // ⛔ And nothing at all once the lane is elsewhere, however full the stores are: the map shows
@@ -999,6 +1007,60 @@ class HomeSlicesTest {
             emptyList(),
             state.copy(nearbyLens = HomeNearbyLens.SPOTS).toMapSlice().fuelStations,
         )
+    }
+
+    // ── El chip se marca en el frame del toque ──────────────────────────────
+    // [HOME-A-PROJECTION-IS-COMPUTED-ONCE-001] [MAP-THE-MAP-READS-THE-SET-NOT-THE-ORDER-001]
+
+    @Test
+    fun should_leaveTheMapUntouched_when_onlyTheLanesReadingOrderChanges() {
+        // El testigo del chip de orden: «cercanas» y «baratas» son la misma pregunta sobre el mundo
+        // hecha en distinto orden de lectura. El mapa pinta lo mismo en las dos, así que su porción
+        // tiene que salir IGUAL — si no, un chip que no mueve un solo pin reconstruye todos.
+        // ⛔ Con precio, o los dos órdenes coinciden y el testigo no puede fallar: la más CERCANA
+        // («a») y la más BARATA («c») tienen que ser gasolineras distintas.
+        val nearest = HomeState(
+            nearbyLens = HomeNearbyLens.FUEL,
+            vehicles = listOf(carBurning(FuelType.GASOLINE)),
+            fuel = com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice(
+                stations = listOf(
+                    pricedStation("a", 100.0, gasoline = 1.899, diesel = 1.419),
+                    pricedStation("b", 200.0, gasoline = 1.799, diesel = 1.419),
+                    pricedStation("c", 300.0, gasoline = 1.499, diesel = 1.419),
+                ),
+            ),
+            fuelSort = FuelLaneSort.NEAREST,
+        )
+        val cheapest = nearest.copy(fuelSort = FuelLaneSort.CHEAPEST)
+
+        assertEquals(nearest.toMapSlice(), cheapest.toMapSlice())
+        // Y el carril SÍ cambia de orden: si no, el chip no haría nada y el testigo probaría otra cosa.
+        assertEquals(
+            listOf("c", "a", "b"),
+            nearest.toBrowseListSlice().fuel.stations.map { it.station.id },
+            "por cercanía, con la más barata adelantada",
+        )
+        assertEquals(
+            listOf("c", "b", "a"),
+            cheapest.toBrowseListSlice().fuel.stations.map { it.station.id },
+        )
+    }
+
+    @Test
+    fun should_projectOncePerState_when_theSameListIsReadTwice() {
+        // La lista la leen el mapa, el peek, la lista y la selección. Con `get()` cada lectura
+        // reordenaba la tienda entera, en el frame que el usuario espera para ver su chip marcado.
+        // Identidad, no igualdad: dos listas iguales serían dos cálculos.
+        val state = HomeState(
+            fuel = com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice(
+                stations = listOf(fuelStation("a", 100.0), fuelStation("b", 200.0)),
+            ),
+            parkings = HomeParkingsSlice(parkings = listOf(nearbyParking("p"))),
+        )
+        assertSame(state.fuelStationsShown, state.fuelStationsShown)
+        assertSame(state.publicParkingsShown, state.publicParkingsShown)
+        assertSame(state.fuelStationsOnMap, state.fuelStationsOnMap)
+        assertSame(state.publicParkingsOnMap, state.publicParkingsOnMap)
     }
 
     // ── El precio de una cápsula es el del coche que conduces ────────────────
