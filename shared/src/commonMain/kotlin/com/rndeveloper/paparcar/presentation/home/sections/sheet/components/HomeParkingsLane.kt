@@ -24,7 +24,6 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_parkings_empty
 import paparcar.composeapp.generated.resources.home_parkings_error
 import paparcar.composeapp.generated.resources.home_parkings_remembered
-import paparcar.composeapp.generated.resources.home_parkings_too_far
 
 /**
  * "Car parks nearby" — the lane the sheet shows while the lens sits on `HomeNearbyLens.PARKINGS`.
@@ -54,15 +53,6 @@ fun HomeParkingsLane(
         if (isIntroducing) LaneIntroNote(NearbyComplement.CAR_PARKS)
 
         when {
-            // ⛔ Too far from the user to follow: nothing was asked, so neither the empty sentence nor
-            // the failure one is true. The map is empty for the same reason, at the same moment.
-            // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
-            slice.tooFar -> LaneNote(
-                stringResource(
-                    Res.string.home_parkings_too_far,
-                    radiusString(ViewportRefetch.MAX_FROM_USER_METERS.toFloat()),
-                ),
-            )
 
             // ⛔ A failure is NOT an empty list: saying "none nearby" when we could not ask sends the
             // user driving on a claim we never checked.

@@ -329,7 +329,7 @@ fun LazyListScope.homeSheetItems(
     // ── 3. The nearby LANE: the chip row that picks a subject, and that subject's list ───────
     // ⛔ Ya NO se esconde sin CORE. La premisa era «"cerca" no significa nada sin ubicación», y el
     // propio código la desmiente: el carril se ancla a la CÁMARA (`viewportCentreOrGps`),
-    // `isWorthAsking` devuelve true sin GPS y `NearbyOrdering` ya ordena sin `user`. Lo que la falta
+    // `isAPlace` no mira el fix y `NearbyOrdering` ya ordena sin `user`. Lo que la falta
     // de fix quita no es la respuesta —qué hay donde miras— sino UNA línea de cada fila: a cuánto
     // está DE TI. Eso es lo que se calla, y nada más.
     // [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001] [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]

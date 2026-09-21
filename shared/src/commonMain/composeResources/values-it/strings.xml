@@ -976,7 +976,6 @@
     <string name="fuel_peek_follow">Segui</string>
     <string name="fuel_peek_following">Seguito</string>
     <string name="home_fuel_error">Non siamo riusciti a caricare i distributori. Controlla la connessione e riapri.</string>
-    <string name="home_fuel_too_far">Mostriamo i distributori solo entro %1$s da te. Avvicina la mappa per vederli.</string>
     <string name="home_fuel_no_prices">In questo Paese i prezzi non sono pubblicati. Questi sono i distributori vicini.</string>
     <!-- [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] Fallback, not a verdict about the country -->
     <string name="home_fuel_prices_unavailable">I prezzi ufficiali non si sono caricati. Questi sono i distributori vicini; riprova tra un momento.</string>
@@ -991,7 +990,6 @@
     <string name="subject_free_spots">Posti</string>
     <string name="home_parkings_empty">Nessun parcheggio pubblico entro %1$s.</string>
     <string name="home_parkings_error">Non siamo riusciti a caricare i parcheggi. Controlla la connessione e riapri.</string>
-    <string name="home_parkings_too_far">Mostriamo i parcheggi pubblici solo entro %1$s da te. Avvicina la mappa per vederli.</string>
     <string name="home_parkings_remembered">Nessuna connessione: questi sono i parcheggi pubblici visti qui %1$s.</string>
     <string name="parking_peek_eyebrow">Parcheggio pubblico</string>
     <string name="parking_peek_step_prev">Parcheggio pubblico precedente</string>

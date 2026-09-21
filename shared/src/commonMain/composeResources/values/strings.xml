@@ -1012,7 +1012,6 @@
     <string name="fuel_peek_follow">Follow</string>
     <string name="fuel_peek_following">Following</string>
     <string name="home_fuel_error">We could not load the stations. Check your connection and open this again.</string>
-    <string name="home_fuel_too_far">Fuel stations are only shown within %1$s of you. Move the map closer to see them.</string>
     <string name="home_fuel_no_prices">Prices are not published in this country. These are the stations nearby.</string>
     <!-- [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] Fallback, not a verdict about the country -->
     <string name="home_fuel_prices_unavailable">Official prices didn't load. These are the stations nearby — try again in a moment.</string>
@@ -1032,7 +1031,6 @@
     <string name="subject_free_spots">Free spots</string>
     <string name="home_parkings_empty">No public car parks within %1$s.</string>
     <string name="home_parkings_error">We could not load the car parks. Check your connection and open this again.</string>
-    <string name="home_parkings_too_far">Car parks are only shown within %1$s of you. Move the map closer to see them.</string>
     <string name="home_parkings_remembered">No connection: these are the car parks we saw here %1$s.</string>
     <string name="parking_peek_eyebrow">Public car park</string>
     <string name="parking_peek_step_prev">Previous car park</string>

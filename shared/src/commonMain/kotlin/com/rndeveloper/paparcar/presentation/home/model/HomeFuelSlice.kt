@@ -78,11 +78,6 @@ data class HomeFuelSlice(
      */
     val anchorLat: Double? = null,
     val anchorLon: Double? = null,
-    /**
-     * The camera is looking further from the user than the lane follows: nothing asked, nothing
-     * shown, and the lane says so. [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
-     */
-    val tooFar: Boolean = false,
 ) {
     /** True when at least one station could be priced — decides which sentence the section says. */
     val hasPrices: Boolean get() = stations.any { it.price != null }

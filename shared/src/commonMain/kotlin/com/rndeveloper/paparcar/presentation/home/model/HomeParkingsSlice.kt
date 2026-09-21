@@ -45,11 +45,4 @@ data class HomeParkingsSlice(
      * - set **and not loading** → the ask is over and it failed. Now the note is true, and it shows.
      */
     val rememberedAtMs: Long? = null,
-    /**
-     * The camera is looking further from the user than the lane follows
-     * ([ViewportRefetch.MAX_FROM_USER_METERS]): nothing was asked and nothing is shown, and the lane
-     * says so — never "none within 1,5 km", which would be a verdict about a place nobody checked.
-     * [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
-     */
-    val tooFar: Boolean = false,
 )

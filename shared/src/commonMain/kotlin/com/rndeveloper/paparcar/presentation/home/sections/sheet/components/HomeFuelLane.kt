@@ -30,7 +30,6 @@ import paparcar.composeapp.generated.resources.home_fuel_prices_unavailable
 import paparcar.composeapp.generated.resources.home_fuel_oldest_price
 import paparcar.composeapp.generated.resources.home_fuel_remembered
 import paparcar.composeapp.generated.resources.home_fuel_reported_at
-import paparcar.composeapp.generated.resources.home_fuel_too_far
 
 /**
  * "Where to refuel" — the lane, i.e. what the sheet shows while the lens sits on
@@ -65,15 +64,6 @@ fun HomeFuelLane(
         if (isIntroducing) LaneIntroNote(NearbyComplement.FUEL)
 
         when {
-            // ⛔ Too far from the user to follow: nothing was asked, and the map is empty with it.
-            // First, because it outranks every other sentence — none of them is about this place.
-            // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
-            slice.tooFar -> LaneNote(
-                stringResource(
-                    Res.string.home_fuel_too_far,
-                    radiusString(ViewportRefetch.MAX_FROM_USER_METERS.toFloat()),
-                ),
-            )
 
             // ⛔ No fuel on the car means NO question was asked — its own sentence, never the empty
             // state, which is a verdict about the world.

@@ -28,60 +28,42 @@ object ViewportRefetch {
     }
 
     /**
-     * Is this point somewhere the layer should even look?
+     * ¿Es esto un SITIO? La única razón por la que un carril se niega a preguntar.
      *
-     * ⛔ **(0, 0) is not a place**, it is the Gulf of Guinea — the coordinate a map reports before
-     * it has a camera. Asking there was measured on device (`0 stations around 0.0,0.0`), and it is
-     * the same trap `SPOT-A-REPORT-WITHOUT-A-PLACE-MUST-NOT-HAPPEN-001` closed for reports.
+     * ⛔ **(0, 0) no es un sitio**, es el golfo de Guinea — la coordenada que un mapa reporta
+     * mientras todavía no tiene cámara. Preguntar ahí está medido en device
+     * (`0 stations around 0.0,0.0`), y es la misma trampa que
+     * `SPOT-A-REPORT-WITHOUT-A-PLACE-MUST-NOT-HAPPEN-001` cerró para los avisos.
      *
-     * Y el carril deja de SEGUIR a la cámara más allá de [MAX_FROM_USER_METERS]: cada asentamiento
-     * de un arrastre cuesta una petición a un servicio público, y arrastrar el mapa media España
-     * son cientos. Más allá el carril enseña NADA en vez de las gasolineras de tu ciudad sobre un
-     * mapa ajeno — que es la mentira que este ticket cerró.
-     *
-     * ⛔ **Pero un ARRASTRE no es lo mismo que PEDIRLO** [NEARBY-A-DELIBERATE-LOOK-IS-NOT-A-PAN-001].
-     * El tope existe para el seguimiento automático, no para la pregunta explícita: quien busca
-     * «Cádiz» y abre el carril de parkings ha pedido una respuesta sobre Cádiz, y contestarle
-     * «demasiado lejos» es negarle lo único que había pedido. Con [deliberate] el tope no aplica —
-     * es UNA petición, la que el usuario acaba de pedir, no un reguero de ellas.
-     */
-    fun isWorthAsking(
-        lat: Double,
-        lon: Double,
-        userLat: Double?,
-        userLon: Double?,
-        /** El usuario ha pedido ESTE sitio (abrir el carril), en vez de arrastrar el mapa hasta él. */
-        deliberate: Boolean = false,
-    ): Boolean {
-        if (lat == 0.0 && lon == 0.0) return false
-        if (deliberate) return true
-        if (userLat == null || userLon == null) return true
-        return haversineMeters(userLat, userLon, lat, lon) <= MAX_FROM_USER_METERS
-    }
-
-    private const val REFETCH_AT_FRACTION = 0.5
-
-    /**
-     * Hasta dónde SIGUE el carril a una cámara que el usuario arrastra.
+     * ## ⛔ Aquí había también un TOPE DE DISTANCIA al usuario, y se ha retirado
      * [NEARBY-A-DELIBERATE-LOOK-IS-NOT-A-PAN-001]
      *
-     * 150 km — el destino de un viaje de hoy, hora y media de coche. Estaba en **20 km**, que es la
-     * provincia y no el viaje: salir de casa hacia otra ciudad y querer mirar allí los parkings
-     * antes de llegar —el caso exacto de la issue #44— caía fuera por diez veces.
+     * El carril dejaba de seguir a la cámara más allá de 150 km (20 km antes de este ticket), y el
+     * argumento escrito era: *«cada asentamiento de un arrastre cuesta una petición, y arrastrar el
+     * mapa media España son cientos»*.
      *
-     * Lo que este número protege NO es la cuota: es el reguero. Cada asentamiento de la cámara
-     * pasada media radio dispara una petición, así que arrastrar el mapa 600 km son cientos de
-     * ellas. Lo que lo hace asumible a 150 km es que la respuesta se CACHEA por celda (la cobertura
-     * OSM en Room), así que una región preguntada una vez no se vuelve a preguntar.
+     * **Ese argumento no se sostiene, y hay tres guardas que lo impiden — ninguno de ellos era
+     * éste:**
      *
-     * Y por encima de todo esto manda `deliberate`: pedir un sitio no tiene tope, porque es UNA
-     * pregunta. El tope es para el arrastre, que es el que se multiplica.
+     *  1. **El asentamiento va con debounce.** `scheduleNearbyRefresh` cancela el trabajo anterior y
+     *     vuelve a esperar `NEARBY_CAMERA_SETTLE_MS` en CADA movimiento de cámara. Un arrastre
+     *     continuo, dure lo que dure y cruce lo que cruce, dispara **una** petición: la del final.
+     *     Para gastar cientos habría que hacer cientos de pausas deliberadas.
+     *  2. **Moverse poco no pregunta nada.** Las gasolineras exigen media radio ([shouldRefetch]);
+     *     los parkings, cambiar de zona entera (`ParkingZoneGrid.sameZone`). El caso «paneo 5 m»
+     *     que motivó esta revisión no pedía datos ni antes ni ahora.
+     *  3. **Una región preguntada una vez no se vuelve a preguntar**: la respuesta se cachea por
+     *     celda/zona en Room.
+     *
+     * Y lo que el tope SÍ costaba era real y visible: con el carril abierto no se podían mirar los
+     * parkings de otra ciudad arrastrando el mapa, que es literalmente la issue #44. El tope
+     * protegía de una tormenta que el debounce ya impedía, y cobraba la función que el usuario
+     * pedía.
+     *
+     * Con él se va también el estado `tooFar` de los dos carriles y su frase, que no describían el
+     * mundo sino nuestro propio límite.
      */
-    const val MAX_FROM_USER_METERS = 150_000.0
+    fun isAPlace(lat: Double, lon: Double): Boolean = !(lat == 0.0 && lon == 0.0)
 
-    // ⛔ No hay aquí un `maxFromUserKm`. Existió para que la frase del carril no divergiera de esta
-    // constante, y hacía media pregunta: derivaba la CIFRA y dejaba el «km» escrito en los nueve
-    // locales, o sea seguía diciendo kilómetros a quien había pedido millas. Las dos mitades las
-    // resuelve ahora `radiusString(MAX_FROM_USER_METERS)` en el sitio donde se dice.
-    // [I18N-A-RADIUS-WRITTEN-BY-HAND-IGNORES-MILES-001] [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
+    private const val REFETCH_AT_FRACTION = 0.5
 }
