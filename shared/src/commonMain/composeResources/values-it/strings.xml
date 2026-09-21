@@ -1028,6 +1028,7 @@
     <string name="first_steps_explain_explore_note">Nessuno dei due viene dalla comunità: sono dati pubblici, quindi ci sono dal primo giorno, e gratis per tutti.</string>
     <string name="first_steps_zone_title">Proteggi il tuo garage</string>
     <string name="first_steps_zone_sub">Se parcheggi in un garage privato, aggiungi lì una zona privata: quando esci non pubblicheremo un posto libero.</string>
+    <string name="first_steps_pointing_up">Guarda in alto sulla mappa: te lo sto indicando.</string>
     <string name="first_steps_zone_no_garage">Non ho un garage</string>
     <string name="first_steps_explain_zone_title">Il tuo garage non è un posto libero</string>
     <string name="first_steps_explain_zone_body">Quando te ne vai, Paparcar libera il tuo posto per qualcun altro. In un garage privato (casa tua, il lavoro) nessun altro può usarlo.</string>
