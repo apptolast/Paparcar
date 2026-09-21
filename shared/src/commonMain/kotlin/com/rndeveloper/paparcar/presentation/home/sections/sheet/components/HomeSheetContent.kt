@@ -3,6 +3,7 @@ package com.rndeveloper.paparcar.presentation.home.sections.sheet.components
 
 import com.rndeveloper.paparcar.presentation.home.model.FirstStepGuide
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -504,7 +505,18 @@ private fun LazyListScope.nearbyLane(
         // Juntos en un bloque no hay pelea, y además dicen la verdad de lo que son: los filtros no
         // son de la hoja, son DEL CARRIL, y el carril lo eligen los tabs de encima. Por eso el
         // bloque cambia de contenido cuando cambia la pestaña.
-        Column {
+        //
+        // ⛔ **Y el bloque PINTA SU SUELO** [HOME-A-PINNED-HEADER-NEEDS-ITS-OWN-FLOOR-001]. Un
+        // `stickyHeader` no trae fondo: flota sobre la lista, y la lista se desplaza POR DEBAJO.
+        // Mientras esto era una sola fila de pestañas no se notaba —los tabs son texto ancho y
+        // opaco—, pero al entrar los filtros el hueco entre chips redondeados dejó ver las filas
+        // pasando por detrás: en la captura del user, «Free / Paid / Covered» y «Car park · 2.0 km»
+        // se leían a la vez.
+        //
+        // El color es el de la hoja (`surfaceContainer`), el mismo que pinta el `Surface` del
+        // bottom sheet, así que la cabecera no se lee como una tarjeta encima sino como la parte de
+        // la hoja que no se va.
+        Column(modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
             HomeNearbyLensRow(
                 lens = slice.nearbyLens,
                 // Spots always know their count — the feed is a live subscription. The complements
