@@ -2,6 +2,7 @@
 <resources>
     <!-- HomeScreen -->
     <string name="home_search_placeholder">Busca una zona, calle…</string>
+    <string name="zone_alert_in_app">Acaba de quedar libre una plaza en %1$s</string>
     <string name="home_search_no_results">Sin resultados para esa búsqueda</string>
     <!-- Unidad del contador del PapSheet. [UI-SHEET-001] -->
     <string name="home_counter_unit_free">libres</string>

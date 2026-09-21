@@ -2,6 +2,7 @@
 <resources>
     <!-- HomeScreen -->
     <string name="home_search_placeholder">Search an area, street…</string>
+    <string name="zone_alert_in_app">A free spot just opened in %1$s</string>
     <string name="home_search_no_results">No results for that search</string>
     <!-- PapSheet counter lead tile unit. [UI-SHEET-001] -->
     <string name="home_counter_unit_free">free</string>

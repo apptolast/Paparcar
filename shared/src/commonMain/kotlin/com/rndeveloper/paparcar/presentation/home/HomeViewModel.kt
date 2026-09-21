@@ -24,6 +24,7 @@ import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsQuery
 import com.rndeveloper.paparcar.domain.model.DetectionReliabilityLevel
+import com.rndeveloper.paparcar.domain.notification.MapVisibility
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.presentation.home.model.ViewportRefetch
 import com.rndeveloper.paparcar.presentation.home.model.warnsLocationMissing
@@ -92,6 +93,9 @@ import com.rndeveloper.paparcar.domain.usecase.parkings.GetNearbyPublicParkingsU
 
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTime::class)
 class HomeViewModel(
+    /** ¿Está el mapa delante? Señal compartida con el reparto de avisos.
+     *  [ZONE-AN-ALERT-IS-DELIVERED-WHERE-YOU-CAN-SEE-IT-001] */
+    private val mapVisibility: MapVisibility,
     private val permissionManager: PermissionManager,
     private val locationDataSource: LocationDataSource,
     private val activityRecognitionManager: ActivityRecognitionManager,
@@ -211,7 +215,7 @@ class HomeViewModel(
     /** Whether the Home map is foreground (RESUMED). Drives [subscribeGpsLocation]: the high-accuracy
      *  user-location request runs ONLY while true, so a backgrounded map costs no GPS. Starts false;
      *  the screen flips it via [HomeIntent.SetMapForeground] on resume/pause. [UI-LOC-FOREGROUND-001] */
-    private val mapForeground = MutableStateFlow(false)
+    private val mapForeground get() = mapVisibility.onScreen
 
     // ── Init ──────────────────────────────────────────────────────────────────
 
@@ -556,7 +560,10 @@ class HomeViewModel(
             is HomeIntent.RecenterSpots -> onRecenterSpots()
             is HomeIntent.SetMapType -> setMapType(intent.type)
             is HomeIntent.SetMapForeground -> {
-                mapForeground.value = intent.active
+                // ⛔ La MISMA señal que lee el reparto de avisos para elegir canal: un
+                // `mapForeground` propio aquí eran dos verdades sobre una pregunta.
+                // [ZONE-AN-ALERT-IS-DELIVERED-WHERE-YOU-CAN-SEE-IT-001]
+                mapVisibility.set(intent.active)
                 // The map just came on screen — the one moment the first-run location ask belongs
                 // to (the dialog opens OVER the map, its own context). NOT in init: an effect sent
                 // there is emitted before the screen collects and a replay-less SharedFlow drops

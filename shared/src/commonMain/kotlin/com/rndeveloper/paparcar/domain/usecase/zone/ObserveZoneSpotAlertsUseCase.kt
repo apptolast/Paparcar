@@ -10,16 +10,15 @@ import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.repository.SpotRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneWatchRepository
-import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import com.rndeveloper.paparcar.domain.zone.zoneAlertRadiusMeters
 import com.rndeveloper.paparcar.domain.zone.zoneSpotsWorthTelling
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.transform
 import kotlin.time.Clock
@@ -32,12 +31,18 @@ data class ZoneSpotAlert(
 )
 
 /**
- * The Plus zone-alert stream [MONEY-001]: emits once per NEW community spot inside a zone whose
- * [Zone.notifyOnSpot] is on, while the user holds Plus and the Settings master gate is open.
+ * El stream de alertas de zona: emite una vez por cada plaza NUEVA dentro de una zona con
+ * [Zone.notifyOnSpot] encendido, mientras el interruptor maestro de Ajustes esté abierto.
  *
- * The Plus gate is LIVE and it is the pause mechanism of the downgrade rule: losing Plus makes this
- * stream go quiet without touching any zone's opt-in, and regaining it resumes the same
- * subscriptions.
+ * ⛔ **Ya no lleva gate de Plus** — decisión del user el 21-09: *«no será de pago, al menos al
+ * principio»* [ZONE-AN-ALERT-IS-DELIVERED-WHERE-YOU-CAN-SEE-IT-001].
+ *
+ * ⚠️ Y hay que decir la tensión en voz alta, porque el eje del producto dice lo contrario: *free =
+ * tú preguntas y la app responde · Plus = la app te avisa a ti*. Esto es exactamente «la app te
+ * avisa», y era el ejemplo canónico de lo vendible. Se abre igualmente porque una app de plazas que
+ * no avisa de una plaza no demuestra lo que hace, y nadie paga por vigilancia que no ha visto
+ * funcionar. **Es una decisión de lanzamiento, no un cambio de doctrina**: el día que se cierre, se
+ * cierra aquí, en una línea, y la memoria durable de qué se contó ya sobrevive al cambio.
  *
  * ⛔ **This is now one of TWO lanes, and they share their memory.**
  * [ZONE-AN-ALERT-NOBODY-IS-AWAKE-TO-RECEIVE-001] added the background look, and what used to live
@@ -53,15 +58,13 @@ class ObserveZoneSpotAlertsUseCase(
     private val zoneRepository: ZoneRepository,
     private val spotRepository: SpotRepository,
     private val watchRepository: ZoneWatchRepository,
-    private val observeIsPlus: ObserveIsPlusUseCase,
     private val appPreferences: AppPreferences,
     private val authRepository: AuthRepository,
     private val clock: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
     operator fun invoke(): Flow<ZoneSpotAlert> =
-        combine(zoneRepository.observeZones(), observeIsPlus()) { zones, isPlus ->
-            if (isPlus) zones.filter { it.notifyOnSpot } else emptyList()
-        }
+        zoneRepository.observeZones()
+            .map { zones -> zones.filter { it.notifyOnSpot } }
             .distinctUntilChanged()
             .flatMapLatest { subscribed ->
                 if (subscribed.isEmpty()) {

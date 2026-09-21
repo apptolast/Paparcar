@@ -147,6 +147,11 @@ val mockModule = module {
     single<com.rndeveloper.paparcar.domain.detection.ports.DrivingRouteStore> {
         com.rndeveloper.paparcar.data.detection.RoomDrivingRouteStore(dao = get())
     }
+    // Misma regla del no-dataModule: `AppViewModel` y `HomeViewModel` resuelven esta señal con
+    // get(), y sin ella el grafo entero no monta — o sea, TODAS las pantallas revientan al entrar.
+    // Es un holder sin dependencias, así que el mock usa el de verdad.
+    // [ZONE-AN-ALERT-IS-DELIVERED-WHERE-YOU-CAN-SEE-IT-001] [MOCK-A-SECOND-GRAPH-NEEDS-A-SECOND-VERIFY-001]
+    single { com.rndeveloper.paparcar.domain.notification.MapVisibility() }
     // Same no-dataModule rule: ObserveZoneSpotAlertsUseCase resolves this with get(), so without it
     // the whole graph fails to build and EVERY screen crashes on entry (AppViewModel is a shared
     // dependency). Real Room impl over the in-memory DB, same pattern as DrivingRouteStore above.

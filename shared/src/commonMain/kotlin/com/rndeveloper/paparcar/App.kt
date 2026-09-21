@@ -19,6 +19,8 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.zIndex
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -46,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.components.AppBottomNavItem
 import com.rndeveloper.paparcar.ui.components.AppBottomNavigation
 import com.rndeveloper.paparcar.ui.components.ConnectivityBanner
+import com.rndeveloper.paparcar.ui.components.PapSpotAlertBannerHost
 import com.rndeveloper.paparcar.ui.components.PapAlertDialog
 import com.rndeveloper.paparcar.ui.components.PapDialogAccent
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -97,6 +100,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.error_bootstrap_fatal_body
+import paparcar.composeapp.generated.resources.zone_alert_in_app
 import paparcar.composeapp.generated.resources.error_bootstrap_fatal_dismiss
 import paparcar.composeapp.generated.resources.error_bootstrap_fatal_title
 import paparcar.composeapp.generated.resources.error_bootstrap_offline_body
@@ -217,6 +221,21 @@ fun App(
                         // edge-to-edge exactly as before. [CONN-BANNER-001]
                         .then(if (bannerVisible) Modifier.consumeWindowInsets(WindowInsets.statusBars) else Modifier),
                 ) {
+                // ⛔ FLOTA sobre el contenido, no lo empuja: el de conectividad habla de un estado
+                // que DURA y desplaza la app; éste dura cuatro segundos y habla de algo que está
+                // justo debajo, así que empujar movería lo que el aviso quiere que mires.
+                // [ZONE-AN-ALERT-IS-DELIVERED-WHERE-YOU-CAN-SEE-IT-001]
+                PapSpotAlertBannerHost(
+                    visible = appState.spotAlert != null,
+                    text = appState.spotAlert?.let { cue ->
+                        stringResource(Res.string.zone_alert_in_app, cue.zoneName)
+                    },
+                    onDismiss = { appViewModel.handleIntent(AppIntent.DismissSpotAlert) },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = SPOT_ALERT_BOTTOM_PADDING_DP.dp)
+                        .zIndex(SPOT_ALERT_Z),
+                )
                 // AnimatedContent switches between auth and app content.
                 // When coming from Loading (initial auth check), no animation is played because
                 // the splash screen covers the content — animating here would cause a flash of
@@ -861,3 +880,9 @@ private fun NavController.navigateToTab(route: String) {
         restoreState = true
     }
 }
+
+/** El aviso in-app se apoya por encima de la barra de navegación, no sobre ella. */
+private const val SPOT_ALERT_BOTTOM_PADDING_DP = 96
+
+/** Por encima del contenido y por debajo de cualquier modal: es un aviso, no una interrupción. */
+private const val SPOT_ALERT_Z = 1f

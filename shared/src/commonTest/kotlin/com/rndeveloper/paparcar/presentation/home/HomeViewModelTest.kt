@@ -69,6 +69,7 @@ import kotlinx.coroutines.test.setMain
 import com.rndeveloper.paparcar.presentation.home.model.warnsLocationMissing
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
+import com.rndeveloper.paparcar.domain.notification.MapVisibility
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -205,6 +206,7 @@ class HomeViewModelTest {
             ),
         )
         return HomeViewModel(
+            mapVisibility = MapVisibility(),
             permissionManager = permissions,
             locationDataSource = locationDataSource,
             observeDetectionReadiness = observeDetectionReadiness,

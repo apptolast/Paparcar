@@ -20,6 +20,15 @@ data class AppState(
     /** Device-local "I accept the Privacy Policy" tick — gates every sign-in CTA until given.
      *  [AUTH-A-SIGN-IN-ASKS-FOR-CONSENT-FIRST-001] */
     val hasAcceptedLegalConsent: Boolean = false,
+    /**
+     * La plaza nueva que acaba de aparecer en una zona vigilada, para contarla DENTRO de la app —
+     * o null si no hay ninguna que contar. [ZONE-AN-ALERT-IS-DELIVERED-WHERE-YOU-CAN-SEE-IT-001]
+     *
+     * ⛔ Es un aviso transitorio con la misma forma que el de conectividad, y no un segundo canal
+     * paralelo: el reparto elige UNO de los dos —este o la notificación del sistema— según si el
+     * mapa está delante. Que los dos suenen a la vez por la misma plaza es justo lo que esto evita.
+     */
+    val spotAlert: SpotAlertCue? = null,
 ) {
     /** True only when runtime permissions AND GPS are both ready. */
     val isFullyOperational: Boolean
@@ -38,3 +47,18 @@ data class AppState(
     val showGpsAccuracyDisclaimer: Boolean
         get() = isDetectionReady && !hasSeenGpsAccuracyDisclaimer
 }
+
+/**
+ * Lo que el aviso in-app necesita decir y ofrecer: de qué zona es, y dónde está la plaza para poder
+ * ir. [ZONE-AN-ALERT-IS-DELIVERED-WHERE-YOU-CAN-SEE-IT-001]
+ *
+ * ⚠️ Lleva `id` y no sólo el texto porque un aviso tiene que poder REEMPLAZARSE: si llegan dos
+ * plazas seguidas, la segunda sustituye a la primera en vez de encolarse — nadie quiere leer una
+ * cola de avisos sobre un mapa que ya los está enseñando.
+ */
+data class SpotAlertCue(
+    val spotId: String,
+    val zoneName: String,
+    val latitude: Double,
+    val longitude: Double,
+)

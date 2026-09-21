@@ -85,9 +85,11 @@ import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.presentation.map.FocusedParking
 import com.rndeveloper.paparcar.presentation.map.HistoryDetailSheet
 import com.rndeveloper.paparcar.presentation.map.RouteNoticePill
+import com.rndeveloper.paparcar.ui.components.PapSpotAlertBanner
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.first_steps_spotlight_caption
+import paparcar.composeapp.generated.resources.zone_alert_in_app
 import paparcar.composeapp.generated.resources.parking_detail_route_off_device
 import paparcar.composeapp.generated.resources.parking_detail_route_recalculating
 import paparcar.composeapp.generated.resources.parking_detail_route_refused
@@ -1236,6 +1238,17 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             // Las dos frases que explican por qué el mapa NO dibuja una línea. Viven sobre el mapa,
             // no en la ficha, así que la galería las enseña sueltas — que es lo que hay sin un mapa
             // que pintar. [TRIP-A-ROUTE-THAT-ONLY-LIVES-HERE-SAYS-SO-001]
+            // El aviso in-app de plaza nueva: el canal que elige el reparto cuando el mapa está
+            // delante. [ZONE-AN-ALERT-IS-DELIVERED-WHERE-YOU-CAN-SEE-IT-001]
+            Variant("Aviso · plaza nueva en tu zona") {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+                    PapSpotAlertBanner(
+                        text = stringResource(Res.string.zone_alert_in_app, "Casa"),
+                        onDismiss = {},
+                        modifier = Modifier.padding(bottom = 24.dp),
+                    )
+                }
+            },
             Variant("Ruta · recalculando") {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     RouteNoticePill(

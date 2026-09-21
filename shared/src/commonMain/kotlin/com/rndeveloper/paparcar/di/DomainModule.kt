@@ -28,6 +28,7 @@ import com.rndeveloper.paparcar.domain.usecase.entitlement.GetPlusOffersUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.PurchasePlusUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.RestorePurchasesUseCase
+import com.rndeveloper.paparcar.domain.notification.MapVisibility
 import com.rndeveloper.paparcar.domain.usecase.zone.ObserveZoneSpotAlertsUseCase
 import com.rndeveloper.paparcar.domain.usecase.zone.SaveOrUpdateZoneUseCase
 import com.rndeveloper.paparcar.domain.usecase.zone.SaveZoneUseCase
@@ -134,6 +135,12 @@ val domainModule = module {
     factory { SaveZoneUseCase(repository = get(), authRepository = get()) }
     // Home's zone form (create + in-place edit). [HOME-ATOMIZE-001 F4]
     factory { SaveOrUpdateZoneUseCase(repository = get(), saveZone = get()) }
+    // Una sola señal de «¿el mapa está delante?», con un solo dueño: la escribe el corchete de
+    // ciclo de vida del mapa y la leen Home y el reparto de avisos, que es quien elige si la plaza
+    // se cuenta dentro de la app o por notificación.
+    // [ZONE-AN-ALERT-IS-DELIVERED-WHERE-YOU-CAN-SEE-IT-001]
+    single { MapVisibility() }
+
     // Plus zone alerts. DOS carriles y UNA memoria: el stream mientras la app vive, el PUSH
     // mientras no. Los dos apuntan en el MISMO repositorio, que es lo que impide que la misma
     // plaza se anuncie dos veces por dos rutas.
@@ -143,7 +150,6 @@ val domainModule = module {
             zoneRepository = get(),
             spotRepository = get(),
             watchRepository = get(),
-            observeIsPlus = get(),
             appPreferences = get(),
             authRepository = get(),
         )

@@ -49,6 +49,7 @@ val presentationModule = module {
     // reflection helper only supports up to 22. [DET-TOGGLE-002]
     viewModel {
         HomeViewModel(
+            mapVisibility = get(),
             get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
             get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
             get(), get(), get(), get(), get(), get(), get(), get(), get(),
