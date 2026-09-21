@@ -26,6 +26,32 @@ import com.rndeveloper.paparcar.domain.util.haversineMeters
  */
 object NearbyOrdering {
 
+    /**
+     * El CONJUNTO: las mismas gasolineras, cotizadas para el coche que conduces y medidas desde el
+     * usuario, **en el orden en que contestó la fuente**.
+     *
+     * Existe separado de [fuelStations] porque *qué gasolineras hay* y *en qué orden se leen* son
+     * dos preguntas, y sólo la primera es del mapa. Un pin no tiene fila ni scroll: reordenarlo no
+     * se ve. [MAP-THE-MAP-READS-THE-SET-NOT-THE-ORDER-001]
+     */
+    fun fuelStationsPriced(
+        stations: List<NearbyFuelStation>,
+        pricedFor: FuelType?,
+        user: GpsPoint?,
+    ): List<NearbyFuelStation> =
+        stations.map { nearby ->
+            nearby.copy(
+                // Through the pump product: a forecourt is indexed by what it SELLS, and «for
+                // the car being driven» includes the hybrid that buys petrol. Idempotent, so a
+                // caller that already mapped loses nothing. [FUEL-A-HYBRID-FILLS-UP-WITH-PETROL-001]
+                price = pricedFor?.let { nearby.station.prices[it.pumpProduct] },
+                distanceMeters = user?.let {
+                    haversineMeters(it.latitude, it.longitude, nearby.station.latitude, nearby.station.longitude)
+                } ?: nearby.distanceMeters,
+            )
+        }
+
+    /** El conjunto de [fuelStationsPriced], en el ORDEN en que lo lee el carril. */
     fun fuelStations(
         stations: List<NearbyFuelStation>,
         pricedFor: FuelType?,
@@ -33,18 +59,7 @@ object NearbyOrdering {
         /** Qué pregunta está haciendo el usuario. [FUEL-THE-LANE-IS-FILTERED-BY-WHAT-YOU-BURN-001] */
         sort: FuelLaneSort = FuelLaneSort.NEAREST,
     ): List<NearbyFuelStation> =
-        stations
-            .map { nearby ->
-                nearby.copy(
-                    // Through the pump product: a forecourt is indexed by what it SELLS, and «for
-                    // the car being driven» includes the hybrid that buys petrol. Idempotent, so a
-                    // caller that already mapped loses nothing. [FUEL-A-HYBRID-FILLS-UP-WITH-PETROL-001]
-                    price = pricedFor?.let { nearby.station.prices[it.pumpProduct] },
-                    distanceMeters = user?.let {
-                        haversineMeters(it.latitude, it.longitude, nearby.station.latitude, nearby.station.longitude)
-                    } ?: nearby.distanceMeters,
-                )
-            }
+        fuelStationsPriced(stations, pricedFor, user)
             .let { priced ->
                 // ⛔ La MÁS BARATA sube al principio (review de #37: «debería haber también para
                 // barato y ordenado arriba»). Sin esto puede vivir a diez filas de scroll: la lista
@@ -76,19 +91,26 @@ object NearbyOrdering {
                 }
             }
 
+    /** El CONJUNTO de parkings, medido desde el usuario y en el orden de la fuente. Mismo reparto
+     *  que en gasolineras: el mapa lee esto, el carril lee [publicParkings].
+     *  [MAP-THE-MAP-READS-THE-SET-NOT-THE-ORDER-001] */
+    fun publicParkingsMeasured(
+        parkings: List<NearbyPublicParking>,
+        user: GpsPoint?,
+    ): List<NearbyPublicParking> =
+        parkings.map { nearby ->
+            user?.let {
+                nearby.copy(
+                    distanceMeters = haversineMeters(
+                        it.latitude, it.longitude, nearby.parking.latitude, nearby.parking.longitude,
+                    ),
+                )
+            } ?: nearby
+        }
+
     fun publicParkings(
         parkings: List<NearbyPublicParking>,
         user: GpsPoint?,
     ): List<NearbyPublicParking> =
-        parkings
-            .map { nearby ->
-                user?.let {
-                    nearby.copy(
-                        distanceMeters = haversineMeters(
-                            it.latitude, it.longitude, nearby.parking.latitude, nearby.parking.longitude,
-                        ),
-                    )
-                } ?: nearby
-            }
-            .sortedBy { it.distanceMeters }
+        publicParkingsMeasured(parkings, user).sortedBy { it.distanceMeters }
 }

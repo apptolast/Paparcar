@@ -525,12 +525,16 @@ internal fun HomeState.toMapSlice() = HomeMapSlice(
     // ⛔ The SAME projection the lane lists, not a union of stores: one store, one anchor, so a pin
     // and a row can never be about two different areas. [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
     // Priced for the car you drive. [MAP-A-PIN-IS-PRICED-FOR-THE-CAR-YOU-DRIVE-001]
-    fuelStations = if (showsFuelOnMap) fuelStationsShown else emptyList(),
+    // ⛔ `…OnMap`, no `…Shown`: el mismo CONJUNTO, sin el orden del carril. Un marcador no se
+    // reordena —no tiene fila— así que heredar el orden sólo servía para que un chip de orden
+    // entregara una lista distinta y reconstruyera cientos de marcadores idénticos.
+    // [MAP-THE-MAP-READS-THE-SET-NOT-THE-ORDER-001]
+    fuelStations = if (showsFuelOnMap) fuelStationsOnMap else emptyList(),
     selectedFuelStationId = (selection as? HomeSelection.FuelStation)?.id,
     // The label of the figure comes from the same place the figure does — a capsule that reads
     // "1,529 Diésel" while quoting petrol is the one failure this pairing exists to prevent.
     fuelPricesFor = pricedFuelType,
-    publicParkings = if (showsParkingsOnMap) publicParkingsShown else emptyList(),
+    publicParkings = if (showsParkingsOnMap) publicParkingsOnMap else emptyList(),
     selectedPublicParkingId = (selection as? HomeSelection.PublicParking)?.id,
 )
 

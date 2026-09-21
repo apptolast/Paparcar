@@ -522,14 +522,43 @@ data class HomeState(
      * ⛔ A price is a property of the FORECOURT, never of the request — `FuelStation.prices` carries
      * everything that station is known to charge — so it is resolved here, and switching the active
      * car requotes every surface without asking again.
+     *
+     * ⛔ `by lazy`, no `get()`: **una proyección se calcula una vez por estado, no una vez por
+     * lectura**. La leen el mapa, el peek, la lista y la selección, así que con `get()` cada
+     * emisión de estado ordenaba la tienda entera cuatro veces —y eso ocurre en el frame que el
+     * usuario está esperando para ver su chip marcado.
+     * [HOME-A-PROJECTION-IS-COMPUTED-ONCE-001]
      */
-    val fuelStationsShown: List<NearbyFuelStation>
-        get() = NearbyOrdering.fuelStations(fuel.stations, pricedFuelType, userGpsPoint, fuelSort)
+    val fuelStationsShown: List<NearbyFuelStation> by lazy {
+        NearbyOrdering.fuelStations(fuel.stations, pricedFuelType, userGpsPoint, fuelSort)
+    }
+
+    /**
+     * Lo que el MAPA pinta: el mismo conjunto, con los mismos precios y las mismas distancias, pero
+     * **sin el orden del carril**.
+     *
+     * ⛔ El mapa leía `fuelStationsShown`, y por tanto heredaba el orden. Un pin no tiene fila ni
+     * scroll: cambiar de «cercanas» a «baratas» no mueve un solo marcador de sitio, pero entregaba
+     * una lista distinta a la clave `remember` que construye los marcadores, y reconstruía los
+     * cientos que hay para no cambiar nada. Un consumidor no debe depender de algo que no puede
+     * mostrar. [MAP-THE-MAP-READS-THE-SET-NOT-THE-ORDER-001]
+     */
+    val fuelStationsOnMap: List<NearbyFuelStation> by lazy {
+        NearbyOrdering.fuelStationsPriced(fuel.stations, pricedFuelType, userGpsPoint)
+    }
 
     /** The car parks every surface reads: the ONE store, nearest to the user first.
-     *  [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001] */
-    val publicParkingsShown: List<NearbyPublicParking>
-        get() = NearbyOrdering.publicParkings(parkings.parkings, userGpsPoint).filteredBy(parkingFilter)
+     *  [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001] [HOME-A-PROJECTION-IS-COMPUTED-ONCE-001] */
+    val publicParkingsShown: List<NearbyPublicParking> by lazy {
+        NearbyOrdering.publicParkings(parkings.parkings, userGpsPoint).filteredBy(parkingFilter)
+    }
+
+    /** Los parkings del MAPA: el mismo conjunto FILTRADO —el filtro sí decide cuáles existen para
+     *  ti, y eso el mapa sí lo enseña— sin el orden de lectura.
+     *  [MAP-THE-MAP-READS-THE-SET-NOT-THE-ORDER-001] */
+    val publicParkingsOnMap: List<NearbyPublicParking> by lazy {
+        NearbyOrdering.publicParkingsMeasured(parkings.parkings, userGpsPoint).filteredBy(parkingFilter)
+    }
 
     /** Había parkings ANTES de filtrar. Es lo que separa «aquí no hay ninguno» de «ninguno cumple
      *  lo que has pedido», que son dos frases distintas y sólo una es un veredicto sobre el mundo.

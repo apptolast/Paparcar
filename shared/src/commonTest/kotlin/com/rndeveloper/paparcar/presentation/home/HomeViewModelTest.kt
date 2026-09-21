@@ -3298,9 +3298,11 @@ class HomeViewModelTest {
         vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
         advanceUntilIdle()
 
+        // Como conjunto: el mapa lee la misma tienda, no el mismo orden de lectura.
+        // [MAP-THE-MAP-READS-THE-SET-NOT-THE-ORDER-001]
         fun assertSame() = assertEquals(
-            vm.state.value.toBrowseListSlice().parkings.parkings.map { it.parking.id },
-            vm.state.value.toMapSlice().publicParkings.map { it.parking.id },
+            vm.state.value.toBrowseListSlice().parkings.parkings.map { it.parking.id }.sorted(),
+            vm.state.value.toMapSlice().publicParkings.map { it.parking.id }.sorted(),
         )
         assertSame()
         parkingsSource.result = Result.success(listOf(spyParkingLejos("c")))
