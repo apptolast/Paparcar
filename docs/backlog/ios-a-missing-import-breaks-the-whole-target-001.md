@@ -53,14 +53,25 @@ remedio.** `.github/workflows/ci.yml` tiene el job `iOS framework (Kotlin/Native
 —`github.event_name == 'pull_request'`— lo hace correr en **cada pull request a master**. O sea que
 el PR #36 **tenía** su chequeo de iOS, y el chequeo debería haberlo cazado.
 
-Lo que pasó es que **no arrancó**: el CI de la org lleva caído por facturación de Actions desde el
-14-09, y los jobs mueren en 2-5 segundos con `steps=0` y sin logs. Las catorce PRs abiertas están en
-rojo por lo mismo, así que el rojo dejó de significar nada y nadie lo miró.
+Lo que pasó es que **no arrancó**. Lo medido el 21-09-2026 con la API de GitHub, y **solo** lo
+medido:
 
-Por eso **no se abre ticket de «montar un guard de iOS»**: montar un segundo guard sobre uno que ya
-existe y no corre no arregla nada — sería exactamente la duplicación que
-[DET-VERDICT-NOT-PREDICATE-001] evita en su terreno. Lo que hay que arreglar es la facturación, y esa
-es una decisión del user, no una tarea de código.
+- El último run verde es del **13-09 a las 10:01**. Desde entonces, **100 de 100** runs fallan.
+- Falla en **todas** las ramas, master incluida — no es cosa de una rama ni de un cambio concreto.
+- Los jobs terminan en **2-7 segundos** con `steps: 0`, **sin logs** y con `output.title` y
+  `output.summary` a `null` en el check-run. Es decir: **no llegan a arrancar**, no es que el build
+  falle.
+
+⛔ **La causa NO está confirmada.** Una versión anterior de este doc la daba por «facturación de
+Actions»; la API no dice eso en ninguna parte y no hay forma de verificarlo desde aquí. Un job que
+muere con `steps: 0` es compatible con un límite de gasto, con Actions deshabilitado para la org y
+con un problema de runners, y no tenemos con qué distinguirlos. Queda escrito como **síntoma
+medido**, no como diagnóstico.
+
+Lo que sí se sigue de esto, sea cual sea la causa: **no se abre ticket de «montar un guard de
+iOS»**. Montar un segundo guard sobre uno que ya existe y no arranca no arregla nada — sería la
+duplicación que [DET-VERDICT-NOT-PREDICATE-001] evita en su terreno. Lo que hay que devolver a la
+vida es el CI que ya está escrito.
 
 ## Verificación
 
