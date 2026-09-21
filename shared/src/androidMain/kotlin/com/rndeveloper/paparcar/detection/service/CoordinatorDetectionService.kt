@@ -46,6 +46,10 @@ import com.rndeveloper.paparcar.domain.detection.sentry.SentryKillVerdict
 import com.rndeveloper.paparcar.domain.detection.ServicePresence
 import com.rndeveloper.paparcar.domain.detection.fence.VehicleFenceOwnershipPolicy
 import com.rndeveloper.paparcar.domain.detection.sentry.nextSentryWakeAbortStreak
+import com.rndeveloper.paparcar.domain.detection.sentry.parkedCarNeedsWatcher
+import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDepartureWatchGapUseCase
+import com.rndeveloper.paparcar.domain.detection.sentry.vehiclesThatNeedNoWatcher
+import com.rndeveloper.paparcar.domain.detection.sentry.watchFacts
 import com.rndeveloper.paparcar.domain.detection.sentry.resolvePostDetectionLifecycle
 import com.rndeveloper.paparcar.domain.detection.sentry.sentryWakeRearmCooldownMs
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
@@ -104,6 +108,9 @@ class CoordinatorDetectionService : LifecycleService() {
     private val foregroundNotificationProvider: ForegroundNotificationProvider by inject()
     private val notificationPort: AppNotificationManager by inject()
     private val vehicleRepository: VehicleRepository by inject()
+    /** La regla de residencia, servida como stream — el servicio la LEE, no la re-deriva.
+     *  [DET-A-PARKED-BT-CAR-NEEDS-NO-RESIDENT-WATCHER-001] */
+    private val observeDepartureWatchGap: ObserveDepartureWatchGapUseCase by inject()
     private val revertParking: RevertParkingUseCase by inject() // [REFACTOR-300]
     private val processConfirmedDeparture: ProcessConfirmedDepartureUseCase by inject() // [DET-AR-REARM-001]
     // [DET-EVERY-TRIGGER-REPORTS-WHAT-IT-PRODUCED-001] The population-wide half of the trigger
@@ -1909,16 +1916,30 @@ class CoordinatorDetectionService : LifecycleService() {
                 )
             }
         }
-        // [DET-STRATEGY-GATE-001] Residency is strategy-aware: under BLUETOOTH the ACL broadcast
-        // wakes the process by itself (manifest receiver, FGS-from-bg exempt), so the resident
-        // watcher would only burn battery + pin a permanent notification. Resolved fresh on every
-        // epilogue, so pairing/unpairing BT or toggling the adapter self-corrects one cycle later.
-        val strategy = runCatching { strategyResolver.resolve() }.getOrDefault(ParkingStrategy.COORDINATOR)
+        // [DET-A-PARKED-BT-CAR-NEEDS-NO-RESIDENT-WATCHER-001] La residencia se decide POR COCHE
+        // APARCADO: el emparejado por BT trae su propio despertador (su ACL CONNECT es su salida,
+        // y lo entrega un receptor de manifiesto al proceso muerto), el que no, sólo tiene el
+        // sensor de movimiento, que no se entrega a un proceso muerto.
+        //
+        // ⛔ Aquí se preguntaba por `strategyResolver.resolve()`, y desde
+        // [DET-BT-CONNECTED-NOT-PAIRED-001] esa respuesta es «BLUETOOTH sólo si estás CONECTADO
+        // ahora». Este epílogo corre justo después de aparcar — cuando el coche acaba de
+        // desconectarse —, así que el gate era inalcanzable y el usuario de un solo coche BT se
+        // quedaba con el centinela y su notificación permanente (issue #57).
+        //
+        // Emparejado, no conectado: se lee de la flota, no del adaptador.
+        val needNoWatcher = runCatching {
+            vehiclesThatNeedNoWatcher(
+                vehicleRepository.observeVehicles().firstOrNull().orEmpty().map { it.watchFacts() },
+            )
+        }.getOrElse { emptySet<String>() } // una flota ilegible no declara despertadores: se vigila
         when (
             resolvePostDetectionLifecycle(
                 autoDetectEnabled = appPreferences.autoDetectParking, // [F3] Settings toggle IS the sentry gate
-                hasParkedSession = parkedSessions.isNotEmpty(),
-                strategy = strategy,
+                parkedCarNeedsWatcher = parkedCarNeedsWatcher(
+                    parkedVehicleIds = parkedSessions.map { it.vehicleId },
+                    vehiclesThatNeedNoWatcher = needNoWatcher,
+                ),
             )
         ) {
             PostDetectionLifecycle.EnterSentry ->
@@ -2003,14 +2024,26 @@ class CoordinatorDetectionService : LifecycleService() {
         sentryWatchJob?.cancel()
         sentryWatchJob = lifecycleScope.launch {
             launch {
-                combine(
-                    appPreferences.observeAutoDetectParking(),
-                    userParkingRepository.observeActiveSessions(),
-                ) { enabled, sessions -> enabled && sessions.isNotEmpty() }
-                    .distinctUntilChanged()
+                // ⛔ **Esta es la puerta de SALIDA de la residencia, y tenía su propia regla.**
+                // [DET-A-PARKED-BT-CAR-NEEDS-NO-RESIDENT-WATCHER-001]
+                //
+                // Decía `enabled && sessions.isNotEmpty()`, que es la regla de residencia de ANTES
+                // de que existiera `parkedCarNeedsWatcher` — o sea, una segunda definición de lo
+                // mismo que se quedó atrás en cuanto la primera aprendió algo nuevo. El resultado,
+                // medido por el user el 20-09: emparejas por Bluetooth el coche que ya está
+                // aparcado, el epílogo (que es quien sabe de despertadores) no se vuelve a
+                // consultar porque no ha terminado ningún viaje, y ESTE vigilante ve una sesión
+                // viva y concluye que la residencia sigue haciendo falta. La notificación
+                // permanente se queda puesta, que es literalmente el bug de la issue #57 por otra
+                // puerta.
+                //
+                // Ahora pregunta a la MISMA función que el epílogo y que el detector de huecos, con
+                // las mismas tres entradas. La flota entra en el `combine` porque emparejar un BT es
+                // un cambio de la flota: sin ella, el flujo ni siquiera re-emitiría.
+                observeDepartureWatchGap.residencyStillWanted()
                     .collect { residencyStillWanted ->
                         if (!residencyStillWanted && detectionRuntime.presence.value == ServicePresence.Sentry) {
-                            PaparcarLogger.d(DIAG, "  ⏻ sentry stand-down (detection off or nothing parked) → STOP_TRACKING")
+                            PaparcarLogger.d(DIAG, "  ⏻ sentry stand-down (detection off, nothing parked, or every parked car wakes itself) → STOP_TRACKING")
                             startService(
                                 Intent(this@CoordinatorDetectionService, CoordinatorDetectionService::class.java)
                                     .setAction(ACTION_STOP_TRACKING),

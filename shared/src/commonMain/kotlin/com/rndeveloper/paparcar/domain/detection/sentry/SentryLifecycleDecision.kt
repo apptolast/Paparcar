@@ -1,8 +1,8 @@
 package com.rndeveloper.paparcar.domain.detection.sentry
 
 import com.rndeveloper.paparcar.domain.detection.ServicePresence
+import com.rndeveloper.paparcar.domain.model.Vehicle
 
-import com.rndeveloper.paparcar.domain.detection.ParkingStrategy
 
 /**
  * [DET-RESIDENT-FGS-001] Pure decision for what the foreground detection service does when a
@@ -14,14 +14,29 @@ import com.rndeveloper.paparcar.domain.detection.ParkingStrategy
  *  - `autoDetectEnabled` — the user's Settings auto-detect toggle. F3 decision (2026-08-06, user):
  *    the sentry has NO switch of its own — residency is HOW detection stays ready, so the existing
  *    detection toggle governs it. During F1/F2 this input was an internal experiment flag.
- *  - `hasParkedSession` — residency is pointless with nothing parked to watch (after a revert / with
- *    no active session, DIE so we never leave a resident FGS with no purpose), and
- *  - `strategy == COORDINATOR` — the resident watcher is the crutch of the PROBABILISTIC pipeline
- *    (its wake signal, significant motion, cannot be delivered to a dead process). Under
- *    [ParkingStrategy.BLUETOOTH] the deterministic ACL broadcast wakes the process by itself
- *    (manifest receiver, FGS-from-background exempt on Android 12+), so residency would only cost
- *    battery and a permanent notification; under NONE there is nothing to detect.
- *    [DET-STRATEGY-GATE-001]
+ *  - `parkedCarNeedsWatcher` — hay algo aparcado Y ese algo no se despierta solo.
+ *
+ * ⛔ **La segunda entrada era `strategy == COORDINATOR` y estaba muerta desde el día siguiente.**
+ * [DET-A-PARKED-BT-CAR-NEEDS-NO-RESIDENT-WATCHER-001] La idea era la correcta —bajo BLUETOOTH el
+ * broadcast ACL despierta el proceso solo (receptor de manifiesto, exento de la restricción de
+ * FGS-desde-background en Android 12+), así que la residencia sólo costaría batería y una
+ * notificación permanente— pero la pregunta estaba mal hecha, y
+ * [DET-BT-CONNECTED-NOT-PAIRED-001] la remató: desde entonces `BLUETOOTH` significa «CONECTADO
+ * ahora mismo al coche», y este epílogo se consulta **justo después de aparcar**, que es
+ * exactamente cuando el coche acaba de DESCONECTARSE. El gate era inalcanzable en el único momento
+ * en que se le preguntaba, así que el usuario de un solo coche BT se quedaba con el centinela y su
+ * notificación permanente. Reportado el 19-09 (issue #57), y con razón: «creía que habíamos
+ * acordado despertar el servicio por BT receiver».
+ *
+ * La pregunta honesta no es qué estrategia conduce ahora, sino **si el coche APARCADO tiene un
+ * despertador determinista propio**: lo tiene si está emparejado por Bluetooth —emparejado, no
+ * conectado—, porque su próximo ACL CONNECT es su propia salida
+ * [DET-A-BT-CONNECT-IS-A-DEPARTURE-001]. Eso lo contesta [parkedCarNeedsWatcher].
+ *
+ * ⛔ Y se decide **por coche, no por flota**: con un BT aparcado y otro sin BT también aparcado, el
+ * segundo necesita el centinela y la residencia se queda. Es literalmente lo que pidió el user:
+ * *«en caso de que sí tuviera otro activo, el vehículo activo necesita FGS siempre que tengamos el
+ * vehículo activo con sesión activa aparcado»*.
  *
  * Deliberately NOT tier-gated: the sentry costs a silent minimum-importance notification and near-zero
  * battery on every tier, and the ASSISTED tiers (no BT receiver to revive a dead process) are exactly
@@ -38,14 +53,77 @@ enum class PostDetectionLifecycle {
 
 fun resolvePostDetectionLifecycle(
     autoDetectEnabled: Boolean,
-    hasParkedSession: Boolean,
-    strategy: ParkingStrategy,
+    parkedCarNeedsWatcher: Boolean,
 ): PostDetectionLifecycle =
-    if (autoDetectEnabled && hasParkedSession && strategy == ParkingStrategy.COORDINATOR) {
+    if (autoDetectEnabled && parkedCarNeedsWatcher) {
         PostDetectionLifecycle.EnterSentry
     } else {
         PostDetectionLifecycle.Stop
     }
+
+/**
+ * ¿Queda algún coche APARCADO que no se despierte solo?
+ * [DET-A-PARKED-BT-CAR-NEEDS-NO-RESIDENT-WATCHER-001]
+ *
+ * Un coche emparejado por Bluetooth trae su propio despertador: su siguiente ACL CONNECT es su
+ * salida, y lo entrega un receptor de manifiesto al proceso muerto
+ * [DET-A-BT-CONNECT-IS-A-DEPARTURE-001]. Uno sin emparejar sólo tiene la señal de movimiento
+ * significativo, que **no se puede entregar a un proceso muerto**: ése es el que paga el centinela.
+ *
+ * ⛔ **Emparejado, no conectado.** Un coche aparcado está, por definición, desconectado: preguntar
+ * por la conexión aquí es preguntar por algo que nunca es cierto en este momento. Ése fue el fallo.
+ *
+ * ⛔ **Una sesión sin coche conocido CUENTA como que necesita vigilante.** Ante la duda se vigila:
+ * quedarse residente cuesta una notificación silenciosa; no quedarse cuesta una salida perdida, que
+ * es la clase de fallo crónico por la que existe el centinela.
+ *
+ * Un coche queda fuera por **dos** motivos, y el segundo es una red de seguridad heredada:
+ *  1. **Se despierta solo** — emparejado por BT.
+ *  2. **Nunca aparca en una plaza** — patinete/bici. Ahí no debería existir sesión ninguna, así que
+ *     es un estado imposible; pero estaba explícitamente cubierto por el gate de estrategia que esto
+ *     sustituye (`ParkingStrategy.NONE`) y su test, y una red que ya existía no se retira de paso en
+ *     el ticket de otra cosa. [VEH-A-NEW-VEHICLE-TYPE-MUST-NOT-BE-A-CAR-BY-OMISSION-001]
+ *
+ * @param parkedVehicleIds el `vehicleId` de cada sesión activa (null incluido: una sesión sin coche)
+ * @param vehiclesThatNeedNoWatcher los coches de la flota que no lo necesitan, por 1 o por 2
+ */
+fun parkedCarNeedsWatcher(
+    parkedVehicleIds: List<String?>,
+    vehiclesThatNeedNoWatcher: Set<String>,
+): Boolean = parkedVehicleIds.any { it == null || it !in vehiclesThatNeedNoWatcher }
+
+/**
+ * Qué coches de la flota **no necesitan centinela**, por los dos motivos de [parkedCarNeedsWatcher].
+ * [DET-A-PARKED-BT-CAR-NEEDS-NO-RESIDENT-WATCHER-001]
+ *
+ * ⛔ Existe porque este `filter` se escribía a mano en cada sitio que preguntaba por la residencia, y
+ * la lista de motivos es justo la clase de cosa que crece: el día que entre un tercero (un coche
+ * compartido que vigila otro móvil, por ejemplo), un sitio se enteraría y los demás no. Es un
+ * predicado compartido por 2+ veredictos, así que vive suelto en `domain/detection/` y no dentro de
+ * ninguno. [DET-VERDICT-NOT-PREDICATE-001]
+ */
+fun vehiclesThatNeedNoWatcher(
+    vehicles: List<VehicleWatchFacts>,
+): Set<String> = vehicles
+    .filter { it.isBluetoothPaired || !it.parksInASpot }
+    .map { it.id }
+    .toSet()
+
+/** Lo ÚNICO que la residencia necesita saber de un coche. Un tipo propio y no `Vehicle` porque esto
+ *  vive en la capa de decisión: marca, matrícula o consumo no deciden nada aquí. */
+data class VehicleWatchFacts(
+    val id: String,
+    /** Emparejado, **no** conectado: un coche aparcado está por definición desconectado. */
+    val isBluetoothPaired: Boolean,
+    val parksInASpot: Boolean,
+)
+
+/** El único sitio donde un [Vehicle] se traduce a lo que la residencia necesita de él. */
+fun Vehicle.watchFacts(): VehicleWatchFacts = VehicleWatchFacts(
+    id = id,
+    isBluetoothPaired = bluetoothDeviceId != null,
+    parksInASpot = vehicleType.parksInASpot,
+)
 
 /**
  * [DET-RESIDENT-FGS-001 · F2] Pure verdict for a sentry-residency stamp found on disk. The service

@@ -2,64 +2,90 @@ package com.rndeveloper.paparcar.domain.detection.sentry
 
 import com.rndeveloper.paparcar.domain.detection.ServicePresence
 
-import com.rndeveloper.paparcar.domain.detection.ParkingStrategy
-
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class SentryLifecycleDecisionTest {
+
+    // ── resolvePostDetectionLifecycle ────────────────────────────────────────
+
+    private val NO_BT = emptySet<String>()
 
     @Test
     fun should_stop_when_auto_detect_off_even_with_parked_session() {
         // [F3] Detection turned off in Settings → no residency, byte-for-byte wake-and-kill.
         assertEquals(
             PostDetectionLifecycle.Stop,
-            resolvePostDetectionLifecycle(autoDetectEnabled = false, hasParkedSession = true, strategy = ParkingStrategy.COORDINATOR),
+            resolvePostDetectionLifecycle(autoDetectEnabled = false, parkedCarNeedsWatcher = true),
         )
     }
 
     @Test
-    fun should_stop_when_auto_detect_off_and_no_parked_session() {
-        assertEquals(
-            PostDetectionLifecycle.Stop,
-            resolvePostDetectionLifecycle(autoDetectEnabled = false, hasParkedSession = false, strategy = ParkingStrategy.COORDINATOR),
-        )
-    }
-
-    @Test
-    fun should_enter_sentry_when_auto_detect_on_and_parked_session_exists() {
+    fun should_enter_sentry_when_auto_detect_on_and_a_parked_car_needs_watching() {
         assertEquals(
             PostDetectionLifecycle.EnterSentry,
-            resolvePostDetectionLifecycle(autoDetectEnabled = true, hasParkedSession = true, strategy = ParkingStrategy.COORDINATOR),
+            resolvePostDetectionLifecycle(autoDetectEnabled = true, parkedCarNeedsWatcher = true),
         )
     }
 
     @Test
-    fun should_stop_when_auto_detect_on_but_nothing_parked_to_watch() {
-        // After a revert / with no active session there is no departure to catch — never leave a
-        // resident FGS with no purpose.
+    fun should_stop_when_auto_detect_on_but_nothing_needs_watching() {
+        // Tras un revert / sin sesión activa no hay salida que cazar — nunca se deja un FGS
+        // residente sin propósito.
         assertEquals(
             PostDetectionLifecycle.Stop,
-            resolvePostDetectionLifecycle(autoDetectEnabled = true, hasParkedSession = false, strategy = ParkingStrategy.COORDINATOR),
+            resolvePostDetectionLifecycle(autoDetectEnabled = true, parkedCarNeedsWatcher = false),
+        )
+    }
+
+    // ── parkedCarNeedsWatcher [DET-A-PARKED-BT-CAR-NEEDS-NO-RESIDENT-WATCHER-001] ────────────
+
+    @Test
+    fun should_needNoWatcher_when_nothingIsParked() {
+        assertEquals(false, parkedCarNeedsWatcher(parkedVehicleIds = emptyList(), vehiclesThatNeedNoWatcher = NO_BT))
+    }
+
+    /**
+     * ⛔ EL TESTIGO DE LA ISSUE #57. Un solo coche, emparejado por BT, aparcado: su ACL CONNECT es
+     * su propia salida y lo entrega un receptor de manifiesto al proceso muerto, así que el
+     * centinela —y su notificación permanente— sobran. Antes esto devolvía «residir» porque se
+     * preguntaba por la estrategia del MOMENTO, y un coche aparcado está desconectado por
+     * definición.
+     */
+    @Test
+    fun should_needNoWatcher_when_theOnlyParkedCarIsBtPaired() {
+        assertEquals(
+            false,
+            parkedCarNeedsWatcher(parkedVehicleIds = listOf("v-bt"), vehiclesThatNeedNoWatcher = setOf("v-bt")),
         )
     }
 
     @Test
-    fun should_stop_when_bluetooth_strategy_owns_detection() {
-        // [DET-STRATEGY-GATE-001] The deterministic ACL broadcast wakes the process by itself —
-        // residency under BLUETOOTH only burns battery and pins a permanent notification.
+    fun should_needWatcher_when_theParkedCarHasNoBtPairing() {
         assertEquals(
-            PostDetectionLifecycle.Stop,
-            resolvePostDetectionLifecycle(autoDetectEnabled = true, hasParkedSession = true, strategy = ParkingStrategy.BLUETOOTH),
+            true,
+            parkedCarNeedsWatcher(parkedVehicleIds = listOf("v-plain"), vehiclesThatNeedNoWatcher = setOf("v-bt")),
         )
     }
 
+    /** Lo que pidió el user: con otro coche aparcado sin BT, la residencia se queda por ÉSE. */
     @Test
-    fun should_stop_when_strategy_is_none() {
-        // A scooter/bike fleet never parks — nothing for a resident watcher to catch.
+    fun should_needWatcher_when_oneOfTwoParkedCarsHasNoBtPairing() {
         assertEquals(
-            PostDetectionLifecycle.Stop,
-            resolvePostDetectionLifecycle(autoDetectEnabled = true, hasParkedSession = true, strategy = ParkingStrategy.NONE),
+            true,
+            parkedCarNeedsWatcher(
+                parkedVehicleIds = listOf("v-bt", "v-plain"),
+                vehiclesThatNeedNoWatcher = setOf("v-bt"),
+            ),
+        )
+    }
+
+    /** Ante la duda se vigila: una sesión sin coche conocido no puede declarar despertador. */
+    @Test
+    fun should_needWatcher_when_aParkedSessionHasNoVehicle() {
+        assertEquals(
+            true,
+            parkedCarNeedsWatcher(parkedVehicleIds = listOf(null), vehiclesThatNeedNoWatcher = setOf("v-bt")),
         )
     }
 

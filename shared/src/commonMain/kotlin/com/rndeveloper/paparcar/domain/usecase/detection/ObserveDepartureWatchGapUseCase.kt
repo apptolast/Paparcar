@@ -1,9 +1,11 @@
 package com.rndeveloper.paparcar.domain.usecase.detection
 
 import com.rndeveloper.paparcar.domain.detection.DetectionRuntimeState
-import com.rndeveloper.paparcar.domain.detection.ParkingStrategyResolver
 import com.rndeveloper.paparcar.domain.detection.sentry.PostDetectionLifecycle
 import com.rndeveloper.paparcar.domain.detection.ServicePresence
+import com.rndeveloper.paparcar.domain.detection.sentry.parkedCarNeedsWatcher
+import com.rndeveloper.paparcar.domain.detection.sentry.vehiclesThatNeedNoWatcher
+import com.rndeveloper.paparcar.domain.detection.sentry.watchFacts
 import com.rndeveloper.paparcar.domain.detection.sentry.resolvePostDetectionLifecycle
 import com.rndeveloper.paparcar.domain.permissions.PermissionManager
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
@@ -31,31 +33,59 @@ import kotlinx.coroutines.flow.map
 class ObserveDepartureWatchGapUseCase(
     private val userParkingRepository: UserParkingRepository,
     private val vehicleRepository: VehicleRepository,
-    private val strategyResolver: ParkingStrategyResolver,
     private val appPreferences: AppPreferences,
     private val detectionRuntime: DetectionRuntimeState,
     private val permissionManager: PermissionManager,
 ) {
-    operator fun invoke(): Flow<Boolean> = combine(
+    /**
+     * **¿La residencia sigue haciendo falta?** — la regla de [resolvePostDetectionLifecycle] servida
+     * como STREAM, sin mirar si el servicio está vivo.
+     * [DET-A-PARKED-BT-CAR-NEEDS-NO-RESIDENT-WATCHER-001]
+     *
+     * ⛔ Existe porque la residencia tenía **una puerta de entrada y ninguna de salida honesta**. El
+     * epílogo del servicio decide quedarse residente en el instante en que termina un viaje y no se
+     * vuelve a preguntar nunca; el vigilante que sí podía derribarlo
+     * (`watchSentryPreconditions`) se había escrito **su propia** versión de la regla —«detección
+     * encendida y algo aparcado»—, que es la de antes de que existiera `parkedCarNeedsWatcher`.
+     *
+     * Resultado medido por el user el 20-09: emparejas por Bluetooth el coche que YA está aparcado,
+     * ningún viaje termina, y el único que podía enterarse estaba mirando una regla vieja. La
+     * notificación permanente se quedaba puesta — el bug de la issue #57 entrando por la otra
+     * puerta.
+     *
+     * Ahora hay una sola definición y dos lectores, que es lo que el KDoc de esta clase ya prometía:
+     * [invoke] pregunta «¿falta el vigilante?» y ésta «¿sobra?».
+     *
+     * ⛔ La flota entra en el `combine` **porque emparejar un BT es un cambio de la flota**: sin
+     * ella el flujo ni siquiera re-emitiría, que es la mitad de por qué el bug sobrevivió.
+     */
+    fun residencyStillWanted(): Flow<Boolean> = combine(
         userParkingRepository.observeActiveSessions(),
         vehicleRepository.observeVehicles(),
         appPreferences.observeAutoDetectParking(),
+    ) { sessions, vehicles, autoDetectEnabled ->
+        resolvePostDetectionLifecycle(
+            autoDetectEnabled = autoDetectEnabled,
+            // Por coche aparcado: el emparejado por BT se despierta solo (su ACL CONNECT es su
+            // salida, receptor de manifiesto), así que su ausencia de centinela NO es un hueco.
+            // [DET-A-BT-CONNECT-IS-A-DEPARTURE-001] Esa frase era media verdad cuando se escribió:
+            // el receptor cubría el APARCAR (disconnect) y nada cubría la salida. El CONNECT arma ya
+            // su propia vigilancia de alejamiento, así que ahora se sostiene.
+            parkedCarNeedsWatcher = parkedCarNeedsWatcher(
+                parkedVehicleIds = sessions.map { it.vehicleId },
+                vehiclesThatNeedNoWatcher = vehiclesThatNeedNoWatcher(
+                    vehicles.map { it.watchFacts() },
+                ),
+            ),
+        ) == PostDetectionLifecycle.EnterSentry
+    }.distinctUntilChanged()
+
+    operator fun invoke(): Flow<Boolean> = combine(
+        residencyStillWanted(),
         detectionRuntime.presence,
-    ) { sessions, vehicles, autoDetectEnabled, presence ->
+    ) { wanted, presence ->
         // Only a DEAD service is a gap: Sentry and Active are both genuinely watching.
-        presence == ServicePresence.Dead &&
-            resolvePostDetectionLifecycle(
-                autoDetectEnabled = autoDetectEnabled,
-                hasParkedSession = sessions.isNotEmpty(),
-                // Reads the BT adapter at call time, exactly like the service's epilogue: a car
-                // connected over Bluetooth is covered by the ACL receiver and needs no resident
-                // watcher, so that is NOT a gap. [DET-STRATEGY-GATE-001]
-                // [DET-A-BT-CONNECT-IS-A-DEPARTURE-001] That sentence was half true when written:
-                // the ACL receiver covered the PARK (disconnect) and nothing covered the departure,
-                // so standing the sentry down on connect left the drive-away to the geofence alone.
-                // The CONNECT now arms its own drive-away watch, so the claim holds in full.
-                strategy = strategyResolver.strategyFor(vehicles),
-            ) == PostDetectionLifecycle.EnterSentry
+        presence == ServicePresence.Dead && wanted
     }.distinctUntilChanged()
 
     /**
