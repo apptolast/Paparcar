@@ -1109,8 +1109,47 @@ private val SPOT_PIN_W     = 46.dp
 private val SPOT_PIN_SEL_W  = 56.dp
 private const val SPOT_VIEWBOX_W = 72f
 private const val SPOT_VIEWBOX_H = 82f
+/**
+ * **La línea sobre la que se apoya el CUERPO de cualquier marcador de la familia del puck** — el
+ * borde inferior del disco (centro 34 + radio 29). El punto de posición se coloca debajo, separado
+ * por [MARKER_DOT_GAP]. [MAP-EVERY-MARKER-SITS-THE-SAME-HEIGHT-OVER-ITS-DOT-001]
+ *
+ * Esa distancia es un RASGO de la familia, no un número de cada marcador: el puck de plaza y el de
+ * parking la tenían por construcción (los dos dibujan el mismo disco) y el tag del coche la tiene
+ * equivalente en su propio viewBox (4 de 104 de ancho, frente a 3,5 de 72). La cápsula de la
+ * gasolinera era la única que colgaba del borde SUPERIOR del marcador: con la altura mínima de 48
+ * unidades quedaba a ~18 del punto, cinco veces la separación de sus hermanos, y por eso se leía
+ * como un globo suelto encima de un punto en vez de como un marcador.
+ */
+private const val MARKER_BODY_BOTTOM_Y = 63f
+
 private const val SPOT_DOT_R = 4.5f // position-dot radius (viewBox units)
-private const val SPOT_DOT_CY = 71f // position-dot centre Y (viewBox units) — the visual ground point
+
+/**
+ * **El AIRE entre el cuerpo de un marcador y su punto de posición**, en unidades del viewBox de la
+ * familia del puck (72 × 82). [MAP-EVERY-MARKER-SITS-THE-SAME-HEIGHT-OVER-ITS-DOT-001]
+ *
+ * Era 3,5 por construcción —nadie lo eligió: salía de restar el borde del disco (63) al borde
+ * superior del punto (66,5)— y a ese valor el punto se lee **pegado** al puck, sobre todo en la
+ * plaza, que es el marcador que más se mira. Sube a 5, que a 46 dp de ancho son unos 0,9 dp más de
+ * separación: suficiente para que el punto se lea como un objeto aparte y poco para que el marcador
+ * empiece a flotar.
+ *
+ * ⛔ **El que se mueve es el PUNTO, no el cuerpo.** El cuerpo se apoya en [MARKER_BODY_BOTTOM_Y] y
+ * ahí se queda; bajar el punto lo acerca además al ancla real del marcador —(0.5, 1.0), el borde
+ * inferior del viewBox—, así que la separación se gana sin alejar el punto de la coordenada que
+ * marca. Al revés habría sido subir el cuerpo y dejar el marcador más lejos de su sitio.
+ *
+ * ⛔ **El tag del coche NO entra**, y no es un olvido: tiene otro viewBox (104 × 88) y es otra
+ * familia (tarjeta + cúpula, no puck + punto). Su separación de 4 unidades sobre 104 de ancho ya es
+ * proporcionalmente MENOR que la de sus primos, y el user no se quejó de él. Tocarlo aquí sería
+ * cambiar un marcador que nadie ha dicho que esté mal.
+ */
+private const val MARKER_DOT_GAP = 5f
+
+/** Centro Y del punto de posición, **derivado** del cuerpo y del aire: nadie vuelve a escribir un
+ *  literal aquí, que es como los 3,5 de antes acabaron sin autor. [MAP-EVERY-MARKER-SITS-THE-SAME-HEIGHT-OVER-ITS-DOT-001] */
+private const val SPOT_DOT_CY = MARKER_BODY_BOTTOM_Y + MARKER_DOT_GAP + SPOT_DOT_R
 // [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] Target ⊙ of an area spot's ground point (viewBox units):
 // outer ring sized to knock out the solid dot with clear air, centre dot well under the ring.
 private const val SPOT_TARGET_R = 6.5f
@@ -1314,12 +1353,15 @@ fun FuelStationMarker(
     // [PARKINGS-ON-THE-MAP-001] [FUEL-STATION-CLIPPING-FIX]
     val s = with(density) { SPOT_PIN_W.toPx() / SPOT_VIEWBOX_W }
     val markerH = with(density) { (SPOT_VIEWBOX_H * s).toDp() }
+    // ⛔ El CUERPO se apoya en [MARKER_BODY_BOTTOM_Y], no cuelga de arriba.
+    // [MAP-EVERY-MARKER-SITS-THE-SAME-HEIGHT-OVER-ITS-DOT-001]
+    val bodyBottomPad = with(density) { ((SPOT_VIEWBOX_H - MARKER_BODY_BOTTOM_Y) * s).toDp() }
 
     Box(
         modifier = modifier
             .height(markerH)
             .width(IntrinsicSize.Min),
-        contentAlignment = Alignment.TopCenter
+        contentAlignment = Alignment.BottomCenter
     ) {
         Canvas(Modifier.fillMaxSize()) {
             // We use the same scale as the free-spot marker (s = height / 82) so the dot and shadow
@@ -1331,8 +1373,10 @@ fun FuelStationMarker(
         }
         Row(
             modifier = Modifier
-                .offset(y = 0.dp)
-                .padding(horizontal = 4.dp) // extra air inside the Row so it doesn't clip its own border
+                // Alineado por ABAJO contra la línea del puck: una cápsula de una línea y otra de
+                // dos se apoyan en el mismo sitio, y ninguna de las dos flota.
+                // [MAP-EVERY-MARKER-SITS-THE-SAME-HEIGHT-OVER-ITS-DOT-001]
+                .padding(start = 4.dp, end = 4.dp, bottom = bodyBottomPad) // + aire para que el borde no se recorte
                 .clip(RoundedCornerShape(FUEL_LABEL_CORNER))
                 .background(paper.copy(alpha = FUEL_LABEL_BG_ALPHA))
                 .border(
