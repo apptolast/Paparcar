@@ -104,3 +104,30 @@ del carril — el hueco ya está escrito y comentado en #43.
 los 5 nuevos ejecutados y verdes).
 
 ⏳ **Sin captura del estado final**: no hay device conectado (`PR-A-VISUAL-CHANGE-SHOWS-ITSELF-001`).
+
+## Tercera vuelta — regresión del merge (21-09): la barra se quedó fuera del bloque fijado
+
+Al mergear #43 y #42 seguidas, el cableado que esta PR dejó pendiente **no lo hizo nadie**: el
+`LaneFilterBar` de `HomeSheetContent` seguía con su `HomeNearbyLens.FUEL -> Unit` y la barra de
+gasolineras se seguía dibujando **dentro** del carril.
+
+Resultado: **plazas y parkings con los chips fijados bajo los tabs, y gasolineras no**. O sea
+exactamente la incoherencia que [PARKINGS-THE-LANE-FILTERS-BY-WHAT-WE-KNOW-001] existe para
+impedir — dos carriles comportándose distinto en la misma hoja —, colada por la puerta de atrás de
+un merge.
+
+**Lo cazó la regresión cruzada, no los tests**: cada PR estaba verde por separado, porque el defecto
+no vive en ninguna de las dos sino en su unión. Es el mismo patrón que
+[DET-A-PARKED-BT-CAR-NEEDS-NO-RESIDENT-WATCHER-001] pagó con dos reglas de residencia.
+
+### Qué se hizo
+
+- `LaneFilterBar` gana su rama `FUEL`, con la condición propia del carril (`stations.isNotEmpty()`).
+- `HomeFuelLane` deja de dibujar la barra y **pierde `onSortSelect` y `onProductSelect`**, que ya no
+  tiene a quién dárselos.
+- **Dev Catalog**: sus dos variantes de filtros pasaban esos parámetros — ⚠️ **lo volvió a cazar el
+  compilador del flavor mock**, por segunda vez en este ticket. Ahora componen barra + carril igual
+  que la hoja, como ya hacía la de parkings.
+
+`./gradlew testAll :app:assembleProdDebug :app:assembleMockDebug --rerun-tasks` → BUILD SUCCESSFUL,
+**3.524 tests, 0 fallos**.

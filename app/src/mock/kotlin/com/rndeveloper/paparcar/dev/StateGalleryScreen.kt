@@ -169,6 +169,7 @@ import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
 import com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice
 import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
 import com.rndeveloper.paparcar.presentation.home.model.HomeParkingsSlice
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomeFuelFilterBar
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomeFuelLane
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomeParkingFilterBar
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomeParkingsLane
@@ -3595,25 +3596,44 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             // ⛔ Con `availableProducts` VACÍO tambien, que es el caso de un pais sin feed de
             // precios: la barra tiene que seguir dejando ordenar y no debe enseñar chips de
             // productos que nadie vende. [FUEL-THE-LANE-IS-FILTERED-BY-WHAT-YOU-BURN-001]
+            // ⛔ La barra se pide APARTE del carril, porque en Home vive en la cabecera fijada
+            // junto a los tabs. La galería la compone igual que la hoja, como ya hace la de
+            // parkings. [PARKINGS-THE-LANE-FILTERS-BY-WHAT-WE-KNOW-001]
             Variant("Filtros · orden y producto", Placement.Surface) {
-                HomeFuelLane(
-                    slice = HomeFuelSlice(
-                        stations = galleryFuelStations,
-                        reportedAt = "09/09/2026 08:30:00",
+                Column {
+                    HomeFuelFilterBar(
                         sort = FuelLaneSort.CHEAPEST,
                         product = FuelType.DIESEL,
                         availableProducts = listOf(FuelType.DIESEL, FuelType.GASOLINE, FuelType.LPG_CNG),
-                    ),
-                    onSortSelect = {},
-                    onProductSelect = {},
-                )
+                        onSortSelect = {},
+                        onProductSelect = {},
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    )
+                    HomeFuelLane(
+                        slice = HomeFuelSlice(
+                            stations = galleryFuelStations,
+                            reportedAt = "09/09/2026 08:30:00",
+                            sort = FuelLaneSort.CHEAPEST,
+                            product = FuelType.DIESEL,
+                            availableProducts = listOf(FuelType.DIESEL, FuelType.GASOLINE, FuelType.LPG_CNG),
+                        ),
+                    )
+                }
             },
             Variant("Filtros · sin productos que ofrecer", Placement.Surface) {
-                HomeFuelLane(
-                    slice = HomeFuelSlice(stations = galleryFuelStations, availableProducts = emptyList()),
-                    onSortSelect = {},
-                    onProductSelect = {},
-                )
+                Column {
+                    HomeFuelFilterBar(
+                        sort = FuelLaneSort.NEAREST,
+                        product = null,
+                        availableProducts = emptyList(),
+                        onSortSelect = {},
+                        onProductSelect = {},
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    )
+                    HomeFuelLane(
+                        slice = HomeFuelSlice(stations = galleryFuelStations, availableProducts = emptyList()),
+                    )
+                }
             },
             Variant("Con precios · por galon (EE. UU.)", Placement.Surface) {
                 HomeFuelLane(

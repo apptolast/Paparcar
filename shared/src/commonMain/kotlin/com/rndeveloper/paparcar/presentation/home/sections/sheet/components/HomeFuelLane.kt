@@ -69,31 +69,15 @@ fun HomeFuelLane(
     /** Whether Home has a position at all: without one the rows drop the distance, which is the one
      *  thing they say ABOUT THE USER. [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001] */
     hasFix: Boolean = true,
-    /** Ordenar por cercanía o por precio. Null = sin barra (galería, previews).
-     *  [FUEL-THE-LANE-IS-FILTERED-BY-WHAT-YOU-BURN-001] */
-    onSortSelect: ((FuelLaneSort) -> Unit)? = null,
-    /** Cotizar por ESTE producto; null vuelve al del coche activo. */
-    onProductSelect: ((FuelType?) -> Unit)? = null,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         // ⛔ ABOVE the five sentences below, the fuel-less one included: "your car has no fuel type"
         // is an answer, and an answer lands better once the user knows what the question was.
         if (isIntroducing) LaneIntroNote(NearbyComplement.FUEL)
 
-        // ⛔ La barra se dibuja SÓLO cuando hay respuesta que ordenar. Encima de «no hemos podido
-        // preguntar» o de «tu coche no tiene combustible» sería ofrecer ordenar una lista que no
-        // existe — y peor: haría creer que el filtro es la causa de que no haya nada.
-        // [FUEL-THE-LANE-IS-FILTERED-BY-WHAT-YOU-BURN-001]
-        if (onSortSelect != null && slice.stations.isNotEmpty()) {
-            HomeFuelFilterBar(
-                sort = slice.sort,
-                product = slice.product,
-                availableProducts = slice.availableProducts,
-                onSortSelect = onSortSelect,
-                onProductSelect = onProductSelect,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-            )
-        }
+        // ⛔ La barra NO se dibuja aquí: vive en la cabecera fijada de la hoja, junto a los tabs,
+        // igual que la de plazas y la de parkings. Ver [LaneFilterBar] en `HomeSheetContent`.
+        // [PARKINGS-THE-LANE-FILTERS-BY-WHAT-WE-KNOW-001] [FUEL-THE-LANE-IS-FILTERED-BY-WHAT-YOU-BURN-001]
 
         when {
 

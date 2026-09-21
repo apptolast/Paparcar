@@ -546,7 +546,6 @@ private fun LazyListScope.nearbyLane(
                 // Sin fix la fila se calla la distancia: se midió desde la cámara, no desde ti.
                 // [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
                 hasFix = slice.userGpsPoint != null,
-
             )
         }
 
@@ -558,8 +557,6 @@ private fun LazyListScope.nearbyLane(
                 },
                 isIntroducing = slice.nearbyIntro == NearbyComplement.FUEL,
                 hasFix = slice.userGpsPoint != null,
-                onSortSelect = { sort -> onIntent(HomeIntent.SetFuelSort(sort)) },
-                onProductSelect = { product -> onIntent(HomeIntent.SetFuelProduct(product)) },
             )
         }
     }
@@ -608,9 +605,19 @@ private fun LaneFilterBar(
             )
         }
 
-        // Gasolineras: su barra llega en [FUEL-THE-LANE-IS-FILTERED-BY-WHAT-YOU-BURN-001] (#42) y
-        // entra por aquí, no por dentro del carril.
-        HomeNearbyLens.FUEL -> Unit
+        //  · Gasolineras, con respuesta que ordenar (`stations.isNotEmpty()`): encima de «no hemos
+        //    podido preguntar» o de «tu coche no tiene combustible» sería ofrecer ordenar una lista
+        //    que no existe. [FUEL-THE-LANE-IS-FILTERED-BY-WHAT-YOU-BURN-001]
+        HomeNearbyLens.FUEL -> if (slice.fuel.stations.isNotEmpty()) {
+            HomeFuelFilterBar(
+                sort = slice.fuel.sort,
+                product = slice.fuel.product,
+                availableProducts = slice.fuel.availableProducts,
+                onSortSelect = { sort -> onIntent(HomeIntent.SetFuelSort(sort)) },
+                onProductSelect = { product -> onIntent(HomeIntent.SetFuelProduct(product)) },
+                modifier = barModifier,
+            )
+        }
     }
 }
 
