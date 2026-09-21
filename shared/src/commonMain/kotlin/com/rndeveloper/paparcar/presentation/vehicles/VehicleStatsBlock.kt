@@ -302,6 +302,7 @@ private fun StatTileGrid(tiles: List<StatTileData>) {
                         icon = tile.icon,
                         note = tile.note,
                         progress = tile.progress,
+                        contribution = tile.contribution,
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -569,7 +570,34 @@ internal data class StatTileData(
     /** La figura, dibujada como anillo, cuando la figura ES una proporción.
      *  [STATS-THE-DETECTION-SHOWS-ITS-HIT-RATE-001] */
     val progress: Float? = null,
+    /**
+     * Esta cifra es lo que el usuario APORTA, no lo que gasta.
+     * [STATS-THE-ONE-GREEN-BELONGS-TO-WHAT-YOU-GAVE-001]
+     *
+     * ⛔ Lo decide [isContribution], y es UNA lista cerrada de una sola clave. Escrito como
+     * booleano suelto en cada `StatTileData`, el día que alguien añada un tile lo copiará del de
+     * al lado — y el de al lado, tarde o temprano, será el gasto.
+     */
+    val contribution: Boolean = false,
 )
+
+/**
+ * Qué cifra de la rejilla es una APORTACIÓN del usuario, y no un coste suyo.
+ * [STATS-THE-ONE-GREEN-BELONGS-TO-WHAT-YOU-GAVE-001]
+ *
+ * Hoy sólo una: las plazas que has cedido a la comunidad. Es la única de las once que el usuario
+ * DA en vez de gastar, y la razón de ser del producto.
+ *
+ * ⛔ **El CO₂ y el gasto no entran, y ahí está el ticket entero** (#52 pedía destacarlos como
+ * «impacto positivo»): `co2Kg` es lo que tu conducción EMITE y `costEstimate` es lo que PAGAS.
+ * Pintarlos de verde le diría al usuario que emitir 24 kg está bien. Un número no se vuelve bueno
+ * por enseñarlo en otro color.
+ *
+ * ⛔ Tampoco entra la tasa de detección, que ya tiene su verde: aquélla dice «esto lo ha hecho la
+ * app», ésta dice «esto lo has hecho tú». Las dos son marca y acción — el MISMO significado, que
+ * es lo que la doctrina de color deja tener dos veces.
+ */
+internal fun isContribution(key: StatTileKey): Boolean = key == StatTileKey.SPOTS_SHARED
 
 /**
  * The figures a period can show, in reading order. A key is present only when its figure EXISTS —
@@ -628,6 +656,12 @@ internal fun statTileKeys(stats: PeriodStats): List<StatTileKey> = buildList {
     // Zero known-provenance sessions means "below the threshold" upstream, where a share is noise.
     if (stats.detectionKnownCount > 0) add(StatTileKey.AUTO_DETECTED)
     // Spots shared: 0 IS information (you never freed one), so it shows whenever the block does.
+    //
+    // ⛔ **Y NO se adelanta al primer puesto** [STATS-THE-ONE-GREEN-BELONGS-TO-WHAT-YOU-GAVE-001].
+    // Se intentó, y tres testigos lo pararon: el gasto encabeza la rejilla **porque es la cifra
+    // sobre la que puedes actuar**, y ésa es una decisión tomada, no una casualidad del orden. La
+    // aportación se destaca por COLOR, que es otro tipo de relieve para otro tipo de afirmación:
+    // el primer puesto dice «empieza a leer por aquí», el verde dice «esto lo diste tú».
     add(StatTileKey.SPOTS_SHARED)
 }
 
@@ -808,6 +842,7 @@ internal fun statTiles(stats: PeriodStats): List<StatTileData> {
                     stats.spotsReleased.toDouble(),
                     stats.previous?.spotsReleased?.toDouble(),
                 ),
+                contribution = isContribution(key),
             )
         }
     }
