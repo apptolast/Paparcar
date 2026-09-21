@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.presentation.home.model
 
 import com.rndeveloper.paparcar.domain.util.haversineMeters
+import com.rndeveloper.paparcar.domain.parkings.ParkingZoneGrid
 
 /**
  * When does a map layer owe the settled camera a fresh ask? [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
@@ -64,6 +65,36 @@ object ViewportRefetch {
      * mundo sino nuestro propio límite.
      */
     fun isAPlace(lat: Double, lon: Double): Boolean = !(lat == 0.0 && lon == 0.0)
+
+    /**
+     * **¿La respuesta que este carril tiene en la mano es sobre DONDE SE ESTÁ MIRANDO?**
+     * [HOME-THE-CAMERA-FRAMES-WHAT-THE-LIST-SHOWS-001]
+     *
+     * Es la misma pregunta que decide si hay que volver a preguntar, leída al revés — y por eso vive
+     * aquí y no en dos sitios. El que quiere refrescar pregunta «¿se ha movido?»; el que quiere
+     * ENCUADRAR pregunta «¿esto va de aquí?». Dos formulaciones de un invariante que, escritas por
+     * separado, acaban discrepando: fue exactamente lo que pasó — la cámara volaba a Italia estando
+     * en Madrid, porque el encuadre usaba una lista que ya nadie consideraba válida.
+     *
+     * ⛔ Sin ancla **no** va de aquí: una lista sin ancla es una lista que nadie ha situado.
+     */
+    fun answerCoversCamera(
+        anchorLat: Double?,
+        anchorLon: Double?,
+        cameraLat: Double?,
+        cameraLon: Double?,
+        radiusMeters: Int,
+        /** Los parkings se preguntan por ZONA, no por distancia. [PARKINGS-A-ZONE-IS-ASKED-ONCE-AND-PANNED-FOR-FREE-001] */
+        byZone: Boolean = false,
+    ): Boolean {
+        if (anchorLat == null || anchorLon == null) return false
+        if (cameraLat == null || cameraLon == null) return true // nadie ha posado la cámara: no hay conflicto
+        return if (byZone) {
+            ParkingZoneGrid.sameZone(anchorLat, anchorLon, cameraLat, cameraLon)
+        } else {
+            !shouldRefetch(anchorLat, anchorLon, cameraLat, cameraLon, radiusMeters)
+        }
+    }
 
     private const val REFETCH_AT_FRACTION = 0.5
 }

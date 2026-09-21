@@ -691,6 +691,19 @@ private fun LazyListScope.spotsLane(
  */
 internal const val NEARBY_LENS_KEY = "nearby_lens"
 
+/**
+ * Dónde está la cabecera del carril en la lista, o null si todavía no se ha compuesto.
+ * [HOME-THE-CAMERA-FRAMES-WHAT-THE-LIST-SHOWS-001]
+ *
+ * Vive junto a su clave y devuelve `null` en vez de inventarse un destino, porque **cada uso quiere
+ * un fallback distinto**: el checklist, que va a ENSEÑAR el control, baja al último item (todo lo
+ * que hay bajo la fila de pestañas es el carril, así que ambos caminos acaban dentro); el cambio de
+ * carril, en cambio, prefiere **no moverse** — forzar un scroll a alguien que está mirando sus
+ * coches es peor que dejarlo donde está.
+ */
+internal fun LazyListState.nearbyLensIndexOrNull(): Int? =
+    layoutInfo.visibleItemsInfo.firstOrNull { it.key == NEARBY_LENS_KEY }?.index
+
 // Width of the right-edge scroll-hint fade on the size filter bar. [HOME-POLISH-001]
 private const val FILTER_FADE_WIDTH_DP = 28
 

@@ -131,6 +131,7 @@ import paparcar.composeapp.generated.resources.home_spot_vote_refreshed
 import paparcar.composeapp.generated.resources.home_test_spot_sent
 import paparcar.composeapp.generated.resources.home_zone_saved_message
 import kotlin.time.Duration.Companion.milliseconds
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.nearbyLensIndexOrNull
 
 // Initial/fallback peek size used before the handle has been measured.
 // After first layout, peekHeightPx tracks the handle's real measured height
@@ -1076,7 +1077,7 @@ private fun HomeCameraEffects(
         }
         laneAwaitingFrame = state.nearbyLens
     }
-    val laneFirstPoint = state.laneFirstPoint()
+    val laneFirstPoint = state.laneFirstPoint(uiController.cameraLat, uiController.cameraLon)
     LaunchedEffect(state.nearbyLens, laneFirstPoint) {
         if (laneAwaitingFrame != state.nearbyLens) return@LaunchedEffect
         val (lat, lon) = laneFirstPoint ?: return@LaunchedEffect
@@ -1465,8 +1466,7 @@ internal fun pinStartPoint(uiController: HomeUiController, state: HomeState): Pa
  * destination: everything below the lens row belongs to the lane, so both roads end inside it.
  */
 private fun LazyListState.nearbyLensIndex(): Int =
-    layoutInfo.visibleItemsInfo.firstOrNull { it.key == NEARBY_LENS_KEY }?.index
-        ?: (layoutInfo.totalItemsCount - 1).coerceAtLeast(0)
+    nearbyLensIndexOrNull() ?: (layoutInfo.totalItemsCount - 1).coerceAtLeast(0)
 
 /** The right-side camera FAB column plus its actions (locate/car/midpoint). */
 @Composable
