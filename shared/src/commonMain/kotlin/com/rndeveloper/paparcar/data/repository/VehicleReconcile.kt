@@ -27,6 +27,10 @@ fun reconcileVehicles(
             fuelType = r.fuelType ?: l?.fuelType,
             consumptionPer100 = r.consumptionPer100 ?: l?.consumptionPer100,
             consumptionElectricPer100 = r.consumptionElectricPer100 ?: l?.consumptionElectricPer100,
+            // Misma forma que las de arriba: un doc remoto escrito antes de que el campo viajara
+            // trae null, y tomarlo borraría lo que este móvil ya sabe.
+            // [VEH-A-HEIGHT-UNKNOWN-IS-NOT-A-FIT-001]
+            heightMeters = r.heightMeters ?: l?.heightMeters,
             fuelPricePerLiter = r.fuelPricePerLiter ?: l?.fuelPricePerLiter,
             energyPricePerKwh = r.energyPricePerKwh ?: l?.energyPricePerKwh,
             priceCurrency = r.priceCurrency ?: l?.priceCurrency,

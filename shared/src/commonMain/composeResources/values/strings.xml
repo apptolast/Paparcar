@@ -443,7 +443,7 @@
     <string name="vehicle_registration_title">Register your vehicle</string>
     <string name="vehicle_registration_section_identity">Your vehicle</string>
     <string name="vehicle_registration_section_size">Vehicle size</string>
-    <string name="vehicle_registration_section_optional">Nickname (optional)</string>
+    <string name="vehicle_registration_section_optional">Nickname and plate</string>
     <string name="vehicle_registration_section_detection">Automatic detection</string>
     <string name="vehicle_registration_section_privacy">Privacy</string>
     <string name="vehicle_registration_size_hint">Tap to select the size</string>
@@ -456,6 +456,11 @@
     <string name="auth_cd_hide_password">Hide password</string>
     <string name="vehicle_registration_save">Save</string>
     <string name="vehicle_registration_name_label">Name</string>
+    <string name="common_optional">Optional</string>
+    <string name="vehicle_registration_height_label">Height</string>
+    <string name="vehicle_registration_height_help">Only if you carry a roof box or a rack — we use it to tell you whether you clear a car park barrier.</string>
+    <string name="vehicle_registration_height_unit">m</string>
+    <string name="home_parkings_filter_no_low_clearance">No low clearance</string>
     <!-- %1$d = sequential car number (Car 1, Car 2…) -->
     <string name="vehicle_registration_name_placeholder">Car %1$d</string>
     <string name="vehicle_registration_brand_hint">Brand</string>

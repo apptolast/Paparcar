@@ -290,9 +290,14 @@
     <string name="vehicle_registration_title">Voertuig registreren</string>
     <string name="vehicle_registration_save">Opslaan</string>
     <string name="vehicle_registration_name_label">Naam</string>
+    <string name="common_optional">Optioneel</string>
+    <string name="vehicle_registration_height_label">Hoogte</string>
+    <string name="vehicle_registration_height_help">Alleen als je een dakkoffer of dakdragers hebt — daarmee zeggen we of je onder een slagboom door kunt.</string>
+    <string name="vehicle_registration_height_unit">m</string>
+    <string name="home_parkings_filter_no_low_clearance">Geen lage doorrijhoogte</string>
     <string name="vehicle_registration_name_placeholder">Auto %1$d</string>
     <string name="vehicle_registration_section_identity">Jouw voertuig</string>
-    <string name="vehicle_registration_section_optional">Bijnaam (optioneel)</string>
+    <string name="vehicle_registration_section_optional">Bijnaam en kenteken</string>
     <string name="vehicle_registration_brand_hint">Merk</string>
     <string name="vehicle_registration_model_hint">Model</string>
     <string name="vehicle_registration_size_auto_detected">Gedetecteerd: %1$s</string>

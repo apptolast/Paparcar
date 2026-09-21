@@ -289,9 +289,14 @@
     <string name="vehicle_registration_title">Enregistrer votre véhicule</string>
     <string name="vehicle_registration_save">Enregistrer</string>
     <string name="vehicle_registration_name_label">Nom</string>
+    <string name="common_optional">Facultatif</string>
+    <string name="vehicle_registration_height_label">Hauteur</string>
+    <string name="vehicle_registration_height_help">Seulement si tu as un coffre de toit ou des barres : on s'en sert pour te dire si tu passes sous une barrière de parking.</string>
+    <string name="vehicle_registration_height_unit">m</string>
+    <string name="home_parkings_filter_no_low_clearance">Sans hauteur limitée</string>
     <string name="vehicle_registration_name_placeholder">Voiture %1$d</string>
     <string name="vehicle_registration_section_identity">Votre véhicule</string>
-    <string name="vehicle_registration_section_optional">Surnom (facultatif)</string>
+    <string name="vehicle_registration_section_optional">Surnom et plaque</string>
     <string name="vehicle_registration_brand_hint">Marque</string>
     <string name="vehicle_registration_model_hint">Modèle</string>
     <string name="vehicle_registration_size_auto_detected">Détecté : %1$s</string>

@@ -356,4 +356,13 @@ private val MIGRATION_15_16 = object : Migration(15, 16) {
     }
 }
 
-val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16)
+/** v17: el vehículo puede declarar su ALTO, y sólo declarado autoriza un veredicto de gálibo.
+ *  ⚠️ `REAL`, no `INTEGER`: son metros con decimales (1,47), y guardarlo en centímetros enteros
+ *  obligaría a cada lector a recordar la unidad. [VEH-A-HEIGHT-UNKNOWN-IS-NOT-A-FIT-001] */
+private val MIGRATION_16_17 = object : Migration(16, 17) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("ALTER TABLE `vehicles` ADD COLUMN `heightMeters` REAL")
+    }
+}
+
+val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17)

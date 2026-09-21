@@ -226,6 +226,10 @@ class VehicleRegistrationViewModel(
                 updateState { copy(color = intent.color, hasInteractedWithForm = true) }
             is VehicleRegistrationIntent.SetLicensePlate ->
                 updateState { copy(licensePlate = intent.value) }
+            // Se acepta la coma Y el punto: quien escribe «1,85» y quien escribe «1.85» están
+            // diciendo lo mismo, y el teclado decimal de cada idioma ofrece uno u otro.
+            is VehicleRegistrationIntent.SetHeightMeters ->
+                updateState { copy(heightMeters = intent.value) }
             is VehicleRegistrationIntent.SetShowOnSpot ->
                 updateState { copy(showBrandModelOnSpot = intent.enabled) }
             is VehicleRegistrationIntent.LoadVehicle -> loadVehicle(intent.vehicleId)
@@ -302,6 +306,10 @@ class VehicleRegistrationViewModel(
                         vehicleType = vehicle.vehicleType,
                         showBrandModelOnSpot = vehicle.showBrandModelOnSpot,
                         licensePlate = vehicle.licensePlate ?: "",
+                        heightMeters = vehicle.heightMeters?.let { h ->
+                            val tenths = (h * 100f).toInt()
+                            "${tenths / 100},${(tenths % 100).toString().padStart(2, '0')}"
+                        } ?: "",
                         color = vehicle.color,
                         fuelType = vehicle.fuelType,
                         // An override shows as text; a null shows blank so the DEFAULT placeholder
@@ -384,6 +392,10 @@ class VehicleRegistrationViewModel(
                     showBrandModelOnSpot = current.showBrandModelOnSpot,
                     isActive = shouldBeDefault,
                     licensePlate = current.licensePlate.trim().ifBlank { null },
+                    // ⛔ Una altura que no se entiende se guarda como NULL, no como cero:
+                    // cero metros sería una declaración, y lo que hay es una ausencia.
+                    // [VEH-A-HEIGHT-UNKNOWN-IS-NOT-A-FIT-001]
+                    heightMeters = parseHeightMeters(current.heightMeters),
                     color = current.color,
                     // The fuel block only exists for a burning type; a typed value is an override
                     // even when it equals the default (the user ANSWERED). [VEH-FUEL-001]
@@ -563,3 +575,19 @@ class VehicleRegistrationViewModel(
         val DEFAULT_CAR_CARBODY = CarbodyType.HATCHBACK_MEDIUM
     }
 }
+
+/**
+ * Los metros que el usuario tecleó, o null si lo que hay no es una altura de vehículo.
+ * [VEH-A-HEIGHT-UNKNOWN-IS-NOT-A-FIT-001]
+ *
+ * ⛔ El rango no es decoración: fuera de él, lo tecleado no puede ser el alto de un coche —
+ * «185» son centímetros mal puestos y «0,5» es un error—, y aceptarlo daría veredictos de gálibo
+ * a partir de una errata. Ante la duda, ausencia: un null sólo se calla, un número malo miente.
+ */
+internal fun parseHeightMeters(raw: String): Float? =
+    raw.trim().replace(',', '.').toFloatOrNull()
+        ?.takeIf { it in MIN_DECLARED_HEIGHT_METERS..MAX_DECLARED_HEIGHT_METERS }
+
+/** Una moto tumbada no llega, y por encima de 4,5 m ya no es un vehículo que aparque en ciudad. */
+private const val MIN_DECLARED_HEIGHT_METERS = 0.8f
+private const val MAX_DECLARED_HEIGHT_METERS = 4.5f

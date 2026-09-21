@@ -290,9 +290,14 @@
     <string name="vehicle_registration_title">Fahrzeug registrieren</string>
     <string name="vehicle_registration_save">Speichern</string>
     <string name="vehicle_registration_name_label">Name</string>
+    <string name="common_optional">Optional</string>
+    <string name="vehicle_registration_height_label">Höhe</string>
+    <string name="vehicle_registration_height_help">Nur wenn du eine Dachbox oder Dachträger hast — damit sagen wir dir, ob du unter eine Parkhausschranke passt.</string>
+    <string name="vehicle_registration_height_unit">m</string>
+    <string name="home_parkings_filter_no_low_clearance">Ohne niedrige Durchfahrt</string>
     <string name="vehicle_registration_name_placeholder">Auto %1$d</string>
     <string name="vehicle_registration_section_identity">Dein Fahrzeug</string>
-    <string name="vehicle_registration_section_optional">Spitzname (optional)</string>
+    <string name="vehicle_registration_section_optional">Spitzname und Kennzeichen</string>
     <string name="vehicle_registration_brand_hint">Marke</string>
     <string name="vehicle_registration_model_hint">Modell</string>
     <string name="vehicle_registration_size_auto_detected">Erkannt: %1$s</string>

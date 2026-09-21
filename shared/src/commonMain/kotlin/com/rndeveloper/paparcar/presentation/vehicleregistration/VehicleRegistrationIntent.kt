@@ -45,6 +45,9 @@ sealed class VehicleRegistrationIntent {
     /** Pick the environmental badge, or null to clear the answer. */
     data class SetEnergyLabel(val label: EnergyLabel?) : VehicleRegistrationIntent()
     data class SetLicensePlate(val value: String) : VehicleRegistrationIntent()
+
+    /** El alto declarado, en crudo. [VEH-A-HEIGHT-UNKNOWN-IS-NOT-A-FIT-001] */
+    data class SetHeightMeters(val value: String) : VehicleRegistrationIntent()
     data class SetShowOnSpot(val enabled: Boolean) : VehicleRegistrationIntent()
     data class LoadVehicle(val vehicleId: String) : VehicleRegistrationIntent()
     data object Save : VehicleRegistrationIntent()

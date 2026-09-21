@@ -248,6 +248,7 @@ class RemoteUserProfileDataSourceImpl(
                 fuelType = runCatching { get<String?>(FIELD_FUEL_TYPE) }.getOrNull().orEmpty(),
                 consumptionPer100 = runCatching { get<Double?>(FIELD_CONSUMPTION_PER_100)?.toFloat() }.getOrNull(),
                 consumptionElectricPer100 = runCatching { get<Double?>(FIELD_CONSUMPTION_ELECTRIC_PER_100)?.toFloat() }.getOrNull(),
+                heightMeters = runCatching { get<Double?>(FIELD_HEIGHT_METERS)?.toFloat() }.getOrNull(),
                 // Price block — absent on every doc written before FUEL-PRICE-RESOLVER-001.
                 fuelPricePerLiter = runCatching { get<Double?>(FIELD_FUEL_PRICE_PER_LITER) }.getOrNull(),
                 energyPricePerKwh = runCatching { get<Double?>(FIELD_ENERGY_PRICE_PER_KWH) }.getOrNull(),
@@ -371,6 +372,7 @@ class RemoteUserProfileDataSourceImpl(
         const val FIELD_FUEL_TYPE = "fuelType"
         const val FIELD_CONSUMPTION_PER_100 = "consumptionPer100"
         const val FIELD_CONSUMPTION_ELECTRIC_PER_100 = "consumptionElectricPer100"
+        const val FIELD_HEIGHT_METERS = "heightMeters"
         const val FIELD_FUEL_PRICE_PER_LITER = "fuelPricePerLiter"
         const val FIELD_ENERGY_PRICE_PER_KWH = "energyPricePerKwh"
         const val FIELD_PRICE_CURRENCY = "priceCurrency"

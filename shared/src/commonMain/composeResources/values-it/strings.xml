@@ -289,9 +289,14 @@
     <string name="vehicle_registration_title">Registra il tuo veicolo</string>
     <string name="vehicle_registration_save">Salva</string>
     <string name="vehicle_registration_name_label">Nome</string>
+    <string name="common_optional">Facoltativo</string>
+    <string name="vehicle_registration_height_label">Altezza</string>
+    <string name="vehicle_registration_height_help">Solo se hai un box da tetto o un portapacchi: la usiamo per dirti se passi sotto la sbarra di un parcheggio.</string>
+    <string name="vehicle_registration_height_unit">m</string>
+    <string name="home_parkings_filter_no_low_clearance">Senza limiti di altezza</string>
     <string name="vehicle_registration_name_placeholder">Auto %1$d</string>
     <string name="vehicle_registration_section_identity">Il tuo veicolo</string>
-    <string name="vehicle_registration_section_optional">Soprannome (opzionale)</string>
+    <string name="vehicle_registration_section_optional">Soprannome e targa</string>
     <string name="vehicle_registration_brand_hint">Marca</string>
     <string name="vehicle_registration_model_hint">Modello</string>
     <string name="vehicle_registration_size_auto_detected">Rilevato: %1$s</string>

@@ -549,15 +549,26 @@ data class HomeState(
 
     /** The car parks every surface reads: the ONE store, nearest to the user first.
      *  [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001] [HOME-A-PROJECTION-IS-COMPUTED-ONCE-001] */
+    /**
+     * El coche contra el que se mide el gálibo de un parking: el MISMO «cuál es el de ahora» que
+     * cotiza el carril de gasolineras, no la bandera `isActive`.
+     * [VEH-A-HEIGHT-UNKNOWN-IS-NOT-A-FIT-001] [FUEL-THE-LANE-IS-FILTERED-BY-WHAT-YOU-BURN-001]
+     *
+     * ⛔ Dos superficies preguntando «¿cuál es tu coche?» y contestándose distinto es exactamente
+     * cómo se llega a un carril cotizado para el diésel y un filtro medido para la furgoneta.
+     */
+    private val clearanceVehicle: Vehicle?
+        get() = vehiclesByRecentUse.firstOrNull()
+
     val publicParkingsShown: List<NearbyPublicParking> by lazy {
-        NearbyOrdering.publicParkings(parkings.parkings, userGpsPoint).filteredBy(parkingFilter)
+        NearbyOrdering.publicParkings(parkings.parkings, userGpsPoint).filteredBy(parkingFilter, clearanceVehicle)
     }
 
     /** Los parkings del MAPA: el mismo conjunto FILTRADO —el filtro sí decide cuáles existen para
      *  ti, y eso el mapa sí lo enseña— sin el orden de lectura.
      *  [MAP-THE-MAP-READS-THE-SET-NOT-THE-ORDER-001] */
     val publicParkingsOnMap: List<NearbyPublicParking> by lazy {
-        NearbyOrdering.publicParkingsMeasured(parkings.parkings, userGpsPoint).filteredBy(parkingFilter)
+        NearbyOrdering.publicParkingsMeasured(parkings.parkings, userGpsPoint).filteredBy(parkingFilter, clearanceVehicle)
     }
 
     /** Había parkings ANTES de filtrar. Es lo que separa «aquí no hay ninguno» de «ninguno cumple

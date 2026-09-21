@@ -421,9 +421,14 @@
     <string name="auth_cd_hide_password">Ocultar contraseña</string>
     <string name="vehicle_registration_save">Guardar</string>
     <string name="vehicle_registration_name_label">Nombre</string>
+    <string name="common_optional">Opcional</string>
+    <string name="vehicle_registration_height_label">Altura</string>
+    <string name="vehicle_registration_height_help">Solo si llevas cofre o baca: la usamos para decirte si pasas por la barrera de un parking.</string>
+    <string name="vehicle_registration_height_unit">m</string>
+    <string name="home_parkings_filter_no_low_clearance">Sin gálibo bajo</string>
     <string name="vehicle_registration_name_placeholder">Coche %1$d</string>
     <string name="vehicle_registration_section_identity">Tu vehículo</string>
-    <string name="vehicle_registration_section_optional">Apodo (opcional)</string>
+    <string name="vehicle_registration_section_optional">Apodo y matrícula</string>
     <string name="vehicle_registration_brand_hint">Marca</string>
     <string name="vehicle_registration_model_hint">Modelo</string>
     <string name="vehicle_registration_size_auto_detected">Detectado: %1$s</string>
