@@ -251,9 +251,60 @@ val PapCarParkBlueLight = Color(0xFF00468F)   // car-park fill on light surfaces
 // ── Azure ramp — blue-navy surfaces for light theme (H≈217°, mirrors PapInk DNA) ─
 // Same hue family as the dark PapInk ramp but at the opposite luminosity pole,
 // so light and dark themes share the same cool blue character at both extremes.
+/**
+ * ⛔ **La familia clara subió un escalón el 20-09** y NO a ojo.
+ * [UI-THE-LIGHT-THEME-IS-LIGHTER-WITHOUT-LOSING-ITS-EDGES-001]
+ *
+ * El user lo vio «algo gris» y pidió aclararla «sin perder el contraste entre componentes y mapa».
+ * Son dos peticiones que tiran en sentidos opuestos, así que se midió antes de tocar:
+ *
+ * | Token | Antes | Ahora | ΔL* |
+ * |---|---|---|---|
+ * | `surfaceVariant` | #D8E0EE (89,0) | #E4EAF5 (92,5) | **+3,6** |
+ * | `surfaceContainer` (hoja, nav) | #ECF0F9 (94,7) | #F0F4FB (96,1) | +1,3 |
+ * | `background` | #F0F4FB (96,1) | #F4F7FC (97,1) | +1,1 |
+ * | `surfaceContainerLow/High` | #F4F6FC (96,9) | #F7F9FD (97,9) | +1,0 |
+ *
+ * El que de verdad se leía gris era **`surfaceVariant`**, que es la cama de los tiles y los chips:
+ * se lleva el triple de subida que el resto. Y nada empeora — al contrario:
+ *
+ * - **hoja vs mapa**: 1,260 → **1,303**. Sube porque el suelo del mapa NO se toca (ver abajo).
+ * - **texto sobre `surfaceVariant`**: 7,33:1 → **8,06:1**.
+ * - **card blanca sobre el fondo**: 1,103 → 1,074. Es lo único que cede, y es el precio de aclarar
+ *   un fondo que ya casi era blanco. Lo que separa la card no es ese salto sino su contorno
+ *   (`PapBorders.thin`), que es la regla de esta paleta desde que existe.
+ *
+ * ## ⛔ El 1,074 mide el par equivocado, y por eso no hay nada que corregir
+ *
+ * En la review se preguntó si la card debía **subir o bajar** para diferenciarse mejor. **Subir no
+ * existe**: `PapCardLight` es `#FFFFFF`, blanco puro, ya está en el techo. Y bajarla la acercaría al
+ * fondo, que es lo contrario de separar.
+ *
+ * Pero la pregunta se cae sola al medir lo que de verdad dibuja el límite de una card, que es su
+ * **borde**: `outline` (`#7A8FA0`) al `DEFAULT_OUTLINE_ALPHA` de 0,4 sobre el blanco de la card,
+ * o sea un trazo efectivo de **`#CAD2D9`**. Contra el fondo:
+ *
+ * | | Fondo | Contraste del BORDE |
+ * |---|---|---|
+ * | Antes | #F0F4FB | 1,385:1 |
+ * | Ahora | #F4F7FC | **1,423:1** |
+ *
+ * El borde es más oscuro que los dos fondos, así que aclarar el fondo **le sube el contraste**: el
+ * filo de la card se lee un 3 % MEJOR que antes del ticket. Lo que bajó (1,103 → 1,074) es el salto
+ * relleno-contra-relleno, que en esta paleta nunca fue lo que separaba una card.
+ *
+ * Si aun así en device la card se ve flotando, el mando no es el blanco de la card: es bajar el
+ * fondo a `#F2F5FC` (L* 96,6), que recupera 1,09 de relleno conservando dos tercios de la subida.
+ * No se hace a priori porque hoy no hay nada medible que lo pida.
+ *
+ * ⛔ **El suelo del MAPA no sube**, aunque el user lo pidiera «un poquito también». Su #cdd8ea está
+ * elegido con dos medidas (1,26:1 y ΔE00 6,8 contra la hoja) precisamente para separarse de ella;
+ * subirlo en paralelo devolvía 1,221 — **peor de lo que había**, que es justo lo que pidió no
+ * perder. Aclarando sólo la UI, la separación mejora sola. Ver `MapStyles.kt`.
+ */
 val PapAzureLowest   = Color(0xFFFFFFFF)   // surfaceContainerLowest
-val PapAzureLow      = Color(0xFFF4F6FC)   // surfaceContainerLow
-val PapAzure         = Color(0xFFECF0F9)   // surfaceContainer — sheet, nav
+val PapAzureLow      = Color(0xFFF7F9FD)   // surfaceContainerLow — L* 97.9
+val PapAzure         = Color(0xFFF0F4FB)   // surfaceContainer — sheet, nav — L* 96.1
 
 // Teal-shifted emerald ramp — same hue DNA as PapGreen (#25F48C ≈ H150°).
 // onPrimary = Color.White in light theme so filled surfaces (buttons, chips, icon circles) use
@@ -279,10 +330,10 @@ val PapGreenLight            = Color(0xFF009F5E)
 val PapGreenOutlineLight     = PapGreenLight
 val PapGreenContainerLight   = Color(0xFFA8F5D0)
 val PapOnGreenContainerLight = Color(0xFF002819)
-val PapSurfaceLight          = Color(0xFFF0F4FB)  // page background — blue-tinted (H217°)
+val PapSurfaceLight          = Color(0xFFF4F7FC)  // page background — blue-tinted (H217°), L* 97.1
 val PapCardLight             = Color(0xFFFFFFFF)  // card / sheet surface — white
 val PapOnSurfaceLight        = Color(0xFF0E1A2E)  // primary text — deep navy
-val PapVariantLight          = Color(0xFFD8E0EE)  // surfaceVariant — blue-grey
+val PapVariantLight          = Color(0xFFE4EAF5)  // surfaceVariant — blue-grey, L* 92.5
 val PapOnVariantLight        = Color(0xFF374460)  // onSurfaceVariant — blue-dark
 val PapOutlineVariantLight   = Color(0xFFBDC8DF)  // subtle dividers — blue-grey
 val PapInverseSurfaceLight   = Color(0xFF0D1B33)  // dark navy for Snackbar/Toast
