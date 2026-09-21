@@ -22,34 +22,34 @@ class ViewportRefetchTest {
 
     @Test
     fun should_refuseToAsk_at_theGulfOfGuinea() {
-        // (0,0) is what a map reports before it has a camera — measured on device as an actual
-        // request ("0 stations around 0.0,0.0"). Same trap SPOT-A-REPORT-WITHOUT-A-PLACE closed.
-        assertEquals(false, ViewportRefetch.isWorthAsking(0.0, 0.0, 40.4168, -3.7038))
-        assertEquals(false, ViewportRefetch.isWorthAsking(0.0, 0.0, null, null))
+        // (0,0) es lo que un mapa reporta antes de tener cámara — medido en device como una
+        // petición real («0 stations around 0.0,0.0»). Misma trampa que cerró
+        // SPOT-A-REPORT-WITHOUT-A-PLACE. Es la ÚNICA razón por la que un carril se niega a preguntar.
+        assertEquals(false, ViewportRefetch.isAPlace(0.0, 0.0))
+        assertEquals(true, ViewportRefetch.isAPlace(40.4168, -3.7038))
+        // Un sitio con una coordenada a cero NO es el golfo: el meridiano y el ecuador son sitios.
+        assertEquals(true, ViewportRefetch.isAPlace(0.0, -3.7038))
+        assertEquals(true, ViewportRefetch.isAPlace(51.4778, 0.0))
     }
 
+    /**
+     * ⛔ EL TESTIGO DE LA ISSUE #44, en su forma final. Ya no hay tope de distancia al usuario:
+     * arrastrar el mapa hasta otra ciudad **pregunta allí**, igual que abrir el carril.
+     * [NEARBY-A-DELIBERATE-LOOK-IS-NOT-A-PAN-001]
+     *
+     * Lo que impide la tormenta que el tope decía impedir no es este predicado, son tres guardas
+     * que ya estaban: el debounce del asentamiento (un arrastre entero = UNA petición), el umbral
+     * de media radio / zona entera (moverse poco no pregunta nada) y la caché por celda en Room.
+     */
     @Test
-    fun should_followTheCamera_onlyWithinTheUsersOwnRegion() {
-        val madridLat = 40.4168
-        val madridLon = -3.7038
-        // Toledo (~65 km): past the limit — a refuel question nobody is asking.
-        assertEquals(false, ViewportRefetch.isWorthAsking(39.8628, -4.0273, madridLat, madridLon))
-        // Alcalá de Henares (~29 km): also past it since the limit dropped from 50 to 20 km. ⛔ This
-        // assertion kept saying `true` and failed on master from that commit on.
-        // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
-        assertEquals(false, ViewportRefetch.isWorthAsking(40.4820, -3.3635, madridLat, madridLon))
-        // Getafe (~13 km): inside — the neighbouring town you are heading to.
-        assertEquals(true, ViewportRefetch.isWorthAsking(40.3057, -3.7329, madridLat, madridLon))
-        // No fix yet: nothing to measure against, so the camera is trusted.
-        assertEquals(true, ViewportRefetch.isWorthAsking(48.8566, 2.3522, null, null))
-    }
-
-    @Test
-    fun should_askAgain_when_theCameraSettledPastHalfTheRadius() {
-        // ~3.3 km due north — past the 2.5 km line, and the visible edge would be running dry.
-        assertEquals(
-            true,
-            ViewportRefetch.shouldRefetch(40.4168, -3.7038, 40.4468, -3.7038, 5_000),
-        )
+    fun should_followTheCameraAnywhere_when_theUserDragsToAnotherCity() {
+        // Getafe (~13 km), Toledo (~65 km) y Valencia (~300 km) desde Madrid: los tres son SITIOS,
+        // así que a los tres se les pregunta. Valencia caía fuera con el tope de 150 km, y con el
+        // de 20 km caía fuera hasta Toledo — la queja original de la issue.
+        assertEquals(true, ViewportRefetch.isAPlace(40.3057, -3.7329))
+        assertEquals(true, ViewportRefetch.isAPlace(39.8628, -4.0273))
+        assertEquals(true, ViewportRefetch.isAPlace(39.4699, -0.3763))
+        // París: otro país, mismo trato. Quien arrastra hasta allí quiere ver lo que hay allí.
+        assertEquals(true, ViewportRefetch.isAPlace(48.8566, 2.3522))
     }
 }

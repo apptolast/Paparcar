@@ -2794,10 +2794,11 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `should_emptyTheLayer_when_theCameraLeavesTheUsersRegion`() = runTest(testDispatcher) {
-        // Beyond the follow limit the map AND the list show NOTHING — never your own city's stations
-        // over a distant one — and the lane says why. Coming back must ask again, so the anchor is
-        // dropped with them. [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
+    fun `should_askAboutTheNewCity_when_theCameraDragsFarFromTheUser`() = runTest(testDispatcher) {
+        // ⛔ EL TESTIGO DE QUE EL TOPE SE FUE. Antes, pasada la distancia de seguimiento el carril
+        // se vaciaba y decía «demasiado lejos»; ahora arrastrar hasta otra ciudad PREGUNTA allí,
+        // que es lo que pedía la issue #44. Lo que sigue impidiendo la tormenta es el debounce del
+        // asentamiento, no un tope. [NEARBY-A-DELIBERATE-LOOK-IS-NOT-A-PAN-001]
         fuelSource.result = FuelStationsResult(listOf(spyStation()))
         saveActiveCar(fuelType = com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE)
         permissions.emit(FakePermissionManager.allGranted())
@@ -2809,22 +2810,25 @@ class HomeViewModelTest {
         advanceUntilIdle()
         assertEquals(1, vm.state.value.fuel.stations.size)
 
-        // Paris, from Madrid: far past the limit.
+        // París, desde Madrid: antes «demasiado lejos», ahora una pregunta más.
+        fuelSource.result = FuelStationsResult(listOf(spyStation(id = "paris1")))
         vm.handleIntent(HomeIntent.CameraPositionChanged(48.8566, 2.3522))
         advanceUntilIdle()
 
-        assertTrue(vm.state.value.toMapSlice().fuelStations.isEmpty(), "no capsules out there")
-        assertTrue(vm.state.value.toBrowseListSlice().fuel.stations.isEmpty(), "and no rows either")
-        assertTrue(vm.state.value.fuel.tooFar, "the lane says it is too far, not that there are none")
-        assertEquals(null, vm.state.value.selection, "no peek may survive its pin")
-        assertEquals(1, fuelSource.askCount, "nothing was asked out there")
+        assertEquals(2, fuelSource.askCount, "la cámara se movió de verdad: se pregunta allí")
+        assertEquals(
+            listOf("paris1"),
+            vm.state.value.toBrowseListSlice().fuel.stations.map { it.station.id },
+            "y lo que se enseña es lo de ALLÍ, nunca las de tu ciudad sobre un mapa ajeno",
+        )
+        assertEquals(null, vm.state.value.selection, "ningún peek sobrevive a su pin")
 
-        // Back home: the emptied layer asks again instead of restoring a store it threw away.
+        // Y de vuelta a casa se vuelve a preguntar: el ancla se movió con la respuesta.
+        fuelSource.result = FuelStationsResult(listOf(spyStation()))
         vm.handleIntent(HomeIntent.CameraPositionChanged(location.latitude, location.longitude))
         advanceUntilIdle()
-        assertEquals(2, fuelSource.askCount)
+        assertEquals(3, fuelSource.askCount)
         assertEquals(1, vm.state.value.fuel.stations.size)
-        assertTrue(!vm.state.value.fuel.tooFar)
     }
 
     @Test
@@ -3242,7 +3246,7 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `should_emptyTheMapAndTheList_andSayTooFar_when_theCameraLeavesTheFollowRange`() = runTest(testDispatcher) {
+    fun `should_askAboutTheNewZone_when_theCameraDragsFarFromTheUser`() = runTest(testDispatcher) {
         parkingsSource.result = Result.success(listOf(spyParking()))
         permissions.emit(FakePermissionManager.allGranted())
         locationDataSource.emitHighAccuracy(location)
@@ -3257,12 +3261,9 @@ class HomeViewModelTest {
         vm.handleIntent(HomeIntent.CameraPositionChanged(48.8566, 2.3522))
         advanceUntilIdle()
 
-        assertTrue(vm.state.value.toMapSlice().publicParkings.isEmpty())
-        assertTrue(vm.state.value.toBrowseListSlice().parkings.parkings.isEmpty())
-        assertTrue(vm.state.value.parkings.tooFar)
-        assertTrue(!vm.state.value.parkings.failed, "too far is not a failure")
-        assertEquals(null, vm.state.value.selection)
-        assertEquals(1, parkingsSource.askCount, "nothing was asked out there")
+        assertEquals(2, parkingsSource.askCount, "otra zona es otra pregunta, y se hace")
+        assertTrue(!vm.state.value.parkings.failed, "preguntar lejos no es fallar")
+        assertEquals(null, vm.state.value.selection, "ningún peek sobrevive a su pin")
     }
 
     @Test

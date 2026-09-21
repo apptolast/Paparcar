@@ -994,7 +994,6 @@
     <string name="fuel_peek_follow">Urmărește</string>
     <string name="fuel_peek_following">Urmărită</string>
     <string name="home_fuel_error">Nu am putut încărca benzinăriile. Verifică conexiunea și deschide din nou.</string>
-    <string name="home_fuel_too_far">Afișăm benzinăriile doar pe o rază de %1$s de tine. Apropie harta ca să le vezi.</string>
     <string name="home_fuel_no_prices">În această țară prețurile nu sunt publicate. Acestea sunt benzinăriile din apropiere.</string>
     <!-- [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] Fallback, not a verdict about the country -->
     <string name="home_fuel_prices_unavailable">Prețurile oficiale nu s-au încărcat. Acestea sunt benzinăriile din apropiere; încearcă din nou într-un moment.</string>
@@ -1009,7 +1008,6 @@
     <string name="subject_free_spots">Locuri</string>
     <string name="home_parkings_empty">Nicio parcare publică pe o rază de %1$s.</string>
     <string name="home_parkings_error">Nu am putut încărca parcările. Verifică conexiunea și deschide din nou.</string>
-    <string name="home_parkings_too_far">Afișăm parcările publice doar pe o rază de %1$s de tine. Apropie harta ca să le vezi.</string>
     <string name="home_parkings_remembered">Fără conexiune: acestea sunt parcările văzute aici %1$s.</string>
     <string name="parking_peek_eyebrow">Parcare publică</string>
     <string name="parking_peek_step_prev">Parcarea publică anterioară</string>

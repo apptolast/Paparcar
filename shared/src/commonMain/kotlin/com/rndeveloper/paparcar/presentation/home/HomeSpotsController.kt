@@ -105,7 +105,7 @@ class HomeSpotsController(
      *
      * ⛔ (0, 0) no es un sitio, es el Golfo de Guinea: la coordenada que un mapa reporta antes de
      * tener cámara. Sembrar ahí pediría las plazas del Atlántico. Mismo filtro que
-     * `ViewportRefetch.isWorthAsking` y `viewportCentreOrGps`.
+     * `ViewportRefetch.isAPlace` y `viewportCentreOrGps`.
      *
      * @return true when the centre was moved — the VM flips `isSpotQueryCenteredOnUser` off in that case.
      */

@@ -28,33 +28,42 @@ object ViewportRefetch {
     }
 
     /**
-     * Is this point somewhere the layer should even look?
+     * ¿Es esto un SITIO? La única razón por la que un carril se niega a preguntar.
      *
-     * ⛔ **(0, 0) is not a place**, it is the Gulf of Guinea — the coordinate a map reports before
-     * it has a camera. Asking there was measured on device (`0 stations around 0.0,0.0`), and it is
-     * the same trap `SPOT-A-REPORT-WITHOUT-A-PLACE-MUST-NOT-HAPPEN-001` closed for reports.
+     * ⛔ **(0, 0) no es un sitio**, es el golfo de Guinea — la coordenada que un mapa reporta
+     * mientras todavía no tiene cámara. Preguntar ahí está medido en device
+     * (`0 stations around 0.0,0.0`), y es la misma trampa que
+     * `SPOT-A-REPORT-WITHOUT-A-PLACE-MUST-NOT-HAPPEN-001` cerró para los avisos.
      *
-     * And the layer stops following past [MAX_FROM_USER_METERS]: refuelling somewhere you would
-     * take a day to reach is not a question anyone is asking, and each settle costs a request to a
-     * public service. Beyond it the layer shows NOTHING rather than the stations of your own city
-     * over a foreign one — which is the lie this whole ticket exists to stop.
+     * ## ⛔ Aquí había también un TOPE DE DISTANCIA al usuario, y se ha retirado
+     * [NEARBY-A-DELIBERATE-LOOK-IS-NOT-A-PAN-001]
+     *
+     * El carril dejaba de seguir a la cámara más allá de 150 km (20 km antes de este ticket), y el
+     * argumento escrito era: *«cada asentamiento de un arrastre cuesta una petición, y arrastrar el
+     * mapa media España son cientos»*.
+     *
+     * **Ese argumento no se sostiene, y hay tres guardas que lo impiden — ninguno de ellos era
+     * éste:**
+     *
+     *  1. **El asentamiento va con debounce.** `scheduleNearbyRefresh` cancela el trabajo anterior y
+     *     vuelve a esperar `NEARBY_CAMERA_SETTLE_MS` en CADA movimiento de cámara. Un arrastre
+     *     continuo, dure lo que dure y cruce lo que cruce, dispara **una** petición: la del final.
+     *     Para gastar cientos habría que hacer cientos de pausas deliberadas.
+     *  2. **Moverse poco no pregunta nada.** Las gasolineras exigen media radio ([shouldRefetch]);
+     *     los parkings, cambiar de zona entera (`ParkingZoneGrid.sameZone`). El caso «paneo 5 m»
+     *     que motivó esta revisión no pedía datos ni antes ni ahora.
+     *  3. **Una región preguntada una vez no se vuelve a preguntar**: la respuesta se cachea por
+     *     celda/zona en Room.
+     *
+     * Y lo que el tope SÍ costaba era real y visible: con el carril abierto no se podían mirar los
+     * parkings de otra ciudad arrastrando el mapa, que es literalmente la issue #44. El tope
+     * protegía de una tormenta que el debounce ya impedía, y cobraba la función que el usuario
+     * pedía.
+     *
+     * Con él se va también el estado `tooFar` de los dos carriles y su frase, que no describían el
+     * mundo sino nuestro propio límite.
      */
-    fun isWorthAsking(lat: Double, lon: Double, userLat: Double?, userLon: Double?): Boolean {
-        if (lat == 0.0 && lon == 0.0) return false
-        if (userLat == null || userLon == null) return true
-        return haversineMeters(userLat, userLon, lat, lon) <= MAX_FROM_USER_METERS
-    }
+    fun isAPlace(lat: Double, lon: Double): Boolean = !(lat == 0.0 && lon == 0.0)
 
     private const val REFETCH_AT_FRACTION = 0.5
-
-    /** Your city / your province — "I am driving there", the trip a refuel question belongs to.
-     *  Reduced to 20km per user request. ⛔ Note that exploration beyond this distance from
-     *  the user's GPS will be blocked. */
-    const val MAX_FROM_USER_METERS = 20_000.0
-
-    // ⛔ No hay aquí un `maxFromUserKm`. Existió para que la frase del carril no divergiera de esta
-    // constante, y hacía media pregunta: derivaba la CIFRA y dejaba el «km» escrito en los nueve
-    // locales, o sea seguía diciendo kilómetros a quien había pedido millas. Las dos mitades las
-    // resuelve ahora `radiusString(MAX_FROM_USER_METERS)` en el sitio donde se dice.
-    // [I18N-A-RADIUS-WRITTEN-BY-HAND-IGNORES-MILES-001] [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
 }

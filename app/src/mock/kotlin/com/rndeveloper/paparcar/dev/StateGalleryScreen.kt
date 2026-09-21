@@ -3674,11 +3674,6 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Sin combustible en el coche", Placement.Surface) {
                 HomeFuelLane(slice = HomeFuelSlice(missingFuelType = true))
             },
-            // ⛔ Ni vacía ni fallo: la cámara mira más lejos de lo que el carril sigue, así que no se
-            // preguntó nada y el mapa también está vacío. [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
-            Variant("Demasiado lejos de ti", Placement.Surface) {
-                HomeFuelLane(slice = HomeFuelSlice(tooFar = true))
-            },
             // Cargando otra zona CON filas previas: las filas se quedan (casan con las cápsulas que
             // siguen en el mapa), sin esqueleto. [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
             Variant("Cargando otra zona (conserva filas)", Placement.Surface) {
@@ -3787,11 +3782,6 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             // manda al usuario a conducir sobre algo que nadie comprobo.
             Variant("No se pudo preguntar", Placement.Surface) {
                 HomeParkingsLane(slice = HomeParkingsSlice(failed = true))
-            },
-            // ⛔ Ni vacía ni fallo: más allá del límite no se pregunta, y el mapa está vacío a la vez.
-            // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
-            Variant("Demasiado lejos de ti", Placement.Surface) {
-                HomeParkingsLane(slice = HomeParkingsSlice(tooFar = true))
             },
             Variant("Cargando otra zona (conserva filas)", Placement.Surface) {
                 HomeParkingsLane(slice = HomeParkingsSlice(isLoading = true, parkings = galleryParkings))

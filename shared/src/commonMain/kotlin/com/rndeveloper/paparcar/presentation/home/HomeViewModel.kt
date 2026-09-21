@@ -758,8 +758,10 @@ class HomeViewModel(
      * The one decision about whether [subject]'s store must ask, stay, or empty itself.
      *
      * - No centre (no camera, no fix): the lane says it could not ask, and waits for the first fix.
-     * - Further from the user than [ViewportRefetch.MAX_FROM_USER_METERS]: the store EMPTIES and says
-     *   it is too far — map and list together, never your own city's pins over another one.
+     * - No es un sitio ([ViewportRefetch.isAPlace]): (0, 0) es un mapa que todavía no tiene cámara.
+     *   ⛔ Aquí había además un tope de distancia al usuario, y se retiró: arrastrar hasta otra
+     *   ciudad PREGUNTA allí. El porqué, en el KDoc de `isAPlace`.
+     *   [NEARBY-A-DELIBERATE-LOOK-IS-NOT-A-PAN-001]
      * - Otherwise it asks when nothing answers for this centre: no anchor (never asked, or the last
      *   ask failed), the camera moved past half the radius, or — fuel — the car now burns something
      *   the answer was not filtered for.
@@ -778,10 +780,10 @@ class HomeViewModel(
             // "We could not ask" — never the empty sentence, which is a verdict about the world.
             when (subject) {
                 HomeNearbyLens.FUEL -> updateState {
-                    copy(fuel = fuel.copy(isLoading = false, failed = true, tooFar = false, missingFuelType = false))
+                    copy(fuel = fuel.copy(isLoading = false, failed = true, missingFuelType = false))
                 }
                 HomeNearbyLens.PARKINGS -> updateState {
-                    copy(parkings = parkings.copy(isLoading = false, failed = true, tooFar = false))
+                    copy(parkings = parkings.copy(isLoading = false, failed = true))
                 }
                 HomeNearbyLens.SPOTS -> Unit
             }
@@ -790,37 +792,40 @@ class HomeViewModel(
         val (lat, lon) = centre
         val wasAwaitingCentre = subject in nearbyAwaitingCentre
 
-        if (!ViewportRefetch.isWorthAsking(lat, lon, s.userGpsPoint?.latitude, s.userGpsPoint?.longitude)) {
+        // ⛔ Lo ÚNICO que impide preguntar es que el punto no sea un sitio: (0, 0) es un mapa sin
+        // cámara todavía. El tope de distancia al usuario se retiró — protegía de una tormenta que
+        // el debounce del asentamiento ya impide, y a cambio te negaba mirar la ciudad a la que
+        // vas. El razonamiento entero, en [ViewportRefetch.isAPlace].
+        // [NEARBY-A-DELIBERATE-LOOK-IS-NOT-A-PAN-001]
+        if (!ViewportRefetch.isAPlace(lat, lon)) {
             nearbyAwaitingCentre -= subject
-            emptyNearbyAsTooFar(subject)
             return
         }
 
         val anchorLat: Double?
         val anchorLon: Double?
         val radius: Int
-        val wasTooFar: Boolean
         val questionChanged: Boolean
         when (subject) {
             HomeNearbyLens.FUEL -> {
                 anchorLat = s.fuel.anchorLat
                 anchorLon = s.fuel.anchorLon
                 radius = FuelStationsQuery.DEFAULT_RADIUS_METERS
-                wasTooFar = s.fuel.tooFar
                 questionChanged = s.fuel.fetchedFor != activeFuelType()
             }
             HomeNearbyLens.PARKINGS -> {
                 anchorLat = s.parkings.anchorLat
                 anchorLon = s.parkings.anchorLon
                 radius = PublicParkingsQuery.DEFAULT_RADIUS_METERS
-                wasTooFar = s.parkings.tooFar
                 questionChanged = false
             }
             HomeNearbyLens.SPOTS -> return
         }
 
-        // A fix supplies a missing centre or brings a too-far lane back into range. Nothing else.
-        if (trigger == NearbyTrigger.FIX && !wasAwaitingCentre && !wasTooFar) return
+        // Un fix sólo sirve para UNA cosa: dar el centro que al carril le faltaba. Traía además
+        // de vuelta a un carril «demasiado lejos», y ese estado ya no existe.
+        // [NEARBY-A-DELIBERATE-LOOK-IS-NOT-A-PAN-001]
+        if (trigger == NearbyTrigger.FIX && !wasAwaitingCentre) return
         nearbyAwaitingCentre -= subject
 
         // ⛔ Car parks re-ask by ZONE, not by distance. Panning inside the zone owes the server
@@ -869,36 +874,6 @@ class HomeViewModel(
         }
     }
 
-    /**
-     * Past the follow limit the store holds NOTHING and says why. The anchor goes with the rows, so
-     * coming back into range asks again instead of restoring an answer about somewhere else.
-     */
-    private fun emptyNearbyAsTooFar(subject: HomeNearbyLens) {
-        val s = state.value
-        when (subject) {
-            HomeNearbyLens.FUEL -> {
-                if (s.fuel.tooFar && s.fuel.stations.isEmpty() && s.fuel.anchorLat == null) return
-                fuelJob?.cancel()
-                updateState {
-                    copy(
-                        fuel = HomeFuelSlice(tooFar = true),
-                        selection = selection.takeUnless { it is HomeSelection.FuelStation },
-                    )
-                }
-            }
-            HomeNearbyLens.PARKINGS -> {
-                if (s.parkings.tooFar && s.parkings.parkings.isEmpty() && s.parkings.anchorLat == null) return
-                parkingsJob?.cancel()
-                updateState {
-                    copy(
-                        parkings = HomeParkingsSlice(tooFar = true),
-                        selection = selection.takeUnless { it is HomeSelection.PublicParking },
-                    )
-                }
-            }
-            HomeNearbyLens.SPOTS -> Unit
-        }
-    }
 
     /**
      * Debounced camera-settle trigger — a nervous pan is not a question. Only the lane on show asks:
@@ -987,7 +962,6 @@ class HomeViewModel(
                     // The previous rows stay on show while the answer flies, like the spots do.
                     isLoading = true,
                     failed = false,
-                    tooFar = false,
                     missingFuelType = fuelType == null,
                     fetchedFor = fuelType,
                     // Set on the ATTEMPT, so the same ground is not asked twice while it flies.
@@ -1065,7 +1039,6 @@ class HomeViewModel(
                 parkings = parkings.copy(
                     isLoading = true,
                     failed = false,
-                    tooFar = false,
                     anchorLat = lat,
                     anchorLon = lon,
                 ),
