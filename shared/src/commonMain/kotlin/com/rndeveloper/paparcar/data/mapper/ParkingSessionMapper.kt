@@ -43,6 +43,7 @@ fun UserParkingEntity.toDomain(): UserParking = UserParking(
     tripMaxSpeedMps = tripMaxSpeedMps,
     provisionalDepartureAtMs = provisionalDepartureAtMs,
     armEvidence = armEvidence,
+    decisionEvidence = decisionEvidence,
     detectionPath = detectionPath,
     zoneRadiusMeters = zoneRadiusMeters,
     routePolyline = routePolyline,
@@ -120,6 +121,7 @@ fun UserParking.toEntity(updatedAt: Long = 0, pendingSync: Boolean = false): Use
     // provisionalDepartureAtMs: local-only pending-deduced-departure marker. [DET-HANDOFF-NOT-MANUAL-001 §B]
     provisionalDepartureAtMs = provisionalDepartureAtMs,
     armEvidence = armEvidence,
+    decisionEvidence = decisionEvidence,
     detectionPath = detectionPath,
     // zoneRadiusMeters: local-only honest-close artifact — round-trips Room, never synced (an
     // unrefined approximate zone stays on the device that detected it). [DET-HONEST-CLOSE-001]
@@ -177,6 +179,7 @@ fun UserParking.toParkingHistoryDto(updatedAt: Long = 0L) = ParkingHistoryDto(
     // Provenance: the ARM trigger + the confirmation PATH that placed this pin — mirrored so a
     // remote diagnostic can attribute a parking to its trigger. [DET-PIN-PROVENANCE-001]
     armEvidence = armEvidence,
+    decisionEvidence = decisionEvidence,
     detectionPath = detectionPath,
     // [DET-DOUBT-REACHES-REMOTE-001] The doubt travels too. A zone that reads as an exact pin in
     // remote is a measurement error at the analysis layer, and it cost a cable to work around.
@@ -224,6 +227,7 @@ fun ParkingHistoryDto.toEntity() = UserParkingEntity(
     // Provenance now round-trips through Firestore (armEvidence + detectionPath); an inbound pin
     // keeps who/what placed it. tripMaxSpeedMps stays local-only → null here. [DET-PIN-PROVENANCE-001]
     armEvidence = armEvidence,
+    decisionEvidence = decisionEvidence,
     detectionPath = detectionPath,
     // [DET-DOUBT-REACHES-REMOTE-001] …and comes back, so a restored pin is still honest about
     // being an area. Legacy docs carry no field → null → an exact pin, which is what they were.

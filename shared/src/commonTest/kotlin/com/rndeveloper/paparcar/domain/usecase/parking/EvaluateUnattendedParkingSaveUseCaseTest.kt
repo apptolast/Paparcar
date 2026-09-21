@@ -232,14 +232,49 @@ class EvaluateUnattendedParkingSaveUseCaseTest {
         assertEquals(UnattendedParkingSave.Ask(UnattendedSaveReason.NO_DRIVE), verdict)
     }
 
-    /** An AR vehicle-exit is external evidence, not a sample: it carries the branch on its own. */
+    /**
+     * ⛔ **EL TESTIGO del falso positivo de campo (issue #72, 20-09, Cádiz).**
+     * [DET-A-WALK-IS-NOT-AN-EGRESS-001]
+     *
+     * Este test decía lo contrario, y su comentario lo defendía: *«un AR vehicle-exit es evidencia
+     * externa, no una muestra: sostiene la rama él solo»*. Con eso, el usuario salió **andando** de
+     * su casa y se le guardó una zona de 250 m — `unattended_zone_no_drive_egress`, leído de la
+     * sesión en Firestore.
+     *
+     * El otro guard no podía pararlo: `liveEgress` son 8 pasos y 18 metros, y **andar y bajarse de
+     * un coche producen la misma señal**. Todo el peso caía en el AR, y un EVENTO decidiendo solo es
+     * justo lo que la doctrina prohíbe: *el evento NOMINA, sólo el movimiento MEDIDO confirma*.
+     */
     @Test
-    fun should_saveZone_when_anArVehicleExitBacksTheNoDriveBranch() {
+    fun should_ask_when_onlyAnArVehicleExitBacksTheNoDriveBranch() {
         val verdict = evaluate(
             input(
                 maxSpeedMps = 0f,
                 pendingMaxSpeedMps = 0f,
                 credibleDrivingFixes = 0,
+                vehicleExitConfirmed = true,
+                currentFix = fix(lat = 36.60600, lon = -6.27820),
+                stepCount = config.anchorLockEgressSteps + 50,
+                sessionSawSteps = true,
+            )
+        )
+
+        assertEquals(
+            UnattendedParkingSave.Ask(UnattendedSaveReason.NO_DRIVE),
+            verdict,
+            "sin una sola fijación creíble, el AR nomina pero no confirma: se PREGUNTA",
+        )
+    }
+
+    /** …y la mitad que el ticket NO puede perder: el AR **acompañado** de movimiento medido sigue
+     *  guardando. La rama existe para el EXIT entregado tarde, y ese caso real no se toca. */
+    @Test
+    fun should_saveZone_when_anArVehicleExitComesWithACredibleDrivingFix() {
+        val verdict = evaluate(
+            input(
+                maxSpeedMps = 0f,
+                pendingMaxSpeedMps = 0f,
+                credibleDrivingFixes = config.arEgressMinCredibleFixes,
                 vehicleExitConfirmed = true,
                 currentFix = fix(lat = 36.60600, lon = -6.27820),
                 stepCount = config.anchorLockEgressSteps + 50,

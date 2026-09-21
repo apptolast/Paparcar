@@ -673,6 +673,50 @@ de SharedPreferences, y que las dos preguntas no comparten etiqueta de veredicto
 `DetectionPath.Nudge`). ⛔ Lo que ningún test ve todavía: cuántas veces salía de verdad — al auditar
 no había móvil de campo conectado, así que la frecuencia queda pendiente del `parkdiag.log`.
 
+### DET-A-WALK-IS-NOT-AN-EGRESS-001 — una pista de AR mas ocho pasos colocaban una zona de 250 m
+
+**Commit:** pending. **Reporte (2026-09-20, issue #72):** *«he salido andando desde mi casa a dar una
+vuelta y se me ha guardado una plaza de aparcamiento dudosa cuando no he conducido en ningun
+momento»*. Cadiz. La cuenta **no tenia diagnosticos activos**, asi que no hubo telemetria — pero la
+sesion si se pudo leer de Firestore, y su provenance nombro al culpable:
+`detectionPath = "unattended_zone_no_drive_egress"`, `armEvidence = "self_observed"`,
+`publishedSpot = false`.
+
+**Causa raiz.** `EvaluateUnattendedParkingSaveUseCase`, rama `NO_DRIVE_EGRESS`: guarda una zona
+**sin conduccion medida** si `liveEgress && vehicularSignal`.
+
+- `liveEgress` son **8 pasos y 18 metros** (`anchorLockEgressSteps`, `minEgressDisplacementMeters`).
+  Cualquiera que salga por su puerta los cumple: **andar y bajarse de un coche producen exactamente
+  la misma senal**. Como filtro de «esto fue un coche» no discrimina nada.
+- Asi que todo el peso caia en `vehicularSignal`… y su primera rama era `vehicleExitConfirmed` **a
+  secas**, con velocidad medida CERO. Un EVENTO decidiendo solo, que es justo lo que la doctrina
+  prohibe: *el evento NOMINA, solo el movimiento MEDIDO confirma*.
+
+⚠️ Y estaba **escrito como test**, con su comentario defendiendolo: *«an AR vehicle-exit is external
+evidence, not a sample: it carries the branch on its own»*. El bug no era un descuido: era una
+creencia documentada.
+
+**Fix (B).** El AR necesita **al menos una fijacion creible de conduccion** que lo acompane
+(`arEgressMinCredibleFixes = 1`). No es un umbral estadistico: es la frontera entre *nada* y *algo*,
+que es lo que separa nominar de confirmar. Lo que pierde **no se pierde en silencio**: cae en
+`Ask(NO_DRIVE)` y se le pregunta al usuario — un falso negativo que pregunta es exactamente lo que
+el fallo asimetrico prefiere a un pin fantasma.
+
+**Fix (A) — el dato, que es lo que pedia la issue.** La sesion gana **un** campo,
+`decisionEvidence`: con que numeros decidio la rama que la coloco
+(`"no_drive_egress:steps=41,sawSteps=true,exitHint=true,maxSpeed=0.0,rawPeak=0.0,credibleFixes=0"`).
+Lo compone `unattendedDecisionEvidence`, **junto a la traza y no en el ejecutor**: quien sabe QUE
+decidio es quien tiene que decir CON QUE. Room v15 → v16, columna nullable — las filas viejas se
+quedan en `NULL`, que es la verdad.
+
+⛔ **Un campo, no diez** (peticion expresa del user): solo las entradas que esa rama mira. Y las tres
+que faltaban —`exitHint`, `rawPeak`, `credibleFixes`— entran tambien en `unattendedVerdictTrace`,
+que las decidia sin nombrarlas.
+
+**Guard hoy:** `EvaluateUnattendedParkingSaveUseCaseTest` — el testigo (AR solo → `Ask`) es el test
+que antes afirmaba lo contrario, y su gemelo (AR + una fijacion creible → `SaveZone`) protege el
+rescate para el que la rama nacio: el EXIT entregado kilometros tarde.
+
 ### PARK-A-CORRECTION-MOVES-THE-PLACE-NOT-THE-CLOCK-001 — corregir el pin reiniciaba el nacimiento de la sesión
 
 **Commit:** pending. **Campo (2026-09-16, Nothing A001, sesión `b9b9dacc`):** un pin colocado a las

@@ -17,6 +17,7 @@ import com.rndeveloper.paparcar.domain.util.haversineMeters
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.usecase.parking.ParkingDecisionInput
 import com.rndeveloper.paparcar.domain.usecase.parking.UnattendedParkingSave
+import com.rndeveloper.paparcar.domain.usecase.parking.UnattendedSaveReason
 import com.rndeveloper.paparcar.domain.usecase.parking.UnattendedSaveInput
 
 /**
@@ -132,6 +133,25 @@ fun DetectionSessionState.unattendedSaveInput(
 )
 
 /** The verdict's whole reasoning, in one `parkdiag` line — unchanged, word for word. */
+/**
+ * **Con que numeros decidio la rama sin conduccion medida**, en una linea que cabe en la sesion.
+ * [DET-A-WALK-IS-NOT-AN-EGRESS-001]
+ *
+ * La version corta de [unattendedVerdictTrace]: solo las entradas que ESA rama mira. La traza larga
+ * vive en logcat y se pierde si la cuenta no tiene diagnosticos — que es exactamente lo que pasaba
+ * cuando el falso positivo de la issue #72 llego sin nada que leer.
+ *
+ * ⛔ Se compone aqui, junto a la traza, y no en el ejecutor: quien sabe QUE decidio es quien tiene
+ * que decir CON QUE. Un segundo sitio que lo recompusiera podria discrepar de la rama real.
+ */
+fun DetectionSessionState.unattendedDecisionEvidence(reason: UnattendedSaveReason): String =
+    "${reason.key}:steps=${anchorTrust.capture.stepEvents}" +
+        ",sawSteps=${anchorTrust.capture.sawSteps}" +
+        ",exitHint=${egress.vehicleExitHint}" +
+        ",maxSpeed=${drive.provenMaxSpeedMps}" +
+        ",rawPeak=${drive.peakMps}" +
+        ",credibleFixes=${drive.credibleFixCount}"
+
 fun DetectionSessionState.unattendedVerdictTrace(
     now: Long,
     waitedMs: Long,
@@ -147,6 +167,13 @@ fun DetectionSessionState.unattendedVerdictTrace(
         "walkInSpan=${anchorTrust.capture.walkInSpanMeters.toInt()}m carRest=${anchorRestMs(now, config)}ms " +
         "stopped=${stoppedDuration}ms " +
         "gapMs=${anchorTrust.capture.gapMs} " +
+        // ⛔ Las TRES que deciden `vehicularSignal` en la rama sin conducción medida, y que no
+        // estaban. Sin ellas, el falso positivo de la issue #72 —una zona de 250 m a quien salió
+        // ANDANDO de su casa— sólo se podía diagnosticar adivinando cuál de las dos ramas se había
+        // cumplido. Una traza que no dice lo que decidió no explica nada.
+        // [DET-A-WALK-IS-NOT-AN-EGRESS-001] [DET-THE-EVIDENCE-MUST-REACH-THE-TRACE-001]
+        "exitHint=${egress.vehicleExitHint} rawPeak=${drive.peakMps}m/s " +
+        "credibleFixes=${drive.credibleFixCount} " +
         // [DET-THE-EVIDENCE-MUST-REACH-THE-TRACE-001] `DET-NO-CLOCK-PLANTS-A-PIN-001` gave the zone
         // a CHOICE of centre — the anchor, or the best rest the stop window witnessed — and a
         // decision that leaves no trace is a decision no field test can check. Says which fix won

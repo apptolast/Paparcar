@@ -103,6 +103,8 @@ class ConfirmParkingUseCase(
          *  callers that hold a persisted string parse it at their own edge with
          *  [ArmLabel.ofPersisted], so this use case never re-derives membership from spelling. */
         armEvidence: ArmLabel? = null,
+        /** Con que numeros decidio la rama que llama. [DET-A-WALK-IS-NOT-AN-EGRESS-001] */
+        decisionEvidence: String? = null,
         /** [DET-ASSERTION-OUTRANKS-INFERENCE-001] Did the confirming session's own stream witness
          *  SUSTAINED driving? Deliberately separate from [tripMaxSpeedMps], which is a PEAK: one
          *  5,33 m/s sample out of 25 cleared `minimumTripSpeedMps` on 2026-08-24 and walked the
@@ -333,6 +335,7 @@ class ConfirmParkingUseCase(
             // The word is written back out here — the one edge of this use case where the label is
             // a string again. [DET-AN-ARM-LABEL-IS-PARSED-ONCE-NOT-SPELLED-AT-EVERY-DOOR-001]
             armEvidence = armEvidence?.persisted,
+            decisionEvidence = decisionEvidence,
             detectionPath = detectionPath,
             zoneRadiusMeters = zoneRadiusMeters,
             routePolyline = routePolyline,

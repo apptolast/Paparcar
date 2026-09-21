@@ -49,6 +49,8 @@ data class UserParkingEntity(
     // Arm evidence label of the confirming session (e.g. "speed", "vehicle_enter", "manual").
     // Now synced to Firestore for remote provenance diagnostics. [DET-SOLID-001][DET-PIN-PROVENANCE-001]
     val armEvidence: String? = null,
+    /** Con qué números decidió la rama que colocó el pin. [DET-A-WALK-IS-NOT-AN-EGRESS-001] */
+    val decisionEvidence: String? = null,
     // Confirmation PATH that placed this pin ("steps+egress" / "safety_net_backfill" / "bt" / …) —
     // which trigger put the parking. Synced to Firestore. Null for legacy rows. [DET-PIN-PROVENANCE-001]
     val detectionPath: String? = null,

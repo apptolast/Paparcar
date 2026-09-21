@@ -261,9 +261,28 @@ class EvaluateUnattendedParkingSaveUseCase(private val config: ParkingDetectionC
             // vehicle was involved. A raw speed PEAK is not — on its own it is one sample, and one
             // sample is exactly what a cold-start Doppler spike produces. A drive this branch is
             // meant to rescue still emits a run of them.
-            val vehicularSignal = input.vehicleExitConfirmed ||
-                (input.pendingMaxSpeedMps >= config.minimumTripSpeedMps &&
-                    input.credibleDrivingFixes >= config.rawDriveSignalMinFixes)
+            //
+            // ⛔ **Y el AR tampoco confirma SOLO** [DET-A-WALK-IS-NOT-AN-EGRESS-001]. Esta condición
+            // era `vehicleExitConfirmed || (pico && fijaciones)`, o sea que una pista de Activity
+            // Recognition bastaba por sí misma **con velocidad medida CERO**. Falso positivo de
+            // campo (issue #72, 20-09, Cádiz): el usuario salió ANDANDO de su casa y se le guardó
+            // una zona de 250 m por `unattended_zone_no_drive_egress`.
+            //
+            // El otro guard de esta rama no podía pararlo: `liveEgress` son **8 pasos y 18 metros**,
+            // y andar y bajarse de un coche producen exactamente la misma señal. Todo el peso caía
+            // aquí, y aquí un EVENTO decidía solo — que es justo lo que la doctrina prohíbe: *el
+            // evento NOMINA, sólo el movimiento MEDIDO confirma*.
+            //
+            // Ahora el AR necesita **al menos una fijación creíble de conducción** que lo acompañe.
+            // ⚠️ Eso ESTRECHA el rescate para el que nació la rama —un EXIT entregado kilómetros
+            // tarde, con la conducción ya terminada— y es deliberado: lo que pierde no se pierde en
+            // silencio, cae en `Ask(NO_DRIVE)` y se le **pregunta** al usuario. Un falso negativo
+            // que pregunta es exactamente lo que el fallo asimétrico prefiere a un pin fantasma.
+            val vehicularSignal =
+                (input.vehicleExitConfirmed &&
+                    input.credibleDrivingFixes >= config.arEgressMinCredibleFixes) ||
+                    (input.pendingMaxSpeedMps >= config.minimumTripSpeedMps &&
+                        input.credibleDrivingFixes >= config.rawDriveSignalMinFixes)
             return if (anchor != null && liveEgress && vehicularSignal) {
                 UnattendedParkingSave.SaveZone(
                     reason = UnattendedSaveReason.NO_DRIVE_EGRESS,

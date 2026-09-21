@@ -292,6 +292,7 @@ class RemoteUserProfileDataSourceImpl(
                 carbodyType = get<String?>(FIELD_CARBODY_TYPE),
                 spotType = runCatching { get<String?>(FIELD_SPOT_TYPE) }.getOrNull(),
                 armEvidence = runCatching { get<String?>(FIELD_ARM_EVIDENCE) }.getOrNull(),
+                decisionEvidence = runCatching { get<String?>(FIELD_DECISION_EVIDENCE) }.getOrNull(),
                 detectionPath = runCatching { get<String?>(FIELD_DETECTION_PATH) }.getOrNull(),
                 // [DET-DOUBT-REACHES-REMOTE-001] Absent on every doc written before this ticket →
                 // null → an exact pin, which is exactly what those pins were.
@@ -393,6 +394,8 @@ class RemoteUserProfileDataSourceImpl(
         // Pin provenance — the ARM trigger + the confirmation PATH that placed the parking.
         // [DET-PIN-PROVENANCE-001]
         const val FIELD_ARM_EVIDENCE = "armEvidence"
+        /** [DET-A-WALK-IS-NOT-AN-EGRESS-001] Con qué números decidió la rama que pinó. */
+        const val FIELD_DECISION_EVIDENCE = "decisionEvidence"
         const val FIELD_DETECTION_PATH = "detectionPath"
         const val FIELD_ZONE_RADIUS_METERS = "zoneRadiusMeters"
         const val FIELD_ROUTE_POLYLINE = "routePolyline"

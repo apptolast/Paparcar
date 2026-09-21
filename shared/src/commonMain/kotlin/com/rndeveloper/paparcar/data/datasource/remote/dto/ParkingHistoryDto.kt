@@ -27,6 +27,8 @@ data class ParkingHistoryDto(
     /** Arm-evidence label of the confirming session ("speed" / "vehicle_enter" / "manual" / …) — the
      *  ARM trigger. Half of the pin provenance. Null for legacy / non-session pins. [DET-PIN-PROVENANCE-001] */
     val armEvidence: String? = null,
+    /** Con qué números decidió la rama que colocó el pin. [DET-A-WALK-IS-NOT-AN-EGRESS-001] */
+    val decisionEvidence: String? = null,
     /** Confirmation PATH that placed this pin ("steps+egress" / "safety_net_backfill" / "bt" / … ) —
      *  which trigger put the parking. The other half of provenance. Null for legacy pins. [DET-PIN-PROVENANCE-001] */
     val detectionPath: String? = null,
