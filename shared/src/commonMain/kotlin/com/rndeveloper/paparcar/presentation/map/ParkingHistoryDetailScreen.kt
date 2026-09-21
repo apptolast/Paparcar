@@ -63,6 +63,7 @@ import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.Zone
 import com.rndeveloper.paparcar.domain.session.RouteAvailability
+import com.rndeveloper.paparcar.domain.session.drawableRouteSegments
 import com.rndeveloper.paparcar.domain.session.routeAvailability
 import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy
 import com.rndeveloper.paparcar.domain.model.monitoringStatus
@@ -121,6 +122,7 @@ import paparcar.composeapp.generated.resources.parking_detail_route_inferred_que
 import paparcar.composeapp.generated.resources.parking_detail_route_inferred_yes
 import paparcar.composeapp.generated.resources.parking_detail_route_off_device
 import paparcar.composeapp.generated.resources.parking_detail_route_recalculating
+import paparcar.composeapp.generated.resources.parking_detail_route_refused
 import kotlin.time.Instant
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.peek.ApproximateZoneRow
 import paparcar.composeapp.generated.resources.parking_detail_navigate_area_action
@@ -195,6 +197,9 @@ fun ParkingHistoryDetailScreen(
     val routeSnapped = routeState == RouteAvailability.Drawn
     val routeRecalculating = routeState == RouteAvailability.Recalculating
     val routeLostOffDevice = routeState == RouteAvailability.LostOffDevice
+    // El usuario dijo que no fue por ahí y la reconstrucción era TODO el recorrido: no queda línea.
+    // [TRIP-A-REFUSED-ROUTE-IS-NOT-A-BLANK-MAP-001]
+    val routeRefused = routeState == RouteAvailability.RejectedByUser
     val routeTrail = remember(focusedSession?.routePolyline, routeSnapped) {
         mutableStateOf(if (routeSnapped) PolylineCodec.decode(focusedSession.routePolyline) else emptyList())
     }
@@ -206,15 +211,10 @@ fun ParkingHistoryDetailScreen(
         focusedSession?.routeInferredResolution,
         routeSnapped,
     ) {
-        mutableStateOf(
-            if (routeSnapped) {
-                InferredRoute.split(
-                    points = routeTrail.value,
-                    encoded = focusedSession.routeInferredSpans,
-                    resolution = focusedSession.routeInferredResolution,
-                )
-            } else emptyList()
-        )
+        // ⛔ El MISMO cálculo que usa el veredicto, no una segunda opinión: si `routeAvailability()`
+        // dice «no queda nada que dibujar» y esto dibujara algo, la píldora mentiría encima de una
+        // línea. [TRIP-A-REFUSED-ROUTE-IS-NOT-A-BLANK-MAP-001]
+        mutableStateOf(focusedSession?.drawableRouteSegments().orEmpty())
     }
     val askInferredRoute = focusedSession?.hasPendingInferredRoute == true
     // Origin vertex — the same departure dot Home draws on a live trip, here on the stored route's
@@ -295,6 +295,20 @@ fun ParkingHistoryDetailScreen(
         // las dos contestan «¿por qué no hay línea?» — lo que cambia es la respuesta, no el objeto.
         // ⛔ Sin esto, «este viaje no tuvo recorrido» y «lo tuvo y lo perdimos» se dibujaban igual.
         // [TRIP-A-ROUTE-THAT-ONLY-LIVES-HERE-SAYS-SO-001]
+        // Nosotros no la dibujamos porque TÚ dijiste que no fuiste por ahí. Es la única de las
+        // cinco situaciones donde la ausencia la causó el propio usuario, y por eso es la que peor
+        // se lee sin frase: contestas y la línea desaparece.
+        // [TRIP-A-REFUSED-ROUTE-IS-NOT-A-BLANK-MAP-001]
+        if (routeRefused) {
+            RouteNoticePill(
+                text = stringResource(Res.string.parking_detail_route_refused),
+                spinning = false,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 8.dp, start = 24.dp, end = 24.dp),
+            )
+        }
+
         if (routeLostOffDevice) {
             RouteNoticePill(
                 text = stringResource(Res.string.parking_detail_route_off_device),

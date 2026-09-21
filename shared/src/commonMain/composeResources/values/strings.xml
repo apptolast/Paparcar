@@ -236,6 +236,7 @@
     <string name="parking_detail_prev">Previous parking</string>
     <string name="parking_detail_route_recalculating">Recalculating route…</string>
     <string name="parking_detail_route_off_device">This trip's route was only saved on the phone that recorded it, and it's no longer there.</string>
+    <string name="parking_detail_route_refused">You said you didn't drive this way, so the route isn't drawn.</string>
     <string name="parking_detail_route_inferred_question">Part of this route was rebuilt because the GPS signal dropped along the way. Did you drive this way?</string>
     <string name="parking_detail_route_inferred_yes">Yes</string>
     <string name="parking_detail_route_inferred_no">No</string>
