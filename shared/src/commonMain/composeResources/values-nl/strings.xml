@@ -169,6 +169,7 @@
     <string name="parking_detail_navigate_area_action">Navigeer naar het gebied</string>
     <string name="parking_detail_prev">Vorige parkeerplaats</string>
     <string name="parking_detail_route_recalculating">Route wordt herberekend…</string>
+    <string name="parking_detail_route_off_device">De route van deze rit stond alleen op de telefoon die hem opnam, en is er niet meer.</string>
     <string name="parking_detail_route_inferred_question">Een deel van deze route is gereconstrueerd omdat het gps-signaal onderweg wegviel. Ben je hierlangs gereden?</string>
     <string name="parking_detail_route_inferred_yes">Ja</string>
     <string name="parking_detail_route_inferred_no">Nee</string>
@@ -798,7 +799,7 @@
     <string name="settings_notif_month_recap">Maandoverzicht</string>
     <string name="settings_notif_month_recap_desc">Een overzicht als de maand afsluit: wat je hebt uitgegeven en hoe lang je hebt gezocht</string>
     <string name="settings_sync_routes">Routes in je account bewaren</string>
-    <string name="settings_sync_routes_desc">Je ritten blijven alleen op deze telefoon. Zet dit aan om ze ook op je andere apparaten te zien.</string>
+    <string name="settings_sync_routes_desc">Je routes staan alleen op deze telefoon, dus de app opnieuw installeren betekent dat je ze kwijt bent. Zet dit aan om ze in je account te bewaren en op je andere apparaten te zien.</string>
     <string name="home_zone_form_notify_label">Waarschuw me voor vrije plekken hier</string>
 
     <!-- Fuel block [VEH-FUEL-001] -->

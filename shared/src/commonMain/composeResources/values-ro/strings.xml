@@ -170,6 +170,7 @@
     <string name="parking_detail_navigate_area_action">Navighează spre zonă</string>
     <string name="parking_detail_prev">Parcarea anterioară</string>
     <string name="parking_detail_route_recalculating">Se recalculează ruta…</string>
+    <string name="parking_detail_route_off_device">Traseul acestei curse a fost salvat doar pe telefonul care l-a înregistrat, iar acum nu mai este.</string>
     <string name="parking_detail_route_inferred_question">O parte din acest traseu a fost reconstruită deoarece semnalul GPS s-a pierdut pe drum. Ai trecut pe aici?</string>
     <string name="parking_detail_route_inferred_yes">Da</string>
     <string name="parking_detail_route_inferred_no">Nu</string>
@@ -811,7 +812,7 @@
     <string name="settings_notif_month_recap">Rezumatul lunii</string>
     <string name="settings_notif_month_recap_desc">Un rezumat la închiderea lunii: cât ai cheltuit și cât ai căutat</string>
     <string name="settings_sync_routes">Salvează rutele în contul tău</string>
-    <string name="settings_sync_routes_desc">Călătoriile tale rămân doar pe acest telefon. Activează pentru a le vedea și pe celelalte dispozitive.</string>
+    <string name="settings_sync_routes_desc">Traseele tale se salvează doar pe acest telefon, așa că reinstalarea aplicației le pierde. Activează asta ca să le păstrezi în cont și să le vezi pe celelalte dispozitive.</string>
     <string name="home_zone_form_notify_label">Anunță-mă despre locuri libere aici</string>
     <!-- Notification surface - MIRRORED from app/src/main/res (Android stays the live source until it migrates to composeResources); parity enforced by NotificationCopyParityTest [IOS-NOTIF-A-SURFACE-THAT-SPEAKS-ONE-LANGUAGE-001] -->
     <string name="notif_confirmation_title">Ai parcat?</string>

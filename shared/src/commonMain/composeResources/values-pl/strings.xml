@@ -168,6 +168,7 @@
     <string name="parking_detail_navigate_area_action">Nawiguj do obszaru</string>
     <string name="parking_detail_prev">Poprzednie parkowanie</string>
     <string name="parking_detail_route_recalculating">Przeliczanie trasy…</string>
+    <string name="parking_detail_route_off_device">Trasa tego przejazdu była zapisana tylko w telefonie, który ją nagrał, i już jej tam nie ma.</string>
     <string name="parking_detail_route_inferred_question">Część tej trasy została odtworzona, ponieważ po drodze utracono sygnał GPS. Czy jechałeś tędy?</string>
     <string name="parking_detail_route_inferred_yes">Tak</string>
     <string name="parking_detail_route_inferred_no">Nie</string>
@@ -811,7 +812,7 @@
     <string name="settings_notif_month_recap">Podsumowanie miesiąca</string>
     <string name="settings_notif_month_recap_desc">Podsumowanie na koniec miesiąca: ile wydałeś i ile czasu szukałeś miejsca</string>
     <string name="settings_sync_routes">Zapisuj trasy na koncie</string>
-    <string name="settings_sync_routes_desc">Twoje przejazdy pozostają tylko na tym telefonie. Włącz, aby widzieć je także na innych urządzeniach.</string>
+    <string name="settings_sync_routes_desc">Twoje trasy są zapisywane tylko w tym telefonie, więc ponowna instalacja aplikacji je usuwa. Włącz to, aby trzymać je na koncie i widzieć na innych urządzeniach.</string>
     <string name="home_zone_form_notify_label">Powiadamiaj o wolnych miejscach tutaj</string>
     <!-- Notification surface - MIRRORED from app/src/main/res (Android stays the live source until it migrates to composeResources); parity enforced by NotificationCopyParityTest [IOS-NOTIF-A-SURFACE-THAT-SPEAKS-ONE-LANGUAGE-001] -->
     <string name="notif_confirmation_title">Zaparkowałeś?</string>

@@ -235,6 +235,7 @@
     <string name="parking_detail_navigate_area_action">Navigate to the area</string>
     <string name="parking_detail_prev">Previous parking</string>
     <string name="parking_detail_route_recalculating">Recalculating route…</string>
+    <string name="parking_detail_route_off_device">This trip's route was only saved on the phone that recorded it, and it's no longer there.</string>
     <string name="parking_detail_route_inferred_question">Part of this route was rebuilt because the GPS signal dropped along the way. Did you drive this way?</string>
     <string name="parking_detail_route_inferred_yes">Yes</string>
     <string name="parking_detail_route_inferred_no">No</string>
@@ -833,7 +834,7 @@
     <string name="settings_notif_month_recap">Month recap</string>
     <string name="settings_notif_month_recap_desc">A summary when the month closes: what you spent and how long you spent looking</string>
     <string name="settings_sync_routes">Save your routes to your account</string>
-    <string name="settings_sync_routes_desc">Your trips are stored only on this phone. Turn this on to also see them on your other devices.</string>
+    <string name="settings_sync_routes_desc">Your routes are stored only on this phone, so reinstalling the app loses them. Turn this on to keep them in your account and see them on your other devices.</string>
     <string name="home_zone_form_notify_label">Alert me about free spots here</string>
     <!-- Notification surface - MIRRORED from app/src/main/res (Android stays the live source until it migrates to composeResources); parity enforced by NotificationCopyParityTest [IOS-NOTIF-A-SURFACE-THAT-SPEAKS-ONE-LANGUAGE-001] -->
     <string name="notif_confirmation_title">Did you park?</string>
