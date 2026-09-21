@@ -56,6 +56,7 @@ class HomeSlicesTest {
         id: String,
         isActive: Boolean = false,
         bluetoothDeviceId: String? = null,
+        fuelType: FuelType? = null,
     ) = Vehicle(
         id = id,
         userId = "user-1",
@@ -64,6 +65,7 @@ class HomeSlicesTest {
         sizeCategory = VehicleSize.MEDIUM_SUV,
         isActive = isActive,
         bluetoothDeviceId = bluetoothDeviceId,
+        fuelType = fuelType,
     )
 
     private fun session(id: String, vehicleId: String, parkedAt: Long = 1_000L) = UserParking(
@@ -1188,5 +1190,69 @@ class HomeSlicesTest {
         assertFalse(producerOnly.toFabsSlice().locationMissing)
         // Ni con todo concedido y nada bloqueado.
         assertFalse(HomeState(hasCorePermissions = true).toFabsSlice().locationMissing)
+    }
+
+    // ── Qué combustible cotiza el carril [FUEL-THE-LANE-IS-FILTERED-BY-WHAT-YOU-BURN-001] ──
+    // El default era la bandera `isActive`, y marcar no es conducir: quien tiene un diésel de
+    // diario y un GLP por Bluetooth veía el carril cotizado por el que dejó marcado hace un mes.
+
+    @Test
+    fun should_quote_the_fuel_of_the_most_recently_used_vehicle_not_the_flagged_one() {
+        val flagged = vehicle("veh-flagged", isActive = true, fuelType = FuelType.LPG_CNG)
+        val recent = vehicle("veh-recent", fuelType = FuelType.DIESEL)
+        val state = HomeState(
+            vehicles = listOf(flagged, recent),
+            // La sesión más reciente es la del segundo coche: ése es el que se ha usado.
+            activeSessions = listOf(session("s-recent", "veh-recent", parkedAt = 9_000L)),
+        )
+
+        assertEquals(
+            FuelType.DIESEL,
+            state.pricedFuelType,
+            "el carril cotiza por el coche usado, no por el que lleva la bandera",
+        )
+    }
+
+    @Test
+    fun should_skip_a_vehicle_that_burns_nothing_when_quoting_the_lane() {
+        // El eléctrico es el más reciente, pero ninguna gasolinera vende electricidad: quedarse en
+        // él dejaría el carril cotizando un producto que nadie sirve.
+        val ev = vehicle("veh-ev", fuelType = FuelType.ELECTRIC)
+        val petrol = vehicle("veh-petrol", fuelType = FuelType.GASOLINE)
+        val state = HomeState(
+            vehicles = listOf(ev, petrol),
+            activeSessions = listOf(session("s-ev", "veh-ev", parkedAt = 9_000L)),
+        )
+
+        assertEquals(FuelType.GASOLINE, state.pricedFuelType)
+    }
+
+    @Test
+    fun should_keep_quoting_something_when_every_vehicle_is_electric() {
+        // Sin nada mejor que ofrecer se conserva el comportamiento de siempre en vez de dejar la
+        // cifra sin sujeto.
+        val state = HomeState(vehicles = listOf(vehicle("veh-ev", fuelType = FuelType.ELECTRIC)))
+
+        assertEquals(FuelType.ELECTRIC, state.pricedFuelType)
+    }
+
+    @Test
+    fun should_quote_the_pump_product_of_a_hybrid_not_its_powertrain() {
+        // Lo que un híbrido echa es gasolina, y los feeds se indexan por lo que vende el surtidor.
+        val state = HomeState(vehicles = listOf(vehicle("veh-hev", fuelType = FuelType.HYBRID)))
+
+        assertEquals(FuelType.GASOLINE, state.pricedFuelType)
+    }
+
+    @Test
+    fun should_let_the_chosen_product_outrank_every_vehicle() {
+        // El chip de producto es justo el caso de uso de la issue #42: mirar el GLP sin cambiar de
+        // coche activo.
+        val state = HomeState(
+            vehicles = listOf(vehicle("veh-diesel", fuelType = FuelType.DIESEL)),
+            fuelProduct = FuelType.LPG_CNG,
+        )
+
+        assertEquals(FuelType.LPG_CNG, state.pricedFuelType)
     }
 }

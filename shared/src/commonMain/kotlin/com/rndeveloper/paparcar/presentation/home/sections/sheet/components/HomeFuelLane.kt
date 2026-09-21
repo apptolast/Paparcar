@@ -252,8 +252,20 @@ private const val EMPTY_ILLUSTRATION_H = 96
  * coche activo. Volver al coche activo se hace pulsando el producto elegido otra vez, que es lo
  * que ya hace el resto de la app con un chip encendido.
  */
+/*
+ * ⛔ **Pública, y por una razón concreta**: el user pidió que estos chips se queden fijos al
+ * desplazar, como los tabs. Esa fijación NO se resuelve aquí — la resuelve `LaneFilterBar`, el
+ * bloque de cabecera que [PARKINGS-THE-LANE-FILTERS-BY-WHAT-WE-KNOW-001] (#43) introduce en
+ * `HomeSheetContent`, donde tabs y filtros comparten un único `stickyHeader`. Duplicar ese seam en
+ * esta rama sería escribir dos veces la misma decisión y garantizar un conflicto al mergear.
+ *
+ * Así que la barra se hace pública y se sigue dibujando dentro del carril mientras #43 no esté
+ * dentro. En cuanto lo esté, el cableado es sustituir el `HomeNearbyLens.FUEL -> Unit` de
+ * `LaneFilterBar` por una llamada a esta función y quitar el bloque de abajo.
+ * [FUEL-THE-LANE-IS-FILTERED-BY-WHAT-YOU-BURN-001]
+ */
 @Composable
-private fun HomeFuelFilterBar(
+fun HomeFuelFilterBar(
     sort: FuelLaneSort,
     product: FuelType?,
     availableProducts: List<FuelType>,

@@ -466,8 +466,35 @@ data class HomeState(
      */
     val pricedFuelType: FuelType?
         get() = fuelProduct
-            ?: (vehicles.firstOrNull { it.isActive }?.fuelType ?: vehicles.firstOrNull()?.fuelType)
+            ?: vehiclesByRecentUse.firstNotNullOfOrNull { it.fuelType?.takeIf(FuelType::usesLiters) }
                 ?.pumpProduct
+            ?: vehiclesByRecentUse.firstNotNullOfOrNull { it.fuelType?.pumpProduct }
+
+    /**
+     * Los coches de este conductor **por uso reciente**, en el MISMO orden que la tira de «TUS
+     * VEHÍCULOS» y que el stepper del peek. [FUEL-THE-LANE-IS-FILTERED-BY-WHAT-YOU-BURN-001]
+     *
+     * ⛔ **Uso reciente, no la bandera `isActive`** (user, review de #42). El coche «activo» es el
+     * que está marcado, y marcar no es conducir: quien tiene un diésel de diario y un GLP por
+     * Bluetooth veía el carril cotizado por el que dejó marcado hace un mes. El orden de
+     * [vehiclesRowOrder] ya contesta «cuál es el de ahora» —conduciendo primero, luego por sesión
+     * aparcada más reciente, luego por vigilancia— y es el que el usuario ya lee en las otras dos
+     * superficies, así que reutilizarlo evita que tres sitios discrepen sobre cuál es su coche.
+     *
+     * ⛔ Y se busca el primero que **eche litros** (`usesLiters`), no el primero a secas: con un
+     * eléctrico arriba, quedarse en él dejaría el carril cotizando un producto que ninguna
+     * gasolinera vende, teniendo el conductor otro coche que sí reposta. ⚠️ Cuidado con
+     * `pumpProduct`: NO es nulo para `ELECTRIC` —se devuelve a sí mismo— así que no sirve para
+     * saltárselo; hay que preguntar por `usesLiters`. El segundo `?:` conserva el comportamiento de
+     * siempre para un garaje entero de eléctricos, donde no hay nada mejor que ofrecer.
+     */
+    internal val vehiclesByRecentUse: List<Vehicle>
+        get() = vehiclesRowOrder(
+            cards = vehicles.map { v ->
+                VehicleCard(vehicle = v, session = activeSessions.firstOrNull { it.vehicleId == v.id })
+            },
+            drivingVehicleId = drivingMeta?.vehicleId,
+        ).map { it.vehicle }
 
     /**
      * Los productos que ESTA respuesta cotiza de verdad, en orden fijo.
