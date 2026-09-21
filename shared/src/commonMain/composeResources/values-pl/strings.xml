@@ -1007,6 +1007,8 @@
     <string name="home_fuel_attended_price">Z obsługą</string>
     <string name="home_fuel_badge_cheapest">NAJTAŃSZA</string>
     <string name="home_fuel_badge_nearest">NAJBLIŻSZA</string>
+    <string name="home_fuel_sort_nearest">Najbliższe</string>
+    <string name="home_fuel_sort_cheapest">Najtańsze</string>
     <string name="home_fuel_remembered">Brak połączenia: to stacje, które widzieliśmy tutaj %1$s.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
     <string name="subject_fuel_stations">Stacje paliw</string>

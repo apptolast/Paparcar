@@ -985,6 +985,8 @@
     <string name="home_fuel_attended_price">Servi</string>
     <string name="home_fuel_badge_cheapest">LA MOINS CHÈRE</string>
     <string name="home_fuel_badge_nearest">LA PLUS PROCHE</string>
+    <string name="home_fuel_sort_nearest">Les plus proches</string>
+    <string name="home_fuel_sort_cheapest">Les moins chères</string>
     <string name="home_fuel_remembered">Pas de connexion : voici les stations vues ici %1$s.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
     <string name="subject_fuel_stations">Stations</string>

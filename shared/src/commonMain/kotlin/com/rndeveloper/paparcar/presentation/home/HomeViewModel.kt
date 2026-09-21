@@ -429,6 +429,11 @@ class HomeViewModel(
             // El filtro del carril de parkings es la misma pregunta —«qué hay alrededor»— afinada.
             // [PARKINGS-THE-LANE-FILTERS-BY-WHAT-WE-KNOW-001]
             is HomeIntent.SetParkingFilter,
+            // Los filtros del carril de gasolineras viajan con la familia del carril, por lo mismo:
+            // son la misma pregunta —«qué hay alrededor»— afinada.
+            // [FUEL-THE-LANE-IS-FILTERED-BY-WHAT-YOU-BURN-001]
+            is HomeIntent.SetFuelSort,
+            is HomeIntent.SetFuelProduct,
             is HomeIntent.SendSpotSignal,
             is HomeIntent.EnterReportMode,
             is HomeIntent.ExitReportMode,
@@ -1140,6 +1145,10 @@ class HomeViewModel(
             is HomeIntent.SetNearbyLens -> setNearbyLens(intent.lens)
             // No vuelve a preguntar: la tienda es la misma respuesta, cambia lo que se enseña.
             is HomeIntent.SetParkingFilter -> updateState { copy(parkingFilter = intent.filter) }
+            // Ni el orden ni el producto vuelven a preguntar: la tienda es la misma respuesta y lo
+            // único que cambia es cómo se lee. [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
+            is HomeIntent.SetFuelSort -> updateState { copy(fuelSort = intent.sort) }
+            is HomeIntent.SetFuelProduct -> updateState { copy(fuelProduct = intent.product) }
             is HomeIntent.SendSpotSignal -> submitSpotSignal(intent.spotId, intent.accepted)
             is HomeIntent.EnterReportMode -> updateState {
                 clearedModeFields().copy(

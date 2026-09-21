@@ -1,10 +1,14 @@
 package com.rndeveloper.paparcar.presentation.home.sections.sheet.components
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -12,11 +16,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsQuery
+import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
+import com.rndeveloper.paparcar.presentation.home.model.FuelLaneSort
 import com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice
 import com.rndeveloper.paparcar.presentation.home.model.ViewportRefetch
+import com.rndeveloper.paparcar.presentation.util.fuelTypeLabel
 import com.rndeveloper.paparcar.presentation.util.radiusString
 import com.rndeveloper.paparcar.presentation.util.relativeTimeText
+import com.rndeveloper.paparcar.ui.components.PapVerticalDivider
+import com.rndeveloper.paparcar.ui.components.chips.PaparcarFilterChip
+import com.rndeveloper.paparcar.ui.components.papHorizontalFadingEdges
 import com.rndeveloper.paparcar.ui.illustrations.EmptyFuelStationsIllustration
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
@@ -26,10 +36,12 @@ import paparcar.composeapp.generated.resources.home_fuel_error
 import paparcar.composeapp.generated.resources.home_fuel_live_prices
 import paparcar.composeapp.generated.resources.home_fuel_missing_fuel_type
 import paparcar.composeapp.generated.resources.home_fuel_no_prices
-import paparcar.composeapp.generated.resources.home_fuel_prices_unavailable
 import paparcar.composeapp.generated.resources.home_fuel_oldest_price
+import paparcar.composeapp.generated.resources.home_fuel_prices_unavailable
 import paparcar.composeapp.generated.resources.home_fuel_remembered
 import paparcar.composeapp.generated.resources.home_fuel_reported_at
+import paparcar.composeapp.generated.resources.home_fuel_sort_cheapest
+import paparcar.composeapp.generated.resources.home_fuel_sort_nearest
 
 /**
  * "Where to refuel" — the lane, i.e. what the sheet shows while the lens sits on
@@ -57,11 +69,31 @@ fun HomeFuelLane(
     /** Whether Home has a position at all: without one the rows drop the distance, which is the one
      *  thing they say ABOUT THE USER. [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001] */
     hasFix: Boolean = true,
+    /** Ordenar por cercanía o por precio. Null = sin barra (galería, previews).
+     *  [FUEL-THE-LANE-IS-FILTERED-BY-WHAT-YOU-BURN-001] */
+    onSortSelect: ((FuelLaneSort) -> Unit)? = null,
+    /** Cotizar por ESTE producto; null vuelve al del coche activo. */
+    onProductSelect: ((FuelType?) -> Unit)? = null,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         // ⛔ ABOVE the five sentences below, the fuel-less one included: "your car has no fuel type"
         // is an answer, and an answer lands better once the user knows what the question was.
         if (isIntroducing) LaneIntroNote(NearbyComplement.FUEL)
+
+        // ⛔ La barra se dibuja SÓLO cuando hay respuesta que ordenar. Encima de «no hemos podido
+        // preguntar» o de «tu coche no tiene combustible» sería ofrecer ordenar una lista que no
+        // existe — y peor: haría creer que el filtro es la causa de que no haya nada.
+        // [FUEL-THE-LANE-IS-FILTERED-BY-WHAT-YOU-BURN-001]
+        if (onSortSelect != null && slice.stations.isNotEmpty()) {
+            HomeFuelFilterBar(
+                sort = slice.sort,
+                product = slice.product,
+                availableProducts = slice.availableProducts,
+                onSortSelect = onSortSelect,
+                onProductSelect = onProductSelect,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            )
+        }
 
         when {
 
@@ -190,3 +222,77 @@ private fun EmptyFuelStations() {
 
 private const val EMPTY_ILLUSTRATION_W = 112
 private const val EMPTY_ILLUSTRATION_H = 96
+
+/**
+ * Los filtros del carril: **cómo se ordena** y **qué producto se cotiza**.
+ * [FUEL-THE-LANE-IS-FILTERED-BY-WHAT-YOU-BURN-001]
+ *
+ * Misma gramática que la barra de tamaños de las plazas —fila que se desplaza, chips de
+ * [PaparcarFilterChip]— porque es la misma pregunta hecha sobre otro sujeto, y el usuario pidió
+ * explícitamente alinearse con ella.
+ *
+ * ⛔ **Dos grupos, y se nota que son dos.** El orden (cercanas / baratas) y el producto (diésel,
+ * gasolina, GLP) no son la misma pregunta: uno reordena, el otro requota. Van en la misma fila
+ * porque comparten sitio y gesto, pero separados por un divisor vertical — sin él, «Más baratas» y
+ * «Diésel» se leen como opciones de una misma lista donde elegir una apaga la otra, que es
+ * exactamente lo que NO pasa.
+ *
+ * ⛔ **Sin chip «Todos» en el producto.** Una gasolinera no tiene «un precio»: tiene el de cada
+ * producto. «Todos» tendría que enseñar cuál, y elegirlo por su cuenta es justo lo que hace hoy el
+ * coche activo. Volver al coche activo se hace pulsando el producto elegido otra vez, que es lo
+ * que ya hace el resto de la app con un chip encendido.
+ */
+/*
+ * ⛔ **Pública, y por una razón concreta**: el user pidió que estos chips se queden fijos al
+ * desplazar, como los tabs. Esa fijación NO se resuelve aquí — la resuelve `LaneFilterBar`, el
+ * bloque de cabecera que [PARKINGS-THE-LANE-FILTERS-BY-WHAT-WE-KNOW-001] (#43) introduce en
+ * `HomeSheetContent`, donde tabs y filtros comparten un único `stickyHeader`. Duplicar ese seam en
+ * esta rama sería escribir dos veces la misma decisión y garantizar un conflicto al mergear.
+ *
+ * Así que la barra se hace pública y se sigue dibujando dentro del carril mientras #43 no esté
+ * dentro. En cuanto lo esté, el cableado es sustituir el `HomeNearbyLens.FUEL -> Unit` de
+ * `LaneFilterBar` por una llamada a esta función y quitar el bloque de abajo.
+ * [FUEL-THE-LANE-IS-FILTERED-BY-WHAT-YOU-BURN-001]
+ */
+@Composable
+fun HomeFuelFilterBar(
+    sort: FuelLaneSort,
+    product: FuelType?,
+    availableProducts: List<FuelType>,
+    onSortSelect: (FuelLaneSort) -> Unit,
+    onProductSelect: ((FuelType?) -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    val scrollState = rememberScrollState()
+    Row(
+        modifier = modifier.papHorizontalFadingEdges(scrollState).horizontalScroll(scrollState),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        PaparcarFilterChip(
+            label = stringResource(Res.string.home_fuel_sort_nearest),
+            selected = sort == FuelLaneSort.NEAREST,
+            onClick = { onSortSelect(FuelLaneSort.NEAREST) },
+        )
+        PaparcarFilterChip(
+            label = stringResource(Res.string.home_fuel_sort_cheapest),
+            selected = sort == FuelLaneSort.CHEAPEST,
+            onClick = { onSortSelect(FuelLaneSort.CHEAPEST) },
+        )
+        if (onProductSelect != null && availableProducts.isNotEmpty()) {
+            PapVerticalDivider(modifier = Modifier.height(FILTER_DIVIDER_HEIGHT_DP.dp))
+            availableProducts.forEach { type ->
+                val isOn = product == type
+                PaparcarFilterChip(
+                    label = fuelTypeLabel(type),
+                    selected = isOn,
+                    // Pulsar el que ya está encendido lo apaga y devuelve el carril al coche activo.
+                    onClick = { onProductSelect(type.takeUnless { isOn }) },
+                )
+            }
+        }
+    }
+}
+
+/** Alto del divisor entre los dos grupos de chips: el de un chip, para que no sobresalga. */
+private const val FILTER_DIVIDER_HEIGHT_DP = 24

@@ -985,6 +985,8 @@
     <string name="home_fuel_attended_price">Servito</string>
     <string name="home_fuel_badge_cheapest">PIÙ ECONOMICA</string>
     <string name="home_fuel_badge_nearest">PIÙ VICINA</string>
+    <string name="home_fuel_sort_nearest">Più vicine</string>
+    <string name="home_fuel_sort_cheapest">Più economiche</string>
     <string name="home_fuel_remembered">Nessuna connessione: questi sono i distributori visti qui %1$s.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
     <string name="subject_fuel_stations">Distributori</string>

@@ -558,6 +558,8 @@ private fun LazyListScope.nearbyLane(
                 },
                 isIntroducing = slice.nearbyIntro == NearbyComplement.FUEL,
                 hasFix = slice.userGpsPoint != null,
+                onSortSelect = { sort -> onIntent(HomeIntent.SetFuelSort(sort)) },
+                onProductSelect = { product -> onIntent(HomeIntent.SetFuelProduct(product)) },
             )
         }
     }

@@ -49,6 +49,15 @@ data class HomeFuelSlice(
      * here when we last could".
      */
     val rememberedAtMs: Long? = null,
+
+    // ── Filtros [FUEL-THE-LANE-IS-FILTERED-BY-WHAT-YOU-BURN-001] ──
+
+    /** Con qué criterio se está ordenando. Ninguno esconde gasolineras. */
+    val sort: FuelLaneSort = FuelLaneSort.NEAREST,
+    /** El producto elegido, o null = el del coche activo. */
+    val product: FuelType? = null,
+    /** Los productos que ESTA respuesta cotiza. Los chips ofrecen lo que hay, no el catálogo. */
+    val availableProducts: List<FuelType> = emptyList(),
     /**
      * Set when the lookup failed. Distinct from an empty list on purpose: "nothing within 5 km" and
      * "we could not ask" are different sentences, and the section must never say the first when it

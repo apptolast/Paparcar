@@ -617,7 +617,14 @@ fun HomeState.toPeekSlice(): HomePeekSlice {
 fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
     // The rows are the map's pins, in the order they are listed: one projection over one store.
     // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
-    fuel = fuel.copy(stations = fuelStationsShown),
+    fuel = fuel.copy(
+        stations = fuelStationsShown,
+        // Los filtros viajan con el carril: la barra los lee del mismo sitio que la lista que
+        // ordenan. [FUEL-THE-LANE-IS-FILTERED-BY-WHAT-YOU-BURN-001]
+        sort = fuelSort,
+        product = fuelProduct,
+        availableProducts = fuelProductsAvailable,
+    ),
     parkings = parkings.copy(
         parkings = publicParkingsShown,
         filter = parkingFilter,
