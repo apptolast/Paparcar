@@ -20,6 +20,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
@@ -197,8 +200,29 @@ internal fun HomeBottomSheet(
                 // encuadrar. Mapa y lista tienen que estar mirando lo mismo.
                 //
                 // Ya en el principio es un no-op, así que no interfiere con la primera composición.
+                //
+                // Y la hoja SUBE hasta la mitad, porque desde el peek un cambio de carril mueve el
+                // mapa y devuelve la lista a su sitio sin que se vea ninguna de las dos cosas: el
+                // usuario pide gasolineras y lo único que cambia es una pestaña.
+                //
+                // ⛔ **Sube, nunca baja.** Si la hoja ya estaba por encima de la mitad (expandida o
+                // entera) se queda donde el usuario la dejó: pedir otro carril no es pedir menos
+                // sitio, y encogerle la lista al que la tenía abierta sería quitarle algo que no ha
+                // soltado. Con el offset, "más arriba" es un valor MENOR.
+                //
+                // ⛔ **Y no en la primera composición**: Home abre en peek y ahí se queda hasta que
+                // alguien toque una pestaña. Por eso el primer paso del efecto sólo arma.
+                var laneMotionArmed by remember { mutableStateOf(false) }
                 LaunchedEffect(browse.nearbyLens) {
                     frame.lazyListState.animateScrollToItem(0)
+                    if (!laneMotionArmed) {
+                        laneMotionArmed = true
+                        return@LaunchedEffect
+                    }
+                    val half = frame.dragSnap.halfOffsetPx
+                    if (frame.sheetOffsetPx.value > half) {
+                        frame.sheetOffsetPx.animateTo(half, frame.dragSnap.snapSpec)
+                    }
                 }
                 PapDivider()
                 LazyColumn(
