@@ -1020,6 +1020,8 @@
     <string name="home_fuel_live_prices">Prices update in real time</string>
     <!-- El precio de un surtidor atendido, que no es el mismo que el self [FUEL-ITALY-A-PRICE-DEPENDS-ON-WHO-PUMPS-IT-001] -->
     <string name="home_fuel_attended_price">Attended service</string>
+    <string name="home_fuel_badge_cheapest">CHEAPEST</string>
+    <string name="home_fuel_badge_nearest">NEAREST</string>
     <string name="home_fuel_remembered">No connection: these are the stations we saw here %1$s.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
     <string name="subject_fuel_stations">Fuel stations</string>

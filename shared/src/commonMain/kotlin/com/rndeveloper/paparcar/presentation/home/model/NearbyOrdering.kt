@@ -2,6 +2,7 @@ package com.rndeveloper.paparcar.presentation.home.model
 
 import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.GpsPoint
+import com.rndeveloper.paparcar.domain.fuel.fuelStandouts
 import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
 import com.rndeveloper.paparcar.domain.usecase.parkings.NearbyPublicParking
 import com.rndeveloper.paparcar.domain.util.haversineMeters
@@ -42,7 +43,25 @@ object NearbyOrdering {
                     } ?: nearby.distanceMeters,
                 )
             }
-            .sortedWith(compareBy<NearbyFuelStation> { it.price == null }.thenBy { it.distanceMeters })
+            .let { priced ->
+                // ⛔ La MÁS BARATA sube al principio (review de #37: «debería haber también para
+                // barato y ordenado arriba»). Sin esto puede vivir a diez filas de scroll: la lista
+                // ordena por distancia, y el precio no tiene nada que ver con lo cerca que esté. Un
+                // badge que hay que buscar no es un badge. La más CERCANA no sube — ver el ⛔ de
+                // `FuelStandouts.rankOf`.
+                //
+                // El resto del orden NO cambia — dentro de cada grupo siguen mandando «con precio
+                // primero» y la distancia —, así que la lista sigue siendo la de siempre con dos
+                // filas adelantadas. `fuelStandouts()` es puro y ajeno al orden, así que da lo mismo
+                // aquí que en la fila que pinta el badge: las dos preguntan sobre la misma lista.
+                // [FUEL-THE-CHEAPEST-AND-THE-NEAREST-WEAR-A-BADGE-001]
+                val standouts = priced.fuelStandouts()
+                priced.sortedWith(
+                    compareBy<NearbyFuelStation> { standouts.rankOf(it.stationKey) }
+                        .thenBy { it.price == null }
+                        .thenBy { it.distanceMeters },
+                )
+            }
 
     fun publicParkings(
         parkings: List<NearbyPublicParking>,

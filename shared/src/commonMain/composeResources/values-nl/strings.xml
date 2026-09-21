@@ -949,6 +949,8 @@
     <string name="home_fuel_oldest_price">Oudste prijs: %1$s</string>
     <string name="home_fuel_live_prices">Prijzen worden in realtime bijgewerkt</string>
     <string name="home_fuel_attended_price">Bediend</string>
+    <string name="home_fuel_badge_cheapest">GOEDKOOPSTE</string>
+    <string name="home_fuel_badge_nearest">DICHTSTBIJ</string>
     <string name="home_fuel_remembered">Geen verbinding: dit zijn de tankstations die we hier %1$s zagen.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
     <string name="subject_fuel_stations">Tankstations</string>

@@ -57,8 +57,12 @@ class NearbyOrderingTest {
             user = user,
         )
 
-        assertEquals(listOf("mid-priced", "far-priced", "near-unpriced", "mid-unpriced"), shown.map { it.station.id })
-        assertEquals(1.6, shown.first().price?.perUnit?.amount, "priced for the car being driven")
+        // ⛔ `far-priced` encabeza aunque esté a 3 km: es la MÁS BARATA, y desde la review de #37 esa
+        // sube al principio — un badge que hay que buscar con scroll no es un badge. Lo demás no se
+        // mueve: con precio primero, y dentro de cada grupo la distancia.
+        // [FUEL-THE-CHEAPEST-AND-THE-NEAREST-WEAR-A-BADGE-001]
+        assertEquals(listOf("far-priced", "mid-priced", "near-unpriced", "mid-unpriced"), shown.map { it.station.id })
+        assertEquals(1.5, shown.first().price?.perUnit?.amount, "priced for the car being driven")
     }
 
     @Test
