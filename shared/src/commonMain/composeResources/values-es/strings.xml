@@ -982,7 +982,6 @@
     <string name="home_fuel_attended_price">Atendido</string>
     <string name="home_fuel_badge_cheapest">MÁS BARATA</string>
     <string name="home_fuel_badge_nearest">MÁS CERCANA</string>
-    <string name="home_fuel_badge_cheapest_nearest">MÁS BARATA Y CERCANA</string>
     <string name="home_fuel_remembered">Sin conexión: estas son las gasolineras que vimos aquí %1$s.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
     <string name="subject_fuel_stations">Gasolineras</string>

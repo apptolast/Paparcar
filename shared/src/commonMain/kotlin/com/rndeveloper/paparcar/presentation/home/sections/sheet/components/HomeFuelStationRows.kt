@@ -33,7 +33,6 @@ import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_fuel_attended_price
 import paparcar.composeapp.generated.resources.home_fuel_badge_cheapest
-import paparcar.composeapp.generated.resources.home_fuel_badge_cheapest_nearest
 import paparcar.composeapp.generated.resources.home_fuel_badge_nearest
 import paparcar.composeapp.generated.resources.location_fallback_station
 
@@ -209,23 +208,41 @@ private fun FuelPriceLabel(price: StationPrice) {
 private fun FuelStandoutBadgeChip(badge: FuelStandoutBadge) {
     val label = stringResource(
         when (badge) {
-            FuelStandoutBadge.CHEAPEST -> Res.string.home_fuel_badge_cheapest
+            // ⛔ **La combinada dice sólo «MÁS BARATA»**, y no es un recorte por espacio.
+            // «Y CERCANA» no añade nada JUSTO en la fila donde más estorba: una gasolinera que es a
+            // la vez la más barata y la más cercana es, por construcción, la PRIMERA de la lista
+            // —la más barata se adelanta— y sus metros están escritos dos palabras más allá, en el
+            // subtítulo. La afirmación fuerte, la que no se puede deducir mirando, es el precio.
+            // De paso, 20 caracteres al borde de una fila que también lleva el precio le comían el
+            // nombre a la gasolinera; el badge de una plaza no pasa de 11.
+            FuelStandoutBadge.CHEAPEST,
+            FuelStandoutBadge.CHEAPEST_AND_NEAREST,
+            -> Res.string.home_fuel_badge_cheapest
+
             FuelStandoutBadge.NEAREST -> Res.string.home_fuel_badge_nearest
-            FuelStandoutBadge.CHEAPEST_AND_NEAREST -> Res.string.home_fuel_badge_cheapest_nearest
         },
     )
     val isPriceClaim = badge != FuelStandoutBadge.NEAREST
     PapBadge(
         label = label,
+        // ⛔ **Par TONAL, no relleno macizo** — el mismo peso que el badge de antigüedad de una
+        // plaza, que lee su color de la rampa de frescura en `container`/`onContainer`.
+        //
+        // El macizo entró cuando el badge vivía DENTRO de la línea del subtítulo: ahí competía con
+        // texto y necesitaba contraste al máximo para no desaparecer. Al final de la fila tiene su
+        // propia columna, así que la prominencia ya se la da la POSICIÓN, y el macizo pasaba de
+        // resolver un problema a crear otro: dos badges con la misma forma y distinto peso se leen
+        // como dos NIVELES de afirmación distintos al cambiar de pestaña, cuando lo que dicen es lo
+        // mismo —«ésta es la que te interesa»— sobre carriles distintos.
         containerColor = if (isPriceClaim) {
-            MaterialTheme.colorScheme.primary
+            MaterialTheme.colorScheme.primaryContainer
         } else {
-            MaterialTheme.colorScheme.inverseSurface
+            MaterialTheme.colorScheme.surfaceVariant
         },
         contentColor = if (isPriceClaim) {
-            MaterialTheme.colorScheme.onPrimary
+            MaterialTheme.colorScheme.onPrimaryContainer
         } else {
-            MaterialTheme.colorScheme.inverseOnSurface
+            MaterialTheme.colorScheme.onSurfaceVariant
         },
         // ⛔ **Caja y esquina por DEFECTO, las mismas que `SpotAgeIndicator`**: los dos badges son el
         // token del borde derecho de su fila y tienen que ser el mismo objeto. La caja densa y la

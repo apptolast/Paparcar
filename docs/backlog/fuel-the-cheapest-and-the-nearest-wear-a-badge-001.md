@@ -144,3 +144,50 @@ su texto normal (antes se lo comía el badge).
 `./gradlew testAll :app:compileMockDebugKotlin` → BUILD SUCCESSFUL.
 
 ⏳ **Sin captura del estado final**: no hay device conectado (`PR-A-VISUAL-CHANGE-SHOWS-ITSELF-001`).
+
+## Cuarta vuelta: aplicadas las tres recomendaciones
+
+> «Aplica todo lo recomendado, incluido lo de más barato aunque sea cercano.»
+
+### 1. El peso baja a TONAL
+
+`primaryContainer`/`onPrimaryContainer` para la afirmación de precio y `surfaceVariant`/
+`onSurfaceVariant` para la distancia sola. Es el mismo peso que el badge de antigüedad de una plaza,
+que lee su color de la rampa de frescura en `container`/`onContainer`.
+
+El macizo entró cuando el badge vivía **dentro** de la línea del subtítulo: ahí competía con texto y
+necesitaba contraste al máximo para no desaparecer («apenas destaca», 2.ª vuelta). Al final de la
+fila tiene su propia columna, así que la prominencia se la da la **posición**, y el macizo pasaba de
+resolver un problema a crear otro: dos badges con la misma forma y distinto peso se leen como dos
+**niveles** de afirmación distintos al cambiar de pestaña, cuando lo que dicen es lo mismo —«ésta es
+la que te interesa»— sobre carriles distintos.
+
+### 2. La combinada dice sólo «MÁS BARATA»
+
+Y no es un recorte por espacio. **«Y CERCANA» no añade nada justo en la fila donde más estorba**: una
+gasolinera que es a la vez la más barata y la más cercana es, por construcción, la **primera** de la
+lista —la más barata se adelanta desde la 3.ª vuelta— y sus metros están escritos dos palabras más
+allá, en el subtítulo. La afirmación fuerte, la que no se puede deducir mirando, es el precio.
+
+De paso resuelve el riesgo de ancho: 20 caracteres al borde de una fila que también lleva el precio
+le comían el nombre a la gasolinera; el badge de una plaza no pasa de 11.
+
+⛔ `FuelStandoutBadge.CHEAPEST_AND_NEAREST` **sobrevive como estado** —el orden lo usa para adelantar
+la fila— y lo único que colapsa es su ETIQUETA. La key `home_fuel_badge_cheapest_nearest` se queda
+sin lector, así que sale de **los nueve locales**: una string muerta en nueve ficheros es deuda que
+nadie vuelve a mirar.
+
+### 3. Sin icono, y es deliberado
+
+El reloj del badge de plaza **informa**: hace que «3 min» se lea como una antigüedad sin la palabra.
+Un icono de «más barata» no informaría, **metaforizaría** —etiqueta, flecha, hucha—, y eso es jerga
+inventada, sólo que dibujada. Además el carril ya lleva su glifo de surtidor en el tile de la
+izquierda: un segundo icono en la misma fila hablando del mismo tema es ruido. Lo pedido fue «al
+menos la forma», y la forma no necesita el glifo.
+
+### Verificación
+
+`./gradlew testAll :app:compileMockDebugKotlin` → BUILD SUCCESSFUL (incluido
+`LocaleParityGuardrailTest`, que es quien comprueba que la key salió de los nueve y no de ocho).
+
+⏳ **Sin captura del estado final**: no hay device conectado (`PR-A-VISUAL-CHANGE-SHOWS-ITSELF-001`).
