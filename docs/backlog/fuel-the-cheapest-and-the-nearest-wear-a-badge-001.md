@@ -97,3 +97,50 @@ barata y la más cercana sólo llevaba «MÁS CERCANA».
 - **Caja del badge**: 6×1 → 5×0 dp. La letra no se toca: 12 sp es propiedad del rol `badge`, no del
   call site. Si sigue pareciendo grande, lo que falta es un ROL nuevo (un `badgeInline` de 10 sp),
   no un `fontSize` suelto — ver Preguntas.
+
+## Tercera vuelta (review del user, 20-09): la forma del badge de plaza, y al final de la fila
+
+> «Evaluar cómo mete el badge de spot de tiempo para simetría en FORMA, no colores — cada uno tiene
+> su identidad de colores. Y lo pondremos al final del row, no al principio, alineándonos con el
+> badge de FREE SPOTS (3 min ago).»
+
+### Lo que era cada badge antes de tocar
+
+| | Badge de plaza (`SpotAgeIndicator`) | Badge de gasolinera (2.ª vuelta) |
+|---|---|---|
+| Caja | `contentPadding` por defecto | `PapBadgeDensePadding` (5×0) |
+| Esquina | `shapes.extraSmall` | `CircleShape` (píldora) |
+| Voz | rol `badge` | rol `badge` ✅ |
+| Icono | `Icons.Rounded.Schedule` | ninguno |
+| Color | par **tonal** de la rampa de frescura | **macizo** `primary` / `inverseSurface` |
+| Sitio | **trailing** | línea del subtítulo, al principio |
+
+### Qué se ha alineado
+
+**Caja, esquina y posición.** `PapBadge` con sus valores por defecto, y el badge se muda al
+**trailing**, apilado **bajo el precio**: el precio es la cifra que decide y manda en la columna; el
+badge es lo que la cualifica, y una afirmación sobre un número se lee debajo de él.
+
+⛔ La caja densa y la píldora **no se pierden por capricho**: existían porque el badge vivía dentro de
+la línea del subtítulo, donde un token tiene que encogerse para no leerse como una segunda fila. Al
+final de la fila esa razón desaparece — ahí tiene su propia columna. Al irse, el subtítulo recupera
+su texto normal (antes se lo comía el badge).
+
+### Lo que NO se ha alineado, y por qué
+
+- **El color**, por indicación expresa: es la identidad del carril.
+- **El icono.** El reloj del badge de plaza **informa**: hace que «3 min» se lea como una antigüedad
+  sin la palabra. Un icono de «más barata» sería una metáfora (etiqueta, flecha, hucha), y este
+  proyecto prohíbe la jerga inventada — incluso la dibujada. El pedido era *«al menos la forma»*, y
+  la forma no necesita el glifo.
+- **El PESO.** El de plaza es tonal y éste sigue macizo, porque la 2.ª vuelta lo pidió así («apenas
+  destaca»). ⚠️ Pero ese argumento nació con el badge DENTRO del subtítulo. Al final de la fila la
+  posición ya le da prominencia, así que el macizo puede haberse vuelto innecesario — y dos badges
+  con la misma forma y distinto peso se leen como dos niveles de afirmación distintos. **Se decide
+  viéndolo**, y es una línea.
+
+### Verificación
+
+`./gradlew testAll :app:compileMockDebugKotlin` → BUILD SUCCESSFUL.
+
+⏳ **Sin captura del estado final**: no hay device conectado (`PR-A-VISUAL-CHANGE-SHOWS-ITSELF-001`).

@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,7 +23,6 @@ import com.rndeveloper.paparcar.presentation.home.model.pumpPriceLabel
 import com.rndeveloper.paparcar.presentation.util.LocalPumpGallon
 import com.rndeveloper.paparcar.presentation.util.formatDistance
 import com.rndeveloper.paparcar.ui.components.PapBadge
-import com.rndeveloper.paparcar.ui.components.PapBadgeDensePadding
 import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.ui.components.PapIconTile
 import com.rndeveloper.paparcar.ui.components.PapListItem
@@ -76,32 +74,8 @@ fun HomeFuelStationRow(
         contentPadding = PaddingValues(0.dp),
         titleStyle = PaparcarType.current.rowName,
         titleMaxLines = 1,
-        subtitle = subtitleFor(station, title, hasFix).takeIf { badge == null },
+        subtitle = subtitleFor(station, title, hasFix),
         subtitleMaxLines = 1,
-        // The badge rides the subtitle line, not the trailing slot: the price lives there and a
-        // forecourt's claim is about the forecourt, not about the number. One badge per row — a row
-        // is a name, never a scoreboard. [FUEL-THE-CHEAPEST-AND-THE-NEAREST-WEAR-A-BADGE-001]
-        subtitleSlot = badge?.let {
-            {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    FuelStandoutBadgeChip(it)
-                    // A forecourt can have no subtitle at all (no fix, no address): then the badge
-                    // is the whole line rather than a badge next to an empty string.
-                    subtitleFor(station, title, hasFix)?.let { line ->
-                        Text(
-                            text = line,
-                            style = PaparcarType.current.caption,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-            }
-        },
         leading = {
             // ⛔ VERDE, no neutro (user, 10-09, viéndolo en el Oppo). El barrido de
             // `UI-A-NEUTRAL-TILE-MUST-NOT-MUTE-AN-ACTION-001` dejó neutro todo tile que ETIQUETA su
@@ -111,7 +85,28 @@ fun HomeFuelStationRow(
             // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
             PapIconTile(icon = PaparcarIcons.Fuel, tint = PapColor.actionText)
         },
-        trailing = station.price?.let { price -> { FuelPriceLabel(price) } },
+        // ⛔ **El badge va al FINAL de la fila, alineado con el de las plazas** (user, review de #33).
+        // Las dos listas viven bajo las mismas pestañas y se recorren con el mismo gesto, así que su
+        // token tiene que aparecer en el mismo borde: en Plazas es la antigüedad («Hace 3 min»), aquí
+        // la afirmación. Estaba en la línea del subtítulo y eso obligaba al ojo a buscarlo en un
+        // sitio distinto según la pestaña.
+        //
+        // Apilado BAJO el precio, no al lado: el precio es la cifra que decide y manda en la columna;
+        // el badge es lo que la cualifica, y una afirmación sobre un número se lee debajo de él.
+        // [FUEL-THE-CHEAPEST-AND-THE-NEAREST-WEAR-A-BADGE-001]
+        trailing = if (station.price != null || badge != null) {
+            {
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(TRAILING_STACK_GAP_DP.dp),
+                ) {
+                    station.price?.let { FuelPriceLabel(it) }
+                    badge?.let { FuelStandoutBadgeChip(it) }
+                }
+            }
+        } else {
+            null
+        },
     )
 }
 
@@ -182,19 +177,33 @@ private fun FuelPriceLabel(price: StationPrice) {
 }
 
 /**
- * The claim itself — a small SOLID pill, not a tinted rectangle.
+ * La afirmación de esta gasolinera — **el mismo objeto que el badge de antigüedad de una plaza**
+ * ([com.rndeveloper.paparcar.ui.components.SpotAgeIndicator]), con el color de su carril.
  *
- * ⛔ **Relleno macizo, no `primaryContainer`** (review de #37: «el badge apenas destaca y no se nota
- * debido a sus tonos, podrías hacerlo más pequeño y compacto?»). Un container tonal sobre la
- * superficie de la hoja se diferencia del fondo en unos pocos puntos de luminancia: de lejos, en la
- * calle y con sol, no hay badge. La respuesta NO es hacerlo más grande —eso lo convertiría en una
- * segunda fila— sino al revés: más pequeño y con el contraste al máximo, que es como se lee un
- * token de una línea. Caja [PapBadgeDensePadding] + píldora.
+ * ## Misma FORMA, distinto COLOR (user, review de #33)
  *
- * Verde de marca para lo que habla del PRECIO — la gasolinera más barata es la respuesta útil a la
- * pregunta que abrió este carril — y el neutro invertido para la distancia sola, que la fila ya
- * dice en metros dos palabras después. Los dos macizos: lo que cambia es el tono, no el peso.
- * [FUEL-THE-CHEAPEST-AND-THE-NEAREST-WEAR-A-BADGE-001]
+ * Los dos badges son el token del borde derecho de su fila, bajo las mismas pestañas y recorridos
+ * con el mismo gesto, así que comparten caja, esquina y voz tipográfica: `PapBadge` con su
+ * `contentPadding` y su `shape` por defecto y el rol `badge`. Lo único que no se comparte es el
+ * color, que es lo que dice de qué carril habla cada uno.
+ *
+ * ⛔ La caja densa y la píldora de la vuelta anterior **no se pierden por capricho**: existían
+ * porque el badge vivía DENTRO de la línea del subtítulo, donde un token tiene que encogerse para no
+ * leerse como una segunda fila. Al mudarse al final de la fila esa razón desaparece — ahí tiene su
+ * propia columna y nada con lo que competir por el ancho.
+ *
+ * ## El relleno sigue siendo macizo
+ *
+ * Review anterior: *«el badge apenas destaca y no se nota debido a sus tonos»*. Un container tonal
+ * sobre la hoja se diferencia del fondo en unos pocos puntos de luminancia y de lejos, en la calle y
+ * con sol, no hay badge. Verde de marca para lo que habla del PRECIO —la más barata es la respuesta
+ * útil a la pregunta que abrió este carril— y neutro invertido para la distancia sola, que la fila
+ * ya dice en metros dos palabras después.
+ *
+ * ⚠️ Esto es lo único donde los dos badges divergen de verdad: el de la plaza usa el **par tonal**
+ * de la rampa de frescura y éste va macizo. Al final de la fila el badge ya no compite con un
+ * subtítulo, así que puede que el macizo se haya vuelto innecesario — pero eso se decide **viéndolo**,
+ * no aquí, y es una línea. [FUEL-THE-CHEAPEST-AND-THE-NEAREST-WEAR-A-BADGE-001]
  */
 @Composable
 private fun FuelStandoutBadgeChip(badge: FuelStandoutBadge) {
@@ -218,9 +227,13 @@ private fun FuelStandoutBadgeChip(badge: FuelStandoutBadge) {
         } else {
             MaterialTheme.colorScheme.inverseOnSurface
         },
+        // ⛔ **Caja y esquina por DEFECTO, las mismas que `SpotAgeIndicator`**: los dos badges son el
+        // token del borde derecho de su fila y tienen que ser el mismo objeto. La caja densa y la
+        // píldora de la vuelta anterior existían porque el badge vivía DENTRO de la línea del
+        // subtítulo, donde un token tiene que encogerse para no leerse como una segunda fila. Al
+        // mudarse al final de la fila esa razón desaparece: ahí tiene su propia columna.
+        // Lo único que NO se comparte es el color, que es la identidad de cada carril.
         textStyle = PaparcarType.current.badge,
-        contentPadding = PapBadgeDensePadding,
-        shape = CircleShape,
     )
 }
 
@@ -254,3 +267,7 @@ fun HomeFuelStationRows(
         }
     }
 }
+
+/** Aire entre el precio y el badge que lo cualifica, en la columna del borde derecho.
+ *  [FUEL-THE-CHEAPEST-AND-THE-NEAREST-WEAR-A-BADGE-001] */
+private const val TRAILING_STACK_GAP_DP = 4
