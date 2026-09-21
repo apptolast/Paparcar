@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.presentation.home
 
+import com.rndeveloper.paparcar.presentation.map.ZoomIntent
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -68,6 +69,62 @@ class HomeUiControllerTest {
         val target = assertNotNull(controller.cameraTarget)
         assertEquals(USER_LAT, target.boundsLat2)
         assertEquals(USER_LON, target.boundsLon2)
+    }
+
+    // ── El zoom del seguimiento [HOME-A-LIVE-TRIP-DESERVES-THE-ZOOM-IT-NEEDS-001] ──
+
+    @Test
+    fun should_zoomIn_when_theFollowFirstEngages() {
+        // ⛔ EL TESTIGO de la issue #66: «al abrir la app en driving, la cámara no va a la
+        // localización ni se acerca». Iba al coche; lo que no hacía era acercarse, porque el
+        // seguimiento recentraba SIN zoom desde el primer fix — y al abrir en mitad de un viaje el
+        // zoom que hay es el de por defecto del mapa, no uno que el usuario haya elegido.
+        val controller = drivingController()
+
+        controller.followDriver(CAR_LAT, CAR_LON)
+
+        val target = assertNotNull(controller.cameraTarget)
+        assertEquals(CAR_LAT, target.lat)
+        assertEquals(
+            HomeUiController.FOCUS_DRIVING_ZOOM,
+            target.zoom,
+            "el primer seguimiento de un viaje es un encuadre, no una actualización de tracking",
+        )
+        assertEquals(
+            ZoomIntent.AtLeast,
+            target.zoomIntent,
+            "y entra como SUELO: a quien ya miraba de cerca no se le aleja",
+        )
+    }
+
+    @Test
+    fun should_leaveTheZoomAlone_when_theFollowKeepsTracking() {
+        // La mitad que ya era correcta y que no se puede perder: una vez siguiendo, la cámara no le
+        // deshace el pellizco al usuario en cada fix.
+        val controller = drivingController()
+        controller.followDriver(CAR_LAT, CAR_LON)
+
+        controller.followDriver(CAR_LAT + 0.001, CAR_LON + 0.001)
+
+        assertNull(
+            assertNotNull(controller.cameraTarget).zoom,
+            "seguir NO es reencuadrar: el zoom del usuario manda a partir del primero",
+        )
+    }
+
+    @Test
+    fun should_zoomInAgain_when_aNewTripStarts() {
+        // Un viaje nuevo es un encuadre nuevo: el anterior terminó y su zoom no dice nada del que
+        // empieza.
+        val controller = drivingController()
+        controller.followDriver(CAR_LAT, CAR_LON)
+        controller.followDriver(CAR_LAT + 0.001, CAR_LON + 0.001)
+
+        controller.setDriverFollowActive(false)
+        controller.setDriverFollowActive(true)
+        controller.followDriver(CAR_LAT, CAR_LON)
+
+        assertEquals(HomeUiController.FOCUS_DRIVING_ZOOM, assertNotNull(controller.cameraTarget).zoom)
     }
 
     @Test
