@@ -85,6 +85,7 @@ import paparcar.composeapp.generated.resources.first_steps_watch_on_title
 import paparcar.composeapp.generated.resources.first_steps_watch_sub
 import paparcar.composeapp.generated.resources.first_steps_watch_title
 import paparcar.composeapp.generated.resources.first_steps_zone_no_garage
+import paparcar.composeapp.generated.resources.first_steps_pointing_up
 import paparcar.composeapp.generated.resources.first_steps_zone_sub
 import paparcar.composeapp.generated.resources.first_steps_zone_title
 import paparcar.composeapp.generated.resources.home_det_producer_cta
@@ -119,6 +120,15 @@ fun FirstStepsCard(
      * it, a replay would just show three ticks.
      */
     onOpenStep: (FirstStep) -> Unit = {},
+    /**
+     * El paso al que la guía está señalando ahora mismo, o null.
+     * [ONB-A-GUIDE-ANSWERS-UNTIL-YOU-ACT-001]
+     *
+     * ⛔ Existe para que el paso **anuncie el movimiento antes de que ocurra**: el control que
+     * enseña vive en el header flotante, y para que exista hay que bajar la hoja. Sin esta línea la
+     * hoja daba un salto sin causa visible, y leer el motivo después del movimiento es leerlo tarde.
+     */
+    pointingAtStep: FirstStep? = null,
     /**
      * "Not yet" on a step that asks for a permission.
      * [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001]
@@ -159,6 +169,7 @@ fun FirstStepsCard(
                         findSpotAsk = progress.findSpotAsk,
                         watchAsk = progress.watchAsk,
                         reinforcement = progress.reinforcement,
+                        isPointing = step == pointingAtStep,
                         onStart = { onStartStep(step) },
                         onDefer = { onDeferStep(step) },
                         onAnswerNo = { onAnswerNoStep(step) },
@@ -229,6 +240,8 @@ private fun StepRow(
     isDone: Boolean,
     isCurrent: Boolean,
     isDeferred: Boolean,
+    /** La guía está señalando el control de ESTE paso. [ONB-A-GUIDE-ANSWERS-UNTIL-YOU-ACT-001] */
+    isPointing: Boolean,
     findSpotAsk: FindSpotAsk,
     watchAsk: WatchAsk,
     reinforcement: WatchReinforcement,
@@ -255,7 +268,15 @@ private fun StepRow(
             // subtitle and its CTA open left two steps offering an action at the same time, and the
             // user could not tell which one the app was actually asking for. Tapping the line brings
             // it back. [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001]
-            subtitle = if (isCurrent) stringResource(copy.subtitle) else null,
+            // ⛔ Mientras la guía señala, el paso deja de explicarse y dice DÓNDE mira: es lo único
+            // que el usuario necesita en ese segundo, y el sitio ya lo tenía. Reutilizar la línea
+            // en vez de añadir una segunda evita que el paso crezca justo antes de esconderse.
+            // [ONB-A-GUIDE-ANSWERS-UNTIL-YOU-ACT-001]
+            subtitle = when {
+                isPointing -> stringResource(Res.string.first_steps_pointing_up)
+                isCurrent -> stringResource(copy.subtitle)
+                else -> null
+            },
             titleColor = if (isDone) {
                 MaterialTheme.colorScheme.onSurfaceVariant
             } else {

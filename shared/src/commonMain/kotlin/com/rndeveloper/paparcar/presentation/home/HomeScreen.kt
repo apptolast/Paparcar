@@ -158,9 +158,11 @@ private const val PROGRAMMATIC_MOVE_GUARD_MS = 1100L
 //     [UI-ZONE-MANAGE-001]
 private const val NAVIGATE_ZOOM = 15f
 
-// How long a checklist step's highlight stays on the control it points at.
 // [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001]
-private const val FIRST_STEP_GUIDE_MS = 6_000L
+/** Lo que tarda la hoja en bajar después de que el paso anuncia que va a señalar arriba. Un respiro,
+ *  no una espera: suficiente para que el ojo lea la línea y entienda la causa del movimiento.
+ *  [ONB-A-GUIDE-ANSWERS-UNTIL-YOU-ACT-001] */
+private const val GUIDE_ANNOUNCE_MS = 900L
 
 /** Which tier the permissions screen opens focused on. Two callers since the location warning moved
  *  from the peek badge to the map pill, and they have to land on the SAME place.
@@ -437,17 +439,25 @@ private fun HomeContent(
     // [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001]
     val releaseTargetSessionId = state.releaseDialogSessionId
     val lazyListState = rememberLazyListState()
-    // [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001] The control a checklist step is pointing at, highlighted
-    // for a few seconds; gone early if Home leaves Browse (the user used it, or went elsewhere).
+    // [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001] El control al que apunta un paso del checklist.
+    //
+    // ⛔ **Sin reloj** [ONB-A-GUIDE-ANSWERS-UNTIL-YOU-ACT-001]. Duraba 6 s fijos y el reporte fue
+    // que «no capta la atención»: contestar «¿dónde está?» durante seis segundos es no contestar.
+    // No puede quedarse encendido para siempre porque **sólo se enciende cuando el usuario lo
+    // PIDE** desde el checklist, y se apaga en cuanto actúa — al usar el control, al completarse el
+    // paso, o al salir de Browse (se fue a otra cosa).
     var firstStepGuide by remember { mutableStateOf<FirstStepGuide?>(null) }
-    LaunchedEffect(firstStepGuide) {
-        if (firstStepGuide != null) {
-            delay(FIRST_STEP_GUIDE_MS)
-            firstStepGuide = null
-        }
-    }
     LaunchedEffect(state.mode) {
         if (state.mode !is HomeMode.Browse) firstStepGuide = null
+    }
+    // El paso al que señalábamos ha dejado de ser la pregunta: lo completó, o lo aplazó con «ahora
+    // no». UNA condición para los dos, porque la pregunta es la misma —«¿sigue siendo esto lo que
+    // te pido?»— y separarlas dejaría el aplazado señalado, que es discutirle al usuario un «no»
+    // que acaba de dar. [ONB-A-GUIDE-ANSWERS-UNTIL-YOU-ACT-001]
+    val guidedStepStillAsked =
+        firstStepGuide != FirstStepGuide.ADD_ZONE_CHIP || state.firstSteps.current == FirstStep.PRIVATE_ZONE
+    LaunchedEffect(guidedStepStillAsked) {
+        if (!guidedStepStillAsked) firstStepGuide = null
     }
     // Hoisted with the list's own state: both must outlive the list while a detail sheet hides it.
     // [HOME-BROWSE-SURVIVES-THE-DETAIL-SHEET-001]
@@ -1446,9 +1456,18 @@ private fun HomeSheetSection(
                             frame.lazyListState.animateScrollToItem(frame.lazyListState.nearbyLensIndex())
                         }
                     }
-                    // The add-zone chip lives in the floating header, which only shows with the sheet
-                    // at peek.
-                    FirstStepGuide.ADD_ZONE_CHIP -> onCollapseSheet()
+                    // El chip de zona vive en el header flotante, que sólo se dibuja con la hoja
+                    // abajo — así que bajarla es la única forma de que exista.
+                    //
+                    // ⛔ Pero ANTES se anuncia: el paso se marca y dice que lo señala arriba, y sólo
+                    // entonces baja la hoja. Sin ese respiro la hoja daba un salto sin causa visible
+                    // y el usuario llegaba al chip sin saber por qué se había movido nada — leer el
+                    // motivo DESPUÉS del movimiento es leerlo tarde.
+                    // [ONB-A-GUIDE-ANSWERS-UNTIL-YOU-ACT-001]
+                    FirstStepGuide.ADD_ZONE_CHIP -> frame.coroutineScope.launch {
+                        delay(GUIDE_ANNOUNCE_MS)
+                        onCollapseSheet()
+                    }
                 }
             }
         }

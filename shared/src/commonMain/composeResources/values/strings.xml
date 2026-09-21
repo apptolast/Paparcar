@@ -1069,6 +1069,7 @@
     <string name="first_steps_explain_explore_note">Neither one comes from the community: both are public data, so they are there from day one, and free for everyone.</string>
     <string name="first_steps_zone_title">Protect your garage</string>
     <string name="first_steps_zone_sub">If you park in a private garage, add a private zone there: when you leave it, we will not publish a free spot.</string>
+    <string name="first_steps_pointing_up">Look at the top of the map — I'm pointing at it.</string>
     <string name="first_steps_zone_no_garage">I don't have one</string>
     <string name="first_steps_explain_zone_title">Your garage is not a free spot</string>
     <string name="first_steps_explain_zone_body">When you drive away, Paparcar frees your space for someone else. In a private garage (your home, your work) nobody else can use it.</string>

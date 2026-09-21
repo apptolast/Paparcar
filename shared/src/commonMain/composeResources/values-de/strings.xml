@@ -1029,6 +1029,7 @@
     <string name="first_steps_explain_explore_note">Beides kommt nicht aus der Community: es sind öffentliche Daten, also vom ersten Tag an da, und für alle kostenlos.</string>
     <string name="first_steps_zone_title">Schütze deine Garage</string>
     <string name="first_steps_zone_sub">Wenn du in einer privaten Garage parkst, lege dort eine Private Zone an: Beim Wegfahren veröffentlichen wir keinen freien Platz.</string>
+    <string name="first_steps_pointing_up">Schau oben auf der Karte — ich zeige es dir.</string>
     <string name="first_steps_zone_no_garage">Habe ich nicht</string>
     <string name="first_steps_explain_zone_title">Deine Garage ist kein freier Platz</string>
     <string name="first_steps_explain_zone_body">Wenn du wegfährst, gibt Paparcar deinen Platz für jemand anderen frei. In einer privaten Garage (zu Hause, bei der Arbeit) kann ihn niemand sonst nutzen.</string>

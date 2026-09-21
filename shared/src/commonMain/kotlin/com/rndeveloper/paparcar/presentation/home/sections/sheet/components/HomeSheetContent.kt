@@ -141,6 +141,10 @@ fun LazyListScope.homeSheetItems(
         item("first_steps") {
             FirstStepsCard(
                 progress = firstSteps,
+                // El paso anuncia que va a señalar arriba ANTES de que la hoja baje.
+                // [ONB-A-GUIDE-ANSWERS-UNTIL-YOU-ACT-001]
+                pointingAtStep = FirstStep.PRIVATE_ZONE
+                    .takeIf { firstStepGuide == FirstStepGuide.ADD_ZONE_CHIP },
                 onStartStep = { step ->
                     // Pressing the CTA counts as much as reading it: it drops the user INTO the flow
                     // the step teaches, which is what the step is about.

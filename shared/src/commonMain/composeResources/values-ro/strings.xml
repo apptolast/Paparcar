@@ -1046,6 +1046,7 @@
     <string name="first_steps_explain_explore_note">Niciuna dintre ele nu vine de la comunitate: sunt date publice, deci sunt acolo din prima zi, și gratuite pentru toți.</string>
     <string name="first_steps_zone_title">Protejează-ți garajul</string>
     <string name="first_steps_zone_sub">Dacă parchezi într-un garaj privat, adaugă acolo o zonă privată: când pleci, nu vom publica un loc liber.</string>
+    <string name="first_steps_pointing_up">Uită-te în partea de sus a hărții — ți-l arăt acolo.</string>
     <string name="first_steps_zone_no_garage">Nu am garaj</string>
     <string name="first_steps_explain_zone_title">Garajul tău nu e un loc liber</string>
     <string name="first_steps_explain_zone_body">Când pleci, Paparcar îți eliberează locul pentru altcineva. Într-un garaj privat (acasă, la muncă) nimeni altcineva nu îl poate folosi.</string>

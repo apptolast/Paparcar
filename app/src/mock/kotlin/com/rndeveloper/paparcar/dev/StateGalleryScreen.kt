@@ -239,8 +239,11 @@ private fun firstStepsCard(
     // Por defecto con zona privada, para que las variantes de los OTROS pasos sigan enseñando su paso.
     // [FIRST-STEPS-A-PRIVATE-GARAGE-IS-A-PRIVATE-ZONE-001]
     hasPrivateZone: Boolean = true,
+    /** La guía está señalando el control de este paso. [ONB-A-GUIDE-ANSWERS-UNTIL-YOU-ACT-001] */
+    pointingAtStep: FirstStep? = null,
 ) {
     FirstStepsCard(
+        pointingAtStep = pointingAtStep,
         progress = resolveFirstSteps(
             done = done,
             dismissed = false,
@@ -3315,6 +3318,15 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             // respuestas: «Añadir zona privada» y «No tengo garaje».
             Variant("Paso 2 · zona privada (garaje)", Placement.Surface) {
                 firstStepsCard(done = setOf(FirstStep.MARK_PARKING), hasPrivateZone = false)
+            },
+            // El paso ANUNCIA que va a señalar arriba, antes de que la hoja baje a enseñar el chip.
+            // [ONB-A-GUIDE-ANSWERS-UNTIL-YOU-ACT-001]
+            Variant("Paso 2 · señalando el chip de zona", Placement.Surface) {
+                firstStepsCard(
+                    done = setOf(FirstStep.MARK_PARKING),
+                    hasPrivateZone = false,
+                    pointingAtStep = FirstStep.PRIVATE_ZONE,
+                )
             },
             Variant("Paso 2 · con deteccion · solo explica", Placement.Surface) {
                 firstStepsCard(done = setOf(FirstStep.MARK_PARKING))
