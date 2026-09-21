@@ -3389,6 +3389,34 @@ class HomeViewModelTest {
         )
     }
 
+    // ── Lo que se recuerda de Home es el sitio que ELEGISTE [HOME-WHAT-IS-REMEMBERED-IS-THE-PLACE-YOU-CHOSE-001] ──
+
+    @Test
+    fun `should_rememberNoView_when_theUserNeverPlacedTheCameraHimself`() = runTest(testDispatcher) {
+        // ⛔ La mitad que importa: una cámara que fue sola a un sitio NO es un recuerdo. Restaurarla
+        // congelaría para siempre el primer encuadre automático de la app.
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.CameraPositionChanged(lat = 41.3874, lon = 2.1686))
+        advanceUntilIdle()
+
+        assertNull(vm.chosenView(), "moverse no es elegir")
+    }
+
+    @Test
+    fun `should_rememberThePlace_when_theUserMovedTheMapByHand`() = runTest(testDispatcher) {
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+
+        vm.handleIntent(HomeIntent.UserMovedCameraByHand)
+        vm.handleIntent(HomeIntent.CameraPositionChanged(lat = 41.3874, lon = 2.1686))
+        advanceUntilIdle()
+
+        assertEquals(41.3874 to 2.1686, vm.chosenView())
+    }
+
     @Test
     fun `should_notRefetch_when_theCameraBarelyMoved`() = runTest(testDispatcher) {
         // Medio radio, como las capas: un temblor del dedo no es una pregunta nueva.

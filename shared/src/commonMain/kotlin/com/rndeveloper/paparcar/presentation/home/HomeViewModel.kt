@@ -183,6 +183,31 @@ class HomeViewModel(
     private var lastCameraLat: Double? = null
     private var lastCameraLon: Double? = null
 
+    /**
+     * El usuario ha posado esta cámara él mismo en algún momento de la sesión.
+     * [HOME-WHAT-IS-REMEMBERED-IS-THE-PLACE-YOU-CHOSE-001]
+     *
+     * ⛔ Vive aquí y no en `HomeUiController` porque el controlador **muere al salir de Home** y el
+     * ViewModel no: era justo la mitad que se perdía. Y no entra en `HomeState`: cambia con un gesto
+     * y no lo pinta nadie, así que meterlo recompondría todo Home por un dato que sólo se lee al
+     * volver a entrar.
+     */
+    private var cameraChosenByUser = false
+
+    /**
+     * El sitio que el usuario estaba mirando, o null si nunca posó la cámara él.
+     * [HOME-WHAT-IS-REMEMBERED-IS-THE-PLACE-YOU-CHOSE-001]
+     *
+     * ⚠️ Null **no** significa «no hay cámara»: significa «no hay cámara ELEGIDA». Restaurar un
+     * encuadre automático sería congelar para siempre el primer sitio al que la app fue sola.
+     */
+    fun chosenView(): Pair<Double, Double>? {
+        if (!cameraChosenByUser) return null
+        val lat = lastCameraLat ?: return null
+        val lon = lastCameraLon ?: return null
+        return lat to lon
+    }
+
     /** Whether the Home map is foreground (RESUMED). Drives [subscribeGpsLocation]: the high-accuracy
      *  user-location request runs ONLY while true, so a backgrounded map costs no GPS. Starts false;
      *  the screen flips it via [HomeIntent.SetMapForeground] on resume/pause. [UI-LOC-FOREGROUND-001] */
@@ -406,6 +431,7 @@ class HomeViewModel(
         when (intent) {
             // Map & camera
             is HomeIntent.CameraPositionChanged,
+            is HomeIntent.UserMovedCameraByHand,
             is HomeIntent.RecenterSpots,
             is HomeIntent.SetMapType,
             is HomeIntent.SetMapForeground,
@@ -523,6 +549,10 @@ class HomeViewModel(
     private fun handleMapIntent(intent: HomeIntent) {
         when (intent) {
             is HomeIntent.CameraPositionChanged -> onCameraPositionChanged(intent.lat, intent.lon)
+            // Un gesto no trae coordenadas: sólo dice de QUIÉN es la cámara desde ahora. Las
+            // coordenadas ya las escribe el settle de arriba.
+            // [HOME-WHAT-IS-REMEMBERED-IS-THE-PLACE-YOU-CHOSE-001]
+            is HomeIntent.UserMovedCameraByHand -> cameraChosenByUser = true
             is HomeIntent.RecenterSpots -> onRecenterSpots()
             is HomeIntent.SetMapType -> setMapType(intent.type)
             is HomeIntent.SetMapForeground -> {

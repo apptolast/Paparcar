@@ -335,6 +335,9 @@ fun HomeScreen(
         onFocusParkingConsumed = onFocusParkingConsumed,
         onLinkVehicleBluetooth = onLinkVehicleBluetooth,
         onOpenStepExplainer = onOpenStepExplainer,
+        // El sitio que el usuario eligió, leído del ViewModel porque es lo único que sobrevive a
+        // salir de Home. [HOME-WHAT-IS-REMEMBERED-IS-THE-PLACE-YOU-CHOSE-001]
+        chosenView = viewModel::chosenView,
     )
 
 }
@@ -348,6 +351,9 @@ private fun HomeContent(
     state: HomeState,
     tripState: State<TripUpdate>,
     onIntent: (HomeIntent) -> Unit,
+    /** Dónde estaba mirando el usuario cuando dejó Home, o null si nunca posó la cámara él.
+     *  [HOME-WHAT-IS-REMEMBERED-IS-THE-PLACE-YOU-CHOSE-001] */
+    chosenView: () -> Pair<Double, Double>?,
     effects: SharedFlow<HomeEffect>,
     snackbarHostState: SnackbarHostState,
     navProgressState: MutableFloatState,
@@ -389,6 +395,16 @@ private fun HomeContent(
     val stableBottomPadding = if (bottomPadding > 0.dp) bottomPadding else lastKnownNavHeight
 
     // Glass-on-drag tracking + programmatic-move guard — see [MapInteractionTracker].
+    // ⛔ Antes de nada y UNA sola vez: volver a Home recordaba el carril —vive en el ViewModel— y
+    // olvidaba el sitio, porque el controlador nace nuevo. La lista hablaba de una ciudad y la
+    // cámara se iba a tu ubicación, que es la misma discrepancia que
+    // [HOME-A-LANE-THAT-CANNOT-ANSWER-HERE-SHOWS-NO-ROWS-001] tapó para el otro sentido: allí la
+    // lista dejó de mentir sobre dónde miras, y aquí la cámara deja de olvidar dónde mirabas.
+    // [HOME-WHAT-IS-REMEMBERED-IS-THE-PLACE-YOU-CHOSE-001]
+    LaunchedEffect(Unit) {
+        val (lat, lon) = chosenView() ?: return@LaunchedEffect
+        uiController.restoreChosenView(lat, lon)
+    }
     val mapInteraction = rememberMapInteractionTracker(uiController)
 
     // Per-section slices — pure projections built ONCE per state emission. Each section
@@ -840,6 +856,10 @@ private fun HomeContent(
                     // [UI-A-COACH-MARK-MUST-NOT-EAT-THE-GESTURE-IT-TEACHES-001]
                     onUserMapGesture = {
                         uiController.onUserMapGesture()
+                        // Desde este gesto, la cámara es SUYA — y eso tiene que sobrevivir a salir
+                        // de Home, cosa que el controlador no hace.
+                        // [HOME-WHAT-IS-REMEMBERED-IS-THE-PLACE-YOU-CHOSE-001]
+                        onIntent(HomeIntent.UserMovedCameraByHand)
                         spotlightSeen = true
                     },
                     followingDriver = uiController.followingDriver,

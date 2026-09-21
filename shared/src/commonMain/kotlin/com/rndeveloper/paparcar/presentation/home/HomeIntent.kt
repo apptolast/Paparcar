@@ -18,6 +18,13 @@ sealed class HomeIntent {
     data class CameraPositionChanged(val lat: Double, val lon: Double) : HomeIntent()
     /** Reset the spot query centre to the user's GPS and move the camera there. */
     data object RecenterSpots : HomeIntent()
+
+    /**
+     * El usuario ha movido el mapa CON LA MANO. Lo que se recuerda de Home es el sitio que él
+     * eligió, no el último que la cámara tocó por su cuenta.
+     * [HOME-WHAT-IS-REMEMBERED-IS-THE-PLACE-YOU-CHOSE-001]
+     */
+    data object UserMovedCameraByHand : HomeIntent()
     data class SetMapType(val type: MapType) : HomeIntent()
     /** Map foreground (RESUMED) state — gates the high-accuracy user-location request so it only
      *  runs while the map is on screen (battery bound). [UI-LOC-FOREGROUND-001] */
