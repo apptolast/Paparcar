@@ -14,7 +14,7 @@
     <string name="notif_confirmation_text">Se pare că ai parcat. Vrei să confirmăm parcarea?</string>
     <string name="notif_action_yes_parked">Da, am parcat</string>
     <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->
-    <string name="notif_action_stop_detection">Oprește detectarea</string>
+    <string name="notif_action_stop_detection">Nu sunt în mașina mea</string>
     <string name="notif_action_no_not_parked">Nu, nu am parcat</string>
 
     <!-- Notificare: parcare salvată -->
@@ -106,6 +106,8 @@
     <!-- Widget actions [WIDGET-ACTIONS-002] — same wording as in-app -->
     <string name="widget_action_navigate">Indicații</string>
     <string name="widget_action_more">Mai multe opțiuni</string>
+    <string name="widget_action_mark_parking">Marchează parcarea</string>
+    <string name="widget_action_not_my_car">Nu sunt în mașina mea</string>
     <string name="notif_month_recap_title">Luna trecută</string>
     <string name="notif_month_recap_text_both">%1$s și %2$s min de căutat loc</string>
     <string name="notif_month_recap_text_spend">%1$s pe combustibil</string>

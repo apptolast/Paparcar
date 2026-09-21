@@ -18,6 +18,7 @@ import androidx.glance.LocalContext
 import androidx.glance.LocalSize
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
+import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.components.CircleIconButton
 import androidx.glance.appwidget.SizeMode
@@ -162,10 +163,19 @@ class ParkedWidget : GlanceAppWidget() {
     /**
      * A trip in progress. [WIDGET-A-TRIP-IS-NOT-AN-EMPTY-WIDGET-001]
      *
-     * Same anatomy as [Empty] — brand mark, one line of fact, one line of hint — and **no action
-     * buttons**: this state has no session, so the two verbs [Parked] offers (directions, more)
-     * have nothing to point at. No route glyph either: `RemoteViews` cannot animate, so a second
-     * glyph would only compete with the brand mark to say what the line already says in words.
+     * Same anatomy as [Empty] — brand mark, one line of fact, one line of hint. No route glyph:
+     * `RemoteViews` cannot animate, so a second glyph sólo competiría con la marca para decir lo
+     * que la línea ya dice con palabras.
+     *
+     * ⛔ **Aquí decía «no action buttons», y era verdad a medias.** El argumento —«este estado no
+     * tiene sesión, así que los dos verbos de [Parked] no apuntan a nada»— sigue siendo cierto
+     * PARA ESOS DOS: no hay pin al que navegar ni ficha que abrir. Lo que no se siguió de ahí es
+     * que no hubiera NINGÚN verbo: el que falta no mira al pasado, mira al presente — **«ya he
+     * aparcado»**, que es exactamente lo que el conductor sabe y la app todavía no.
+     * [WIDGET-A-TRIP-CAN-BE-ANSWERED-FROM-THE-LAUNCHER-001]
+     *
+     * Y es el MISMO destino que ya ofrece la notificación de «¿sigues aparcado?»
+     * (`EXTRA_START_ADD_PARKING`), no un camino nuevo: el widget ofrece lo que la app ya sabe hacer.
      */
     @Composable
     private fun Driving(state: ParkedWidgetState.Driving, tall: Boolean, height: androidx.compose.ui.unit.Dp) {
@@ -182,11 +192,43 @@ class ParkedWidget : GlanceAppWidget() {
         // [WIDGET-A-TRIP-IS-NOT-AN-EMPTY-WIDGET-001 D5]
         // The trip line already took one row's worth of the height.
         val alsoShown = if (tall) state.alsoParked.take(rowsThatFit(height) - 1) else emptyList()
-        TitleAndHint(
-            title = phase,
-            hint = context.getString(R.string.widget_driving_hint),
-            showBrand = alsoShown.isEmpty(),
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = GlanceModifier.defaultWeight()) {
+                TitleAndHint(
+                    title = phase,
+                    hint = context.getString(R.string.widget_driving_hint),
+                    showBrand = alsoShown.isEmpty(),
+                )
+            }
+            // Los DOS verbos de un viaje, y son los dos que el conductor puede saber antes que la
+            // app: **ya he aparcado** (se adelanta a la detección) y **no voy en mi coche** (la
+            // desmiente). [WIDGET-A-TRIP-CAN-BE-ANSWERED-FROM-THE-LAUNCHER-001]
+            //
+            // El orden no es casual: primero el que CONSTRUYE —confirmar un aparcamiento es lo que
+            // el usuario hace nueve de cada diez veces— y después el que DESHACE. Los dos callados,
+            // con el mismo lenguaje que los de [Parked]: icono sin relleno, a la derecha.
+            Spacer(GlanceModifier.width(ACTION_GAP_DP.dp))
+            CircleIconButton(
+                imageProvider = ImageProvider(R.drawable.ic_widget_mark_parking),
+                contentDescription = context.getString(R.string.widget_action_mark_parking),
+                onClick = actionStartActivity(addParkingIntent(context)),
+                backgroundColor = null,
+                contentColor = GlanceTheme.colors.onSurfaceVariant,
+                modifier = GlanceModifier.size(ACTION_BUTTON_DP.dp),
+            )
+            // ⛔ Éste NO abre la app: es un COMANDO. Ver [StopTripFromWidgetAction] para por qué, y
+            // para por qué despacha el mismo `ACTION_USER_STOP` que la tarjeta y la notificación en
+            // vez de inventarse un camino propio.
+            Spacer(GlanceModifier.width(ACTION_GAP_DP.dp))
+            CircleIconButton(
+                imageProvider = ImageProvider(R.drawable.ic_widget_not_my_car),
+                contentDescription = context.getString(R.string.widget_action_not_my_car),
+                onClick = actionRunCallback<StopTripFromWidgetAction>(),
+                backgroundColor = null,
+                contentColor = GlanceTheme.colors.onSurfaceVariant,
+                modifier = GlanceModifier.size(ACTION_BUTTON_DP.dp),
+            )
+        }
         alsoShown.forEach { car ->
             Spacer(GlanceModifier.height(ROW_GAP_DP.dp))
             CarRow(car = car, othersCount = 0, showBrand = false)
@@ -358,6 +400,22 @@ class ParkedWidget : GlanceAppWidget() {
             putExtra(MainActivity.EXTRA_SHOW_PARKING_SESSION_ID, car.sessionId)
             putExtra(MainActivity.EXTRA_FOCUS_LAT, car.latitude)
             putExtra(MainActivity.EXTRA_FOCUS_LON, car.longitude)
+        }
+
+    /**
+     * «Ya he aparcado» desde el widget: abre la app directamente en el marcado manual.
+     * [WIDGET-A-TRIP-CAN-BE-ANSWERED-FROM-THE-LAUNCHER-001]
+     *
+     * ⛔ **Los mismos extras que la notificación**, incluido `fromDetection = false`: este pin lo
+     * pone una persona, no lo nomina una detección, y su procedencia tiene que decirlo — es lo que
+     * distingue un pin manual de uno detectado en los diagnósticos.
+     * [DET-NUDGE-PIN-PROVENANCE-001]
+     */
+    private fun addParkingIntent(context: Context): Intent =
+        Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra(MainActivity.EXTRA_START_ADD_PARKING, true)
+            putExtra(MainActivity.EXTRA_ADD_PARKING_FROM_DETECTION, false)
         }
 
     /** Parked → open the map centred on the pin; empty → just open the app. Same extras contract

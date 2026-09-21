@@ -590,7 +590,7 @@
     <string name="home_det_watch_interrupted_sub">Il telefono l'ha messo in pausa. Continuiamo a controllare in background, ma la tua partenza può essere rilevata in ritardo.</string>
     <string name="home_det_watch_interrupted_cta">Riattiva</string>
     <!-- [DET-STOP-BUTTON-001] -->
-    <string name="home_det_driving_stop_cta">Ferma</string>
+    <string name="home_det_driving_stop_cta">Non sono nella mia auto</string>
     <string name="home_det_trip_stopped_msg">Rilevamento fermato. Questo viaggio non verrà salvato come parcheggio; tocca «Sto guidando» quando vuoi riprendere.</string>
     <string name="home_det_awaiting_cta_primary">Segna il parcheggio</string>
     <string name="home_det_awaiting_cta_secondary">Sto guidando</string>

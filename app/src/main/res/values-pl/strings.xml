@@ -14,7 +14,7 @@
     <string name="notif_confirmation_text">Wygląda na to, że zaparkowałeś. Czy potwierdzić parkowanie?</string>
     <string name="notif_action_yes_parked">Tak, zaparkowałem</string>
     <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->
-    <string name="notif_action_stop_detection">Zatrzymaj wykrywanie</string>
+    <string name="notif_action_stop_detection">Nie jadę swoim autem</string>
     <string name="notif_action_no_not_parked">Nie, nie zaparkowałem</string>
 
     <!-- Powiadomienie: parkowanie zapisane -->
@@ -106,6 +106,8 @@
     <!-- Widget actions [WIDGET-ACTIONS-002] — same wording as in-app -->
     <string name="widget_action_navigate">Trasa</string>
     <string name="widget_action_more">Więcej opcji</string>
+    <string name="widget_action_mark_parking">Zapisz parkowanie</string>
+    <string name="widget_action_not_my_car">Nie jadę swoim autem</string>
     <string name="notif_month_recap_title">W zeszłym miesiącu</string>
     <string name="notif_month_recap_text_both">%1$s i %2$s min szukania miejsca</string>
     <string name="notif_month_recap_text_spend">%1$s na paliwo</string>

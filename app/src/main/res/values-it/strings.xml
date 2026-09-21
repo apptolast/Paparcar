@@ -14,7 +14,7 @@
     <string name="notif_confirmation_text">Sembra che tu abbia parcheggiato. Vuoi confermare il parcheggio?</string>
     <string name="notif_action_yes_parked">Sì, ho parcheggiato</string>
     <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->
-    <string name="notif_action_stop_detection">Ferma il rilevamento</string>
+    <string name="notif_action_stop_detection">Non sono nella mia auto</string>
     <string name="notif_action_no_not_parked">No, non ho parcheggiato</string>
 
     <!-- Notifica: parcheggio salvato -->
@@ -106,6 +106,8 @@
     <!-- Widget actions [WIDGET-ACTIONS-002] — same wording as in-app -->
     <string name="widget_action_navigate">Indicazioni</string>
     <string name="widget_action_more">Altre opzioni</string>
+    <string name="widget_action_mark_parking">Segna parcheggio</string>
+    <string name="widget_action_not_my_car">Non sono nella mia auto</string>
     <string name="notif_month_recap_title">Il mese scorso</string>
     <string name="notif_month_recap_text_both">%1$s e %2$s min a cercare posto</string>
     <string name="notif_month_recap_text_spend">%1$s di carburante</string>

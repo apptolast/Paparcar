@@ -19,7 +19,7 @@
     <string name="notif_confirmation_text">Looks like you parked. Shall we confirm your parking?</string>
     <string name="notif_action_yes_parked">Yes, I parked</string>
     <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->
-    <string name="notif_action_stop_detection">Stop detection</string>
+    <string name="notif_action_stop_detection">Not in my car</string>
     <string name="notif_action_no_not_parked">No, I haven\'t parked</string>
 
     <!-- Notification: parking saved (user's own car) -->
@@ -119,6 +119,8 @@
     <!-- Widget actions [WIDGET-ACTIONS-002] — same wording as in-app -->
     <string name="widget_action_navigate">Directions</string>
     <string name="widget_action_more">More options</string>
+    <string name="widget_action_mark_parking">Mark parking</string>
+    <string name="widget_action_not_my_car">Not in my car</string>
     <string name="notif_month_recap_title">Last month</string>
     <string name="notif_month_recap_text_both">%1$s and %2$s min hunting a spot</string>
     <string name="notif_month_recap_text_spend">%1$s in fuel</string>
