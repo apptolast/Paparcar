@@ -1056,6 +1056,37 @@ private fun HomeCameraEffects(
     drivingPuck: State<DrivingPuck?>,
     effects: SharedFlow<HomeEffect>,
 ) {
+    // [HOME-A-LANE-CHANGE-TAKES-THE-CAMERA-WITH-IT-001] Cambiar de carril lleva la cámara al primer
+    // elemento de ese carril. Sin esto, tocar «Gasolineras» deja el mapa donde estaba —mirando unas
+    // plazas que ya no se pintan— y el usuario tiene que buscar a mano lo que acaba de pedir.
+    //
+    // ⛔ **Y espera a que el carril tenga algo**: parkings y gasolineras se piden al entrar, así que
+    // en el instante del cambio la lista está vacía. El encuadre queda ARMADO y se dispara con la
+    // primera lista no vacía, que es lo que pidió la issue («si no está cargado, pues cuando carguen
+    // los elementos»).
+    //
+    // ⛔ La primera composición NO encuadra: el carril de arranque es PLAZAS y ahí manda el enfoque
+    // inicial de [FOCUS-001] (tu coche, o tú). Esto sólo reacciona a un cambio deliberado de carril.
+    var laneAwaitingFrame by remember { mutableStateOf<HomeNearbyLens?>(null) }
+    var laneFramingArmed by remember { mutableStateOf(false) }
+    LaunchedEffect(state.nearbyLens) {
+        if (!laneFramingArmed) {
+            laneFramingArmed = true
+            return@LaunchedEffect
+        }
+        laneAwaitingFrame = state.nearbyLens
+    }
+    val laneFirstPoint = state.laneFirstPoint()
+    LaunchedEffect(state.nearbyLens, laneFirstPoint) {
+        if (laneAwaitingFrame != state.nearbyLens) return@LaunchedEffect
+        val (lat, lon) = laneFirstPoint ?: return@LaunchedEffect
+        // `goToPlace` es la puerta deliberada: suelta el follow del conductor y trata el zoom como
+        // SUELO, así que ir al primer elemento nunca le cuesta al usuario volver a acercar.
+        // [MAP-A-CAMERA-MOVE-MUST-NOT-COST-A-PINCH-001]
+        uiController.goToPlace(lat, lon)
+        laneAwaitingFrame = null
+    }
+
     // [UI-THE-ASK-IS-A-CAMERA-SUBJECT-001] Frame the place an open "did you park?" question is about.
     // The sheet already opens itself on that question ([SheetTransitionEffects]); without this the
     // camera stayed wherever it was, so on the very case the question exists for — park, walk off,
