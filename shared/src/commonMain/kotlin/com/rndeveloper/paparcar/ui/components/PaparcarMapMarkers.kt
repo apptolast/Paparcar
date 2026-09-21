@@ -954,18 +954,25 @@ fun SpotPuckIcon(
 // Anchor = bottom-centre.
 // [MAP-ICONS-V2]
 
-private fun DrawScope.drawSpotShadow(s: Float, ink: Color, centerX: Float = 36f) {
+/** La sombra es la del PUNTO, así que viaja con él: su tapa cae [SHADOW_TOP_UNDER_DOT] por encima
+ *  del centro del punto, esté ese punto donde esté. Antes era el literal `71,4`, que sólo valía
+ *  para el único [SPOT_DOT_CY] que había. [MAP-THE-FAMILY-LINE-IS-THE-ONE-YOU-CAN-SEE-001] */
+private fun DrawScope.drawSpotShadow(s: Float, ink: Color, centerX: Float = 36f, dotCy: Float = SPOT_DOT_CY) {
     drawOval(
         color = ink.copy(alpha = 0.12f),
-        topLeft = Offset((centerX - 4.5f) * s, 71.4f * s),
+        topLeft = Offset((centerX - 4.5f) * s, (dotCy + SHADOW_TOP_UNDER_DOT) * s),
         size = Size(9f * s, 3.2f * s),
     )
 }
 
 /** Separated position dot — the exact ground point, in the marker's own colour (no border). [MAP-ICONS-V2] */
-private fun DrawScope.drawSpotDot(s: Float, color: Color, centerX: Float = 36f) {
-    drawCircle(color, radius = SPOT_DOT_R * s, center = Offset(centerX * s, SPOT_DOT_CY * s))
+private fun DrawScope.drawSpotDot(s: Float, color: Color, centerX: Float = 36f, dotCy: Float = SPOT_DOT_CY) {
+    drawCircle(color, radius = SPOT_DOT_R * s, center = Offset(centerX * s, dotCy * s))
 }
+
+/** Desfase de la tapa de la sombra respecto al centro del punto — el que tenía por construcción
+ *  (71,4 − 72,5), conservado para que la plaza no se mueva. */
+private const val SHADOW_TOP_UNDER_DOT = -1.1f
 
 /** The round puck body + paper stroke; selected adds an outer onSurface ring (max contrast). */
 private fun DrawScope.drawPuckBody(
@@ -1121,19 +1128,55 @@ private const val SPOT_VIEWBOX_H = 82f
  * unidades quedaba a ~18 del punto, cinco veces la separación de sus hermanos, y por eso se leía
  * como un globo suelto encima de un punto en vez de como un marcador.
  */
-private const val MARKER_BODY_BOTTOM_Y = 63f
+internal const val MARKER_BODY_BOTTOM_Y = 63f
 
-private const val SPOT_DOT_R = 4.5f // position-dot radius (viewBox units)
+internal const val SPOT_DOT_R = 4.5f // position-dot radius (viewBox units)
+
+/** Grosor del contorno de papel del puck de plaza, en unidades del viewBox. Vivía como literal
+ *  `3.2f` dentro de `drawPuckBody`, que es donde dejó de poder participar en la geometría de la
+ *  familia. [MAP-THE-FAMILY-LINE-IS-THE-ONE-YOU-CAN-SEE-001] */
+internal const val PUCK_PAPER_STROKE_U = 3.2f
 
 /**
- * **El AIRE entre el cuerpo de un marcador y su punto de posición**, en unidades del viewBox de la
- * familia del puck (72 × 82). [MAP-EVERY-MARKER-SITS-THE-SAME-HEIGHT-OVER-ITS-DOT-001]
+ * **Cuánto sobresale la silueta de un cuerpo por DEBAJO de [MARKER_BODY_BOTTOM_Y]**, por marcador.
+ * [MAP-THE-FAMILY-LINE-IS-THE-ONE-YOU-CAN-SEE-001]
+ *
+ * El puck de plaza lleva su contorno de papel CENTRADO en el radio 29, así que media pluma —1,6 u—
+ * cae fuera del relleno: su borde inferior visible no está en 63, está en 64,6. La cápsula y el
+ * disco no tienen contorno en reposo, así que el suyo sí está en 63.
+ *
+ * ⛔ Esto no es un ajuste por marcador: es que la línea de la familia se había escrito sobre el
+ * borde del RELLENO, que nadie ve. Quien añada un cuerpo nuevo declara aquí lo que sobresale, y la
+ * separación visible le sale sola.
+ */
+internal const val SPOT_BODY_OVERSHOOT_U = PUCK_PAPER_STROKE_U / 2f
+
+/** El disco de parking y la cápsula de gasolinera no sobresalen: sin contorno en reposo, su borde
+ *  visible ES la línea de la familia. Existe con nombre para que se lea como una DECISIÓN —el
+ *  cuerpo es el color, no hace falta anillo— y no como un cero olvidado.
+ *  [MAP-A-DISC-THAT-CARRIES-NO-DATA-NEEDS-NO-RING-001] */
+internal const val NEARBY_BODY_OVERSHOOT_U = 0f
+
+/**
+ * **El AIRE VISIBLE entre el cuerpo de un marcador y su punto de posición**, en unidades del
+ * viewBox de la familia del puck (72 × 82).
+ * [MAP-EVERY-MARKER-SITS-THE-SAME-HEIGHT-OVER-ITS-DOT-001]
+ * [MAP-THE-FAMILY-LINE-IS-THE-ONE-YOU-CAN-SEE-001]
  *
  * Era 3,5 por construcción —nadie lo eligió: salía de restar el borde del disco (63) al borde
  * superior del punto (66,5)— y a ese valor el punto se lee **pegado** al puck, sobre todo en la
- * plaza, que es el marcador que más se mira. Sube a 5, que a 46 dp de ancho son unos 0,9 dp más de
- * separación: suficiente para que el punto se lea como un objeto aparte y poco para que el marcador
- * empiece a flotar.
+ * plaza, que es el marcador que más se mira. Subió a 5 y el marcador de plaza quedó como el user
+ * lo aprobó.
+ *
+ * ⛔ **Pero ese 5 se medía contra el borde del RELLENO, y el puck de plaza sobresale 1,6 u por
+ * debajo con su contorno de papel** ([SPOT_BODY_OVERSHOOT_U]). O sea: la plaza enseñaba 3,4 u de
+ * aire y el disco de parking, que no lleva contorno, enseñaba los 5 enteros —un **47 % más**— con
+ * la misma constante. El user lo vio en mano («el parking parece llevar algo más de aire que el
+ * resto») y tenía razón: el rasgo de familia estaba escrito sobre una línea que nadie ve.
+ *
+ * Así que esta constante pasa a ser lo que siempre dijo ser —**el aire que se VE**— y vale 3,4: lo
+ * que la plaza ya enseñaba y el user aprobó. El puck de plaza **no se mueve ni un píxel**; el disco
+ * y la cápsula suben su punto 1,6 u (≈ 1,0 dp a 46 dp de ancho) hasta enseñar el mismo aire.
  *
  * ⛔ **El que se mueve es el PUNTO, no el cuerpo.** El cuerpo se apoya en [MARKER_BODY_BOTTOM_Y] y
  * ahí se queda; bajar el punto lo acerca además al ancla real del marcador —(0.5, 1.0), el borde
@@ -1145,11 +1188,18 @@ private const val SPOT_DOT_R = 4.5f // position-dot radius (viewBox units)
  * proporcionalmente MENOR que la de sus primos, y el user no se quejó de él. Tocarlo aquí sería
  * cambiar un marcador que nadie ha dicho que esté mal.
  */
-private const val MARKER_DOT_GAP = 5f
+internal const val MARKER_DOT_GAP = 3.4f
 
-/** Centro Y del punto de posición, **derivado** del cuerpo y del aire: nadie vuelve a escribir un
- *  literal aquí, que es como los 3,5 de antes acabaron sin autor. [MAP-EVERY-MARKER-SITS-THE-SAME-HEIGHT-OVER-ITS-DOT-001] */
-private const val SPOT_DOT_CY = MARKER_BODY_BOTTOM_Y + MARKER_DOT_GAP + SPOT_DOT_R
+/** Centro Y del punto de posición, **derivado** del cuerpo, de lo que su silueta sobresale y del
+ *  aire: nadie vuelve a escribir un literal aquí, que es como los 3,5 de antes acabaron sin autor.
+ *  [MAP-EVERY-MARKER-SITS-THE-SAME-HEIGHT-OVER-ITS-DOT-001] */
+internal const val SPOT_DOT_CY =
+    MARKER_BODY_BOTTOM_Y + SPOT_BODY_OVERSHOOT_U + MARKER_DOT_GAP + SPOT_DOT_R
+
+/** Centro Y del punto de la cápsula y del disco: el MISMO aire visible, sobre un cuerpo que no
+ *  sobresale. [MAP-THE-FAMILY-LINE-IS-THE-ONE-YOU-CAN-SEE-001] */
+internal const val NEARBY_DOT_CY =
+    MARKER_BODY_BOTTOM_Y + NEARBY_BODY_OVERSHOOT_U + MARKER_DOT_GAP + SPOT_DOT_R
 // [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] Target ⊙ of an area spot's ground point (viewBox units):
 // outer ring sized to knock out the solid dot with clear air, centre dot well under the ring.
 private const val SPOT_TARGET_R = 6.5f
@@ -1410,8 +1460,10 @@ private fun NearbyCapsuleMarker(
         Canvas(Modifier.fillMaxSize()) {
             val canvasS = size.height / SPOT_VIEWBOX_H
             val centerX = (size.width / 2f) / canvasS
-            drawSpotShadow(canvasS, ink, centerX = centerX)
-            drawSpotDot(canvasS, accent, centerX = centerX)
+            // El punto de la cápsula/disco: mismo aire VISIBLE que la plaza sobre un cuerpo que
+            // no sobresale. [MAP-THE-FAMILY-LINE-IS-THE-ONE-YOU-CAN-SEE-001]
+            drawSpotShadow(canvasS, ink, centerX = centerX, dotCy = NEARBY_DOT_CY)
+            drawSpotDot(canvasS, accent, centerX = centerX, dotCy = NEARBY_DOT_CY)
         }
         Row(
             modifier = Modifier
@@ -1568,7 +1620,23 @@ fun PublicParkingMarker(
  * lleva glifo** —la gasolinera sin precio— y las dos se leen como el mismo objeto a distinta carga,
  * que es lo que pidió la review.
  *
- * ⛔ **En reposo no lleva borde**: el cuerpo es el color. La selección sí dibuja un anillo de papel,
+ * ⛔ **En reposo no lleva borde, y el anillo NO vuelve**
+ * [MAP-A-DISC-THAT-CARRIES-NO-DATA-NEEDS-NO-RING-001]. Hasta `19243d2a0` el parking dibujaba un
+ * contorno de `surface` alrededor del relleno —negro en tema oscuro, blanco en claro— defendido con
+ * que «un puck azul oscuro no se funda con las teselas oscuras». **No es el mismo caso que la
+ * plaza**, y la diferencia es cuál de los dos lleva el DATO:
+ *
+ * - En la plaza el **relleno ES el dato** (la rampa de frescura, de verde a rojo). Un dato que
+ *   cambia de color necesita un anillo neutro que lo separe del mapa, porque su contraste con la
+ *   tesela depende de qué esté diciendo ese día.
+ * - En el parking el relleno es **identidad fija** ([PapColor.carPark]), elegida ya para contrastar
+ *   con las dos teselas. Un anillo ahí no separa nada: sólo añade un segundo cuerpo alrededor del
+ *   primero — y de paso hundía la silueta 1,6 u por debajo de la línea de la familia, que es lo que
+ *   hacía que el marcador se leyera con más aire que sus hermanos.
+ *
+ * Regla: **el anillo neutro es de los cuerpos cuyo color es un dato, no de los que son identidad.**
+ *
+ * La selección sí dibuja un anillo de papel,
  * porque sin ninguna diferencia un parking tocado se vería idéntico a uno sin tocar y toda la
  * familia marca la selección de alguna forma. El anillo va FUERA del disco (`border` sobre el `clip`
  * circular), así que no le come tamaño al glifo.
@@ -1597,8 +1665,10 @@ private fun NearbyDiscMarker(
         Canvas(Modifier.fillMaxSize()) {
             val canvasS = size.height / SPOT_VIEWBOX_H
             val centerX = (size.width / 2f) / canvasS
-            drawSpotShadow(canvasS, ink, centerX = centerX)
-            drawSpotDot(canvasS, accent, centerX = centerX)
+            // El punto de la cápsula/disco: mismo aire VISIBLE que la plaza sobre un cuerpo que
+            // no sobresale. [MAP-THE-FAMILY-LINE-IS-THE-ONE-YOU-CAN-SEE-001]
+            drawSpotShadow(canvasS, ink, centerX = centerX, dotCy = NEARBY_DOT_CY)
+            drawSpotDot(canvasS, accent, centerX = centerX, dotCy = NEARBY_DOT_CY)
         }
         Box(
             modifier = Modifier
