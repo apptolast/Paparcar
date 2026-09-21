@@ -16,6 +16,8 @@ import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
 import com.rndeveloper.paparcar.domain.usecase.parkings.NearbyPublicParking
 import com.rndeveloper.paparcar.domain.onboarding.resolveFirstSteps
 import com.rndeveloper.paparcar.domain.onboarding.resolveWatchReinforcement
+import com.rndeveloper.paparcar.presentation.home.model.PublicParkingFilter
+import com.rndeveloper.paparcar.presentation.home.model.filteredBy
 import com.rndeveloper.paparcar.presentation.home.model.DetectionUiState
 import com.rndeveloper.paparcar.presentation.home.model.ParkedWatchBadge
 import com.rndeveloper.paparcar.presentation.home.model.isDetectionStopped
@@ -138,6 +140,10 @@ data class HomeState(
 
     val nearbySpots: List<Spot> = emptyList(),
     val sizeFilter: VehicleSize? = null,
+
+    /** El filtro del carril de parkings, o null (lo normal).
+     *  [PARKINGS-THE-LANE-FILTERS-BY-WHAT-WE-KNOW-001] */
+    val parkingFilter: PublicParkingFilter? = null,
     /** False when the user has panned the map away from their GPS position, driving the recenter FAB. */
     val isSpotQueryCenteredOnUser: Boolean = true,
     /**
@@ -467,7 +473,13 @@ data class HomeState(
     /** The car parks every surface reads: the ONE store, nearest to the user first.
      *  [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001] */
     val publicParkingsShown: List<NearbyPublicParking>
-        get() = NearbyOrdering.publicParkings(parkings.parkings, userGpsPoint)
+        get() = NearbyOrdering.publicParkings(parkings.parkings, userGpsPoint).filteredBy(parkingFilter)
+
+    /** Había parkings ANTES de filtrar. Es lo que separa «aquí no hay ninguno» de «ninguno cumple
+     *  lo que has pedido», que son dos frases distintas y sólo una es un veredicto sobre el mundo.
+     *  [PARKINGS-THE-LANE-FILTERS-BY-WHAT-WE-KNOW-001] */
+    val hasAnyPublicParking: Boolean
+        get() = parkings.parkings.isNotEmpty()
 
     /** The selected fuel station, or null when the selection is another kind / stale. Resolves
      *  inside its OWN arm, like the other two, and against the same repriced list everything else

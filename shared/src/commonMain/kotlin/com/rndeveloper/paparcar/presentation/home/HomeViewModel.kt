@@ -426,6 +426,9 @@ class HomeViewModel(
             // share ONE lane, so choosing between them is a spots-family intent too.
             // [FUEL-STATIONS-LIST-001] [FUEL-STATIONS-MAP-AND-PEEK-001]
             is HomeIntent.SetNearbyLens,
+            // El filtro del carril de parkings es la misma pregunta —«qué hay alrededor»— afinada.
+            // [PARKINGS-THE-LANE-FILTERS-BY-WHAT-WE-KNOW-001]
+            is HomeIntent.SetParkingFilter,
             is HomeIntent.SendSpotSignal,
             is HomeIntent.EnterReportMode,
             is HomeIntent.ExitReportMode,
@@ -1135,6 +1138,8 @@ class HomeViewModel(
             }
             is HomeIntent.SetSizeFilter -> updateState { copy(sizeFilter = intent.size) }
             is HomeIntent.SetNearbyLens -> setNearbyLens(intent.lens)
+            // No vuelve a preguntar: la tienda es la misma respuesta, cambia lo que se enseña.
+            is HomeIntent.SetParkingFilter -> updateState { copy(parkingFilter = intent.filter) }
             is HomeIntent.SendSpotSignal -> submitSpotSignal(intent.spotId, intent.accepted)
             is HomeIntent.EnterReportMode -> updateState {
                 clearedModeFields().copy(

@@ -618,7 +618,11 @@ fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
     // The rows are the map's pins, in the order they are listed: one projection over one store.
     // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
     fuel = fuel.copy(stations = fuelStationsShown),
-    parkings = parkings.copy(parkings = publicParkingsShown),
+    parkings = parkings.copy(
+        parkings = publicParkingsShown,
+        filter = parkingFilter,
+        hasAnyBeforeFilter = hasAnyPublicParking,
+    ),
     nearbyLens = nearbyLens,
     nearbyIntro = nearbyIntro,
     detectionUiState = detectionUiState,

@@ -1032,6 +1032,8 @@
          [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001] -->
     <string name="subject_free_spots">Free spots</string>
     <string name="home_parkings_empty">No public car parks within %1$s.</string>
+    <string name="home_parkings_filter_covered">Covered</string>
+    <string name="home_parkings_empty_filtered">No car park matches that filter</string>
     <string name="home_parkings_error">We could not load the car parks. Check your connection and open this again.</string>
     <string name="home_parkings_remembered">No connection: these are the car parks we saw here %1$s.</string>
     <string name="parking_peek_eyebrow">Public car park</string>

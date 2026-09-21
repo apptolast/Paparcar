@@ -1009,6 +1009,8 @@
     <string name="subject_public_parkings">Parcări</string>
     <string name="subject_free_spots">Locuri</string>
     <string name="home_parkings_empty">Nicio parcare publică pe o rază de %1$s.</string>
+    <string name="home_parkings_filter_covered">Acoperite</string>
+    <string name="home_parkings_empty_filtered">Nicio parcare nu corespunde acestui filtru</string>
     <string name="home_parkings_error">Nu am putut încărca parcările. Verifică conexiunea și deschide din nou.</string>
     <string name="home_parkings_remembered">Fără conexiune: acestea sunt parcările văzute aici %1$s.</string>
     <string name="parking_peek_eyebrow">Parcare publică</string>

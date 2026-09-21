@@ -1,10 +1,13 @@
 package com.rndeveloper.paparcar.presentation.home.sections.sheet.components
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -14,16 +17,23 @@ import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingsQuery
 import com.rndeveloper.paparcar.presentation.home.model.HomeParkingsSlice
+import com.rndeveloper.paparcar.presentation.home.model.PublicParkingFilter
 import com.rndeveloper.paparcar.presentation.home.model.ViewportRefetch
 import com.rndeveloper.paparcar.presentation.util.radiusString
 import com.rndeveloper.paparcar.presentation.util.relativeTimeText
+import com.rndeveloper.paparcar.ui.components.chips.PaparcarFilterChip
+import com.rndeveloper.paparcar.ui.components.papHorizontalFadingEdges
 import com.rndeveloper.paparcar.ui.illustrations.EmptyParkingsIllustration
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_parkings_empty
+import paparcar.composeapp.generated.resources.home_parkings_empty_filtered
 import paparcar.composeapp.generated.resources.home_parkings_error
+import paparcar.composeapp.generated.resources.home_parkings_filter_covered
 import paparcar.composeapp.generated.resources.home_parkings_remembered
+import paparcar.composeapp.generated.resources.parking_fee_free
+import paparcar.composeapp.generated.resources.parking_fee_paid
 
 /**
  * "Car parks nearby" — the lane the sheet shows while the lens sits on `HomeNearbyLens.PARKINGS`.
@@ -52,6 +62,10 @@ fun HomeParkingsLane(
         // ask" only means something to someone who already knows what was being asked and of whom.
         if (isIntroducing) LaneIntroNote(NearbyComplement.CAR_PARKS)
 
+        // ⛔ La barra de filtros NO se dibuja aquí: vive en la cabecera fijada de la hoja, junto a
+        // los tabs, para que siga visible al desplazar la lista. Ver [laneFilterBar] en
+        // `HomeSheetContent`. [PARKINGS-THE-LANE-FILTERS-BY-WHAT-WE-KNOW-001]
+
         when {
 
             // ⛔ A failure is NOT an empty list: saying "none nearby" when we could not ask sends the
@@ -63,6 +77,12 @@ fun HomeParkingsLane(
             // matching the pins still on the map, as the spots do.
             // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
             slice.isLoading && slice.parkings.isEmpty() -> NearbyRowsSkeleton()
+
+            // ⛔ «Ninguno cumple lo que has pedido» NO es «aquí no hay parkings». La segunda es un
+            // veredicto sobre el mundo; la primera, sobre tu filtro — y sólo una de las dos se
+            // arregla tocando un chip. [PARKINGS-THE-LANE-FILTERS-BY-WHAT-WE-KNOW-001]
+            slice.parkings.isEmpty() && slice.filter != null && slice.hasAnyBeforeFilter ->
+                LaneNote(stringResource(Res.string.home_parkings_empty_filtered))
 
             slice.parkings.isEmpty() -> EmptyParkings()
 
@@ -132,3 +152,43 @@ private fun EmptyParkings() {
 
 private const val EMPTY_ILLUSTRATION_W = 112
 private const val EMPTY_ILLUSTRATION_H = 96
+
+/**
+ * Los filtros del carril de parkings: **tarifa y techo**, que es lo que sabemos de verdad.
+ * [PARKINGS-THE-LANE-FILTERS-BY-WHAT-WE-KNOW-001]
+ *
+ * Misma gramática que la barra de tamaños de las plazas. Aquí los chips sí FILTRAN (esconden filas),
+ * al revés que los de gasolineras, que ordenan — por eso el carril tiene una frase propia para
+ * «ninguno cumple lo que has pedido», que es lo que hace que esconder no engañe.
+ *
+ * ⛔ Pulsar el chip encendido lo apaga: sin chip «Todos», el estado sin filtro es el normal y no
+ * necesita su propia opción.
+ */
+@Composable
+fun HomeParkingFilterBar(
+    selected: PublicParkingFilter?,
+    onSelect: (PublicParkingFilter?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val scrollState = rememberScrollState()
+    Row(
+        modifier = modifier.papHorizontalFadingEdges(scrollState).horizontalScroll(scrollState),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        PublicParkingFilter.entries.forEach { filter ->
+            val isOn = selected == filter
+            PaparcarFilterChip(
+                label = stringResource(filter.labelRes()),
+                selected = isOn,
+                onClick = { onSelect(filter.takeUnless { isOn }) },
+            )
+        }
+    }
+}
+
+/** La palabra de cada filtro. Vive aquí y no en el enum porque el dominio es Kotlin puro. */
+private fun PublicParkingFilter.labelRes() = when (this) {
+    PublicParkingFilter.FREE -> Res.string.parking_fee_free
+    PublicParkingFilter.PAID -> Res.string.parking_fee_paid
+    PublicParkingFilter.COVERED -> Res.string.home_parkings_filter_covered
+}

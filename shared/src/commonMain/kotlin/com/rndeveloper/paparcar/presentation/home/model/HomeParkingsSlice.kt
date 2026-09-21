@@ -17,6 +17,11 @@ data class HomeParkingsSlice(
     val isLoading: Boolean = false,
     /** As the source answered them. What the surfaces show is `HomeState.publicParkingsShown`. */
     val parkings: List<NearbyPublicParking> = emptyList(),
+
+    /** El filtro activo, o null. [PARKINGS-THE-LANE-FILTERS-BY-WHAT-WE-KNOW-001] */
+    val filter: PublicParkingFilter? = null,
+    /** Había parkings antes de filtrar: separa «no hay» de «ninguno cumple lo que pediste». */
+    val hasAnyBeforeFilter: Boolean = false,
     /**
      * Set when the lookup failed. Distinct from an empty list on purpose: "none within 1,5 km" and
      * "we could not ask" are different sentences, and the lane must never say the first when it
