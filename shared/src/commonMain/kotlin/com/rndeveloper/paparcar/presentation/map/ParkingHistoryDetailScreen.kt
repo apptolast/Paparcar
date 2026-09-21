@@ -62,6 +62,8 @@ import com.rndeveloper.paparcar.domain.util.PolylineCodec
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.Zone
+import com.rndeveloper.paparcar.domain.session.RouteAvailability
+import com.rndeveloper.paparcar.domain.session.routeAvailability
 import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy
 import com.rndeveloper.paparcar.domain.model.monitoringStatus
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheet
@@ -117,6 +119,7 @@ import paparcar.composeapp.generated.resources.parking_detail_prev
 import paparcar.composeapp.generated.resources.parking_detail_route_inferred_no
 import paparcar.composeapp.generated.resources.parking_detail_route_inferred_question
 import paparcar.composeapp.generated.resources.parking_detail_route_inferred_yes
+import paparcar.composeapp.generated.resources.parking_detail_route_off_device
 import paparcar.composeapp.generated.resources.parking_detail_route_recalculating
 import kotlin.time.Instant
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.peek.ApproximateZoneRow
@@ -184,8 +187,14 @@ fun ParkingHistoryDetailScreen(
     // While the post-park worker is still snapping the raw fixes, the line is withheld and a
     // "recalculating" chip is shown instead — we never draw the jagged raw trace. Empty for legacy /
     // BT parks (no route). [DET-ROUTE-TRACK-001][DET-ROUTE-SNAP-STORE-001]
-    val routeSnapped = focusedSession?.routeSnapped == true
-    val routeRecalculating = !routeSnapped && !focusedSession?.routePolyline.isNullOrEmpty()
+    // ⛔ Las cuatro situaciones del recorrido las decide UN veredicto, no cuatro condiciones sueltas
+    // aquí: sin él, «no tuvo recorrido» y «lo tuvo y lo perdimos» se dibujaban igual —en blanco— y
+    // eso fue lo que hizo leer un problema de respaldo como «las rutas no se pintan».
+    // [TRIP-A-ROUTE-THAT-ONLY-LIVES-HERE-SAYS-SO-001]
+    val routeState = focusedSession?.routeAvailability()
+    val routeSnapped = routeState == RouteAvailability.Drawn
+    val routeRecalculating = routeState == RouteAvailability.Recalculating
+    val routeLostOffDevice = routeState == RouteAvailability.LostOffDevice
     val routeTrail = remember(focusedSession?.routePolyline, routeSnapped) {
         mutableStateOf(if (routeSnapped) PolylineCodec.decode(focusedSession.routePolyline) else emptyList())
     }
@@ -275,31 +284,25 @@ fun ParkingHistoryDetailScreen(
         // While the driven route is still being snapped onto streets by the post-park worker, show a
         // small "recalculating" chip instead of the raw line. [DET-ROUTE-SNAP-STORE-001]
         if (routeRecalculating) {
-            Surface(
-                color = MaterialTheme.colorScheme.surface,
-                shape = CircleShape,
-                shadowElevation = 3.dp,
+            RouteNoticePill(
+                text = stringResource(Res.string.parking_detail_route_recalculating),
+                spinning = true,
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = 8.dp),
+            )
+        }
+
+        // Se midió un recorrido y su trazado ya no está. La MISMA píldora que el recálculo, porque
+        // las dos contestan «¿por qué no hay línea?» — lo que cambia es la respuesta, no el objeto.
+        // ⛔ Sin esto, «este viaje no tuvo recorrido» y «lo tuvo y lo perdimos» se dibujaban igual.
+        // [TRIP-A-ROUTE-THAT-ONLY-LIVES-HERE-SAYS-SO-001]
+        if (routeLostOffDevice) {
+            RouteNoticePill(
+                text = stringResource(Res.string.parking_detail_route_off_device),
+                spinning = false,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = 8.dp),
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                ) {
-                    CircularProgressIndicator(
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(14.dp),
-                    )
-                    Text(
-                        text = stringResource(Res.string.parking_detail_route_recalculating),
-                        style = PaparcarType.current.label,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-            }
+                    .padding(top = 8.dp, start = 24.dp, end = 24.dp),
+            )
         }
 
         // A stretch of this route was reconstructed over a GPS silence — ask the user to vouch for
@@ -853,3 +856,48 @@ private const val SKELETON_SECONDARY_ALPHA = 0.7f
 private const val MISSING_V_PAD = 28
 private const val WITHDRAW_GAP_DP = 8
 
+
+/**
+ * La píldora flotante que explica **por qué el mapa no dibuja una línea**. Un solo objeto para las
+ * dos respuestas —se está recalculando, o se perdió— porque las dos contestan la misma pregunta y
+ * que fueran dos formas distintas sólo obligaría al usuario a aprender dos.
+ * [TRIP-A-ROUTE-THAT-ONLY-LIVES-HERE-SAYS-SO-001] [DET-ROUTE-SNAP-STORE-001]
+ *
+ * ⛔ El spinner sólo acompaña a lo que de verdad está en curso: una rueda girando junto a una frase
+ * definitiva promete que va a llegar algo que no va a llegar.
+ */
+@Composable
+fun RouteNoticePill(
+    text: String,
+    spinning: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        shape = CircleShape,
+        shadowElevation = ROUTE_PILL_ELEVATION_DP.dp,
+        modifier = modifier,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+        ) {
+            if (spinning) {
+                CircularProgressIndicator(
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(ROUTE_PILL_SPINNER_DP.dp),
+                )
+            }
+            Text(
+                text = text,
+                style = PaparcarType.current.label,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+    }
+}
+
+private const val ROUTE_PILL_ELEVATION_DP = 3
+private const val ROUTE_PILL_SPINNER_DP = 14

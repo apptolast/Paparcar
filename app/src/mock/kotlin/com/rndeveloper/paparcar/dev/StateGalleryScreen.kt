@@ -84,9 +84,12 @@ import com.rndeveloper.paparcar.domain.usecase.stats.DeriveStatsInsightsUseCase
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.presentation.map.FocusedParking
 import com.rndeveloper.paparcar.presentation.map.HistoryDetailSheet
+import com.rndeveloper.paparcar.presentation.map.RouteNoticePill
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.first_steps_spotlight_caption
+import paparcar.composeapp.generated.resources.parking_detail_route_off_device
+import paparcar.composeapp.generated.resources.parking_detail_route_recalculating
 import com.rndeveloper.paparcar.presentation.onboarding.FirstStepExplainerScreen
 import com.rndeveloper.paparcar.presentation.onboarding.FirstStepsCard
 import com.rndeveloper.paparcar.presentation.onboarding.OnboardingScreen
@@ -1225,6 +1228,26 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             },
             Variant("Ya no está en el historial") {
                 parkingDetailSheetFace(FocusedParking.NotFound)
+            },
+            // Las dos frases que explican por qué el mapa NO dibuja una línea. Viven sobre el mapa,
+            // no en la ficha, así que la galería las enseña sueltas — que es lo que hay sin un mapa
+            // que pintar. [TRIP-A-ROUTE-THAT-ONLY-LIVES-HERE-SAYS-SO-001]
+            Variant("Ruta · recalculando") {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    RouteNoticePill(
+                        text = stringResource(Res.string.parking_detail_route_recalculating),
+                        spinning = true,
+                    )
+                }
+            },
+            Variant("Ruta · se midió aquí y ya no está") {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    RouteNoticePill(
+                        text = stringResource(Res.string.parking_detail_route_off_device),
+                        spinning = false,
+                        modifier = Modifier.padding(horizontal = 24.dp),
+                    )
+                }
             },
         ),
     ),

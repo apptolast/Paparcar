@@ -168,6 +168,7 @@
     <string name="parking_detail_navigate_area_action">Navegar para a zona</string>
     <string name="parking_detail_prev">Estacionamento anterior</string>
     <string name="parking_detail_route_recalculating">A recalcular rota…</string>
+    <string name="parking_detail_route_off_device">O percurso desta viagem só ficou guardado no telemóvel que a gravou, e já não está lá.</string>
     <string name="parking_detail_route_inferred_question">Parte desta rota foi reconstruída porque o sinal de GPS se perdeu pelo caminho. Passaste por aqui?</string>
     <string name="parking_detail_route_inferred_yes">Sim</string>
     <string name="parking_detail_route_inferred_no">Não</string>
@@ -797,7 +798,7 @@
     <string name="settings_notif_month_recap">Resumo do mês</string>
     <string name="settings_notif_month_recap_desc">Um resumo quando o mês fecha: o que gastaste e quanto tempo passaste à procura</string>
     <string name="settings_sync_routes">Guardar as tuas rotas na tua conta</string>
-    <string name="settings_sync_routes_desc">As tuas viagens ficam apenas neste telefone. Ativa para as veres também nos teus outros dispositivos.</string>
+    <string name="settings_sync_routes_desc">Os teus percursos ficam só neste telemóvel, por isso reinstalar a app perde-os. Ativa isto para os guardares na tua conta e os veres nos outros dispositivos.</string>
     <string name="home_zone_form_notify_label">Avisar-me de lugares livres aqui</string>
     <!-- Notification surface - MIRRORED from app/src/main/res (Android stays the live source until it migrates to composeResources); parity enforced by NotificationCopyParityTest [IOS-NOTIF-A-SURFACE-THAT-SPEAKS-ONE-LANGUAGE-001] -->
     <string name="notif_confirmation_title">Estacionaste?</string>
