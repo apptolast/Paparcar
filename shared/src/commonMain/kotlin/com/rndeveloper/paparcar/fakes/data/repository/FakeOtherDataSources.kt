@@ -14,6 +14,7 @@ import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
+import com.rndeveloper.paparcar.domain.spot.VouchedSpot
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.preferences.ThemeMode
 import com.rndeveloper.paparcar.domain.bluetooth.BluetoothScanner
@@ -294,6 +295,11 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     private val _syncRouteGeometry = MutableStateFlow(false)
     override val syncRouteGeometry: Boolean get() = _syncRouteGeometry.value
     override fun setSyncRouteGeometry(enabled: Boolean) { _syncRouteGeometry.value = enabled }
+
+    /** La plaza por la que se dio fe. [SPOT-A-SPACE-THE-COMMUNITY-GAVE-YOU-IS-ONE-YOU-VOUCHED-FOR-001] */
+    private var _vouchedSpot: VouchedSpot? = null
+    override val vouchedSpot: VouchedSpot? get() = _vouchedSpot
+    override fun setVouchedSpot(spot: VouchedSpot?) { _vouchedSpot = spot }
 
     // [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001] Starts null = nothing published yet.
     private val _lastPublishedDetectionState = MutableStateFlow<String?>(null)

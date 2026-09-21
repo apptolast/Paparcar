@@ -173,6 +173,7 @@
     <string name="parking_detail_route_recalculating">Se recalculează ruta…</string>
     <string name="parking_detail_route_off_device">Traseul acestei curse a fost salvat doar pe telefonul care l-a înregistrat, iar acum nu mai este.</string>
     <string name="parking_detail_route_refused">Ai spus că nu ai mers pe aici, așa că nu desenăm traseul.</string>
+    <string name="parking_detail_community_gave_it">Acest loc ți l-a eliberat comunitatea</string>
     <string name="parking_detail_route_inferred_question">O parte din acest traseu a fost reconstruită deoarece semnalul GPS s-a pierdut pe drum. Ai trecut pe aici?</string>
     <string name="parking_detail_route_inferred_yes">Da</string>
     <string name="parking_detail_route_inferred_no">Nu</string>

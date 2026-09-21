@@ -171,6 +171,7 @@
     <string name="parking_detail_route_recalculating">A recalcular rota…</string>
     <string name="parking_detail_route_off_device">O percurso desta viagem só ficou guardado no telemóvel que a gravou, e já não está lá.</string>
     <string name="parking_detail_route_refused">Disseste que não foste por aqui, por isso não desenhamos o percurso.</string>
+    <string name="parking_detail_community_gave_it">Este lugar foi-te libertado pela comunidade</string>
     <string name="parking_detail_route_inferred_question">Parte desta rota foi reconstruída porque o sinal de GPS se perdeu pelo caminho. Passaste por aqui?</string>
     <string name="parking_detail_route_inferred_yes">Sim</string>
     <string name="parking_detail_route_inferred_no">Não</string>

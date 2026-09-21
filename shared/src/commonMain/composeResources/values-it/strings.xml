@@ -171,6 +171,7 @@
     <string name="parking_detail_route_recalculating">Ricalcolo del percorso…</string>
     <string name="parking_detail_route_off_device">Il percorso di questo viaggio era salvato solo sul telefono che l'ha registrato, e non c'è più.</string>
     <string name="parking_detail_route_refused">Hai detto che non sei passato di qui, quindi non disegniamo il percorso.</string>
+    <string name="parking_detail_community_gave_it">Questo posto te lo ha liberato la comunità</string>
     <string name="parking_detail_route_inferred_question">Parte di questo percorso è stata ricostruita perché il segnale GPS si è perso lungo il tragitto. Sei passato di qui?</string>
     <string name="parking_detail_route_inferred_yes">Sì</string>
     <string name="parking_detail_route_inferred_no">No</string>

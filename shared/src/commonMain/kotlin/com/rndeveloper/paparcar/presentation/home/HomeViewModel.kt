@@ -25,6 +25,7 @@ import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsQuery
 import com.rndeveloper.paparcar.domain.model.DetectionReliabilityLevel
 import com.rndeveloper.paparcar.domain.notification.MapVisibility
+import com.rndeveloper.paparcar.domain.spot.VouchedSpot
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.presentation.home.model.ViewportRefetch
 import com.rndeveloper.paparcar.presentation.home.model.warnsLocationMissing
@@ -1266,6 +1267,20 @@ class HomeViewModel(
                 .onSuccess { outcome ->
                     if (outcome != SpotVoteOutcome.IGNORED_TOO_FAR) {
                         updateState { copy(votedSpotIds = votedSpotIds + spotId) }
+                    }
+                    // «Sigue libre» desde lo bastante cerca: el propio usuario acaba de dar fe de
+                    // estar EN esa plaza. Se apunta para que, si aparca en ella, la sesión pueda
+                    // decir quién se la dio.
+                    // [SPOT-A-SPACE-THE-COMMUNITY-GAVE-YOU-IS-ONE-YOU-VOUCHED-FOR-001]
+                    if (outcome == SpotVoteOutcome.REFRESH && spot != null) {
+                        appPreferences.setVouchedSpot(
+                            VouchedSpot(
+                                spotId = spot.id,
+                                latitude = spot.location.latitude,
+                                longitude = spot.location.longitude,
+                                expiresAtMs = spot.expiresAt,
+                            ),
+                        )
                     }
                     sendEffect(HomeEffect.SpotSignalSent(outcome))
                 }

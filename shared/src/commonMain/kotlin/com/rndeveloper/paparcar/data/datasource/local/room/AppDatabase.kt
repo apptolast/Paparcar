@@ -7,7 +7,7 @@ import androidx.room.RoomDatabaseConstructor
 
 /** The declared schema version — single source for the annotation and the tests that pin what an
  *  opened file must end up at. [DB-A-NEW-COLUMN-NEEDS-ITS-MIGRATION-001] */
-const val PAPARCAR_DB_VERSION = 18  // v18: fuera `spotId`, campo muerto cuyo nombre mentía [DATA-A-DEAD-FIELD-THAT-LIES-IS-WORSE-THAN-A-DEAD-FIELD-001] — MIGRATION_17_18 in ALL_MIGRATIONS
+const val PAPARCAR_DB_VERSION = 19  // v19: la sesión dice qué plaza de la comunidad ocupó [SPOT-A-SPACE-THE-COMMUNITY-GAVE-YOU-IS-ONE-YOU-VOUCHED-FOR-001] — MIGRATION_18_19 in ALL_MIGRATIONS
 
 @Database(
     entities = [

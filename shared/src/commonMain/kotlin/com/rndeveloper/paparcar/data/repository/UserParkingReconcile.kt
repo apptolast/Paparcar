@@ -55,6 +55,10 @@ fun reconcileParkingSessions(
             routeSnapped = if (r.routePolyline != null) r.routeSnapped else (l?.routeSnapped ?: r.routeSnapped),
             routeInferredSpans = r.routeInferredSpans ?: l?.routeInferredSpans,
             routeInferredResolution = r.routeInferredResolution ?: l?.routeInferredResolution,
+            // Misma forma: un doc remoto escrito antes de que el campo viajara trae null, y
+            // tomarlo borraría lo que este móvil ya sabe.
+            // [SPOT-A-SPACE-THE-COMMUNITY-GAVE-YOU-IS-ONE-YOU-VOUCHED-FOR-001]
+            communitySpotId = r.communitySpotId ?: l?.communitySpotId,
             searchTimeMs = r.searchTimeMs ?: l?.searchTimeMs,
             endedAtMs = r.endedAtMs ?: l?.endedAtMs,
             publishedSpot = r.publishedSpot || l?.publishedSpot == true,
