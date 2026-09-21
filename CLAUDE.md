@@ -338,6 +338,23 @@ refactor(core): extract magic numbers to companion objects [FND-002]
 Ramas: `feature/` · `bugfix/` · `refactor/` · `chore/` · `experiment/` + `<TICKET-ID>-<slug>`.
 El ID debe ser autoexplicativo. ⚠️ PS 5.1 rompe `git commit -m` con comillas → usar `-F <fichero>`.
 
+### ⛔ Una PR con resultado visual SE ENSEÑA [PR-A-VISUAL-CHANGE-SHOWS-ITSELF-001]
+Regla mental: *si el cambio se puede ver, la PR tiene que verse — describirlo no es enseñarlo.*
+- **Toda PR cuyo cambio se aprecie en pantalla lleva una captura en su DESCRIPCIÓN**, como
+  evidencia del comportamiento o del diseño nuevo. No en un comentario suelto: en el cuerpo de la
+  PR, que es lo que se lee al revisarla y lo que queda al cerrarla.
+- **La captura tiene que ser del estado FINAL del código de esa PR.** Una captura de una revisión
+  anterior enseña algo que ya no existe, y eso es peor que no enseñar nada: da por revisado lo que
+  nadie ha visto. Si la PR cambia tras la revisión, la captura se **sustituye**.
+- Dispara con cualquier cambio visible: UI y Compose, pantallas, componentes, navegación,
+  diálogos y hojas, estados visuales (vacío/carga/error), mapa, marcadores, iconos, animaciones,
+  layout, tema y color, tipografía, accesibilidad visual. Ante la duda, se enseña.
+- **Si el cambio no se ve, no hace falta captura** — y decirlo en la PR en una línea (*«sin
+  resultado visual»*) vale más que dejar el hueco, que se lee como un olvido.
+- Con varios estados afectados, una captura **por estado** (o antes/después cuando el valor del
+  cambio está justo en la diferencia). La captura sale de un device o del Dev Catalog, no de una
+  maqueta: lo que se enseña es lo que compila esta rama.
+
 ### Cosas que NO hacer
 - No re-implementar filas "icono+título+subtítulo+trailing" → `PapListItem` dentro de
   `PapOutlinedCard` + `PapIconTile`. Un solo esqueleto; leading/trailing son slots. [UI-LIST-ITEM-001]
