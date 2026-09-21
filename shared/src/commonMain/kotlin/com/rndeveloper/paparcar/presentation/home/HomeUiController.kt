@@ -66,6 +66,24 @@ class HomeUiController {
     }
 
     /**
+     * Devuelve la cámara al sitio que el usuario estaba mirando cuando dejó Home.
+     * [HOME-WHAT-IS-REMEMBERED-IS-THE-PLACE-YOU-CHOSE-001]
+     *
+     * ⛔ **Y vuelve a armar [userMovedCameraManually]**, que es la mitad que importa. El carril
+     * sobrevive a la navegación porque vive en el ViewModel; esta clase no, y con ella se perdía
+     * también el «no me reencuadres»: al volver, el primer fix mandaba la cámara a tu ubicación y
+     * la lista seguía hablando de la otra ciudad. Recordar el sitio sin recordar que lo elegiste tú
+     * habría durado exactamente un fix.
+     *
+     * ⚠️ No es [goToPlace]: aquel es una petición NUEVA —suelta el follow y sube el zoom si hace
+     * falta— y esto es una restauración. Restaurar no es ir.
+     */
+    fun restoreChosenView(lat: Double, lon: Double) {
+        userMovedCameraManually = true
+        setTarget(lat, lon)
+    }
+
+    /**
      * [PARK-A-DRAGGED-PIN-MUST-OUTRANK-AN-AUTOMATIC-CAMERA-001] Whether a pin is being POSITIONED
      * right now (Reporting · AddingZone · AddingParking), reported by the host from its own
      * `isPinningMode`.

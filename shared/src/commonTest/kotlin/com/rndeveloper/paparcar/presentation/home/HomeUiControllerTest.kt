@@ -302,6 +302,40 @@ class HomeUiControllerTest {
     // [FOCUS-002]; the initial focus never did, and it is the one that fires on the first GPS fix —
     // i.e. seconds into a cold start, exactly while a new user is dragging the map onto their car.
 
+    // ── Volver a Home vuelve al sitio que elegiste [HOME-WHAT-IS-REMEMBERED-IS-THE-PLACE-YOU-CHOSE-001] ──
+
+    @Test
+    fun should_returnToTheChosenView_andRefuseToBeReframed_when_homeIsEnteredAgain() {
+        // El controlador nace NUEVO al volver de otra pantalla, así que restaurar el sitio sin
+        // restaurar el «no me reencuadres» habría durado exactamente un fix: el primero manda la
+        // cámara a tu ubicación mientras la lista sigue hablando de la otra ciudad.
+        val controller = HomeUiController()
+
+        controller.restoreChosenView(SPOT_LAT, SPOT_LON)
+
+        assertEquals(SPOT_LAT, controller.cameraTarget?.lat)
+        assertEquals(SPOT_LON, controller.cameraTarget?.lon)
+
+        // El primer fix llega y NO se lleva la cámara: el destino sigue siendo el elegido.
+        controller.centerInitialFocus(parking = null, selectedSpot = null, user = USER_LAT to USER_LON)
+        assertEquals(
+            SPOT_LAT,
+            controller.cameraTarget?.lat,
+            "el primer fix no puede llevarse la cámara del sitio que el usuario eligió",
+        )
+    }
+
+    @Test
+    fun should_notChangeTheZoom_when_restoringTheChosenView() {
+        // ⚠️ Restaurar NO es ir: `goToPlace` sube el zoom si hace falta porque es una petición
+        // nueva; devolver al usuario donde estaba no puede reencuadrarle de paso.
+        val controller = HomeUiController()
+
+        controller.restoreChosenView(SPOT_LAT, SPOT_LON)
+
+        assertNull(controller.cameraTarget?.zoom, "una restauración no trae zoom propio")
+    }
+
     @Test
     fun should_notCentreOnTheUser_when_theyAlreadyPannedTheMapByHand() {
         val controller = HomeUiController()
