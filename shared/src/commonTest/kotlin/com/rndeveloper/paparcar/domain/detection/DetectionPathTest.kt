@@ -138,6 +138,11 @@ class DetectionPathTest {
             "bt_no_ride", "bt_no_move", "bt_ride_unmeasurable",
             "unattended_timeout", "unattended_walk_entered_anchor",
             "stale_pending_watchdog",
+            // [DET-A-STILL-PARKED-ASK-MUST-EARN-ITS-INTERRUPTION-001] The safety net dispatched a
+            // departure and nothing could take the ARRIVAL (live detection denied, no bounded
+            // backfill). It used to raise the departure prompt instead, so a pin that came out of
+            // this situation carried no trace of which lane had given up.
+            "safety_net_arrival_unowned",
         ).forEach { source ->
             val path = DetectionPath.Nudge(source)
             assertEquals(path, DetectionPath.ofLabel(path.label), "source=$source")

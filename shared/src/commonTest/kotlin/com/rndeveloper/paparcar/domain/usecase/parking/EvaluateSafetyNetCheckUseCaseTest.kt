@@ -58,6 +58,7 @@ class EvaluateSafetyNetCheckUseCaseTest {
         fix: GpsPoint,
         lastSeenNearCarAtMs: Long? = null,
         stepsSinceAnchor: Long? = null,
+        stepsSinceAnchorAtLeast: Long? = null,
         stepsSinceLastWitness: Long? = null,
         lastVehicleEnteredAtMs: Long? = null,
         exitDeliveredAtMs: Long? = null,
@@ -70,6 +71,7 @@ class EvaluateSafetyNetCheckUseCaseTest {
         lastSeenNearCarAtMs = lastSeenNearCarAtMs,
         nowMs = nowMs,
         stepsSinceAnchor = stepsSinceAnchor,
+        stepsSinceAnchorAtLeast = stepsSinceAnchorAtLeast,
         stepsSinceLastWitness = stepsSinceLastWitness,
         lastVehicleEnteredAtMs = lastVehicleEnteredAtMs,
         exitDeliveredAtMs = exitDeliveredAtMs,
@@ -731,6 +733,55 @@ class EvaluateSafetyNetCheckUseCaseTest {
             true,
             useCase.shouldReregisterCure(alreadyCuredThisProcess = false, lastCureAtMs = 0L, nowMs = nowMs, sessionAgeMs = fresh, statePoisoned = true),
         )
+    }
+
+    // ── [DET-A-STILL-PARKED-ASK-MUST-EARN-ITS-INTERRUPTION-001] The walk survives a reboot ──
+
+    @Test
+    fun should_stayQuiet_when_theCounterResetButItsOwnReadingAlreadyExplainsTheWalk() {
+        // A reboot sets TYPE_STEP_COUNTER back to zero, so the delta against a pre-reboot
+        // zero-point is unknowable and `stepsSinceAnchor` is null — permanently, because the
+        // zero-point is only re-sealed from INSIDE the fence. That used to mean the car parked
+        // 400 m from home earned a question every 6 h with nothing wrong. The post-reset reading is
+        // still a FLOOR on the steps walked since the anchor, and 250 steps already cover 400 m.
+        val action = evaluate(
+            fix = fixAtMeters(400.0, speedMps = 0f),
+            lastSeenNearCarAtMs = nowMs - 5 * 60_000L,
+            stepsSinceAnchor = null,
+            stepsSinceAnchorAtLeast = 250L,
+            userPresent = true,
+        )
+        assertEquals(SafetyNetAction.None, action)
+    }
+
+    @Test
+    fun should_stillAsk_when_theResetReadingCannotExplainTheWalk() {
+        // Same reboot, 50 steps since it: nowhere near the ~213 a 400 m walk costs, so the floor
+        // explains nothing and the blind branch keeps its voice. A floor that silenced regardless
+        // would be the opposite defect.
+        val action = evaluate(
+            fix = fixAtMeters(400.0, speedMps = 0f),
+            lastSeenNearCarAtMs = nowMs - 5 * 60_000L,
+            stepsSinceAnchor = null,
+            stepsSinceAnchorAtLeast = 50L,
+            userPresent = true,
+        )
+        assertIs<SafetyNetAction.PromptStillParked>(action)
+    }
+
+    @Test
+    fun should_neverRelease_when_theOnlyStepEvidenceIsALowerBound() {
+        // ⛔ The asymmetry that makes the floor admissible at all. With the SAME 10 steps as a
+        // TRUSTED delta this is a step-budget release (`should_dispatchPreconfirmed_…`): 10 steps
+        // cannot walk 986 m, so the body rode. A floor cannot say that — "at least 10" is
+        // compatible with having walked every metre — so it must not reach any release branch.
+        val action = evaluate(
+            fix = fixAtMeters(986.0, speedMps = 0f),
+            lastSeenNearCarAtMs = nowMs - 13 * 60_000L,
+            stepsSinceAnchor = null,
+            stepsSinceAnchorAtLeast = 10L,
+        )
+        assertEquals(SafetyNetAction.None, action)
     }
 
     // ── [DET-ANCHOR-FREEZE-001] Ask-when-blind: the app is OPEN and no proof explains "far" ─

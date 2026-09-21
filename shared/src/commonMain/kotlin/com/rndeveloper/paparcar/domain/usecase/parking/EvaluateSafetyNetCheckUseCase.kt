@@ -154,6 +154,16 @@ class EvaluateSafetyNetCheckUseCase(
      *                            null when unknown (no hardware, read timeout, no counter sample
      *                            stored with the anchor, or a reboot reset the counter). The
      *                            caller must map a NEGATIVE delta to null. [DET-RECONCILE-001]
+     * @param stepsSinceAnchorAtLeast A LOWER BOUND on the steps walked since the anchor, for the
+     *                            case where the cumulative counter RESET under us (a reboot sets
+     *                            `TYPE_STEP_COUNTER` back to zero) and [stepsSinceAnchor] is
+     *                            therefore unknowable: the steps walked between the seal and the
+     *                            reboot are gone, but the ones walked since it are the counter's
+     *                            current reading. **Admissible only to EXPLAIN a walk, never to
+     *                            prove a ride** — a lower bound can answer "these steps already
+     *                            cover the displacement" (more steps only make it truer) and can
+     *                            never answer "too few steps to have walked it".
+     *                            [DET-A-STILL-PARKED-ASK-MUST-EARN-ITS-INTERRUPTION-001]
      * @param stepsSinceLastWitness Cumulative-step-counter delta since the LAST INDEPENDENT
      *                            observation of the body (previous safety-net check fix / the end
      *                            fix of the last detection session), or null when unknown. This is
@@ -188,6 +198,7 @@ class EvaluateSafetyNetCheckUseCase(
         lastSeenNearCarAtMs: Long?,
         nowMs: Long,
         stepsSinceAnchor: Long? = null,
+        stepsSinceAnchorAtLeast: Long? = null,
         stepsSinceLastWitness: Long? = null,
         lastVehicleEnteredAtMs: Long? = null,
         exitDeliveredAtMs: Long? = null,
@@ -493,8 +504,21 @@ class EvaluateSafetyNetCheckUseCase(
         // stale, and the worker's 6 h per-fence throttle bounds repeats. Field 2026-07-10,
         // Oppo: 4 h at 1.4–1.9 km from an "active" parking, 9 silent ticks, EXIT recorded at
         // 15:31 — the user saw nothing and lost the spot AND the new park. [DET-CONJUNCTION-001]
-        val stepsExplainWalk = trustedStepsSinceAnchor != null && walkExplainsDisplacement(
-            trustedStepsSinceAnchor, distanceMeters, config.strideMeters, config.walkedStepFraction,
+        // [DET-A-STILL-PARKED-ASK-MUST-EARN-ITS-INTERRUPTION-001] The walking defence must survive a
+        // reboot. `trustedStepsSinceAnchor` is null whenever the cumulative counter reset (the
+        // caller cannot subtract a pre-reboot zero-point from a post-reboot reading), and that null
+        // used to mean "no walking defence, ever" — permanently, because the zero-point is only
+        // re-sealed by standing INSIDE the fence again. A car parked 400 m from home plus one reboot
+        // then earned a question every 6 h with nothing wrong.
+        //
+        // What the reset leaves is still a LOWER BOUND: the reading itself. It enters HERE and
+        // nowhere else, because explaining a walk is the one question a lower bound can answer — if
+        // these steps already cover the displacement, the unknown extra ones only cover it harder.
+        // Every release branch above keeps reading `trustedStepsSinceAnchor` alone: proving a ride
+        // needs an UPPER bound ("too few steps to have walked this"), which a floor can never give.
+        val walkEvidenceSteps = trustedStepsSinceAnchor ?: stepsSinceAnchorAtLeast
+        val stepsExplainWalk = walkEvidenceSteps != null && walkExplainsDisplacement(
+            walkEvidenceSteps, distanceMeters, config.strideMeters, config.walkedStepFraction,
         )
         if (exitAtMs != null && !stepsExplainWalk) {
             return SafetyNetAction.PromptStillParked(geofenceId, StillParkedReason.UNEXPLAINED_EXIT)

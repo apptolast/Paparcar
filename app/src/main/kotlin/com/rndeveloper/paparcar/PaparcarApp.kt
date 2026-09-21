@@ -130,9 +130,15 @@ class PaparcarApp : Application() {
         // active fix, cure a poisoned fence state, recover missed departures, and keep the
         // significant-motion trigger armed. [DET-SAFETY-NET-001][DET-SIGMOTION-001]
         ParkingSafetyNetWorker.enqueueKeep(workManager)
-        // Immediate pass as well: app-open often happens right at the car (just parked / about to
-        // leave) — a fresh fix now seeds the position anchor instead of waiting up to 15 min.
-        ParkingSafetyNetWorker.enqueueCheckNow(workManager, source = ParkingSafetyNetWorker.SOURCE_APP_START)
+        // Immediate pass as well: a process start often happens right at the car (just parked /
+        // about to leave) — a fresh fix now seeds the position anchor instead of waiting up to
+        // 15 min.
+        // ⛔ [DET-A-STILL-PARKED-ASK-MUST-EARN-ITS-INTERRUPTION-001] It is enqueued as
+        // PROCESS_START, not APP_START. This line runs for EVERY process birth — a geofence/BT/AR
+        // receiver, a worker, a push, the widget — and calling that "app start" is what let the
+        // ask-when-blind prompt fire in the background on the OEMs that kill us hourly. The
+        // foreground pass is enqueued by `MainActivity.onStart`, where a human really is looking.
+        ParkingSafetyNetWorker.enqueueCheckNow(workManager, source = ParkingSafetyNetWorker.SOURCE_PROCESS_START)
 
         // [DET-MEMORY-LIMITER-IS-AN-ATTRIBUTABLE-KILL-001] Ask the platform why the previous
         // process died (force_stop / low_memory / memory_limiter / crash / anr / self_exit) and

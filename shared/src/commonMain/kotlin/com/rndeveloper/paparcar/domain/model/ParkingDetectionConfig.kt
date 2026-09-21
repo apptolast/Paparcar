@@ -715,6 +715,17 @@ data class ParkingDetectionConfig(
      *  Oppo (three hours, zero ticks) crosses on the third pass. */
     val exactHeartbeatDeadAfterMisses: Int = 3,
 
+    // ── SAFETY-NET ASKS [DET-A-STILL-PARKED-ASK-MUST-EARN-ITS-INTERRUPTION-001] ──
+    /** Minimum interval (ms) between two questions raised by the parked-session net about the SAME
+     *  fence — "are you still parked?" and "mark where you parked" draw on the same budget, because
+     *  what runs out is how often we interrupt about this car, not how often we ask one of the two.
+     *  Lived as a private constant in `ParkingSafetyNetWorker` and a second copy in
+     *  `IosDetectionController`, with only the Android still-parked branch actually honouring it;
+     *  the arrival branch could repeat every ~5 min (exact-heartbeat cadence). Six hours: an honest
+     *  doubt survives a working day being asked at most four times, and the user who ignores it once
+     *  is not asked again over lunch. */
+    val safetyNetAskThrottleMs: Long = 6 * 60 * 60 * 1_000L,
+
     // ── USER STOP (the "Stop detection" button) [DET-STOP-BUTTON-001] ────────
     /** Quiet period (ms) after the user taps "Stop detection" on a live session, during which the
      *  AUTOMATIC nominators (geofence EXIT, AR ENTER, significant motion) may not arm a new one.
@@ -1389,6 +1400,11 @@ data class ParkingDetectionConfig(
         }
         require(exactHeartbeatDeadAfterMisses >= 1) {
             "exactHeartbeatDeadAfterMisses must be >= 1, was $exactHeartbeatDeadAfterMisses"
+        }
+        // [DET-A-STILL-PARKED-ASK-MUST-EARN-ITS-INTERRUPTION-001] A non-positive throttle is not "ask
+        // freely", it is the defect this ticket closed: every tick a fresh interruption.
+        require(safetyNetAskThrottleMs > 0L) {
+            "safetyNetAskThrottleMs must be > 0, was $safetyNetAskThrottleMs"
         }
         require(userStopQuietPeriodMs >= 0) {
             "userStopQuietPeriodMs must be >= 0 (0 = disabled), was $userStopQuietPeriodMs"

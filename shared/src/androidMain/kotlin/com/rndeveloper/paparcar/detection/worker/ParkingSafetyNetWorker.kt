@@ -37,6 +37,8 @@ import com.rndeveloper.paparcar.domain.detection.DepartureAdjudicationVerdict
 import com.rndeveloper.paparcar.domain.detection.OpenDepartureAdjudication
 import com.rndeveloper.paparcar.domain.detection.adjudicateDeparture
 import com.rndeveloper.paparcar.domain.detection.cleanOrphanEnterFences
+import com.rndeveloper.paparcar.domain.detection.SafetyNetAskKind
+import com.rndeveloper.paparcar.domain.detection.safetyNetAskIsDue
 import com.rndeveloper.paparcar.domain.detection.stillParkedPromptsExplainedByDeparture
 import com.rndeveloper.paparcar.domain.detection.sentry.SentryKillVerdict
 import com.rndeveloper.paparcar.domain.detection.sentry.resolveSentryKillVerdict
@@ -219,6 +221,14 @@ class ParkingSafetyNetWorker(
         // old session (replaceActiveSession per vehicle). Don't second-guess it.
         if (detectionRuntime.isRunning.value) {
             PaparcarLogger.d(DIAG, "■ detection running — skipping check")
+            // [DET-A-STILL-PARKED-ASK-MUST-EARN-ITS-INTERRUPTION-001] …and a pending "are you still
+            // parked?" goes with it. That question means "nobody is measuring this and we cannot
+            // tell"; a live session is exactly somebody measuring it. Leaving it up is how an ask
+            // raised hours ago rode along for a whole trip — the user gets in the car, detection
+            // arms, and the tick that would have retired the question returns right above this line.
+            // The other two early returns (no permission, no fresh fix) deliberately do NOT dismiss:
+            // there we know nothing, and dropping an honest question because the GPS failed loses it.
+            dismissPrompt()
             debugNotify("Red de seguridad [$source]: la detección ya está trabajando este viaje → no interfiero")
             return Result.success()
         }
@@ -293,11 +303,19 @@ class ParkingSafetyNetWorker(
         for (session in sessions) {
             val anchorSteps = session.geofenceId?.let { readAnchorSteps(prefs, it) }
             // Negative delta = reboot reset the counter → budget unknown, never a verdict.
-            val stepsSinceAnchor = if (cumulativeSteps != null && anchorSteps != null && cumulativeSteps >= anchorSteps) {
+            val counterReset = cumulativeSteps != null && anchorSteps != null && cumulativeSteps < anchorSteps
+            val stepsSinceAnchor = if (cumulativeSteps != null && anchorSteps != null && !counterReset) {
                 cumulativeSteps - anchorSteps
             } else {
                 null
             }
+            // [DET-A-STILL-PARKED-ASK-MUST-EARN-ITS-INTERRUPTION-001] …and what the reset leaves
+            // behind: the reading itself is a FLOOR on the steps walked since the anchor (whatever
+            // was walked before the reboot only adds to it). Unusable as a ride proof, which needs a
+            // ceiling; perfectly usable to say "you already walked this far", which is the defence
+            // that used to die with the counter and never came back, because the zero-point is only
+            // re-sealed from INSIDE the fence.
+            val stepsSinceAnchorAtLeast = cumulativeSteps.takeIf { counterReset }
             // [DET-BT-IDENTITY-GATE-001] Identity inputs for THIS session's vehicle: BT-gated only
             // when it is BT-paired AND the adapter is on; last connection stamped by the BT receiver.
             val vehicleBtGated = btEnabled &&
@@ -310,6 +328,9 @@ class ParkingSafetyNetWorker(
                 lastSeenNearCarAtMs = session.geofenceId?.let { readAnchor(prefs, it) },
                 nowMs = now,
                 stepsSinceAnchor = stepsSinceAnchor,
+                // The post-reboot floor — explains a walk, never proves a ride.
+                // [DET-A-STILL-PARKED-ASK-MUST-EARN-ITS-INTERRUPTION-001]
+                stepsSinceAnchorAtLeast = stepsSinceAnchorAtLeast,
                 // [DET-DEPARTURE-IS-NOT-ARRIVAL-001] The arrival budget — the only one that may
                 // bound a NEW pin's position; the anchor budget above is already spent on the ride.
                 stepsSinceLastWitness = stepsSinceLastWitness,
@@ -320,8 +341,12 @@ class ParkingSafetyNetWorker(
                 // triage when delivery came too far away to act on directly) — half of the
                 // exit∧enter conjunction proof. [DET-CONJUNCTION-001]
                 exitDeliveredAtMs = session.geofenceId?.let { readExitDeliveredAt(prefs, it) },
-                // App-start tick = the user is LOOKING at the app right now — the zero-cost
-                // moment for the ask-when-blind prompt. [DET-ANCHOR-FREEZE-001]
+                // The UI came to the foreground = the user is LOOKING at the app right now — the
+                // zero-cost moment for the ask-when-blind prompt. [DET-ANCHOR-FREEZE-001]
+                // ⛔ [DET-A-STILL-PARKED-ASK-MUST-EARN-ITS-INTERRUPTION-001] Which is NOT the same as
+                // the process starting ([SOURCE_PROCESS_START]): that happens for a receiver, a
+                // worker, a push or the widget, with nobody looking at anything. The branch this
+                // unlocks pays for itself only under its own premise.
                 userPresent = source == SOURCE_APP_START,
                 // [DET-BT-IDENTITY-GATE-001] BT-owned vehicle with no connection since it parked →
                 // the reconstructed release degrades to the "still parked?" ask, not an auto-release.
@@ -470,6 +495,9 @@ class ParkingSafetyNetWorker(
                 }
 
                 is SafetyNetAction.DispatchDeparture -> {
+                    // Who ended up with the ARRIVAL, for the trace line at the bottom of this arm.
+                    var arrivalAsked = false
+                    var arrivalAskSuppressed = false
                     // [DET-TWO-DISPATCHES-OF-ONE-DEPARTURE-READ-DIFFERENT-STATE-001] One fact, one
                     // adjudication. This wake may be a LATER OBSERVATION of a departure a previous
                     // wake already dispatched — field 2026-08-30 21:27, two wakes 596 ms apart on
@@ -654,19 +682,34 @@ class ParkingSafetyNetWorker(
                                     )
                                 }
                             }
-                            PaparcarLogger.w(DIAG, "  ⊘ nothing left to take the arrival — asking the user via still-parked prompt")
-                            // This prompt must survive the end-of-run cleanup: without the flag,
-                            // `if (!anyPromptActive) dismissPrompt()` below erased it milliseconds
-                            // after showing (field 2026-07-09 13:55, Redmi: the user saw NO
-                            // notification for the whole ride home). [DET-RIDE-PROOF-001]
-                            anyPromptActive = true
-                            runCatching {
-                                notificationPort.showStillParkedPrompt(
-                                    geofenceId = action.geofenceId,
-                                    latitude = session.location.latitude,
-                                    longitude = session.location.longitude,
+                            PaparcarLogger.w(DIAG, "  ⊘ nothing left to take the arrival — asking the user where the car is now")
+                            // [DET-A-STILL-PARKED-ASK-MUST-EARN-ITS-INTERRUPTION-001] This used to
+                            // raise the DEPARTURE prompt — «¿Sigues aparcado aquí? Parece que estás
+                            // lejos» — for a doubt about the ARRIVAL, and to do it without reading
+                            // or stamping any throttle. Both halves were wrong in the same moment:
+                            // the departure is settled (it was just dispatched), the user is
+                            // standing next to the car they have just parked, and the exact-alarm
+                            // lane could bring the same unanswered question back ~5 min later.
+                            //
+                            // The arrival question already exists, with its own copy, its own
+                            // notification id, a persisted PendingParkNudge that survives a
+                            // slept-through shade, and provenance on whatever pin it produces
+                            // [DET-NUDGE-PIN-PROVENANCE-001]. It goes through the same door as the
+                            // still-parked ask so it draws on the same per-fence budget.
+                            arrivalAsked = raiseSafetyNetAsk(
+                                prefs = prefs,
+                                geofenceId = action.geofenceId,
+                                kind = SafetyNetAskKind.WhereDidYouPark,
+                                now = now,
+                                source = source,
+                                fixSpeedKmh = fix.speed * KMH_PER_MPS,
+                            ) {
+                                notificationPort.showMarkParkingNudge(
+                                    source = NUDGE_SOURCE_SAFETY_NET_ARRIVAL,
+                                    vehicleId = session.vehicleId,
                                 )
                             }
+                            arrivalAskSuppressed = !arrivalAsked
                         }
                     }
                     logVerdict(
@@ -676,8 +719,17 @@ class ParkingSafetyNetWorker(
                         fixSpeedKmh = fix.speed * KMH_PER_MPS,
                         now = now,
                     )
+                    // [DET-A-STILL-PARKED-ASK-MUST-EARN-ITS-INTERRUPTION-001] …y quién se queda la
+                    // LLEGADA, que es la mitad que el trace no contaba: la línea terminaba en «la
+                    // plaza se libera» tanto si la detección iba a seguir el viaje como si el net
+                    // acababa de mandarte una notificación.
                     debugLines += "geof=$geofTag: LEJOS del coche (d=${distanceM}m) y CON pruebas de viaje → proceso tu salida, la plaza se libera" +
-                        if (action.preconfirmed) " (avalada por ${stepsSinceAnchor ?: "?"} pasos desde el coche)" else ""
+                        (if (action.preconfirmed) " (avalada por ${stepsSinceAnchor ?: "?"} pasos desde el coche)" else "") +
+                        when {
+                            arrivalAsked -> "; y como nadie puede seguir el viaje, te pregunto dónde está ahora el coche"
+                            arrivalAskSuppressed -> "; nadie puede seguir el viaje, pero ya te pregunté hace poco y no repito"
+                            else -> ""
+                        }
                 }
 
                 is SafetyNetAction.PromptStillParked -> {
@@ -721,21 +773,21 @@ class ParkingSafetyNetWorker(
                 continue
             }
             anyPromptActive = true
-            // Throttle persisted to disk (NOT in-memory): the OEM kills the process, so an
-            // in-memory throttle is empty on every app-start and re-nags the same prompt each
-            // time (field incident 2026-07-05). [ANCHOR-PERSIST-001]
-            val lastPromptAt = prefs.getLong(PROMPT_KEY_PREFIX + action.geofenceId, 0L)
-            val throttled = now - lastPromptAt < PROMPT_THROTTLE_MS
-            if (!throttled) {
-                PaparcarLogger.d(DIAG, "▶ moving far without anchor — still-parked prompt geofence=${action.geofenceId}")
-                prefs.edit { putLong(PROMPT_KEY_PREFIX + action.geofenceId, now) }
+            val raised = raiseSafetyNetAsk(
+                prefs = prefs,
+                geofenceId = action.geofenceId,
+                kind = SafetyNetAskKind.StillParked,
+                now = now,
+                source = source,
+                fixSpeedKmh = fix.speed * KMH_PER_MPS,
+            ) {
                 notificationPort.showStillParkedPrompt(
                     geofenceId = action.geofenceId,
                     latitude = held.sessionLatitude,
                     longitude = held.sessionLongitude,
                 )
-                logVerdict(action.geofenceId, verdict = "safety_net_prompt", source = source, fixSpeedKmh = fix.speed * KMH_PER_MPS, now = now)
             }
+            val throttled = !raised
             // [DET-DETECTION-PATH-IS-A-TYPE-001] La causa la DECIDE el evaluador, no la
             // adivina esta línea. Antes decía «SIN pruebas de viaje» para las cuatro
             // situaciones que llegan aquí — y para una de ellas es lo contrario: sí se midió
@@ -930,6 +982,55 @@ class ParkingSafetyNetWorker(
         }
     }
 
+    /**
+     * [DET-A-STILL-PARKED-ASK-MUST-EARN-ITS-INTERRUPTION-001] **The only door through which this
+     * worker may interrupt the user.**
+     *
+     * Both questions the parked-session net can raise — "are you still parked?" (the departure is in
+     * doubt) and "mark where you parked" (the arrival is) — pass through here, and they share ONE
+     * per-fence budget: what runs out is how often we interrupt about this car, not how often we ask
+     * one of the two.
+     *
+     * It exists because the budget used to be an `if` inside one arm of the caller's `when`. The
+     * other arm — the arrival ask — neither read the stamp nor wrote it, so on a device where the
+     * background FGS start is denied (Android 12+/OEM: the normal case) the same unanswered question
+     * could come back on every exact-alarm tick, ~5 min apart, and skipping the stamp meant it did
+     * not even spend the window it ignored.
+     *
+     * The stamp is on DISK, not in memory: the OEM kills this process, and an in-memory throttle is
+     * empty on every restart — which is how the same prompt re-nagged on each app-start, field
+     * incident 2026-07-05. [ANCHOR-PERSIST-001]
+     *
+     * @return whether the ask was actually raised (false = the budget is still spent).
+     */
+    private suspend fun raiseSafetyNetAsk(
+        prefs: android.content.SharedPreferences,
+        geofenceId: String,
+        kind: SafetyNetAskKind,
+        now: Long,
+        source: String,
+        fixSpeedKmh: Float,
+        show: () -> Unit,
+    ): Boolean {
+        val lastAskAt = prefs.getLong(ASK_KEY_PREFIX + geofenceId, 0L)
+        if (!safetyNetAskIsDue(lastAskAt, now, config.safetyNetAskThrottleMs)) {
+            PaparcarLogger.d(
+                DIAG,
+                "⊘ ask suppressed geofence=$geofenceId kind=$kind — asked ${(now - lastAskAt) / 60_000}min ago, " +
+                    "budget refills every ${config.safetyNetAskThrottleMs / 3_600_000}h",
+            )
+            return false
+        }
+        PaparcarLogger.d(DIAG, "▶ asking the user geofence=$geofenceId kind=$kind")
+        // Stamped BEFORE the notification: a crash between the two must cost one unasked question,
+        // never an unthrottled door. Same order, and the same reason, as the departure adjudication.
+        prefs.edit { putLong(ASK_KEY_PREFIX + geofenceId, now) }
+        runCatching { show() }
+            .onFailure { e -> PaparcarLogger.w(DIAG, "  ✗ ask notification failed (${e.message})") }
+        logVerdict(geofenceId, verdict = kind.verdictLabel, source = source, fixSpeedKmh = fixSpeedKmh, now = now)
+        return true
+    }
+
     private suspend fun logVerdict(geofenceId: String, verdict: String, source: String, fixSpeedKmh: Float, now: Long) {
         runCatching {
             detectionEventLogger.log(
@@ -1033,7 +1134,7 @@ class ParkingSafetyNetWorker(
                 key.startsWith(ANCHOR_SEAL_AT_KEY_PREFIX) -> key.removePrefix(ANCHOR_SEAL_AT_KEY_PREFIX) !in liveGeofenceIds
                 key.startsWith(ANCHOR_STEPS_KEY_PREFIX) -> key.removePrefix(ANCHOR_STEPS_KEY_PREFIX) !in liveGeofenceIds
                 key.startsWith(ANCHOR_KEY_PREFIX) -> key.removePrefix(ANCHOR_KEY_PREFIX) !in liveGeofenceIds
-                key.startsWith(PROMPT_KEY_PREFIX) -> key.removePrefix(PROMPT_KEY_PREFIX) !in liveGeofenceIds
+                key.startsWith(ASK_KEY_PREFIX) -> key.removePrefix(ASK_KEY_PREFIX) !in liveGeofenceIds
                 // [DET-TWO-DISPATCHES-OF-ONE-DEPARTURE-READ-DIFFERENT-STATE-001] …and this is also
                 // how the adjudication CLOSES: the departure it adjudicated ends the session, so the
                 // next tick finds no live fence for it and drops the seal. That is why the watchdog
@@ -1080,7 +1181,18 @@ class ParkingSafetyNetWorker(
         private const val KEY_TRIGGERING_FENCE_IDS = "triggering_fence_ids"
         const val SOURCE_PERIODIC = "periodic"
         const val SOURCE_SIG_MOTION = "sig-motion"
+        /** The UI came to the FOREGROUND — a human is looking at the screen right now. Enqueued from
+         *  `MainActivity.onStart`, and the only source that unlocks the ask-when-blind branch.
+         *  [DET-A-STILL-PARKED-ASK-MUST-EARN-ITS-INTERRUPTION-001] */
         const val SOURCE_APP_START = "app-start"
+        /** The PROCESS started — which on Android says nothing about anybody looking: a geofence,
+         *  BT or AR receiver, a worker, a push or the widget all run `PaparcarApp.onCreate` on a
+         *  dead process. It used to be enqueued as [SOURCE_APP_START], which is how the
+         *  ask-when-blind branch — the loosest of the four, needing only "far + no proof" — came to
+         *  fire in the background on precisely the OEMs that kill the process every few minutes.
+         *  Its real job stays: seed the position anchor without waiting up to 15 min.
+         *  [DET-A-STILL-PARKED-ASK-MUST-EARN-ITS-INTERRUPTION-001] */
+        const val SOURCE_PROCESS_START = "process-start"
         const val SOURCE_DETECTION_END = "detection-end"
         /** IN_VEHICLE ENTER accelerator — AR rides a PendingIntent and wakes a dead process,
          *  landing the check MID-DRIVE while the ColorOS geofence EXIT is still minutes away.
@@ -1110,11 +1222,17 @@ class ParkingSafetyNetWorker(
          *  events were never delivered to a dead process. [DET-EXACT-HEARTBEAT-001] */
         const val SOURCE_EXACT_ALARM = "exact-alarm"
 
-        /** Min interval between "still parked?" prompts per geofence. Persisted to disk (see the
-         *  prompt branch) so an OEM process kill can't reset it and re-nag on every app-start. */
-        private const val PROMPT_THROTTLE_MS = 6 * 60 * 60 * 1_000L
-        /** Per-geofence prompt-throttle timestamp keys, in the same prefs file as the anchor. */
-        private const val PROMPT_KEY_PREFIX = "prompt_"
+        /** Per-geofence ask-throttle timestamp keys, in the same prefs file as the anchor. The
+         *  interval itself lives in [ParkingDetectionConfig.safetyNetAskThrottleMs] — it is shared
+         *  with iOS and with the two questions, so it is no longer a private constant here.
+         *  ⛔ The KEY keeps its old `prompt_` spelling on purpose: renaming it would hand every
+         *  already-throttled fence in the field a fresh budget on update.
+         *  [DET-A-STILL-PARKED-ASK-MUST-EARN-ITS-INTERRUPTION-001] */
+        private const val ASK_KEY_PREFIX = "prompt_"
+
+        /** Why the arrival nudge asked — travels into `DetectionPath.Nudge(source)`, so a pin the
+         *  user drops from it says which lane could not place the car. [DET-A-NUDGE-MUST-SAY-WHO-ASKED-001] */
+        private const val NUDGE_SOURCE_SAFETY_NET_ARRIVAL = "safety_net_arrival_unowned"
 
         /** [DET-TWO-DISPATCHES-OF-ONE-DEPARTURE-READ-DIFFERENT-STATE-001] Per-geofence seal of the
          *  departure adjudication currently open, same prefs file as everything else per-fence. */

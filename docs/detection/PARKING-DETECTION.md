@@ -600,6 +600,79 @@ el caso del tren, y las dos negativas: una salida real se queda, y `DOUBTFUL` **
 ya tiene su remedio, que es PREGUNTAR; devolver ante una sospecha resucitaría sesiones por cada
 tramo raro de autovía). ⚠️ **Falsificado**: con la condición anterior, el testigo falla.
 
+### DET-A-STILL-PARKED-ASK-MUST-EARN-ITS-INTERRUPTION-001 — la pregunta de la salida contestaba por la llegada, y sin reloj
+
+**Commit:** pending. **Reporte (2026-09-21):** *«la notificación de ¿Sigues aparcado ahí? parece que
+sale más veces de las necesarias, incluso cuando estamos junto al coche»*.
+
+Lo primero que hay que descartar es el umbral, y se descarta: **el aviso no puede levantarse con el
+móvil medido junto al pin**. Todo pasa por la escalera de `EvaluateSafetyNetCheckUseCase`: dentro del
+radio → `CureGeofence`, y «lejos» exige `d − accuracy > watchdogFarThresholdMeters` (300 m). Lo que
+había eran cinco defectos distintos, cuatro de ellos en la PUERTA y no en la decisión.
+
+**Causa raíz 1 — dos puertas, una con guardia.** Las cuatro causas que nomina el evaluador
+(`StillParkedReason`) pasaban por el bucle de prompts retenidos de `ParkingSafetyNetWorker`, que lee
+y estampa `prompt_<geofenceId>`. La rama `ArrivalOwner.UserPrompt` —dentro del brazo
+`DispatchDeparture`— llamaba a `showStillParkedPrompt` sin leer ni estampar nada. Y es la que salta
+**cuando acabas de aparcar**: el net despacha la salida, intenta arrancar el FGS del handoff, el SO
+lo deniega en background (Android 12+/OEM: el caso normal) y pregunta. Con la ventana de adjudicación
+en 5 min y el carril de alarma exacta despertando cada ~5 min, la misma pregunta podía volver cada
+cinco minutos — y al no estampar, tampoco gastaba la ventana que se saltaba. *Un invariante que vive
+en una rama de un `when` no es un invariante.*
+
+**Causa raíz 2 — la pregunta equivocada en el peor momento.** En esa misma rama la duda es sobre la
+**llegada** (la salida ya está despachada; lo que no sabemos es dónde está el coche AHORA), y se
+hacía con la notificación de la **salida**: *«¿Sigues aparcado aquí? Parece que estás lejos»*, con el
+usuario de pie al lado del coche que acaba de aparcar. Ahí está el *«incluso cuando estamos junto al
+coche»* del reporte, literal.
+
+**Causa raíz 3 — `userPresent` no medía lo que decía.** El `enqueueCheckNow(SOURCE_APP_START)` vivía
+en `PaparcarApp.onCreate`, que corre en CADA nacimiento de proceso: un receiver de geocerca/BT/AR, un
+worker, un push, el widget. La rama `USER_PRESENT_AND_BLIND` es la más laxa de las cuatro (lejos +
+ninguna prueba) y su licencia escrita es *«no molesta porque ya están mirando la pantalla»*. En los
+OEM que matan el proceso cada dos por tres, esa rama corría en segundo plano.
+
+**Causa raíz 4 — la defensa «he venido andando» no sobrevivía a un reinicio.** `stepsExplainWalk`
+exige `trustedStepsSinceAnchor != null`; un reinicio pone `TYPE_STEP_COUNTER` a cero, la resta contra
+el zero-point pre-reinicio deja de tener sentido y el presupuesto queda `null` **para siempre**,
+porque solo se re-sella estando DENTRO de la valla. Coche a 400 m de casa + un reinicio = pregunta
+cada 6 h con todo correcto.
+
+**Causa raíz 5 — el aviso solo se retiraba al final de un tick completo.** Tres `return` tempranos se
+saltaban `dismissPrompt()`, y uno de ellos es *la detección está corriendo*: te subes al coche,
+arranca la detección, y la pregunta de hace horas te acompaña todo el viaje. Además «Marcar
+aparcamiento» es un botón de ACCIÓN, que `setAutoCancel` no cubre: contestabas y seguía ahí.
+
+**Fix.** *Una puerta por pregunta, y cada pregunta la hace quien tiene la respuesta que falta.*
+- `raiseSafetyNetAsk(...)` es el único sitio del worker que puede interrumpir: lee y estampa el
+  presupuesto, muestra, y registra el veredicto. El presupuesto es **uno por valla y compartido entre
+  las dos preguntas** — lo que se agota es cuántas veces interrumpimos por ESTE coche.
+- La duda de llegada pasa a `showMarkParkingNudge(source = "safety_net_arrival_unowned")`: la
+  pregunta que ya existía, con su copy, su id, su `PendingParkNudge` persistido y provenance
+  `nudge_safety_net_arrival_unowned` en el pin que salga de ella.
+- `safetyNetAskIsDue` + `ParkingDetectionConfig.safetyNetAskThrottleMs` sustituyen a las DOS copias
+  privadas del número (worker Android e `IosDetectionController`).
+- `SOURCE_PROCESS_START` (desde `PaparcarApp`) se separa de `SOURCE_APP_START` (desde
+  `MainActivity.onStart`), y solo la segunda enciende `userPresent`. En iOS la fuente ya era honesta.
+- Un contador reseteado entrega `stepsSinceAnchorAtLeast`: una **cota inferior**, admisible solo para
+  EXPLICAR una caminata, nunca para probar un viaje (eso necesita un techo, y un suelo no lo da).
+- El aviso se retira también con la detección corriendo y al abrir el flujo de marcar aparcamiento.
+  Con permiso denegado o sin fix fresco **no** se retira: ahí no sabemos nada.
+
+**Riesgo del fix acompañante:** el `anyPromptActive = true` de la rama de llegada desaparece con
+ella, y eso es correcto por su propio argumento — esa rama concluye que SÍ te has ido, así que un
+«¿sigues aparcado?» pendiente de un tick anterior queda contestado por este mismo tick y debe caer.
+Lo que NO se tocó: descartar la física peatonal como explicación en la rama ciega. Con un ancla de
+horas, un peatón «puede» cubrir cualquier distancia, y eso habría silenciado justo el incidente de
+campo (2026-07-11, Redmi) que justifica la rama.
+
+**Guard hoy:** `SafetyNetAskTest` (presupuesto, incluido el sello en el futuro y el `0L` por defecto
+de SharedPreferences, y que las dos preguntas no comparten etiqueta de veredicto),
+`EvaluateSafetyNetCheckUseCaseTest` (la cota inferior explica la caminata, no explica de más, y
+**nunca** alcanza una rama de liberación) y `DetectionPathTest` (el source nuevo resuelve a
+`DetectionPath.Nudge`). ⛔ Lo que ningún test ve todavía: cuántas veces salía de verdad — al auditar
+no había móvil de campo conectado, así que la frecuencia queda pendiente del `parkdiag.log`.
+
 ### PARK-A-CORRECTION-MOVES-THE-PLACE-NOT-THE-CLOCK-001 — corregir el pin reiniciaba el nacimiento de la sesión
 
 **Commit:** pending. **Campo (2026-09-16, Nothing A001, sesión `b9b9dacc`):** un pin colocado a las

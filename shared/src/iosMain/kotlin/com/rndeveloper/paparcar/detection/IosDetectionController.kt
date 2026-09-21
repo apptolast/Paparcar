@@ -13,6 +13,7 @@ import com.rndeveloper.paparcar.domain.detection.coordinatorMayArm
 import com.rndeveloper.paparcar.domain.detection.measuredDepartureAtMs
 import com.rndeveloper.paparcar.domain.detection.ParkingStrategyResolver
 import com.rndeveloper.paparcar.domain.detection.reconcileFences
+import com.rndeveloper.paparcar.domain.detection.safetyNetAskIsDue
 import com.rndeveloper.paparcar.domain.detection.sentry.isArmSuppressedByUserStop
 import com.rndeveloper.paparcar.domain.detection.sentry.shouldSupersedeRunningSession
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
@@ -730,8 +731,13 @@ class IosDetectionController(
     }
 
     private fun executePrompt(action: SafetyNetAction.PromptStillParked, fix: com.rndeveloper.paparcar.domain.model.GpsPoint, nowMs: Long) {
+        // [DET-A-STILL-PARKED-ASK-MUST-EARN-ITS-INTERRUPTION-001] Same budget, same function, one
+        // definition: the window moved to the config and the comparison to `safetyNetAskIsDue`, so
+        // the two platforms can no longer drift apart on what "asked recently" means. iOS never had
+        // Android's unthrottled second door — `executeDispatch` always hands the arrival to live
+        // detection here — so this side only loses its private copy of the number.
         val lastPromptAt = safetyNetRecords.lastPromptAtMs(action.geofenceId)
-        if (lastPromptAt != null && nowMs - lastPromptAt in 0 until PROMPT_THROTTLE_MS) return
+        if (!safetyNetAskIsDue(lastPromptAt, nowMs, config.safetyNetAskThrottleMs)) return
         safetyNetRecords.stampPrompt(action.geofenceId, nowMs)
         notificationPort.showStillParkedPrompt(action.geofenceId, fix.latitude, fix.longitude)
     }
@@ -930,8 +936,8 @@ class IosDetectionController(
          *  chain's retries and staying far below a human's re-park cadence. [DET-TWO-DISPATCHES] */
         const val ADJUDICATION_WINDOW_MS = 5 * 60 * 1_000L
 
-        /** Same throttle as the Android worker: an unanswered question repeated every tick is
-         *  nagging, not asking. */
-        const val PROMPT_THROTTLE_MS = 6 * 60 * 60 * 1_000L
+        // ⛔ The ask throttle is NOT a constant here any more: it lives in
+        // `ParkingDetectionConfig.safetyNetAskThrottleMs`, shared with Android and with both
+        // questions the net can raise. [DET-A-STILL-PARKED-ASK-MUST-EARN-ITS-INTERRUPTION-001]
     }
 }

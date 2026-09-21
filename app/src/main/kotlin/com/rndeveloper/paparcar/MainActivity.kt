@@ -27,7 +27,9 @@ import com.rndeveloper.paparcar.domain.permissions.PermissionManager
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.presentation.app.SplashViewModel
 import androidx.work.WorkManager
+import com.rndeveloper.paparcar.detection.worker.ParkingSafetyNetWorker
 import com.rndeveloper.paparcar.detection.worker.RegisterActivityTransitionsWorker
+import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -49,6 +51,7 @@ class MainActivity : ComponentActivity() {
     private val mapFocusEventBus: MapFocusEventBus by inject()
     private val startAddParkingEventBus: StartAddParkingEventBus by inject()
     private val showParkingAskEventBus: com.rndeveloper.paparcar.domain.event.ShowParkingAskEventBus by inject()
+    private val notificationPort: AppNotificationManager by inject()
 
     // [DET-WATCH-REACTIVATE-001] Departure-watch gap: the watcher should be live but the service is
     // dead. Closing it needs a foreground moment, which is exactly what this Activity being visible is.
@@ -154,6 +157,16 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
+        // [DET-A-STILL-PARKED-ASK-MUST-EARN-ITS-INTERRUPTION-001] THE app-start tick — the one the
+        // safety net's ask-when-blind branch rests on ("they are already looking at the screen, so
+        // the question costs nothing"). It used to be enqueued from `PaparcarApp.onCreate`, which
+        // fires for every process birth including the ones nobody sees; here there is, by
+        // construction, a visible Activity. Cheap and idempotent: the check-now is unique work with
+        // REPLACE, so a launch that also started the process collapses the two into one tick.
+        ParkingSafetyNetWorker.enqueueCheckNow(
+            WorkManager.getInstance(this),
+            source = ParkingSafetyNetWorker.SOURCE_APP_START,
+        )
         ContextCompat.registerReceiver(
             this,
             gpsToggleReceiver,
@@ -196,6 +209,14 @@ class MainActivity : ComponentActivity() {
             startAddParkingEventBus.request(
                 fromDetectionNudge = intent.getBooleanExtra(EXTRA_ADD_PARKING_FROM_DETECTION, false),
             )
+            // [DET-A-STILL-PARKED-ASK-MUST-EARN-ITS-INTERRUPTION-001] The question has been ANSWERED
+            // — the user is about to drop the pin — so it leaves the shade now. `setAutoCancel` does
+            // not cover this: it only fires for the notification's content tap, and both asks are
+            // usually answered through their ACTION button, which leaves them sitting there looking
+            // unanswered until some later tick happens to clean up. Cancelling an id that is not
+            // showing is a no-op, so no guard is needed for the cold-start nudge path.
+            notificationPort.dismiss(AppNotificationManager.STILL_PARKED_NOTIFICATION_ID)
+            notificationPort.dismiss(AppNotificationManager.MARK_PARKING_NUDGE_NOTIFICATION_ID)
         }
 
         // [WIDGET-ACTIONS-002] The widget's "more": SHOW that parking (camera + card). Same
