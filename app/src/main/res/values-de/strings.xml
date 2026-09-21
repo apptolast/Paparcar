@@ -14,7 +14,7 @@
     <string name="notif_confirmation_text">Sieht aus, als hättest du geparkt. Bestätigen wir den Parkplatz?</string>
     <string name="notif_action_yes_parked">Ja, ich habe geparkt</string>
     <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->
-    <string name="notif_action_stop_detection">Erkennung stoppen</string>
+    <string name="notif_action_stop_detection">Nicht in meinem Auto</string>
     <string name="notif_action_no_not_parked">Nein, ich habe nicht geparkt</string>
 
     <!-- Benachrichtigung: Parken gespeichert -->
@@ -107,6 +107,7 @@
     <string name="widget_action_navigate">Route</string>
     <string name="widget_action_more">Weitere Optionen</string>
     <string name="widget_action_mark_parking">Parkplatz merken</string>
+    <string name="widget_action_not_my_car">Nicht in meinem Auto</string>
     <string name="notif_month_recap_title">Letzter Monat</string>
     <string name="notif_month_recap_text_both">%1$s und %2$s Min. Platzsuche</string>
     <string name="notif_month_recap_text_spend">%1$s für Kraftstoff</string>

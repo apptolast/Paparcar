@@ -14,7 +14,7 @@
     <string name="notif_confirmation_text">Parece que has aparcado el coche. ¿Confirmamos el aparcamiento?</string>
     <string name="notif_action_yes_parked">Sí, he aparcado</string>
     <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->
-    <string name="notif_action_stop_detection">Parar detección</string>
+    <string name="notif_action_stop_detection">No voy en mi coche</string>
     <string name="notif_action_no_not_parked">No, no he aparcado</string>
 
     <!-- Notificación: aparcamiento guardado -->
@@ -109,6 +109,7 @@
     <string name="widget_action_navigate">Cómo llegar</string>
     <string name="widget_action_more">Más opciones</string>
     <string name="widget_action_mark_parking">Marcar aparcamiento</string>
+    <string name="widget_action_not_my_car">No voy en mi coche</string>
     <string name="notif_month_recap_title">El mes pasado</string>
     <string name="notif_month_recap_text_both">%1$s y %2$s min buscando plaza</string>
     <string name="notif_month_recap_text_spend">%1$s en combustible</string>

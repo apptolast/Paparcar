@@ -14,7 +14,7 @@
     <string name="notif_confirmation_text">Het lijkt erop dat je hebt geparkeerd. Zullen we de parkeerplaats bevestigen?</string>
     <string name="notif_action_yes_parked">Ja, ik heb geparkeerd</string>
     <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->
-    <string name="notif_action_stop_detection">Detectie stoppen</string>
+    <string name="notif_action_stop_detection">Niet in mijn auto</string>
     <string name="notif_action_no_not_parked">Nee, ik heb niet geparkeerd</string>
 
     <!-- Melding: parkeren opgeslagen -->
@@ -107,6 +107,7 @@
     <string name="widget_action_navigate">Route</string>
     <string name="widget_action_more">Meer opties</string>
     <string name="widget_action_mark_parking">Parkeerplaats markeren</string>
+    <string name="widget_action_not_my_car">Niet in mijn auto</string>
     <string name="notif_month_recap_title">Vorige maand</string>
     <string name="notif_month_recap_text_both">%1$s en %2$s min plek zoeken</string>
     <string name="notif_month_recap_text_spend">%1$s aan brandstof</string>

@@ -596,7 +596,7 @@
     <string name="home_det_watch_interrupted_sub">Telefon je wstrzymał. Nadal sprawdzamy w tle, ale twój wyjazd może zostać wykryty z opóźnieniem.</string>
     <string name="home_det_watch_interrupted_cta">Włącz ponownie</string>
     <!-- [DET-STOP-BUTTON-001] -->
-    <string name="home_det_driving_stop_cta">Zatrzymaj</string>
+    <string name="home_det_driving_stop_cta">Nie jadę swoim autem</string>
     <string name="home_det_trip_stopped_msg">Wykrywanie zatrzymane. Ta podróż nie zostanie zapisana jako parkowanie — dotknij „Jadę”, gdy chcesz je wznowić.</string>
     <string name="home_det_awaiting_cta_primary">Zaznacz parkowanie</string>
     <string name="home_det_awaiting_cta_secondary">Jadę</string>

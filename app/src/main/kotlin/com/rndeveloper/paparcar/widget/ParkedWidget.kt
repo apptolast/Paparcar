@@ -18,6 +18,7 @@ import androidx.glance.LocalContext
 import androidx.glance.LocalSize
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
+import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.components.CircleIconButton
 import androidx.glance.appwidget.SizeMode
@@ -199,14 +200,30 @@ class ParkedWidget : GlanceAppWidget() {
                     showBrand = alsoShown.isEmpty(),
                 )
             }
-            // El verbo del viaje: «ya he aparcado». Mismo botón callado que los de [Parked] —
-            // icono sin relleno, a la derecha— y mismo destino que la notificación de «¿sigues
-            // aparcado?». [WIDGET-A-TRIP-CAN-BE-ANSWERED-FROM-THE-LAUNCHER-001]
+            // Los DOS verbos de un viaje, y son los dos que el conductor puede saber antes que la
+            // app: **ya he aparcado** (se adelanta a la detección) y **no voy en mi coche** (la
+            // desmiente). [WIDGET-A-TRIP-CAN-BE-ANSWERED-FROM-THE-LAUNCHER-001]
+            //
+            // El orden no es casual: primero el que CONSTRUYE —confirmar un aparcamiento es lo que
+            // el usuario hace nueve de cada diez veces— y después el que DESHACE. Los dos callados,
+            // con el mismo lenguaje que los de [Parked]: icono sin relleno, a la derecha.
             Spacer(GlanceModifier.width(ACTION_GAP_DP.dp))
             CircleIconButton(
                 imageProvider = ImageProvider(R.drawable.ic_widget_mark_parking),
                 contentDescription = context.getString(R.string.widget_action_mark_parking),
                 onClick = actionStartActivity(addParkingIntent(context)),
+                backgroundColor = null,
+                contentColor = GlanceTheme.colors.onSurfaceVariant,
+                modifier = GlanceModifier.size(ACTION_BUTTON_DP.dp),
+            )
+            // ⛔ Éste NO abre la app: es un COMANDO. Ver [StopTripFromWidgetAction] para por qué, y
+            // para por qué despacha el mismo `ACTION_USER_STOP` que la tarjeta y la notificación en
+            // vez de inventarse un camino propio.
+            Spacer(GlanceModifier.width(ACTION_GAP_DP.dp))
+            CircleIconButton(
+                imageProvider = ImageProvider(R.drawable.ic_widget_not_my_car),
+                contentDescription = context.getString(R.string.widget_action_not_my_car),
+                onClick = actionRunCallback<StopTripFromWidgetAction>(),
                 backgroundColor = null,
                 contentColor = GlanceTheme.colors.onSurfaceVariant,
                 modifier = GlanceModifier.size(ACTION_BUTTON_DP.dp),
