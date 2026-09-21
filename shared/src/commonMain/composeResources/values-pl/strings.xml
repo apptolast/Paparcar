@@ -169,6 +169,7 @@
     <string name="parking_detail_prev">Poprzednie parkowanie</string>
     <string name="parking_detail_route_recalculating">Przeliczanie trasy…</string>
     <string name="parking_detail_route_off_device">Trasa tego przejazdu była zapisana tylko w telefonie, który ją nagrał, i już jej tam nie ma.</string>
+    <string name="parking_detail_route_refused">Powiedziałeś, że nie jechałeś tędy, więc nie rysujemy trasy.</string>
     <string name="parking_detail_route_inferred_question">Część tej trasy została odtworzona, ponieważ po drodze utracono sygnał GPS. Czy jechałeś tędy?</string>
     <string name="parking_detail_route_inferred_yes">Tak</string>
     <string name="parking_detail_route_inferred_no">Nie</string>

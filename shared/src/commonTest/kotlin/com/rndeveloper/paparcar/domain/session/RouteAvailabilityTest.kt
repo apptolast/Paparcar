@@ -1,9 +1,12 @@
 package com.rndeveloper.paparcar.domain.session
 
 import com.rndeveloper.paparcar.domain.model.GpsPoint
+import com.rndeveloper.paparcar.domain.model.RouteInferenceResolution
 import com.rndeveloper.paparcar.domain.model.UserParking
+import com.rndeveloper.paparcar.domain.util.PolylineCodec
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 /**
  * [TRIP-A-ROUTE-THAT-ONLY-LIVES-HERE-SAYS-SO-001]
@@ -18,6 +21,8 @@ class RouteAvailabilityTest {
         polyline: String? = null,
         snapped: Boolean = false,
         distance: Float? = null,
+        spans: String? = null,
+        resolution: RouteInferenceResolution? = null,
     ) = UserParking(
         id = "s1",
         userId = "u1",
@@ -25,13 +30,28 @@ class RouteAvailabilityTest {
         routePolyline = polyline,
         routeSnapped = snapped,
         routeDistanceMeters = distance,
+        routeInferredSpans = spans,
+        routeInferredResolution = resolution,
+    )
+
+    /** Una polilínea real de 4 puntos, para poder hablar de TRAMOS y no sólo de «hay línea». */
+    private val fourPoints = PolylineCodec.encode(
+        listOf(
+            GpsPoint(40.0000, -3.0000, 8f, 1L, 0f),
+            GpsPoint(40.0010, -3.0000, 8f, 2L, 0f),
+            GpsPoint(40.0020, -3.0000, 8f, 3L, 0f),
+            GpsPoint(40.0030, -3.0000, 8f, 4L, 0f),
+        ),
     )
 
     @Test
     fun should_drawTheRoute_when_theLineIsFinal() {
+        // ⚠️ Puntos de verdad, no una cadena cualquiera: desde que el veredicto aplica los tramos
+        // ([TRIP-A-REFUSED-ROUTE-IS-NOT-A-BLANK-MAP-001]) exige una línea UTILIZABLE, y eso es más
+        // correcto que antes — una polilínea que no decodifica nunca se dibujó.
         assertEquals(
             RouteAvailability.Drawn,
-            session(polyline = "abc", snapped = true, distance = 1200f).routeAvailability(),
+            session(polyline = fourPoints, snapped = true, distance = 1200f).routeAvailability(),
         )
     }
 
@@ -85,5 +105,62 @@ class RouteAvailabilityTest {
             RouteAvailability.LostOffDevice,
             session(polyline = "", snapped = true, distance = 500f).routeAvailability(),
         )
+    }
+
+    // ── El usuario dijo que no fue por ahí [TRIP-A-REFUSED-ROUTE-IS-NOT-A-BLANK-MAP-001] ──
+
+    @Test
+    fun should_sayTheUserRefusedIt_when_theWholeRouteWasReconstructed_andRejected() {
+        // El caso del pin reconstruido de punta a punta: todo el recorrido es un tramo inferido, y
+        // rechazarlo no deja nada que dibujar. Sin esta rama el veredicto decía `Drawn` y la
+        // pantalla no pintaba nada — un lienzo en blanco justo después de contestar.
+        val state = session(
+            polyline = fourPoints,
+            snapped = true,
+            distance = 900f,
+            spans = "0:3",
+            resolution = RouteInferenceResolution.REJECTED,
+        )
+
+        assertEquals(emptyList(), state.drawableRouteSegments())
+        assertEquals(RouteAvailability.RejectedByUser, state.routeAvailability())
+    }
+
+    @Test
+    fun should_stillDraw_when_someStretchesAreMeasured_andOnlyTheInferredOnesWereRejected() {
+        // ⛔ EL testigo que impide el arreglo perezoso (`resolution == REJECTED` a secas): aquí hay
+        // tramos MEDIDOS, se dibujan, y el mapa no está en blanco. No hay nada que explicar, así
+        // que no se explica nada.
+        val state = session(
+            polyline = fourPoints,
+            snapped = true,
+            distance = 900f,
+            spans = "0:1",
+            resolution = RouteInferenceResolution.REJECTED,
+        )
+
+        assertTrue(state.drawableRouteSegments().isNotEmpty(), "los tramos medidos siguen ahí")
+        assertEquals(RouteAvailability.Drawn, state.routeAvailability())
+    }
+
+    @Test
+    fun should_keepDrawing_when_theInferredStretchesWereConfirmed() {
+        val state = session(
+            polyline = fourPoints,
+            snapped = true,
+            distance = 900f,
+            spans = "0:3",
+            resolution = RouteInferenceResolution.CONFIRMED,
+        )
+
+        assertEquals(RouteAvailability.Drawn, state.routeAvailability())
+    }
+
+    @Test
+    fun should_notAccuseTheUser_when_thereIsNoResolutionYet() {
+        // Pendiente de contestar: la pantalla pregunta, no sentencia.
+        val state = session(polyline = fourPoints, snapped = true, distance = 900f, spans = "0:3")
+
+        assertEquals(RouteAvailability.Drawn, state.routeAvailability())
     }
 }

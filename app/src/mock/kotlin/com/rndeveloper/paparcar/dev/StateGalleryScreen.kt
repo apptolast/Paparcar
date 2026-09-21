@@ -90,6 +90,7 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.first_steps_spotlight_caption
 import paparcar.composeapp.generated.resources.parking_detail_route_off_device
 import paparcar.composeapp.generated.resources.parking_detail_route_recalculating
+import paparcar.composeapp.generated.resources.parking_detail_route_refused
 import com.rndeveloper.paparcar.presentation.onboarding.FirstStepExplainerScreen
 import com.rndeveloper.paparcar.presentation.onboarding.FirstStepsCard
 import com.rndeveloper.paparcar.presentation.onboarding.OnboardingScreen
@@ -1237,6 +1238,15 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     RouteNoticePill(
                         text = stringResource(Res.string.parking_detail_route_recalculating),
                         spinning = true,
+                    )
+                }
+            },
+            Variant("Ruta · dijiste que no fuiste por ahí") {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    RouteNoticePill(
+                        text = stringResource(Res.string.parking_detail_route_refused),
+                        spinning = false,
+                        modifier = Modifier.padding(horizontal = 24.dp),
                     )
                 }
             },
