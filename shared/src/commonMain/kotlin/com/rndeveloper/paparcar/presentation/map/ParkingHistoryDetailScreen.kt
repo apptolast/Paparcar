@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -902,14 +903,24 @@ fun RouteNoticePill(
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surface,
-        shape = CircleShape,
+        // ⛔ **Cápsula sólo cuando cabe en una línea.** Una cápsula tiene el radio a la mitad de su
+        // alto: en cuanto el texto pasa a dos líneas, ese radio se dispara y los casquetes se comen
+        // el principio y el final de la frase. Se vio en device (galería de estados) el día que se
+        // metieron dos frases enteras en un componente hecho para «Recalculando ruta…».
+        // [UI-A-PILL-IS-FOR-A-LABEL-NOT-A-SENTENCE-001]
+        shape = if (spinning) CircleShape else PapShapes.chip,
         shadowElevation = ROUTE_PILL_ELEVATION_DP.dp,
         modifier = modifier,
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+            modifier = Modifier
+                // ⚠️ Un techo de ancho, no `fillMaxWidth`: sin él la frase se estira de borde a
+                // borde y deja de leerse como un aviso flotante; con él parte por donde tiene que
+                // partir y el fondo la envuelve entera.
+                .widthIn(max = ROUTE_PILL_MAX_W_DP.dp)
+                .padding(horizontal = 14.dp, vertical = 10.dp),
         ) {
             if (spinning) {
                 CircularProgressIndicator(
@@ -929,3 +940,7 @@ fun RouteNoticePill(
 
 private const val ROUTE_PILL_ELEVATION_DP = 3
 private const val ROUTE_PILL_SPINNER_DP = 14
+
+/** Lo ancho que puede ponerse el aviso. Tres cuartos de una pantalla estrecha: lo justo para que una
+ *  frase parta en dos líneas cómodas y siga leyéndose como algo que FLOTA sobre el mapa. */
+private const val ROUTE_PILL_MAX_W_DP = 280
