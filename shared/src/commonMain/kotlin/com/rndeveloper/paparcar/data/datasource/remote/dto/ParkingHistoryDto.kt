@@ -12,7 +12,6 @@ data class ParkingHistoryDto(
     val accuracy: Float = 0f,
     val timestamp: Long = 0L,
     val isActive: Boolean = false,
-    val spotId: String? = null,
     val geofenceId: String? = null,
     val address: AddressDto? = null,
     val placeInfo: PlaceInfoDto? = null,

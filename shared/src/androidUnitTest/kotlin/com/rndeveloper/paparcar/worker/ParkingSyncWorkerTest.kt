@@ -102,7 +102,6 @@ class SaveNewParkingSessionWorkerTest {
         // as a mismatch rather than coinciding with the default it would have been written as.
         val session = userParking("whole-session").copy(
             vehicleId = "vehicle-99",
-            spotId = "spot-7",
             geofenceId = "geof-7",
             isActive = false,
             detectionReliability = 0.90f,

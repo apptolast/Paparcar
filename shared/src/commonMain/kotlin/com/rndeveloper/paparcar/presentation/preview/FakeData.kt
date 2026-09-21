@@ -122,7 +122,6 @@ object FakeData {
     val activeSession = UserParking(
         id = "s_active",
         location = gps(agoMs = 1_800_000L),
-        spotId = null,
         geofenceId = "geo_001",
         isActive = true,
         address = addrFuel,
@@ -134,7 +133,6 @@ object FakeData {
     val activeSessionSupermarket = UserParking(
         id = "s_active_2",
         location = gps(agoMs = 3_600_000L, lat = 40.420, lon = -3.710, accuracy = 8f),
-        spotId = null,
         geofenceId = "geo_002",
         isActive = true,
         address = addrSupermarket,
@@ -147,7 +145,6 @@ object FakeData {
     private val endedToday1 = UserParking(
         id = "s_t1",
         location = gps(agoMs = 7_200_000L),
-        spotId = "spot_001", geofenceId = "geo_003", isActive = false,
         address = addrSupermarket,
         placeInfo = placeInfoSupermarket,
         detectionReliability = 0.90f,
@@ -160,7 +157,6 @@ object FakeData {
     private val endedToday2 = UserParking(
         id = "s_t2",
         location = gps(agoMs = 18_000_000L, lat = 40.419, lon = -3.706, accuracy = 25f),
-        spotId = "spot_002", geofenceId = "geo_004", isActive = false,
         address = addrStreet,
         placeInfo = null,
         detectionReliability = 0.75f,
@@ -172,7 +168,6 @@ object FakeData {
     private val endedYesterday1 = UserParking(
         id = "s_y1",
         location = gps(agoMs = 86_400_000L + 3_600_000L, lat = 40.415, lon = -3.695),
-        spotId = "spot_003", geofenceId = "geo_005", isActive = false,
         address = addrMall,
         placeInfo = placeInfoMall,
         detectionReliability = 1.0f,
@@ -182,7 +177,6 @@ object FakeData {
     private val endedYesterday2 = UserParking(
         id = "s_y2",
         location = gps(agoMs = 86_400_000L + 14_400_000L, lat = 40.413, lon = -3.700),
-        spotId = "spot_004", geofenceId = "geo_006", isActive = false,
         address = addrCafe,
         placeInfo = placeInfoCafe,
         detectionReliability = 0.90f,
@@ -197,7 +191,6 @@ object FakeData {
     private val endedUngeocoded = UserParking(
         id = "s_ungeo",
         location = gps(agoMs = 86_400_000L + 43_200_000L, lat = 40.411, lon = -3.698),
-        spotId = null, geofenceId = "geo_008", isActive = false,
         address = null,
         placeInfo = null,
         detectionReliability = 0.75f,
@@ -207,7 +200,6 @@ object FakeData {
     private val endedOld = UserParking(
         id = "s_old",
         location = gps(agoMs = 3 * 86_400_000L),
-        spotId = "spot_005", geofenceId = "geo_007", isActive = false,
         address = addrHighAccuracy,
         placeInfo = null,
         detectionReliability = 0.75f,
@@ -221,7 +213,6 @@ object FakeData {
     private val endedApproximateZone = UserParking(
         id = "s_zone",
         location = gps(agoMs = 2 * 86_400_000L + 10_800_000L, lat = 40.409, lon = -3.692),
-        spotId = null, geofenceId = "geo_009", isActive = false,
         address = addrStreet,
         placeInfo = null,
         detectionReliability = 0.5f,

@@ -23,7 +23,6 @@ data class UserParking(
     val userId: String = "",
     val vehicleId: String? = null,
     val location: GpsPoint,
-    val spotId: String? = null,
     val geofenceId: String? = null,
     val isActive: Boolean = true,
     val address: AddressInfo? = null,
