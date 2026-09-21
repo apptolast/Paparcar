@@ -555,6 +555,51 @@ comprobación sería una prohibición sin testigo.
 cuando hay algo que derribar. Si el OS mata el centinela antes, no queda notificación que quitar y el
 hueco lo cubre el detector de kills de siempre.
 
+### DET-A-REFUSED-TRIP-GIVES-THE-CAR-BACK-001 — «no voy en mi coche» limpiaba la detección y dejaba el coche entregado
+
+**Commit:** pending. **Pregunta del user (2026-09-21):** *«pero si revertimos la detección debería
+quedarse como antes, teniendo nuestra última sesión de aparcamiento, ¿es así?»*.
+
+**Respuesta medida: en dos de los tres casos sí, y en el tercero no.**
+
+| Hasta dónde llegó el viaje | Qué se entregó | ¿Lo devolvía el botón? |
+|---|---|---|
+| Armado, nada publicado | nada — `onUserStoppedDetection` sólo limpia el estado de detección, nunca toca `UserParking` | ✅ nada que devolver |
+| Salida **deducida** | plaza provisional; **sesión y geocerca siguen en su sitio** | ✅ sí: `retractDeducedDeparture` ya corría en el mismo epílogo |
+| Salida **presenciada** | plaza publicada **+ sesión CERRADA** | ❌ **no** |
+
+**Causa raíz.** El deshacer de la salida presenciada —`RestoreRefutedDeparture`, *«gives the car
+back»*— existe desde [DET-A-TRAIN-IS-NOT-A-CAR-001], pero su disparador era una sola condición:
+`roadPlausibility == IMPOSSIBLE`. O sea que el coche se devolvía cuando **la app** deducía que
+aquello era un tren, y no cuando **la persona** decía que no era su coche. Un viaje en el coche de
+un amigo es perfectamente `PLAUSIBLE` —porque es un coche de verdad—, así que la condición no se
+cumplía nunca en el caso para el que el botón existe.
+
+**Fix.** `witnessedDepartureIsRefuted(roadPlausibility, outcome)`, pura, en `domain/detection/`:
+refuta la carretera imposible **o** `SessionOutcome.StoppedByUser`. Una línea en el epílogo del
+`finally` pasa a preguntarle a ella.
+
+Lo que lo hace correcto y no un parche es que las dos entradas ya estaban ahí y sobreviven al
+borrado de estado: `keepingIdentity()` conserva `outcome` **a propósito** —su propio comentario lo
+dice: *«sin estas dos líneas el wipe borraría justo lo que la llamada venía a decir»*— y
+`currentArmGeofenceId` no vive en el estado, así que la geocerca de armado sigue disponible cuando
+el epílogo la pide.
+
+**Por qué el testimonio del usuario pesa lo mismo que la medida.** El techo de plausibilidad es una
+inferencia nuestra sobre lo que midió el móvil; el conductor es la fuente primaria. Y el coste es
+asimétrico en la dirección buena: devolver un coche que sí había salido deja una sesión de más, que
+se cierra con un gesto; **no** devolverlo deja al usuario sin su aparcamiento y a un desconocido
+conduciendo hacia una plaza que nadie liberó.
+
+**Alcance.** Las **tres** superficies del verbo despachan el mismo `ACTION_USER_STOP`
+[WIDGET-A-TRIP-CAN-BE-ANSWERED-FROM-THE-LAUNCHER-001], así que card, notificación y widget devuelven
+el coche por igual sin tocar ninguna de las tres.
+
+**Guard hoy:** `DepartureRefutationTest` — el testigo (`PLAUSIBLE` + `StoppedByUser` → devuelve),
+el caso del tren, y las dos negativas: una salida real se queda, y `DOUBTFUL` **no** basta (la duda
+ya tiene su remedio, que es PREGUNTAR; devolver ante una sospecha resucitaría sesiones por cada
+tramo raro de autovía). ⚠️ **Falsificado**: con la condición anterior, el testigo falla.
+
 ### PARK-A-CORRECTION-MOVES-THE-PLACE-NOT-THE-CLOCK-001 — corregir el pin reiniciaba el nacimiento de la sesión
 
 **Commit:** pending. **Campo (2026-09-16, Nothing A001, sesión `b9b9dacc`):** un pin colocado a las

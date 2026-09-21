@@ -1244,7 +1244,18 @@ class CoordinatorParkingDetector(
                     // two cannot drift apart, and it stays true however the session ended. A trip
                     // that measured a train refutes its departure whether the close came from the
                     // candidate lane, the matured stop or the response timeout.
-                    if (_detectionState.value.roadPlausibility(config) == RoadPlausibility.IMPOSSIBLE) {
+                    //
+                    // ⛔ **Y el usuario refuta igual que la carretera** [DET-A-REFUSED-TRIP-GIVES-THE-CAR-BACK-001].
+                    // Esta condición era sólo `IMPOSSIBLE`, así que «No voy en mi coche» limpiaba el
+                    // estado de detección y dejaba el coche ENTREGADO: plaza publicada y sesión
+                    // cerrada, sin nada que lo devolviera. El techo de plausibilidad es una
+                    // inferencia nuestra; el conductor es la fuente primaria — y era el único caso
+                    // en el que sabemos seguro que nos equivocamos.
+                    if (witnessedDepartureIsRefuted(
+                            _detectionState.value.roadPlausibility(config),
+                            _detectionState.value.session.outcome,
+                        )
+                    ) {
                         val fence = currentArmGeofenceId
                         if (fence == null) {
                             PaparcarLogger.d(DIAG, "  ⓘ no arming fence on record — nothing to give back")
