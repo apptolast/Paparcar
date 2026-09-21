@@ -106,6 +106,10 @@ class HomeUiController {
     private var centeredOnUser = false
     // True once the user pans/zooms by hand — disables every automatic re-frame thereafter. [FOCUS-002]
     private var userMovedCameraManually = false
+
+    /** El seguimiento acaba de arrancar y todavía no ha encuadrado. Ver [followDriver].
+     *  [HOME-A-LIVE-TRIP-DESERVES-THE-ZOOM-IT-NEEDS-001] */
+    private var firstFollowPending = false
     // True while a pin is being positioned — see [setPinPlacementActive].
     // [PARK-A-DRAGGED-PIN-MUST-OUTRANK-AN-AUTOMATIC-CAMERA-001]
     private var pinPlacementActive = false
@@ -344,10 +348,37 @@ class HomeUiController {
      */
     fun setDriverFollowActive(active: Boolean) {
         followingDriver = active
+        // Empezar a seguir un viaje ARMA el encuadre de abajo. Ver [followDriver].
+        if (active) firstFollowPending = true
     }
 
+    /**
+     * ⛔ **El PRIMER seguimiento de un viaje sí pone zoom; los siguientes no.**
+     * [HOME-A-LIVE-TRIP-DESERVES-THE-ZOOM-IT-NEEDS-001]
+     *
+     * «Recentra sin tocar el zoom, que el del usuario manda» es correcto **mientras se sigue**: nadie
+     * quiere que la cámara le deshaga el pellizco cada vez que llega un fix. Pero en el instante en
+     * que el seguimiento ARRANCA no hay zoom del usuario que respetar — hay el que tuviera el mapa,
+     * que al abrir la app en mitad de un viaje es el de por defecto. Resultado, reportado en la
+     * issue #66: *«al estar en estado driving y abrir la app, la cámara no me hace caso y no va a la
+     * localización ni se acerca»*. Iba al coche; lo que no hacía era acercarse.
+     *
+     * Y es el único camino que queda en ese escenario: el enfoque inicial de [FOCUS-001] necesita un
+     * `userGpsPoint`, que durante un viaje puede no llegar nunca a Home —la detección es quien tiene
+     * el GPS—, así que su `else` nunca corre y `centeredOnUser` se queda en `false`.
+     *
+     * Por eso el zoom entra como **[ZoomIntent.AtLeast]**, igual que [goToPlace]: es un SUELO. Si el
+     * usuario ya estaba más cerca que [FOCUS_DRIVING_ZOOM], no se le aleja — acercar a quien mira de
+     * lejos y respetar a quien ya mira de cerca son la misma regla, no dos.
+     */
     fun followDriver(lat: Double, lon: Double) {
-        if (followingDriver) setTarget(lat, lon)
+        if (!followingDriver) return
+        if (firstFollowPending) {
+            firstFollowPending = false
+            setTarget(lat, lon, zoom = FOCUS_DRIVING_ZOOM, zoomIntent = ZoomIntent.AtLeast)
+        } else {
+            setTarget(lat, lon)
+        }
     }
 
     fun resumeDriverFollow(lat: Double, lon: Double) {
@@ -355,7 +386,15 @@ class HomeUiController {
         setTarget(lat, lon)
     }
 
-    private companion object {
+    /** ⛔ `internal` y no `private`: son decisiones de producto —a qué distancia se mira un coche
+     *  aparcado, y a cuál uno en marcha— y un test que las comprueba tiene que poder NOMBRARLAS.
+     *  Repetir el 16 suelto en el test convierte el número en dos números.
+     *  [HOME-A-LIVE-TRIP-DESERVES-THE-ZOOM-IT-NEEDS-001] */
+    internal companion object {
+        /** Al que se acerca la cámara al empezar a seguir un viaje. Un paso más lejos que el
+         *  del coche aparcado (17): aparcado se mira la manzana exacta, conduciendo hace falta
+         *  ver por dónde se va. [HOME-A-LIVE-TRIP-DESERVES-THE-ZOOM-IT-NEEDS-001] */
+        const val FOCUS_DRIVING_ZOOM = 16f
         const val FOCUS_PARKED_ZOOM = 17f  // tight: see the exact block of the parked car
         const val FOCUS_SEARCH_ZOOM = 16f  // a touch wider: reveal nearby free spots around the user
         const val BOUNDS_MAX_SPAN_M = 250f // within this, frame car + user together instead of just the car
