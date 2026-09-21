@@ -97,6 +97,19 @@ class BluetoothDepartureDetector(
             }
         }
 
+        // ⛔ Copia a un `val` para poder SMART-CASTEAR. `proof` es un `var` local capturado por el
+        // lambda del `first { }`, y de ésos Kotlin no puede smart-castear: sin esta línea harían
+        // falta tres `proof!!` — en `.timestamp`, en `logRemote` y en `Measured(...)` — justo en la
+        // rama que decide si se publica una plaza, que es donde un `!!` es una afirmación sin
+        // testigo. Preguntado en la issue #73. [DET-A-BT-CONNECT-IS-A-DEPARTURE-001]
+        //
+        // ⚠️ Y el `var proof` de arriba CASI sobra: `Flow.first { }` ya devuelve el elemento que
+        // casó, así que `withTimeoutOrNull { … first { … } }` daría lo mismo. Casi, y por un solo
+        // caso: entre `proof = fix` y el retorno de `first` puede caer el timeout. Con `proof` la
+        // prueba ya está guardada y la salida es `Measured`; sin él, el mismo viaje se reportaría
+        // como `NeverDrove`. Es una carrera microscópica, pero su coste es ASIMÉTRICO en la
+        // dirección mala —perder una salida ya medida es un falso negativo del carril BT—, así que
+        // el `var` compra el lado seguro.
         val measuredFix = proof
         return if (measuredFix != null) {
             PaparcarLogger.i(
