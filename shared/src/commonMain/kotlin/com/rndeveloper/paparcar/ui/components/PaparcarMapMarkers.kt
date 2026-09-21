@@ -1650,7 +1650,6 @@ private fun NearbyDiscMarker(
     modifier: Modifier = Modifier,
 ) {
     val ink = MaterialTheme.colorScheme.onSurface
-    val paper = MaterialTheme.colorScheme.surface
     val density = LocalDensity.current
 
     val s = with(density) { SPOT_PIN_W.toPx() / SPOT_VIEWBOX_W }
@@ -1678,7 +1677,13 @@ private fun NearbyDiscMarker(
                 .background(accent)
                 .then(
                     if (selected) {
-                        Modifier.border(FUEL_LABEL_BORDER_SEL, paper, CircleShape)
+                        // ⛔ `ink`, no `paper`: el anillo de REPOSO sería un separador y llevaría el
+                        // color del tema; éste es un REALCE y lleva el contrario, o sobre tesela
+                        // oscura se dibujaba un aro negro que no destacaba nada (user, en device).
+                        // No es una excepción: el puck de plaza ya marca su selección con `ink`
+                        // —«outer onSurface ring (max contrast)»—, y el disco era el que divergía.
+                        // [MAP-A-SELECTION-RING-WEARS-THE-OTHER-THEME-001]
+                        Modifier.border(FUEL_LABEL_BORDER_SEL, ink, CircleShape)
                     } else {
                         Modifier
                     },

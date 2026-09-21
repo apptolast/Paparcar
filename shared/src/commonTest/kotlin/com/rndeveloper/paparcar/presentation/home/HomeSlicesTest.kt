@@ -327,6 +327,74 @@ class HomeSlicesTest {
         )
     }
 
+    @Test
+    fun should_showNoRowsAtAll_when_theAnswerIsAboutSomewhereElse() {
+        // ⛔ Lo que a #87 se le quedó fuera: la CÁMARA dejó de encuadrar Italia, pero las FILAS
+        // seguían siendo italianas — y tocar una es una orden legítima que te lleva a Italia.
+        // Reporte de campo: «si clico un elemento de la lista al llegar a Madrid me lleva a Italia».
+        val inItaly = HomeState(
+            nearbyLens = HomeNearbyLens.PARKINGS,
+            parkings = HomeParkingsSlice(
+                parkings = listOf(nearbyParking("in-italy")),
+                anchorLat = 41.9028,
+                anchorLon = 12.4964,
+                isLoading = true,
+            ),
+        )
+
+        val fromMadrid = inItaly.laneAnsweringHere(cameraLat = 40.4168, cameraLon = -3.7038)
+        assertEquals(emptyList(), fromMadrid.toBrowseListSlice().parkings.parkings, "ni una fila tocable")
+        assertEquals(emptyList(), fromMadrid.toMapSlice().publicParkings, "ni un pin")
+        // Y el esqueleto sale SOLO: ya se dibujaba con `isLoading && lista vacía`, y lo que faltaba
+        // era la lista vacía. Por eso el shimmer salía en la cuenta del peek y no en las filas.
+        assertTrue(fromMadrid.toBrowseListSlice().parkings.isLoading, "la lista dice que está preguntando")
+
+        // …y desde Roma no se toca nada: la respuesta sí va de allí.
+        val fromRome = inItaly.laneAnsweringHere(cameraLat = 41.9028, cameraLon = 12.4964)
+        assertEquals(1, fromRome.toBrowseListSlice().parkings.parkings.size)
+        assertSame(inItaly, fromRome, "cubriendo las dos tiendas, ni se copia el estado")
+    }
+
+    @Test
+    fun should_lightTheCarsFuelChip_when_theUserHasNotChosenOne() {
+        // El carril ya venía cotizado por el combustible del coche y el chip salía apagado: dos
+        // controles contando cosas distintas del mismo estado.
+        // [FUEL-THE-CHIP-SHOWS-THE-FUEL-THE-LANE-IS-QUOTED-IN-001]
+        val state = HomeState(
+            nearbyLens = HomeNearbyLens.FUEL,
+            vehicles = listOf(carBurning(FuelType.GASOLINE)),
+            fuel = com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice(
+                stations = listOf(pricedStation("a", 100.0, gasoline = 1.899, diesel = 1.419)),
+            ),
+        )
+
+        val bar = state.toBrowseListSlice().fuel
+        assertEquals(state.pricedFuelType, bar.product, "el chip encendido ES por el que se cotiza")
+        assertEquals(FuelType.GASOLINE.pumpProduct, bar.product)
+        // Y elegir a mano manda sobre el coche, como siempre.
+        assertEquals(
+            FuelType.DIESEL,
+            state.copy(fuelProduct = FuelType.DIESEL).toBrowseListSlice().fuel.product,
+        )
+    }
+
+    @Test
+    fun should_emptyOnlyTheLaneThatCannotAnswer_when_theOtherStoreIsStillHere() {
+        // Dos tiendas, dos anclas: vaciar las dos porque una se quedó atrás sería tirar una
+        // respuesta buena. [HOME-A-LANE-THAT-CANNOT-ANSWER-HERE-SHOWS-NO-ROWS-001]
+        val mixed = HomeState(
+            parkings = HomeParkingsSlice(
+                parkings = listOf(nearbyParking("here")), anchorLat = 40.4168, anchorLon = -3.7038,
+            ),
+            fuel = com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice(
+                stations = listOf(fuelStation("far", 100.0)), anchorLat = 41.9028, anchorLon = 12.4964,
+            ),
+        ).laneAnsweringHere(cameraLat = 40.4168, cameraLon = -3.7038)
+
+        assertEquals(1, mixed.parkings.parkings.size, "los parkings sí son de aquí")
+        assertEquals(emptyList(), mixed.fuel.stations, "las gasolineras no")
+    }
+
     // ── Spot status: what is on offer, and in what order [DET-HANDOFF-NOT-MANUAL-001 §B.3] ──
 
     @Test

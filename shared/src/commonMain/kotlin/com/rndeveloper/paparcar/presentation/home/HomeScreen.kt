@@ -396,9 +396,17 @@ private fun HomeContent(
     // HomeContent itself keeps the full state (it is the orchestrator). [HOME-ATOMIZE-001 F1]
     val headerSlice = remember(state) { state.toHeaderSlice() }
     val fabsSlice = remember(state) { state.toFabsSlice() }
-    val mapSlice = remember(state) { state.toMapSlice() }
-    val peekSlice = remember(state) { state.toPeekSlice() }
-    val browseSlice = remember(state) { state.toBrowseListSlice() }
+    // ⛔ TODAS las porciones de los complementos se derivan del estado YA filtrado por «¿esta
+    // respuesta va de donde estoy mirando?». Una sola vez y aquí, que es donde vive la cámara:
+    // así el mapa, el peek, la lista y la selección no pueden discrepar, y una fila de otra ciudad
+    // no queda tocable mientras llega la de ésta.
+    // [HOME-A-LANE-THAT-CANNOT-ANSWER-HERE-SHOWS-NO-ROWS-001]
+    val shown = remember(state, uiController.cameraLat, uiController.cameraLon) {
+        state.laneAnsweringHere(uiController.cameraLat, uiController.cameraLon)
+    }
+    val mapSlice = remember(shown) { shown.toMapSlice() }
+    val peekSlice = remember(shown) { shown.toPeekSlice() }
+    val browseSlice = remember(shown) { shown.toBrowseListSlice() }
 
     val isParkingSelected = state.isParkingSelected
     // [UI-PROVISIONAL-SPOT-IS-NOT-ITS-SESSION-001] The kind is carried, not inferred from which

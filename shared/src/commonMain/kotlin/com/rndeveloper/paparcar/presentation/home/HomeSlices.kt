@@ -629,7 +629,12 @@ fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
         // Los filtros viajan con el carril: la barra los lee del mismo sitio que la lista que
         // ordenan. [FUEL-THE-LANE-IS-FILTERED-BY-WHAT-YOU-BURN-001]
         sort = fuelSort,
-        product = fuelProduct,
+        // ⛔ `pricedFuelType`, no `fuelProduct`: el chip enseña el combustible por el que el carril
+        // ESTÁ cotizado, y sin elección del usuario ése es el del coche. Leyendo `fuelProduct` en
+        // crudo, la barra decía «ningún filtro» mientras la lista ya venía filtrada por gasolina —
+        // dos controles contando cosas distintas del mismo estado (user, en device).
+        // [FUEL-THE-CHIP-SHOWS-THE-FUEL-THE-LANE-IS-QUOTED-IN-001]
+        product = pricedFuelType,
         availableProducts = fuelProductsAvailable,
     ),
     parkings = parkings.copy(
@@ -701,28 +706,63 @@ fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
 internal fun HomeState.laneFirstPoint(
     cameraLat: Double?,
     cameraLon: Double?,
-): Pair<Double, Double>? = when (nearbyLens) {
-    // Las plazas son una suscripción viva sobre el área: no tienen ancla que comparar.
-    HomeNearbyLens.SPOTS -> filteredNearbySpots().firstOrNull()
-        ?.let { it.location.latitude to it.location.longitude }
+): Pair<Double, Double>? = laneAnsweringHere(cameraLat, cameraLon).let { here ->
+    when (nearbyLens) {
+        // Las plazas son una suscripción viva sobre el área: no tienen ancla que comparar.
+        HomeNearbyLens.SPOTS -> here.filteredNearbySpots().firstOrNull()
+            ?.let { it.location.latitude to it.location.longitude }
 
-    HomeNearbyLens.PARKINGS -> publicParkingsShown.firstOrNull()
-        ?.takeIf {
-            ViewportRefetch.answerCoversCamera(
-                parkings.anchorLat, parkings.anchorLon, cameraLat, cameraLon,
-                radiusMeters = PublicParkingsQuery.DEFAULT_RADIUS_METERS, byZone = true,
-            )
-        }
-        ?.let { it.parking.latitude to it.parking.longitude }
+        HomeNearbyLens.PARKINGS -> here.publicParkingsShown.firstOrNull()
+            ?.let { it.parking.latitude to it.parking.longitude }
 
-    HomeNearbyLens.FUEL -> fuelStationsShown.firstOrNull()
-        ?.takeIf {
-            ViewportRefetch.answerCoversCamera(
-                fuel.anchorLat, fuel.anchorLon, cameraLat, cameraLon,
-                radiusMeters = FuelStationsQuery.DEFAULT_RADIUS_METERS,
-            )
-        }
-        ?.let { it.station.latitude to it.station.longitude }
+        HomeNearbyLens.FUEL -> here.fuelStationsShown.firstOrNull()
+            ?.let { it.station.latitude to it.station.longitude }
+    }
+}
+
+/**
+ * El estado tal y como se puede ENSEÑAR desde donde la cámara está mirando: si la tienda de un
+ * complemento contesta sobre otro sitio, ese complemento se queda **vacío**.
+ * [HOME-A-LANE-THAT-CANNOT-ANSWER-HERE-SHOWS-NO-ROWS-001]
+ *
+ * ⛔ Nace de que [HOME-THE-CAMERA-FRAMES-WHAT-THE-LIST-SHOWS-001] enseñó a la CÁMARA a no encuadrar
+ * una respuesta de otra ciudad, y dejó a la LISTA sin aprenderlo: buscando Madrid desde Italia, las
+ * filas seguían siendo italianas y **tocar una es una orden legítima que te lleva a Italia**. La
+ * cámara dejaba de mentir y la lista no.
+ *
+ * ⛔ Se aplica **una vez, sobre el estado**, y no carril a carril ni superficie a superficie: todas
+ * las porciones se derivan de aquí, así que el mapa, el peek, la lista, la selección y el encuadre
+ * no pueden quedarse en estados distintos. Que la cuenta del peek hiciera shimmer mientras las filas
+ * se pintaban asentadas ES este defecto, visto desde la otra punta.
+ *
+ * ⛔ Y no hace falta ni un composable nuevo: `NearbyRowsSkeleton` ya se dibuja con
+ * `isLoading && lista vacía`. No salía porque la lista **no estaba vacía, tenía Italia**. Misma
+ * forma que el `takeUnless { isLoading }` de PARKINGS-A-REMEMBERED-MAP-ANSWERS-BEFORE-THE-NETWORK-001:
+ * la frase ya era correcta, le faltaba el dato honesto debajo.
+ *
+ * ⚠️ Un fallo de red BORRA el ancla (para que cualquier movimiento reintente), así que sin ancla
+ * esto responde «no va de aquí» y el carril se vacía. Correcto y deliberado: quien cuenta que no se
+ * pudo preguntar es `failed`, no una lista de otro sitio.
+ */
+internal fun HomeState.laneAnsweringHere(cameraLat: Double?, cameraLon: Double?): HomeState {
+    // ⛔ «Vacía» se comprueba ANTES que «de aquí»: una tienda que nadie ha preguntado todavía no
+    // tiene ancla, y sin ancla `answerCoversCamera` dice —con razón— que no va de aquí. Sin esta
+    // guarda, una lista vacía «se vaciaba» otra vez y el estado se copiaba en cada movimiento de
+    // cámara, que es justo lo que [HOME-A-PROJECTION-IS-COMPUTED-ONCE-001] acaba de quitar de en
+    // medio. No hay filas de otro sitio que esconder cuando no hay filas.
+    val parkingsStale = parkings.parkings.isNotEmpty() && !ViewportRefetch.answerCoversCamera(
+        parkings.anchorLat, parkings.anchorLon, cameraLat, cameraLon,
+        radiusMeters = PublicParkingsQuery.DEFAULT_RADIUS_METERS, byZone = true,
+    )
+    val fuelStale = fuel.stations.isNotEmpty() && !ViewportRefetch.answerCoversCamera(
+        fuel.anchorLat, fuel.anchorLon, cameraLat, cameraLon,
+        radiusMeters = FuelStationsQuery.DEFAULT_RADIUS_METERS,
+    )
+    if (!parkingsStale && !fuelStale) return this
+    return copy(
+        parkings = if (parkingsStale) parkings.copy(parkings = emptyList()) else parkings,
+        fuel = if (fuelStale) fuel.copy(stations = emptyList()) else fuel,
+    )
 }
 
 internal fun HomeState.filteredNearbySpots(): List<Spot> =

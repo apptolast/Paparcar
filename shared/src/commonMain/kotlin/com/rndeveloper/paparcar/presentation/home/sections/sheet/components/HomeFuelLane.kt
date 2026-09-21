@@ -266,12 +266,16 @@ fun HomeFuelFilterBar(
         if (onProductSelect != null && availableProducts.isNotEmpty()) {
             PapVerticalDivider(modifier = Modifier.height(FILTER_DIVIDER_HEIGHT_DP.dp))
             availableProducts.forEach { type ->
-                val isOn = product == type
                 PaparcarFilterChip(
                     label = fuelTypeLabel(type),
-                    selected = isOn,
-                    // Pulsar el que ya está encendido lo apaga y devuelve el carril al coche activo.
-                    onClick = { onProductSelect(type.takeUnless { isOn }) },
+                    selected = product == type,
+                    // ⛔ Elección ÚNICA, como «Cercanas / Más baratas»: no hay apagado. El carril
+                    // siempre está cotizado por algún combustible —sin elección, el del coche— así
+                    // que un chip «apagado» no describía ningún estado del mundo. Lo que hacía
+                    // `takeUnless` era devolver el carril al coche, que la mitad de las veces es el
+                    // MISMO combustible: el chip se apagaba y la lista no cambiaba.
+                    // [FUEL-THE-CHIP-SHOWS-THE-FUEL-THE-LANE-IS-QUOTED-IN-001]
+                    onClick = { onProductSelect(type) },
                 )
             }
         }
