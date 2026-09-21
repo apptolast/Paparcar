@@ -321,6 +321,21 @@ data class ParkingDetectionConfig(
      *  **Why 8 (= [minStepsToConfirm]), not lower:** phone jiggle at a traffic-light stop
      *  produces 1–3 spurious steps (observed in the Calle Gavia field trace) — locking there
      *  would pin the park at the light. A real exit produces ≥ 8 steps within seconds. */
+    /**
+     * Cuántas fijaciones creíbles de conducción tiene que acompañar a un **vehicle-exit de AR** para
+     * que valga como señal vehicular en la rama sin conducción medida.
+     * [DET-A-WALK-IS-NOT-AN-EGRESS-001]
+     *
+     * **Una.** No es un umbral estadístico, es la frontera entre *nada* y *algo*: el AR pasa de
+     * decidir solo a nominar, que es lo que la doctrina le concede a un evento. Con cero, una pista
+     * de AR más ocho pasos colocaban una zona de 250 m a quien había salido andando de su casa
+     * (issue #72).
+     *
+     * ⛔ No se sube «por si acaso»: cada fijación de más que se exija aquí es un aparcamiento real
+     * que pasa de guardarse a preguntarse, y la rama existe precisamente para los casos en que la
+     * conducción ya terminó y el track no puede corroborarla.
+     */
+    val arEgressMinCredibleFixes: Int = 1,
     val anchorLockEgressSteps: Int = 8,
     /** [DET-AR-FIRST-001 F3] Meters one counted step may account for when deciding whether an
      *  ambiguous-speed movement away from the park anchor is a PERSON (steps cover the

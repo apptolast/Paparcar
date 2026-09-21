@@ -54,6 +54,20 @@ data class UserParking(
     /** Arm-evidence label of the confirming session ("speed", "vehicle_enter", "unverified",
      *  "manual") — the ARM trigger. Synced to Firestore for remote diagnostics. [DET-SOLID-001] */
     val armEvidence: String? = null,
+    /**
+     * **Qué miró la rama que DECIDIÓ**, en una línea. [DET-A-WALK-IS-NOT-AN-EGRESS-001]
+     *
+     * `detectionPath` dice QUÉ camino colocó el pin y [armEvidence] qué lo armó; faltaba el tercer
+     * cuarto de la pregunta: **con qué números** decidió ese camino. Sin él, el falso positivo de la
+     * issue #72 —una zona de 250 m a quien salió ANDANDO de su casa— sólo se podía diagnosticar
+     * adivinando cuál de las dos ramas de `vehicularSignal` se había cumplido, porque la traza que
+     * lo sabía vivía en logcat y esa cuenta no tenía diagnósticos.
+     *
+     * ⛔ **UN campo, no diez** (petición expresa del user): sólo las entradas que esa rama miró para
+     * decidir, ya formateadas por quien decidió. Llenar cada sesión de columnas «por si acaso» es
+     * cómo se acaba con un modelo que nadie sabe leer.
+     */
+    val decisionEvidence: String? = null,
     /** Confirmation PATH that placed this pin — the answer to "which trigger put this parking".
      *  Pairs with [armEvidence] for full provenance; synced to Firestore. Null for legacy rows.
      *  [DET-PIN-PROVENANCE-001]

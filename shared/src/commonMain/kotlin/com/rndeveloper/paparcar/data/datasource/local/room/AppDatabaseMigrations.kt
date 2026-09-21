@@ -343,4 +343,17 @@ private val MIGRATION_14_15 = object : Migration(14, 15) {
     }
 }
 
-val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15)
+/**
+ * v16 — la sesión guarda **con qué números** decidió la rama que la colocó.
+ * [DET-A-WALK-IS-NOT-AN-EGRESS-001]
+ *
+ * Una columna nullable: las filas anteriores se quedan en `NULL`, que es la verdad —de aquellas
+ * sesiones no lo sabemos, y no se inventa.
+ */
+private val MIGRATION_15_16 = object : Migration(15, 16) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("ALTER TABLE `parking_sessions` ADD COLUMN `decisionEvidence` TEXT")
+    }
+}
+
+val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16)

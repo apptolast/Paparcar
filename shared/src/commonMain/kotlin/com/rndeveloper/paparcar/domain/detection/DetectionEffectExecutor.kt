@@ -18,6 +18,7 @@ import com.rndeveloper.paparcar.domain.usecase.notification.NotifyParkingConfirm
 import com.rndeveloper.paparcar.domain.usecase.notification.ResolveAskedStreetUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.PromptReason
+import com.rndeveloper.paparcar.domain.detection.stages.unattendedDecisionEvidence
 import com.rndeveloper.paparcar.domain.usecase.parking.UnattendedSaveReason
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.first
@@ -149,6 +150,8 @@ class DetectionEffectExecutor(
         vehicleId: String?,
         pathLabel: String,
         zoneRadiusMeters: Float? = null,
+        /** Con que numeros decidio la rama que llama. [DET-A-WALK-IS-NOT-AN-EGRESS-001] */
+        decisionEvidence: String? = null,
     ): EffectOutcome {
         // [DET-INFERRED-PIN-CARRIES-ITS-DOUBT-001] An INFERRED pin may not claim more precision
         // than the fix it stands on: past the honest-zone floor, the claim is saved as an AREA of
@@ -188,6 +191,7 @@ class DetectionEffectExecutor(
                 vehicleId = vehicleId,
                 tripMaxSpeedMps = state.drive.provenMaxSpeedMps,
                 armEvidence = state.session.armEvidence,
+                decisionEvidence = decisionEvidence,
                 // [DET-ASSERTION-OUTRANKS-INFERENCE-001] The SUSTAINED figure, not a peak: the
                 // guard's job is to tell a real re-park from a walk-away, and one stray sample is
                 // not a drive. [DET-MOTOR-PROOF-001]
@@ -332,6 +336,7 @@ class DetectionEffectExecutor(
             vehicleId = vehicleId,
             pathLabel = DetectionPath.UnattendedZone(reason.key).label,
             zoneRadiusMeters = radiusMeters,
+            decisionEvidence = state.unattendedDecisionEvidence(reason),
         )
         val savedOk = outcome.endsSession && outcome.sessionOutcome?.isConfirmed == true
         diagnostics.emit { sid ->
