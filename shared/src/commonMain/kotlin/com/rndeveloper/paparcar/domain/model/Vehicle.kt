@@ -69,6 +69,17 @@ data class Vehicle(
     /** User-overridden kWh/100 km of the SECONDARY energy — only meaningful for a plug-in hybrid. */
     val consumptionElectricPer100: Float? = null,
     /**
+     * Alto del vehículo en METROS, declarado por el usuario. Null = no lo ha dicho.
+     * [VEH-A-HEIGHT-UNKNOWN-IS-NOT-A-FIT-001]
+     *
+     * ⛔ Es **opcional y manda sobre el catálogo**: sin él, el alto se infiere en BANDA desde la
+     * carrocería (`Vehicle.heightBand()`), y una banda que cruza la barrera de un parking no
+     * autoriza a decir que cabes. Declararlo colapsa la banda a un punto y convierte ese «no lo sé»
+     * en un veredicto — que es justo lo que necesita quien lleva baca o cofre, porque eso no está
+     * en ningún catálogo del mundo.
+     */
+    val heightMeters: Float? = null,
+    /**
      * What the user actually pays for a litre. Null ⇒ the national average applies.
      * [FUEL-PRICE-RESOLVER-001]
      *

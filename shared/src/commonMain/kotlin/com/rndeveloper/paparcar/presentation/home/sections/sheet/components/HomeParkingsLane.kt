@@ -31,6 +31,7 @@ import paparcar.composeapp.generated.resources.home_parkings_empty
 import paparcar.composeapp.generated.resources.home_parkings_empty_filtered
 import paparcar.composeapp.generated.resources.home_parkings_error
 import paparcar.composeapp.generated.resources.home_parkings_filter_covered
+import paparcar.composeapp.generated.resources.home_parkings_filter_no_low_clearance
 import paparcar.composeapp.generated.resources.home_parkings_remembered
 import paparcar.composeapp.generated.resources.parking_fee_free
 import paparcar.composeapp.generated.resources.parking_fee_paid
@@ -191,4 +192,5 @@ private fun PublicParkingFilter.labelRes() = when (this) {
     PublicParkingFilter.FREE -> Res.string.parking_fee_free
     PublicParkingFilter.PAID -> Res.string.parking_fee_paid
     PublicParkingFilter.COVERED -> Res.string.home_parkings_filter_covered
+    PublicParkingFilter.NO_LOW_CLEARANCE -> Res.string.home_parkings_filter_no_low_clearance
 }

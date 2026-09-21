@@ -289,9 +289,14 @@
     <string name="vehicle_registration_title">Zarejestruj swój pojazd</string>
     <string name="vehicle_registration_save">Zapisz</string>
     <string name="vehicle_registration_name_label">Nazwa</string>
+    <string name="common_optional">Opcjonalne</string>
+    <string name="vehicle_registration_height_label">Wysokość</string>
+    <string name="vehicle_registration_height_help">Tylko jeśli masz box dachowy lub bagażnik — dzięki temu powiemy Ci, czy zmieścisz się pod szlabanem.</string>
+    <string name="vehicle_registration_height_unit">m</string>
+    <string name="home_parkings_filter_no_low_clearance">Bez niskiego prześwitu</string>
     <string name="vehicle_registration_name_placeholder">Auto %1$d</string>
     <string name="vehicle_registration_section_identity">Twój pojazd</string>
-    <string name="vehicle_registration_section_optional">Przydomek (opcjonalnie)</string>
+    <string name="vehicle_registration_section_optional">Nazwa i tablica</string>
     <string name="vehicle_registration_brand_hint">Marka</string>
     <string name="vehicle_registration_model_hint">Model</string>
     <string name="vehicle_registration_size_auto_detected">Wykryto: %1$s</string>

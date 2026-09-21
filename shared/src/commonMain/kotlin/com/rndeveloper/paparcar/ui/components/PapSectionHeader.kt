@@ -10,6 +10,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import org.jetbrains.compose.resources.stringResource
+import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.common_optional
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 
@@ -35,9 +38,24 @@ fun PapSectionHeader(
     title: String,
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    /**
+     * Esta sección se puede dejar en blanco. [VEH-A-HEIGHT-UNKNOWN-IS-NOT-A-FIT-001]
+     *
+     * ⛔ **Una palabra, aquí, y no dentro de cada título traducido.** El alta de vehículo tenía
+     * «Apodo (opcional)» escrito a mano en el string —y esa sección contiene además la matrícula,
+     * así que el título mentía sobre su propio contenido— mientras las otras cuatro secciones
+     * opcionales no decían nada y el formulario entero parecía obligatorio. Con la marca metida en
+     * el texto, cada idioma decide por su cuenta dónde ponerla y si la pone: nueve sitios donde
+     * discrepar por una idea que es una.
+     */
+    optional: Boolean = false,
 ) {
     Text(
-        text = title.uppercase(),
+        text = if (optional) {
+            "${'$'}{title.uppercase()} · ${'$'}{stringResource(Res.string.common_optional).uppercase()}"
+        } else {
+            title.uppercase()
+        },
         modifier = modifier.fillMaxWidth(),
         style = PaparcarType.current.sectionHeader,
         color = color,

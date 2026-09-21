@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.presentation.vehicleregistration
 
 import com.rndeveloper.paparcar.domain.model.CarbodyType
+import com.rndeveloper.paparcar.domain.vehicle.heightBand
 import com.rndeveloper.paparcar.domain.model.EnergyLabel
 import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.VehicleColor
@@ -69,6 +70,13 @@ data class VehicleRegistrationState(
     val hasInteractedWithForm: Boolean = false,
     /** Optional license plate (e.g. "1234 ABC"). On-device only — never sent to Firestore. */
     val licensePlate: String = "",
+    /**
+     * Alto declarado, **en crudo tal y como se teclea**. Texto y no `Float?` a propósito: mientras
+     * el usuario escribe «1,» el valor no es un número todavía, y guardarlo ya convertido obligaría
+     * a decidir qué hacer con cada pulsación intermedia. Se convierte UNA vez, al guardar.
+     * [VEH-A-HEIGHT-UNKNOWN-IS-NOT-A-FIT-001]
+     */
+    val heightMeters: String = "",
     /** Chosen paint colour. Null = undefined → the default green icon. [VEH-COLOR-001] */
     val color: VehicleColor? = null,
     /** What the vehicle burns — mandatory when [expectsFuel]; null (and no selector) otherwise.
@@ -121,6 +129,19 @@ data class VehicleRegistrationState(
      *  - for CAR: a carbody is selected (auto-inferred or manual)
      *  - for MOTORCYCLE / SCOOTER / BIKE: size is already forced to MOTORCYCLE
      */
+    /**
+     * Lo que la app ya cree que mide este coche, para enseñarlo de placeholder: el rango de su
+     * carrocería. Null mientras no haya carrocería que consultar.
+     *
+     * ⛔ Es una PISTA, nunca un valor escrito por nosotros en su campo: rellenarlo convertiría
+     * nuestra estimación en una declaración suya, y una declaración autoriza veredictos que una
+     * estimación no. [VEH-A-HEIGHT-UNKNOWN-IS-NOT-A-FIT-001]
+     */
+    val inferredHeightHint: String?
+        get() = carbodyType?.heightBand()?.let { band ->
+            "${'$'}{band.lowMeters.oneDecimal()} – ${'$'}{band.highMeters.oneDecimal()}"
+        }
+
     val canSubmit: Boolean
         get() = brand.isNotBlank() &&
                 (isBrandOther || model.isNotBlank()) &&
@@ -133,4 +154,11 @@ data class VehicleRegistrationState(
     /** Drives inline error on the brand field — only after the user has started filling the form. */
     val brandError: Boolean
         get() = hasInteractedWithForm && brand.isBlank()
+}
+
+/** Un metro con un decimal, en la coma del idioma del sitio donde se lee. Vive aquí porque es la
+ *  única cifra de esta pantalla que se compone a mano. */
+private fun Float.oneDecimal(): String {
+    val tenths = (this * 10f).toInt()
+    return "${'$'}{tenths / 10},${'$'}{tenths % 10}"
 }

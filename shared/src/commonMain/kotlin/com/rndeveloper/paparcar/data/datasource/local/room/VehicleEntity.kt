@@ -32,6 +32,8 @@ data class VehicleEntity(
     val consumptionPer100: Float? = null,
     /** PHEV-only secondary kWh/100 km override. [VEH-FUEL-001] */
     val consumptionElectricPer100: Float? = null,
+    /** Alto declarado, en metros. [VEH-A-HEIGHT-UNKNOWN-IS-NOT-A-FIT-001] */
+    val heightMeters: Float? = null,
     // Money se guarda en dos columnas: SQLite no tiene tipo para el, y ademas asi una fila vieja
     // sin moneda se distingue de una fila con precio 0. La moneda es UNA para los dos importes:
     // quien reposta y carga en el mismo pais paga en la misma moneda. [FUEL-PRICE-RESOLVER-001]

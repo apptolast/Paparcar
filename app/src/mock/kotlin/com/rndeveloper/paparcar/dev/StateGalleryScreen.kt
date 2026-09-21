@@ -3926,6 +3926,25 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     )
                 }
             },
+            // El cuarto chip: DESCARTA los de gálibo bajo, no promete que quepas. Un parking sin
+            // altura declarada —casi todos— se queda en la lista.
+            // [VEH-A-HEIGHT-UNKNOWN-IS-NOT-A-FIT-001]
+            Variant("Carril · sin gálibo bajo", Placement.Surface) {
+                Column {
+                    HomeParkingFilterBar(
+                        selected = PublicParkingFilter.NO_LOW_CLEARANCE,
+                        onSelect = {},
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    )
+                    HomeParkingsLane(
+                        slice = HomeParkingsSlice(
+                            parkings = galleryParkings,
+                            hasAnyBeforeFilter = true,
+                            filter = PublicParkingFilter.NO_LOW_CLEARANCE,
+                        ),
+                    )
+                }
+            },
             Variant("Carril · el filtro no deja ninguno", Placement.Surface) {
                 Column {
                     HomeParkingFilterBar(

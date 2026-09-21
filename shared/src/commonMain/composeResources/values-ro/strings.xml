@@ -291,9 +291,14 @@
     <string name="vehicle_registration_title">Înregistrează-ți vehiculul</string>
     <string name="vehicle_registration_save">Salvează</string>
     <string name="vehicle_registration_name_label">Nume</string>
+    <string name="common_optional">Opțional</string>
+    <string name="vehicle_registration_height_label">Înălțime</string>
+    <string name="vehicle_registration_height_help">Doar dacă ai portbagaj de plafon sau bare — o folosim ca să îți spunem dacă treci pe sub bariera unei parcări.</string>
+    <string name="vehicle_registration_height_unit">m</string>
+    <string name="home_parkings_filter_no_low_clearance">Fără gabarit mic</string>
     <string name="vehicle_registration_name_placeholder">Mașină %1$d</string>
     <string name="vehicle_registration_section_identity">Vehiculul tău</string>
-    <string name="vehicle_registration_section_optional">Poreclă (opțional)</string>
+    <string name="vehicle_registration_section_optional">Poreclă și număr</string>
     <string name="vehicle_registration_brand_hint">Marcă</string>
     <string name="vehicle_registration_model_hint">Model</string>
     <string name="vehicle_registration_size_auto_detected">Detectat: %1$s</string>

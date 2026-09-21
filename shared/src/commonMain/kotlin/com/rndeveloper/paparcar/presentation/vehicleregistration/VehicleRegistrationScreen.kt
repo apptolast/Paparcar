@@ -118,6 +118,9 @@ import paparcar.composeapp.generated.resources.vehicle_registration_bt_cta
 import paparcar.composeapp.generated.resources.vehicle_registration_bt_desc
 import paparcar.composeapp.generated.resources.vehicle_registration_bt_title
 import paparcar.composeapp.generated.resources.vehicle_registration_edit_title
+import paparcar.composeapp.generated.resources.vehicle_registration_height_help
+import paparcar.composeapp.generated.resources.vehicle_registration_height_label
+import paparcar.composeapp.generated.resources.vehicle_registration_height_unit
 import paparcar.composeapp.generated.resources.vehicle_registration_license_plate_label
 import paparcar.composeapp.generated.resources.vehicle_registration_model_hint
 import paparcar.composeapp.generated.resources.vehicle_registration_name_label
@@ -442,7 +445,7 @@ fun VehicleRegistrationContent(
                     modifier = Modifier.padding(horizontal = SCREEN_H_PADDING),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_color))
+                    PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_color), optional = true)
                     VehicleColorSelector(
                         selected = state.color,
                         onSelect = { onIntent(VehicleRegistrationIntent.SetColor(it)) },
@@ -460,7 +463,7 @@ fun VehicleRegistrationContent(
                 modifier = Modifier.padding(horizontal = SCREEN_H_PADDING),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_optional))
+                PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_optional), optional = true)
                 PapTextField(
                     value = state.name,
                     onValueChange = { onIntent(VehicleRegistrationIntent.SetName(it)) },
@@ -477,6 +480,36 @@ fun VehicleRegistrationContent(
                         onNext = { focusManager.moveFocus(FocusDirection.Next) },
                     ),
                     modifier = Modifier.fillMaxWidth(),
+                )
+                // ⛔ La altura vive con el apodo y la matrícula —lo que el usuario DECLARA de su
+                // coche— y no con la carrocería, que es lo que la app INFIERE. Mezclarlas haría
+                // pensar que corregir una recalcula la otra. [VEH-A-HEIGHT-UNKNOWN-IS-NOT-A-FIT-001]
+                PapTextField(
+                    value = state.heightMeters,
+                    onValueChange = { onIntent(VehicleRegistrationIntent.SetHeightMeters(it)) },
+                    // La unidad va en la ETIQUETA y no en un slot: el campo pide metros, y un «m»
+                    // colgado a la derecha tendría que desplazar al botón de borrar, que es lo
+                    // único que este campo necesita de verdad al corregirse.
+                    label = stringResource(
+                        Res.string.vehicle_registration_height_label,
+                    ) + " (" + stringResource(Res.string.vehicle_registration_height_unit) + ")",
+                    // Lo que la app ya cree: el rango del cuerpo inferido. Es un PLACEHOLDER, no un
+                    // valor — escribirlo por el usuario convertiría una estimación en una
+                    // declaración suya. [VEH-A-HEIGHT-UNKNOWN-IS-NOT-A-FIT-001]
+                    placeholder = state.inferredHeightHint,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Decimal,
+                        imeAction = ImeAction.Next,
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { focusManager.moveFocus(FocusDirection.Next) },
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    text = stringResource(Res.string.vehicle_registration_height_help),
+                    style = PaparcarType.current.caption,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 PapTextField(
                     value = state.licensePlate,
@@ -500,7 +533,7 @@ fun VehicleRegistrationContent(
                     modifier = Modifier.padding(horizontal = SCREEN_H_PADDING),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_detection))
+                    PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_detection), optional = true)
                     PapOutlinedCard(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
@@ -531,7 +564,7 @@ fun VehicleRegistrationContent(
                 modifier = Modifier.padding(horizontal = SCREEN_H_PADDING),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_privacy))
+                PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_privacy), optional = true)
                 PapOutlinedCard(
                     modifier = Modifier.fillMaxWidth(),
                 ) {

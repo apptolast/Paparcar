@@ -289,9 +289,14 @@
     <string name="vehicle_registration_title">Registar o seu veículo</string>
     <string name="vehicle_registration_save">Guardar</string>
     <string name="vehicle_registration_name_label">Nome</string>
+    <string name="common_optional">Opcional</string>
+    <string name="vehicle_registration_height_label">Altura</string>
+    <string name="vehicle_registration_height_help">Só se levares uma mala de tejadilho ou barras: usamo-la para te dizer se passas na barreira de um parque.</string>
+    <string name="vehicle_registration_height_unit">m</string>
+    <string name="home_parkings_filter_no_low_clearance">Sem pé-direito baixo</string>
     <string name="vehicle_registration_name_placeholder">Carro %1$d</string>
     <string name="vehicle_registration_section_identity">O seu veículo</string>
-    <string name="vehicle_registration_section_optional">Apelido (opcional)</string>
+    <string name="vehicle_registration_section_optional">Alcunha e matrícula</string>
     <string name="vehicle_registration_brand_hint">Marca</string>
     <string name="vehicle_registration_model_hint">Modelo</string>
     <string name="vehicle_registration_size_auto_detected">Detetado: %1$s</string>
