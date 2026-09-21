@@ -20,7 +20,6 @@ val fakeParking: UserParking by lazy {
             timestamp = Clock.System.now().toEpochMilliseconds() - 23 * 60_000, // 23 min ago
             speed = 0f,
         ),
-        spotId = "fake-1",
         geofenceId = "geofence-fake-1",
         isActive = true,
     )

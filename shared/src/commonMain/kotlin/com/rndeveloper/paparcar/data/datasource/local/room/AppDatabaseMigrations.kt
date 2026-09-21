@@ -365,4 +365,30 @@ private val MIGRATION_16_17 = object : Migration(16, 17) {
     }
 }
 
-val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17)
+/**
+ * v18: se retira `spotId` de `parking_sessions`, un campo MUERTO cuyo nombre mentía.
+ * [DATA-A-DEAD-FIELD-THAT-LIES-IS-WORSE-THAN-A-DEAD-FIELD-001]
+ *
+ * ⚠️ **Se recrea la tabla, no se suelta la columna.** `ALTER TABLE … DROP COLUMN` llegó a SQLite en
+ * la 3.35 (Android 12) y el minSdk es 26, que trae la 3.19: en la mitad del parque la sentencia
+ * simple no existe. Copiar-y-renombrar es la única que funciona en todas.
+ *
+ * ⚠️ El `INSERT` nombra las 40 columnas UNA a UNA en vez de `SELECT *`: con el asterisco, el orden
+ * lo decidiría la tabla vieja y bastaría que una versión futura insertara una columna en medio para
+ * que los valores entraran corridos, sin error y sin ruido.
+ *
+ * ⛔ Y no lleva `DROP TABLE IF EXISTS parking_sessions_new` de cortesía por delante: si esa tabla ya
+ * existiera, algo habría dejado una migración a medias y borrarla en silencio taparía el rastro.
+ */
+internal val MIGRATION_17_18 = object : Migration(17, 18) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("CREATE TABLE IF NOT EXISTS `parking_sessions_new` (`id` TEXT NOT NULL, `userId` TEXT NOT NULL, `vehicleId` TEXT, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `accuracy` REAL NOT NULL, `timestamp` INTEGER NOT NULL, `geofenceId` TEXT, `isActive` INTEGER NOT NULL, `addressStreet` TEXT, `addressCity` TEXT, `addressRegion` TEXT, `addressCountry` TEXT, `addressCountryCode` TEXT, `addressProvince` TEXT, `addressPostalCode` TEXT, `placeInfoName` TEXT, `placeInfoCategory` TEXT, `detectionReliability` REAL, `sizeCategory` TEXT, `carbodyType` TEXT, `spotType` TEXT, `privateZoneId` TEXT, `tripMaxSpeedMps` REAL, `provisionalDepartureAtMs` INTEGER, `armEvidence` TEXT, `decisionEvidence` TEXT, `detectionPath` TEXT, `zoneRadiusMeters` REAL, `routePolyline` TEXT, `routeSnapped` INTEGER NOT NULL, `routeInferredSpans` TEXT, `routeInferredResolution` TEXT, `routeDistanceMeters` REAL, `searchTimeMs` INTEGER, `endedAtMs` INTEGER, `publishedSpot` INTEGER NOT NULL, `retractedAtMs` INTEGER, `updatedAt` INTEGER NOT NULL, `pendingSync` INTEGER NOT NULL, PRIMARY KEY(`id`))")
+        connection.execSQL(
+            "INSERT INTO `parking_sessions_new` (`id`, `userId`, `vehicleId`, `latitude`, `longitude`, `accuracy`, `timestamp`, `geofenceId`, `isActive`, `addressStreet`, `addressCity`, `addressRegion`, `addressCountry`, `addressCountryCode`, `addressProvince`, `addressPostalCode`, `placeInfoName`, `placeInfoCategory`, `detectionReliability`, `sizeCategory`, `carbodyType`, `spotType`, `privateZoneId`, `tripMaxSpeedMps`, `provisionalDepartureAtMs`, `armEvidence`, `decisionEvidence`, `detectionPath`, `zoneRadiusMeters`, `routePolyline`, `routeSnapped`, `routeInferredSpans`, `routeInferredResolution`, `routeDistanceMeters`, `searchTimeMs`, `endedAtMs`, `publishedSpot`, `retractedAtMs`, `updatedAt`, `pendingSync`) SELECT `id`, `userId`, `vehicleId`, `latitude`, `longitude`, `accuracy`, `timestamp`, `geofenceId`, `isActive`, `addressStreet`, `addressCity`, `addressRegion`, `addressCountry`, `addressCountryCode`, `addressProvince`, `addressPostalCode`, `placeInfoName`, `placeInfoCategory`, `detectionReliability`, `sizeCategory`, `carbodyType`, `spotType`, `privateZoneId`, `tripMaxSpeedMps`, `provisionalDepartureAtMs`, `armEvidence`, `decisionEvidence`, `detectionPath`, `zoneRadiusMeters`, `routePolyline`, `routeSnapped`, `routeInferredSpans`, `routeInferredResolution`, `routeDistanceMeters`, `searchTimeMs`, `endedAtMs`, `publishedSpot`, `retractedAtMs`, `updatedAt`, `pendingSync` FROM `parking_sessions`",
+        )
+        connection.execSQL("DROP TABLE `parking_sessions`")
+        connection.execSQL("ALTER TABLE `parking_sessions_new` RENAME TO `parking_sessions`")
+    }
+}
+
+val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18)

@@ -284,7 +284,6 @@ class RemoteUserProfileDataSourceImpl(
                 accuracy = get<Double?>(FIELD_ACCURACY)?.toFloat() ?: 0f,
                 timestamp = getLongCompat(FIELD_TIMESTAMP),
                 isActive = get<Boolean?>(FIELD_IS_ACTIVE) ?: false,
-                spotId = get<String?>(FIELD_SPOT_ID),
                 geofenceId = get<String?>(FIELD_GEOFENCE_ID),
                 address = runCatching { get<AddressDto?>(FIELD_ADDRESS) }.getOrNull(),
                 placeInfo = runCatching { get<PlaceInfoDto?>(FIELD_PLACE_INFO) }.getOrNull(),
@@ -386,7 +385,6 @@ class RemoteUserProfileDataSourceImpl(
         const val FIELD_ACCURACY = "accuracy"
         const val FIELD_TIMESTAMP = "timestamp"
         const val FIELD_IS_ACTIVE = "isActive"
-        const val FIELD_SPOT_ID = "spotId"
         const val FIELD_GEOFENCE_ID = "geofenceId"
         const val FIELD_ADDRESS = "address"
         const val FIELD_PLACE_INFO = "placeInfo"
