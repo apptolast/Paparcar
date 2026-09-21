@@ -60,6 +60,8 @@ data class ParkingHistoryDto(
     val routeDistanceMeters: Float? = null,
     /** Search-for-a-spot time (ms) — measured once at confirm (the polyline carries no clocks), so
      *  it syncs or it is lost. [TRIP-THE-SEARCH-FOR-A-SPOT-IS-MEASURED-001] */
+    /** La plaza de la comunidad que ocupó. [SPOT-A-SPACE-THE-COMMUNITY-GAVE-YOU-IS-ONE-YOU-VOUCHED-FOR-001] */
+    val communitySpotId: String? = null,
     val searchTimeMs: Long? = null,
     /** Epoch-ms when the session ended (isActive → false). Null on legacy docs / active sessions.
      *  [VEH-STATS-SAY-SOMETHING-USEFUL-001] */

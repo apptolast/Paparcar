@@ -26,6 +26,7 @@ import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.sensor.DetectionStepAnchors
 import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy
+import com.rndeveloper.paparcar.domain.spot.communityGaveThisSpot
 import com.rndeveloper.paparcar.domain.util.PolylineCodec
 import com.rndeveloper.paparcar.domain.util.haversineMeters
 import com.rndeveloper.paparcar.domain.service.DepartureEventBus
@@ -338,6 +339,9 @@ class ConfirmParkingUseCase(
             decisionEvidence = decisionEvidence,
             detectionPath = detectionPath,
             zoneRadiusMeters = zoneRadiusMeters,
+            // Quién te dio esta plaza, si es que alguien te la dio: sólo cuando TÚ diste fe de
+            // estar en ella. [SPOT-A-SPACE-THE-COMMUNITY-GAVE-YOU-IS-ONE-YOU-VOUCHED-FOR-001]
+            communitySpotId = communityGaveThisSpot(appPreferences?.vouchedSpot, gpsPoint),
             routePolyline = routePolyline,
             searchTimeMs = searchTimeMs, // [TRIP-THE-SEARCH-FOR-A-SPOT-IS-MEASURED-001]
         )

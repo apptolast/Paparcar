@@ -115,6 +115,20 @@ data class UserParking(
      *  [com.rndeveloper.paparcar.domain.detection.ParkingSearchTime]. Stamped only when a fresh
      *  measured route was attached; null = unmeasurable (short hop, no route, legacy) — never 0.
      *  Synced. [TRIP-THE-SEARCH-FOR-A-SPOT-IS-MEASURED-001] */
+    /**
+     * La plaza de la comunidad que ESTA sesión ocupó, o null — que es lo normal.
+     * [SPOT-A-SPACE-THE-COMMUNITY-GAVE-YOU-IS-ONE-YOU-VOUCHED-FOR-001]
+     *
+     * ⛔ **Esto es lo que el difunto `spotId` fingía ser** [DATA-A-DEAD-FIELD-THAT-LIES-IS-WORSE-THAN-A-DEAD-FIELD-001],
+     * y por eso NO se llama igual: aquél no contenía nada y su nombre hacía creer que sí.
+     *
+     * Sólo se rellena cuando el propio usuario dio fe de estar en la plaza («sigue libre», con el
+     * filtro de proximidad ya pasado) y aparcó en ella antes de que caducara. Subcuenta siempre, a
+     * propósito: no ver una plaza que te dieron sólo deja la cifra pequeña, mientras que atribuirse
+     * una que encontraste tú la convierte en propaganda.
+     */
+    val communitySpotId: String? = null,
+
     val searchTimeMs: Long? = null,
     /** Epoch-ms when this session ENDED (isActive flipped false) — the moment the departure was
      *  committed, or the real deduced-departure instant when a promotion finalizes one. Null while

@@ -16,6 +16,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
+import com.rndeveloper.paparcar.domain.spot.VouchedSpot
 import com.rndeveloper.paparcar.localePrefersImperialUnits
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.domain.model.GpsPoint
@@ -341,6 +342,33 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
 
     override fun setSyncRouteGeometry(enabled: Boolean) = set(Keys.SYNC_ROUTE_GEOMETRY, enabled)
 
+    /**
+     * La plaza por la que se dio fe, serializada en UNA cadena.
+     * [SPOT-A-SPACE-THE-COMMUNITY-GAVE-YOU-IS-ONE-YOU-VOUCHED-FOR-001]
+     *
+     * ⚠️ Cuatro campos en cuatro claves separadas se pueden leer a medio escribir; en una sola, o
+     * está el registro entero o no está. Y una cadena que no se entiende **se lee como null**: un
+     * formato viejo tiene que dejar la cifra pequeña, nunca reventar un aparcamiento.
+     */
+    override val vouchedSpot: VouchedSpot?
+        get() = get(Keys.VOUCHED_SPOT, "").takeIf { it.isNotBlank() }?.let { raw ->
+            val parts = raw.split(VOUCH_SEPARATOR)
+            if (parts.size != VOUCH_FIELDS) return null
+            VouchedSpot(
+                spotId = parts[0].ifBlank { return null },
+                latitude = parts[1].toDoubleOrNull() ?: return null,
+                longitude = parts[2].toDoubleOrNull() ?: return null,
+                expiresAtMs = parts[3].toLongOrNull() ?: return null,
+            )
+        }
+
+    override fun setVouchedSpot(spot: VouchedSpot?) = set(
+        Keys.VOUCHED_SPOT,
+        spot?.let {
+            listOf(it.spotId, it.latitude, it.longitude, it.expiresAtMs).joinToString(VOUCH_SEPARATOR)
+        } ?: "",
+    )
+
     // [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001] No default: absent means "never published",
     // which is exactly what null says. A default would claim a snapshot had already been sent.
     override val lastPublishedDetectionState: String?
@@ -411,6 +439,7 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         // [MONEY-A-CARD-THAT-NEVER-APPEARS-IS-NEVER-SOLD-001] The recap's own switch, which it
         // never had — its three sibling channels all did.
         val NOTIFY_MONTH_RECAP = booleanPreferencesKey("notify_month_recap")
+        val VOUCHED_SPOT                    = stringPreferencesKey("vouched_spot")
         val SYNC_ROUTE_GEOMETRY = booleanPreferencesKey("sync_route_geometry") // [PRIV-A-TRACE-IS-NOT-A-STAT-001]
         // [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001] What was last reported to the account doc.
         val LAST_PUBLISHED_DETECTION_STATE = stringPreferencesKey("last_published_detection_state")
@@ -480,3 +509,7 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
 }
 
 private const val DATASTORE_NAME = "paparcar_prefs"
+
+/** ⛔ Un carácter que no puede aparecer en un id de plaza ni en un número. */
+private const val VOUCH_SEPARATOR = "|"
+private const val VOUCH_FIELDS = 4

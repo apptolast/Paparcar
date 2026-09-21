@@ -74,6 +74,8 @@ data class UserParkingEntity(
     // stats never decode polylines. Null = no route (BT/legacy). Synced. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
     val routeDistanceMeters: Float? = null,
     /** Search-for-a-spot time (ms), measured once at confirm. [TRIP-THE-SEARCH-FOR-A-SPOT-IS-MEASURED-001] */
+    /** La plaza de la comunidad que ocupó. [SPOT-A-SPACE-THE-COMMUNITY-GAVE-YOU-IS-ONE-YOU-VOUCHED-FOR-001] */
+    val communitySpotId: String? = null,
     val searchTimeMs: Long? = null,
     // Epoch-ms when the session ENDED (isActive flipped false). COALESCE-stamped: the first close
     // wins over idempotent re-clears. Null while active / legacy closes. Synced.

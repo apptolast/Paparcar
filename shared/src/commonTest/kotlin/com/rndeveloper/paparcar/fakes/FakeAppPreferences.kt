@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.fakes
 
+import com.rndeveloper.paparcar.domain.spot.VouchedSpot
 import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
@@ -147,6 +148,11 @@ class FakeAppPreferences(
     private var _syncRouteGeometry = false
     override val syncRouteGeometry: Boolean get() = _syncRouteGeometry
     override fun setSyncRouteGeometry(enabled: Boolean) { _syncRouteGeometry = enabled }
+
+    /** La plaza por la que se dio fe. [SPOT-A-SPACE-THE-COMMUNITY-GAVE-YOU-IS-ONE-YOU-VOUCHED-FOR-001] */
+    private var _vouchedSpot: VouchedSpot? = null
+    override val vouchedSpot: VouchedSpot? get() = _vouchedSpot
+    override fun setVouchedSpot(spot: VouchedSpot?) { _vouchedSpot = spot }
 
     // [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001] Starts null = nothing published yet.
     private var _lastPublishedDetectionState: String? = null

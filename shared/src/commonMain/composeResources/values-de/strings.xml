@@ -172,6 +172,7 @@
     <string name="parking_detail_route_recalculating">Route wird neu berechnet…</string>
     <string name="parking_detail_route_off_device">Die Route dieser Fahrt war nur auf dem Handy gespeichert, das sie aufgezeichnet hat, und ist nicht mehr da.</string>
     <string name="parking_detail_route_refused">Du hast gesagt, dass du nicht hier langgefahren bist — deshalb zeichnen wir die Route nicht.</string>
+    <string name="parking_detail_community_gave_it">Diesen Platz hat die Community für dich frei gemacht</string>
     <string name="parking_detail_route_inferred_question">Ein Teil dieser Route wurde rekonstruiert, weil das GPS-Signal unterwegs verloren ging. Bist du hier entlanggefahren?</string>
     <string name="parking_detail_route_inferred_yes">Ja</string>
     <string name="parking_detail_route_inferred_no">Nein</string>

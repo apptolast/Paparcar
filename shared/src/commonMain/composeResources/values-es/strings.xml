@@ -220,6 +220,7 @@
     <string name="parking_detail_route_recalculating">Recalculando ruta…</string>
     <string name="parking_detail_route_off_device">El recorrido de este viaje solo se guardó en el móvil que lo grabó, y ya no está.</string>
     <string name="parking_detail_route_refused">Dijiste que no fuiste por aquí, así que no dibujamos el recorrido.</string>
+    <string name="parking_detail_community_gave_it">Esta plaza te la dejó libre la comunidad</string>
     <string name="parking_detail_route_inferred_question">Parte de esta ruta se ha reconstruido porque la señal GPS se perdió por el camino. ¿Pasaste por aquí?</string>
     <string name="parking_detail_route_inferred_yes">Sí</string>
     <string name="parking_detail_route_inferred_no">No</string>

@@ -4,6 +4,7 @@ import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
+import com.rndeveloper.paparcar.domain.spot.VouchedSpot
 import kotlinx.coroutines.flow.Flow
 
 interface AppPreferences {
@@ -209,6 +210,23 @@ interface AppPreferences {
      *  only with this consent. USER-scoped: consent belongs to the account, cleared on sign-out. */
     val syncRouteGeometry: Boolean
     fun setSyncRouteGeometry(enabled: Boolean)
+
+    /**
+     * La última plaza por la que el usuario dio fe estando en ella («sigue libre», voto aceptado y
+     * dentro del filtro de proximidad). Null si no hay ninguna viva.
+     * [SPOT-A-SPACE-THE-COMMUNITY-GAVE-YOU-IS-ONE-YOU-VOUCHED-FOR-001]
+     *
+     * ⛔ **Sólo se guarda la ÚLTIMA, no una lista.** Dar fe de dos plazas y aparcar en la primera es
+     * un caso que existe y que esto no verá — y perderlo sólo hace la cifra más pequeña, que es el
+     * lado correcto de equivocarse. Una lista añadiría una poda, una caducidad y un tamaño máximo
+     * para ganar un caso raro.
+     *
+     * ⚠️ Vive aquí y no en Room porque tiene que sobrevivir a la muerte del proceso —entre el voto
+     * y el aparcamiento pueden pasar minutos y el servicio de detección va por su cuenta— y porque
+     * es UN registro, no una tabla.
+     */
+    val vouchedSpot: VouchedSpot?
+    fun setVouchedSpot(spot: VouchedSpot?)
 
     /**
      * Fingerprint of the detection state last published to the account's Firestore doc, or null if

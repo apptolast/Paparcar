@@ -50,6 +50,7 @@ fun UserParkingEntity.toDomain(): UserParking = UserParking(
     routeInferredSpans = routeInferredSpans,
     routeInferredResolution = routeInferredResolution.toEnumOrNull<RouteInferenceResolution>(),
     routeDistanceMeters = routeDistanceMeters,
+    communitySpotId = communitySpotId,
     searchTimeMs = searchTimeMs,
     endedAtMs = endedAtMs,
     publishedSpot = publishedSpot,
@@ -133,6 +134,7 @@ fun UserParking.toEntity(updatedAt: Long = 0, pendingSync: Boolean = false): Use
     // Close provenance + route length round-trip Room and sync to Firestore.
     // [VEH-STATS-SAY-SOMETHING-USEFUL-001]
     routeDistanceMeters = routeDistanceMeters,
+    communitySpotId = communitySpotId,
     searchTimeMs = searchTimeMs,
     endedAtMs = endedAtMs,
     publishedSpot = publishedSpot,
@@ -188,6 +190,7 @@ fun UserParking.toParkingHistoryDto(updatedAt: Long = 0L) = ParkingHistoryDto(
     routeInferredSpans = routeInferredSpans,
     routeInferredResolution = routeInferredResolution?.name,
     routeDistanceMeters = routeDistanceMeters,
+    communitySpotId = communitySpotId,
     searchTimeMs = searchTimeMs,
     endedAtMs = endedAtMs,
     publishedSpot = publishedSpot,
@@ -237,6 +240,7 @@ fun ParkingHistoryDto.toEntity() = UserParkingEntity(
     // Legacy docs predate the persisted length → recompute from the polyline they DO carry, so a
     // restore self-heals instead of undercounting km forever. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
     routeDistanceMeters = routeDistanceMeters ?: PolylineCodec.lengthMeters(routePolyline),
+    communitySpotId = communitySpotId,
     searchTimeMs = searchTimeMs,
     endedAtMs = endedAtMs,
     publishedSpot = publishedSpot,

@@ -30,6 +30,7 @@ import androidx.compose.material.icons.rounded.EditLocationAlt
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Navigation
 import androidx.compose.material.icons.rounded.Radar
+import androidx.compose.material.icons.rounded.VolunteerActivism
 import androidx.compose.material.icons.rounded.AccessTimeFilled
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -100,6 +101,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_section_label
+import paparcar.composeapp.generated.resources.parking_detail_community_gave_it
 import paparcar.composeapp.generated.resources.home_peek_car_parked_label
 import paparcar.composeapp.generated.resources.home_peek_vehicle_parked_label
 import paparcar.composeapp.generated.resources.map_cd_back
@@ -713,6 +715,18 @@ private fun HistoryParkingCard(
                 // esta pantalla presentaba una zona de 250 m como un punto exacto, con un botón
                 // «Navegar a esta ubicación» debajo.
                 ApproximateZoneRow(zoneRadiusMeters = session.zoneRadiusMeters, accentColor = metaTint)
+                // ⛔ Un HECHO de esta sesión, no una cifra agregada: aquí siempre es verdad cuando
+                // se enseña, porque sólo aparece si TÚ diste fe de estar en esa plaza. Un total
+                // construido sobre votos voluntarios subcontaría siempre, y un total que subcuenta
+                // puesto al lado de totales medidos es una mentira.
+                // [SPOT-A-SPACE-THE-COMMUNITY-GAVE-YOU-IS-ONE-YOU-VOUCHED-FOR-001]
+                if (session.communitySpotId != null) {
+                    PeekMetaRow(
+                        icon = Icons.Rounded.VolunteerActivism,
+                        tint = metaTint,
+                        text = stringResource(Res.string.parking_detail_community_gave_it),
+                    )
+                }
             }
         },
         actions = {
