@@ -45,3 +45,52 @@ en esta categoría.»*
    preguntársela al usuario una vez en la ficha del coche.
 2. **¿Los tres chips, o sólo tarifa?** «Cubiertos» es útil con lluvia, pero suma un tercer chip a
    una fila que ya se desplaza.
+
+## Segunda vuelta (review del user, 20-09): «los filtros serán sticky como los tabs»
+
+### Lo que se encontró al ir a hacerlo
+
+**La barra de tallas de PLAZAS tampoco era sticky.** O sea que esto no era un rasgo que le faltara al
+carril de parkings: era un rasgo que le faltaba a la **cabecera del carril**, y arreglarlo sólo en
+parkings habría dejado dos carriles comportándose distinto en la misma hoja.
+
+### ⛔ Por qué NO son dos `stickyHeader`
+
+Lo obvio —hacer la barra de filtros su propio `stickyHeader`— **rompe los tabs**. En una
+`LazyColumn` sólo hay un sticky a la vez: el siguiente empuja al anterior y lo echa fuera. La barra
+de filtros habría expulsado la fila de pestañas, que es justo la fila cuya razón de ser es que
+volver a Plazas desde el fondo de una lista no cueste un scroll.
+
+**Tabs y filtros pasan a ser UN solo bloque fijado.** Además de no pelearse, dice la verdad de lo
+que son: los filtros no son de la hoja, son **del carril**, y el carril lo eligen los tabs de
+encima. Por eso el bloque cambia de contenido al cambiar de pestaña.
+
+### Dónde vive ahora
+
+Un composable nuevo, `LaneFilterBar`, dentro del `stickyHeader` de la cabecera. Un solo sitio decide
+qué filtros se enseñan y lo decide la pestaña:
+
+| Carril | Se enseña cuando | Por qué esa condición y no otra |
+|---|---|---|
+| Plazas | `hasAnySpots` | el feed es una suscripción viva: si hay plazas, hay algo que filtrar |
+| Parkings | `hasAnyBeforeFilter` | encima de «no hemos podido preguntar», la barra haría creer que el filtro es la causa de que no haya nada |
+| Gasolineras | — | entra por aquí en #42, no por dentro del carril |
+
+⛔ **Las dos condiciones NO se unifican**: son preguntas distintas y colapsarlas inventaría un
+veredicto para uno de los dos carriles.
+
+### Consumidores auditados (segunda vuelta)
+
+- `HomeParkingsLane` → deja de dibujar su barra y **pierde el parámetro `onFilterSelect`**.
+- `spotsLane` → pierde su `item("filter_bar")`.
+- `HomeParkingFilterBar` → pasa de privado a público, para que la cabecera pueda pedirlo.
+- **Dev Catalog** (`StateGalleryScreen`) → ⚠️ **lo cazó el compilador del flavor mock**, no yo: las
+  dos variantes del carril pasaban `onFilterSelect`. Ahora componen barra + carril igual que la
+  hoja, que además es más fiel a lo que se ve en device. Es exactamente el fallo que
+  `TEST-A-GUARD-MUST-NOT-READ-THE-FOLDER-NAME-001` dice que hay que correr con `:app`.
+
+### Verificación
+
+`./gradlew testAll :app:compileMockDebugKotlin :app:compileProdDebugKotlin` → BUILD SUCCESSFUL.
+
+⏳ **Sin captura del estado final**: no hay device conectado (`PR-A-VISUAL-CHANGE-SHOWS-ITSELF-001`).

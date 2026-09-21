@@ -57,24 +57,15 @@ fun HomeParkingsLane(
     /** Whether Home has a position at all: without one the rows drop the distance, which is the one
      *  thing they say ABOUT THE USER. [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001] */
     hasFix: Boolean = true,
-    /** Filtrar por tarifa o por techo. Null = sin barra (galería, previews).
-     *  [PARKINGS-THE-LANE-FILTERS-BY-WHAT-WE-KNOW-001] */
-    onFilterSelect: ((PublicParkingFilter?) -> Unit)? = null,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         // ⛔ ABOVE the rows and above every other sentence, including the failure one: "we could not
         // ask" only means something to someone who already knows what was being asked and of whom.
         if (isIntroducing) LaneIntroNote(NearbyComplement.CAR_PARKS)
 
-        // Sólo con respuesta que filtrar: encima de «no hemos podido preguntar» haría creer que el
-        // filtro es la causa. [PARKINGS-THE-LANE-FILTERS-BY-WHAT-WE-KNOW-001]
-        if (onFilterSelect != null && slice.hasAnyBeforeFilter) {
-            HomeParkingFilterBar(
-                selected = slice.filter,
-                onSelect = onFilterSelect,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-            )
-        }
+        // ⛔ La barra de filtros NO se dibuja aquí: vive en la cabecera fijada de la hoja, junto a
+        // los tabs, para que siga visible al desplazar la lista. Ver [laneFilterBar] en
+        // `HomeSheetContent`. [PARKINGS-THE-LANE-FILTERS-BY-WHAT-WE-KNOW-001]
 
         when {
             // ⛔ Too far from the user to follow: nothing was asked, so neither the empty sentence nor
@@ -178,7 +169,7 @@ private const val EMPTY_ILLUSTRATION_H = 96
  * necesita su propia opción.
  */
 @Composable
-private fun HomeParkingFilterBar(
+fun HomeParkingFilterBar(
     selected: PublicParkingFilter?,
     onSelect: (PublicParkingFilter?) -> Unit,
     modifier: Modifier = Modifier,

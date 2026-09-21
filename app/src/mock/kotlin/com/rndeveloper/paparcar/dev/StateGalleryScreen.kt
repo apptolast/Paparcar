@@ -170,6 +170,7 @@ import com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice
 import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
 import com.rndeveloper.paparcar.presentation.home.model.HomeParkingsSlice
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomeFuelLane
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomeParkingFilterBar
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomeParkingsLane
 import com.rndeveloper.paparcar.domain.parkings.FeeInfo
 import com.rndeveloper.paparcar.domain.parkings.PublicParking
@@ -3826,25 +3827,40 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             // a proposito — inventar "gratis" sobre un fee ausente manda al conductor a una barrera.
             // Los filtros del carril: los tres, y el vacío que distingue «no hay» de «ninguno
             // cumple lo que pediste». [PARKINGS-THE-LANE-FILTERS-BY-WHAT-WE-KNOW-001]
+            // ⛔ La barra se pide APARTE del carril, porque en Home vive en la cabecera fijada junto
+            // a los tabs y no dentro de la lista. La galería la compone igual que la hoja: barra
+            // encima, carril debajo. [PARKINGS-THE-LANE-FILTERS-BY-WHAT-WE-KNOW-001]
             Variant("Carril con filtros", Placement.Surface) {
-                HomeParkingsLane(
-                    slice = HomeParkingsSlice(
-                        parkings = galleryParkings,
-                        hasAnyBeforeFilter = true,
-                        filter = PublicParkingFilter.COVERED,
-                    ),
-                    onFilterSelect = {},
-                )
+                Column {
+                    HomeParkingFilterBar(
+                        selected = PublicParkingFilter.COVERED,
+                        onSelect = {},
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    )
+                    HomeParkingsLane(
+                        slice = HomeParkingsSlice(
+                            parkings = galleryParkings,
+                            hasAnyBeforeFilter = true,
+                            filter = PublicParkingFilter.COVERED,
+                        ),
+                    )
+                }
             },
             Variant("Carril · el filtro no deja ninguno", Placement.Surface) {
-                HomeParkingsLane(
-                    slice = HomeParkingsSlice(
-                        parkings = emptyList(),
-                        hasAnyBeforeFilter = true,
-                        filter = PublicParkingFilter.FREE,
-                    ),
-                    onFilterSelect = {},
-                )
+                Column {
+                    HomeParkingFilterBar(
+                        selected = PublicParkingFilter.FREE,
+                        onSelect = {},
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    )
+                    HomeParkingsLane(
+                        slice = HomeParkingsSlice(
+                            parkings = emptyList(),
+                            hasAnyBeforeFilter = true,
+                            filter = PublicParkingFilter.FREE,
+                        ),
+                    )
+                }
             },
             Variant("Peek de parking (sin nombre, sin datos)", Placement.Surface) {
                 peek(

@@ -492,21 +492,36 @@ private fun LazyListScope.nearbyLane(
     // a car-park list the way back to the spots is the row already pinned above, not a scroll to the
     // top. Its key is public because the checklist's GuideTo walks the list to it. [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
     stickyHeader(NEARBY_LENS_KEY) {
-        HomeNearbyLensRow(
-            lens = slice.nearbyLens,
-            // Spots always know their count — the feed is a live subscription. The complements only
-            // know theirs once their lane has been asked, and a `· 0` before that would be a verdict
-            // no source gave. [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
-            spotCount = filteredSpots.size,
-            fuelCount = slice.fuel.stations.size,
-            parkingsCount = slice.parkings.parkings.size,
-            onSelect = { lens -> onIntent(HomeIntent.SetNearbyLens(lens)) },
-            highlighted = when (firstStepGuide) {
-                FirstStepGuide.SPOTS_LANE -> setOf(HomeNearbyLens.SPOTS)
-                FirstStepGuide.NEARBY_COMPLEMENT_TABS -> setOf(HomeNearbyLens.PARKINGS, HomeNearbyLens.FUEL)
-                else -> emptySet()
-            },
-        )
+        // ⛔ **Tabs y filtros son UN solo bloque fijado, y tenía que ser uno.**
+        // [PARKINGS-THE-LANE-FILTERS-BY-WHAT-WE-KNOW-001]
+        //
+        // Los filtros también se quedan arriba al desplazar (petición del user), pero hacerlos un
+        // `stickyHeader` aparte los habría enfrentado con éste: en una `LazyColumn` sólo hay un
+        // sticky a la vez y el siguiente EXPULSA al anterior, así que la barra de filtros habría
+        // echado fuera los tabs — justo la fila cuya razón de ser es que volver a Plazas desde el
+        // fondo de una lista no cueste un scroll.
+        //
+        // Juntos en un bloque no hay pelea, y además dicen la verdad de lo que son: los filtros no
+        // son de la hoja, son DEL CARRIL, y el carril lo eligen los tabs de encima. Por eso el
+        // bloque cambia de contenido cuando cambia la pestaña.
+        Column {
+            HomeNearbyLensRow(
+                lens = slice.nearbyLens,
+                // Spots always know their count — the feed is a live subscription. The complements
+                // only know theirs once their lane has been asked, and a `· 0` before that would be
+                // a verdict no source gave. [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+                spotCount = filteredSpots.size,
+                fuelCount = slice.fuel.stations.size,
+                parkingsCount = slice.parkings.parkings.size,
+                onSelect = { lens -> onIntent(HomeIntent.SetNearbyLens(lens)) },
+                highlighted = when (firstStepGuide) {
+                    FirstStepGuide.SPOTS_LANE -> setOf(HomeNearbyLens.SPOTS)
+                    FirstStepGuide.NEARBY_COMPLEMENT_TABS -> setOf(HomeNearbyLens.PARKINGS, HomeNearbyLens.FUEL)
+                    else -> emptySet()
+                },
+            )
+            LaneFilterBar(slice, onIntent, showFilterBar, rowsScroll)
+        }
     }
 
     when (slice.nearbyLens) {
@@ -531,7 +546,7 @@ private fun LazyListScope.nearbyLane(
                 // Sin fix la fila se calla la distancia: se midió desde la cámara, no desde ti.
                 // [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
                 hasFix = slice.userGpsPoint != null,
-                onFilterSelect = { filter -> onIntent(HomeIntent.SetParkingFilter(filter)) },
+
             )
         }
 
@@ -548,6 +563,55 @@ private fun LazyListScope.nearbyLane(
     }
 }
 
+/**
+ * **La barra de filtros DEL CARRIL ACTIVO**, dentro de la cabecera fijada y justo bajo los tabs.
+ * [PARKINGS-THE-LANE-FILTERS-BY-WHAT-WE-KNOW-001]
+ *
+ * Un solo sitio decide qué filtros se enseñan, y lo decide la pestaña. Antes cada carril dibujaba
+ * los suyos donde le tocaba —las tallas como un `item` de la lista de plazas, la tarifa dentro del
+ * propio `HomeParkingsLane`—, así que se iban con el scroll y, peor, no había forma de que dos
+ * carriles se pusieran de acuerdo sobre dónde vive su barra.
+ *
+ * ⛔ **Cada carril decide si TIENE filtros y cuándo enseñarlos, y la condición no es la misma**:
+ *  · Plazas los enseña con que haya plazas (`hasAnySpots`) — el feed es una suscripción viva.
+ *  · Parkings sólo con una respuesta que filtrar (`hasAnyBeforeFilter`): encima de «no hemos podido
+ *    preguntar» la barra haría creer que el filtro es la causa de que no haya nada.
+ * Unificar las dos en una sola condición sería inventarse un veredicto para uno de los dos.
+ */
+@Composable
+private fun LaneFilterBar(
+    slice: HomeBrowseListSlice,
+    onIntent: (HomeIntent) -> Unit,
+    showFilterBar: Boolean,
+    rowsScroll: HomeSheetRowsScroll?,
+) {
+    // 16dp — same grid as headers/rows so the bar doesn't step out of the left edge when the sheet
+    // expands. [HOME-VEH-REFINE-001]
+    val barModifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+    when (slice.nearbyLens) {
+        HomeNearbyLens.SPOTS -> if (showFilterBar) {
+            HomeSizeFilterBar(
+                selectedSize = slice.sizeFilter,
+                onFilterSelect = { size -> onIntent(HomeIntent.SetSizeFilter(size)) },
+                scrollState = rowsScroll?.sizeFilter ?: rememberScrollState(),
+                modifier = barModifier,
+            )
+        }
+
+        HomeNearbyLens.PARKINGS -> if (slice.parkings.hasAnyBeforeFilter) {
+            HomeParkingFilterBar(
+                selected = slice.parkings.filter,
+                onSelect = { filter -> onIntent(HomeIntent.SetParkingFilter(filter)) },
+                modifier = barModifier,
+            )
+        }
+
+        // Gasolineras: su barra llega en [FUEL-THE-LANE-IS-FILTERED-BY-WHAT-YOU-BURN-001] (#42) y
+        // entra por aquí, no por dentro del carril.
+        HomeNearbyLens.FUEL -> Unit
+    }
+}
+
 private fun LazyListScope.spotsLane(
     slice: HomeBrowseListSlice,
     onIntent: (HomeIntent) -> Unit,
@@ -557,18 +621,8 @@ private fun LazyListScope.spotsLane(
     rowsScroll: HomeSheetRowsScroll?,
     firstStepGuide: FirstStepGuide?,
 ) {
-    if (showFilterBar) {
-        item(key = "filter_bar") {
-            HomeSizeFilterBar(
-                selectedSize = slice.sizeFilter,
-                onFilterSelect = { size -> onIntent(HomeIntent.SetSizeFilter(size)) },
-                scrollState = rowsScroll?.sizeFilter ?: rememberScrollState(),
-                // 16dp — same grid as headers/rows so the bar doesn't step out of the
-                // left edge when the sheet expands. [HOME-VEH-REFINE-001]
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-            )
-        }
-    }
+    // ⛔ La barra de tallas ya NO se dibuja aquí: subió a la cabecera fijada, con los tabs.
+    // Ver [LaneFilterBar]. [PARKINGS-THE-LANE-FILTERS-BY-WHAT-WE-KNOW-001]
 
     when {
         slice.isLoading -> item("skeleton") { NearbyRowsSkeleton() }
