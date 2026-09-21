@@ -96,21 +96,25 @@ internal fun fuelStationContentId(
     "${if (selected) "sel" else if (dim) "dim" else "nrm"}_$themeKey"
 
 /**
- * One bitmap per car park × selection × theme — and **no figure on the capsule**, which is a
- * decision. [PARKINGS-ON-THE-MAP-001]
+ * One bitmap per car park × **fee word** × selection × theme. La tarifa entra en la clave por la
+ * misma razón que el precio entra en la de la gasolinera: está DIBUJADA dentro del bitmap, y kmpmaps
+ * cachea por `contentId`. [MAP-A-CAR-PARK-MARKER-SAYS-WHAT-IT-COSTS-001]
  *
- * The only number OSM offers is `capacity`, present on 2 of the 22 car parks measured around Sol,
- * and it is the TOTAL. `PARKINGS-LIVE-OCCUPANCY-001` will draw **free spaces** in exactly that spot.
- * Writing a total there today would mean the same slot says two different things across two
- * releases, which is how a reader learns to distrust it. The "P" carries the marker; the peek
- * carries the facts.
+ * ⛔ **Sigue sin ir ninguna CIFRA**, y eso es una decisión. El único número que ofrece OSM es
+ * `capacity`, presente en 2 de los 22 parkings medidos alrededor de Sol, y es el TOTAL;
+ * `PARKINGS-LIVE-OCCUPANCY-001` dibujará las plazas LIBRES exactamente en ese hueco. Escribir hoy un
+ * total ahí sería que el mismo sitio dice dos cosas distintas en dos versiones, que es como un
+ * lector aprende a desconfiar. Y `charge` (lo que cuesta) es texto libre —«1.50 EUR/hour», «first
+ * 30 min free»— con cobertura residual: no hay precio que escribir, sólo si se paga o no.
  */
 internal fun publicParkingContentId(
     parkingId: String,
     selected: Boolean,
     themeKey: String,
     dim: Boolean = false,
-): String = "$MARKER_PUBLIC_PARKING_PREFIX${parkingId}_${if (selected) "sel" else if (dim) "dim" else "nrm"}_$themeKey"
+    feeLabel: String? = null,
+): String = "$MARKER_PUBLIC_PARKING_PREFIX${parkingId}_${feeLabel.orEmpty()}_" +
+    "${if (selected) "sel" else if (dim) "dim" else "nrm"}_$themeKey"
 
 // ── What a tap on a marker means ────────────────────────────────────────────
 

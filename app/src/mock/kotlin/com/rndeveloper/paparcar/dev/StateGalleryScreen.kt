@@ -3832,12 +3832,28 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
-            // La capsula: solo la "P". Sin cifra, porque la unica que ofrece OSM es el aforo TOTAL
-            // y esa ranura es donde ira el numero de plazas LIBRES en F6b.
-            Variant("Marcadores de la capa", Placement.Surface) {
+            // La capsula del parking: glifo + tarifa, la misma gramatica que la gasolinera.
+            // ⛔ Las TRES tarifas, y la desconocida es la que importa: es el 71% de los parkings y
+            // la unica que no puede inventarse una palabra. Sin cifra, porque la unica que ofrece
+            // OSM es el aforo TOTAL y esa ranura es donde ira el numero de plazas LIBRES en F6b.
+            // [MAP-A-CAR-PARK-MARKER-SAYS-WHAT-IT-COSTS-001]
+            Variant("Marcadores de la capa (las tres tarifas)", Placement.Surface) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    PublicParkingMarker(selected = false)
-                    PublicParkingMarker(selected = true)
+                    PublicParkingMarker(selected = false, feeLabel = null)
+                    PublicParkingMarker(selected = false, feeLabel = "Gratuito")
+                    PublicParkingMarker(selected = false, feeLabel = "De pago")
+                    PublicParkingMarker(selected = true, feeLabel = "De pago")
+                }
+            },
+            // Uno al lado del otro: la misma forma, dos acentos y dos frases. Si algun dia se
+            // separan, se ve aqui. [MAP-A-CAR-PARK-MARKER-SAYS-WHAT-IT-COSTS-001]
+            Variant("Parking y gasolinera, la misma capsula", Placement.Surface) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.Bottom,
+                ) {
+                    PublicParkingMarker(selected = false, feeLabel = "De pago")
+                    FuelStationMarker(priceText = "1.879", fuelLabel = "Gasolina", selected = false)
                 }
             },
             // ⛔ La P se juzga PEQUEÑA. A 46 dp cualquier dibujo aguanta; donde su ojo se cierra
