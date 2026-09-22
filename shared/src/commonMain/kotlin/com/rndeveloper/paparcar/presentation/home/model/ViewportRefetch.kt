@@ -96,5 +96,48 @@ object ViewportRefetch {
         }
     }
 
+    /**
+     * **¿Puedo SEGUIR ENSEÑANDO lo que tengo?** [HOME-A-PAN-MUST-NOT-EMPTY-THE-MAP-001]
+     *
+     * ⛔ Y NO es [answerCoversCamera] con otro nombre, aunque lo parezca. Aquella dice «¿está
+     * asentada esta respuesta para donde miro?» y el KDoc de ahí arriba presume de ser la misma
+     * pregunta que el refresco «leída al revés». Ahí estaba el fallo: **repreguntar es barato y
+     * conviene hacerlo PRONTO; borrar la pantalla cuesta la pantalla entera y hay que hacerlo
+     * TARDE.** Con un solo umbral para las dos, cruzar el de repreguntar vaciaba el mapa.
+     *
+     * Medido en la issue #119 con los parkings: `sameZone` compara celdas de 3 km con igualdad
+     * exacta, así que **un paneo de un metro** sobre una linde vaciaba markers y filas para
+     * repintar acto seguido una respuesta que solapa con la anterior casi por completo.
+     *
+     * El umbral de aquí es **hasta dónde alcanza la respuesta**, que cada carril ya tiene escrito y
+     * nadie tiene que inventar:
+     *  - gasolineras → el disco de [radiusMeters] alrededor del ancla, que es lo que se pidió;
+     *  - parkings → [ParkingZoneGrid.ZONE_RADIUS_METERS] alrededor del **centro de la celda** del
+     *    ancla, que es igualmente lo que se pidió.
+     *
+     * Como el umbral de repreguntar se cruza mucho antes que éste, cuando el usuario llega al borde
+     * la petición lleva rato en vuelo: el relevo ocurre con datos en pantalla todo el rato.
+     *
+     * ⛔ Sin ancla **no**: una lista que nadie ha situado no se puede enseñar en ninguna parte.
+     */
+    fun answerStillReaches(
+        anchorLat: Double?,
+        anchorLon: Double?,
+        cameraLat: Double?,
+        cameraLon: Double?,
+        radiusMeters: Int,
+        byZone: Boolean = false,
+    ): Boolean {
+        if (anchorLat == null || anchorLon == null) return false
+        if (cameraLat == null || cameraLon == null) return true // nadie ha posado la cámara
+        val (centreLat, centreLon, reach) = if (byZone) {
+            val zone = ParkingZoneGrid.zoneOf(anchorLat, anchorLon)
+            Triple(zone.centreLatitude, zone.centreLongitude, ParkingZoneGrid.ZONE_RADIUS_METERS)
+        } else {
+            Triple(anchorLat, anchorLon, radiusMeters)
+        }
+        return haversineMeters(centreLat, centreLon, cameraLat, cameraLon) <= reach
+    }
+
     private const val REFETCH_AT_FRACTION = 0.5
 }

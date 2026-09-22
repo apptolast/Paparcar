@@ -721,9 +721,16 @@ internal fun HomeState.laneFirstPoint(
 }
 
 /**
- * El estado tal y como se puede ENSEÑAR desde donde la cámara está mirando: si la tienda de un
- * complemento contesta sobre otro sitio, ese complemento se queda **vacío**.
+ * El estado tal y como está **ASENTADO** para donde la cámara mira: si la tienda de un complemento
+ * todavía no ha contestado sobre este sitio, ese complemento cuenta como vacío.
  * [HOME-A-LANE-THAT-CANNOT-ANSWER-HERE-SHOWS-NO-ROWS-001]
+ *
+ * ⛔ **Ya NO es lo que se enseña** — eso es [laneShowable], con un umbral más generoso.
+ * Aquí queda la pregunta estricta, y su único cliente es [laneFirstPoint]: **volar** la cámara a una
+ * fila es otra cosa que enseñarla. Enseñar una gasolinera que está a 4 km es correcto; llevar la
+ * cámara hasta ella porque resulta ser la primera de la lista es justo lo que
+ * [HOME-THE-CAMERA-FRAMES-WHAT-THE-LIST-SHOWS-001] existe para impedir.
+ * [HOME-A-PAN-MUST-NOT-EMPTY-THE-MAP-001]
  *
  * ⛔ Nace de que [HOME-THE-CAMERA-FRAMES-WHAT-THE-LIST-SHOWS-001] enseñó a la CÁMARA a no encuadrar
  * una respuesta de otra ciudad, y dejó a la LISTA sin aprenderlo: buscando Madrid desde Italia, las
@@ -744,6 +751,41 @@ internal fun HomeState.laneFirstPoint(
  * esto responde «no va de aquí» y el carril se vacía. Correcto y deliberado: quien cuenta que no se
  * pudo preguntar es `failed`, no una lista de otro sitio.
  */
+/**
+ * El estado tal y como se puede **ENSEÑAR** desde donde la cámara mira.
+ * [HOME-A-PAN-MUST-NOT-EMPTY-THE-MAP-001]
+ *
+ * ⛔ Esto lo hacía [laneAnsweringHere], y ahí estaba el defecto de la issue #119: usaba el umbral
+ * de «respuesta asentada», que es el mismo que el de repreguntar. Un paneo de un metro sobre una
+ * linde de la rejilla de parkings vaciaba markers y filas para repintarlas acto seguido.
+ *
+ * **Un paneo no es un salto.** Lo que [HOME-A-LANE-THAT-CANNOT-ANSWER-HERE-SHOWS-NO-ROWS-001] vino
+ * a impedir —que buscando Madrid desde Italia una fila italiana siga siendo tocable, porque tocarla
+ * te LLEVA a Italia— sigue impedido: Roma está a 1.400 km del alcance de una respuesta de Madrid.
+ * Lo que deja de pasar es confundir aquel teletransporte con arrastrar el mapa tres metros.
+ *
+ * Se aplica **una vez, sobre el estado**, como antes: mapa, peek, lista, selección y cuenta salen de
+ * aquí, así que no pueden quedarse en estados distintos.
+ *
+ * ⚠️ Un fallo de red BORRA el ancla (para que cualquier movimiento reintente), y sin ancla esto
+ * responde que no hay nada que enseñar. Correcto: quien cuenta que no se pudo preguntar es `failed`.
+ */
+internal fun HomeState.laneShowable(cameraLat: Double?, cameraLon: Double?): HomeState {
+    val parkingsGone = parkings.parkings.isNotEmpty() && !ViewportRefetch.answerStillReaches(
+        parkings.anchorLat, parkings.anchorLon, cameraLat, cameraLon,
+        radiusMeters = PublicParkingsQuery.DEFAULT_RADIUS_METERS, byZone = true,
+    )
+    val fuelGone = fuel.stations.isNotEmpty() && !ViewportRefetch.answerStillReaches(
+        fuel.anchorLat, fuel.anchorLon, cameraLat, cameraLon,
+        radiusMeters = FuelStationsQuery.DEFAULT_RADIUS_METERS,
+    )
+    if (!parkingsGone && !fuelGone) return this
+    return copy(
+        parkings = if (parkingsGone) parkings.copy(parkings = emptyList()) else parkings,
+        fuel = if (fuelGone) fuel.copy(stations = emptyList()) else fuel,
+    )
+}
+
 internal fun HomeState.laneAnsweringHere(cameraLat: Double?, cameraLon: Double?): HomeState {
     // ⛔ «Vacía» se comprueba ANTES que «de aquí»: una tienda que nadie ha preguntado todavía no
     // tiene ancla, y sin ancla `answerCoversCamera` dice —con razón— que no va de aquí. Sin esta

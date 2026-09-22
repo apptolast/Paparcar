@@ -18,6 +18,7 @@ import com.rndeveloper.paparcar.presentation.home.model.HomeParkingsSlice
 import com.rndeveloper.paparcar.domain.usecase.parkings.NearbyPublicParking
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingKind
 import com.rndeveloper.paparcar.domain.parkings.PublicParking
+import com.rndeveloper.paparcar.domain.parkings.ParkingZoneGrid
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleMonitoringStatus
 import com.rndeveloper.paparcar.domain.model.VehicleSize
@@ -342,7 +343,10 @@ class HomeSlicesTest {
             ),
         )
 
-        val fromMadrid = inItaly.laneAnsweringHere(cameraLat = 40.4168, cameraLon = -3.7038)
+        // ⛔ Sobre `laneShowable`, que es la que decide lo que se PINTA desde
+        // [HOME-A-PAN-MUST-NOT-EMPTY-THE-MAP-001]. Roma está a 1.400 km, muy fuera del alcance de
+        // cualquier respuesta de Madrid, así que el salto se sigue vaciando entero.
+        val fromMadrid = inItaly.laneShowable(cameraLat = 40.4168, cameraLon = -3.7038)
         assertEquals(emptyList(), fromMadrid.toBrowseListSlice().parkings.parkings, "ni una fila tocable")
         assertEquals(emptyList(), fromMadrid.toMapSlice().publicParkings, "ni un pin")
         // Y el esqueleto sale SOLO: ya se dibujaba con `isLoading && lista vacía`, y lo que faltaba
@@ -350,9 +354,79 @@ class HomeSlicesTest {
         assertTrue(fromMadrid.toBrowseListSlice().parkings.isLoading, "la lista dice que está preguntando")
 
         // …y desde Roma no se toca nada: la respuesta sí va de allí.
-        val fromRome = inItaly.laneAnsweringHere(cameraLat = 41.9028, cameraLon = 12.4964)
+        val fromRome = inItaly.laneShowable(cameraLat = 41.9028, cameraLon = 12.4964)
         assertEquals(1, fromRome.toBrowseListSlice().parkings.parkings.size)
         assertSame(inItaly, fromRome, "cubriendo las dos tiendas, ni se copia el estado")
+    }
+
+    // ── Un paneo no es un salto [HOME-A-PAN-MUST-NOT-EMPTY-THE-MAP-001] ──
+
+    @Test
+    fun should_keepTheMarkersAndTheRows_when_aShortPanCrossesACellLine() {
+        // ⛔ EL TESTIGO de la issue #119. Los parkings se preguntan por celdas de 3 km comparadas con
+        // igualdad EXACTA, así que con la cámara sobre una linde **un metro** cambia de celda. Con
+        // el umbral de «asentada» eso vaciaba markers y filas para repintar acto seguido una
+        // respuesta que solapa con la anterior casi por completo: el parpadeo que reporta la issue.
+        val anchorLat = 40.4168
+        val anchorLon = -3.7038
+        val state = HomeState(
+            nearbyLens = HomeNearbyLens.PARKINGS,
+            parkings = HomeParkingsSlice(
+                parkings = listOf(nearbyParking("here")),
+                anchorLat = anchorLat,
+                anchorLon = anchorLon,
+            ),
+        )
+        val (justAcross, sameLon) = justAcrossTheCellLine(anchorLat, anchorLon)
+
+        val shown = state.laneShowable(cameraLat = justAcross, cameraLon = sameLon)
+
+        assertEquals(1, shown.toMapSlice().publicParkings.size, "el marker no parpadea por un paseo")
+        assertEquals(1, shown.toBrowseListSlice().parkings.parkings.size, "y la fila tampoco")
+        // La otra mitad, y la que da sentido a la primera: para el REFRESCO sí ha cambiado de celda,
+        // así que la petición ya va en camino mientras lo de antes sigue en pantalla.
+        assertFalse(
+            ParkingZoneGrid.sameZone(anchorLat, anchorLon, justAcross, sameLon),
+            "el testigo no vale si el paneo no cruzó de verdad la linde",
+        )
+    }
+
+    @Test
+    fun should_notFlyTheCamera_when_theLaneOnlyDrifted() {
+        // ⛔ La mitad que NO se relaja. Enseñar una gasolinera que está a 4 km es correcto; volar
+        // hasta ella porque resulta ser la primera de la lista es lo que
+        // [HOME-THE-CAMERA-FRAMES-WHAT-THE-LIST-SHOWS-001] existe para impedir. Las dos preguntas
+        // tienen ahora umbrales distintos, y este test es el que lo fija.
+        val state = HomeState(
+            nearbyLens = HomeNearbyLens.FUEL,
+            fuel = com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice(
+                stations = listOf(fuelStation("a", 100.0)),
+                anchorLat = 40.4168,
+                anchorLon = -3.7038,
+            ),
+        )
+        // ~4 km al norte: pasado el umbral de repreguntar (media radio = 2,5 km) y dentro del
+        // alcance de la respuesta (5 km).
+        val driftedLat = 40.4168 + 0.036
+
+        assertEquals(
+            1,
+            state.laneShowable(driftedLat, -3.7038).toMapSlice().fuelStations.size,
+            "se sigue enseñando: la respuesta todavía alcanza",
+        )
+        assertNull(
+            state.laneFirstPoint(driftedLat, -3.7038),
+            "pero no se encuadra: volar no es enseñar",
+        )
+    }
+
+    /** Un punto al otro lado de la linde de celda: el mismo sitio, otra celda. El paso es de
+     *  ~1,1 m, así que si el bucle acaba pronto es que basta un paseo para cambiar de zona. */
+    private fun justAcrossTheCellLine(lat: Double, lon: Double): Pair<Double, Double> {
+        val zone = ParkingZoneGrid.zoneOf(lat, lon)
+        var probe = lat
+        while (ParkingZoneGrid.zoneOf(probe, lon) == zone) probe += 0.00001
+        return probe to lon
     }
 
     @Test

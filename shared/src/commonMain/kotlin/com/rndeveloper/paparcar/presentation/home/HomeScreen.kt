@@ -419,8 +419,12 @@ private fun HomeContent(
     // así el mapa, el peek, la lista y la selección no pueden discrepar, y una fila de otra ciudad
     // no queda tocable mientras llega la de ésta.
     // [HOME-A-LANE-THAT-CANNOT-ANSWER-HERE-SHOWS-NO-ROWS-001]
+    // ⛔ `laneShowable`, no `laneAnsweringHere`: lo que se ENSEÑA aguanta hasta que la respuesta deja
+    // de alcanzar la cámara, no hasta que deja de estar asentada. Con lo segundo, un paneo de un
+    // metro sobre una linde de la rejilla de parkings vaciaba markers y filas para repintarlas acto
+    // seguido. [HOME-A-PAN-MUST-NOT-EMPTY-THE-MAP-001] (issue #119)
     val shown = remember(state, uiController.cameraLat, uiController.cameraLon) {
-        state.laneAnsweringHere(uiController.cameraLat, uiController.cameraLon)
+        state.laneShowable(uiController.cameraLat, uiController.cameraLon)
     }
     val mapSlice = remember(shown) { shown.toMapSlice() }
     val peekSlice = remember(shown) { shown.toPeekSlice() }
