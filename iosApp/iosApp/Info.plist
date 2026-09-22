@@ -4,6 +4,32 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<!-- ⛔ UNA excepción, de UN host, de UN atributo. [IOS-A-FEED-WITHOUT-FORWARD-SECRECY-IS-REFUSED-001]
+
+	     El feed de precios del ministerio español sólo negocia `AES256-GCM-SHA384`, o sea
+	     intercambio de claves RSA plano: ni una suite con forward secrecy (medido el 22-09-2026 —
+	     `-cipher ECDHE` y `-cipher DHE` dan handshake rechazado, y no habla TLS 1.3). ATS la exige
+	     por defecto, así que en iOS la petición no salía, el registro caía al feed mundial y España
+	     aparecía como un país sin precios publicados. En Android OkHttp no exige forward secrecy y
+	     por eso allí siempre funcionó. Issue #77.
+
+	     Los otros SEIS hosts a los que habla la app (IT, DE, FR, OpenVAN, Overpass, paparcar.com)
+	     ofrecen ECDHE o TLS 1.3 y se quedan bajo ATS estricto — por eso esto NO es
+	     `NSAllowsArbitraryLoads`.
+
+	     Y se releva SÓLO la forward secrecy: el ministerio sirve HTTPS con TLS 1.2 y certificado
+	     SHA-256/RSA-2048 válido, así que se siguen validando cadena, host y versión. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>sedeaplicaciones.minetur.gob.es</key>
+			<dict>
+				<key>NSExceptionRequiresForwardSecrecy</key>
+				<false/>
+			</dict>
+		</dict>
+	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Paparcar uses your location to detect when you park and to show free parking spots near you.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
