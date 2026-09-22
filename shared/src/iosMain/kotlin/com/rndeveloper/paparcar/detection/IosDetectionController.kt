@@ -1,7 +1,13 @@
 package com.rndeveloper.paparcar.detection
 
 import com.rndeveloper.paparcar.domain.detection.ArmEvidence
+import com.rndeveloper.paparcar.domain.detection.AudioRoutePort
 import com.rndeveloper.paparcar.domain.detection.CoordinatorParkingDetector
+import com.rndeveloper.paparcar.domain.detection.ownCarAudioPort
+import com.rndeveloper.paparcar.domain.detection.upgradeArmEvidenceWithOwnCarAudio
+import com.rndeveloper.paparcar.domain.detection.ports.CarAudioRouteSource
+import com.rndeveloper.paparcar.domain.detection.ports.CarLinkDeclineStore
+import com.rndeveloper.paparcar.domain.usecase.detection.EvaluateAudioRouteLinkOfferUseCase
 import com.rndeveloper.paparcar.domain.detection.DetectionPhase
 import com.rndeveloper.paparcar.domain.detection.DetectionTrigger
 import com.rndeveloper.paparcar.domain.detection.MutableDetectionRuntimeState
@@ -130,6 +136,12 @@ class IosDetectionController(
      *  [DET-A-SHARED-FENCE-FOLLOWS-THE-CAR-001] */
     private val sharedCarFenceReconciler: com.rndeveloper.paparcar.data.sharedcar.SharedCarFenceReconciler,
     private val authRepository: com.apptolast.baselogin.domain.AuthRepository,
+    /** [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] The car's BT as a SENSOR (AVAudioSession), not a
+     *  trigger: readable only while the process is alive, so it upgrades evidence at the arm and
+     *  offers to link the car at the close. Android/mock bind an empty-list stub. */
+    private val carAudioRouteSource: CarAudioRouteSource,
+    private val evaluateAudioRouteLinkOffer: EvaluateAudioRouteLinkOfferUseCase,
+    private val carLinkDeclineStore: CarLinkDeclineStore,
     private val safetyNetRecords: IosSafetyNetRecords = IosSafetyNetRecords(),
     /** Builds the virtual-clock coordinator a reconstruction replays into (Koin factory,
      *  `RECONSTRUCTION_COORDINATOR`) — the production single ticks the real clock and recorded
@@ -176,6 +188,13 @@ class IosDetectionController(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val intake = Channel<Command>(Channel.UNLIMITED)
     private var detectionJob: Job? = null
+
+    /** [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] The BT audio ports the route showed at the arm,
+     *  held until this trip closes so the close can tell which framed the drive (present at arm,
+     *  gone at park). In-memory on purpose: if the process dies mid-trip the offer is simply not
+     *  made — it is opportunistic, and the next trip offers again. */
+    @kotlin.concurrent.Volatile
+    private var portsWhileArming: List<AudioRoutePort> = emptyList()
     private var started = false
 
     /** One departure ladder per fence, REPLACE semantics — the same dedup WorkManager's
@@ -313,13 +332,31 @@ class IosDetectionController(
             return
         }
 
+        // [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] Sample the audio route AT the arm (the process
+        // is alive here). If the phone is routed to THIS car's paired BT, lift an Unverified arm to
+        // OwnCarAudio — ownership, not movement. Keep every port seen so the close can tell which
+        // one framed the trip (vía B). Absence changes nothing (asymmetric).
+        val portsAtArm = carAudioRouteSource.currentBluetoothOutputs()
+        portsWhileArming = portsAtArm
+        val armingVehicle = command.trip?.departingVehicleId?.let { vid ->
+            runCatching {
+                authRepository.getCurrentSession()?.userId?.let { uid ->
+                    vehicleRepository.getVehicleById(uid, vid)
+                }
+            }.getOrNull()
+        }
+        val resolvedEvidence = upgradeArmEvidenceWithOwnCarAudio(
+            command.evidence,
+            ownCarAudioPort(portsAtArm, armingVehicle),
+        )
+
         val armId = now.toString()
         log(
             DetectionEvent.SessionStarted(
                 sessionId = "arm_$now",
                 timestampMs = now,
                 strategy = "ARM:${command.trigger.name}",
-                evidence = command.evidence.persistLabel,
+                evidence = resolvedEvidence.persistLabel,
             ),
         )
         detectionRuntime.setRunning(true)
@@ -348,7 +385,7 @@ class IosDetectionController(
                     // Survives background / process death so Home redraws the REAL trip, not a
                     // reconstruction. [DET-ROUTE-TRACK-001]
                     observeAdaptiveLocation().onEach { drivingRouteStore.append(it) },
-                    armEvidence = command.evidence,
+                    armEvidence = resolvedEvidence,
                     nominatingVehicleId = command.trip?.departingVehicleId,
                     staleExitDelivery = command.staleExitDelivery,
                     armingGeofenceId = command.armingGeofenceId,
@@ -359,9 +396,11 @@ class IosDetectionController(
                     // counter) — see maybeRunHonestClose. [IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001]
                     maybeRunHonestClose()
                     maybeStampArrivalResolution()
+                    maybeOfferCarLink()
                 }
             } finally {
                 heartbeat.cancel()
+                portsWhileArming = emptyList()
                 withContext(NonCancellable) { pendingArmRecords.clear(armId) }
                 detectionRuntime.setRunning(false)
                 // No sentry on iOS: the OS-held regions are the between-trips watcher.
@@ -613,6 +652,35 @@ class IosDetectionController(
                 sessionMaxSpeedMps = coordinator.lastSessionMaxSpeedMps,
             )
         }.onFailure { e -> Napier.w("honest close failed (continuing)", e, tag = TAG) }
+    }
+
+    /**
+     * [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] Vía B, the opportunistic onboarding. The trip just
+     * closed with the process still alive: if exactly one BT port FRAMED it (present at the arm,
+     * gone now) and no vehicle already claims that MAC, offer to link it. The whole decision is the
+     * common [evaluateAudioRouteLinkOffer]; this only reads the route and posts the ask. The user's
+     * yes/no lands back through the notification action handler.
+     */
+    private suspend fun maybeOfferCarLink() {
+        val portsAtArm = portsWhileArming
+        if (portsAtArm.isEmpty()) return
+        val fleet = runCatching { vehicleRepository.observeVehicles().first() }.getOrDefault(emptyList())
+        val activeId = runCatching { vehicleRepository.observeActiveVehicle().first()?.id }.getOrNull()
+        val declined = runCatching { carLinkDeclineStore.declined() }.getOrDefault(emptySet())
+        val decision = evaluateAudioRouteLinkOffer(
+            activeVehicleId = activeId,
+            fleet = fleet,
+            portsWhileArming = portsAtArm,
+            portsNow = carAudioRouteSource.currentBluetoothOutputs(),
+            declinedMacs = declined,
+        )
+        if (decision is EvaluateAudioRouteLinkOfferUseCase.LinkOfferDecision.Offer) {
+            notificationPort.showCarLinkOffer(
+                vehicleId = decision.vehicleId,
+                deviceAddress = decision.mac,
+                deviceName = decision.port.name,
+            )
+        }
     }
 
     // ── The safety-net mesh [IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001] ─────────────────────────────

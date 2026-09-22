@@ -5,6 +5,10 @@ package com.rndeveloper.paparcar.di
 import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.rndeveloper.paparcar.bluetooth.IosBluetoothScanner
+import com.rndeveloper.paparcar.bluetooth.IosCarAudioRouteSource
+import com.rndeveloper.paparcar.bluetooth.IosCarLinkDeclineStore
+import com.rndeveloper.paparcar.domain.detection.ports.CarAudioRouteSource
+import com.rndeveloper.paparcar.domain.detection.ports.CarLinkDeclineStore
 import com.rndeveloper.paparcar.data.datasource.local.room.ALL_MIGRATIONS
 import com.rndeveloper.paparcar.data.datasource.local.room.AppDatabase
 import com.rndeveloper.paparcar.domain.bluetooth.BluetoothScanner
@@ -86,6 +90,11 @@ val iosPlatformModule = module {
     // just to answer adapter state would trigger a permission dialog that unlocks nothing.
     // [IOS-A-BT-LANE-NEEDS-A-REAL-SIGNAL-001]
     single<BluetoothScanner> { IosBluetoothScanner() }
+
+    // [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] The car's BT as a SENSOR: reads AVAudioSession's
+    // current route (A2DP only), passively — no session activation, no permission.
+    single<CarAudioRouteSource> { IosCarAudioRouteSource() }
+    single<CarLinkDeclineStore> { IosCarLinkDeclineStore() }
 
     // Diagnostics — device identity stamped into detection traces [DIAG-READABLE-001]
     single<DeviceInfoProvider> { IosDeviceInfoProvider() }

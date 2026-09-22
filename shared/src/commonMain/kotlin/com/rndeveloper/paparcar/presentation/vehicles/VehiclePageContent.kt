@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Adjust
+import androidx.compose.material.icons.rounded.Bluetooth
+import androidx.compose.material.icons.rounded.BluetoothConnected
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.AccessTimeFilled
@@ -33,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.rndeveloper.paparcar.isAudioRouteLinkRelevant
 import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.ui.components.PapNavChevron
 import com.rndeveloper.paparcar.ui.components.PapNavChevronSize
@@ -65,6 +68,8 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.my_car_edit_vehicle
 import paparcar.composeapp.generated.resources.shared_car_title
 import paparcar.composeapp.generated.resources.shared_car_where_parked_by
+import paparcar.composeapp.generated.resources.vehicle_link_car_action
+import paparcar.composeapp.generated.resources.vehicle_link_car_linked
 import paparcar.composeapp.generated.resources.vehicle_set_active_action
 import paparcar.composeapp.generated.resources.vehicle_state_last_parking
 import paparcar.composeapp.generated.resources.vehicle_state_never_parked
@@ -132,6 +137,9 @@ internal fun VehiclePageContent(
                 // the consequence dialog), never switch silently. [VEH-ACTIVE-FENCE-001]
                 onSetActive = onRequestSetActive,
                 onEdit = { onIntent(VehiclesIntent.EditVehicle(vehicleId)) },
+                // [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] Vía A: explicit "link this car" — the
+                // row itself only paints where the platform links by audio route (iOS).
+                onLinkCarAudio = { onIntent(VehiclesIntent.LinkCarAudio(vehicleId)) },
                 // The way back to the map, on the SAME lambda the history rows use — one gesture,
                 // one destination, so the live session and a past one can never drift apart.
                 // [UI-A-PARKED-CARD-OFFERS-THE-WAY-ACROSS-001]
@@ -328,6 +336,7 @@ private fun VehicleHeroCard(
     isSettingActive: Boolean,
     onSetActive: () -> Unit,
     onEdit: () -> Unit,
+    onLinkCarAudio: () -> Unit,
     onViewOnMap: (UserParking) -> Unit,
 ) {
     val vehicle = vehicleWithStats.vehicle
@@ -414,6 +423,43 @@ private fun VehicleHeroCard(
                 PapDivider()
                 SetActiveRow(isLoading = isSettingActive, onClick = onSetActive)
             }
+            // [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] Vía A: link this car by reading the live
+            // audio route. Only where the platform links that way (iOS) — on Android the ACL lane
+            // owns pairing and this row never appears. Reads "linked" once a MAC is stored.
+            if (isAudioRouteLinkRelevant) {
+                PapDivider()
+                LinkCarRow(isLinked = vehicle.bluetoothDeviceId != null, onClick = onLinkCarAudio)
+            }
+        }
+    }
+}
+
+@Composable
+private fun LinkCarRow(isLinked: Boolean, onClick: () -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        color = cs.surfaceContainerHigh,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(SET_ACTIVE_PAD.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(SET_ACTIVE_GAP.dp, Alignment.CenterHorizontally),
+        ) {
+            Icon(
+                imageVector = if (isLinked) Icons.Rounded.BluetoothConnected else Icons.Rounded.Bluetooth,
+                contentDescription = null,
+                tint = if (isLinked) cs.primary else cs.onSurfaceVariant,
+                modifier = Modifier.size(SET_ACTIVE_ICON_DP.dp),
+            )
+            Text(
+                text = stringResource(
+                    if (isLinked) Res.string.vehicle_link_car_linked else Res.string.vehicle_link_car_action,
+                ),
+                style = PaparcarType.current.cta,
+                color = if (isLinked) cs.onSurfaceVariant else PapColor.actionText,
+            )
         }
     }
 }

@@ -65,6 +65,11 @@
     <string name="notif_mark_parking_action">Marquer le stationnement</string>
     <string name="notif_action_ive_left">Je suis parti</string>
     <string name="notif_action_mark_parking">Marquer le stationnement</string>
+    <string name="notif_car_link_title">Ce trajet était-il dans %1$s ?</string>
+    <string name="notif_car_link_text">Si c\'est ta voiture, associe-la et Paparcar marquera ton stationnement tout seul désormais.</string>
+    <string name="notif_car_link_device_fallback">cette voiture</string>
+    <string name="notif_action_link_yes">Oui, c\'est ma voiture</string>
+    <string name="notif_action_link_no">Non</string>
     <string name="notif_background_kill_title">Votre téléphone bloque Paparcar</string>
     <string name="notif_background_kill_text">Le système a suspendu la détection de stationnement en arrière-plan pendant des heures. Touchez pour ouvrir l\'appli et corriger dans Réglages → Détection.</string>
     <string name="notif_sentry_title">Garée · attentif à votre départ</string>

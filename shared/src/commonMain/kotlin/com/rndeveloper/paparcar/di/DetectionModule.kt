@@ -11,6 +11,7 @@ import com.rndeveloper.paparcar.domain.usecase.detection.EvaluateBtArbitrationUs
 import com.rndeveloper.paparcar.domain.usecase.detection.EvaluateBtParkUseCase
 import com.rndeveloper.paparcar.domain.usecase.detection.EvaluateDetectionReliabilityUseCase
 import com.rndeveloper.paparcar.domain.usecase.detection.EvaluateFirstParkNudgeUseCase
+import com.rndeveloper.paparcar.domain.usecase.detection.EvaluateAudioRouteLinkOfferUseCase
 import com.rndeveloper.paparcar.domain.usecase.detection.EvaluateGeofenceExitUseCase
 import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDepartureWatchGapUseCase
 import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDetectionReadinessUseCase
@@ -95,6 +96,7 @@ val detectionModule = module {
     factory { EvaluateBtParkUseCase(config = get()) } // [DET-AUDIT-002 T2/T3]
     factory { EvaluateBtArbitrationUseCase() } // [DET-TIERS-001] BT-as-arbiter over the coordinator
     factory { EvaluateArEnterArmUseCase(config = get()) } // [DET-AR-FIRST-001]
+    factory { EvaluateAudioRouteLinkOfferUseCase() } // [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001]
     // [DET-WALK-ENTERED-ANCHOR-ZONE-001] What the unattended timeout should do with the session.
     // [DET-DI-DETECTION-MODULE-001] It was the ONE detection verdict never registered here: the
     // coordinator built it by hand in a constructor default, so it was invisible in the graph and

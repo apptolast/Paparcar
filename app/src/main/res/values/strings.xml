@@ -61,6 +61,11 @@
     <string name="notif_action_ive_left">I\'ve left</string>
     <string name="notif_action_mark_parking">Mark parking</string>
 
+    <string name="notif_car_link_title">Was this trip in %1$s?</string>
+    <string name="notif_car_link_text">If it\'s your car, link it and Paparcar will mark your parking on its own from now on.</string>
+    <string name="notif_car_link_device_fallback">this car</string>
+    <string name="notif_action_link_yes">Yes, it\'s my car</string>
+    <string name="notif_action_link_no">No</string>
     <!-- Notification: debug (dev builds only) -->
     <string name="notif_debug_title">Paparcar Debug</string>
 

@@ -1,5 +1,7 @@
 package com.rndeveloper.paparcar.domain.model
 
+import com.rndeveloper.paparcar.isBtStrategyRelevant
+
 /**
  * Per-vehicle monitoring configuration.
  *
@@ -8,9 +10,15 @@ package com.rndeveloper.paparcar.domain.model
  * regardless of [Vehicle.isActive]. Active/Inactive only matter for vehicles
  * without a paired BT device (Coordinator strategy fallback).
  *
- *  - [Bluetooth]: BT device paired; tracked via BT disconnect.
- *  - [Active]: no BT; this is the vehicle currently owned by the Coordinator strategy.
- *  - [Inactive]: no BT and not the active Coordinator vehicle; not tracked.
+ * ⚠️ [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] A stored MAC only means a BT WATCH where the
+ * deterministic BT lane exists (`isBtStrategyRelevant`, i.e. Android). On iOS the same MAC is
+ * merely the car's identity for the audio-route sensor — the watch there is the Coordinator, so a
+ * linked car reads Active/Inactive, not the blue "watched by Bluetooth". The blue tier must not be
+ * promised where the lane cannot deliver it.
+ *
+ *  - [Bluetooth]: BT device paired AND a deterministic BT lane exists; tracked via BT disconnect.
+ *  - [Active]: this is the vehicle currently owned by the Coordinator strategy.
+ *  - [Inactive]: not the active Coordinator vehicle; not tracked.
  */
 sealed class VehicleMonitoringStatus {
     data class Bluetooth(val deviceId: String) : VehicleMonitoringStatus()
@@ -19,9 +27,10 @@ sealed class VehicleMonitoringStatus {
 }
 
 fun Vehicle.monitoringStatus(): VehicleMonitoringStatus = when {
-    bluetoothDeviceId != null -> VehicleMonitoringStatus.Bluetooth(bluetoothDeviceId)
-    isActive                  -> VehicleMonitoringStatus.Active
-    else                      -> VehicleMonitoringStatus.Inactive
+    bluetoothDeviceId != null && isBtStrategyRelevant ->
+        VehicleMonitoringStatus.Bluetooth(bluetoothDeviceId)
+    isActive -> VehicleMonitoringStatus.Active
+    else     -> VehicleMonitoringStatus.Inactive
 }
 
 /** Ascending rank for ordering: Bluetooth first, then Active, then Inactive. */

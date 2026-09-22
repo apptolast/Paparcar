@@ -65,6 +65,11 @@
     <string name="notif_mark_parking_action">Segna parcheggio</string>
     <string name="notif_action_ive_left">Sono uscito</string>
     <string name="notif_action_mark_parking">Segna parcheggio</string>
+    <string name="notif_car_link_title">Questo viaggio era su %1$s?</string>
+    <string name="notif_car_link_text">Se è la tua auto, collegala e Paparcar segnerà il parcheggio da solo d\'ora in poi.</string>
+    <string name="notif_car_link_device_fallback">questa auto</string>
+    <string name="notif_action_link_yes">Sì, è la mia auto</string>
+    <string name="notif_action_link_no">No</string>
     <string name="notif_background_kill_title">Il tuo telefono sta bloccando Paparcar</string>
     <string name="notif_background_kill_text">Il sistema ha sospeso per ore il rilevamento del parcheggio in background. Tocca per aprire l\'app e risolvere in Impostazioni → Rilevamento.</string>
     <string name="notif_sentry_title">Parcheggiata · attento alla partenza</string>

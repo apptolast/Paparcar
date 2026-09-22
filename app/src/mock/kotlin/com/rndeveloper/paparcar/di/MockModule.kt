@@ -119,6 +119,10 @@ val mockModule = module {
     // Scenario-aware since [UI-MAP-PUCK-BELONGS-TO-THE-DRIVE-NOT-TO-ONE-LANE-001]: the connection is
     // what the BT trip surface reads, so the Dev Catalog lever has to drive it.
     single<BluetoothScanner> { FakeBluetoothScanner(get()) }
+    // [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] Empty stub so the shared VehiclesViewModel builds.
+    single<com.rndeveloper.paparcar.domain.detection.ports.CarAudioRouteSource> {
+        com.rndeveloper.paparcar.fakes.data.repository.FakeCarAudioRouteSource()
+    }
     single<ConnectivityObserver> { FakeConnectivityObserver(get()) }
     single<ActivityRecognitionManager> { FakeActivityRecognitionManager() }
     single<StepDetectorSource> { FakeStepDetectorSource() }

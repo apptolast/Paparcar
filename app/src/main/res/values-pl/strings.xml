@@ -65,6 +65,11 @@
     <string name="notif_mark_parking_action">Zaznacz parkowanie</string>
     <string name="notif_action_ive_left">Już wyjechałem</string>
     <string name="notif_action_mark_parking">Zaznacz parkowanie</string>
+    <string name="notif_car_link_title">Czy ta podróż odbyła się w %1$s?</string>
+    <string name="notif_car_link_text">Jeśli to Twój samochód, powiąż go, a Paparcar od teraz sam oznaczy Twoje parkowanie.</string>
+    <string name="notif_car_link_device_fallback">tym samochodzie</string>
+    <string name="notif_action_link_yes">Tak, to mój samochód</string>
+    <string name="notif_action_link_no">Nie</string>
     <string name="notif_background_kill_title">Twój telefon blokuje Paparcar</string>
     <string name="notif_background_kill_text">System na wiele godzin wstrzymał wykrywanie parkowania w tle. Dotknij, aby otworzyć aplikację i naprawić to w Ustawienia → Wykrywanie.</string>
     <string name="notif_sentry_title">Zaparkowano · czekam na odjazd</string>

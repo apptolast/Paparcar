@@ -7,6 +7,7 @@ import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.domain.entitlement.canAddOwnVehicle
 import com.rndeveloper.paparcar.domain.entitlement.countOwnVehicles
+import com.rndeveloper.paparcar.domain.detection.audioRouteMac
 import com.rndeveloper.paparcar.domain.detection.detectionPause
 import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.permissions.PermissionManager
@@ -149,6 +150,9 @@ class VehiclesViewModel(
     /** The other half of "is detection going to measure anything": the switch says what the user
      *  WANTS, this says whether it can run. [DET-TOGGLE-A-SWITCH-THAT-CANNOT-RUN-IS-NOT-ON-001] */
     private val permissionManager: PermissionManager,
+    /** [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] Vía A reads the live audio route here. Empty stub
+     *  on every non-iOS graph — the "link this car" row only appears where `isAudioRouteLinkRelevant`. */
+    private val carAudioRouteSource: com.rndeveloper.paparcar.domain.detection.ports.CarAudioRouteSource,
 ) : BaseViewModel<VehiclesState, VehiclesIntent, VehiclesEffect>() {
 
     override fun initState(): VehiclesState = VehiclesState()
@@ -358,6 +362,7 @@ class VehiclesViewModel(
             }
             is VehiclesIntent.EditVehicle ->
                 sendEffect(VehiclesEffect.NavigateToEditVehicle(intent.vehicleId))
+            is VehiclesIntent.LinkCarAudio -> linkCarAudio(intent.vehicleId)
             // [FREE-LIMITS-001] Soft gate at the ONE chokepoint (FAB and pill send this same
             // intent): free with a car already → paywall. Nothing existing is ever touched.
             // [VEH-SHARED-001] `.size` counted a car somebody SHARED with the user against their
@@ -697,6 +702,31 @@ class VehiclesViewModel(
                 }
         }
     }
+    /**
+     * [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] Vía A: link by reading the live audio route. The
+     * user is sitting in the car with its Bluetooth connected, so exactly one A2DP port should be
+     * in the route — link its MAC. Zero or many (a headset is also A2DP, can't tell which is the
+     * car) → ask the user to be connected and try again. Ownership is never guessed here either.
+     */
+    private fun linkCarAudio(vehicleId: String) {
+        viewModelScope.launch {
+            val ports = carAudioRouteSource.currentBluetoothOutputs()
+                .filter { audioRouteMac(it.uid) != null }
+            val port = ports.singleOrNull()
+            val mac = port?.let { audioRouteMac(it.uid) }
+            if (port == null || mac == null) {
+                sendEffect(VehiclesEffect.CarLinkNoDevice)
+                return@launch
+            }
+            vehicleRepository.updateBluetoothDevice(vehicleId, mac)
+                .onSuccess { sendEffect(VehiclesEffect.CarLinked(port.name ?: mac)) }
+                .onFailure { e ->
+                    PaparcarLogger.e(TAG, "Failed to link car audio route", e)
+                    sendEffect(VehiclesEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
+                }
+        }
+    }
+
     private companion object {
         const val TAG = "VehiclesViewModel"
 

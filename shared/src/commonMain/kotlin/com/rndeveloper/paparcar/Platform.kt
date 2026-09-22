@@ -37,6 +37,16 @@ expect val isBatteryOptimizationRelevant: Boolean
 expect val isBtStrategyRelevant: Boolean
 
 /**
+ * Whether this platform can link a car's Bluetooth by READING the live audio route (the iOS
+ * sensor), rather than by the ACL lane Android uses. True only on iOS: it is where no bonded-device
+ * list exists, so the "link this car" row on the vehicle page reads `AVAudioSession.currentRoute`
+ * with the car connected instead of showing a picker. On Android the deterministic BT lane already
+ * owns pairing (`isBtStrategyRelevant`), so this row never appears.
+ * [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001]
+ */
+expect val isAudioRouteLinkRelevant: Boolean
+
+/**
  * Tankerkönig API key for Germany's fuel prices. [FUEL-GERMANY-THE-FEED-ANSWERS-WHOLE-001]
  *
  * Personal and gitignored (`local.properties → GermanyFuelStationKey` — the repo is public), so a

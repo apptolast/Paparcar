@@ -75,6 +75,11 @@ val androidPlatformModule = module {
 
     // Bluetooth
     single<BluetoothScanner> { AndroidBluetoothScanner(androidContext()) }
+    // [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] Android links cars through the ACL lane, never the
+    // audio route — the sensor is an empty stub here so the shared VehiclesViewModel can build.
+    single<com.rndeveloper.paparcar.domain.detection.ports.CarAudioRouteSource> {
+        com.rndeveloper.paparcar.fakes.data.repository.FakeCarAudioRouteSource()
+    }
 
     // Connectivity
     single<ConnectivityObserver> { AndroidConnectivityObserver(androidContext()) }

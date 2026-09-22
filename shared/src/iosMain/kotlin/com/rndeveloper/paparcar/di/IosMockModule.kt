@@ -124,6 +124,10 @@ val iosMockModule = module {
     single<OemBackgroundReliabilityManager> { FakeOemBackgroundReliabilityManager(get()) }
     single<AppPreferences> { FakeAppPreferences(get()) }
     single<BluetoothScanner> { FakeBluetoothScanner(get()) }
+    // [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] Empty stub so the shared VehiclesViewModel builds.
+    single<com.rndeveloper.paparcar.domain.detection.ports.CarAudioRouteSource> {
+        com.rndeveloper.paparcar.fakes.data.repository.FakeCarAudioRouteSource()
+    }
     single<ConnectivityObserver> { FakeConnectivityObserver(get()) }
     single<ActivityRecognitionManager> { FakeActivityRecognitionManager() }
     single<StepDetectorSource> { FakeStepDetectorSource() }

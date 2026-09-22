@@ -678,6 +678,10 @@ Se la richiesta non compare più, cambiala in Impostazioni → Paparcar → Posi
     <string name="settings_detection_improve">Migliora il rilevamento</string>
     <string name="settings_detection_setup">Configura</string>
     <string name="vehicle_set_active_action">Imposta come attivo</string>
+    <string name="vehicle_link_car_action">Collega il Bluetooth di quest'auto</string>
+    <string name="vehicle_link_car_linked">Bluetooth collegato</string>
+    <string name="vehicle_car_linked">Collegato a %1$s. Segneremo il tuo parcheggio qui da soli.</string>
+    <string name="vehicle_car_link_no_device">Collegati prima al Bluetooth della tua auto, poi riprova.</string>
     <!-- Vehicles — confirmation before making a vehicle the active one. [VEH-ACTIVE-FENCE-001] -->
     <string name="vehicle_set_active_confirm_title">Stai guidando quest'auto?</string>
     <string name="vehicle_set_active_confirm_body">Rileveremo automaticamente dove parcheggi %1$s.</string>
@@ -839,6 +843,11 @@ Se la richiesta non compare più, cambiala in Impostazioni → Paparcar → Posi
     <string name="notif_still_parked_text">Sembri lontano, ma questo parcheggio è ancora aperto. Dicci se sei già uscito, oppure segna dov'è l'auto adesso.</string>
     <string name="notif_action_ive_left">Sono uscito</string>
     <string name="notif_action_mark_parking">Segna parcheggio</string>
+    <string name="notif_car_link_title">Questo viaggio era su %1$s?</string>
+    <string name="notif_car_link_text">Se è la tua auto, collegala e Paparcar segnerà il parcheggio da solo d'ora in poi.</string>
+    <string name="notif_car_link_device_fallback">questa auto</string>
+    <string name="notif_action_link_yes">Sì, è la mia auto</string>
+    <string name="notif_action_link_no">No</string>
     <!-- Zone alert + shared-car push cards. Mirrored from app/src/main/res like the
          rest of notif_*: the push is a DATA message so the wording is the client's,
          and iOS reads it here. [IOS-THE-GROUP-CANNOT-REACH-AN-IPHONE-001] -->

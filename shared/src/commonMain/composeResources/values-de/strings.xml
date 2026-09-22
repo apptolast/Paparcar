@@ -679,6 +679,10 @@ Wenn die Frage nicht mehr erscheint, ändere es unter Einstellungen → Paparcar
     <string name="settings_detection_improve">Erkennung verbessern</string>
     <string name="settings_detection_setup">Einrichten</string>
     <string name="vehicle_set_active_action">Als aktiv festlegen</string>
+    <string name="vehicle_link_car_action">Bluetooth dieses Autos verknüpfen</string>
+    <string name="vehicle_link_car_linked">Bluetooth verknüpft</string>
+    <string name="vehicle_car_linked">Mit %1$s verknüpft. Wir markieren deinen Parkplatz hier von selbst.</string>
+    <string name="vehicle_car_link_no_device">Verbinde dich zuerst mit dem Bluetooth deines Autos und versuche es erneut.</string>
     <!-- Vehicles — confirmation before making a vehicle the active one. [VEH-ACTIVE-FENCE-001] -->
     <string name="vehicle_set_active_confirm_title">Fährst du dieses Auto?</string>
     <string name="vehicle_set_active_confirm_body">Wir erkennen automatisch, wo du %1$s parkst.</string>
@@ -840,6 +844,11 @@ Wenn die Frage nicht mehr erscheint, ändere es unter Einstellungen → Paparcar
     <string name="notif_still_parked_text">Du scheinst weg zu sein, aber dieser Parkplatz ist noch offen. Sag uns, ob du schon losgefahren bist, oder markiere, wo das Auto jetzt steht.</string>
     <string name="notif_action_ive_left">Ich bin weg</string>
     <string name="notif_action_mark_parking">Parkplatz markieren</string>
+    <string name="notif_car_link_title">War diese Fahrt in %1$s?</string>
+    <string name="notif_car_link_text">Wenn es dein Auto ist, verknüpfe es und Paparcar markiert deinen Parkplatz ab jetzt von selbst.</string>
+    <string name="notif_car_link_device_fallback">diesem Auto</string>
+    <string name="notif_action_link_yes">Ja, das ist mein Auto</string>
+    <string name="notif_action_link_no">Nein</string>
     <!-- Zone alert + shared-car push cards. Mirrored from app/src/main/res like the
          rest of notif_*: the push is a DATA message so the wording is the client's,
          and iOS reads it here. [IOS-THE-GROUP-CANNOT-REACH-AN-IPHONE-001] -->

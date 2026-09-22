@@ -690,6 +690,10 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="settings_detection_improve">Îmbunătățește detectarea</string>
     <string name="settings_detection_setup">Configurează</string>
     <string name="vehicle_set_active_action">Setează ca activ</string>
+    <string name="vehicle_link_car_action">Asociază Bluetooth-ul acestei mașini</string>
+    <string name="vehicle_link_car_linked">Bluetooth asociat</string>
+    <string name="vehicle_car_linked">Asociat cu %1$s. Îți vom marca parcarea aici singuri.</string>
+    <string name="vehicle_car_link_no_device">Conectează-te mai întâi la Bluetooth-ul mașinii, apoi încearcă din nou.</string>
     <!-- Vehicles — confirmation before making a vehicle the active one. [VEH-ACTIVE-FENCE-001] -->
     <string name="vehicle_set_active_confirm_title">Conduci această mașină?</string>
     <string name="vehicle_set_active_confirm_body">Vom detecta automat unde parchezi %1$s.</string>
@@ -853,6 +857,11 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="notif_still_parked_text">Pari să fii departe, dar această parcare este încă deschisă. Spune-ne dacă ai plecat deja sau marchează unde este mașina acum.</string>
     <string name="notif_action_ive_left">Am plecat</string>
     <string name="notif_action_mark_parking">Marchează parcarea</string>
+    <string name="notif_car_link_title">Călătoria aceasta a fost în %1$s?</string>
+    <string name="notif_car_link_text">Dacă e mașina ta, asociaz-o și Paparcar îți va marca parcarea singur de acum înainte.</string>
+    <string name="notif_car_link_device_fallback">această mașină</string>
+    <string name="notif_action_link_yes">Da, e mașina mea</string>
+    <string name="notif_action_link_no">Nu</string>
     <!-- Zone alert + shared-car push cards. Mirrored from app/src/main/res like the
          rest of notif_*: the push is a DATA message so the wording is the client's,
          and iOS reads it here. [IOS-THE-GROUP-CANNOT-REACH-AN-IPHONE-001] -->

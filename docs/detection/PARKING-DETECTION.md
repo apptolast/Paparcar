@@ -147,6 +147,15 @@ candidate APIs (AVAudioSession route changes, ExternalAccessory/MFi, CoreBluetoo
 with sources: `docs/backlog/ios-a-bt-lane-needs-a-real-signal-001.md`.
 [IOS-A-BT-LANE-NEEDS-A-REAL-SIGNAL-001]
 
+**But BT is still a SENSOR on iOS, not a trigger** [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001]:
+while the Coordinator is already awake following a trip, iOS can READ `AVAudioSession.currentRoute`
+and, if an A2DP port's UID carries the paired car's MAC, upgrade the arm to `OwnCarAudio` — evidence
+of *whose car*, never *that it moved*, so it grants no drive authority and no silent confirm (the
+session still measures its own drive). It never wakes the app and never confirms alone. The car's
+MAC is captured by two onboardings that replace Android's bonded-device list (which iOS lacks): an
+opportunistic nudge after a framed trip, and an explicit "link this car" row on the vehicle page.
+See its own ticket doc for the full design.
+
 `BluetoothParkingDetector.detectParking()` (suspend):
 
 0. **Engagement gate** [DET-BT-DISCONNECT-WITHOUT-RIDE-001] — size the connect→disconnect
@@ -525,6 +534,44 @@ como auto-detectado todo lo que no fuera `Manual`. Al separar los cajones, dejar
 empezado a contar como detectada sola una sesión que la app **tuvo que preguntar**. La condición
 excluye ahora los dos, así que el tile «auto-detectado %» da el mismo número que antes — y ahora por
 una razón escrita, no por un empate accidental entre dos hechos distintos.
+
+### IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001 — en iOS el BT es un SENSOR: la ruta de audio prueba de quién es el coche
+
+**Commit:** pending. **Origen (issue #123, follow-up de #74):** habiendo establecido que iOS no
+tiene el carril BT determinista, aprovechar lo único que sí ofrece — `AVAudioSession.currentRoute`
+— como EVIDENCIA de pertenencia, no como trigger.
+
+**Modelo (la asimetría que gobierna el diseño):** en Android el BT es un trigger con autoridad (el
+OS despierta con el ACL disconnect y el carril confirma); en iOS es un sensor de solo lectura,
+legible únicamente mientras el proceso ya está vivo. Por eso aquí el BT solo NOMINA: nunca
+despierta la app, nunca confirma, el tier sigue «Asistido».
+
+**Qué se implementó:**
+- **Dominio puro** (`domain/detection/AudioRouteBtIdentity.kt`): `audioRouteMac(uid)` extrae la MAC
+  del UID `MAC-tacl` (el ÚNICO sitio que parsea ese formato no documentado; degrada a null si Apple
+  lo cierra), `ownCarAudioPort` la casa con el coche, `upgradeArmEvidenceWithOwnCarAudio` sube
+  **solo `Unverified`** a `OwnCarAudio` (jamás pisa una evidencia más fuerte).
+- **`ArmEvidence.OwnCarAudio` / `ArmLabel.OWN_CAR_AUDIO`** (`own_car_audio`): `DriveAuthorization.None`,
+  no es verified-departure, no confirma en silencio. Viaja en `SessionStarted.evidence` → Firestore
+  como cualquier otro arm; `detectionPath` NO cambia (esto arma, no confirma).
+- **Sensor iOS** (`bluetooth/IosCarAudioRouteSource.kt`): lee `currentRoute.outputs` filtrando A2DP,
+  **pasivo** (sin `setActive`/`setCategory`, sin permiso de micrófono). Solo A2DP: HFP-solo exigiría
+  micrófono, CarPlay tapa el A2DP y no da MAC. En `IosDetectionController.handleStart` muestrea la
+  ruta al armar (upgrade) y guarda los puertos para el cierre.
+- **Onboarding B (oportunista)**: al cerrar un viaje seguido, `EvaluateAudioRouteLinkOfferUseCase`
+  decide si UN puerto ENMARCÓ el viaje (presente al armar, ausente al aparcar, MAC sin dueño ni
+  rechazada) y ofrece vincular vía notificación de dos botones (`showCarLinkOffer`, ID 2014). El
+  «no» se recuerda (`CarLinkDeclineStore`) para no volver a preguntar — fallo asimétrico.
+- **Onboarding A (explícito)**: fila «Vincular el Bluetooth de este coche» en la página del vehículo,
+  solo donde `isAudioRouteLinkRelevant` (iOS); lee la ruta en el momento y guarda la MAC.
+- **Honestidad del mapa**: `VehicleMonitoringStatus` solo pinta «vigilado por Bluetooth» (azul) donde
+  el carril BT existe (`isBtStrategyRelevant`); en iOS una MAC vinculada es identidad, no tier de
+  vigilancia, así que el coche lee por su estado Coordinator.
+
+**Riesgo del fix acompañante:** el UID `MAC-tacl` es comportamiento no documentado de Apple — todo
+el diseño degrada a null/`portName` sin romper si desaparece. Y el confusor «unos auriculares
+también son A2DP» se ataja con el doble guard: el puerto tiene que ENMARCAR el viaje y el usuario
+SIEMPRE confirma. Detalle completo: `docs/backlog/ios-det-audio-route-proves-whose-car-001.md`.
 
 ### IOS-A-BT-LANE-NEEDS-A-REAL-SIGNAL-001 — el carril BT no existe en iOS, y las superficies que lo vendían dejan de venderlo
 

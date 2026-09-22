@@ -38,6 +38,12 @@ class IosNotificationActionHandler(
      *  orchestrator: "I drove away" is a WITNESSED departure (the user attests the fact, never
      *  the hour — nothing gets published), "Still parked" just dismisses. */
     private val controller: com.rndeveloper.paparcar.detection.IosDetectionController,
+    /** [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] "Yes, this is my car" writes the observed MAC
+     *  onto the vehicle, the same one-shot Settings uses on Android. */
+    private val vehicleRepository: com.rndeveloper.paparcar.domain.repository.VehicleRepository,
+    /** [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] "No" is remembered so the same MAC is never
+     *  offered again. */
+    private val carLinkDeclineStore: com.rndeveloper.paparcar.domain.detection.ports.CarLinkDeclineStore,
 ) : NSObject(), UNUserNotificationCenterDelegateProtocol {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -76,6 +82,25 @@ class IosNotificationActionHandler(
             IosAppNotificationManagerImpl.ACTION_MARK_PARKING ->
                 // Foreground action: iOS opens the app; marking the park is the user's next tap.
                 notificationPort.dismiss(AppNotificationManager.STILL_PARKED_NOTIFICATION_ID)
+            IosAppNotificationManagerImpl.ACTION_LINK_CAR -> {
+                // [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] Background write of the framed MAC.
+                val info = didReceiveNotificationResponse.notification.request.content.userInfo
+                val vehicleId = info[IosAppNotificationManagerImpl.EXTRA_LINK_VEHICLE_ID] as? String
+                val deviceAddress = info[IosAppNotificationManagerImpl.EXTRA_LINK_DEVICE_ADDRESS] as? String
+                if (vehicleId == null || deviceAddress == null) {
+                    PaparcarLogger.w(TAG, "ACTION_LINK_CAR missing vehicleId/deviceAddress in userInfo")
+                } else {
+                    scope.launch { vehicleRepository.updateBluetoothDevice(vehicleId, deviceAddress) }
+                }
+                notificationPort.dismiss(AppNotificationManager.CAR_LINK_OFFER_NOTIFICATION_ID)
+            }
+            IosAppNotificationManagerImpl.ACTION_DISMISS_LINK -> {
+                // Take "no" for an answer: remember the MAC so we never offer it again.
+                val deviceAddress = didReceiveNotificationResponse.notification.request.content
+                    .userInfo[IosAppNotificationManagerImpl.EXTRA_LINK_DEVICE_ADDRESS] as? String
+                if (deviceAddress != null) scope.launch { carLinkDeclineStore.decline(deviceAddress) }
+                notificationPort.dismiss(AppNotificationManager.CAR_LINK_OFFER_NOTIFICATION_ID)
+            }
             // Includes UNNotificationDefaultActionIdentifier (tap on body) and dismiss — let the OS handle.
         }
         withCompletionHandler()

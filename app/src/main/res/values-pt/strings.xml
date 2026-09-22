@@ -65,6 +65,11 @@
     <string name="notif_mark_parking_action">Marcar estacionamento</string>
     <string name="notif_action_ive_left">Já saí</string>
     <string name="notif_action_mark_parking">Marcar estacionamento</string>
+    <string name="notif_car_link_title">Esta viagem foi no %1$s?</string>
+    <string name="notif_car_link_text">Se for o teu carro, associa-o e o Paparcar marcará o teu estacionamento sozinho a partir de agora.</string>
+    <string name="notif_car_link_device_fallback">este carro</string>
+    <string name="notif_action_link_yes">Sim, é o meu carro</string>
+    <string name="notif_action_link_no">Não</string>
     <string name="notif_background_kill_title">O teu telemóvel está a bloquear o Paparcar</string>
     <string name="notif_background_kill_text">O sistema parou a deteção de estacionamento em segundo plano durante horas. Toca para abrir a app e resolver em Definições → Deteção.</string>
     <string name="notif_sentry_title">Estacionado · atento à tua saída</string>

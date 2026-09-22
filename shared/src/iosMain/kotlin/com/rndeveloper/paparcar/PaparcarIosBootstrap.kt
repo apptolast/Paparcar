@@ -59,6 +59,8 @@ object PaparcarIosBootstrap {
             revertParkingUseCase = koin.get(),
             notificationPort = koin.get(),
             controller = koin.get(),
+            vehicleRepository = koin.get(),
+            carLinkDeclineStore = koin.get(),
         )
         notificationDelegate = handler
         UNUserNotificationCenter.currentNotificationCenter().setDelegate(handler)

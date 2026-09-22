@@ -65,6 +65,11 @@
     <string name="notif_mark_parking_action">Parkplatz markieren</string>
     <string name="notif_action_ive_left">Ich bin weg</string>
     <string name="notif_action_mark_parking">Parkplatz markieren</string>
+    <string name="notif_car_link_title">War diese Fahrt in %1$s?</string>
+    <string name="notif_car_link_text">Wenn es dein Auto ist, verknüpfe es und Paparcar markiert deinen Parkplatz ab jetzt von selbst.</string>
+    <string name="notif_car_link_device_fallback">diesem Auto</string>
+    <string name="notif_action_link_yes">Ja, das ist mein Auto</string>
+    <string name="notif_action_link_no">Nein</string>
     <string name="notif_background_kill_title">Dein Handy blockiert Paparcar</string>
     <string name="notif_background_kill_text">Das System hat die Parkerkennung im Hintergrund stundenlang pausiert. Tippe, um die App zu öffnen und es unter Einstellungen → Erkennung zu beheben.</string>
     <string name="notif_sentry_title">Geparkt · achte auf deine Abfahrt</string>

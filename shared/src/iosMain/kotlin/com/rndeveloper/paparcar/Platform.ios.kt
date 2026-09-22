@@ -24,6 +24,10 @@ actual val isBatteryOptimizationRelevant: Boolean = false
 // [IOS-A-BT-LANE-NEEDS-A-REAL-SIGNAL-001]
 actual val isBtStrategyRelevant: Boolean = false
 
+// iOS links the car by reading the live audio route (no bonded-device list exists to pick from).
+// [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001]
+actual val isAudioRouteLinkRelevant: Boolean = true
+
 // Blank on purpose: no key ⇒ Germany's source does not claim, and the map degrades to OSM's honest
 // floor. The key arrives with iOS's own configuration when iOS ships (parked 07-09-2026).
 // [FUEL-GERMANY-THE-FEED-ANSWERS-WHOLE-001]

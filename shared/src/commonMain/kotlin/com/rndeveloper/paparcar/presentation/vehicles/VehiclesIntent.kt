@@ -15,6 +15,10 @@ sealed class VehiclesIntent {
      */
     data class FocusVehicle(val vehicleId: String) : VehiclesIntent()
     data class EditVehicle(val vehicleId: String) : VehiclesIntent()
+
+    /** [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] Vía A (explicit): read the live audio route and,
+     *  if the car's Bluetooth is connected, tie its MAC to this vehicle. iOS-only surface. */
+    data class LinkCarAudio(val vehicleId: String) : VehiclesIntent()
     data object AddVehicle : VehiclesIntent()
 
     /** El «+»: preguntar antes de navegar, porque «otro coche en la app» son dos cosas — registrar

@@ -65,6 +65,11 @@
     <string name="notif_mark_parking_action">Parkeerplaats markeren</string>
     <string name="notif_action_ive_left">Ik ben weg</string>
     <string name="notif_action_mark_parking">Parkeerplaats markeren</string>
+    <string name="notif_car_link_title">Was deze rit in %1$s?</string>
+    <string name="notif_car_link_text">Als het jouw auto is, koppel hem en Paparcar markeert je parkeerplek voortaan vanzelf.</string>
+    <string name="notif_car_link_device_fallback">deze auto</string>
+    <string name="notif_action_link_yes">Ja, het is mijn auto</string>
+    <string name="notif_action_link_no">Nee</string>
     <string name="notif_background_kill_title">Je telefoon blokkeert Paparcar</string>
     <string name="notif_background_kill_text">Het systeem heeft de parkeerdetectie urenlang op de achtergrond gepauzeerd. Tik om de app te openen en dit op te lossen in Instellingen → Detectie.</string>
     <string name="notif_sentry_title">Geparkeerd · ik let op je vertrek</string>

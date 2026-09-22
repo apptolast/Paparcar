@@ -85,10 +85,13 @@ import com.rndeveloper.paparcar.ui.theme.PapBorders
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.error_unknown
+import paparcar.composeapp.generated.resources.vehicle_car_link_no_device
+import paparcar.composeapp.generated.resources.vehicle_car_linked
 import com.rndeveloper.paparcar.presentation.vehicles.components.JoinSharedCarDialogContent
 import com.rndeveloper.paparcar.presentation.vehicles.components.SharedCarMembersSheet
 import paparcar.composeapp.generated.resources.my_car_add_vehicle
@@ -172,6 +175,11 @@ fun VehiclesScreen(
                 is VehiclesEffect.NavigateToStats -> onOpenStats(effect.vehicleId)
                 is VehiclesEffect.NavigateToPermissions -> onNavigateToPermissions(effect.focus)
                 is VehiclesEffect.ShowError -> snackbarHostState.showSnackbar(errorFallback)
+                // [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] Vía A outcome (iOS only in practice).
+                is VehiclesEffect.CarLinked ->
+                    snackbarHostState.showSnackbar(getString(Res.string.vehicle_car_linked, effect.deviceName))
+                is VehiclesEffect.CarLinkNoDevice ->
+                    snackbarHostState.showSnackbar(getString(Res.string.vehicle_car_link_no_device))
             }
         }
     }

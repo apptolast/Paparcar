@@ -1,9 +1,9 @@
 # IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001 · En iOS el BT es un SENSOR, no un trigger — y como sensor puede probar de quién es el coche
 
-**Estado:** 🔵 Diseño VALIDADO por el user (22-09): **onboarding B (oportunista) como vía
-principal + A (explícita) como respaldo**, sensor **solo A2DP** en v1. Sigue **SIN implementar**
-hasta que el user dé el go. Nace como follow-up deliberado de
-[IOS-A-BT-LANE-NEEDS-A-REAL-SIGNAL-001] (issue #74 / PR #122, master `a3dd5938e`).
+**Estado:** ✅ Done · issue **#123** (squash a master; el hash vive en MEMORY.md). Diseño validado:
+**onboarding B (oportunista) principal + A (explícita) respaldo**, sensor **solo A2DP** en v1. Nace
+como follow-up deliberado de [IOS-A-BT-LANE-NEEDS-A-REAL-SIGNAL-001] (issue #74 / PR #122,
+master `a3dd5938e`). ⏳ Pendiente: verificación en iPhone (comportamiento del sensor en device).
 
 ## La frase que gobierna el ticket
 
@@ -97,6 +97,52 @@ Ambas escriben el mismo `Vehicle.bluetoothDeviceId`; ninguna es excluyente:
 - Onboarding elegido y validado; strings en los 9 locales; Dev Catalog en sync si hay pantalla o
   estado nuevo.
 - La promesa visible no cambia: iOS sigue diciendo «Asistido».
+
+## Lo implementado (resumen de la entrega)
+
+| Pieza | Fichero |
+|---|---|
+| Identidad pura (MAC del UID, match, upgrade) | `domain/detection/AudioRouteBtIdentity.kt` (+ test) |
+| Evidencia de arm | `ArmEvidence.OwnCarAudio` / `ArmLabel.OWN_CAR_AUDIO` (`own_car_audio`) |
+| Veredicto del candidato (vía B, puro) | `domain/usecase/detection/EvaluateAudioRouteLinkOfferUseCase.kt` (+ test) |
+| Puerto sensor + impl iOS pasiva (solo A2DP) | `domain/detection/ports/CarAudioRouteSource.kt` · `bluetooth/IosCarAudioRouteSource.kt` |
+| Memoria de rechazos (no volver a preguntar) | `domain/detection/ports/CarLinkDeclineStore.kt` · `bluetooth/IosCarLinkDeclineStore.kt` |
+| Cableado (upgrade al armar + oferta al cerrar) | `detection/IosDetectionController.kt` |
+| Nudge B (2 botones, ID 2014) + respuesta → repo | `AppNotificationManager.showCarLinkOffer` · `IosAppNotificationManagerImpl` · `IosNotificationActionHandler` |
+| Fila A (vía A, solo iOS) + intent/effect/VM | `presentation/vehicles/VehiclePageContent.kt` · `Vehicles{Intent,Effect}.kt` · `VehiclesViewModel.kt` · `VehiclesScreen.kt` |
+| Gate de plataforma UI | `expect val isAudioRouteLinkRelevant` (`Platform.kt`, true iOS) |
+| Honestidad del mapa | `VehicleMonitoringStatus` gateado por `isBtStrategyRelevant` |
+| Strings ×9 (5 del nudge + 4 de la fila/snackbar) | `composeResources/values*/strings.xml` |
+| Fakes/DI (Android prod+mock, iOS mock) | `FakeCarAudioRouteSource` + bindings |
+
+`detectionPath`: **sin cambios** (esto ARMA, no confirma). `armEvidence`: nace `own_car_audio`,
+viaja a Firestore por el mismo `SessionStarted.evidence` de siempre.
+
+## Consumidores auditados
+
+- **`ArmEvidence` / `ArmLabel`** (barrido `grep "is ArmEvidence\.|ArmLabel\."`): los 3 `when`
+  exhaustivos (`driveAuthorization`, `label`, y los dos de `ArmLabel`) **cerrados por compilación**;
+  `allArms` cubierto (test verde); guard `DetectionDoctrineGuardrailTest` no muerde (nada compara el
+  string a mano). Consumidores decisionales (`ConfirmParkingUseCase`, `EvaluateParkingDecisionUseCase`)
+  leen las propiedades derivadas, no la variante → **cubiertos por construcción**.
+- **`bluetoothDeviceId != null`** (barrido): `ParkingStrategyResolver` (cubierto — en iOS
+  `isConnectedToPairedCar=false`), `VehicleMonitoringStatus` (**cerrado** — gateado por
+  `isBtStrategyRelevant`), `SentryLifecycleDecision`/`DetectionEffectDispatcher` (androidMain,
+  **exentos**), `SharedCarRepositoryImpl` (el token ya cuadra — **cubierto**).
+- **`CarAudioRouteSource`** inyectado en `VehiclesViewModel` (común): binding en los 4 grafos
+  (iOS prod real, Android prod + ambos mock stub) → `MockKoinModuleVerifyTest` verde.
+- **Dev Catalog**: sin cambio, con razón — la fila A la gatea `isAudioRouteLinkRelevant` (expect
+  val de plataforma, `false` en el flavor mock Android), no un estado MVI, así que la galería
+  Android no puede renderizarla, igual que las filas de batería de [SETTINGS-REMODEL-001]. El nudge
+  B es una notificación del sistema, no una pantalla.
+
+## Verificación (límites, dichos sin esconder)
+
+Desde Windows compila el klib iOS (`compileKotlinIosSimulatorArm64`, incluido en `testAll`) pero
+**no se enlaza el framework ni se arranca simulador**: se demuestra lo que compila y lo que afirman
+los tests. El comportamiento real del sensor de audio (que el UID traiga la MAC en un iPhone
+concreto, que la ruta se lea en background siguiendo el viaje) queda **pendiente de campo en
+iPhone** — es la naturaleza de la vía, y por eso todo su uso es asimétrico.
 
 ## Referencias
 

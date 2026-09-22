@@ -84,6 +84,10 @@ val iosDetectionModule = module {
             drivingRouteStore = get(),
             sharedCarFenceReconciler = get(),
             authRepository = get(),
+            // [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] The audio-route sensor + its pure offer rule.
+            carAudioRouteSource = get(),
+            evaluateAudioRouteLinkOffer = get(),
+            carLinkDeclineStore = get(),
             reconstructionCoordinator = { clock, steps ->
                 get(org.koin.core.qualifier.named(RECONSTRUCTION_COORDINATOR)) {
                     org.koin.core.parameter.parametersOf(clock, steps)

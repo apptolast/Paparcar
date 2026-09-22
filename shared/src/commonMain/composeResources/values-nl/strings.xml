@@ -679,6 +679,10 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen â†’ Paparcar â
     <string name="settings_detection_improve">Detectie verbeteren</string>
     <string name="settings_detection_setup">Instellen</string>
     <string name="vehicle_set_active_action">Als actief instellen</string>
+    <string name="vehicle_link_car_action">Bluetooth van deze auto koppelen</string>
+    <string name="vehicle_link_car_linked">Bluetooth gekoppeld</string>
+    <string name="vehicle_car_linked">Gekoppeld aan %1$s. We markeren je parkeerplek hier vanzelf.</string>
+    <string name="vehicle_car_link_no_device">Maak eerst verbinding met de Bluetooth van je auto en probeer het opnieuw.</string>
     <!-- Vehicles â€” confirmation before making a vehicle the active one. [VEH-ACTIVE-FENCE-001] -->
     <string name="vehicle_set_active_confirm_title">Rijd je in deze auto?</string>
     <string name="vehicle_set_active_confirm_body">We detecteren automatisch waar je %1$s parkeert.</string>
@@ -1039,6 +1043,11 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen â†’ Paparcar â
     <string name="notif_still_parked_text">Je lijkt weg te zijn, maar deze parkeerplaats staat nog open. Laat weten of je al vertrokken bent, of markeer waar de auto nu staat.</string>
     <string name="notif_action_ive_left">Ik ben weg</string>
     <string name="notif_action_mark_parking">Parkeerplaats markeren</string>
+    <string name="notif_car_link_title">Was deze rit in %1$s?</string>
+    <string name="notif_car_link_text">Als het jouw auto is, koppel hem en Paparcar markeert je parkeerplek voortaan vanzelf.</string>
+    <string name="notif_car_link_device_fallback">deze auto</string>
+    <string name="notif_action_link_yes">Ja, het is mijn auto</string>
+    <string name="notif_action_link_no">Nee</string>
     <!-- Zone alert + shared-car push cards. Mirrored from app/src/main/res like the
          rest of notif_*: the push is a DATA message so the wording is the client's,
          and iOS reads it here. [IOS-THE-GROUP-CANNOT-REACH-AN-IPHONE-001] -->

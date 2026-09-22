@@ -65,6 +65,11 @@
     <string name="notif_mark_parking_action">Marchează parcarea</string>
     <string name="notif_action_ive_left">Am plecat</string>
     <string name="notif_action_mark_parking">Marchează parcarea</string>
+    <string name="notif_car_link_title">Călătoria aceasta a fost în %1$s?</string>
+    <string name="notif_car_link_text">Dacă e mașina ta, asociaz-o și Paparcar îți va marca parcarea singur de acum înainte.</string>
+    <string name="notif_car_link_device_fallback">această mașină</string>
+    <string name="notif_action_link_yes">Da, e mașina mea</string>
+    <string name="notif_action_link_no">Nu</string>
     <string name="notif_background_kill_title">Telefonul tău blochează Paparcar</string>
     <string name="notif_background_kill_text">Sistemul a oprit ore întregi detectarea parcării în fundal. Atinge pentru a deschide aplicația și a rezolva din Setări → Detectare.</string>
     <string name="notif_sentry_title">Parcată · atent la plecarea ta</string>

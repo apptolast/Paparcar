@@ -89,6 +89,11 @@ enum class ArmLabel(val persisted: String) {
     /** [DET-BT-DISCONNECT-WITHOUT-RIDE-001] A ride-shaped Bluetooth engagement armed this session. */
     BT_RIDE("bt_ride"),
 
+    /** [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] The phone's audio was routed to THIS vehicle's
+     *  Bluetooth when the departure armed — ownership proven by the audio route (iOS), where no
+     *  ACL event exists. Ownership, not movement: never a verified departure. */
+    OWN_CAR_AUDIO("own_car_audio"),
+
     /** [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001] The drive proof of the superseded session. */
     INHERITED_DRIVE("inherited_drive"),
 
@@ -108,7 +113,11 @@ enum class ArmLabel(val persisted: String) {
     val isVerifiedDeparture: Boolean
         get() = when (this) {
             VERIFIED_SPEED, VERIFIED_ENTER, VERIFIED_LATE, INHERITED_DRIVE, DEPARTURE_FOLLOWED -> true
-            MANUAL, SELF_OBSERVED, ENTER_AT_CAR, ARRIVAL_HANDOFF, BT_RIDE, BOARDED_AWAY -> false
+            MANUAL, SELF_OBSERVED, ENTER_AT_CAR, ARRIVAL_HANDOFF, BT_RIDE, BOARDED_AWAY,
+            // [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] The audio route proves WHOSE car, never
+            // that it MOVED — the session must still measure its own drive.
+            OWN_CAR_AUDIO,
+            -> false
         }
 
     /**
@@ -125,6 +134,9 @@ enum class ArmLabel(val persisted: String) {
             MANUAL, INHERITED_DRIVE, VERIFIED_SPEED -> true
             VERIFIED_ENTER, VERIFIED_LATE, SELF_OBSERVED,
             ENTER_AT_CAR, ARRIVAL_HANDOFF, BT_RIDE, BOARDED_AWAY,
+            // [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] Ownership is a nomination about WHO,
+            // not a measurement of MOVEMENT — a silent pin still costs a measured drive.
+            OWN_CAR_AUDIO,
             // [DET-A-JUST-DEPARTED-CAR-IS-NOT-NO-SESSION-001] The worker's fix cleared the DEPARTURE
             // bar (10 km/h), not the TRIP bar (18 km/h) — a cyclist clears the former all day. The
             // follower rides at full quality, but a park at the far end without its OWN measured
@@ -220,6 +232,19 @@ sealed interface ArmEvidence {
     data class BtRide(val engagementMs: Long) : ArmEvidence
 
     /**
+     * [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] The departure armed while the phone's audio was
+     * routed to THIS vehicle's paired Bluetooth — ownership proven by the audio route, on the
+     * platform (iOS) where no ACL event exists to prove it. Strictly an upgrade of [Unverified]
+     * via [upgradeArmEvidenceWithOwnCarAudio]: it answers *whose car*, never *did it move*, so it
+     * grants no drive authorization, no verified departure and no silent confirm — the session
+     * must measure its own drive or ask at the far end, exactly like [Unverified]. What it buys
+     * is provenance: a field trace can read that the boarding was in the OWN car (a bus ride can
+     * never wear this label), and future field data can decide whether it earns more.
+     * Carries the port's human name for forensics; the MAC stays out of diagnostics on purpose.
+     */
+    data class OwnCarAudio(val portName: String?) : ArmEvidence
+
+    /**
      * [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001] This session REPLACED one that had already
      * PROVEN a drive with its own track, and inherits that proof.
      *
@@ -266,7 +291,7 @@ sealed interface ArmEvidence {
             is VerifiedBySpeed, is VerifiedByVehicleEnter, is DepartureFollowed -> DriveAuthorization.OnTrust
             is InheritedDrive -> DriveAuthorization.Measured
             is Manual, is Unverified, is BoardingAtCar, is ArrivalHandoff, is BtRide,
-            is BoardedAwayFromCar -> DriveAuthorization.None
+            is BoardedAwayFromCar, is OwnCarAudio -> DriveAuthorization.None
         }
 
     /**
@@ -332,6 +357,7 @@ sealed interface ArmEvidence {
             is ArrivalHandoff -> ArmLabel.ARRIVAL_HANDOFF
             is BoardedAwayFromCar -> ArmLabel.BOARDED_AWAY
             is BtRide -> ArmLabel.BT_RIDE
+            is OwnCarAudio -> ArmLabel.OWN_CAR_AUDIO
             is InheritedDrive -> ArmLabel.INHERITED_DRIVE
             is DepartureFollowed -> ArmLabel.DEPARTURE_FOLLOWED
         }
@@ -359,6 +385,7 @@ sealed interface ArmEvidence {
             ArrivalHandoff,
             BoardedAwayFromCar,
             BtRide(engagementMs = 0L),
+            OwnCarAudio(portName = null),
             InheritedDrive(maxSpeedMps = 0f, source = DriveProofSource.TRACK_WINDOW),
             DepartureFollowed(speedKmh = 0f, accuracyM = null),
         )

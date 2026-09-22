@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.presentation.home
 
+import com.rndeveloper.paparcar.isBtStrategyRelevant
 import com.rndeveloper.paparcar.domain.detection.DetectionPhase
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.domain.model.AddressAndPlace
@@ -762,10 +763,15 @@ class HomeSlicesTest {
             activeSessions = listOf(session("s1", "veh-A"), session("s2", "veh-BT")),
             selection = HomeSelection.Parking("s2"),
         )
-        assertEquals(
-            VehicleMonitoringStatus.Bluetooth("AA:BB:CC:DD:EE:FF"),
-            state.toFabsSlice().selectedParkingWatch,
-        )
+        // [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] The blue BT watch is only real where the
+        // deterministic lane exists (Android). On iOS the same MAC is audio-route identity, not a
+        // watch tier, so the vehicle reads by its Coordinator state (here: not the active one).
+        val expected = if (isBtStrategyRelevant) {
+            VehicleMonitoringStatus.Bluetooth("AA:BB:CC:DD:EE:FF")
+        } else {
+            VehicleMonitoringStatus.Inactive
+        }
+        assertEquals(expected, state.toFabsSlice().selectedParkingWatch)
     }
 
     @Test

@@ -4,6 +4,7 @@ package com.rndeveloper.paparcar.notification
 
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
+import com.rndeveloper.paparcar.domain.notification.AppNotificationManager.Companion.CAR_LINK_OFFER_NOTIFICATION_ID
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager.Companion.CONFIRMATION_FAILED_NOTIFICATION_ID
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager.Companion.DEBUG_NOTIFICATION_ID
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager.Companion.PARKING_CONFIRMATION_NOTIFICATION_ID
@@ -25,8 +26,13 @@ import paparcar.composeapp.generated.resources.notif_action_cancel_save
 import paparcar.composeapp.generated.resources.notif_action_confirm
 import paparcar.composeapp.generated.resources.notif_action_ive_left
 import paparcar.composeapp.generated.resources.notif_action_mark_parking
+import paparcar.composeapp.generated.resources.notif_action_link_no
+import paparcar.composeapp.generated.resources.notif_action_link_yes
 import paparcar.composeapp.generated.resources.notif_action_no_not_parked
 import paparcar.composeapp.generated.resources.notif_action_yes_parked
+import paparcar.composeapp.generated.resources.notif_car_link_device_fallback
+import paparcar.composeapp.generated.resources.notif_car_link_text
+import paparcar.composeapp.generated.resources.notif_car_link_title
 import paparcar.composeapp.generated.resources.notif_confirmation_failed_text
 import paparcar.composeapp.generated.resources.notif_confirmation_failed_title
 import paparcar.composeapp.generated.resources.notif_confirmation_text
@@ -55,6 +61,7 @@ import platform.UserNotifications.UNMutableNotificationContent
 import platform.UserNotifications.UNNotificationAction
 import platform.UserNotifications.UNNotificationActionOptionDestructive
 import platform.UserNotifications.UNNotificationActionOptionForeground
+import platform.UserNotifications.UNNotificationActionOptionNone
 import platform.UserNotifications.UNNotificationCategory
 import platform.UserNotifications.UNNotificationCategoryOptionNone
 import platform.UserNotifications.UNNotificationRequest
@@ -158,6 +165,27 @@ class IosAppNotificationManagerImpl(
             setBody(body)
             setCategoryIdentifier(CATEGORY_STILL_PARKED)
             setUserInfo(mapOf<Any?, Any?>(EXTRA_GEOFENCE_ID to geofenceId))
+            setSound(platform.UserNotifications.UNNotificationSound.defaultSound)
+        }
+    }
+
+    /** [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] Vía B: the trip framed one BT port and no vehicle
+     *  claims it — offer to link. Both actions run in the background (no app open): "yes" writes the
+     *  MAC through the action handler, "no" just dismisses. Low stakes, so no durable pending record
+     *  — the next trip offers again if missed. */
+    override fun showCarLinkOffer(vehicleId: String, deviceAddress: String, deviceName: String?) {
+        postLocalized(CAR_LINK_OFFER_NOTIFICATION_ID) {
+            val device = deviceName?.takeIf { it.isNotBlank() }
+                ?: getString(Res.string.notif_car_link_device_fallback)
+            setTitle(getString(Res.string.notif_car_link_title, device))
+            setBody(getString(Res.string.notif_car_link_text))
+            setCategoryIdentifier(CATEGORY_CAR_LINK)
+            setUserInfo(
+                mapOf<Any?, Any?>(
+                    EXTRA_LINK_VEHICLE_ID to vehicleId,
+                    EXTRA_LINK_DEVICE_ADDRESS to deviceAddress,
+                ),
+            )
             setSound(platform.UserNotifications.UNNotificationSound.defaultSound)
         }
     }
@@ -309,6 +337,8 @@ class IosAppNotificationManagerImpl(
         val cancelSave = getString(Res.string.notif_action_cancel_save)
         val iveLeft = getString(Res.string.notif_action_ive_left)
         val markParking = getString(Res.string.notif_action_mark_parking)
+        val linkYes = getString(Res.string.notif_action_link_yes)
+        val linkNo = getString(Res.string.notif_action_link_no)
 
         val parkingCategory = UNNotificationCategory.categoryWithIdentifier(
             identifier = CATEGORY_PARKING_CONFIRMATION,
@@ -375,8 +405,30 @@ class IosAppNotificationManagerImpl(
             intentIdentifiers = emptyList<String>(),
             options = UNNotificationCategoryOptionNone,
         )
+        // [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] "Is this your car?" — both actions background:
+        // yes writes the MAC via the handler, no dismisses. Neither opens the app.
+        val carLinkCategory = UNNotificationCategory.categoryWithIdentifier(
+            identifier = CATEGORY_CAR_LINK,
+            actions = listOf(
+                UNNotificationAction.actionWithIdentifier(
+                    identifier = ACTION_LINK_CAR,
+                    title = linkYes,
+                    options = UNNotificationActionOptionNone,
+                ),
+                UNNotificationAction.actionWithIdentifier(
+                    identifier = ACTION_DISMISS_LINK,
+                    title = linkNo,
+                    options = UNNotificationActionOptionNone,
+                ),
+            ),
+            intentIdentifiers = emptyList<String>(),
+            options = UNNotificationCategoryOptionNone,
+        )
         center.setNotificationCategories(
-            setOf(parkingCategory, savedConfirmCategory, savedRevertOnlyCategory, stillParkedCategory),
+            setOf(
+                parkingCategory, savedConfirmCategory, savedRevertOnlyCategory,
+                stillParkedCategory, carLinkCategory,
+            ),
         )
     }
 
@@ -397,5 +449,11 @@ class IosAppNotificationManagerImpl(
         const val ACTION_MARK_PARKING = "paparcar_action_mark_parking"
         const val EXTRA_PARKING_ID = "parkingId"
         const val EXTRA_GEOFENCE_ID = "geofenceId"
+        // [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] The link offer's category, actions and payload.
+        const val CATEGORY_CAR_LINK = "paparcar_car_link"
+        const val ACTION_LINK_CAR = "paparcar_action_link_car"
+        const val ACTION_DISMISS_LINK = "paparcar_action_dismiss_link"
+        const val EXTRA_LINK_VEHICLE_ID = "linkVehicleId"
+        const val EXTRA_LINK_DEVICE_ADDRESS = "linkDeviceAddress"
     }
 }

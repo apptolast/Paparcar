@@ -688,6 +688,10 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <string name="settings_detection_improve">Popraw wykrywanie</string>
     <string name="settings_detection_setup">Skonfiguruj</string>
     <string name="vehicle_set_active_action">Ustaw jako aktywny</string>
+    <string name="vehicle_link_car_action">Powiąż Bluetooth tego samochodu</string>
+    <string name="vehicle_link_car_linked">Bluetooth powiązany</string>
+    <string name="vehicle_car_linked">Powiązano z %1$s. Sami oznaczymy tu Twoje parkowanie.</string>
+    <string name="vehicle_car_link_no_device">Najpierw połącz się z Bluetooth samochodu i spróbuj ponownie.</string>
     <!-- Vehicles — confirmation before making a vehicle the active one. [VEH-ACTIVE-FENCE-001] -->
     <string name="vehicle_set_active_confirm_title">Czy jedziesz tym samochodem?</string>
     <string name="vehicle_set_active_confirm_body">Automatycznie wykryjemy, gdzie parkujesz %1$s.</string>
@@ -853,6 +857,11 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <string name="notif_still_parked_text">Wygląda na to, że jesteś daleko, ale to parkowanie jest wciąż otwarte. Powiedz nam, czy już odjechałeś, albo zaznacz, gdzie teraz stoi auto.</string>
     <string name="notif_action_ive_left">Już wyjechałem</string>
     <string name="notif_action_mark_parking">Zaznacz parkowanie</string>
+    <string name="notif_car_link_title">Czy ta podróż odbyła się w %1$s?</string>
+    <string name="notif_car_link_text">Jeśli to Twój samochód, powiąż go, a Paparcar od teraz sam oznaczy Twoje parkowanie.</string>
+    <string name="notif_car_link_device_fallback">tym samochodzie</string>
+    <string name="notif_action_link_yes">Tak, to mój samochód</string>
+    <string name="notif_action_link_no">Nie</string>
     <!-- Zone alert + shared-car push cards. Mirrored from app/src/main/res like the
          rest of notif_*: the push is a DATA message so the wording is the client's,
          and iOS reads it here. [IOS-THE-GROUP-CANNOT-REACH-AN-IPHONE-001] -->

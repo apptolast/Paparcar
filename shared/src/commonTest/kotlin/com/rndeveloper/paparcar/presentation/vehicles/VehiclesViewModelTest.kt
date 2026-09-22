@@ -96,6 +96,9 @@ class VehiclesViewModelTest {
             // aviso de detección pausada sobre las cifras de cada uno.
             // [STATS-A-CHIP-YOU-CANNOT-MEASURE-MUST-NOT-REDRAW-001]
             com.rndeveloper.paparcar.fakes.data.repository.FakePermissionManager(),
+            // [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] Empty audio route — these tests are not
+            // about vía A; the row does not paint on this (non-iOS) graph anyway.
+            com.rndeveloper.paparcar.fakes.data.repository.FakeCarAudioRouteSource(),
         )
     }
 

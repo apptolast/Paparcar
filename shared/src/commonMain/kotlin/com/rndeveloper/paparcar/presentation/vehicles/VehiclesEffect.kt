@@ -24,4 +24,12 @@ sealed class VehiclesEffect {
      *  detection on is one action, so it cannot land on a different screen depending on which
      *  surface asked. [DET-TOGGLE-001] */
     data class NavigateToPermissions(val focus: PermissionsFocus) : VehiclesEffect()
+
+    /** [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] Explicit link (vía A) succeeded: the car's
+     *  Bluetooth ([deviceName]) is now tied to the vehicle. The screen confirms it. */
+    data class CarLinked(val deviceName: String) : VehiclesEffect()
+
+    /** The explicit link found no Bluetooth car in the current audio route — the user must be
+     *  connected to the car (engine on, audio playing) for the read to see it. */
+    data object CarLinkNoDevice : VehiclesEffect()
 }

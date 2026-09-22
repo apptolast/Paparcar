@@ -173,6 +173,23 @@ interface AppNotificationManager {
     fun showMarkParkingNudge(source: String? = null, vehicleId: String? = null, persistPending: Boolean = true) {}
 
     /**
+     * [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] Offers to link a car's Bluetooth to a vehicle
+     * after a trip framed exactly one A2DP port (present at the arm, gone at the park). A two-button
+     * ask — "yes, this is my car" links the MAC, "no" dismisses. iOS-only in practice: it is the
+     * opportunistic half of the onboarding that replaces Android's bonded-device list, which iOS
+     * does not expose. Default no-op so every other platform and the fakes ignore it.
+     *
+     * NOT a [com.rndeveloper.paparcar.domain.detection.PendingParkNudge]: this is a low-stakes
+     * convenience, not a lost car. If the user misses it, the next trip offers again — so it needs
+     * no durable in-app recovery, unlike the park nudge.
+     *
+     * @param vehicleId     Which vehicle to write the MAC onto if the user says yes.
+     * @param deviceAddress The car's BT MAC, parsed from the audio-route port UID.
+     * @param deviceName    The port's human name ("SKODA BT") — what the user sees to recognise it.
+     */
+    fun showCarLinkOffer(vehicleId: String, deviceAddress: String, deviceName: String?) {}
+
+    /**
      * Warns that the OS/OEM blocked Paparcar's background execution for hours while a session was
      * active (detected by the safety net's heartbeat gap) — detection almost certainly missed
      * events during that window. Tapping opens the app so the user can fix it from Settings →
@@ -363,5 +380,9 @@ interface AppNotificationManager {
 
         /** ID for the Plus "your station moved" alert — ONE card for the whole followed set. */
         const val FUEL_PRICE_MOVE_NOTIFICATION_ID = 2011
+
+        /** [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] "Is this your car?" — the opportunistic
+         *  link offer after a trip framed one BT audio port. iOS-only in practice. */
+        const val CAR_LINK_OFFER_NOTIFICATION_ID = 2014
     }
 }
