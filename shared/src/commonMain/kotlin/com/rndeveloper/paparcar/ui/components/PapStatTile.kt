@@ -4,7 +4,6 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,7 +22,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -58,16 +56,23 @@ fun PapStatTile(
     /** The lead figure of its grid. Larger, never coloured. */
     emphasized: Boolean = false,
     /**
-     * Esta cifra es lo que el usuario APORTA, no lo que gasta: viste el contenedor de marca.
-     * [STATS-THE-ONE-GREEN-BELONGS-TO-WHAT-YOU-GAVE-001]
+     * Esta cifra es lo que el usuario APORTA, no lo que gasta: **su glifo va en verde de marca**.
+     * [STATS-THE-ONE-GREEN-BELONGS-TO-WHAT-YOU-GAVE-001] [STATS-A-FIGURE-IS-NOT-A-BUTTON-001]
      *
-     * ⛔ **No es un verde nuevo, es el mismo de siempre.** Lo que la doctrina prohíbe es que el
-     * verde signifique una COSA nueva, no que aparezca dos veces por la misma: aquí dice «marca y
-     * acción», exactamente igual que el anillo de detección de al lado, y exactamente igual que un
-     * chip elegido. Ceder una plaza a la comunidad **es** la acción de este producto.
+     * ⛔ **Fue un FONDO (`primaryContainer` recortado a `PapShapes.chip`) y eso era el error.** El
+     * significado estaba bien —ceder una plaza es LA acción de este producto— pero esa vestimenta es
+     * literalmente la de un chip seleccionado: un tile así, en una rejilla de seis cifras que no se
+     * tocan, anuncia una afordancia que no existe. Y una caja entre cinco tiles sin caja no se lee
+     * «esto es lo que aportas», se lee «a éste le pasa algo».
+     * [UI-A-SELECTED-CHIP-IS-GREEN-BUT-ITS-WORD-IS-NOT-001] [UI-ONE-SKELETON-ONE-EMPHASIS-ONE-GREEN-001]
      *
-     * ⛔ Y la palabra NO se tiñe: `onSurface`, como en el chip. *Lo verde es la superficie, no la
-     * palabra* [UI-A-SELECTED-CHIP-IS-GREEN-BUT-ITS-WORD-IS-NOT-001].
+     * La respuesta ya estaba en esta misma rejilla: el anillo de [progress] pone el verde DENTRO del
+     * tile, como marca, no como superficie. Mismo token ([PapColor.actionText]), misma anatomía.
+     *
+     * ⛔ Ni la cifra ni la etiqueta se tiñen: siguen en `onSurface` y `onSurfaceVariant`.
+     *
+     * ⚠️ **Necesita [icon] para verse.** Hoy todo tile de contribución trae el suyo, pero si algún
+     * día hay uno sin glifo se quedará sin señal — y en silencio.
      *
      * ⚠️ Lo que este verde NO puede tocar es el gasto ni el CO₂. El CO₂ de la rejilla es lo que
      * EMITES y el coste es lo que PAGAS: pintarlos de «impacto positivo» le diría al usuario que
@@ -103,21 +108,12 @@ fun PapStatTile(
     progress: Float? = null,
 ) {
     val cs = MaterialTheme.colorScheme
+    // ⛔ SIN caja. El tile de contribución llevaba aquí un `clip(chip) + background(primaryContainer)`
+    // y eso es el traje de un chip seleccionado: parecía pulsable, y rompía el ritmo de una rejilla
+    // cuyos otros cinco tiles no tienen superficie. El verde se mudó al glifo, abajo.
+    // [STATS-A-FIGURE-IS-NOT-A-BUTTON-001] (issue #118)
     Column(
-        modifier = modifier
-            // ⛔ El fondo va ANTES del padding: pintado después, el color se quedaría dentro del
-            // hueco del texto y el tile se vería como una etiqueta flotando, no como una superficie.
-            // [STATS-THE-ONE-GREEN-BELONGS-TO-WHAT-YOU-GAVE-001]
-            .then(
-                if (contribution) {
-                    Modifier
-                        .clip(PapShapes.chip)
-                        .background(MaterialTheme.colorScheme.primaryContainer)
-                } else {
-                    Modifier
-                },
-            )
-            .padding(horizontal = TILE_H_PAD_DP.dp, vertical = TILE_V_PAD_DP.dp),
+        modifier = modifier.padding(horizontal = TILE_H_PAD_DP.dp, vertical = TILE_V_PAD_DP.dp),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -171,7 +167,10 @@ fun PapStatTile(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = cs.onSurfaceVariant,
+                    // El glifo es quien lleva el verde cuando la cifra es lo que el usuario APORTA —
+                    // mismo token que el anillo de `progress`, que resolvió esta misma pregunta bien
+                    // en esta misma rejilla. [STATS-A-FIGURE-IS-NOT-A-BUTTON-001]
+                    tint = if (contribution) PapColor.actionText else cs.onSurfaceVariant,
                     modifier = Modifier.size(LABEL_ICON_DP.dp),
                 )
             }
