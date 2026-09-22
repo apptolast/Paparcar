@@ -1,8 +1,9 @@
 # IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001 · En iOS el BT es un SENSOR, no un trigger — y como sensor puede probar de quién es el coche
 
-**Estado:** 🧊 Abierto, **SIN implementar a propósito** — gate: el diseño (onboarding + asiento
-en doctrina) tiene que quedar validado por el user antes de escribir código. Nace como follow-up
-deliberado de [IOS-A-BT-LANE-NEEDS-A-REAL-SIGNAL-001] (issue #74 / PR #122, master `a3dd5938e`).
+**Estado:** 🔵 Diseño VALIDADO por el user (22-09): **onboarding B (oportunista) como vía
+principal + A (explícita) como respaldo**, sensor **solo A2DP** en v1. Sigue **SIN implementar**
+hasta que el user dé el go. Nace como follow-up deliberado de
+[IOS-A-BT-LANE-NEEDS-A-REAL-SIGNAL-001] (issue #74 / PR #122, master `a3dd5938e`).
 
 ## La frase que gobierna el ticket
 
@@ -43,19 +44,42 @@ cómo se vincula el coche. Todo lo demás de este doc es desplegar esa frase.
 - Ni una señal dentro del **scoring** del Coordinator: la doctrina de carriles queda intacta —
   esto entra por la escalera de ARMADO (pertenencia), como en Android.
 
-## El onboarding — la pregunta abierta que gatea el ticket
+## Qué BT ve el sensor — el alcance decidido (22-09)
 
-Dos formas posibles, no excluyentes; **elegir es parte de la validación con el user**:
+El sensor no ve «el Bluetooth»: ve **la ruta de audio**, y cada perfil aparece distinto. En
+Android el ACL es de nivel de enlace y dispara con CUALQUIER perfil; en iOS cada perfil tiene su
+precio:
 
-- **(a) Explícita**: fila «Vincular el coche» en iOS que instruye: *siéntate en el coche con el
-  motor encendido y la app abierta* → la app lee `currentRoute`, enseña el `portName`
-  («SKODA BT»), el user confirma, se guarda la MAC del UID. Simple, pero pide un viaje al coche.
-- **(b) Oportunista**: durante un viaje que el Coordinator ya siguió, si la ruta mostró
-  exactamente UN puerto A2DP, capturarlo y preguntar después (nudge): *«¿Este viaje fue en
-  [SKODA BT]? ¿Es tu coche?»*. Cero fricción, pero exige diseño de copy y de cuándo preguntar
-  (⛔ un «sí» no encoge una duda entrada; ⛔ sin mecánica interna en el copy).
+| Perfil del coche | ¿Visible? | Precio | Decisión v1 |
+|---|---|---|---|
+| **A2DP** (música por BT) | ✅ en `currentRoute` mientras esté conectado, suene o no | Ninguno: sin permiso | **ES el sensor** — UID `MAC-tacl` |
+| **HFP solo** (coches viejos, solo llamadas) | ⚠️ solo con sesión `playAndRecord` + `allowBluetooth` | **Permiso de MICRÓFONO** + justificación en App Store | ⛔ Fuera: pagar micro por coches viejos rompe el cero-fricción. Esos coches quedan en Coordinator puro, como hoy |
+| **CarPlay** (cable o inalámbrico) | ✅ como `.carAudio`, pero **TAPA al A2DP** (el audio va por CarPlay) | Sin MAC — identidad = nombre del coche | 🧊 Anotado como evidencia secundaria futura («estoy en UN coche»), sin identidad comparable |
+| Cable USB/AUX | ❌ no es BT | — | Fuera |
+
+⚠️ Consecuencia honesta: un usuario que SIEMPRE usa CarPlay no expone el A2DP → su coche no es
+vinculable por MAC en iOS. La feature degrada a Coordinator puro sin mentirle (y el día CarPlay,
+`.carAudio` podría ser su evidencia, con su propio diseño).
+
+⚠️ **Confusor conocido: unos auriculares también son A2DP.** El guard es doble: (1) el candidato
+de la vía B es el puerto cuya presencia ENMARCA el viaje (aparece al arrancar, desaparece al
+aparcar — unos auriculares sobreviven a la caminata); (2) la vinculación SIEMPRE la confirma el
+usuario (fallo asimétrico: ante la duda se pregunta, nunca se vincula solo).
+
+## El onboarding — DECIDIDO (user, 22-09): B como vía principal + A como respaldo
+
+Ambas escriben el mismo `Vehicle.bluetoothDeviceId`; ninguna es excluyente:
+
+- **(b) Oportunista, la principal**: durante un viaje que el Coordinator ya siguió, si la ruta
+  mostró exactamente UN puerto A2DP que enmarca el viaje, capturarlo y preguntar después
+  (nudge): *«¿Este viaje fue en [SKODA BT]? ¿Es tu coche?»*. Cero fricción. Exige diseño de
+  copy (⛔ un «sí» no encoge una duda entrada; ⛔ sin mecánica interna en el copy).
+- **(a) Explícita, el respaldo**: fila «Vincular el coche» en la página del vehículo (solo iOS):
+  *siéntate en el coche con el motor encendido y la app abierta* → la app lee `currentRoute`,
+  enseña el `portName` («SKODA BT»), el user confirma. Tapa el hueco de la B: una cuenta
+  solo-iOS no tiene nada hasta su primer viaje seguido con puerto visible.
 - Si el pairing **ya vino sincronizado desde Android** (`bluetoothDeviceId != null`), no hay
-  onboarding: iOS solo observa coincidencias. El onboarding es para cuentas solo-iOS.
+  onboarding: iOS solo observa coincidencias.
 
 ## Fragilidad asumida (escrita para el futuro)
 
