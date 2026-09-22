@@ -134,22 +134,18 @@ class MapMarkerIdsTest {
         // is a segment of the key, and every variant has to be in the corpus. A car that pairs its
         // Bluetooth mid-trip must land on an id the cache has never seen; if these collapsed to one
         // id the map would keep serving the previous halo and the check would not notice.
-        // Off is deliberately absent from this loop: an unwatched car keeps the movement blue, so
-        // its key IS the default one added below. Listing it here would emit a duplicate and the
-        // distinctness check — which exists to catch two builders shadowing each other — would read
-        // that as a collision.
-        listOf(VehicleWatch.Bluetooth, VehicleWatch.Assisted).forEach { watch ->
-            val key = watch.tripWatchKey()
+        //
+        // ⛔ La lista se recorre, no se escribe: es LA MISMA con la que el mapa registra los dibujos
+        // ([TRIP_WATCH_VARIANTS]), así que un vestido nuevo entra a la vez en el render y aquí, y no
+        // puede quedarse un id sin bitmap. `Off` no sale por separado: su clave ES la del
+        // movimiento, y duplicarla la leería el chequeo de distinción como una colisión.
+        // [UI-A-MARKER-ID-MUST-BRING-ITS-DRAWING-001]
+        TRIP_WATCH_VARIANTS.forEach { (key, _) ->
             add(departureContentId(key))
             add(arrivalContentId(key))
             add(locationActiveContentId(CarbodyType.SEDAN, VehicleColor.BLACK, key))
             add(locationActiveContentId(null, null, key))
         }
-        // …and the no-trip-context default, which every other caller of the map gets.
-        add(departureContentId(WATCH_KEY_MOVEMENT))
-        add(arrivalContentId(WATCH_KEY_MOVEMENT))
-        add(locationActiveContentId(CarbodyType.SEDAN, VehicleColor.BLACK))
-        add(locationActiveContentId(null, null))
     }.map { EmittedId(it, MarkerTapTarget.Inert) }
 
     /** The fuel layer — price text, selection and theme all baked into the key.
@@ -285,6 +281,45 @@ class MapMarkerIdsTest {
         assertEquals(
             outside,
             vehicleBadgeContentId(v, selected = false, themeKey = "dk", zones = listOf(faraway)),
+        )
+    }
+
+    /**
+     * El id de un marcador y su dibujo salen de la MISMA lectura.
+     * [UI-A-MARKER-ID-MUST-BRING-ITS-DRAWING-001]
+     *
+     * El watch de un viaje entra en el id (`departure_as`, `location_active_SEDAN_def_bt`) y llega
+     * por una tubería distinta a la del puck, así que cambia en otro frame: el mapa de dibujos se
+     * memorizaba con el watch de ese instante y la lista de marcadores pedía el del siguiente. Un id
+     * sin dibujo no es un dibujo por defecto — en un marcador vivo el fork no pinta NADA, y el coche
+     * desaparecía del mapa hasta reiniciar la app (issue #127).
+     *
+     * Por eso el mapa registra el CONJUNTO CERRADO de vestidos en vez del de ahora, y esto es lo que
+     * vigila que el conjunto siga siendo cerrado: un `VehicleWatch` nuevo cuya clave no esté en
+     * [TRIP_WATCH_VARIANTS] es un marcador que algún viaje pedirá y nadie habrá dibujado.
+     */
+    @Test
+    fun should_dressEveryWatch_when_theTripMarkersAreRegistered() {
+        val keys = TRIP_WATCH_VARIANTS.map { (key, _) -> key }
+        assertEquals(
+            keys.distinct().size,
+            keys.size,
+            "dos vestidos comparten clave — uno taparía el bitmap del otro",
+        )
+        val everyWatch: List<VehicleWatch?> = listOf(null) + VehicleWatch.entries
+        everyWatch.forEach { watch ->
+            assertTrue(
+                watch.tripWatchKey() in keys,
+                "un viaje vigilado como $watch pide '${watch.tripWatchKey()}', que el mapa de " +
+                    "dibujos no registra — su marcador se quedaría sin pintar",
+            )
+        }
+        // El movimiento es el vestido de dos situaciones (sin viaje y coche sin vigilar) y comparte
+        // bitmap con ellas a propósito: tres vestidos para cuatro lecturas.
+        assertEquals(
+            everyWatch.map { it.tripWatchKey() }.distinct().size,
+            TRIP_WATCH_VARIANTS.size,
+            "el conjunto registrado dejó de ser el conjunto de claves posibles",
         )
     }
 

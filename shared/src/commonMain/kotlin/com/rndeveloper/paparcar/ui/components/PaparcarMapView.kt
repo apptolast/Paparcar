@@ -524,6 +524,50 @@ internal fun VehicleWatch?.tripWatchKey(): String = when (this) {
 internal const val WATCH_KEY_MOVEMENT = "mv"
 
 /**
+ * **Every dress a trip marker's id can be spelled with** — one entry per KEY, not per watch.
+ * [UI-A-MARKER-ID-MUST-BRING-ITS-DRAWING-001]
+ *
+ * ### Por qué existe una LISTA y no el watch de ahora
+ * La lista de marcadores y el mapa de dibujos se memorizan por separado, con claves distintas, y el
+ * watch entra en el ID: `departure_as`, `location_active_SEDAN_def_bt`. El watch de un viaje llega
+ * por una tubería (`HomeState.drivingMeta` + los vehículos) y el puck por otra
+ * (`HomeTripController`), así que **cambian en frames distintos por construcción**. Cuando el watch
+ * se resolvía después de aparecer el puck, la lista se rehacía con el id nuevo y el mapa de dibujos
+ * se quedaba con el viejo — y un id sin dibujo no es un dibujo por defecto: en el fork,
+ * `customMarkerContent[live.contentId] ?: return` deja el **puck del coche sin pintar**, y un
+ * marcador estático cae al pin rojo de Google. Ese era el «no cambia a driving hasta que reinicio la
+ * app»: al recomponer de cero las dos tuberías ya estaban resueltas.
+ *
+ * Es la SEGUNDA vez que el id y su dibujo se separan — la primera fue la zona que aloja un coche
+ * ([MAP-A-PARKED-CAR-INSIDE-A-ZONE-WEARS-THE-ZONE-001], pin rojo sobre el badge). La zona no tiene
+ * conjunto cerrado; el watch sí, y son **tres**. Así que el mapa de dibujos no pregunta cuál es el
+ * de ahora: **registra los tres**, y cuál lleve el marcador deja de poder importar. Tres bitmaps
+ * diminutos que kmpmaps cachea una vez, a cambio de una clase de bug que ya volvió.
+ *
+ * `Off` no aparece: su clave ES la del movimiento ([WATCH_KEY_MOVEMENT]), así que comparte bitmap
+ * con "sin viaje" y listarlo emitiría un id duplicado.
+ */
+internal val TRIP_WATCH_VARIANTS: List<Pair<String, VehicleWatch?>> =
+    (listOf<VehicleWatch?>(null) + VehicleWatch.entries)
+        .distinctBy { it.tripWatchKey() }
+        .map { it.tripWatchKey() to it }
+
+/**
+ * El color de un viaje: el de la vigilancia de SU coche. Un coche sin vigilar mantiene el azul de
+ * movimiento — su gris de identidad desaparecería sobre las teselas.
+ * [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001]
+ *
+ * Se llama DENTRO del dibujo (que es `@Composable`), nunca capturado desde fuera: un color leído en
+ * el cuerpo y guardado en el mapa memorizado es la misma deriva que [TRIP_WATCH_VARIANTS] cierra,
+ * sólo que en el pigmento en vez de en el id.
+ */
+@Composable
+internal fun tripAccentFor(watch: VehicleWatch?): Color = when (watch) {
+    null, VehicleWatch.Off -> PapColor.live
+    else -> vehicleIdentityColor(watch)
+}
+
+/**
  * Brand user-position dot: green core + light ring + 15% green halo — the "you"
  * marker in the same palette as the rest of the map. [UI-SHEET-003]
  */
@@ -1022,10 +1066,7 @@ fun PaparcarMapView(
     // the trail polylines are built inside a coroutine where `@Composable` cannot be called — and
     // baked into the marker keys below, because kmpmaps caches bitmaps by contentId.
     // [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001]
-    val tripAccent = when (tripWatch) {
-        null, VehicleWatch.Off -> PapColor.live
-        else -> vehicleIdentityColor(tripWatch)
-    }
+    val tripAccent = tripAccentFor(tripWatch)
     val watchKey = tripWatch.tripWatchKey()
 
     // ⛔ Aquí había una clave `pumpGallon` leída de `LocalPumpGallon`, porque la unidad del surtidor
@@ -1327,15 +1368,21 @@ fun PaparcarMapView(
                     doubt = VehicleMarkerDoubt.ASKING,
                 )
             }
-            // Departure point: a small blue dot with a white halo — a clean "you left from here"
-            // origin where the breadcrumb trail starts. [DEPART-CONSISTENCY-001] [TRIP-TRAIL-001]
-            put(departureContentId(watchKey)) { _ ->
-                DepartureDotMarker(color = tripAccent)
-            }
-            // Route end vertex: deliberately the SAME dot as the origin — both ends of the stored
-            // line share one visual language (white ring, drive-blue fill). [ROUTE-END-AT-CAR-001]
-            put(arrivalContentId(watchKey)) { _ ->
-                DepartureDotMarker(color = tripAccent)
+            // Departure point: a small dot with a white halo — a clean "you left from here" origin
+            // where the breadcrumb trail starts. [DEPART-CONSISTENCY-001] [TRIP-TRAIL-001]
+            // …y el final de una ruta guardada: deliberadamente EL MISMO punto que el origen, los dos
+            // extremos de la línea hablan un solo idioma. [ROUTE-END-AT-CAR-001]
+            //
+            // ⛔ Los TRES vestidos, no el del viaje de ahora: el watch entra en el id y llega por otra
+            // tubería que el puck, así que "el de ahora" es una foto que caduca entre frames.
+            // [UI-A-MARKER-ID-MUST-BRING-ITS-DRAWING-001]
+            TRIP_WATCH_VARIANTS.forEach { (key, watch) ->
+                put(departureContentId(key)) { _ ->
+                    DepartureDotMarker(color = tripAccentFor(watch))
+                }
+                put(arrivalContentId(key)) { _ ->
+                    DepartureDotMarker(color = tripAccentFor(watch))
+                }
             }
             // User-location "you" dot — one stable bitmap, no per-fix churn. [DRIVE-PUCK-NATIVE-001]
             put(MARKER_USER_DOT) { _ ->
@@ -1519,18 +1566,24 @@ fun PaparcarMapView(
         // Heading is applied as native marker rotation now (see [PUCK_MARKER_OPTIONS]), so the bitmap
         // is drawn north-up (headingDegrees = 0) and no longer multiplied per heading bucket.
         // [DRIVE-PUCK-NATIVE-001]
+        // ⛔ Una entrada por VESTIDO, no la del watch de ahora: el halo del puck lleva el watch en su
+        // id, y el watch cambia en un frame distinto al que trae el puck — el coche se quedaba sin
+        // dibujar (el fork no pinta un pin por defecto en un marcador vivo: no pinta NADA).
+        // [UI-A-MARKER-ID-MUST-BRING-ITS-DRAWING-001]
         val drivingHandler: Map<String, @Composable (Marker) -> Unit> = puckMeta?.let { meta ->
-            mapOf(
-                locationActiveContentId(meta.carbodyType, meta.color, watchKey) to { _: Marker ->
-                    LocationActiveMarker(
-                        carbody = meta.carbodyType,
-                        size = meta.sizeCategory,
-                        headingDegrees = 0f,
-                        color = meta.color,
-                        haloColor = tripAccent,
-                    )
-                },
-            )
+            buildMap {
+                TRIP_WATCH_VARIANTS.forEach { (key, watch) ->
+                    put(locationActiveContentId(meta.carbodyType, meta.color, key)) { _ ->
+                        LocationActiveMarker(
+                            carbody = meta.carbodyType,
+                            size = meta.sizeCategory,
+                            headingDegrees = 0f,
+                            color = meta.color,
+                            haloColor = tripAccentFor(watch),
+                        )
+                    }
+                }
+            }
         } ?: emptyMap()
 
         baseHandlers + vehicleHandlers + zoneHandlers + fuelHandlers + parkingHandlers + drivingHandler
