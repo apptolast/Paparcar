@@ -31,6 +31,7 @@ import com.rndeveloper.paparcar.domain.util.PolylineCodec
 import com.rndeveloper.paparcar.domain.util.haversineMeters
 import com.rndeveloper.paparcar.domain.service.DepartureEventBus
 import com.rndeveloper.paparcar.domain.service.GeofenceManager
+import com.rndeveloper.paparcar.domain.service.GeofenceRegistrationException
 import com.rndeveloper.paparcar.domain.service.ParkingEnrichmentScheduler
 import com.rndeveloper.paparcar.domain.service.ParkingSyncScheduler
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
@@ -443,6 +444,15 @@ class ConfirmParkingUseCase(
                         success = result.isSuccess,
                         radiusMeters = geofenceRadius,
                         location = gpsPoint,
+                        source = "confirm",
+                        // El PORQUÉ, cuando la plataforma supo nombrarlo. El janitor y la red de
+                        // seguridad ya lo mandaban y este camino —el que registra la valla de cada
+                        // aparcamiento— archivaba un `false` pelado, que es la mitad de un
+                        // diagnóstico. En Android la razón vive dentro de la excepción de Play
+                        // Services y la traduce su propio call site, así que aquí sigue llegando
+                        // null hasta que ese lado la cruce igual.
+                        // [IOS-A-DETECTION-THAT-FAILS-MUST-LEAVE-A-TRACE-001]
+                        failure = (result.exceptionOrNull() as? GeofenceRegistrationException)?.reason,
                     )
                 )
             }

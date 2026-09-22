@@ -41,7 +41,7 @@ class IosSyncOutbox(
     }
 
     private companion object {
-        const val TAG = "IosSyncOutbox"
+        const val TAG = "PARKDIAG/IosOutbox"
         const val KEY_NAMESPACE = "sync_outbox."
     }
 }

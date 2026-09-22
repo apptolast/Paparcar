@@ -14,8 +14,10 @@ package com.rndeveloper.paparcar.domain.detection.fence
  * turned off), or no cause at all — and that answer is the input to deciding how often the blind
  * periodic floor needs to run at all.
  *
- * Values mirror `com.google.android.gms.location.GeofenceStatusCodes`; the mapping lives here, pure
- * and unit-testable, while the platform side only has to pull the integer out of the exception.
+ * Los valores nacieron espejando `com.google.android.gms.location.GeofenceStatusCodes`, y desde
+ * [IOS-A-DETECTION-THAT-FAILS-MUST-LEAVE-A-TRACE-001] también los cubre `CLError`: **son las RAZONES,
+ * no los códigos de nadie**. Los dos mapeos viven aquí, puros y testeables, y cada plataforma sólo
+ * tiene que sacar el entero de su error.
  */
 enum class GeofenceRegistrationFailure {
     /**
@@ -64,6 +66,50 @@ enum class GeofenceRegistrationFailure {
                 statusCode == GMS_GEOFENCE_NOT_AVAILABLE -> NOT_AVAILABLE
                 statusCode == GMS_GEOFENCE_TOO_MANY_GEOFENCES -> TOO_MANY_GEOFENCES
                 statusCode == GMS_GEOFENCE_TOO_MANY_PENDING_INTENTS -> TOO_MANY_PENDING_INTENTS
+                else -> UNKNOWN
+            }
+
+        // ── iOS · CoreLocation [IOS-A-DETECTION-THAT-FAILS-MUST-LEAVE-A-TRACE-001] ───────────────
+        //
+        // Mirrors `CLError.Code`, as plain ints for the same reason que los de arriba: este fichero
+        // es commonMain y Android lo compila igual, así que no puede importar CoreLocation.
+        // Sólo los tres que esta app puede provocar; el resto (heading, geocoding, ranging…) no
+        // tocan una región y caen en UNKNOWN con su mensaje.
+
+        /** `CLError.denied` — el usuario negó la ubicación a la app entera. */
+        const val CL_DENIED = 1
+
+        /** `CLError.regionMonitoringDenied` — hay ubicación, pero no «Siempre», que es lo que
+         *  `startMonitoringForRegion` exige para entregar un EXIT con la app suspendida. */
+        const val CL_REGION_MONITORING_DENIED = 4
+
+        /** `CLError.regionMonitoringFailure` — la región no se pudo registrar: el tope de 20 por
+         *  app, o una región que el dispositivo no sabe monitorizar. */
+        const val CL_REGION_MONITORING_FAILURE = 5
+
+        /** `CLError.regionMonitoringSetupDelayed` — no se pudo poner AHORA. No es un no definitivo,
+         *  pero mientras dura la valla no existe, y eso es lo que el diagnóstico tiene que decir. */
+        const val CL_REGION_MONITORING_SETUP_DELAYED = 6
+
+        /**
+         * Lo mismo para CoreLocation. [IOS-A-DETECTION-THAT-FAILS-MUST-LEAVE-A-TRACE-001]
+         *
+         * ⛔ Dos códigos distintos acaban en [PERMISSION_DENIED] a propósito: al usuario le da
+         * igual si dijo que no a la ubicación entera o si se quedó en «Mientras se usa», porque el
+         * remedio es el mismo y el efecto también — la valla no existe. Lo que NO puede pasar es
+         * que cualquiera de los dos se archive como UNKNOWN, que es lo que pide otro arreglo.
+         *
+         * [tooManyRegions] lo contesta el llamante ANTES de pedir el registro, contando
+         * `monitoredRegions`: iOS no distingue el tope de las demás causas de
+         * `regionMonitoringFailure`, y nosotros sí podemos.
+         */
+        fun fromCLErrorCode(code: Long?, tooManyRegions: Boolean = false): GeofenceRegistrationFailure =
+            when {
+                tooManyRegions -> TOO_MANY_GEOFENCES
+                code?.toInt() == CL_DENIED -> PERMISSION_DENIED
+                code?.toInt() == CL_REGION_MONITORING_DENIED -> PERMISSION_DENIED
+                code?.toInt() == CL_REGION_MONITORING_FAILURE -> NOT_AVAILABLE
+                code?.toInt() == CL_REGION_MONITORING_SETUP_DELAYED -> NOT_AVAILABLE
                 else -> UNKNOWN
             }
     }

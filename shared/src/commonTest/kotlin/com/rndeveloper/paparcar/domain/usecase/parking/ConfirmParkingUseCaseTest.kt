@@ -15,6 +15,10 @@ import com.rndeveloper.paparcar.fakes.FakeActivityRecognitionManager
 import com.rndeveloper.paparcar.fakes.FakeDepartureEventBus
 import com.rndeveloper.paparcar.fakes.FakeAuthRepository
 import com.rndeveloper.paparcar.fakes.FakeGeofenceManager
+import com.rndeveloper.paparcar.fakes.FakeDetectionEventLogger
+import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
+import com.rndeveloper.paparcar.domain.detection.fence.GeofenceRegistrationFailure
+import com.rndeveloper.paparcar.domain.service.GeofenceRegistrationException
 import com.rndeveloper.paparcar.fakes.FakeParkingEnrichmentScheduler
 import com.rndeveloper.paparcar.fakes.FakeZoneRepository
 import com.rndeveloper.paparcar.fakes.FakeUserParkingRepository
@@ -28,6 +32,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
@@ -656,6 +661,7 @@ class ConfirmParkingUseCaseTest {
         scheduler: com.rndeveloper.paparcar.domain.service.ParkingSyncScheduler? = null,
         routeStore: DrivingRouteStore? = null,
         tracker: FakeAnalyticsTracker? = null,
+        logger: FakeDetectionEventLogger? = null,
     ) = ConfirmParkingUseCase(
         userParkingRepository = repo,
         vehicleRepository = vehicles,
@@ -668,7 +674,53 @@ class ConfirmParkingUseCaseTest {
         parkingSyncScheduler = scheduler,
         drivingRouteStore = routeStore,
         analyticsTracker = tracker,
+        detectionEventLogger = logger,
     )
+
+    // ── Cuando la valla no se pudo poner [IOS-A-DETECTION-THAT-FAILS-MUST-LEAVE-A-TRACE-001] ────
+
+    @Test
+    fun `should record why the fence failed when the platform named the reason`() = runTest {
+        // ⛔ EL TESTIGO. Este camino —el que registra la valla de CADA aparcamiento— archivaba un
+        // `success = false` pelado, que es la mitad de un diagnóstico: «no se puso» sin «por qué» no
+        // distingue un permiso que falta (nuestro) de una fuga de vallas (otra cosa). El janitor y
+        // la red de seguridad ya mandaban la razón; este no.
+        val geofence = FakeGeofenceManager().apply {
+            createResult = Result.failure(
+                GeofenceRegistrationException(
+                    GeofenceRegistrationFailure.PERMISSION_DENIED,
+                    "region monitoring unavailable",
+                ),
+            )
+        }
+        val logger = FakeDetectionEventLogger()
+        val useCase = buildUseCase(geofence = geofence, logger = logger)
+
+        useCase(location, detectionReliability = 0.9f, sealPoint = null)
+
+        val registration = logger.events.filterIsInstance<DetectionEvent.GeofenceRegistration>().single()
+        assertFalse(registration.success, "la valla no se puso")
+        assertEquals(GeofenceRegistrationFailure.PERMISSION_DENIED, registration.failure)
+        assertEquals("confirm", registration.source, "qué carril lo pidió, no sólo que falló")
+    }
+
+    @Test
+    fun `should leave the reason null when the platform gave a plain failure`() = runTest {
+        // Android devuelve la excepción de Play Services y traduce la razón en su propio call site,
+        // porque el mapeo necesita tipos de GMS. Aquí eso se lee como «no lo sé», que es verdad —
+        // y NO como una razón inventada.
+        val geofence = FakeGeofenceManager().apply {
+            createResult = Result.failure(IllegalStateException("gms exploded"))
+        }
+        val logger = FakeDetectionEventLogger()
+        val useCase = buildUseCase(geofence = geofence, logger = logger)
+
+        useCase(location, detectionReliability = 0.9f, sealPoint = null)
+
+        val registration = logger.events.filterIsInstance<DetectionEvent.GeofenceRegistration>().single()
+        assertFalse(registration.success)
+        assertNull(registration.failure)
+    }
 
     // ── Product analytics [ANALYTICS-EVENTS-001] ──────────────────────────────
 

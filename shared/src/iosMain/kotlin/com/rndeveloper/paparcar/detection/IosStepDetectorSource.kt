@@ -52,7 +52,7 @@ class IosStepDetectorSource : StepDetectorSource {
     }
 
     private companion object {
-        const val TAG = "IosStepDetector"
+        const val TAG = "PARKDIAG/IosSteps"
         // Defensive ceiling: CMPedometer can backfill historical steps if the app was paused.
         // Cap the per-update emit count so a sudden 5000-step backfill doesn't flood the coordinator.
         const val MAX_DELTA_PER_UPDATE = 50L

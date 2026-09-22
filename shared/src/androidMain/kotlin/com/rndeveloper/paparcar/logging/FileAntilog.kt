@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.logging
 
 import android.content.Context
+import com.rndeveloper.paparcar.domain.diagnostics.ParkdiagLogFiles
 import io.github.aakira.napier.Antilog
 import io.github.aakira.napier.LogLevel
 import java.io.File
@@ -82,7 +83,7 @@ import java.util.Locale
 class FileAntilog(
     context: Context,
     private val tagPrefix: String = "PARKDIAG",
-    private val maxBytes: Long = 5 * 1024 * 1024L,
+    private val maxBytes: Long = ParkdiagLogFiles.MAX_BYTES,
     private val keptRotations: Int = KEPT_ROTATIONS,
 ) : Antilog() {
 
@@ -162,8 +163,11 @@ class FileAntilog(
 
     internal companion object {
         /** Shared with [AndroidLocalDiagnosticsLog], which snapshots these files for a problem
-         *  report. [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001] */
-        internal const val BASE_NAME = "parkdiag.log"
-        internal const val KEPT_ROTATIONS = 5
+         *  report, and — since [IOS-A-DETECTION-THAT-FAILS-MUST-LEAVE-A-TRACE-001] — with the iOS
+         *  sink: the names live in [ParkdiagLogFiles], commonMain, so the two platforms cannot
+         *  drift into writing one file and shipping another.
+         *  [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001] */
+        internal const val BASE_NAME = ParkdiagLogFiles.BASE_NAME
+        internal const val KEPT_ROTATIONS = ParkdiagLogFiles.KEPT_ROTATIONS
     }
 }

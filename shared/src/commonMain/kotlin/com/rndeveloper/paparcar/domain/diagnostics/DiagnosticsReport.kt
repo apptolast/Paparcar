@@ -18,7 +18,9 @@ data class DiagnosticsReport(
      * [SUPPORT-A-REPORT-MUST-SAY-WHAT-WENT-WRONG-001]
      */
     val message: String,
-    /** Gzip of the recent parkdiag log, or null on platforms without a local log (iOS). */
+    /** Gzip del `parkdiag` reciente, o null cuando no hay nada que mandar (todavía sin fichero, o
+     *  el snapshot falló). ⛔ Ya NO significa «iOS»: desde
+     *  [IOS-A-DETECTION-THAT-FAILS-MUST-LEAVE-A-TRACE-001] las dos plataformas escriben su log. */
     val logGzip: ByteArray?,
 ) {
     companion object {
@@ -43,7 +45,12 @@ interface DiagnosticsReportUploader {
 
 /**
  * Platform snapshot of the local detection log (`parkdiag.log`). Null when there is nothing to
- * ship (no file yet, or platform without the sink). Android-only today; not bound on iOS.
+ * ship (no file yet, or the snapshot failed).
+ *
+ * Implementado en las DOS plataformas desde [IOS-A-DETECTION-THAT-FAILS-MUST-LEAVE-A-TRACE-001]
+ * (`AndroidLocalDiagnosticsLog` / `IosLocalDiagnosticsLog`), sobre el mismo fichero y las mismas
+ * dos generaciones — ver [ParkdiagLogFiles]. Sigue resolviéndose con `getOrNull()` en el grafo:
+ * una plataforma futura sin sumidero no debe tumbar el informe, sólo viajar sin log.
  */
 interface LocalDiagnosticsLog {
     suspend fun snapshotGzip(): ByteArray?

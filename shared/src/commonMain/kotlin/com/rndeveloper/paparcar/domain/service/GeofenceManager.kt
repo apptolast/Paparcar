@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.domain.service
 
+import com.rndeveloper.paparcar.domain.detection.fence.GeofenceRegistrationFailure
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -57,5 +58,39 @@ interface GeofenceManager {
 
 sealed class GeofenceEvent {
     data class Exited(val geofenceId: String, val timestamp: Long) : GeofenceEvent()
-    data class Error(val error: String, val timestamp: Long) : GeofenceEvent()
+
+    /**
+     * La plataforma dice que una valla no se pudo vigilar.
+     *
+     * [IOS-A-DETECTION-THAT-FAILS-MUST-LEAVE-A-TRACE-001] Los dos campos nuevos existen porque este
+     * evento tenía la información **dentro de una frase**: iOS metía `"$regionId: $descripción"` en
+     * [error], así que el consumidor no podía decir DE QUÉ VALLA hablaba sin partir un string, ni
+     * archivar el porqué. Y un fallo de vigilancia no es una línea de log: es la diferencia entre un
+     * coche vigilado y uno que no lo está. Ambos opcionales — Android sigue emitiéndolo como
+     * siempre, con su código de Play Services en la frase.
+     */
+    data class Error(
+        val error: String,
+        val timestamp: Long,
+        /** La valla afectada (= el id de sesión), cuando la plataforma la nombra. */
+        val geofenceId: String? = null,
+        /** Por qué, en el vocabulario que ya usan el janitor y la red de seguridad. */
+        val failure: GeofenceRegistrationFailure? = null,
+    ) : GeofenceEvent()
 }
+
+/**
+ * Un registro de valla que falló **por una razón que sabemos nombrar**, para que el
+ * `Result.failure` que sube hasta `ConfirmParkingUseCase` no llegue como un `Throwable` anónimo.
+ * [IOS-A-DETECTION-THAT-FAILS-MUST-LEAVE-A-TRACE-001]
+ *
+ * ⛔ Android NO lo usa: allí el fallo llega como la excepción de Play Services y se traduce en el
+ * propio call site con `Throwable.toGeofenceRegistrationFailure()`, que necesita los tipos de GMS y
+ * por tanto no puede vivir en commonMain. Las dos vías acaban en el MISMO
+ * [GeofenceRegistrationFailure]; lo que esta excepción añade es poder cruzar la frontera de
+ * plataforma sin perder el porqué.
+ */
+class GeofenceRegistrationException(
+    val reason: GeofenceRegistrationFailure,
+    override val message: String,
+) : Exception(message)

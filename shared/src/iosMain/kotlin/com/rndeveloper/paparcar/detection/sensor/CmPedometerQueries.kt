@@ -34,5 +34,5 @@ internal suspend fun queryPedometerStepsBetween(fromMs: Long, toMs: Long): Long?
     }
 }
 
-private const val TAG = "CmPedometerQueries"
+private const val TAG = "PARKDIAG/IosPedometer"
 private const val MILLIS_PER_SECOND = 1_000.0

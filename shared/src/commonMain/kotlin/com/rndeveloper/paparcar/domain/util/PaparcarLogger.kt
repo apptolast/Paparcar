@@ -10,7 +10,10 @@ import kotlin.coroutines.cancellation.CancellationException
  *
  * Napier must be initialised before first use:
  * - Android: call [initLogging] in `Application.onCreate()`
- * - iOS:     call `NapierProxyKt.debugBuild()` in the Swift entry point (debug only)
+ * - iOS:     lo instala `PaparcarIosBootstrap.ensureStarted()` — el sumidero de fichero
+ *            (`IosFileAntilog`), en TODOS los builds. ⛔ Aquí ponía que lo hacía el entry point de
+ *            Swift «en debug»: no lo hacía nadie, y por eso en iOS no había ningún antilog y cada
+ *            línea de detección se evaporaba. [IOS-A-DETECTION-THAT-FAILS-MUST-LEAVE-A-TRACE-001]
  *
  * Error-level logs with a [Throwable] are also forwarded to [CrashReporter]
  * for non-fatal tracking in Firebase Crashlytics (Android) — except coroutine cancellation,

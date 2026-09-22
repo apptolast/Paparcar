@@ -58,4 +58,4 @@ private class WakeDelegate(
     }
 }
 
-private const val TAG = "IosWakeMonitors"
+private const val TAG = "PARKDIAG/IosWake"

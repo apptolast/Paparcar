@@ -155,7 +155,7 @@ class IosActivityRecognitionManagerImpl(
     }
 
     private companion object {
-        const val TAG = "IosActivityRecognitionManager"
+        const val TAG = "PARKDIAG/IosAR"
         const val MILLIS_PER_SECOND = 1_000.0
     }
 }

@@ -104,8 +104,10 @@ val domainModule = module {
         )
     }
 
-    // Diagnostics UseCases — localLog is platform-bound (getOrNull → null where absent, e.g. iOS:
-    // the report still ships, headers-only). [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001]
+    // Diagnostics UseCases — localLog se liga en la plataforma, y desde
+    // [IOS-A-DETECTION-THAT-FAILS-MUST-LEAVE-A-TRACE-001] lo ligan LAS DOS. El `getOrNull` se queda:
+    // un informe sin log sigue siendo un informe, y esa tolerancia es lo que hizo que la ausencia en
+    // iOS durara sin que nadie se equivocara. [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001]
     factory {
         SendDiagnosticsReportUseCase(
             authRepository = get(),

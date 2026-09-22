@@ -3,6 +3,8 @@ package com.rndeveloper.paparcar
 import com.apptolast.baselogin.di.initLoginKoin
 import com.rndeveloper.paparcar.data.sync.SyncOutboxDrainer
 import com.rndeveloper.paparcar.detection.IosDetectionController
+import com.rndeveloper.paparcar.logging.IosFileAntilog
+import io.github.aakira.napier.Napier
 import com.rndeveloper.paparcar.di.dataModule
 import com.rndeveloper.paparcar.di.domainModule
 import com.rndeveloper.paparcar.di.iosDetectionModule
@@ -41,6 +43,13 @@ object PaparcarIosBootstrap {
     fun ensureStarted() {
         if (started) return
         started = true
+        // ⛔ LO PRIMERO, antes que Koin: hasta esta línea iOS no tenía NINGÚN antilog instalado, así
+        // que todo lo que escribía el carril de detección se evaporaba — y el botón «Informar de un
+        // problema» subía un informe sin log porque no había fichero que subir. Va aquí y no en
+        // `MainViewController` por la misma razón que el resto de este objeto: un relanzamiento en
+        // background no construye la escena, y son justo los despertares que hay que poder leer.
+        // [IOS-A-DETECTION-THAT-FAILS-MUST-LEAVE-A-TRACE-001]
+        Napier.base(IosFileAntilog())
         // Start Koin via the BaseLogin initializer so the library's auth modules are registered
         // alongside the app modules — mirrors PaparcarApp on Android. Google arrives with
         // IOS-SOCIAL-LOGIN-001. [AUTH-PROVIDERS-EXPLICIT-001]

@@ -436,7 +436,28 @@ class IosDetectionController(
     private suspend fun handleGeofenceDelivery(event: GeofenceEvent) {
         when (event) {
             is GeofenceEvent.Error -> {
-                Napier.w("region monitoring error: ${event.error}", tag = TAG)
+                // ⛔ Esto era SÓLO la línea de Napier, y en iOS no había ningún antilog instalado:
+                // el único aviso de que un coche no estaba vigilado moría en una consola que nadie
+                // lee, ni siquiera con el gate de diagnósticos encendido. Un fallo de vigilancia es
+                // un veredicto sobre el producto —sin valla no hay EXIT, y sin EXIT no hay
+                // detección—, así que se archiva como lo que es, en el mismo evento que ya emiten
+                // el janitor y la red de seguridad de Android.
+                // [IOS-A-DETECTION-THAT-FAILS-MUST-LEAVE-A-TRACE-001]
+                Napier.w("region monitoring error: ${event.error} (${event.failure?.label ?: "sin razón"})", tag = TAG)
+                event.geofenceId?.let { fenceId ->
+                    runCatching {
+                        detectionEventLogger.log(
+                            DetectionEvent.GeofenceRegistration(
+                                // geofenceId == sessionId por construcción en todo el carril.
+                                sessionId = fenceId,
+                                timestampMs = event.timestamp,
+                                success = false,
+                                source = "ios-delegate",
+                                failure = event.failure,
+                            ),
+                        )
+                    }
+                }
                 reconcileRegions("monitoring-error")
             }
             is GeofenceEvent.Exited -> handleGeofenceExit(event)
@@ -981,7 +1002,7 @@ class IosDetectionController(
     }
 
     private companion object {
-        const val TAG = "IosDetectionController"
+        const val TAG = "PARKDIAG/IosCtrl"
         const val MPS_TO_KMH = 3.6f
 
         /** Inter-attempt delays of the departure ladder: attempts land at t=0/+15s/+45s/+105s —

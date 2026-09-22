@@ -13,6 +13,8 @@ import com.rndeveloper.paparcar.data.datasource.local.room.ALL_MIGRATIONS
 import com.rndeveloper.paparcar.data.datasource.local.room.AppDatabase
 import com.rndeveloper.paparcar.domain.bluetooth.BluetoothScanner
 import com.rndeveloper.paparcar.diagnostics.IosDeviceInfoProvider
+import com.rndeveloper.paparcar.domain.diagnostics.LocalDiagnosticsLog
+import com.rndeveloper.paparcar.logging.IosLocalDiagnosticsLog
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityObserver
 import com.rndeveloper.paparcar.domain.diagnostics.DeviceInfoProvider
 import com.rndeveloper.paparcar.domain.model.DeviceCapabilities
@@ -98,6 +100,12 @@ val iosPlatformModule = module {
 
     // Diagnostics — device identity stamped into detection traces [DIAG-READABLE-001]
     single<DeviceInfoProvider> { IosDeviceInfoProvider() }
+
+    // El `parkdiag` que escribe [IosFileAntilog], listo para viajar en un informe de usuario.
+    // ⛔ Hasta [IOS-A-DETECTION-THAT-FAILS-MUST-LEAVE-A-TRACE-001] esto NO estaba ligado, y
+    // `SendDiagnosticsReportUseCase` lo resuelve con `getOrNull()`: el informe de un iPhone subía
+    // sólo cabeceras, en silencio y sin que nadie tuviera que equivocarse para que pasara.
+    single<LocalDiagnosticsLog> { IosLocalDiagnosticsLog.default() }
 
     // ── Push [IOS-THE-GROUP-CANNOT-REACH-AN-IPHONE-001] ───────────────────────────────────────────
     // El reparto y las dos vigilancias son de `commonMain`; aquí solo se dice de dónde sale el token

@@ -96,6 +96,6 @@ class IosReportSpotScheduler(
     }
 
     private companion object {
-        const val TAG = "IosReportSpotScheduler"
+        const val TAG = "PARKDIAG/IosReportSpot"
     }
 }
