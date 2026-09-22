@@ -82,7 +82,9 @@ val iosPlatformModule = module {
     // Connectivity — real iOS implementation (nw_path_monitor)
     single<ConnectivityObserver> { IosConnectivityObserver() }
 
-    // Bluetooth — real iOS implementation (CBCentralManager for state; getBondedDevices is empty by design)
+    // Bluetooth — honest full stub: the BT lane cannot exist on iOS, and touching CoreBluetooth
+    // just to answer adapter state would trigger a permission dialog that unlocks nothing.
+    // [IOS-A-BT-LANE-NEEDS-A-REAL-SIGNAL-001]
     single<BluetoothScanner> { IosBluetoothScanner() }
 
     // Diagnostics — device identity stamped into detection traces [DIAG-READABLE-001]

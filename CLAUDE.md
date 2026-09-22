@@ -111,7 +111,11 @@ Coordinator:
   pin. Red de seguridad: `ParkingSafetyNetWorker` + `EvaluateSafetyNetCheckUseCase` (worker 15 min +
   sensor de movimiento) reconcilian salidas que el OS no entregó; nunca liberan por distancia sola.
 
-`resolveStrategy(vehicle, isBluetoothEnabled)`: BT emparejado y activo → BT; si no → Coordinator.
+`ParkingStrategyResolver.resolve()` / `strategyFor(vehicles)`: BT solo si hay coche emparejado
+**Y conectado ahora mismo** (ACL viva, [DET-BT-CONNECTED-NOT-PAIRED-001]); si no → Coordinator
+(o NONE si el primario no aparca en plaza). ⛔ En iOS el carril BT es estructuralmente imposible
+(sin eventos de BT clásico para terceros): el resolver cae SIEMPRE a Coordinator y ninguna
+superficie promete «Automático» allí [IOS-A-BT-LANE-NEEDS-A-REAL-SIGNAL-001].
 Ambas convergen en **ConfirmParkingUseCase** → Room + Firestore + Geofence + Notification +
 WorkManager. `CoordinatorDetectionService` serializa todos los triggers en un intake único
 [DET-INTAKE-001] y solo hace I/O + side-effects: **la DECISIÓN vive en use cases puros de

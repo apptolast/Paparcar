@@ -70,7 +70,6 @@ actual @Composable fun PermissionsScreen(onPermissionsGranted: () -> Unit, focus
         onRequestPreciseLocation = { viewModel.handleIntent(PermissionsIntent.RequestPreciseLocation) },
         onRequestActivityRecognition = { viewModel.handleIntent(PermissionsIntent.RequestActivityRecognition) },
         onRequestNotifications = { viewModel.handleIntent(PermissionsIntent.RequestNotifications) },
-        onRequestBluetooth = { viewModel.handleIntent(PermissionsIntent.RequestBluetoothPermission) },
         onConfirmBackgroundLocationGuide = { viewModel.handleIntent(PermissionsIntent.ConfirmBackgroundLocationGuide) },
         onDismissBackgroundLocationGuide = { viewModel.handleIntent(PermissionsIntent.DismissBackgroundLocationGuide) },
         onNotNow = { viewModel.handleIntent(PermissionsIntent.NotNow) },
@@ -81,6 +80,11 @@ actual @Composable fun PermissionsScreen(onPermissionsGranted: () -> Unit, focus
     // cablean a propósito: sus filas no se pintan en iOS (`isBatteryOptimizationRelevant = false`,
     // `requiresAutostartWhitelist = false`), así que no hay tap que atender. Cablearlos a un `Unit`
     // sería fingir que aquí existe un permiso que no existe.
+    // `onRequestBluetooth` tampoco: en iOS el carril BT no puede existir (no hay eventos de
+    // conexión del BT clásico del coche para apps de terceros), así que el emparejamiento no
+    // desbloquea nada y su fila no se pinta (`isBtStrategyRelevant = false`). Pedir un permiso que
+    // no habilita nada sería la mentira que este ticket retira.
+    // [IOS-A-BT-LANE-NEEDS-A-REAL-SIGNAL-001]
 }
 
 private fun openIosSettings() {

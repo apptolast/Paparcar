@@ -127,6 +127,27 @@ class ParkingStrategyResolverTest {
         assertEquals(ParkingStrategy.BLUETOOTH, resolver.resolve())
     }
 
+    // ── [IOS-A-BT-LANE-NEEDS-A-REAL-SIGNAL-001] The iOS witness ───────────────────────────────
+    // `IosBluetoothScanner` is an honest full stub: no Classic BT (A2DP/HFP) connection edges
+    // exist for third-party apps on iOS, so `isBluetoothEnabled()` and `isConnectedToPairedCar()`
+    // are the constants `false`. This test pins the consequence the platform relies on: even a
+    // vehicle whose pairing SYNCED from an Android phone (bluetoothDeviceId != null) can never
+    // pull the BT strategy on iOS — the Coordinator owns detection, and the tier ceiling stays
+    // ASSISTED (see EvaluateDetectionReliabilityUseCaseTest's capability-masking block).
+
+    @Test
+    fun `resolves to coordinator on an iOS-shaped platform even when the pairing synced from Android`() = runTest {
+        val syncedFromAndroid = vehicleWith(id = "v-1", bluetoothDeviceId = "AA:BB:CC:DD:EE:FF")
+        val resolver = buildResolver(
+            defaultVehicle = syncedFromAndroid,
+            // IosBluetoothScanner's contract: both answers are constants on iOS.
+            btEnabled = false,
+            connectedVehicleIds = emptySet(),
+        )
+        assertEquals(ParkingStrategy.COORDINATOR, resolver.resolve())
+        assertTrue(resolver.shouldUseCoordinator())
+    }
+
     // ── NONE — vehicle types that never park ──────────────────────────────────
 
     @Test

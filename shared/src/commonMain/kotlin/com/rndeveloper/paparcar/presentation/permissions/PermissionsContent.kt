@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.isBatteryOptimizationRelevant
+import com.rndeveloper.paparcar.isBtStrategyRelevant
 import com.rndeveloper.paparcar.domain.permissions.SystemPermissionDialog
 import com.rndeveloper.paparcar.ui.components.PapAlertDialog
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
@@ -311,6 +312,11 @@ fun PermissionsContent(
                 )
             }
 
+            // La sección opcional entera es una promesa de mejora: si esta plataforma no puede
+            // convertir NINGUNA de sus filas en detección mejor (iOS: ni carril BT ni exención de
+            // batería), pintarla es vender un salto que no existe.
+            // [IOS-A-BT-LANE-NEEDS-A-REAL-SIGNAL-001]
+            if (isBtStrategyRelevant || isBatteryOptimizationRelevant) {
             // El respiro entre secciones que antes ponía el conector de la timeline.
             Spacer(Modifier.height(PaparcarSpacing.xxl))
 
@@ -321,21 +327,26 @@ fun PermissionsContent(
                 // Lo que esta plataforma no puede conceder no puede impedir el check: en iOS la
                 // exención de batería no existe, y exigirla dejaba el tier opcional en gris para
                 // siempre. [IOS-PERMISSIONS-A-ROW-MUST-BE-GRANTABLE-HERE-001]
-                satisfied = state.hasBluetoothConnect &&
+                satisfied = (!isBtStrategyRelevant || state.hasBluetoothConnect) &&
                     (!isBatteryOptimizationRelevant || state.isBatteryOptimizationExempt),
             ) {
-                PermissionRow(
-                    icon = Icons.Rounded.Bluetooth,
-                    title = stringResource(Res.string.permissions_perm_bluetooth),
-                    reason = stringResource(Res.string.permissions_perm_bluetooth_desc),
-                    state = optionalState(state.hasBluetoothConnect),
-                    // Pairing car Bluetooth is the single jump to the Automatic tier. [DET-TIERS-001]
-                    unlocks = stringResource(
-                        Res.string.permissions_tier_unlocks,
-                        stringResource(Res.string.permissions_tier_automatic_name),
-                    ),
-                    onGrant = onRequestBluetooth,
-                )
+                // El permiso BT solo existe donde el carril BT existe: en iOS el emparejamiento no
+                // desbloquea nada («→ Automático» sería mentira) y la fila no se pinta.
+                // [IOS-A-BT-LANE-NEEDS-A-REAL-SIGNAL-001]
+                if (isBtStrategyRelevant) {
+                    PermissionRow(
+                        icon = Icons.Rounded.Bluetooth,
+                        title = stringResource(Res.string.permissions_perm_bluetooth),
+                        reason = stringResource(Res.string.permissions_perm_bluetooth_desc),
+                        state = optionalState(state.hasBluetoothConnect),
+                        // Pairing car Bluetooth is the single jump to the Automatic tier. [DET-TIERS-001]
+                        unlocks = stringResource(
+                            Res.string.permissions_tier_unlocks,
+                            stringResource(Res.string.permissions_tier_automatic_name),
+                        ),
+                        onGrant = onRequestBluetooth,
+                    )
+                }
                 // La exención de batería es un concepto de Android (Doze + los OEM agresivos). El
                 // pie de esta misma pantalla y Ajustes ya consultaban este flag; la lista no, y por
                 // eso iOS pintaba una fila que al pulsarla no hacía nada.
@@ -402,6 +413,7 @@ fun PermissionsContent(
                     )
                 }
             }
+            } // isBtStrategyRelevant || isBatteryOptimizationRelevant
         }
 
         if (state.showRationale && !state.showSettingsPrompt) {

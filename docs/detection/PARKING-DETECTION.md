@@ -126,12 +126,26 @@ arbitration above consumes); an **active vehicle that is itself BT-paired keeps 
 (the veto falls back onto the same id — explicit user declaration; a possibly-redundant pin beats a
 lost parking); the positive BT arbitration (`EvaluateBtArbitrationUseCase`) is unchanged.
 
-### 1.2 BluetoothDetectionStrategy (deterministic)
+### 1.2 The Bluetooth lane (deterministic)
 
-**Runtime owner:** `BluetoothDetectionService` (`LifecycleService`, `START_NOT_STICKY`,
-`foregroundServiceType="location"`). The Service keeps the process alive while detection runs.
+**Runtime owner:** `CoordinatorDetectionService` — since `d7880ac7`
+[DET-ONE-SERVICE-TWO-LANES-001] there is ONE foreground service and one notification, and the BT
+lane runs inside it in its own job slots (`btHuntJob`, `btTrackingJob`, `btWatchJob`), through the
+same serialized intake [DET-INTAKE-001]. `BluetoothDetectionService` no longer exists.
 `BluetoothConnectionReceiver` does minimum work: resolve vehicleId from DB, then
-`startForegroundService(ACTION_BT_DISCONNECTED)` or `startService(ACTION_BT_CONNECTED)`. [BT-REFACTOR-FGS-001]
+`startForegroundService(ACTION_BT_DISCONNECTED / ACTION_BT_CONNECTED)` (both edges foreground —
+the receiver is manifest-declared, exempt from Android 12+'s FGS-from-background restriction).
+Separate lanes = separate slots + pure use cases, same host; zero BT signals inside the
+Coordinator scoring, unchanged. [BT-REFACTOR-FGS-001]
+
+**Platform reach: Android only.** iOS exposes no Classic BT (A2DP/HFP) connection events to
+third-party apps — no ACL receiver equivalent exists, suspended apps get nothing and nothing
+wakes them on a car disconnect — so this lane is structurally impossible there:
+`IosBluetoothScanner` is an honest full stub, `ParkingStrategyResolver` always falls back to
+COORDINATOR on iOS, and no iOS surface promises the Automatic tier. Full analysis of the four
+candidate APIs (AVAudioSession route changes, ExternalAccessory/MFi, CoreBluetooth/BLE, CarPlay)
+with sources: `docs/backlog/ios-a-bt-lane-needs-a-real-signal-001.md`.
+[IOS-A-BT-LANE-NEEDS-A-REAL-SIGNAL-001]
 
 `BluetoothParkingDetector.detectParking()` (suspend):
 
@@ -475,6 +489,41 @@ See `diagnostics/README.md` at the repo root for the recommended layout when arc
 ## 2. Fix history
 
 Each entry is one issue we shipped a fix for. Listed roughly in dependency order (mappers first, then pipeline, then algorithm). Every entry should explain *what was wrong*, *why it was wrong*, and *what guard exists today*. If you ever want to remove a guard, find its entry here first.
+
+### IOS-A-BT-LANE-NEEDS-A-REAL-SIGNAL-001 — el carril BT no existe en iOS, y las superficies que lo vendían dejan de venderlo
+
+**Commit:** pending. **Origen (issue #74):** «IOS: Detección mediante BT» pedía evaluar el
+equivalente iOS del carril BT determinista y, si no existe señal real, decirlo y no fabricar un
+sucedáneo. **Veredicto, verificado contra la documentación de Apple y sus foros (2026-09-22): no
+existe.** Ninguna API de terceros entrega el connect/disconnect del BT clásico (A2DP/HFP) del
+coche: CoreBluetooth solo ve GATT (y su `CBPeer.identifier` es un UUID aleatorio por teléfono,
+incomparable con la MAC que guardamos); `ExternalAccessory` exige un accesorio MFi con nuestro
+protocol string; `AVAudioSession.routeChangeNotification` sí identifica el puerto BT del coche
+(UID `MAC-tacl`, no documentado) pero **solo con el proceso vivo** — no llega suspendida, no
+despierta la app, y desde iOS 16 incluso `currentRoute` sale vacío en background; CarPlay exige
+entitlement y sufre el mismo agujero. Detalle y fuentes:
+`docs/backlog/ios-a-bt-lane-needs-a-real-signal-001.md`.
+
+**Lo que ya era verdad y quedó testado:** el resolver nunca elige BLUETOOTH en iOS
+(`IosBluetoothScanner.isConnectedToPairedCar = false` estructural) y el tier está capado a
+ASSISTED (`DeviceCapabilities(supportsBtStrategy = false)`, [IOS-F0-03]). Testigo nuevo en
+`ParkingStrategyResolverTest`: un vehículo con `bluetoothDeviceId` **sincronizado desde Android**
+tampoco puede arrastrar la estrategia en iOS.
+
+**La mentira que sí había — y el fix:** tres superficies vendían el salto: la fila de permiso BT
+de Permisos prometía «→ Automático», la fila «Bluetooth del coche» de Ajustes llevaba a una
+pantalla de emparejar que en iOS lista cero dispositivos, y `IosBluetoothScanner` instanciaba un
+`CBCentralManager` solo para leer el estado del adaptador — **lo que dispara el diálogo de permiso
+BT del sistema** para un permiso que no desbloquea nada. Fix: nace
+`expect val isBtStrategyRelevant` (espejo UI de `DeviceCapabilities.supportsBtStrategy`, mismo
+patrón que `isBatteryOptimizationRelevant`), las dos filas y su sección se pintan solo detrás de
+él, `onRequestBluetooth` pasa a `DECLARED_ABSENT` en el guardarraíl de paridad de Permisos, y el
+scanner iOS es un stub honesto que no toca CoreBluetooth.
+
+**Riesgo del fix acompañante:** ninguno en Android (el flag es `true` y el árbol pintado es
+idéntico). En iOS desaparece el diálogo de permiso BT al arrancar; si algún día una vía real lo
+necesita (p. ej. identidad por ruta de audio como evidencia de pertenencia), ese día se decide
+QUÉ pide permiso y por qué — el hueco queda escrito en el doc del ticket.
 
 ### DET-A-PARKED-BT-CAR-NEEDS-NO-RESIDENT-WATCHER-001 — el centinela vivía también para quien sólo tiene un coche BT
 
