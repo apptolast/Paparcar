@@ -27,14 +27,42 @@ class MineturStationsSourceTest {
          {"IDPovincia":"02","IDCCAA":"07","Provincia":"ALBACETE","CCAA":"Castilla la Mancha"}]
     """.trimIndent()
 
-    /** Only latitude varies, so the expected order is unambiguous: ~33 m, ~1,1 km, ~19 km. */
+    /**
+     * Only latitude varies, so the expected order is unambiguous: ~33 m, ~1,1 km, ~19 km.
+     *
+     * `NEXT_TOWN` se añadió con [FUEL-A-RADIUS-DOES-NOT-RESPECT-A-TOWN-BOUNDARY-001]: dentro del
+     * radio (~330 m) y con el `Municipio` del pueblo de al lado, que es la fila que el atajo por
+     * municipio hacía desaparecer. Va entre MEDIO y CERCA en distancia, así que también vigila que
+     * el orden siga siendo por cercanía y no por el municipio de nadie.
+     */
     private val stationsJson = """
         {
           "Fecha": "09/09/2026 08:30:00",
           "ListaEESSPrecio": [
-            {"IDEESS":"LEJOS","Rótulo":"Lejos","Latitud":"36,700000","Longitud (WGS84)":"-6,292400","Precio Gasolina 95 E5":"1,700"},
-            {"IDEESS":"MEDIO","Rótulo":"Medio","Latitud":"36,540000","Longitud (WGS84)":"-6,292400","Precio Gasolina 95 E5":"1,800"},
-            {"IDEESS":"CERCA","Rótulo":"Cerca","Latitud":"36,530000","Longitud (WGS84)":"-6,292400","Precio Gasolina 95 E5":"1,900"}
+            {"IDEESS":"LEJOS","Rótulo":"Lejos","Municipio":"Puerto de Santa María (El)","Latitud":"36,700000","Longitud (WGS84)":"-6,292400","Precio Gasolina 95 E5":"1,700"},
+            {"IDEESS":"MEDIO","Rótulo":"Medio","Municipio":"Puerto de Santa María (El)","Latitud":"36,540000","Longitud (WGS84)":"-6,292400","Precio Gasolina 95 E5":"1,800"},
+            {"IDEESS":"NEXT_TOWN","Rótulo":"BP","Municipio":"Puerto Real","Latitud":"36,532700","Longitud (WGS84)":"-6,292400","Precio Gasolina 95 E5":"1,850"},
+            {"IDEESS":"CERCA","Rótulo":"Cerca","Municipio":"Puerto de Santa María (El)","Latitud":"36,530000","Longitud (WGS84)":"-6,292400","Precio Gasolina 95 E5":"1,900"}
+          ]
+        }
+    """.trimIndent()
+
+    /**
+     * Lo que `FiltroMunicipio/1789` contestaría de verdad: **sólo las filas de ese municipio**.
+     * [FUEL-A-RADIUS-DOES-NOT-RESPECT-A-TOWN-BOUNDARY-001]
+     *
+     * ⛔ Existe porque sin él el testigo pasaba por la razón equivocada: el `MockEngine` servía el
+     * fixture ENTERO a cualquier URL de estaciones, así que la consulta por municipio devolvía
+     * también la del pueblo de al lado — o sea, el mock no podía reproducir el bug que el test dice
+     * vigilar. Reinstaurado el atajo, el testigo seguía verde.
+     */
+    private val townStationsJson = """
+        {
+          "Fecha": "09/09/2026 08:30:00",
+          "ListaEESSPrecio": [
+            {"IDEESS":"LEJOS","Rótulo":"Lejos","Municipio":"Puerto de Santa María (El)","Latitud":"36,700000","Longitud (WGS84)":"-6,292400","Precio Gasolina 95 E5":"1,700"},
+            {"IDEESS":"MEDIO","Rótulo":"Medio","Municipio":"Puerto de Santa María (El)","Latitud":"36,540000","Longitud (WGS84)":"-6,292400","Precio Gasolina 95 E5":"1,800"},
+            {"IDEESS":"CERCA","Rótulo":"Cerca","Municipio":"Puerto de Santa María (El)","Latitud":"36,530000","Longitud (WGS84)":"-6,292400","Precio Gasolina 95 E5":"1,900"}
           ]
         }
     """.trimIndent()
@@ -58,9 +86,9 @@ class MineturStationsSourceTest {
 
     private fun source(
         stationsStatus: HttpStatusCode = HttpStatusCode.OK,
-        /** Lets a test make the TOWN answer empty while the province still has stations. */
-        townStations: String? = null,
-        /** Y su espejo: una PROVINCIA que contesta vacía. [FUEL-A-POSTCODE-IS-THE-PROVINCE-ID-001] */
+        /** Una PROVINCIA que contesta vacía. [FUEL-A-POSTCODE-IS-THE-PROVINCE-ID-001]
+         *  ⛔ Ya no hay gemelo para el municipio: no se le pregunta.
+         *  [FUEL-A-RADIUS-DOES-NOT-RESPECT-A-TOWN-BOUNDARY-001] */
         provinceStations: String? = null,
     ): MineturStationsSource {
         val engine = MockEngine { request ->
@@ -77,8 +105,11 @@ class MineturStationsSourceTest {
                     HttpStatusCode.OK,
                     headersOf(HttpHeaders.ContentType, "application/json"),
                 )
-                townStations != null && url.contains("/FiltroMunicipio/") -> respond(
-                    townStations,
+                // El endpoint de municipio contesta lo de ESE municipio — si sirviera el fixture
+                // entero, ningún test podría ver lo que el atajo escondía.
+                // [FUEL-A-RADIUS-DOES-NOT-RESPECT-A-TOWN-BOUNDARY-001]
+                url.contains("/FiltroMunicipio/") -> respond(
+                    townStationsJson,
                     HttpStatusCode.OK,
                     headersOf(HttpHeaders.ContentType, "application/json"),
                 )
@@ -113,15 +144,19 @@ class MineturStationsSourceTest {
         assertTrue(asked.any { it.endsWith("/FiltroProvincia/11") }, "asked: $asked")
     }
 
-    // ── The town is tried first, and it is what saved Spain ──────────────────
+    // ── El pueblo NOMBRA la provincia, y es lo que salvó a España ────────────
     // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
+    // ⛔ Lo que ya no hace es SERVIR la lista. [FUEL-A-RADIUS-DOES-NOT-RESPECT-A-TOWN-BOUNDARY-001]
 
     @Test
-    fun `should_askForTheTown_when_theAddressCarriesOne`() = runTest {
+    fun `should_askForTheProvinceOfTheTown_when_theAddressCarriesOne`() = runTest {
         source().stationsNear(cadiz().copy(cityName = "El Puerto de Santa María")).getOrThrow()
 
-        assertTrue(asked.any { it.endsWith("/FiltroMunicipio/1789") }, "asked: ${'$'}asked")
-        assertTrue(asked.none { it.contains("/FiltroProvincia/") }, "the town answered: ${'$'}asked")
+        assertTrue(asked.any { it.endsWith("/FiltroProvincia/11") }, "asked: $asked")
+        assertTrue(
+            asked.none { it.contains("/FiltroMunicipio/") },
+            "un municipio define un payload, no la cobertura de un radio: $asked",
+        )
     }
 
     @Test
@@ -134,18 +169,24 @@ class MineturStationsSourceTest {
             .stationsNear(cadiz().copy(regionName = "Andalucía", cityName = "El Puerto de Santa María"))
 
         assertTrue(result.isSuccess, "the ministry has to be asked, not given up on")
-        assertTrue(asked.any { it.endsWith("/FiltroMunicipio/1789") }, "asked: ${'$'}asked")
+        assertTrue(asked.any { it.endsWith("/FiltroProvincia/11") }, "asked: $asked")
     }
 
     @Test
-    fun `should_fallBackToTheProvinceOfTheTown_when_theTownHasNoStations`() = runTest {
-        // An empty town is a reason to widen, not an answer — and the province id comes from the
-        // town's own row, so this works even when the region name is useless.
-        val source = source(townStations = "{\"ListaEESSPrecio\": []}")
-        source.stationsNear(cadiz().copy(regionName = "Andalucía", cityName = "El Puerto de Santa María")).getOrThrow()
+    fun `should_bringAStationOfTheNextTown_when_itIsInsideTheRadius`() = runTest {
+        // ⛔ EL TESTIGO de la issue #113. `NEXT_TOWN` está a ~330 m del usuario y en OTRO municipio:
+        // preguntando por `FiltroMunicipio` no salía, y el usuario tenía la gasolinera delante.
+        // Medido sobre el feed real de Cádiz, el atajo escondía el 11 % de lo que hay a 5 km — el
+        // 90 % en la bahía. [FUEL-A-RADIUS-DOES-NOT-RESPECT-A-TOWN-BOUNDARY-001]
+        val result = source()
+            .stationsNear(cadiz().copy(cityName = "El Puerto de Santa María"))
+            .getOrThrow()
 
-        assertTrue(asked.any { it.endsWith("/FiltroMunicipio/1789") }, "asked: ${'$'}asked")
-        assertTrue(asked.any { it.endsWith("/FiltroProvincia/11") }, "asked: ${'$'}asked")
+        assertTrue(
+            result.stations.any { it.id == "NEXT_TOWN" },
+            "una estación dentro del radio no desaparece por estar en el pueblo de al lado: " +
+                "${result.stations.map { it.id }}",
+        )
     }
 
     @Test
@@ -239,7 +280,7 @@ class MineturStationsSourceTest {
         // lista vacía diría «no hay ninguna gasolinera a 5 km» — la clase de frase que este código
         // existe para no decir. Fallar manda al registro al feed sin precios, que es lo que había
         // antes de poder adivinar: no se pierde nada y no se miente.
-        val result = source(townStations = null, provinceStations = "{\"ListaEESSPrecio\": []}")
+        val result = source(provinceStations = "{\"ListaEESSPrecio\": []}")
             .stationsNear(FuelStationsQuery(36.5297, -6.2924, countryCode = "", regionName = null))
 
         assertTrue(result.isFailure, "un vacío desde una provincia adivinada no es un veredicto")
@@ -250,7 +291,7 @@ class MineturStationsSourceTest {
         // La otra mitad de la regla, y va adosada: con provincia NOMBRADA el vacío sí es respuesta
         // — lo dice quien sabe dónde está. Sin este par, la regla de arriba podría convertirse en
         // «un vacío nunca es respuesta» y Cádiz dejaría de poder decir que no hay nada cerca.
-        val result = source(townStations = null, provinceStations = "{\"ListaEESSPrecio\": []}")
+        val result = source(provinceStations = "{\"ListaEESSPrecio\": []}")
             .stationsNear(cadiz())
 
         assertTrue(result.isSuccess)
@@ -263,8 +304,10 @@ class MineturStationsSourceTest {
             .stationsNear(cadiz())
             .getOrThrow()
 
-        // A province is a whole province: the radius filter is ours, and so is the order.
-        assertEquals(listOf("CERCA", "MEDIO"), result.stations.map { it.id })
+        // A province is a whole province: the radius filter is ours, and so is the order — que es
+        // por CERCANÍA, sin que el municipio de cada fila pinte nada.
+        // [FUEL-A-RADIUS-DOES-NOT-RESPECT-A-TOWN-BOUNDARY-001]
+        assertEquals(listOf("CERCA", "NEXT_TOWN", "MEDIO"), result.stations.map { it.id })
         assertEquals("09/09/2026 08:30:00", result.reportedAt)
     }
 

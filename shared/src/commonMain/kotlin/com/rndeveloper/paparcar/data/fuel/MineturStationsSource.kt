@@ -55,10 +55,13 @@ class MineturStationsSource(
      * TRES claves, en orden, porque la que se exigía al principio es la que un móvil muchas veces no
      * tiene. [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
      *
-     * 1. **The town.** Precise and smaller: `FiltroMunicipio` returns one municipality instead of a
-     *    whole province. It is also the field an address always carries.
+     * 1. **The town** — the field an address always carries, and the one that names a province when
+     *    the geocoder wrote an autonomous community where a province goes.
+     *    ⛔ Sólo NOMBRA. Servir sus estaciones y parar ahí escondía el 11 % de lo que había en el
+     *    radio. [FUEL-A-RADIUS-DOES-NOT-RESPECT-A-TOWN-BOUNDARY-001]
      * 2. **The province**, from the town's own row when we found one, else from `regionName` as
-     *    before — the wider net for a town the ministry spells in a way we did not match.
+     *    before — the wider net for a town the ministry spells in a way we did not match. **Es
+     *    siempre la que sirve la lista**: el feed se pide por provincia y se filtra por radio aquí.
      * 3. **Las coordenadas** ([SpanishProvinceBounds]), que es la única clave que no depende de que
      *    nadie conteste. Va la última a propósito: acierta el 94,6 % y las otras dos, cuando están,
      *    no fallan. [FUEL-A-POSTCODE-IS-THE-PROVINCE-ID-001]
@@ -77,12 +80,26 @@ class MineturStationsSource(
             val town = query.cityName?.takeIf { it.isNotBlank() }
                 ?.let { city -> SpanishMunicipalities.find(city, municipalities()) }
 
-            // ⛔ An EMPTY town is a reason to widen, not an answer. A municipality with no forecourt
-            // at all is common; the province around it usually has several within the radius. This
-            // is the one place where "empty" is allowed to hand over, and it hands over WITHIN the
-            // national feed — never out of it.
-            val fromTown = town?.let { parse(fetch("$BASE/EstacionesTerrestres/FiltroMunicipio/${it.municipalityId}"), query) }
-            if (fromTown != null && fromTown.stations.isNotEmpty()) return@runCatching fromTown
+            // ⛔ **EL PUEBLO NOMBRA LA PROVINCIA; NO SIRVE LAS ESTACIONES.**
+            // [FUEL-A-RADIUS-DOES-NOT-RESPECT-A-TOWN-BOUNDARY-001]
+            //
+            // Aquí se preguntaba por `FiltroMunicipio` y, si contestaba algo, esa era la respuesta
+            // entera. El municipio define un PAYLOAD y se le estaba dejando definir la COBERTURA, y
+            // no puede: lo que se pide es un radio de 5 km —un círculo— y un municipio es un
+            // polígono administrativo. No se contienen.
+            //
+            // Medido sobre el feed real de Cádiz (291 estaciones): el **11 %** de lo que hay a 5 km
+            // de una estación cualquiera pertenece a otro municipio, y en la bahía —cuatro pueblos
+            // pegados— sube al **90 %**. Es el síntoma de la issue #113: estás delante de una
+            // gasolinera y no sale.
+            //
+            // El guard de «municipio vacío ensancha» era lo que lo hacía invisible: mientras el
+            // pueblo contestara ALGO, la provincia no se consultaba y nadie veía lo que faltaba.
+            //
+            // Lo que el pueblo sí aporta sigue abajo intacto, y es para lo que se trajo: su
+            // `provinceId` es la clave nº 1 de enrutado, porque es el campo que una dirección
+            // siempre trae y ninguna comunidad autónoma es una provincia.
+            // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
 
             // ⛔ Mismo error que la vía de municipios de arriba, en el mismo fichero y sin cazar:
             // `provinces()` es un ARGUMENTO, así que se evaluaba SIEMPRE — con `regionName` a null,
