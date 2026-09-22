@@ -230,18 +230,23 @@ private fun SpotMetaRow(spot: Spot, distanceM: Float?) {
     val type = PaparcarType.current
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (distanceM != null) {
-            Text(
-                driveTimeString(distanceM),
-                style = type.meta,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_MUTED_ALPHA),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                SheetTokens.META_SEPARATOR,
-                style = type.meta,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = SheetTokens.META_SEPARATOR_ALPHA),
-            )
+            // Sin tiempo que sostener a esa distancia, la fila arranca en los metros — y el
+            // separador se va con él: un « · » suelto delante de la cifra se lee como un dato que
+            // falta. [COPY-A-DURATION-ROLLS-INTO-HOURS-AND-A-CAPACITY-IS-NOT-FREE-SPACES-001]
+            driveTimeString(distanceM)?.let { driveTime ->
+                Text(
+                    driveTime,
+                    style = type.meta,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_MUTED_ALPHA),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    SheetTokens.META_SEPARATOR,
+                    style = type.meta,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = SheetTokens.META_SEPARATOR_ALPHA),
+                )
+            }
             // Los metros viven aqui, no arriba: la linea del nombre entera es para el NOMBRE,
             // que es lo que se escanea y lo que se truncaba en los sitios de nombre largo.
             Text(

@@ -18,7 +18,7 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.stats_value_hours
 import paparcar.composeapp.generated.resources.stats_value_hours_minutes
 import paparcar.composeapp.generated.resources.stats_value_minutes
-import paparcar.composeapp.generated.resources.drive_time_minutes
+import paparcar.composeapp.generated.resources.drive_time_span
 import paparcar.composeapp.generated.resources.relative_time_compact_day
 import paparcar.composeapp.generated.resources.relative_time_compact_hour
 import paparcar.composeapp.generated.resources.relative_time_compact_min
@@ -28,15 +28,12 @@ import paparcar.composeapp.generated.resources.relative_time_days
 import paparcar.composeapp.generated.resources.relative_time_hours
 import paparcar.composeapp.generated.resources.relative_time_just_now
 import paparcar.composeapp.generated.resources.relative_time_minutes
-import paparcar.composeapp.generated.resources.walk_time_minutes
-import kotlin.math.roundToInt
+import paparcar.composeapp.generated.resources.walk_time_span
 
 private const val TIME_RECOMPUTE_INTERVAL_MS = 60_000L
 private const val MS_PER_MINUTE = 60_000L
 private const val MINUTES_PER_HOUR = 60L
 private const val HOURS_PER_DAY = 24L
-private const val WALK_SPEED_M_PER_MIN = 80f
-private const val DRIVE_SPEED_M_PER_MIN = 500f
 
 /**
  * Localized relative-time string that recomputes itself every 60 seconds.
@@ -97,16 +94,24 @@ fun compactRelativeTimeText(timestampMs: Long): String {
     }
 }
 
+/**
+ * «12 min a pie», «1 h 20 min a pie» — el lapso lo escribe [spanText], igual que cualquier otra
+ * duración de la app, y la cadena sólo pone el MODO.
+ * [COPY-A-DURATION-ROLLS-INTO-HOURS-AND-A-CAPACITY-IS-NOT-FREE-SPACES-001]
+ */
 @Composable
-fun walkTimeString(meters: Float): String {
-    val minutes = (meters / WALK_SPEED_M_PER_MIN).roundToInt().coerceAtLeast(1)
-    return stringResource(Res.string.walk_time_minutes, minutes)
-}
+fun walkTimeString(meters: Float): String =
+    stringResource(Res.string.walk_time_span, spanText(walkMinutes(meters).toLong()))
 
+/**
+ * «4 min en coche», o **null** cuando la distancia se sale del terreno de la estimación
+ * ([driveMinutesOrNull]) — y entonces la fila no escribe tiempo ninguno.
+ * [COPY-A-DURATION-ROLLS-INTO-HOURS-AND-A-CAPACITY-IS-NOT-FREE-SPACES-001]
+ */
 @Composable
-fun driveTimeString(meters: Float): String {
-    val minutes = (meters / DRIVE_SPEED_M_PER_MIN).roundToInt().coerceAtLeast(1)
-    return stringResource(Res.string.drive_time_minutes, minutes)
+fun driveTimeString(meters: Float): String? {
+    val minutes = driveMinutesOrNull(meters) ?: return null
+    return stringResource(Res.string.drive_time_span, spanText(minutes.toLong()))
 }
 
 /**
@@ -143,8 +148,20 @@ fun heightString(meters: Float): String = formatHeight(meters, LocalDistanceUnit
  * one screen. [STATS-A-PERIOD-IS-A-SERIES-NOT-A-NUMBER-001]
  */
 @Composable
-fun durationText(durationMs: Long): String {
-    val totalMinutes = durationMs / MS_PER_MINUTE
+fun durationText(durationMs: Long): String = spanText(durationMs / MS_PER_MINUTE)
+
+/**
+ * **El ÚNICO sitio donde un lapso de tiempo se convierte en palabras.**
+ * [COPY-A-DURATION-ROLLS-INTO-HOURS-AND-A-CAPACITY-IS-NOT-FREE-SPACES-001]
+ *
+ * Los tiempos de viaje se escribían por su cuenta, y por su cuenta significaba **en minutos para
+ * siempre**: un parking a 477 km salía como «955 min en coche». No era un formateador distinto por
+ * una razón, era el mismo hecho escrito dos veces — que es exactamente cómo «1 h 12 min» y «72 min»
+ * acaban en la misma pantalla. Ahora la duración la escribe esta función y la cadena de viaje sólo
+ * añade el modo («… a pie», «… en coche»).
+ */
+@Composable
+private fun spanText(totalMinutes: Long): String {
     val hours = (totalMinutes / MINUTES_PER_HOUR).toInt()
     val minutes = (totalMinutes % MINUTES_PER_HOUR).toInt()
     return when {

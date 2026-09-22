@@ -125,8 +125,8 @@
     <string name="relative_time_day">%1$d dag geleden</string>
     <string name="relative_time_days">%1$d dagen geleden</string>
     <!-- Walk / drive time -->
-    <string name="walk_time_minutes">%1$d min lopen</string>
-    <string name="drive_time_minutes">%1$d min rijden</string>
+    <string name="walk_time_span">%1$s lopen</string>
+    <string name="drive_time_span">%1$s rijden</string>
 
     <string name="history_filter_all">Alle</string>
     <string name="history_filter_this_week">Deze week</string>
@@ -995,7 +995,7 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen â†’ Paparcar â
     <string name="parking_kind_unknown">Parkeergarage</string>
     <string name="parking_fee_paid">Betaald</string>
     <string name="parking_fee_free">Gratis</string>
-    <string name="parking_capacity">%1$s plaatsen</string>
+    <string name="parking_capacity">Capaciteit: %1$s</string>
     <string name="parking_max_height">Max. hoogte %1$s m</string>
 
     <!-- [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] The other two questions the map answers -->

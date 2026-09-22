@@ -196,8 +196,8 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="relative_time_compact_hour">%1$dh</string>
     <string name="relative_time_compact_day">%1$dd</string>
     <!-- Walk / drive time -->
-    <string name="walk_time_minutes">%1$d min walk</string>
-    <string name="drive_time_minutes">%1$d min drive</string>
+    <string name="walk_time_span">%1$s walk</string>
+    <string name="drive_time_span">%1$s drive</string>
 
     <string name="history_filter_all">All</string>
     <string name="history_filter_this_week">This week</string>
@@ -1077,7 +1077,7 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="parking_kind_unknown">Car park</string>
     <string name="parking_fee_paid">Paid</string>
     <string name="parking_fee_free">Free</string>
-    <string name="parking_capacity">%1$s spaces</string>
+    <string name="parking_capacity">Capacity: %1$s</string>
     <string name="parking_max_height">Max height %1$s m</string>
 
     <!-- [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] The other two questions the map answers -->

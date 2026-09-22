@@ -179,8 +179,8 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="relative_time_compact_hour">%1$dh</string>
     <string name="relative_time_compact_day">%1$dd</string>
     <!-- Walk / drive time -->
-    <string name="walk_time_minutes">%1$d min a pie</string>
-    <string name="drive_time_minutes">%1$d min en coche</string>
+    <string name="walk_time_span">%1$s a pie</string>
+    <string name="drive_time_span">%1$s en coche</string>
 
     <string name="history_filter_all">Todos</string>
     <string name="history_filter_this_week">Esta semana</string>
@@ -1030,7 +1030,7 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="parking_kind_unknown">Parking</string>
     <string name="parking_fee_paid">De pago</string>
     <string name="parking_fee_free">Gratuito</string>
-    <string name="parking_capacity">%1$s plazas</string>
+    <string name="parking_capacity">Capacidad: %1$s</string>
     <string name="parking_max_height">Altura máx. %1$s m</string>
 
     <!-- [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] The other two questions the map answers -->

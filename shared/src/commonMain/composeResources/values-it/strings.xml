@@ -124,8 +124,8 @@
     <string name="relative_time_day">%1$d giorno fa</string>
     <string name="relative_time_days">%1$d giorni fa</string>
     <!-- Walk / drive time -->
-    <string name="walk_time_minutes">%1$d min a piedi</string>
-    <string name="drive_time_minutes">%1$d min in auto</string>
+    <string name="walk_time_span">%1$s a piedi</string>
+    <string name="drive_time_span">%1$s in auto</string>
 
     <string name="history_filter_all">Tutti</string>
     <string name="history_filter_this_week">Questa settimana</string>
@@ -1034,7 +1034,7 @@ Se la richiesta non compare più, cambiala in Impostazioni → Paparcar → Posi
     <string name="parking_kind_unknown">Parcheggio pubblico</string>
     <string name="parking_fee_paid">A pagamento</string>
     <string name="parking_fee_free">Gratuito</string>
-    <string name="parking_capacity">%1$s posti</string>
+    <string name="parking_capacity">Capienza: %1$s</string>
     <string name="parking_max_height">Altezza max %1$s m</string>
 
     <!-- [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] The other two questions the map answers -->

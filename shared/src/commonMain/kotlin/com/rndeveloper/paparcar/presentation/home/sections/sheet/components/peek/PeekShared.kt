@@ -159,13 +159,16 @@ internal fun DistanceRow(distanceM: Float?, mode: TravelMode, accentColor: Color
         TravelMode.WALKING -> Icons.AutoMirrored.Rounded.DirectionsWalk
         TravelMode.DRIVING -> Icons.Rounded.Navigation
     }
+    // Null = no hay tiempo que sostener a esa distancia, y entonces la fila es SÓLO la distancia:
+    // ni tiempo ni el separador que lo anunciaba.
+    // [COPY-A-DURATION-ROLLS-INTO-HOURS-AND-A-CAPACITY-IS-NOT-FREE-SPACES-001]
     val timeText = when (mode) {
         TravelMode.WALKING -> walkTimeString(distanceM)
         TravelMode.DRIVING -> driveTimeString(distanceM)
     }
     PeekMetaRow(
         icon = icon,
-        text = "${distanceString(distanceM)}${SheetTokens.META_SEPARATOR}$timeText",
+        text = distanceString(distanceM) + timeText?.let { "${SheetTokens.META_SEPARATOR}$it" }.orEmpty(),
         tint = accentColor,
     )
 }

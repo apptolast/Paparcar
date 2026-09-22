@@ -124,8 +124,8 @@
     <string name="relative_time_day">há %1$d dia</string>
     <string name="relative_time_days">há %1$d dias</string>
     <!-- Walk / drive time -->
-    <string name="walk_time_minutes">%1$d min a pé</string>
-    <string name="drive_time_minutes">%1$d min de carro</string>
+    <string name="walk_time_span">%1$s a pé</string>
+    <string name="drive_time_span">%1$s de carro</string>
 
     <string name="history_filter_all">Todos</string>
     <string name="history_filter_this_week">Esta semana</string>
@@ -1034,7 +1034,7 @@ Se a pergunta já não aparecer, muda em Definições → Paparcar → Localiza�
     <string name="parking_kind_unknown">Parque de estacionamento</string>
     <string name="parking_fee_paid">Pago</string>
     <string name="parking_fee_free">Gratuito</string>
-    <string name="parking_capacity">%1$s lugares</string>
+    <string name="parking_capacity">Capacidade: %1$s</string>
     <string name="parking_max_height">Altura máx. %1$s m</string>
 
     <!-- [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] The other two questions the map answers -->

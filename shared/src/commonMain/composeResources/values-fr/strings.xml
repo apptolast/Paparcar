@@ -124,8 +124,8 @@
     <string name="relative_time_day">il y a %1$d jour</string>
     <string name="relative_time_days">il y a %1$d jours</string>
     <!-- Walk / drive time -->
-    <string name="walk_time_minutes">%1$d min à pied</string>
-    <string name="drive_time_minutes">%1$d min en voiture</string>
+    <string name="walk_time_span">%1$s à pied</string>
+    <string name="drive_time_span">%1$s en voiture</string>
 
     <string name="history_filter_all">Tous</string>
     <string name="history_filter_this_week">Cette semaine</string>
@@ -1034,7 +1034,7 @@ Si la question n'apparaît plus, changez-le dans Réglages → Paparcar → Posi
     <string name="parking_kind_unknown">Parking</string>
     <string name="parking_fee_paid">Payant</string>
     <string name="parking_fee_free">Gratuit</string>
-    <string name="parking_capacity">%1$s places</string>
+    <string name="parking_capacity">Capacité : %1$s</string>
     <string name="parking_max_height">Hauteur max %1$s m</string>
 
     <!-- [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] The other two questions the map answers -->

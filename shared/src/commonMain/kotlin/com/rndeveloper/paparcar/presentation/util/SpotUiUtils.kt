@@ -9,6 +9,45 @@ import kotlin.math.roundToInt
 fun distanceMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Float =
     haversineMeters(lat1, lon1, lat2, lon2).toFloat()
 
+// ── Cuánto se tarda en llegar — la estimación, separada de cómo se escribe ────
+// [COPY-A-DURATION-ROLLS-INTO-HOURS-AND-A-CAPACITY-IS-NOT-FREE-SPACES-001]
+// Funciones PURAS, fuera de los `@Composable` que las pintan: la decisión de si hay tiempo que
+// escribir es justo la que había que poder mirar en un test, y dentro de un composable no se mira.
+
+/** 4,8 km/h: lo que anda una persona. */
+private const val WALK_SPEED_M_PER_MIN = 80f
+
+/** 30 km/h: una media URBANA — arranques, semáforos, buscar la entrada del parking. */
+private const val DRIVE_SPEED_M_PER_MIN = 500f
+
+/**
+ * **Hasta dónde puede hablar [DRIVE_SPEED_M_PER_MIN].**
+ *
+ * 20 km es el borde de una ciudad grande. Más allá, el viaje deja de ser urbano y la constante deja
+ * de ser cierta: a 477 km en línea recta escupía «955 min en coche» —15 h 55 min— para un trayecto
+ * que por autovía son unas cuatro horas y media. No es un problema de redondeo, es una constante
+ * aplicada fuera de su terreno, y una estimación sólo vale dentro del suyo.
+ * [STATS-AN-ESTIMATE-NAMES-ITSELF-AND-ITS-AGE-001]
+ */
+private const val DRIVE_ESTIMATE_MAX_METERS = 20_000f
+
+/**
+ * Minutos andando, siempre — **la velocidad de una persona no cambia con la distancia**, así que
+ * «1 h 20 min a pie» sigue siendo verdad y no necesita techo. Mínimo 1: a dos metros no se tarda
+ * cero.
+ */
+fun walkMinutes(meters: Float): Int =
+    (meters / WALK_SPEED_M_PER_MIN).roundToInt().coerceAtLeast(1)
+
+/**
+ * Minutos en coche, o **null cuando la distancia se sale del terreno urbano** de la constante. Null
+ * no es un fallo: es la app callándose una cifra que no puede sostener, y la fila enseña entonces
+ * sólo la distancia. Fallo asimétrico, como en detección: mejor no decir que decir de más.
+ */
+fun driveMinutesOrNull(meters: Float): Int? =
+    if (meters > DRIVE_ESTIMATE_MAX_METERS) null
+    else (meters / DRIVE_SPEED_M_PER_MIN).roundToInt().coerceAtLeast(1)
+
 fun formatDistance(meters: Float, unit: DistanceUnit = DistanceUnit.METRIC): String = when (unit) {
     DistanceUnit.METRIC -> when {
         meters < 1000 -> "${meters.roundToInt()} m"
