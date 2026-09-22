@@ -13,6 +13,7 @@ import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.Explore
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.Map
+import androidx.compose.material.icons.rounded.MyLocation
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.RocketLaunch
@@ -29,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.isBatteryOptimizationRelevant
+import com.rndeveloper.paparcar.domain.permissions.SystemPermissionDialog
 import com.rndeveloper.paparcar.ui.components.PapAlertDialog
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PaparcarBottomActionScaffold
@@ -39,7 +41,6 @@ import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.permissions_bg_disclosure
-import paparcar.composeapp.generated.resources.permissions_bg_guide_body
 import paparcar.composeapp.generated.resources.permissions_bg_guide_cta
 import paparcar.composeapp.generated.resources.permissions_bg_guide_dismiss
 import paparcar.composeapp.generated.resources.permissions_bg_guide_title
@@ -73,8 +74,8 @@ import paparcar.composeapp.generated.resources.permissions_tier_unlocks
 import paparcar.composeapp.generated.resources.permissions_perm_location
 import paparcar.composeapp.generated.resources.permissions_perm_location_desc
 import paparcar.composeapp.generated.resources.permissions_perm_location_services
-import paparcar.composeapp.generated.resources.permissions_perm_location_services_desc
 import paparcar.composeapp.generated.resources.permissions_perm_notifications
+import paparcar.composeapp.generated.resources.permissions_perm_precise
 import paparcar.composeapp.generated.resources.permissions_perm_notifications_desc
 import paparcar.composeapp.generated.resources.permissions_rationale
 import paparcar.composeapp.generated.resources.permissions_section_detection
@@ -96,6 +97,7 @@ fun PermissionsContent(
     onRequestForegroundLocation: () -> Unit = {},
     onOpenLocationServices: () -> Unit = {},
     onRequestBackgroundLocation: () -> Unit = {},
+    onRequestPreciseLocation: () -> Unit = {},
     onRequestActivityRecognition: () -> Unit = {},
     onRequestNotifications: () -> Unit = {},
     onRequestBluetooth: () -> Unit = {},
@@ -113,7 +115,9 @@ fun PermissionsContent(
             onDismiss = onDismissBackgroundLocationGuide,
             icon = Icons.Rounded.Explore,
             title = stringResource(Res.string.permissions_bg_guide_title),
-            body = stringResource(Res.string.permissions_bg_guide_body),
+            // El camino a «Siempre» es distinto en cada plataforma: narrar el de Android en iOS
+            // manda al usuario a una pantalla que no existe.
+            body = stringResource(platformPermissionCopy.backgroundGuideBody),
             primaryLabel = stringResource(Res.string.permissions_bg_guide_cta),
             onPrimary = onConfirmBackgroundLocationGuide,
             cancelLabel = stringResource(Res.string.permissions_bg_guide_dismiss),
@@ -134,10 +138,14 @@ fun PermissionsContent(
     // exit ("Continue" / optional reliability toggle). The producer visit still checks the core
     // pair: its permissions are useless without location, and Android won't even grant background
     // without foreground. [PERM-FOOTER-001]
+    // ⛔ El tier de detección NO se recalcula aquí: `producerGranted` viene de
+    // `AppPermissionState.hasProducerPermissions`, que ya sabe que un permiso inexistente en este
+    // dispositivo no puede faltar y que una ubicación aproximada sí.
+    // [IOS-PERMISSIONS-A-ROW-MUST-BE-GRANTABLE-HERE-001]
     val requiredComplete = when (focus) {
         PermissionsFocus.Core -> state.hasFineLocation && state.isLocationServicesEnabled
         PermissionsFocus.Producer -> state.hasFineLocation && state.isLocationServicesEnabled &&
-            state.hasBackgroundLocation && state.hasActivityRecognition && state.hasNotifications
+            state.producerGranted
     }
 
     // The footer is ALWAYS present: it either drives the next pending grant or, once everything
@@ -234,7 +242,9 @@ fun PermissionsContent(
                 PermissionRow(
                     icon = Icons.Rounded.Settings,
                     title = stringResource(Res.string.permissions_perm_location_services),
-                    reason = stringResource(Res.string.permissions_perm_location_services_desc),
+                    // El interruptor global vive en un sitio distinto en cada plataforma, y en iOS
+                    // no se puede enlazar: hay que decir el camino con palabras.
+                    reason = stringResource(platformPermissionCopy.locationServicesReason),
                     state = requiredState(state.isLocationServicesEnabled),
                     onGrant = onOpenLocationServices,
                 )
@@ -256,9 +266,22 @@ fun PermissionsContent(
                 icon = Icons.Rounded.Sensors,
                 title = stringResource(Res.string.permissions_section_detection),
                 benefit = stringResource(Res.string.permissions_tier_detection_benefit),
-                satisfied = state.hasBackgroundLocation &&
-                    state.hasActivityRecognition && state.hasNotifications,
+                satisfied = state.producerGranted,
             ) {
+                // Ubicación concedida pero APROXIMADA: el único estado en que el usuario cree estar
+                // servido y no lo está, así que la fila solo aparece entonces — y va la primera,
+                // porque sin precisión nada de lo que viene debajo sirve de nada. En Android no
+                // aparece nunca. [IOS-PERMISSIONS-A-ROW-MUST-BE-GRANTABLE-HERE-001]
+                if (state.hasReducedLocationAccuracy) {
+                    PermissionRow(
+                        icon = Icons.Rounded.MyLocation,
+                        title = stringResource(Res.string.permissions_perm_precise),
+                        reason = stringResource(platformPermissionCopy.preciseLocationReason),
+                        state = requiredState(granted = false),
+                        onGrant = onRequestPreciseLocation,
+                    )
+                    Spacer(Modifier.height(PaparcarSpacing.md))
+                }
                 PermissionRow(
                     icon = Icons.Rounded.Explore,
                     title = stringResource(Res.string.permissions_perm_background),
@@ -266,14 +289,18 @@ fun PermissionsContent(
                     state = requiredState(state.hasBackgroundLocation),
                     onGrant = onRequestBackgroundLocation,
                 )
-                Spacer(Modifier.height(PaparcarSpacing.md))
-                PermissionRow(
-                    icon = Icons.Rounded.Person,
-                    title = stringResource(Res.string.permissions_perm_activity),
-                    reason = stringResource(Res.string.permissions_perm_activity_desc),
-                    state = requiredState(state.hasActivityRecognition),
-                    onGrant = onRequestActivityRecognition,
-                )
+                // Sin coprocesador de movimiento no hay nada que conceder: una fila permanentemente
+                // pendiente que el usuario no puede resolver es peor que no tenerla.
+                if (state.isActivityRecognitionAvailable) {
+                    Spacer(Modifier.height(PaparcarSpacing.md))
+                    PermissionRow(
+                        icon = Icons.Rounded.Person,
+                        title = stringResource(Res.string.permissions_perm_activity),
+                        reason = stringResource(Res.string.permissions_perm_activity_desc),
+                        state = requiredState(state.hasActivityRecognition),
+                        onGrant = onRequestActivityRecognition,
+                    )
+                }
                 Spacer(Modifier.height(PaparcarSpacing.md))
                 PermissionRow(
                     icon = Icons.Rounded.Notifications,
@@ -291,7 +318,11 @@ fun PermissionsContent(
                 icon = Icons.Rounded.Shield,
                 title = stringResource(Res.string.permissions_section_optional),
                 benefit = stringResource(Res.string.permissions_tier_optional_benefit),
-                satisfied = state.hasBluetoothConnect && state.isBatteryOptimizationExempt,
+                // Lo que esta plataforma no puede conceder no puede impedir el check: en iOS la
+                // exención de batería no existe, y exigirla dejaba el tier opcional en gris para
+                // siempre. [IOS-PERMISSIONS-A-ROW-MUST-BE-GRANTABLE-HERE-001]
+                satisfied = state.hasBluetoothConnect &&
+                    (!isBatteryOptimizationRelevant || state.isBatteryOptimizationExempt),
             ) {
                 PermissionRow(
                     icon = Icons.Rounded.Bluetooth,
@@ -305,20 +336,25 @@ fun PermissionsContent(
                     ),
                     onGrant = onRequestBluetooth,
                 )
-                Spacer(Modifier.height(PaparcarSpacing.md))
-                PermissionRow(
-                    icon = Icons.Rounded.BatteryFull,
-                    title = stringResource(Res.string.permissions_perm_battery),
-                    reason = stringResource(Res.string.permissions_perm_battery_desc),
-                    state = optionalState(state.isBatteryOptimizationExempt),
-                    // The battery exemption lifts the bare Assisted tier to Assisted + (fewer prompts).
-                    unlocks = stringResource(
-                        Res.string.permissions_tier_unlocks,
-                        stringResource(Res.string.permissions_tier_assisted_plus_name),
-                    ),
-                    onGrant = onRequestBatteryOptimization,
-                )
-                if (!state.isBatteryOptimizationExempt) {
+                // La exención de batería es un concepto de Android (Doze + los OEM agresivos). El
+                // pie de esta misma pantalla y Ajustes ya consultaban este flag; la lista no, y por
+                // eso iOS pintaba una fila que al pulsarla no hacía nada.
+                if (isBatteryOptimizationRelevant) {
+                    Spacer(Modifier.height(PaparcarSpacing.md))
+                    PermissionRow(
+                        icon = Icons.Rounded.BatteryFull,
+                        title = stringResource(Res.string.permissions_perm_battery),
+                        reason = stringResource(Res.string.permissions_perm_battery_desc),
+                        state = optionalState(state.isBatteryOptimizationExempt),
+                        // The battery exemption lifts the bare Assisted tier to Assisted + (fewer prompts).
+                        unlocks = stringResource(
+                            Res.string.permissions_tier_unlocks,
+                            stringResource(Res.string.permissions_tier_assisted_plus_name),
+                        ),
+                        onGrant = onRequestBatteryOptimization,
+                    )
+                }
+                if (isBatteryOptimizationRelevant && !state.isBatteryOptimizationExempt) {
                     Spacer(Modifier.height(PaparcarSpacing.sm))
                     // REDUCED reliability → the honest manufacturer-policy callout (user-level
                     // copy: cause → consequence → remedies) replaces the generic hint; amber to
@@ -425,7 +461,11 @@ private fun ColumnScope.PermissionsFooter(
 
     // Location permanently denied / revoked → the request dialog would no-op, so jump straight to the
     // amber "open settings" CTA from the first frame. [DET-READY-001m]
-    val coreNeedsSettings = isCorePending && state.locationPermanentlyDenied
+    // ⛔ Se pregunta por el DIÁLOGO, no por el flag de Android: en iOS «ya no va a salir» se sabe
+    // por el estado de autorización, y leer solo `locationPermanentlyDenied` dejaba el CTA
+    // diciendo «Conceder» sobre una petición que el sistema descarta.
+    // [IOS-PERMISSIONS-A-ROW-MUST-BE-GRANTABLE-HERE-001] [DET-READY-001m]
+    val coreNeedsSettings = isCorePending && state.dialogSpent(SystemPermissionDialog.LOCATION)
     val (label, isAmber) = when {
         state.showSettingsPrompt || coreNeedsSettings ->
             stringResource(Res.string.permissions_btn_settings) to true

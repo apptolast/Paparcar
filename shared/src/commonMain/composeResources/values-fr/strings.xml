@@ -559,6 +559,13 @@
     <string name="home_peek_spot_size_unknown">Taille non spécifiée</string>
     <string name="home_report_size_section">Taille de la place (facultatif)</string>
     <string name="permissions_bg_guide_body">Sur l'écran suivant :\n\n1. Touchez «Localisation»\n2. Sélectionnez «Autoriser tout le temps»\n3. Appuyez sur Retour pour revenir à Paparcar</string>
+    <string name="permissions_perm_precise">Précision de la position</string>
+    <string name="permissions_perm_precise_desc">Nécessaire pour marquer votre stationnement à la place exacte, et pas seulement dans le quartier</string>
+    <string name="permissions_perm_precise_desc_ios">Votre position est approximative, donc Paparcar ne peut pas savoir sur quelle place vous êtes garé. Activez «Position précise» dans Réglages → Paparcar → Position.</string>
+    <string name="permissions_bg_guide_body_ios">Choisissez «Toujours» pour que Paparcar détecte votre stationnement app fermée.
+
+Si la question n'apparaît plus, changez-le dans Réglages → Paparcar → Position → Toujours.</string>
+    <string name="permissions_perm_location_services_desc_ios">Sans eux, aucune app ne peut vous localiser. Activez-les dans Réglages → Confidentialité et sécurité → Service de localisation.</string>
     <string name="permissions_bg_guide_cta">Ouvrir les paramètres</string>
     <string name="permissions_bg_guide_dismiss">Pas maintenant</string>
     <string name="permissions_bg_guide_title">Activer la localisation en arrière-plan</string>

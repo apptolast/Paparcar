@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.presentation.permissions
 
 import com.rndeveloper.paparcar.domain.model.DetectionTier
+import com.rndeveloper.paparcar.domain.permissions.SystemPermissionDialog
 
 data class PermissionsState(
     val hasFineLocation: Boolean = false,
@@ -8,6 +9,20 @@ data class PermissionsState(
     val hasActivityRecognition: Boolean = false,
     val hasNotifications: Boolean = false,
     val isLocationServicesEnabled: Boolean = false,
+    /** Ubicación concedida pero APROXIMADA — solo ocurre en iOS 14+. Se pinta su propia fila.
+     *  [IOS-PERMISSIONS-A-ROW-MUST-BE-GRANTABLE-HERE-001] */
+    val hasReducedLocationAccuracy: Boolean = false,
+    /** El dispositivo tiene con qué reconocer actividad. Si no, esa fila no se pinta: no es una
+     *  tarea pendiente del usuario, es un permiso que aquí no existe. */
+    val isActivityRecognitionAvailable: Boolean = true,
+    /** Diálogos que el sistema ya no va a presentar — su fila abre los Ajustes.
+     *  Ver [SystemPermissionDialog]. */
+    val spentDialogs: Set<SystemPermissionDialog> = emptySet(),
+    /** El tier de detección está completo. Se COPIA de `AppPermissionState.hasProducerPermissions`
+     *  en vez de recalcularse aquí: reescribir la expresión sobre los campos de la pantalla sería
+     *  una segunda opinión sobre la misma pregunta, y las dos derivarían.
+     *  [IOS-PERMISSIONS-A-ROW-MUST-BE-GRANTABLE-HERE-001] */
+    val producerGranted: Boolean = false,
     /** Optional — Bluetooth parking detection only. Does not block navigation. */
     val hasBluetoothConnect: Boolean = false,
     /** Optional — battery optimization exemption. Does not block navigation.
@@ -47,4 +62,16 @@ data class PermissionsState(
      *  Android 11+ takes the user directly to Settings with no dialog — without this
      *  guide users don't know they must select "Allow all the time" then press Back. */
     val showBackgroundLocationGuide: Boolean = false,
-)
+) {
+    /**
+     * `true` si pulsar esa fila NO puede levantar un diálogo y tiene que abrir los Ajustes.
+     *
+     * Une las dos fuentes que saben de esto: el conjunto que rellena la plataforma
+     * ([spentDialogs], exacto en iOS) y el flag que empuja la pantalla de Android para la ubicación
+     * ([locationPermanentlyDenied], que allí necesita la Activity). Un solo concepto, dos orígenes.
+     * [IOS-PERMISSIONS-A-ROW-MUST-BE-GRANTABLE-HERE-001] [DET-READY-001m]
+     */
+    fun dialogSpent(dialog: SystemPermissionDialog): Boolean =
+        dialog in spentDialogs ||
+            (dialog == SystemPermissionDialog.LOCATION && locationPermanentlyDenied)
+}

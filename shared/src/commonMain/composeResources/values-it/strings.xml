@@ -559,6 +559,13 @@
     <string name="home_peek_spot_size_unknown">Dimensione non specificata</string>
     <string name="home_report_size_section">Dimensione del posto (opzionale)</string>
     <string name="permissions_bg_guide_body">Nella schermata successiva:\n\n1. Tocca «Posizione»\n2. Seleziona «Consenti sempre»\n3. Premi Indietro per tornare a Paparcar</string>
+    <string name="permissions_perm_precise">Precisione della posizione</string>
+    <string name="permissions_perm_precise_desc">Serve per segnare il tuo parcheggio nel posto esatto, non solo nella zona</string>
+    <string name="permissions_perm_precise_desc_ios">La tua posizione è approssimativa, quindi Paparcar non può sapere in quale posto hai parcheggiato. Attiva «Posizione precisa» in Impostazioni → Paparcar → Posizione.</string>
+    <string name="permissions_bg_guide_body_ios">Scegli «Sempre» così Paparcar rileva il tuo parcheggio con l'app chiusa.
+
+Se la richiesta non compare più, cambiala in Impostazioni → Paparcar → Posizione → Sempre.</string>
+    <string name="permissions_perm_location_services_desc_ios">Senza di essi nessuna app può localizzarti. Attivali in Impostazioni → Privacy e sicurezza → Localizzazione.</string>
     <string name="permissions_bg_guide_cta">Apri impostazioni</string>
     <string name="permissions_bg_guide_dismiss">Non ora</string>
     <string name="permissions_bg_guide_title">Attiva la posizione in background</string>

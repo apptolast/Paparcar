@@ -560,6 +560,13 @@
     <string name="home_peek_spot_size_unknown">Größe nicht angegeben</string>
     <string name="home_report_size_section">Platzgröße (optional)</string>
     <string name="permissions_bg_guide_body">Auf dem nächsten Bildschirm:\n\n1. Tippe auf «Standort»\n2. Wähle «Immer zulassen»\n3. Drücke Zurück, um zu Paparcar zurückzukehren</string>
+    <string name="permissions_perm_precise">Standortgenauigkeit</string>
+    <string name="permissions_perm_precise_desc">Nötig, um dein Parken am genauen Platz zu markieren, nicht nur in der Gegend</string>
+    <string name="permissions_perm_precise_desc_ios">Dein Standort ist ungefähr, deshalb kann Paparcar nicht wissen, auf welchem Platz du stehst. Aktiviere «Genauer Standort» unter Einstellungen → Paparcar → Standort.</string>
+    <string name="permissions_bg_guide_body_ios">Wähle «Immer», damit Paparcar dein Parken auch bei geschlossener App erkennt.
+
+Wenn die Frage nicht mehr erscheint, ändere es unter Einstellungen → Paparcar → Standort → Immer.</string>
+    <string name="permissions_perm_location_services_desc_ios">Ohne sie kann dich keine App orten. Aktiviere sie unter Einstellungen → Datenschutz &amp; Sicherheit → Ortungsdienste.</string>
     <string name="permissions_bg_guide_cta">Einstellungen öffnen</string>
     <string name="permissions_bg_guide_dismiss">Jetzt nicht</string>
     <string name="permissions_bg_guide_title">Hintergrundstandort aktivieren</string>

@@ -565,6 +565,13 @@
     <string name="home_peek_spot_size_unknown">Rozmiar nieokreślony</string>
     <string name="home_report_size_section">Rozmiar miejsca (opcjonalnie)</string>
     <string name="permissions_bg_guide_body">Na następnym ekranie:\n\n1. Dotknij «Lokalizacja»\n2. Wybierz «Zezwalaj zawsze»\n3. Naciśnij Wstecz, aby wrócić do Paparcar</string>
+    <string name="permissions_perm_precise">Dokładność lokalizacji</string>
+    <string name="permissions_perm_precise_desc">Potrzebna, żeby zapisać parkowanie w konkretnym miejscu, a nie w okolicy</string>
+    <string name="permissions_perm_precise_desc_ios">Twoja lokalizacja jest przybliżona, więc Paparcar nie wie, na którym miejscu stoisz. Włącz «Dokładną lokalizację» w Ustawieniach → Paparcar → Lokalizacja.</string>
+    <string name="permissions_bg_guide_body_ios">Wybierz «Zawsze», żeby Paparcar wykrywał parkowanie przy zamkniętej aplikacji.
+
+Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → Lokalizacja → Zawsze.</string>
+    <string name="permissions_perm_location_services_desc_ios">Bez nich żadna aplikacja Cię nie zlokalizuje. Włącz je w Ustawieniach → Prywatność i ochrona → Usługi lokalizacji.</string>
     <string name="permissions_bg_guide_cta">Otwórz ustawienia</string>
     <string name="permissions_bg_guide_dismiss">Nie teraz</string>
     <string name="permissions_bg_guide_title">Włącz lokalizację w tle</string>

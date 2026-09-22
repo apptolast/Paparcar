@@ -561,6 +561,13 @@
     <string name="home_report_size_section">Grootte plek (optioneel)</string>
     <string name="permissions_bg_guide_title">Achtergrondlocatie inschakelen</string>
     <string name="permissions_bg_guide_body">Op het volgende scherm:\n\n1. Tik op «Locatie»\n2. Kies «Altijd toestaan»\n3. Druk op Terug om terug te keren naar Paparcar</string>
+    <string name="permissions_perm_precise">Nauwkeurigheid van locatie</string>
+    <string name="permissions_perm_precise_desc">Nodig om je parkeren op de exacte plek te markeren, niet alleen in de buurt</string>
+    <string name="permissions_perm_precise_desc_ios">Je locatie is bij benadering, dus Paparcar weet niet op welke plek je staat. Zet «Precieze locatie» aan via Instellingen → Paparcar → Locatie.</string>
+    <string name="permissions_bg_guide_body_ios">Kies «Altijd» zodat Paparcar je parkeren ook met gesloten app herkent.
+
+Als de vraag niet meer verschijnt, wijzig je het via Instellingen → Paparcar → Locatie → Altijd.</string>
+    <string name="permissions_perm_location_services_desc_ios">Zonder deze kan geen enkele app je vinden. Zet ze aan via Instellingen → Privacy en beveiliging → Locatievoorzieningen.</string>
     <string name="permissions_bg_guide_cta">Instellingen openen</string>
     <string name="permissions_bg_guide_dismiss">Nu niet</string>
     <string name="vehicle_registration_bt_title">Bluetooth koppelen</string>

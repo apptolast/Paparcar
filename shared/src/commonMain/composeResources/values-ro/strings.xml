@@ -568,6 +568,13 @@
     <!-- Background location guide -->
     <string name="permissions_bg_guide_title">Activează locația în fundal</string>
     <string name="permissions_bg_guide_body">Pe ecranul următor:\n\n1. Atinge «Locație»\n2. Selectează «Permite tot timpul»\n3. Apasă Înapoi pentru a reveni la Paparcar</string>
+    <string name="permissions_perm_precise">Precizia locației</string>
+    <string name="permissions_perm_precise_desc">Necesară ca să marcăm parcarea pe locul exact, nu doar în zonă</string>
+    <string name="permissions_perm_precise_desc_ios">Locația ta este aproximativă, așa că Paparcar nu poate ști pe ce loc ai parcat. Activează «Locație precisă» în Setări → Paparcar → Locație.</string>
+    <string name="permissions_bg_guide_body_ios">Alege «Întotdeauna» ca Paparcar să detecteze parcarea cu aplicația închisă.
+
+Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație → Întotdeauna.</string>
+    <string name="permissions_perm_location_services_desc_ios">Fără ele nicio aplicație nu te poate localiza. Activează-le în Setări → Confidențialitate și securitate → Servicii de localizare.</string>
     <string name="permissions_bg_guide_cta">Deschide setările</string>
     <string name="permissions_bg_guide_dismiss">Nu acum</string>
 

@@ -100,6 +100,7 @@ import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.domain.onboarding.WatchReinforcement
 import com.rndeveloper.paparcar.domain.onboarding.resolveFirstSteps
 import com.rndeveloper.paparcar.ui.components.PapSpotlight
+import com.rndeveloper.paparcar.domain.permissions.SystemPermissionDialog
 import com.rndeveloper.paparcar.presentation.permissions.PermissionsContent
 import com.rndeveloper.paparcar.presentation.permissions.PermissionsFocus
 import com.rndeveloper.paparcar.presentation.permissions.PermissionsState
@@ -3100,6 +3101,49 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                     onRequestPermissions = {},
                     focus = PermissionsFocus.Producer,
+                )
+            },
+            // ── Estados que solo existen en iOS, pero que pinta la MISMA pantalla ──────────
+            // [IOS-PERMISSIONS-A-ROW-MUST-BE-GRANTABLE-HERE-001]
+            Variant("Ubicación APROXIMADA (iOS 14+)") {
+                // Todo concedido y aun así la detección no puede funcionar: el único estado en que
+                // el usuario cree estar servido y no lo está. La fila de precisión va la primera.
+                PermissionsContent(
+                    state = PermissionsState(
+                        hasFineLocation = true, hasBackgroundLocation = true,
+                        hasActivityRecognition = true, hasNotifications = true,
+                        isLocationServicesEnabled = true,
+                        hasReducedLocationAccuracy = true,
+                        producerGranted = false,
+                    ),
+                    onRequestPermissions = {},
+                    focus = PermissionsFocus.Producer,
+                )
+            },
+            Variant("Sin coprocesador de movimiento") {
+                // La fila de actividad NO se pinta y el tier se da por completo: un permiso que el
+                // aparato no puede conceder no es una tarea pendiente del usuario.
+                PermissionsContent(
+                    state = PermissionsState(
+                        hasFineLocation = true, hasBackgroundLocation = true,
+                        hasActivityRecognition = false, isActivityRecognitionAvailable = false,
+                        hasNotifications = true, isLocationServicesEnabled = true,
+                        producerGranted = true,
+                    ),
+                    onRequestPermissions = {},
+                    focus = PermissionsFocus.Producer,
+                )
+            },
+            Variant("Diálogo de ubicación GASTADO → Ajustes") {
+                // Denegado o restringido: el sistema ya no pregunta, así que el CTA es ámbar y
+                // lleva a los Ajustes desde el primer frame, sin dos taps a la nada.
+                PermissionsContent(
+                    state = PermissionsState(
+                        isLocationServicesEnabled = true,
+                        spentDialogs = setOf(SystemPermissionDialog.LOCATION),
+                    ),
+                    onRequestPermissions = {},
+                    focus = PermissionsFocus.Core,
                 )
             },
             // Cabecera de nivel de detección — la promesa honesta según el setup. [DET-TIERS-001]

@@ -3,6 +3,7 @@ package com.rndeveloper.paparcar.presentation.permissions
 import com.rndeveloper.paparcar.domain.model.DetectionReliabilityLevel
 import com.rndeveloper.paparcar.domain.permissions.OemBackgroundReliabilityManager
 import com.rndeveloper.paparcar.domain.permissions.PermissionManager
+import com.rndeveloper.paparcar.domain.permissions.SystemPermissionDialog
 import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
 import com.rndeveloper.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.flow.catch
@@ -30,6 +31,10 @@ class PermissionsViewModel(
                     hasActivityRecognition = current.hasActivityRecognitionPermission,
                     hasNotifications = current.hasNotificationPermission,
                     isLocationServicesEnabled = current.isLocationServicesEnabled,
+                    hasReducedLocationAccuracy = current.hasReducedLocationAccuracy,
+                    isActivityRecognitionAvailable = current.isActivityRecognitionAvailable,
+                    spentDialogs = current.spentDialogs,
+                    producerGranted = current.hasProducerPermissions,
                     hasBluetoothConnect = current.hasBluetoothConnectPermission,
                     isBatteryOptimizationExempt = current.isBatteryOptimizationExempt,
                     showAutostartCard = oemBackgroundReliabilityManager.requiresAutostartWhitelist,
@@ -47,6 +52,10 @@ class PermissionsViewModel(
                         hasActivityRecognition = appState.hasActivityRecognitionPermission,
                         hasNotifications = appState.hasNotificationPermission,
                         isLocationServicesEnabled = appState.isLocationServicesEnabled,
+                        hasReducedLocationAccuracy = appState.hasReducedLocationAccuracy,
+                        isActivityRecognitionAvailable = appState.isActivityRecognitionAvailable,
+                        spentDialogs = appState.spentDialogs,
+                        producerGranted = appState.hasProducerPermissions,
                         hasBluetoothConnect = appState.hasBluetoothConnectPermission,
                         isBatteryOptimizationExempt = appState.isBatteryOptimizationExempt,
                     )
@@ -90,18 +99,29 @@ class PermissionsViewModel(
                 } else {
                     updateState { copy(showBackgroundLocationGuide = true) }
                 }
-            PermissionsIntent.RequestActivityRecognition -> {
-                escalateIfNeeded()
-                requestCount++
-                sendEffect(PermissionsEffect.RequestActivityRecognition)
-            }
-            PermissionsIntent.RequestNotifications -> {
-                escalateIfNeeded()
-                requestCount++
-                sendEffect(PermissionsEffect.RequestNotifications)
-            }
+            // La precisión no tiene diálogo propio: se cambia en los Ajustes de la app. La escalada
+            // temporal de iOS caduca al cerrar la app, y una sesión de aparcamiento dura horas.
+            // [IOS-PERMISSIONS-A-ROW-MUST-BE-GRANTABLE-HERE-001]
+            PermissionsIntent.RequestPreciseLocation -> sendEffect(PermissionsEffect.OpenAppSettings)
+            PermissionsIntent.RequestActivityRecognition ->
+                askOrOpenSettings(
+                    SystemPermissionDialog.ACTIVITY,
+                    PermissionsEffect.RequestActivityRecognition,
+                )
+            PermissionsIntent.RequestNotifications ->
+                askOrOpenSettings(
+                    SystemPermissionDialog.NOTIFICATIONS,
+                    PermissionsEffect.RequestNotifications,
+                )
 
-            PermissionsIntent.RequestBluetoothPermission -> sendEffect(PermissionsEffect.RequestStepBluetooth)
+            PermissionsIntent.RequestBluetoothPermission ->
+                // Opcional: no cuenta para la escalada rationale → ajustes, que narra los permisos
+                // requeridos. Un tap en Bluetooth no puede empujar ese texto.
+                askOrOpenSettings(
+                    SystemPermissionDialog.BLUETOOTH,
+                    PermissionsEffect.RequestStepBluetooth,
+                    escalates = false,
+                )
             PermissionsIntent.RequestBatteryOptimization -> sendEffect(PermissionsEffect.RequestBatteryOptimizationExemption)
             PermissionsIntent.RequestOemAutostart -> {
                 updateState { copy(hasAcknowledgedAutostart = true) }
@@ -125,7 +145,14 @@ class PermissionsViewModel(
             PermissionsIntent.ConfirmBackgroundLocationGuide -> {
                 updateState { copy(showBackgroundLocationGuide = false) }
                 requestCount++
-                sendEffect(PermissionsEffect.RequestStep2BackgroundLocation)
+                // iOS presenta la escalada a «Siempre» UNA vez y después la ignora en silencio; con
+                // ella gastada, el único camino son los Ajustes. En Android este efecto ya abre los
+                // ajustes de ubicación de la app, así que el conjunto está vacío y nada cambia.
+                if (state.value.dialogSpent(SystemPermissionDialog.ALWAYS_LOCATION)) {
+                    sendEffect(PermissionsEffect.OpenAppSettings)
+                } else {
+                    sendEffect(PermissionsEffect.RequestStep2BackgroundLocation)
+                }
             }
             PermissionsIntent.DismissBackgroundLocationGuide ->
                 updateState { copy(showBackgroundLocationGuide = false) }
@@ -136,14 +163,39 @@ class PermissionsViewModel(
 
     /** Foreground-location request shared by the footer CORE step and the per-card tap. [ONB-CARDS-001] */
     private fun requestForegroundLocation() {
-        val current = state.value
-        if (current.showSettingsPrompt || (!current.hasFineLocation && current.locationPermanentlyDenied)) {
+        if (state.value.showSettingsPrompt) {
             sendEffect(PermissionsEffect.OpenAppSettings)
             return
         }
-        escalateIfNeeded()
-        requestCount++
-        sendEffect(PermissionsEffect.RequestStep1)
+        askOrOpenSettings(SystemPermissionDialog.LOCATION, PermissionsEffect.RequestStep1)
+    }
+
+    /**
+     * El punto ÚNICO por el que pasa toda fila cuya acción sea pedir un permiso: levanta el diálogo,
+     * o abre los Ajustes si ese diálogo ya no va a salir.
+     *
+     * Existe como sitio único a propósito. Saltárselo en una sola fila devuelve exactamente el
+     * defecto que este ticket arregla: una fila que se pinta pulsable, responde al tap y no hace
+     * nada, porque el sistema descarta en silencio una petición que ya contestó.
+     * [IOS-PERMISSIONS-A-ROW-MUST-BE-GRANTABLE-HERE-001]
+     *
+     * @param escalates si el tap cuenta para la escalada rationale → ajustes. Los permisos
+     *   opcionales no cuentan: su texto narra los requeridos.
+     */
+    private fun askOrOpenSettings(
+        dialog: SystemPermissionDialog,
+        ask: PermissionsEffect,
+        escalates: Boolean = true,
+    ) {
+        if (state.value.dialogSpent(dialog)) {
+            sendEffect(PermissionsEffect.OpenAppSettings)
+            return
+        }
+        if (escalates) {
+            escalateIfNeeded()
+            requestCount++
+        }
+        sendEffect(ask)
     }
 
     private fun handleRequestPermissions() {
@@ -151,7 +203,8 @@ class PermissionsViewModel(
         when {
             // Already escalated to settings, OR location is permanently denied / revoked (the system
             // dialog would no-op) — send the user straight to system settings. [DET-READY-001m]
-            current.showSettingsPrompt || (!current.hasFineLocation && current.locationPermanentlyDenied) ->
+            current.showSettingsPrompt ||
+                (!current.hasFineLocation && current.dialogSpent(SystemPermissionDialog.LOCATION)) ->
                 sendEffect(PermissionsEffect.OpenAppSettings)
 
             // CORE step 1: foreground location only — the minimum to use the map. We no longer
@@ -167,8 +220,17 @@ class PermissionsViewModel(
             !current.isLocationServicesEnabled ->
                 sendEffect(PermissionsEffect.OpenLocationSettings)
 
-            // PRODUCER sensors: activity recognition + notifications, requested together.
-            !current.hasActivityRecognition || !current.hasNotifications -> {
+            // PRODUCER: ubicación concedida pero aproximada. Va DELANTE del resto porque sin
+            // precisión nada de lo que viene después sirve de nada, y no tiene diálogo: se arregla
+            // en los Ajustes. [IOS-PERMISSIONS-A-ROW-MUST-BE-GRANTABLE-HERE-001]
+            current.hasReducedLocationAccuracy ->
+                sendEffect(PermissionsEffect.OpenAppSettings)
+
+            // PRODUCER sensors: activity recognition + notifications, requested together. La
+            // actividad solo cuenta si el dispositivo la tiene — si no, este paso lo decide
+            // únicamente la notificación.
+            (!current.hasActivityRecognition && current.isActivityRecognitionAvailable) ||
+                !current.hasNotifications -> {
                 escalateIfNeeded()
                 requestCount++
                 sendEffect(PermissionsEffect.RequestProducerSensors)

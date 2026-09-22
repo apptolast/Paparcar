@@ -133,6 +133,7 @@ import paparcar.composeapp.generated.resources.home_det_stopped_msg
 import paparcar.composeapp.generated.resources.permissions_perm_activity
 import paparcar.composeapp.generated.resources.permissions_perm_background
 import paparcar.composeapp.generated.resources.permissions_perm_location
+import paparcar.composeapp.generated.resources.permissions_perm_precise
 import paparcar.composeapp.generated.resources.permissions_perm_location_services
 import paparcar.composeapp.generated.resources.permissions_perm_notifications
 import paparcar.composeapp.generated.resources.settings_add_widget
@@ -831,6 +832,7 @@ private fun firstMissingLabel(state: SettingsState): String {
     val first = HEALTH_PRIORITY.firstOrNull { it in state.missingDetectionPermissions }
     return when (first) {
         RequiredPermission.FOREGROUND_LOCATION -> stringResource(Res.string.permissions_perm_location)
+        RequiredPermission.PRECISE_LOCATION -> stringResource(Res.string.permissions_perm_precise)
         RequiredPermission.BACKGROUND_LOCATION -> stringResource(Res.string.permissions_perm_background)
         RequiredPermission.ACTIVITY_RECOGNITION -> stringResource(Res.string.permissions_perm_activity)
         RequiredPermission.NOTIFICATIONS -> stringResource(Res.string.permissions_perm_notifications)
@@ -838,8 +840,11 @@ private fun firstMissingLabel(state: SettingsState): String {
     }
 }
 
+// Orden de dependencia: la precisión va justo detrás del propio permiso de ubicación, porque una
+// ubicación aproximada deja sin valor a todo lo que viene después — el segundo plano incluido.
 private val HEALTH_PRIORITY = listOf(
     RequiredPermission.FOREGROUND_LOCATION,
+    RequiredPermission.PRECISE_LOCATION,
     RequiredPermission.BACKGROUND_LOCATION,
     RequiredPermission.ACTIVITY_RECOGNITION,
     RequiredPermission.NOTIFICATIONS,

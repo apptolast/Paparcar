@@ -26,6 +26,17 @@ enum class RequiredPermission(val tier: PermissionTier) {
     NOTIFICATIONS(PermissionTier.PRODUCER),
     BACKGROUND_LOCATION(PermissionTier.PRODUCER),
     ACTIVITY_RECOGNITION(PermissionTier.PRODUCER),
+
+    /**
+     * Ubicación concedida pero APROXIMADA. Bloquea la detección igual que si faltara, porque una
+     * plaza no se puede colocar con un kilómetro de error — y por eso vive aquí y no solo en la
+     * pantalla de permisos: el banner de Home, la salud de detección de Ajustes y los `blockers`
+     * del diagnóstico tienen que poder nombrarlo.
+     *
+     * En Android no aparece nunca (se comprueba `ACCESS_FINE_LOCATION`); es el estado que iOS
+     * permite desde la versión 14. [IOS-PERMISSIONS-A-ROW-MUST-BE-GRANTABLE-HERE-001]
+     */
+    PRECISE_LOCATION(PermissionTier.PRODUCER),
 }
 
 /** All required permissions (CORE + PRODUCER) not yet granted in this state. */
@@ -33,7 +44,15 @@ fun AppPermissionState.missingPermissions(): Set<RequiredPermission> = buildSet 
     if (!hasLocationPermission) add(RequiredPermission.FOREGROUND_LOCATION)
     if (!hasNotificationPermission) add(RequiredPermission.NOTIFICATIONS)
     if (!hasBackgroundLocationPermission) add(RequiredPermission.BACKGROUND_LOCATION)
-    if (!hasActivityRecognitionPermission) add(RequiredPermission.ACTIVITY_RECOGNITION)
+    // Un permiso que este dispositivo NO PUEDE conceder no puede faltar: sin coprocesador de
+    // movimiento la fila no es una tarea pendiente del usuario, y contarla dejaría la detección
+    // «bloqueada» para siempre sin remedio posible.
+    if (!hasActivityRecognitionPermission && isActivityRecognitionAvailable) {
+        add(RequiredPermission.ACTIVITY_RECOGNITION)
+    }
+    // Solo tiene sentido preguntarse por la precisión de una ubicación que existe: sin permiso,
+    // quien falta es FOREGROUND_LOCATION y nombrar las dos contaría el mismo hueco dos veces.
+    if (hasLocationPermission && hasReducedLocationAccuracy) add(RequiredPermission.PRECISE_LOCATION)
 }
 
 /** Missing CORE-tier permissions — their absence blocks app entry. */
