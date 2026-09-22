@@ -127,6 +127,63 @@ class HomeUiControllerTest {
         assertEquals(HomeUiController.FOCUS_DRIVING_ZOOM, assertNotNull(controller.cameraTarget).zoom)
     }
 
+    // ── El zoom al REANUDAR [HOME-A-LOCATE-ME-TAP-IS-A-FRAMING-001] ──
+
+    @Test
+    fun should_zoomIn_when_theUserTapsLocateMeMidTrip() {
+        // ⛔ EL TESTIGO de la issue #115 («el zoom de location en ruta sigue sin funcionar»): el
+        // arreglo de la #66 sólo cubrió el encuadre AUTOMÁTICO del primer seguimiento. Este es el
+        // camino del FAB, que ya está siguiendo y por tanto nunca vuelve a armar aquel encuadre:
+        // recentraba y dejaba la cámara tan lejos como estuviera. Pedir tu localización es pedir un
+        // encuadre, la siga la cámara o no.
+        val controller = drivingController()
+        controller.followDriver(CAR_LAT, CAR_LON)
+        controller.followDriver(CAR_LAT + 0.001, CAR_LON + 0.001)
+
+        controller.resumeDriverFollow(CAR_LAT, CAR_LON)
+
+        val target = assertNotNull(controller.cameraTarget)
+        assertEquals(CAR_LAT, target.lat)
+        assertEquals(
+            HomeUiController.FOCUS_DRIVING_ZOOM,
+            target.zoom,
+            "reanudar es encuadrar: el mismo suelo que el primer seguimiento, no uno nuevo",
+        )
+        assertEquals(
+            ZoomIntent.AtLeast,
+            target.zoomIntent,
+            "y como SUELO: a quien ya miraba de cerca no se le aleja de golpe",
+        )
+    }
+
+    @Test
+    fun should_reEngageTheFollow_when_theUserTapsLocateMeAfterLeavingIt() {
+        // La mitad que ya era correcta: el FAB es una de las DOS únicas puertas por las que el
+        // seguimiento vuelve, y encuadrar no puede costarle esa función.
+        val controller = drivingController()
+        controller.goToPlace(SPOT_LAT, SPOT_LON)
+
+        controller.resumeDriverFollow(CAR_LAT, CAR_LON)
+
+        assertTrue(controller.followingDriver, "el FAB reengancha el seguimiento que el usuario soltó")
+        assertEquals(CAR_LAT, assertNotNull(controller.cameraTarget).lat)
+    }
+
+    @Test
+    fun should_leaveTheZoomAlone_when_aGpsFixArrivesAfterTheUserResumed() {
+        // Reanudar no rearma el encuadre para los fixes siguientes: el zoom con el que se quede el
+        // usuario tras pulsar sigue siendo suyo.
+        val controller = drivingController()
+        controller.resumeDriverFollow(CAR_LAT, CAR_LON)
+
+        controller.followDriver(CAR_LAT + 0.001, CAR_LON + 0.001)
+
+        assertNull(
+            assertNotNull(controller.cameraTarget).zoom,
+            "el encuadre lo pidió la pulsación, no los fixes que vienen detrás",
+        )
+    }
+
     @Test
     fun should_keepFollowingTheDriver_when_theCameraTracksThePuck() {
         val controller = drivingController()

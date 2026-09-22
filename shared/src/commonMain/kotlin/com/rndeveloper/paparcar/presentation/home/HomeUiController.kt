@@ -399,9 +399,27 @@ class HomeUiController {
         }
     }
 
+    /**
+     * ⛔ **Reanudar es ENCUADRAR, no sólo recentrar.** [HOME-A-LOCATE-ME-TAP-IS-A-FRAMING-001]
+     *
+     * Esto lo llama el FAB de localización, y nada más. Un fix de GPS no lo pide nadie —por eso
+     * [followDriver] no toca el zoom— pero una PULSACIÓN sí: el usuario ha dicho «llévame a mi
+     * localización», y llevarle sin acercarle es media respuesta. En ruta el botón recentraba y se
+     * quedaba tan lejos como estuviera, mientras el mismo botón, parado, sí acercaba: dos
+     * comportamientos para un icono, decididos por la rama que atendía la pulsación.
+     *
+     * El mismo suelo ([ZoomIntent.AtLeast]) y el mismo número ([FOCUS_DRIVING_ZOOM]) que el primer
+     * seguimiento de un viaje: es la misma pregunta —a qué distancia se mira un coche en marcha— y
+     * ya estaba respondida. A quien ya mira de cerca no se le aleja.
+     * [HOME-A-LIVE-TRIP-DESERVES-THE-ZOOM-IT-NEEDS-001] [MAP-A-CAMERA-MOVE-MUST-NOT-COST-A-PINCH-001]
+     */
     fun resumeDriverFollow(lat: Double, lon: Double) {
         followingDriver = true
-        setTarget(lat, lon)
+        // Esto YA es el encuadre, así que consume el que [setDriverFollowActive] dejara armado: si
+        // no, el siguiente fix volvería a aplicar el suelo, y entre la pulsación y ese fix el
+        // usuario puede haber abierto el mapa a propósito.
+        firstFollowPending = false
+        setTarget(lat, lon, zoom = FOCUS_DRIVING_ZOOM, zoomIntent = ZoomIntent.AtLeast)
     }
 
     /** ⛔ `internal` y no `private`: son decisiones de producto —a qué distancia se mira un coche

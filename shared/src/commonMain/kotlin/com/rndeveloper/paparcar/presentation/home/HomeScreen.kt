@@ -1537,12 +1537,23 @@ private fun HomeMapFabsSection(
         {
             // Mid-trip, "locate me" means the moving car: re-engage driver-follow and snap onto
             // the puck (paused earlier by a map gesture). Otherwise recentre on GPS. [FOLLOW-001]
+            //
+            // ⛔ Las DOS ramas encuadran. Sólo lo hacía la de abajo, así que el mismo botón acercaba
+            // parado y no acercaba en ruta — el zoom es del ACTO de pedir tu localización, no de la
+            // rama que lo atiende. El suelo de la de arriba lo pone `resumeDriverFollow`.
+            // [HOME-A-LOCATE-ME-TAP-IS-A-FRAMING-001]
             val puck = drivingPuck.value
             if (puck != null) {
                 uiController.resumeDriverFollow(puck.latitude, puck.longitude)
             } else {
                 currentUserGpsPoint.value?.let {
-                    uiController.goToPlace(it.latitude, it.longitude, zoom = 16f)
+                    // El número ya tenía nombre: era el mismo 16 del enfoque inicial, escrito dos
+                    // veces. [HOME-A-LOCATE-ME-TAP-IS-A-FRAMING-001]
+                    uiController.goToPlace(
+                        it.latitude,
+                        it.longitude,
+                        zoom = HomeUiController.FOCUS_SEARCH_ZOOM,
+                    )
                 }
             }
         }
