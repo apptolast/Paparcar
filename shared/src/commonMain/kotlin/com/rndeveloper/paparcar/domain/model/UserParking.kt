@@ -110,11 +110,6 @@ data class UserParking(
      *  hot path. Null when there is no route (BT/legacy) — a missing distance is "unknown", never
      *  0. Synced. [VEH-STATS-SAY-SOMETHING-USEFUL-001] */
     val routeDistanceMeters: Float? = null,
-    /** Time this trip spent LOOKING for a spot (ms) — measured at confirm from the recorded
-     *  route's clocks (the stored polyline has none, so the figure is measurable exactly once) by
-     *  [com.rndeveloper.paparcar.domain.detection.ParkingSearchTime]. Stamped only when a fresh
-     *  measured route was attached; null = unmeasurable (short hop, no route, legacy) — never 0.
-     *  Synced. [TRIP-THE-SEARCH-FOR-A-SPOT-IS-MEASURED-001] */
     /**
      * La plaza de la comunidad que ESTA sesión ocupó, o null — que es lo normal.
      * [SPOT-A-SPACE-THE-COMMUNITY-GAVE-YOU-IS-ONE-YOU-VOUCHED-FOR-001]
@@ -129,6 +124,15 @@ data class UserParking(
      */
     val communitySpotId: String? = null,
 
+    /** Time this trip spent LOOKING for a spot (ms) — measured at confirm from the recorded
+     *  route's clocks (the stored polyline has none, so the figure is measurable exactly once) by
+     *  [com.rndeveloper.paparcar.domain.detection.ParkingSearchTime]. Three-valued
+     *  [STATS-EVERY-NUMBER-CITES-ITS-EVIDENCE-001]: null = unmeasurable (no fresh route attached,
+     *  arrival not witnessed, short hop, legacy); 0 = a MEASURED direct arrival; >0 = demonstrated
+     *  circling, timed to the measured stop — never to the confirmation clock. Synced, but the
+     *  local row's verdict is authoritative on reconcile (v1 figures were invalidated by
+     *  MIGRATION_19_20 and must not resurrect from the mirror).
+     *  [TRIP-THE-SEARCH-FOR-A-SPOT-IS-MEASURED-001] */
     val searchTimeMs: Long? = null,
     /** Epoch-ms when this session ENDED (isActive flipped false) — the moment the departure was
      *  committed, or the real deduced-departure instant when a promotion finalizes one. Null while

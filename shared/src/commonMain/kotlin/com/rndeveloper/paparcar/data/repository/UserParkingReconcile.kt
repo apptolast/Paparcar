@@ -59,7 +59,12 @@ fun reconcileParkingSessions(
             // tomarlo borraría lo que este móvil ya sabe.
             // [SPOT-A-SPACE-THE-COMMUNITY-GAVE-YOU-IS-ONE-YOU-VOUCHED-FOR-001]
             communitySpotId = r.communitySpotId ?: l?.communitySpotId,
-            searchTimeMs = r.searchTimeMs ?: l?.searchTimeMs,
+            // [STATS-EVERY-NUMBER-CITES-ITS-EVIDENCE-001] La cifra se mide UNA vez, en el móvil
+            // que grabó la ruta: si existe fila local, SU veredicto manda — incluido un null, que
+            // es la invalidación de MIGRATION_19_20 (la fórmula retirada contaba latencia de
+            // confirmación como búsqueda) y no debe resucitar desde el espejo remoto. Sin fila
+            // local (restauración en móvil nuevo) el remoto es el único portador y se toma.
+            searchTimeMs = if (l != null) l.searchTimeMs else r.searchTimeMs,
             endedAtMs = r.endedAtMs ?: l?.endedAtMs,
             publishedSpot = r.publishedSpot || l?.publishedSpot == true,
             // [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] A withdrawal is never un-done by a

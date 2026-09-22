@@ -275,11 +275,20 @@ class ConfirmParkingUseCase(
         }
 
         val sessionId = Uuid.random().toString()
+        // [STATS-EVERY-NUMBER-CITES-ITS-EVIDENCE-001] The session is dated by the MEASURED stop the
+        // caller witnessed — the anchor fix's own clock — not by the instant this code ran. A
+        // steps+egress confirm holds a fix minutes old and a safety-net backfill one hours old;
+        // stamping the confirm clock here dated every one of those rows late, and `endedAtMs −
+        // timestamp` (avg duration), the peak-hour bucket, the weekday bucket and the period window
+        // all read this field. Manual/user pins already stamp their own wall clock at the tap.
+        // Plausibility-bounded: a fix with no clock or one "from the future" is an anomaly → the
+        // confirm clock, the honest "no earlier than we saw it" bound.
+        val confirmNowMs = Clock.System.now().toEpochMilliseconds()
         val gpsPoint = GpsPoint(
             latitude = location.latitude,
             longitude = location.longitude,
             accuracy = location.accuracy,
-            timestamp = Clock.System.now().toEpochMilliseconds(),
+            timestamp = location.timestamp.takeIf { it in 1..confirmNowMs } ?: confirmNowMs,
             speed = location.speed,
         )
         if (location.accuracy > POOR_ACCURACY_WARN_METERS) {
@@ -313,8 +322,11 @@ class ConfirmParkingUseCase(
         // Read the recorded route ONCE: the polyline encode and the search-time measure below both
         // testify from this same list. [TRIP-THE-SEARCH-FOR-A-SPOT-IS-MEASURED-001]
         val recordedRoute = drivingRouteStore?.points().orEmpty()
+        // Freshness is judged against the WALL clock, not the session's (possibly backdated) stamp:
+        // the store keeps sampling the walk away after the anchor's fix, so an anchor-relative
+        // check would read the main lane's own tail as "from the future" and drop its route.
         val routePolyline = encodeFreshRoute(
-            recorded = recordedRoute, nowMs = gpsPoint.timestamp, origin = routeOrigin, anchor = location,
+            recorded = recordedRoute, nowMs = confirmNowMs, origin = routeOrigin, anchor = location,
         )
         // Measurable exactly once — the stored polyline carries no clocks. Gated on the route
         // actually attaching: a route too stale to attach cannot time the search either.

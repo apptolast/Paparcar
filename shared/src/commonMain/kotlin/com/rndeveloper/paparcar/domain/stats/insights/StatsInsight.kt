@@ -76,7 +76,18 @@ data class InsightValues(
         null
     }
 
-    val isUp: Boolean get() = (valueMs ?: 0) >= (baselineMs ?: 0)
+    /**
+     * Whether the figure moved UP against its baseline — or null when either side is missing.
+     * [STATS-EVERY-NUMBER-CITES-ITS-EVIDENCE-001] It used to read `(valueMs ?: 0) >= (baselineMs
+     * ?: 0)`, which turned an absent baseline into a confident "up": a direction nobody measured.
+     * The producers all guarantee both sides on the trend kinds; this keeps a future producer bug
+     * from surfacing as a fabricated arrow instead of a skipped sentence.
+     */
+    val isUp: Boolean? get() = if (valueMs != null && baselineMs != null) {
+        valueMs >= baselineMs
+    } else {
+        null
+    }
 }
 
 /** Three is what a person reads before a list of conclusions becomes a wall of them. */

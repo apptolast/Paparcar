@@ -748,9 +748,33 @@ class ConfirmParkingUseCaseTest {
     }
 
     @Test
-    fun `should stamp the measured search time when a fresh route attached`() = runTest {
+    fun `should stamp the measured search time when the trip demonstrably circled`() = runTest {
         // [TRIP-THE-SEARCH-FOR-A-SPOT-IS-MEASURED-001] Far (~2 km) at t-600s, re-entered the 300 m
-        // radius at t-302s, parked at t-2s → 300 s of hunting, measured from the route's own clocks.
+        // radius at t-302s, lapped the neighbourhood (~650 m driven for a 236 m beeline) and
+        // STOPPED at t-60s. The figure ends at the measured stop — never at the anchor's clock.
+        // [STATS-EVERY-NUMBER-CITES-ITS-EVIDENCE-001]
+        val now = Clock.System.now().toEpochMilliseconds()
+        val anchor = GpsPoint(40.416775, -3.703790, 8f, now - 2_000, 0f)
+        val route = listOf(
+            GpsPoint(40.4350, -3.7038, 5f, now - 600_000, 0f),
+            GpsPoint(40.4190, -3.7038, 5f, now - 302_000, 0f),  // re-entry: the clock starts
+            GpsPoint(40.4177, -3.7018, 5f, now - 240_000, 0f),  // lap east
+            GpsPoint(40.4155, -3.7030, 5f, now - 160_000, 0f),  // lap south
+            GpsPoint(40.41680, -3.70385, 5f, now - 60_000, 0f), // the measured stop, at the car
+        )
+        val useCase = buildUseCase(routeStore = FakeDrivingRouteStore(initial = route))
+
+        val saved = useCase(anchor, detectionReliability = 0.9f, sealPoint = null).getOrNull()
+        assertNotNull(saved)
+        assertNotNull(saved.routePolyline, "the measure is gated on the route attaching")
+        assertEquals(242_000L, saved.searchTimeMs)
+    }
+
+    @Test
+    fun `should stamp a measured zero when the arrival drove straight in`() = runTest {
+        // The same shape the retired v1 charged a ~30-60 s "floor" for: a direct approach is a
+        // MEASURED zero — red lights on the way to your door are not a search.
+        // [STATS-EVERY-NUMBER-CITES-ITS-EVIDENCE-001]
         val now = Clock.System.now().toEpochMilliseconds()
         val anchor = GpsPoint(40.416775, -3.703790, 8f, now - 2_000, 0f)
         val route = listOf(
@@ -762,8 +786,8 @@ class ConfirmParkingUseCaseTest {
 
         val saved = useCase(anchor, detectionReliability = 0.9f, sealPoint = null).getOrNull()
         assertNotNull(saved)
-        assertNotNull(saved.routePolyline, "the measure is gated on the route attaching")
-        assertEquals(300_000L, saved.searchTimeMs)
+        assertNotNull(saved.routePolyline)
+        assertEquals(0L, saved.searchTimeMs, "directo medido: cero, no un suelo inventado")
     }
 
     @Test
@@ -954,5 +978,41 @@ class ConfirmParkingUseCaseTest {
         val saved = useCase(location, detectionReliability = 0.9f, sealPoint = null).getOrNull()
         assertNotNull(saved)
         assertEquals(PolylineCodec.encode(route), saved.routePolyline)
+    }
+
+    // ── La sesión se fecha por la parada MEDIDA [STATS-EVERY-NUMBER-CITES-ITS-EVIDENCE-001] ────
+
+    @Test
+    fun `should date the session by the anchor fix and not by the confirm clock`() = runTest {
+        // Un backfill recupera un fix de hace horas: el coche lleva aparcado desde ENTONCES, y la
+        // duración, la hora punta y el día habitual leen este campo. El reloj del confirm no fecha
+        // nada que él no haya medido.
+        val now = Clock.System.now().toEpochMilliseconds()
+        val backfillFix = GpsPoint(40.416775, -3.703790, 8f, now - 2 * 60 * 60_000L, 0f)
+        val repo = FakeUserParkingRepository()
+
+        val saved = buildUseCase(repo = repo)(
+            backfillFix,
+            detectionReliability = 0.5f,
+            sealPoint = null,
+        ).getOrNull()
+
+        assertNotNull(saved)
+        assertEquals(backfillFix.timestamp, saved.location.timestamp)
+    }
+
+    @Test
+    fun `should fall back to the confirm clock when the anchor carries none`() = runTest {
+        // Un fix sin reloj (o "del futuro") es una anomalía: la cota honesta es el reloj del
+        // confirm, nunca un cero ni un instante inventado.
+        val before = Clock.System.now().toEpochMilliseconds()
+        val saved = buildUseCase()(
+            location, // timestamp = 0L
+            detectionReliability = 0.9f,
+            sealPoint = null,
+        ).getOrNull()
+
+        assertNotNull(saved)
+        assertTrue(saved.location.timestamp >= before)
     }
 }

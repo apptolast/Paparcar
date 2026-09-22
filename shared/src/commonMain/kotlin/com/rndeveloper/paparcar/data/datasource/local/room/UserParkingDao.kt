@@ -137,13 +137,16 @@ interface UserParkingDao {
     // A supersede close (new park replaces the vehicle's active session) still ENDS the old one —
     // stamp endedAtMs like any other close; publishedSpot stays untouched (nothing was published
     // by this path). [VEH-STATS-SAY-SOMETHING-USEFUL-001]
-    @Query("UPDATE parking_sessions SET isActive = 0, endedAtMs = COALESCE(endedAtMs, :now), updatedAt = :now, pendingSync = 1 WHERE isActive = 1 AND vehicleId = :vehicleId")
-    suspend fun clearActiveByVehicle(vehicleId: String, now: Long)
+    // [STATS-EVERY-NUMBER-CITES-ITS-EVIDENCE-001] `endedAtMs` is its own parameter: the old pin
+    // ended no later than the NEW session began (its measured stop), not when this code ran — a
+    // backfilled successor must not inflate its predecessor's parked duration by its own delay.
+    @Query("UPDATE parking_sessions SET isActive = 0, endedAtMs = COALESCE(endedAtMs, :endedAtMs), updatedAt = :now, pendingSync = 1 WHERE isActive = 1 AND vehicleId = :vehicleId")
+    suspend fun clearActiveByVehicle(vehicleId: String, endedAtMs: Long, now: Long)
 
     /** Deactivates legacy/unidentified active sessions (no vehicleId). Without this, a new
      *  vehicle-less session would ACCUMULATE next to previous vehicle-less actives. [DET-SOLID-001] */
-    @Query("UPDATE parking_sessions SET isActive = 0, endedAtMs = COALESCE(endedAtMs, :now), updatedAt = :now, pendingSync = 1 WHERE isActive = 1 AND vehicleId IS NULL")
-    suspend fun clearActiveOrphans(now: Long)
+    @Query("UPDATE parking_sessions SET isActive = 0, endedAtMs = COALESCE(endedAtMs, :endedAtMs), updatedAt = :now, pendingSync = 1 WHERE isActive = 1 AND vehicleId IS NULL")
+    suspend fun clearActiveOrphans(endedAtMs: Long, now: Long)
 
     /**
      * Atomic replace of the vehicle's active session: deactivate-then-insert in ONE transaction,
@@ -158,7 +161,13 @@ interface UserParkingDao {
     @Transaction
     suspend fun replaceActiveSession(session: UserParkingEntity, now: Long): String? {
         val previous = session.vehicleId?.let { getActiveByVehicle(it) }
-        if (session.vehicleId != null) clearActiveByVehicle(session.vehicleId, now) else clearActiveOrphans(now)
+        // The predecessor ended when the successor's measured stop began — session.timestamp is
+        // that stop (plausibility-bounded at confirm), never later than [now].
+        if (session.vehicleId != null) {
+            clearActiveByVehicle(session.vehicleId, endedAtMs = session.timestamp, now = now)
+        } else {
+            clearActiveOrphans(endedAtMs = session.timestamp, now = now)
+        }
         insert(session)
         return previous?.id
     }

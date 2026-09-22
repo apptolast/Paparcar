@@ -62,7 +62,12 @@ class SharedCarFenceReconciler(
                     TAG,
                     "↺ sesión ${sessionId.take(8)} superada por el grupo (coche ${car.carId.take(8)}) — cierro sin publicar",
                 )
-                runCatching { parkingDao.clearActiveByVehicle(car.carId, clock()) }
+                // La hora en que el grupo se llevó el coche no la medimos nosotros: el reloj de
+                // este barrido es la cota honesta de «no más tarde de».
+                runCatching {
+                    val nowMs = clock()
+                    parkingDao.clearActiveByVehicle(car.carId, endedAtMs = nowMs, now = nowMs)
+                }
                     .onFailure { PaparcarLogger.w(TAG, "✗ no se pudo cerrar la sesión superada", it) }
                 // ⛔ Y su valla se va CON ella, en el mismo gesto. Cerrar la sesión y dejar la
                 // valla registrada (NEVER_EXPIRE) deja un trigger sobre una plaza que ya no es de

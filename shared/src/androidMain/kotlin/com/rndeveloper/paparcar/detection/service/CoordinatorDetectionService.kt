@@ -812,6 +812,9 @@ class CoordinatorDetectionService : LifecycleService() {
                     config = detectionConfig,
                 ),
                 proof = DepartureProof.Witnessed,
+                // The user attests the FACT, never the HOUR — the close falls back to the
+                // processing clock, the honest "no later than" bound.
+                departedAtMs = null,
             )
         }
             .onFailure { e -> PaparcarLogger.e(DIAG, "    ✗ watchdog departure failed", e) }

@@ -16,6 +16,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.fuel.FuelPrice
 import com.rndeveloper.paparcar.domain.stats.PeriodStats
+import com.rndeveloper.paparcar.domain.stats.coverageAllowsComparison
 import com.rndeveloper.paparcar.presentation.util.distanceString
 import com.rndeveloper.paparcar.presentation.util.durationText
 import com.rndeveloper.paparcar.presentation.util.fuelPriceNoteText
@@ -101,7 +102,12 @@ internal fun StatsMonthRecapCard(
                         stats.parkings,
                         stats.parkings,
                     ),
-                    value = stats.distance?.let { distanceString(it.value) }.orEmpty(),
+                    // A recap headline has no room for the tiles' "N de M viajes" coverage note, so
+                    // a PARTIAL distance sum would print as if it covered the month. Complete or
+                    // silent. [STATS-A-MEASURE-CARRIES-ITS-COVERAGE-001]
+                    // [STATS-EVERY-NUMBER-CITES-ITS-EVIDENCE-001]
+                    value = stats.distance?.takeIf { it.isComplete }
+                        ?.let { distanceString(it.value) }.orEmpty(),
                     delta = null,
                 )
                 stats.costEstimate?.let { cost ->
@@ -110,8 +116,11 @@ internal fun StatsMonthRecapCard(
                         value = "${formatRecapMoney(cost.amount)} ${cost.currency}",
                         // The comparison is against the month BEFORE the closed one, and it is the
                         // same arithmetic the tiles use — including its refusal to compare with a
-                        // zero. [STATS-A-MEASURE-CARRIES-ITS-COVERAGE-001]
-                        delta = statDelta(cost.amount, stats.previous?.costEstimate?.amount),
+                        // zero AND its coverage gate: two partial sums are two different questions,
+                        // and the tiles already refuse that comparison.
+                        // [STATS-A-MEASURE-CARRIES-ITS-COVERAGE-001]
+                        delta = statDelta(cost.amount, stats.previous?.costEstimate?.amount)
+                            .takeIf { coverageAllowsComparison(stats.distance, stats.previous?.distance) },
                     )
                 }
                 stats.searchTime?.let { search ->
@@ -121,7 +130,7 @@ internal fun StatsMonthRecapCard(
                         delta = statDelta(
                             search.value.toDouble(),
                             stats.previous?.searchTime?.value?.toDouble(),
-                        ),
+                        ).takeIf { coverageAllowsComparison(stats.searchTime, stats.previous?.searchTime) },
                     )
                 }
             }

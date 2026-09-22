@@ -260,7 +260,7 @@ class DeriveStatsInsightsUseCaseTest {
         )!!
         assertEquals(InsightKind.PLACE_TREND, insight.kind)
         assertEquals("Calle de Alcalá", insight.values.placeName)
-        assertTrue(insight.values.isUp, "ahora cuesta más")
+        assertEquals(true, insight.values.isUp, "ahora cuesta más")
         assertEquals(480_000L, insight.values.deltaMs)
     }
 
@@ -270,7 +270,7 @@ class DeriveStatsInsightsUseCaseTest {
             places = listOf(place("now", "Trabajo", 120_000L, visits = 4)),
             previousPlaces = listOf(place("before", "Trabajo", 600_000L, visits = 4)),
         )!!
-        assertTrue(!insight.values.isUp)
+        assertEquals(false, insight.values.isUp)
     }
 
     /** Sitios distintos no se comparan: a 3 km no hay «el mismo sitio» que comparar. */

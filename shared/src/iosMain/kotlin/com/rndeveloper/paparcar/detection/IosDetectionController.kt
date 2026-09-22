@@ -751,6 +751,8 @@ class IosDetectionController(
             geofenceId = command.geofenceId,
             publishSpot = false,
             proof = DepartureProof.Witnessed,
+            // The user attests the FACT, never the HOUR — mirror of Android's watchdog handler.
+            departedAtMs = null,
         ).onFailure { e ->
             Napier.e("still-parked departure processing failed for ${command.geofenceId.take(8)}", e, tag = TAG)
         }

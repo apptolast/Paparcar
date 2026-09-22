@@ -401,4 +401,30 @@ private val MIGRATION_18_19 = object : Migration(18, 19) {
     }
 }
 
-val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19)
+/**
+ * v20: se INVALIDAN todos los `searchTimeMs` medidos con la fórmula retirada.
+ * [STATS-EVERY-NUMBER-CITES-ITS-EVIDENCE-001]
+ *
+ * La v1 de [com.rndeveloper.paparcar.domain.detection.ParkingSearchTime] cerraba el reloj en el
+ * timestamp del ANCLA, que en tres caminos (pin manual, «Sí, he aparcado», timeout desatendido) es
+ * un reloj de pared: la latencia de confirmación se contaba como búsqueda (campo 22-09: un pin
+ * manual a las 00:26 llevaba 387 s de «buscando» en un viaje directo a casa). La cifra se mide
+ * exactamente una vez —la polilínea no guarda relojes— así que no se puede recalcular: ausente,
+ * nunca inventada. Las medidas v2 llegarán con la fórmula nueva a partir de aquí.
+ *
+ * ⚠️ `pendingSync = 1` + `updatedAt = ahora`: la anulación viaja a Firestore por el outbox normal
+ * ([SYNC-RECONCILE-USERPARKING-001]) y limpia el espejo remoto — sin eso, el siguiente reconcile
+ * resucitaría el valor viejo desde la nube (por eso el reconcile de `searchTimeMs` pasa además a
+ * autoridad local cuando existe fila local).
+ */
+internal val MIGRATION_19_20 = object : Migration(19, 20) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "UPDATE `parking_sessions` SET `searchTimeMs` = NULL, `pendingSync` = 1, " +
+                "`updatedAt` = CAST(strftime('%s','now') AS INTEGER) * 1000 " +
+                "WHERE `searchTimeMs` IS NOT NULL",
+        )
+    }
+}
+
+val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20)

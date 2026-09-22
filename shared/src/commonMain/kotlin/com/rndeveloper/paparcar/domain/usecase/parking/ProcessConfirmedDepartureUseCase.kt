@@ -101,11 +101,21 @@ class ProcessConfirmedDepartureUseCase(
      *        The session is marked so the moment a drive IS proven can promote the spot and release
      *        the car, and so a short TTL running out is the worst case of a wrong deduction.
      *        [DET-HANDOFF-NOT-MANUAL-001 §B]
+     * @param departedAtMs the MEASURED instant the car left, when one exists
+     *        ([DET-AN-EXIT-IS-DATED-BY-THE-FIX-THAT-CROSSED-IT-001]), or null when the hour is
+     *        unknown (watchdog / still-parked answers attest the FACT, never the HOUR). It dates
+     *        `endedAtMs` — the row every parked-duration statistic is computed from — so a
+     *        departure recovered hours late must not inflate the stay by its own delivery delay
+     *        (Redmi 2026-07-06: processed 5 h late). Null falls back to the processing clock, the
+     *        honest "no later than" bound. **Deliberately has no default**, same rule as
+     *        [publishSpot]: every closing path must answer the question.
+     *        [STATS-EVERY-NUMBER-CITES-ITS-EVIDENCE-001]
      */
     suspend operator fun invoke(
         geofenceId: String,
         publishSpot: Boolean,
         proof: DepartureProof = DepartureProof.Witnessed,
+        departedAtMs: Long?,
     ): Result<Unit> {
         val session = userParkingRepository.getActiveSessionByGeofence(geofenceId)
         val spotId = session?.id ?: "auto_${Clock.System.now().toEpochMilliseconds()}"
@@ -259,9 +269,16 @@ class ProcessConfirmedDepartureUseCase(
             // [VEH-STATS-SAY-SOMETHING-USEFUL-001]
             val gaveSpot = publishesNow ||
                 (session.provisionalDepartureAtMs != null && shape.publishes())
+            // [STATS-EVERY-NUMBER-CITES-ITS-EVIDENCE-001] The session ends when the car MEASURABLY
+            // left, not when this code finally ran — the same instant the publish gate above was
+            // asked about. An instant at or before the park is an anomaly, not a figure → the
+            // processing clock is then the honest "no later than" bound. Mirrors
+            // [FinalizeDeducedDepartureUseCase], until now the only path that dated the end right.
+            val endedAtMs = departedAtMs?.takeIf { it > session.location.timestamp }
+                ?: Clock.System.now().toEpochMilliseconds()
             userParkingRepository.clearActiveParkingSession(
                 session.id,
-                endedAtMs = Clock.System.now().toEpochMilliseconds(),
+                endedAtMs = endedAtMs,
                 publishedSpot = gaveSpot,
             )
                 .onFailure { e ->
@@ -285,15 +302,16 @@ class ProcessConfirmedDepartureUseCase(
             // a row already written.
             //
             // Withdrawn, not deleted: the row is exactly what the next field report needs to read.
-            val departedAtMs = Clock.System.now().toEpochMilliseconds()
+            // The refutation window is asked about the same measured instant the close was dated
+            // by — a departure processed late must not widen the pin's apparent life.
             val refuted = pinIsRefutedByItsOwnDeparture(
                 path = DetectionPath.ofLabel(session.detectionPath),
                 parkedAtMs = session.location.timestamp,
-                departedAtMs = departedAtMs,
+                departedAtMs = endedAtMs,
                 maxLifeMs = config.refutedPinMaxLifeMs,
             )
             if (refuted) {
-                userParkingRepository.retractParkingSession(session.id, departedAtMs)
+                userParkingRepository.retractParkingSession(session.id, endedAtMs)
                     .onFailure { e ->
                         // The close already succeeded; a failed withdrawal leaves a visible phantom
                         // row, which is the bug this closes — but re-running the whole departure to
@@ -304,7 +322,7 @@ class ProcessConfirmedDepartureUseCase(
                         PaparcarLogger.d(
                             TAG,
                             "withdrew parking ${session.id.take(8)} — its own departure refuted it " +
-                                "${departedAtMs - session.location.timestamp}ms after it was placed by " +
+                                "${endedAtMs - session.location.timestamp}ms after it was placed by " +
                                 "${session.detectionPath} [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001]",
                         )
                     }

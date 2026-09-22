@@ -561,6 +561,47 @@ idéntico). En iOS desaparece el diálogo de permiso BT al arrancar; si algún d
 necesita (p. ej. identidad por ruta de audio como evidencia de pertenencia), ese día se decide
 QUÉ pide permiso y por qué — el hueco queda escrito en el doc del ticket.
 
+### STATS-EVERY-NUMBER-CITES-ITS-EVIDENCE-001 — los tres relojes de una sesión medían el PROCESADO, no el coche
+
+**Commit:** pending. **Reporte (2026-09-22):** *«ese martes fui directo a casa y el gráfico dice
+que pasé ~6 min buscando plaza»*. Verificado en remoto: la sesión `3d95ffc8` (martes 00:26,
+`detectionPath = user` — pin confirmado a mano) llevaba `searchTimeMs = 387 236`; la del martes
+anterior (`3b2dad8c`, `unattended_timeout`) llevaba 417 001.
+
+**Causa raíz — un solo defecto en tres relojes: se confiaba en el reloj de quien CONFIRMA como si
+fuera una medida.**
+1. `ParkingSearchTime.measure` v1 cerraba el reloj de búsqueda en `anchor.timestamp`, y en los
+   caminos manual / «Sí, he aparcado» / timeout ese timestamp es la HORA DE LA CONFIRMACIÓN: la
+   caminata, la espera del nudge y los 15 min de la red de seguridad se facturaban como búsqueda.
+   Además la v1 cobraba un «suelo» de 30–60 s a toda llegada directa, por diseño.
+2. `ConfirmParkingUseCase` sustituía el timestamp del fix ancla por `now()`: todo pin quedaba
+   fechado al terminar de decidir (un backfill, horas tarde) — y duración media, hora punta, día
+   habitual y encuadre de periodo leen ese campo.
+3. `ProcessConfirmedDepartureUseCase` estampaba `endedAtMs = now()` mientras el llamador tenía en
+   la mano el `departedAtMs` MEDIDO ([DET-AN-EXIT-IS-DATED-BY-THE-FIX-THAT-CROSSED-IT-001] ya lo
+   usaba… solo para el gate de publicación). La salida del Redmi procesada 5 h tarde (06-07)
+   inflaba la estancia 5 h.
+
+**Fix — el mismo invariante en los tres:** *un reloj de sesión solo puede llevar un instante
+MEDIDO; el reloj de procesado es únicamente la cota «no más tarde de» cuando la hora es
+genuinamente desconocida.*
+- `ParkingSearchTime` v2: la parada se halla por GEOMETRÍA (último fix a ≤`STOP_NEAR_METERS` del
+  pin), independiente del carril; veredicto de tres valores — `null` no medible · `0` llegada
+  DIRECTA medida (trazado ≈ línea recta: fin del suelo) · `>0` vueltas demostradas
+  (`DIRECT_EXCESS_FACTOR` + `MIN_EXCESS_METERS` + `MIN_SEARCH_MS`), cronometradas hasta la parada.
+- El pin se fecha por el fix medido (acotado a plausibilidad); el supersede cierra al predecesor
+  con el inicio medido del sucesor (`clearActiveByVehicle` con `endedAtMs` propio).
+- `processConfirmedDeparture(departedAtMs)` **sin default** (regla de `publishSpot`): el worker
+  pasa su instante medido; watchdog/still-parked declaran `null` (atestiguan el hecho, no la hora).
+- Las cifras v1 son irrecuperables (la polilínea no guarda relojes) → `MIGRATION_19_20` las anula
+  y las marca `pendingSync` (la anulación limpia el espejo por el outbox); el reconcile de
+  `searchTimeMs` pasa a autoridad local para que la nube no las resucite.
+
+**Riesgo del fix acompañante:** asimétrico a propósito — un crawl recto entre tráfico y una vuelta
+que sale del radio y re-entra INFRACUENTAN (falso negativo); ninguna latencia puede volver a
+SOBRECONTAR. Doctrina y contrato completos en `docs/analytics-data-audit.md` y
+`docs/analytics-data-contract.md`.
+
 ### DET-A-PARKED-BT-CAR-NEEDS-NO-RESIDENT-WATCHER-001 — el centinela vivía también para quien sólo tiene un coche BT
 
 **Commit:** pending. **Reporte (2026-09-19, issue #57):** *«la notificación de FGS está siempre,

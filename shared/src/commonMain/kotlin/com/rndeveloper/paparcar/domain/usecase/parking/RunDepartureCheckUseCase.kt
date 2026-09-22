@@ -250,7 +250,15 @@ class RunDepartureCheckUseCase(
                 DepartureFollowHandoff(geofenceId, measured, witnessedAccuracyM)
             }
 
-        return processConfirmedDeparture(geofenceId, publishSpot = publishSpot, proof = proof).fold(
+        // [STATS-EVERY-NUMBER-CITES-ITS-EVIDENCE-001] The same measured instant the publish gate
+        // was asked about also dates the session's end — a departure recovered late must not
+        // inflate the parked-duration statistic by its own recovery delay.
+        return processConfirmedDeparture(
+            geofenceId,
+            publishSpot = publishSpot,
+            proof = proof,
+            departedAtMs = departedAtMs,
+        ).fold(
             onSuccess = { DepartureCheckOutcome.Processed(followTrip) },
             onFailure = { DepartureCheckOutcome.ProcessFailedRetry },
         )

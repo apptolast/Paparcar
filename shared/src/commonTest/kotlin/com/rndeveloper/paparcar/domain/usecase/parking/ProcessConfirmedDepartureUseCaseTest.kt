@@ -79,7 +79,7 @@ class ProcessConfirmedDepartureUseCaseTest {
         val bus = FakeDepartureEventBus(initialTimestamp = 999L)
         val useCase = buildUseCase(repo = repo, spotScheduler = spotScheduler, geofence = geofence, bus = bus)
 
-        val result = useCase("session-1", publishSpot = true)
+        val result = useCase("session-1", publishSpot = true, departedAtMs = null)
 
         assertTrue(result.isSuccess)
         assertEquals(1, spotScheduler.scheduleCallCount, "public departure must publish the freed spot")
@@ -95,7 +95,7 @@ class ProcessConfirmedDepartureUseCaseTest {
         val zones = FakeZoneRepository().apply { this.zones = listOf(privateZoneOver(PARK_A)) }
         val useCase = buildUseCase(repo = repo, spotScheduler = spotScheduler, zones = zones)
 
-        val result = useCase("session-1", publishSpot = true)
+        val result = useCase("session-1", publishSpot = true, departedAtMs = null)
 
         assertTrue(result.isSuccess)
         assertEquals(0, spotScheduler.scheduleCallCount, "private-zone spots are never published")
@@ -108,7 +108,7 @@ class ProcessConfirmedDepartureUseCaseTest {
         val spotScheduler = FakeReportSpotScheduler()
         val useCase = buildUseCase(repo = repo, spotScheduler = spotScheduler)
 
-        val result = useCase("unknown-geofence", publishSpot = true)
+        val result = useCase("unknown-geofence", publishSpot = true, departedAtMs = null)
 
         assertTrue(result.isSuccess)
         assertEquals(0, spotScheduler.scheduleCallCount)
@@ -121,7 +121,7 @@ class ProcessConfirmedDepartureUseCaseTest {
         }
         val useCase = buildUseCase(repo = repo)
 
-        val result = useCase("session-1", publishSpot = true)
+        val result = useCase("session-1", publishSpot = true, departedAtMs = null)
 
         assertTrue(result.isFailure, "a failed clear must propagate so the session is never left open")
     }
@@ -130,7 +130,7 @@ class ProcessConfirmedDepartureUseCaseTest {
     fun should_log_departure_processed_event() = runTest {
         val logger = FakeDetectionEventLogger()
         val repo = FakeUserParkingRepository(initialSession = activeSession())
-        buildUseCase(repo = repo, logger = logger)("session-1", publishSpot = true)
+        buildUseCase(repo = repo, logger = logger)("session-1", publishSpot = true, departedAtMs = null)
 
         val event = logger.events.filterIsInstance<DetectionEvent.DepartureProcessed>().single()
         assertEquals("session-1", event.sessionId)
@@ -143,7 +143,7 @@ class ProcessConfirmedDepartureUseCaseTest {
         val logger = FakeDetectionEventLogger()
         val repo = FakeUserParkingRepository(initialSession = activeSession())
         val zones = FakeZoneRepository().apply { this.zones = listOf(privateZoneOver(PARK_A)) }
-        buildUseCase(repo = repo, logger = logger, zones = zones)("session-1", publishSpot = true)
+        buildUseCase(repo = repo, logger = logger, zones = zones)("session-1", publishSpot = true, departedAtMs = null)
 
         val event = logger.events.filterIsInstance<DetectionEvent.DepartureProcessed>().single()
         assertFalse(event.published)
@@ -165,6 +165,7 @@ class ProcessConfirmedDepartureUseCaseTest {
             "session-1",
             publishSpot = false,
             proof = DepartureProof.Deduced,
+            departedAtMs = null,
         )
 
         val event = logger.events.filterIsInstance<DetectionEvent.DepartureProcessed>().single()
@@ -184,7 +185,7 @@ class ProcessConfirmedDepartureUseCaseTest {
         val geofence = FakeGeofenceManager()
         val useCase = buildUseCase(repo = repo, spotScheduler = spotScheduler, geofence = geofence)
 
-        val result = useCase("session-1", publishSpot = true, proof = DepartureProof.Deduced)
+        val result = useCase("session-1", publishSpot = true, proof = DepartureProof.Deduced, departedAtMs = null)
 
         assertTrue(result.isSuccess)
         // The spot still goes out AT ONCE — freshness is its entire value — but with a short life.
@@ -205,8 +206,8 @@ class ProcessConfirmedDepartureUseCaseTest {
         val spotScheduler = FakeReportSpotScheduler()
         val useCase = buildUseCase(repo = repo, spotScheduler = spotScheduler)
 
-        useCase("session-1", publishSpot = true, proof = DepartureProof.Deduced)
-        useCase("session-1", publishSpot = true, proof = DepartureProof.Deduced)
+        useCase("session-1", publishSpot = true, proof = DepartureProof.Deduced, departedAtMs = null)
+        useCase("session-1", publishSpot = true, proof = DepartureProof.Deduced, departedAtMs = null)
 
         assertEquals(1, spotScheduler.scheduleCallCount, "one deduction, one publication")
         assertTrue(repo.getActiveSessionByGeofence("session-1") != null)
@@ -221,7 +222,7 @@ class ProcessConfirmedDepartureUseCaseTest {
         val geofence = FakeGeofenceManager()
         val useCase = buildUseCase(repo = repo, spotScheduler = spotScheduler, geofence = geofence)
 
-        useCase("session-1", publishSpot = true, proof = DepartureProof.Witnessed)
+        useCase("session-1", publishSpot = true, proof = DepartureProof.Witnessed, departedAtMs = null)
 
         assertEquals(false, spotScheduler.lastProvisional)
         assertFalse(repo.getActiveSessionByGeofence("session-1") != null)
@@ -239,7 +240,7 @@ class ProcessConfirmedDepartureUseCaseTest {
         )
         val spotScheduler = FakeReportSpotScheduler()
 
-        buildUseCase(repo = repo, spotScheduler = spotScheduler)("session-1", publishSpot = true)
+        buildUseCase(repo = repo, spotScheduler = spotScheduler)("session-1", publishSpot = true, departedAtMs = null)
 
         assertEquals(1, spotScheduler.scheduleCallCount)
         assertEquals(60f, spotScheduler.lastZoneRadiusMeters, "the spot must carry the session's doubt radius")
@@ -256,7 +257,7 @@ class ProcessConfirmedDepartureUseCaseTest {
         )
         val spotScheduler = FakeReportSpotScheduler()
 
-        buildUseCase(repo = repo, spotScheduler = spotScheduler)("session-1", publishSpot = true)
+        buildUseCase(repo = repo, spotScheduler = spotScheduler)("session-1", publishSpot = true, departedAtMs = null)
 
         assertEquals(SpotReleasePolicy.ZONE_MAX_CONFIDENCE, spotScheduler.lastConfidence)
     }
@@ -273,7 +274,7 @@ class ProcessConfirmedDepartureUseCaseTest {
         val geofence = FakeGeofenceManager()
 
         val result = buildUseCase(repo = repo, spotScheduler = spotScheduler, geofence = geofence, logger = logger)(
-            "session-1", publishSpot = true,
+            "session-1", publishSpot = true, departedAtMs = null,
         )
 
         assertTrue(result.isSuccess)
@@ -294,7 +295,7 @@ class ProcessConfirmedDepartureUseCaseTest {
         val spotScheduler = FakeReportSpotScheduler()
 
         buildUseCase(repo = repo, spotScheduler = spotScheduler)(
-            "session-1", publishSpot = true, proof = DepartureProof.Deduced,
+            "session-1", publishSpot = true, proof = DepartureProof.Deduced, departedAtMs = null,
         )
 
         assertEquals(0, spotScheduler.scheduleCallCount)
@@ -320,7 +321,7 @@ class ProcessConfirmedDepartureUseCaseTest {
         )
         val useCase = buildUseCase(repo = repo)
 
-        val result = useCase("session-1", publishSpot = true)
+        val result = useCase("session-1", publishSpot = true, departedAtMs = null)
 
         assertTrue(result.isSuccess)
         val stored = repo.getSessionById("session-1")
@@ -340,7 +341,7 @@ class ProcessConfirmedDepartureUseCaseTest {
             ),
         )
 
-        buildUseCase(repo = repo)("session-1", publishSpot = true)
+        buildUseCase(repo = repo)("session-1", publishSpot = true, departedAtMs = null)
 
         assertFalse(
             repo.getSessionById("session-1")?.isRetracted == true,
@@ -359,7 +360,7 @@ class ProcessConfirmedDepartureUseCaseTest {
             ),
         )
 
-        buildUseCase(repo = repo, config = config)("session-1", publishSpot = true)
+        buildUseCase(repo = repo, config = config)("session-1", publishSpot = true, departedAtMs = null)
 
         assertFalse(
             repo.getSessionById("session-1")?.isRetracted == true,
@@ -388,7 +389,7 @@ class ProcessConfirmedDepartureUseCaseTest {
         val repo = FakeUserParkingRepository(initialSession = activeSession(id = "session-A"))
         val spotScheduler = FakeReportSpotScheduler()
 
-        buildUseCase(repo = repo, spotScheduler = spotScheduler)("session-A", publishSpot = true)
+        buildUseCase(repo = repo, spotScheduler = spotScheduler)("session-A", publishSpot = true, departedAtMs = null)
 
         // Se publica, y se publica EN A: la plaza sale de la sesión que se cierra, no de donde el
         // coche esté. Nada en la firma de este caso de uso admite una posición actual.
@@ -405,7 +406,7 @@ class ProcessConfirmedDepartureUseCaseTest {
         val repo = FakeUserParkingRepository(initialSession = activeSession(id = "session-A"))
         val spotScheduler = FakeReportSpotScheduler()
 
-        buildUseCase(repo = repo, spotScheduler = spotScheduler)("session-A", publishSpot = true)
+        buildUseCase(repo = repo, spotScheduler = spotScheduler)("session-A", publishSpot = true, departedAtMs = null)
 
         val offByMeters = haversineMeters(
             spotScheduler.lastLat, spotScheduler.lastLon,
@@ -431,7 +432,7 @@ class ProcessConfirmedDepartureUseCaseTest {
 
         val result = buildUseCase(repo = repo, spotScheduler = spotScheduler, btConnectStamps = stamps)(
             "session-A",
-            publishSpot = true,
+            publishSpot = true, departedAtMs = null,
         )
 
         assertTrue(result.isSuccess)
@@ -452,11 +453,49 @@ class ProcessConfirmedDepartureUseCaseTest {
 
         buildUseCase(repo = repo, spotScheduler = spotScheduler, btConnectStamps = stamps)(
             "session-A",
-            publishSpot = true,
+            publishSpot = true, departedAtMs = null,
         )
 
         assertEquals(1, spotScheduler.scheduleCallCount)
         assertEquals(PARK_A.latitude, spotScheduler.lastLat, 1e-9)
+    }
+
+    // ── El cierre lleva la hora MEDIDA de la salida [STATS-EVERY-NUMBER-CITES-ITS-EVIDENCE-001] ──
+
+    @Test
+    fun should_dateTheCloseByTheMeasuredDeparture_when_theCallerWitnessedOne() = runTest {
+        // Redmi 2026-07-06: una salida procesada 5 h tarde inflaba la duración aparcada en esas
+        // 5 h. La hora medida del cruce es la que fecha la fila.
+        val repo = FakeUserParkingRepository(initialSession = activeSession())
+        val measuredExitMs = PARK_A.timestamp + 90 * 60_000L
+
+        buildUseCase(repo = repo)("session-1", publishSpot = false, departedAtMs = measuredExitMs)
+
+        assertEquals(measuredExitMs, repo.getSessionById("session-1")?.endedAtMs)
+    }
+
+    @Test
+    fun should_fallBackToTheProcessingClock_when_theHourIsUnknown() = runTest {
+        // Watchdog / still-parked: el usuario atestigua el HECHO, nunca la HORA — la cota honesta
+        // es «no más tarde de ahora».
+        val repo = FakeUserParkingRepository(initialSession = activeSession())
+        val beforeMs = Clock.System.now().toEpochMilliseconds()
+
+        buildUseCase(repo = repo)("session-1", publishSpot = false, departedAtMs = null)
+
+        assertTrue((repo.getSessionById("session-1")?.endedAtMs ?: 0L) >= beforeMs)
+    }
+
+    @Test
+    fun should_fallBackToTheProcessingClock_when_theMeasuredInstantPredatesThePark() = runTest {
+        // Un instante en o antes del aparcamiento es una anomalía, no una cifra: no puede fechar
+        // el cierre (produciría una duración negativa aguas abajo).
+        val repo = FakeUserParkingRepository(initialSession = activeSession())
+        val beforeMs = Clock.System.now().toEpochMilliseconds()
+
+        buildUseCase(repo = repo)("session-1", publishSpot = false, departedAtMs = PARK_A.timestamp)
+
+        assertTrue((repo.getSessionById("session-1")?.endedAtMs ?: 0L) >= beforeMs)
     }
 
     private fun buildUseCase(
@@ -492,7 +531,7 @@ class ProcessConfirmedDepartureUseCaseTest {
         val tracker = FakeAnalyticsTracker()
         val repo = FakeUserParkingRepository(initialSession = activeSession())
 
-        buildUseCase(repo = repo, tracker = tracker)("session-1", publishSpot = true)
+        buildUseCase(repo = repo, tracker = tracker)("session-1", publishSpot = true, departedAtMs = null)
 
         val ended = tracker.events.filterIsInstance<AnalyticsEvent.ParkingSessionEnded>().single()
         assertEquals(SessionEndReason.DEPARTURE_CONFIRMED, ended.reason)
@@ -505,7 +544,7 @@ class ProcessConfirmedDepartureUseCaseTest {
             clearActiveParkingSessionResult = Result.failure(RuntimeException("db error"))
         }
 
-        buildUseCase(repo = repo, tracker = tracker)("session-1", publishSpot = true)
+        buildUseCase(repo = repo, tracker = tracker)("session-1", publishSpot = true, departedAtMs = null)
 
         assertTrue(tracker.events.filterIsInstance<AnalyticsEvent.ParkingSessionEnded>().isEmpty())
     }

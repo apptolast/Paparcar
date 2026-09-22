@@ -54,7 +54,14 @@ import paparcar.composeapp.generated.resources.stats_insights_title
  */
 @Composable
 internal fun StatsInsightsCard(insights: List<StatsInsight>) {
-    if (insights.isEmpty()) return
+    // A trend sentence needs a DIRECTION, and the direction needs both sides measured. An insight
+    // that lost its baseline on the way here is a producer bug — skipped, never rendered with an
+    // invented arrow. [STATS-EVERY-NUMBER-CITES-ITS-EVIDENCE-001]
+    val renderable = insights.filter {
+        it.kind !in setOf(InsightKind.SEARCH_TIME_TREND, InsightKind.PLACE_TREND) ||
+            it.values.isUp != null
+    }
+    if (renderable.isEmpty()) return
     PapOutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(CARD_PAD_DP.dp)) {
             Text(
@@ -64,7 +71,7 @@ internal fun StatsInsightsCard(insights: List<StatsInsight>) {
             )
             Spacer(Modifier.height(TITLE_GAP_DP.dp))
             Column(verticalArrangement = Arrangement.spacedBy(ROW_GAP_DP.dp)) {
-                insights.forEach { InsightRow(it) }
+                renderable.forEach { InsightRow(it) }
             }
         }
     }
@@ -132,11 +139,11 @@ private fun StatsInsight.sentence(): String {
         // The direction is a different SENTENCE, not a sign in front of a number: "4 min more" and
         // "4 min less" are not one phrase with a switch, in any of the nine languages.
         InsightKind.SEARCH_TIME_TREND -> stringResource(
-            if (values.isUp) Res.string.stats_insight_trend_up else Res.string.stats_insight_trend_down,
+            if (values.isUp == true) Res.string.stats_insight_trend_up else Res.string.stats_insight_trend_down,
             values.deltaMs?.let { durationText(it) }.orEmpty(),
         )
         InsightKind.PLACE_TREND -> stringResource(
-            if (values.isUp) {
+            if (values.isUp == true) {
                 Res.string.stats_insight_place_worse
             } else {
                 Res.string.stats_insight_place_better
@@ -164,7 +171,7 @@ private fun StatsInsight.icon(): ImageVector = when (kind) {
     InsightKind.EASIEST_TIME_TO_PARK -> Icons.Rounded.TravelExplore
     InsightKind.COSTLIEST_PLACE -> Icons.Rounded.Place
     InsightKind.SEARCH_TIME_TREND, InsightKind.PLACE_TREND ->
-        if (values.isUp) Icons.AutoMirrored.Rounded.TrendingUp else Icons.AutoMirrored.Rounded.TrendingDown
+        if (values.isUp == true) Icons.AutoMirrored.Rounded.TrendingUp else Icons.AutoMirrored.Rounded.TrendingDown
 }
 
 private const val CARD_PAD_DP = 16
