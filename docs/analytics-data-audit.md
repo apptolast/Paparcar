@@ -192,11 +192,12 @@ puede sustituirlas con su consumo/precio real.
 11. Migración v20: anula la cifra v1, marca sync, no toca filas sin cifra ni el resto de campos.
 12. (Preexistentes, verificados) previo 0 → sin delta; cobertura parcial → sin delta en tiles.
 
-## 6 · Decisiones de producto recomendadas (pendientes del user)
-- **Etiqueta del tile de combustible:** es tan estimado como el gasto y el CO₂ pero no dice
-  «aprox.». Alinear el copy (afecta a 9 locales) o aceptar que la nota del precio cubre la card.
-- **Gate de antigüedad del precio embebido:** hoy se muestra con su fecha; decidir si un `asOf`
-  mayor de N días debe negar el tile de gasto en vez de acompañarlo.
-- **Limpieza remota adicional:** la migración empuja la anulación vía outbox al iniciar la app en
-  cada dispositivo; los documentos de cuentas que nunca actualicen la app conservarán la cifra
-  v1 en su espejo (no la muestran: cada móvil calcula desde su Room).
+## 6 · Decisiones de producto — RESUELTAS por el user el 22-09
+[STATS-AN-ESTIMATE-NAMES-ITSELF-AND-ITS-AGE-001]
+- **Etiquetas de combustible y energía:** llevan el calificador de estimación en los 9 locales,
+  con la abreviatura que su propio tile de gasto ya usaba en cada lengua. ✅
+- **Gate de antigüedad del precio embebido:** una media nacional con más de 180 días no precifica
+  (`MAX_NATIONAL_AVERAGE_AGE_DAYS`); por debajo, se sigue mostrando con su fecha. El override del
+  usuario no caduca. ✅
+- **Limpieza remota adicional:** ejecutada por MCP sobre los espejos con `searchTimeMs` v1 (además
+  del outbox de la migración, que cubre los dispositivos que actualicen). ✅

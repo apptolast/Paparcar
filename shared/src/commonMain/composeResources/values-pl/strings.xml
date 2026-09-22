@@ -957,8 +957,8 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <string name="stats_tile_spots_shared">udostępnione miejsca</string>
     <string name="stats_value_kg">%1$s kg</string>
     <string name="stats_value_lb">%1$s lb</string>
-    <string name="stats_tile_fuel">paliwo</string>
-    <string name="stats_tile_energy">energia</string>
+    <string name="stats_tile_fuel">paliwo ok.</string>
+    <string name="stats_tile_energy">energia ok.</string>
     <string name="stats_value_liters">%1$s L</string>
     <string name="stats_value_gallons">%1$s gal</string>
     <string name="stats_value_kwh">%1$s kWh</string>

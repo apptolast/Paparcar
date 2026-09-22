@@ -7,6 +7,9 @@ import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.Money
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleSize
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.plus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -218,6 +221,68 @@ class ResolveFuelPriceUseCaseTest {
         val price = assertNotNull(resolve.litre(own, countryCode = "ES"))
         assertEquals(FuelPriceOrigin.UserOverride, price.source)
         assertNull(price.measuredOn, "the user's own price was given a measurement date")
+    }
+
+    // ── Una media nacional CADUCA [STATS-AN-ESTIMATE-NAMES-ITSELF-AND-ITS-AGE-001] ─────────────
+    //
+    // Las fechas se derivan del propio `asOf` de la tabla, no se escriben a mano: estos tests
+    // prueban la REGLA de edad, no un calendario. (Los tests de arriba usan el reloj real — si la
+    // tabla embebida llega a envejecer >180 días sin regenerarse, se pondrán rojos a propósito:
+    // ese rojo dice «regenera el snapshot antes de publicar».)
+
+    private fun resolverOn(date: LocalDate) = ResolveFuelPriceUseCase(today = { date })
+
+    private val tableAsOf = LocalDate.parse(AverageFuelPriceTable.Embedded.asOf)
+
+    @Test
+    fun `should_stillPrice_when_theAverageIsInsideItsCeiling`() {
+        val lastHonestDay = tableAsOf.plus(
+            ResolveFuelPriceUseCase.MAX_NATIONAL_AVERAGE_AGE_DAYS,
+            DateTimeUnit.DAY,
+        )
+        val price = resolverOn(lastHonestDay).litre(vehicle(), countryCode = "ES")
+        assertNotNull(price)
+        assertEquals(FuelPriceOrigin.NationalAverage, price.source)
+    }
+
+    @Test
+    fun `should_refuseToPrice_when_theAverageOutlivedItsCeiling`() {
+        // Un precio de hace medio año describe otro mercado: mejor ningún tile de gasto que uno
+        // calculado con él — la misma negativa que ya damos sin precio.
+        val dayAfter = tableAsOf.plus(
+            ResolveFuelPriceUseCase.MAX_NATIONAL_AVERAGE_AGE_DAYS + 1,
+            DateTimeUnit.DAY,
+        )
+        assertNull(resolverOn(dayAfter).litre(vehicle(), countryCode = "ES"))
+    }
+
+    @Test
+    fun `should_expireTheKwhAverageByTheSameRule`() {
+        val kwhAsOf = LocalDate.parse("${StaticAverageFuelPrices.KWH_VALID_AS_OF}-01")
+        val dayAfter = kwhAsOf.plus(
+            ResolveFuelPriceUseCase.MAX_NATIONAL_AVERAGE_AGE_DAYS + 1,
+            DateTimeUnit.DAY,
+        )
+        assertNull(resolverOn(dayAfter).kwh(vehicle(fuel = FuelType.ELECTRIC), countryCode = "ES"))
+    }
+
+    @Test
+    fun `should_neverExpireWhatTheUserTypedOrAPumpQuoted`() {
+        // Sólo caduca el peldaño de la media: el precio del usuario es su palabra, y el de
+        // gasolinera llega medido en el momento (su frescura la traerá FUEL-STATIONS-001).
+        val longAfter = tableAsOf.plus(999, DateTimeUnit.DAY)
+        val own = resolverOn(longAfter).litre(
+            vehicle(litrePrice = Money(1.70, "EUR")),
+            countryCode = "ES",
+        )
+        assertEquals(FuelPriceOrigin.UserOverride, own?.source)
+
+        val pump = resolverOn(longAfter).litre(
+            vehicle(),
+            countryCode = "ES",
+            stationPrice = Money(1.49, "EUR"),
+        )
+        assertEquals(FuelPriceOrigin.Station, pump?.source)
     }
 
     private companion object {

@@ -935,8 +935,8 @@ Se la richiesta non compare più, cambiala in Impostazioni → Paparcar → Posi
     <string name="stats_tile_spots_shared">posti ceduti</string>
     <string name="stats_value_kg">%1$s kg</string>
     <string name="stats_value_lb">%1$s lb</string>
-    <string name="stats_tile_fuel">carburante</string>
-    <string name="stats_tile_energy">energia</string>
+    <string name="stats_tile_fuel">carburante appross.</string>
+    <string name="stats_tile_energy">energia appross.</string>
     <string name="stats_value_liters">%1$s L</string>
     <string name="stats_value_gallons">%1$s gal</string>
     <string name="stats_value_kwh">%1$s kWh</string>

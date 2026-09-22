@@ -971,8 +971,8 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="stats_tile_spots_shared">spots shared</string>
     <string name="stats_value_kg">%1$s kg</string>
     <string name="stats_value_lb">%1$s lb</string>
-    <string name="stats_tile_fuel">fuel used</string>
-    <string name="stats_tile_energy">energy used</string>
+    <string name="stats_tile_fuel">approx. fuel used</string>
+    <string name="stats_tile_energy">approx. energy used</string>
     <string name="stats_value_liters">%1$s L</string>
     <string name="stats_value_gallons">%1$s gal</string>
     <string name="stats_value_kwh">%1$s kWh</string>

@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package com.rndeveloper.paparcar.domain.usecase.fuel
 
 import com.rndeveloper.paparcar.domain.fuel.AverageFuelPriceTable
@@ -6,6 +8,11 @@ import com.rndeveloper.paparcar.domain.fuel.FuelPriceOrigin
 import com.rndeveloper.paparcar.domain.fuel.StaticAverageFuelPrices
 import com.rndeveloper.paparcar.domain.model.Money
 import com.rndeveloper.paparcar.domain.model.Vehicle
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.daysUntil
+import kotlinx.datetime.todayIn
+import kotlin.time.Clock
 
 /**
  * What this car's energy costs, and where that figure came from. [FUEL-PRICE-RESOLVER-001]
@@ -40,6 +47,9 @@ class ResolveFuelPriceUseCase(
      * offline answer rather than a null that would silently hide every cost figure.
      */
     private val averages: () -> AverageFuelPriceTable = { AverageFuelPriceTable.Embedded },
+    /** The user's calendar day, injectable for tests. The staleness gate below compares dates, not
+     *  instants — an average is dated by day, so its age is counted in days. */
+    private val today: () -> LocalDate = { Clock.System.todayIn(TimeZone.currentSystemDefault()) },
 ) {
 
     /**
@@ -58,6 +68,12 @@ class ResolveFuelPriceUseCase(
         vehicle.fuelPricePerLiter?.let { return FuelPrice(it, FuelPriceOrigin.UserOverride) }
         stationPrice?.let { return FuelPrice(it, FuelPriceOrigin.Station) }
         val table = averages()
+        // [STATS-AN-ESTIMATE-NAMES-ITSELF-AND-ITS-AGE-001] A national average EXPIRES: past the
+        // ceiling it no longer prices the period — the cost tile refuses, exactly as it does with
+        // no price at all. Below it, the figure still ships WITH its date (fuelPriceNoteText).
+        // Only this rung ages out: the user's own price is their word, and the station rung will
+        // bring its own freshness with FUEL-STATIONS-001.
+        if (!nationalAverageStillPrices(table.asOf)) return null
         return table.averageLitre(countryCode, fuel)
             ?.let { FuelPrice(it, FuelPriceOrigin.NationalAverage, measuredOn = table.asOf) }
     }
@@ -82,13 +98,28 @@ class ResolveFuelPriceUseCase(
         // (OpenVan no publica electricidad). Se estampa el primer dia de ese mes: decir "hace ~N
         // dias" con esa precision es honesto; inventar un dia exacto no lo seria.
         // [FUEL-AN-AVERAGE-MUST-SAY-WHEN-IT-WAS-MEASURED-001]
+        val measuredOn = "${StaticAverageFuelPrices.KWH_VALID_AS_OF}-01"
+        if (!nationalAverageStillPrices(measuredOn)) return null
         return StaticAverageFuelPrices.averageKwh(countryCode)
-            ?.let {
-                FuelPrice(
-                    it,
-                    FuelPriceOrigin.NationalAverage,
-                    measuredOn = "${StaticAverageFuelPrices.KWH_VALID_AS_OF}-01",
-                )
-            }
+            ?.let { FuelPrice(it, FuelPriceOrigin.NationalAverage, measuredOn = measuredOn) }
+    }
+
+    /**
+     * Whether a national average measured on [measuredOn] (ISO `yyyy-MM-dd`) may still price a
+     * period today. An unparseable date refuses too: a price that cannot say when it was measured
+     * cannot defend itself months later either — absent, never invented.
+     * [STATS-AN-ESTIMATE-NAMES-ITSELF-AND-ITS-AGE-001]
+     */
+    private fun nationalAverageStillPrices(measuredOn: String): Boolean {
+        val measured = runCatching { LocalDate.parse(measuredOn) }.getOrNull() ?: return false
+        return measured.daysUntil(today()) <= MAX_NATIONAL_AVERAGE_AGE_DAYS
+    }
+
+    companion object {
+        /** Past ~6 months a national average describes another market: fuel prices move with
+         *  season, taxes and crises, and a figure that old under a tile called "approx. spend"
+         *  stops being an estimate and starts being an invention. The table refreshes with every
+         *  release, so this only bites installs that haven't updated in half a year. */
+        const val MAX_NATIONAL_AVERAGE_AGE_DAYS = 180
     }
 }

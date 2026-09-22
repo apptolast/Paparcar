@@ -953,8 +953,8 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="stats_tile_spots_shared">locuri cedate</string>
     <string name="stats_value_kg">%1$s kg</string>
     <string name="stats_value_lb">%1$s lb</string>
-    <string name="stats_tile_fuel">combustibil</string>
-    <string name="stats_tile_energy">energie</string>
+    <string name="stats_tile_fuel">combustibil aprox.</string>
+    <string name="stats_tile_energy">energie aprox.</string>
     <string name="stats_value_liters">%1$s L</string>
     <string name="stats_value_gallons">%1$s gal</string>
     <string name="stats_value_kwh">%1$s kWh</string>

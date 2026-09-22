@@ -85,6 +85,9 @@ badge**.
   o `FuelDefaults` por tipo (constantes de producto: 6.5 gasolina · 5.5 diésel · 8.5 GLP ·
   5.0 HEV · 3.0 L + 12 kWh PHEV · 17 kWh EV · 3.5 moto). PHEV suma ambos vectores.
 - **Mínimos:** sesión con distancia + vehículo con `fuelType`; si no → sin tile.
+- **UI:** los tiles se identifican como estimación en su etiqueta («combustible aprox.» /
+  «energía aprox.», con la abreviatura propia de cada locale — la misma que ya usa su tile de
+  gasto). [STATS-AN-ESTIMATE-NAMES-ITSELF-AND-ITS-AGE-001]
 
 ## Gasto aprox. (ESTIMADO)
 - **Fórmula:** `litros × €/L + kWh × €/kWh`. Escalera de precio (`ResolveFuelPriceUseCase`):
@@ -92,9 +95,13 @@ badge**.
   embebida con fecha (`asOf`); kWh: constantes mensuales. País = el de la sesión más reciente
   geocodificada del periodo.
 - **Negativas obligatorias:** sin energía · energía sin precio · dos divisas → sin tile.
-- **UI:** «gasto aprox.» + `fuelPriceNoteText` SIEMPRE que hay gasto (qué precio y de cuándo).
-  Un precio con fecha vieja se muestra CON su edad; no existe (aún) gate duro de antigüedad —
-  decisión de producto abierta en la auditoría §6.
+- **Caducidad:** una media nacional (litro o kWh) con `measuredOn` a más de **180 días**
+  (`ResolveFuelPriceUseCase.MAX_NATIONAL_AVERAGE_AGE_DAYS`) ya no precifica — el tile de gasto se
+  niega, igual que sin precio. El override del usuario y el peldaño de gasolinera no caducan por
+  esta regla. Una fecha imparseable tampoco precifica.
+  [STATS-AN-ESTIMATE-NAMES-ITSELF-AND-ITS-AGE-001]
+- **UI:** «gasto aprox.» + `fuelPriceNoteText` SIEMPRE que hay gasto (qué precio y de cuándo);
+  por debajo del umbral el precio se muestra con su edad.
 
 ## CO₂ aprox. (ESTIMADO)
 - **Fórmula:** `litros × factor` (`EmissionFactors`: gasolina 2.31 · diésel 2.68 · GLP 1.66

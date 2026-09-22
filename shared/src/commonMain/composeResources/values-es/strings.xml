@@ -931,8 +931,8 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="stats_tile_spots_shared">plazas cedidas</string>
     <string name="stats_value_kg">%1$s kg</string>
     <string name="stats_value_lb">%1$s lb</string>
-    <string name="stats_tile_fuel">combustible</string>
-    <string name="stats_tile_energy">energía</string>
+    <string name="stats_tile_fuel">combustible aprox.</string>
+    <string name="stats_tile_energy">energía aprox.</string>
     <string name="stats_value_liters">%1$s L</string>
     <string name="stats_value_gallons">%1$s gal</string>
     <string name="stats_value_kwh">%1$s kWh</string>
