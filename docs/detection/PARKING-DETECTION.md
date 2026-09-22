@@ -490,6 +490,42 @@ See `diagnostics/README.md` at the repo root for the recommended layout when arc
 
 Each entry is one issue we shipped a fix for. Listed roughly in dependency order (mappers first, then pipeline, then algorithm). Every entry should explain *what was wrong*, *why it was wrong*, and *what guard exists today*. If you ever want to remove a guard, find its entry here first.
 
+### DET-A-YES-IS-NOT-A-HAND-001 — un «sí» confirma una detección, no la sustituye
+
+**Commit:** pending. **Origen (issue #121):** *«revisa bien lo de aviso manual, ¿por qué? No saqué
+el móvil del bolsillo.»*
+
+**Dato de campo (22-09-2026).** La sesión ACTIVA del user llevaba, en el MISMO documento,
+`armEvidence = "verified_late"` —la app armó y vigiló— y `detectionPath = "user"`, y la ficha de
+historial imprimía **«Aviso manual»**. Un documento que se contradice a sí mismo. No era un pin
+suelto: tres con `"user"` en el corpus vivo (18-09 15:28, 21-09 20:31 y el activo de esa noche).
+
+**Causa raíz — dos capas.**
+
+1. **`ParkingDetectionSource` colapsaba dos hechos distintos en `Manual`:** *la mano del usuario*
+   (`manual`, `user_moved`) y *la app lo nominó y el usuario contestó* (`user`, `nudge`). Siendo un
+   enum, colapsarlos sólo puede hacerse BORRANDO el segundo — exactamente lo que
+   `DET-PIN-PROVENANCE-001` existe para conservar.
+2. **El KDoc de `DetectionPath.UserAnswered` afirmaba que nadie escribe `"user"`** y que un «sí»
+   *«does not replace»* la procedencia. Las dos frases eran falsas: su escritor es `UserConfirmStage`,
+   una etapa VIVA que se dispara con `confirmation.userConfirmed` y planta el pin con
+   `pathLabel = "user"`. **Nadie podía cazarlo porque la afirmación vivía en un comentario, y un
+   comentario no se ejecuta.**
+
+**Fix.** Nace `ParkingDetectionSource.Confirmed` para «detectado y confirmado», con su propia frase
+en la ficha (`parking_detail_detection_confirmed`, 9 locales) y su propio glifo (check, no lápiz).
+`Manual` se queda para la mano. El label `"user"` NO se toca: lo que cuenta es cierto, y cambiarlo
+rompería la lectura de los pines ya escritos.
+
+**Guard acompañante.** `UserConfirmStagePathTest` fija quién escribe `"user"` y de qué cajón sale la
+frase — el testigo que convierte en ejecutable lo que antes era una afirmación en prosa.
+
+⚠️ **Riesgo del fix acompañante, y por qué NO cambia nada:** `ComputePeriodStatsUseCase` contaba
+como auto-detectado todo lo que no fuera `Manual`. Al separar los cajones, dejarlo así habría
+empezado a contar como detectada sola una sesión que la app **tuvo que preguntar**. La condición
+excluye ahora los dos, así que el tile «auto-detectado %» da el mismo número que antes — y ahora por
+una razón escrita, no por un empate accidental entre dos hechos distintos.
+
 ### IOS-A-BT-LANE-NEEDS-A-REAL-SIGNAL-001 — el carril BT no existe en iOS, y las superficies que lo vendían dejan de venderlo
 
 **Commit:** pending. **Origen (issue #74):** «IOS: Detección mediante BT» pedía evaluar el

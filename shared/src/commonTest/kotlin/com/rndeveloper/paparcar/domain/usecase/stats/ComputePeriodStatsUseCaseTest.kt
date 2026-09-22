@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.domain.usecase.stats
 
+import com.rndeveloper.paparcar.domain.detection.DetectionPath
 import com.rndeveloper.paparcar.domain.entitlement.gateHistoryToEntitlement
 import com.rndeveloper.paparcar.domain.model.AddressInfo
 import com.rndeveloper.paparcar.domain.model.FuelType
@@ -54,6 +55,41 @@ class ComputePeriodStatsUseCaseTest {
         address = street?.let { AddressInfo(street = it, city = "Madrid", region = null, country = "ES") },
         searchTimeMs = searchTimeMs,
     )
+
+    /** Igual que [session], pero declarando QUIÉN puso el pin. [DET-A-YES-IS-NOT-A-HAND-001] */
+    private fun sessionVia(ageDays: Int, path: DetectionPath) =
+        session(ageDays, vehicleId = "v-$ageDays").copy(detectionPath = path.label)
+
+    // ── Cobertura de la detección ────────────────────────────────────────────
+
+    @Test
+    fun `should_notCountAnAskAsDetectedAlone_when_theUserOnlyConfirmedIt`() {
+        // ⛔ El consumidor que este ticket cambia PARA QUE NADA CAMBIE. La cifra era
+        // `source != Manual`, y `Manual` significaba a la vez «lo puso tu mano» y «la app preguntó
+        // y dijiste que sí». Al separarlos, dejarla igual habría empezado a contar como detectada
+        // sola una sesión que la app TUVO que preguntar. Si hubo que preguntar, no se detectó solo.
+        // [DET-A-YES-IS-NOT-A-HAND-001]
+        val stats = assertNotNull(
+            compute(
+                sessions = listOf(
+                    sessionVia(1, DetectionPath.StepsEgress),
+                    sessionVia(2, DetectionPath.KinematicEgress),
+                    sessionVia(3, DetectionPath.Bt),
+                    sessionVia(4, DetectionPath.ManualPin),
+                    sessionVia(5, DetectionPath.UserAnswered),
+                    sessionVia(6, DetectionPath.Nudge()),
+                ),
+                vehicles = (1..6).map { vehicle("v-$it") },
+            ),
+        )
+
+        assertEquals(6, stats.detectionKnownCount, "las seis declaran su procedencia")
+        assertEquals(
+            3,
+            stats.autoDetectedCount,
+            "sólo las tres MEDIDAS cuentan: ni la mano, ni el «sí» a un aviso",
+        )
+    }
 
     // ── Energy ───────────────────────────────────────────────────────────────
 

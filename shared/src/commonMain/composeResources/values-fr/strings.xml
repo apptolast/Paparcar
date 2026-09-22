@@ -183,6 +183,7 @@
     <string name="parking_detail_detection_auto">Détection automatique</string>
     <string name="parking_detail_detection_bluetooth">Automatique (Bluetooth)</string>
     <string name="parking_detail_detection_assisted">Assisté</string>
+    <string name="parking_detail_detection_confirmed">Détecté · confirmé par vous</string>
     <string name="parking_detail_detection_manual">Signalement manuel</string>
     <string name="parking_detail_private_zone">%1$s · zone privée — aucune place n'a été publiée</string>
     <string name="map_cd_midpoint">Point médian entre moi et la voiture</string>

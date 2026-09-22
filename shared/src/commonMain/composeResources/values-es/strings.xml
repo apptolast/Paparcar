@@ -239,6 +239,7 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="parking_detail_detection_auto">Detección automática</string>
     <string name="parking_detail_detection_bluetooth">Automático (Bluetooth)</string>
     <string name="parking_detail_detection_assisted">Asistido</string>
+    <string name="parking_detail_detection_confirmed">Detectado · lo confirmaste tú</string>
     <string name="parking_detail_detection_manual">Aviso manual</string>
     <string name="parking_detail_private_zone">%1$s · zona privada — no se publicó ninguna plaza</string>
     <string name="map_cd_midpoint">Punto medio entre mi posición y el coche</string>

@@ -185,6 +185,7 @@
     <string name="parking_detail_detection_auto">Detectat automat</string>
     <string name="parking_detail_detection_bluetooth">Automat (Bluetooth)</string>
     <string name="parking_detail_detection_assisted">Asistat</string>
+    <string name="parking_detail_detection_confirmed">Detectat · confirmat de tine</string>
     <string name="parking_detail_detection_manual">Raport manual</string>
     <string name="parking_detail_private_zone">%1$s · zonă privată — nu s-a publicat niciun loc</string>
     <string name="map_cd_midpoint">Punctul de mijloc între mine și mașină</string>

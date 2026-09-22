@@ -28,6 +28,7 @@ import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.EditLocationAlt
+import androidx.compose.material.icons.rounded.TaskAlt
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Navigation
 import androidx.compose.material.icons.rounded.Radar
@@ -110,6 +111,7 @@ import paparcar.composeapp.generated.resources.parking_detail_detection_assisted
 import paparcar.composeapp.generated.resources.parking_detail_detection_auto
 import paparcar.composeapp.generated.resources.parking_detail_detection_bluetooth
 import paparcar.composeapp.generated.resources.parking_detail_private_zone
+import paparcar.composeapp.generated.resources.parking_detail_detection_confirmed
 import paparcar.composeapp.generated.resources.parking_detail_detection_manual
 import paparcar.composeapp.generated.resources.location_fallback_parking
 import paparcar.composeapp.generated.resources.common_directions
@@ -820,6 +822,12 @@ private fun DetectionRow(session: UserParking, tint: Color) {
             Icons.Rounded.Bolt to stringResource(Res.string.parking_detail_detection_auto)
         ParkingDetectionSource.Manual ->
             Icons.Rounded.EditLocationAlt to stringResource(Res.string.parking_detail_detection_manual)
+        // ⛔ La app lo encontró; el usuario sólo dijo que sí. Decía «Aviso manual», que le atribuye
+        // al usuario una mano que no puso — issue #121: «no saqué el móvil del bolsillo».
+        // El glifo también cambia: un check, no un lápiz sobre un mapa.
+        // [DET-A-YES-IS-NOT-A-HAND-001]
+        ParkingDetectionSource.Confirmed ->
+            Icons.Rounded.TaskAlt to stringResource(Res.string.parking_detail_detection_confirmed)
     }
     PeekMetaRow(icon = icon, tint = tint, text = label)
 }

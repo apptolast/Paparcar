@@ -197,25 +197,31 @@ sealed interface DetectionPath {
      * The user answered a detection prompt. Keeps `AUTO_DETECTED` so the freed spot publishes with
      * the auto TTL, but the hand that placed it was theirs. [DET-NUDGE-PIN-PROVENANCE-001]
      *
-     * ⚠️ **Nothing writes this label today, and no pin is missing because of it.**
-     * [UI-THE-PARKING-CONFIRMATION-MODAL-IS-UNREACHABLE-001]
+     * ⛔⛔ **Este KDoc decía que nadie escribe este label. Era FALSO, y lo desmintió el campo.**
+     * [DET-A-YES-IS-NOT-A-HAND-001]
      *
-     * Its only producer was `SaveManualParkingUseCase.confirmDetected()`, the entry point of a
-     * confirmation sheet that no code path ever opened — so `"user"` had already stopped being
-     * stamped long before that sheet was deleted on 2026-09-03.
+     * Decía: *«Nothing writes this label today… `"user"` had already stopped being stamped long
+     * before that sheet was deleted on 2026-09-03»*, y también *«Answering the real question does
+     * NOT stamp it either… A "Yes" confirms a detection, it does not replace it»*.
      *
-     * Answering the real question does NOT stamp it either, and that is correct:
-     * `onUserConfirmedParking()` only marks the session as confirmed
-     * (`confirmation.userSaidYes()`), and the coordinator then plants the pin with the path of HOW
-     * it was detected. A "Yes" confirms a detection, it does not replace it.
+     * Su escritor real es **[UserConfirmStage]**, una etapa VIVA del Coordinator: se dispara con
+     * `state.confirmation.userConfirmed` —el flag exacto que pone `userSaidYes()`— y planta el pin
+     * con `pathLabel = "user"`. O sea que el «sí» sí reemplaza la procedencia, justo lo que el
+     * párrafo de arriba juraba que no pasaba.
      *
-     * Kept on purpose rather than deleted: sessions written by older builds may carry `"user"`, and
-     * the deserializer has to keep resolving it. If you are reading traces and never see this path,
-     * nothing is lost — it simply has no writer.
+     * Medido el 22-09-2026 en la cuenta del user: **tres** pines con `"user"` posteriores al 03-09
+     * (18-09 15:28, 21-09 20:31 y la sesión activa de esa noche), y el activo llevaba además
+     * `armEvidence = "verified_late"` — la app armó y vigiló — mientras la ficha decía «Aviso
+     * manual». Nadie podía cazarlo porque **la afirmación vivía en un comentario, y un comentario
+     * no se ejecuta**: el testigo es ahora `DetectionPathTest`, que fija quién escribe qué.
+     *
+     * ⛔ El label se queda como está: lo que cuenta es cierto —la app preguntó, el usuario
+     * contestó— y cambiarlo rompería la lectura de los pines ya escritos. Lo que cambia es el
+     * CAJÓN: [ParkingDetectionSource.Confirmed], no `Manual`.
      */
     data object UserAnswered : DetectionPath {
         override val label = "user"
-        override val source = ParkingDetectionSource.Manual
+        override val source = ParkingDetectionSource.Confirmed
         override fun confirmReliability(config: ParkingDetectionConfig): Float? = null
         /** `false` - the hand was the user's. */
         override val mayBeWithdrawnByTheApp = false
@@ -278,7 +284,9 @@ sealed interface DetectionPath {
      */
     data class Nudge(val askedBy: String? = null) : DetectionPath {
         override val label = if (askedBy.isNullOrBlank()) BARE_LABEL else LABEL_PREFIX + askedBy
-        override val source = ParkingDetectionSource.Manual
+        /** ⛔ `Confirmed`, no `Manual`: el aviso lo lanzó la APP y el usuario sólo contestó. La mano
+         *  del usuario es [ManualPin] y [UserMovedPin]. [DET-A-YES-IS-NOT-A-HAND-001] */
+        override val source = ParkingDetectionSource.Confirmed
         override fun confirmReliability(config: ParkingDetectionConfig): Float? = null
         /** `false` - the hand was the user's. */
         override val mayBeWithdrawnByTheApp = false

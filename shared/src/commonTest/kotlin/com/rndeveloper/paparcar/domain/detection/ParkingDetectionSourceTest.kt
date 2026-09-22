@@ -94,25 +94,37 @@ class ParkingDetectionSourceTest {
     }
 
     @Test
-    fun should_readManual_when_theUserPlacedOrConfirmedThePin() {
-        listOf("manual", "user").forEach { path ->
+    fun should_readManual_when_theUsersOwnHandPlacedOrMovedThePin() {
+        // ⛔ La mano, y SÓLO la mano. [DET-A-YES-IS-NOT-A-HAND-001]
+        listOf("manual", "user_moved").forEach { path ->
             assertEquals(
                 ParkingDetectionSource.Manual,
-                parkingDetectionSourceOf(SpotType.MANUAL_REPORT, path),
+                parkingDetectionSourceOf(SpotType.AUTO_DETECTED, path),
                 "path=$path",
             )
         }
+        assertEquals(
+            ParkingDetectionSource.Manual,
+            parkingDetectionSourceOf(SpotType.MANUAL_REPORT, "manual"),
+        )
     }
 
     @Test
-    fun should_readManual_when_aNudgePinKeptAutoDetectedProvenance() {
-        // A nudge pin stays AUTO_DETECTED on purpose (auto TTL on release), but the hand was the
-        // user's — classifying it Assisted would credit the coordinator with a manual park.
-        // [DET-NUDGE-PIN-PROVENANCE-001]
-        assertEquals(
-            ParkingDetectionSource.Manual,
-            parkingDetectionSourceOf(SpotType.AUTO_DETECTED, "nudge"),
-        )
+    fun should_readConfirmed_when_theAppAskedAndTheUserSaidYes() {
+        // ⛔ EL TESTIGO de la issue #121 («no saqué el móvil del bolsillo»). El pin activo del user
+        // llevaba `detectionPath = "user"` y `armEvidence = "verified_late"` a la vez —la app armó
+        // y vigiló— y la ficha decía «Aviso manual». Un «sí» confirma una detección; no la
+        // sustituye. [DET-A-YES-IS-NOT-A-HAND-001]
+        //
+        // Un pin de aviso sigue siendo AUTO_DETECTED a propósito (TTL auto al liberar), y lo que
+        // cambia es sólo el cajón del que sale la frase. [DET-NUDGE-PIN-PROVENANCE-001]
+        listOf("user", "nudge", "nudge_bt_no_move").forEach { path ->
+            assertEquals(
+                ParkingDetectionSource.Confirmed,
+                parkingDetectionSourceOf(SpotType.AUTO_DETECTED, path),
+                "path=$path",
+            )
+        }
     }
 
     @Test

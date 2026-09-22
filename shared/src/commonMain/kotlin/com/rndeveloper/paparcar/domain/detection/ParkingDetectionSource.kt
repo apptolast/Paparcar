@@ -33,8 +33,34 @@ enum class ParkingDetectionSource {
     /** The probabilistic Coordinator (geofence + activity recognition) — the "assisted" tier. */
     Assisted,
 
-    /** The user placed or confirmed this pin by hand. */
+    /**
+     * **La MANO del usuario**: colocó el pin, o arrastró uno existente hasta donde está el coche.
+     * `manual` y `user_moved`. [DET-A-YES-IS-NOT-A-HAND-001]
+     *
+     * ⛔ Este KDoc decía *«placed or confirmed»*, y ese «or» era el bug: metía en un cajón dos
+     * hechos que no son el mismo — ver [Confirmed].
+     */
     Manual,
+
+    /**
+     * **La app lo NOMINÓ y el usuario dijo que sí.** `user` y `nudge`/`nudge_*`.
+     * [DET-A-YES-IS-NOT-A-HAND-001]
+     *
+     * Nace de la issue #121: *«revisa bien lo de aviso manual, ¿por qué? No saqué el móvil del
+     * bolsillo»*. El pin activo del usuario llevaba `detectionPath = "user"` y
+     * `armEvidence = "verified_late"` **en el mismo documento** — o sea, la app armó y vigiló, y
+     * aun así la ficha decía «Aviso manual». Un documento que se contradice a sí mismo.
+     *
+     * Siendo [Manual] y esto un solo valor de enum, colapsarlos sólo podía hacerse BORRANDO el
+     * segundo hecho — lo contrario de lo que [DET-PIN-PROVENANCE-001] persigue, y lo que
+     * `DetectionPath.UserMovedPin` ya dejó escrito: un trace que lee «manual» no distingue *«la app
+     * nunca vio este park»* de *«la app lo vio y se equivocó»*, y sólo lo segundo es un fallo de
+     * detección que perseguir.
+     *
+     * ⚠️ **No es «auto-detectado».** Si la app tuvo que preguntar, no lo detectó sola: la cifra de
+     * cobertura de `ComputePeriodStatsUseCase` excluye este cajón igual que excluye [Manual].
+     */
+    Confirmed,
 
     // ⛔ There used to be a `PrivateZone` member here, and it was not a source.
     // [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] It answered WHERE the car is,

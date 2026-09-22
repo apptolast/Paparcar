@@ -257,6 +257,7 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="parking_detail_detection_auto">Auto-detected</string>
     <string name="parking_detail_detection_bluetooth">Automatic (Bluetooth)</string>
     <string name="parking_detail_detection_assisted">Assisted</string>
+    <string name="parking_detail_detection_confirmed">Detected · you confirmed it</string>
     <string name="parking_detail_detection_manual">Manual report</string>
     <string name="parking_detail_private_zone">%1$s · private zone — no spot was published</string>
     <string name="map_cd_midpoint">Midpoint between me and car</string>

@@ -156,8 +156,15 @@ class ComputePeriodStatsUseCase {
             mostActiveDayOfWeek = mostActiveDayOfWeek,
             places = places,
             spotsReleased = ended.count { it.publishedSpot },
+            // ⛔ DOS cajones excluidos, y el segundo se añadió para que esta cifra NO cambie.
+            // [DET-A-YES-IS-NOT-A-HAND-001]
+            //
+            // Esto decía `!= Manual`, cuando `Manual` significaba a la vez «lo puso tu mano» y «la
+            // app preguntó y dijiste que sí». Al separarlos, dejarlo como estaba habría empezado a
+            // contar como auto-detectada una sesión que la app **tuvo que preguntar** — mentir en
+            // la otra dirección. Si hubo que preguntar, no se detectó solo.
             autoDetectedCount = if (shareSignificant) {
-                known.count { it.detectionSource() != ParkingDetectionSource.Manual }
+                known.count { it.detectionSource() !in NOT_DETECTED_ALONE }
             } else {
                 0
             },
@@ -183,6 +190,13 @@ class ComputePeriodStatsUseCase {
     }
 
     companion object {
+        /** Los orígenes que NO cuentan como «la app lo detectó sola»: la mano del usuario, y la
+         *  respuesta a un aviso que la app tuvo que lanzar. [DET-A-YES-IS-NOT-A-HAND-001] */
+        private val NOT_DETECTED_ALONE = setOf(
+            ParkingDetectionSource.Manual,
+            ParkingDetectionSource.Confirmed,
+        )
+
         const val MIN_SESSIONS_FOR_PEAK = 5
         const val MIN_SESSIONS_FOR_AUTO_SHARE = 5
         const val MIN_SESSIONS_FOR_DURATION = 3

@@ -184,6 +184,7 @@
     <string name="parking_detail_detection_auto">Automatisch erkannt</string>
     <string name="parking_detail_detection_bluetooth">Automatisch (Bluetooth)</string>
     <string name="parking_detail_detection_assisted">Assistiert</string>
+    <string name="parking_detail_detection_confirmed">Erkannt · von dir bestätigt</string>
     <string name="parking_detail_detection_manual">Manuell gemeldet</string>
     <string name="parking_detail_private_zone">%1$s · private Zone — es wurde kein Platz veröffentlicht</string>
     <string name="map_cd_midpoint">Mittelpunkt zwischen mir und dem Auto</string>

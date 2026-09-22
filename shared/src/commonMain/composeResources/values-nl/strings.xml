@@ -184,6 +184,7 @@
     <string name="parking_detail_detection_auto">Automatisch gedetecteerd</string>
     <string name="parking_detail_detection_bluetooth">Automatisch (Bluetooth)</string>
     <string name="parking_detail_detection_assisted">Geassisteerd</string>
+    <string name="parking_detail_detection_confirmed">Gedetecteerd · door jou bevestigd</string>
     <string name="parking_detail_detection_manual">Handmatige melding</string>
     <string name="parking_detail_private_zone">%1$s · privézone — er is geen plek gepubliceerd</string>
     <string name="map_cd_midpoint">Middelpunt tussen mij en de auto</string>

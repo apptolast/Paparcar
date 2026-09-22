@@ -104,8 +104,13 @@ class DetectionPathTest {
             "no declared path may present itself as Unknown — that value is for labels we do not write",
         )
         assertEquals(ParkingDetectionSource.Bluetooth, DetectionPath.Bt.source)
-        assertEquals(ParkingDetectionSource.Manual, DetectionPath.Nudge().source)
-        assertEquals(ParkingDetectionSource.Manual, DetectionPath.Nudge("bt_no_move").source)
+        // ⛔ La MANO del usuario es sólo `manual` y `user_moved`. Un aviso lo lanza la APP y el
+        // usuario contesta, así que cae en `Confirmed`. [DET-A-YES-IS-NOT-A-HAND-001]
+        assertEquals(ParkingDetectionSource.Manual, DetectionPath.ManualPin.source)
+        assertEquals(ParkingDetectionSource.Manual, DetectionPath.UserMovedPin.source)
+        assertEquals(ParkingDetectionSource.Confirmed, DetectionPath.UserAnswered.source)
+        assertEquals(ParkingDetectionSource.Confirmed, DetectionPath.Nudge().source)
+        assertEquals(ParkingDetectionSource.Confirmed, DetectionPath.Nudge("bt_no_move").source)
         assertNotNull(DetectionPath.ofLabel("unattended_zone_walk_entered_anchor"))
     }
 
@@ -146,7 +151,7 @@ class DetectionPathTest {
         ).forEach { source ->
             val path = DetectionPath.Nudge(source)
             assertEquals(path, DetectionPath.ofLabel(path.label), "source=$source")
-            assertEquals(ParkingDetectionSource.Manual, path.source, "source=$source")
+            assertEquals(ParkingDetectionSource.Confirmed, path.source, "source=$source")
         }
     }
 }
