@@ -16,6 +16,8 @@ actual val appVersion: String =
         ?.get("CFBundleShortVersionString") as? String ?: "?"
 
 // iOS has no user-grantable background battery exemption → hide that Settings row. [SETTINGS-REMODEL-001]
+actual val platformName: String = "ios"
+
 actual val isBatteryOptimizationRelevant: Boolean = false
 
 // No third-party API on iOS delivers the car's Classic BT (A2DP/HFP) connect/disconnect, so the

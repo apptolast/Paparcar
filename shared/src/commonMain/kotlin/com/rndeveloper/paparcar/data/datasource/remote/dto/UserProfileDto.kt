@@ -41,4 +41,17 @@ data class UserProfileDto(
     /** When this snapshot was taken. A snapshot with no date cannot be told apart from a permission
      *  revoked three months ago, which would make the other three unreadable. */
     val detectionStateUpdatedAt: Long? = null,
+
+    // ── Identidad del install [DIAG-A-ROW-MUST-SAY-WHICH-PLATFORM-WROTE-IT-001] ─────────────────
+    //
+    // Misma regla write-only y mismo significado de la ausencia que los cuatro de arriba: null =
+    // cuenta que todavía no ha publicado su estado desde una versión con esto.
+
+    /** `"android"` o `"ios"`. Firestore lo comparten las dos plataformas y hasta este ticket ningún
+     *  documento decía de cuál venía — ni siquiera se podía deducir, porque los campos que se le
+     *  parecen (`batteryOptimizationExempt`) hablan de otra cosa. */
+    val platform: String? = null,
+    /** Con qué versión de app se tomó la foto. La otra pregunta que siempre se acaba haciendo
+     *  delante de un dato raro, y viaja en la misma escritura. */
+    val appVersion: String? = null,
 )

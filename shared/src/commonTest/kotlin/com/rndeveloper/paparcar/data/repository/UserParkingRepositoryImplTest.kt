@@ -113,7 +113,7 @@ class UserParkingRepositoryImplTest {
         override suspend fun updateFirstStepsDismissedAt(userId: String, dismissedAtMs: Long?) = unexpected()
         override suspend fun updateDetectionState(
             userId: String, autoDetectParking: Boolean, detectionBlockers: List<String>,
-            batteryOptimizationExempt: Boolean, updatedAtMs: Long,
+            batteryOptimizationExempt: Boolean, platform: String, appVersion: String, updatedAtMs: Long,
         ) = unexpected()
         override suspend fun saveParkingSession(userId: String, session: ParkingHistoryDto) = unexpected()
         override suspend fun clearParkingSessionActiveFlag(userId: String, sessionId: String) = unexpected()

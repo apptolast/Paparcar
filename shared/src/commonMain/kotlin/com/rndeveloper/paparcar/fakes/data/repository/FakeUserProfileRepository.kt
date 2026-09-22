@@ -37,6 +37,8 @@ class FakeUserProfileRepository : UserProfileRepository {
         autoDetectParking: Boolean,
         detectionBlockers: List<String>,
         batteryOptimizationExempt: Boolean,
+        platform: String,
+        appVersion: String,
         updatedAtMs: Long,
     ): Result<Unit> = Result.success(Unit)
 

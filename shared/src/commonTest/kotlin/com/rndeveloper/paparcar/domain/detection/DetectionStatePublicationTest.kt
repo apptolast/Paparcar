@@ -18,7 +18,9 @@ class DetectionStatePublicationTest {
         blockers: Set<RequiredPermission> = emptySet(),
         batteryExempt: Boolean = true,
         reliabilityReduced: Boolean = false,
-    ) = DetectionStateSnapshot(autoDetect, blockers, batteryExempt, reliabilityReduced)
+        platform: String = "android",
+        appVersion: String = "1.2.0",
+    ) = DetectionStateSnapshot(autoDetect, blockers, batteryExempt, reliabilityReduced, platform, appVersion)
 
     // ── The dedupe: what makes this affordable ──────────────────────────────────────────────────
 
@@ -133,5 +135,38 @@ class DetectionStatePublicationTest {
             DetectionStateLabel.REDUCED_RELIABILITY,
             snapshot(reliabilityReduced = true).label(),
         )
+    }
+
+    // ── La identidad del install [DIAG-A-ROW-MUST-SAY-WHICH-PLATFORM-WROTE-IT-001] ──────────────
+
+    @Test
+    fun should_publishAgain_when_theAppWasUpdated() {
+        // ⛔ EL TESTIGO. Sin la versión en la huella, una cuenta publicaría para siempre la versión
+        // con la que se instaló — y «¿con qué versión pasó esto?» tendría una respuesta falsa, que
+        // es peor que no tenerla.
+        val before = snapshot(appVersion = "1.2.0")
+        val after = snapshot(appVersion = "1.3.0")
+
+        assertTrue(after.needsPublishing(before.remoteFingerprint()))
+    }
+
+    @Test
+    fun should_publishAgain_when_theSameAccountAnswersFromTheOtherPlatform() {
+        // Una cuenta que se instala en el otro móvil tiene que re-publicar: el documento es de la
+        // CUENTA, y quien conteste el último es quien está diciendo la verdad sobre sí mismo.
+        val fromAndroid = snapshot(platform = "android")
+        val fromIos = snapshot(platform = "ios")
+
+        assertTrue(fromIos.needsPublishing(fromAndroid.remoteFingerprint()))
+    }
+
+    @Test
+    fun should_notPublishAgain_when_onlyTheAnalyticsOnlyAxisMoved() {
+        // La otra mitad de la regla, que el ticket no puede romper: `reliabilityReduced` no es un
+        // campo persistido, así que moverlo NO puede costar una escritura.
+        val quiet = snapshot(reliabilityReduced = false)
+        val amber = snapshot(reliabilityReduced = true)
+
+        assertEquals(quiet.remoteFingerprint(), amber.remoteFingerprint())
     }
 }

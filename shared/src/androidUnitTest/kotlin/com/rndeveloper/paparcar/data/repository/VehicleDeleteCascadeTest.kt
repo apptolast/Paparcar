@@ -260,7 +260,7 @@ private class RecordingRemote : RemoteUserProfileDataSource {
     override suspend fun updateDefaultVehicleId(userId: String, vehicleId: String?) = Unit
     override suspend fun updateFirstStepsDismissedAt(userId: String, dismissedAtMs: Long?) = Unit
     override suspend fun updateIdentityFields(userId: String, email: String?, displayName: String?, photoUrl: String?, updatedAt: Long) = Unit
-    override suspend fun updateDetectionState(userId: String, autoDetectParking: Boolean, detectionBlockers: List<String>, batteryOptimizationExempt: Boolean, updatedAtMs: Long) = Unit
+    override suspend fun updateDetectionState(userId: String, autoDetectParking: Boolean, detectionBlockers: List<String>, batteryOptimizationExempt: Boolean, platform: String, appVersion: String, updatedAtMs: Long) = Unit
     override suspend fun saveParkingSession(userId: String, session: ParkingHistoryDto) = Unit
     override suspend fun clearParkingSessionActiveFlag(userId: String, sessionId: String) = Unit
     override suspend fun updateParkingSessionAddressAndPlace(

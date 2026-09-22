@@ -13,6 +13,22 @@ expect val isDebugBuild: Boolean
 expect val appVersion: String
 
 /**
+ * Qué plataforma es esta, en una palabra estable: `"android"` o `"ios"`.
+ * [DIAG-A-ROW-MUST-SAY-WHICH-PLATFORM-WROTE-IT-001]
+ *
+ * Existe porque Firestore lo comparten las dos y **ningún documento decía de cuál venía**. Lo único
+ * que llevaba plataforma era la telemetría de detección, que está detrás de un gate: para el 99 % de
+ * las cuentas la pregunta «¿esto es un iPhone?» no tenía respuesta, y la única forma de acercarse era
+ * deducirlo de campos que hablan de otra cosa (`batteryOptimizationExempt` es `false` en un iPhone
+ * que nunca tuvo ese concepto) — o sea, adivinar.
+ *
+ * ⛔ **Minúsculas y sin versión**: es una CLAVE de agrupación, no una frase para leer. La versión de
+ * SO y el modelo siguen donde estaban, en diagnósticos y con su gate: son otro nivel de detalle y
+ * otra conversación con la ficha de privacidad.
+ */
+expect val platformName: String
+
+/**
  * Whether "battery optimization exemption" (Android Doze / OEM killers) is a concept on this
  * platform. Android only — iOS has no equivalent user-grantable exemption, so the Settings
  * "unrestricted battery" improvement row is hidden there. [SETTINGS-REMODEL-001]

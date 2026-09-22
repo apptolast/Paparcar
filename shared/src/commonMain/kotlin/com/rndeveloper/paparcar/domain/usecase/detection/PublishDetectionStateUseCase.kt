@@ -46,6 +46,11 @@ class PublishDetectionStateUseCase(
     private val userProfileRepository: UserProfileRepository,
     private val authRepository: AuthRepository,
     private val analyticsTracker: AnalyticsTracker,
+    /** Identidad del install, INYECTADA. [DIAG-A-ROW-MUST-SAY-WHICH-PLATFORM-WROTE-IT-001]
+     *  Leer aquí dentro `platformName`/`appVersion` habría hecho que el mismo test afirmara cosas
+     *  distintas en JVM y en iOS, que es la forma más cara de no probar nada. */
+    private val platform: String,
+    private val appVersionName: String,
 ) {
 
     /**
@@ -82,6 +87,8 @@ class PublishDetectionStateUseCase(
             autoDetectParking = snapshot.autoDetectParking,
             detectionBlockers = snapshot.blockers.map { it.name }.sorted(),
             batteryOptimizationExempt = snapshot.batteryOptimizationExempt,
+            platform = snapshot.platform,
+            appVersion = snapshot.appVersion,
             updatedAtMs = Clock.System.now().toEpochMilliseconds(),
         )
             // Only on success: a failed write must NOT bank the fingerprint, or the state that never
@@ -103,6 +110,8 @@ class PublishDetectionStateUseCase(
         blockers = missingProducerPermissions(),
         batteryOptimizationExempt = isBatteryOptimizationExempt,
         reliabilityReduced = reliability.level == DetectionReliabilityLevel.REDUCED,
+        platform = platform,
+        appVersion = appVersionName,
     )
 
     private companion object {

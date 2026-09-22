@@ -82,12 +82,16 @@ class RemoteUserProfileDataSourceImpl(
         autoDetectParking: Boolean,
         detectionBlockers: List<String>,
         batteryOptimizationExempt: Boolean,
+        platform: String,
+        appVersion: String,
         updatedAtMs: Long,
     ) {
         usersCollection().document(userId).update(
             mapOf(
                 FIELD_AUTO_DETECT_PARKING to autoDetectParking,
                 FIELD_DETECTION_BLOCKERS to detectionBlockers,
+                FIELD_PLATFORM to platform,
+                FIELD_APP_VERSION to appVersion,
                 FIELD_BATTERY_OPTIMIZATION_EXEMPT to batteryOptimizationExempt,
                 FIELD_DETECTION_STATE_UPDATED_AT to updatedAtMs,
             ),
@@ -220,6 +224,10 @@ class RemoteUserProfileDataSourceImpl(
                 detectionBlockers = runCatching { get<List<String>?>(FIELD_DETECTION_BLOCKERS) }.getOrNull(),
                 batteryOptimizationExempt = runCatching { get<Boolean?>(FIELD_BATTERY_OPTIMIZATION_EXEMPT) }.getOrNull(),
                 detectionStateUpdatedAt = getLongOrNullCompat(FIELD_DETECTION_STATE_UPDATED_AT),
+                // Misma razón que los cuatro de arriba: se leen para que un `set(profile)` no los
+                // borre, y nadie en la app los consume. [DIAG-A-ROW-MUST-SAY-WHICH-PLATFORM-WROTE-IT-001]
+                platform = runCatching { get<String?>(FIELD_PLATFORM) }.getOrNull(),
+                appVersion = runCatching { get<String?>(FIELD_APP_VERSION) }.getOrNull(),
             )
         }.getOrElse { e ->
             PaparcarLogger.e(TAG, "toUserProfileDto failed — doc=$id", e)
@@ -317,6 +325,7 @@ class RemoteUserProfileDataSourceImpl(
                 publishedSpot = runCatching { get<Boolean?>(FIELD_PUBLISHED_SPOT) }.getOrNull() ?: false,
                 retractedAtMs = runCatching { get<Long?>(FIELD_RETRACTED_AT_MS) }.getOrNull(),
                 updatedAt = getLongCompat(FIELD_UPDATED_AT),
+                platform = runCatching { get<String?>(FIELD_PLATFORM) }.getOrNull(),
             )
         }.getOrElse { e ->
             PaparcarLogger.e(TAG, "toParkingHistoryDto failed — doc=$id", e)
@@ -355,6 +364,8 @@ class RemoteUserProfileDataSourceImpl(
         // Whether detection can run for this account. [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001]
         const val FIELD_AUTO_DETECT_PARKING = "autoDetectParking"
         const val FIELD_DETECTION_BLOCKERS = "detectionBlockers"
+        const val FIELD_PLATFORM = "platform"
+        const val FIELD_APP_VERSION = "appVersion"
         const val FIELD_BATTERY_OPTIMIZATION_EXEMPT = "batteryOptimizationExempt"
         const val FIELD_DETECTION_STATE_UPDATED_AT = "detectionStateUpdatedAt"
 

@@ -76,4 +76,18 @@ data class ParkingHistoryDto(
      *  Last-Write-Wins merge can tell when the server has caught up with a pending local edit.
      *  Legacy docs read 0 → always lose to a real local timestamp. [SYNC-RECONCILE-USERPARKING-001] */
     val updatedAt: Long = 0L,
+    /**
+     * Qué plataforma escribió este documento la ÚLTIMA vez: `"android"` o `"ios"`.
+     * [DIAG-A-ROW-MUST-SAY-WHICH-PLATFORM-WROTE-IT-001]
+     *
+     * ⛔ Dice «quién lo escribió», no «quién lo creó», y la diferencia importa el día que una cuenta
+     * usa los dos móviles: se estampa al construir el DTO, que es siempre en el dispositivo que
+     * está subiendo. Para lo que sirve —mirar un pin raro y saber de qué carril de detección salió—
+     * el último escritor es justo la respuesta útil, porque es quien tocó la fila.
+     *
+     * Write-only, como los de detección en `UserProfileDto`: se lee de vuelta para que un `set()`
+     * no lo borre, y **no llega a Room**. La fila local no necesita saberlo: ya está EN esa
+     * plataforma. Por eso tampoco hay migración.
+     */
+    val platform: String? = null,
 )

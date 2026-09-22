@@ -88,12 +88,16 @@ class UserProfileRepositoryImpl(
         autoDetectParking: Boolean,
         detectionBlockers: List<String>,
         batteryOptimizationExempt: Boolean,
+        platform: String,
+        appVersion: String,
         updatedAtMs: Long,
     ): Result<Unit> = runCatching {
         remoteDataSource.updateDetectionState(
             userId = userId,
             autoDetectParking = autoDetectParking,
             detectionBlockers = detectionBlockers,
+            platform = platform,
+            appVersion = appVersion,
             batteryOptimizationExempt = batteryOptimizationExempt,
             updatedAtMs = updatedAtMs,
         )

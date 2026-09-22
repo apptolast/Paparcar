@@ -10,8 +10,10 @@ import com.rndeveloper.paparcar.domain.model.PlaceCategory
 import com.rndeveloper.paparcar.domain.model.PlaceInfo
 import com.rndeveloper.paparcar.domain.model.SpotType
 import com.rndeveloper.paparcar.domain.model.UserParking
+import com.rndeveloper.paparcar.platformName
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
@@ -469,5 +471,17 @@ class ParkingSessionMapperTest {
 
         assertEquals("Shell", dto.name)
         assertEquals("FUEL", dto.category)
+    }
+
+    // ── Quién escribió el documento [DIAG-A-ROW-MUST-SAY-WHICH-PLATFORM-WROTE-IT-001] ───────────
+
+    @Test
+    fun `toParkingHistoryDto stamps the platform that is writing`() {
+        // ⛔ EL TESTIGO. Firestore lo comparten las dos plataformas y ningún documento decía de cuál
+        // venía, así que mirar un pin raro no podía empezar por «¿esto es un iPhone?». Se compara
+        // contra la constante y no contra un literal: el test no puede afirmar en qué plataforma
+        // corre, sólo que lo que se estampa es lo que esa plataforma dice de sí misma.
+        assertEquals(platformName, baseParking.toParkingHistoryDto().platform)
+        assertTrue(platformName in setOf("android", "ios"), "el vocabulario es cerrado, es una clave de agrupación")
     }
 }

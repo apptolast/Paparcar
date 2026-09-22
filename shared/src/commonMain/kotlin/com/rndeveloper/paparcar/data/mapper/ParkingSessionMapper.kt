@@ -1,5 +1,7 @@
 package com.rndeveloper.paparcar.data.mapper
 
+import com.rndeveloper.paparcar.platformName
+
 import com.rndeveloper.paparcar.data.datasource.local.room.UserParkingEntity
 import com.rndeveloper.paparcar.data.datasource.remote.dto.AddressDto
 import com.rndeveloper.paparcar.data.datasource.remote.dto.ParkingHistoryDto
@@ -195,6 +197,9 @@ fun UserParking.toParkingHistoryDto(updatedAt: Long = 0L) = ParkingHistoryDto(
     endedAtMs = endedAtMs,
     publishedSpot = publishedSpot,
     retractedAtMs = retractedAtMs,
+    // Quién está escribiendo ESTE documento, estampado donde se construye — que es siempre en el
+    // dispositivo que sube. [DIAG-A-ROW-MUST-SAY-WHICH-PLATFORM-WROTE-IT-001]
+    platform = platformName,
     updatedAt = updatedAt,
 )
 

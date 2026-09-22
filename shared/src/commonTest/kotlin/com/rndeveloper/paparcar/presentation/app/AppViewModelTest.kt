@@ -95,6 +95,8 @@ class AppViewModelTest {
             userProfileRepository = FakeUserProfileRepository(),
             authRepository = FakeAuthRepository(),
             analyticsTracker = FakeAnalyticsTracker(),
+            platform = "android",
+            appVersionName = "1.2.0",
         )
     }
 

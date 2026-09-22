@@ -25,6 +25,19 @@ data class DetectionStateSnapshot(
     val batteryOptimizationExempt: Boolean,
     /** The amber case: permissions fine, device environment untrusted. Analytics-only. */
     val reliabilityReduced: Boolean,
+    /**
+     * Qué plataforma es este install (`"android"` / `"ios"`) y con qué versión de app.
+     * [DIAG-A-ROW-MUST-SAY-WHICH-PLATFORM-WROTE-IT-001]
+     *
+     * Viajan aquí y no en un canal propio porque este tipo **ya era** la foto de un install y no
+     * sólo de una intención: `batteryOptimizationExempt` es un hecho del dispositivo, no una
+     * decisión del usuario. Lo que faltaba era decir **de qué dispositivo**.
+     *
+     * Se pasan, nunca se leen de las constantes aquí dentro: un valor de plataforma metido por la
+     * puerta de atrás hace que un test afirme cosas distintas según dónde corra.
+     */
+    val platform: String,
+    val appVersion: String,
 ) {
 
     /**
@@ -42,6 +55,14 @@ data class DetectionStateSnapshot(
         append(blockers.map { it.name }.sorted().joinToString(","))
         append('|')
         append(if (batteryOptimizationExempt) '1' else '0')
+        append('|')
+        append(platform)
+        append('|')
+        // ⛔ La versión ENTRA en la huella, y es deliberado: sin ella una cuenta que actualiza la app
+        // seguiría publicando la versión con la que se instaló, para siempre. El coste es una
+        // escritura por cuenta y actualización, que es exactamente lo que vale la pregunta «¿con qué
+        // versión pasó esto?». [DIAG-A-ROW-MUST-SAY-WHICH-PLATFORM-WROTE-IT-001]
+        append(appVersion)
     }
 
     /**

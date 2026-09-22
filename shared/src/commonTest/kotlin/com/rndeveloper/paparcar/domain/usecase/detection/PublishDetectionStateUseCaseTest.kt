@@ -63,6 +63,8 @@ class PublishDetectionStateUseCaseTest {
         userProfileRepository = profiles,
         authRepository = auth,
         analyticsTracker = analytics,
+        platform = "android",
+        appVersionName = "1.2.0",
     )
 
     private fun report(level: DetectionReliabilityLevel = DetectionReliabilityLevel.GOOD) =

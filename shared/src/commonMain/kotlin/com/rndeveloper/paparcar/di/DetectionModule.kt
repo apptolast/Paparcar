@@ -1,5 +1,7 @@
 package com.rndeveloper.paparcar.di
 
+import com.rndeveloper.paparcar.appVersion
+import com.rndeveloper.paparcar.platformName
 import com.rndeveloper.paparcar.domain.detection.CoordinatorParkingDetector
 import com.rndeveloper.paparcar.domain.detection.DetectionPhaseSink
 import com.rndeveloper.paparcar.domain.detection.DetectionRuntimeState
@@ -353,6 +355,10 @@ val detectionModule = module {
             userProfileRepository = get(),
             authRepository = get(),
             analyticsTracker = get(),
+            // La identidad del install, desde las constantes de plataforma — el único sitio donde
+            // se leen. [DIAG-A-ROW-MUST-SAY-WHICH-PLATFORM-WROTE-IT-001]
+            platform = platformName,
+            appVersionName = appVersion,
         )
     }
 
