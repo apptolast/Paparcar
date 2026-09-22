@@ -112,6 +112,10 @@ class PermissionsScreenParityGuardrailTest {
                 "onRequestBatteryOptimization",
                 "onRequestOemAutostart",
                 "onRequestOemBatterySettings",
+                // El carril BT no puede existir en iOS (sin eventos de conexión del BT clásico
+                // para terceros), el emparejamiento no desbloquea nada y la fila no se pinta
+                // (`isBtStrategyRelevant = false`). [IOS-A-BT-LANE-NEEDS-A-REAL-SIGNAL-001]
+                "onRequestBluetooth",
             ),
         )
     }

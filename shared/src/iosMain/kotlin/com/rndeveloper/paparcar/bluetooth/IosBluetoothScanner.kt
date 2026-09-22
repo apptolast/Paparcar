@@ -1,5 +1,3 @@
-@file:OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)
-
 package com.rndeveloper.paparcar.bluetooth
 
 import com.rndeveloper.paparcar.domain.bluetooth.BluetoothScanner
@@ -7,54 +5,43 @@ import com.rndeveloper.paparcar.domain.bluetooth.BtConnection
 import com.rndeveloper.paparcar.domain.model.bluetooth.BluetoothDeviceInfo
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
-import platform.CoreBluetooth.CBCentralManager
-import platform.CoreBluetooth.CBCentralManagerDelegateProtocol
-import platform.CoreBluetooth.CBManagerStatePoweredOn
-import platform.darwin.NSObject
 
 /**
- * iOS implementation of [BluetoothScanner].
+ * iOS implementation of [BluetoothScanner] — an honest full stub.
  *
- * **Major API divergence from Android, by design of Apple's privacy model:**
- * iOS does NOT expose a system-wide list of bonded / paired Bluetooth devices.
- * Apps cannot enumerate Settings → Bluetooth. They can only discover:
+ * **The BT detection lane cannot exist on iOS** (analysis with sources:
+ * `docs/backlog/ios-a-bt-lane-needs-a-real-signal-001.md`):
  *
- * - BLE peripherals currently advertising specific service UUIDs
- *   (`CBCentralManager.scanForPeripherals(withServices:)`)
- * - Peripherals connected to the system right now, scoped to known services
- *   (`retrieveConnectedPeripheralsWithServices`)
- * - Peripherals the app has previously connected to and saved by UUID
- *   (`retrievePeripheralsWithIdentifiers`)
+ * - Most cars use Classic Bluetooth (HFP / A2DP), which iOS does not expose to third-party
+ *   apps at all — no connect/disconnect events, no paired-device list, no wake-from-suspended.
+ * - CoreBluetooth only sees GATT-capable peripherals (BLE, or dual-mode via transport
+ *   bridging); a car head unit is neither, and `CBPeer.identifier` is a random per-phone UUID,
+ *   useless against the MAC we store in `Vehicle.bluetoothDeviceId`.
+ * - `ExternalAccessory` requires an MFi accessory that declares our protocol string.
+ * - `AVAudioSession` route info can *identify* the car's BT port while the process is alive,
+ *   but never delivers the edge when suspended — evidence, not a trigger.
  *
- * None of these match Android's `getBondedDevices()`. Most cars use Classic
- * Bluetooth (HFP / A2DP), which iOS does not expose to third-party apps at all.
+ * Consequence: nothing on iOS may consume the BT adapter state, so this class must not touch
+ * CoreBluetooth either. The previous revision instantiated a `CBCentralManager` just to answer
+ * [isBluetoothEnabled] — and instantiating one is precisely what TRIGGERS the system Bluetooth
+ * permission dialog, i.e. the app asked the user for a permission that unlocked nothing. Every
+ * answer below is the constant the platform makes true:
  *
- * Consequence: `getBondedDevices()` returns `emptyList()`. The "pair your car"
- * UX needs a different iOS design — e.g. ask the user for the device name and
- * persist it locally, or detect connection events via `EAAccessoryManager` for
- * MFi-certified accessories. That redesign belongs to the iOS UX phase, not
- * this contract port.
+ * - [isBluetoothEnabled] `false`: only read inside `ParkingStrategyResolver.strategyFor`'s BT
+ *   conjunction (dead on iOS via [isConnectedToPairedCar]) and `BluetoothConfigViewModel`
+ *   (screen unreachable on iOS — its Settings entry hides behind `isBtStrategyRelevant`).
+ * - [getBondedDevices] empty: iOS cannot enumerate Settings → Bluetooth.
+ * - [isConnectedToPairedCar] `false` / [observeConnectedPairedCars] empty: no Classic BT
+ *   connection edges exist for third-party apps. [DET-BT-CONNECTED-NOT-PAIRED-001]
  *
- * `isBluetoothEnabled()` works correctly via [CBCentralManager.state]. Note the
- * manager publishes its initial state asynchronously via the delegate; for a
- * brief window after construction the state reads `Unknown` and this method
- * returns false. The delegate keeps the cached state fresh after that.
+ * [IOS-A-BT-LANE-NEEDS-A-REAL-SIGNAL-001]
  */
 class IosBluetoothScanner : BluetoothScanner {
 
-    private val delegate = object : NSObject(), CBCentralManagerDelegateProtocol {
-        override fun centralManagerDidUpdateState(central: CBCentralManager) = Unit
-    }
-
-    private val central = CBCentralManager(delegate, queue = null)
-
-    override fun isBluetoothEnabled(): Boolean = central.state == CBManagerStatePoweredOn
+    override fun isBluetoothEnabled(): Boolean = false
 
     override fun getBondedDevices(): List<BluetoothDeviceInfo> = emptyList()
 
-    // iOS does not expose Classic (HFP/A2DP) car-connection state to third-party apps; the BT
-    // strategy is Android-only for now, so the resolver always falls back to COORDINATOR on iOS.
-    // [DET-BT-CONNECTED-NOT-PAIRED-001]
     override fun isConnectedToPairedCar(pairedVehicleIds: Set<String>): Boolean = false
 
     // Same reason, reactive form: with no car-connection edges to observe, the set is permanently

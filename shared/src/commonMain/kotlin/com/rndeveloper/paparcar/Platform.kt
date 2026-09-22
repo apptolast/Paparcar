@@ -20,6 +20,23 @@ expect val appVersion: String
 expect val isBatteryOptimizationRelevant: Boolean
 
 /**
+ * Whether pairing the car's Bluetooth can change how parking is detected on this platform.
+ *
+ * Android: true — the deterministic BT lane exists (ACL connect/disconnect of the paired MAC),
+ * and pairing is the single jump to the Automatic tier.
+ * iOS: false — no third-party API delivers Classic BT (A2DP/HFP) connect/disconnect events, so
+ * the BT lane is structurally impossible and the resolver always runs the Coordinator. Every
+ * surface that sells the pairing (permission row, Settings improvement row) hides behind this
+ * flag so iOS never promises a tier it cannot reach.
+ * [IOS-A-BT-LANE-NEEDS-A-REAL-SIGNAL-001]
+ *
+ * ⚠️ Must agree with `DeviceCapabilities.supportsBtStrategy` (per-platform DI module): this val
+ * gates what the UI paints, the capability gates what the domain promises. They are the same
+ * platform fact written where each consumer can reach it.
+ */
+expect val isBtStrategyRelevant: Boolean
+
+/**
  * Tankerkönig API key for Germany's fuel prices. [FUEL-GERMANY-THE-FEED-ANSWERS-WHOLE-001]
  *
  * Personal and gitignored (`local.properties → GermanyFuelStationKey` — the repo is public), so a

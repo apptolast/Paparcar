@@ -86,6 +86,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.SubcomposeAsyncImage
 import com.rndeveloper.paparcar.isBatteryOptimizationRelevant
+import com.rndeveloper.paparcar.isBtStrategyRelevant
 import com.rndeveloper.paparcar.domain.diagnostics.DiagnosticsReport
 import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.domain.error.PaparcarError
@@ -740,26 +741,33 @@ private fun DetectionSectionCard(state: SettingsState, onIntent: (SettingsIntent
                 onFix = { onIntent(SettingsIntent.FixDetectionPermissions) },
                 onFixReliability = { onIntent(SettingsIntent.FixDetectionReliability) },
             )
-            PapDivider()
-            // Optional one-time setup rows — improvements, never blockers
-            MiniHeader(stringResource(Res.string.settings_detection_improve))
-            ImprovementRow(
-                icon = Icons.Rounded.Bluetooth,
-                title = stringResource(Res.string.settings_detection_bt_title),
-                description = stringResource(Res.string.settings_detection_bt_desc),
-                configured = state.btDeviceConfigured,
-                onClick = { onIntent(SettingsIntent.ConfigureBluetooth) },
-            )
-            // Battery exemption is Android-only (Doze/OEM killers) — hidden on iOS. [SETTINGS-REMODEL-001]
-            if (isBatteryOptimizationRelevant) {
+            // Las mejoras son promesas por plataforma: el carril BT no existe en iOS (emparejar no
+            // cambia nada y la pantalla de emparejar listaría cero dispositivos) y la exención de
+            // batería es un concepto Android. Sin mejoras que ofrecer, la sección entera sobra.
+            // [IOS-A-BT-LANE-NEEDS-A-REAL-SIGNAL-001] [SETTINGS-REMODEL-001]
+            if (isBtStrategyRelevant || isBatteryOptimizationRelevant) {
                 PapDivider()
-                ImprovementRow(
-                    icon = Icons.Rounded.BatteryFull,
-                    title = stringResource(Res.string.settings_detection_battery_title),
-                    description = stringResource(Res.string.settings_detection_battery_desc),
-                    configured = state.isBatteryOptimizationExempt,
-                    onClick = { onIntent(SettingsIntent.ConfigureBattery) },
-                )
+                // Optional one-time setup rows — improvements, never blockers
+                MiniHeader(stringResource(Res.string.settings_detection_improve))
+                if (isBtStrategyRelevant) {
+                    ImprovementRow(
+                        icon = Icons.Rounded.Bluetooth,
+                        title = stringResource(Res.string.settings_detection_bt_title),
+                        description = stringResource(Res.string.settings_detection_bt_desc),
+                        configured = state.btDeviceConfigured,
+                        onClick = { onIntent(SettingsIntent.ConfigureBluetooth) },
+                    )
+                }
+                if (isBatteryOptimizationRelevant) {
+                    if (isBtStrategyRelevant) PapDivider()
+                    ImprovementRow(
+                        icon = Icons.Rounded.BatteryFull,
+                        title = stringResource(Res.string.settings_detection_battery_title),
+                        description = stringResource(Res.string.settings_detection_battery_desc),
+                        configured = state.isBatteryOptimizationExempt,
+                        onClick = { onIntent(SettingsIntent.ConfigureBattery) },
+                    )
+                }
             }
         }
     }

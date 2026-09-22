@@ -18,6 +18,12 @@ actual val appVersion: String =
 // iOS has no user-grantable background battery exemption → hide that Settings row. [SETTINGS-REMODEL-001]
 actual val isBatteryOptimizationRelevant: Boolean = false
 
+// No third-party API on iOS delivers the car's Classic BT (A2DP/HFP) connect/disconnect, so the
+// deterministic BT lane cannot exist and pairing unlocks nothing → hide every surface that sells
+// it. Analysis: docs/backlog/ios-a-bt-lane-needs-a-real-signal-001.md
+// [IOS-A-BT-LANE-NEEDS-A-REAL-SIGNAL-001]
+actual val isBtStrategyRelevant: Boolean = false
+
 // Blank on purpose: no key ⇒ Germany's source does not claim, and the map degrades to OSM's honest
 // floor. The key arrives with iOS's own configuration when iOS ships (parked 07-09-2026).
 // [FUEL-GERMANY-THE-FEED-ANSWERS-WHOLE-001]
