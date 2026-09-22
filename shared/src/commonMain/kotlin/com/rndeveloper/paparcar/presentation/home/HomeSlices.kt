@@ -9,7 +9,6 @@ import com.rndeveloper.paparcar.domain.model.ParkingReleaseReason
 import com.rndeveloper.paparcar.domain.model.SearchResult
 import com.rndeveloper.paparcar.domain.model.Spot
 import com.rndeveloper.paparcar.domain.model.SpotReportGate
-import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleMonitoringStatus
@@ -34,6 +33,7 @@ import com.rndeveloper.paparcar.domain.usecase.parkings.NearbyPublicParking
 import com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice
 import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
 import com.rndeveloper.paparcar.presentation.home.model.HomeParkingsSlice
+import com.rndeveloper.paparcar.presentation.home.model.NearbyOrdering
 import com.rndeveloper.paparcar.presentation.home.model.ViewportRefetch
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingsQuery
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsQuery
@@ -679,8 +679,12 @@ fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
  * - a WITHDRAWN spot is not on offer, so it never appears in this list. It deliberately stays in
  *   [HomeState.nearbySpots] so a user who had it selected keeps the selection and gets told what
  *   happened, instead of watching the sheet close under them.
- * - an UNCONFIRMED one is offered, but last. [sortedBy] is stable, so within each group the
- *   existing order survives untouched.
+ * - an UNCONFIRMED one is offered, but last.
+ *
+ * El ORDEN de lo que queda ya no se escribe aquí: lo pone [NearbyOrdering.spots], al lado del de
+ * los otros dos carriles —confirmadas primero, y dentro de cada grupo la más cercana a ti—, porque
+ * la primera fila de un carril es una decisión que no puede tener tres implementaciones.
+ * [HOME-A-LANE-FRAMES-ITS-SETTLED-FIRST-ROW-001]
  */
 /**
  * El primer elemento del carril que se está mirando, como coordenada — o null si ese carril aún no
@@ -696,6 +700,12 @@ fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
  * `fuelStationsShown`, que son las que llevan orden y filtro. Con «Covered» puesto, la cámara volaba
  * a un parking que la lista no enseñaba — y al quitar el filtro aparecía. Ahora las tres ramas leen
  * la lista PINTADA, que es lo que el párrafo de arriba prometía.
+ *
+ * ⛔ **Ni una que todavía no ha llegado.** [HOME-A-LANE-FRAMES-ITS-SETTLED-FIRST-ROW-001] Mientras
+ * el carril carga, lo que hay en la tienda es la respuesta ANTERIOR —la del warm-up, la de la
+ * visita pasada, la recordada del disco— con el ancla nueva ya puesta encima. Encuadrar esa lista
+ * era volar a una fila que la respuesta de verdad iba a mover, y el encuadre es de un solo disparo.
+ * El carril de PLAZAS no tiene este problema: es una suscripción viva, nunca está «preguntando».
  *
  * ⛔ **Y no se encuadra una respuesta que va de otro sitio.** Si la lista contesta sobre donde la
  * cámara ya no está —buscas Madrid estando en Italia— el primer elemento es italiano, y encuadrarlo
@@ -731,6 +741,11 @@ internal fun HomeState.laneFirstPoint(
  * cámara hasta ella porque resulta ser la primera de la lista es justo lo que
  * [HOME-THE-CAMERA-FRAMES-WHAT-THE-LIST-SHOWS-001] existe para impedir.
  * [HOME-A-PAN-MUST-NOT-EMPTY-THE-MAP-001]
+ *
+ * «Asentada» tiene dos mitades y durante un tiempo sólo tuvo una: **de aquí** (el ancla alcanza a
+ * la cámara) y **ya contestada** (`isLoading` bajado). La segunda faltaba, y como el ancla se
+ * estampa al preguntar, la lista de la visita anterior pasaba por respuesta de aquí.
+ * [HOME-A-LANE-FRAMES-ITS-SETTLED-FIRST-ROW-001]
  *
  * ⛔ Nace de que [HOME-THE-CAMERA-FRAMES-WHAT-THE-LIST-SHOWS-001] enseñó a la CÁMARA a no encuadrar
  * una respuesta de otra ciudad, y dejó a la LISTA sin aprenderlo: buscando Madrid desde Italia, las
@@ -792,14 +807,27 @@ internal fun HomeState.laneAnsweringHere(cameraLat: Double?, cameraLon: Double?)
     // guarda, una lista vacía «se vaciaba» otra vez y el estado se copiaba en cada movimiento de
     // cámara, que es justo lo que [HOME-A-PROJECTION-IS-COMPUTED-ONCE-001] acaba de quitar de en
     // medio. No hay filas de otro sitio que esconder cuando no hay filas.
-    val parkingsStale = parkings.parkings.isNotEmpty() && !ViewportRefetch.answerCoversCamera(
-        parkings.anchorLat, parkings.anchorLon, cameraLat, cameraLon,
-        radiusMeters = PublicParkingsQuery.DEFAULT_RADIUS_METERS, byZone = true,
-    )
-    val fuelStale = fuel.stations.isNotEmpty() && !ViewportRefetch.answerCoversCamera(
-        fuel.anchorLat, fuel.anchorLon, cameraLat, cameraLon,
-        radiusMeters = FuelStationsQuery.DEFAULT_RADIUS_METERS,
-    )
+    //
+    // ⛔ **Y un carril que todavía está preguntando tampoco ha contestado de aquí.**
+    // [HOME-A-LANE-FRAMES-ITS-SETTLED-FIRST-ROW-001] El ancla se estampa al PREGUNTAR —
+    // `fetchFuelStations` / `fetchPublicParkings` escriben `isLoading = true` y el ancla nueva en la
+    // misma línea— y la lista anterior no se vacía mientras la nueva vuela (en parkings el disco la
+    // pinta a propósito [PARKINGS-A-REMEMBERED-MAP-ANSWERS-BEFORE-THE-NETWORK-001]). Así que sin
+    // esto la pregunta estricta contestaba «sí, va de aquí» sobre la lista de la visita ANTERIOR, y
+    // el encuadre del cambio de carril —su único cliente, y de un solo disparo— volaba a una fila
+    // que la respuesta de verdad no iba a poner primera. Issue #124.
+    val parkingsStale = parkings.parkings.isNotEmpty() && (
+        parkings.isLoading || !ViewportRefetch.answerCoversCamera(
+            parkings.anchorLat, parkings.anchorLon, cameraLat, cameraLon,
+            radiusMeters = PublicParkingsQuery.DEFAULT_RADIUS_METERS, byZone = true,
+        )
+        )
+    val fuelStale = fuel.stations.isNotEmpty() && (
+        fuel.isLoading || !ViewportRefetch.answerCoversCamera(
+            fuel.anchorLat, fuel.anchorLon, cameraLat, cameraLon,
+            radiusMeters = FuelStationsQuery.DEFAULT_RADIUS_METERS,
+        )
+        )
     if (!parkingsStale && !fuelStale) return this
     return copy(
         parkings = if (parkingsStale) parkings.copy(parkings = emptyList()) else parkings,
@@ -808,11 +836,13 @@ internal fun HomeState.laneAnsweringHere(cameraLat: Double?, cameraLon: Double?)
 }
 
 internal fun HomeState.filteredNearbySpots(): List<Spot> =
-    nearbySpots
-        .filter { it.status.isAvailable }
-        .filterNot { isMyOwnLiveSession(it) }
-        .filter { sizeFilter == null || it.sizeCategory == null || it.sizeCategory == sizeFilter }
-        .sortedBy { it.status == SpotStatus.PROVISIONAL }
+    NearbyOrdering.spots(
+        spots = nearbySpots
+            .filter { it.status.isAvailable }
+            .filterNot { isMyOwnLiveSession(it) }
+            .filter { sizeFilter == null || it.sizeCategory == null || it.sizeCategory == sizeFilter },
+        user = userGpsPoint,
+    )
 
 /**
  * Is this "free spot" actually MY OWN car, still parked?

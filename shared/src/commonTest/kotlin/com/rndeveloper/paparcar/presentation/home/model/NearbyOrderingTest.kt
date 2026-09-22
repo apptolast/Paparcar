@@ -5,6 +5,8 @@ import com.rndeveloper.paparcar.domain.fuel.StationPrice
 import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.Money
+import com.rndeveloper.paparcar.domain.model.Spot
+import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.domain.parkings.PublicParking
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingKind
 import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
@@ -149,6 +151,58 @@ class NearbyOrderingTest {
             shown.map { it.station.id },
             "por precio manda el precio; las que no tienen se van al final, ordenadas por distancia",
         )
+    }
+
+    // ── Plazas [HOME-A-LANE-FRAMES-ITS-SETTLED-FIRST-ROW-001] ──────────────────────────────────
+
+    private fun spot(id: String, northMeters: Double, status: SpotStatus = SpotStatus.CONFIRMED) = Spot(
+        id = id,
+        location = GpsPoint(latNorth(northMeters), user.longitude, 10f, 0L, 0f),
+        reportedBy = "u",
+        status = status,
+    )
+
+    @Test
+    fun should_listTheNearestSpotFirst_when_thereIsAFix() {
+        // ⛔ EL TESTIGO de la issue #124: el carril del PRODUCTO era el único sin criterio de
+        // lectura, así que su primera fila —y lo que encuadra la cámara al entrar— era la plaza que
+        // el feed hubiera contestado primero.
+        val shown = NearbyOrdering.spots(
+            spots = listOf(spot("far", 2_000.0), spot("near", 80.0), spot("mid", 600.0)),
+            user = user,
+        )
+
+        assertEquals(listOf("near", "mid", "far"), shown.map { it.id })
+    }
+
+    @Test
+    fun should_keepAnUnconfirmedSpotLast_when_itIsTheNearestOne() {
+        // La distancia ordena DENTRO del grupo; de qué nos fiamos sigue mandando por encima.
+        val shown = NearbyOrdering.spots(
+            spots = listOf(
+                spot("unconfirmed-next-door", 10.0, SpotStatus.PROVISIONAL),
+                spot("confirmed-far", 3_000.0),
+            ),
+            user = user,
+        )
+
+        assertEquals(listOf("confirmed-far", "unconfirmed-next-door"), shown.map { it.id })
+    }
+
+    @Test
+    fun should_keepTheSourceOrder_when_thereIsNoFixToMeasureFrom() {
+        // Sin fix no hay «más cercana»: no se inventa un orden, se conserva el de la fuente — y el
+        // agrupado por estado, que no necesita medir nada, se aplica igual.
+        val shown = NearbyOrdering.spots(
+            spots = listOf(
+                spot("b", 2_000.0),
+                spot("provisional", 10.0, SpotStatus.PROVISIONAL),
+                spot("a", 80.0),
+            ),
+            user = null,
+        )
+
+        assertEquals(listOf("b", "a", "provisional"), shown.map { it.id })
     }
 
     /** Los surtidores se copian el precio a la milésima: el empate lo rompe la distancia. */

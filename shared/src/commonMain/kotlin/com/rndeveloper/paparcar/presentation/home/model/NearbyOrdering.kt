@@ -2,6 +2,8 @@ package com.rndeveloper.paparcar.presentation.home.model
 
 import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.GpsPoint
+import com.rndeveloper.paparcar.domain.model.Spot
+import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.domain.fuel.fuelStandouts
 import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
 import com.rndeveloper.paparcar.domain.usecase.parkings.NearbyPublicParking
@@ -23,8 +25,41 @@ import com.rndeveloper.paparcar.domain.util.haversineMeters
  *   [MAP-A-PIN-IS-PRICED-FOR-THE-CAR-YOU-DRIVE-001]
  * - **Car parks: nearest first**, nothing else — OSM carries no price figure for them, and "fee
  *   known" was explicitly not made a priority.
+ * - **Free spots: confirmed first, nearest first inside each group.** [HOME-A-LANE-FRAMES-ITS-SETTLED-FIRST-ROW-001]
  */
 object NearbyOrdering {
+
+    /**
+     * Las plazas del carril, **en el orden en que se leen**: las confirmadas antes que las que
+     * están sin confirmar, y dentro de cada grupo la que tienes más cerca.
+     * [HOME-A-LANE-FRAMES-ITS-SETTLED-FIRST-ROW-001]
+     *
+     * ⛔ Este orden vivía escrito a mano en `HomeState.filteredNearbySpots()` y era **sólo** el
+     * `sortedBy { PROVISIONAL }`: dentro de cada grupo mandaba el orden en que contestó el feed. O
+     * sea que el carril del PRODUCTO era el único de los tres sin criterio de lectura, y su primera
+     * fila —la que encuadra la cámara al cambiar de carril y por la que empieza el stepper ‹ / ›—
+     * era una plaza cualquiera. Issue #124.
+     *
+     * Se mide desde el USUARIO, como las otras dos y como la propia fila de plaza. **Sin fix no se
+     * ordena**: una distancia que no se ha medido no puede decidir qué va primero, y el orden de la
+     * fuente es tan bueno como cualquier invento. El agrupado por estado sí se aplica siempre — no
+     * necesita medir nada.
+     *
+     * ⛔ La distancia NO desempata el estado: una plaza sin confirmar a diez metros sigue detrás de
+     * una confirmada a un kilómetro. Lo que decide el orden primero es de qué nos fiamos, igual que
+     * antes de este ticket. [DET-HANDOFF-NOT-MANUAL-001 §B.3]
+     */
+    fun spots(spots: List<Spot>, user: GpsPoint?): List<Spot> {
+        val unconfirmedLast = compareBy<Spot> { it.status == SpotStatus.PROVISIONAL }
+        // `sortedWith` es estable, así que sin usuario el orden de la fuente sobrevive dentro de
+        // cada grupo — exactamente lo que hacía el `sortedBy` al que sustituye.
+        val order = user?.let { fix ->
+            unconfirmedLast.thenBy { spot ->
+                haversineMeters(fix.latitude, fix.longitude, spot.location.latitude, spot.location.longitude)
+            }
+        } ?: unconfirmedLast
+        return spots.sortedWith(order)
+    }
 
     /**
      * El CONJUNTO: las mismas gasolineras, cotizadas para el coche que conduces y medidas desde el

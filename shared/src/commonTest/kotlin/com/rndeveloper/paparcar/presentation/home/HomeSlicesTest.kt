@@ -305,6 +305,58 @@ class HomeSlicesTest {
     }
 
     @Test
+    fun should_frameNothing_when_theLaneIsStillAsking() {
+        // ⛔ EL TESTIGO de la issue #124, mitad temporal. El ancla se estampa al PREGUNTAR, así que
+        // mientras la respuesta vuela la tienda tiene la lista de la visita anterior CON el ancla
+        // nueva encima: la pregunta estricta contestaba «sí, va de aquí» y el encuadre —de un solo
+        // disparo— se gastaba en una fila que la respuesta de verdad iba a mover.
+        val asking = HomeState(
+            nearbyLens = HomeNearbyLens.PARKINGS,
+            parkings = HomeParkingsSlice(
+                isLoading = true,
+                parkings = listOf(nearbyParking("from-the-last-visit")),
+                anchorLat = 40.4168,
+                anchorLon = -3.7038,
+            ),
+        )
+
+        assertNull(
+            asking.laneFirstPoint(cameraLat = 40.4168, cameraLon = -3.7038),
+            "un carril que todavía pregunta no tiene primera fila que encuadrar",
+        )
+        assertNotNull(
+            asking.copy(parkings = asking.parkings.copy(isLoading = false))
+                .laneFirstPoint(cameraLat = 40.4168, cameraLon = -3.7038),
+            "…y en cuanto la respuesta asienta, la misma lista sí encuadra",
+        )
+    }
+
+    @Test
+    fun should_frameTheNearestSpot_when_theSpotsLaneIsShowing() {
+        // ⛔ EL TESTIGO de la issue #124, mitad del orden: el carril de plazas no tenía ninguno, así
+        // que su primera fila era la que el feed hubiera contestado primero. Lo que encuadra la
+        // cámara y lo que encabeza la hoja tienen que ser la MISMA plaza, y esa es la de al lado.
+        val far = spot("far").copy(location = gps.copy(latitude = gps.latitude + 0.05))
+        val near = spot("near").copy(location = gps.copy(latitude = gps.latitude + 0.001))
+        val state = HomeState(
+            nearbyLens = HomeNearbyLens.SPOTS,
+            userGpsPoint = gps,
+            nearbySpots = listOf(far, near),
+        )
+
+        val framed = state.laneFirstPoint(cameraLat = gps.latitude, cameraLon = gps.longitude)
+        val firstRow = state.toBrowseListSlice().filteredSpots.first()
+
+        assertEquals("near", firstRow.id, "la hoja encabeza con la plaza más cercana")
+        assertEquals(near.location.latitude to near.location.longitude, framed)
+        assertEquals(
+            firstRow.location.latitude to firstRow.location.longitude,
+            framed,
+            "la cámara encuadra exactamente la fila que la hoja pone primera",
+        )
+    }
+
+    @Test
     fun should_frameNothing_when_theAnswerIsAboutSomewhereElse() {
         // ⛔ Buscas Madrid estando en Italia: la lista todavía contesta de Italia, y encuadrar su
         // primer elemento devolvía la cámara de donde el usuario acababa de sacarla. Se espera a la
