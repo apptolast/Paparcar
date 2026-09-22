@@ -283,6 +283,9 @@ internal fun HomeVehicleCard(
     val watch = vehicle.monitoringStatus().watch()
     // Identity colour = watch method; the state below stays neutral. [UI-COLOR-DOCTRINE-001]
     val accent = vehicleIdentityColor(watch)
+    /** Hay cápsula de stop debajo del pie — y entonces el aire inferior es SUYO, no del pie.
+     *  [UI-A-PILL-IS-FOR-A-LABEL-NOT-A-SENTENCE-002] */
+    val stopStacksBelow = isDriving && onStopTrip != null
 
     Surface(
         onClick = onClick,
@@ -333,7 +336,11 @@ internal fun HomeVehicleCard(
                     // arranca pegado al borde mientras la ultima linea de texto trae su descenso debajo, asi
                     // que 12 arriba se ven menos que 12 abajo. Subir el par empata lo que se VE, que es lo
                     // que se estaba mirando. [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
-                    modifier = Modifier.padding(start = 14.dp, end = 12.dp, top = CARD_V_PAD_DP.dp),
+                    modifier = Modifier.padding(
+                        start = CARD_PAD_START_DP.dp,
+                        end = CARD_PAD_END_DP.dp,
+                        top = CARD_V_PAD_DP.dp,
+                    ),
                     // El chevron canónico de fila, no uno propio: era un `ChevronRight` de 22 dp,
                     // un tercer tamaño para el mismo hecho. [UI-A-CHEVRON-MUST-SIT-ON-THE-CARD-RAIL-001]
                     trailing = { PapNavChevron() },
@@ -364,12 +371,23 @@ internal fun HomeVehicleCard(
                         gap = CARD_FOOT_GAP_DP.dp,
                         maxPlaceLines = FOOT_MAX_LINES,
                         modifier = Modifier
-                            .padding(start = 14.dp, end = 12.dp, bottom = CARD_V_PAD_DP.dp)
+                            .padding(
+                                start = CARD_PAD_START_DP.dp,
+                                end = CARD_PAD_END_DP.dp,
+                                bottom = CARD_V_PAD_DP.dp,
+                            )
                             .fillMaxWidth(),
                     )
                 } else Row(
                     modifier = Modifier
-                        .padding(start = 14.dp, end = 12.dp, bottom = CARD_V_PAD_DP.dp)
+                        .padding(
+                            start = CARD_PAD_START_DP.dp,
+                            end = CARD_PAD_END_DP.dp,
+                            // El aire de abajo se lo queda la cápsula cuando hay cápsula: si lo
+                            // llevaran los dos, la card conduciendo crecería 14 dp respecto a sí
+                            // misma aparcada. [UI-A-PILL-IS-FOR-A-LABEL-NOT-A-SENTENCE-002]
+                            bottom = if (stopStacksBelow) 0.dp else CARD_V_PAD_DP.dp,
+                        )
                         .heightIn(min = FOOT_MIN_HEIGHT_DP.dp)
                         .fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -389,13 +407,14 @@ internal fun HomeVehicleCard(
                         // WHERE the trip is rides on the same line now, after the state, instead of
                         // costing a second one. [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001]
                         isDriving -> {
-                            // The texts share an inner row that claims the leftover width, so the
-                            // stop pill sits at the trailing edge and a long street can never push
-                            // it off. [HOME-A-DRIVE-IS-ONE-NEWS-AND-THE-CARD-CARRIES-THE-STOP-001]
+                            // Los dos textos comparten una fila que se queda TODO el ancho que
+                            // sobra — y desde que la cápsula no compite por él, eso es el ancho
+                            // entero de la card: la calle es la que se elide, por su propio
+                            // espacio. [UI-A-PILL-IS-FOR-A-LABEL-NOT-A-SENTENCE-002]
                             Row(
                                 modifier = Modifier.weight(1f),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(CARD_FOOT_GAP_DP.dp),
                             ) {
                                 Text(
                                     text = stringResource(
@@ -419,19 +438,13 @@ internal fun HomeVehicleCard(
                                     )
                                 }
                             }
-                            // «Parar» INLINE: this foot has the width the chip's lacks, and a
-                            // four-letter CTA does not earn a full-width band (measured for the
-                            // story row it replaces). [UI-DET-STOP-BELONGS-BESIDE-THE-STORY-001]
-                            // [DET-STOP-BUTTON-001]
-                            if (onStopTrip != null) {
-                                PapCtaPill(
-                                    label = stringResource(Res.string.home_det_driving_stop_cta),
-                                    container = accent.copy(alpha = STOP_PILL_TINT_ALPHA),
-                                    content = accent,
-                                    onClick = onStopTrip,
-                                    height = STOP_PILL_HEIGHT_DP.dp,
-                                )
-                            }
+                            // ⛔ AQUÍ YA NO HAY BOTÓN. Estuvo inline, y el comentario que lo
+                            // defendía decía «a four-letter CTA does not earn a full-width band»
+                            // — cierto cuando el label era «Parar», falso desde que es «No voy en
+                            // mi coche» (23 chars en italiano). La cápsula se medía a ancho
+                            // intrínseco y le comía la línea a lo único vivo del viaje: dónde está
+                            // el coche AHORA. Baja, entera, debajo.
+                            // [UI-A-PILL-IS-FOR-A-LABEL-NOT-A-SENTENCE-002] (issue #116)
                         }
                         // ⛔ La PREGUNTA, no la etiqueta. Decia «Mark parking» en verde, que es el
                         // nombre del boton puesto donde va el estado; la fila de arranque en frio
@@ -446,6 +459,35 @@ internal fun HomeVehicleCard(
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
+                }
+
+                // «No voy en mi coche» — APILADA a ancho completo, exactamente igual que en el
+                // chip. Antes cada superficie colocaba este botón a su manera y la diferencia se
+                // defendía por el hueco disponible; con el label convertido en frase, el hueco
+                // dejó de existir en las dos. Un solo botón, un solo sitio.
+                // [UI-A-PILL-IS-FOR-A-LABEL-NOT-A-SENTENCE-002] [DET-STOP-BUTTON-001]
+                //
+                // ⛔ Y no pasa por `ctaFitsInline`: ese predicado gobierna el hueco *trailing* de
+                // una fila, donde el vecino es copy acotado que PUEDE envolver a dos líneas. Aquí
+                // el vecino es una sola línea con el nombre de una calle, que no tiene tope; un
+                // botón al lado se lo come siempre, mida lo que mida.
+                if (isDriving && onStopTrip != null) {
+                    Spacer(Modifier.height(CHIP_FOOT_GAP_DP.dp))
+                    PapCtaPill(
+                        label = stringResource(Res.string.home_det_driving_stop_cta),
+                        container = accent.copy(alpha = STOP_PILL_TINT_ALPHA),
+                        content = accent,
+                        onClick = onStopTrip,
+                        modifier = Modifier
+                            .padding(
+                                start = CARD_PAD_START_DP.dp,
+                                end = CARD_PAD_END_DP.dp,
+                                bottom = CARD_V_PAD_DP.dp,
+                            )
+                            .fillMaxWidth(),
+                        fillWidth = true,
+                        height = STOP_PILL_HEIGHT_DP.dp,
+                    )
                 }
             }
         }
@@ -609,6 +651,13 @@ private const val CARD_V_PAD_DP = 14
 
 /** La franja de estado del canto: mismo grosor que la de la superficie de deteccion. */
 private const val ACCENT_BAR_DP = 4
+
+/** Aire lateral del contenido de la card grande. Asimétrico a propósito: el `start` arranca
+ *  después de la franja de acento de 4 dp, el `end` no tiene franja que descontar. Estaban
+ *  escritos a mano en tres sitios y la cápsula apilada iba a ser el cuarto.
+ *  [UI-A-PILL-IS-FOR-A-LABEL-NOT-A-SENTENCE-002] */
+private const val CARD_PAD_START_DP = 14
+private const val CARD_PAD_END_DP = 12
 
 private const val CHIP_MIN_WIDTH_DP = 150
 private const val CHIP_MAX_WIDTH_DP = 200

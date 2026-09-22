@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.presentation.home.sections.sheet.components
 
+import com.rndeveloper.paparcar.ui.components.ctaFitsInline
 import com.rndeveloper.paparcar.ui.components.PapCtaPill
 import com.rndeveloper.paparcar.ui.components.PapIconTile
 import com.rndeveloper.paparcar.ui.components.PapListItem
@@ -326,7 +327,12 @@ private fun ActionRow(
     onSecondary: () -> Unit = {},
     /** Single-CTA stories that stack the button FULL-WIDTH below (title + subtitle keep the full row
      *  width, never truncate) — for the alert watch rows whose copy + car name won't fit inline.
-     *  [DET-WATCH-HONEST-001] */
+     *  [DET-WATCH-HONEST-001]
+     *
+     *  ⛔ **Ya no es la única razón para bajar, y nunca debió ser la única.** Esto lo pide la FILA
+     *  por su subtítulo; que el LABEL quepa lo decide `ctaFitsInline` solo, sin que nadie se acuerde
+     *  de pasar nada — que es lo que falló cuando un copy corto se volvió una frase.
+     *  [UI-A-PILL-IS-FOR-A-LABEL-NOT-A-SENTENCE-002] */
     primaryStacksBelow: Boolean = false,
     /**
      * The secondary CTA is the NEGATIVE ANSWER to the title's question, not a second action — so it
@@ -394,6 +400,17 @@ private fun ActionRow(
             modifier = Modifier.weight(1f).padding(bottom = CONTENT_VERTICAL_DP.dp),
             verticalArrangement = Arrangement.spacedBy(CTA_ROW_GAP_DP.dp),
         ) {
+            // ¿Al lado o debajo? UNA pregunta, respondida una vez y leída en los dos sitios que
+            // antes la respondían por separado. [UI-A-PILL-IS-FOR-A-LABEL-NOT-A-SENTENCE-002]
+            //
+            // Dos razones distintas para bajar, y las dos cuentan:
+            //  · [primaryStacksBelow] — la FILA lo pide, por su SUBTÍTULO (78 y 126 chars en las
+            //    filas de vigilancia frágil e interrumpida): no sobrevive al recorte de anchura.
+            //  · [ctaFitsInline] — el LABEL no cabe, lo pida la fila o no. Esta es la que faltaba:
+            //    `home_det_awaiting_cta_primary` mide 25 chars en francés («Marquer mon
+            //    stationnement») y se pintaba inline siempre que no hubiera CTA secundario.
+            val stacksPrimary = primaryLabel != null &&
+                (primaryStacksBelow || !ctaFitsInline(primaryLabel))
             // La MISMA fila que las plazas, las gasolineras y los parkings: tile - titulo - sublinea
             // - trailing. Este bloque tenia su propia anatomia a mano, y era (con la card del coche)
             // uno de los dos unicos sitios del sheet que no usaba el esqueleto que el proyecto
@@ -412,7 +429,7 @@ private fun ActionRow(
                 ),
                 // Single-CTA states keep the button INLINE on the right (the subtitle wraps to two
                 // lines instead of truncating). Filled on error, tonal otherwise. [DET-READY-001h]
-                trailing = if (secondaryLabel == null && primaryLabel != null && !primaryStacksBelow) {
+                trailing = if (secondaryLabel == null && primaryLabel != null && !stacksPrimary) {
                     {
                         PapCtaPill(
                             label = primaryLabel,
@@ -430,17 +447,17 @@ private fun ActionRow(
             // padding inferior, la card de «vigilando» llevaba ~24 dp abajo contra 12 arriba y se
             // leia descentrada. Un contenedor vacio no ocupa nada, pero el ESPACIO entre hermanos si.
             // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
-            val stacksSomething = (primaryLabel != null && primaryStacksBelow) ||
-                (secondaryLabel != null && primaryLabel != null)
+            val stacksSomething = stacksPrimary || (secondaryLabel != null && primaryLabel != null)
             if (stacksSomething) {
             Column(
                 modifier = Modifier.padding(horizontal = CONTENT_START_DP.dp),
                 verticalArrangement = Arrangement.spacedBy(CTA_ROW_GAP_DP.dp),
             ) {
                 // Single CTA stacked full-width below: title + subtitle got the full row width above.
-                // For the alert watch rows (fragile / interrupted). [DET-WATCH-HONEST-001]
-                // `primaryLabel != null` lo garantiza ya el guard de arriba — el compilador lo dice.
-                if (secondaryLabel == null && primaryStacksBelow) {
+                // For the alert watch rows (fragile / interrupted) [DET-WATCH-HONEST-001] — y para
+                // cualquier fila cuyo label sea una frase. [UI-A-PILL-IS-FOR-A-LABEL-NOT-A-SENTENCE-002]
+                // `primaryLabel != null` lo lleva dentro `stacksPrimary` — el compilador lo dice.
+                if (secondaryLabel == null && stacksPrimary) {
                     PapCtaPill(
                         label = primaryLabel,
                         container = if (tone.isError) tone.accent else tone.container,
