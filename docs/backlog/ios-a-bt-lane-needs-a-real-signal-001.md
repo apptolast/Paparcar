@@ -1,7 +1,7 @@
 # IOS-A-BT-LANE-NEEDS-A-REAL-SIGNAL-001 · El carril BT de iOS necesita una señal real, no un sucedáneo
 
-**Estado:** 🔵 En progreso · rama `feature/IOS-A-BT-LANE-NEEDS-A-REAL-SIGNAL-001-ios-bt-lane` ·
-worktree `../Paparcar-ios-bt-lane` · issue GitHub **#74**
+**Estado:** ✅ Done · issue GitHub **#74** · PR **#122** (squash; el hash vive en MEMORY.md) ·
+⏳ verificación visual en iPhone pendiente (desde Windows no hay simulador)
 
 ## Problema
 
