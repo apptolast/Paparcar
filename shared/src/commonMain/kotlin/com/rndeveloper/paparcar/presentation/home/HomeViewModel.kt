@@ -48,6 +48,7 @@ import com.rndeveloper.paparcar.domain.model.SpotReportGate
 import com.rndeveloper.paparcar.domain.model.SpotVoteOutcome
 import com.rndeveloper.paparcar.domain.usecase.spot.SendSpotSignalUseCase
 import com.rndeveloper.paparcar.presentation.util.distanceMeters
+import com.rndeveloper.paparcar.presentation.util.resilient
 import com.rndeveloper.paparcar.domain.event.MapFocusEventBus
 import com.rndeveloper.paparcar.domain.event.ShowParkingAskEventBus
 import com.rndeveloper.paparcar.domain.event.StartAddParkingEventBus
@@ -178,7 +179,12 @@ class HomeViewModel(
      * high-frequency updates. [DRIVE-PUCK-NATIVE-001]
      */
     val tripRender: StateFlow<TripUpdate> =
-        trip.updates.stateIn(viewModelScope, SharingStarted.Eagerly, TripUpdate.IDLE)
+        // ⛔ `stateIn` sin protección era la última puerta abierta: cualquier excepción del carril
+        // del viaje mataba ESTA corrutina y dejaba el mapa congelado hasta reiniciar la app, sin
+        // crash y sin traza. Las fuentes de dentro ya son resistentes; esto es la red que garantiza
+        // que la superficie del viaje no puede quedarse muerta por nada.
+        // [HOME-A-LIVE-STREAM-MUST-NOT-DIE-IN-SILENCE-001]
+        trip.updates.resilient("tripRender").stateIn(viewModelScope, SharingStarted.Eagerly, TripUpdate.IDLE)
 
     private var cameraSettledJob: Job? = null
 
@@ -1929,8 +1935,10 @@ class HomeViewModel(
     /**
      * The ONE way this VM collects a Flow. Errors never kill the stream's host scope
      * and follow a single policy:
-     *  - default (log-only): log and keep serving the last good value — right for repo/
-     *    controller streams where the UI can keep rendering the cache;
+     *  - default: la suscripción **vuelve** — reintento con backoff vía [resilient], y mientras
+     *    tanto la UI sigue sirviendo el último valor bueno. ⛔ Antes esto terminaba el flujo, que es
+     *    lo mismo hasta que llega el valor siguiente y lo contrario a partir de ahí.
+     *    [HOME-A-LIVE-STREAM-MUST-NOT-DIE-IN-SILENCE-001]
      *  - [notify] set: ALSO surface a snackbar via [HomeEffect.ShowError] — reserved for
      *    streams whose silent failure would leave the user acting on stale CRITICAL data
      *    (active sessions) or wondering why a core capability vanished (GPS).
@@ -1943,10 +1951,15 @@ class HomeViewModel(
         action: suspend (T) -> Unit,
     ) {
         onEach { value -> action(value) }
-            .catch { e ->
-                PaparcarLogger.e(TAG, "$label stream error", e)
-                notify?.let { sendEffect(HomeEffect.ShowError(it(e))) }
-            }
+            // ⛔ Aquí había un `.catch` y nada más, y eso NO es una política de errores: registra y
+            // **termina el flujo**. La suscripción no volvía nunca — y como este ViewModel vive lo
+            // que vive la pantalla, «nunca» significaba hasta que el usuario reiniciaba la app.
+            // Issue #127: el mapa dejaba de pintar la ruta y el coche a mitad de viaje mientras la
+            // detección seguía funcionando perfectamente al otro lado de un stream que ya no
+            // existía. La frase de arriba («keep serving the last good value») era literalmente
+            // cierta y por eso no delataba nada: servía el último valor bueno para siempre.
+            // [HOME-A-LIVE-STREAM-MUST-NOT-DIE-IN-SILENCE-001]
+            .resilient(label) { e -> notify?.let { sendEffect(HomeEffect.ShowError(it(e))) } }
             .launchIn(viewModelScope)
     }
 

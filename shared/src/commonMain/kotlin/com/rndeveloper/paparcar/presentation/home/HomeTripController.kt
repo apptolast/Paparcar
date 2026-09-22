@@ -20,6 +20,7 @@ import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import com.rndeveloper.paparcar.domain.util.haversineMeters
+import com.rndeveloper.paparcar.presentation.util.resilient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -130,11 +131,21 @@ class HomeTripController(
         // route origin survives a cold restart. [DET-ROUTE-ORIGIN-002]
         var activeSessions = emptyList<UserParking>()
 
+        // ⛔ Estos dos colectores estaban SUELTOS: sin catch y sin retry, dentro de un `channelFlow`.
+        // Un fallo de cualquiera de los dos tumbaba al hijo, el hijo al `channelFlow`, y la
+        // excepción subía hasta el `stateIn` de `tripRender`, que tampoco tenía protección — así
+        // que la superficie entera del viaje (puck, traza, origen) se quedaba CONGELADA para
+        // siempre, sin un crash ni una línea, hasta recrear el ViewModel. Issue #127.
+        //
+        // Y no es teórico: la lectura de sesiones activas se cancela de verdad en campo — 86
+        // eventos de `JobCancellationException` sobre esa misma llamada, en 14 usuarios, contados
+        // por la red de seguridad porque SU etiqueta sí llega al parkdiag.
+        // [HOME-A-LIVE-STREAM-MUST-NOT-DIE-IN-SILENCE-001]
         launch {
-            vehicleRepository.observeVehicles().collect { vehicles = it }
+            vehicleRepository.observeVehicles().resilient("trip:vehicles").collect { vehicles = it }
         }
         launch {
-            userParkingRepository.observeActiveSessions().collect { activeSessions = it }
+            userParkingRepository.observeActiveSessions().resilient("trip:sessions").collect { activeSessions = it }
         }
 
         // ── Map-matching pipeline ─────────────────────────────────────────────────
@@ -183,6 +194,10 @@ class HomeTripController(
         // a trip. Subscribes the heading-aware high-accuracy stream just for that window
         // (battery-bounded). Null otherwise → the map falls back to the native location dot. [MAP-ICONS-V2]
         observeDetectionReadiness()
+            // La misma red que los dos colectores de arriba, por la misma razón: este carril ES la
+            // superficie del viaje, y un fallo aquí la apagaba entera sin decirlo.
+            // [HOME-A-LIVE-STREAM-MUST-NOT-DIE-IN-SILENCE-001]
+            .resilient("trip:readiness")
             .map { it as? DetectionReadiness.Monitoring }
             .distinctUntilChanged()
             .flatMapLatest { monitoring ->
