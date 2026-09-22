@@ -586,10 +586,16 @@ Dependencies/
 # For more information about the recommended setup visit:
 # https://docs.fastlane.tools/best-practices/source-control/#source-control
 
-fastlane/report.xml
-fastlane/Preview.html
-fastlane/screenshots/**/*.png
-fastlane/test_output
+# ⛔ `**/`, no `fastlane/…` a secas. Un patrón con una barra EN MEDIO está anclado al directorio
+# del .gitignore, o sea a la raíz del repo — y el fastlane de este proyecto vive en `iosApp/`, así
+# que estas cuatro reglas no tapaban nada. Se vio al preparar #61: el commit de la feature arrastró
+# **53 ficheros** de fastlane (el `report.xml`, el README generado y 51 capturas de iPhone) dentro
+# de un cambio de tres pantallas. [MONEY-A-PROMO-CODE-IS-REDEEMED-WHERE-THE-STORE-LIVES-001]
+**/fastlane/report.xml
+**/fastlane/Preview.html
+**/fastlane/README.md
+**/fastlane/screenshots/**/*.png
+**/fastlane/test_output
 
 # Code Injection
 # After new code Injection tools there's a generated folder /iOSInjectionProject

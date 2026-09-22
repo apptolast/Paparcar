@@ -794,6 +794,7 @@
     <string name="paywall_cta_buy">Plus voor %1$s</string>
     <string name="paywall_billing_note">Wordt automatisch verlengd. Zeg altijd op via de store. Jouw abonnement betaalt de servers.</string>
     <string name="paywall_restore">Al geabonneerd? Herstellen</string>
+    <string name="paywall_redeem_code">Ik heb een code</string>
     <string name="paywall_restore_none">Geen abonnement gevonden op dit Google-account.</string>
     <string name="paywall_purchase_failed">De aankoop is niet gelukt — er is niets in rekening gebracht.</string>
     <string name="settings_plus_title">Paparcar Plus</string>

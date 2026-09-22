@@ -807,6 +807,7 @@
     <string name="paywall_cta_buy">Ia Plus cu %1$s</string>
     <string name="paywall_billing_note">Se reînnoiește automat. Anulează oricând din magazin. Abonamentul tău plătește serverele.</string>
     <string name="paywall_restore">Deja abonat? Restaurează</string>
+    <string name="paywall_redeem_code">Am un cod</string>
     <string name="paywall_restore_none">Niciun abonament pe acest cont Google.</string>
     <string name="paywall_purchase_failed">Achiziția nu s-a finalizat — nu ți s-a perceput nimic.</string>
     <string name="settings_plus_title">Paparcar Plus</string>

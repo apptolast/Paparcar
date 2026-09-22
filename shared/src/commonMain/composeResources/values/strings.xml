@@ -829,6 +829,7 @@
     <string name="paywall_cta_buy">Get Plus for %1$s</string>
     <string name="paywall_billing_note">Renews automatically. Cancel anytime from the store. Your subscription pays for the servers.</string>
     <string name="paywall_restore">Already subscribed? Restore</string>
+    <string name="paywall_redeem_code">I have a code</string>
     <string name="paywall_restore_none">No subscription found on this Google account.</string>
     <string name="paywall_purchase_failed">The purchase didn’t go through — nothing was charged.</string>
     <string name="settings_plus_title">Paparcar Plus</string>
