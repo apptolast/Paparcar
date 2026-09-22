@@ -40,8 +40,36 @@ interface ParkingSyncScheduler {
      * Marks a session as inactive in Firestore via a targeted update() on `isActive`.
      *
      * Mirrors `dao.clearActiveById()` — only the flag is touched, no other fields overwritten. [PIPE-002]
+     *
+     * ⛔ **Un campo: `isActive`.** Ni `endedAtMs`, ni `publishedSpot`, ni `updatedAt`. Es el camino
+     * RÁPIDO, y quien completa el documento es [enqueueParkingSessionSnapshot] — que hay que encolar
+     * aparte, porque durante un tiempo tres comentarios dijeron que esto ya lo cubría alguien.
+     * [SYNC-A-CLOSED-SESSION-MUST-REACH-FIRESTORE-WHOLE-001]
      */
     fun enqueueClearActiveParkingSession(sessionId: String)
+
+    /**
+     * Sube el estado **ACTUAL** de [session] a Firestore como documento completo, ordenado DESPUÉS
+     * de lo que ya esté encolado para ella. [SYNC-A-CLOSED-SESSION-MUST-REACH-FIRESTORE-WHOLE-001]
+     *
+     * Nace de un hueco medido en campo: el espejo remoto de una sesión **cerrada** decía «cerrada»
+     * sin decir cuándo, porque el único push de documento completo que existía
+     * (`pushPendingParkingSessions`) lo dispara `AppViewModel` al ARRANCAR online. Un cierre en
+     * background —el caso normal, la detección cierra con el móvil en el bolsillo— no llegaba entero
+     * hasta que el usuario volvía a abrir la app. Si no la abría, nunca.
+     *
+     * Contrato, y las dos mitades importan:
+     * - **Estado actual, no el del encolado**, siempre que la plataforma pueda releerlo (iOS relee
+     *   Room al drenar; Android lo serializa al encolar, que aquí es equivalente porque la fila ya
+     *   está cerrada cuando se llama).
+     * - **Ordenado detrás**, nunca reemplazando: cancelar la cadena de la sesión se llevaría por
+     *   delante el parche del flag y la actualización de dirección en vuelo.
+     *   [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001]
+     *
+     * ⛔ **Sin implementación por defecto, a propósito.** Un no-op heredado es exactamente cómo una
+     * plataforma se queda sin sincronizar sin que nadie se equivoque. [DET-KOIN-MODULE-VERIFY-001]
+     */
+    fun enqueueParkingSessionSnapshot(session: UserParking)
 
     /**
      * Pushes geocoder-resolved address and POI data to Firestore for an existing session.

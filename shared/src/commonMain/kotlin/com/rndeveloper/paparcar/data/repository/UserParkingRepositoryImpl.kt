@@ -99,12 +99,21 @@ class UserParkingRepositoryImpl(
         publishedSpot: Boolean,
     ): Result<Unit> = runCatching {
         // Stamp updatedAt=now + pendingSync so the deactivation wins the reconcile over a stale
-        // remote isActive=true and gets drained to Firestore. [SYNC-RECONCILE-USERPARKING-001]
-        // endedAtMs/publishedSpot ride the SAME pendingSync: the fast-path worker only patches
-        // isActive remotely; the outbox drainer's full-doc push carries the close provenance.
-        // [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+        // remote isActive=true. [SYNC-RECONCILE-USERPARKING-001] [VEH-STATS-SAY-SOMETHING-USEFUL-001]
         dao.clearActiveById(sessionId, endedAtMs, publishedSpot, Clock.System.now().toEpochMilliseconds())
+        // Camino RÁPIDO: parchea `isActive` remoto y avisa al espejo del grupo.
         parkingSyncScheduler.enqueueClearActiveParkingSession(sessionId)
+        // Y la red durable detrás. [SYNC-A-CLOSED-SESSION-MUST-REACH-FIRESTORE-WHOLE-001]
+        //
+        // ⛔ Aquí ponía que `endedAtMs`/`publishedSpot` viajaban «en el push de documento completo
+        // del outbox drainer». **No existía tal push**: la op `ClearActive` del drainer llama al
+        // mismo parche de un campo, y quien sube el documento entero es `pushPendingParkingSessions`,
+        // que sólo dispara `AppViewModel` al arrancar online. Un cierre en background —el caso
+        // NORMAL, la detección cierra con el móvil en el bolsillo— dejaba el espejo diciendo
+        // «cerrada» sin decir cuándo hasta que el usuario volviera a abrir la app. Medido en
+        // Firestore el 22-09: `isActive:false`, `endedAtMs:null` y el `updatedAt` del alta, tres
+        // días después.
+        pushSessionSnapshot(sessionId)
     }
 
     /**
@@ -116,12 +125,15 @@ class UserParkingRepositoryImpl(
      * `isActive = false` remotely. Enqueuing it here would schedule a worker whose whole job is to
      * undo the re-opening we just performed, and it would win as soon as the network came back.
      *
-     * The re-opening rides `pendingSync = 1` on the outbox drainer's full-document push instead —
-     * the same lane the close's `endedAtMs`/`publishedSpot` provenance already travels on, since the
-     * fast-path worker never carried those either.
+     * La reapertura sube por [ParkingSyncScheduler.enqueueParkingSessionSnapshot], que es el push de
+     * documento completo — el mismo carril por el que ahora viaja la provenance del cierre.
+     * ⛔ Antes decía que «viajaba en `pendingSync` sobre el push del outbox drainer»; ese push no
+     * existía y la reapertura se quedaba sin llegar al espejo hasta el siguiente arranque de app.
+     * [SYNC-A-CLOSED-SESSION-MUST-REACH-FIRESTORE-WHOLE-001]
      */
     override suspend fun restoreParkingSession(sessionId: String): Result<Unit> = runCatching {
         dao.reopenById(sessionId, Clock.System.now().toEpochMilliseconds())
+        pushSessionSnapshot(sessionId)
     }
 
     /** [DET-HANDOFF-NOT-MANUAL-001 §B] Room-only write — no sync enqueue: the marker is a local
@@ -133,15 +145,30 @@ class UserParkingRepositoryImpl(
     }
 
     /**
-     * [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] Room write plus the SAME sync enqueue the close
-     * uses. The withdrawal rides `pendingSync` on the outbox drainer's full-document push, so it
-     * reaches Firestore through the ordinary reconcile — nothing new in the sync layer.
+     * [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] Room write plus las MISMAS dos encoladas que el
+     * cierre: el parche rápido del flag y el push del documento completo, que es quien lleva el
+     * `retractedAtMs` al espejo. ⛔ La frase anterior —«viaja en `pendingSync` sobre el push del
+     * outbox drainer»— describía un push que no existía.
+     * [SYNC-A-CLOSED-SESSION-MUST-REACH-FIRESTORE-WHOLE-001]
      */
     override suspend fun retractParkingSession(sessionId: String, retractedAtMs: Long): Result<Unit> =
         runCatching {
             dao.retractById(sessionId, retractedAtMs, Clock.System.now().toEpochMilliseconds())
             parkingSyncScheduler.enqueueClearActiveParkingSession(sessionId)
+            pushSessionSnapshot(sessionId)
         }
+
+    /**
+     * Encola el push de documento completo de [sessionId], releyendo la fila ya escrita: lo que sube
+     * es el estado de AHORA, no el que tuviera el llamante en la mano.
+     * [SYNC-A-CLOSED-SESSION-MUST-REACH-FIRESTORE-WHOLE-001]
+     *
+     * Una fila que ya no existe no es un error: significa que no hay nada que espejar.
+     */
+    private suspend fun pushSessionSnapshot(sessionId: String) {
+        val session = dao.getById(sessionId)?.toDomain() ?: return
+        parkingSyncScheduler.enqueueParkingSessionSnapshot(session)
+    }
 
     /**
      * Inbound sync with Last-Write-Wins reconcile — supersedes the SYNC-UP-GUARD-001 stopgap. Local

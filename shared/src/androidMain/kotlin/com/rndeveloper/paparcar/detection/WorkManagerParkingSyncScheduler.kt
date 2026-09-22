@@ -57,6 +57,24 @@ class WorkManagerParkingSyncScheduler(
             .enqueue()
     }
 
+    override fun enqueueParkingSessionSnapshot(session: UserParking) {
+        // El MISMO worker que el alta —su payload es el DTO entero serializado, así que sube el
+        // documento completo— pero **APPEND_OR_REPLACE**, no REPLACE.
+        //
+        // ⛔ La diferencia no es cosmética: con REPLACE esto cancelaría la cadena de la sesión, y en
+        // la cadena está el parche del flag que acaba de encolar el cierre (y la actualización de
+        // dirección, si venía). O sea que el arreglo de la convergencia se habría llevado por
+        // delante el orden que [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001] peleó para conseguir.
+        // [SYNC-A-CLOSED-SESSION-MUST-REACH-FIRESTORE-WHOLE-001]
+        WorkManager.getInstance(context)
+            .beginUniqueWork(
+                parkingChainName(session.id),
+                ExistingWorkPolicy.APPEND_OR_REPLACE,
+                SaveNewParkingSessionWorker.buildRequest(session, previousSessionId = null),
+            )
+            .enqueue()
+    }
+
     override fun enqueueUpdateParkingSessionAddressAndPlace(sessionId: String, address: AddressInfo?, placeInfo: PlaceInfo?) {
         // Appended to the same chain as SaveNewParkingSessionWorker so it only runs after
         // set() completes — avoids NOT_FOUND on update(). [BUG-WORKER-001]

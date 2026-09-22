@@ -40,6 +40,14 @@ class IosParkingSyncScheduler(
         persistAndDrain(OutboxOp.ClearActive(sessionId))
     }
 
+    override fun enqueueParkingSessionSnapshot(session: UserParking) {
+        // La MISMA op que el alta, sin sesión anterior que desactivar: ya relee Room al drenar y
+        // sube el documento entero con `updatedAt` fresco, que es literalmente el contrato pedido.
+        // La ordenación la da la cola del outbox, que drena en orden de persistencia.
+        // [SYNC-A-CLOSED-SESSION-MUST-REACH-FIRESTORE-WHOLE-001]
+        persistAndDrain(OutboxOp.SaveSession(session.id, previousSessionId = null))
+    }
+
     override fun enqueueUpdateParkingSessionAddressAndPlace(
         sessionId: String,
         address: AddressInfo?,

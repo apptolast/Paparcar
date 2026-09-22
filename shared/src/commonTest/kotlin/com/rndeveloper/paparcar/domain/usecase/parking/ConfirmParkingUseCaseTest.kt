@@ -639,6 +639,7 @@ class ConfirmParkingUseCaseTest {
         override fun enqueueGeofenceRestore() { geofenceRestoreCount++ }
         override fun enqueueSaveNewParkingSession(session: com.rndeveloper.paparcar.domain.model.UserParking, previousSessionId: String?) {}
         override fun enqueueClearActiveParkingSession(sessionId: String) {}
+        override fun enqueueParkingSessionSnapshot(session: com.rndeveloper.paparcar.domain.model.UserParking) {}
         override fun enqueueUpdateParkingSessionAddressAndPlace(
             sessionId: String,
             address: com.rndeveloper.paparcar.domain.model.AddressInfo?,
