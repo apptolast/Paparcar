@@ -6,11 +6,17 @@ import com.rndeveloper.paparcar.domain.model.UserParking
  * A measured sum, and how many of the parkings in scope it was actually measured over.
  *
  * [UI-HISTORY-A-PARTIAL-SUM-IS-NOT-A-TOTAL-001] Not every parking carries a measurement:
- * `UserParking.routeDistanceMeters` is null for the Bluetooth lane that never traced its drive and
- * for legacy rows, and `UserParking.searchTimeMs` only exists when a fresh measured route was
- * attached at confirm time. A sum over those is a sum over a SUBSET, and printing it beside a count
- * of the whole scope describes something the user never asked about — "12 parkings · 40 km" when
- * three of the twelve produced those 40 km.
+ * `UserParking.routeDistanceMeters` is null for legacy rows and for any trip no recorder covered
+ * (a drive too short or too stale to attach, a process death mid-ride), and
+ * `UserParking.searchTimeMs` only exists when a fresh measured route was attached at confirm time.
+ * A sum over those is a sum over a SUBSET, and printing it beside a count of the whole scope
+ * describes something the user never asked about — "12 parkings · 40 km" when three of the twelve
+ * produced those 40 km.
+ *
+ * ⚠️ This used to name the Bluetooth lane as the reason, "the lane that never traced its drive".
+ * That stopped being true at [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001]: a BT connect starts the
+ * same recorder, so a BT park earns its measured route like any other. Partial coverage is still
+ * the normal case — the BT lane is simply no longer its explanation.
  *
  * So the sum never travels alone. [isComplete] is the only thing a call site needs to decide
  * whether the figure can be shown plainly or has to say what it covers.

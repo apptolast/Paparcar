@@ -88,8 +88,9 @@ data class UserParking(
      *  Google-encoded polyline (lat/lon, [com.rndeveloper.paparcar.domain.util.PolylineCodec]). One
      *  compact string (~hundreds of bytes for a whole trip) so per-parking route storage grows the
      *  DB linearly and cheaply. Synced to Firestore (local + remote). Null/blank = no route recorded
-     *  (legacy rows, BT parks — BT wakes at the destination and never tracks the drive). Rendered as
-     *  a polyline in the history detail. [DET-ROUTE-TRACK-001] */
+     *  (legacy rows, or a drive no recorder covered). ⚠️ A BT park is NOT routeless by nature since
+     *  [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001] — a BT connect starts the same recorder. Rendered
+     *  as a polyline in the history detail. [DET-ROUTE-TRACK-001] */
     val routePolyline: String? = null,
     /** Whether [routePolyline] is the FINAL on-road line (map-matched, ready to draw) rather than the
      *  raw fixes still awaiting the one-time snap. false + a non-null [routePolyline] = "recalculating"

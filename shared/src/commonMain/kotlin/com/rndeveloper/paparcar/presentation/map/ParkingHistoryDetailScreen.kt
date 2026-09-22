@@ -192,8 +192,8 @@ fun ParkingHistoryDetailScreen(
 
     // The trip that led to this parking, drawn ONLY once it is the final on-road line (routeSnapped).
     // While the post-park worker is still snapping the raw fixes, the line is withheld and a
-    // "recalculating" chip is shown instead — we never draw the jagged raw trace. Empty for legacy /
-    // BT parks (no route). [DET-ROUTE-TRACK-001][DET-ROUTE-SNAP-STORE-001]
+    // "recalculating" chip is shown instead — we never draw the jagged raw trace. Empty for legacy
+    // rows and for any park whose drive no recorder covered. [DET-ROUTE-TRACK-001][DET-ROUTE-SNAP-STORE-001]
     // ⛔ Las cuatro situaciones del recorrido las decide UN veredicto, no cuatro condiciones sueltas
     // aquí: sin él, «no tuvo recorrido» y «lo tuvo y lo perdimos» se dibujaban igual —en blanco— y
     // eso fue lo que hizo leer un problema de respaldo como «las rutas no se pintan».

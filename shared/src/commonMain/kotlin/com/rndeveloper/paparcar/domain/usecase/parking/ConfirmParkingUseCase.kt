@@ -297,8 +297,10 @@ class ConfirmParkingUseCase(
         // [DET-ROUTE-TRACK-001] Snapshot the driven route the service recorded on the way here onto
         // this parking, encoded compactly (local + remote). Freshness-gated: only a route whose last
         // fix is recent belongs to THIS trip — a stale one lingering from a previous aborted trip
-        // (the store is cleared on confirm, not on abort) must not be attached to this park. BT parks
-        // never tracked a drive, so their store is empty → no route (the honest result).
+        // (the store is cleared on confirm, not on abort) must not be attached to this park. An
+        // empty store → no route, which is the honest result. ⚠️ That no longer describes the BT
+        // lane by default: since [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001] a BT connect starts the
+        // same recorder, so a BT park reaches here carrying its own measured route.
         // [ROUTE-QUALITY-001] The trip's true ORIGIN is this vehicle's previous parking — the
         // store's first element is only the first fix the tracker saw after arming, typically
         // already hundreds of metres into the drive (field 2026-08-10: the stored line began on the

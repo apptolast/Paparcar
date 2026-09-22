@@ -165,8 +165,10 @@ class FakeUserParkingRepository(
                 isActive = false,
                 spotType = if (i % 8 == 0) SpotType.MANUAL_REPORT else SpotType.AUTO_DETECTED,
                 detectionReliability = if (i % 8 == 0) 1.0f else 0.95f,
-                // BT parks wake at the destination: no route, so no distance — the km line must
-                // honestly disappear on this vehicle. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+                // This vehicle's history carries NO route on purpose — a park whose drive no
+                // recorder covered is a real state, and the km line must honestly disappear for it.
+                // (Not a property of the BT lane: since [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001] a
+                // BT connect records its ride like any other.) [VEH-STATS-SAY-SOMETHING-USEFUL-001]
                 detectionPath = if (i % 8 == 0) "manual" else "bt",
                 publishedSpot = i % 3 != 0,
                 endedAtMs = now - daysAgo * 86_400_000L + 8 * 3_600_000L,
