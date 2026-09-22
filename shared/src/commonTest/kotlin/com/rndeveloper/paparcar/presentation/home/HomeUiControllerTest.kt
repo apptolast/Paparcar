@@ -184,6 +184,47 @@ class HomeUiControllerTest {
         )
     }
 
+    // ── El centro de la cámara [MAP-A-RING-YOU-CANNOT-SEE-IS-TWO-BUGS-001] ──
+
+    @Test
+    fun should_reportTheTargetAsCentre_when_theMapHasNotReportedYet() {
+        // ⛔ EL TESTIGO de la issue #78: abrir la modal de zonas con la cámara QUIETA no dispara
+        // `onCameraMoved`, así que no había centro y el anillo de radio no existía hasta que el
+        // usuario arrastraba el mapa — justo cuando necesita verlo para colocarlo.
+        val controller = HomeUiController()
+        controller.goToPlace(SPOT_LAT, SPOT_LON)
+
+        assertEquals(SPOT_LAT, controller.cameraCenterLat)
+        assertEquals(SPOT_LON, controller.cameraCenterLon)
+    }
+
+    @Test
+    fun should_preferWhatTheMapSaid_when_itHasReported() {
+        // El destino sólo contesta mientras nadie mejor conteste. En cuanto el mapa habla, manda él:
+        // el usuario puede haber arrastrado lejos de donde lo mandamos.
+        val controller = HomeUiController()
+        controller.goToPlace(SPOT_LAT, SPOT_LON)
+
+        controller.onCameraMoved(USER_LAT, USER_LON)
+
+        assertEquals(USER_LAT, controller.cameraCenterLat)
+        assertEquals(USER_LON, controller.cameraCenterLon)
+    }
+
+    @Test
+    fun should_leaveTheReportedCentreNull_when_onlyATargetExists() {
+        // ⛔ La mitad que NO se puede perder. `cameraLat` responde a «¿ha posado alguien esta
+        // cámara?», y su null es una respuesta con significado: lo leen `pinToProtect` y
+        // `ViewportRefetch`. El centro derivado es una pregunta distinta, y rellenar el campo de
+        // abajo reabriría [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001].
+        val controller = HomeUiController()
+
+        controller.goToPlace(SPOT_LAT, SPOT_LON)
+
+        assertNull(controller.cameraLat, "un destino no es una cámara posada")
+        assertNull(controller.cameraLon)
+    }
+
     @Test
     fun should_keepFollowingTheDriver_when_theCameraTracksThePuck() {
         val controller = drivingController()

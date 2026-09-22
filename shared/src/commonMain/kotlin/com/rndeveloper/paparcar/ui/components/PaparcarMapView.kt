@@ -1665,7 +1665,10 @@ fun PaparcarMapView(
     // [UI-A-PRIVATE-ZONE-IS-PRIVATE-ON-EVERY-SURFACE-001]
     val zoneRingPrimary = zoneRingColor(isPrivate = false)
     val zoneRingPrivate = zoneRingColor(isPrivate = true)
-    val zoneRingStrokePx = with(LocalDensity.current) { ZONE_CIRCLE_STROKE_DP.dp.toPx() }
+    // ⛔ En las unidades del MAPA, no en píxeles: Google Maps mide en píxeles y MapKit en puntos, y
+    // pasarle píxeles a los dos triplicaba el anillo en iOS.
+    // [MAP-A-RING-YOU-CANNOT-SEE-IS-TWO-BUGS-001] (issue #78)
+    val zoneRingStroke = mapLineWidth(ZONE_CIRCLE_STROKE_DP.dp)
     val zoneRingDimFactor = if (dimSpots) ZONE_CIRCLE_DIM_FACTOR else 1f
     fun zoneCircle(lat: Double, lon: Double, radius: Float, isPrivate: Boolean, dim: Float): Circle {
         val base = if (isPrivate) zoneRingPrivate else zoneRingPrimary
@@ -1674,14 +1677,15 @@ fun PaparcarMapView(
             radius = radius,
             color = base.copy(alpha = ZONE_CIRCLE_FILL_ALPHA * dim),
             lineColor = base.copy(alpha = ZONE_CIRCLE_STROKE_ALPHA * dim),
-            lineWidth = zoneRingStrokePx,
+            lineWidth = zoneRingStroke,
         )
     }
     // Doubt rings for approximate sessions. The car's badge stays exactly where it is — the ring
     // says "somewhere in here", it does not move the pin. Marker tones are fixed light-theme ones
     // because markers float over map tiles, not over surfaces; the ring MUST use the same three so
     // it reads as the same car's frame widened, not as a new colour. [UI-COLOR-DOCTRINE-001]
-    val doubtRingStrokePx = with(LocalDensity.current) { DOUBT_CIRCLE_STROKE_DP.dp.toPx() }
+    // Misma regla que el anillo de zona. [MAP-A-RING-YOU-CANNOT-SEE-IS-TWO-BUGS-001]
+    val doubtRingStroke = mapLineWidth(DOUBT_CIRCLE_STROKE_DP.dp)
     val doubtCircles = parkedVehicles.mapNotNull { v ->
         val radius = v.zoneRadiusMeters ?: return@mapNotNull null
         val base = when {
@@ -1695,7 +1699,7 @@ fun PaparcarMapView(
             radius = radius,
             color = base.copy(alpha = DOUBT_CIRCLE_FILL_ALPHA * dim),
             lineColor = base.copy(alpha = DOUBT_CIRCLE_STROKE_ALPHA * dim),
-            lineWidth = doubtRingStrokePx,
+            lineWidth = doubtRingStroke,
         )
     }
 
@@ -1711,7 +1715,7 @@ fun PaparcarMapView(
                 radius = parkingZoneRadiusMeters!!,
                 color = base.copy(alpha = DOUBT_CIRCLE_FILL_ALPHA),
                 lineColor = base.copy(alpha = DOUBT_CIRCLE_STROKE_ALPHA),
-                lineWidth = doubtRingStrokePx,
+                lineWidth = doubtRingStroke,
             )
         }
 

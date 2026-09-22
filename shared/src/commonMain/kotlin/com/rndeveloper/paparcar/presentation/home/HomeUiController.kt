@@ -50,6 +50,24 @@ class HomeUiController {
     }
 
     /**
+     * Dónde está centrado el mapa, **con las dos fuentes que hay**: lo que reportó
+     * ([cameraLat]) y, mientras no haya reportado nada, el sitio al que lo mandamos
+     * ([cameraTarget]). [MAP-A-RING-YOU-CANNOT-SEE-IS-TWO-BUGS-001]
+     *
+     * ⛔ Esto NO es «[cameraLat] con un valor por defecto». [cameraLat] responde a *«¿ha posado
+     * alguien esta cámara?»* y su `null` es una respuesta con significado — lo leen así
+     * `pinToProtect` y `ViewportRefetch`, y borrarlo reabriría
+     * [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001]. Esto responde a otra pregunta, *«¿dónde está la
+     * cruz ahora mismo?»*, y para ésa un destino al que la cámara ya va es mejor respuesta que
+     * ninguna.
+     *
+     * Nació con el anillo de zona: abrir la modal con la cámara QUIETA no dispara `onCameraMoved`,
+     * así que no había centro, así que no había anillo hasta que el usuario arrastraba (issue #78).
+     */
+    val cameraCenterLat: Double? get() = cameraLat ?: cameraTarget?.lat
+    val cameraCenterLon: Double? get() = cameraLon ?: cameraTarget?.lon
+
+    /**
      * A genuine user gesture on the map (touch / drag), reported by a pointer observer over the map.
      * We can't infer this from camera frames: programmatic follow + centre moves emit identical frames,
      * so the old `!isProgrammaticMove` heuristic raced (the guard cleared between the ~700ms follow

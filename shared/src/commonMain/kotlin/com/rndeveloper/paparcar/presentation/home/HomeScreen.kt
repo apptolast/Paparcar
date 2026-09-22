@@ -873,8 +873,12 @@ private fun HomeContent(
                         spotlightSeen = true
                     },
                     followingDriver = uiController.followingDriver,
-                    previewZoneLat = if (isAddingZone) uiController.cameraLat else null,
-                    previewZoneLon = if (isAddingZone) uiController.cameraLon else null,
+                    // El centro DERIVADO, no el reportado: con la cámara quieta el mapa no dispara
+                    // `onCameraMoved`, así que el anillo no existía hasta el primer arrastre —
+                    // justo cuando el usuario necesita ver el radio que va a colocar.
+                    // [MAP-A-RING-YOU-CANNOT-SEE-IS-TWO-BUGS-001] (issue #78)
+                    previewZoneLat = if (isAddingZone) uiController.cameraCenterLat else null,
+                    previewZoneLon = if (isAddingZone) uiController.cameraCenterLon else null,
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .layout { measurable, constraints ->
