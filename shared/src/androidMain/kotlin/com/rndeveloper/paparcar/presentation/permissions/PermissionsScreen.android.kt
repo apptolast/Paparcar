@@ -183,6 +183,10 @@ actual @Composable fun PermissionsScreen(onPermissionsGranted: () -> Unit, focus
         onRequestForegroundLocation = { viewModel.handleIntent(PermissionsIntent.RequestForegroundLocation) },
         onOpenLocationServices = { viewModel.handleIntent(PermissionsIntent.OpenLocationServices) },
         onRequestBackgroundLocation = { viewModel.handleIntent(PermissionsIntent.RequestBackgroundLocation) },
+        // Su fila no se pinta en Android (aquí se pide ACCESS_FINE_LOCATION, así que conceder ya es
+        // conceder precisión), pero el cableado no depende de eso: lo decide el estado, no el
+        // fichero. [IOS-PERMISSIONS-A-ROW-MUST-BE-GRANTABLE-HERE-001]
+        onRequestPreciseLocation = { viewModel.handleIntent(PermissionsIntent.RequestPreciseLocation) },
         onRequestActivityRecognition = { viewModel.handleIntent(PermissionsIntent.RequestActivityRecognition) },
         onRequestNotifications = { viewModel.handleIntent(PermissionsIntent.RequestNotifications) },
         onRequestBluetooth = { viewModel.handleIntent(PermissionsIntent.RequestBluetoothPermission) },

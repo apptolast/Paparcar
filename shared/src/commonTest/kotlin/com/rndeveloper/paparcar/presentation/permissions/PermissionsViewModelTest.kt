@@ -3,6 +3,7 @@ package com.rndeveloper.paparcar.presentation.permissions
 import app.cash.turbine.test
 import com.rndeveloper.paparcar.domain.detection.ParkingStrategyResolver
 import com.rndeveloper.paparcar.domain.permissions.AppPermissionState
+import com.rndeveloper.paparcar.domain.permissions.SystemPermissionDialog
 import com.rndeveloper.paparcar.domain.model.DeviceCapabilities
 import com.rndeveloper.paparcar.domain.usecase.detection.EvaluateDetectionReliabilityUseCase
 import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
@@ -178,6 +179,129 @@ class PermissionsViewModelTest {
 
         assertFalse(vm.state.value.showRationale)
         assertFalse(vm.state.value.showSettingsPrompt)
+    }
+
+    // ── Un diálogo gastado lleva a los Ajustes, no a la nada ──────────────────
+    // [IOS-PERMISSIONS-A-ROW-MUST-BE-GRANTABLE-HERE-001]
+
+    @Test
+    fun `should_openSettings_when_theActivityDialogIsSpent`() = runTest {
+        // Denegado o restringido = el sistema ya no va a preguntar. Lanzar la petición igualmente
+        // es el botón muerto: el usuario pulsa, el sistema la descarta en silencio, no pasa nada.
+        fakePermissions.emit(
+            AppPermissionState(
+                hasLocationPermission = true,
+                isLocationServicesEnabled = true,
+                spentDialogs = setOf(SystemPermissionDialog.ACTIVITY),
+            ),
+        )
+        val vm = viewModel()
+
+        vm.effect.test {
+            vm.handleIntent(PermissionsIntent.RequestActivityRecognition)
+            assertIs<PermissionsEffect.OpenAppSettings>(awaitItem())
+        }
+    }
+
+    @Test
+    fun `should_raiseTheDialog_when_itHasNotBeenSpent`() = runTest {
+        // El testigo del de arriba: sin este, borrar el enrutado lo dejaría verde igual.
+        fakePermissions.emit(
+            AppPermissionState(hasLocationPermission = true, isLocationServicesEnabled = true),
+        )
+        val vm = viewModel()
+
+        vm.effect.test {
+            vm.handleIntent(PermissionsIntent.RequestActivityRecognition)
+            assertIs<PermissionsEffect.RequestActivityRecognition>(awaitItem())
+        }
+    }
+
+    @Test
+    fun `should_openSettings_when_theAlwaysLocationEscalationIsSpent`() = runTest {
+        // iOS presenta la escalada a «Siempre» UNA vez; después la ignora sin decir nada.
+        fakePermissions.emit(
+            AppPermissionState(
+                hasLocationPermission = true,
+                isLocationServicesEnabled = true,
+                spentDialogs = setOf(SystemPermissionDialog.ALWAYS_LOCATION),
+            ),
+        )
+        val vm = viewModel()
+
+        vm.effect.test {
+            vm.handleIntent(PermissionsIntent.ConfirmBackgroundLocationGuide)
+            assertIs<PermissionsEffect.OpenAppSettings>(awaitItem())
+        }
+    }
+
+    @Test
+    fun `should_notEscalateTheRationale_when_theTapWasOnAnOptionalPermission`() = runTest {
+        // La escalada rationale → ajustes narra los permisos REQUERIDOS. Un tap en Bluetooth no
+        // puede empujar ese texto: sería acusar al usuario de negarse a algo que no le han pedido.
+        val vm = viewModel()
+
+        vm.handleIntent(PermissionsIntent.RequestBluetoothPermission)
+        vm.handleIntent(PermissionsIntent.RequestBluetoothPermission)
+        vm.handleIntent(PermissionsIntent.RequestBluetoothPermission)
+
+        assertFalse(vm.state.value.showRationale)
+        assertFalse(vm.state.value.showSettingsPrompt)
+    }
+
+    @Test
+    fun `should_sendToSettings_when_locationIsGrantedButApproximate`() = runTest {
+        // No hay diálogo de precisión que levantar: se cambia en los Ajustes de la app. Y va antes
+        // que las notificaciones o el movimiento, porque sin precisión nada de eso sirve.
+        fakePermissions.emit(
+            AppPermissionState(
+                hasLocationPermission = true,
+                isLocationServicesEnabled = true,
+                hasReducedLocationAccuracy = true,
+            ),
+        )
+        val vm = viewModel()
+
+        vm.effect.test {
+            vm.handleIntent(PermissionsIntent.RequestPermissions)
+            assertIs<PermissionsEffect.OpenAppSettings>(awaitItem())
+        }
+    }
+
+    @Test
+    fun `should_carryTheDeviceTruthIntoTheScreenState`() = runTest {
+        // La pantalla decide qué filas pinta con esto; si no viajara, iOS volvería a enseñar filas
+        // que no puede conceder.
+        fakePermissions.emit(
+            AppPermissionState(
+                hasLocationPermission = true,
+                hasReducedLocationAccuracy = true,
+                isActivityRecognitionAvailable = false,
+                spentDialogs = setOf(SystemPermissionDialog.NOTIFICATIONS),
+            ),
+        )
+        val vm = viewModel()
+
+        assertTrue(vm.state.value.hasReducedLocationAccuracy)
+        assertFalse(vm.state.value.isActivityRecognitionAvailable)
+        assertTrue(vm.state.value.dialogSpent(SystemPermissionDialog.NOTIFICATIONS))
+        assertFalse(vm.state.value.dialogSpent(SystemPermissionDialog.BLUETOOTH))
+    }
+
+    @Test
+    fun `should_treatAndroidsPermanentDenial_as_aSpentLocationDialog`() = runTest {
+        // Android no puede rellenar `spentDialogs` (necesita la Activity para
+        // shouldShowRequestPermissionRationale), así que lo empuja por intent. Un solo concepto,
+        // dos orígenes: si se separaran, el CTA de Android dejaría de ir a los Ajustes.
+        val vm = viewModel()
+        vm.handleIntent(PermissionsIntent.SetLocationPermanentlyDenied(true))
+
+        assertTrue(vm.state.value.dialogSpent(SystemPermissionDialog.LOCATION))
+
+        vm.effect.test {
+            vm.handleIntent(PermissionsIntent.RequestForegroundLocation)
+            assertIs<PermissionsEffect.OpenAppSettings>(awaitItem())
+        }
     }
 
     // ── RequestPermissions routing ────────────────────────────────────────────

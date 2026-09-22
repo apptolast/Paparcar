@@ -8,6 +8,13 @@ sealed class PermissionsIntent {
     //    footer's guided flow. [ONB-CARDS-001]
     /** Foreground (fine) location row. Routes to system settings if permanently denied. */
     data object RequestForegroundLocation : PermissionsIntent()
+    /**
+     * Fila de precisión — solo se pinta con la ubicación concedida en modo aproximado (iOS 14+).
+     * No hay diálogo que levantar: la precisión se enciende en los Ajustes de la app, y la escalada
+     * temporal de iOS dura hasta que se cierra la app, que no sirve para una sesión de aparcamiento
+     * que dura horas. [IOS-PERMISSIONS-A-ROW-MUST-BE-GRANTABLE-HERE-001]
+     */
+    data object RequestPreciseLocation : PermissionsIntent()
     /** Location services (GPS toggle) row → opens system location settings. */
     data object OpenLocationServices : PermissionsIntent()
     /** Background location row → guide dialog, then the always-on request (needs foreground first). */

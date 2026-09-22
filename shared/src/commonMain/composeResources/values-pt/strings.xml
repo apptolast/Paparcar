@@ -560,6 +560,13 @@
     <string name="home_report_size_section">Tamanho do lugar (opcional)</string>
     <string name="permissions_bg_guide_title">Ativar localização em segundo plano</string>
     <string name="permissions_bg_guide_body">No ecrã seguinte:\n\n1. Toca em «Localização»\n2. Seleciona «Permitir sempre»\n3. Carrega em Voltar para regressar ao Paparcar</string>
+    <string name="permissions_perm_precise">Precisão da localização</string>
+    <string name="permissions_perm_precise_desc">Necessária para marcar o teu estacionamento no lugar exato, não apenas na zona</string>
+    <string name="permissions_perm_precise_desc_ios">A tua localização é aproximada, por isso o Paparcar não sabe em que lugar estacionaste. Ativa «Localização precisa» em Definições → Paparcar → Localização.</string>
+    <string name="permissions_bg_guide_body_ios">Escolhe «Sempre» para o Paparcar detetar o teu estacionamento com a app fechada.
+
+Se a pergunta já não aparecer, muda em Definições → Paparcar → Localização → Sempre.</string>
+    <string name="permissions_perm_location_services_desc_ios">Sem eles nenhuma app te consegue localizar. Ativa-os em Definições → Privacidade e segurança → Serviços de localização.</string>
     <string name="permissions_bg_guide_cta">Abrir definições</string>
     <string name="permissions_bg_guide_dismiss">Agora não</string>
     <string name="vehicle_registration_bt_title">Emparelhar Bluetooth</string>

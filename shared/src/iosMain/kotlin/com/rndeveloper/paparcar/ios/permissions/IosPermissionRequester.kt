@@ -3,9 +3,9 @@
 package com.rndeveloper.paparcar.ios.permissions
 
 import com.rndeveloper.paparcar.domain.permissions.PermissionManager
+import com.rndeveloper.paparcar.permissions.AlwaysLocationAsk
 import platform.CoreBluetooth.CBCentralManager
 import platform.CoreBluetooth.CBCentralManagerDelegateProtocol
-import platform.CoreBluetooth.CBManagerState
 import platform.CoreLocation.CLLocationManager
 import platform.CoreLocation.CLLocationManagerDelegateProtocol
 import platform.CoreMotion.CMMotionActivityManager
@@ -38,20 +38,29 @@ class IosPermissionRequester(private val permissionManager: PermissionManager) {
     }
 
     /**
-     * Step 1: request "when in use" location + notifications + activity (motion).
-     * On iOS, notifications and activity dialogs are shown independently.
+     * CORE: ubicación «mientras se usa», y NADA más.
+     *
+     * Antes levantaba a la vez la de ubicación, la de notificaciones y la de movimiento. Eso es el
+     * muro de permisos que el proyecto retiró en
+     * [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]: gastaba dos diálogos del sistema —que solo
+     * se presentan una vez— antes de que el usuario hubiera visto un solo mapa, y las preguntas
+     * contextuales que vienen después se quedaban sin nada que pedir.
+     * [IOS-PERMISSIONS-A-ROW-MUST-BE-GRANTABLE-HERE-001]
      */
     fun requestStep1() {
         locationManager.requestWhenInUseAuthorization()
-        requestNotifications()
-        requestActivityRecognition()
     }
 
     /**
      * Step 2: upgrade location to "always allow" (background location on iOS).
      * Must be called after step 1 has been granted.
+     *
+     * Se anota que la escalada se presentó ANTES de pedirla: el sistema la muestra una sola vez y
+     * después la descarta en silencio, así que si no lo anotásemos aquí la fila seguiría ofreciendo
+     * un diálogo que ya no existe. Ver [AlwaysLocationAsk].
      */
     fun requestAlwaysLocation() {
+        AlwaysLocationAsk.markPresented()
         locationManager.requestAlwaysAuthorization()
     }
 
