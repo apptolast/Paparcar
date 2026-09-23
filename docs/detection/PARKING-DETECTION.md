@@ -499,6 +499,111 @@ See `diagnostics/README.md` at the repo root for the recommended layout when arc
 
 Each entry is one issue we shipped a fix for. Listed roughly in dependency order (mappers first, then pipeline, then algorithm). Every entry should explain *what was wrong*, *why it was wrong*, and *what guard exists today*. If you ever want to remove a guard, find its entry here first.
 
+### DET-A-LANE-MUST-EARN-THE-TRIP-IT-SILENCES-001 — una reconexión no es un embarque
+
+**Commit:** pending. **Origen (issue #131):** *«Fernandorenedovarela utiliza det bt, es un bt comprado
+a parte del coche, no el del propio coche. Hemos perdidos algunos aparcamientos […] esto ya no
+debería estar pasando y por bt menos, ¿qué ha ocurrido? ¿Podríamos confiar más en otras señales y
+menos el bt?»*
+
+**Dato de campo (22-09-2026, uid `8fhNJGctp…`, Nothing A001, app 1.3.0, base `(default)`).** Dos
+sesiones con conducción MEDIDA murieron con `outcome = "ended"` justo al arrancar la caminata de
+egreso:
+
+| Sesión | Arm | Conducción | Prompt | Candidato abierto | Fin | Pin |
+|---|---|---|---|---|---|---|
+| 12:20:19 → 12:32:56 | `ARRIVAL_HANDOFF` | 12 fixes 3,0–4,5 m/s | 12:23:59 | 12:31:01 | `ended` | **ninguno** |
+| 19:43:03 → 19:55:56 | `GEOFENCE_EXIT` (34 km/h) | 92 fixes 3,0–10,3 m/s | 19:49:47 | 19:51:45 | `ended` | **ninguno** |
+
+En la de las 12:20 los pasos van **1→11 en 8 segundos** —caminata pedestre real— y **3 s después**
+llega el `SESSION_ENDED`.
+
+**Causa raíz.** `outcome = "ended"` no es un veredicto: es el valor de NACIMIENTO de la sesión
+(`SessionTelemetry.kt:149`), y `endSession()` llama a `sessionCompleted()`, **no** a `endedWith()`.
+Traducido: el `finally` corrió y nadie estampó nada → cancelación externa. La cancelación es
+`arbitrateBtEdge()` → `cancelDetectionJob()`, con el veredicto que salía de la rama CONNECT del
+árbitro:
+
+```kotlin
+BtArbitrationEvent.CONNECT -> when (coordinatorPhase) {
+    DetectionPhase.Candidate -> BtArbitrationVerdict.VetoReturnToVehicle   // ⛔ sin mirar nada más
+    DetectionPhase.Driving   -> BtArbitrationVerdict.NoOp
+}
+```
+
+El BT de este usuario es **aftermarket** —comprado aparte, no la radio del coche— y parpadea: ~20
+ciclos connect/disconnect en el día (ledger `triggers_20718`) y 12 `DEPARTURE_VERDICT`, todos
+`bt_no_ride_ask` (enganche < 90 s) o `bt_short_no_move_abort` (17–67 m). **Ninguno coloca un pin.**
+Cada **re**conexión que caía con el coordinator en `Candidate` mataba la sesión que iba a confirmar.
+
+**Y el orden ERA el bug.** El servicio ya sabía distinguir una oscilación de un embarque — y
+preguntaba tarde:
+
+```kotlin
+1557  arbitrateBtEdge(CONNECT, vehicleId)        // ← mataba la sesión
+1558  // [BT-005] A reconnect inside the debounce means the disconnect was an oscillation…
+1560  if (btHuntJob?.isActive == true) { … }     // ← lo reconocía AQUÍ
+```
+
+Mismo patrón que ya se corrigió en `BluetoothParkingDetector` con
+[DET-BT-THE-EDGE-NOMINATES-THE-DISPLACEMENT-DECIDES-001]: *«se lee ANTES de la puerta de duración, no
+después»*.
+
+**Por qué ahora.** El veto es viejo (DET-TIERS-001, anterior a `b949efa13`). Lo que cambió es
+**dónde** se evalúa: `d7880ac78` (15-09, DET-ONE-SERVICE-TWO-LANES-001) movió el árbitro al intake
+serializado, y su KDoc lo dice — antes se calculaba en el receiver, *«a snapshot racing the queue»*.
+Antes el veto competía con la cola y a veces se perdía; desde el 15-09 se ejecuta en todos los
+flancos. La fusión no introdujo el defecto: **dejó de hacerlo intermitente**. El grabador de ruta del
+connect BT (`213b45966`, 14-09) no tiene parte en esto.
+
+Y `bb271e375` (16-09) arregló la rama HERMANA por este mismísimo aparato — su comentario dice *«Campo
+16-09 (Nothing A001): 36 sesiones abortadas en 11 días por un MAC que se cae cada 17 s»*— metiendo
+`coordinatorDriveProven` en **DISCONNECT** y dejando **CONNECT** a pelo. Cerrar la vía donde mordió
+no bastó: el mismo MAC entró por la puerta de al lado. Corolario de DET-DRIVE-PROOF-001 →
+DET-DEPART-PROOF-001, otra vez.
+
+**El fix.** *Un carril sólo puede silenciar un viaje con evidencia que él mismo aceptaría como
+viaje.* El árbitro recibe la edad del último flanco de desconexión y decide con la ventana que este
+proyecto ya usaba para la misma pregunta:
+
+```kotlin
+DetectionPhase.Candidate ->
+    if (isLinkOscillation(msSinceBtDisconnect)) NoOp   // el enlace rebotando
+    else VetoReturnToVehicle                            // un regreso de verdad
+```
+
+⛔ **`coordinatorDriveProven` NO sirve de discriminador aquí**, y por eso no se usó: con conducción
+probada son verdad las DOS lecturas (volviste al coche tras aparcar / el manos libres rebotó). Lo que
+las separa es el reloj del flanco.
+
+Piezas:
+- `ParkingDetectionConfig.btDisconnectDebounceMs` (30 s) — la ventana BT-005 **baja del `companion`
+  de `BluetoothParkingDetector` a la config**, porque ahora la comparten dos decisiones y dos
+  umbrales distintos permitirían cancelar la caza por rebote y haber matado la sesión por embarque en
+  el mismo flanco.
+- `BtConnectionStore.markDisconnected(…, atMs)` + `lastDisconnectedAt()` — sello en disco, simétrico
+  al del connect y escrito en la MISMA edición que el set de conectados. Disco porque el flanco llega
+  a un receiver que corre a través de las muertes de proceso del OEM.
+- **`SessionOutcome.ArbitratedByBt`** — el arbitraje deja de ser mudo. Cancelar sin estampar escribía
+  `"ended"`, y por eso el campo del 22-09 hubo que reconstruirlo por resta. Se estampa ANTES del
+  cancel (`notifyArbitratedByBt()`), por la misma razón que `notifySuperseded()`: `cancel()` no hace
+  join.
+
+**Sin sello de desconexión la respuesta es VETO, no «pase»**: fallo asimétrico, igual que el carril
+BT trata un connect ausente como duda y no como permiso. Cubre la instalación recién actualizada.
+
+**Riesgo del fix acompañante.** Una reconexión REAL dentro de los 30 s de la desconexión ya no veta.
+Es físicamente casi imposible que sea un regreso al coche (desconectas al aparcar, te alejas, vuelves
+minutos después), y si lo fuera, el pin que sobrevive lo coloca la escalera probabilística con su
+propia prueba de egreso — no lo planta el arbitraje.
+
+**Fuera de alcance, ticket aparte:** el `REFUSED_STRATEGY owner=BLUETOOTH` que **descarta** un
+trigger en vez de degradarlo al evaluador (5 veces ese día; el barrido del ledger confirma que las
+cinco veces el coordinator armó igual por la geocerca 30 s–4 min después, así que hoy no costó
+pines), y el BT-como-sensor con FGS residente que pide el issue.
+
+---
+
 ### DET-A-YES-IS-NOT-A-HAND-001 — un «sí» confirma una detección, no la sustituye
 
 **Commit:** pending. **Origen (issue #121):** *«revisa bien lo de aviso manual, ¿por qué? No saqué

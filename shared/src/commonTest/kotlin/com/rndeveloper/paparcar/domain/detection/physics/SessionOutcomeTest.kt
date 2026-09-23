@@ -57,6 +57,11 @@ class SessionOutcomeTest {
         // is what stops a coroutine race from deciding between it and "ended".
         SessionOutcome.Superseded ->
             Expected("superseded", false, false, SentryStreakEffect.RESETS)
+        // [DET-A-LANE-MUST-EARN-THE-TRIP-IT-SILENCES-001] El arbitraje BT cancelaba el job sin
+        // estampar nada, así que su final se escribía "ended" — el valor de nacimiento. Esta etiqueta
+        // existe para que un arbitraje se pueda CITAR en un diagnóstico en vez de reconstruirlo.
+        SessionOutcome.ArbitratedByBt ->
+            Expected("arbitrated_by_bt", false, false, SentryStreakEffect.RESETS)
         is SessionOutcome.AbortedUnattended ->
             Expected("aborted_unattended_gap_anchor", false, false, SentryStreakEffect.RESETS)
         is SessionOutcome.Confirmed ->
@@ -75,6 +80,7 @@ class SessionOutcomeTest {
         SessionOutcome.AbortedResponseTimeout,
         SessionOutcome.StoppedByUser,
         SessionOutcome.Superseded,
+        SessionOutcome.ArbitratedByBt,
         SessionOutcome.AbortedUnattended("gap_anchor"),
         SessionOutcome.Confirmed("steps+egress"),
         SessionOutcome.ConfirmFailed("steps+egress"),

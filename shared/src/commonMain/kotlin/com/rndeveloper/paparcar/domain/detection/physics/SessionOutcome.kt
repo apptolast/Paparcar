@@ -121,6 +121,33 @@ sealed interface SessionOutcome {
      *  - `RESETS` — the streak damps REFUTED walking arms. A supersede is the opposite: a live
      *    trigger asserting the journey continues.
      */
+    /**
+     * [DET-A-LANE-MUST-EARN-THE-TRIP-IT-SILENCES-001] El carril BT arbitró sobre esta sesión y la
+     * abortó — el flanco determinista del coche emparejado manda sobre la escalera probabilística.
+     *
+     * Existe porque el arbitraje era **mudo**: `arbitrateBtEdge()` cancelaba el job sin estampar
+     * nada, así que el `finally` escribía `"ended"` —el valor de NACIMIENTO de la sesión, no un
+     * veredicto— y en el campo del 22-09 una sesión con 92 fixes de conducción medida y el prompt en
+     * pantalla simplemente desaparecía de la traza. Un final que no se puede citar en un diagnóstico
+     * obliga a reconstruirlo por resta, que es justo lo que esta etiqueta evita.
+     *
+     * **Las tres pertenencias son decisiones:**
+     *  - `triggersHonestClose = false` — el carril BT se queda el viaje: su caza corre desde el mismo
+     *    flanco y es quien va a colocar (o no) el pin. Correr aquí la escalera sería cerrarle el
+     *    mundo por debajo.
+     *  - `RESETS` — la racha amortigua armados REFUTADOS por caminata. Esto es lo contrario: un
+     *    flanco físico del coche del usuario, la señal más dura que tenemos.
+     *  - `resolvesTheArrival = false` — el arbitraje no responde «sólo el usuario puede marcarlo»;
+     *    no ha resuelto la llegada, ha cambiado de carril. La red de seguridad debe poder decidir.
+     */
+    data object ArbitratedByBt : SessionOutcome {
+        override val serialized = "arbitrated_by_bt"
+        override val isConfirmed = false
+        override val triggersHonestClose = false
+        override val sentryStreakEffect = SentryStreakEffect.RESETS
+        override val resolvesTheArrival = false
+    }
+
     data object Superseded : SessionOutcome {
         override val serialized = "superseded"
         override val isConfirmed = false

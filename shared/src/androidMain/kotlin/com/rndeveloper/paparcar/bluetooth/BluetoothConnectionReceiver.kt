@@ -121,7 +121,10 @@ class BluetoothConnectionReceiver : BroadcastReceiver(), KoinComponent {
                         // [DET-BT-CONNECTED-NOT-PAIRED-001] Car no longer connected → clear the live
                         // connection state the strategy resolver reads, so detection falls back to the
                         // Coordinator for the next (possibly non-BT) car.
-                        BtConnectionStore.markDisconnected(context, pairedVehicle.id)
+                        // [DET-A-LANE-MUST-EARN-THE-TRIP-IT-SILENCES-001] …y CUÁNDO: es la referencia
+                        // contra la que el árbitro mide si el próximo connect es este mismo enlace
+                        // rebotando o un embarque de verdad.
+                        BtConnectionStore.markDisconnected(context, pairedVehicle.id, System.currentTimeMillis())
                         // ONE intent: the sentinel stops the recorder and runs the hunt, in order.
                         // Foreground start — the hunt holds GPS for minutes. [DET-ONE-SERVICE-TWO-LANES-001]
                         sendBtEdgeToSentinel(

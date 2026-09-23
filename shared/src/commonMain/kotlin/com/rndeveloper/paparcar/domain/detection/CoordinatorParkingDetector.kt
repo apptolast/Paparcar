@@ -332,6 +332,28 @@ class CoordinatorParkingDetector(
     }
 
     /**
+     * [DET-A-LANE-MUST-EARN-THE-TRIP-IT-SILENCES-001] El carril BT arbitró sobre esta sesión y el
+     * servicio va a cancelarla. **Ponerle nombre al final**, por la misma razón exacta que
+     * [notifySuperseded]: `cancel()` no hace join, así que sin estampar aquí el `finally` escribe
+     * [SessionOutcome.Ended] — el valor de nacimiento — y la traza no distingue un arbitraje de una
+     * muerte de proceso.
+     *
+     * No-op entre sesiones: no hay nada sobre lo que arbitrar.
+     *
+     * @param verdictLabel el veredicto del árbitro, sólo para la línea de `parkdiag`. El outcome es
+     *   uno solo: quién ganó el arbitraje no cambia que esta sesión terminó por arbitraje.
+     */
+    fun notifyArbitratedByBt(verdictLabel: String?) {
+        if (currentSessionId == null) return
+        _detectionState.update { it.copy(session = it.session.endedWith(SessionOutcome.ArbitratedByBt)) }
+        PaparcarLogger.d(
+            DIAG,
+            "  ⚡ session arbitrated by the BT lane (${verdictLabel ?: "?"}) — the paired car's own " +
+                "edge outranks the probabilistic ladder [DET-A-LANE-MUST-EARN-THE-TRIP-IT-SILENCES-001]",
+        )
+    }
+
+    /**
      * [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] The departure this session was armed on was
      * REFUTED. Take back what the arm lent on trust — and nothing else.
      *

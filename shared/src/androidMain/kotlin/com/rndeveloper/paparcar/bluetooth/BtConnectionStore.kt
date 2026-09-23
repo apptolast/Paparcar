@@ -77,11 +77,32 @@ object BtConnectionStore {
         prefs(context).edit { putStringSet(KEY_CONNECTED_SET, next) }
     }
 
-    /** Mark [vehicleId]'s paired device as no longer connected. Called on ACL_DISCONNECTED. */
-    fun markDisconnected(context: Context, vehicleId: String) {
+    /**
+     * Mark [vehicleId]'s paired device as no longer connected, **and stamp when**. Called on
+     * ACL_DISCONNECTED.
+     *
+     * [DET-A-LANE-MUST-EARN-THE-TRIP-IT-SILENCES-001] El sello es lo que deja al árbitro distinguir
+     * una reconexión-rebote de un embarque de verdad: sin él, un manos libres que se cae y vuelve
+     * cada pocos segundos vetaba —una y otra vez— la sesión del coordinator que estaba a punto de
+     * confirmar el aparcamiento. Disco, y no memoria, por la misma razón que el sello de connect: el
+     * flanco llega a un BroadcastReceiver que corre a través de las muertes de proceso del OEM, y un
+     * bus en memoria estaría vacío en cada despertar.
+     *
+     * Ambas claves en UNA edición, como en [recordConnected]: un lector que encontrase el set sin la
+     * hora (o al revés) leería el flanco a medias.
+     */
+    fun markDisconnected(context: Context, vehicleId: String, atMs: Long) {
         val next = connectedVehicleIds(context) - vehicleId
-        prefs(context).edit { putStringSet(KEY_CONNECTED_SET, next) }
+        prefs(context).edit {
+            putStringSet(KEY_CONNECTED_SET, next)
+            putLong(KEY_DISCONNECT_PREFIX + vehicleId, atMs)
+        }
     }
+
+    /** Epoch-ms of the last recorded DISCONNECT from [vehicleId]'s device, or null if never.
+     *  [DET-A-LANE-MUST-EARN-THE-TRIP-IT-SILENCES-001] */
+    fun lastDisconnectedAt(context: Context, vehicleId: String): Long? =
+        prefs(context).getLong(KEY_DISCONNECT_PREFIX + vehicleId, 0L).takeIf { it > 0L }
 
     /** The vehicleIds whose paired car is connected right now (per the last ACL edge). */
     fun connectedVehicleIds(context: Context): Set<String> =
@@ -128,4 +149,7 @@ object BtConnectionStore {
     /** [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001] Origin fix of the current engagement, JSON-encoded
      *  next to its timestamp. One key per vehicle, same join as the stamp above. */
     private const val KEY_FIX_PREFIX = "bt_connect_fix_"
+    /** [DET-A-LANE-MUST-EARN-THE-TRIP-IT-SILENCES-001] Hora del último flanco de desconexión, la
+     *  referencia contra la que se mide si el siguiente connect es un rebote del enlace. */
+    private const val KEY_DISCONNECT_PREFIX = "bt_disconnected_"
 }

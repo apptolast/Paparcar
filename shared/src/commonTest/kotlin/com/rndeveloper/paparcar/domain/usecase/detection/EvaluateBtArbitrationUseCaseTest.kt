@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.domain.usecase.detection
 
 import com.rndeveloper.paparcar.domain.detection.DetectionPhase
+import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -16,9 +17,13 @@ import kotlin.test.assertEquals
  */
 class EvaluateBtArbitrationUseCaseTest {
 
-    private val useCase = EvaluateBtArbitrationUseCase()
+    private val config = ParkingDetectionConfig()
+    private val useCase = EvaluateBtArbitrationUseCase(config)
     private val car = "vehicle-A"
 
+    /** `msSinceBtDisconnect = null` por defecto: sin sello de desconexión en disco no hay
+     *  oscilación PROBADA, así que el arbitraje de siempre sigue en pie. Es lo que mantiene honestos
+     *  los casos escritos antes de [DET-A-LANE-MUST-EARN-THE-TRIP-IT-SILENCES-001]. */
     private fun evaluate(
         event: BtArbitrationEvent,
         running: Boolean = true,
@@ -26,7 +31,120 @@ class EvaluateBtArbitrationUseCaseTest {
         btVehicleId: String? = car,
         coordinatorVehicleId: String? = car,
         driveProven: Boolean = false,
-    ) = useCase(event, running, phase, btVehicleId, coordinatorVehicleId, driveProven)
+        msSinceBtDisconnect: Long? = null,
+    ) = useCase(event, running, phase, btVehicleId, coordinatorVehicleId, driveProven, msSinceBtDisconnect)
+
+    // ── Una reconexión no es un embarque ────────────────────────────────────
+    // [DET-A-LANE-MUST-EARN-THE-TRIP-IT-SILENCES-001]
+
+    /**
+     * Campo 22-09 (Nothing A001, BT *aftermarket* comprado aparte del coche). Dos sesiones con
+     * conducción MEDIDA —92 fixes de 3,0 a 10,3 m/s en una de ellas— llegaron a `Candidate` con el
+     * prompt en pantalla y murieron con `outcome = "ended"` justo cuando arrancaba la caminata de
+     * egreso: en la de las 12:20 los pasos van 1→11 en 8 segundos y 3 s después se acabó. El enlace
+     * se caía y volvía ~20 veces al día, y cada rebote vetaba el pin que estaba a punto de caer.
+     *
+     * Uno de los dos arrastró al siguiente: sin pin no hay geocerca, y sin geocerca la salida
+     * siguiente no tiene EXIT que disparar. El usuario acabó marcando a mano.
+     */
+    @Test
+    fun should_leaveTheCandidateAlone_when_theConnectIsTheLinkBouncing() {
+        assertEquals(
+            BtArbitrationVerdict.NoOp,
+            evaluate(
+                BtArbitrationEvent.CONNECT,
+                phase = DetectionPhase.Candidate,
+                driveProven = true,
+                msSinceBtDisconnect = 17_000L, // el MAC del campo se caía cada 17 s
+            ),
+            "a reconnect inside the oscillation window is the same link bouncing, not a boarding",
+        )
+    }
+
+    @Test
+    fun should_leaveTheCandidateAlone_when_theLinkBouncesWithNoDriveProven() {
+        // El discriminador es el RELOJ del flanco, no la conducción probada: un rebote sigue siendo
+        // un rebote aunque el coordinator todavía no hubiera medido nada.
+        assertEquals(
+            BtArbitrationVerdict.NoOp,
+            evaluate(
+                BtArbitrationEvent.CONNECT,
+                phase = DetectionPhase.Candidate,
+                driveProven = false,
+                msSinceBtDisconnect = 1_000L,
+            ),
+        )
+    }
+
+    @Test
+    fun should_vetoTheReturn_when_theConnectComesLongAfterTheDisconnect() {
+        // Aparcaste, te fuiste, y media hora después vuelves al coche: eso SÍ desmiente el pin.
+        assertEquals(
+            BtArbitrationVerdict.VetoReturnToVehicle,
+            evaluate(
+                BtArbitrationEvent.CONNECT,
+                phase = DetectionPhase.Candidate,
+                driveProven = true,
+                msSinceBtDisconnect = 30 * 60_000L,
+            ),
+        )
+    }
+
+    @Test
+    fun should_vetoTheReturn_when_theConnectLandsExactlyOnTheWindowEdge() {
+        // El borde pertenece al VETO, no al rebote: la ventana es estrictamente «dentro de».
+        assertEquals(
+            BtArbitrationVerdict.VetoReturnToVehicle,
+            evaluate(
+                BtArbitrationEvent.CONNECT,
+                phase = DetectionPhase.Candidate,
+                msSinceBtDisconnect = config.btDisconnectDebounceMs,
+            ),
+        )
+    }
+
+    @Test
+    fun should_vetoTheReturn_when_thereIsNoDisconnectStampOnDisk() {
+        // Fallo asimétrico: la duda se resuelve del lado de no plantar un pin fantasma. Cubre la
+        // instalación recién actualizada, cuyo store todavía no tiene sellos de desconexión.
+        assertEquals(
+            BtArbitrationVerdict.VetoReturnToVehicle,
+            evaluate(
+                BtArbitrationEvent.CONNECT,
+                phase = DetectionPhase.Candidate,
+                msSinceBtDisconnect = null,
+            ),
+        )
+    }
+
+    @Test
+    fun should_stayNoOp_when_theLinkBouncesWhileStillDriving() {
+        // La rama Driving ya era NoOp y sigue siéndolo: la ventana no la toca.
+        assertEquals(
+            BtArbitrationVerdict.NoOp,
+            evaluate(
+                BtArbitrationEvent.CONNECT,
+                phase = DetectionPhase.Driving,
+                msSinceBtDisconnect = 5_000L,
+            ),
+        )
+    }
+
+    @Test
+    fun should_stillYield_when_aDifferentOwnCarConnectsInsideTheWindow() {
+        // La ventana de rebote sólo habla del MISMO enlace. Otro coche propio conectando sigue
+        // refutando la hipótesis del vehículo nominado. [DET-BT-WRONG-CAR-ABORT-001]
+        assertEquals(
+            BtArbitrationVerdict.YieldToConnectedCar,
+            evaluate(
+                BtArbitrationEvent.CONNECT,
+                phase = DetectionPhase.Driving,
+                btVehicleId = "vehicle-B",
+                coordinatorVehicleId = car,
+                msSinceBtDisconnect = 1_000L,
+            ),
+        )
+    }
 
     // ── Un carril que puede no decidir no mata al que ya midió ──────────────
     // [DET-BT-THE-EDGE-NOMINATES-THE-DISPLACEMENT-DECIDES-001]
@@ -61,6 +179,11 @@ class EvaluateBtArbitrationUseCaseTest {
     fun should_stillVetoTheReturn_when_connectArrivesOnAMeasuredDrive() {
         // La conducción medida no blinda la sesión contra TODO: volver a entrar en el coche sigue
         // desmintiendo un pin a punto de caer. Lo que se retira es el aborto por DISCONNECT.
+        //
+        // ⚠ `driveProven` NO es lo que separa un regreso de un rebote — con conducción medida son
+        // verdad las dos lecturas. Lo que decide es el reloj del flanco, y aquí no hay sello de
+        // desconexión (el defecto del helper), así que el veto de siempre sigue mandando.
+        // [DET-A-LANE-MUST-EARN-THE-TRIP-IT-SILENCES-001]
         assertEquals(
             BtArbitrationVerdict.VetoReturnToVehicle,
             evaluate(BtArbitrationEvent.CONNECT, phase = DetectionPhase.Candidate, driveProven = true),

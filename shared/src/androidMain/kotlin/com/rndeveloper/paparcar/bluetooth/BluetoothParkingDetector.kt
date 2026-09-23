@@ -33,7 +33,7 @@ import kotlin.time.Duration.Companion.milliseconds
  * 2. Sample GPS **from that instant**, folding every fix into a [BtCandidateHunt]: the EARLIEST
  *    pin-grade STATIONARY fix becomes the candidate, and a credible driving fix aborts outright —
  *    the BT drop happened mid-drive. [DET-AUDIT-002 T2]
- * 3. [BT_DISCONNECT_DEBOUNCE_MS] grace window — nothing may ACT before it elapses; if BT reconnects
+ * 3. [ParkingDetectionConfig.btDisconnectDebounceMs] grace window — nothing may ACT before it elapses; if BT reconnects
  *    the caller cancels this coroutine (BT-005: oscillation / traffic-light guard). The hunt keeps
  *    looking throughout, so the window is a floor on acting, never on observing.
  *    [DET-BT-PIN-IS-SAMPLED-AFTER-THE-WALK-001]
@@ -189,11 +189,11 @@ class BluetoothParkingDetector(
         // driving is now watched over the first 30 s too (it was not), and the ceiling can expire
         // with a good candidate in hand — which is a park to save, not a timeout to report.
         var hunt = BtCandidateHunt(sinceMs = disconnectedAtMs)
-        withTimeoutOrNull((BT_DISCONNECT_DEBOUNCE_MS + GPS_SAMPLE_TIMEOUT_MS).milliseconds) {
+        withTimeoutOrNull((config.btDisconnectDebounceMs + GPS_SAMPLE_TIMEOUT_MS).milliseconds) {
             observeLocation().first { fix ->
                 val atMs = System.currentTimeMillis()
                 hunt = evaluateBtPark.foldCandidateFix(hunt, fix, atMs)
-                val debounced = atMs - disconnectedAtMs >= BT_DISCONNECT_DEBOUNCE_MS
+                val debounced = atMs - disconnectedAtMs >= config.btDisconnectDebounceMs
                 hunt.aborted || (hunt.candidate != null && debounced)
             }
         }
@@ -471,14 +471,12 @@ class BluetoothParkingDetector(
         const val VERDICT_GPS_TIMEOUT_RIDE_ASK = "bt_gps_timeout_ride_ask"
         const val NUDGE_SOURCE_BT_GPS_TIMEOUT = "bt_gps_timeout"
 
-        /** BT-005: Grace window before ACTING on a disconnect (brief stop / oscillation debounce).
-         *  ⛔ Not a window before LOOKING: the hunt for the parked-car fix runs from the disconnect,
-         *  because every second of it is metres of the user's walk baked into the pin.
-         *  [DET-BT-PIN-IS-SAMPLED-AFTER-THE-WALK-001] */
-        const val BT_DISCONNECT_DEBOUNCE_MS = 30_000L
-
         /** BT-005: Give up waiting for a good GPS fix this long after the debounce closes — so the
-         *  hunt's whole ceiling is [BT_DISCONNECT_DEBOUNCE_MS] + this, unchanged at 90 s. */
+         *  hunt's whole ceiling is [ParkingDetectionConfig.btDisconnectDebounceMs] + this, unchanged
+         *  at 90 s.
+         *
+         *  ⛔ La ventana de rebote ya NO vive aquí: la comparte el árbitro BT, así que bajó a la
+         *  config del módulo. [DET-A-LANE-MUST-EARN-THE-TRIP-IT-SILENCES-001] */
         const val GPS_SAMPLE_TIMEOUT_MS = 60_000L
 
 

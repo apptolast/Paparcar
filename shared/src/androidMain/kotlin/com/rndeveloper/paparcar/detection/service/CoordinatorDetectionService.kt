@@ -1535,9 +1535,25 @@ class CoordinatorDetectionService : LifecycleService() {
             // [DET-BT-THE-EDGE-NOMINATES-THE-DISPLACEMENT-DECIDES-001] Publicado por el coordinator en el runtime
             // compartido; aquí sólo se lee y se pasa, la decisión sigue en el evaluador puro.
             coordinatorDriveProven = detectionRuntime.driveProven.value,
+            // [DET-A-LANE-MUST-EARN-THE-TRIP-IT-SILENCES-001] La edad del último flanco de
+            // desconexión, leída del sello en disco que escribe el receiver. El servicio sólo la
+            // MIDE; si eso es un rebote o un embarque lo dice el evaluador con su propia ventana.
+            //
+            // ⛔ Se pregunta AQUÍ, antes del veto — no tres líneas más abajo, donde BT-005 ya
+            // reconocía la oscilación para cancelar la caza. Ese orden ERA el bug: vetábamos primero
+            // y reconocíamos el rebote después, así que la sesión ya estaba muerta.
+            msSinceBtDisconnect = com.rndeveloper.paparcar.bluetooth.BtConnectionStore
+                .lastDisconnectedAt(this, btVehicleId)
+                ?.let { System.currentTimeMillis() - it },
         )
         if (verdict != com.rndeveloper.paparcar.domain.usecase.detection.BtArbitrationVerdict.NoOp) {
             PaparcarLogger.d(DIAG, "  ⚡ BT arbitrates over the coordinator: ${verdict::class.simpleName} — aborting session")
+            // [DET-A-LANE-MUST-EARN-THE-TRIP-IT-SILENCES-001] El arbitraje deja de ser mudo. Cancelar
+            // sin estampar dejaba `outcome = "ended"` —el valor de NACIMIENTO, no un veredicto— y el
+            // campo del 22-09 hubo que reconstruirlo por resta: una sesión con conducción medida y
+            // prompt en pantalla que simplemente desaparecía. Se estampa ANTES del cancel, por la
+            // misma razón que `notifySuperseded()`: `cancel()` no hace join.
+            parkingDetectionCoordinator.notifyArbitratedByBt(verdict::class.simpleName)
             cancelDetectionJob()
         }
     }

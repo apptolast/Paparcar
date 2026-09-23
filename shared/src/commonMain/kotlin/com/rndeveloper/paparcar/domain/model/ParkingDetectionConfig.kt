@@ -809,6 +809,22 @@ data class ParkingDetectionConfig(
      *  BUG-FGS-1xx class). On expiry the detector aborts cleanly with telemetry — a missed BT
      *  park degrades to the coordinator/safety-net lanes, never to a stuck service. */
     val btWalkAwayTimeoutMs: Long = 15 * 60_000L,
+    /**
+     * BT-005 · **La ventana en la que un flanco BT todavía puede ser el mismo enlace rebotando.**
+     * Una desconexión seguida de su reconexión dentro de este plazo fue una oscilación (un semáforo,
+     * un manos libres flojo), no una parada y un embarque.
+     *
+     * ⛔ Vive aquí, y no en el `companion` de `BluetoothParkingDetector`, desde
+     * [DET-A-LANE-MUST-EARN-THE-TRIP-IT-SILENCES-001]: la comparten **dos** decisiones —la caza, que
+     * no ACTÚA antes de que cierre, y el árbitro, que no VETA una sesión del coordinator dentro de
+     * ella— y dos umbrales distintos para la misma pregunta permitirían al servicio cancelar la caza
+     * por rebote y a la vez haber matado la sesión por embarque, en el mismo flanco.
+     *
+     * ⛔ No es una ventana antes de MIRAR: la caza del fix del coche aparcado corre desde la
+     * desconexión, porque cada segundo son metros de la caminata del usuario horneados en el pin.
+     * [DET-BT-PIN-IS-SAMPLED-AFTER-THE-WALK-001]
+     */
+    val btDisconnectDebounceMs: Long = 30_000L,
     /** [DET-A-BT-CONNECT-IS-A-DEPARTURE-001] Hard ceiling on the drive-away watch the BT CONNECT
      *  arms. Deliberately much shorter than [btWalkAwayTimeoutMs]: that one waits for a human on
      *  foot to cover 30 m and may legitimately take a quarter of an hour, while this one waits for
