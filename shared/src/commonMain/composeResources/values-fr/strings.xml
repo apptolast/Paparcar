@@ -618,7 +618,7 @@ Si la question n'apparaît plus, changez-le dans Réglages → Paparcar → Posi
     <string name="home_det_ask_sub_at">Demandé à %1$s</string>
     <string name="home_det_ask_sub_at_place">%1$s · demandé à %2$s</string>
     <string name="home_det_ask_cta_yes">Oui, je suis garé</string>
-    <string name="home_det_ask_cta_no">Pas encore</string>
+    <string name="home_det_ask_cta_no">Je roule encore</string>
     <string name="home_det_ask_eyebrow">Tu t'es garé ?</string>
     <!-- Pending "where did you leave your car?" nudge row. [DET-NUDGE-PERSIST-001] -->
     <string name="home_nudge_title">Où avez-vous laissé votre voiture ?</string>

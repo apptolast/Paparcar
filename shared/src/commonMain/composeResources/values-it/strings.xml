@@ -618,7 +618,7 @@ Se la richiesta non compare più, cambiala in Impostazioni → Paparcar → Posi
     <string name="home_det_ask_sub_at">Chiesto alle %1$s</string>
     <string name="home_det_ask_sub_at_place">%1$s · chiesto alle %2$s</string>
     <string name="home_det_ask_cta_yes">Sì, ho parcheggiato</string>
-    <string name="home_det_ask_cta_no">Non ancora</string>
+    <string name="home_det_ask_cta_no">Sto ancora guidando</string>
     <string name="home_det_ask_eyebrow">Hai parcheggiato?</string>
     <!-- Pending "where did you leave your car?" nudge row. [DET-NUDGE-PERSIST-001] -->
     <string name="home_nudge_title">Dove hai lasciato l'auto?</string>

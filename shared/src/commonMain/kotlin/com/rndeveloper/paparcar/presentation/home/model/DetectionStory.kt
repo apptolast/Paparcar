@@ -123,8 +123,8 @@ fun resolveDetectionStory(
      * justo encima de «Alfa Romeo 156 · Parked at Calle X» son dos veces la misma noticia, y el
      * usuario lo vio como un choque VISUAL cuando el problema era editorial.
      *
-     * ⛔ Solo se aparta la fila calmada. Un aviso frágil, una vigilancia muerta, una pregunta
-     * abierta o un coche sin marcar dicen algo que la card NO dice, y esos se quedan enteros —
+     * ⛔ Solo se aparta la fila calmada. Un aviso frágil, una vigilancia muerta o un coche sin
+     * marcar dicen algo que la card NO dice, y esos se quedan enteros —
      * incluida su barra de acento. Apartar por «parecerse» en vez de por «decir lo mismo» es como
      * se pierde un aviso.
      */
@@ -256,4 +256,29 @@ fun resolveDetectionStory(
             watchingStory(isParked = false, badge = ParkedWatchBadge.WATCHING)
         DetectionUiState.Silent -> DetectionStory.Hidden
     }
+}
+
+/**
+ * ¿Esta historia es noticia **de un coche**, y por tanto la puede contar la card de ese coche?
+ * [HOME-AN-OPEN-QUESTION-IS-THE-CARS-NEWS-001]
+ *
+ * Regla del user (22-09): **la card de un coche gestiona todos los estados de ese coche**; el badge
+ * suelto queda sólo para cuando no hay ningún coche registrado, porque entonces no hay card que
+ * gestione nada.
+ *
+ * ⛔ Contesta QUÉ es la historia, no QUIÉN la pinta. Quién la pinta lo decide la hoja, que es la
+ * única que sabe si hay UNA card a ancho completo o una tira de chips estrechos — y un chip no puede
+ * alojar un título, una sublínea y dos botones, ni sirve de nada si está fuera de pantalla. Meter
+ * esa condición aquí habría atado una proyección pura a la anchura de un contenedor.
+ *
+ * [DetectionStory.NoVehicle] es el único `false` con contenido, y es el que justifica que el badge
+ * siga existiendo: dice «no tienes coche», así que no hay card a la que mudarlo.
+ */
+fun DetectionStory.isVehicleNews(): Boolean = when (this) {
+    DetectionStory.NoVehicle, DetectionStory.Hidden -> false
+    // Todo lo demás le pasa a un coche concreto: la pregunta con plazo, el aviso sin plazo, el
+    // «¿dónde lo dejaste?», la vigilancia frágil o muerta, la detección apagada y el permiso que
+    // falta. Los dos últimos nacen globales, pero lo que el usuario ve es que SU coche no está
+    // vigilado — y esa frase la dice mejor la card que lo nombra.
+    else -> true
 }

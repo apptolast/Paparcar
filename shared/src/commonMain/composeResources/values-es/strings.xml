@@ -658,7 +658,7 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="home_det_ask_sub_at">Preguntado a las %1$s</string>
     <string name="home_det_ask_sub_at_place">%1$s · preguntado a las %2$s</string>
     <string name="home_det_ask_cta_yes">Sí, he aparcado</string>
-    <string name="home_det_ask_cta_no">Aún no</string>
+    <string name="home_det_ask_cta_no">Sigo conduciendo</string>
     <string name="home_det_ask_eyebrow">¿Has aparcado?</string>
     <!-- Pending "where did you leave your car?" nudge row. [DET-NUDGE-PERSIST-001] -->
     <string name="home_nudge_title">¿Dónde has dejado el coche?</string>

@@ -9,6 +9,8 @@ import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.presentation.home.VehicleCard
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import kotlin.test.Test
+import kotlin.test.assertTrue
+import kotlin.test.assertFalse
 import kotlin.test.assertEquals
 
 /**
@@ -202,6 +204,35 @@ class DetectionStoryTest {
                 DetectionUiState.Monitoring, listOf(activeCard), promptWindow = window(null),
             ),
         )
+    }
+
+    // ── Quién hospeda la noticia [HOME-AN-OPEN-QUESTION-IS-THE-CARS-NEWS-001] ──────────────────
+
+    @Test
+    fun should_let_the_card_host_every_state_that_is_about_a_vehicle() {
+        // ⛔ EL TESTIGO de la issue #129. La hoja apilaba DOS tarjetas sobre el mismo coche: el badge
+        // preguntando «¿has aparcado?» y la card afirmando «En ruta» tres milímetros debajo, cada
+        // una con sus botones. Regla del user: la card de un coche gestiona TODOS sus estados.
+        val aboutACar = listOf(
+            DetectionStory.AwaitingAnswer(window("Škoda Kamiq")),
+            DetectionStory.PendingAsk,
+            DetectionStory.AwaitingFirstPark,
+            DetectionStory.Inactive,
+            DetectionStory.BlockedCore,
+        )
+
+        aboutACar.forEach { story ->
+            assertTrue(story.isVehicleNews(), "$story le pasa a un coche: lo cuenta su card")
+        }
+    }
+
+    @Test
+    fun should_keep_the_badge_for_the_only_state_with_no_car_to_host_it() {
+        // Y la mitad que impide el fallo peor: apartarse sin que nadie recoja la noticia la haría
+        // DESAPARECER. «No tienes coche» es literalmente eso — no hay card a la que mudarlo, y es
+        // lo que justifica que el badge siga existiendo.
+        assertFalse(DetectionStory.NoVehicle.isVehicleNews())
+        assertFalse(DetectionStory.Hidden.isVehicleNews())
     }
 
     @Test

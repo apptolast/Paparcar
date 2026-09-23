@@ -22,6 +22,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Adjust
 import androidx.compose.material.icons.rounded.LocationOn
+import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
+import androidx.compose.material.icons.automirrored.rounded.HelpOutline
+import paparcar.composeapp.generated.resources.home_det_ask_title
+import paparcar.composeapp.generated.resources.home_det_ask_title_vehicle
+import paparcar.composeapp.generated.resources.home_det_ask_sub_at
+import paparcar.composeapp.generated.resources.home_det_ask_sub_at_place
+import paparcar.composeapp.generated.resources.home_det_ask_cta_yes
+import paparcar.composeapp.generated.resources.home_det_ask_cta_no
 import androidx.compose.material.icons.rounded.AccessTimeFilled
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -52,6 +60,7 @@ import com.rndeveloper.paparcar.presentation.util.placeLineText
 import com.rndeveloper.paparcar.presentation.util.relativeTimeText
 import com.rndeveloper.paparcar.ui.components.DrivingRadarHalo
 import com.rndeveloper.paparcar.ui.components.DrivingRouteGlyph
+import com.rndeveloper.paparcar.presentation.util.formatClockTime
 import com.rndeveloper.paparcar.ui.components.PapCtaPill
 import com.rndeveloper.paparcar.ui.components.UnmarkedParkingIcon
 import com.rndeveloper.paparcar.ui.components.VehicleGlyph
@@ -276,6 +285,25 @@ internal fun HomeVehicleCard(
      *  surface that claims to be following it. Only read while [isDriving].
      *  [HOME-A-DRIVE-IS-ONE-NEWS-AND-THE-CARD-CARRIES-THE-STOP-001] */
     onStopTrip: (() -> Unit)? = null,
+    /**
+     * El ESTADO de este coche, pintado dentro de la card. [HOME-AN-OPEN-QUESTION-IS-THE-CARS-NEWS-001]
+     *
+     * Regla del user (22-09): **la card de un coche gestiona todos los estados de ese coche**, y el
+     * badge suelto sólo queda para cuando no hay ningún coche registrado — porque entonces no hay
+     * card que gestione nada. Así que aquí caben la pregunta con plazo, el aviso sin plazo, la
+     * vigilancia frágil o interrumpida, la detección apagada y el permiso que falta.
+     *
+     * ⛔ Es un HUECO, no diez callbacks. La card no sabe nada de detección: quien lo rellena es la
+     * hoja, que ya tiene los intents a mano, y lo que mete dentro es la MISMA fila que pintaría el
+     * badge (`HomeDetectionSurface(embedded = true)`) — el mismo objeto, no una copia con el mismo
+     * aspecto. Dos renderizadores del mismo estado es exactamente cómo se llega a que la hoja y la
+     * card digan cosas distintas del mismo coche.
+     *
+     * Sustituye a la línea de estado —«En ruta», «Aparcado», «sin marcar»—: si se sumara,
+     * volveríamos a la card afirmando «En ruta» tres milímetros debajo de una pregunta que duda de
+     * eso mismo, que es el defecto de la issue #129.
+     */
+    status: (@Composable () -> Unit)? = null,
 ) {
     val vehicle = card.vehicle
     val session = card.session
@@ -285,6 +313,20 @@ internal fun HomeVehicleCard(
     val accent = vehicleIdentityColor(watch)
     /** Hay cápsula de stop debajo del pie — y entonces el aire inferior es SUYO, no del pie.
      *  [UI-A-PILL-IS-FOR-A-LABEL-NOT-A-SENTENCE-002] */
+    // ⛔⛔ La cápsula se queda TAMBIÉN con la pregunta abierta, y esto estuvo mal un rato: se quitó
+    // razonando que «Aún no» ya significaba «sigo conduciendo». No significa lo mismo, y no es una
+    // cuestión de matiz — son dos mecánicas distintas:
+    //
+    //   · «Aún no»             → ACTION_PARKING_DENIED → `onUserDeniedParking()`: descarta el aviso
+    //                            y MANTIENE la sesión viva con su autorización. Sigue vigilando.
+    //   · «No voy en mi coche» → ACTION_USER_STOP → `handleUserStop()`: cierra el viaje sin guardar
+    //                            plaza, suelta el confirm retenido y abre el PERIODO DE SILENCIO.
+    //
+    // Y la diferencia muerde justo en el caso que la trajo (user, 22-09): un viaje falso positivo en
+    // casa. Ahí «Aún no» es mentira —no estás conduciendo— y encima mantiene vivo el viaje fantasma;
+    // la única salida honesta es la que además calla los avisos automáticos un rato. Quitarla habría
+    // dejado al usuario sin esa salida justo cuando la necesita.
+    // [HOME-AN-OPEN-QUESTION-IS-THE-CARS-NEWS-001]
     val stopStacksBelow = isDriving && onStopTrip != null
 
     Surface(
@@ -356,7 +398,13 @@ internal fun HomeVehicleCard(
                 // the compact chip's and as the peek's meta rows, so the same car reads the same
                 // way whichever surface shows it.
                 // [UI-A-PARKED-CARD-SAYS-WHERE-AND-WHEN-IN-TWO-LINES-001]
-                if (!isDriving && session != null) {
+                if (status != null) {
+                    Box(
+                        modifier = Modifier.padding(
+                            bottom = if (stopStacksBelow) 0.dp else CARD_V_PAD_DP.dp,
+                        ),
+                    ) { status() }
+                } else if (!isDriving && session != null) {
                     ParkedMetaLines(
                         session = session,
                         // The roomy card keeps the state IN WORDS ("Parked at X" / "Near X"): it

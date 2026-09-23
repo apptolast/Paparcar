@@ -121,6 +121,16 @@ fun HomeDetectionSurface(
      *  request: this row means the watcher is dead, and a permission grant never restarts it.
      *  [DET-WATCH-REACTIVATE-001] */
     onResumeWatch: () -> Unit = {},
+    /**
+     * Se pinta DENTRO de la card del coche en vez de como tarjeta propia.
+     * [HOME-AN-OPEN-QUESTION-IS-THE-CARS-NEWS-001]
+     *
+     * Regla del user (22-09): **la card de un coche gestiona TODOS los estados de ese coche**, y el
+     * badge suelto sólo queda para cuando no hay ningún coche registrado — porque entonces no hay
+     * card que pueda gestionar nada. Quien decide cuál de los dos pinta es `resolveDetectionStory`,
+     * no este parámetro: aquí sólo se dice cómo vestirse.
+     */
+    embedded: Boolean = false,
 ) {
     val cs = MaterialTheme.colorScheme
     val amber = Tone(cs.secondary, cs.onSecondary, cs.secondaryContainer, cs.onSecondaryContainer, isError = false)
@@ -193,7 +203,8 @@ fun HomeDetectionSurface(
             // touch the window, exactly like the deliberately absent `setDeleteIntent`.
             onClick = story.window.candidate?.let { at -> { onFocusAsk(at) } },
             modifier = modifier,
-        )
+            embedded = embedded,
+            )
 
         // [DET-NUDGE-PERSIST-001] The older, deadline-less ask: a parking record we could not place.
         DetectionStory.PendingAsk -> ActionRow(
@@ -206,7 +217,8 @@ fun HomeDetectionSurface(
             secondaryLabel = stringResource(Res.string.home_nudge_dismiss),
             onSecondary = onDismissNudge,
             modifier = modifier,
-        )
+            embedded = embedded,
+            )
 
         DetectionStory.NoVehicle -> ActionRow(
             tone = amber,
@@ -216,7 +228,8 @@ fun HomeDetectionSurface(
             primaryLabel = stringResource(Res.string.home_det_novehicle_cta),
             onPrimary = onAddVehicle,
             modifier = modifier,
-        )
+            embedded = embedded,
+            )
 
         // One "activate detection" surface for both causes — Settings flag off OR producer
         // permissions missing. The single button asks for whatever is missing. [DET-TOGGLE-001]
@@ -228,7 +241,8 @@ fun HomeDetectionSurface(
             primaryLabel = stringResource(Res.string.home_det_producer_cta),
             onPrimary = onActivateDetection,
             modifier = modifier,
-        )
+            embedded = embedded,
+            )
 
         // Amber, not red: missing location is PENDING and fixable, not broken — and the peek above
         // already wears the matching warning badge. The red full-sheet blocker this row used to sit
@@ -241,7 +255,8 @@ fun HomeDetectionSurface(
             primaryLabel = stringResource(Res.string.home_det_core_cta),
             onPrimary = onOpenPermissions,
             modifier = modifier,
-        )
+            embedded = embedded,
+            )
 
         DetectionStory.AwaitingFirstPark -> ActionRow(
             tone = brand,
@@ -253,7 +268,8 @@ fun HomeDetectionSurface(
             secondaryLabel = if (allowDrivingDetection) stringResource(Res.string.home_det_awaiting_cta_secondary) else null,
             onSecondary = onStartDrivingDetection,
             modifier = modifier,
-        )
+            embedded = embedded,
+            )
 
         // A LIVE TRIP renders nothing here: the vehicle card tells it whole and carries the stop
         // CTA, so the projection never emits a driving story any more.
@@ -275,7 +291,8 @@ fun HomeDetectionSurface(
                 primaryLabel = null,
                 onPrimary = {},
                 modifier = modifier,
-            )
+                embedded = embedded,
+                )
 
             ParkedWatchBadge.WATCHING_FRAGILE -> ActionRow(
                 tone = amber,
@@ -286,7 +303,8 @@ fun HomeDetectionSurface(
                 onPrimary = onRequestBatteryExemption,
                 primaryStacksBelow = true,
                 modifier = modifier,
-            )
+                embedded = embedded,
+                )
 
             ParkedWatchBadge.WATCH_INTERRUPTED -> ActionRow(
                 tone = error,
@@ -297,7 +315,8 @@ fun HomeDetectionSurface(
                 onPrimary = onResumeWatch,
                 primaryStacksBelow = true,
                 modifier = modifier,
-            )
+                embedded = embedded,
+                )
         }
 
         DetectionStory.Hidden -> Unit
@@ -349,6 +368,16 @@ private fun ActionRow(
      * story grows an invisible affordance by accident.
      */
     onClick: (() -> Unit)? = null,
+    /**
+     * Esta fila se pinta DENTRO de la card del coche, no como tarjeta suya.
+     * [HOME-AN-OPEN-QUESTION-IS-THE-CARS-NEWS-001]
+     *
+     * Cambia tres cosas y ninguna es el contenido: se va su contenedor (la card ya es una), se va
+     * su barra de acento (la card ya lleva la suya, del mismo color) y se va el tile (la card ya
+     * lleva el glifo del coche). El texto y los botones son LOS MISMOS objetos — no una copia —,
+     * que es la única forma de que las dos superficies no se puedan desincronizar.
+     */
+    embedded: Boolean = false,
 ) {
     // El enfasis es UNA variable, no un contenedor.
     // Dos niveles y nada mas: la fila que PIDE algo ahora se tine (contenedor + borde del acento) y
@@ -371,11 +400,7 @@ private fun ActionRow(
         // of leaving a screen reader three peers with no hierarchy.
         .then(onClick?.let { Modifier.clickable(onClick = it) } ?: Modifier)
 
-    PapOutlinedCard(
-        modifier = cardModifier,
-        containerColor = cardColor,
-        border = border,
-    ) {
+    val body: @Composable () -> Unit = {
         // ⛔ LA BARRA DE ACENTO VUELVE. Es el badge de estado que esta superficie llevaba desde que
         // existe, y `b967323b` la perdió por el camino al pasar la card a `PapOutlinedCard` —
         // aquel ticket iba a por los CINCO lenguajes de caja, y se llevó por delante el único que
@@ -390,12 +415,14 @@ private fun ActionRow(
         // ⛔ Va FUERA del `PapListItem`, no dentro: la fila sigue siendo el esqueleto canónico
         // (tile · título · sublínea · trailing) y la barra es cromo de la CARD. [UI-LIST-ITEM-001]
         Row(modifier = Modifier.height(IntrinsicSize.Min)) {
-            Box(
-                modifier = Modifier
-                    .width(ACCENT_BAR_DP.dp)
-                    .fillMaxHeight()
-                    .background(tone.accent),
-            )
+            if (!embedded) {
+                Box(
+                    modifier = Modifier
+                        .width(ACCENT_BAR_DP.dp)
+                        .fillMaxHeight()
+                        .background(tone.accent),
+                )
+            }
         Column(
             modifier = Modifier.weight(1f).padding(bottom = CONTENT_VERTICAL_DP.dp),
             verticalArrangement = Arrangement.spacedBy(CTA_ROW_GAP_DP.dp),
@@ -420,7 +447,7 @@ private fun ActionRow(
                 subtitle = subtitle,
                 titleMaxLines = 2,
                 subtitleMaxLines = 2,
-                leading = { IconTile(icon = icon, tone = tone) },
+                leading = if (embedded) null else ({ IconTile(icon = icon, tone = tone) }),
                 contentPadding = PaddingValues(
                     start = CONTENT_START_DP.dp,
                     end = CONTENT_END_DP.dp,
@@ -504,6 +531,25 @@ private fun ActionRow(
             }
             }
         }
+        }
+    }
+
+    // El MISMO contenido, dos huéspedes. [HOME-AN-OPEN-QUESTION-IS-THE-CARS-NEWS-001]
+    //
+    // ⛔ Y es el mismo de verdad, no una copia con el mismo aspecto: el `when (story)` de arriba —
+    // con sus ocho ramas, sus textos y sus dos CTAs— se evalúa una sola vez y lo pinta quien
+    // corresponda. Reescribir estas filas dentro de la card habría sido el camino corto a que la
+    // hoja y la card digan cosas distintas del mismo coche, que es justo el defecto que este
+    // ticket viene a quitar.
+    if (embedded) {
+        body()
+    } else {
+        PapOutlinedCard(
+            modifier = cardModifier,
+            containerColor = cardColor,
+            border = border,
+        ) {
+            body()
         }
     }
 }

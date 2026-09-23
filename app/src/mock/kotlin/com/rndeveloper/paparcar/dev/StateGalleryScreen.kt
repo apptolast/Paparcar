@@ -2030,6 +2030,50 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
+            // ⛔ QUIÉN HOSPEDA LA NOTICIA, que no estaba en esta galería. Con UN coche la cuenta su
+            // card —cualquier estado: la pregunta con plazo, el aviso sin plazo, la vigilancia
+            // frágil o muerta, la detección apagada y el permiso que falta— y el badge suelto no se
+            // dibuja. Antes se apilaban las dos tarjetas sobre el mismo coche, una preguntando y la
+            // otra afirmando «En ruta». Issue #129.
+            // [HOME-AN-OPEN-QUESTION-IS-THE-CARS-NEWS-001]
+            Variant("Sheet · 1 coche + pregunta abierta (la card pregunta)") {
+                sheet(
+                    HomeState(
+                        hasCorePermissions = true,
+                        userGpsPoint = sampleGps,
+                        vehicles = listOf(FakeData.vehicleSedan),
+                        nearbySpots = FakeData.nearbySpots,
+                        drivingMeta = com.rndeveloper.paparcar.presentation.home.DrivingMeta(
+                            vehicleId = FakeData.vehicleSedan.id,
+                            phase = com.rndeveloper.paparcar.domain.detection.DetectionPhase.Candidate,
+                        ),
+                        promptWindow = com.rndeveloper.paparcar.domain.detection.PendingPromptWindow(
+                            shownAtMs = 1_758_567_840_000L,
+                            vehicleName = "${FakeData.vehicleSedan.brand} ${FakeData.vehicleSedan.model}",
+                            street = "Calle Jesús de los Milagros 30",
+                        ),
+                    ),
+                )
+            },
+            // Y el contraste, que es lo que impide el fallo peor: con 2+ coches la tira son chips
+            // estrechos en un scroll horizontal, donde no cabe un título con sublínea y dos botones
+            // y donde el coche del que se habla puede estar fuera de pantalla. Ahí el badge se
+            // queda entero. Apartarse sin que nadie recoja la noticia la haría DESAPARECER.
+            Variant("Sheet · 2+ coches + pregunta abierta (la fila pregunta)") {
+                sheet(
+                    HomeState(
+                        hasCorePermissions = true,
+                        userGpsPoint = sampleGps,
+                        vehicles = listOf(FakeData.vehicleSedan, FakeData.vehicleCorolla),
+                        nearbySpots = FakeData.nearbySpots,
+                        promptWindow = com.rndeveloper.paparcar.domain.detection.PendingPromptWindow(
+                            shownAtMs = 1_758_567_840_000L,
+                            vehicleName = "${FakeData.vehicleSedan.brand} ${FakeData.vehicleSedan.model}",
+                            street = "Calle Jesús de los Milagros 30",
+                        ),
+                    ),
+                )
+            },
             // 2+ vehicles → compact chips. Azul calmado = mi coche vigilado (glifo BT o radar +
             // borde); azul vivo + halo = conduciendo; gris = sin vigilar. El pie es el ACENTO:
             // direccion en azul calmado (aparcado) o "Sin marcar" gris. Las plazas siguen siendo

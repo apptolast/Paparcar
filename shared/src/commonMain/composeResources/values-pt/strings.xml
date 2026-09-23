@@ -618,7 +618,7 @@ Se a pergunta já não aparecer, muda em Definições → Paparcar → Localiza�
     <string name="home_det_ask_sub_at">Perguntado às %1$s</string>
     <string name="home_det_ask_sub_at_place">%1$s · perguntado às %2$s</string>
     <string name="home_det_ask_cta_yes">Sim, estacionei</string>
-    <string name="home_det_ask_cta_no">Ainda não</string>
+    <string name="home_det_ask_cta_no">Ainda a conduzir</string>
     <string name="home_det_ask_eyebrow">Já estacionaste?</string>
     <!-- Pending "where did you leave your car?" nudge row. [DET-NUDGE-PERSIST-001] -->
     <string name="home_nudge_title">Onde deixaste o carro?</string>

@@ -52,6 +52,7 @@ import com.rndeveloper.paparcar.presentation.home.VehicleCard
 import com.rndeveloper.paparcar.presentation.home.isDriving
 import com.rndeveloper.paparcar.presentation.home.vehiclesRowOrder
 import com.rndeveloper.paparcar.presentation.home.model.DetectionStory
+import com.rndeveloper.paparcar.presentation.home.model.isVehicleNews
 import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
 import com.rndeveloper.paparcar.presentation.home.model.resolveDetectionStory
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.HomeSheetAction
@@ -244,6 +245,21 @@ fun LazyListScope.homeSheetItems(
         // contestaría está literalmente en pantalla. [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001]
         locationAskPending = slice.locationAskPending,
     )
+    // ⛔ QUIÉN la pinta se decide UNA vez, aquí, y se lee en los dos sitios. Dos lugares evaluando
+    // «¿la lleva la card?» es exactamente cómo se consigue que no la cuente NADIE: basta con que las
+    // dos condiciones se desincronicen un día. [HOME-AN-OPEN-QUESTION-IS-THE-CARS-NEWS-001]
+    //
+    // La regla es del user (22-09): la card de un coche gestiona todos los estados de ese coche, y
+    // el badge suelto queda sólo para cuando no hay coche registrado — porque entonces no hay card
+    // que gestione nada.
+    //
+    // ⛔ Y sólo con UN coche: con dos o más la tira son chips estrechos dentro de un scroll
+    // horizontal, donde no cabe un título con sublínea y dos botones, y donde el coche del que habla
+    // la noticia puede estar fuera de pantalla. Un aviso que hay que descubrir arrastrando es peor
+    // que el badge que sustituiría. Es la misma condición que el viaje ya exigía: sólo se narra en
+    // una card que está en pantalla.
+    val cardHostsTheStory = vehicleCards.size == 1 && detectionStory.isVehicleNews()
+
     // ── 1. La VIGILANCIA — lo que está pasando con tu coche ahora mismo ────────────────────────
     // The ONE voice for "what is detection doing right now": loud action rows + discreet happy
     // lines, resolved by a single testable projection. [UX-DETECTION-STORY-001]
@@ -251,8 +267,10 @@ fun LazyListScope.homeSheetItems(
     // PRIMERA del bloque fijo, encima de la tira de coches, como dibuja la ficha de
     // `HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001`.
     // [HOME-THE-WATCH-COMES-FIRST-AND-THE-HEADER-FOLLOWS-THE-LANE-001]
-    if (detectionStory != DetectionStory.Hidden) {
-        item("detection_surface") {
+    // La MISMA fila, dos huéspedes: la card del coche cuando puede gestionarlo, y el badge
+    // suelto cuando no hay card. Se construye UNA vez como lambda para que no haya dos
+    // llamadas que puedan divergir. [HOME-AN-OPEN-QUESTION-IS-THE-CARS-NEWS-001]
+    val detectionRow: @Composable (Boolean) -> Unit = { insideCard ->
             HomeDetectionSurface(
                 story = detectionStory,
                 onAddVehicle = { onAction(HomeSheetAction.AddVehicle) },
@@ -295,8 +313,18 @@ fun LazyListScope.homeSheetItems(
                     )
                 },
                 onDismissNudge = { onIntent(HomeIntent.DismissParkNudge) },
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
+                modifier = if (insideCard) Modifier else Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
+                embedded = insideCard,
             )
+    }
+
+    // El hueco que la card rellena — null cuando no le toca a ella.
+    val cardStatus: (@Composable () -> Unit)? =
+        if (cardHostsTheStory) ({ detectionRow(true) }) else null
+
+    if (detectionStory != DetectionStory.Hidden && !cardHostsTheStory) {
+        item("detection_surface") {
+            detectionRow(false)
         }
     }
 
@@ -328,7 +356,7 @@ fun LazyListScope.homeSheetItems(
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
             )
         }
-        vehiclesSection(slice, vehicleCards, onIntent, onAction, rowsScroll)
+        vehiclesSection(slice, vehicleCards, onIntent, onAction, rowsScroll, cardStatus)
     }
 
     // ── 3. The nearby LANE: the chip row that picks a subject, and that subject's list ───────
@@ -393,6 +421,9 @@ private fun LazyListScope.vehiclesSection(
     onIntent: (HomeIntent) -> Unit,
     onAction: (HomeSheetAction) -> Unit,
     rowsScroll: HomeSheetRowsScroll?,
+    /** El estado de ESTE coche, ya construido por la hoja, o null si lo pinta el badge suelto.
+     *  [HOME-AN-OPEN-QUESTION-IS-THE-CARS-NEWS-001] */
+    cardStatus: (@Composable () -> Unit)? = null,
 ) {
     val userLocation = slice.userGpsPoint?.let { Pair(it.latitude, it.longitude) }
     // The vehicle whose trip is being detected RIGHT NOW (driving, not yet parked). [CHIP-DRIVING-001]
@@ -439,6 +470,10 @@ private fun LazyListScope.vehiclesSection(
                 // card is the one surface telling the trip. [DET-STOP-BUTTON-001]
                 // [HOME-A-DRIVE-IS-ONE-NEWS-AND-THE-CARD-CARRIES-THE-STOP-001]
                 onStopTrip = { onIntent(HomeIntent.StopDetection) },
+                // El estado de ESTE coche, dentro de su card: la MISMA fila que pintaría el badge,
+                // en modo `embedded`. Mismos textos y mismos intents — cambia el huésped, no lo que
+                // pasa al tocar. [HOME-AN-OPEN-QUESTION-IS-THE-CARS-NEWS-001]
+                status = cardStatus,
                 userLocation = userLocation,
                 onClick = cardClick(card),
                 modifier = Modifier.padding(horizontal = 16.dp),
