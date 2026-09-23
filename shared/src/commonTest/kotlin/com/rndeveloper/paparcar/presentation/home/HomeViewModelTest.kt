@@ -66,6 +66,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import com.rndeveloper.paparcar.presentation.home.model.isDetectionStopped
 import com.rndeveloper.paparcar.presentation.home.model.warnsLocationMissing
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -1530,6 +1531,107 @@ class HomeViewModelTest {
         assertEquals("veh-focus", vehicleRepo.observeActiveVehicle().first()?.id)
         // The plaza is still published — only the identity claim is vetoed.
         assertEquals(1, reportScheduler.scheduleCallCount)
+    }
+
+    // ── [DET-A-DEPARTURE-DECLARED-MUST-ARM-THE-TRIP-001] Leaving arms the trip ─
+
+    /** The Focus: no MAC, so the coordinator is the only lane that can watch it. */
+    private fun coordinatorCar() = Vehicle(
+        id = "veh-focus", userId = "user-1", brand = "Ford", model = "Focus",
+        sizeCategory = com.rndeveloper.paparcar.domain.model.VehicleSize.MEDIUM_SUV,
+    )
+
+    private fun parkedSessionOf(vehicleId: String, id: String = "session-1") = UserParking(
+        id = id, userId = "user-1", vehicleId = vehicleId, location = location, isActive = true,
+    )
+
+    @Test
+    fun `should_arm_the_trip_when_the_user_declares_a_departure`() = runTest {
+        // The dialog says "we'll start detecting your next parking" under the button. It did not:
+        // `start()` had a single call site in the whole app ("I'm driving"), and after the release
+        // there is no session and no fence left for any automatic nominator to arm on.
+        permissions.emit(FakePermissionManager.allGranted())
+        vehicleRepo = FakeVehicleRepository(defaultVehicle = coordinatorCar())
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(parkedSessionOf("veh-focus")))
+        vm = buildVm()
+        advanceUntilIdle()
+
+        vm.handleIntent(HomeIntent.ReleaseParking(sessionId = "session-1", reason = ParkingReleaseReason.DEPARTURE))
+        advanceUntilIdle()
+
+        assertEquals(1, manualParkingDetection.startCallCount)
+    }
+
+    @Test
+    fun `should_not_arm_the_trip_when_deleting_a_parking_record`() = runTest {
+        // Deleting a wrong record says the parking never happened — no trip starts with it.
+        permissions.emit(FakePermissionManager.allGranted())
+        vehicleRepo = FakeVehicleRepository(defaultVehicle = coordinatorCar())
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(parkedSessionOf("veh-focus")))
+        vm = buildVm()
+        advanceUntilIdle()
+
+        vm.handleIntent(HomeIntent.ReleaseParking(sessionId = "session-1", reason = ParkingReleaseReason.RECORD_DELETED))
+        advanceUntilIdle()
+
+        assertEquals(0, manualParkingDetection.startCallCount)
+    }
+
+    @Test
+    fun `should_not_arm_the_trip_when_the_released_car_is_bluetooth_paired`() = runTest {
+        // The Kamiq's MAC already covers it, and the coordinator would do worse than duplicate the
+        // watch: the same release deliberately leaves the Kamiq INACTIVE, so the session we armed
+        // would be attributed to the Focus and plant its pin there — field 2026-08-11 through a new
+        // door. [DET-BT-OWNERSHIP-001]
+        permissions.emit(FakePermissionManager.allGranted())
+        val btVeh = Vehicle(
+            id = "veh-kamiq", userId = "user-1", brand = "Skoda", model = "Kamiq",
+            sizeCategory = com.rndeveloper.paparcar.domain.model.VehicleSize.MEDIUM_SUV,
+            bluetoothDeviceId = "AA:BB:CC:DD:EE:FF",
+        )
+        vehicleRepo = FakeVehicleRepository(defaultVehicle = coordinatorCar(), extraVehicles = listOf(btVeh))
+        parkingRepo = FakeUserParkingRepository(
+            initialSessions = listOf(parkedSessionOf("veh-kamiq", id = "session-kamiq")),
+        )
+        vm = buildVm()
+        advanceUntilIdle()
+
+        vm.handleIntent(HomeIntent.ReleaseParking(sessionId = "session-kamiq", reason = ParkingReleaseReason.DEPARTURE))
+        advanceUntilIdle()
+
+        assertEquals(0, manualParkingDetection.startCallCount)
+    }
+
+    @Test
+    fun `should_not_arm_the_trip_when_detection_cannot_run`() = runTest {
+        // Permissions denied → the dialog already replaced its promise with "we won't be able to
+        // detect your next parking on our own". Arming here would promise it twice.
+        vehicleRepo = FakeVehicleRepository(defaultVehicle = coordinatorCar())
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(parkedSessionOf("veh-focus")))
+        vm = buildVm()
+        advanceUntilIdle()
+        assertTrue(vm.state.value.detectionUiState.isDetectionStopped, "fixture must have detection stopped")
+
+        vm.handleIntent(HomeIntent.ReleaseParking(sessionId = "session-1", reason = ParkingReleaseReason.DEPARTURE))
+        advanceUntilIdle()
+
+        assertEquals(0, manualParkingDetection.startCallCount)
+    }
+
+    @Test
+    fun `should_not_arm_the_trip_when_the_release_never_landed`() = runTest {
+        // A promise the write did not keep is exactly what opened this ticket.
+        permissions.emit(FakePermissionManager.allGranted())
+        vehicleRepo = FakeVehicleRepository(defaultVehicle = coordinatorCar())
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(parkedSessionOf("veh-focus")))
+        vm = buildVm()
+        advanceUntilIdle()
+        parkingRepo.clearActiveParkingSessionResult = Result.failure(IllegalStateException("room is down"))
+
+        vm.handleIntent(HomeIntent.ReleaseParking(sessionId = "session-1", reason = ParkingReleaseReason.DEPARTURE))
+        advanceUntilIdle()
+
+        assertEquals(0, manualParkingDetection.startCallCount)
     }
 
     // ── [PARK-DELETE-NO-DECLARE-001] Deleting a record declares nothing ───────

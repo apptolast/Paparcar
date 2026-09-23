@@ -126,6 +126,43 @@ object VehicleFenceOwnershipPolicy {
      */
     fun shouldDeclareActiveOnRelease(reason: ParkingReleaseReason, releasedVehicleIsBtPaired: Boolean): Boolean =
         reason.isDeparture && !releasedVehicleIsBtPaired
+
+    /**
+     * Whether closing a parking session should ARM the trip that starts with it.
+     * [DET-A-DEPARTURE-DECLARED-MUST-ARM-THE-TRIP-001]
+     *
+     * The other half of [shouldDeclareActiveOnRelease], and it lives next to it because the two are
+     * the same statement read twice: "I'm leaving in this car" says both WHICH car is mine and THAT
+     * a trip begins. Split across two files, the second half was never written at all — the release
+     * dialog promised "we'll start detecting your next parking" while `releaseParking` declared the
+     * car and stopped, and a non-Bluetooth car went blind until the user marked a parking by hand
+     * (after the release there is no session and no fence left, so AR ENTER, geofence EXIT, sentry
+     * wake and the arrival handoff all stand down for want of a nominator).
+     *
+     * Three conditions, the first two identical to [shouldDeclareActiveOnRelease] and for the same
+     * reasons:
+     *  1. A DEPARTURE. Deleting a wrong record says the parking never happened, not that a trip
+     *     starts.
+     *  2. NOT a Bluetooth-paired car. Its MAC already covers it — the ACL disconnect is caught
+     *     without session or fence — so the coordinator would add nothing but risk: condition 2 of
+     *     [shouldDeclareActiveOnRelease] deliberately leaves that car INACTIVE, so the session we
+     *     armed would be attributed to whichever other car is active and plant its pin there. That
+     *     is field 2026-08-11 (the Kamiq's fence nominating eight Focus trips) walking in through a
+     *     new door, and it is the lane mixing CLAUDE.md forbids.
+     *  3. Detection must be able to run at all. The same gate the dialog reads to pick its note: off
+     *     or blocked, the copy already says we cannot watch, and arming would promise it twice.
+     *
+     * The arm enters as [com.rndeveloper.paparcar.domain.detection.DetectionTrigger.MANUAL], exempt
+     * from the strategy gate [DET-STRATEGY-GATE-001] — right here, since the tap is explicit human
+     * intent exactly like "I'm driving"; condition 2 is what keeps that exemption from ever being
+     * exercised over a Bluetooth car.
+     */
+    fun shouldArmTripOnRelease(
+        reason: ParkingReleaseReason,
+        releasedVehicleIsBtPaired: Boolean,
+        detectionAvailable: Boolean,
+    ): Boolean =
+        reason.isDeparture && !releasedVehicleIsBtPaired && detectionAvailable
 }
 
 /** A vehicle that owns (or would own) a fence, paired with its session's geofenceId (== sessionId,

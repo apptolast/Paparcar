@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
+import com.rndeveloper.paparcar.domain.detection.fence.VehicleFenceOwnershipPolicy
 import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.model.SpotVoteOutcome
@@ -496,12 +497,22 @@ private fun HomeContent(
             val releasePrivateZoneName = releaseSession?.let { session ->
                 SpotReleasePolicy.privateZoneAt(session.location, state.zones.filter { it.isPrivate })?.name
             }
+            // Same idea as the block above: the middle note ANNOUNCES a declaration, so it has to be the
+            // declaration the VM will actually make. Read off `isActive` alone it announced one for
+            // a Bluetooth car too, which the policy vetoes — the car keeps its MAC as identity and
+            // stays inactive. [DET-A-DEPARTURE-DECLARED-MUST-ARM-THE-TRIP-001] [PARK-DELETE-NO-DECLARE-001]
+            val releaseDeclaresActiveVehicle = releaseVehicle != null &&
+                !releaseVehicle.isActive &&
+                VehicleFenceOwnershipPolicy.shouldDeclareActiveOnRelease(
+                    reason = ParkingReleaseReason.DEPARTURE,
+                    releasedVehicleIsBtPaired = releaseVehicle.bluetoothDeviceId != null,
+                )
             HomeReleaseDialogHost(
                 visible = releaseTargetSessionId != null,
                 releasingReason = state.releasingReason,
                 sessionId = releaseTargetSessionId,
                 vehicleName = releaseVehicle?.displayName(fallback = "")?.takeIf { it.isNotBlank() },
-                vehicleIsActive = releaseVehicle?.isActive != false,
+                declaresActiveVehicle = releaseDeclaresActiveVehicle,
                 // Off/blocked detection can't honour the "we'll watch your next parking" promise —
                 // the note says so honestly; the story surface in Home asks for the fix. [UX-PARKED-STATE-001]
                 detectionAvailable = !state.detectionUiState.isDetectionStopped,
@@ -1250,7 +1261,7 @@ private fun HomeReleaseDialogHost(
     releasingReason: ParkingReleaseReason?,
     sessionId: String?,
     vehicleName: String?,
-    vehicleIsActive: Boolean,
+    declaresActiveVehicle: Boolean,
     detectionAvailable: Boolean,
     privateZoneName: String?,
     onIntent: (HomeIntent) -> Unit,
@@ -1264,14 +1275,17 @@ private fun HomeReleaseDialogHost(
     fun release(reason: ParkingReleaseReason) {
         onIntent(HomeIntent.ReleaseParking(sessionId = sessionId, reason = reason))
     }
-    // Leaving re-arms detection. If this car wasn't the active one, releasing IS the declaration
-    // that you drive it (the VM makes it active), so the copy says so. When detection is off or
-    // blocked the promise would be a lie — the note says so instead, and Home's story surface
-    // offers the fix after the release. [VEH-ACTIVE-FENCE-001] [UX-PARKED-STATE-001]
+    // Leaving arms the trip that starts with it — true since
+    // [DET-A-DEPARTURE-DECLARED-MUST-ARM-THE-TRIP-001], where the VM finally did what this line had
+    // been promising. If releasing is also the declaration that you drive this car, the copy says
+    // so; when detection is off or blocked the promise would be a lie, so the note says that
+    // instead and Home's story surface offers the fix after the release. Both booleans come from the
+    // very policy the VM runs, so no note can outrun the action.
+    // [VEH-ACTIVE-FENCE-001] [UX-PARKED-STATE-001]
     val detectionNote = when {
         !detectionAvailable ->
             stringResource(Res.string.home_release_dialog_detection_unavailable)
-        !vehicleIsActive && vehicleName != null ->
+        declaresActiveVehicle && vehicleName != null ->
             stringResource(Res.string.home_release_dialog_detection_inactive, vehicleName)
         else ->
             stringResource(Res.string.home_release_dialog_detection_active)

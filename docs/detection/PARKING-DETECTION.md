@@ -9439,3 +9439,62 @@ así que **la mera supervivencia del sello es la prueba**; (3) el TTL de 4 minut
 bajo una retirada que puede fallar de todas las formas en que falla un job en Android. La retirada
 está acotada por ese mismo TTL: pasado, el documento ya no existe y `retractSpot` (que es un UPDATE)
 contestaría PERMISSION_DENIED [DET-RETRACT-DENIED-FOREVER-001].
+
+---
+
+## 2026-09-23 · Declarar una salida arma el viaje que empieza [DET-A-DEPARTURE-DECLARED-MUST-ARM-THE-TRIP-001]
+
+**El reporte.** Bajo el botón «Me voy» del diálogo de liberación se lee, desde que ese diálogo
+existe: *«Empezaremos a detectar tu próximo aparcamiento.»* No empezaba nada.
+
+**Causa raíz — media declaración.** «Me voy» y «Voy conduciendo» afirman lo mismo físicamente —
+*estoy arrancando un viaje*— y sólo el segundo lo ejecutaba:
+
+```
+startDrivingDetection → declareActiveVehicle + manualParkingDetection.start()
+releaseParking        → declareActiveVehicle + …
+```
+
+`manualParkingDetection.start()` tenía **un único call site en toda la app**. Y después del release
+no queda nadie que pueda armar: la sesión pasa a `isActive = false` y la geocerca se retira, así que
+`AR_VEHICLE_ENTER` cae en `ArEnterDecision.NoSession`, `GEOFENCE_EXIT` se queda sin la valla que
+habría disparado, `SENTRY_WAKE` imprime su propio `⊘ no parked session; standing down` y el
+`ARRIVAL_HANDOFF` sólo reconcilia sesiones abiertas. **Un coche sin MAC quedaba ciego hasta que el
+usuario volviera a marcar un aparcamiento a mano.** Un coche con MAC estaba cubierto, pero por el
+carril BT, que nunca necesitó ni sesión ni valla.
+
+**El fix.** `VehicleFenceOwnershipPolicy.shouldArmTripOnRelease(reason, btPaired, detectionAvailable)`,
+pegado a `shouldDeclareActiveOnRelease` porque son las dos mitades de la MISMA frase: separadas en
+dos ficheros, la segunda no se escribió nunca. Tres condiciones, y las dos primeras son idénticas a
+las de su hermana — con un test que lo afirma como invariante, no como coincidencia:
+
+1. **Salida**, no borrado de registro (un registro borrado dice que el aparcamiento nunca ocurrió).
+2. **Sin MAC.** Un coche emparejado pertenece al carril BT. Armar el Coordinator además no sería
+   redundante sino peligroso: por la condición 2 de `shouldDeclareActiveOnRelease` ese coche
+   **no** pasa a ser el activo, de modo que la sesión armada se atribuiría a OTRO coche y plantaría
+   ahí el pin — campo 2026-08-11 (la valla del Kamiq nominando ocho viajes del Focus) entrando por
+   una puerta nueva. Y es la mezcla de carriles que CLAUDE.md prohíbe.
+3. **La detección tiene que poder correr.** La misma puerta que el diálogo usa para cambiar su nota.
+
+El armado entra como `DetectionTrigger.MANUAL`, exento del gate de estrategia
+[DET-STRATEGY-GATE-001] — correcto aquí, porque el tap es intención humana explícita igual que «Voy
+conduciendo»; la condición 2 hace que esa exención no se ejerza nunca sobre un coche BT.
+
+**Orden.** Se arma en el `onSuccess` del release. Con la escritura posada, sesión y valla ya no
+existen y el Coordinator arranca limpio, sin anclar en la plaza que se acaba de dejar; y un release
+que falló no promete nada.
+
+**Riesgo del fix acompañante.** La nota de en medio del diálogo (*«%1$s pasará a ser tu coche
+activo…»*) se leía de `vehicle.isActive` y no de la política, así que anunciaba una declaración que
+la política veta para un coche BT. Ahora lee `shouldDeclareActiveOnRelease` — el mismo precedente
+que este diálogo ya tenía tres líneas más arriba con `SpotReleasePolicy.privateZoneAt`. Es copy sin
+test propio: lo sostienen el compilador y la tabla de verdad de la política.
+
+**Caminos auditados que NO arman, y por qué.**
+
+| Camino | Veredicto |
+|---|---|
+| «Borrar registro» del peek (`RECORD_DELETED`) | cerrado por `isDeparture` |
+| `RevertParkingUseCase` («No, cancelar») | el pin era falso; no es una salida |
+| `handleWatchdogDeparture` («Ya me fui» del aviso *¿Sigues aparcado?*) | **exento con razón**: ese aviso salta porque nadie vio el EXIT y puede pasar horas en la bandeja — el viaje ya terminó. Es la MISMA razón por la que ese camino tampoco publica plaza [DET-WATCHDOG-DEPARTURE-KNOWS-NO-HOUR-001] |
+| `ProcessConfirmedDepartureUseCase` vía geofence EXIT | cubierto por convergencia: la sesión que cierra la salida **es** la que la detectó; el re-armado lo gobierna [DET-AR-REARM-001] |

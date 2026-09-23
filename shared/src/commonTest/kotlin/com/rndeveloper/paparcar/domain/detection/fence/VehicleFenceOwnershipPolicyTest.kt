@@ -184,6 +184,60 @@ class VehicleFenceOwnershipPolicyTest {
         )
     }
 
+    // ── [DET-A-DEPARTURE-DECLARED-MUST-ARM-THE-TRIP-001] …and arms the trip it starts ──
+
+    private fun armsTrip(
+        reason: ParkingReleaseReason = ParkingReleaseReason.DEPARTURE,
+        releasedVehicleIsBtPaired: Boolean = false,
+        detectionAvailable: Boolean = true,
+    ) = VehicleFenceOwnershipPolicy.shouldArmTripOnRelease(
+        reason = reason,
+        releasedVehicleIsBtPaired = releasedVehicleIsBtPaired,
+        detectionAvailable = detectionAvailable,
+    )
+
+    @Test
+    fun should_arm_the_trip_when_a_non_bt_car_departs_and_detection_can_run() {
+        // The release dialog's promise, finally kept: after the release there is no session and no
+        // fence left, so nothing automatic can arm — this is the only door.
+        assertTrue(armsTrip())
+    }
+
+    @Test
+    fun should_not_arm_the_trip_when_the_departing_car_is_bt_paired() {
+        // Its MAC covers it without session or fence, and the same release leaves it INACTIVE — so
+        // the session we armed would pin the OTHER car. Field 2026-08-11 through a new door.
+        assertFalse(armsTrip(releasedVehicleIsBtPaired = true))
+    }
+
+    @Test
+    fun should_not_arm_the_trip_when_a_record_is_deleted() {
+        // No departure, no trip: deleting a record says the parking never happened.
+        assertFalse(armsTrip(reason = ParkingReleaseReason.RECORD_DELETED))
+    }
+
+    @Test
+    fun should_not_arm_the_trip_when_detection_cannot_run() {
+        // Same gate the dialog reads to swap its note for "we won't be able to detect your next
+        // parking on our own" — arming here would promise it twice.
+        assertFalse(armsTrip(detectionAvailable = false))
+    }
+
+    @Test
+    fun should_gate_arming_on_the_same_two_conditions_as_the_identity_claim() {
+        // The two halves of one statement. Whenever detection can run they must agree, or "leaving
+        // in this car" means two different things in two files — which is how the arm went missing.
+        listOf(ParkingReleaseReason.DEPARTURE, ParkingReleaseReason.RECORD_DELETED).forEach { reason ->
+            listOf(true, false).forEach { btPaired ->
+                assertEquals(
+                    VehicleFenceOwnershipPolicy.shouldDeclareActiveOnRelease(reason, btPaired),
+                    armsTrip(reason = reason, releasedVehicleIsBtPaired = btPaired),
+                    "reason=$reason btPaired=$btPaired",
+                )
+            }
+        }
+    }
+
     // ── mayNominateDetection ───────────────────────────────────────────────────
     // [DET-BT-CAR-CANNOT-NOMINATE-A-COORDINATOR-SESSION-001]
 

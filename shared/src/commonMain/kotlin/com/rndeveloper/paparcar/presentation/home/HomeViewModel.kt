@@ -1418,14 +1418,22 @@ class HomeViewModel(
             // identified by its MAC — declaring it active would only strip the coordinator's car of
             // its one identity signal. The policy owns both conditions; this obeys.
             // [PARK-DELETE-NO-DECLARE-001] [DET-BT-OWNERSHIP-001]
+            val isBtPaired = target.vehicleId
+                ?.let { id -> state.value.vehicles.firstOrNull { it.id == id } }
+                ?.bluetoothDeviceId != null
             target.vehicleId?.let { vehicleId ->
-                val isBtPaired = state.value.vehicles
-                    .firstOrNull { it.id == vehicleId }?.bluetoothDeviceId != null
                 if (VehicleFenceOwnershipPolicy.shouldDeclareActiveOnRelease(reason, isBtPaired)) {
                     declareActiveVehicle(vehicleId)
                         .onFailure { e -> PaparcarLogger.w(TAG, "release: declareActiveVehicle($vehicleId) failed", e) }
                 }
             }
+            // The promise under the button ("we'll start detecting your next parking") read before
+            // the write, because it is the promise the user was shown. [DET-A-DEPARTURE-DECLARED-MUST-ARM-THE-TRIP-001]
+            val armsTheTrip = VehicleFenceOwnershipPolicy.shouldArmTripOnRelease(
+                reason = reason,
+                releasedVehicleIsBtPaired = isBtPaired,
+                detectionAvailable = !state.value.detectionUiState.isDetectionStopped,
+            )
             releaseSession(target.location.latitude, target.location.longitude, target, reason)
                 .onSuccess { published ->
                     // `clearedModeFields()` and not just `selection = null`: the "delete record"
@@ -1444,6 +1452,13 @@ class HomeViewModel(
                     // that never existed would be the lie the gate removes.
                     // [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001]
                     if (published) sendEffect(HomeEffect.SpotReported)
+                    // Leaving in this car IS the start of a trip, and saying so is the same
+                    // declaration that made the car active two blocks up — so it arms the same way
+                    // "I'm driving" does. Only once the write landed: the session and its fence are
+                    // gone by now, so the coordinator starts clean instead of anchoring on the very
+                    // spot being vacated, and a release that failed promises nothing.
+                    // [DET-A-DEPARTURE-DECLARED-MUST-ARM-THE-TRIP-001]
+                    if (armsTheTrip) manualParkingDetection.start()
                 }
                 .onFailure { e ->
                     // Closed on failure as well, as before: the error goes to the snackbar, which an
