@@ -127,7 +127,7 @@ class SyncOutboxDrainer(
         }
         is OutboxOp.ReportSpot -> {
             val now = clock()
-            if (reportSpotExpiredInQueue(op.enqueuedAtMs, op.provisional, now)) {
+            if (reportSpotExpiredInQueue(op.enqueuedAtMs, op.effectiveClaim, now)) {
                 // The golden gate: a spot that expired IN THE QUEUE is never published — ghost
                 // availability is exactly the asymmetric-failure doctrine's forbidden side.
                 PaparcarLogger.w(TAG, "spot ${op.spotId} expired in queue — dropped, not published")
@@ -159,6 +159,6 @@ internal fun OutboxOp.ReportSpot.toSpot(nowMs: Long): Spot = Spot(
     confidence = confidence,
     sizeCategory = sizeCategory,
     carbodyType = carbodyType,
-    expiresAt = enqueuedAtMs + SpotTtlPolicy.ttlMs(provisional),
-    status = if (provisional) SpotStatus.PROVISIONAL else SpotStatus.CONFIRMED,
+    expiresAt = enqueuedAtMs + SpotTtlPolicy.ttlMs(effectiveClaim),
+    status = effectiveClaim,
 )

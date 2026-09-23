@@ -43,6 +43,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.rndeveloper.paparcar.domain.model.tone
+import com.rndeveloper.paparcar.domain.model.SpotTone
 import com.rndeveloper.paparcar.domain.model.Spot
 import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.ui.theme.PapShapes
@@ -62,6 +64,7 @@ import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
 import com.rndeveloper.paparcar.ui.components.SpotPuckIcon
 import com.rndeveloper.paparcar.ui.components.SpotAgeIndicator
+import com.rndeveloper.paparcar.ui.components.SpotReleasingIndicator
 import com.rndeveloper.paparcar.ui.components.rememberSpotAgeClock
 import com.rndeveloper.paparcar.ui.theme.PapBorders
 import org.jetbrains.compose.resources.stringResource
@@ -103,7 +106,9 @@ internal fun HomeSpotRow(
     // One clock, one level, shared by the puck and the age chip — so a spot can never disagree
     // with itself across its own row. [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001]
     val nowMs = rememberSpotAgeClock()
-    val freshness = spot.freshness(nowMs)
+    // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] The TONE, not the ramp tier: a plaza that is being
+    // vacated is not a point on the age ramp, and reading it as one would paint it green.
+    val freshness = spot.tone(nowMs)
 
     val rowBg = if (isSelected)
         MaterialTheme.colorScheme.primaryContainer.copy(alpha = SELECTED_ROW_BG_ALPHA)
@@ -144,7 +149,7 @@ internal fun HomeSpotRow(
 private fun SpotRowContent(
     spot: Spot,
     userLocation: Pair<Double, Double>?,
-    freshness: SpotFreshness,
+    freshness: SpotTone,
     ageMs: Long,
     modifier: Modifier = Modifier,
 ) {
@@ -200,10 +205,13 @@ private fun SpotRowContent(
             }
         },
         subtitleSlot = { SpotMetaRow(spot = spot, distanceM = distanceM) },
-        trailing = if (spot.location.timestamp > 0L) {
-            { SpotAgeIndicator(ageMs = ageMs, freshness = freshness) }
-        } else {
-            null
+        // The trailing token says the one thing that decides whether to go: how old the space is
+        // — or, for a plaza still under its car, that it is not a space yet.
+        // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001]
+        trailing = when {
+            freshness == SpotTone.RELEASING -> { { SpotReleasingIndicator() } }
+            spot.location.timestamp > 0L -> { { SpotAgeIndicator(ageMs = ageMs, freshness = freshness) } }
+            else -> null
         },
     )
 }

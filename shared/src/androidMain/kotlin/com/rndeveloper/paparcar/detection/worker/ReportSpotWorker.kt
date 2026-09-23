@@ -60,13 +60,22 @@ class ReportSpotWorker(
             ?.let { runCatching { VehicleSize.valueOf(it) }.getOrNull() }
         val carbodyType = inputData.getString(KEY_CARBODY_TYPE)
             ?.let { runCatching { CarbodyType.valueOf(it) }.getOrNull() }
-        // [DET-HANDOFF-NOT-MANUAL-001 §B] A spot published on a DEDUCED departure lives minutes,
-        // not hours: the short TTL is the floor under a retraction that can always fail.
-        val provisional = inputData.getBoolean(KEY_PROVISIONAL, false)
+        // What this publication claims about the space; it decides the status AND the lifetime.
+        // [DET-HANDOFF-NOT-MANUAL-001 §B] A deduced departure lives minutes, not hours, and
+        // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] a boarding lives less still.
+        //
+        // ⛔ The legacy boolean is still read as a FALLBACK, on purpose: a job enqueued by the
+        // previous build and delivered after the update carries `KEY_PROVISIONAL` and no
+        // `KEY_CLAIM`, and defaulting that to CONFIRMED would hand a deduced spot the full two
+        // hours — the workData field list is a contract nobody type-checks.
+        // [project: sync — the workData field list is a contract nobody checks]
+        val claim = inputData.getString(KEY_CLAIM)
+            ?.let { runCatching { SpotStatus.valueOf(it) }.getOrNull() }
+            ?: if (inputData.getBoolean(KEY_PROVISIONAL, false)) SpotStatus.PROVISIONAL else SpotStatus.CONFIRMED
         // [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] NaN sentinel because workData has no nullable
         // float — absent key reads NaN reads null, same trick as lat/lon above.
         val zoneRadiusMeters = inputData.getFloat(KEY_ZONE_RADIUS, Float.NaN).takeIf { !it.isNaN() }
-        val ttlMs = SpotTtlPolicy.ttlMs(provisional) // [AUDIT-ARCH-001 M13] shared with iOS
+        val ttlMs = SpotTtlPolicy.ttlMs(claim) // [AUDIT-ARCH-001 M13] shared with iOS
 
         // [SPOT-OFFLINE-TTL-001] The TTL is anchored to the RELEASE time (enqueue), not to delivery.
         // A push that spent hours queued offline (dead network, OEM-frozen WorkManager — field
@@ -99,7 +108,7 @@ class ReportSpotWorker(
             // [DET-HANDOFF-NOT-MANUAL-001 §B.3] The spot says out loud how well its departure is
             // proven, so the community UI can rank it honestly and a later promotion (or
             // retraction) is a state change on this same document rather than a second spot.
-            status = if (provisional) SpotStatus.PROVISIONAL else SpotStatus.CONFIRMED,
+            status = claim,
             zoneRadiusMeters = zoneRadiusMeters,
         )
 
@@ -137,7 +146,9 @@ class ReportSpotWorker(
         private const val KEY_SIZE_CATEGORY = "size_category"
         private const val KEY_CARBODY_TYPE = "carbody_type"
         private const val KEY_REPORTED_BY = "reported_by"
+        /** Legacy: read-only now, for jobs enqueued before [KEY_CLAIM] existed. Never written. */
         private const val KEY_PROVISIONAL = "provisional"
+        private const val KEY_CLAIM = "claim"
         private const val KEY_ZONE_RADIUS = "zone_radius_meters"
 
         fun buildRequest(
@@ -151,7 +162,7 @@ class ReportSpotWorker(
             sizeCategory: VehicleSize? = null,
             carbodyType: CarbodyType? = null,
             reportedBy: String? = null,
-            provisional: Boolean = false,
+            claim: SpotStatus = SpotStatus.CONFIRMED,
             zoneRadiusMeters: Float? = null,
         ): OneTimeWorkRequest =
             OneTimeWorkRequestBuilder<ReportSpotWorker>()
@@ -175,7 +186,7 @@ class ReportSpotWorker(
                         KEY_SIZE_CATEGORY to sizeCategory?.name,
                         KEY_CARBODY_TYPE to carbodyType?.name,
                         KEY_REPORTED_BY to reportedBy,
-                        KEY_PROVISIONAL to provisional,
+                        KEY_CLAIM to claim.name,
                         KEY_ZONE_RADIUS to zoneRadiusMeters,
                     )
                 )

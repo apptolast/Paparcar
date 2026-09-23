@@ -12,9 +12,9 @@ package com.rndeveloper.paparcar.domain.model
  *
  * The transitions are one-way per publication:
  *
- *     PROVISIONAL ──drive measured──▶ CONFIRMED
- *          │
- *          └──────no drive, ever────▶ RETRACTED
+ *     RELEASING ──departure──▶ PROVISIONAL ──drive measured──▶ CONFIRMED
+ *         │                        │
+ *         └───never left───────────┴───────no drive, ever────▶ RETRACTED
  */
 enum class SpotStatus {
     /**
@@ -38,6 +38,29 @@ enum class SpotStatus {
      * stays around long enough to explain itself to whoever was already looking at it.
      */
     RETRACTED,
+
+    /**
+     * [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] **The car is still in it, and somebody just got in.**
+     * Published on a BOARDING — a Bluetooth CONNECT to the paired car that holds this plaza, or an
+     * Activity-Recognition `IN_VEHICLE` ENTER inside the parked car's own fence.
+     *
+     * Measured in the field (trigger ledger of 2026-09-22, one user, one day): the boarding lands
+     * **30 s to 3 min 51 s** before the trigger that arms the departure today, and the publication
+     * is later still — in one of the four samples the geofence only reacted with the car already at
+     * 34 km/h.
+     *
+     * ⛔ **It is NOT an earlier [PROVISIONAL], and that distinction is the whole ticket.**
+     * `PROVISIONAL` claims *"the car has probably already gone, nobody measured it"*. This claims
+     * something different and stronger: *"the car is STILL THERE and is leaving now"*. A driver who
+     * takes it and arrives in sixty seconds finds the car in place. Publishing that as free would
+     * spend the one resource a parking app cannot give back — somebody else's drive — so it says
+     * what it is, sorts below every genuinely free spot, and carries
+     * [SpotTtlPolicy.RELEASING_SPOT_TTL_MS] rather than the provisional twelve minutes.
+     *
+     * It is still [isAvailable]: hiding it would be the same as not publishing it, and the point is
+     * that a nearby driver can start heading over while the space is being vacated.
+     */
+    RELEASING,
     ;
 
     /** Whether this spot is still on offer to the community. */

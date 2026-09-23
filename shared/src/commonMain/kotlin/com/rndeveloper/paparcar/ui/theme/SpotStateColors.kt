@@ -4,7 +4,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
-import com.rndeveloper.paparcar.domain.model.SpotFreshness
+import com.rndeveloper.paparcar.domain.model.SpotTone
 
 /**
  * The freshness ramp resolved for every job that paints it. **This is the ramp's only resolver** —
@@ -34,7 +34,7 @@ private val isDark: Boolean
     @Composable get() = MaterialTheme.colorScheme.surface.luminance() < SURFACE_DARK_LUMINANCE
 
 @Composable
-fun SpotFreshness.stateColors(): SpotStateColors = when (this) {
+fun SpotTone.stateColors(): SpotStateColors = when (this) {
     // FRESH was the BRAND green (PapGreen / PapGreenLight) — a stranger's free spot painted in the
     // colour of our own CTAs. The ramp is exclusive to spots, so its head gets its own hue.
     //
@@ -47,7 +47,7 @@ fun SpotFreshness.stateColors(): SpotStateColors = when (this) {
     // amber bed IS a pale amber bed, and minting a near-identical token to keep the story names
     // apart would be the duplicate-hex disease with better manners. Only the fresh tier needs its
     // own pair — the theme has no green container to reuse. See `Color.kt`.
-    SpotFreshness.FRESH  -> if (isDark) {
+    SpotTone.FRESH  -> if (isDark) {
         SpotStateColors(PapSpotFresh, PapSpotFresh, PapSpotFreshMuted, PapSpotFresh)
     } else {
         SpotStateColors(
@@ -58,7 +58,7 @@ fun SpotFreshness.stateColors(): SpotStateColors = when (this) {
         )
     }
 
-    SpotFreshness.RECENT -> if (isDark) {
+    SpotTone.RECENT -> if (isDark) {
         SpotStateColors(PapAmber, PapAmber, PapAmberMuted, PapAmber)
     } else {
         SpotStateColors(
@@ -69,7 +69,7 @@ fun SpotFreshness.stateColors(): SpotStateColors = when (this) {
         )
     }
 
-    SpotFreshness.STALE  -> if (isDark) {
+    SpotTone.STALE  -> if (isDark) {
         SpotStateColors(PapRed, PapRed, PapRedMuted, PapRed)
     } else {
         SpotStateColors(
@@ -77,6 +77,20 @@ fun SpotFreshness.stateColors(): SpotStateColors = when (this) {
             PapRedLight,
             PapSpotExpiringContainerLight,
             PapRedLight,
+        )
+    }
+
+    // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] Not a ramp tier: the plaza is not free yet. Violet,
+    // the palette's only unspent hue, and deliberately nothing like the three tones next to it —
+    // a driver must not be able to mistake "se libera ahora" for a fourth shade of available.
+    SpotTone.RELEASING -> if (isDark) {
+        SpotStateColors(PapSpotReleasing, PapSpotReleasing, PapSpotReleasingMuted, PapSpotReleasing)
+    } else {
+        SpotStateColors(
+            PapSpotReleasingLight,
+            PapSpotReleasingLight,
+            PapSpotReleasingContainerLight,
+            PapOnSpotReleasingContainerLight,
         )
     }
 }

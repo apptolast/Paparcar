@@ -18,6 +18,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.rndeveloper.paparcar.domain.model.SpotTone
 import com.rndeveloper.paparcar.domain.model.SpotFreshness
 import com.rndeveloper.paparcar.ui.theme.PapMotion
 import com.rndeveloper.paparcar.ui.theme.stateColors
@@ -39,7 +40,7 @@ import kotlin.math.roundToInt
  */
 @Composable
 fun ReliabilityMeter(
-    level: SpotFreshness,
+    level: SpotTone,
     modifier: Modifier = Modifier,
     pct: Float? = null,
     barWidth: Dp = DEFAULT_BAR_WIDTH,
@@ -84,12 +85,18 @@ fun ReliabilityMeter(
     }
 }
 
-private fun filledSegments(level: SpotFreshness, pct: Float?): Int = pct
+private fun filledSegments(level: SpotTone, pct: Float?): Int = pct
     ?.let { (it * SEGMENT_COUNT).roundToInt().coerceIn(1, SEGMENT_COUNT) }
     ?: when (level) {
-        SpotFreshness.FRESH   -> HIGH_SEGMENTS
-        SpotFreshness.RECENT -> MEDIUM_SEGMENTS
-        SpotFreshness.STALE    -> LOW_SEGMENTS
+        SpotTone.FRESH   -> HIGH_SEGMENTS
+        SpotTone.RECENT -> MEDIUM_SEGMENTS
+        SpotTone.STALE    -> LOW_SEGMENTS
+        // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] This meter answers "how much can I count on
+        // this space being here when I arrive". For a plaza still under a car the honest answer is
+        // the middle one: the boarding is a real, deterministic signal — better odds than a spot
+        // freed an hour ago — and it has not happened yet, which is worse than one freed a minute
+        // ago. It is NOT the freshness ramp reaching a fourth rung.
+        SpotTone.RELEASING -> MEDIUM_SEGMENTS
     }
 
 private const val SEGMENT_COUNT = 5

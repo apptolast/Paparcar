@@ -21,6 +21,8 @@ import com.rndeveloper.paparcar.fakes.FakeZoneRepository
 import com.rndeveloper.paparcar.domain.model.Zone
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
+import com.rndeveloper.paparcar.domain.detection.PendingSpotRelease
+import com.rndeveloper.paparcar.fakes.FakeAppPreferences
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
@@ -41,8 +43,9 @@ class ReleaseActiveParkingSessionUseCaseTest {
     private val eventLogger = FakeDetectionEventLogger()
     private val tracker = FakeAnalyticsTracker()
     private val zoneRepo = FakeZoneRepository()
+    private val prefs = FakeAppPreferences()
     private val useCase = ReleaseActiveParkingSessionUseCase(
-        reportSpotReleased, parkingRepo, geofence, eventLogger, zoneRepo, tracker,
+        reportSpotReleased, parkingRepo, geofence, eventLogger, zoneRepo, tracker, prefs,
     )
 
     private val location = GpsPoint(40.416775, -3.703790, 10f, 0L, 0f)
@@ -389,5 +392,36 @@ class ReleaseActiveParkingSessionUseCaseTest {
         useCase(40.0, -3.0, session())
 
         assertEquals(1, scheduler.scheduleCallCount)
+    }
+
+    @Test
+    fun should_retireTheBoardingStamp_when_theUserReleasesAPlazaThatWasAlreadyAnnounced() = runTest {
+        // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] The trap this closes, found by asking what
+        // happens when the user taps "Me voy" right after boarding:
+        //
+        //   board → plaza out as RELEASING → "Me voy" publishes the REAL spot on the SAME id →
+        //   the coordinator session ends with the stamp still live → its teardown WITHDRAWS the
+        //   spot the user just published.
+        //
+        // A real plaza taken down seconds after going out. The publish and the stamp's retirement
+        // have to travel together, exactly as they do on the automatic departure path.
+        prefs.storedSpotRelease = PendingSpotRelease("session-1", "veh-A", nominatedAtMs = 1_000L)
+
+        useCase(40.0, -3.0, session(id = "session-1"))
+
+        assertNull(
+            prefs.storedSpotRelease,
+            "the release promoted the document; leaving the stamp lets the teardown undo it",
+        )
+    }
+
+    @Test
+    fun should_leaveAnotherSessionsStampAlone_when_releasingThisOne() = runTest {
+        // Keyed by id, so releasing one car never disarms the nomination of another.
+        prefs.storedSpotRelease = PendingSpotRelease("some-other-session", "veh-B", nominatedAtMs = 1_000L)
+
+        useCase(40.0, -3.0, session(id = "session-1"))
+
+        assertNotNull(prefs.storedSpotRelease)
     }
 }

@@ -7,6 +7,7 @@ import com.rndeveloper.paparcar.domain.analytics.AnalyticsTracker
 import com.rndeveloper.paparcar.domain.analytics.SessionEndReason
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEventLogger
+import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.domain.model.AddressAndPlace
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneRepository
@@ -140,7 +141,9 @@ class FinalizeDeducedDepartureUseCase(
                 sizeCategory = session.sizeCategory,
                 carbodyType = session.carbodyType,
                 prefetched = session.address?.let { AddressAndPlace(it, session.placeInfo) },
-                provisional = shape is SpotReleasePolicy.Shape.Zone,
+                // Promoted out of RELEASING/PROVISIONAL — except a ZONE spot, whose doubt is
+                // about the PLACE and does not expire with a drive.
+                claim = if (shape is SpotReleasePolicy.Shape.Zone) SpotStatus.PROVISIONAL else SpotStatus.CONFIRMED,
                 // Same document, second publish — the provisional emission already counted this
                 // spot. [ANALYTICS-EVENTS-001]
                 promotion = true,

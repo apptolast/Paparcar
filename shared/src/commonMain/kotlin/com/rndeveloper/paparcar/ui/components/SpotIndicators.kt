@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Group
+import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -26,11 +27,13 @@ import com.rndeveloper.paparcar.ui.theme.stateColors
 import kotlinx.coroutines.delay
 import kotlin.time.Clock
 import org.jetbrains.compose.resources.stringResource
+import paparcar.composeapp.generated.resources.home_spot_releasing_badge
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.spot_indicator_en_route
 import paparcar.composeapp.generated.resources.spot_indicator_age_now
 import paparcar.composeapp.generated.resources.spot_indicator_age_minutes
 import paparcar.composeapp.generated.resources.spot_indicator_age_hours
+import com.rndeveloper.paparcar.domain.model.SpotTone
 import com.rndeveloper.paparcar.domain.model.SpotFreshness
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
 
@@ -64,7 +67,7 @@ private const val MINUTES_PER_HOUR           = 60L
 @Composable
 fun SpotAgeIndicator(
     ageMs: Long,
-    freshness: SpotFreshness,
+    freshness: SpotTone,
     modifier: Modifier = Modifier,
 ) {
     val ageMinutes = (ageMs / MS_PER_MINUTE).coerceAtLeast(0L)
@@ -89,6 +92,29 @@ fun SpotAgeIndicator(
         icon = Icons.Rounded.Schedule,
         modifier = modifier,
         // Age is a data token — condensed per the typography mechanism. [HOME-VEH-REFINE-001]
+        textStyle = PaparcarType.current.badge,
+    )
+}
+
+/**
+ * [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] The badge of a plaza that is **not free yet**: somebody
+ * has just got into the car standing in it.
+ *
+ * Its own composable rather than a fourth branch inside [SpotAgeIndicator], because it is not an
+ * age. The age pill answers *how long ago was this freed*; asked of a releasing plaza that question
+ * has no answer — it would read "hace 0 min", i.e. the freshest thing on the map, about the one
+ * space that is occupied. Same reason `SpotTone` is not a fourth [SpotFreshness].
+ */
+@Composable
+fun SpotReleasingIndicator(modifier: Modifier = Modifier) {
+    val tier = SpotTone.RELEASING.stateColors()
+    PapBadge(
+        label = stringResource(Res.string.home_spot_releasing_badge),
+        containerColor = tier.container,
+        contentColor = tier.onContainer,
+        // The way OUT, matching the map puck's own badge — one word said twice, never two words.
+        icon = Icons.AutoMirrored.Rounded.Logout,
+        modifier = modifier,
         textStyle = PaparcarType.current.badge,
     )
 }

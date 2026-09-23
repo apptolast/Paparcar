@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.ui.components
 
+import com.rndeveloper.paparcar.domain.model.SpotTone
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,13 +29,13 @@ private fun IdentityIconsShowcase() {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text("ReliabilityMeter", style = MaterialTheme.typography.titleSmall)
-            SpotFreshness.entries.forEach { level ->
+            SpotTone.entries.forEach { level ->
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     ReliabilityMeter(level)
                     Text(level.name, style = MaterialTheme.typography.labelMedium)
                 }
             }
-            ReliabilityMeter(SpotFreshness.FRESH, pct = 0.6f)
+            ReliabilityMeter(SpotTone.FRESH, pct = 0.6f)
 
             Text("Ilustraciones Nivel 3 (Canvas)", style = MaterialTheme.typography.titleSmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

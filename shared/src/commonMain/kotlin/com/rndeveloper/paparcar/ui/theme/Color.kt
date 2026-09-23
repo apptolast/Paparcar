@@ -160,6 +160,35 @@ val PapSpotFreshDeep   = Color(0xFF398701)
  */
 val PapSpotFreshPuck   = Color(0xFF4FA80A)
 
+// ── The plaza that is NOT free yet — violet. [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] ────────
+//
+// A spot published on a BOARDING says something no other spot says: *there is still a car in it,
+// and it is leaving*. That is not a point on the freshness ramp — the ramp measures how long ago a
+// space was freed, and this one has not been freed at all — so it cannot borrow a ramp leg without
+// claiming to be free.
+//
+// ⛔ And it cannot borrow [PapLiveMap] either, which is the obvious candidate because that blue
+// already means "movement that is not yours". It means it in one CONCRETE shape: the spot somebody
+// else is driving to. That puck and this one are drawn on the SAME layer, side by side. Two
+// meanings sharing an ink in the same place is precisely [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001].
+//
+// Violet because it is the only hue this palette has never spent: greens (brand, watch, Plus,
+// fresh spot), amber, red and three blues (live map, BT identity, car park) are taken, and the
+// separation from the nearest of them is MEASURED, not asserted.
+
+/**
+ * The releasing plaza on dark surfaces, and the FIXED tone of its map puck (the puck family keeps
+ * theme-independent values — it floats over map tiles, not over the app's surface).
+ *
+ * 5.62:1 on `PapInk`. Carries the white puck glyph at 3.37:1, above the family's own floor (the
+ * amber puck `#E08200` sits at 2.85:1). **ΔE00 17.0 from [PapLiveMap]**, the one colour it shares a
+ * layer with — comfortably past the 16.8 this palette already documents as a safe separation.
+ */
+val PapSpotReleasing   = Color(0xFFA96BFF)
+
+/** The dark bed a releasing badge writes [PapSpotReleasing] on — 5.10:1. */
+val PapSpotReleasingMuted = Color(0xFF241040)
+
 // ── Premium sheen — the metallic FINISH of the brand green, for Paparcar Plus ─────────────────
 // [UI-COLOR-PLUS-WEARS-THE-BRAND-WITH-A-FINISH-001]
 //
@@ -420,6 +449,18 @@ val PapSpotFreshContainerLight   = Color(0xFFDEF5C7)
 /** Content on [PapSpotFreshContainerLight] — 5.38:1. Deeper than the text leg because a tinted bed
  *  eats contrast that white does not. */
 val PapOnSpotFreshContainerLight = Color(0xFF2E6E01)
+
+/** Light-theme leg of [PapSpotReleasing] — the releasing badge and its row accent. 5.70:1 on a
+ *  white card and 5.31:1 on the light page, so it clears the small-text floor without a second,
+ *  deeper token. */
+val PapSpotReleasingLight = Color(0xFF7C3AED)
+
+/** Pale violet bed of the releasing badge in the light theme. */
+val PapSpotReleasingContainerLight = Color(0xFFEADDFF)
+
+/** Content on [PapSpotReleasingContainerLight] — 9.20:1. Deeper than the text leg for the same
+ *  reason every other `onContainer` here is: a tinted bed eats contrast that white does not. */
+val PapOnSpotReleasingContainerLight = Color(0xFF4A148C)
 
 /** Pale bed of the expiring age pill; its content is `PapRedLight` — 5.00:1. */
 val PapSpotExpiringContainerLight = Color(0xFFFFDAD6)

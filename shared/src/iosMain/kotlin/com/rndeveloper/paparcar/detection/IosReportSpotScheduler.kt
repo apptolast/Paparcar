@@ -51,7 +51,7 @@ class IosReportSpotScheduler(
         sizeCategory: VehicleSize?,
         carbodyType: CarbodyType?,
         reportedBy: String?,
-        provisional: Boolean,
+        claim: SpotStatus,
         zoneRadiusMeters: Float?,
     ) {
         val nowMs = Clock.System.now().toEpochMilliseconds()
@@ -64,7 +64,7 @@ class IosReportSpotScheduler(
             sizeCategory = sizeCategory,
             carbodyType = carbodyType,
             reportedBy = reportedBy ?: "",
-            provisional = provisional,
+            claim = claim,
             enqueuedAtMs = nowMs,
         )
         outbox.persist(op) // crash-safe from this instant
@@ -79,9 +79,9 @@ class IosReportSpotScheduler(
             confidence = confidence,
             sizeCategory = sizeCategory,
             carbodyType = carbodyType,
-            expiresAt = nowMs + SpotTtlPolicy.ttlMs(provisional), // [AUDIT-ARCH-001 M13]
+            expiresAt = nowMs + SpotTtlPolicy.ttlMs(claim), // [AUDIT-ARCH-001 M13]
             // [DET-HANDOFF-NOT-MANUAL-001 §B.3] How well this departure is proven travels with the spot.
-            status = if (provisional) SpotStatus.PROVISIONAL else SpotStatus.CONFIRMED,
+            status = claim,
             zoneRadiusMeters = zoneRadiusMeters, // [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001]
         )
         scope.launch {

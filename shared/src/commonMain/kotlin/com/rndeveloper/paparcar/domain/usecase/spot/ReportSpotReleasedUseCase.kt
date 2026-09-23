@@ -10,6 +10,7 @@ import com.rndeveloper.paparcar.domain.model.AddressInfo
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.domain.model.PlaceInfo
+import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.domain.model.SpotType
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.service.ReportSpotScheduler
@@ -55,9 +56,9 @@ class ReportSpotReleasedUseCase(
         sizeCategory: VehicleSize? = null,
         carbodyType: CarbodyType? = null,
         prefetched: AddressAndPlace? = null,
-        /** [DET-HANDOFF-NOT-MANUAL-001 §B] The departure behind this spot was deduced, not measured:
-         *  publish now (freshness is the value) but with the provisional lifetime. */
-        provisional: Boolean = false,
+        /** What this publication claims about the space — see [ReportSpotScheduler.enqueueReportSpot].
+         *  Decides the document's status AND its lifetime. */
+        claim: SpotStatus = SpotStatus.CONFIRMED,
         /** True when this call RE-publishes an already-published provisional spot under the same id
          *  (the promotion of a deduced departure, REPLACE on the same document). The community sees
          *  one spot, so analytics must count one: a promotion emits nothing. [ANALYTICS-EVENTS-001] */
@@ -108,7 +109,7 @@ class ReportSpotReleasedUseCase(
             sizeCategory = sizeCategory,
             carbodyType = carbodyType,
             reportedBy = reportedByUid,
-            provisional = provisional,
+            claim = claim,
             zoneRadiusMeters = zoneRadiusMeters,
         )
 

@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.domain.preferences
 
 import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
+import com.rndeveloper.paparcar.domain.detection.PendingSpotRelease
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
@@ -139,6 +140,14 @@ interface AppPreferences {
      *  one (there is only ever one lost car to ask about). Written by the notification adapter at
      *  the SAME choke point that posts the nudge, so the question survives as app state (field
      *  2026-07-25: the notification alone was slept through and the session was lost). */
+    /**
+     * [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] The plaza published on a boarding that has not yet
+     * become a departure. Read to bound the withdrawal; cleared when the departure promotes it.
+     */
+    fun pendingSpotRelease(): PendingSpotRelease?
+    fun setPendingSpotRelease(release: PendingSpotRelease)
+    fun clearPendingSpotRelease()
+
     fun observePendingParkNudge(): Flow<PendingParkNudge?>
     fun setPendingParkNudge(nudge: PendingParkNudge)
     fun clearPendingParkNudge()

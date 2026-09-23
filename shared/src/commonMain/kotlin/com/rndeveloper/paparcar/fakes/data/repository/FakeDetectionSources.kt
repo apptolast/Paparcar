@@ -9,6 +9,7 @@ import com.rndeveloper.paparcar.domain.detection.ServicePresence
 import com.rndeveloper.paparcar.domain.model.AddressInfo
 import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.domain.model.PlaceInfo
+import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.domain.model.SpotType
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.VehicleSize
@@ -170,5 +171,5 @@ class FakeParkingSyncScheduler : ParkingSyncScheduler {
 }
 
 class FakeReportSpotScheduler : ReportSpotScheduler {
-    override fun enqueueReportSpot(spotId: String, lat: Double, lon: Double, address: AddressInfo?, placeInfo: PlaceInfo?, spotType: SpotType, confidence: Float, sizeCategory: VehicleSize?, carbodyType: CarbodyType?, reportedBy: String?, provisional: Boolean, zoneRadiusMeters: Float?) {}
+    override fun enqueueReportSpot(spotId: String, lat: Double, lon: Double, address: AddressInfo?, placeInfo: PlaceInfo?, spotType: SpotType, confidence: Float, sizeCategory: VehicleSize?, carbodyType: CarbodyType?, reportedBy: String?, claim: SpotStatus, zoneRadiusMeters: Float?) {}
 }

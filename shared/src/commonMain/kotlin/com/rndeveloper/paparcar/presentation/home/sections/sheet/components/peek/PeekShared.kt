@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.rndeveloper.paparcar.domain.model.SpotTone
 import com.rndeveloper.paparcar.domain.model.AddressAndPlace
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.displayName
@@ -43,6 +44,7 @@ import com.rndeveloper.paparcar.ui.components.ReliabilityMeter
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.stateColors
 import org.jetbrains.compose.resources.stringResource
+import paparcar.composeapp.generated.resources.home_spot_releasing_eyebrow
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_address_unknown
 import paparcar.composeapp.generated.resources.home_peek_parking_approximate
@@ -174,7 +176,7 @@ internal fun DistanceRow(distanceM: Float?, mode: TravelMode, accentColor: Color
 }
 
 @Composable
-internal fun FiabilityIndicator(level: SpotFreshness) {
+internal fun FiabilityIndicator(level: SpotTone) {
     // [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001] The right-hand "expires in N min" text is gone.
     // It was a countdown to the sweep that deletes the document, presented as if it said something
     // about the parking space — and it sat directly above a meter that had already been told the
@@ -227,11 +229,14 @@ internal data class SpotPeekPalette(
 )
 
 @Composable
-internal fun SpotFreshness.peekPalette(): SpotPeekPalette {
+internal fun SpotTone.peekPalette(): SpotPeekPalette {
     val label = when (this) {
-        SpotFreshness.FRESH  -> stringResource(Res.string.home_peek_spot_fresh)
-        SpotFreshness.RECENT -> stringResource(Res.string.home_peek_spot_recent)
-        SpotFreshness.STALE  -> stringResource(Res.string.home_peek_spot_stale)
+        SpotTone.FRESH  -> stringResource(Res.string.home_peek_spot_fresh)
+        SpotTone.RECENT -> stringResource(Res.string.home_peek_spot_recent)
+        SpotTone.STALE  -> stringResource(Res.string.home_peek_spot_stale)
+        // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] The other three name how FRESH the space is.
+        // This one has to name something else entirely, because there is no space yet.
+        SpotTone.RELEASING -> stringResource(Res.string.home_spot_releasing_eyebrow)
     }
     // Painted as TEXT: the peek eyebrow and the accent rows. Readable leg, not the fill.
     // [UI-COLOR-GREEN-TEXT-EARNS-ITS-CONTRAST-001]

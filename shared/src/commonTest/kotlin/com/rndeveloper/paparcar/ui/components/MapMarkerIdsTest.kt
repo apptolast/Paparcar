@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.ui.components
 
+import com.rndeveloper.paparcar.domain.model.SpotTone
 import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.ParkedVehicleSummary
@@ -110,7 +111,7 @@ class MapMarkerIdsTest {
     }.map { EmittedId(it, MarkerTapTarget.Zone) }
 
     private val freeSpotIds: List<EmittedId> = buildList {
-        SpotFreshness.entries.forEach { tier ->
+        SpotTone.entries.forEach { tier ->
             listOf(true to false, false to true, false to false).forEach { (selected, dim) ->
                 add(freeSpotContentId(tier, selected, dim))
                 add(freeSpotContentId(tier, selected, dim, manual = true))
@@ -120,7 +121,7 @@ class MapMarkerIdsTest {
         // beyond it every count collapses onto the same id, which the distinctness check would read
         // as two builders colliding.
         (1..10).forEach { count ->
-            add(freeSpotContentId(SpotFreshness.FRESH, selected = false, dim = false, enRouteCount = count))
+            add(freeSpotContentId(SpotTone.FRESH, selected = false, dim = false, enRouteCount = count))
         }
     }.map { EmittedId(it, MarkerTapTarget.FreeSpot) }
 

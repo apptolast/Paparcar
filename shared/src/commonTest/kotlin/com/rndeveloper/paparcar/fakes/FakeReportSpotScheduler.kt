@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.fakes
 
+import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.domain.model.AddressInfo
 import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.domain.model.PlaceInfo
@@ -25,10 +26,14 @@ class FakeReportSpotScheduler : ReportSpotScheduler {
     /** When true, [enqueueReportSpot] throws to simulate a downstream failure. */
     var shouldThrow: Boolean = false
 
-    /** [DET-HANDOFF-NOT-MANUAL-001 §B] Whether the last publish went out as provisional (deduced
-     *  departure → short TTL). */
-    var lastProvisional: Boolean? = null
+    /** What the last publish CLAIMED about the space — confirmed / provisional (deduced
+     *  departure) / releasing (nobody has left yet). [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] */
+    var lastClaim: SpotStatus? = null
         private set
+
+    /** [DET-HANDOFF-NOT-MANUAL-001 §B] Kept as a reading of [lastClaim] so the tests that only
+     *  care about "short TTL or not" need no change. */
+    val lastProvisional: Boolean? get() = lastClaim?.let { it == SpotStatus.PROVISIONAL }
 
     /** [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] Radius of the last publish when it was a zone
      *  spot; null = exact. */
@@ -46,11 +51,11 @@ class FakeReportSpotScheduler : ReportSpotScheduler {
         sizeCategory: VehicleSize?,
         carbodyType: CarbodyType?,
         reportedBy: String?,
-        provisional: Boolean,
+        claim: SpotStatus,
         zoneRadiusMeters: Float?,
     ) {
         scheduleCallCount++
-        lastProvisional = provisional
+        lastClaim = claim
         lastZoneRadiusMeters = zoneRadiusMeters
         lastSpotId = spotId
         lastLat = lat

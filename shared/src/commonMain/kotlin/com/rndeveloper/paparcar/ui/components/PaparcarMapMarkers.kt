@@ -27,7 +27,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.rounded.Campaign
+import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -73,8 +75,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.model.SpotFreshness
+import com.rndeveloper.paparcar.domain.model.SpotTone
 import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.icons.icon
+import com.rndeveloper.paparcar.ui.theme.PapSpotReleasing
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.PapCarBlueLight
 import com.rndeveloper.paparcar.ui.theme.PapGreen
@@ -804,6 +808,11 @@ private object SpotPalette {
     // [UI-SEVEN-STRAYS-FROM-THE-CANON-001]
     val Amber       = PapSpotCoolingLight // libre · enfriándose
     val Red         = PapSpotExpiringLight // libre · caduca ya
+    // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] The plaza that is not free YET. Violet, because
+    // it is the palette's only unspent hue and because the one colour it shares this layer with —
+    // the en-route blue — sits ΔE00 17.0 away. Same fixed-value rule as the three above: a puck
+    // floats over map tiles, not over the app's surface.
+    val Releasing   = PapSpotReleasing
     val Paper       = Color(0xFFFFFFFF) // fixed white — ring / community glyph / badge discs
     val Ink         = Color(0xFF0E1A2E) // fixed dark — contact shadow / en-route pill
 }
@@ -819,10 +828,15 @@ private data class SpotTierVisual(
 // layer yet — animated countdown deferred). Fractions mirror the reference
 // SVGs (full / ~½ / minimal). [BOLT-MARKERS-001]
 //
-private fun SpotFreshness.tierVisual(isManual: Boolean = false): SpotTierVisual = when (this) {
-    SpotFreshness.FRESH   -> SpotTierVisual(SpotPalette.Green, ringFraction = 1f)
-    SpotFreshness.RECENT -> SpotTierVisual(SpotPalette.Amber, ringFraction = 0.5f)
-    SpotFreshness.STALE  -> SpotTierVisual(SpotPalette.Red, ringFraction = 0.16f)
+private fun SpotTone.tierVisual(isManual: Boolean = false): SpotTierVisual = when (this) {
+    SpotTone.FRESH   -> SpotTierVisual(SpotPalette.Green, ringFraction = 1f)
+    SpotTone.RECENT -> SpotTierVisual(SpotPalette.Amber, ringFraction = 0.5f)
+    SpotTone.STALE  -> SpotTierVisual(SpotPalette.Red, ringFraction = 0.16f)
+    // ⛔ NO TTL ring, and that is a statement rather than an omission: the ring answers *how much
+    // life this FREE spot has left*, and this one is not free. Drawing an arc here would be
+    // answering a question nobody asked with a number nobody can use.
+    // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001]
+    SpotTone.RELEASING -> SpotTierVisual(SpotPalette.Releasing, ringFraction = null)
 }
 
 /**
@@ -841,7 +855,7 @@ private fun SpotFreshness.tierVisual(isManual: Boolean = false): SpotTierVisual 
 @Composable
 fun FreeSpotMarker(
     modifier: Modifier = Modifier,
-    reliability: SpotFreshness = SpotFreshness.FRESH,
+    reliability: SpotTone = SpotTone.FRESH,
     selected: Boolean = false,
     enRouteCount: Int = 0,
     isManual: Boolean = false,
@@ -891,6 +905,7 @@ fun FreeSpotMarker(
         CommunitySpotOverlay(
             showAnnouncement = enRouteCount == 0,
             badgeColor = if (enRouteCount > 0) PapColor.live else reliability.tierVisual(isManual).color,
+            releasing = enRouteCount == 0 && reliability == SpotTone.RELEASING,
         )
     }
 }
@@ -919,7 +934,7 @@ private fun DrawScope.drawApproximateSpotDot(s: Float, color: Color, paper: Colo
  */
 @Composable
 fun SpotPuckIcon(
-    reliability: SpotFreshness,
+    reliability: SpotTone,
     modifier: Modifier = Modifier,
     enRouteCount: Int = 0,
     selected: Boolean = false,
@@ -944,6 +959,7 @@ fun SpotPuckIcon(
         CommunitySpotOverlay(
             showAnnouncement = enRouteCount == 0,
             badgeColor = if (enRouteCount > 0) PapColor.live else visual.color,
+            releasing = enRouteCount == 0 && reliability == SpotTone.RELEASING,
         )
     }
 }
@@ -1022,14 +1038,24 @@ private fun DrawScope.drawSpotPuck(s: Float, v: SpotTierVisual, selected: Boolea
 private fun CommunitySpotOverlay(
     showAnnouncement: Boolean,
     badgeColor: Color,
+    /**
+     * [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] The plaza still has a car in it. The whole glyph
+     * pair changes, not just the colour: colour alone would make this read as a fourth shade of
+     * "free", which is the one reading that costs a stranger a wasted drive.
+     */
+    releasing: Boolean = false,
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val scale = maxWidth.value / SPOT_VIEWBOX_W
         // [SPOT-ICON-IS-THE-GIVEN-SPOT-HAND-HEART-001] The hand + heart fills more of its box than
         // the old person did, so it goes one size down (26 vs 28) — still centred on the puck
         // (36,34), clear of the announcement badge (centre 56,15 r13) and inside the TTL ring.
+        //
+        // A releasing plaza swaps it for the CAR: the hand + heart means *somebody gave you this
+        // space*, and nobody has given anything yet. What is true right now is that a car is still
+        // standing in it, so that is what the puck shows.
         Icon(
-            imageVector = PaparcarIcons.CommunitySpot,
+            imageVector = if (releasing) Icons.Rounded.DirectionsCar else PaparcarIcons.CommunitySpot,
             contentDescription = null,
             tint = SpotPalette.Paper,
             modifier = Modifier
@@ -1037,8 +1063,10 @@ private fun CommunitySpotOverlay(
                 .size((COMMUNITY_GLYPH_SIZE * scale).dp),
         )
         if (showAnnouncement) {
+            // The megaphone ANNOUNCES a free space. A releasing plaza has nothing to announce yet,
+            // so its badge is the way out: the car is leaving, that is the news.
             Icon(
-                imageVector = Icons.Rounded.Campaign,
+                imageVector = if (releasing) Icons.AutoMirrored.Rounded.Logout else Icons.Rounded.Campaign,
                 contentDescription = null,
                 tint = badgeColor,
                 modifier = Modifier

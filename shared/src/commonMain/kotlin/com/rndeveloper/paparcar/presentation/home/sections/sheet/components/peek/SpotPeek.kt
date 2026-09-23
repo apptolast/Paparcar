@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.model.Spot
 import com.rndeveloper.paparcar.domain.model.SpotVotePolicy
 import com.rndeveloper.paparcar.domain.model.SpotStatus
+import com.rndeveloper.paparcar.domain.model.tone
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.presentation.home.HomeIntent
 import com.rndeveloper.paparcar.presentation.home.PeekStep
@@ -52,6 +53,7 @@ import paparcar.composeapp.generated.resources.home_spot_gone
 import paparcar.composeapp.generated.resources.location_fallback_spot
 import paparcar.composeapp.generated.resources.home_spot_retracted_action
 import paparcar.composeapp.generated.resources.home_spot_retracted_eyebrow
+import paparcar.composeapp.generated.resources.home_spot_releasing_note
 import paparcar.composeapp.generated.resources.home_spot_retracted_note
 import paparcar.composeapp.generated.resources.home_spot_still_there
 import paparcar.composeapp.generated.resources.home_spot_unconfirmed_note
@@ -81,7 +83,9 @@ internal fun SpotPeek(
     // Live clock first: the freshness level is derived from it, so everything on this peek — puck,
     // eyebrow, meta accents, meter — moves together. [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001]
     val nowMs = rememberNowMinuteTick()
-    val freshnessLevel = spot.freshness(nowMs)
+    // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] The tone, so a plaza still under its car cannot
+    // borrow a rung of the freshness ramp — and so the puck here matches the one on the map.
+    val freshnessLevel = spot.tone(nowMs)
     val palette = freshnessLevel.peekPalette()
     // [DET-HANDOFF-NOT-MANUAL-001 §B.3] The spot was withdrawn while the user had it open. The
     // marker is already gone from the map; this peek is the only place left that can say WHY, so
@@ -89,6 +93,10 @@ internal fun SpotPeek(
     // those actions is about a space that exists — and says the one true thing instead.
     val isRetracted = spot.status == SpotStatus.RETRACTED
     val isUnconfirmed = spot.status == SpotStatus.PROVISIONAL
+    // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] Nobody has left yet. The age line is suppressed
+    // below for the same reason the row swaps its pill: "hace 0 min" would be the freshest reading
+    // on the sheet, about the one plaza that still has a car in it.
+    val isReleasing = spot.status == SpotStatus.RELEASING
     val distM = userLocation?.let { (uLat, uLon) ->
         distanceMeters(uLat, uLon, spot.location.latitude, spot.location.longitude)
     }
@@ -102,7 +110,7 @@ internal fun SpotPeek(
         addressLine = spot.address?.displayLine,
         fallback = stringResource(Res.string.location_fallback_spot),
     )
-    val spotAgeMin = ageMinutes(spot.location.timestamp, nowMs)
+    val spotAgeMin = if (isReleasing) null else ageMinutes(spot.location.timestamp, nowMs)
     val ageText = spotAgeMin?.let { minutes ->
         when {
             // A counter at zero says nothing — the first minute reads like a person would say it.
@@ -177,6 +185,14 @@ internal fun SpotPeek(
                     if (isUnconfirmed) {
                         Spacer(Modifier.height(10.dp))
                         SpotNote(stringResource(Res.string.home_spot_unconfirmed_note))
+                    }
+                    // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] The community loop stays — driving
+                    // over is exactly the right thing to do with this — but the note says the one
+                    // fact the eyebrow cannot fit: the car has NOT left, so it may still be there.
+                    // Cause, consequence and what to do, in that order.
+                    if (isReleasing) {
+                        Spacer(Modifier.height(10.dp))
+                        SpotNote(stringResource(Res.string.home_spot_releasing_note))
                     }
                 }
             }

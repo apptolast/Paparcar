@@ -11,6 +11,7 @@ import com.rndeveloper.paparcar.domain.permissions.AppPermissionState
 import com.rndeveloper.paparcar.domain.permissions.OemBackgroundReliabilityManager
 import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
+import com.rndeveloper.paparcar.domain.detection.PendingSpotRelease
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
@@ -247,6 +248,12 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     override fun observePendingParkNudge(): kotlinx.coroutines.flow.Flow<PendingParkNudge?> = _pendingParkNudge
     override fun setPendingParkNudge(nudge: PendingParkNudge) { _pendingParkNudge.value = nudge }
     override fun clearPendingParkNudge() { _pendingParkNudge.value = null }
+
+    // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001]
+    private var _pendingSpotRelease: PendingSpotRelease? = null
+    override fun pendingSpotRelease(): PendingSpotRelease? = _pendingSpotRelease
+    override fun setPendingSpotRelease(release: PendingSpotRelease) { _pendingSpotRelease = release }
+    override fun clearPendingSpotRelease() { _pendingSpotRelease = null }
 
     // [DET-ASK-STATE-001] Scenario-aware, like the rest of the mock preferences: the Dev Catalog
     // flips `promptOpen` and the real Home renders the question row. The window is stamped at read

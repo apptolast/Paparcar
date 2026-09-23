@@ -14,6 +14,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
+import com.rndeveloper.paparcar.domain.detection.PendingSpotRelease
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
 import com.rndeveloper.paparcar.domain.spot.VouchedSpot
@@ -231,6 +232,40 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         }
     }
 
+    // ── Plaza published on a boarding, not yet a departure. [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] ──
+
+    override fun pendingSpotRelease(): PendingSpotRelease? {
+        val spotId = snapshot[Keys.PENDING_RELEASE_SPOT_ID] ?: return null
+        return PendingSpotRelease(
+            spotId = spotId,
+            vehicleId = snapshot[Keys.PENDING_RELEASE_VEHICLE_ID],
+            nominatedAtMs = snapshot[Keys.PENDING_RELEASE_AT] ?: 0L,
+        )
+    }
+
+    override fun setPendingSpotRelease(release: PendingSpotRelease) {
+        snapshot = snapshot.toMutablePreferences().apply { writeRelease(release) }
+        scope.launch { store.edit { it.writeRelease(release) } }
+    }
+
+    override fun clearPendingSpotRelease() {
+        snapshot = snapshot.toMutablePreferences().apply { writeRelease(null) }
+        scope.launch { store.edit { it.writeRelease(null) } }
+    }
+
+    private fun MutablePreferences.writeRelease(release: PendingSpotRelease?) {
+        if (release == null) {
+            remove(Keys.PENDING_RELEASE_SPOT_ID)
+            remove(Keys.PENDING_RELEASE_VEHICLE_ID)
+            remove(Keys.PENDING_RELEASE_AT)
+        } else {
+            this[Keys.PENDING_RELEASE_SPOT_ID] = release.spotId
+            release.vehicleId?.let { this[Keys.PENDING_RELEASE_VEHICLE_ID] = it }
+                ?: remove(Keys.PENDING_RELEASE_VEHICLE_ID)
+            this[Keys.PENDING_RELEASE_AT] = release.nominatedAtMs
+        }
+    }
+
     // ── Open "did you park?" question. [DET-ASK-STATE-001] ───────────────────
 
     override fun observePendingPromptWindow(): Flow<PendingPromptWindow?> =
@@ -409,6 +444,9 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         val LEGAL_CONSENT_ACCEPTED          = booleanPreferencesKey("legal_consent_accepted")
         val LOCATION_PERMISSION_REQUESTED   = booleanPreferencesKey("location_permission_requested")
         val AUTO_DETECT_PARKING     = booleanPreferencesKey("auto_detect_parking")
+        val PENDING_RELEASE_SPOT_ID = stringPreferencesKey("pending_spot_release_id")
+        val PENDING_RELEASE_VEHICLE_ID = stringPreferencesKey("pending_spot_release_vehicle_id")
+        val PENDING_RELEASE_AT = longPreferencesKey("pending_spot_release_at")
         val FIRST_PARK_NUDGE_COUNT  = intPreferencesKey("first_park_nudge_count")
         val LAST_FIRST_PARK_NUDGE_AT = longPreferencesKey("last_first_park_nudge_at")
         val HAS_CONFIRMED_FIRST_PARK = booleanPreferencesKey("has_confirmed_first_park")
@@ -490,6 +528,9 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
             Keys.INTRODUCED_COMPLEMENTS,
             // The cold-start nudge machine, which counts one user's parkings.
             Keys.HAS_CONFIRMED_FIRST_PARK,
+            Keys.PENDING_RELEASE_SPOT_ID,
+            Keys.PENDING_RELEASE_VEHICLE_ID,
+            Keys.PENDING_RELEASE_AT,
             Keys.FIRST_PARK_NUDGE_COUNT,
             Keys.LAST_FIRST_PARK_NUDGE_AT,
             // Two questions posted about a car of the OUTGOING user. The Room wipe alongside this

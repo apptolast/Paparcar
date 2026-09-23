@@ -24,6 +24,9 @@
     <string name="home_spot_gone">Non c&#8217;è più</string>
     <!-- [DET-HANDOFF-NOT-MANUAL-001 B.3] A spot published on a DEDUCED departure says so, and says it plainly when the report is withdrawn. -->
     <string name="home_spot_unconfirmed_badge">Non confermato</string>
+    <string name="home_spot_releasing_badge">In uscita</string>
+    <string name="home_spot_releasing_eyebrow">Qualcuno sta liberando questo posto</string>
+    <string name="home_spot_releasing_note">Qualcuno è appena salito in auto su questo posto. Non è ancora uscito, quindi potresti trovarlo occupato — se ti avvicini, il posto si conferma da solo appena l'auto se ne va.</string>
     <string name="home_spot_unconfirmed_note">Non abbiamo ancora verificato che l'auto sia uscita. Se ci vai, dicci se il posto c'è.</string>
     <string name="home_spot_retracted_eyebrow">Ritirato</string>
     <string name="home_spot_retracted_note">Chi l'ha segnalato alla fine non è uscito, quindi il posto non è libero. Cercane un altro vicino.</string>

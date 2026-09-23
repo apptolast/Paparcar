@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.sp
+import com.rndeveloper.paparcar.domain.model.SpotTone
 import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.domain.model.VehicleColor
 import com.rndeveloper.paparcar.domain.model.VehicleSize
@@ -335,7 +336,7 @@ internal sealed interface PapSheetLead {
      *  spot list row (colour + TTL ring + badge encode the tier), never a flat "P".
      *  [HOME-PUCK-001] */
     data class CommunitySpot(
-        val reliability: SpotFreshness,
+        val reliability: SpotTone,
         val enRouteCount: Int = 0,
         /** Eyewitness report. Passed through to the puck, which draws it the same. [UI-COLOR-DOCTRINE-001 F5] */
         val isManual: Boolean = false,

@@ -65,6 +65,8 @@ import com.swmansion.kmpmaps.core.LiveMarker
 import com.swmansion.kmpmaps.core.Marker
 import com.rndeveloper.paparcar.domain.detection.DetectionPhase
 import com.rndeveloper.paparcar.domain.matching.RouteSegment
+import com.rndeveloper.paparcar.domain.model.tone
+import com.rndeveloper.paparcar.domain.model.SpotTone
 import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.domain.model.DrivingPuck
 import com.rndeveloper.paparcar.domain.model.GpsPoint
@@ -447,7 +449,7 @@ private val USER_DOT_MARKER_OPTIONS = AndroidMarkerOptions(
 // bounded while still giving each count 1..9 its own pill. [BOLT-MARKERS-001]
 private const val EN_ROUTE_BUCKET_MAX = 10
 internal fun freeSpotContentId(
-    tier: SpotFreshness,
+    tier: SpotTone,
     selected: Boolean,
     dim: Boolean,
     enRouteCount: Int = 0,
@@ -1219,7 +1221,7 @@ fun PaparcarMapView(
                     val spot = cluster.spots.first()
                     val selected = spot.id == selectedSpotId
                     val contentId = freeSpotContentId(
-                        tier = spot.freshness(freshnessNowMs),
+                        tier = spot.tone(freshnessNowMs),
                         selected = selected,
                         dim = dimSpots,
                         enRouteCount = spot.enRouteCount,
@@ -1392,7 +1394,11 @@ fun PaparcarMapView(
             // Each (tier, manual, state) triple gets its own contentId so kmpmaps caches a distinct
             // bitmap and the on-map colour matches the peek modal badge. Manual provenance keeps its
             // own ids but draws the same pin. [MAP-MARKERS-RELIABILITY-001] [F5]
-            SpotFreshness.entries.forEach { tier ->
+            // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] Iterating the TONE, not the freshness
+            // ramp, is what gives the releasing variant its bitmaps for free. A live marker whose
+            // contentId has no drawing registered here paints NOTHING — silently — so the closed
+            // set doing the registration is the guard. [UI-A-MARKER-ID-MUST-BRING-ITS-DRAWING-001]
+            SpotTone.entries.forEach { tier ->
                 listOf(false, true).forEach { manual ->
                     // Area spots need their own bitmaps (target ⊙ ground point).
                     // [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001]
@@ -1413,13 +1419,13 @@ fun PaparcarMapView(
             // Blue override carrying the people count; tier is irrelevant here so the
             // key is keyed by bucket only. [BOLT-MARKERS-001]
             enRouteBuckets.forEach { bucket ->
-                put(freeSpotContentId(SpotFreshness.FRESH, selected = false, dim = false, enRouteCount = bucket)) { _ ->
+                put(freeSpotContentId(SpotTone.FRESH, selected = false, dim = false, enRouteCount = bucket)) { _ ->
                     FreeSpotWithOverlays(selected = false, enRouteCount = bucket)
                 }
-                put(freeSpotContentId(SpotFreshness.FRESH, selected = false, dim = true, enRouteCount = bucket)) { _ ->
+                put(freeSpotContentId(SpotTone.FRESH, selected = false, dim = true, enRouteCount = bucket)) { _ ->
                     DimWrapper { FreeSpotWithOverlays(selected = false, enRouteCount = bucket) }
                 }
-                put(freeSpotContentId(SpotFreshness.FRESH, selected = true, dim = false, enRouteCount = bucket)) { _ ->
+                put(freeSpotContentId(SpotTone.FRESH, selected = true, dim = false, enRouteCount = bucket)) { _ ->
                     FreeSpotWithOverlays(selected = true, enRouteCount = bucket)
                 }
             }
@@ -2435,7 +2441,7 @@ private data class MapCameraRender(
  */
 @Composable
 private fun FreeSpotWithOverlays(
-    reliability: SpotFreshness = SpotFreshness.FRESH,
+    reliability: SpotTone = SpotTone.FRESH,
     selected: Boolean = false,
     enRouteCount: Int = 0,
     isManual: Boolean = false,

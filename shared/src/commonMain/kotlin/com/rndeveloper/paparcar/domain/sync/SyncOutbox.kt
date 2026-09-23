@@ -2,6 +2,7 @@ package com.rndeveloper.paparcar.domain.sync
 
 import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.domain.model.SpotTtlPolicy
+import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.domain.model.SpotType
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import kotlinx.serialization.Serializable
@@ -83,13 +84,26 @@ sealed class OutboxOp {
         val sizeCategory: VehicleSize?,
         val carbodyType: CarbodyType?,
         val reportedBy: String,
-        val provisional: Boolean,
+        /**
+         * ⛔ **Legacy, and it stays for exactly one reason**: this op is persisted to disk, so a
+         * queue written by the previous build is deserialized by this one. Dropping the field would
+         * make those ops unreadable; reading it as false would hand a deduced spot the full
+         * two-hour lifetime. Never written any more — [claim] is. [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001]
+         */
+        val provisional: Boolean = false,
+        /** What the publication claims about the space. Null ONLY for ops persisted before this
+         *  field existed; read it through [effectiveClaim], never directly. */
+        val claim: SpotStatus? = null,
         /** When the report was ENQUEUED — the TTL-in-queue gate measures from here. */
         val enqueuedAtMs: Long,
         override val attempts: Int = 0,
     ) : OutboxOp() {
         override val key get() = "spot:$spotId"
         override fun withAttempts(attempts: Int) = copy(attempts = attempts)
+
+        /** The claim this queued publication carries, whichever build wrote it. */
+        val effectiveClaim: SpotStatus
+            get() = claim ?: if (provisional) SpotStatus.PROVISIONAL else SpotStatus.CONFIRMED
     }
 }
 
@@ -106,5 +120,5 @@ interface SyncOutbox {
  * published — on iOS the queue can legitimately wait hours for a BGTask, and publishing a
  * spot whose lifetime already ran out plants ghost availability. [SPOT TTL-in-queue]
  */
-fun reportSpotExpiredInQueue(enqueuedAtMs: Long, provisional: Boolean, nowMs: Long): Boolean =
-    nowMs >= enqueuedAtMs + SpotTtlPolicy.ttlMs(provisional)
+fun reportSpotExpiredInQueue(enqueuedAtMs: Long, claim: SpotStatus, nowMs: Long): Boolean =
+    nowMs >= enqueuedAtMs + SpotTtlPolicy.ttlMs(claim)

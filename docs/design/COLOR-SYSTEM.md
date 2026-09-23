@@ -88,8 +88,37 @@ su método (estable), y "aparcado / en ruta" es texto neutro que se anima.
 | ⚪ **Gris** | Vehículo **sin vigilancia** / ausencias | Nombre gris, anillo hueco, borde neutro |
 | ⬛ **`onSurface`** | El ESTADO: aparcado · en ruta · sin aparcar | Texto neutro; en ruta se ANIMA (pulso + halo radar en el color de identidad) |
 | 🟢🟡🔴 **Rampa frescura** | Caducidad de plazas comunitarias — EXCLUSIVA | Pucks/badges de spots; manual = badge persona sobre su tier |
+| 🟣 **Violeta `PapSpotReleasing*`** | La plaza que **todavía NO está libre**: alguien acaba de subirse al coche que la ocupa | Puck, badge de fila y eyebrow del peek de una plaza `RELEASING` [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] |
 | 🟠🔴 **Ámbar/Rojo** | Se acaba el tiempo / algo te necesita | Permisos, errores, destructivo, TTL crítico |
 | 🚗 **Multicolor** | QUÉ coche es — el retrato, jamás mezclado con estado | Glifo ilustrado del vehículo (Nivel 3 de iconos) |
+
+### 🟣 El violeta, y por qué no podía ser ninguno de los colores que ya había
+
+[SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] `SpotStatus.RELEASING` dice algo que ningún otro canal
+dice: *hay un coche todavía en la plaza, y se está yendo*. No es un tramo de la rampa —la rampa
+mide hace cuánto se liberó un hueco, y éste no se ha liberado— así que no puede tomar prestada
+ninguna de sus tres piernas sin afirmar que está libre.
+
+⛔ **Y tampoco podía ser `PapLiveMap`**, que es el candidato obvio porque ese azul ya significa
+«movimiento que no es tuyo». Lo significa en una forma CONCRETA: la plaza a la que va otro. Ese
+puck y éste se dibujan en **la misma capa**, uno al lado del otro. Dos significados compartiendo
+tinta en el mismo sitio es exactamente lo que esta doctrina existe para impedir.
+
+Violeta porque es el único tono que esta paleta no había gastado nunca —verdes (marca, vigilancia,
+Plus, plaza fresca), ámbar, rojo y tres azules (mapa vivo, identidad BT, parking público)— y la
+separación con el más cercano está **medida**:
+
+| Token | Hex | Medida |
+|---|---|---|
+| `PapSpotReleasing` (oscuro + tono fijo del puck) | `#A96BFF` | 5,62:1 sobre `PapInk`; blanco encima 3,37:1 (el suelo de la familia del puck es 2,85:1, el ámbar); **ΔE00 17,0 de `PapLiveMap`**, con el que comparte capa |
+| `PapSpotReleasingMuted` | `#241040` | el tono escribe encima a 5,10:1 |
+| `PapSpotReleasingLight` | `#7C3AED` | 5,70:1 sobre tarjeta blanca · 5,31:1 sobre la página clara |
+| `PapSpotReleasingContainerLight` | `#EADDFF` | lecho pálido del badge |
+| `PapOnSpotReleasingContainerLight` | `#4A148C` | 9,20:1 sobre su lecho |
+
+Y el color **no va solo**: el puck cambia de glifo (coche en vez del de plaza regalada), cambia de
+insignia (salida en vez de megáfono) y pierde el anillo de TTL. Un estado que un conductor puede
+leer como «cuarto tono de disponible» le cuesta un viaje, así que no se confía a la tinta.
 
 El verde tiene tres papeles —marca, coche vigilado, plaza fresca— y hasta el 29-08-2026 los tres
 compartían **un solo valor**. La v3 lo defendía diciendo que las anatomías no se tocan (pastilla
@@ -247,6 +276,7 @@ anillo de TTL recuperado**.
 | Plaza libre fresca / enfriándose / caducando | verde / ámbar / rojo |
 | Reporte manual | color de frescura + badge persona + anillo TTL (F5) |
 | Plaza a la que va otro usuario | `PapLiveMap` (movimiento ajeno, solo mapa) |
+| Plaza que se está liberando (coche dentro, arrancando) | `PapSpotReleasing` — puck VIOLETA con glifo de coche, insignia de salida y **sin anillo de TTL** |
 | Parking público (marcador y fila) | `PapColor.carPark` — puck AZUL relleno con la P blanca [MAP-A-CAR-PARK-MARKER-WEARS-ITS-OWN-BLUE-001] |
 | Traza · origen · salida · halo del puck · FAB que sigue al coche | identidad de vigilancia del coche seguido [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001] |
 | Marcador de mi coche en mapa | tag cuadrado con marco verde/azul/gris según método |

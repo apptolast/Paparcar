@@ -9389,3 +9389,53 @@ FGS-vs-plain del receiver desaparece y la promesa de 5 s se cumple por construcc
 y la suite entera (104/104 coordinator); el testigo de CAMPO sigue siendo el viaje del Kamiq, que
 ahora valida este hosting además de todo lo BT pendiente. Coste retirado: la ventana de doble
 notificación (1001+1003) ya no puede existir.
+
+---
+
+## 2026-09-23 · El embarque publica, la salida confirma [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001]
+
+**Qué cambia en la detección.** Nada de lo que confirma. La escalera de aparcamiento, la de salida
+y sus pruebas quedan intactas: ningún camino nuevo llega a `ConfirmParkingUseCase` ni a
+`ProcessConfirmedDepartureUseCase`. Lo que se añade es una **salida de datos** en un instante que
+el sistema ya observaba y hasta ahora no usaba para nada: el EMBARQUE.
+
+**El dato que lo justifica.** Ledger de triggers de un usuario real, 22-09, un día entero
+(`diagnostics/8fhNJGctp…/sessions/triggers_20718`): en los cuatro viajes con salida, el
+`AR_VEHICLE_ENTER` del embarque precede al trigger que hoy arma la salida por **30 s · 1 min 14 s ·
+3 min 45 s · 3 min 51 s**. Y es cota inferior: en el de las 17:39 la geocerca reaccionó con el coche
+**ya a 34 km/h**. Esos minutos son la plaza más temprana que este sistema puede dar.
+
+**Quién nomina, con qué puerta.**
+
+| Carril | Señal | Puerta propia |
+|---|---|---|
+| BT | `ACL CONNECT` del coche emparejado que tiene plaza viva | ⛔ el CONNECT que es **rebote de una desconexión aún en caza** (`btHuntJob` activo) NO es un embarque — leído ANTES del `cancel` de [BT-005], porque después la evidencia ya no está. Es la misma lección de orden de [DET-A-LANE-MUST-EARN-THE-TRIP-IT-SILENCES-001] |
+| Coordinator | `ArEnterDecision.ArmAtCar` (`enter_at_car`) | la escalera de `EvaluateArEnterArmUseCase` ya exige que el embarque sea del PROPIO coche: un bus o un taxi no llegan a esa rama |
+
+Convergen en **`EvaluateSpotReleaseNominationUseCase`**, veredicto puro con cinco negativas que son
+vocabulario de diagnóstico: `not_a_boarding` · `no_plaza` · `already_published` ·
+`already_nominated` · `approximate_park`, más `private_zone` / `area_too_wide` preguntados a la
+MISMA `SpotReleasePolicy` que usa la publicación real, y con las zonas **como están ahora**.
+
+⛔ **`REFUSED_STRATEGY` sigue descartando triggers y sigue sin arreglarse** — y ya no hace falta
+para esto: el usuario con BT queda cubierto por su propio CONNECT (llega 11–25 s después del AR
+ENTER, medido en el mismo ledger), y el usuario sin BT nunca pasa por esa puerta.
+
+**Doctrina.** *El evento NOMINA, sólo el movimiento MEDIDO confirma* se cumple al pie de la letra:
+lo que sale a la comunidad **dice en su propio estado** que el coche sigue ahí (`SpotStatus.RELEASING`,
+TTL de 4 min, último en el orden del carril, tono e icono propios). La promoción a plaza real la
+sigue haciendo la salida de siempre, sobre el MISMO documento (`spotId = session.id`), así que la
+comunidad ve una plaza que cambia de estado y no dos.
+
+**Lo que NO toca.** No se libera la sesión, no se quita la geocerca, no se cambia el estado de
+detección. Un embarque no le quita nada al usuario — la misma asimetría que
+[DET-HANDOFF-NOT-MANUAL-001 §B] dibujó para la salida deducida, aquí todavía más marcada, porque no
+se ha medido absolutamente nada.
+
+**Cómo se deshace.** Tres redes, de la más rápida a la más tonta: (1) el `NeverDrove` de la
+vigilancia BT y (2) el fin de la sesión del coordinator con el sello todavía puesto — si la salida
+hubiera ocurrido, `ProcessConfirmedDeparture` habría promocionado el documento y retirado el sello,
+así que **la mera supervivencia del sello es la prueba**; (3) el TTL de 4 minutos, que es el suelo
+bajo una retirada que puede fallar de todas las formas en que falla un job en Android. La retirada
+está acotada por ese mismo TTL: pasado, el documento ya no existe y `retractSpot` (que es un UPDATE)
+contestaría PERMISSION_DENIED [DET-RETRACT-DENIED-FOREVER-001].

@@ -2,6 +2,7 @@ package com.rndeveloper.paparcar.ios.preferences
 
 import com.rndeveloper.paparcar.domain.spot.VouchedSpot
 import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
+import com.rndeveloper.paparcar.domain.detection.PendingSpotRelease
 import com.rndeveloper.paparcar.localePrefersImperialUnits
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
@@ -19,6 +20,9 @@ private const val KEY_GPS_ACCURACY_DISCLAIMER_SEEN = "gps_accuracy_disclaimer_se
 private const val KEY_LEGAL_CONSENT_ACCEPTED = "legal_consent_accepted"
 private const val KEY_LOCATION_PERMISSION_REQUESTED = "location_permission_requested"
 private const val KEY_AUTO_DETECT_PARKING = "auto_detect_parking"
+private const val KEY_PENDING_RELEASE_SPOT_ID = "pending_spot_release_id"
+private const val KEY_PENDING_RELEASE_VEHICLE_ID = "pending_spot_release_vehicle_id"
+private const val KEY_PENDING_RELEASE_AT = "pending_spot_release_at"
 private const val KEY_FIRST_PARK_NUDGE_COUNT = "first_park_nudge_count"
 private const val KEY_LAST_FIRST_PARK_NUDGE_AT = "last_first_park_nudge_at"
 private const val KEY_HAS_CONFIRMED_FIRST_PARK = "has_confirmed_first_park"
@@ -73,6 +77,9 @@ private val USER_SCOPED_KEYS = listOf(
     KEY_PENDING_NUDGE_VEHICLE_ID,
     KEY_PENDING_PROMPT_SHOWN_AT,
     KEY_PENDING_PROMPT_VEHICLE_NAME,
+    KEY_PENDING_RELEASE_SPOT_ID,
+    KEY_PENDING_RELEASE_VEHICLE_ID,
+    KEY_PENDING_RELEASE_AT,
     // The memory of having reported this account's detection state. Kept across a sign-out it would
     // make the NEXT account's first snapshot look already-sent and stay silent forever.
     // [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001]
@@ -262,6 +269,31 @@ class IosAppPreferences : AppPreferences {
         userDefaults.removeObjectForKey(KEY_PENDING_NUDGE_SOURCE)
         userDefaults.removeObjectForKey(KEY_PENDING_NUDGE_VEHICLE_ID)
         pendingParkNudgeFlow.value = null
+    }
+
+    // ── Plaza published on a boarding, not yet a departure. [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] ──
+
+    override fun pendingSpotRelease(): PendingSpotRelease? {
+        val spotId = userDefaults.stringForKey(KEY_PENDING_RELEASE_SPOT_ID) ?: return null
+        return PendingSpotRelease(
+            spotId = spotId,
+            vehicleId = userDefaults.stringForKey(KEY_PENDING_RELEASE_VEHICLE_ID),
+            nominatedAtMs = userDefaults.integerForKey(KEY_PENDING_RELEASE_AT),
+        )
+    }
+
+    override fun setPendingSpotRelease(release: PendingSpotRelease) {
+        userDefaults.setObject(release.spotId, forKey = KEY_PENDING_RELEASE_SPOT_ID)
+        release.vehicleId
+            ?.let { userDefaults.setObject(it, forKey = KEY_PENDING_RELEASE_VEHICLE_ID) }
+            ?: userDefaults.removeObjectForKey(KEY_PENDING_RELEASE_VEHICLE_ID)
+        userDefaults.setInteger(release.nominatedAtMs, forKey = KEY_PENDING_RELEASE_AT)
+    }
+
+    override fun clearPendingSpotRelease() {
+        userDefaults.removeObjectForKey(KEY_PENDING_RELEASE_SPOT_ID)
+        userDefaults.removeObjectForKey(KEY_PENDING_RELEASE_VEHICLE_ID)
+        userDefaults.removeObjectForKey(KEY_PENDING_RELEASE_AT)
     }
 
     // ── Open "did you park?" question. [DET-ASK-STATE-001] ───────────────────

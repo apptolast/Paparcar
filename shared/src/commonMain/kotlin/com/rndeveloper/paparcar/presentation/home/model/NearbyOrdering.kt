@@ -50,7 +50,19 @@ object NearbyOrdering {
      * antes de este ticket. [DET-HANDOFF-NOT-MANUAL-001 §B.3]
      */
     fun spots(spots: List<Spot>, user: GpsPoint?): List<Spot> {
-        val unconfirmedLast = compareBy<Spot> { it.status == SpotStatus.PROVISIONAL }
+        // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] Three groups now, and the order is the order
+        // of how much a driver can act on them: free and confirmed · free but unconfirmed · **not
+        // free yet**. A releasing plaza is last unconditionally — it is the only row on this lane
+        // where the car is still there, and a lane that framed it first would send somebody to an
+        // occupied kerb. The comparator says it in ranks rather than in two chained booleans, so a
+        // fourth state has to declare where it sits instead of inheriting "first" by being false.
+        val unconfirmedLast = compareBy<Spot> {
+            when (it.status) {
+                SpotStatus.RELEASING -> 2
+                SpotStatus.PROVISIONAL -> 1
+                SpotStatus.CONFIRMED, SpotStatus.RETRACTED -> 0
+            }
+        }
         // `sortedWith` es estable, así que sin usuario el orden de la fuente sobrevive dentro de
         // cada grupo — exactamente lo que hacía el `sortedBy` al que sustituye.
         val order = user?.let { fix ->

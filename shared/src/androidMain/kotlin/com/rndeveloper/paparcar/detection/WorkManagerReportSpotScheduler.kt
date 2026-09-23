@@ -7,6 +7,7 @@ import com.rndeveloper.paparcar.detection.worker.ReportSpotWorker
 import com.rndeveloper.paparcar.domain.model.AddressInfo
 import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.domain.model.PlaceInfo
+import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.domain.model.SpotType
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.service.ReportSpotScheduler
@@ -32,13 +33,13 @@ class WorkManagerReportSpotScheduler(
         sizeCategory: VehicleSize?,
         carbodyType: CarbodyType?,
         reportedBy: String?,
-        provisional: Boolean,
+        claim: SpotStatus,
         zoneRadiusMeters: Float?,
     ) {
         WorkManager.getInstance(context).enqueueUniqueWork(
             "${ReportSpotWorker.TAG}_$spotId",
             ExistingWorkPolicy.REPLACE,
-            ReportSpotWorker.buildRequest(spotId, lat, lon, address, placeInfo, spotType, confidence, sizeCategory, carbodyType, reportedBy, provisional, zoneRadiusMeters),
+            ReportSpotWorker.buildRequest(spotId, lat, lon, address, placeInfo, spotType, confidence, sizeCategory, carbodyType, reportedBy, claim, zoneRadiusMeters),
         )
     }
 }

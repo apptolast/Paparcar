@@ -13,6 +13,7 @@ import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEventLogger
 import com.rndeveloper.paparcar.domain.detection.DetectionPath
 import com.rndeveloper.paparcar.domain.detection.pinIsRefutedByItsOwnDeparture
+import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.domain.model.AddressAndPlace
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
@@ -78,6 +79,12 @@ class ProcessConfirmedDepartureUseCase(
      * point is that no door can be missing the gate, so the compiler asks every door.
      */
     private val zoneRepository: ZoneRepository,
+    /**
+     * [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] Only to retire the boarding stamp once the real
+     * departure has promoted the document. Nullable for the same test-double reason as every
+     * optional collaborator above.
+     */
+    private val appPreferences: com.rndeveloper.paparcar.domain.preferences.AppPreferences? = null,
 ) {
     private companion object {
         const val TAG = "ProcessConfirmedDeparture"
@@ -202,9 +209,27 @@ class ProcessConfirmedDepartureUseCase(
                 // [DET-HANDOFF-NOT-MANUAL-001 §B] Same instant, shorter life. A zone spot is
                 // provisional whatever proved the departure: the hour may be witnessed, the PLACE
                 // never was, and the doubt about the place does not expire with a drive.
-                provisional = proof == DepartureProof.Deduced || shape is SpotReleasePolicy.Shape.Zone,
+                //
+                // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] This publish is also the PROMOTION of a
+                // spot that may have gone out as RELEASING on the boarding: same id, same document,
+                // so the community sees one spot that stops saying "the car is still in it".
+                claim = if (proof == DepartureProof.Deduced || shape is SpotReleasePolicy.Shape.Zone) {
+                    SpotStatus.PROVISIONAL
+                } else {
+                    SpotStatus.CONFIRMED
+                },
                 zoneRadiusMeters = shape.publishRadiusMeters(),
             )
+            // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] The publication above landed on the SAME
+            // document a boarding may have opened as RELEASING, so the nomination has been
+            // promoted, not abandoned. Retiring the stamp here is what stops the session's own end
+            // from "withdrawing" a plaza that is now a real one — the survival of this stamp IS
+            // the test that lane uses.
+            runCatching {
+                appPreferences?.pendingSpotRelease()
+                    ?.takeIf { it.spotId == spotId }
+                    ?.let { appPreferences.clearPendingSpotRelease() }
+            }.onFailure { PaparcarLogger.w(TAG, "could not retire the boarding stamp (continuing)", it) }
         } else if (sessionPinIsContradicted && publishSpot) {
             // [DET-A-BT-CONNECT-KNOWS-WHERE-THE-CAR-IS-001] Named apart from every other "nothing
             // published" so the field can count it: this is not a stale hour nor a private zone, it

@@ -10,6 +10,7 @@ import com.rndeveloper.paparcar.domain.diagnostics.DetectionEventLogger
 import com.rndeveloper.paparcar.domain.model.AddressAndPlace
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.ParkingReleaseReason
+import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.domain.model.SpotType
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
@@ -53,6 +54,12 @@ class ReleaseActiveParkingSessionUseCase(
     private val zoneRepository: ZoneRepository,
     // Optional product-analytics sink; fire-and-forget, nullable for test doubles. [ANALYTICS-EVENTS-001]
     private val analyticsTracker: AnalyticsTracker? = null,
+    /**
+     * [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] Only to retire the boarding stamp — this path
+     * publishes on the SAME document a boarding may have opened as RELEASING, so leaving the stamp
+     * behind would let the session's own teardown withdraw the real spot it just published.
+     */
+    private val appPreferences: com.rndeveloper.paparcar.domain.preferences.AppPreferences? = null,
 ) {
     suspend operator fun invoke(
         lat: Double,
@@ -112,9 +119,18 @@ class ReleaseActiveParkingSessionUseCase(
                 carbodyType = carbodyType,
                 prefetched = prefetched,
                 // A zone spot is provisional whatever proved the departure: the place never was.
-                provisional = shape is SpotReleasePolicy.Shape.Zone,
+                claim = if (shape is SpotReleasePolicy.Shape.Zone) SpotStatus.PROVISIONAL else SpotStatus.CONFIRMED,
                 zoneRadiusMeters = shape.publishRadiusMeters(),
             )
+            // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] The publish above PROMOTED the releasing
+            // document, if there was one. Without this the stamp survives the release, the
+            // coordinator session ends with it still live, and its teardown withdraws the very spot
+            // the user's "Me voy" just published — a real plaza taken down seconds after going out.
+            runCatching {
+                appPreferences?.pendingSpotRelease()
+                    ?.takeIf { it.spotId == spotId }
+                    ?.let { appPreferences.clearPendingSpotRelease() }
+            }.onFailure { PaparcarLogger.w(TAG, "could not retire the boarding stamp (continuing)", it) }
         }
 
         // Under multi-parking we can only clear *this* specific session — clearing

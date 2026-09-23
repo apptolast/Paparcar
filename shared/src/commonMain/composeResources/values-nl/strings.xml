@@ -25,6 +25,9 @@
     <string name="home_spot_gone">Al weg</string>
     <!-- [DET-HANDOFF-NOT-MANUAL-001 B.3] A spot published on a DEDUCED departure says so, and says it plainly when the report is withdrawn. -->
     <string name="home_spot_unconfirmed_badge">Onbevestigd</string>
+    <string name="home_spot_releasing_badge">Vertrekt</string>
+    <string name="home_spot_releasing_eyebrow">Iemand maakt deze plek vrij</string>
+    <string name="home_spot_releasing_note">Iemand is net in de auto op deze plek gestapt. Hij is nog niet weggereden, dus je kunt de plek nog bezet aantreffen — rijd erheen, de plek bevestigt zichzelf zodra de auto weg is.</string>
     <string name="home_spot_unconfirmed_note">We hebben nog niet bevestigd dat de auto is weggereden. Als u erheen gaat, laat ons weten of de plek vrij is.</string>
     <string name="home_spot_retracted_eyebrow">Ingetrokken</string>
     <string name="home_spot_retracted_note">Wie de plek meldde is uiteindelijk niet weggereden, dus de plek is niet vrij. Zoek een andere in de buurt.</string>

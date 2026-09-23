@@ -42,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityBannerPhase
+import com.rndeveloper.paparcar.domain.model.SpotTone
 import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.domain.model.DetectionReliabilityLevel
 import com.rndeveloper.paparcar.domain.model.PlusOffer
@@ -900,18 +901,26 @@ private fun markersShowcase() {
         }
         MarkerSectionLabel("FreeSpot — HIGH · MEDIUM · LOW · MANUAL · seleccionado")
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Bottom) {
-            FreeSpotMarker(reliability = SpotFreshness.FRESH)
-            FreeSpotMarker(reliability = SpotFreshness.RECENT)
-            FreeSpotMarker(reliability = SpotFreshness.STALE)
+            FreeSpotMarker(reliability = SpotTone.FRESH)
+            FreeSpotMarker(reliability = SpotTone.RECENT)
+            FreeSpotMarker(reliability = SpotTone.STALE)
             FreeSpotMarker(isManual = true)
-            FreeSpotMarker(reliability = SpotFreshness.FRESH, selected = true)
+            FreeSpotMarker(reliability = SpotTone.FRESH, selected = true)
+        }
+        // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] La plaza que TODAVÍA NO está libre: alguien
+        // acaba de subirse al coche que la ocupa. Violeta, glifo de coche en vez del de plaza
+        // regalada, insignia de salida en vez de megáfono, y sin anillo de TTL.
+        MarkerSectionLabel("FreeSpot · se libera ahora — normal · seleccionado")
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Bottom) {
+            FreeSpotMarker(reliability = SpotTone.RELEASING)
+            FreeSpotMarker(reliability = SpotTone.RELEASING, selected = true)
         }
         // [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] Area spot: the ground dot becomes the target ⊙.
         MarkerSectionLabel("FreeSpot · zona — FRESH · RECENT · seleccionado")
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Bottom) {
-            FreeSpotMarker(reliability = SpotFreshness.FRESH, approximate = true)
-            FreeSpotMarker(reliability = SpotFreshness.RECENT, approximate = true)
-            FreeSpotMarker(reliability = SpotFreshness.FRESH, selected = true, approximate = true)
+            FreeSpotMarker(reliability = SpotTone.FRESH, approximate = true)
+            FreeSpotMarker(reliability = SpotTone.RECENT, approximate = true)
+            FreeSpotMarker(reliability = SpotTone.FRESH, selected = true, approximate = true)
         }
         MarkerSectionLabel("FreeSpot · en route — 2 · 5 · 9+ · seleccionado")
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Bottom) {

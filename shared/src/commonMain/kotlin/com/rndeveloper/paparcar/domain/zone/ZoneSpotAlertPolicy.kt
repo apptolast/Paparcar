@@ -62,6 +62,15 @@ fun isAlertableInZone(
     // alert that structurally cannot arrive is worse than not offering it.
     spot.status == SpotStatus.PROVISIONAL -> false
 
+    // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] And a RELEASING one for both of that reason's
+    // halves, each on its own enough: it lives FOUR minutes, so the 15-minute look could never
+    // reach anybody in time — and it is not a free space at all yet, so an alert that said "hay una
+    // plaza en tu zona" would be false at the instant it buzzed.
+    //
+    // ⚠️ Stated rather than left to the `else`: this `when` ends in one, so a new status is
+    // alertable by saying nothing. That is how a class of alert gets promised by accident.
+    spot.status == SpotStatus.RELEASING -> false
+
     // Your own published spot is the place YOU just left — never an alert.
     spot.reportedBy == ownUserId -> false
 

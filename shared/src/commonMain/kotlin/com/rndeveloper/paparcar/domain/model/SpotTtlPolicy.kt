@@ -57,17 +57,47 @@ object SpotTtlPolicy {
     const val RETRACTION_GRACE_MS: Long = 2 * 60 * 1_000L
 
     /**
-     * The lifetime of a newly published spot.
+     * [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] How long a spot published on a BOARDING
+     * ([SpotStatus.RELEASING]) stays live: **4 minutes**.
+     *
+     * Shorter than the provisional window, and for a stronger reason. A provisional spot is
+     * probably free and might not be; a releasing one is definitely NOT free yet, and only becomes
+     * true if the car actually pulls out. So the window is not "how long until we find out" but
+     * **how long a boarding can credibly still be a departure in progress** — past that it was
+     * somebody fetching a coat, taking a call, or a head unit that powered up on its own.
+     *
+     * Sized against the measurement that opened the ticket: the boarding leads the departure
+     * trigger by 30 s to 3 min 51 s in the four field samples, so four minutes covers the observed
+     * range with room to spare and still dies before a wrong one can waste a second driver's trip.
+     *
+     * Like [PROVISIONAL_SPOT_TTL_MS] this is the FLOOR, not the plan — the explicit withdrawal can
+     * fail every way a background job fails, so the lifetime itself has to make failing survivable.
+     */
+    const val RELEASING_SPOT_TTL_MS: Long = 4 * 60 * 1_000L
+
+    /**
+     * The lifetime of a newly published spot, by the CLAIM it goes out with.
      *
      * [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001] This used to take a [SpotType] and hand manual
      * reports a shorter window. It no longer does, and the parameter went with it rather than
      * lingering as a signature that claims an influence it does not have: **the kind of report
      * does not change how fast the space fills.**
      *
-     * [provisional] is the one thing that still shortens it ([DET-HANDOFF-NOT-MANUAL-001 §B]), and
-     * for a different reason — not distrust of a reporter, but the blast radius of a spot deduced
-     * from a departure that may never have happened.
+     * What DOES shorten it is how sure we are the space is free, and that is not a reporter's
+     * trustworthiness — it is the blast radius of being wrong.
+     *
+     * ⛔ [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] The parameter was a `provisional: Boolean` until
+     * a third claim existed. A boolean cannot answer a three-way question, and the way that fails
+     * is silent: the new case inherits `false` — the FULL two-hour lifetime — by saying nothing.
+     * Asked of the status, a fourth one does not compile until its author answers.
+     *
+     * [SpotStatus.RETRACTED] is not a publication, so it has no lifetime of its own here; it is
+     * given the releasing window because a retraction only ever lands on a document that already
+     * exists, and [RETRACTION_GRACE_MS] is what actually bounds it.
      */
-    fun ttlMs(provisional: Boolean = false): Long =
-        if (provisional) PROVISIONAL_SPOT_TTL_MS else AUTO_SPOT_TTL_MS
+    fun ttlMs(claim: SpotStatus = SpotStatus.CONFIRMED): Long = when (claim) {
+        SpotStatus.CONFIRMED -> AUTO_SPOT_TTL_MS
+        SpotStatus.PROVISIONAL -> PROVISIONAL_SPOT_TTL_MS
+        SpotStatus.RELEASING, SpotStatus.RETRACTED -> RELEASING_SPOT_TTL_MS
+    }
 }

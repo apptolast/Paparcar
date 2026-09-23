@@ -190,6 +190,26 @@ class NearbyOrderingTest {
     }
 
     @Test
+    fun should_keepAReleasingSpotBehindEveryFreeOne_when_itIsTheNearestOne() {
+        // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] The one row on this lane where the car is still
+        // in the space. A lane that framed it first — and the lane DOES frame its first row — would
+        // send somebody to an occupied kerb, which costs the one thing the app cannot give back.
+        val shown = NearbyOrdering.spots(
+            spots = listOf(
+                spot("releasing-next-door", 10.0, SpotStatus.RELEASING),
+                spot("unconfirmed-mid", 900.0, SpotStatus.PROVISIONAL),
+                spot("confirmed-far", 3_000.0),
+            ),
+            user = user,
+        )
+
+        assertEquals(
+            listOf("confirmed-far", "unconfirmed-mid", "releasing-next-door"),
+            shown.map { it.id },
+        )
+    }
+
+    @Test
     fun should_keepTheSourceOrder_when_thereIsNoFixToMeasureFrom() {
         // Sin fix no hay «más cercana»: no se inventa un orden, se conserva el de la fuente — y el
         // agrupado por estado, que no necesita medir nada, se aplica igual.

@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.ui.components
 
+import com.rndeveloper.paparcar.domain.model.SpotTone
 import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -128,11 +129,13 @@ private fun MarkersShowcase() {
 
         SectionLabel("FreeSpot — HIGH · MEDIUM · LOW · MANUAL · selected")
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Bottom) {
-            FreeSpotMarker(reliability = SpotFreshness.FRESH)
-            FreeSpotMarker(reliability = SpotFreshness.RECENT)
-            FreeSpotMarker(reliability = SpotFreshness.STALE)
+            FreeSpotMarker(reliability = SpotTone.FRESH)
+            FreeSpotMarker(reliability = SpotTone.RECENT)
+            FreeSpotMarker(reliability = SpotTone.STALE)
             FreeSpotMarker(isManual = true)
-            FreeSpotMarker(reliability = SpotFreshness.FRESH, selected = true)
+            FreeSpotMarker(reliability = SpotTone.FRESH, selected = true)
+            // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] The plaza that is not free yet.
+            FreeSpotMarker(reliability = SpotTone.RELEASING)
         }
 
         SectionLabel("FreeSpot · en route — 2 · 5 · 9+")

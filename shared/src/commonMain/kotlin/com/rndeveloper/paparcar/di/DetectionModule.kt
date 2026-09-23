@@ -22,6 +22,11 @@ import com.rndeveloper.paparcar.domain.usecase.detection.PublishDetectionStateUs
 import com.rndeveloper.paparcar.domain.usecase.notification.NotifyParkingConfirmationUseCase
 import com.rndeveloper.paparcar.domain.usecase.notification.ResolveAskedStreetUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.CalculateParkingConfidenceUseCase
+import com.rndeveloper.paparcar.domain.usecase.spot.EvaluateSpotReleaseNominationUseCase
+import com.rndeveloper.paparcar.domain.usecase.spot.NominateSpotRelease
+import com.rndeveloper.paparcar.domain.usecase.spot.NominateSpotReleaseUseCase
+import com.rndeveloper.paparcar.domain.usecase.spot.WithdrawSpotRelease
+import com.rndeveloper.paparcar.domain.usecase.spot.WithdrawSpotReleaseUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.ClearParkNudgeUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.DetectParkingDepartureUseCase
@@ -191,7 +196,7 @@ val detectionModule = module {
     single<com.rndeveloper.paparcar.domain.detection.DepartureConfirmationListener> { get<CoordinatorParkingDetector>() }
 
     // ── Parking session lifecycle ─────────────────────────────────────────────────────────────
-    factory { ReleaseActiveParkingSessionUseCase(reportSpotReleased = get(), userParkingRepository = get(), geofenceService = get(), detectionEventLogger = get(), zoneRepository = get(), analyticsTracker = get()) }
+    factory { ReleaseActiveParkingSessionUseCase(reportSpotReleased = get(), userParkingRepository = get(), geofenceService = get(), detectionEventLogger = get(), zoneRepository = get(), analyticsTracker = get(), appPreferences = get()) }
     // [VEH-ACTIVE-FENCE-001 · 2c] Active-vehicle declaration + geofence swap.
     factory { SwapActiveVehicleFencesUseCase(userParkingRepository = get(), vehicleRepository = get(), geofenceService = get(), config = get()) }
     factory { DeclareActiveVehicleUseCase(vehicleRepository = get(), swapFences = get()) }
@@ -291,8 +296,25 @@ val detectionModule = module {
             // [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] The publish gate's
             // zone reader — required, so no door can lose it.
             zoneRepository = get(),
+            // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] Only to retire the boarding stamp.
+            appPreferences = get(),
         )
     }
+
+    // ── The boarding half of a plaza's life. [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] ──────────
+    factory { EvaluateSpotReleaseNominationUseCase() }
+    factory {
+        NominateSpotReleaseUseCase(
+            userParkingRepository = get(),
+            zoneRepository = get(),
+            evaluate = get(),
+            reportSpotReleased = get(),
+            appPreferences = get(),
+        )
+    } bind NominateSpotRelease::class
+    factory {
+        WithdrawSpotReleaseUseCase(spotRepository = get(), appPreferences = get())
+    } bind WithdrawSpotRelease::class
     factory {
         RunDepartureCheckUseCase(
             detectParkingDeparture = get(),

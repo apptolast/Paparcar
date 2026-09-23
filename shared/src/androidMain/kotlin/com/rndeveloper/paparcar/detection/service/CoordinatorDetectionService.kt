@@ -136,6 +136,10 @@ class CoordinatorDetectionService : LifecycleService() {
     private val detectionConfig: ParkingDetectionConfig by inject()
     // [DET-AR-FIRST-001] Arm ladder for the AR ENTER decision lane.
     private val evaluateArEnterArm: EvaluateArEnterArmUseCase by inject()
+    // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] The boarding half of the spot lifecycle: publish the
+    // plaza as RELEASING when somebody gets in, take it back when they turn out not to leave.
+    private val nominateSpotRelease: com.rndeveloper.paparcar.domain.usecase.spot.NominateSpotRelease by inject()
+    private val withdrawSpotRelease: com.rndeveloper.paparcar.domain.usecase.spot.WithdrawSpotRelease by inject()
     private val evaluateGeofenceExit: EvaluateGeofenceExitUseCase by inject() // [AUDIT-A9-KMP-001]
     // [DET-HONEST-CLOSE-001] Honest close of a silent abort: release the stale pin the car drove
     // away from + leave an approximate zone/pin + nudge, run at the abort from the live FGS.
@@ -1242,6 +1246,14 @@ class CoordinatorDetectionService : LifecycleService() {
                     trip = TripContext(session!!.location, session.vehicleId),
                     armEvidence = armedWith,
                 )
+                // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] This is THE boarding moment for a driver
+                // with no Bluetooth: an AR `IN_VEHICLE` ENTER inside the parked car's OWN fence,
+                // which the ladder above has already vouched for — a bus or a taxi never reaches
+                // this branch. Measured in the field, it leads the trigger that publishes today by
+                // 30 s to 3 min 51 s.
+                //
+                // ⛔ It does not confirm anything: what goes out says the car is still in the space.
+                session.vehicleId?.let { nominateSpotRelease(it, boardingIsCredible = true) }
             }
             is ArEnterDecision.ArmMidTrip -> {
                 // Same machinery as a far-delivered EXIT: speed-gated departure re-check +
@@ -1573,6 +1585,13 @@ class CoordinatorDetectionService : LifecycleService() {
         arbitrateBtEdge(com.rndeveloper.paparcar.domain.usecase.detection.BtArbitrationEvent.CONNECT, vehicleId)
         // [BT-005] A reconnect inside the debounce means the disconnect was an oscillation (a
         // traffic light, a flaky head unit) — the pending hunt dies before it can act.
+        //
+        // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] And that same live hunt is the answer to "is
+        // this CONNECT a boarding?": an open hunt means we are still chasing the disconnect this
+        // edge just undid, so nobody boarded anything — the head unit blinked. Read BEFORE the
+        // cancel below, because after it the evidence is gone. Same ordering lesson as
+        // `BluetoothParkingDetector`'s ride proof: *that order WAS the bug.*
+        val boardingIsCredible = btHuntJob?.isActive != true
         if (btHuntJob?.isActive == true) {
             PaparcarLogger.d(DIAG, "  ↻ reconnect — cancelling the pending hunt [BT-005]")
         }
@@ -1588,7 +1607,7 @@ class CoordinatorDetectionService : LifecycleService() {
         handleBtTripStart(vehicleId)
         // [DET-A-BT-CONNECT-IS-A-DEPARTURE-001] The car still holds a plaza → watch for the
         // measured drive-away.
-        if (watchDeparture) launchBtDepartureWatch(vehicleId)
+        if (watchDeparture) launchBtDepartureWatch(vehicleId, boardingIsCredible)
     }
 
     /**
@@ -1683,7 +1702,7 @@ class CoordinatorDetectionService : LifecycleService() {
      * a Play Services EXIT collapses into one dispatch). Hosted here since
      * [DET-ONE-SERVICE-TWO-LANES-001]; bounded by the detector's own timeout.
      */
-    private fun launchBtDepartureWatch(vehicleId: String) {
+    private fun launchBtDepartureWatch(vehicleId: String, boardingIsCredible: Boolean = true) {
         btWatchJob?.cancel()
         btWatchJob = lifecycleScope.launch {
             try {
@@ -1694,6 +1713,11 @@ class CoordinatorDetectionService : LifecycleService() {
                     PaparcarLogger.d(DIAG, "  ■ the plaza is gone (another lane closed it first) — nothing to watch")
                     return@launch
                 }
+                // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] The paired car's ACL CONNECT is the
+                // deterministic boarding: somebody is IN this car and it still holds a plaza.
+                // Nominated here rather than in `handleBtConnected` because this is where the live
+                // session is in hand — and the session is what the publication is about.
+                nominateSpotRelease(vehicleId, boardingIsCredible)
                 // No CONNECT stamp → the departure would have no hour, and an undated departure
                 // publishes nothing downstream. [DET-AN-EXIT-IS-DATED-BY-THE-FIX-THAT-CROSSED-IT-001]
                 val connectedAtMs = com.rndeveloper.paparcar.bluetooth.BtConnectionStore.lastConnectedAt(
@@ -1725,7 +1749,12 @@ class CoordinatorDetectionService : LifecycleService() {
                         )
                         PaparcarLogger.i(DIAG, "  ✓ departure dispatched for fence=${geofenceId.take(8)} (proof at ${outcome.fix.timestamp})")
                     }
-                    com.rndeveloper.paparcar.bluetooth.BtDepartureOutcome.NeverDrove -> Unit // traced by the detector
+                    com.rndeveloper.paparcar.bluetooth.BtDepartureOutcome.NeverDrove ->
+                        // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] The boarding was not a
+                        // departure — somebody sat in the car and the car stayed. Take the plaza
+                        // back now instead of leaving it to the TTL: four minutes is long enough
+                        // for a stranger to drive to an occupied street.
+                        withContext(NonCancellable) { withdrawSpotRelease() }
                 }
             } catch (e: CancellationException) {
                 PaparcarLogger.d(DIAG, "  ✗ drive-away watch cancelled (disconnect or destroy)")
@@ -2381,6 +2410,12 @@ class CoordinatorDetectionService : LifecycleService() {
                 // supersede mid-release can't leave the stale pin half-cleared.
                 withContext(NonCancellable) {
                     maybeRunHonestClose()
+                    // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] A nomination STILL PENDING at the
+                    // end of the trip it opened means the departure never came: had the car pulled
+                    // out, `ProcessConfirmedDeparture` would have promoted the document and cleared
+                    // the stamp on its way through. So the test is the stamp's mere survival — no
+                    // outcome to read, no list of terminal labels to keep in sync.
+                    withdrawSpotRelease()
                     maybeStampArrivalResolution() // [DET-BACKFILL-TAINT-001]
                     // AFTER the honest close consumed the previous witness — a session never
                     // witnesses for its own abort. [DET-UNWITNESSED-DISPLACEMENT-001]

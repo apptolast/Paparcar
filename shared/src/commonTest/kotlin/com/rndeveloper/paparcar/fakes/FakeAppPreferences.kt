@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.fakes
 
+import com.rndeveloper.paparcar.domain.detection.PendingSpotRelease
 import com.rndeveloper.paparcar.domain.spot.VouchedSpot
 import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
@@ -111,6 +112,12 @@ class FakeAppPreferences(
     override fun observePendingParkNudge(): Flow<PendingParkNudge?> = pendingParkNudge
     override fun setPendingParkNudge(nudge: PendingParkNudge) { pendingParkNudge.value = nudge }
     override fun clearPendingParkNudge() { pendingParkNudge.value = null }
+
+    // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001]
+    var storedSpotRelease: PendingSpotRelease? = null
+    override fun pendingSpotRelease(): PendingSpotRelease? = storedSpotRelease
+    override fun setPendingSpotRelease(release: PendingSpotRelease) { storedSpotRelease = release }
+    override fun clearPendingSpotRelease() { storedSpotRelease = null }
 
     // [DET-ASK-STATE-001]
     val pendingPromptWindow = MutableStateFlow<PendingPromptWindow?>(null)
