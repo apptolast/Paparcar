@@ -18,6 +18,7 @@ import com.rndeveloper.paparcar.domain.onboarding.resolveFirstSteps
 import com.rndeveloper.paparcar.domain.onboarding.resolveWatchReinforcement
 import com.rndeveloper.paparcar.presentation.home.model.PublicParkingFilter
 import com.rndeveloper.paparcar.presentation.home.model.filteredBy
+import com.rndeveloper.paparcar.presentation.home.model.DetectionNotice
 import com.rndeveloper.paparcar.presentation.home.model.DetectionUiState
 import com.rndeveloper.paparcar.presentation.home.model.ParkedWatchBadge
 import com.rndeveloper.paparcar.presentation.home.model.isDetectionStopped
@@ -209,6 +210,16 @@ data class HomeState(
      * [DET-READY-001g]
      */
     val detectionReadiness: DetectionReadiness = DetectionReadiness.Disabled(DisabledReason.NO_VEHICLE),
+
+    /**
+     * Los avisos de salud del sistema que el usuario ha callado con la × del badge.
+     * [UI-A-STATUS-BADGE-CAN-BE-DISMISSED-A-QUESTION-CANNOT-001]
+     *
+     * ⛔ Vive en el ESTADO y no en disco a propósito: un permiso que falta deja la app rota, y
+     * persistir el silencio convertiría un «ahora no» en un «nunca más». Al volver a abrir, el aviso
+     * vuelve — porque el problema sigue ahí.
+     */
+    val silencedNotices: Set<DetectionNotice> = emptySet(),
 
     /**
      * The unanswered "where did you leave your car?" nudge, or null. Rendered as a persistent

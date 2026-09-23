@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.presentation.home
 
+import com.rndeveloper.paparcar.presentation.home.model.DetectionNotice
 import com.swmansion.kmpmaps.core.MapType
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.ParkingReleaseReason
@@ -96,6 +97,14 @@ sealed class HomeIntent {
      * vehicle IS the declaration). Null only if there is no resolvable vehicle. [DET-G-01b] [VEH-ACTIVE-FENCE-001]
      */
     data class StartDrivingDetection(val vehicleId: String?) : HomeIntent()
+
+    /**
+     * La × de un badge de estado: «ahora no». Calla ESE aviso mientras la pantalla viva; al volver
+     * a abrir la app vuelve, porque la avería que lo produce sigue ahí. No arregla nada y no
+     * pretende hacerlo — sólo deja de empujar a pulsar.
+     * [UI-A-STATUS-BADGE-CAN-BE-DISMISSED-A-QUESTION-CANNOT-001]
+     */
+    data class SilenceDetectionNotice(val notice: DetectionNotice) : HomeIntent()
 
     /**
      * "Parar detección" on the live-trip row — the user says this trip is not theirs to follow.

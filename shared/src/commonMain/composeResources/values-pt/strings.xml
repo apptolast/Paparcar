@@ -580,6 +580,7 @@ Se a pergunta já não aparecer, muda em Definições → Paparcar → Localiza�
     <string name="vehicle_registration_size_hint">Toca para selecionar o tamanho</string>
 
     <!-- Home detection surface [DET-READY-001h] -->
+    <string name="home_det_notice_silence_cd">Dispensar este aviso</string>
     <string name="home_det_novehicle_title">Adicione o seu carro</string>
     <string name="home_det_novehicle_sub">Estacione e liberte lugares sem esforço</string>
     <string name="home_det_novehicle_cta">Adicionar</string>
@@ -662,7 +663,6 @@ Se a pergunta já não aparecer, muda em Definições → Paparcar → Localiza�
     <string name="history_activity_title">Atividade</string>
     <string name="history_section_label">Histórico</string>
     <string name="home_vehicle_card_parked_at">Estacionado em %1$s</string>
-    <string name="home_vehicle_card_parked_meta">%1$s · a %2$s</string>
     <string name="home_vehicle_chip_mark_parking">Marcar estacionamento</string>
     <string name="home_vehicle_chip_unmarked">Não marcado</string>
     <string name="home_vehicle_status_inactive">Inativo</string>

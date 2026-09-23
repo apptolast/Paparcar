@@ -22,6 +22,7 @@ import com.rndeveloper.paparcar.domain.onboarding.FirstStepsProgress
 import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
 import com.rndeveloper.paparcar.presentation.home.model.homeAwaitsLocationAnswer
 import com.rndeveloper.paparcar.presentation.home.model.homeHasNoLocation
+import com.rndeveloper.paparcar.presentation.home.model.DetectionNotice
 import com.rndeveloper.paparcar.presentation.home.model.DetectionUiState
 import com.rndeveloper.paparcar.presentation.home.model.ParkedWatchBadge
 import com.rndeveloper.paparcar.presentation.util.PlaceLine
@@ -373,6 +374,9 @@ data class HomeBrowseListSlice(
      * [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001]
      */
     val locationAskPending: Boolean,
+    /** Los avisos de sistema que el usuario ha callado con la ×, mientras esta pantalla viva.
+     *  [UI-A-STATUS-BADGE-CAN-BE-DISMISSED-A-QUESTION-CANNOT-001] */
+    val silencedNotices: Set<DetectionNotice>,
     val isLoading: Boolean,
     val sizeFilter: VehicleSize?,
     /** [HomeState.nearbySpots] after [sizeFilter] — materialised once per state emission. */
@@ -653,6 +657,7 @@ fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
     locationAskPending = homeAwaitsLocationAnswer(
         hasCorePermissions, locationEverAsked, locationAnswerInFlight,
     ),
+    silencedNotices = silencedNotices,
     isLoading = isLoading,
     sizeFilter = sizeFilter,
     filteredSpots = filteredNearbySpots(),

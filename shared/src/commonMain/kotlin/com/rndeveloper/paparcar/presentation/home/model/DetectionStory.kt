@@ -225,17 +225,31 @@ fun resolveDetectionStory(
 
     return when (uiState) {
         DetectionUiState.BlockedCore -> DetectionStory.BlockedCore
-        DetectionUiState.NoVehicle -> DetectionStory.NoVehicle
+        // ⛔⛔ «No tienes coche» solo se dice si NO HAY COCHE, y esta función tiene la lista delante.
+        // Visto en el emulador (23-09): media galería enseñaba «Añade tu coche» con dos coches
+        // debajo, porque la disponibilidad por defecto es `Disabled(NO_VEHICLE)` y basta con no
+        // pasarla para que la proyección contradiga a la tira que ella misma recibe. En producción
+        // las dos salen de la misma lista (`ObserveDetectionReadinessUseCase` devuelve NO_VEHICLE
+        // sólo `if (vehicles.isEmpty())`), así que llegar aquí con cards significa que alguien las
+        // ha desincronizado — un estado a medio armar, o un borrado en vuelo. Con la lista a la
+        // vista, decirlo igual sería mentir a sabiendas; callar es lo único honesto.
+        DetectionUiState.NoVehicle ->
+            if (vehicleCards.isEmpty()) DetectionStory.NoVehicle else DetectionStory.Hidden
         DetectionUiState.Inactive ->
             if (firstStepsOwns == FirstStepsOwnership.DETECTION_OFF) DetectionStory.Hidden
             else DetectionStory.Inactive
         DetectionUiState.AwaitingFirstPark ->
-            // Dos superficies pueden estar diciendo ya esto: el paso del checklist (que lo dice con
-            // el contexto de los pasos alrededor) y, desde
-            // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001], la propia card del
-            // coche — que ademas lo pregunta **por cada coche**, no solo por el que esta funcion
-            // elige. Con cualquiera de las dos delante, esta fila sobra.
-            if (firstStepsOwns == FirstStepsOwnership.COLD_START || carCardSaysTheWatch) {
+            // El paso del checklist SÍ lo dice entero, con el contexto de los pasos alrededor, y con
+            // él delante esta fila sobra.
+            //
+            // ⛔⛔ Pero `carCardSaysTheWatch` ya NO la suprime, y quitarlo arregla un agujero que se
+            // vio en el emulador: con un coche registrado esta historia se escondía «porque la card
+            // ya lo dice», y la card sólo decía la FRASE —«Marca tu aparcamiento y vigilo la
+            // salida»— sin los dos botones. O sea que «Marcar mi aparcamiento» y «Voy conduciendo»
+            // no existían en ninguna superficie: ni aquí, ni ahí. Ahora la card recibe la historia
+            // ENTERA y la pinta con sus CTAs, que es lo que
+            // [HOME-AN-OPEN-QUESTION-IS-THE-CARS-NEWS-001] vino a hacer.
+            if (firstStepsOwns == FirstStepsOwnership.COLD_START) {
                 DetectionStory.Hidden
             } else {
                 DetectionStory.AwaitingFirstPark
@@ -259,26 +273,39 @@ fun resolveDetectionStory(
 }
 
 /**
- * ¿Esta historia es noticia **de un coche**, y por tanto la puede contar la card de ese coche?
- * [HOME-AN-OPEN-QUESTION-IS-THE-CARS-NEWS-001]
+ * ¿Es esta historia una **pregunta sobre un coche concreto**, y por tanto la hospeda la card de ese
+ * coche? [HOME-AN-OPEN-QUESTION-IS-THE-CARS-NEWS-001]
  *
- * Regla del user (22-09): **la card de un coche gestiona todos los estados de ese coche**; el badge
- * suelto queda sólo para cuando no hay ningún coche registrado, porque entonces no hay card que
- * gestione nada.
+ * El corte NO es «de quién habla» sino **qué se le pide al usuario**, y lo fijó el user mirando el
+ * dibujo (23-09):
+ *
+ *  · **Card** — lo que ESE coche puede contestar AHORA: ¿has aparcado?, ¿dónde lo dejaste?, ¿dónde
+ *    está tu coche? Son preguntas de un coche, con respuesta en un toque, y la card es justo la
+ *    superficie que lo nombra.
+ *  · **Badge** — la salud del SISTEMA: el permiso de ubicación, la detección apagada, la vigilancia
+ *    frágil o parada por el móvil. Son avisos que **repercuten a todos los coches** (un permiso, un
+ *    ajuste y UN servicio en primer plano para los dos carriles), así que colgarlos de la card de un
+ *    coche nombra al culpable equivocado — y con dos coches obligaría a elegir a cuál acusar.
+ *
+ * Y hay una razón de trato, no sólo de taxonomía: metido en la card, un aviso de sistema **sustituye
+ * a la información del coche por un botón rojo a ancho completo**, así que empuja a pulsar algo que
+ * el usuario quizá no quiere ahora. Fuera, informa sin secuestrar la card.
  *
  * ⛔ Contesta QUÉ es la historia, no QUIÉN la pinta. Quién la pinta lo decide la hoja, que es la
  * única que sabe si hay UNA card a ancho completo o una tira de chips estrechos — y un chip no puede
  * alojar un título, una sublínea y dos botones, ni sirve de nada si está fuera de pantalla. Meter
  * esa condición aquí habría atado una proyección pura a la anchura de un contenedor.
- *
- * [DetectionStory.NoVehicle] es el único `false` con contenido, y es el que justifica que el badge
- * siga existiendo: dice «no tienes coche», así que no hay card a la que mudarlo.
  */
-fun DetectionStory.isVehicleNews(): Boolean = when (this) {
-    DetectionStory.NoVehicle, DetectionStory.Hidden -> false
-    // Todo lo demás le pasa a un coche concreto: la pregunta con plazo, el aviso sin plazo, el
-    // «¿dónde lo dejaste?», la vigilancia frágil o muerta, la detección apagada y el permiso que
-    // falta. Los dos últimos nacen globales, pero lo que el usuario ve es que SU coche no está
-    // vigilado — y esa frase la dice mejor la card que lo nombra.
-    else -> true
+fun DetectionStory.isTheCarsQuestion(): Boolean = when (this) {
+    // Las tres preguntas de un coche: con plazo, sin plazo, y la del arranque en frío.
+    is DetectionStory.AwaitingAnswer -> true
+    DetectionStory.PendingAsk, DetectionStory.AwaitingFirstPark -> true
+    // Salud del sistema y nada-que-decir: del badge. `NoVehicle` es además el que justifica que el
+    // badge exista — dice «no tienes coche», así que no hay card a la que mudarlo.
+    DetectionStory.BlockedCore,
+    DetectionStory.Inactive,
+    DetectionStory.NoVehicle,
+    DetectionStory.Hidden,
+    is DetectionStory.Watching,
+    -> false
 }

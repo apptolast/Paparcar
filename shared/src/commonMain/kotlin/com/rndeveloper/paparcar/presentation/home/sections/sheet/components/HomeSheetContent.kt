@@ -52,7 +52,9 @@ import com.rndeveloper.paparcar.presentation.home.VehicleCard
 import com.rndeveloper.paparcar.presentation.home.isDriving
 import com.rndeveloper.paparcar.presentation.home.vehiclesRowOrder
 import com.rndeveloper.paparcar.presentation.home.model.DetectionStory
-import com.rndeveloper.paparcar.presentation.home.model.isVehicleNews
+import com.rndeveloper.paparcar.presentation.home.model.isTheCarsQuestion
+import com.rndeveloper.paparcar.presentation.home.model.silencedBy
+import com.rndeveloper.paparcar.presentation.home.model.notice
 import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
 import com.rndeveloper.paparcar.presentation.home.model.resolveDetectionStory
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.HomeSheetAction
@@ -245,20 +247,26 @@ fun LazyListScope.homeSheetItems(
         // contestaría está literalmente en pantalla. [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001]
         locationAskPending = slice.locationAskPending,
     )
+        // Y por último, lo que el usuario ya ha dicho que no quiere ver ahora. Va DESPUÉS de la
+        // proyección y no dentro: la precedencia decide QUÉ se cuenta, y esto sólo tapa un aviso que
+        // ya estaba decidido. Una pregunta nunca se calla aquí — no devuelve `notice()`.
+        // [UI-A-STATUS-BADGE-CAN-BE-DISMISSED-A-QUESTION-CANNOT-001]
+        .silencedBy(slice.silencedNotices)
     // ⛔ QUIÉN la pinta se decide UNA vez, aquí, y se lee en los dos sitios. Dos lugares evaluando
     // «¿la lleva la card?» es exactamente cómo se consigue que no la cuente NADIE: basta con que las
     // dos condiciones se desincronicen un día. [HOME-AN-OPEN-QUESTION-IS-THE-CARS-NEWS-001]
     //
-    // La regla es del user (22-09): la card de un coche gestiona todos los estados de ese coche, y
-    // el badge suelto queda sólo para cuando no hay coche registrado — porque entonces no hay card
-    // que gestione nada.
+    // La regla es del user: la card de un coche hospeda las PREGUNTAS de ese coche (22-09), y la
+    // salud del sistema —permisos, detección apagada, vigilancia frágil o parada— se queda FUERA
+    // (23-09), porque repercute a todos los coches y porque dentro de la card sustituye la
+    // información del coche por un botón que empuja a pulsar. Lo decide `isTheCarsQuestion()`.
     //
     // ⛔ Y sólo con UN coche: con dos o más la tira son chips estrechos dentro de un scroll
     // horizontal, donde no cabe un título con sublínea y dos botones, y donde el coche del que habla
     // la noticia puede estar fuera de pantalla. Un aviso que hay que descubrir arrastrando es peor
     // que el badge que sustituiría. Es la misma condición que el viaje ya exigía: sólo se narra en
     // una card que está en pantalla.
-    val cardHostsTheStory = vehicleCards.size == 1 && detectionStory.isVehicleNews()
+    val cardHostsTheStory = vehicleCards.size == 1 && detectionStory.isTheCarsQuestion()
 
     // ── 1. La VIGILANCIA — lo que está pasando con tu coche ahora mismo ────────────────────────
     // The ONE voice for "what is detection doing right now": loud action rows + discreet happy
@@ -315,6 +323,12 @@ fun LazyListScope.homeSheetItems(
                 onDismissNudge = { onIntent(HomeIntent.DismissParkNudge) },
                 modifier = if (insideCard) Modifier else Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
                 embedded = insideCard,
+                // La × sólo existe si la historia es un AVISO: `notice()` devuelve null para las tres
+                // preguntas, así que no hay nada que pasar y la card nunca la ve.
+                // [UI-A-STATUS-BADGE-CAN-BE-DISMISSED-A-QUESTION-CANNOT-001]
+                onSilenceNotice = detectionStory.notice()?.let { notice ->
+                    { onIntent(HomeIntent.SilenceDetectionNotice(notice)) }
+                },
             )
     }
 

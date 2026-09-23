@@ -580,6 +580,7 @@ Se la richiesta non compare più, cambiala in Impostazioni → Paparcar → Posi
     <string name="vehicle_registration_size_hint">Tocca per selezionare la dimensione</string>
 
     <!-- Home detection surface [DET-READY-001h] -->
+    <string name="home_det_notice_silence_cd">Ignora questo avviso</string>
     <string name="home_det_novehicle_title">Aggiungi l'auto</string>
     <string name="home_det_novehicle_sub">Parcheggia e libera posti senza sforzo</string>
     <string name="home_det_novehicle_cta">Aggiungi</string>
@@ -662,7 +663,6 @@ Se la richiesta non compare più, cambiala in Impostazioni → Paparcar → Posi
     <string name="history_activity_title">Attività</string>
     <string name="history_section_label">Cronologia</string>
     <string name="home_vehicle_card_parked_at">Parcheggiato in %1$s</string>
-    <string name="home_vehicle_card_parked_meta">%1$s · a %2$s</string>
     <string name="home_vehicle_chip_mark_parking">Segna parcheggio</string>
     <string name="home_vehicle_chip_unmarked">Non segnato</string>
     <string name="home_vehicle_status_inactive">Inattivo</string>

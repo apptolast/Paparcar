@@ -27,7 +27,6 @@
     <!-- Single-vehicle card — parked footer title; %1$s is the resolved address / place name. -->
     <string name="home_vehicle_card_parked_at">Parked at %1$s</string>
     <!-- Single-vehicle card — parked footer subline; %1$s = relative time, %2$s = distance away. -->
-    <string name="home_vehicle_card_parked_meta">%1$s · %2$s away</string>
     <!-- Vehicle chip — session status when parked; %1$s is the formatted distance (e.g. "120m"). -->
     <!-- Vehicle chip — live status while a trip is being detected (driving, not yet parked). -->
     <!-- Vehicle chip — candidate phase: stopped and being evaluated for parking (DET-PHASE-001). -->
@@ -670,6 +669,7 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="vehicle_color_brown">Brown</string>
 
     <!-- Home detection surface [DET-READY-001h] -->
+    <string name="home_det_notice_silence_cd">Dismiss this notice</string>
     <string name="home_det_novehicle_title">Add your car</string>
     <string name="home_det_novehicle_sub">Park and free spots effortlessly</string>
     <string name="home_det_novehicle_cta">Add</string>

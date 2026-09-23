@@ -4,7 +4,6 @@ package com.rndeveloper.paparcar.presentation.home
 
 import com.rndeveloper.paparcar.domain.detection.DetectionPhase
 import com.rndeveloper.paparcar.domain.detection.ports.DrivingRouteStore
-import com.rndeveloper.paparcar.domain.detection.ParkingStrategy
 import com.rndeveloper.paparcar.domain.location.LocationDataSource
 import com.rndeveloper.paparcar.domain.location.UserLocationUi
 import com.rndeveloper.paparcar.domain.matching.TrailMapMatcher
@@ -20,6 +19,7 @@ import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import com.rndeveloper.paparcar.domain.util.haversineMeters
+import com.rndeveloper.paparcar.presentation.home.model.monitoredVehicle
 import com.rndeveloper.paparcar.presentation.util.resilient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -377,19 +377,10 @@ class HomeTripController(
             o.minLat >= minLat && o.minLon >= minLon && o.maxLat <= maxLat && o.maxLon <= maxLon
     }
 
-    /**
-     * The vehicle the active detection strategy is following — so the puck shows the right car.
-     * Under [ParkingStrategy.BLUETOOTH] that's the BT-paired vehicle (detected regardless of which
-     * is primary), otherwise the primary/active one. Mirrors [ParkingStrategyResolver.strategyFor].
-     * [MAP-ICONS-V2]
-     */
-    private fun monitoredVehicle(vehicles: List<Vehicle>, strategy: ParkingStrategy): Vehicle? =
-        when (strategy) {
-            ParkingStrategy.BLUETOOTH ->
-                vehicles.firstOrNull { it.bluetoothDeviceId != null } ?: vehicles.firstOrNull { it.isActive }
-            else ->
-                vehicles.firstOrNull { it.isActive } ?: vehicles.firstOrNull()
-        }
+    // ⛔ `monitoredVehicle` se mudó a `model/DrivingMetaSource.kt`: desde
+    // [HOME-A-TAP-THAT-ARMS-MUST-LOOK-ARMED-001] la pregunta «¿qué coche vigila este carril?» la
+    // hacen DOS sitios —el puck de aquí y la línea de la card— y dos copias de esa elección es como
+    // el mapa dibuja un coche mientras la hoja nombra otro. Una sola función, los dos la llaman.
 
     private companion object {
         const val TAG = "HomeTripController"

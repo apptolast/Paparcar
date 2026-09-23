@@ -20,7 +20,6 @@
     <string name="home_vehicle_chip_mark_parking">Marcar aparcamiento</string>
     <string name="home_vehicle_chip_unmarked">Sin marcar</string>
     <string name="home_vehicle_card_parked_at">Aparcado en %1$s</string>
-    <string name="home_vehicle_card_parked_meta">%1$s · a %2$s de ti</string>
     <string name="home_vehicle_chip_status_candidate">Aparcando…</string>
     <!-- ParkingPeekRow (hero card del coche seleccionado) — fallback. -->
     <string name="home_peek_parked_label">Aparcado</string>
@@ -620,6 +619,7 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="vehicle_registration_size_hint">Toca para seleccionar el tamaño</string>
 
     <!-- Home detection surface [DET-READY-001h] -->
+    <string name="home_det_notice_silence_cd">Descartar este aviso</string>
     <string name="home_det_novehicle_title">Añade tu coche</string>
     <string name="home_det_novehicle_sub">Aparca y libera plaza sin esfuerzo</string>
     <string name="home_det_novehicle_cta">Añadir</string>

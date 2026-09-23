@@ -586,6 +586,7 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <string name="vehicle_registration_size_hint">Dotknij, aby wybrać rozmiar</string>
 
     <!-- Home detection surface [DET-READY-001h] -->
+    <string name="home_det_notice_silence_cd">Odrzuć to powiadomienie</string>
     <string name="home_det_novehicle_title">Dodaj samochód</string>
     <string name="home_det_novehicle_sub">Parkuj i zwalniaj miejsca bez wysiłku</string>
     <string name="home_det_novehicle_cta">Dodaj</string>
@@ -672,7 +673,6 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <string name="history_activity_title">Aktywność</string>
     <string name="history_section_label">Historia</string>
     <string name="home_vehicle_card_parked_at">Zaparkowano przy %1$s</string>
-    <string name="home_vehicle_card_parked_meta">%1$s · %2$s dalej</string>
     <string name="home_vehicle_chip_mark_parking">Oznacz parkowanie</string>
     <string name="home_vehicle_chip_unmarked">Nieoznaczone</string>
     <string name="home_vehicle_status_inactive">Nieaktywny</string>

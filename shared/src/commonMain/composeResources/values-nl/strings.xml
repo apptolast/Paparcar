@@ -581,6 +581,7 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen â†’ Paparcar â
     <string name="vehicle_registration_size_hint">Tik om de grootte te kiezen</string>
 
     <!-- Home detection surface [DET-READY-001h] -->
+    <string name="home_det_notice_silence_cd">Deze melding sluiten</string>
     <string name="home_det_novehicle_title">Voeg je auto toe</string>
     <string name="home_det_novehicle_sub">Parkeer en geef plekken moeiteloos vrij</string>
     <string name="home_det_novehicle_cta">Toevoegen</string>
@@ -663,7 +664,6 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen â†’ Paparcar â
     <string name="history_activity_title">Activiteit</string>
     <string name="history_section_label">Geschiedenis</string>
     <string name="home_vehicle_card_parked_at">Geparkeerd bij %1$s</string>
-    <string name="home_vehicle_card_parked_meta">%1$s Â· %2$s verderop</string>
     <string name="home_vehicle_chip_mark_parking">Parkeren markeren</string>
     <string name="home_vehicle_chip_unmarked">Niet gemarkeerd</string>
     <string name="home_vehicle_status_inactive">Inactief</string>

@@ -18,17 +18,22 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AddLocationAlt
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.LocationOff
 import androidx.compose.material.icons.automirrored.rounded.NotListedLocation
 import androidx.compose.material.icons.rounded.SensorsOff
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -42,6 +47,7 @@ import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.home_det_notice_silence_cd
 import paparcar.composeapp.generated.resources.home_det_awaiting_cta_primary
 import paparcar.composeapp.generated.resources.home_det_awaiting_cta_secondary
 import paparcar.composeapp.generated.resources.home_det_awaiting_sub
@@ -131,6 +137,16 @@ fun HomeDetectionSurface(
      * no este parámetro: aquí sólo se dice cómo vestirse.
      */
     embedded: Boolean = false,
+    /**
+     * «Ahora no» para los avisos de SALUD DEL SISTEMA — permiso, detección apagada, vigilancia
+     * frágil o parada, sin coche. Null = esta superficie no ofrece callar nada.
+     * [UI-A-STATUS-BADGE-CAN-BE-DISMISSED-A-QUESTION-CANNOT-001]
+     *
+     * ⛔ Las tres PREGUNTAS no lo reciben, y no hace falta que el compilador lo impida: lo impide
+     * `DetectionStory.notice()`, que devuelve null para ellas, así que el llamante no tiene qué
+     * pasar. Una pregunta callada sin contestar es una respuesta perdida.
+     */
+    onSilenceNotice: (() -> Unit)? = null,
 ) {
     val cs = MaterialTheme.colorScheme
     val amber = Tone(cs.secondary, cs.onSecondary, cs.secondaryContainer, cs.onSecondaryContainer, isError = false)
@@ -229,6 +245,7 @@ fun HomeDetectionSurface(
             onPrimary = onAddVehicle,
             modifier = modifier,
             embedded = embedded,
+            onSilence = onSilenceNotice,
             )
 
         // One "activate detection" surface for both causes — Settings flag off OR producer
@@ -242,6 +259,7 @@ fun HomeDetectionSurface(
             onPrimary = onActivateDetection,
             modifier = modifier,
             embedded = embedded,
+            onSilence = onSilenceNotice,
             )
 
         // Amber, not red: missing location is PENDING and fixable, not broken — and the peek above
@@ -256,6 +274,7 @@ fun HomeDetectionSurface(
             onPrimary = onOpenPermissions,
             modifier = modifier,
             embedded = embedded,
+            onSilence = onSilenceNotice,
             )
 
         DetectionStory.AwaitingFirstPark -> ActionRow(
@@ -301,6 +320,7 @@ fun HomeDetectionSurface(
                 subtitle = stringResource(Res.string.home_det_watching_fragile_sub),
                 primaryLabel = stringResource(Res.string.home_det_watching_fortify_cta),
                 onPrimary = onRequestBatteryExemption,
+                onSilence = onSilenceNotice,
                 primaryStacksBelow = true,
                 modifier = modifier,
                 embedded = embedded,
@@ -313,6 +333,7 @@ fun HomeDetectionSurface(
                 subtitle = stringResource(Res.string.home_det_watch_interrupted_sub),
                 primaryLabel = stringResource(Res.string.home_det_watch_interrupted_cta),
                 onPrimary = onResumeWatch,
+                onSilence = onSilenceNotice,
                 primaryStacksBelow = true,
                 modifier = modifier,
                 embedded = embedded,
@@ -378,6 +399,16 @@ private fun ActionRow(
      * que es la única forma de que las dos superficies no se puedan desincronizar.
      */
     embedded: Boolean = false,
+    /**
+     * «Ahora no»: la × del badge. Null = esta fila no se puede callar.
+     * [UI-A-STATUS-BADGE-CAN-BE-DISMISSED-A-QUESTION-CANNOT-001]
+     *
+     * ⛔ Se ignora estando [embedded], y no por pereza: dentro de la card la × quedaría junto a
+     * los botones de una PREGUNTA, donde ya hay una forma de decir que no — y dos gestos parecidos
+     * con mecánicas distintas es peor que no tener el segundo. Lo que se calla es un AVISO, y los
+     * avisos viven fuera.
+     */
+    onSilence: (() -> Unit)? = null,
 ) {
     // El enfasis es UNA variable, no un contenedor.
     // Dos niveles y nada mas: la fila que PIDE algo ahora se tine (contenedor + borde del acento) y
@@ -424,7 +455,14 @@ private fun ActionRow(
                 )
             }
         Column(
-            modifier = Modifier.weight(1f).padding(bottom = CONTENT_VERTICAL_DP.dp),
+            // ⛔ El aire de abajo es de quien PONE el borde. Empotrada, este padding se sumaba al de
+            // la card y dejaba 20 dp entre la fila de respuestas y «No voy en mi coche» contra los
+            // 12 que separan el texto de sus botones: el hueco más grande de la card caía justo
+            // donde menos significa. El hueco lo pone el huésped, que es quien sabe qué viene
+            // después. [HOME-AN-OPEN-QUESTION-IS-THE-CARS-NEWS-001]
+            modifier = Modifier
+                .weight(1f)
+                .padding(bottom = if (embedded) 0.dp else CONTENT_VERTICAL_DP.dp),
             verticalArrangement = Arrangement.spacedBy(CTA_ROW_GAP_DP.dp),
         ) {
             // ¿Al lado o debajo? UNA pregunta, respondida una vez y leída en los dos sitios que
@@ -446,7 +484,11 @@ private fun ActionRow(
                 title = title,
                 subtitle = subtitle,
                 titleMaxLines = 2,
-                subtitleMaxLines = 2,
+                // ⛔ Una línea MÁS cuando la fila lleva ×: la × se come ~48 dp de ancho y visto en el
+                // emulador eso bastó para cortar la frase del vigilante muerto («…but your …»),
+                // justo el aviso más grave. Si el gesto de callar un aviso se paga con la mitad de
+                // la razón por la que existe, el gesto sale caro.
+                subtitleMaxLines = if (onSilence != null && !embedded) 3 else 2,
                 leading = if (embedded) null else ({ IconTile(icon = icon, tone = tone) }),
                 contentPadding = PaddingValues(
                     start = CONTENT_START_DP.dp,
@@ -456,18 +498,25 @@ private fun ActionRow(
                 ),
                 // Single-CTA states keep the button INLINE on the right (the subtitle wraps to two
                 // lines instead of truncating). Filled on error, tonal otherwise. [DET-READY-001h]
-                trailing = if (secondaryLabel == null && primaryLabel != null && !stacksPrimary) {
-                    {
-                        PapCtaPill(
-                            label = primaryLabel,
-                            container = if (tone.isError) tone.accent else tone.container,
-                            content = if (tone.isError) tone.onAccent else tone.onContainer,
-                            onClick = onPrimary,
-                        )
-                    }
-                } else {
-                    null
-                },
+                // El trailing puede llevar DOS cosas: el CTA cuando cabe en línea, y la × cuando
+                // el aviso se puede callar. Van juntos en una fila — no superpuestos en la esquina —
+                // porque una × flotando sobre una cápsula de 40 dp se solapa en cuanto el título
+                // ocupa dos líneas. [UI-A-STATUS-BADGE-CAN-BE-DISMISSED-A-QUESTION-CANNOT-001]
+                trailing = trailingSlot(
+                    cta = if (secondaryLabel == null && primaryLabel != null && !stacksPrimary) {
+                        {
+                            PapCtaPill(
+                                label = primaryLabel,
+                                container = if (tone.isError) tone.accent else tone.container,
+                                content = if (tone.isError) tone.onAccent else tone.onContainer,
+                                onClick = onPrimary,
+                            )
+                        }
+                    } else {
+                        null
+                    },
+                    onSilence = if (embedded) null else onSilence,
+                ),
             )
             // ⛔ Esta columna SOLO existe si hay algo que apilar. Se emitia siempre, y con ella el
             // `spacedBy` del padre metia su hueco entre la fila y una columna VACIA: sumado al
@@ -568,7 +617,43 @@ private fun IconTile(icon: ImageVector, tone: Tone) {
     )
 }
 
+/**
+ * Lo que va a la derecha del título: el CTA si cabe en línea, la × si el aviso se puede callar, o
+ * las dos cosas. Devuelve null cuando no hay ninguna, que es lo que `PapListItem` espera para no
+ * reservar hueco. [UI-A-STATUS-BADGE-CAN-BE-DISMISSED-A-QUESTION-CANNOT-001]
+ */
+private fun trailingSlot(
+    cta: (@Composable () -> Unit)?,
+    onSilence: (() -> Unit)?,
+): (@Composable () -> Unit)? {
+    if (cta == null && onSilence == null) return null
+    return {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(CONTENT_GAP_SM_DP.dp),
+        ) {
+            cta?.invoke()
+            onSilence?.let { silence ->
+                IconButton(onClick = silence, modifier = Modifier.size(SILENCE_TOUCH_DP.dp)) {
+                    Icon(
+                        imageVector = Icons.Rounded.Close,
+                        // Dice lo que hace —callar ESTE aviso—, no «cerrar»: lo que se cierra no
+                        // existe, y esto sigue existiendo. [COPY-NO-INTERNALS-001]
+                        contentDescription = stringResource(Res.string.home_det_notice_silence_cd),
+                        // Del tono más callado de la fila: es una salida, no una acción que ofrecer.
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(SILENCE_ICON_DP.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
 private const val ACCENT_BAR_DP = 4
+/** La × : un objetivo táctil honesto (los 24 dp del glifo no lo son) con un glifo discreto dentro. */
+private const val SILENCE_TOUCH_DP = 40
+private const val SILENCE_ICON_DP = 18
 private const val TILE_TINT_ALPHA = 0.16f
 private const val CONTENT_START_DP = 14
 private const val CONTENT_END_DP = 14

@@ -590,6 +590,7 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="vehicle_registration_size_hint">Atinge pentru a selecta dimensiunea</string>
 
     <!-- Home detection surface [DET-READY-001h] -->
+    <string name="home_det_notice_silence_cd">Închide această notificare</string>
     <string name="home_det_novehicle_title">Adaugă mașina</string>
     <string name="home_det_novehicle_sub">Parchează și eliberează ușor</string>
     <string name="home_det_novehicle_cta">Adaugă</string>
@@ -674,7 +675,6 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="history_activity_title">Activitate</string>
     <string name="history_section_label">Istoric</string>
     <string name="home_vehicle_card_parked_at">Parcat la %1$s</string>
-    <string name="home_vehicle_card_parked_meta">%1$s · la %2$s</string>
     <string name="home_vehicle_chip_mark_parking">Marchează parcarea</string>
     <string name="home_vehicle_chip_unmarked">Nemarcat</string>
     <string name="home_vehicle_status_inactive">Inactiv</string>

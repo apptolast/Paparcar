@@ -78,7 +78,6 @@ import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_peek_parked_label
 import paparcar.composeapp.generated.resources.home_vehicle_card_parked_at
-import paparcar.composeapp.generated.resources.home_vehicle_card_parked_meta
 import paparcar.composeapp.generated.resources.home_vehicle_chip_mark_parking
 import paparcar.composeapp.generated.resources.home_det_awaiting_sub
 import paparcar.composeapp.generated.resources.home_det_driving_stop_cta
@@ -350,23 +349,28 @@ internal fun HomeVehicleCard(
         // tap target — [VehicleIdentityHeader] already had the `statusLine` and `trailing` slots this
         // needed, so the discreet version is the component used as designed, not a second anatomy.
         // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001] [UI-LIST-ITEM-001]
-        // LA BARRA DE ACENTO, ahora aqui: con la fila calmada de vigilancia apartada, esta card es
-        // la que cuenta el estado del coche, y lo cuenta como lo contaba aquella. Una franja del
-        // color de SU metodo de vigilancia (verde asistido, azul Bluetooth, gris sin vigilar): el
-        // estado se ve sin leer y sin tenir una palabra.
-        // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] [UI-COLOR-DOCTRINE-001]
+        // ⛔⛔ SIN BARRA DE ACENTO — retirada el 23-09, y el motivo no es estético.
+        // [UI-AN-ACCENT-RAIL-MEANS-ONE-THING-001]
         //
-        // Una BARRA, no el borde entero de la card: el borde tenido se retiro en
-        // UI-ONE-SKELETON-ONE-EMPHASIS-ONE-GREEN-001 por competir con el CTA, y con razon. Una
-        // franja de 4 dp en el canto no compite con nada, y es la misma tinta que la superficie de
-        // deteccion usa para decir lo mismo.
+        // La tuvo, y decía el MÉTODO de vigilancia (verde asistido, azul Bluetooth, gris sin
+        // vigilar). El mismo raíl de 4 dp en el canto de un badge dice otra cosa completamente:
+        // la GRAVEDAD del aviso (ámbar advierte, rojo urge). Dos significados para el mismo
+        // dispositivo, y desde [HOME-AN-OPEN-QUESTION-IS-THE-CARS-NEWS-001] se ven a la vez —
+        // badge arriba, card debajo, dos franjas verticales de colores distintos que no significan
+        // lo mismo. El user lo leyó como gravedad y preguntó por qué su coche en ruta no llevaba el
+        // tono del viaje: exactamente el malentendido que produce un símbolo con dos sentidos.
+        //
+        // Se quita de la CARD y no del badge, por tres razones y en este orden:
+        //  1. Teñir el raíl por estado —«en ruta en azul de ruta»— rompe dos reglas escritas: el
+        //     estado se ESCRIBE y se anima, nunca se tiñe, y tu propio viaje lleva la identidad de
+        //     vigilancia de SU coche, porque el azul de movimiento es el de los viajes AJENOS sobre
+        //     el mapa. [UI-COLOR-DOCTRINE-001] [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001]
+        //  2. En la card no informaba de nada nuevo: la identidad ya la llevan el glifo del coche,
+        //     el icono de vigilancia junto al nombre y —conduciendo— el marco entero. Era la cuarta
+        //     copia del mismo dato.
+        //  3. En el badge sí es el único portador de su significado, y ahí se queda. Resultado: un
+        //     raíl vertical en Home quiere decir SIEMPRE «esto es un aviso, y así de serio es».
         Row(modifier = Modifier.height(IntrinsicSize.Min)) {
-            Box(
-                modifier = Modifier
-                    .width(ACCENT_BAR_DP.dp)
-                    .fillMaxHeight()
-                    .background(accent),
-            )
             Column(modifier = Modifier.weight(1f)) {
                 VehicleIdentityHeader(
                     vehicle = vehicle,
@@ -411,9 +415,10 @@ internal fun HomeVehicleCard(
                         // has the width for it, and the state is written, never tinted.
                         // [UI-COLOR-DOCTRINE-001]
                         placeText = parkedTitle(session),
-                        // The distance rides with the time: both answer "how far / how long ago",
-                        // and they already travelled together in `home_vehicle_card_parked_meta`.
-                        metaText = parkedMeta(session, userLocation),
+                        // Los metros van CON el lugar — es lo que contestan — y la hora se queda
+                        // sola detrás del reloj. [UI-A-PARKED-CARD-SAYS-WHERE-AND-WHEN-IN-TWO-LINES-001]
+                        placeSuffix = parkedDistance(session, userLocation),
+                        metaText = relativeTimeText(session.location.timestamp),
                         accent = accent,
                         iconSize = CARD_FOOT_ICON_DP.dp,
                         gap = CARD_FOOT_GAP_DP.dp,
@@ -579,6 +584,9 @@ private fun ParkedMetaLines(
     gap: Dp,
     maxPlaceLines: Int,
     modifier: Modifier = Modifier,
+    /** Los metros hasta el coche, que son un hecho del LUGAR. Null cuando no sabemos dónde estamos
+     *  — el chip estrecho nunca los pasa, porque gasta su anchura en la calle. */
+    placeSuffix: String? = null,
 ) {
     val cs = MaterialTheme.colorScheme
     Column(
@@ -595,6 +603,10 @@ private fun ParkedMetaLines(
             iconSize = iconSize,
             gap = gap,
             maxLines = maxPlaceLines,
+            // ⛔ Va como pieza PROPIA, no concatenado al texto: la calle se elide y los metros no.
+            // Pegados detrás de una dirección larga serían lo primero que desaparece, y son el único
+            // dato de la línea que cambia mientras miras.
+            suffix = placeSuffix,
         )
         VehicleMetaLine(
             icon = Icons.Rounded.AccessTimeFilled,
@@ -621,6 +633,8 @@ private fun VehicleMetaLine(
     iconSize: Dp,
     gap: Dp,
     maxLines: Int = 1,
+    /** Un dato corto que cierra la línea y NO se elide: hoy, los metros hasta el coche. */
+    suffix: String? = null,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -643,7 +657,21 @@ private fun VehicleMetaLine(
             color = textColor,
             maxLines = maxLines,
             overflow = TextOverflow.Ellipsis,
+            // Con sufijo, la calle se queda el hueco que sobre; sin él, la línea entera.
+            modifier = if (suffix != null) Modifier.weight(1f, fill = false) else Modifier,
         )
+        if (suffix != null) {
+            Text(
+                // El separador va aquí y no en el recurso: el punto medio es pegamento entre dos
+                // piezas, igual que en la línea del viaje («En ruta · calle»), y meterlo en un
+                // string obligaría a componer la frase entera para poder partirla luego.
+                text = "· $suffix",
+                style = PaparcarType.current.caption,
+                // Más callado que la calle: la dirección es lo que se busca, los metros la califican.
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
+        }
     }
 }
 
@@ -677,16 +705,21 @@ private fun parkedTitle(session: UserParking): String {
     }
 }
 
-/** Single-card footer subline: "2 h ago · 180 m away", or just the time when position is unknown. */
+/**
+ * Cuánto hay de aquí al coche, o null si no sabemos dónde estamos.
+ *
+ * ⛔⛔ **Los metros son del LUGAR, no del reloj.** Viajaban pegados a la hora
+ * («hace 34 min · 180 m») detrás del icono de reloj, que es exactamente el defecto que
+ * [UI-A-PARKED-CARD-SAYS-WHERE-AND-WHEN-IN-TWO-LINES-001] partió las dos líneas para quitar: cada
+ * icono significa UNA cosa. Un pin que dice dónde y un reloj que dice cuándo no pueden llevar la
+ * distancia en el segundo. El comentario que lo defendía («ambos contestan cuán lejos / cuánto
+ * hace») juntaba dos preguntas que la propia anatomía ya había separado.
+ */
 @Composable
-private fun parkedMeta(session: UserParking, userLocation: Pair<Double, Double>?): String {
-    val time = relativeTimeText(session.location.timestamp)
-    val distance = userLocation?.let { (uLat, uLon) ->
+private fun parkedDistance(session: UserParking, userLocation: Pair<Double, Double>?): String? =
+    userLocation?.let { (uLat, uLon) ->
         distanceString(distanceMeters(uLat, uLon, session.location.latitude, session.location.longitude))
     }
-    return if (distance != null) stringResource(Res.string.home_vehicle_card_parked_meta, time, distance)
-    else time
-}
 
 /** Aire entre la línea del lugar y la del tiempo: menos que el que separa bloques, porque las dos
  *  son el MISMO hecho contado en dos mitades. [UI-A-PARKED-CARD-SAYS-WHERE-AND-WHEN-IN-TWO-LINES-001] */

@@ -2030,12 +2030,11 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
-            // ⛔ QUIÉN HOSPEDA LA NOTICIA, que no estaba en esta galería. Con UN coche la cuenta su
-            // card —cualquier estado: la pregunta con plazo, el aviso sin plazo, la vigilancia
-            // frágil o muerta, la detección apagada y el permiso que falta— y el badge suelto no se
-            // dibuja. Antes se apilaban las dos tarjetas sobre el mismo coche, una preguntando y la
-            // otra afirmando «En ruta». Issue #129.
-            // [HOME-AN-OPEN-QUESTION-IS-THE-CARS-NEWS-001]
+            // ⛔ QUIÉN HOSPEDA LA NOTICIA, que no estaba en esta galería. Con UN coche, la card
+            // hospeda las PREGUNTAS de ese coche —la que tiene plazo, el aviso sin plazo y el
+            // «¿dónde está tu coche?»— y entonces el badge suelto no se dibuja. Antes se apilaban
+            // las dos tarjetas sobre el mismo coche, una preguntando y la otra afirmando «En ruta».
+            // Issue #129. [HOME-AN-OPEN-QUESTION-IS-THE-CARS-NEWS-001]
             Variant("Sheet · 1 coche + pregunta abierta (la card pregunta)") {
                 sheet(
                     HomeState(
@@ -2051,6 +2050,84 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                             shownAtMs = 1_758_567_840_000L,
                             vehicleName = "${FakeData.vehicleSedan.brand} ${FakeData.vehicleSedan.model}",
                             street = "Calle Jesús de los Milagros 30",
+                        ),
+                    ),
+                )
+            },
+            // ── Las PREGUNTAS que la card hospeda [HOME-AN-OPEN-QUESTION-IS-THE-CARS-NEWS-001] ──
+            //
+            // Una por caso, todas con UN coche, porque es la condición que hace que la card pueda
+            // contestarlas. Sin estas variantes el cambio sólo se podía comprobar leyendo el código:
+            // la galería enseñaba las filas SUELTAS (grupo «HOME · DETECCIÓN»), que es justo lo que
+            // dejó de pintarse cuando hay coche.
+            //
+            // ⛔ Y NO están aquí los avisos de SISTEMA —permiso de ubicación, detección apagada,
+            // vigilancia frágil—: desde la corrección del user (23-09) se quedan en el badge, así que
+            // una variante suya en este grupo enseñaría exactamente la misma fila suelta que el grupo
+            // «HOME · DETECCIÓN» ya cataloga. Tres variantes que enseñan lo mismo no cubren más: se
+            // leen como tres casos distintos y hay que abrir las tres para descubrir que no lo son.
+            // El contraste con la card se ve en la de vigilancia INTERRUMPIDA, que se queda.
+            Variant("Sheet · 1 coche · ¿dónde está tu coche? (sin aparcar aún)") {
+                sheet(
+                    HomeState(
+                        hasCorePermissions = true,
+                        userGpsPoint = sampleGps,
+                        vehicles = listOf(FakeData.vehicleSedan),
+                        nearbySpots = FakeData.nearbySpots,
+                        detectionReadiness = DetectionReadiness.Ready(
+                            com.rndeveloper.paparcar.domain.detection.ParkingStrategy.COORDINATOR,
+                        ),
+                    ),
+                )
+            },
+            // Aparcado + el FGS MUERTO: la vigilancia que se prometía ya no existe. El aviso sale
+            // ENCIMA de la card, no dentro — es salud del sistema, le pasa a todos los coches y
+            // dentro taparía la información de éste con un botón rojo a ancho completo. Esta
+            // variante es el contraste que lo enseña: badge arriba, card intacta debajo.
+            // [DET-WATCH-HONEST-001] [DET-WATCH-REACTIVATE-001]
+            Variant("Sheet · 1 coche · vigilancia INTERRUMPIDA (aviso FUERA de la card)") {
+                sheet(
+                    HomeState(
+                        hasCorePermissions = true,
+                        userGpsPoint = sampleGps,
+                        vehicles = listOf(FakeData.vehicleSedan),
+                        activeSessions = listOf(FakeData.activeSession.copy(vehicleId = FakeData.vehicleSedan.id)),
+                        nearbySpots = FakeData.nearbySpots,
+                        detectionReadiness = DetectionReadiness.Parked(
+                            FakeData.activeSession.copy(vehicleId = FakeData.vehicleSedan.id),
+                        ),
+                        servicePresence = com.rndeveloper.paparcar.domain.detection.ServicePresence.Dead,
+                    ),
+                )
+            },
+            // El aviso SIN plazo: un aparcamiento que la detección nominó y no pudo colocar. No es
+            // la pregunta con deadline — dice otra cosa y ofrece otra salida. [DET-NUDGE-PERSIST-001]
+            Variant("Sheet · 1 coche · aviso sin plazo (aparcamiento perdido)") {
+                sheet(
+                    HomeState(
+                        hasCorePermissions = true,
+                        userGpsPoint = sampleGps,
+                        vehicles = listOf(FakeData.vehicleSedan),
+                        nearbySpots = FakeData.nearbySpots,
+                        pendingParkNudge = com.rndeveloper.paparcar.domain.detection.PendingParkNudge(
+                            createdAtMs = 1_758_567_840_000L,
+                            source = "gallery",
+                            vehicleId = FakeData.vehicleSedan.id,
+                        ),
+                    ),
+                )
+            },
+            // Y el único que SIGUE siendo del badge: sin coche registrado no hay card que gestione
+            // nada, y eso es lo que justifica que el badge exista.
+            Variant("Sheet · SIN coche · el badge es lo único que queda") {
+                sheet(
+                    HomeState(
+                        hasCorePermissions = true,
+                        userGpsPoint = sampleGps,
+                        vehicles = emptyList(),
+                        nearbySpots = FakeData.nearbySpots,
+                        detectionReadiness = DetectionReadiness.Disabled(
+                            com.rndeveloper.paparcar.domain.model.DisabledReason.NO_VEHICLE,
                         ),
                     ),
                 )

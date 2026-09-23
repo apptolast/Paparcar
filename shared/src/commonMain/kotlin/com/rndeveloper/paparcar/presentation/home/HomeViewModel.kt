@@ -28,6 +28,7 @@ import com.rndeveloper.paparcar.domain.notification.MapVisibility
 import com.rndeveloper.paparcar.domain.spot.VouchedSpot
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.presentation.home.model.ViewportRefetch
+import com.rndeveloper.paparcar.presentation.home.model.resolveDrivingMeta
 import com.rndeveloper.paparcar.presentation.home.model.warnsLocationMissing
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.model.ParkingReleaseReason
@@ -245,7 +246,10 @@ class HomeViewModel(
             }
         observeParkedVehicles().collectInto("parkedVehicles") { copy(parkedVehicles = it) }
         zoneRepository.observeZones().collectInto("zones") { copy(zones = it) }
-        vehicleRepository.observeVehicles().collectInto("vehicles") { copy(vehicles = it) }
+        // ⛔ `withDrivingMeta()` también aquí: sin nominado, el coche del viaje lo elige la flota, así
+        // que una flota que llega DESPUÉS del arme dejaría el viaje sin coche al que atribuirlo —
+        // que es el mismo silencio, una vuelta más tarde. [HOME-A-TAP-THAT-ARMS-MUST-LOOK-ARMED-001]
+        vehicleRepository.observeVehicles().collectInto("vehicles") { copy(vehicles = it).withDrivingMeta() }
         observeIsPlus().collectInto("isPlus") { copy(isPlus = it) }
         // A standing subscription, not a lane answer: the star must be right the moment a peek
         // opens, whether or not the fuel lane was ever entered.
@@ -508,6 +512,7 @@ class HomeViewModel(
 
             // Detection controls
             is HomeIntent.StartDrivingDetection,
+            is HomeIntent.SilenceDetectionNotice,
             is HomeIntent.AnswerParkingPrompt,
             is HomeIntent.StopDetection,
             is HomeIntent.EnableAutoDetection,
@@ -1586,6 +1591,11 @@ class HomeViewModel(
             // (the ephemeral pill) as the service marks itself running, which is the user's feedback.
             is HomeIntent.StartDrivingDetection -> startDrivingDetection(intent.vehicleId)
 
+            // La × de un badge. Se añade al conjunto y ya: el aviso se calla, nada se arregla y
+            // nada se escribe en disco. [UI-A-STATUS-BADGE-CAN-BE-DISMISSED-A-QUESTION-CANNOT-001]
+            is HomeIntent.SilenceDetectionNotice ->
+                updateState { copy(silencedNotices = silencedNotices + intent.notice) }
+
             // [DET-STOP-BUTTON-001] "Parar detección" — the trip ends with no spot saved and no
             // question asked. The row itself disappears as the service leaves Monitoring; the
             // snackbar is what tells the user the silence is deliberate and how to come back.
@@ -1653,6 +1663,22 @@ class HomeViewModel(
         }
     }
 
+    /**
+     * Lo último que dijo el puck del mapa, que es la ÚNICA parte del viaje que no se puede
+     * re-derivar: trae el coche que de verdad salió y la fase congelada del `Candidate`.
+     * [HOME-A-TAP-THAT-ARMS-MUST-LOOK-ARMED-001]
+     */
+    private var lastPuckMeta: DrivingMeta? = null
+
+    /**
+     * Vuelve a resolver el viaje de la UI con lo que el estado sabe AHORA. Se llama desde las tres
+     * escrituras que pueden cambiar la respuesta —el puck, la disponibilidad y la flota— porque el
+     * dato es una FUNCIÓN de las tres, y dejar que cada una escribiera su trozo es como llegó a
+     * existir un viaje que sólo empezaba cuando aparecía un fix.
+     */
+    private fun HomeState.withDrivingMeta(): HomeState =
+        copy(drivingMeta = resolveDrivingMeta(lastPuckMeta, detectionReadiness, vehicles))
+
     // ── Subscriptions (launched in init) ─────────────────────────────────────
 
     /**
@@ -1676,7 +1702,10 @@ class HomeViewModel(
         tripRender
             .map { it.puck?.let { p -> DrivingMeta(p.vehicleId, p.phase) } }
             .distinctUntilChanged()
-            .collectInto("drivingMeta") { copy(drivingMeta = it) }
+            .collectSafely("drivingMeta") { meta ->
+                lastPuckMeta = meta
+                updateState { withDrivingMeta() }
+            }
 
         search.updates.collectSafely("search") { update ->
             when (update) {
@@ -1885,7 +1914,10 @@ class HomeViewModel(
             .distinctUntilChanged()
             .collectSafely("detectionReadiness") { readiness ->
                 val wasWorking = state.value.detectionReadiness.toUiState().isDetectionWorking
-                updateState { copy(detectionReadiness = readiness) }
+                // ⛔ Y con la misma escritura, el viaje: `Monitoring` ES el viaje, y hasta este
+                // ticket la UI esperaba a que el puck trajera un fix para enterarse.
+                // [HOME-A-TAP-THAT-ARMS-MUST-LOOK-ARMED-001]
+                updateState { copy(detectionReadiness = readiness).withDrivingMeta() }
                 // Detection just dropped from a working state into a stopped one (Settings flag off, or
                 // a producer/core permission revoked). Surface a snackbar with one-tap re-activation —
                 // the persistent banner stays; this catches the moment of the change. [DET-TOGGLE-002]

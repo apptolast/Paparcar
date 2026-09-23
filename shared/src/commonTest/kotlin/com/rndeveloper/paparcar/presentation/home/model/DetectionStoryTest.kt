@@ -78,7 +78,9 @@ class DetectionStoryTest {
     fun should_passThrough_the_four_action_states() {
         val cards = listOf(activeCard)
         assertEquals(DetectionStory.BlockedCore, resolveDetectionStory(DetectionUiState.BlockedCore, cards))
-        assertEquals(DetectionStory.NoVehicle, resolveDetectionStory(DetectionUiState.NoVehicle, cards))
+        // ⛔ Éste con la lista VACÍA, que es la única situación en la que su frase es verdad: con
+        // cards delante la proyección calla, y el testigo de eso vive abajo.
+        assertEquals(DetectionStory.NoVehicle, resolveDetectionStory(DetectionUiState.NoVehicle, emptyList()))
         assertEquals(DetectionStory.Inactive, resolveDetectionStory(DetectionUiState.Inactive, cards))
         assertEquals(
             DetectionStory.AwaitingFirstPark,
@@ -209,30 +211,69 @@ class DetectionStoryTest {
     // ── Quién hospeda la noticia [HOME-AN-OPEN-QUESTION-IS-THE-CARS-NEWS-001] ──────────────────
 
     @Test
-    fun should_let_the_card_host_every_state_that_is_about_a_vehicle() {
+    fun should_let_the_card_host_the_questions_that_car_can_answer() {
         // ⛔ EL TESTIGO de la issue #129. La hoja apilaba DOS tarjetas sobre el mismo coche: el badge
         // preguntando «¿has aparcado?» y la card afirmando «En ruta» tres milímetros debajo, cada
-        // una con sus botones. Regla del user: la card de un coche gestiona TODOS sus estados.
-        val aboutACar = listOf(
+        // una con sus botones. Lo que se muda a la card son las PREGUNTAS de ese coche.
+        val itsOwnQuestions = listOf(
             DetectionStory.AwaitingAnswer(window("Škoda Kamiq")),
             DetectionStory.PendingAsk,
             DetectionStory.AwaitingFirstPark,
-            DetectionStory.Inactive,
-            DetectionStory.BlockedCore,
         )
 
-        aboutACar.forEach { story ->
-            assertTrue(story.isVehicleNews(), "$story le pasa a un coche: lo cuenta su card")
+        itsOwnQuestions.forEach { story ->
+            assertTrue(story.isTheCarsQuestion(), "$story lo contesta ese coche: lo hospeda su card")
         }
     }
 
     @Test
-    fun should_keep_the_badge_for_the_only_state_with_no_car_to_host_it() {
+    fun should_keep_system_health_out_of_the_card_because_it_hits_every_vehicle() {
+        // ⛔⛔ La corrección del user (23-09), mirando el dibujo: permisos y detección NO son de un
+        // coche. Un permiso, un ajuste y UN servicio en primer plano sirven a todos los coches, así
+        // que colgarlos de una card nombra al culpable equivocado — y con dos, obliga a elegir a
+        // cuál acusar. Y dentro de la card el aviso TAPA la información del coche con un botón a
+        // ancho completo, empujando a pulsar algo que quizá no se quiere ahora.
+        val systemHealth = listOf(
+            DetectionStory.BlockedCore,
+            DetectionStory.Inactive,
+            DetectionStory.Watching(
+                "Škoda Kamiq",
+                isParked = true,
+                watch = VehicleWatch.Assisted,
+                watchBadge = ParkedWatchBadge.WATCHING_FRAGILE,
+            ),
+            DetectionStory.Watching(
+                "Škoda Kamiq",
+                isParked = true,
+                watch = VehicleWatch.Assisted,
+                watchBadge = ParkedWatchBadge.WATCH_INTERRUPTED,
+            ),
+        )
+
+        systemHealth.forEach { story ->
+            assertFalse(story.isTheCarsQuestion(), "$story es salud del sistema: se queda en el badge")
+        }
         // Y la mitad que impide el fallo peor: apartarse sin que nadie recoja la noticia la haría
         // DESAPARECER. «No tienes coche» es literalmente eso — no hay card a la que mudarlo, y es
         // lo que justifica que el badge siga existiendo.
-        assertFalse(DetectionStory.NoVehicle.isVehicleNews())
-        assertFalse(DetectionStory.Hidden.isVehicleNews())
+        assertFalse(DetectionStory.NoVehicle.isTheCarsQuestion())
+        assertFalse(DetectionStory.Hidden.isTheCarsQuestion())
+    }
+
+    @Test
+    fun should_never_say_there_is_no_vehicle_while_holding_a_vehicle_card() {
+        // ⛔ La disponibilidad por defecto es `Disabled(NO_VEHICLE)`, así que basta con no pasarla
+        // para que la proyección diga «Añade tu coche» encima de la tira de coches. Con la lista
+        // delante, callar es lo único honesto.
+        assertEquals(
+            DetectionStory.Hidden,
+            resolveDetectionStory(DetectionUiState.NoVehicle, listOf(activeCard)),
+        )
+        // Y la otra mitad: sin cards sí se dice, que es el único caso que justifica el badge.
+        assertEquals(
+            DetectionStory.NoVehicle,
+            resolveDetectionStory(DetectionUiState.NoVehicle, emptyList()),
+        )
     }
 
     @Test
@@ -312,9 +353,14 @@ class DetectionStoryTest {
             DetectionStory.BlockedCore,
             resolveDetectionStory(DetectionUiState.BlockedCore, cards, firstStepsOwns = FirstStepsOwnership.COLD_START),
         )
+        // Sin cards: es el único escenario en que «no tienes coche» es verdad, y lo que este test
+        // comprueba es que el checklist no lo calla — no de dónde sale la lista.
         assertEquals(
             DetectionStory.NoVehicle,
-            resolveDetectionStory(DetectionUiState.NoVehicle, cards, firstStepsOwns = FirstStepsOwnership.COLD_START),
+            resolveDetectionStory(
+                DetectionUiState.NoVehicle, emptyList(),
+                firstStepsOwns = FirstStepsOwnership.COLD_START,
+            ),
         )
         assertEquals(
             DetectionStory.Inactive,
