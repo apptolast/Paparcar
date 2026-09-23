@@ -193,7 +193,6 @@ class HomeViewModelTest {
         val saveManualParking = SaveManualParkingUseCase(
             confirmParking = confirmParking,
             updateParkingLocation = updateParkingLocation,
-            notificationPort = FakeAppNotificationManager(),
             manualParkingDetection = manualParkingDetection,
         )
         val observeDetectionReliability = ObserveDetectionReliabilityUseCase(

@@ -5,7 +5,6 @@ import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 
 open class FakeAppNotificationManager : AppNotificationManager {
 
-    var parkingSpotSavedCallCount = 0
     var parkingConfirmationCallCount = 0
 
     /** [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] The place the last posted question was about. */
@@ -18,8 +17,8 @@ open class FakeAppNotificationManager : AppNotificationManager {
 
     /**
      * Ordered log of operations targeting [AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID].
-     * Each entry is either `"dismiss"` or `"savedConfirm"` — the [showParkingSaved] (manual save
-     * on a different id) and other notifications are not recorded here.
+     * Each entry is either `"dismiss"` or `"savedConfirm"`; other notifications are not
+     * recorded here. Dismissals of OTHER ids land in [dismissedIds], not here.
      *
      * Used to assert that after auto-confirm, the post-save card is the *last* op on the id,
      * i.e. nothing dismissed it afterwards. [REFACTOR-300 follow-up]
@@ -35,10 +34,6 @@ open class FakeAppNotificationManager : AppNotificationManager {
         lastPromptCandidate = candidate
         lastPromptStreet = street
         parkingConfirmationCallCount++
-    }
-
-    override fun showParkingSaved(latitude: Double, longitude: Double) {
-        parkingSpotSavedCallCount++
     }
 
     override fun showParkingSavedConfirm(

@@ -36,23 +36,6 @@ interface AppNotificationManager {
     )
 
     /**
-     * Shows a transient notification confirming that the user's car is parked.
-     * Tapping opens the map centred on the parking location.
-     *
-     * Used for **manual** save paths only (manual report screen). For auto-detection
-     * the unified [showParkingSavedConfirm] is used instead — it replaces the
-     * confirmation prompt at the same notification ID so the user never sees two
-     * notifications for the same event. [REFACTOR-300]
-     *
-     * @param latitude  Latitude of the confirmed parking spot.
-     * @param longitude Longitude of the confirmed parking spot.
-     */
-    fun showParkingSaved(latitude: Double, longitude: Double)
-
-    @Deprecated("Use showParkingSaved", ReplaceWith("showParkingSaved(latitude, longitude)"))
-    fun showParkingSpotSaved(latitude: Double, longitude: Double) = showParkingSaved(latitude, longitude)
-
-    /**
      * [REFACTOR-300] Unified post-save notification: replaces the "¿Has aparcado?"
      * prompt at [PARKING_CONFIRMATION_NOTIFICATION_ID] with a "Vehículo aparcado +
      * Confirmar / Cancelar" UI.
@@ -322,8 +305,8 @@ interface AppNotificationManager {
     /**
      * Dismisses the notification with the given [notificationId].
      *
-     * @param notificationId One of the [DETECTION_NOTIFICATION_ID], [UPLOAD_NOTIFICATION_ID],
-     *                       [DEBUG_NOTIFICATION_ID], or [PARKING_CONFIRMATION_NOTIFICATION_ID] constants.
+     * @param notificationId One of the [DETECTION_NOTIFICATION_ID], [DEBUG_NOTIFICATION_ID], or
+     *                       [PARKING_CONFIRMATION_NOTIFICATION_ID] constants.
      */
     fun dismiss(notificationId: Int)
 
@@ -335,14 +318,24 @@ interface AppNotificationManager {
          *  [STATS-PLUS-THE-RECAP-KNOCKS-001] */
         const val MONTH_RECAP_NOTIFICATION_ID = 1012
 
-        /** ID for the parking-saved notification (channel: UPLOAD / DEFAULT priority). */
-        const val UPLOAD_NOTIFICATION_ID = 1002
-
-
         /** ID for the debug diagnostic notification (channel: DEBUG / HIGH priority). */
         const val DEBUG_NOTIFICATION_ID = 2001
 
-        /** ID for the parking confirmation notification (channel: DETECTION / LOW priority). */
+        /**
+         * **The parking flow's only slot.** [NOTIF-A-FLOW-SPEAKS-THROUGH-ONE-SLOT-001]
+         *
+         * Whatever this app has to say about the car you just left — "¿Has aparcado?", "Kamiq
+         * aparcado + deshacer" — it says HERE, so the newest statement always replaces the
+         * previous one and a single `dismiss` silences the conversation.
+         *
+         * ⛔ There used to be a second one. `UPLOAD_NOTIFICATION_ID = 1002` carried a legacy
+         * action-less "Aparcamiento guardado" card that **nobody ever dismissed** — a `grep
+         * dismiss(` over the repo returned 16 hits for this id and zero for that one. Field
+         * 2026-09-22 22:37 (issue #132): a card about a parking superseded 34 minutes earlier
+         * sitting in the tray next to the card about the current one. The id is gone rather than
+         * merely unused, so the compiler is what stops the next parking card from landing in a
+         * slot with no off switch.
+         */
         const val PARKING_CONFIRMATION_NOTIFICATION_ID = 2002
 
         /** ID for the permission-revoked notification shown when the service restarts without location access. */

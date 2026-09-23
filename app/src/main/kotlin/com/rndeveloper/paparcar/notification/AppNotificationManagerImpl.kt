@@ -102,30 +102,11 @@ class AppNotificationManagerImpl(
         notificationManager.notify(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID, notification)
     }
 
-    override fun showParkingSaved(latitude: Double, longitude: Double) {
-        // [SETTINGS-AUDIT-REMEDIATION-001] The Settings "Parking detected" toggle gates ONLY this
-        // informative notification, at its single choke point. The safety asks
-        // (showParkingConfirmation / showParkingSavedConfirm / showStillParkedPrompt /
-        // showMarkParkingNudge) are the anti-false-positive mechanism — never gated from app prefs;
-        // the OS notification channels remain the way to silence those.
-        if (!appPreferences.notifyParkingDetected) return
-        val notification = NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
-            .setContentTitle(context.getString(R.string.notif_parking_saved_title))
-            .setContentText(context.getString(R.string.notif_parking_saved_text))
-            .setSmallIcon(R.drawable.ic_notification_logo)
-            .setColor(COLOR_SUCCESS)
-            .setCategory(NotificationCompat.CATEGORY_EVENT)
-            .setContentIntent(buildFocusIntent(RC_PARKING_SAVED, latitude, longitude))
-            .setAutoCancel(true)
-            .build()
-        notificationManager.notify(AppNotificationManager.UPLOAD_NOTIFICATION_ID, notification)
-    }
-
     /**
      * [MONEY-001] Plus zone alert: a free spot just appeared in one of the user's subscribed
      * zones. Informative (UPLOAD channel, default priority) — same tier as "parking saved" —
      * and double-gated by the Settings master switch: the use case checks it at fire time and
-     * this choke point re-reads it, mirroring the [showParkingSaved] pattern.
+     * this choke point re-reads it — the same double-gate every optional alert here uses.
      */
     override fun showZoneSpotAlert(
         zoneName: String,
@@ -376,8 +357,16 @@ class AppNotificationManagerImpl(
         }
         // The undo survives both paths: "yes, I parked" is not a statement about WHICH vehicle.
         builder.addAction(0, context.getString(R.string.notif_action_cancel_save), revertPi)
+        // [NOTIF-A-FLOW-SPEAKS-THROUGH-ONE-SLOT-001] Settings → "Parking detected · Alert when your
+        // parking is saved" now governs THIS card, which is the one the user actually sees. It used
+        // to gate only the legacy action-less duplicate, so turning the alert off silenced nothing.
+        //
+        // ⛔ It gates the ALERT, not the card: posting it silently keeps "No, cancelar" reachable,
+        // and the undo is the anti-false-positive net that [SETTINGS-AUDIT-REMEDIATION-001] says is
+        // never gated from app prefs. "Do not interrupt me" is not "hide my way out".
+        //
         // And it does not buzz again for an answer the user just gave.
-        if (userAnswered) builder.setSilent(true)
+        if (userAnswered || !appPreferences.notifyParkingDetected) builder.setSilent(true)
         val notification = builder.build()
         notificationManager.notify(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID, notification)
     }

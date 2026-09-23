@@ -18,6 +18,7 @@ import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.model.SpotType
+import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
@@ -80,15 +81,23 @@ class ConfirmParkingUseCase(
     // never from a parallel path that could count the same trip differently. Fire-and-forget;
     // nullable for test doubles. [ANALYTICS-EVENTS-001]
     private val analyticsTracker: AnalyticsTracker? = null,
+    // Optional: the tray, used ONLY to switch off the cards this success has just made untrue (the
+    // park nudge, the still-parked question). It never SHOWS anything — which card announces the
+    // park stays the caller's call, exactly as the KDoc below says.
+    // [NOTIF-A-FLOW-SPEAKS-THROUGH-ONE-SLOT-001]
+    private val notificationPort: AppNotificationManager? = null,
 ) {
 
     /**
      * Persists the parking spot, registers the geofence, schedules enrichment, and
      * resets [DepartureEventBus]. Pure data operation — the caller is responsible for
-     * any user-facing notification (legacy `showParkingSaved` or REFACTOR-300's
-     * unified `showParkingSavedConfirm` card with REVERT). This separation keeps the
-     * use case single-purpose and lets each caller pick the right UX without a
-     * boolean flag argument. [CONFIRM-NO-NOTIF-CLEANUP]
+     * ANNOUNCING the park (REFACTOR-300's unified `showParkingSavedConfirm` card with REVERT,
+     * or nothing at all when the user placed the pin by hand and is looking at it). This
+     * separation keeps the use case single-purpose and lets each caller pick the right UX
+     * without a boolean flag argument. [CONFIRM-NO-NOTIF-CLEANUP]
+     *
+     * What is NOT the caller's: switching off the cards this success contradicts. That is done
+     * here, once, for every lane. [NOTIF-A-FLOW-SPEAKS-THROUGH-ONE-SLOT-001]
      */
     suspend operator fun invoke(
         location: GpsPoint,
@@ -473,10 +482,27 @@ class ConfirmParkingUseCase(
         appPreferences?.setHasConfirmedFirstPark()
 
         // A confirmed park ANSWERS any pending "where did you leave your car?" question — every
-        // confirm path (auto, manual, nudge deep-link) resolves the durable record here. The tray
-        // notification is dismissed by Home's reactive janitor / the nudge's own auto-cancel.
+        // confirm path (auto, manual, nudge deep-link) resolves the durable record here.
         // [DET-NUDGE-PERSIST-001]
         appPreferences?.clearPendingParkNudge()
+
+        // [NOTIF-A-FLOW-SPEAKS-THROUGH-ONE-SLOT-001] …and the TRAY, which the line above did not.
+        // The claim that used to sit here — *"the tray notification is dismissed by Home's reactive
+        // janitor / the nudge's own auto-cancel"* — was false in the only case that matters: the
+        // janitor is `HomeViewModel`, so it needs Home alive, and auto-cancel needs the user to TAP
+        // the card. A park confirmed in the background therefore left "¿dónde dejaste el coche?"
+        // sitting in the tray next to its own answer (field 2026-09-22, issue #132).
+        //
+        // ⛔ This does not break "notifications are the caller's responsibility" (see the KDoc):
+        // nothing is SHOWN here. What is switched off is the two questions this very success has
+        // just made untrue — the nudge asking where the car is, and "¿sigues aparcado aquí?" asking
+        // about a session that is now closed. A statement outliving its truth is the defect.
+        notificationPort?.let { port ->
+            runCatching {
+                port.dismiss(AppNotificationManager.MARK_PARKING_NUDGE_NOTIFICATION_ID)
+                port.dismiss(AppNotificationManager.STILL_PARKED_NOTIFICATION_ID)
+            }.onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ stale-card dismiss failed (continuing)", e) }
+        }
 
         PaparcarLogger.d(DIAG, "■ ConfirmParking.invoke SUCCESS (notif is caller's responsibility)")
         return Result.success(session)

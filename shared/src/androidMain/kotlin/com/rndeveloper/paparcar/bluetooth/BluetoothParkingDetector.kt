@@ -42,7 +42,9 @@ import kotlin.time.Duration.Companion.milliseconds
  * 5. Walk-away watch (hard-bounded by [ParkingDetectionConfig.btWalkAwayTimeoutMs]): confirm
  *    with [ConfirmParkingUseCase] only when the displacement is WALKED (pedestrian rate);
  *    vehicle-rate displacement aborts. [DET-AUDIT-002 T2+T4]
- * 6. Post the legacy [AppNotificationManager.showParkingSaved] notification.
+ * 6. Post the parking flow's ONE card, [AppNotificationManager.showParkingSavedConfirm] — the same
+ *    one the coordinator posts, on the same slot, with the same undo.
+ *    [NOTIF-A-FLOW-SPEAKS-THROUGH-ONE-SLOT-001]
  *
  * **Why the hunt starts at the disconnect.** A wait that exists so we do not ACT cannot also delay
  * what we OBSERVE: the car's position can only be lost with time, never recovered. Sleeping through
@@ -84,6 +86,16 @@ class BluetoothParkingDetector(
         vehicleId: String,
         connectedAtMs: Long?,
         connectFix: GpsPoint?,
+        /**
+         * Display name of the disconnected vehicle, so the card can say "Kamiq aparcado" instead of
+         * "Vehículo aparcado". [NOTIF-A-FLOW-SPEAKS-THROUGH-ONE-SLOT-001]
+         *
+         * A parameter rather than a repository: the host already resolves this name for the
+         * foreground-service notification three lines before calling here, so asking for it again
+         * would be a second read of the same row — and this detector deliberately holds no
+         * repositories.
+         */
+        vehicleName: String? = null,
     ) {
         PaparcarLogger.d(TAG, "BT disconnected ($deviceAddress, vehicle=$vehicleId) — debouncing for reconnect check")
 
@@ -348,7 +360,13 @@ class BluetoothParkingDetector(
                     ageMs = pinLagMs,
                     displacementMeters = rideProof.displacementMeters,
                 )
-                    notificationPort.showParkingSaved(saved.location.latitude, saved.location.longitude)
+                    notificationPort.showParkingSavedConfirm(
+                        parkingId = saved.id,
+                        vehicleName = vehicleName,
+                        latitude = saved.location.latitude,
+                        longitude = saved.location.longitude,
+                        userAnswered = false,
+                    )
                 }
                 .onFailure { e ->
                     PaparcarLogger.e(TAG, "Failed to confirm timeout-save parking", e)
@@ -382,8 +400,18 @@ class BluetoothParkingDetector(
                     ageMs = pinLagMs,
                     displacementMeters = rideProof.displacementMeters,
                 )
-                // Legacy tap-to-open-map notification. [BT-NOTIF-LEGACY-CLEANUP]
-                notificationPort.showParkingSaved(saved.location.latitude, saved.location.longitude)
+                // [NOTIF-A-FLOW-SPEAKS-THROUGH-ONE-SLOT-001] The parking flow's one card, with the
+                // undo this lane never had. The DI note that called the revert "overkill because
+                // MAC-address binding makes BT reliable enough" was written before field 2026-09-22
+                // (issue #131): an AFTERMARKET dongle bound to a MAC that is not the car's parks
+                // this lane at the wrong moment, so it is the lane that most needs a way out.
+                notificationPort.showParkingSavedConfirm(
+                    parkingId = saved.id,
+                    vehicleName = vehicleName,
+                    latitude = saved.location.latitude,
+                    longitude = saved.location.longitude,
+                    userAnswered = false,
+                )
             }
             .onFailure { e ->
                 PaparcarLogger.e(TAG, "Failed to confirm parking", e)

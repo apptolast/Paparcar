@@ -11,7 +11,6 @@ import com.rndeveloper.paparcar.domain.notification.AppNotificationManager.Compa
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager.Companion.SHARED_CAR_LEFT_NOTIFICATION_ID
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager.Companion.SHARED_CAR_PARKED_NOTIFICATION_ID
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager.Companion.STILL_PARKED_NOTIFICATION_ID
-import com.rndeveloper.paparcar.domain.notification.AppNotificationManager.Companion.UPLOAD_NOTIFICATION_ID
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager.Companion.ZONE_SPOT_ALERT_NOTIFICATION_ID
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import kotlinx.coroutines.CoroutineScope
@@ -111,20 +110,6 @@ class IosAppNotificationManagerImpl(
         }
     }
 
-    override fun showParkingSaved(latitude: Double, longitude: Double) {
-        // Same choke point as Android [SETTINGS-AUDIT-REMEDIATION-001]: this is the INFORMATIVE
-        // notification the user may silence. The anti-false-positive surfaces below (confirmation,
-        // saved-confirm, still-parked) are never gated from app prefs, by doctrine.
-        if (!appPreferences.notifyParkingDetected) return
-        postLocalized(UPLOAD_NOTIFICATION_ID) {
-            val title = getString(Res.string.notif_parking_saved_title)
-            val body = getString(Res.string.notif_parking_saved_text)
-            setTitle(title)
-            setBody(body)
-            setSound(platform.UserNotifications.UNNotificationSound.defaultSound)
-        }
-    }
-
     override fun showParkingSavedConfirm(
         parkingId: String,
         vehicleName: String?,
@@ -149,7 +134,12 @@ class IosAppNotificationManagerImpl(
             )
             setUserInfo(mapOf<Any?, Any?>(EXTRA_PARKING_ID to parkingId))
             // Silent when the user just answered: the phone already buzzed for the question.
-            if (!userAnswered) {
+            // [NOTIF-A-FLOW-SPEAKS-THROUGH-ONE-SLOT-001] …and silent when Settings' "Parking
+            // detected" alert is off. It gates the SOUND, never the card: the revert action is the
+            // anti-false-positive net and doctrine keeps those un-gated by app prefs. Same reading
+            // as Android's choke point, and this is now where the toggle actually lands — it used
+            // to govern only the legacy duplicate that nobody could dismiss.
+            if (!userAnswered && appPreferences.notifyParkingDetected) {
                 setSound(platform.UserNotifications.UNNotificationSound.defaultSound)
             }
         }
@@ -240,7 +230,7 @@ class IosAppNotificationManagerImpl(
      *
      * ⚠️ La posición viaja para que el día que iOS sepa abrir el mapa en un punto no haya que
      * volver a tocar el reparto — hoy tocar la tarjeta solo abre la app, la misma carencia que
-     * `showParkingSaved` arrastra desde que existe.
+     * arrastra toda tarjeta de aparcamiento en iOS.
      */
     override fun showSharedCarParked(
         authorName: String?,

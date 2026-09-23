@@ -36,8 +36,13 @@ import kotlin.time.Clock
  *     diagnóstico (es justo el pin que un informe de campo intenta explicar) y
  *     desaparece de las cuatro lecturas que alimentan el histórico.
  *  2. [GeofenceManager.removeGeofence] — desregistra la geofence Android/iOS.
- *  3. Dismiss de la notificación 2002 — la única notificación visible para este
- *     evento (ya no se muestra la antigua "showParkingSaved" duplicada).
+ *  3. Dismiss de la notificación 2002 — la única visible para este evento.
+ *
+ *     ⚠️ Esto fue FALSO durante meses y lo dijo esta misma línea: prometía que «ya no se
+ *     muestra la antigua showParkingSaved duplicada» mientras el carril BT y el guardado
+ *     manual seguían publicándola, en una ranura (1002) que nadie apagaba nunca. Un revert
+ *     dejaba en la bandeja la tarjeta del aparcamiento que acababa de retirar. Cierto desde
+ *     [NOTIF-A-FLOW-SPEAKS-THROUGH-ONE-SLOT-001], donde el símbolo desapareció.
  *
  * **Spot comunitario.** No hay nada que retractar en este punto: el spot público se
  * publica únicamente cuando el usuario sale del geofence (vía [ReportSpotWorker]),

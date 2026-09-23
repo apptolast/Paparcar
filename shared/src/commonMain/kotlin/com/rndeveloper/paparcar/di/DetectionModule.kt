@@ -136,6 +136,9 @@ val detectionModule = module {
             // Android-only route store — getOrNull so iOS binds null (no route snapshot). [DET-ROUTE-TRACK-001]
             drivingRouteStore = getOrNull(),
             analyticsTracker = get(),
+            // Only to switch off the cards a confirmed park contradicts — never to show one.
+            // [NOTIF-A-FLOW-SPEAKS-THROUGH-ONE-SLOT-001]
+            notificationPort = get(),
         )
     }
     factory { ResolveAskedStreetUseCase(get()) }
@@ -216,7 +219,6 @@ val detectionModule = module {
         SaveManualParkingUseCase(
             confirmParking = get(),
             updateParkingLocation = get(),
-            notificationPort = get(),
             manualParkingDetection = get(),
         )
     }

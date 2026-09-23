@@ -10,7 +10,6 @@ class FakeAppNotificationManager : AppNotificationManager {
         candidate: GpsPoint?,
         street: String?,
     ) {}
-    override fun showParkingSaved(latitude: Double, longitude: Double) {}
     override fun showPermissionRevoked() {}
     override fun showDebug(message: String) {}
     override fun dismiss(notificationId: Int) {}

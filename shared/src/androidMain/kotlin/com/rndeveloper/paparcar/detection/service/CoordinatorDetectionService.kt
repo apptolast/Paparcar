@@ -1626,12 +1626,16 @@ class CoordinatorDetectionService : LifecycleService() {
         btHuntJob = lifecycleScope.launch {
             // Vehicle name on the ONE notification — resolved by the vehicle that actually
             // disconnected, never by the active default (multi-vehicle setups). [BT-BUG-103/104]
+            // [NOTIF-A-FLOW-SPEAKS-THROUGH-ONE-SLOT-001] The name resolved here ALSO travels into
+            // the hunt, so its saved-parking card names the car exactly like the coordinator's.
+            var vehicleName: String? = null
             runCatching {
                 val userId = authRepository.getCurrentSession()?.userId
                 val name = userId
                     ?.let { vehicleRepository.getVehicleById(it, vehicleId) }
                     ?.let { it.displayName(fallback = "").takeIf { n -> n.isNotBlank() } }
                 if (name != null) {
+                    vehicleName = name
                     notificationPort.updateDetectionVehicle(name, AppNotificationManager.DETECTION_NOTIFICATION_ID)
                 }
             }.onFailure { e -> PaparcarLogger.w(DIAG, "    ⚠ vehicle-name fetch failed: ${e.message}") }
@@ -1645,7 +1649,9 @@ class CoordinatorDetectionService : LifecycleService() {
                 val connectFix = com.rndeveloper.paparcar.bluetooth.BtConnectionStore.lastConnectFix(
                     this@CoordinatorDetectionService, vehicleId,
                 )
-                btParkingDetector.detectParking(deviceAddress, vehicleId, connectedAtMs, connectFix)
+                btParkingDetector.detectParking(
+                    deviceAddress, vehicleId, connectedAtMs, connectFix, vehicleName,
+                )
                 PaparcarLogger.d(DIAG, "  ✓ BT hunt returned normally")
                 // [DET-RETURN-ANCHOR-001] Seal the anchor for the just-confirmed session right away.
                 ParkingSafetyNetWorker.enqueueCheckNow(

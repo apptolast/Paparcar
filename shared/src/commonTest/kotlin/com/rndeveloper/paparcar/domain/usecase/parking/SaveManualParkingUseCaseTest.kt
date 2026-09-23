@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.domain.usecase.parking
 
 import com.rndeveloper.paparcar.domain.model.GpsPoint
+import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.model.SpotType
 import com.rndeveloper.paparcar.domain.model.UserParking
@@ -51,6 +52,9 @@ class SaveManualParkingUseCaseTest {
             authRepository = authRepo,
             config = ParkingDetectionConfig(),
             departureEventBus = FakeDepartureEventBus(),
+            // [NOTIF-A-FLOW-SPEAKS-THROUGH-ONE-SLOT-001] The tray reaches this flow ONLY through
+            // the common door, and only to switch off what a saved park contradicts.
+            notificationPort = notifications,
         )
         val updateParkingLocation = UpdateParkingLocationUseCase(
             userParkingRepository = parkingRepo,
@@ -60,7 +64,7 @@ class SaveManualParkingUseCaseTest {
             departureEventBus = FakeDepartureEventBus(),
         )
         return Triple(
-            SaveManualParkingUseCase(confirmParking, updateParkingLocation, notifications, detection),
+            SaveManualParkingUseCase(confirmParking, updateParkingLocation, detection),
             notifications,
             detection,
         )
@@ -77,9 +81,13 @@ class SaveManualParkingUseCaseTest {
         val sessions = parkingRepo.observeActiveSessions().first()
         assertEquals(1, sessions.size)
         assertEquals(40.0, sessions.first().location.latitude)
-        // Side effects of a user-confirmed CREATE: notification + detection teardown
-        // so a late auto-confirm can't overwrite the pin. [DET-MANUAL-CANCEL-001]
-        assertEquals(1, notifications.parkingSpotSavedCallCount)
+        // [NOTIF-A-FLOW-SPEAKS-THROUGH-ONE-SLOT-001] A hand-placed pin announces NOTHING: the
+        // user is looking at it. What the save does do is retire the question that may have
+        // brought them here.
+        assertEquals(0, notifications.parkingSavedConfirmCallCount)
+        assertEquals(0, notifications.parkingConfirmationCallCount)
+        assertTrue(AppNotificationManager.MARK_PARKING_NUDGE_NOTIFICATION_ID in notifications.dismissedIds)
+        // Detection teardown so a late auto-confirm can't overwrite the pin. [DET-MANUAL-CANCEL-001]
         assertEquals(1, detection.stopCallCount)
     }
 
@@ -100,9 +108,10 @@ class SaveManualParkingUseCaseTest {
         assertTrue(result.isSuccess)
         val moved = parkingRepo.observeActiveSessions().first().first { it.id == "session-1" }
         assertEquals(41.0, moved.location.latitude)
-        // A MOVE is a correction of an existing session — no "saved" notification,
-        // no detection teardown.
-        assertEquals(0, notifications.parkingSpotSavedCallCount)
+        // A MOVE is a correction of an existing session — it does not go through the common
+        // door, so it retires no question and tears down no detection.
+        assertEquals(0, notifications.parkingSavedConfirmCallCount)
+        assertTrue(notifications.dismissedIds.isEmpty())
         assertEquals(0, detection.stopCallCount)
     }
 
@@ -134,8 +143,10 @@ class SaveManualParkingUseCaseTest {
         assertEquals(SpotType.AUTO_DETECTED, session.spotType)
         assertEquals("nudge", session.detectionPath)
         assertEquals(1.0f, session.detectionReliability)
-        // Same CREATE side-effects as any user-confirmed pin.
-        assertEquals(1, notifications.parkingSpotSavedCallCount)
+        // Same CREATE side-effects as any user-confirmed pin — and the nudge that asked the
+        // question is taken out of the tray by the answer.
+        assertEquals(0, notifications.parkingSavedConfirmCallCount)
+        assertTrue(AppNotificationManager.MARK_PARKING_NUDGE_NOTIFICATION_ID in notifications.dismissedIds)
         assertEquals(1, detection.stopCallCount)
     }
 
@@ -177,7 +188,7 @@ class SaveManualParkingUseCaseTest {
         val result = useCase(lat = 40.0, lon = -3.0, accuracy = 12f)
 
         assertTrue(result.isFailure)
-        assertEquals(0, notifications.parkingSpotSavedCallCount)
+        assertTrue(notifications.dismissedIds.isEmpty())
         assertEquals(0, detection.stopCallCount)
     }
 }

@@ -5,6 +5,7 @@ package com.rndeveloper.paparcar.domain.usecase.parking
 import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
 import com.rndeveloper.paparcar.domain.detection.ArmLabel
 import com.rndeveloper.paparcar.domain.model.GpsPoint
+import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 import com.rndeveloper.paparcar.domain.model.SpotType
 import com.rndeveloper.paparcar.fakes.FakeAnalyticsTracker
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
@@ -93,17 +94,55 @@ class ConfirmParkingUseCaseTest {
 
     @Test
     fun `should not post any notification - the caller's responsibility`() = runTest {
-        // [CONFIRM-NO-NOTIF-CLEANUP] Notification responsibility lives in the caller now:
-        // coordinator owns showParkingSavedConfirm (REVERT card), BT detector + HomeViewModel
-        // own showParkingSaved (legacy tap-to-open). The use case never posts.
+        // [CONFIRM-NO-NOTIF-CLEANUP] Announcing the park stays with the caller: every lane now
+        // posts the same `showParkingSavedConfirm` card, and the hand-placed pin posts none.
         val notification = FakeAppNotificationManager()
         val useCase = buildUseCase(notification = notification)
 
         val result = useCase(location, detectionReliability = 0.9f, sealPoint = null)
 
         assertTrue(result.isSuccess)
-        assertEquals(0, notification.parkingSpotSavedCallCount)
         assertEquals(0, notification.parkingSavedConfirmCallCount)
+        assertEquals(0, notification.parkingConfirmationCallCount)
+    }
+
+    @Test
+    fun `should retire the cards this park contradicts - every lane, app open or not`() = runTest {
+        // [NOTIF-A-FLOW-SPEAKS-THROUGH-ONE-SLOT-001] Field 2026-09-22 (issue #132): a park
+        // confirmed in the background left "¿dónde dejaste el coche?" in the tray beside its own
+        // answer. `clearPendingParkNudge()` wiped the durable record here, but the KDoc's claim
+        // that the tray was handled by "Home's reactive janitor / the nudge's own auto-cancel" was
+        // false twice over — the janitor needs Home alive, auto-cancel needs a TAP.
+        val notification = FakeAppNotificationManager()
+        val useCase = buildUseCase(notification = notification)
+
+        val result = useCase(location, detectionReliability = 0.9f, sealPoint = null)
+
+        assertTrue(result.isSuccess)
+        assertTrue(
+            AppNotificationManager.MARK_PARKING_NUDGE_NOTIFICATION_ID in notification.dismissedIds,
+            "the park nudge outlived the park that answers it: ${notification.dismissedIds}",
+        )
+        assertTrue(
+            AppNotificationManager.STILL_PARKED_NOTIFICATION_ID in notification.dismissedIds,
+            "«¿sigues aparcado aquí?» outlived the session it asks about: ${notification.dismissedIds}",
+        )
+    }
+
+    @Test
+    fun `should retire nothing when the park was not saved`() = runTest {
+        // The mirror of the test above, and the reason it is not vacuous: only a SUCCESS makes
+        // those two questions untrue. A refused save leaves them standing.
+        val notification = FakeAppNotificationManager()
+        val useCase = buildUseCase(
+            auth = FakeAuthRepository(initialSession = null),
+            notification = notification,
+        )
+
+        val result = useCase(location, detectionReliability = 0.9f, sealPoint = null)
+
+        assertTrue(result.isFailure)
+        assertTrue(notification.dismissedIds.isEmpty(), "dismissed: ${notification.dismissedIds}")
     }
 
     @Test
@@ -219,7 +258,7 @@ class ConfirmParkingUseCaseTest {
 
         assertTrue(result.isFailure)
         assertIs<PaparcarError.Parking.SaveFailed>(result.exceptionOrNull())
-        assertEquals(0, notification.parkingSpotSavedCallCount)
+        assertTrue(notification.dismissedIds.isEmpty())
     }
 
     // ── sizeCategory from VehicleRepository ──────────────────────────────────
@@ -676,6 +715,10 @@ class ConfirmParkingUseCaseTest {
         drivingRouteStore = routeStore,
         analyticsTracker = tracker,
         detectionEventLogger = logger,
+        // [NOTIF-A-FLOW-SPEAKS-THROUGH-ONE-SLOT-001] ⚠️ This was NOT wired before: `buildUseCase`
+        // took a `notification` fake and dropped it, so the "never posts" test below could not
+        // have failed. Wired now, which is what makes it — and the dismiss tests — mean anything.
+        notificationPort = notification,
     )
 
     // ── Cuando la valla no se pudo poner [IOS-A-DETECTION-THAT-FAILS-MUST-LEAVE-A-TRACE-001] ────

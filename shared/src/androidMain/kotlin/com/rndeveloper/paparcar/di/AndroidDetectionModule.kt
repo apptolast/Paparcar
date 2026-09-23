@@ -117,9 +117,9 @@ val androidDetectionModule = module {
 
     // BluetoothParkingDetector is stateless — inject as factory so each Service instance
     // gets its own, keeping the scope ownership clean. [BT-REFACTOR-FGS-001]
-    // [BT-NOTIF-LEGACY-CLEANUP] uses the legacy showParkingSaved notification (no REVERT
-    // card); MAC-address binding makes BT detection reliable enough that the revert
-    // affordance was overkill. Only takes notificationPort, not vehicleRepository.
+    // [NOTIF-A-FLOW-SPEAKS-THROUGH-ONE-SLOT-001] Posts the parking flow's ONE card, undo included.
+    // It still takes no vehicleRepository: the host resolves the car's name for the foreground
+    // notification anyway and hands it to `detectParking`.
     factory {
         com.rndeveloper.paparcar.bluetooth.BluetoothParkingDetector(
             observeLocation = get(),

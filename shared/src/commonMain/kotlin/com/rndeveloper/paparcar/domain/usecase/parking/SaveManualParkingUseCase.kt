@@ -6,7 +6,6 @@ import com.rndeveloper.paparcar.domain.detection.DetectionPath
 import com.rndeveloper.paparcar.domain.detection.ports.ManualParkingDetection
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.SpotType
-import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 import kotlin.time.Clock
 
 /**
@@ -15,19 +14,23 @@ import kotlin.time.Clock
  * "Sí, he aparcado" (detected). Extracted from HomeViewModel so the branching
  * and side-effects are testable without a VM harness. [HOME-ATOMIZE-001 F4]
  *
- * Side-effects on a successful CREATE (both entry points):
- *  - the "parking saved" notification ([CONFIRM-NO-NOTIF-CLEANUP] — notification
- *    responsibility lives with the caller-side use case, not ConfirmParking);
- *  - detection teardown: the user resolved the park by hand → the trip is over,
- *    so any in-progress coordinator session is cancelled before it can overwrite
- *    this pin. [DET-MANUAL-CANCEL-001]
- * A MOVE (editingParkingId != null) has neither: the session already exists —
+ * Side-effect on a successful CREATE (both entry points): detection teardown — the user
+ * resolved the park by hand → the trip is over, so any in-progress coordinator session is
+ * cancelled before it can overwrite this pin. [DET-MANUAL-CANCEL-001]
+ * A MOVE (editingParkingId != null) has none: the session already exists —
  * [UpdateParkingLocationUseCase] re-registers its geofence in place.
+ *
+ * ⛔ **And no notification** [NOTIF-A-FLOW-SPEAKS-THROUGH-ONE-SLOT-001]. This flow's user is
+ * holding the phone and looking at the pin they just dropped; a card telling them about it
+ * narrates what is already on screen, and the parking flow's card offers "Sí, confirmar" — asking
+ * them to confirm what they asserted one second ago. The rule is `AssertedPinAuthority`'s:
+ * *"Asking is not free… A second prompt cannot resolve uncertainty, it manufactures it."*
+ * The pending nudge that may have opened this pin mode is cleared by [ConfirmParkingUseCase],
+ * which every lane converges on.
  */
 class SaveManualParkingUseCase(
     private val confirmParking: ConfirmParkingUseCase,
     private val updateParkingLocation: UpdateParkingLocationUseCase,
-    private val notificationPort: AppNotificationManager,
     private val manualParkingDetection: ManualParkingDetection,
 ) {
     /**
@@ -89,8 +92,14 @@ class SaveManualParkingUseCase(
             // the body's position within map-drag noise. [DET-STEP-BUDGET-ORIGIN-001]
             sealPoint = gps,
         )
-            .onSuccess { saved ->
-                notificationPort.showParkingSaved(saved.location.latitude, saved.location.longitude)
+            .onSuccess {
+                // [NOTIF-A-FLOW-SPEAKS-THROUGH-ONE-SLOT-001] No card. The user just dropped this
+                // pin looking at the map: announcing it narrates what they are watching, and the
+                // flow's card offers "Sí, confirmar" — asking them to confirm what they have this
+                // second asserted. `AssertedPinAuthority` already wrote the rule this obeys:
+                // *"Asking is not free… A second prompt cannot resolve uncertainty, it
+                // manufactures it."* The nudge that may have brought them here is cleared by
+                // `ConfirmParkingUseCase`, which every lane goes through.
                 manualParkingDetection.stop()
             }
             .map { }
