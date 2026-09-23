@@ -7,9 +7,16 @@
     "test": "firebase emulators:exec --only firestore --project demo-paparcar --config ../firebase.rules-tests.json \"vitest run\""
   },
   "devDependencies": {
-    "@firebase/rules-unit-testing": "^4.0.1",
-    "firebase": "^11.0.0",
-    "firebase-tools": "^14.0.0",
-    "vitest": "^2.1.0"
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "firebase": "^12.19.0",
+    "firebase-tools": "^15.30.2",
+    "vitest": "^5.0.1"
+  },
+  "overrides": {
+    "gaxios": {
+      "uuid": "^11.1.1"
+    },
+    "csv-parse": "^7.0.2",
+    "@opentelemetry/core": "^2.8.0"
   }
 }

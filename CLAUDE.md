@@ -48,6 +48,16 @@ Paparcar es una app KMP (Kotlin Multiplatform) de compartición de plazas de apa
   así que el puente de [R8-REVENUECAT-ALREADY-NARROWED-ITS-RULES-001] murió en
   [BUILD-DEPS-AT-LATEST-STABLE-002]
 - Logging: Napier 2.7.1 · Monitoring: Firebase Crashlytics
+- ⛔ **El stack no es sólo Gradle**: hay DOS raíces npm con su propio lockfile —`functions/` (Cloud
+  Functions, se despliega) y `firestore-rules-tests/` (devDeps del harness de reglas)— y
+  [BUILD-DEPS-AT-LATEST-STABLE-002] nunca las miró. Entran en el mismo barrido
+  [DEPS-THE-NPM-SIDE-WAS-NEVER-SWEPT-001]. Tres trampas medidas ahí: (a) en un salto de major el
+  lockfile **se regenera**, no se actualiza —con el viejo puesto, `npm install` muere en `ERESOLVE`
+  anclado a la versión vieja—; (b) `npm audit fix --force` propone **bajar** `firebase-tools` cinco
+  majors, que no es un arreglo; (c) un `override` sobre una transitiva **se prueba, no se razona**:
+  `stream-json@3.5.0` reorganizó sus ficheros y dejó `firebase deploy` muerto mientras
+  `firebase --version` seguía contestando. Verificar SIEMPRE los comandos que usamos
+  (`firebase deploy --help`, `emulators:exec --help`), no sólo que los tests pasen.
 
 > El repo **no tiene `gradlew.bat`**: compilar SIEMPRE con la herramienta Bash (`./gradlew …`).
 > En PowerShell `.\gradlew` sale exit 0 **sin compilar nada**.

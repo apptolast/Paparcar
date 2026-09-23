@@ -16,11 +16,16 @@
     "verify:queries": "tsc && node lib/scripts/verify-prod-queries.js"
   },
   "dependencies": {
-    "firebase-admin": "^13.0.0",
-    "firebase-functions": "^6.0.0"
+    "firebase-admin": "^14.4.0",
+    "firebase-functions": "^7.4.0"
   },
   "devDependencies": {
     "typescript": "^5.6.0",
     "@types/node": "^22.0.0"
+  },
+  "overrides": {
+    "gaxios": {
+      "uuid": "^11.1.1"
+    }
   }
 }
