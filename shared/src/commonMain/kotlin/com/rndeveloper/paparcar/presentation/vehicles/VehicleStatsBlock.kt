@@ -23,7 +23,6 @@ import androidx.compose.material.icons.rounded.Place
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.SensorsOff
 import androidx.compose.material.icons.rounded.TravelExplore
-import androidx.compose.material.icons.rounded.VolunteerActivism
 import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -64,6 +63,7 @@ import com.rndeveloper.paparcar.ui.components.PapStatDelta
 import com.rndeveloper.paparcar.ui.components.PapStatTile
 import com.rndeveloper.paparcar.ui.components.StatTileNumber
 import com.rndeveloper.paparcar.ui.components.PapVerticalDivider
+import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
@@ -631,7 +631,10 @@ private fun StatTileKey.icon(): ImageVector = when (this) {
     StatTileKey.USUAL_DAY -> Icons.Rounded.Event
     StatTileKey.USUAL_PLACE -> Icons.Rounded.Place
     StatTileKey.AUTO_DETECTED -> Icons.Rounded.AutoAwesome
-    StatTileKey.SPOTS_SHARED -> Icons.Rounded.VolunteerActivism
+    // El ACTO de ceder, no el objeto: este tile cuenta plazas CEDIDAS, y su glifo es el del acto
+    // ([PaparcarIcons.SpotGiven]), no el hueco con el que se dibuja una plaza.
+    // [SPOT-A-FREE-SPOT-IS-A-GAP-NOT-A-GIFT-001]
+    StatTileKey.SPOTS_SHARED -> PaparcarIcons.SpotGiven
 }
 
 internal fun statTileKeys(stats: PeriodStats): List<StatTileKey> = buildList {

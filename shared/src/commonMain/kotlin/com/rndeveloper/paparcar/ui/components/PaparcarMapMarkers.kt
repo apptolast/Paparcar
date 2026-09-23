@@ -101,7 +101,7 @@ import kotlin.math.sin
  * | Marker             | Shape             | Colour | Content              |
  * |--------------------|-------------------|--------|----------------------|
  * | Parked vehicle     | Amber rect + tip  | Amber  | License plate text   |
- * | Free spot          | Circle            | Green  | Given-spot hand + heart + announcement badge |
+ * | Free spot          | Circle            | Green  | Free-spot gap glyph + announcement badge |
  * | Zone (saved place) | Pill label        | Theme  | Icon + zone name     |
  *
  * Rendered as bitmaps by the kmpmaps library via `customMarkerContent` in [PaparcarMapView].
@@ -782,7 +782,7 @@ private val MY_VEHICLE_W = 46.dp
 private val MY_VEHICLE_H = 55.dp
 
 // ─── Marker 2 — Free spot (FreeSpotMarker) — Bolt-green teardrop pin ─────────
-// Bolt-green design: brand-filled teardrop + white 3px halo, the given-spot glyph (hand + heart),
+// Bolt-green design: brand-filled teardrop + white 3px halo, the free-spot GAP glyph,
 // a freshness ring whose arc length encodes the reliability tier, and a tier-coloured
 // announcement badge. When people are en route the pin flips to the blue "reserved"
 // state with a dashed orbit + a people pill carrying the count. [BOLT-MARKERS-001]
@@ -965,7 +965,7 @@ fun SpotPuckIcon(
 }
 
 // ── Puck geometry (viewBox 72×82 units) ──────────────────────────────────────
-// Spot marker = round "puck" (centre 36,34 r29) carrying the given-spot glyph, a per-tier
+// Spot marker = round "puck" (centre 36,34 r29) carrying the free-spot gap glyph, a per-tier
 // TTL ring and an announcement badge, over a separated position dot (the exact ground point).
 // Anchor = bottom-centre.
 // [MAP-ICONS-V2]
@@ -1047,20 +1047,18 @@ private fun CommunitySpotOverlay(
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val scale = maxWidth.value / SPOT_VIEWBOX_W
-        // [SPOT-ICON-IS-THE-GIVEN-SPOT-HAND-HEART-001] The hand + heart fills more of its box than
-        // the old person did, so it goes one size down (26 vs 28) — still centred on the puck
-        // (36,34), clear of the announcement badge (centre 56,15 r13) and inside the TTL ring.
-        //
-        // A releasing plaza swaps it for the CAR: the hand + heart means *somebody gave you this
-        // space*, and nobody has given anything yet. What is true right now is that a car is still
-        // standing in it, so that is what the puck shows.
+        // A releasing plaza swaps the gap for the CAR: the gap means *there is room here*, and right
+        // now there is not — a car is still standing in it, so that is what the puck shows.
+        val box = if (releasing) RELEASING_CAR_GLYPH_SIZE else COMMUNITY_GLYPH_SIZE
         Icon(
             imageVector = if (releasing) Icons.Rounded.DirectionsCar else PaparcarIcons.CommunitySpot,
             contentDescription = null,
             tint = SpotPalette.Paper,
             modifier = Modifier
-                .offset(x = (COMMUNITY_GLYPH_X * scale).dp, y = (COMMUNITY_GLYPH_Y * scale).dp)
-                .size((COMMUNITY_GLYPH_SIZE * scale).dp),
+                // Centrado en el puck (36,34) por construcción, para los dos glifos y para el que
+                // venga: la caja es lo único que cambia entre ellos.
+                .offset(x = ((SPOT_PUCK_CENTER_X - box / 2f) * scale).dp, y = ((SPOT_PUCK_CENTER_Y - box / 2f) * scale).dp)
+                .size((box * scale).dp),
         )
         if (showAnnouncement) {
             // The megaphone ANNOUNCES a free space. A releasing plaza has nothing to announce yet,
@@ -1077,10 +1075,24 @@ private fun CommunitySpotOverlay(
     }
 }
 
-// Given-spot glyph box inside the puck, in viewBox units. [SPOT-ICON-IS-THE-GIVEN-SPOT-HAND-HEART-001]
-private const val COMMUNITY_GLYPH_X = 23f
-private const val COMMUNITY_GLYPH_Y = 21f
-private const val COMMUNITY_GLYPH_SIZE = 26f
+/**
+ * **Caja del glifo dentro del puck, en unidades del viewBox — una por GLIFO, no una para todos.**
+ * [SPOT-A-FREE-SPOT-IS-A-GAP-NOT-A-GIFT-001]
+ *
+ * La caja no es una medida del puck: es cuánto hay que abrirla para que la TINTA de ESE dibujo
+ * ocupe lo mismo que la de los demás. Por eso se re-mide cada vez que cambia el glifo y nunca se
+ * hereda — la serie lo cuenta sola: 28 con la `Person`, 26 con la mano + corazón (llenaba más su
+ * caja) y 24 con la plaza pintada, cuya tinta ocupa 21,9 × 17,5 del cuadro de 24.
+ *
+ * Con 24, esa tinta mide 21,9 × 17,5 unidades del puck: la esquina más lejana cae a 14,0 del centro,
+ * dentro del anillo TTL (borde interior ~20,3 de radio), y el extremo derecho de la raya de arriba
+ * queda a 19,4 del centro del disco del badge, que tiene radio 13.
+ */
+private const val COMMUNITY_GLYPH_SIZE = 24f
+
+/** El coche de una plaza que se está liberando es un glifo de Material, y los de Material llenan su
+ *  caja como llenaba la mano + corazón: conserva el 26 que se midió para ella. */
+private const val RELEASING_CAR_GLYPH_SIZE = 26f
 
 private fun DrawScope.drawTierPin(s: Float, v: SpotTierVisual, selected: Boolean, paper: Color, ink: Color) {
     drawSpotShadow(s, ink)
@@ -1233,6 +1245,7 @@ internal const val NEARBY_DOT_CY =
 private const val SPOT_TARGET_R = 6.5f
 private const val SPOT_TARGET_STROKE_U = 2.2f
 private const val SPOT_TARGET_CENTER_R = 2f
+private const val SPOT_PUCK_CENTER_X = 36f // puck circle centre X (viewBox units) — used to centre its glyph
 private const val SPOT_PUCK_CENTER_Y = 34f // puck circle centre Y (viewBox units) — used to centre the tail-less icon
 
 // ─── Marker 3 — Zone (ZoneMarker) ────────────────────────────────────────────

@@ -3,40 +3,25 @@ package com.rndeveloper.paparcar.ui.icons
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.DirectionsBike
 import androidx.compose.material.icons.rounded.AccountBalance
+import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.ElectricScooter
+import androidx.compose.material.icons.rounded.FitnessCenter
+import androidx.compose.material.icons.rounded.Hotel
+import androidx.compose.material.icons.rounded.LocalCafe
+import androidx.compose.material.icons.rounded.LocalGasStation
+import androidx.compose.material.icons.rounded.LocalHospital
+import androidx.compose.material.icons.rounded.LocalMall
+import androidx.compose.material.icons.rounded.LocalPharmacy
+import androidx.compose.material.icons.rounded.Place
+import androidx.compose.material.icons.rounded.Restaurant
+import androidx.compose.material.icons.rounded.School
+import androidx.compose.material.icons.rounded.ShoppingCart
+import androidx.compose.material.icons.rounded.TwoWheeler
 import androidx.compose.material.icons.rounded.VolunteerActivism
-import androidx.compose.material.icons.automirrored.rounded.DirectionsBike
-import androidx.compose.material.icons.rounded.DirectionsCar
-import androidx.compose.material.icons.rounded.ElectricScooter
-import androidx.compose.material.icons.rounded.TwoWheeler
-import androidx.compose.material.icons.rounded.DirectionsCar
-import androidx.compose.material.icons.rounded.ElectricScooter
-import androidx.compose.material.icons.rounded.FitnessCenter
-import androidx.compose.material.icons.rounded.Hotel
-import androidx.compose.material.icons.rounded.LocalCafe
-import androidx.compose.material.icons.rounded.LocalGasStation
-import androidx.compose.material.icons.rounded.LocalHospital
-import androidx.compose.material.icons.rounded.LocalMall
-import androidx.compose.material.icons.rounded.LocalPharmacy
-import androidx.compose.material.icons.rounded.Place
-import androidx.compose.material.icons.rounded.Restaurant
-import androidx.compose.material.icons.rounded.School
-import androidx.compose.material.icons.rounded.ShoppingCart
-import androidx.compose.material.icons.rounded.TwoWheeler
-import androidx.compose.material.icons.rounded.AccountBalance
-import androidx.compose.material.icons.rounded.FitnessCenter
-import androidx.compose.material.icons.rounded.Hotel
-import androidx.compose.material.icons.rounded.LocalCafe
-import androidx.compose.material.icons.rounded.LocalGasStation
-import androidx.compose.material.icons.rounded.LocalHospital
-import androidx.compose.material.icons.rounded.LocalMall
-import androidx.compose.material.icons.rounded.LocalPharmacy
-import androidx.compose.material.icons.rounded.Place
-import androidx.compose.material.icons.rounded.Restaurant
-import androidx.compose.material.icons.rounded.School
-import androidx.compose.material.icons.rounded.ShoppingCart
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.PathData
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.model.PlaceCategory
@@ -81,12 +66,12 @@ object PaparcarIcons {
     val Pharmacy: ImageVector get() = Icons.Rounded.LocalPharmacy
     val Hospital: ImageVector get() = Icons.Rounded.LocalHospital
     /**
-     * A free spot of the community — the hand + heart of a spot someone GAVE, the same glyph the
-     * stats tile uses for "spots shared". One glyph for the whole life of a spot: the lane tab, the
-     * map puck (selected, en route, report pin), the list row and the peek.
-     * [SPOT-ICON-IS-THE-GIVEN-SPOT-HAND-HEART-001]
+     * El ACTO de ceder una plaza — la mano + corazón. Acompaña SIEMPRE a un texto que nombra el
+     * acto: el tile «plazas cedidas» de las cifras y la línea «la comunidad te la cedió» del
+     * detalle de historial. No es el OBJETO: eso es [SpotGap].
+     * [SPOT-A-FREE-SPOT-IS-A-GAP-NOT-A-GIFT-001]
      */
-    val CommunitySpot: ImageVector get() = Icons.Rounded.VolunteerActivism
+    val SpotGiven: ImageVector get() = Icons.Rounded.VolunteerActivism
     val Bank: ImageVector get() = Icons.Rounded.AccountBalance
     val Hotel: ImageVector get() = Icons.Rounded.Hotel
     val School: ImageVector get() = Icons.Rounded.School
@@ -113,11 +98,55 @@ object PaparcarIcons {
     // anfitrión las tiña. ⛔ El parking público no es plumbing de UI, es un producto que la app
     // enseña, y con un glifo genérico las pestañas se leían como un filtro más.
     //
-    // Queda UNA marca propia, [CarParkMark]. Las otras dos que este bloque anunciaba ya no existen y
-    // el comentario las siguió prometiendo un tiempo: la plaza dibujada como HUECO entre marcas
-    // viales (`ParkingBay`) se retiró sin un solo call site cuando la plaza pasó a la mano + corazón
-    // [SPOT-ICON-IS-THE-GIVEN-SPOT-HAND-HEART-001], y la gasolinera nunca dejó de ser
-    // `Icons.Rounded.LocalGasStation`. [UI-THE-CAR-PARK-WEARS-OUR-OWN-P-001]
+    // Son DOS marcas propias: [CarParkMark] y [CommunitySpot]. La gasolinera nunca dejó de ser
+    // `Icons.Rounded.LocalGasStation`, y ésa es toda la fila de pestañas: dos cosas nuestras y un
+    // surtidor. [UI-THE-CAR-PARK-WEARS-OUR-OWN-P-001] [SPOT-A-FREE-SPOT-IS-A-GAP-NOT-A-GIFT-001]
+
+    /**
+     * Plaza libre de la comunidad: **la PLAZA PINTADA**. Un trapecio en perspectiva —como se ve una
+     * plaza desde la calle— dibujado a rayas, con el punto de su posición en medio.
+     * [SPOT-A-FREE-SPOT-IS-A-GAP-NOT-A-GIFT-001]
+     *
+     * Es el único token del OBJETO: de aquí beben las cinco superficies de una plaza —puck del mapa,
+     * puck de lista, lead del peek, pin de reporte y pestaña del carril—. El ACTO de ceder una plaza
+     * es otra cosa y tiene el suyo, [SpotGiven]; cambiar uno no mueve al otro, que es justo lo que
+     * este glifo vino a arreglar: la mano + corazón afirmaba que alguien había CEDIDO la plaza
+     * también en el pin de un reporte manual, donde nadie cedió nada — se fue alguien que ni usa la
+     * app, y un testigo lo vio.
+     *
+     * ⛔ Ninguna «P»: ésa es del parking público [UI-THE-CAR-PARK-WEARS-OUR-OWN-P-001] y una plaza no
+     * es un parking [COPY-SPOT-IS-NOT-A-PARKING-001].
+     *
+     * **Las rayas son piezas RELLENAS**, no un `stroke-dasharray`: cada una es una cápsula (dos
+     * rectas y dos arcos). Eso es lo que la hace compatible con el set —un `ImageVector` que el
+     * `Icon` anfitrión tiñe— en vez de obligar a un Canvas, que es lo que exige un trazo discontinuo
+     * de verdad.
+     *
+     * Encaje: la tinta ocupa **21,9 × 17,5** del cuadro de 24, con trazo de **2,5**. Ese grosor no es
+     * estético, es el mínimo que sobrevive en blanco sobre el disco de color a los ~16,6 dp del puck
+     * del mapa; y la regla que ordena las rayas es que **todo hueco mida al menos lo que el trazo**,
+     * porque un hueco más estrecho que su raya no se ve y la figura se lee como una línea continua.
+     */
+    val CommunitySpot: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "CommunitySpot",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        )
+            .addPath(
+                pathData = PathParser().parsePathString(SPOT_BAY_PATH).toNodes(),
+                fill = SolidColor(Color.Black),
+            )
+            .build()
+    }
+
+    // El trapecio punteado, en la rejilla de 24. Trece piezas: la raya de arriba, dos por lado más su
+    // codo, dos abajo y el punto del centro. Generado desde su geometría (trapecio + reparto de rayas
+    // por fracción de arista), no trazado a mano: por eso es simétrico al milímetro respecto de x=12.
+    private const val SPOT_BAY_PATH =
+        "M9.85 5.75L14.15 5.75A1.25 1.25 0 0 0 14.15 3.25L9.85 3.25A1.25 1.25 0 0 0 9.85 5.75ZM5.34 5.62L5.15 6.23A1.25 1.25 0 0 0 7.53 6.98L7.73 6.37A1.25 1.25 0 0 0 5.34 5.62ZM4.02 9.82L3.55 11.33A1.25 1.25 0 0 0 5.93 12.08L6.41 10.57A1.25 1.25 0 0 0 4.02 9.82ZM2.43 14.92L1.11 19.13A1.25 1.25 0 0 0 3.49 19.87L4.81 15.67A1.25 1.25 0 0 0 2.43 14.92ZM2.30 20.75L3.66 20.75A1.25 1.25 0 0 0 3.66 18.25L2.30 18.25A1.25 1.25 0 0 0 2.30 20.75ZM16.27 6.37L16.47 6.98A1.25 1.25 0 0 0 18.85 6.23L18.66 5.62A1.25 1.25 0 0 0 16.27 6.37ZM17.59 10.57L18.07 12.08A1.25 1.25 0 0 0 20.45 11.33L19.98 9.82A1.25 1.25 0 0 0 17.59 10.57ZM19.19 15.67L20.51 19.87A1.25 1.25 0 0 0 22.89 19.13L21.57 14.92A1.25 1.25 0 0 0 19.19 15.67ZM21.70 18.25L20.34 18.25A1.25 1.25 0 0 0 20.34 20.75L21.70 20.75A1.25 1.25 0 0 0 21.70 18.25ZM6.85 20.75L9.20 20.75A1.25 1.25 0 0 0 9.20 18.25L6.85 18.25A1.25 1.25 0 0 0 6.85 20.75ZM14.80 20.75L17.15 20.75A1.25 1.25 0 0 0 17.15 18.25L14.80 18.25A1.25 1.25 0 0 0 14.80 20.75ZM10.05 12.70A1.95 1.95 0 0 1 13.95 12.70A1.95 1.95 0 0 1 10.05 12.70Z"
 
     /**
      * Parking público: **nuestra P**. Es la letra rellena que los pucks de plaza llevaron hasta que

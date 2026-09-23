@@ -124,7 +124,7 @@ import kotlin.time.Duration.Companion.milliseconds
  * @property centerPin When non-null, replaces the default crosshair indicator
  *   with a drop-in pin animation. Every variant shares the same white-teardrop
  *   molde + ground-shadow + bounce-on-camera-settle behaviour; only the inner
- *   silhouette varies: [CenterPinKind.Report] = given-spot glyph (hand + heart) + announcement badge; [CenterPinKind.Parking]
+ *   silhouette varies: [CenterPinKind.Report] = the free-spot GAP glyph + announcement badge; [CenterPinKind.Parking]
  *   = inner disc + car glyph (MyVehicleMarker family); [CenterPinKind.Zone] =
  *   inner disc + chosen zone icon (ZoneMarker family).
  * @property initialCamera Seed camera position used on first composition when
@@ -148,7 +148,7 @@ data class PaparcarMapConfig(
  * composable in PaparcarMapMarkers.kt.
  */
 sealed class CenterPinKind {
-    /** Outlined teardrop with the given-spot glyph (hand + heart) + announcement badge — molde for Reporting. */
+    /** Outlined teardrop with the free-spot GAP glyph + announcement badge — molde for Reporting. */
     data object Report : CenterPinKind()
     /** Outlined teardrop with the parked-car silhouette inside — molde for the AddingParking flow. */
     data object Parking : CenterPinKind()

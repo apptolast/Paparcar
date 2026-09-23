@@ -32,7 +32,6 @@ import androidx.compose.material.icons.rounded.TaskAlt
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Navigation
 import androidx.compose.material.icons.rounded.Radar
-import androidx.compose.material.icons.rounded.VolunteerActivism
 import androidx.compose.material.icons.rounded.AccessTimeFilled
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -87,6 +86,7 @@ import com.rndeveloper.paparcar.ui.components.PapDialogAction
 import com.rndeveloper.paparcar.ui.components.PaparcarMapConfig
 import com.rndeveloper.paparcar.ui.components.PaparcarMapView
 import com.rndeveloper.paparcar.ui.components.PapShimmerBox
+import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.presentation.map.components.MapControlButtons
 import com.rndeveloper.paparcar.presentation.home.sections.header.components.MapTypeToggle
 import com.swmansion.kmpmaps.core.MapType
@@ -725,7 +725,9 @@ private fun HistoryParkingCard(
                 // [SPOT-A-SPACE-THE-COMMUNITY-GAVE-YOU-IS-ONE-YOU-VOUCHED-FOR-001]
                 if (session.communitySpotId != null) {
                     PeekMetaRow(
-                        icon = Icons.Rounded.VolunteerActivism,
+                        // El ACTO de ceder: la línea lo NOMBRA, así que el glifo es el del acto.
+                        // [SPOT-A-FREE-SPOT-IS-A-GAP-NOT-A-GIFT-001]
+                        icon = PaparcarIcons.SpotGiven,
                         tint = metaTint,
                         text = stringResource(Res.string.parking_detail_community_gave_it),
                     )

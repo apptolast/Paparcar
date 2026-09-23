@@ -91,7 +91,7 @@ import com.rndeveloper.paparcar.ui.theme.PapColor
  * Spot row (v1 redesign).
  *
  *  - 3dp left selection indicator (primary) so the row keeps its neutral fill.
- *  - The map's spot puck (given-spot glyph) whose colour mirrors the marker tier
+ *  - The map's spot puck (the gap glyph) whose colour mirrors the marker tier
  *    (FRESH=green, RECENT=amber, STALE=red).
  *  - Meta row: UPPERCASE freshness label + distance + drive time.
  */
