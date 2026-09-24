@@ -782,6 +782,8 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen â†’ Paparcar â
     <string name="paywall_benefits_title">Wat Plus toevoegt</string>
     <string name="paywall_benefit_history">Je volledige geschiedenis: uitgaven, tijd, prognoses en de beste locaties en tijdstippen</string>
     <string name="paywall_benefit_history_note">Gratis: de laatste 7 dagen</string>
+    <string name="paywall_benefit_routes">Je routes, bewaard in je account</string>
+    <string name="paywall_benefit_routes_note">Gratis: alleen op de telefoon die ze opnam</string>
     <string name="paywall_benefit_alerts">Plekken, prijzen bij tankstations en het maandoverzicht</string>
     <string name="paywall_benefit_alerts_note">In de zones en tankstations die je kiest, en als de maand sluit</string>
     <string name="paywall_benefit_zones">Onbeperkt zones</string>

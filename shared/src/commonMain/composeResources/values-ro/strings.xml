@@ -795,6 +795,8 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="paywall_benefits_title">Ce adaugă Plus</string>
     <string name="paywall_benefit_history">Tot istoricul tău: cheltuieli, timp, previziuni, precum și cele mai bune locații și ore</string>
     <string name="paywall_benefit_history_note">Gratuit: ultimele 7 zile</string>
+    <string name="paywall_benefit_routes">Rutele tale, salvate în contul tău</string>
+    <string name="paywall_benefit_routes_note">Gratuit: doar pe telefonul care le-a înregistrat</string>
     <string name="paywall_benefit_alerts">Locuri, prețuri la benzinării și rezumatul lunii</string>
     <string name="paywall_benefit_alerts_note">În zonele și benzinăriile alese de tine, și la închiderea lunii</string>
     <string name="paywall_benefit_zones">Zone nelimitate</string>

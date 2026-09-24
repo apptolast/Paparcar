@@ -71,6 +71,8 @@ import paparcar.composeapp.generated.resources.paywall_benefit_alerts
 import paparcar.composeapp.generated.resources.paywall_benefit_alerts_note
 import paparcar.composeapp.generated.resources.paywall_benefit_history
 import paparcar.composeapp.generated.resources.paywall_benefit_history_note
+import paparcar.composeapp.generated.resources.paywall_benefit_routes
+import paparcar.composeapp.generated.resources.paywall_benefit_routes_note
 import paparcar.composeapp.generated.resources.paywall_benefit_shared_car
 import paparcar.composeapp.generated.resources.paywall_benefit_shared_car_note
 import paparcar.composeapp.generated.resources.paywall_benefit_vehicles
@@ -505,10 +507,26 @@ private fun BenefitRow(benefit: PlusBenefit) {
  * thing ("Free: the last 7 days"), and what the feature IS where free does not have it at all.
  * ⛔ It is never "Not included": a benefit listed under *what Plus adds* already says that, and a
  * line whose content is the absence of content was the emptiest half of the old table.
+ *
+ * [sells] are the paywall entrances this row answers — every [PaywallReason] whose gate this line
+ * is the pitch for. **Declared and not inferred**, and that is the whole point of the field: the
+ * correspondence between *what we charge for* and *what we sell* used to live nowhere, so a gate
+ * could be born with no line naming it and nothing would say a word. One was —
+ * [PaywallReason.ROUTE_CLOUD], shipped by a ticket that never touched this file, sold on the
+ * website and nowhere here for eleven days. `PaywallBenefitsCoverageTest` reads this field and
+ * fails the build now. [PAYWALL-A-GATE-THAT-CHARGES-MUST-BE-SOLD-001]
+ *
+ * A row may sell several reasons when they are ONE promise to the reader; what it may not do is
+ * leave one unsold.
  */
-private class PlusBenefit(val icon: ImageVector, val title: StringResource, val note: StringResource)
+internal class PlusBenefit(
+    val icon: ImageVector,
+    val title: StringResource,
+    val note: StringResource,
+    val sells: Set<PaywallReason>,
+)
 
-private val PLUS_BENEFITS = listOf(
+internal val PLUS_BENEFITS = listOf(
     // Memory first, then watching, then capacity — the order of the doctrine's own axis: free is
     // asking and being answered, Plus is being watched over and remembered for.
     //
@@ -536,6 +554,23 @@ private val PLUS_BENEFITS = listOf(
         Icons.Rounded.History,
         Res.string.paywall_benefit_history,
         Res.string.paywall_benefit_history_note,
+        // One row, two reasons, because there is ONE gate behind both — see above.
+        sells = setOf(PaywallReason.HISTORY, PaywallReason.STATS),
+    ),
+    // Memory's other half, and the reason it is a row of its own and not a clause of the one
+    // above: it is a DIFFERENT gate, with its own switch in Settings and its own entrance
+    // ([PaywallReason.ROUTE_CLOUD]). The history row sells a window in TIME; this one sells the
+    // trace surviving the phone that drew it. [PRIV-A-TRACE-IS-NOT-A-STAT-001]
+    //
+    // ⚠️ The note says where free keeps them, not that free lacks them: a free user's routes are
+    // recorded and drawn exactly the same — they just live on one phone and a reinstall is the
+    // end of them. Writing it as an absence would be the "Not included" cell this class forbids,
+    // and it would also be false.
+    PlusBenefit(
+        Icons.Rounded.Route,
+        Res.string.paywall_benefit_routes,
+        Res.string.paywall_benefit_routes_note,
+        sells = setOf(PaywallReason.ROUTE_CLOUD),
     ),
     // Both watches and the recap in one line — they are one promise to the reader ("the app tells
     // me"), and splitting them would spend three rows on it.
@@ -549,11 +584,13 @@ private val PLUS_BENEFITS = listOf(
         Icons.Rounded.NotificationsActive,
         Res.string.paywall_benefit_alerts,
         Res.string.paywall_benefit_alerts_note,
+        sells = setOf(PaywallReason.ZONE_ALERTS, PaywallReason.FUEL_ALERTS, PaywallReason.MONTH_RECAP),
     ),
     PlusBenefit(
         Icons.Rounded.Map,
         Res.string.paywall_benefit_zones,
         Res.string.paywall_benefit_zones_note,
+        sells = setOf(PaywallReason.ZONES),
     ),
     // The widget folded in here: it is FREE by doctrine — the present is never hidden
     // [WIDGET-ACTIONS-002] — and what Plus adds to it is the other cars, which is this row.
@@ -562,12 +599,14 @@ private val PLUS_BENEFITS = listOf(
         Icons.Rounded.DirectionsCar,
         Res.string.paywall_benefit_vehicles,
         Res.string.paywall_benefit_vehicles_note,
+        sells = setOf(PaywallReason.VEHICLES),
     ),
     // La feature estrella de Plus: el coche que conducen varios. [VEH-SHARED-001]
     PlusBenefit(
         Icons.Rounded.Group,
         Res.string.paywall_benefit_shared_car,
         Res.string.paywall_benefit_shared_car_note,
+        sells = setOf(PaywallReason.SHARED_CAR),
     ),
 )
 

@@ -782,6 +782,8 @@ Wenn die Frage nicht mehr erscheint, ändere es unter Einstellungen → Paparcar
     <string name="paywall_benefits_title">Was Plus dazugibt</string>
     <string name="paywall_benefit_history">Dein ganzer Verlauf: Ausgaben, Zeit, Prognosen und die besten Orte und Zeiten</string>
     <string name="paywall_benefit_history_note">Kostenlos: die letzten 7 Tage</string>
+    <string name="paywall_benefit_routes">Deine Routen, in deinem Konto gespeichert</string>
+    <string name="paywall_benefit_routes_note">Kostenlos: nur auf dem Handy, das sie aufgezeichnet hat</string>
     <string name="paywall_benefit_alerts">Plätze, Tankstellenpreise und der Monatsrückblick</string>
     <string name="paywall_benefit_alerts_note">In den Zonen und Tankstellen deiner Wahl, und zum Monatsende</string>
     <string name="paywall_benefit_zones">Unbegrenzte Zonen</string>

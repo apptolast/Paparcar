@@ -777,6 +777,8 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="paywall_benefits_title">Lo que añade Plus</string>
     <string name="paywall_benefit_history">Tu historial completo: gasto, tiempo, previsiones y mejores sitios y horas</string>
     <string name="paywall_benefit_history_note">Gratis: los últimos 7 días</string>
+    <string name="paywall_benefit_routes">Tus rutas, guardadas en tu cuenta</string>
+    <string name="paywall_benefit_routes_note">Gratis: solo en el móvil que las grabó</string>
     <string name="paywall_benefit_alerts">Plazas, precio de gasolineras y el resumen del mes</string>
     <string name="paywall_benefit_alerts_note">En las zonas y gasolineras que elijas, y al cerrar el mes</string>
     <string name="paywall_benefit_zones">Zonas sin límite</string>

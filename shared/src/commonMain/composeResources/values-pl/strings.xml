@@ -795,6 +795,8 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <string name="paywall_benefits_title">Co daje Plus</string>
     <string name="paywall_benefit_history">Cała Twoja historia: wydatki, czas, prognozy oraz najlepsze lokalizacje i godziny</string>
     <string name="paywall_benefit_history_note">Za darmo: ostatnie 7 dni</string>
+    <string name="paywall_benefit_routes">Twoje trasy zapisane na koncie</string>
+    <string name="paywall_benefit_routes_note">Za darmo: tylko w telefonie, który je zapisał</string>
     <string name="paywall_benefit_alerts">Miejsca, ceny na stacjach i podsumowanie miesiąca</string>
     <string name="paywall_benefit_alerts_note">W strefach i na stacjach, które wybierzesz, i na koniec miesiąca</string>
     <string name="paywall_benefit_zones">Strefy bez limitu</string>

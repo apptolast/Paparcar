@@ -781,6 +781,8 @@ Si la question n'apparaît plus, changez-le dans Réglages → Paparcar → Posi
     <string name="paywall_benefits_title">Ce que Plus ajoute</string>
     <string name="paywall_benefit_history">Tout ton historique : dépense, temps, prévisions et les meilleurs endroits et horaires</string>
     <string name="paywall_benefit_history_note">Gratuit : les 7 derniers jours</string>
+    <string name="paywall_benefit_routes">Tes trajets, gardés dans ton compte</string>
+    <string name="paywall_benefit_routes_note">Gratuit : seulement sur le téléphone qui les a enregistrés</string>
     <string name="paywall_benefit_alerts">Places, prix des stations et le bilan du mois</string>
     <string name="paywall_benefit_alerts_note">Dans les zones et stations que tu choisis, et à la fin du mois</string>
     <string name="paywall_benefit_zones">Zones illimitées</string>

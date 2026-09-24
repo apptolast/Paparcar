@@ -781,6 +781,8 @@ Se a pergunta já não aparecer, muda em Definições → Paparcar → Localiza�
     <string name="paywall_benefits_title">O que o Plus acrescenta</string>
     <string name="paywall_benefit_history">O teu histórico completo: gasto, tempo, previsões e os melhores sítios e horas</string>
     <string name="paywall_benefit_history_note">Grátis: os últimos 7 dias</string>
+    <string name="paywall_benefit_routes">As tuas rotas, guardadas na tua conta</string>
+    <string name="paywall_benefit_routes_note">Grátis: só no telemóvel que as gravou</string>
     <string name="paywall_benefit_alerts">Lugares, preços das bombas e o resumo do mês</string>
     <string name="paywall_benefit_alerts_note">Nas zonas e bombas que escolheres, e ao fechar o mês</string>
     <string name="paywall_benefit_zones">Zonas sem limite</string>

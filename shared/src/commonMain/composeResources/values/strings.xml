@@ -821,6 +821,8 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="paywall_benefits_title">What Plus adds</string>
     <string name="paywall_benefit_history">Your full history: spend, time, forecasts and the best places and hours</string>
     <string name="paywall_benefit_history_note">Free: the last 7 days</string>
+    <string name="paywall_benefit_routes">Your routes, saved in your account</string>
+    <string name="paywall_benefit_routes_note">Free: only on the phone that recorded them</string>
     <string name="paywall_benefit_alerts">Spots, fuel station prices and the month's recap</string>
     <string name="paywall_benefit_alerts_note">In the zones and stations you pick, and when the month closes</string>
     <string name="paywall_benefit_zones">Unlimited zones</string>
