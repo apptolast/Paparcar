@@ -28,8 +28,8 @@ import com.rndeveloper.paparcar.domain.detection.DetectionPath
  * vehicle ficha in a state worth looking at on a device: [STATS-UI-001]
  *   mock_vehicle_001 — Seat León · FULL DATA. Dense and recent, so every figure clears its
  *                      significance threshold and the free 7-day window is not empty either.
- *   mock_vehicle_002 — Toyota Corolla · BLUETOOTH. Sessions without a route, so km, CO₂ and cost
- *                      honestly disappear while the rest of the figures stay.
+ *   mock_vehicle_002 — Toyota Corolla · BLUETOOTH. Sessions without a route, so km, CO₂, cost
+ *                      AND el tiempo de búsqueda honestly disappear while the rest stay.
  *   mock_vehicle_003 — Honda CBR 600 · EMPTY. No history at all: the empty-state illustration and
  *                      "aún sin aparcar". Distinct from "hidden behind Plus", which the free
  *                      window produces on any car whose parkings are all older than 7 days.
@@ -139,6 +139,17 @@ class FakeUserParkingRepository(
                 // repeated 65 times.
                 endedAtMs = now - daysAgo * 86_400_000L - hourJitter + (1 + i % 8) * 3_600_000L,
                 routeDistanceMeters = 900f + (i % 9) * 850f,
+                // El veredicto de ParkingSearchTime es de TRES valores, y el catálogo reproduce
+                // los tres: un pin manual no tiene conducción grabada que medir (null), una
+                // llegada directa MIDE cero —cero es una medida, no un hueco— y el resto son
+                // vueltas de verdad, entre MIN_SEARCH_MS y ~9 min. Sin nulls la línea de
+                // cobertura («14 of 16 trips») no diría nada, y sin ceros la media mentiría hacia
+                // arriba. [MOCK-THE-FLAGSHIP-FIGURE-HAS-NO-MOCK-DATA-001]
+                searchTimeMs = when {
+                    i % 6 == 0 -> null
+                    i % 5 == 0 -> 0L
+                    else -> 90_000L + (i % 11) * 47_000L
+                },
                 address = AddressInfo(leonStreets[i % 9], "Puerto de Santa María", "Cádiz", "España", "ES"),
             ))
         }
@@ -170,6 +181,11 @@ class FakeUserParkingRepository(
                 // (Not a property of the BT lane: since [TRIP-THE-TRACKER-RIDES-THE-SENTINEL-001] a
                 // BT connect records its ride like any other.) [VEH-STATS-SAY-SOMETHING-USEFUL-001]
                 detectionPath = if (i % 8 == 0) "manual" else "bt",
+                // Y por eso `searchTimeMs` se queda null aquí, en las 45: la búsqueda se mide
+                // desde los fixes crudos de la ruta, así que un aparcamiento sin ruta no tiene
+                // NADA que medir. Es la misma ausencia que ya se lleva los km, no un olvido —
+                // este coche existe para que el chip de tiempo de búsqueda NO se ofrezca.
+                // [MOCK-THE-FLAGSHIP-FIGURE-HAS-NO-MOCK-DATA-001]
                 publishedSpot = i % 3 != 0,
                 endedAtMs = now - daysAgo * 86_400_000L + 8 * 3_600_000L,
                 address = AddressInfo(corollaStreets[i % 5], "El Puerto", "Cádiz", "España", "ES"),
@@ -226,6 +242,13 @@ class FakeUserParkingRepository(
                 publishedSpot = i % 2 == 0,
                 endedAtMs = now - daysAgo * 86_400_000L + 10 * 3_600_000L,
                 routeDistanceMeters = 2_400f + (i % 4) * 1_600f,
+                // Mismo reparto de tres valores que el 001, con otros módulos: dos coches con la
+                // misma serie calcada delatarían que el dato es de pega.
+                searchTimeMs = when {
+                    i % 5 == 0 -> null
+                    i % 4 == 0 -> 0L
+                    else -> 120_000L + (i % 7) * 63_000L
+                },
                 address = AddressInfo(transitStreets[i % 3], "Puerto de Santa María", "Cádiz", "España", "ES"),
             ))
         }
