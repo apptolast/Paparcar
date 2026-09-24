@@ -19,7 +19,7 @@ Provenance de los cuatro pines implicados:
 | 20:19→20:44 | Oppo | `e1cb2b34` | `self_observed` (GEOFENCE_EXIT) | `steps+egress` | confirmado 20:44:50 |
 
 Ninguna vía BT esta noche: el único `BT DISCONNECTED` del Oppo fue de unos auriculares
-(`00:A4:1C:65:2B:3F`, sin vehículo emparejado). **Los cuatro trayectos son Coordinator**, así que la
+(`BT-HEADPHONES`, sin vehículo emparejado). **Los cuatro trayectos son Coordinator**, así que la
 comparación Redmi/Oppo es limpia: misma estrategia, mismo coche, mismo asfalto.
 
 La sesión perdida del Redmi tuvo TODO lo que hace falta para confirmar:

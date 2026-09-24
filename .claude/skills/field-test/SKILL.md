@@ -15,7 +15,7 @@ dos móviles a la vez para probar ambas estrategias en el mismo viaje físico:
 
 | Móvil | uid | Cuenta | Vehículo | Estrategia que prueba |
 |---|---|---|---|---|
-| **Oppo** (CPH2371) | `fiypNbElGlfFexLMpU9sNaMjRMD3` | rndeveloper11501@gmail.com | Skoda Kamiq real, BT `50:26:EF:16:1D:C0` | **BLUETOOTH** |
+| **Oppo** (CPH2371) | `fiypNbElGlfFexLMpU9sNaMjRMD3` | rndeveloper11501@gmail.com | Skoda Kamiq real, BT `BT-CAR-KAMIQ` | **BLUETOOTH** |
 | **Redmi** (2201117TY) | `WZB7oftWLDY1toGJrDwoRHnnYHx2` | otra cuenta | Citroën C5 Aircross **ficticio**, sin BT | **COORDINATOR** puro |
 | 3er móvil (Carlos) | `sUGo7EYl16XDtosI8Ei7LFeAo2E2` | cardomfer97 | — | Coordinator sin BT |
 

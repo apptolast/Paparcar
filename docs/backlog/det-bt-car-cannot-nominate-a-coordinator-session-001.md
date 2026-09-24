@@ -12,7 +12,7 @@ La rama `bugfix/…-veto-bt-nominator` y el worktree `../Paparcar-bt-nominator` 
 
 Field test 25-08-2026, Oppo (uid `fiypNbElGlfFexLMpU9sNaMjRMD3`). Coche activo: **Ford Focus**
 (`addbe660`, sin BT → Coordinator). En el garaje hay además un **Skoda Kamiq** (`abf6c516`,
-`bluetoothDeviceId = 50:26:EF:16:1D:C0` → estrategia **Bluetooth**), inactivo.
+`bluetoothDeviceId = BT-CAR-KAMIQ` → estrategia **Bluetooth**), inactivo.
 
 A las 19:59:05, al final del viaje, el AR disparó `IN_VEHICLE ENTER` y el servicio resolvió *"tu
 coche aparcado"* como:

@@ -9,7 +9,7 @@
 ## Problema
 
 Usuario `8fhNJGctp…` (Nothing A001, Android 16, app 1.3.0, base `(default)`), con un **BT aftermarket**
-—comprado aparte, no la radio del coche— emparejado al Skoda Kamiq (`C8:18:D3:9D:74:B4`).
+—comprado aparte, no la radio del coche— emparejado al Skoda Kamiq (`BT-HANDSFREE-AFTERMARKET`).
 Reporta aparcamientos perdidos el 22-09 y pregunta si podemos fiarnos menos del BT.
 
 Dos falsos negativos medidos, ambos con la MISMA forma:

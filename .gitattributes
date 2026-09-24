@@ -1,0 +1,35 @@
+# El índice guarda LF SIEMPRE; cada quien ve en su disco lo que su OS use. Sin este fichero, en
+# Windows un editor puede meter CRLF en un .md y git lo ve como el fichero entero reescrito —
+# que es exactamente el ruido que en BRAND-A-NEW-MARK-EARNS-ITS-SURFACES-001 hizo que un atajo
+# para silenciarlo acabara revirtiendo salida de verdad.
+* text=auto eol=lf
+
+# Scripts que el OS ejecuta: mandan sus finales, no los nuestros.
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+gradlew text eol=lf
+*.sh    text eol=lf
+
+# Binarios: git no los toca ni intenta diffearlos.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.webp  binary
+*.ico   binary
+*.ttf   binary
+*.otf   binary
+*.woff  binary
+*.woff2 binary
+*.jar   binary
+*.keystore binary
+*.jks   binary
+*.apk   binary
+*.aab   binary
+
+# Texto que parece binario (o al revés): explícito para que el diff sirva.
+*.svg   text
+*.kt    text
+*.kts   text
+*.md    text
+*.json  text
+*.xml   text

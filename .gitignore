@@ -783,3 +783,7 @@ docs/release/play-listing/assets/screenshots/*
 
 # Los tests de reglas traen su propio node_modules y su caché de emulador.
 firestore-rules-tests/node_modules/
+
+# Scratch de sesiones de agente — nunca se versiona (tres borradores de mensaje de
+# commit se colaron en 41b2c8d72).
+.artifacts/

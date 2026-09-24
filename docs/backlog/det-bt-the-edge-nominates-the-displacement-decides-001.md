@@ -12,7 +12,7 @@
 
 ## Problema
 
-Fernando (`8fhNJGct…`) tiene su Skoda Kamiq emparejado al MAC `C8:18:D3:9D:74:B4`. Ese dispositivo
+Fernando (`8fhNJGct…`) tiene su Skoda Kamiq emparejado al MAC `BT-HANDSFREE-AFTERMARKET`. Ese dispositivo
 **no se comporta como un coche** — medido sobre su parkdiag de 11 días (52.724 líneas):
 
 | Señal | Valor |
@@ -23,7 +23,7 @@ Fernando (`8fhNJGct…`) tiene su Skoda Kamiq emparejado al MAC `C8:18:D3:9D:74:
 | Máximo de enganche | **57 s** — ninguno llega al minuto |
 | Enganches realmente ride-shaped en 11 días | **2** (292 s el 08-09, 361 s el 12-09; el segundo abortó a media conducción) |
 
-Mientras tanto, el estéreo real del Kamiq (`50:26:EF:16:1D:C0`) aparece **70 veces** y siempre como
+Mientras tanto, el estéreo real del Kamiq (`BT-CAR-KAMIQ`) aparece **70 veces** y siempre como
 *«no vehicle paired — ignoring»*. Es decir: emparejó unos auriculares (o un wearable) como si fueran
 el coche, y el coche de verdad lo ignora la app.
 

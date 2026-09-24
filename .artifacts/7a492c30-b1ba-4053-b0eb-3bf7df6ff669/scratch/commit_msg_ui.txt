@@ -1,6 +1,0 @@
-ui: match peek eyebrow color with counter and rename spots lane [GEMINI]
-
-- [BrowsePeek] change eyebrow to match the active lane subject ("PLAZAS" instead of "TU ZONA").
-- [BrowsePeek] match eyebrow color with the lead counter (Action tone if >0).
-- [Peeks] apply uppercase to all eyebrows for doctrine consistency.
-- [Peeks] match eyebrow color with action-leads in fuel and public parkings.

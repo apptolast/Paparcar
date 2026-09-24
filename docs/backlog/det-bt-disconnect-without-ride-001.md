@@ -13,7 +13,7 @@ guardado en Calle Góndola 7 con su coche. Reconstrucción (`files/parkdiag.log`
 
 | Hora local | Evento | Dato |
 |---|---|---|
-| 14:08:40.2 | `BTReceiver ▶ BT CONNECTED` | `50:26:EF:16:1D:C0` → vehicle=`abf6c516` (Kamiq) |
+| 14:08:40.2 | `BTReceiver ▶ BT CONNECTED` | `BT-CAR-KAMIQ` → vehicle=`abf6c516` (Kamiq) |
 | 14:08:53.9 | `BTReceiver ▶ BT DISCONNECTED` | **13,7 s después** |
 | 14:09:24.3 | Debounce de 30 s superado | nadie reconectó |
 | 14:09:35.9 | `Got parking fix (36.6083668, -6.2781084) acc=16.9m` | candidato aceptado **por estar quieto** |
@@ -22,7 +22,7 @@ guardado en Calle Góndola 7 con su coche. Reconstrucción (`files/parkdiag.log`
 | 15:23:21 | `GEOFENCE_EXIT geof=3b3856f9 d=191m` | la valla del pin arma el Coordinator → `aborted_no_movement` |
 
 **Corroboración fuera de la app.** `dumpsys bluetooth_manager`, `A2dpStateMachine` de
-`50:26:EF:16:1D:C0` — **7 registros en total, los 7 de hoy**:
+`BT-CAR-KAMIQ` — **7 registros en total, los 7 de hoy**:
 
 ```
 14:08:41.520  Disconnected → Connecting

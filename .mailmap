@@ -1,0 +1,7 @@
+# Dos personas firmaban con cuatro identidades: el mismo autor con su cuenta local y con el correo
+# noreply de GitHub (los commits hechos desde la web o desde otra máquina). Esto lo unifica para
+# `git shortlog`, `git blame` y `git log --author` SIN reescribir un solo commit.
+Gonzalo Renedo <rndeveloper11501@gmail.com> <rndeveloper11501@gmail.com>
+Gonzalo Renedo <rndeveloper11501@gmail.com> <108679975+rndevelo@users.noreply.github.com>
+Alberto Hidalgo <hgarcia.alberto@gmail.com> <hgarcia.alberto@gmail.com>
+Alberto Hidalgo <hgarcia.alberto@gmail.com> <51128924+hgarciaalberto@users.noreply.github.com>

@@ -69,7 +69,7 @@ se haya movido.**
    exime a `MANUAL` de `coordinatorMayArm(strategy, trigger)`. Un arm automático etiquetado MANUAL
    entra por ese agujero **sea cual sea la estrategia del vehículo activo**. ⚠️ Corrección: esta
    noche el vehículo de la sesión era el **Ford Focus** (`addbe660`, SIN bluetoothDeviceId), no el
-   Kamiq (`abf6c516`, BT `50:26:EF:16:1D:C0`) — así que `resolveStrategy` = COORDINATOR y el arm
+   Kamiq (`abf6c516`, BT `BT-CAR-KAMIQ`) — así que `resolveStrategy` = COORDINATOR y el arm
    era legítimo por estrategia. El agujero sigue abierto: bastaría que el vehículo activo fuese el
    Kamiq para reproducir el fallo de 2026-08-01 que creó ese gate.
 3. **`DET-SOLID-001`**: `manual` NO está en `weakLabels` de `EvaluateParkingDecisionUseCase`, así

@@ -6,7 +6,7 @@
 ## Síntoma (field 2026-08-01 y 03, Oppo, Skoda Kamiq)
 
 Primer vehículo BT-emparejado real del proyecto. El usuario vinculó el Kamiq al BT del coche
-(MAC `50:26:EF:16:1D:C0`, bien persistida en Room + Firestore) y aun así todas las detecciones
+(MAC `BT-CAR-KAMIQ`, bien persistida en Room + Firestore) y aun así todas las detecciones
 las hizo el Coordinator — y atribuyó los pins al Ford Focus (primario), no al Kamiq. El usuario
 tuvo que corregir a mano (MANUAL_REPORT 01-08 17:45).
 

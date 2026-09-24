@@ -1,6 +1,0 @@
-ui: horizontal redesign for nearby subject tabs [GEMINI]
-
-- [LensTab] move icon to the left of the title instead of above.
-- [LensTab] reduce icon size to 18dp for a more compact row.
-- [LensTab] adjust spacings and vertical alignment for the new horizontal layout.
-- [HomeNearbyLensRow] increase top padding to balance the lower vertical profile.

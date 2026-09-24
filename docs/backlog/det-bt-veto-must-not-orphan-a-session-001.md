@@ -25,7 +25,7 @@ abierta es el dato bueno, no un zombi. Lo que este ticket persigue **no** es cer
 
 La primera redacción afirmaba que **ninguna vía puede cerrarla** y que el veto `bt-owned` fabrica un
 huérfano. **Eso afirma más de lo que se midió.** Lo único observado es que la vía Bluetooth **no se
-ejercitó**: el MAC `50:26:EF:16:1D:C0` no aparece en el `parkdiag` porque el coche no se condujo, no
+ejercitó**: el MAC `BT-CAR-KAMIQ` no aparece en el `parkdiag` porque el coche no se condujo, no
 porque la vía falle. Nunca vi al carril BT intentar cerrar nada y fracasar.
 
 Lo que sí está observado, y sigue en pie:
@@ -33,7 +33,7 @@ Lo que sí está observado, y sigue en pie:
 | Vía | Observado | Evidencia |
 |---|---|---|
 | **Coordinator** | tiene prohibido adueñarse de un coche con MAC, **y su valla sí arma sesiones** | `✓ vehicleId locked: addbe660 … (nominator=abf6c516 **vetoed: bt-owned**)` (26-08 08:30:44) |
-| **Bluetooth** | **sin ejercitar** — el coche no se ha usado | `50:26:EF:16:1D:C0` 0 veces; 0 sesiones `BLUETOOTH` |
+| **Bluetooth** | **sin ejercitar** — el coche no se ha usado | `BT-CAR-KAMIQ` 0 veces; 0 sesiones `BLUETOOTH` |
 | **SafetyNet** | «lejos pero sin pruebas de viaje» → pregunta, no libera | `geof=a786c135: LEJOS (d=2001m) pero SIN pruebas de viaje` |
 
 **La pregunta abierta**, que es lo que queda del ticket: cuando el Kamiq SÍ se conduzca, ¿la vía BT
@@ -42,7 +42,7 @@ cierra su sesión? Si sí, aquí no hay bug de cierre y sólo queda el coste (ab
 `DET-RETRACT-DENIED-FOREVER-001` un nivel más arriba, y el ticket recupera su título.
 
 **Cómo se decide, y es barato:** un solo viaje con el Kamiq emparejado. Señales a mirar en el
-`parkdiag`: aparición de `BT DISCONNECTED device=50:26:EF:16:1D:C0` con vehículo emparejado
+`parkdiag`: aparición de `BT DISCONNECTED device=BT-CAR-KAMIQ` con vehículo emparejado
 reconocido, y si `a786c135` pasa a `isActive: false`.
 
 ⚠️ Dato de contexto, no acusación: el vehículo está `isActive: false` en el garaje (el activo es el

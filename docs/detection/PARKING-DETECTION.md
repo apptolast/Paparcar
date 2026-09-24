@@ -1042,7 +1042,7 @@ pasar en verde justo lo que el ticket arregla.
 usuario marca a mano casi todos sus aparcamientos — **32 de sus 42 confirmaciones son
 `reliability=1.0`** (o sea, la app preguntando). Su Kamiq está emparejado a un MAC que **no es un
 coche**: 237 enganches, **mediana 17 s, máximo 57 s**, 235 descartados por `not a ride`. El estéreo
-real del Kamiq (`50:26:EF:16:1D:C0`) aparece 70 veces como *"no vehicle paired — ignoring"*.
+real del Kamiq (`BT-CAR-KAMIQ`) aparece 70 veces como *"no vehicle paired — ignoring"*.
 
 **Causa raíz, en dos mitades que se alimentan:**
 
@@ -6395,7 +6395,7 @@ Spec: `docs/backlog/det-departure-is-not-arrival-001.md`.
 
 **User report.** Field 2026-08-25, **Oppo CPH2371** (uid `fiypNbElGlfFexLMpU9sNaMjRMD3`). Active
 vehicle: **Ford Focus** (`addbe660`, no Bluetooth ⇒ Coordinator). Also in the garage, inactive: a
-**Skoda Kamiq** (`abf6c516`, `bluetoothDeviceId = 50:26:EF:16:1D:C0` ⇒ Bluetooth strategy). A real
+**Skoda Kamiq** (`abf6c516`, `bluetoothDeviceId = BT-CAR-KAMIQ` ⇒ Bluetooth strategy). A real
 trip with 23 min of measured driving ended with **no parking for the Focus**, and the phone spent
 the night watching a pin that belongs to a car parked five days earlier.
 
