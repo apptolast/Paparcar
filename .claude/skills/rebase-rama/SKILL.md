@@ -128,7 +128,7 @@ PowerShell `.\gradlew` sale exit 0 sin compilar nada):
 
 ```bash
 cd <worktree>
-./gradlew :shared:testDebugUnitTest --console=plain
+./gradlew testAll --console=plain          # ⛔ testAll, no :shared: — es la suite ENTERA
 ./gradlew :app:compileMockDebugKotlin :app:compileProdDebugKotlin --console=plain
 ```
 

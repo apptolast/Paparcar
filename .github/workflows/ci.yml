@@ -14,6 +14,9 @@ on:
       - master
       - alpha
       - beta
+  # [CI-A-GUARD-THAT-NEVER-STARTS-IS-NOT-A-GUARD-001] The macOS job no longer rides along with
+  # every pull request, so the only way to ask for a full Apple check on demand is this.
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -61,11 +64,19 @@ jobs:
       - name: Build Check
         run: ./gradlew :app:assembleProdDebug :app:compileMockDebugKotlin --no-daemon --stacktrace
 
-      # :app:testMockDebugUnitTest carries the mock-graph Koin verify — `mockModule` lives in
-      # :app, so :shared's KoinModuleVerifyTest (prod graph) cannot see it.
-      # [IOS-DI-A-MOCK-GRAPH-ONLY-PROD-IS-VERIFIED-001]
+      # ⛔ `testAll`, never the task list spelled out here.
+      # [TEST-A-GUARD-MUST-NOT-READ-THE-FOLDER-NAME-001] The task exists to be a command you
+      # CANNOT write half of, and this step used to write half of it: it named :shared's suite and
+      # :app's mock-graph Koin verify, but not `:shared:compileKotlinIosSimulatorArm64` — which
+      # `testAll` gained on 21-09, after CI had already stopped running. Eleven green PRs had left
+      # `IosAppPreferences` missing two members of `AppPreferences` and nothing noticed.
+      # [IOS-THE-ANDROID-SUITE-DOES-NOT-COMPILE-IOS-001]
+      #
+      # That iOS klib compiles on Linux at ×1, which is why the Apple lane below can stop riding
+      # on every pull request without iOS losing its per-run guard: what catches a missing
+      # `actual` or a drifted signature runs HERE, on every single run, for free.
       - name: Run unit tests
-        run: ./gradlew :shared:testDebugUnitTest :app:testMockDebugUnitTest --no-daemon --stacktrace
+        run: ./gradlew testAll --no-daemon --stacktrace
 
       - name: Upload test results
         if: always()
@@ -80,18 +91,27 @@ jobs:
   # above is ubuntu-only. iOS therefore broke in silence — a bad import, a missing `actual` or
   # a stale type never failed any build we ran, only the one we never ran.
   #
-  # ⛔ It no longer runs on every push to master, and the reason is money, not confidence. The
-  # repository went PRIVATE on 08-09-2026, and on a private repo Actions minutes are metered with
-  # macOS charged at 10× — a ten-minute job bills a hundred minutes, so a normal week of pushing
-  # to master would eat the whole monthly allowance on a target nobody is shipping this month.
-  # (iOS is parked; see the backlog.) The check does not disappear, it moves to where iOS actually
-  # changes: its own branch and any pull request. What master gets is what master can break —
-  # commonMain — and that is caught by the ubuntu job on every push, plus by this one the moment
-  # the iOS branch rebases onto master.
+  # ⛔ It runs neither on every push to master nor on every pull request, and the reason is money,
+  # not confidence. The repository went PRIVATE on 08-09-2026, and on a private repo Actions
+  # minutes are metered with macOS charged at 10× — a ten-minute job bills a hundred minutes.
+  #
+  # [CI-A-GUARD-THAT-NEVER-STARTS-IS-NOT-A-GUARD-001] The 29-08 version kept it on every pull
+  # request, and that is what killed CI outright: a free org gets 2.000 minutes a month, ×10 makes
+  # that ~13 pull requests, and from 13-09-2026 GitHub refused to start ANY job —
+  # "recent account payments have failed or your spending limit needs to be increased", readable
+  # only in the check-run annotation. A guard that bills so much it stops every other guard from
+  # starting is not protecting anything. The cheapest job in the file was dying because of the
+  # most expensive one.
+  #
+  # So it moves to where iOS actually changes: its own branch, or asked for by hand. What is NOT
+  # lost is the half that caught the real breakages — compiling iosMain — because
+  # `:shared:compileKotlinIosSimulatorArm64` rides inside `testAll` on the ubuntu job above, at
+  # ×1, on every run. What only a Mac can tell us (the framework LINKS, and Xcode builds the app)
+  # is what waits here.
   apple:
     name: iOS framework (Kotlin/Native)
     runs-on: macos-latest
-    if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/heads/feature/IOS-')
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/heads/feature/IOS-')
 
     steps:
       - name: Checkout

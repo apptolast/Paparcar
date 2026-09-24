@@ -38,8 +38,13 @@ jobs:
           echo "GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID" > local.properties
           echo "MAPS_API_KEY=mock_key" >> local.properties
 
+      # ⛔ `testAll`, not :shared alone. [TEST-A-GUARD-MUST-NOT-READ-THE-FOLDER-NAME-001]
+      # This is the gate in front of EXTERNAL testers and it was the thinnest one in the repo:
+      # it ran :shared's suite only, so neither the mock-graph Koin verify (:app) nor the iOS
+      # klib compile stood between a broken graph and someone else's phone.
+      # [CI-A-GUARD-THAT-NEVER-STARTS-IS-NOT-A-GUARD-001]
       - name: Run unit tests
-        run: ./gradlew :shared:testDebugUnitTest --no-daemon --stacktrace
+        run: ./gradlew testAll --no-daemon --stacktrace
 
   distribute-release:
     name: Build Release & Distribute

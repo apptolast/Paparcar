@@ -345,7 +345,7 @@ mapean con un `when` en la pantalla y se muestran en un `SnackbarHost`. **Cero c
 | `shared/src/androidUnitTest` | 16 | lo que necesita JVM/Android: guardarraíles Konsist, Robolectric, workers, paridad de deserializadores Firestore |
 
 ```bash
-./gradlew :shared:testDebugUnitTest --console=plain
+./gradlew testAll --console=plain
 ```
 
 Regla: **fakes sobre mocks** (`FakeAuthRepository`, `FakePermissionManager`, …), naming

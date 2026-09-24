@@ -58,7 +58,7 @@ Clasificar **cada** hit en el doc del ticket: `cerrado` / `cubierto por converge
 - Ejecutar la suite completa antes de dar nada por hecho (vía Bash, **no** PowerShell —
   el repo no tiene `gradlew.bat`):
   ```bash
-  ./gradlew :shared:testDebugUnitTest --console=plain
+  ./gradlew testAll --console=plain        # ⛔ testAll, no :shared: — es la suite ENTERA
   ./gradlew :shared:testDebugUnitTest --tests "com.rndeveloper.paparcar.domain.coordinator.*" --console=plain
   ```
 - Reportar el número de tests verdes en el resumen (el user lo usa como referencia entre sesiones).
