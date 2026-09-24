@@ -606,22 +606,11 @@ class CoordinatorParkingDetector(
         // The finally never touches notifications: [runConfirm] paths dismiss explicitly
         // (user-tap / response-timeout / failure), and the auto-confirm success path is
         // exactly what we are protecting here.
-        val savedConfirmAge = effects.savedConfirmPostedAt?.let { sessionStartMs - it }
-        if (savedConfirmAge == null || savedConfirmAge > config.confirmationResponseTimeoutMs) {
-            PaparcarLogger.d(
-                DIAG,
-                "  → session-start dismiss PARKING_CONFIRMATION (savedConfirmAge=${savedConfirmAge}ms, " +
-                    "limit=${config.confirmationResponseTimeoutMs}ms)"
-            )
-            notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
-            effects.forgetSavedConfirm()
-        } else {
-            PaparcarLogger.d(
-                DIAG,
-                "  ⊘ session-start dismiss skipped — fresh revert card (age=${savedConfirmAge}ms) " +
-                    "[REFACTOR-300-FIX]"
-            )
-        }
+        //
+        // [DET-A-SAVED-CARD-MUST-NOT-OUTLIVE-ITS-TRIP-001] The rule itself moved to
+        // [dismissSavedCardIfStale] — a Coordinator session is no longer the only way a trip
+        // begins, and the BT lane starts one without ever entering this function.
+        dismissSavedCardIfStale(sessionStartMs, lane = "session-start")
 
         // vehicleId is captured lazily when hasEverReachedDrivingSpeed first becomes true.
         // Capturing at session start (on IN_VEHICLE_ENTER) was a race: a new vehicle
@@ -1352,6 +1341,47 @@ class CoordinatorParkingDetector(
      *  Thread-safe. */
     fun onVehicleRide(atMs: Long) {
         _detectionState.update { it.copy(egress = it.egress.onVehicleRide(atMs)) }
+    }
+
+    /**
+     * [DET-A-SAVED-CARD-MUST-NOT-OUTLIVE-ITS-TRIP-001] A trip is starting — take the parking flow's
+     * slot back if the card sitting in it no longer belongs to the car it talks about.
+     *
+     * Public because **the Coordinator is not the only lane that starts a trip**. Before this, the
+     * rule was an inline expression inside [invoke], so `btHuntJob` / `btTrackingJob` — which never
+     * enter that function — began, ran and ended with the previous trip's card still in the tray.
+     * The stamp it reads ([DetectionEffectExecutor.savedConfirmPostedAt]) lives in this object, so
+     * the operation lives here too and the BT lane asks instead of keeping its own copy of the rule.
+     *
+     * The decision itself is [savedCardIsStale], a pure function both lanes share — not a private
+     * method of whichever file was being edited. [DET-VERDICT-NOT-PREDICATE-001]
+     *
+     * ⛔ Not a mixing of lanes: it moves no Bluetooth signal into the Coordinator's scoring. It is
+     * notification hygiene — which car owns the one slot the parking flow speaks through
+     * [NOTIF-A-FLOW-SPEAKS-THROUGH-ONE-SLOT-001].
+     *
+     * @param nowMs the instant the trip starts.
+     * @param lane which lane is asking — diagnostics only.
+     * @return true when the card was taken down.
+     */
+    fun dismissSavedCardIfStale(nowMs: Long, lane: String): Boolean {
+        val postedAt = effects.savedConfirmPostedAt
+        val ageMs = postedAt?.let { nowMs - it }
+        if (!savedCardIsStale(postedAt, nowMs, config)) {
+            PaparcarLogger.d(
+                DIAG,
+                "  ⊘ $lane dismiss skipped — fresh revert card (age=${ageMs}ms) [REFACTOR-300-FIX]",
+            )
+            return false
+        }
+        PaparcarLogger.d(
+            DIAG,
+            "  → $lane dismiss PARKING_CONFIRMATION (savedConfirmAge=${ageMs}ms, " +
+                "limit=${config.confirmationResponseTimeoutMs}ms)",
+        )
+        notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
+        effects.forgetSavedConfirm()
+        return true
     }
 
     /** User tapped "Yes, I parked". Dismisses the notification and marks confirmation. Thread-safe. */

@@ -1597,6 +1597,15 @@ class CoordinatorDetectionService : LifecycleService() {
         }
         btHuntJob?.cancel()
         btHuntJob = null
+        // [DET-A-SAVED-CARD-MUST-NOT-OUTLIVE-ITS-TRIP-001] A CONNECT is this lane's start of a trip,
+        // and the Coordinator's session-start cleanup never reached here — so the previous parking's
+        // card could sit in the tray through a whole BT trip, its buttons still aimed at a session
+        // that had ended. Same rule, same 15-min protection of the undo window: the coordinator owns
+        // the stamp, so it is asked rather than copied.
+        //
+        // ⛔ No BT signal crosses into the Coordinator's scoring here — this is which car owns the
+        // one slot the parking flow speaks through [NOTIF-A-FLOW-SPEAKS-THROUGH-ONE-SLOT-001].
+        parkingDetectionCoordinator.dismissSavedCardIfStale(System.currentTimeMillis(), lane = "bt-connect")
         // [DET-RETURN-ANCHOR-001] Deterministic "back at my car": re-seal the anchor + cure the
         // fence seconds before the drive-away. Accelerator only — the evaluator still decides.
         ParkingSafetyNetWorker.enqueueCheckNow(

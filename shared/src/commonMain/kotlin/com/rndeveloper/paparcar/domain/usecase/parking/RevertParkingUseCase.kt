@@ -20,6 +20,13 @@ import kotlin.time.Clock
  * Invoked when the user taps "No, cancelar" on the post-save notification (state B in
  * the unified notification state machine — see docs/detection/PARKING-DETECTION.md).
  *
+ * **El sujeto se resuelve, no se supone.** [DET-A-SAVED-CARD-MUST-NOT-OUTLIVE-ITS-TRIP-001] El
+ * `parkingId` llega en los extras de un PendingIntent que puede sobrevivir al viaje del que habla,
+ * así que lo PRIMERO es comprobar que sigue siendo una sesión activa. Si no lo es, no se retira ni
+ * se ficha nada: sólo se apaga la tarjeta y se deja constancia (`REVERT_STALE`). Retirar por un id
+ * caducado sacaba del histórico un viaje real y lo registraba como falso positivo etiquetado por el
+ * usuario — justo la señal que este caso de uso existe para producir limpia.
+ *
  * **Composición (v1).** No introduce nuevos esquemas Room/Firestore: solo encadena
  * operaciones ya existentes que son inversas a [ConfirmParkingUseCase]:
  *
@@ -74,16 +81,61 @@ class RevertParkingUseCase(
         // [DET-SOLID-001] A revert is a USER-LABELLED false positive — the single most valuable
         // signal detection telemetry can produce. Capture the session age before clearing.
         val now = Clock.System.now().toEpochMilliseconds()
-        val revertedSession = runCatching {
+
+        // [DET-A-SAVED-CARD-MUST-NOT-OUTLIVE-ITS-TRIP-001] …which is precisely why the subject has
+        // to be RESOLVED and not assumed. This id arrives in the extras of a PendingIntent attached
+        // to a notification that can outlive the trip it talks about (the Coordinator protects the
+        // undo window for 15 min; the BT lane never took the card down at all). Tapping «No,
+        // cancelar» on such a card used to withdraw a REAL trip from the history and file it as a
+        // user-labelled false positive — the one signal detection cannot afford to have poisoned.
+        //
+        // The fix is the shape the watchdog's twin already had: read the session, and when it is not
+        // there, converge the notification and say so instead of acting. Doing it HERE rather than
+        // at each caller is what also closes it on iOS, whose `IosNotificationActionHandler` hands
+        // this use case an id out of `userInfo` with exactly the same blind trust.
+        //
+        // Three outcomes, deliberately distinguished — the third is not the second:
+        //  · found     → the revert the user asked for, unchanged.
+        //  · absent    → a stale tap. Withdraw nothing, file nothing, dismiss the card.
+        //  · unreadable→ we do not KNOW. Same restraint, different trace: a Room hiccup must never
+        //    be recorded as a stale tap, and asymmetric failure picks the silence either way —
+        //    declining costs a pin the user can still delete from the history (this class's own
+        //    fallback, below); acting costs a real trip nobody can get back.
+        val lookup = runCatching {
             userParkingRepository.observeActiveSessions().firstOrNull()
                 ?.firstOrNull { it.id == parkingId }
-        }.getOrNull()
+        }
+        val revertedSession = lookup.getOrNull()
+        if (revertedSession == null) {
+            val reason = if (lookup.isFailure) "sessions_unreadable" else "not_an_active_session"
+            PaparcarLogger.w(
+                DIAG,
+                "  ⊘ revert DECLINED — $reason (parkingId=$parkingId). The card outlived its trip; " +
+                    "nothing withdrawn [DET-A-SAVED-CARD-MUST-NOT-OUTLIVE-ITS-TRIP-001]",
+            )
+            // A stale tap is field data, not a false positive: it says a card stayed reachable after
+            // its session ended, which is the very thing this ticket measures. It must NOT ride
+            // `Reverted`, whose whole meaning is "the user refuted this pin".
+            detectionEventLogger?.log(
+                DetectionEvent.Decision(
+                    sessionId = parkingId,
+                    timestampMs = now,
+                    outcome = "REVERT_STALE",
+                    pathLabel = null,
+                    reason = reason,
+                )
+            )
+            notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
+            PaparcarLogger.d(DIAG, "■ RevertParking.invoke DONE (declined)")
+            return Result.success(Unit)
+        }
+
         detectionEventLogger?.log(
             DetectionEvent.Reverted(
                 sessionId = parkingId,
                 timestampMs = now,
-                sessionAgeMs = revertedSession?.location?.timestamp?.let { now - it },
-                location = revertedSession?.location,
+                sessionAgeMs = now - revertedSession.location.timestamp,
+                location = revertedSession.location,
             )
         )
 
@@ -96,16 +148,15 @@ class RevertParkingUseCase(
             PaparcarLogger.e(DIAG, "  ✗ clearActiveParkingSession failed", e)
         }.onSuccess {
             PaparcarLogger.d(DIAG, "  ✓ session cleared (isActive=false in Room + queued for Firestore)")
-            // [ANALYTICS-EVENTS-001] A retraction IS a fact — analysis filters it by reason. Only
-            // emitted when the session was found (no location → nothing honest to report).
-            revertedSession?.location?.let { location ->
-                analyticsTracker?.track(
-                    AnalyticsEvent.ParkingSessionEnded(
-                        location = location,
-                        reason = SessionEndReason.REVERTED,
-                    )
+            // [ANALYTICS-EVENTS-001] A retraction IS a fact — analysis filters it by reason. The
+            // "only when the session was found" guard this used to carry is now the early return
+            // above: past this point the session IS the one being withdrawn.
+            analyticsTracker?.track(
+                AnalyticsEvent.ParkingSessionEnded(
+                    location = revertedSession.location,
+                    reason = SessionEndReason.REVERTED,
                 )
-            }
+            )
         }
 
         // [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] …and the row LEAVES the history, which is the

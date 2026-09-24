@@ -499,6 +499,73 @@ See `diagnostics/README.md` at the repo root for the recommended layout when arc
 
 Each entry is one issue we shipped a fix for. Listed roughly in dependency order (mappers first, then pipeline, then algorithm). Every entry should explain *what was wrong*, *why it was wrong*, and *what guard exists today*. If you ever want to remove a guard, find its entry here first.
 
+### DET-A-SAVED-CARD-MUST-NOT-OUTLIVE-ITS-TRIP-001 — la tarjeta del aparcamiento sobrevivía al viaje, y sus botones seguían apuntando al viaje viejo
+
+**Commit:** pending. **Origen:** pregunta del user, 24-09-2026 — *«si ya hay otro viaje nuevo, y
+sigue la notificación del viaje anterior de coche guardado, ¿qué ocurre si el usuario pulsa
+confirmar?»*. No hay dato de campo: el defecto se encontró leyendo el camino del tap.
+
+**Qué se preguntó y qué se encontró.** «Sí, confirmar» (`ACTION_PARKING_ACK`) resultó ser inofensivo
+— `handlePostSaveAck()` sólo hace `dismiss(2002)`, y el epílogo del intake guarda los cuatro slots
+de job (`detectionJob`, `btTrackingJob`, `btHuntJob`, `btWatchJob`), así que el viaje vivo no se
+entera. El botón de al lado no lo era.
+
+**Causa raíz — dos mitades del mismo invariante mal puesto.**
+
+1. **La tarjeta se queda.** La limpieza de arranque de sesión vivía como expresión inline dentro de
+   `CoordinatorParkingDetector.invoke()`, con su protección deliberada de 15 min
+   (`confirmationResponseTimeoutMs`, [REFACTOR-300-FIX]: un `IN_VEHICLE_ENTER` espurio mientras el
+   usuario camina desde el coche no puede borrarle el deshacer). El **carril BT no entra en esa
+   función**: `btHuntJob` / `btTrackingJob` arrancaban, corrían y terminaban con la tarjeta del
+   aparcamiento anterior intacta en la bandeja.
+2. **Y sus botones actuaban a ciegas.** El extra `parkingId` del PendingIntent de «No, cancelar» iba
+   directo a `RevertParkingUseCase`, que **no comprobaba nada**.
+
+**Alcance real, medido en el DAO — dos tercios del daño ya estaban blindados.** `clearActiveById`
+usa `COALESCE(endedAtMs, …)` y `MAX(publishedSpot, …)` ([VEH-STATS-SAY-SOMETHING-USEFUL-001]), así
+que un revert caducado **no** movía la hora de salida ni retractaba una publicación, y
+`removeGeofence` sobre una valla inexistente es idempotente. Lo que sí mordía:
+
+| Efecto | ¿Muerde? |
+|---|---|
+| `retractParkingSession` → `retractedAtMs` | **SÍ** — un viaje REAL salía del histórico |
+| `DetectionEvent.Reverted` con `sessionAgeMs=null`, `location=null` | **SÍ** — un viaje correcto quedaba fichado como falso positivo etiquetado por el usuario |
+
+Lo segundo es lo grave: `Reverted` es, según el KDoc del propio caso de uso, *«la señal más valiosa
+que la telemetría de detección puede producir»*, y se estaba envenenando con taps sobre tarjetas
+caducadas.
+
+**Fix.** El sujeto **se resuelve**, no se supone — la forma que el gemelo de la ranura 2005 ya tenía
+(`handleWatchdogDeparture` → `ProcessConfirmedDepartureUseCase` lee `getActiveSessionByGeofence(…)`
+y, si no hay sesión, converge el estado sin publicar nada).
+
+- `RevertParkingUseCase` distingue **tres** desenlaces: encontrada → el revert de siempre; ausente →
+  no retira ni ficha, apaga la tarjeta y deja `Decision(outcome = "REVERT_STALE", reason =
+  "not_an_active_session")`; **ilegible** → la misma contención con `reason = "sessions_unreadable"`,
+  porque «miré y no está» y «no pude mirar» son hechos distintos y sólo uno prueba que una tarjeta
+  sobrevivió a su viaje. Al vivir en `commonMain`, **cierra iOS gratis**:
+  `IosNotificationActionHandler` entregaba el id sacado de `userInfo` con la misma confianza ciega.
+- La regla de los 15 min sale del inline a `domain/detection/SavedCardIsStale.kt` — función pura que
+  **ambos carriles** comparten [DET-VERDICT-NOT-PREDICATE-001] — y el coordinator la expone como
+  `dismissSavedCardIfStale(nowMs, lane)`. El CONNECT del carril BT, que es donde empieza un viaje
+  BT, la pide. ⛔ Ninguna señal BT entra en el scoring del Coordinator: esto es higiene de la
+  ranura única [NOTIF-A-FLOW-SPEAKS-THROUGH-ONE-SLOT-001], no scoring.
+- Un reloj que no puede fechar la tarjeta (edad negativa: skew, backup restaurado) **la conserva**.
+  Fallo asimétrico: conservarla cuesta una notificación que el usuario desliza; tirarla cuesta el
+  deshacer de un pin equivocado.
+
+**Lo que el fix NO hace, a propósito.** La tarjeta sigue pudiendo quedarse en pantalla durante la
+ventana de 15 min aunque el viaje sea real — esa protección no se toca. Lo que cambia es que ya no
+importa: sus botones no pueden actuar sobre una sesión que terminó.
+
+**Guardas hoy.** `SavedCardIsStaleTest` (4 casos, incluida la edad negativa); cinco casos nuevos en
+`RevertParkingUseCaseTest` (falsificados: reintroducir el retract y el `Reverted` en la rama stale
+pone 3 en rojo); y `SavedCardSlotGuardrailTest` (Konsist, **los dos chequeos falsificados**) porque
+el arnés Robolectric del service sólo cubre el camino de intent nulo, que es el único que no toca
+dependencias de Koin: (a) `handleBtConnected` tiene que llamar a `dismissSavedCardIfStale`, y (b)
+`savedConfirmPostedAt` sólo puede leerse desde sus dos dueños, para que la ventana de deshacer no
+se decida en dos sitios. ⚠️ Konsist no toca bytecode → `--rerun-tasks`.
+
 ### DET-A-LANE-MUST-EARN-THE-TRIP-IT-SILENCES-001 — una reconexión no es un embarque
 
 **Commit:** pending. **Origen (issue #131):** *«Fernandorenedovarela utiliza det bt, es un bt comprado

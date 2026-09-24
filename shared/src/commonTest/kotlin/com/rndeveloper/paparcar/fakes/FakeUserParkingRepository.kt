@@ -105,8 +105,19 @@ class FakeUserParkingRepository(
     fun getActiveSession(): UserParking? =
         sessions.firstOrNull { it.isActive }
 
+    /**
+     * [DET-A-SAVED-CARD-MUST-NOT-OUTLIVE-ITS-TRIP-001] Makes the active-session read FAIL, so a
+     * caller that has to tell "I looked and it is not there" from "I could not look" can be tested
+     * on the second branch. Room hiccups are rare, which is exactly why the behaviour on them has
+     * to be written down rather than discovered in the field.
+     */
+    var observeActiveSessionsThrows: Throwable? = null
+
     override fun observeActiveSessions(): Flow<List<UserParking>> =
-        _sessionsFlow.map { list -> list.filter { it.isActive } }
+        _sessionsFlow.map { list ->
+            observeActiveSessionsThrows?.let { throw it }
+            list.filter { it.isActive }
+        }
 
     /**
      * The four HISTORY-facing reads hide a withdrawn row, exactly like the Room queries do

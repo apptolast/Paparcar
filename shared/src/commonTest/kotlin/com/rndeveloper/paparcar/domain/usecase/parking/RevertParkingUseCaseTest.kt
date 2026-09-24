@@ -14,6 +14,7 @@ import com.rndeveloper.paparcar.fakes.FakeUserParkingRepository
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -138,7 +139,97 @@ class RevertParkingUseCaseTest {
         assertTrue(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID in notification.dismissedIds)
     }
 
+    // ── The card can outlive its trip [DET-A-SAVED-CARD-MUST-NOT-OUTLIVE-ITS-TRIP-001] ───────
+    //
+    // The «No, cancelar» PendingIntent carries the id of the parking it was posted for, and the card
+    // survives its session: the Coordinator protects the undo window for 15 minutes and the BT lane
+    // never took the card down at all. A tap arriving after the trip ended must resolve its subject.
+
+    @Test
+    fun should_withdrawNothing_when_theIdIsNotAnActiveSession() = runTest {
+        // The session this card talks about ended with the departure; the user is already on another
+        // trip. Acting would take a REAL parking out of their history.
+        val closed = activeSession().copy(isActive = false)
+        val repo = FakeUserParkingRepository(initialSession = closed)
+        val geofence = FakeGeofenceManager()
+
+        val result = useCaseOf(repo = repo, geofence = geofence)("parking-1")
+
+        assertTrue(result.isSuccess)
+        val untouched = repo.getSessionById("parking-1")!!
+        assertFalse(untouched.isRetracted, "a real trip must not leave the history on a stale tap")
+        assertNull(untouched.retractedAtMs)
+        assertEquals(emptyList(), geofence.removedIds, "nothing of the live state may be undone")
+    }
+
+    @Test
+    fun should_fileAStaleTapAndNotAFalsePositive_when_theIdIsNotAnActiveSession() = runTest {
+        // `Reverted` means "the user refuted this pin". Filing a stale tap under it poisons the most
+        // valuable signal detection telemetry produces. [DET-SOLID-001]
+        val logger = FakeDetectionEventLogger()
+        val repo = FakeUserParkingRepository(initialSession = activeSession().copy(isActive = false))
+
+        useCaseOf(repo = repo, logger = logger)("parking-1")
+
+        assertTrue(logger.events.filterIsInstance<DetectionEvent.Reverted>().isEmpty())
+        val decision = logger.events.filterIsInstance<DetectionEvent.Decision>()
+            .single { it.outcome == "REVERT_STALE" }
+        assertEquals("not_an_active_session", decision.reason)
+    }
+
+    @Test
+    fun should_stillDismissTheCard_when_theIdIsNotAnActiveSession() = runTest {
+        // The tap has to end the conversation either way — leaving the card up would invite the
+        // same tap again. [NOTIF-A-FLOW-SPEAKS-THROUGH-ONE-SLOT-001]
+        val notification = FakeAppNotificationManager()
+        val repo = FakeUserParkingRepository(initialSession = activeSession().copy(isActive = false))
+
+        useCaseOf(repo = repo, notification = notification)("parking-1")
+
+        assertTrue(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID in notification.dismissedIds)
+    }
+
+    @Test
+    fun should_emitNoSessionEnded_when_theTapIsStale() = runTest {
+        val tracker = FakeAnalyticsTracker()
+        val repo = FakeUserParkingRepository(initialSession = activeSession().copy(isActive = false))
+
+        useCaseOf(repo = repo, tracker = tracker)("parking-1")
+
+        assertTrue(
+            tracker.events.filterIsInstance<AnalyticsEvent.ParkingSessionEnded>().isEmpty(),
+            "a session that ended on its own must not be counted as ended a second time, as REVERTED",
+        )
+    }
+
+    @Test
+    fun should_declineAndSayItCouldNotLook_when_theSessionsAreUnreadable() = runTest {
+        // "I looked and it is not there" and "I could not look" are different facts, and only one of
+        // them is evidence that a card outlived its trip. Restraint is the same on both.
+        val logger = FakeDetectionEventLogger()
+        val repo = FakeUserParkingRepository(initialSession = activeSession()).apply {
+            observeActiveSessionsThrows = RuntimeException("room hiccup")
+        }
+
+        val result = useCaseOf(repo = repo, logger = logger)("parking-1")
+
+        assertTrue(result.isSuccess)
+        assertFalse(repo.getSessionById("parking-1")!!.isRetracted)
+        val decision = logger.events.filterIsInstance<DetectionEvent.Decision>()
+            .single { it.outcome == "REVERT_STALE" }
+        assertEquals("sessions_unreadable", decision.reason)
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /** Same as [buildUseCase]; named so the stale-tap block above reads in call order. */
+    private fun useCaseOf(
+        repo: FakeUserParkingRepository = FakeUserParkingRepository(),
+        geofence: FakeGeofenceManager = FakeGeofenceManager(),
+        notification: FakeAppNotificationManager = FakeAppNotificationManager(),
+        logger: FakeDetectionEventLogger = FakeDetectionEventLogger(),
+        tracker: FakeAnalyticsTracker? = null,
+    ) = buildUseCase(repo, geofence, notification, logger, tracker)
 
     private fun buildUseCase(
         repo: FakeUserParkingRepository = FakeUserParkingRepository(),
