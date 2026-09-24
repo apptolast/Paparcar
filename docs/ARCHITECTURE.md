@@ -355,8 +355,14 @@ Regla: **fakes sobre mocks** (`FakeAuthRepository`, `FakePermissionManager`, …
 
 ## CI
 
-`.github/workflows/`: `ci.yml` (build + tests; incluye un job `macos-latest` que compila `iosMain` —
-antes de `02a29f62` **nadie compilaba iOS nunca**), `distribute-alpha.yml`, `distribute-beta.yml`.
+`.github/workflows/`: **un solo workflow**, `ci.yml` (build + `testAll`; incluye un job
+`macos-latest` que compila y enlaza `iosMain` —antes de `02a29f62` **nadie compilaba iOS nunca**— y
+que desde [CI-A-GUARD-THAT-NEVER-STARTS-IS-NOT-A-GUARD-001] solo corre en ramas `feature/IOS-**` o a
+mano, porque en repo privado macOS factura ×10).
+
+Hubo dos más, `distribute-alpha.yml` y `distribute-beta.yml`, que subían a Firebase App
+Distribution: se retiraron en [BUILD-A-LANE-WITH-NO-BRANCH-IS-NOT-A-LANE-001] sin haber disparado
+nunca — sus ramas `alpha` y `beta` no llegaron a existir. El canal es Google Play.
 
 ---
 

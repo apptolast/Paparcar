@@ -132,15 +132,16 @@ service cloud.firestore {
 
 ---
 
-## §3 · App Check (futuro, no bloqueante para beta)
+## §3 · App Check (pendiente, no bloqueante)
 
-Cuando salgamos de beta cerrada → activar [Firebase App Check](https://firebase.google.com/docs/app-check) con Play Integrity. Garantiza que el tráfico viene del APK firmado real y no de scripts. Out of scope para el primer release a 10 testers.
+Activar [Firebase App Check](https://firebase.google.com/docs/app-check) con Play Integrity: garantiza que el tráfico viene del build firmado real y no de scripts. Sigue sin hacerse, y sigue sin bloquear — la app ya está en Play, así que la frase que había aquí («cuando salgamos de beta cerrada», «el primer release a 10 testers») describía un canal de betas que nunca existió [BUILD-A-LANE-WITH-NO-BRANCH-IS-NOT-A-LANE-001].
 
 ---
 
 ## Checklist pre-release
 
-Antes de subir el primer APK a App Distribution público:
+Levantado para la **1.0.0** (03-09-2026), antes de la primera subida a Play. Se conserva con su
+estado real; lo que siga sin marcar sigue pendiente:
 
 - [x] §1.1 — Maps API key rotada (2026-09-03, por el user; la vieja `AIzaSyBpOJ6G-…` está muerta)
 - [x] §1.2 — Application restrictions aplicadas (package + SHA-1 debug + release) — 2026-09-03.

@@ -62,7 +62,6 @@ sqlite = "2.7.1"
 # GitLive SDK: wrapper KMP sobre Firebase oficial → va en commonMain
 firebase-bom = "34.19.0"
 firebase-crashlytics-plugin = "3.0.8"
-firebase-appdistribution-plugin = "5.3.0"
 firebase-gitlive = "2.7.0"
 google-services = "4.5.0"
 
@@ -252,7 +251,6 @@ compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 googleServices = { id = "com.google.gms.google-services", version.ref = "google-services" }
 firebaseCrashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebase-crashlytics-plugin" }
-firebaseAppDistribution = { id = "com.google.firebase.appdistribution", version.ref = "firebase-appdistribution-plugin" }
 room = { id = "androidx.room", version.ref = "room" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 aboutLibraries = { id = "com.mikepenz.aboutlibraries.plugin", version.ref = "aboutlibraries" }

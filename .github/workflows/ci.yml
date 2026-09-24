@@ -4,16 +4,12 @@ on:
   push:
     branches:
       - master
-      - alpha
-      - beta
       # The iOS work lives on its own branch and carries its own macOS check — see the `apple`
       # job below for why it no longer runs on every push to master.
       - 'feature/IOS-**'
   pull_request:
     branches:
       - master
-      - alpha
-      - beta
   # [CI-A-GUARD-THAT-NEVER-STARTS-IS-NOT-A-GUARD-001] The macOS job no longer rides along with
   # every pull request, so the only way to ask for a full Apple check on demand is this.
   workflow_dispatch:

@@ -220,8 +220,16 @@ end
 ```
 
 ### Paso 6 — CI (~2-3 h)
-Los workflows reales hoy son `ci.yml` (build + tests + compilación de `iosMain` en `macos-latest`),
-`distribute-alpha.yml` y `distribute-beta.yml`. Añadir un job de distribución iOS al que corresponda:
+
+> ⚠️ **Este §4 quedó escrito sobre un carril que ya no existe.** `distribute-alpha.yml` y
+> `distribute-beta.yml` se borraron en [BUILD-A-LANE-WITH-NO-BRANCH-IS-NOT-A-LANE-001] sin haber
+> corrido nunca, y hoy el único workflow es `ci.yml`. El plan de abajo **no se ha rehecho a
+> propósito**: antes hay que decidir si la beta de iOS va por App Distribution o por TestFlight, y
+> esa decisión no se toma de refilón en un barrido de limpieza de Android. Léelo como lo que es —
+> el plan de agosto—, no como el camino vigente.
+
+El workflow real hoy es `ci.yml` (build + `testAll` + compilación de `iosMain`, con el enlazado y la
+suite de simulador en su job `macos-latest`). Añadir un job de distribución iOS donde corresponda:
 ```yaml
 distribute-ios:
   runs-on: macos-latest

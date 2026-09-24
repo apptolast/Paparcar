@@ -1,5 +1,4 @@
 import com.android.build.api.dsl.ApplicationExtension
-import com.google.firebase.appdistribution.gradle.firebaseAppDistribution
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 
@@ -19,7 +18,6 @@ plugins {
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.googleServices)
     alias(libs.plugins.firebaseCrashlytics)
-    alias(libs.plugins.firebaseAppDistribution)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -47,8 +45,6 @@ val releaseKeyPassword = prop("RELEASE_KEY_PASSWORD")
 val hasReleaseSigning = listOf(
     releaseKeystoreFile, releaseKeystorePassword, releaseKeyAlias, releaseKeyPassword
 ).all { !it.isNullOrBlank() }
-
-val appDistributionCredentialsFile = prop("APP_DISTRIBUTION_CREDENTIALS_FILE")
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ANDROID
@@ -194,14 +190,6 @@ extensions.configure<ApplicationExtension> {
                 signingConfig = signingConfigs.getByName("release")
             } else {
                 logger.warn("⚠️  RELEASE signing keys not found — build will be UNSIGNED.")
-            }
-            firebaseAppDistribution {
-                artifactType = "APK"
-                releaseNotesFile = "$rootDir/distribution/release-notes.txt"
-                groups = "beta-paparcar"
-                if (!appDistributionCredentialsFile.isNullOrBlank()) {
-                    serviceCredentialsFile = appDistributionCredentialsFile
-                }
             }
         }
     }

@@ -11,42 +11,85 @@
 </p>
 
 <p align="center">
+  <a href="https://play.google.com/store/apps/details?id=com.rndeveloper.paparcar">
+    <img src="https://img.shields.io/badge/Google_Play-publicada-25F48C?logo=googleplay&logoColor=white&labelColor=0D1117" alt="En Google Play"/>
+  </a>
+  <img src="https://img.shields.io/badge/versi%C3%B3n-1.3.0_(vc_14)-25F48C?labelColor=0D1117" alt="1.3.0"/>
+  <a href="https://paparcar.com"><img src="https://img.shields.io/badge/web-paparcar.com-25F48C?labelColor=0D1117" alt="paparcar.com"/></a>
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/Kotlin-2.4.20-25F48C?logo=kotlin&logoColor=white&labelColor=0D1117" alt="Kotlin 2.4.20"/>
   <img src="https://img.shields.io/badge/Compose_Multiplatform-1.12.0-25F48C?logo=jetpackcompose&logoColor=white&labelColor=0D1117" alt="Compose Multiplatform 1.12.0"/>
   <img src="https://img.shields.io/badge/Android-principal-25F48C?logo=android&logoColor=white&labelColor=0D1117" alt="Android"/>
-  <img src="https://img.shields.io/badge/iOS-en_progreso-F4A825?logo=apple&logoColor=white&labelColor=0D1117" alt="iOS en progreso"/>
+  <img src="https://img.shields.io/badge/iOS-nativos_en_master-F4A825?logo=apple&logoColor=white&labelColor=0D1117" alt="iOS"/>
   <img src="https://img.shields.io/badge/Firebase-Firestore_·_Auth_·_Crashlytics-25F48C?logo=firebase&logoColor=white&labelColor=0D1117" alt="Firebase"/>
 </p>
 
 ---
 
-## Estado del proyecto · 2026-09-17 (master `469e22b0`)
+## Estado del proyecto · 2026-09-24 (master `ad101968a`)
 
-**Pre-lanzamiento, en field-testing diario.** El producto está completo y mergeado en `master`; la
-cadena de detección se mide cada día en dispositivos reales (Oppo + Redmi) con telemetría remota, con
-política *fix-forward* ante regresiones. Lo que falta para publicar **no es código de producto**: la
-ficha de Play está completa (textos y capturas en 9 idiomas); restan las verificaciones de la cuenta
-de desarrollador, el formulario de Data Safety y el endurecimiento de claves.
+**Publicada en Google Play** — [`com.rndeveloper.paparcar`](https://play.google.com/store/apps/details?id=com.rndeveloper.paparcar),
+**1.3.0 (versionCode 14)**, con la ficha y las capturas en los 9 idiomas. El día a día es medir la
+detección en dispositivos reales (Oppo + Redmi) con telemetría remota y cerrar el fallo que salga:
+política *fix-forward*, sin ramas de release largas. Lo que sigue vivo es producto, no lanzamiento.
 
 | Área | Estado |
 |------|--------|
 | Detección dual (BT determinista + Coordinator AR-first) | ✅ En master, field-test continuo |
+| Un solo foreground service, dos carriles (slots + use cases separados) | ✅ `d7880ac7` |
 | Procedencia del pin (`detectionPath` + `armEvidence` en cada sesión) | ✅ |
 | Niveles de detección honestos (Automático / Asistido+ / Asistido) | ✅ Con árbitro BT (supersede/veto) |
 | Red de seguridad (worker 15 min + reconcile de salidas perdidas) | ✅ |
 | Sync offline-first con reconcile LWW (vehículos, zonas, sesiones) | ✅ |
 | Votos de comunidad sobre plazas · frescura por edad (TTL 2 h) | ✅ |
-| UI / design system (una tipografía, color por método, guardarraíles Konsist) | ✅ |
+| Trayectos como producto: ruta medida, km, gasto, batería, tiempo buscando plaza | ✅ Fases 1-5, 7 y 8 |
+| Estadísticas con evidencia (cada cifra dice de cuánto sale y qué cubre) | ✅ `82e55f5ae` · Room v20 |
+| Gasolineras con precio de surtidor (ES · FR · DE · IT) + media nacional fuera | ✅ |
+| Parkings públicos (capa propia, tarifa y gálibo cuando la fuente los da) | ✅ |
+| Coche compartido (espejo del grupo: estado, historial y cifras) | ✅ · ⏳ campo con dos cuentas |
+| Paparcar Plus (RevenueCat) · límites free 7 d · 1 coche · 2 zonas | ✅ Gating soft; **ver** nunca se gatea |
+| Widget Android (aparcamiento activo, acciones, lista de coches) | ✅ |
+| Alertas de zona y de precio · push | ✅ |
+| UI / design system (una tipografía, color por método, 27 guardarraíles Konsist) | ✅ |
 | Puck de conducción nativo (fork kmp-maps en Maven Central) | ✅ · PR upstream [kmp-maps#170](https://github.com/software-mansion/kmp-maps/pull/170) |
 | Dev Catalog (flavor `mock` sin backend) | ✅ |
-| Telemetría de diagnóstico remota (Firestore, gate por flag) | ✅ |
+| Telemetría de diagnóstico remota (Firestore, gate por flag) | ✅ Android e iOS |
 | Split `:app` + `:shared` | ✅ |
-| CI: build + tests + **compilación de `iosMain` en `macos-latest`** | ✅ |
-| Superficie legal (privacidad, borrado de cuenta por web, data safety) | ✅ código · ⏳ acciones de cuenta |
-| Detección iOS | 🟡 nativos listos; el lazo GPS → coordinator, en rama `IOS-F0-001` sin mergear |
-| Publicación en Play | 🟡 ficha y capturas (9 idiomas) listas · trader status y verificaciones ⏳ |
+| `paparcar.com` (generador estático propio, ES/EN) | ✅ En vivo, con guardarraíl de paridad |
+| CI: build + `testAll` (incluye compilar el klib de iOS) + lane Apple bajo demanda | ✅ |
+| Superficie legal (privacidad, borrado de cuenta por web, data safety) | ✅ |
+| Publicación en Google Play (ficha, capturas y notas en 9 idiomas) | ✅ 1.3.0 (vc 14) |
+| Detección iOS | 🟡 nativos y lazo GPS en master (`IosDetectionController`); sin validar en iPhone |
+| Publicación iOS | ❌ 0%: sin `GoogleService-Info.plist`, sin certificados, sin lane |
 
 Roadmap y bloqueantes en [`docs/ROADMAP.md`](./docs/ROADMAP.md).
+
+---
+
+## Releases
+
+Cada versión sale firmada de `master`, con su `versionCode` y sus notas en los 9 locales; no hay
+rama de release larga — la política es *fix-forward*.
+
+```bash
+./gradlew :app:assembleProdRelease   # APK firmado (requiere keystore.properties)
+./gradlew :app:bundleProdRelease     # AAB para Play
+```
+
+- Versionado y notas: `versionCode` / `versionName` en [`app/build.gradle.kts`](./app/build.gradle.kts);
+  las notas de tienda, en `docs/release/play-listing/paste/`.
+- ⛔ **Antes de cortar nada, `./gradlew testAll`** — nunca la suite de `:shared` sola: el verify del
+  grafo del flavor `mock` vive en `:app` y el klib de iOS solo se compila ahí
+  [TEST-A-GUARD-MUST-NOT-READ-THE-FOLDER-NAME-001].
+- ⛔ **Orden de despliegue cuando cambian reglas o web**: `firestore:rules` → APK/AAB → hosting. Si
+  la app sale antes que las reglas, un barrido de sesiones falla con permiso denegado en silencio.
+
+Procedimiento completo (keystore, firma, versionado, rotación de claves) en
+[`docs/release/RELEASE-PROCESS.md`](./docs/release/RELEASE-PROCESS.md) y
+[`RELEASE-SECURITY.md`](./docs/release/RELEASE-SECURITY.md); la ficha de tienda, en
+[`docs/release/play-listing/`](./docs/release/play-listing/).
 
 ---
 
@@ -126,21 +169,29 @@ multicolor sin tintar* (hero, onboarding, marcadores, vehículos). Detalle en [`
 - **UI:** Compose Multiplatform 1.12.0 · Material3 (JB) 1.9.0 · Navigation Compose 2.9.2
 - **Arquitectura:** Clean Architecture + MVI (State + Intent + Effect)
 - **DI:** Koin 4.2.2
-- **DB local:** Room KMP 2.8.5 (SQLite bundled 2.7.1)
+- **DB local:** Room KMP 2.8.5 (SQLite bundled 2.7.1) — esquema en **v20**
 - **Backend:** Firebase vía GitLive KMP 2.7.0 (Auth + Firestore + Crashlytics) · firebase-bom 34.19.0
 - **Mapas:** `io.github.rndevelo.kmpmaps:core:0.9.1-puck6` — **fork propio** en Maven Central
   (Google Maps en Android / Apple Maps en iOS); da el marker de id estable que necesita el puck
 - **Auth:** BaseLogin 3.0.0 (librería propia, Maven Central) — ⛔ no se toca desde este repo
+- **Monetización:** RevenueCat `purchases-kmp` 3.8.0 (SDK + paywalls con plantilla remota)
 - **Async:** Coroutines 1.11.0 + Flow · Serialization 1.11.0 · Datetime 0.8.0
 - **Imágenes:** Coil 3.6.2 + Ktor 3.5.2 (motor de red)
-- **Logging:** Napier 2.7.1 · **Background:** WorkManager 2.11.2 (Android)
-- **Tests:** JUnit 4 · Turbine · Robolectric · **Konsist** (10 guardarraíles de arquitectura)
+- **Android-only:** WorkManager 2.11.2 · Glance 1.2.0 (widget) · play-services-location 21.4.0
+  (Activity Recognition) · DataStore 1.2.1
+- **Logging:** Napier 2.7.1 · **Licencias OSS:** AboutLibraries 15.2.0
+- **Tests:** JUnit 4 · Turbine 1.2.1 · Robolectric 4.17 · **Konsist 0.17.3**
+  (**27 guardarraíles** de arquitectura, copy e i18n)
 
 **Targets:** Android `minSdk 26 / target 37 / compile 37` · iOS `arm64 + simulatorArm64`
 
 > Solo versiones estables en el catálogo: ni un alpha/beta/rc. Al comprobar si algo se quedó atrás,
 > consultar `repo1.maven.org` y `dl.google.com/dl/android/maven2` — el índice de
 > `search.maven.org/solrsearch` está obsoleto y miente por versiones enteras.
+>
+> ⛔ **El stack no es solo Gradle**: hay dos raíces npm con lockfile propio — `functions/` (Cloud
+> Functions, se despliega) y `firestore-rules-tests/` (harness de reglas). Entran en el mismo
+> barrido de dependencias.
 
 ---
 
@@ -162,7 +213,9 @@ Dos estrategias independientes que **nunca se mezclan**:
 
 - **`BluetoothDetectionStrategy`** (determinista) — BT disconnect del MAC emparejado → fix GPS →
   alejarse ≥30 m del coche → confirma con fiabilidad alta. Ligada a la MAC del coche, no al
-  modelo. Es el nivel **Automático**.
+  modelo. Es el nivel **Automático**. ⛔ En iOS este carril es estructuralmente imposible (no hay
+  eventos de BT clásico para terceros): allí el resolver cae siempre a Coordinator, y ninguna
+  superficie promete «Automático».
 - **`CoordinatorDetectionStrategy`** (probabilístico) — el **Asistido**. Se *arma* con AR
   IN_VEHICLE ENTER (carril de baja latencia) o GEOFENCE_EXIT, solo si el embarque está atado al
   propio coche. *Confirma* con pasos+egress, egress cinemático medido por GPS o
@@ -174,9 +227,15 @@ Dos estrategias independientes que **nunca se mezclan**:
 - **Árbitro BT** — si el BT del coche reconecta durante una detección asistida, la supersede/veta;
   el BT jamás puntúa dentro del scoring del Coordinator.
 
+**Carriles separados ≠ servicios separados.** Desde `d7880ac7` hay **un solo foreground service y
+una sola notificación**: el carril BT entra por el mismo intake, en slots de job propios. Lo
+prohibido no ha cambiado — cero señales BT dentro del scoring del Coordinator.
+
 Ambas convergen en `ConfirmParkingUseCase` → Room + Firestore + Geofence + Notification +
 WorkManager. El servicio Android serializa todos los triggers en un intake único; la **decisión**
-de cada trigger es un use case puro de `commonMain` — el service solo hace I/O y side-effects.
+de cada trigger es un use case puro de `commonMain` — el service solo hace I/O y side-effects. Los
+predicados que alimentan a un veredicto viven como funciones puras en `domain/detection/` (106
+ficheros), no como métodos privados del coordinator.
 
 Todo pin persiste su **procedencia**: `detectionPath` + `armEvidence`. En cualquier diagnóstico se
 puede decir qué trigger colocó cada pin, no solo cuánto podía equivocarse.
@@ -193,19 +252,30 @@ Spec canónica en [`docs/detection/PARKING-DETECTION.md`](./docs/detection/PARKI
 BottomNav con 3 destinos — regla editorial: *si pasa AHORA → Home; si pasó o es mío-permanente →
 Vehículos; si configura → Ajustes.*
 
-- **Home** — mapa, plazas libres en tiempo real, sesión activa, detección en curso
-- **Vehículos** — garaje (pager por vehículo) + historial de aparcamientos
+- **Home** — mapa, plazas libres en tiempo real, parkings públicos, gasolineras, sesión activa,
+  detección en curso
+- **Vehículos** — garaje (pager por vehículo, coche compartido incluido) + historial y estadísticas
 - **Ajustes** — configuración + salud de detección/permisos
 
 Flujo de entrada: Splash → Auth → VehicleRegistration → Onboarding → Permissions → Home.
+
+**Plus vs free:** *free = tú preguntas y la app responde; Plus = la app te avisa a ti, y recuerda
+por ti.* ⛔ Nunca se gatea **ver** — plazas, parkings públicos y gasolineras son free completo; se
+vende la **vigilancia** (alertas) y la **memoria** (más allá de 7 días de historial). Límites free:
+7 días · 1 coche propio · 2 zonas. Gating siempre **soft**: la acción dispara el paywall, el botón
+nunca se esconde.
 
 ---
 
 ## Modelos de datos clave
 
 - **`Spot`** — plaza comunitaria: location, type (auto/manual), confidence, sizeCategory, TTL
-- **`UserParking`** — sesión propia: vehicleId, location, geofenceId, detectionMethod
-- **`Vehicle`** — brand, model, bluetoothDeviceId, sizeCategory, carbodyType
+- **`UserParking`** — sesión propia: vehicleId, location, geofenceId, detectionMethod,
+  `detectionPath`, `armEvidence`, ruta del viaje
+- **`Vehicle`** — brand, model, bluetoothDeviceId, sizeCategory, carbodyType, combustible y consumo,
+  `sharedCarId?` + `ownerUid?`
+- **`SharedCar`** — espejo del coche que conducen varios: estado actual, miembros, sesiones del
+  grupo. ⛔ El espejo **no lleva** mecánica de detección (`armEvidence`, `detectionPath`, matrícula)
 - Categorización bidimensional: `VehicleSize` (5 tallas) × `CarbodyType` (10 carrocerías) →
   compatibilidad `SpotFit` — ver [`docs/architecture/VEHICLE-CATEGORIZATION.md`](./docs/architecture/VEHICLE-CATEGORIZATION.md)
 
@@ -216,17 +286,23 @@ Flujo de entrada: Splash → Auth → VehicleRegistration → Onboarding → Per
 ```
 shared/                 KMP — toda la lógica de producto
 ├── src/commonMain/kotlin/com/rndeveloper/paparcar/
-│   ├── domain/         Kotlin puro — entidades, UseCases (evaluadores de detección incluidos)
-│   ├── data/           Repos + Room + Firestore + mappers + reconcile LWW
-│   ├── presentation/   ViewModels MVI + screens Compose
-│   ├── ui/             Design system (PaparcarType, componentes Pap*, tema, mapa)
-│   ├── core/           Utilidades transversales
-│   └── di/             Módulos Koin
+│   ├── domain/         Kotlin puro — entidades, UseCases y evaluadores; detection/ con las
+│   │                   funciones puras compartidas; entitlement/, fuel/, parkings/, stats/,
+│   │                   sharedcar/, zone/, sync/
+│   ├── data/           Repos + Room (v20) + Firestore + mappers + reconcile LWW + overpass/
+│   ├── presentation/   ViewModels MVI + screens Compose (home, vehicles, settings, stats,
+│   │                   paywall, widget, onboarding, permissions…)
+│   ├── ui/             Design system (PaparcarType, componentes Pap*, tema, iconos, mapa)
+│   ├── detection/ push/ core/ di/   transversales
+│   └── fakes/          fakes scenario-aware que consume el Dev Catalog
 ├── src/androidMain/    detection/{service,worker,receiver,sensor}, location/, bluetooth/,
-│                       notification/, permissions/, diagnostics/, logging/
-├── src/iosMain/        CLLocation, CMMotion, CoreBluetooth (sin stubs; falta el lazo GPS)
-├── src/commonTest/     el grueso de los tests (use cases, ViewModels, replay de trazas de campo)
-└── src/androidUnitTest/  lo que necesita JVM/Android: guardarraíles Konsist, Robolectric, workers
+│                       notification/, permissions/, diagnostics/, logging/, push/
+├── src/iosMain/        CLLocation, CMMotion, CoreBluetooth, geofence, schedulers y el
+│                       IosDetectionController (sin stubs) + su parkdiag
+├── src/commonTest/     el grueso de los tests (374 ficheros): use cases, ViewModels, mappers y
+│                       el replay de trazas de campo reales
+└── src/androidUnitTest/  lo que necesita JVM/Android (52): 27 guardarraíles Konsist, Robolectric,
+                          workers, paridad de deserializadores Firestore
 
 app/                    Shell Android — entry points, manifest, res, flavors, firma
 ├── src/main/           MainActivity, PaparcarApp, AppNotificationManagerImpl, res/
@@ -243,7 +319,12 @@ web/                    paparcar.com — generador estático propio (Node, cero 
 
 hosting/public/         SALIDA de `node web/build.mjs` + las dos páginas legales escritas A MANO
                         (`privacy-policy.html`, `delete-account.html`) que la app enlaza
-functions/              Cloud Functions
+functions/              Cloud Functions (raíz npm propia)
+firestore-rules-tests/  harness de reglas de Firestore — las reglas se EJECUTAN (raíz npm propia)
+distribution/           notas de versión en texto plano
+diagnostics/            capturas de campo y su procesado
+tools/                  utilidades de escritorio (medias de combustible, trace → fixture)
+keystore/               firma de release (gitignored)
 ```
 
 Visión arquitectónica completa en [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md).
@@ -260,6 +341,7 @@ tarea (regla ⛔ en [`CLAUDE.md`](./CLAUDE.md)).
 
 ```bash
 ./gradlew :app:assembleMockDebug
+adb shell am start -n com.rndeveloper.paparcar.mock/com.rndeveloper.paparcar.DevMainActivity
 ```
 
 ---
@@ -268,7 +350,7 @@ tarea (regla ⛔ en [`CLAUDE.md`](./CLAUDE.md)).
 
 ### Prerequisitos
 
-- Android Studio (Ladybug o posterior) con plugin KMP
+- Android Studio (Ladybug o posterior) con plugin KMP · JDK 17
 - Xcode (solo si se trabaja en iOS)
 
 ### Setup
@@ -294,6 +376,20 @@ tarea (regla ⛔ en [`CLAUDE.md`](./CLAUDE.md)).
    ```
    > ⚠️ En Windows no hay `gradlew.bat`: usa Git Bash (`./gradlew`), no PowerShell.
 
+### Tests
+
+```bash
+./gradlew testAll        # :shared + :app + el klib de iOS. ⛔ NUNCA :shared:testDebugUnitTest solo
+```
+
+`testAll` existe para no poder escribirse a medias: `:shared:testDebugUnitTest` deja fuera el único
+guardarraíl que comprueba que el grafo del flavor `mock` se resuelve (`MockKoinModuleVerifyTest`, en
+`:app`), y `:shared:compileKotlinIosSimulatorArm64` es lo que caza un `actual` que falta. Son
+3.700+ tests, y `commonTest` corre además en el simulador de iOS dentro del job Apple.
+
+> ⛔ Un guardarraíl de Konsist no toca bytecode: Gradle lo da **UP-TO-DATE** y no llega a
+> ejecutarlo. Para falsificarlo de verdad, `--rerun-tasks`.
+
 ### Permisos
 
 - **Android:** `ACCESS_FINE_LOCATION` + `ACCESS_BACKGROUND_LOCATION` + `ACTIVITY_RECOGNITION` +
@@ -315,7 +411,10 @@ tarea (regla ⛔ en [`CLAUDE.md`](./CLAUDE.md)).
   de permisos). Si falta en `values`, ahí sí crashea en todo locale que no la declare.
 - ⚠️ Hay **dos** superficies de strings con reglas opuestas para el apóstrofo: Compose Resources
   (`composeResources/values/`) **no desescapa `\'`** → apóstrofo crudo; `app/src/main/res/` sí lo
-  escapa. Detalle en `CLAUDE.md`.
+  escapa. Y un `%` literal se escribe `%`, nunca `%%`. Vigilado por
+  `ComposeResourcesEscapeGuardrailTest`; detalle en `CLAUDE.md`.
+- **Vocabulario:** *plaza* es de la comunidad, *aparcamiento* es tuyo, *car park* es la instalación
+  de un tercero. Nunca «marcar mi plaza».
 
 ---
 
@@ -334,12 +433,13 @@ que fue verificado. Si no coinciden con el código, es un bug del doc.
 | [`docs/detection/DETECTION-READINESS.md`](./docs/detection/DETECTION-READINESS.md) | Qué le decimos al usuario sobre la detección (readiness, tiers de permisos) |
 | [`docs/design/COLOR-SYSTEM.md`](./docs/design/COLOR-SYSTEM.md) | Significado de cada token de color — una historia por hex |
 | [`docs/architecture/VEHICLE-CATEGORIZATION.md`](./docs/architecture/VEHICLE-CATEGORIZATION.md) | Talla × carrocería → `SpotFit` |
+| [`docs/analytics-data-contract.md`](./docs/analytics-data-contract.md) · [`analytics-data-audit.md`](./docs/analytics-data-audit.md) | De qué evidencia sale cada cifra de estadísticas y qué cubre |
 | [`docs/IOS_PLAN.md`](./docs/IOS_PLAN.md) | Estado real de iOS y qué falta para un beta |
 | [`docs/CODE-READING-CHECKLIST.md`](./docs/CODE-READING-CHECKLIST.md) | Leer el proyecto entero por orden de dependencia |
-| [`docs/release/RELEASE-PROCESS.md`](./docs/release/RELEASE-PROCESS.md) · [`RELEASE-SECURITY.md`](./docs/release/RELEASE-SECURITY.md) | Keystore, firma, distribución y endurecimiento de claves |
+| [`docs/release/RELEASE-PROCESS.md`](./docs/release/RELEASE-PROCESS.md) · [`RELEASE-SECURITY.md`](./docs/release/RELEASE-SECURITY.md) | Keystore, firma, corte de versión y endurecimiento de claves |
 | [`web/README.md`](./web/README.md) | **La web** — qué tocar en `web/` cuando cambia el producto, y qué lo vigila |
 | [`docs/legal/`](./docs/legal/) | Data safety y runbook de borrado de cuenta |
-| [`docs/backlog/README.md`](./docs/backlog/README.md) | **Índice de lo que sigue abierto** — 285 tickets, 195 cerrados; aquí solo lo que queda |
+| [`docs/backlog/README.md`](./docs/backlog/README.md) | **Índice de lo que sigue abierto** — 717 docs de ticket; aquí solo lo que queda |
 | [`diagnostics/README.md`](./diagnostics/README.md) | Captura y procesado de logs de detección |
 
 **Registros fechados** — fotos que no envejecen mal porque llevan su fecha y su commit-base:
@@ -355,9 +455,11 @@ que fue verificado. Si no coinciden con el código, es un bug del doc.
   misma tarea**
 - **Magic numbers:** `private companion object` con `UPPER_SNAKE_CASE`
 - **Errores:** `kotlin.Result<T>` en one-shot; `Flow` con `.catch`; UI vía `PaparcarError` sealed
+- **Casos de uso:** uno por **veredicto** (algo citable en un diagnóstico), nunca por predicado
 - **Tests:** toda UseCase nueva con test unitario; fakes sobre mocks
 - **Commits:** Conventional Commits con ticket ID — `feat(home): add per-vehicle cards [HOME-002]`
 - **Ramas:** `feature/HOME-001-bottom-sheet`, `bugfix/...`, `refactor/...`, `chore/...`
+- **PRs:** si el cambio se ve en pantalla, la descripción lleva captura del estado **final**
 - **Logs:** Napier con tag, nunca `println`
 
 Detalle completo en [`CLAUDE.md`](./CLAUDE.md).

@@ -1,27 +1,25 @@
-Paparcar 1.2.0
+Paparcar 1.3.0
 
-Lo que ha entrado desde la 1.1.0 (la de Paparcar Plus).
+Lo que ha entrado desde la 1.2.0.
 
-— Repostar: gasolineras en el mapa y en la sheet, con el precio real del
-  surtidor en España, Francia, Alemania e Italia, y la media nacional en
-  el resto del mundo. La alerta de bajada de precio ya no recomienda el
-  precio más rancio.
-— Parkings públicos: capa propia que sigue a la cámara, con tarifa y
-  gálibo cuando la fuente los da, y peek con cómo llegar.
-— Coche compartido: un coche que conducen varios es un coche, no una
-  pantalla. El grupo ve dónde quedó aparcado, quién se lo lleva y comparte
-  historial y cifras; las rutas se muestran solo si su autor quiere.
-— Estadísticas: cada cifra dice de cuánto sale y qué cubre. Sitios de
-  costumbre por racimos, rejilla de días y horas caras, estimación del
-  periodo marcada como lo que es, y el resumen del mes que se cierra.
-— Avisos en segundo plano: plaza en tu zona y bajada de precio llegan con
-  la app cerrada, por push (Plus).
-— Trayectos: la ruta del viaje vivo se guarda en el móvil, un viaje largo
-  conserva su origen, y el tiempo buscando plaza se mide y se enseña.
-— Detección: un tren o un autobús ya no confirman un aparcamiento, el
-  carril Bluetooth confirma con movimiento medido y no con un reloj, y el
-  muestreo se adapta sin dejar de ser denso cuando hace falta.
-— Widget del coche aparcado, onboarding rehecho, paywall rehecho y el
-  mapa con su estilo claro y oscuro de verdad.
+— Coche compartido: entrar con el código funciona de principio a fin, y un
+  código reemplazado deja de abrir la puerta. Compartir un coche ya no
+  oculta el historial que ese coche ya tenía, y borrarlo no deja al grupo
+  huérfano.
+— Privacidad: salir de un grupo se lleva tus viajes y tu nombre de la
+  tarjeta que el grupo mira; borrar la cuenta cierra el grupo. La
+  geometría de una ruta sale del móvil por una sola puerta, y cada puerta
+  pide su propio permiso.
+— Tus cifras por periodo —hoy, esta semana, este mes—, con el ritmo
+  diciendo sobre qué periodo proyecta, y el resumen mensual con su propio
+  interruptor para los dos planes.
+— Precios, volúmenes y distancias en las unidades en las que compras: el
+  precio se cotiza en la unidad del surtidor y el consumo deja de ser
+  kilómetros disfrazados.
+— Una plaza que avisas se ve en el mapa con la zona que abarca, en vez de
+  como un punto que nadie encuentra.
+— Detección: el flanco del Bluetooth propone y el desplazamiento decide;
+  corregir dónde aparcaste mueve el sitio y no la hora; y si la detección
+  no puede funcionar, la app lo dice en vez de callarse.
 
 Reporte de bugs: support@paparcar.com

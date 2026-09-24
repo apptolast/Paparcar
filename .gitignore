@@ -37,7 +37,7 @@ render.experimental.xml
 keystore/
 keystore.properties
 
-# Firebase service account JSONs — used by App Distribution CI uploads
+# Firebase / Google Cloud service account JSONs — nunca al repo, sea cual sea su uso
 **/firebase-service-account*.json
 **/google-application-credentials*.json
 
