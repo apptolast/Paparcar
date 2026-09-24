@@ -40,7 +40,7 @@ private fun Gallery() {
         Label("Pública · privada — misma identidad que su etiqueta en el mapa")
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ZoneChip(label = "Casa", iconKey = ZoneIcon.HOME, isPrivate = false, onClick = {}, onEdit = {})
-            ZoneChip(label = "Garaje", iconKey = ZoneIcon.WORK, isPrivate = true, onClick = {}, onEdit = {})
+            ZoneChip(label = "Home garage", iconKey = ZoneIcon.WORK, isPrivate = true, onClick = {}, onEdit = {})
         }
 
         Label("Nombre largo — la píldora crece, el candado no se cae")

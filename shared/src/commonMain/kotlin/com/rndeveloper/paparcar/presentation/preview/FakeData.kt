@@ -340,7 +340,7 @@ object FakeData {
     val vehicleSedan = Vehicle(
         id = "v1",
         userId = "user-1",
-        name = "Mi Seat",
+        name = "My car",
         brand = "Seat",
         model = "León",
         sizeCategory = VehicleSize.MEDIUM_SUV,
@@ -372,7 +372,7 @@ object FakeData {
     val vehicleMoto = Vehicle(
         id = "v3",
         userId = "user-1",
-        name = "La Moto",
+        name = "My bike",
         brand = "Honda",
         model = "CBR 600",
         sizeCategory = VehicleSize.MOTORCYCLE,
@@ -384,7 +384,7 @@ object FakeData {
     val vehicleVan = Vehicle(
         id = "v4",
         userId = "user-1",
-        name = "Furgoneta",
+        name = "Work van",
         brand = "Ford",
         model = "Transit",
         sizeCategory = VehicleSize.VAN_HIGH,

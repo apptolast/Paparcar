@@ -28,7 +28,7 @@ class FakeVehicleRepository(private val scenario: MockScenario? = null) : Vehicl
         Vehicle(
             id = "mock_vehicle_001",
             userId = "mock_user_001",
-            name = "Mi Seat",
+            name = "My car",
             brand = "Seat",
             model = "León",
             sizeCategory = VehicleSize.MEDIUM_SUV,
@@ -40,6 +40,7 @@ class FakeVehicleRepository(private val scenario: MockScenario? = null) : Vehicl
         Vehicle(
             id = "mock_vehicle_002",
             userId = "mock_user_001",
+            name = "Second car",
             brand = "Toyota",
             model = "Corolla",
             sizeCategory = VehicleSize.MEDIUM_SUV,
@@ -53,7 +54,7 @@ class FakeVehicleRepository(private val scenario: MockScenario? = null) : Vehicl
         Vehicle(
             id = "mock_vehicle_003",
             userId = "mock_user_001",
-            name = "La Moto",
+            name = "My bike",
             brand = "Honda",
             model = "CBR 600",
             sizeCategory = VehicleSize.MOTORCYCLE,
@@ -64,7 +65,7 @@ class FakeVehicleRepository(private val scenario: MockScenario? = null) : Vehicl
         Vehicle(
             id = "mock_vehicle_004",
             userId = "mock_user_001",
-            name = "Furgoneta",
+            name = "Work van",
             brand = "Ford",
             model = "Transit",
             sizeCategory = VehicleSize.VAN_HIGH,

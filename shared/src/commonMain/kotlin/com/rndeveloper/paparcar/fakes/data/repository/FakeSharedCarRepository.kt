@@ -37,8 +37,8 @@ class FakeSharedCarRepository(private val scenario: MockScenario? = null) : Shar
     private fun car(isMemberReading: Boolean): SharedCar = SharedCar(
         carId = MOCK_CAR_ID,
         ownerUid = if (isMemberReading) "mock_user_002" else "mock_user_001",
-        ownerName = if (isMemberReading) "Marta" else "Tú",
-        displayName = "Seat León",
+        ownerName = if (isMemberReading) "Marta" else "You",
+        displayName = "Family car",
         sizeCategory = VehicleSize.MEDIUM_SUV,
         createdAtMs = MOCK_CREATED_AT_MS,
         activeInviteCode = invite.value?.code,
@@ -77,11 +77,11 @@ class FakeSharedCarRepository(private val scenario: MockScenario? = null) : Shar
             if (isJoined) {
                 listOf(
                     SharedCarMember("mock_user_002", "Marta", role = SharedCarRole.OWNER),
-                    SharedCarMember("mock_user_001", "Tú"),
+                    SharedCarMember("mock_user_001", "You"),
                 )
             } else {
                 listOf(
-                    SharedCarMember("mock_user_001", "Tú", role = SharedCarRole.OWNER),
+                    SharedCarMember("mock_user_001", "You", role = SharedCarRole.OWNER),
                     SharedCarMember("mock_user_003", "Nacho"),
                 )
             }

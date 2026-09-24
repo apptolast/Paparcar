@@ -677,7 +677,7 @@ private fun interactiveHistory(sessions: List<UserParking>, initial: StatsPeriod
 private fun privateZoneOver(session: UserParking) = Zone(
     id = "zone-garage",
     userId = session.userId,
-    name = "Garaje",
+    name = "Home garage",
     lat = session.location.latitude,
     lon = session.location.longitude,
     iconKey = "HOME",
@@ -963,7 +963,7 @@ private fun markersShowcase() {
         MarkerSectionLabel("Chip de zona — pública · privada · el + a la misma altura")
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ZoneChip(label = "Casa", iconKey = ZoneIcon.HOME, isPrivate = false, onClick = {}, onEdit = {})
-            ZoneChip(label = "Garaje", iconKey = ZoneIcon.WORK, isPrivate = true, onClick = {}, onEdit = {})
+            ZoneChip(label = "Home garage", iconKey = ZoneIcon.WORK, isPrivate = true, onClick = {}, onEdit = {})
             AddZoneChip(expanded = false, onAddZone = {}, onDismiss = {})
         }
         // El colapso VIVO: es lo que el user reportó como "sin animación ni nada", y no se puede
@@ -2394,7 +2394,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         sessions = FakeData.allSessions.clusteredForTheGallery(),
                         zones = listOf(
                             Zone(
-                                id = "z2", userId = "u", name = "Garaje",
+                                id = "z2", userId = "u", name = "Home garage",
                                 lat = ZONE_LAT, lon = ZONE_LON, iconKey = "HOME", createdAt = 0L,
                                 isPrivate = true,
                             ),
@@ -3448,7 +3448,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Lista de dispositivos") {
                 BluetoothConfigContent(
                     state = BluetoothConfigState(
-                        vehicleName = "Toyota Corolla",
+                        vehicleName = "Second car",
                         bondedDevices = FakeData.btDevices,
                         selectedAddress = FakeData.btDevices.first().address,
                         currentDeviceAddress = FakeData.btDevices.first().address,
@@ -3469,7 +3469,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             },
             Variant("BT desactivado") {
                 BluetoothConfigContent(
-                    state = BluetoothConfigState(vehicleName = "Toyota Corolla", isBluetoothEnabled = false, isLoading = false),
+                    state = BluetoothConfigState(vehicleName = "Second car", isBluetoothEnabled = false, isLoading = false),
                 )
             },
             Variant("Cargando") { BluetoothConfigContent(state = BluetoothConfigState(isLoading = true)) },
@@ -4601,7 +4601,7 @@ private val sharedCarKamiq = SharedCar(
     carId = "mock_vehicle_001",
     ownerUid = "mock_user_001",
     ownerName = "Marta",
-    displayName = "Seat León",
+    displayName = "Family car",
     sizeCategory = VehicleSize.MEDIUM_SUV,
     fuelType = FuelType.GASOLINE,
     consumptionPer100 = 6.4f,
@@ -4627,7 +4627,7 @@ private fun sharedCarState(parked: Boolean = true) = SharedCarState(
 private fun sharedMockVehicle(shareRoutes: Boolean = true, paired: Boolean = true) = Vehicle(
     id = "mock_vehicle_001",
     userId = "mock_user_002",
-    name = "Seat León",
+    name = "Family car",
     sizeCategory = VehicleSize.MEDIUM_SUV,
     bluetoothDeviceId = if (paired) "AA:BB:CC:DD:EE:FF" else null,
     sharedCarId = "mock_vehicle_001",

@@ -12,7 +12,7 @@ private fun BtConfigDeviceListLightPreview() {
     PaparcarTheme(darkTheme = false) {
         BluetoothConfigContent(
             state = BluetoothConfigState(
-                vehicleName = "Toyota Corolla",
+                vehicleName = "Second car",
                 bondedDevices = FakeData.btDevices,
                 selectedAddress = FakeData.btDevices.first().address,
                 currentDeviceAddress = FakeData.btDevices.first().address,
@@ -30,7 +30,7 @@ private fun BtConfigDeviceListDarkPreview() {
     PaparcarTheme(darkTheme = true) {
         BluetoothConfigContent(
             state = BluetoothConfigState(
-                vehicleName = "Toyota Corolla",
+                vehicleName = "Second car",
                 bondedDevices = FakeData.btDevices,
                 selectedAddress = null,
                 isBluetoothEnabled = true,
@@ -61,7 +61,7 @@ private fun BtConfigBtOffLightPreview() {
     PaparcarTheme(darkTheme = false) {
         BluetoothConfigContent(
             state = BluetoothConfigState(
-                vehicleName = "Toyota Corolla",
+                vehicleName = "Second car",
                 isBluetoothEnabled = false,
                 isLoading = false,
             ),
@@ -76,7 +76,7 @@ private fun BtConfigBtOffDarkPreview() {
     PaparcarTheme(darkTheme = true) {
         BluetoothConfigContent(
             state = BluetoothConfigState(
-                vehicleName = "Toyota Corolla",
+                vehicleName = "Second car",
                 isBluetoothEnabled = false,
                 isLoading = false,
             ),
