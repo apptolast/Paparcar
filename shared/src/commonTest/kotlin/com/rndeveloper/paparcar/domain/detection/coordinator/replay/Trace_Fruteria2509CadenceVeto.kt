@@ -53,11 +53,14 @@ import com.rndeveloper.paparcar.domain.detection.coordinator.ingestion.TraceEven
  * `verified_enter`, i.e. `VerifyDepartureEvidenceUseCase` read a corroborated AR `IN_VEHICLE ENTER`
  * out of `departureEventBus.lastVehicleEnteredAt` and used it to verify the departure — while
  * `EgressEvidence.vehicleRideAtMs`, the field `isHumanPoweredRide` arbitrates on, is filled by
- * `CoordinatorParkingDetector.onVehicleRide` and that has exactly ONE call site: live AR deliveries
- * inside the session. A boarding known at arm time is therefore invisible to the verdict. That is a
- * defect of its own, not this ticket's — see
- * `docs/backlog/det-a-verified-boarding-must-reach-the-veto-001.md`. The replay below reproduces the
- * field, so it does NOT stamp it.
+ * `CoordinatorParkingDetector.onVehicleRide` and that had exactly ONE call site: live AR deliveries
+ * inside the session. A boarding known at arm time was therefore invisible to the verdict.
+ *
+ * ✅ **Arreglado el mismo día** por `DET-A-VERIFIED-BOARDING-MUST-REACH-THE-VETO-001`: the arm carries
+ * WHEN it witnessed the boarding and the coordinator seeds it. So the replay of this stream with its
+ * own `verified_enter` arm now SAVES — and the case that still loses it, and still pins the cadence
+ * ticket, is the same stream armed by SPEED, which witnesses no boarding at all. The two tests are
+ * named in that ticket's success criteria.
  *
  * ## Fidelity
  *

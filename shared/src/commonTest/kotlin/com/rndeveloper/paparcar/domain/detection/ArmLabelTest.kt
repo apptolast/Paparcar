@@ -58,6 +58,74 @@ class ArmLabelTest {
     }
 
     /**
+     * [DET-A-VERIFIED-BOARDING-MUST-REACH-THE-VETO-001] **Which arms may assert that a boarding was
+     * witnessed** — enumerated, so a new arm cannot become one by omission (the
+     * `VEH-A-NEW-VEHICLE-TYPE-MUST-NOT-BE-A-CAR-BY-OMISSION-001` failure mode, on a different type).
+     *
+     * The list is the assertion: adding an arm that answers non-null without touching this test is
+     * exactly what must not compile past review.
+     */
+    @Test
+    fun should_attestABoarding_only_when_theArmActuallyWitnessedOne() {
+        val armedAt = 1_000_000L
+        val attesting = ArmEvidence.allArms
+            .filter { it.boardingWitnessedAtMs(armedAt) != null }
+            .map { it.label }
+            .toSet()
+
+        assertEquals(
+            setOf(ArmLabel.VERIFIED_ENTER, ArmLabel.ENTER_AT_CAR),
+            attesting,
+            "the set of arms that may revoke the pedal-cadence veto changed. Each one has to have " +
+                "WITNESSED an AR IN_VEHICLE boarding AND carry its instant — see the KDoc on " +
+                "ArmEvidence.boardingWitnessedAtMs before widening this",
+        )
+    }
+
+    /**
+     * ⛔ The one that costs a CAR if it ever flips. Field 2026-08-16: a 59-minute BICYCLE ride to Los
+     * Toruños was sealed `verified_speed` — a bicycle clears the 10 km/h departure bar without effort
+     * — broke the car's own geofence at 352 m and re-pinned a Mercedes 4,8 km away while the real car
+     * sat in Calle Toledo. If a speed-verified arm could assert a boarding, that ride would receive
+     * the refutation the human-powered veto exists to withhold from it.
+     *
+     * Asymmetric failure is what decides the direction: the loss this ticket repairs costs a spot,
+     * this one costs a car. Spelled as its own test rather than left implicit in the set above,
+     * because the set can be widened by someone who never reads the field record.
+     */
+    @Test
+    fun should_neverAttestABoarding_when_theDepartureWasProvenOnlyBySpeed() {
+        assertNull(
+            ArmEvidence.VerifiedBySpeed(speedKmh = 38f, accuracyM = 6f).boardingWitnessedAtMs(1L),
+            "a bicycle clears the departure speed bar — this door stays shut",
+        )
+        assertNull(
+            ArmEvidence.BtRide(engagementMs = 600_000L).boardingWitnessedAtMs(1L),
+            "and the Bluetooth lane never feeds the Coordinator's reasoning",
+        )
+    }
+
+    /**
+     * The arithmetic, stated: `verified_enter` carries the GAP the verifier measured to the boarding,
+     * so the instant is the arm's own clock minus that gap. `enter_at_car` carries the instant itself
+     * and must ignore the arm's clock entirely — two different shapes answering one question.
+     */
+    @Test
+    fun should_dateTheBoarding_from_whicheverQuantityTheArmCarries() {
+        assertEquals(
+            940_000L,
+            ArmEvidence.VerifiedByVehicleEnter(enterToExitMs = 60_000L)
+                .boardingWitnessedAtMs(armedAtMs = 1_000_000L),
+        )
+        assertEquals(
+            777L,
+            ArmEvidence.BoardingAtCar(enterTrueTimeMs = 777L)
+                .boardingWitnessedAtMs(armedAtMs = 1_000_000L),
+            "an absolute instant must not be re-derived from the arm's clock",
+        )
+    }
+
+    /**
      * The population witness. `allArms` is hand-listed (the payload cases are not objects), so this
      * is what stops it silently covering less than the type does: every word must be produced by an
      * arm, except the one that has none by construction.

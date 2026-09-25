@@ -487,6 +487,28 @@ class CoordinatorParkingDetector(
                 PaparcarLogger.d(DIAG, "  ✓ ${armEvidence.persistLabel} → seed hasEverReachedDrivingSpeed=true (drive MEASURED by the superseded session; not retractable) [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001]")
             }
         }
+        // [DET-A-VERIFIED-BOARDING-MUST-REACH-THE-VETO-001] …and the OTHER thing an arm can know: that
+        // it watched the user get into a vehicle. The cadence veto is revocable by a witnessed
+        // boarding (`DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001`), but it reads
+        // `egress.vehicleRideAtMs`, and until now only the live AR receiver ever wrote there. So the
+        // boarding that ARMED the session — the normal case for `verified_enter`, where the ENTER is
+        // what verified the exit — could not revoke anything. Field 25-09 (Oppo `1790330246055`):
+        // armed on a corroborated ENTER, zero AR transitions afterwards, latched at 40 s off city
+        // fixes reading 24,6-37,9 km/h, park lost.
+        //
+        // Seeded through the SAME door the receiver uses, so there is one notion of "a boarding was
+        // witnessed at T" and the arbitration that compares it to a cycling stamp stays in one place.
+        // Which arms may answer — and why a speed-verified one never may — is decided in
+        // `ArmEvidence.boardingWitnessedAtMs`, not here.
+        armEvidence.boardingWitnessedAtMs(sessionStartMs)?.let { boardedAtMs ->
+            _detectionState.update { it.copy(egress = it.egress.onVehicleRide(boardedAtMs)) }
+            PaparcarLogger.d(
+                DIAG,
+                "  ✓ ${armEvidence.persistLabel} → seed vehicleRideAtMs=$boardedAtMs " +
+                    "(boarding witnessed ${sessionStartMs - boardedAtMs}ms before the arm; the " +
+                    "cadence veto can be revoked) [DET-A-VERIFIED-BOARDING-MUST-REACH-THE-VETO-001]",
+            )
+        }
         currentArmGeofenceId = armingGeofenceId
         // Session provenance stamped on the confirmed park — the repark-plausibility guard in
         // ConfirmParkingUseCase bypasses verified arms and interrogates self-observed ones.

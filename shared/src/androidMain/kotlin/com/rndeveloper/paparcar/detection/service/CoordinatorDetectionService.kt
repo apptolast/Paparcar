@@ -1236,7 +1236,10 @@ class CoordinatorDetectionService : LifecycleService() {
                 // the right posture for a boarding caught cold — and the wrong one when the trip
                 // this ENTER interrupts already produced that proof. Inheriting it does not weaken
                 // the guard: with nothing superseded (the ordinary case) this is still BoardingAtCar.
-                val armedWith = supersededDrive ?: ArmEvidence.BoardingAtCar
+                // [DET-A-VERIFIED-BOARDING-MUST-REACH-THE-VETO-001] The ENTER's TRUE transition
+                // time travels with the arm now — `trueEpochMs` is the same value the ladder above
+                // decided with, so nothing new is measured here, it just stops being discarded.
+                val armedWith = supersededDrive ?: ArmEvidence.BoardingAtCar(enterTrueTimeMs = trueEpochMs)
                 val detail = "geof=${decision.geofenceId.take(8)} lag=${lagMs}ms dep=${armedWith.persistLabel}"
                 PaparcarLogger.d(DIAG, "  → AR ENTER at own fence — arming Coordinator, waiting for ride proof ($detail) [DET-AR-FIRST-001]")
                 cancelDetectionJob()

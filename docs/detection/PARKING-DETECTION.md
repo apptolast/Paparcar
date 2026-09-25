@@ -499,6 +499,82 @@ See `diagnostics/README.md` at the repo root for the recommended layout when arc
 
 Each entry is one issue we shipped a fix for. Listed roughly in dependency order (mappers first, then pipeline, then algorithm). Every entry should explain *what was wrong*, *why it was wrong*, and *what guard exists today*. If you ever want to remove a guard, find its entry here first.
 
+### DET-A-VERIFIED-BOARDING-MUST-REACH-THE-VETO-001 — el embarque que verificaba la salida no llegaba al juez que lo necesitaba
+
+**Commit:** pending. **Origen:** field real, 25-09-2026 — falso negativo del Oppo (`0l7X59pt…`,
+sesión `1790330246055`): salida de la frutería, ~600 m y 80 s de coche, pico 39,77 km/h, y el
+aparcamiento se perdió. El user lo marcó a mano 10 min después, a 20,5 m del ancla que la detección
+ya tenía. Encontrado al construir el replay de `DET-THE-CADENCE-CORPUS-MUST-BE-EXECUTABLE-001`, al
+preguntar por qué el arm decía `verified_enter` si el veto se comportaba como si no hubiera embarque.
+
+**Qué estaba mal.** Dos lecturas del mismo hecho, en campos distintos:
+
+```
+VerifyDepartureEvidenceUseCase  ──lee──>  departureEventBus.lastVehicleEnteredAt   → verified_enter
+isHumanPoweredRide              ──lee──>  EgressEvidence.vehicleRideAtMs           → null
+```
+
+El AR `IN_VEHICLE ENTER` que verificó la salida —corroborado contra desplazamiento, suficiente para
+autorizar la conducción— nunca llegaba a `vehicleRideAtMs`, que sólo rellena
+`CoordinatorParkingDetector.onVehicleRide`, con **un único call site**: el receptor de AR, es decir
+entregas **en vivo dentro de la sesión**. El embarque anterior al arm no se vuelve a entregar: la
+sesión tuvo 587 eventos y **cero `ACTIVITY_TRANSITION`**. Así que la cadencia de pedaleo latcheó a los
+40 s con ocho fixes urbanos a **24,6-37,9 km/h**, la revocación de
+`DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001` no tenía de qué agarrarse, y el confirm bueno
+(`steps+egress`) se degradó a pregunta que nadie contestó.
+
+⚠️ **En iOS era peor**: allí un ENTER va a `DepartureEventBus.onVehicleEntered` y **nunca** al
+coordinator, así que `vehicleRideAtMs` sólo se rellena con un EXIT — la puerta de la revocación no
+existía hasta que AR entregase una salida.
+
+**Doctrina violada.** *El evento NOMINA, sólo el movimiento MEDIDO confirma*, en su corolario del lado
+del veto: la cadencia cede ante un embarque que AR sí atestiguó. AR lo atestiguó, la app lo usó, y el
+juez no lo vio. El 26-08 la causa fue una rama que retornaba antes; aquí **el dato no estaba en la
+habitación**.
+
+**Fix — el arm dice WHEN, y la semilla entra por la misma puerta que el receptor.**
+
+- `ArmEvidence.boardingWitnessedAtMs(armedAtMs)`: `when` exhaustivo sobre el sellado, en el único
+  sitio que clasifica arms. `VerifiedByVehicleEnter` data el embarque restando el hueco que el
+  verificador midió; `BoardingAtCar` pasa a llevar su `enterTrueTimeMs` (ya estaba disponible en el
+  arm site — el ladder de AR-first decide **con** él y lo tiraba al suelo). Todo lo demás, null.
+- `CoordinatorParkingDetector.invoke` siembra `egress.onVehicleRide(...)` junto al bloque que ya
+  siembra desde el arm, y **no decide nada**: qué arms pueden contestar vive en el tipo.
+- Al vivir en `commonMain`, iOS queda reparado sin tocar `iosMain`.
+
+⛔ **Un arm verificado por VELOCIDAD nunca atestigua un embarque.** Es el punto que decide el diseño:
+field 16-08, bici de 59 min a Los Toruños sellada `verified_speed` (una bici se saca los 10 km/h sin
+esfuerzo), geocerca rota a 352 m y un Mercedes re-pinchado a 4,8 km. Darle esa refutación al veto de
+la bici cuesta **un coche**; lo que este ticket arregla cuesta **una plaza**. Fallo asimétrico decide
+la dirección. Igual quedan fuera `BtRide` (⛔ y los carriles no se mezclan), `OwnCarAudio`
+(propiedad, no movimiento), `InheritedDrive`, `DepartureFollowed`, `ArrivalHandoff`, `Manual` y
+`Unverified`.
+
+⚠️ `BoardedAwayFromCar` es la única exclusión **por el dato y no por la doctrina**: sí atestigua un
+embarque AR, pero el instante del ENTER declinado no viaja por el re-look que arma, y fecharlo en el
+arm lo colocaría MÁS TARDE de lo que ocurrió — la única dirección que gana indebidamente a una marca
+de bici. Sin instante, no se afirma.
+
+**Guard que existe hoy.** `ArmLabelTest`: el conjunto de arms que pueden atestiguar un embarque está
+**enumerado** (`VERIFIED_ENTER`, `ENTER_AT_CAR`), con su propio test para que ninguno lo sea por
+omisión, más el test explícito de que `verified_speed` y `bt_ride` nunca contestan. Y en el corpus, el
+par del 25-09: `fruteria_2509_the_arm_that_witnessed_the_boarding_carries_the_park` guarda, y su
+control negativo `fruteria_2509_a_speed_verified_arm_gets_no_refutation_and_still_loses_it` —idéntico
+salvo el arm— sigue perdiéndolo.
+
+**Riesgo del fix acompañante.** Ninguno medido: 3 761 tests en verde, y los dos replays que armaban
+`BoardingAtCar` (parafarmacia 29-08, góndola 25-08) mantienen su veredicto con el embarque sembrado.
+El riesgo residual es el de siempre con AR: una bici en la que el clasificador diga `IN_VEHICLE` y
+**nunca** `ON_BICYCLE`. Ese agujero **ya existía** para las entregas en vivo —esto sólo amplía la
+ventana temporal— y lo tapan, cuando AR acierta a medias, la arbitración «gana el embarque más
+reciente» y el perfil del vehículo. Cuatro sesiones en bici registradas (16-08, 18-08, 19-08 ×2, en
+tres móviles) no produjeron ni un `IN_VEHICLE`.
+
+⛔ **Lo que esto NO arregla.** `DET-PEDAL-CADENCE-CANNOT-CONVICT-A-CAR-IN-TRAFFIC-001` sigue **abierto
+y bloqueado** por la muestra de bici: la cadencia sigue condenando coches urbanos, y un coche sin
+ningún embarque AR (field 18-08) seguiría perdiendo su plaza. Esto es una red de seguridad, no el
+origen.
+
 ### DET-A-SAVED-CARD-MUST-NOT-OUTLIVE-ITS-TRIP-001 — la tarjeta del aparcamiento sobrevivía al viaje, y sus botones seguían apuntando al viaje viejo
 
 **Commit:** pending. **Origen:** pregunta del user, 24-09-2026 — *«si ya hay otro viaje nuevo, y

@@ -220,8 +220,14 @@ sealed interface ArmEvidence {
      *  own fence — the boarding moment, caught BEFORE any driving exists to measure. Arms the
      *  coordinator "waiting for ride proof": deliberately NOT a verified departure (no seed),
      *  so the session must measure the drive itself and the anti-walking aborts stay armed —
-     *  a spurious ENTER beside the car costs one false-ENTER/no-movement abort. */
-    data object BoardingAtCar : ArmEvidence
+     *  a spurious ENTER beside the car costs one false-ENTER/no-movement abort.
+     *
+     *  [DET-A-VERIFIED-BOARDING-MUST-REACH-THE-VETO-001] Carries the ENTER's TRUE transition time
+     *  (not its delivery time) because [boardingWitnessedAtMs] compares it against a cycling stamp,
+     *  and only true transition times are comparable. It was always available at the arm site — the
+     *  AR-first ladder is handed `enterTrueTimeMs` to decide with — and was simply dropped on the
+     *  floor once the decision was made. */
+    data class BoardingAtCar(val enterTrueTimeMs: Long) : ArmEvidence
 
     /** [DET-BT-DISCONNECT-WITHOUT-RIDE-001] The paired car stayed CONNECTED long enough
      *  ([com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig.btMinRideDurationMs]) for the
@@ -281,6 +287,54 @@ sealed interface ArmEvidence {
      * TRIP band. The follower must measure the drive itself or ask at the far end.
      */
     data class DepartureFollowed(val speedKmh: Float, val accuracyM: Float?) : ArmEvidence
+
+    /**
+     * [DET-A-VERIFIED-BOARDING-MUST-REACH-THE-VETO-001] **WHEN this arm witnessed the user getting
+     * INTO a vehicle**, as a true transition time, or null when it witnessed no such thing.
+     *
+     * ## Why an arm has to answer this at all
+     *
+     * `isHumanPoweredRide` lets an AR boarding revoke the pedal-cadence latch — that is the whole of
+     * `DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001`. But it reads `EgressEvidence.vehicleRideAtMs`,
+     * and that field is filled by `CoordinatorParkingDetector.onVehicleRide`, whose only caller is
+     * the live AR receiver. A boarding that arrived BEFORE the arm — which is the normal case for
+     * `verified_enter`, where the ENTER is precisely what verified the exit — was therefore invisible
+     * to the verdict that needed it most.
+     *
+     * Field 2026-09-25, Oppo session `1790330246055`: armed `dep=verified_enter`, so
+     * `VerifyDepartureEvidenceUseCase` had read a corroborated `IN_VEHICLE ENTER` out of
+     * `DepartureEventBus` and used it to verify the departure. Zero `ACTIVITY_TRANSITION` events
+     * followed inside the session, the cadence latched 40 s in off eight city fixes at 24,6-37,9 km/h,
+     * and the park was lost. The classifier had answered; the answer never entered the room.
+     *
+     * ## Why only these three, and why not by velocity
+     *
+     * ⛔ **A speed-verified arm must NEVER answer this.** `VerifiedBySpeed` clears at 10 km/h and a
+     * bicycle clears 10 km/h all day — field 2026-08-16 sealed a 59-minute BICYCLE ride to Los
+     * Toruños `verified_speed` and re-pinned a car 4,8 km away. Letting that arm assert a boarding
+     * would hand the bicycle veto exactly the refutation it exists to withhold, and that failure
+     * costs a CAR while the one above costs a spot. Same reasoning excludes `BtRide` (⛔ and the
+     * strategies never mix), `OwnCarAudio` (ownership, never movement), `InheritedDrive`,
+     * `DepartureFollowed`, `ArrivalHandoff`, `Manual` and `Unverified`: none of them WITNESSED a
+     * boarding, whatever else they prove.
+     *
+     * ⚠️ [BoardedAwayFromCar] is the one exclusion that is about the DATA, not the doctrine: it does
+     * attest an AR boarding, but the declined ENTER's instant is not carried through the re-look that
+     * arms it, and dating it at the arm would place the boarding LATER than it happened — the one
+     * direction that wrongly beats a cycling stamp. Fail closed: no instant, no assertion.
+     *
+     * @param armedAtMs When this session armed — the reference [VerifiedByVehicleEnter] measures its
+     *   gap backwards from. Ignored by the arms that carry an absolute instant.
+     */
+    fun boardingWitnessedAtMs(armedAtMs: Long): Long? = when (this) {
+        // The ENTER that verified the exit, dated by the gap the verifier measured to it.
+        is VerifiedByVehicleEnter -> armedAtMs - enterToExitMs
+        // The boarding moment itself, already absolute.
+        is BoardingAtCar -> enterTrueTimeMs
+        is VerifiedBySpeed, is BoardedAwayFromCar, is BtRide, is OwnCarAudio, is InheritedDrive,
+        is DepartureFollowed, is ArrivalHandoff, is Manual, is Unverified,
+        -> null
+    }
 
     /**
      * What this arm entitles the session to assume about the drive. DECLARED by each arm — a new
@@ -381,7 +435,7 @@ sealed interface ArmEvidence {
             VerifiedBySpeed(speedKmh = 0f, accuracyM = null),
             VerifiedByVehicleEnter(enterToExitMs = 0L),
             Unverified,
-            BoardingAtCar,
+            BoardingAtCar(enterTrueTimeMs = 0L),
             ArrivalHandoff,
             BoardedAwayFromCar,
             BtRide(engagementMs = 0L),

@@ -101,12 +101,22 @@ La sesión está en el corpus como **`TRACE_FRUTERIA_2509_CADENCE_VETO`** con do
 `DetectionTraceReplayTest` que difieren en UNA línea — por eso el par señala la causa en vez de
 suponerla:
 
-- `fruteria_2509_a_city_car_under_40_kmh_is_convicted_and_the_park_is_lost` — ⚠️ **afirma el DEFECTO**
-  (0 guardados, `aborted_unattended_human_powered`), porque el arreglo sigue bloqueado. **Cuando
-  llegue la calibración, ese test se INVIERTE**, y su nueva expectativa es el criterio de éxito de más
-  abajo.
-- `fruteria_2509_the_boarding_the_arm_already_had_would_have_carried_it` — el mismo stream con el
-  embarque que el arm ya tenía: **guarda**, y el pin cae en la llegada.
+- `fruteria_2509_a_speed_verified_arm_gets_no_refutation_and_still_loses_it` — ⚠️ **el caso que
+  mantiene ESTE ticket pinchado.** Afirma la pérdida (0 guardados,
+  `aborted_unattended_human_powered`) con un arm que prueba la salida por VELOCIDAD, o sea sin
+  embarque atestiguado: exactamente el coche urbano que la cadencia no debería condenar. **Cuando
+  llegue la calibración, este es el test que se INVIERTE**, y su nueva expectativa es el criterio de
+  éxito de más abajo.
+- `fruteria_2509_the_arm_that_witnessed_the_boarding_carries_the_park` — el mismo stream cuando el arm
+  SÍ vio el embarque: **guarda**, desde que entró
+  `DET-A-VERIFIED-BOARDING-MUST-REACH-THE-VETO-001`. No cierra este ticket — sólo dice que cuando hay
+  embarque la revocación ya funciona.
+
+> ⚠️ **25-09, después:** el primer par de estos tests se llamaba
+> `..._a_city_car_under_40_kmh_is_convicted_and_the_park_is_lost` y
+> `..._the_boarding_the_arm_already_had_would_have_carried_it`. El segundo stampeaba el embarque a
+> mano para demostrar que bastaba; al arreglarse eso de verdad, el stamp sobraba y el par se reordenó
+> a los dos de arriba. La pareja sigue difiriendo en **una** línea: el arm.
 
 ⚠️ Montarlo destapó que **`trace2fixture` no leía los `CADENCE`**, o sea que generaba este trayecto
 con 574 filas impecables y el replay **guardaba** — un fixture mudo sobre su propio bug. Arreglado en

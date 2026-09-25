@@ -103,6 +103,13 @@ velocidad de su fix.
 | `FieldTraceGuardrailTest` + `GuardrailScope` | **cerrado** — recuento y procedencia al día |
 | `DetectionTraceIngestion` | **exento**: consume `TraceEvent`, y la reconstrucción produce `Kind.STEP` normales; no hay tipo nuevo |
 
+> 📌 **Nota posterior (25-09).** El follow-up de abajo se arregló el mismo día, así que los dos tests
+> que este ticket dejó se renombraron: la characterization pasó a
+> `fruteria_2509_a_speed_verified_arm_gets_no_refutation_and_still_loses_it` (misma función, ahora con
+> un arm sin embarque, que es el coche urbano puro) y su gemelo a
+> `fruteria_2509_the_arm_that_witnessed_the_boarding_carries_the_park`, que ya **guarda** sin stampear
+> nada. El fixture y el arreglo del generador no cambiaron.
+
 ## Follow-up abierto
 
 `docs/backlog/det-a-verified-boarding-must-reach-the-veto-001.md` — salió de aquí al preguntarle al

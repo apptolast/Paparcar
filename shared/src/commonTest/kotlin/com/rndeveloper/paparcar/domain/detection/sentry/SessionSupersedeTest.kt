@@ -115,7 +115,7 @@ class SessionSupersedeTest {
 
         assertEquals(DriveAuthorization.Measured, inherited.driveAuthorization)
         assertEquals(DriveAuthorization.OnTrust, ArmEvidence.VerifiedBySpeed(90f, 5f).driveAuthorization)
-        assertEquals(DriveAuthorization.None, ArmEvidence.BoardingAtCar.driveAuthorization)
+        assertEquals(DriveAuthorization.None, ArmEvidence.BoardingAtCar(enterTrueTimeMs = 0L).driveAuthorization)
     }
 
     /**
@@ -136,7 +136,7 @@ class SessionSupersedeTest {
             )!!.isVerifiedDeparture,
         )
         // …and the arms that prove nothing still do not.
-        assertFalse(ArmEvidence.BoardingAtCar.isVerifiedDeparture)
+        assertFalse(ArmEvidence.BoardingAtCar(enterTrueTimeMs = 0L).isVerifiedDeparture)
         assertFalse(ArmEvidence.Unverified.isVerifiedDeparture)
     }
 }
