@@ -66,7 +66,7 @@
     <string name="onboarding_step2_title">Votre stationnement, enregistré</string>
     <string name="onboarding_step2_desc">Retrouvez votre voiture sans y penser et revoyez où vous vous êtes garé.</string>
     <string name="onboarding_step3_title">Une place pour quelqu'un d'autre</string>
-    <string name="onboarding_step3_desc">Quand vous partez, la place apparaît libre pour ceux qui cherchent à côté.</string>
+    <string name="onboarding_step3_desc">Quand vous partez, la place apparaît libre pour ceux qui cherchent à côté : une voiture de moins à tourner.</string>
     <string name="onboarding_page3_title">Parkings et carburant à proximité</string>
     <string name="onboarding_page3_subtitle">La carte vous montre aussi les parkings publics et les stations-service autour de vous. Dans certains pays, avec le prix du carburant en temps réel, de sources officielles.</string>
     <string name="onboarding_cta_next">Suivant</string>
@@ -601,7 +601,7 @@ Si la question n'apparaît plus, changez-le dans Réglages → Paparcar → Posi
     <string name="home_det_stopped_msg">Détection automatique arrêtée</string>
     <string name="home_det_stopped_action">Activer</string>
     <string name="home_det_awaiting_title">Où est votre voiture ?</string>
-    <string name="home_det_awaiting_sub">Marquez votre stationnement, je le surveille</string>
+    <string name="home_det_awaiting_sub">Marquez-le une fois : dès votre prochain trajet je le fais seule</string>
     <string name="home_det_watching_title">On veille sur ta %1$s</string>
     <string name="home_det_watching_parked_sub">Garée — nous détecterons quand tu repars</string>
     <string name="home_det_watching_bt_sub">Le stationnement se détecte tout seul via le Bluetooth de la voiture</string>
@@ -747,11 +747,12 @@ Si la question n'apparaît plus, changez-le dans Réglages → Paparcar → Posi
     <!-- First-step explainers: the two ways a spot is born [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] -->
     <string name="first_steps_explain_close">Compris</string>
     <string name="first_steps_explain_park_title">Indiquez où vous avez laissé la voiture</string>
-    <string name="first_steps_explain_park_body">Cela ouvre votre stationnement : l'appli retient l'endroit et se met à le surveiller pour vous.</string>
+    <string name="first_steps_explain_park_body">Cela ouvre votre stationnement : l’appli retient l’endroit et se met à le surveiller. Vous ne le faites à la main que cette première fois.</string>
     <string name="first_steps_explain_park_way_title">À partir de là, la voiture c'est notre affaire</string>
     <string name="first_steps_explain_park_way_body">Vous n'avez ni la rue, ni le numéro, ni l'étage à retenir. Vous ouvrez Paparcar et c'est là.</string>
+    <string name="first_steps_explain_park_note">Sans stationnement ouvert, il n’y a rien à surveiller ni rien à libérer : la place qu’un autre conducteur reçoit est celle que vous laissez.</string>
     <string name="first_steps_explain_watch_title">Quand vous partez, votre emplacement se libère pour quelqu'un d'autre</string>
-    <string name="first_steps_explain_watch_body">Votre stationnement devient une place libre pour la communauté. Cela arrive de deux façons.</string>
+    <string name="first_steps_explain_watch_body">Votre stationnement devient une place libre pour la communauté : quelqu’un se gare là où vous étiez au lieu de tourner. Cela arrive de deux façons.</string>
     <string name="first_steps_explain_watch_auto_title">Tout seul</string>
     <string name="first_steps_explain_watch_auto_body">Paparcar voit que vous êtes parti et signale la place à votre place, sans que vous touchiez à rien.</string>
     <string name="first_steps_explain_watch_manual_title">Ou c'est vous qui le dites</string>
@@ -947,6 +948,7 @@ Si la question n'apparaît plus, changez-le dans Réglages → Paparcar → Posi
     <string name="stats_places_row_searching">%1$s à chercher en moyenne</string>
     <string name="stats_tile_auto_detected">détectés seuls</string>
     <string name="stats_tile_spots_shared">places cédées</string>
+    <string name="stats_tile_spots_shared_note">à un autre</string>
     <string name="stats_value_kg">%1$s kg</string>
     <string name="stats_value_lb">%1$s lb</string>
     <string name="stats_tile_fuel">carburant approx.</string>
@@ -958,7 +960,7 @@ Si la question n'apparaît plus, changez-le dans Réglages → Paparcar → Posi
     <string name="stats_value_hours">%1$d h</string>
     <string name="stats_value_minutes">%1$d min</string>
     <string name="stats_value_percent">%1$d%</string>
-    <string name="stats_lifetime">Depuis toujours : %1$s stationnements · %2$s places cédées</string>
+    <string name="stats_lifetime">Depuis toujours : %1$s stationnements · %2$s places cédées à un autre conducteur</string>
     <string name="stats_plus_row_title">Choisissez la période</string>
     <string name="stats_plus_row_subtitle">Gratuit : vos %1$d derniers jours ; avec Plus, la période de votre choix</string>
     <string name="stats_empty_first_trip">En attente de votre premier trajet</string>

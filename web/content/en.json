@@ -99,7 +99,7 @@
       {
         "icon": "spot",
         "title": "Community spots",
-        "body": "When you leave, the spot you free up can be published for drivers nearby; and you get to see the ones others have just left, each with how long ago it was freed. This information comes from drivers: the more people use Paparcar in your city, the more spots will show up."
+        "body": "When you leave, the spot you free up can be published for drivers nearby; and you get to see the ones others have just left, each with how long ago it was freed. This information comes from drivers: the more people use Paparcar in your city, the more spots will show up. Every spot that changes hands is a car that stops circling: less traffic on the street, and less fuel burned looking for a space."
       },
       {
         "icon": "parking",
@@ -270,7 +270,7 @@
       },
       {
         "q": "Do I have to mark where I park manually?",
-        "a": "No — that is the whole point of the app. The button is still there though: you can mark a parking by hand whenever you want, and correct the spot by dragging it on the map if detection left it a few metres off."
+        "a": "Not once it is running — that is the whole point of the app. There is one exception, and it is at the start: if your car has no Bluetooth, Paparcar does not know where the car is yet, so you mark that first parking by hand and from your next drive it takes over on its own. With your car's Bluetooth paired it is automatic from the first trip. Either way the button stays: you can mark a parking by hand whenever you want, and correct the spot by dragging it on the map if detection left it a few metres off."
       },
       {
         "q": "Does Paparcar need access to my location?",
@@ -286,7 +286,7 @@
       },
       {
         "q": "What are community spots?",
-        "a": "They are street spots other drivers have just freed up, which show on the map for a while. They come from community activity: when someone leaves, their spot can be published for whoever is nearby. That is why the more drivers use Paparcar in your city, the more spots you will see. We don't promise a spot will always be there, and each one says when it was freed so you can decide whether it is worth the drive."
+        "a": "They are street spots other drivers have just freed up, which show on the map for a while. They come from community activity: when someone leaves, their spot can be published for whoever is nearby. That is why the more drivers use Paparcar in your city, the more spots you will see. We don't promise a spot will always be there, and each one says when it was freed so you can decide whether it is worth the drive. And that is what the app is for beyond your own car: a spot that gets taken is one less driver going round the block, and circling for a space is part of what clogs a busy street."
       },
       {
         "q": "What if automatic detection gets it wrong?",

@@ -66,7 +66,7 @@
     <string name="onboarding_step2_title">Twoje parkowanie, zapisane</string>
     <string name="onboarding_step2_desc">Znajdź samochód bez zastanawiania się i sprawdź, gdzie parkowałeś.</string>
     <string name="onboarding_step3_title">Miejsce dla kogoś innego</string>
-    <string name="onboarding_step3_desc">Gdy odjeżdżasz, miejsce pojawia się jako wolne dla kierowców w pobliżu.</string>
+    <string name="onboarding_step3_desc">Gdy odjeżdżasz, miejsce pojawia się jako wolne dla kierowców w pobliżu: o jedno auto mniej krążące w kółko.</string>
     <string name="onboarding_page3_title">Parkingi i stacje w pobliżu</string>
     <string name="onboarding_page3_subtitle">Mapa pokazuje też publiczne parkingi i stacje paliw wokół ciebie. W niektórych krajach z cenami paliwa w czasie rzeczywistym z oficjalnych źródeł.</string>
     <string name="onboarding_cta_next">Dalej</string>
@@ -607,7 +607,7 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <string name="home_det_stopped_msg">Automatyczne wykrywanie zatrzymane</string>
     <string name="home_det_stopped_action">Włącz</string>
     <string name="home_det_awaiting_title">Gdzie jest auto?</string>
-    <string name="home_det_awaiting_sub">Zaznacz parkowanie, a ja go przypilnuję</string>
+    <string name="home_det_awaiting_sub">Zaznacz raz: od następnej jazdy zrobię to sama</string>
     <string name="home_det_watching_title">Czuwamy nad twoim %1$s</string>
     <string name="home_det_watching_parked_sub">Zaparkowany — wykryjemy, kiedy odjedziesz</string>
     <string name="home_det_watching_bt_sub">Parkowanie wykrywa się samo przez Bluetooth samochodu</string>
@@ -759,11 +759,12 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <!-- First-step explainers: the two ways a spot is born [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] -->
     <string name="first_steps_explain_close">Rozumiem</string>
     <string name="first_steps_explain_park_title">Zaznacz, gdzie zostawiłeś samochód</string>
-    <string name="first_steps_explain_park_body">To otwiera twoje parkowanie: aplikacja zapamiętuje miejsce i zaczyna go pilnować za ciebie.</string>
+    <string name="first_steps_explain_park_body">To otwiera twoje parkowanie: aplikacja zapamiętuje miejsce i zaczyna go pilnować. Ręcznie robisz to tylko za pierwszym razem.</string>
     <string name="first_steps_explain_park_way_title">Od tej chwili samochód to nasza sprawa</string>
     <string name="first_steps_explain_park_way_body">Nie musisz pamiętać ulicy, numeru ani piętra. Otwierasz Paparcar i już tam jest.</string>
+    <string name="first_steps_explain_park_note">Bez otwartego parkowania nie ma czego pilnować ani co zwalniać: miejsce, które dostaje inny kierowca, to to, które zostawiasz.</string>
     <string name="first_steps_explain_watch_title">Kiedy odjedziesz, twoje miejsce zwolni się dla kogoś innego</string>
-    <string name="first_steps_explain_watch_body">Twoje parkowanie zamienia się w wolne miejsce dla społeczności. Dzieje się to na dwa sposoby.</string>
+    <string name="first_steps_explain_watch_body">Twoje parkowanie zamienia się w wolne miejsce dla społeczności: ktoś parkuje tam, gdzie stałeś, zamiast krążyć. Dzieje się to na dwa sposoby.</string>
     <string name="first_steps_explain_watch_auto_title">Samo</string>
     <string name="first_steps_explain_watch_auto_body">Paparcar zauważa, że odjechałeś, i zgłasza miejsce za ciebie, bez twojego udziału.</string>
     <string name="first_steps_explain_watch_manual_title">Albo mówisz to ty</string>
@@ -969,6 +970,7 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <string name="stats_places_row_searching">średnio %1$s szukania</string>
     <string name="stats_tile_auto_detected">wykryte automatycznie</string>
     <string name="stats_tile_spots_shared">udostępnione miejsca</string>
+    <string name="stats_tile_spots_shared_note">innemu kierowcy</string>
     <string name="stats_value_kg">%1$s kg</string>
     <string name="stats_value_lb">%1$s lb</string>
     <string name="stats_tile_fuel">paliwo ok.</string>
@@ -980,7 +982,7 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <string name="stats_value_hours">%1$d godz.</string>
     <string name="stats_value_minutes">%1$d min</string>
     <string name="stats_value_percent">%1$d%</string>
-    <string name="stats_lifetime">Od zawsze: %1$s parkowań · %2$s udostępnionych miejsc</string>
+    <string name="stats_lifetime">Od zawsze: %1$s parkowań · %2$s miejsc przekazanych innemu kierowcy</string>
     <string name="stats_plus_row_title">Wybierz okres</string>
     <string name="stats_plus_row_subtitle">Za darmo widzisz ostatnie %1$d dni; z Plus dowolny okres</string>
     <string name="stats_empty_first_trip">Czekamy na twój pierwszy przejazd</string>

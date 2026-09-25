@@ -81,7 +81,7 @@ Park, get out and get on with your day. Paparcar saves where you left the car au
 When you drive off, the spot you leave can be published for the drivers nearby. And you can see the spots others have just left. The more drivers using Paparcar in your city, the more spots appear on the map.
 
 HOW IT WORKS
-1. You park. Paparcar detects it and saves the place. You can also mark it by hand with one tap.
+1. You park. Paparcar detects it and saves the place. With no Bluetooth, you mark the first parking by hand.
 2. You drive off. The app detects it.
 3. Your spot is published for the drivers nearby, when appropriate.
 
@@ -157,7 +157,7 @@ Aparca, bájate del coche y sigue con tu día. Paparcar guarda dónde has dejado
 Cuando te vas, la plaza que dejas puede publicarse para los conductores que están cerca. Y tú puedes ver las plazas que otros acaban de liberar. Cuantos más conductores usen Paparcar en tu ciudad, más plazas aparecen en el mapa.
 
 CÓMO FUNCIONA
-1. Aparcas. Paparcar lo detecta y guarda el sitio. También puedes marcarlo a mano con un toque.
+1. Aparcas. Paparcar lo detecta y guarda el sitio. Sin Bluetooth, el primer aparcamiento lo marcas tú.
 2. Te vas. La app lo detecta.
 3. Tu plaza se publica para los conductores cercanos, cuando corresponde.
 
@@ -233,7 +233,7 @@ Parcheggia, scendi e continua la tua giornata. Paparcar salva in automatico dove
 Quando riparti, il posto che lasci può essere pubblicato per chi guida lì vicino. E tu vedi i posti che altri hanno appena liberato. Più automobilisti usano Paparcar nella tua città, più posti compaiono sulla mappa.
 
 COME FUNZIONA
-1. Parcheggi. Paparcar lo rileva e salva il luogo. Puoi anche segnarlo a mano con un tocco.
+1. Parcheggi. Paparcar lo rileva e salva il luogo. Senza Bluetooth, il primo parcheggio lo segni tu.
 2. Riparti. L'app lo rileva.
 3. Il tuo posto viene pubblicato per chi guida lì vicino, quando è il caso.
 
@@ -309,7 +309,7 @@ Estaciona, sai do carro e segue com o teu dia. O Paparcar guarda onde deixaste o
 Quando sais, o lugar que deixas pode ser publicado para quem conduz ali perto. E tu vês os lugares que outros acabaram de libertar. Quantos mais condutores usarem o Paparcar na tua cidade, mais lugares aparecem no mapa.
 
 COMO FUNCIONA
-1. Estacionas. O Paparcar deteta e guarda o sítio. Também o podes marcar à mão com um toque.
+1. Estacionas. O Paparcar deteta e guarda o sítio. Sem Bluetooth, marcas tu o primeiro estacionamento.
 2. Sais. A aplicação deteta.
 3. O teu lugar é publicado para quem conduz ali perto, quando faz sentido.
 
@@ -385,7 +385,7 @@ Garez-vous, sortez et continuez votre journée. Paparcar enregistre automatiquem
 Quand vous repartez, la place que vous libérez peut être publiée pour les conducteurs à proximité. Et vous voyez celles que d'autres viennent de libérer. Plus il y a de conducteurs sur Paparcar dans votre ville, plus de places apparaissent.
 
 COMMENT ÇA MARCHE
-1. Vous vous garez. Paparcar le détecte et enregistre l'endroit. Vous pouvez aussi le marquer à la main.
+1. Vous vous garez. Paparcar le détecte et enregistre l'endroit. Sans Bluetooth, marquez le premier à la main.
 2. Vous repartez. L'application le détecte.
 3. Votre place est publiée pour les conducteurs à proximité.
 
@@ -461,7 +461,7 @@ Parke, steig aus und mach mit deinem Tag weiter. Paparcar speichert automatisch,
 Wenn du losfährst, kann der Platz, den du frei machst, für die Fahrer in der Nähe veröffentlicht werden. Und du siehst die Plätze, die andere gerade frei gemacht haben. Je mehr Fahrer Paparcar in deiner Stadt nutzen, desto mehr Plätze erscheinen.
 
 SO FUNKTIONIERT ES
-1. Du parkst. Paparcar erkennt es und speichert den Ort. Du kannst ihn auch von Hand markieren.
+1. Du parkst. Paparcar erkennt es und speichert den Ort. Ohne Bluetooth markierst du den ersten von Hand.
 2. Du fährst los. Die App erkennt es.
 3. Dein Platz wird für die Fahrer in der Nähe veröffentlicht, wenn es passt.
 
@@ -537,7 +537,7 @@ Parkeer, stap uit en ga verder met je dag. Paparcar slaat automatisch op waar je
 Als je wegrijdt, kan de plek die je achterlaat worden gepubliceerd voor de bestuurders in de buurt. En jij ziet de plekken die anderen net hebben vrijgemaakt. Hoe meer bestuurders Paparcar in jouw stad gebruiken, hoe meer plekken verschijnen.
 
 ZO WERKT HET
-1. Je parkeert. Paparcar merkt het en slaat de plek op. Je kunt hem ook met de hand markeren.
+1. Je parkeert. Paparcar merkt het en slaat de plek op. Zonder Bluetooth markeer je de eerste met de hand.
 2. Je rijdt weg. De app merkt het.
 3. Jouw plek wordt gepubliceerd voor de bestuurders in de buurt, waar het past.
 
@@ -613,7 +613,7 @@ Zaparkuj, wysiądź i zajmij się swoimi sprawami. Paparcar automatycznie zapisu
 Gdy odjeżdżasz, zwolnione miejsce może zostać opublikowane dla kierowców w pobliżu. A Ty widzisz miejsca, które inni właśnie zwolnili. Im więcej kierowców korzysta z Paparcar w Twoim mieście, tym więcej miejsc się pojawia.
 
 JAK TO DZIAŁA
-1. Parkujesz. Paparcar to wykrywa i zapisuje miejsce. Możesz je też oznaczyć ręcznie.
+1. Parkujesz. Paparcar to wykrywa i zapisuje miejsce. Bez Bluetootha pierwsze parkowanie oznaczasz ręcznie.
 2. Odjeżdżasz. Aplikacja to wykrywa.
 3. Twoje miejsce trafia do kierowców w pobliżu, gdy ma to sens.
 
@@ -689,7 +689,7 @@ Parchează, coboară și vezi-ți de ziua ta. Paparcar salvează automat unde ai
 Când pleci, locul pe care îl eliberezi poate fi publicat pentru șoferii din apropiere. Iar tu vezi locurile pe care alții tocmai le-au eliberat. Cu cât mai mulți șoferi folosesc Paparcar în orașul tău, cu atât mai multe locuri apar.
 
 CUM FUNCȚIONEAZĂ
-1. Parchezi. Paparcar detectează și salvează locul. Îl poți marca și manual.
+1. Parchezi. Paparcar detectează și salvează locul. Fără Bluetooth, prima parcare o marchezi tu.
 2. Pleci. Aplicația detectează.
 3. Locul tău este publicat pentru șoferii din apropiere, când este cazul.
 

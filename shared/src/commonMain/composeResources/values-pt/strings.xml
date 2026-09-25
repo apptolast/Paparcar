@@ -66,7 +66,7 @@
     <string name="onboarding_step2_title">O teu estacionamento, guardado</string>
     <string name="onboarding_step2_desc">Encontra o carro sem pensar e revê onde estacionaste.</string>
     <string name="onboarding_step3_title">Um lugar para outra pessoa</string>
-    <string name="onboarding_step3_desc">Quando sais, o lugar aparece livre para quem procura perto.</string>
+    <string name="onboarding_step3_desc">Quando sais, o lugar aparece livre para quem procura perto: um carro a menos a dar voltas.</string>
     <string name="onboarding_page3_title">Parques e combustível perto de ti</string>
     <string name="onboarding_page3_subtitle">O mapa também te mostra os parques de estacionamento públicos e os postos à tua volta. Em alguns países, com o preço do combustível em tempo real, de fontes oficiais.</string>
     <string name="onboarding_cta_next">Seguinte</string>
@@ -601,7 +601,7 @@ Se a pergunta já não aparecer, muda em Definições → Paparcar → Localiza�
     <string name="home_det_stopped_msg">Deteção automática parada</string>
     <string name="home_det_stopped_action">Ativar</string>
     <string name="home_det_awaiting_title">Onde está o seu carro?</string>
-    <string name="home_det_awaiting_sub">Marca o estacionamento e eu vigio a saída</string>
+    <string name="home_det_awaiting_sub">Marca-o uma vez: a partir da próxima viagem faço-o sozinha</string>
     <string name="home_det_watching_title">A vigiar o teu %1$s</string>
     <string name="home_det_watching_parked_sub">Estacionado — vamos detetar quando saíres</string>
     <string name="home_det_watching_bt_sub">O estacionamento deteta-se sozinho pelo Bluetooth do carro</string>
@@ -747,11 +747,12 @@ Se a pergunta já não aparecer, muda em Definições → Paparcar → Localiza�
     <!-- First-step explainers: the two ways a spot is born [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] -->
     <string name="first_steps_explain_close">Percebi</string>
     <string name="first_steps_explain_park_title">Marca onde deixaste o carro</string>
-    <string name="first_steps_explain_park_body">Isso abre o teu estacionamento: a app guarda o sítio e começa a vigiá-lo por ti.</string>
+    <string name="first_steps_explain_park_body">Isso abre o teu estacionamento: a app guarda o sítio e começa a vigiá-lo. Só o fazes à mão esta primeira vez.</string>
     <string name="first_steps_explain_park_way_title">A partir daí, o carro é connosco</string>
     <string name="first_steps_explain_park_way_body">Não tens de te lembrar da rua, do número nem do piso. Abres o Paparcar e está lá.</string>
+    <string name="first_steps_explain_park_note">Sem um estacionamento aberto não há nada para vigiar nem nada para libertar: o lugar que outro condutor recebe é o que tu deixas.</string>
     <string name="first_steps_explain_watch_title">Quando saíres, o teu sítio fica livre para outro</string>
-    <string name="first_steps_explain_watch_body">O teu estacionamento passa a ser um lugar livre para a comunidade. Acontece de duas maneiras.</string>
+    <string name="first_steps_explain_watch_body">O teu estacionamento passa a ser um lugar livre para a comunidade: alguém estaciona onde estavas em vez de dar voltas. Acontece de duas maneiras.</string>
     <string name="first_steps_explain_watch_auto_title">Sozinho</string>
     <string name="first_steps_explain_watch_auto_body">O Paparcar nota que foste embora e avisa do lugar por ti, sem tocares em nada.</string>
     <string name="first_steps_explain_watch_manual_title">Ou dizes tu</string>
@@ -947,6 +948,7 @@ Se a pergunta já não aparecer, muda em Definições → Paparcar → Localiza�
     <string name="stats_places_row_searching">%1$s à procura em média</string>
     <string name="stats_tile_auto_detected">detetados sozinhos</string>
     <string name="stats_tile_spots_shared">lugares cedidos</string>
+    <string name="stats_tile_spots_shared_note">a outro condutor</string>
     <string name="stats_value_kg">%1$s kg</string>
     <string name="stats_value_lb">%1$s lb</string>
     <string name="stats_tile_fuel">combustível aprox.</string>
@@ -958,7 +960,7 @@ Se a pergunta já não aparecer, muda em Definições → Paparcar → Localiza�
     <string name="stats_value_hours">%1$d h</string>
     <string name="stats_value_minutes">%1$d min</string>
     <string name="stats_value_percent">%1$d%</string>
-    <string name="stats_lifetime">Desde sempre: %1$s estacionamentos · %2$s lugares cedidos</string>
+    <string name="stats_lifetime">Desde sempre: %1$s estacionamentos · %2$s lugares cedidos a outro condutor</string>
     <string name="stats_plus_row_title">Escolhe o período</string>
     <string name="stats_plus_row_subtitle">Grátis vês os últimos %1$d dias; com Plus, o período que quiseres</string>
     <string name="stats_empty_first_trip">À espera da tua primeira viagem</string>

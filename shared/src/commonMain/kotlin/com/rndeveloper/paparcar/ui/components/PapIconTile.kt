@@ -36,7 +36,7 @@ fun PapIconTile(
     shape: Shape = PapShapes.row,
     container: Color = MaterialTheme.colorScheme.surfaceContainerHighest,
     tint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    iconSize: Dp = ICON_DP.dp,
+    iconSize: Dp = size * GLYPH_RATIO,
 ) {
     Box(
         modifier = modifier.size(size).clip(shape).background(container),
@@ -54,4 +54,18 @@ fun PapIconTile(
 /** The tile's default edge. Public because a caller that has to LINE UP with the tile (the first
  *  steps CTA sitting under its row) must read the size, not re-type it. */
 val PapIconTileSize: Dp = 40.dp
-private const val ICON_DP = 20
+
+/**
+ * The glyph takes HALF the tile's edge, and it is a RATIO because a fixed default is a trap.
+ * [UI-A-TILE-THAT-GROWS-MUST-GROW-ITS-GLYPH-001]
+ *
+ * This used to be a flat `20.dp`, which is the right number at the default 40 dp edge and silently
+ * wrong at every other: a caller that scaled the box got the same small glyph in a bigger disc.
+ * The explainer hero was exactly that — a 64 dp disc around a 20 dp glyph, 31% where the house
+ * proportion is 50%, and it read as a pea in a bowl on device (Oppo, 25-09).
+ *
+ * ⛔ At the default size this computes to the same 20 dp it always was, so nothing that relies on
+ * the default moves. The two callers that size the box themselves (`HomeSpotRows`,
+ * `CarbodyInfoCard`) pass their own `iconSize` and are untouched — they were never the bug.
+ */
+private const val GLYPH_RATIO = 0.5f

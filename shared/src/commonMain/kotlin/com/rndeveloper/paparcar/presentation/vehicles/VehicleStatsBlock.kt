@@ -109,6 +109,7 @@ import paparcar.composeapp.generated.resources.stats_tile_coverage
 import paparcar.composeapp.generated.resources.stats_tile_usual_place
 import paparcar.composeapp.generated.resources.stats_tile_peak_hour
 import paparcar.composeapp.generated.resources.stats_tile_spots_shared
+import paparcar.composeapp.generated.resources.stats_tile_spots_shared_note
 import paparcar.composeapp.generated.resources.stats_tile_usual_day
 import paparcar.composeapp.generated.resources.stats_value_hours_minutes
 import paparcar.composeapp.generated.resources.stats_value_kg
@@ -834,10 +835,27 @@ internal fun statTiles(stats: PeriodStats): List<StatTileData> {
                 ),
                 progress = stats.autoDetectedCount.toFloat() / stats.detectionKnownCount,
             )
+            // ⛔ La cifra que ES la razón de ser del producto era la única que no decía qué cuenta.
+            // Su significado estaba escrito — en el KDoc de [isContribution], que el usuario no
+            // abre: veía «3 · plazas cedidas» y el verde, y nada más. La nota lo dice donde se lee,
+            // y lo dice sobre el HECHO que medimos (`publishedSpot`: la plaza se publicó para quien
+            // buscaba al lado), no sobre una consecuencia que no podemos medir — de ahí que no haya
+            // aquí ni kg de CO₂ ni conductores ahorrados. [COPY-THE-APP-NEVER-SAYS-WHAT-IT-IS-FOR-001]
+            //
+            // ⛔ Y es CORTA porque el slot lo es: `note` va a una línea con ellipsis dentro de un
+            // tile a media card (COLUMNS = 2) y en `caption` de 12sp, o sea ~20 caracteres. El
+            // presupuesto lo fija el vecino («12 de 13 viajes»). La FRASE entera —a quién fueron
+            // esas plazas— vive en el pie `stats_lifetime`, que es ancho completo y sin recorte:
+            // el tile cualifica la cifra, el pie la cuenta.
+            //
+            // Sirve igual al cero, y por eso no lleva rama: el tile se añade incondicionalmente a
+            // propósito (ver [hasMeasuredFigures]) y «0 · plazas cedidas · a otro conductor» sigue
+            // describiendo qué se cuenta.
             StatTileKey.SPOTS_SHARED -> StatTileData(
                 icon = icon,
                 value = stats.spotsReleased.toString(),
                 label = stringResource(Res.string.stats_tile_spots_shared),
+                note = stringResource(Res.string.stats_tile_spots_shared_note),
                 animated = StatTileNumber(stats.spotsReleased.toDouble()) { v ->
                     v.roundToInt().toString()
                 },

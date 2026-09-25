@@ -108,7 +108,7 @@
     <string name="onboarding_step2_title">Your parking, saved</string>
     <string name="onboarding_step2_desc">Find your car without thinking and look back at where you have parked.</string>
     <string name="onboarding_step3_title">A spot for someone else</string>
-    <string name="onboarding_step3_desc">When you leave, the spot shows up free for drivers nearby.</string>
+    <string name="onboarding_step3_desc">When you leave, the spot shows up free for drivers nearby — one less car going round the block.</string>
     <string name="onboarding_page3_title">Car parks and fuel, nearby</string>
     <string name="onboarding_page3_subtitle">The map also shows public car parks and fuel stations around you. In some countries, with fuel prices in real time from official sources.</string>
     <string name="onboarding_cta_next">Next</string>
@@ -693,7 +693,7 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="home_det_stopped_msg">Auto-detection stopped</string>
     <string name="home_det_stopped_action">Turn on</string>
     <string name="home_det_awaiting_title">Where is your car?</string>
-    <string name="home_det_awaiting_sub">Mark your parking and I will watch it</string>
+    <string name="home_det_awaiting_sub">Mark it once — from your next drive I do it on my own</string>
     <string name="home_det_watching_title">Watching your %1$s</string>
     <string name="home_det_watching_parked_sub">Parked — we’ll notice when you drive off</string>
     <string name="home_det_watching_bt_sub">Parking detects itself via your car’s Bluetooth</string>
@@ -784,11 +784,12 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <!-- First-step explainers: the two ways a spot is born [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] -->
     <string name="first_steps_explain_close">Got it</string>
     <string name="first_steps_explain_park_title">Mark where you left your car</string>
-    <string name="first_steps_explain_park_body">This opens your parking: the app saves the place and starts watching it for you.</string>
+    <string name="first_steps_explain_park_body">This opens your parking: the app saves the place and starts watching it. You only do it by hand this first time.</string>
     <string name="first_steps_explain_park_way_title">From then on, the car is our job</string>
     <string name="first_steps_explain_park_way_body">You do not have to remember the street, the number or the floor. Open Paparcar and it is there.</string>
+    <string name="first_steps_explain_park_note">With no parking open there is nothing to watch and nothing to free: the spot another driver gets is the one you leave behind.</string>
     <string name="first_steps_explain_watch_title">When you leave, your space frees up for someone else</string>
-    <string name="first_steps_explain_watch_body">Your parking becomes a free spot for the community. It happens in one of two ways.</string>
+    <string name="first_steps_explain_watch_body">Your parking becomes a free spot for the community: someone parks where you were instead of circling for it. It happens in one of two ways.</string>
     <string name="first_steps_explain_watch_auto_title">On its own</string>
     <string name="first_steps_explain_watch_auto_body">Paparcar notices you have driven off and reports the spot for you, without you touching anything.</string>
     <string name="first_steps_explain_watch_manual_title">Or you say so</string>
@@ -988,6 +989,7 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="stats_places_row_searching">%1$s hunting on average</string>
     <string name="stats_tile_auto_detected">detected for you</string>
     <string name="stats_tile_spots_shared">spots shared</string>
+    <string name="stats_tile_spots_shared_note">to another driver</string>
     <string name="stats_value_kg">%1$s kg</string>
     <string name="stats_value_lb">%1$s lb</string>
     <string name="stats_tile_fuel">approx. fuel used</string>
@@ -999,7 +1001,7 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="stats_value_hours">%1$d h</string>
     <string name="stats_value_minutes">%1$d min</string>
     <string name="stats_value_percent">%1$d%</string>
-    <string name="stats_lifetime">All time: %1$s parkings · %2$s spots shared</string>
+    <string name="stats_lifetime">All time: %1$s parkings · %2$s spots handed to another driver</string>
     <string name="stats_plus_row_title">Choose the period</string>
     <string name="stats_plus_row_subtitle">Free shows your last %1$d days; Plus, any period you pick</string>
     <string name="stats_empty_first_trip">Waiting for your first trip</string>

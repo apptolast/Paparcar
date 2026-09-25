@@ -55,6 +55,7 @@ import paparcar.composeapp.generated.resources.first_steps_explain_fortify_bt_ti
 import paparcar.composeapp.generated.resources.first_steps_explain_fortify_note
 import paparcar.composeapp.generated.resources.first_steps_explain_fortify_title
 import paparcar.composeapp.generated.resources.first_steps_explain_park_body
+import paparcar.composeapp.generated.resources.first_steps_explain_park_note
 import paparcar.composeapp.generated.resources.first_steps_explain_park_title
 import paparcar.composeapp.generated.resources.first_steps_explain_park_way_body
 import paparcar.composeapp.generated.resources.first_steps_explain_park_way_title
@@ -130,6 +131,12 @@ internal data class ExplainerCopy(
 )
 
 internal fun FirstStep.explainerCopy(): ExplainerCopy = when (this) {
+    // The note is what makes this page honest, and it was the one explainer without one. The step
+    // reads as a chore ("drag a pin") until it says what hangs off it: `FirstStep.MARK_PARKING` is
+    // "what arms everything else" — the session, the fence and the watch — and with no parking open
+    // there is no departure to notice and no spot to hand over. The BODY now also says the part the
+    // web and the store listing promise and this page did not: by hand only this first time.
+    // [COPY-THE-APP-NEVER-SAYS-WHAT-IT-IS-FOR-001]
     FirstStep.MARK_PARKING -> ExplainerCopy(
         title = Res.string.first_steps_explain_park_title,
         body = Res.string.first_steps_explain_park_body,
@@ -140,7 +147,7 @@ internal fun FirstStep.explainerCopy(): ExplainerCopy = when (this) {
                 icon = Icons.Rounded.Visibility,
             ),
         ),
-        note = null,
+        note = Res.string.first_steps_explain_park_note,
         icon = Icons.Rounded.AddLocationAlt,
     )
 

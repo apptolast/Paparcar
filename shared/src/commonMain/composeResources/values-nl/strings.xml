@@ -67,7 +67,7 @@
     <string name="onboarding_step2_title">Je parkeerplaats, bewaard</string>
     <string name="onboarding_step2_desc">Vind je auto zonder nadenken en kijk terug waar je hebt geparkeerd.</string>
     <string name="onboarding_step3_title">Een plek voor een ander</string>
-    <string name="onboarding_step3_desc">Als je vertrekt, verschijnt de plek als vrij voor wie in de buurt zoekt.</string>
+    <string name="onboarding_step3_desc">Als je vertrekt, verschijnt de plek als vrij voor wie in de buurt zoekt: één auto minder die rondjes rijdt.</string>
     <string name="onboarding_page3_title">Parkeergarages en brandstof dichtbij</string>
     <string name="onboarding_page3_subtitle">De kaart toont je ook openbare parkeergarages en tankstations om je heen. In sommige landen met brandstofprijzen in realtime uit officiële bronnen.</string>
     <string name="onboarding_cta_next">Volgende</string>
@@ -602,7 +602,7 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen → Paparcar �
     <string name="home_det_stopped_msg">Automatische detectie gestopt</string>
     <string name="home_det_stopped_action">Inschakelen</string>
     <string name="home_det_awaiting_title">Waar staat je auto?</string>
-    <string name="home_det_awaiting_sub">Markeer je parkeerplaats, ik houd hem in de gaten</string>
+    <string name="home_det_awaiting_sub">Markeer hem één keer: vanaf je volgende rit doe ik het zelf</string>
     <string name="home_det_watching_title">We letten op je %1$s</string>
     <string name="home_det_watching_parked_sub">Geparkeerd — we merken het wanneer je wegrijdt</string>
     <string name="home_det_watching_bt_sub">Parkeren wordt automatisch herkend via de Bluetooth van je auto</string>
@@ -748,11 +748,12 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen → Paparcar �
     <!-- First-step explainers: the two ways a spot is born [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] -->
     <string name="first_steps_explain_close">Begrepen</string>
     <string name="first_steps_explain_park_title">Markeer waar je auto staat</string>
-    <string name="first_steps_explain_park_body">Dat opent je parkeerplaats: de app onthoudt de plek en gaat hem voor je bewaken.</string>
+    <string name="first_steps_explain_park_body">Dat opent je parkeerplaats: de app onthoudt de plek en gaat hem bewaken. Alleen deze eerste keer doe je het met de hand.</string>
     <string name="first_steps_explain_park_way_title">Vanaf dan is de auto onze zorg</string>
     <string name="first_steps_explain_park_way_body">Je hoeft de straat, het nummer of de verdieping niet te onthouden. Je opent Paparcar en daar staat hij.</string>
+    <string name="first_steps_explain_park_note">Zonder open parkeerplaats is er niets te bewaken en niets vrij te geven: de plek die een andere bestuurder krijgt, is die jij achterlaat.</string>
     <string name="first_steps_explain_watch_title">Als je wegrijdt, komt jouw plek vrij voor een ander</string>
-    <string name="first_steps_explain_watch_body">Je parkeerplaats wordt een vrije plek voor de gemeenschap. Dat gebeurt op twee manieren.</string>
+    <string name="first_steps_explain_watch_body">Je parkeerplaats wordt een vrije plek voor de gemeenschap: iemand parkeert waar jij stond in plaats van rondjes te rijden. Dat gebeurt op twee manieren.</string>
     <string name="first_steps_explain_watch_auto_title">Vanzelf</string>
     <string name="first_steps_explain_watch_auto_body">Paparcar merkt dat je bent weggereden en meldt de plek voor je, zonder dat je iets doet.</string>
     <string name="first_steps_explain_watch_manual_title">Of jij zegt het</string>
@@ -908,6 +909,7 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen → Paparcar �
     <string name="stats_places_row_searching">%1$s zoeken gemiddeld</string>
     <string name="stats_tile_auto_detected">vanzelf herkend</string>
     <string name="stats_tile_spots_shared">gedeelde plekken</string>
+    <string name="stats_tile_spots_shared_note">aan een ander</string>
     <string name="stats_value_kg">%1$s kg</string>
     <string name="stats_value_lb">%1$s lb</string>
     <string name="stats_tile_fuel">brandstof ong.</string>
@@ -919,7 +921,7 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen → Paparcar �
     <string name="stats_value_hours">%1$d u</string>
     <string name="stats_value_minutes">%1$d min</string>
     <string name="stats_value_percent">%1$d%</string>
-    <string name="stats_lifetime">Sinds het begin: %1$s parkeerplaatsen · %2$s gedeelde plekken</string>
+    <string name="stats_lifetime">Sinds het begin: %1$s parkeerplaatsen · %2$s plekken doorgegeven aan een andere bestuurder</string>
     <string name="stats_plus_row_title">Kies de periode</string>
     <string name="stats_plus_row_subtitle">Gratis zie je je laatste %1$d dagen; met Plus elke periode</string>
     <string name="stats_empty_first_trip">Wachten op je eerste rit</string>

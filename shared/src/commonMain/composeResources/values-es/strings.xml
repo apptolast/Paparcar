@@ -90,7 +90,7 @@
     <string name="onboarding_step2_title">Tu aparcamiento, guardado</string>
     <string name="onboarding_step2_desc">Encuentra tu coche sin pensar y repasa dónde has aparcado.</string>
     <string name="onboarding_step3_title">Una plaza para otro</string>
-    <string name="onboarding_step3_desc">Cuando te vas, la plaza aparece libre para quien busca cerca.</string>
+    <string name="onboarding_step3_desc">Cuando te vas, la plaza aparece libre para quien busca cerca: un coche menos dando vueltas.</string>
     <string name="onboarding_page3_title">Parkings y gasolineras cerca</string>
     <string name="onboarding_page3_subtitle">El mapa también te enseña los parkings públicos y las gasolineras de tu alrededor. En algunos países, con el precio del combustible en tiempo real, de fuentes oficiales.</string>
     <string name="onboarding_cta_next">Siguiente</string>
@@ -640,7 +640,7 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="home_det_stopped_msg">Detección automática detenida</string>
     <string name="home_det_stopped_action">Activar</string>
     <string name="home_det_awaiting_title">¿Dónde está tu coche?</string>
-    <string name="home_det_awaiting_sub">Marca tu aparcamiento y vigilo la salida</string>
+    <string name="home_det_awaiting_sub">Márcalo una vez: desde tu próximo viaje lo hago yo sola</string>
     <string name="home_det_watching_title">Vigilando tu %1$s</string>
     <string name="home_det_watching_parked_sub">Aparcado — detectaremos cuándo te vas</string>
     <string name="home_det_watching_bt_sub">El aparcamiento se detecta solo por el Bluetooth del coche</string>
@@ -743,11 +743,12 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <!-- First-step explainers: the two ways a spot is born [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] -->
     <string name="first_steps_explain_close">Entendido</string>
     <string name="first_steps_explain_park_title">Marca dónde has dejado el coche</string>
-    <string name="first_steps_explain_park_body">Eso abre tu aparcamiento: la app guarda el sitio y empieza a vigilarlo por ti.</string>
+    <string name="first_steps_explain_park_body">Eso abre tu aparcamiento: la app guarda el sitio y empieza a vigilarlo. Solo lo haces a mano esta primera vez.</string>
     <string name="first_steps_explain_park_way_title">A partir de ahí, el coche es cosa nuestra</string>
     <string name="first_steps_explain_park_way_body">No tienes que recordar la calle, el número ni la planta. Abres Paparcar y ahí está.</string>
+    <string name="first_steps_explain_park_note">Sin un aparcamiento abierto no hay nada que vigilar ni nada que liberar: la plaza que recibe otro conductor es la que tú dejas.</string>
     <string name="first_steps_explain_watch_title">Cuando te vayas, tu sitio queda libre para otro</string>
-    <string name="first_steps_explain_watch_body">Tu aparcamiento se convierte en una plaza libre para la comunidad. Pasa de dos maneras.</string>
+    <string name="first_steps_explain_watch_body">Tu aparcamiento se convierte en una plaza libre para la comunidad: alguien aparca donde estabas en vez de dar vueltas. Pasa de dos maneras.</string>
     <string name="first_steps_explain_watch_auto_title">Solo</string>
     <string name="first_steps_explain_watch_auto_body">Paparcar nota que te has ido y avisa de la plaza por ti, sin que toques nada.</string>
     <string name="first_steps_explain_watch_manual_title">O lo dices tú</string>
@@ -943,6 +944,7 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="stats_places_row_searching">%1$s buscando de media</string>
     <string name="stats_tile_auto_detected">detectados solos</string>
     <string name="stats_tile_spots_shared">plazas cedidas</string>
+    <string name="stats_tile_spots_shared_note">a otro conductor</string>
     <string name="stats_value_kg">%1$s kg</string>
     <string name="stats_value_lb">%1$s lb</string>
     <string name="stats_tile_fuel">combustible aprox.</string>
@@ -954,7 +956,7 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="stats_value_hours">%1$d h</string>
     <string name="stats_value_minutes">%1$d min</string>
     <string name="stats_value_percent">%1$d%</string>
-    <string name="stats_lifetime">Desde siempre: %1$s aparcamientos · %2$s plazas cedidas</string>
+    <string name="stats_lifetime">Desde siempre: %1$s aparcamientos · %2$s plazas cedidas a otro conductor</string>
     <string name="stats_plus_row_title">Elige el periodo</string>
     <string name="stats_plus_row_subtitle">Gratis ves tus últimos %1$d días; con Plus, el periodo que elijas</string>
     <string name="stats_empty_first_trip">Esperando a tu primer viaje</string>

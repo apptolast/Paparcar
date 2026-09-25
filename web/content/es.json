@@ -99,7 +99,7 @@
       {
         "icon": "spot",
         "title": "Plazas compartidas",
-        "body": "Cuando te vas, la plaza que dejas puede publicarse para quien esté cerca; y tú ves las que otros acaban de liberar, con cuándo se liberó cada una. Es información que ponen los conductores: cuantos más usen Paparcar en tu ciudad, más plazas aparecerán."
+        "body": "Cuando te vas, la plaza que dejas puede publicarse para quien esté cerca; y tú ves las que otros acaban de liberar, con cuándo se liberó cada una. Es información que ponen los conductores: cuantos más usen Paparcar en tu ciudad, más plazas aparecerán. Cada plaza que cambia de manos es un coche que deja de dar vueltas: menos tráfico en la calle, y menos combustible quemado buscando sitio."
       },
       {
         "icon": "parking",
@@ -270,7 +270,7 @@
       },
       {
         "q": "¿Tengo que marcar manualmente dónde aparco?",
-        "a": "No, ese es el objetivo de la app. Aun así el botón está: puedes marcar el aparcamiento a mano cuando quieras, y también corregir el sitio arrastrándolo en el mapa si la detección lo dejó unos metros más allá."
+        "a": "No, una vez está funcionando: ese es el objetivo de la app. Hay una excepción, y es al principio: si tu coche no tiene Bluetooth, Paparcar todavía no sabe dónde está el coche, así que ese primer aparcamiento lo marcas tú y desde el siguiente viaje ya va sola. Con el Bluetooth del coche emparejado es automático desde el primer trayecto. En cualquier caso el botón se queda: puedes marcar el aparcamiento a mano cuando quieras, y corregir el sitio arrastrándolo en el mapa si la detección lo dejó unos metros más allá."
       },
       {
         "q": "¿Necesita Paparcar acceso a mi ubicación?",
@@ -286,7 +286,7 @@
       },
       {
         "q": "¿Qué son las plazas compartidas?",
-        "a": "Son plazas de la calle que otros conductores acaban de dejar libres, y que aparecen en el mapa durante un rato. Salen de la actividad de la comunidad: cuando alguien se va, su plaza puede publicarse para quien esté cerca. Por eso cuantos más conductores usen Paparcar en tu ciudad, más plazas verás. No prometemos una plaza siempre, y cada una lleva escrito cuándo se liberó para que decidas si te compensa ir."
+        "a": "Son plazas de la calle que otros conductores acaban de dejar libres, y que aparecen en el mapa durante un rato. Salen de la actividad de la comunidad: cuando alguien se va, su plaza puede publicarse para quien esté cerca. Por eso cuantos más conductores usen Paparcar en tu ciudad, más plazas verás. No prometemos una plaza siempre, y cada una lleva escrito cuándo se liberó para que decidas si te compensa ir. Y para eso sirve la app más allá de tu propio coche: una plaza que alguien coge es un conductor menos dando vueltas, y dar vueltas buscando sitio es parte de lo que atasca una calle concurrida."
       },
       {
         "q": "¿Qué ocurre si la detección automática falla?",

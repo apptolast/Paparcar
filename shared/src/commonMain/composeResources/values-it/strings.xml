@@ -66,7 +66,7 @@
     <string name="onboarding_step2_title">Il tuo parcheggio, salvato</string>
     <string name="onboarding_step2_desc">Ritrova l'auto senza pensarci e rivedi dove hai parcheggiato.</string>
     <string name="onboarding_step3_title">Un posto per qualcun altro</string>
-    <string name="onboarding_step3_desc">Quando te ne vai, il posto appare libero per chi cerca vicino.</string>
+    <string name="onboarding_step3_desc">Quando te ne vai, il posto appare libero per chi cerca vicino: un’auto in meno a girare.</string>
     <string name="onboarding_page3_title">Parcheggi pubblici e carburante vicino</string>
     <string name="onboarding_page3_subtitle">La mappa ti mostra anche parcheggi pubblici e distributori intorno a te. In alcuni paesi, con il prezzo del carburante in tempo reale da fonti ufficiali.</string>
     <string name="onboarding_cta_next">Avanti</string>
@@ -601,7 +601,7 @@ Se la richiesta non compare più, cambiala in Impostazioni → Paparcar → Posi
     <string name="home_det_stopped_msg">Rilevamento automatico interrotto</string>
     <string name="home_det_stopped_action">Attiva</string>
     <string name="home_det_awaiting_title">Dov'è la tua auto?</string>
-    <string name="home_det_awaiting_sub">Segna il parcheggio e lo controllo</string>
+    <string name="home_det_awaiting_sub">Segnalo una volta: dal prossimo viaggio lo faccio da sola</string>
     <string name="home_det_watching_title">Vigiliamo la tua %1$s</string>
     <string name="home_det_watching_parked_sub">Parcheggiata — rileveremo quando riparti</string>
     <string name="home_det_watching_bt_sub">Il parcheggio si rileva da solo tramite il Bluetooth dell’auto</string>
@@ -747,11 +747,12 @@ Se la richiesta non compare più, cambiala in Impostazioni → Paparcar → Posi
     <!-- First-step explainers: the two ways a spot is born [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] -->
     <string name="first_steps_explain_close">Ho capito</string>
     <string name="first_steps_explain_park_title">Segna dove hai lasciato l'auto</string>
-    <string name="first_steps_explain_park_body">Così apri il tuo parcheggio: l'app salva il posto e comincia a sorvegliarlo per te.</string>
+    <string name="first_steps_explain_park_body">Così apri il tuo parcheggio: l’app salva il posto e comincia a sorvegliarlo. Lo fai a mano solo questa prima volta.</string>
     <string name="first_steps_explain_park_way_title">Da lì in poi, all'auto ci pensiamo noi</string>
     <string name="first_steps_explain_park_way_body">Non devi ricordare la via, il numero o il piano. Apri Paparcar ed è lì.</string>
+    <string name="first_steps_explain_park_note">Senza un parcheggio aperto non c’è nulla da sorvegliare né nulla da liberare: il posto che riceve un altro è quello che lasci tu.</string>
     <string name="first_steps_explain_watch_title">Quando te ne vai, il tuo posto si libera per un altro</string>
-    <string name="first_steps_explain_watch_body">Il tuo parcheggio diventa un posto libero per la comunità. Succede in due modi.</string>
+    <string name="first_steps_explain_watch_body">Il tuo parcheggio diventa un posto libero per la comunità: qualcuno parcheggia dov’eri tu invece di girare. Succede in due modi.</string>
     <string name="first_steps_explain_watch_auto_title">Da solo</string>
     <string name="first_steps_explain_watch_auto_body">Paparcar si accorge che sei partito e segnala il posto per te, senza che tu tocchi nulla.</string>
     <string name="first_steps_explain_watch_manual_title">Oppure lo dici tu</string>
@@ -947,6 +948,7 @@ Se la richiesta non compare più, cambiala in Impostazioni → Paparcar → Posi
     <string name="stats_places_row_searching">%1$s a cercare in media</string>
     <string name="stats_tile_auto_detected">rilevati da soli</string>
     <string name="stats_tile_spots_shared">posti ceduti</string>
+    <string name="stats_tile_spots_shared_note">a chi cercava</string>
     <string name="stats_value_kg">%1$s kg</string>
     <string name="stats_value_lb">%1$s lb</string>
     <string name="stats_tile_fuel">carburante appross.</string>
@@ -958,7 +960,7 @@ Se la richiesta non compare più, cambiala in Impostazioni → Paparcar → Posi
     <string name="stats_value_hours">%1$d h</string>
     <string name="stats_value_minutes">%1$d min</string>
     <string name="stats_value_percent">%1$d%</string>
-    <string name="stats_lifetime">Da sempre: %1$s parcheggi · %2$s posti ceduti</string>
+    <string name="stats_lifetime">Da sempre: %1$s parcheggi · %2$s posti ceduti a un altro</string>
     <string name="stats_plus_row_title">Scegli il periodo</string>
     <string name="stats_plus_row_subtitle">Gratis vedi gli ultimi %1$d giorni; con Plus, il periodo che vuoi</string>
     <string name="stats_empty_first_trip">In attesa del tuo primo viaggio</string>

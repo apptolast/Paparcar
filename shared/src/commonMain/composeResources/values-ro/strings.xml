@@ -68,7 +68,7 @@
     <string name="onboarding_step2_title">Parcarea ta, salvată</string>
     <string name="onboarding_step2_desc">Îți găsești mașina fără să te gândești și vezi unde ai parcat.</string>
     <string name="onboarding_step3_title">Un loc pentru altcineva</string>
-    <string name="onboarding_step3_desc">Când pleci, locul apare liber pentru cei care caută în apropiere.</string>
+    <string name="onboarding_step3_desc">Când pleci, locul apare liber pentru cei care caută în apropiere: o mașină mai puțin care dă ocol.</string>
     <string name="onboarding_page3_title">Parcări publice și carburant în apropiere</string>
     <string name="onboarding_page3_subtitle">Harta îți arată și parcările publice și benzinăriile din jur. În unele țări, cu prețul carburantului în timp real, din surse oficiale.</string>
     <string name="onboarding_cta_next">Înainte</string>
@@ -611,7 +611,7 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="home_det_stopped_msg">Detectarea automată oprită</string>
     <string name="home_det_stopped_action">Activează</string>
     <string name="home_det_awaiting_title">Unde e mașina?</string>
-    <string name="home_det_awaiting_sub">Marchează parcarea și o supraveghez</string>
+    <string name="home_det_awaiting_sub">Marchează o dată: de la următorul drum o fac singură</string>
     <string name="home_det_watching_title">Supraveghem %1$s</string>
     <string name="home_det_watching_parked_sub">Parcată — vom detecta când pleci</string>
     <string name="home_det_watching_bt_sub">Parcarea se detectează singură prin Bluetooth-ul mașinii</string>
@@ -760,11 +760,12 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <!-- First-step explainers: the two ways a spot is born [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] -->
     <string name="first_steps_explain_close">Am înțeles</string>
     <string name="first_steps_explain_park_title">Marchează unde ai lăsat mașina</string>
-    <string name="first_steps_explain_park_body">Asta deschide parcarea ta: aplicația reține locul și începe să îl supravegheze pentru tine.</string>
+    <string name="first_steps_explain_park_body">Asta deschide parcarea ta: aplicația reține locul și începe să îl supravegheze. Manual o faci doar de prima dată.</string>
     <string name="first_steps_explain_park_way_title">De atunci, de mașină ne ocupăm noi</string>
     <string name="first_steps_explain_park_way_body">Nu trebuie să ții minte strada, numărul sau etajul. Deschizi Paparcar și e acolo.</string>
+    <string name="first_steps_explain_park_note">Fără o parcare deschisă nu e nimic de supravegheat și nimic de eliberat: locul pe care îl primește alt șofer e cel pe care îl lași tu.</string>
     <string name="first_steps_explain_watch_title">Când pleci, locul tău rămâne liber pentru altcineva</string>
-    <string name="first_steps_explain_watch_body">Parcarea ta devine un loc liber pentru comunitate. Se întâmplă în două feluri.</string>
+    <string name="first_steps_explain_watch_body">Parcarea ta devine un loc liber pentru comunitate: cineva parchează unde erai tu în loc să dea ocol. Se întâmplă în două feluri.</string>
     <string name="first_steps_explain_watch_auto_title">Singur</string>
     <string name="first_steps_explain_watch_auto_body">Paparcar observă că ai plecat și anunță locul în locul tău, fără să atingi nimic.</string>
     <string name="first_steps_explain_watch_manual_title">Sau spui tu</string>
@@ -965,6 +966,7 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="stats_places_row_searching">%1$s de căutat în medie</string>
     <string name="stats_tile_auto_detected">detectate singure</string>
     <string name="stats_tile_spots_shared">locuri cedate</string>
+    <string name="stats_tile_spots_shared_note">altui șofer</string>
     <string name="stats_value_kg">%1$s kg</string>
     <string name="stats_value_lb">%1$s lb</string>
     <string name="stats_tile_fuel">combustibil aprox.</string>
@@ -976,7 +978,7 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="stats_value_hours">%1$d h</string>
     <string name="stats_value_minutes">%1$d min</string>
     <string name="stats_value_percent">%1$d%</string>
-    <string name="stats_lifetime">Dintotdeauna: %1$s parcări · %2$s locuri cedate</string>
+    <string name="stats_lifetime">Dintotdeauna: %1$s parcări · %2$s locuri cedate altui șofer</string>
     <string name="stats_plus_row_title">Alege perioada</string>
     <string name="stats_plus_row_subtitle">Gratuit vezi ultimele %1$d zile; cu Plus, orice perioadă</string>
     <string name="stats_empty_first_trip">Așteptăm primul tău drum</string>
