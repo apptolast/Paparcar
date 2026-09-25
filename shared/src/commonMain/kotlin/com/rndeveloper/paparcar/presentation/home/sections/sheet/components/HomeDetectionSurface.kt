@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.presentation.home.sections.sheet.components
 
 import com.rndeveloper.paparcar.ui.components.ctaFitsInline
+import com.rndeveloper.paparcar.ui.components.ctaPairFitsSideBySide
 import com.rndeveloper.paparcar.ui.components.PapCtaPill
 import com.rndeveloper.paparcar.ui.components.PapIconTile
 import com.rndeveloper.paparcar.ui.components.PapListItem
@@ -543,12 +544,20 @@ private fun ActionRow(
                         fillWidth = true,
                     )
                 }
-                // Only the two-CTA cold-start stacks its actions full-width below (both need room).
+                // Las dos acciones, debajo del texto. ¿HOMBRO CON HOMBRO o UNA ENCIMA DE OTRA?
+                // Lo decide el presupuesto, no la fila. [UI-A-PILL-PAIR-SPLITS-THE-BUDGET-IN-TWO-001]
+                //
+                // ⛔ Esta rama era la última maqueta de la pantalla que no preguntaba dónde cabía su
+                // label, y la que más falta le hacía: aquí cada cápsula se queda con la MITAD del
+                // ancho, así que el presupuesto es el más estrecho de los dos que maneja el sheet.
+                // `home_det_awaiting_cta_primary` —que el guard YA declaraba frase, 15 chars en
+                // inglés y 25 en francés— entraba igual en la `Row` y salía «Marcar mi apa…» junto a
+                // «Voy conducie…»: los dos botones cortados, en los nueve idiomas.
                 if (secondaryLabel != null) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(CONTENT_GAP_SM_DP.dp),
-                    ) {
+                    // Las mismas dos cápsulas en las dos maquetas — el modifier es lo único que
+                    // cambia. Duplicarlas era el camino corto a que la apilada y la de al lado se
+                    // tiñan distinto dentro de un mes.
+                    val secondaryPill: @Composable (Modifier) -> Unit = { pillModifier ->
                         PapCtaPill(
                             label = secondaryLabel,
                             // A refusal wears no brand colour: green is action, and declining is
@@ -564,17 +573,36 @@ private fun ActionRow(
                                 tone.onContainer
                             },
                             onClick = onSecondary,
-                            modifier = Modifier.weight(1f),
+                            modifier = pillModifier,
                             fillWidth = true,
                         )
+                    }
+                    val primaryPill: @Composable (Modifier) -> Unit = { pillModifier ->
                         PapCtaPill(
                             label = primaryLabel,
                             container = tone.accent,
                             content = tone.onAccent,
                             onClick = onPrimary,
-                            modifier = Modifier.weight(1f),
+                            modifier = pillModifier,
                             fillWidth = true,
                         )
+                    }
+                    if (ctaPairFitsSideBySide(primaryLabel, secondaryLabel)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(CONTENT_GAP_SM_DP.dp),
+                        ) {
+                            secondaryPill(Modifier.weight(1f))
+                            primaryPill(Modifier.weight(1f))
+                        }
+                    } else {
+                        // Apiladas, la PRIMARIA arriba. En fila la primaria va a la derecha porque
+                        // ahí es donde se confirma; en columna es la de arriba, que es donde se lee
+                        // primero. El orden no se invierte por gusto: en las dos maquetas la acción
+                        // que proponemos ocupa el sitio que se mira antes de decidir.
+                        // El hueco entre ellas lo pone el `spacedBy` de la columna de arriba.
+                        primaryPill(Modifier.fillMaxWidth())
+                        secondaryPill(Modifier.fillMaxWidth())
                     }
                 }
             }
