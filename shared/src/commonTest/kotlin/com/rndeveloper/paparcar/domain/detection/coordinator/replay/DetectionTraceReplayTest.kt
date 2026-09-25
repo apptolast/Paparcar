@@ -1147,6 +1147,135 @@ class DetectionTraceReplayTest {
             )
         }
 
+    // ── [DET-PEDAL-CADENCE-CANNOT-CONVICT-A-CAR-IN-TRAFFIC-001] the 25-09 city car it ate ────────
+    //
+    // The pair below is the corpus item the ticket was blocked for: the 26-08 stream above no longer
+    // reproduces the loss (it reached 94 km/h and carried its own boarding), so nothing executable
+    // held the case any more. This one is the case — a car that never touched 40 km/h, with zero AR.
+
+    /** The greengrocer's pin the session departed from: parking `b15ad01b`, saved `steps+egress` at
+     *  10:46:47 with 2,416 m of accuracy, `MEDIUM_SUV` — the same size `buildEnv`'s vehicle declares,
+     *  so the fence the replay breaks is the one the field registered. */
+    private fun fruteriaAnchor() = GpsPoint(
+        latitude = 36.5992917,
+        longitude = -6.2515983,
+        accuracy = 2.416f,
+        timestamp = TRACE_FRUTERIA_2509_CADENCE_VETO.first().tMs - 60_000L,
+        speed = 0f,
+    )
+
+    /** Derived rather than typed: `80 + 2,416 × 1,5` = 83,6 m, and the arm measured the exit 175,7 m
+     *  out — the numbers have to keep agreeing if the config ever moves. */
+    private fun fruteriaFenceRadius() =
+        ParkingDetectionConfig().geofenceRadiusFor(VehicleSize.MEDIUM_SUV, accuracyMeters = 2.416f)
+
+    /** What the arm actually carried: `verified_enter`, an AR boarding
+     *  `VerifyDepartureEvidenceUseCase` corroborated against displacement. The gap it measured is not
+     *  in the telemetry, and it is not read by anything this replay asserts — grep: the only other
+     *  reader of an enter-to-exit gap is `DetectParkingDepartureUseCase`, which recomputes its own.
+     *  So the value below is a placeholder inside the admissible window and nothing hangs on it; the
+     *  LABEL is what the field recorded and what the session's guards then behave like. */
+    private fun fruteriaArm() = ArmEvidence.VerifiedByVehicleEnter(enterToExitMs = 60_000L)
+
+    @Test
+    fun fruteria_2509_a_city_car_under_40_kmh_is_convicted_and_the_park_is_lost() =
+        runTest(UnconfinedTestDispatcher()) {
+            // ⚠️ CHARACTERIZATION — this test asserts the DEFECT, on purpose, because its fix is
+            // blocked on measurement (one real bicycle ride with this build; see the ticket). It is
+            // here so the corpus is executable NOW instead of after the calibration, and so the loss
+            // cannot drift silently while we wait.
+            //
+            // WHEN THE CALIBRATION LANDS THIS TEST MUST BE INVERTED, not deleted: one save, the pin
+            // at the arrival, `confirmed_steps+egress`. That is the ticket's own success criterion
+            // and it is written down there too.
+            val replayer = DetectionTraceIngestion(TRACE_FRUTERIA_2509_CADENCE_VETO)
+            val env = buildEnv(clock = { replayer.nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 512)
+            val job = launch {
+                env.coordinator.invoke(
+                    locations,
+                    armEvidence = fruteriaArm(),
+                    departureAnchor = fruteriaAnchor(),
+                    departureFenceRadiusMeters = fruteriaFenceRadius(),
+                )
+            }
+
+            replayer.replay(
+                emitFix = { locations.emit(it) },
+                emitStep = { env.stepDetector.emitSteps(1) },
+            )
+            job.cancelAndJoin()
+
+            assertEquals(
+                0, env.parkingRepo.saveNewParkingSessionCallCount,
+                "the field saved nothing — if this is now 1, the calibration landed and this test " +
+                    "is the one to invert",
+            )
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals(
+                "aborted_unattended_human_powered", ended.outcome,
+                "the veto has to be what kills it — any other outcome means this replay stopped " +
+                    "reproducing the 25-09 session and the fixture no longer pins the ticket",
+            )
+        }
+
+    @Test
+    fun fruteria_2509_the_boarding_the_arm_already_had_would_have_carried_it() =
+        runTest(UnconfinedTestDispatcher()) {
+            // THE SAME STREAM, plus the one fact the app already held and never told the verdict: an
+            // AR `IN_VEHICLE ENTER`. `verified_enter` on the arm says `VerifyDepartureEvidenceUseCase`
+            // read it out of `departureEventBus.lastVehicleEnteredAt` and corroborated it — while
+            // `EgressEvidence.vehicleRideAtMs`, which is the field `isHumanPoweredRide` arbitrates
+            // on, is only ever filled by a live AR delivery inside the session
+            // (`onVehicleRide`, one call site: `ActivityTransitionReceiver`).
+            //
+            // So this is not a proposed threshold, it is the SAME session with the boarding plumbed
+            // through, and it saves. That makes it the executable half of
+            // `DET-A-VERIFIED-BOARDING-MUST-REACH-THE-VETO-001` — a repair available today, without
+            // touching a single calibration number this ticket is blocked on.
+            //
+            // The stamp's instant is not a measurement (the true transition time is not in the
+            // telemetry) and nothing here depends on it: with no `ON_BICYCLE` label anywhere in the
+            // session, `boardingWitnessed` only asks whether the field is non-null.
+            val replayer = DetectionTraceIngestion(TRACE_FRUTERIA_2509_CADENCE_VETO)
+            val env = buildEnv(clock = { replayer.nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 512)
+            val job = launch {
+                env.coordinator.invoke(
+                    locations,
+                    armEvidence = fruteriaArm(),
+                    departureAnchor = fruteriaAnchor(),
+                    departureFenceRadiusMeters = fruteriaFenceRadius(),
+                )
+            }
+            env.coordinator.onVehicleRide(TRACE_FRUTERIA_2509_CADENCE_VETO.first().tMs)
+
+            replayer.replay(
+                emitFix = { locations.emit(it) },
+                emitStep = { env.stepDetector.emitSteps(1) },
+            )
+            job.cancelAndJoin()
+
+            assertEquals(
+                1, env.parkingRepo.saveNewParkingSessionCallCount,
+                "the boarding the arm corroborated is enough to revoke the latch on this very stream",
+            )
+            val saved = assertNotNull(env.parkingRepo.getActiveSession())
+            // Every fix from Δ190 s on sits within a few metres of 36.59367,-6.24536; the user's own
+            // hand-placed pin landed 20,5 m from there. The greengrocer's anchor is 600 m back, so
+            // this window tells the arrival from the origin.
+            val metersFromArrival = haversineMeters(
+                saved.location.latitude, saved.location.longitude, 36.5936718, -6.2453626,
+            )
+            assertTrue(
+                metersFromArrival <= 60.0,
+                "the pin must land at the arrival the stream settled on, not back at the " +
+                    "greengrocer's — was ${saved.location.latitude},${saved.location.longitude}, " +
+                    "${metersFromArrival.toInt()} m out",
+            )
+        }
+
     private fun gondolaAnchor() = GpsPoint(
         latitude = 36.608368,
         longitude = -6.2781358,

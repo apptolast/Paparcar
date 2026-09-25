@@ -317,7 +317,7 @@ object GuardrailScope {
     const val PRODUCTION_SOURCES_FLOOR = 270        // measured 562
     const val DOMAIN_PRODUCTION_FLOOR = 100         // measured 210
     const val VEHICLE_TYPE_MENTIONS_FLOOR = 10      // measured  21
-    const val FIELD_TRACE_FILES_FLOOR = 9           // measured  18
+    const val FIELD_TRACE_FILES_FLOOR = 9           // measured  20
     const val TEST_SOURCES_FLOOR = 115              // measured 234
     const val ALL_CLASSES_FLOOR = 300
 

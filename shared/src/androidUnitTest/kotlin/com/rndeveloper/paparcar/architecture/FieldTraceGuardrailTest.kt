@@ -8,10 +8,11 @@ import kotlin.test.assertTrue
  * replays is a file nobody reads, and it is worse than absent because it counts.**
  *
  * The traces under `domain/detection/coordinator/replay/` are not tests, they are EVIDENCE: each one
- * is a stream a real device recorded on a real night, transcribed once from a `parkdiag` on a cable
- * and kept forever. The doctrine that made them says so — *every field bug becomes a permanent
- * fixture: record the trace, replay it, assert the corrected outcome, and the regression can never
- * silently return.*
+ * is a stream a real device recorded on a real night, transcribed once — from a `parkdiag` on a cable,
+ * or, since [TRACE_FRUTERIA_2509_CADENCE_VETO], from the Firestore export when the device ran a
+ * release build and no cable could reach it — and kept forever. The doctrine that made them says so
+ * — *every field bug becomes a permanent fixture: record the trace, replay it, assert the corrected
+ * outcome, and the regression can never silently return.*
  *
  * The word doing the work in that sentence is **replay**. A trace nobody replays asserts nothing. It
  * still sits in the folder, it still shows up in `ls`, and the corpus is habitually quoted as a
@@ -25,7 +26,7 @@ import kotlin.test.assertTrue
  *
  * ## The unit is the STREAM, not the file
  *
- * 18 files hold **21** `List<TraceEvent>` values, because several carry more than one and the extra
+ * 20 files hold **25** `List<TraceEvent>` values, because several carry more than one and the extra
  * ones are exactly the interesting halves: `TraceEnamorados001.eventsWithoutRecovery` is the
  * worst-case variant of its own trace, `TraceSupermarket001.wander` is the leg where the anchor must
  * not drift, `TRACE_CASA_GAP_ANCHOR_3008_QUIET_TAIL` is what lets a 900 s timeout run at all. A rule
