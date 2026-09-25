@@ -4,18 +4,20 @@ import com.apptolast.baselogin.di.initLoginKoin
 import com.rndeveloper.paparcar.data.sync.SyncOutboxDrainer
 import com.rndeveloper.paparcar.detection.IosDetectionController
 import com.rndeveloper.paparcar.logging.IosFileAntilog
-import io.github.aakira.napier.Napier
 import com.rndeveloper.paparcar.di.dataModule
 import com.rndeveloper.paparcar.di.domainModule
 import com.rndeveloper.paparcar.di.iosDetectionModule
 import com.rndeveloper.paparcar.di.iosPlatformModule
 import com.rndeveloper.paparcar.di.paparcarLoginConfig
 import com.rndeveloper.paparcar.di.presentationModule
+import com.rndeveloper.paparcar.ios.auth.GoogleServiceInfo
 import com.rndeveloper.paparcar.notification.IosNotificationActionHandler
 import com.rndeveloper.paparcar.push.IosPushRegistry
 import com.rndeveloper.paparcar.push.PushMessageHandler
 import com.rndeveloper.paparcar.push.SharedCarMemberSync
 import com.rndeveloper.paparcar.push.ZoneAlertSubscriptionSync
+import io.github.aakira.napier.DebugAntilog
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -50,10 +52,22 @@ object PaparcarIosBootstrap {
         // background no construye la escena, y son justo los despertares que hay que poder leer.
         // [IOS-A-DETECTION-THAT-FAILS-MUST-LEAVE-A-TRACE-001]
         Napier.base(IosFileAntilog())
+        // …y en un binario de debug, ADEMÁS a la consola de Xcode. Napier reparte a cada sumidero
+        // instalado, así que esto añade un lector sin quitar ninguno: el fichero sigue siendo el que
+        // viaja en el informe. Sin esto, la excepción detrás de «Couldn't load your account» era
+        // invisible mientras se desarrollaba. [IOS-APPLE-SIGN-IN-ON-BASELOGIN-3-001]
+        if (isDebugBuild) Napier.base(DebugAntilog())
         // Start Koin via the BaseLogin initializer so the library's auth modules are registered
-        // alongside the app modules — mirrors PaparcarApp on Android. Google arrives with
-        // IOS-SOCIAL-LOGIN-001. [AUTH-PROVIDERS-EXPLICIT-001]
-        initLoginKoin(config = paparcarLoginConfig(googleWebClientId = null)) {
+        // alongside the app modules — mirrors PaparcarApp on Android. The Swift handlers behind the
+        // Google and Apple buttons are installed by AppDelegate before this runs.
+        // [AUTH-PROVIDERS-EXPLICIT-001] [IOS-APPLE-SIGN-IN-ON-BASELOGIN-3-001]
+        initLoginKoin(
+            config = paparcarLoginConfig(
+                googleWebClientId = null,
+                googleIosClientId = GoogleServiceInfo.clientId(),
+                appleSignIn = true,
+            ),
+        ) {
             modules(
                 presentationModule,
                 domainModule,

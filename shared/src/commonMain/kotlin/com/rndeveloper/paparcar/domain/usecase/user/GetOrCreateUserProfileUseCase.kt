@@ -5,6 +5,7 @@ import com.apptolast.baselogin.domain.model.AuthResult
 import com.apptolast.baselogin.domain.model.UserSession
 import com.rndeveloper.paparcar.domain.model.UserProfile
 import com.rndeveloper.paparcar.domain.repository.UserProfileRepository
+import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -31,15 +32,24 @@ class GetOrCreateUserProfileUseCase(
      * [PROFILE-PHOTO-STUCK-AND-STALE-001]
      */
     private suspend fun freshestSession(): UserSession? {
-        val cached = authRepository.getCurrentSession() ?: return null
-        val refreshed = withTimeoutOrNull(REFRESH_SESSION_TIMEOUT_MS.milliseconds) {
-            runCatching { authRepository.refreshSession() }.getOrNull()
+        val cached = authRepository.getCurrentSession()
+        if (cached == null) {
+            PaparcarLogger.w(AUTH_DIAG, "no cached session")
+            return null
         }
+        val refreshed = withTimeoutOrNull(REFRESH_SESSION_TIMEOUT_MS.milliseconds) {
+            runCatching { authRepository.refreshSession() }
+                .onFailure { e -> PaparcarLogger.w(AUTH_DIAG, "refreshSession threw", e) }
+                .getOrNull()
+        }
+        PaparcarLogger.i(AUTH_DIAG, "refreshSession result=${refreshed?.let { it::class.simpleName } ?: "timeout/error"}")
         return (refreshed as? AuthResult.Success)?.session ?: cached
     }
 
     private companion object {
         /** Same splash-blocking ceiling philosophy as the remote profile fetch. [AUDIT-DATA-001 M9] */
         const val REFRESH_SESSION_TIMEOUT_MS = 8_000L
+
+        const val AUTH_DIAG = "AUTHDIAG/GetOrCreateUserProfile"
     }
 }

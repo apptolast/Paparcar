@@ -36,9 +36,14 @@ class RemoteUserProfileDataSourceImpl(
     override suspend fun getProfile(userId: String): UserProfileDto? =
         runCatching {
             val doc = usersCollection().document(userId).get()
+            PaparcarLogger.i(AUTH_DIAG, "getProfile: users/{uid} exists=${doc.exists}")
             if (!doc.exists) return@runCatching null
             doc.toUserProfileDto()
-        }.getOrNull()
+        }
+            // A null here reads as "new user" upstream, so a read or decode failure must say so.
+            // [IOS-APPLE-SIGN-IN-ON-BASELOGIN-3-001]
+            .onFailure { e -> PaparcarLogger.e(AUTH_DIAG, "getProfile FAILED (read or decode)", e) }
+            .getOrNull()
 
     override suspend fun createOrUpdateProfile(profile: UserProfileDto) {
         usersCollection().document(profile.userId).set(profile)
@@ -346,6 +351,7 @@ class RemoteUserProfileDataSourceImpl(
 
     private companion object {
         const val TAG = "RemoteUserProfileDataSource"
+        const val AUTH_DIAG = "AUTHDIAG/RemoteUserProfile"
 
         const val COLLECTION_USERS = "users"
         const val COLLECTION_PARKING_HISTORY = "parkingHistory"

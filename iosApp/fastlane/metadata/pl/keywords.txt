@@ -1,0 +1,1 @@
+miejsce,wolne,samochód,mapa,ulica,parking,paliwo,cena,miasto,jazda,garaż,parkowanie

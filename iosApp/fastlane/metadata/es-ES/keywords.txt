@@ -1,0 +1,1 @@
+plaza,libre,coche,mapa,calle,zona azul,parking,gasolinera,precio,ciudad,conducir,garaje,ORA

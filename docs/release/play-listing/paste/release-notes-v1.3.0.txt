@@ -70,3 +70,11 @@
 • Un loc raportat apare pe hartă cu zona lui.
 • Confidențialitate: ieșirea dintr-un grup îți ia călătoriile, iar ștergerea contului închide grupul.
 </ro>
+<ro-RO>
+• Intră într-o mașină partajată cu codul ei: invitația funcționează acum cap-coadă.
+• Partajarea unei mașini nu mai ascunde istoricul pe care îl avea deja.
+• Cifrele tale pe perioade — azi, această săptămână, luna aceasta — iar recapitularea lunară are propriul comutator.
+• Prețuri, volume și distanțe în unitățile în care cumperi cu adevărat.
+• Un loc pe care îl anunți apare pe hartă cu zona pe care o acoperă.
+• Confidențialitate: ieșirea dintr-un grup îți ia călătoriile cu tine, iar ștergerea contului închide grupul.
+</ro-RO>

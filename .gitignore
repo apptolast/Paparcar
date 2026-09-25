@@ -588,14 +588,22 @@ Dependencies/
 
 # ⛔ `**/`, no `fastlane/…` a secas. Un patrón con una barra EN MEDIO está anclado al directorio
 # del .gitignore, o sea a la raíz del repo — y el fastlane de este proyecto vive en `iosApp/`, así
-# que estas cuatro reglas no tapaban nada. Se vio al preparar #61: el commit de la feature arrastró
-# **53 ficheros** de fastlane (el `report.xml`, el README generado y 51 capturas de iPhone) dentro
-# de un cambio de tres pantallas. [MONEY-A-PROMO-CODE-IS-REDEEMED-WHERE-THE-STORE-LIVES-001]
+# que estas cuatro reglas no tapaban nada. Se vio DOS VECES por separado: al preparar #61 el commit
+# de la feature arrastró **53 ficheros** de fastlane dentro de un cambio de tres pantallas, y en la
+# tanda de capturas de la App Store habrían entrado **27 MB de PNG** regenerables con
+# `fastlane ios screenshots`.
+# [MONEY-A-PROMO-CODE-IS-REDEEMED-WHERE-THE-STORE-LIVES-001][IOS-STORE-SHOTS-WITHOUT-SHIPPING-THE-DEMO-CODE-001]
 **/fastlane/report.xml
 **/fastlane/Preview.html
 **/fastlane/README.md
 **/fastlane/screenshots/**/*.png
+**/fastlane/screenshots/screenshots.html
 **/fastlane/test_output
+# Secretos del carril de release de iOS: passphrase de match, ruta de la API key, PAT de GitHub — y
+# la propia `.p8` de App Store Connect. Nunca se commitean.
+# [IOS-APPLE-SIGN-IN-ON-BASELOGIN-3-001]
+**/fastlane/.env
+*.p8
 
 # Code Injection
 # After new code Injection tools there's a generated folder /iOSInjectionProject

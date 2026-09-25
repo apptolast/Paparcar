@@ -84,6 +84,13 @@ class SwiftPushRegistrationBridge: PushRegistrationBridge {
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        #if DEBUG && PAPARCAR_SCREENSHOTS
+        // A screenshot run touches no Firebase, no APNs and no real bootstrap: MockMainViewController
+        // starts its OWN Koin over the fake graph, and letting `ensureStarted()` run first would hit
+        // `startKoin` twice and crash before the first frame.
+        // [IOS-STORE-SHOTS-WITHOUT-SHIPPING-THE-DEMO-CODE-001]
+        if ScreenshotMode.isActive { return true }
+        #endif
         FirebaseApp.configure()
         // Until this line runs every recordNonFatal/setUserId from Kotlin is a silent no-op —
         // install right after Firebase is up so nothing reported at launch is lost.
@@ -93,6 +100,10 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         // [IOS-THE-GROUP-CANNOT-REACH-AN-IPHONE-001]
         IosPushRegistry.shared.bridge = SwiftPushRegistrationBridge()
         Messaging.messaging().delegate = self
+        // Social sign-in handlers must exist before the first Composable asks for them — and before
+        // the bootstrap below builds the login config. [IOS-APPLE-SIGN-IN-ON-BASELOGIN-3-001]
+        GoogleSignInCoordinator.register()
+        AppleSignInCoordinator.shared.register()
         // A BACKGROUND relaunch (SLC, region exit, BGTask) never builds the SwiftUI scene, so
         // MainViewController does not run — this is the guaranteed hook, and the bootstrap is
         // idempotent from both doors. [IOS-SYNC-A-QUEUE-THAT-DIES-WITH-THE-PROCESS-001]
@@ -144,6 +155,9 @@ struct iOSApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onOpenURL { url in
+                    _ = GoogleSignInCoordinator.handle(url)
+                }
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background {

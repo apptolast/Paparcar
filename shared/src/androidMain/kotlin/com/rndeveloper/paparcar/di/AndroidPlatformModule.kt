@@ -19,6 +19,7 @@ import com.rndeveloper.paparcar.domain.permissions.OemBackgroundReliabilityManag
 import com.rndeveloper.paparcar.domain.permissions.PermissionManager
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.bluetooth.AndroidBluetoothScanner
+import com.rndeveloper.paparcar.bluetooth.AndroidCarAudioRouteSource
 import com.rndeveloper.paparcar.connectivity.AndroidConnectivityObserver
 import com.rndeveloper.paparcar.diagnostics.AndroidDeviceInfoProvider
 import com.rndeveloper.paparcar.domain.bluetooth.BluetoothScanner
@@ -76,9 +77,13 @@ val androidPlatformModule = module {
     // Bluetooth
     single<BluetoothScanner> { AndroidBluetoothScanner(androidContext()) }
     // [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] Android links cars through the ACL lane, never the
-    // audio route — the sensor is an empty stub here so the shared VehiclesViewModel can build.
+    // audio route, so the sensor is empty here by construction — see
+    // [AndroidCarAudioRouteSource]. ⛔ This used to bind `FakeCarAudioRouteSource`: a production
+    // graph reaching into the mock graph, which stopped compiling the moment the fakes moved to
+    // `:mockkit` and production could no longer see them.
+    // [IOS-STORE-SHOTS-WITHOUT-SHIPPING-THE-DEMO-CODE-001]
     single<com.rndeveloper.paparcar.domain.detection.ports.CarAudioRouteSource> {
-        com.rndeveloper.paparcar.fakes.data.repository.FakeCarAudioRouteSource()
+        AndroidCarAudioRouteSource()
     }
 
     // Connectivity

@@ -8,6 +8,7 @@ import com.rndeveloper.paparcar.domain.permissions.SystemPermissionDialog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import platform.CoreBluetooth.CBCentralManager
 import platform.CoreBluetooth.CBManagerAuthorizationAllowedAlways
 import platform.CoreBluetooth.CBManagerAuthorizationDenied
@@ -25,6 +26,9 @@ import platform.CoreMotion.CMMotionActivityManager
 import platform.UserNotifications.UNAuthorizationStatusAuthorized
 import platform.UserNotifications.UNAuthorizationStatusDenied
 import platform.UserNotifications.UNUserNotificationCenter
+import platform.darwin.DISPATCH_QUEUE_PRIORITY_DEFAULT
+import platform.darwin.dispatch_async
+import platform.darwin.dispatch_get_global_queue
 
 /**
  * iOS implementation of [PermissionManager].
@@ -66,7 +70,6 @@ class IosPermissionManagerImpl : PermissionManager {
         val btAuthorization = CBCentralManager.authorization
         val hasBluetooth = btAuthorization == CBManagerAuthorizationAllowedAlways
 
-        val gpsEnabled = CLLocationManager.locationServicesEnabled()
 
         val spent = buildSet {
             if (authStatus == kCLAuthorizationStatusDenied ||
@@ -103,13 +106,26 @@ class IosPermissionManagerImpl : PermissionManager {
             hasActivityRecognitionPermission = hasActivity,
             isActivityRecognitionAvailable = activityAvailable,
             hasBluetoothConnectPermission = hasBluetooth,
-            isLocationServicesEnabled = gpsEnabled,
+            // [IOS-APPLE-SIGN-IN-ON-BASELOGIN-3-001] Optimista y luego corregido: un estado
+            // AUTORIZADO ya prueba que el interruptor global está encendido —con él apagado,
+            // CoreLocation informa «denegado» para toda app—, así que el caso normal no parpadea
+            // nunca un «GPS apagado» que no es verdad. El valor real llega justo abajo.
+            isLocationServicesEnabled = hasLocation || current.isLocationServicesEnabled,
             // Las notificaciones las resuelve el callback de abajo: se conserva lo que ya hubiera
             // para no borrar un «denegado» conocido entre una lectura y la siguiente.
             spentDialogs = spent + current.spentDialogs.filter {
                 it == SystemPermissionDialog.NOTIFICATIONS
             },
         )
+
+        // ⛔ `CLLocationManager.locationServicesEnabled()` es una llamada BLOQUEANTE a `locationd`, y
+        // Xcode la señala en el hilo principal («can cause UI unresponsiveness») — y cada llamador de
+        // este método es un ViewModel en Main. Se lee en una cola de fondo y se publica la respuesta.
+        // [IOS-APPLE-SIGN-IN-ON-BASELOGIN-3-001]
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT.toLong(), 0u)) {
+            val servicesEnabled = CLLocationManager.locationServicesEnabled()
+            _permissionState.update { it.copy(isLocationServicesEnabled = servicesEnabled) }
+        }
 
         // Async notification check — updates the StateFlow when the callback resolves.
         UNUserNotificationCenter.currentNotificationCenter()

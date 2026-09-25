@@ -198,6 +198,59 @@ val iosMockModule = module {
     single { get<AppDatabase>().spotDao() }
     single { get<AppDatabase>().zoneDao() }
     single { get<AppDatabase>().geocoderCacheDao() }
+    single { get<AppDatabase>().zoneWatchDao() }
+    single { get<AppDatabase>().fuelWatchDao() }
+    single { get<AppDatabase>().tripRoutePointDao() }
+
+    // ── Lo que el grafo mock de Android ataba y este NO ────────────────────────────────────────
+    //
+    // ⛔ Trece puertos que `dataModule` declara y este módulo nunca ató. No se notó hasta la
+    // primera captura de pantalla —la app se caía en el primer frame con
+    // `NoDefinitionFoundException: ZoneAlertSubscriptionRepository`, camino
+    // SplashViewModel → SignOutUseCase → ese repositorio— y es exactamente el fallo que CLAUDE.md
+    // documenta: «dos tickets seguidos metieron un repositorio en dataModule sin declararlo en
+    // mockModule». La diferencia es que en Android hay un guardarraíl que lo caza
+    // (`MockKoinModuleVerifyTest`) y este grafo no tiene ninguno, así que llevaba meses roto sin
+    // que nada se pusiera rojo. [IOS-STORE-SHOTS-WITHOUT-SHIPPING-THE-DEMO-CODE-001]
+    //
+    // Dos de los trece NO se atan aquí, y por la misma razón que no rompen: sus consumidores los
+    // piden con `getOrNull()` — `WidgetPinRequester` (widget de Android, no existe en iOS) y
+    // `LocalDiagnosticsLog` (solo hay implementación Android; el informe se manda sin el log).
+    single<com.rndeveloper.paparcar.domain.repository.ZoneAlertSubscriptionRepository> {
+        com.rndeveloper.paparcar.fakes.data.repository.FakeZoneAlertSubscriptionRepository()
+    }
+    single<com.rndeveloper.paparcar.domain.push.PushTokenProvider> {
+        com.rndeveloper.paparcar.fakes.data.repository.FakeNoopPushTokenProvider()
+    }
+    single<com.rndeveloper.paparcar.domain.analytics.AnalyticsTracker> {
+        com.rndeveloper.paparcar.domain.analytics.NoOpAnalyticsTracker()
+    }
+    single<com.rndeveloper.paparcar.domain.repository.SharedCarRepository> {
+        com.rndeveloper.paparcar.fakes.data.repository.FakeSharedCarRepository(get())
+    }
+    single<com.rndeveloper.paparcar.domain.sharedcar.SharedCarMirror> {
+        com.rndeveloper.paparcar.fakes.data.repository.FakeSharedCarMirror()
+    }
+    single<com.rndeveloper.paparcar.domain.fuel.FuelStationsSource> {
+        com.rndeveloper.paparcar.fakes.data.repository.FakeFuelStationsSource()
+    }
+    single<com.rndeveloper.paparcar.domain.parkings.PublicParkingsSource> {
+        com.rndeveloper.paparcar.fakes.data.repository.FakePublicParkingsSource()
+    }
+    single<com.rndeveloper.paparcar.domain.repository.AverageFuelPricesRepository> {
+        com.rndeveloper.paparcar.fakes.data.repository.FakeAverageFuelPricesRepository()
+    }
+    // Estas tres van contra la MISMA Room que el resto del mock, no contra un fake: el escenario
+    // las escribe y las lee, y una ruta guardada tiene que sobrevivir al frame siguiente.
+    single<com.rndeveloper.paparcar.domain.repository.ZoneWatchRepository> {
+        com.rndeveloper.paparcar.data.repository.RoomZoneWatchRepository(dao = get())
+    }
+    single<com.rndeveloper.paparcar.domain.repository.FuelWatchRepository> {
+        com.rndeveloper.paparcar.data.fuel.RoomFuelWatchRepository(dao = get())
+    }
+    single<com.rndeveloper.paparcar.domain.detection.ports.DrivingRouteStore> {
+        com.rndeveloper.paparcar.data.detection.RoomDrivingRouteStore(dao = get())
+    }
 
     // Local datasources
     single<LocalAddressAndPlaceDataSource> { RoomLocalAddressAndPlaceDataSource(get()) }

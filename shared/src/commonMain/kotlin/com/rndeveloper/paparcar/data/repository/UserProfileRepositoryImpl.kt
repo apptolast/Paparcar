@@ -10,6 +10,7 @@ import com.rndeveloper.paparcar.data.mapper.toDomain
 import com.rndeveloper.paparcar.data.mapper.toEntity
 import com.rndeveloper.paparcar.domain.model.UserProfile
 import com.rndeveloper.paparcar.domain.repository.UserProfileRepository
+import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withTimeoutOrNull
@@ -32,6 +33,7 @@ class UserProfileRepositoryImpl(
             val remoteDto = withTimeoutOrNull(REMOTE_PROFILE_TIMEOUT_MS.milliseconds) {
                 runCatching { remoteDataSource.getProfile(session.userId) }.getOrNull()
             }
+            PaparcarLogger.i(AUTH_DIAG, "getOrCreateProfile: remote profile found=${remoteDto != null}")
             if (remoteDto != null) {
                 // 1b. The doc is a snapshot of the FIRST sign-in; the session is what Google says
                 //     TODAY. Reconcile identity fields (photo, name, email) so an account change
@@ -58,7 +60,10 @@ class UserProfileRepositoryImpl(
             }
 
             // 2. Offline fallback: serve whatever Room has.
-            profileDao.getProfile(session.userId)?.toDomain()?.let { return@runCatching it }
+            profileDao.getProfile(session.userId)?.toDomain()?.let {
+                PaparcarLogger.i(AUTH_DIAG, "getOrCreateProfile: serving the Room copy")
+                return@runCatching it
+            }
 
             // 3. Truly new user (or first login after data wipe): create the doc
             //    in Firestore + cache locally. defaultVehicleId starts null and
@@ -72,10 +77,16 @@ class UserProfileRepositoryImpl(
                 createdAt = now,
                 updatedAt = now,
             )
+            PaparcarLogger.i(
+                AUTH_DIAG,
+                "getOrCreateProfile: creating users/{uid} — email=${dto.email != null}, " +
+                    "displayName=${dto.displayName != null}, photoUrl=${dto.photoUrl != null}",
+            )
             remoteDataSource.createOrUpdateProfile(dto)
+            PaparcarLogger.i(AUTH_DIAG, "getOrCreateProfile: Firestore write OK")
             profileDao.insertOrUpdate(dto.toEntity())
             dto.toDomain()
-        }
+        }.onFailure { e -> PaparcarLogger.e(AUTH_DIAG, "getOrCreateProfile FAILED", e) }
 
     override fun observeProfile(userId: String): Flow<UserProfile?> =
         profileDao.observeProfile(userId).map { it?.toDomain() }
@@ -130,5 +141,7 @@ class UserProfileRepositoryImpl(
         /** [AUDIT-DATA-001 M9] Splash-blocking ceiling on the remote profile fetch: past this the
          *  bootstrap serves cached state rather than waiting on a stalled network. */
         const val REMOTE_PROFILE_TIMEOUT_MS = 8_000L
+
+        const val AUTH_DIAG = "AUTHDIAG/UserProfileRepository"
     }
 }

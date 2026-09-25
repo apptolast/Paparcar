@@ -83,6 +83,11 @@ Dos módulos Gradle desde ARCH-HEALTH F7 (paquete: `com.rndeveloper.paparcar`):
 :app     → shell Android: MainActivity, PaparcarApp, AppNotificationManagerImpl,
            manifest, res, flavors prod/mock (Dev Catalog en app/src/mock/), firma.
            BuildConfig vive aquí: shared lee build facts vía AppBuildInfo/isDebugBuild.
+:mockkit → TODO lo falso: los 19 fakes, MockScenario, ShotPresets, iosMockModule y
+           MockMainViewController. Depende de :shared y NUNCA al revés — Gradle rechaza el ciclo,
+           así que producción no puede verlo ni por descuido. Lo consumen el flavor mock
+           (`mockImplementation`), los tests de :shared, y el framework de capturas de iOS.
+           [IOS-STORE-SHOTS-WITHOUT-SHIPPING-THE-DEMO-CODE-001]
 ```
 
 ## Arquitectura
@@ -397,7 +402,14 @@ tarea, o queda fuera del set probable:
 - **Estado/variante nuevo** (loading/empty/error/modo) → variante en la galería, paridad con `*Previews.kt`.
 - **Condición que afecte routing** (sesión, permisos, onboarding, vehículo) → `MockScenario` + el
   fake que la lee + preset/control en `DevCatalogScreen.kt`.
-- Verificar `assembleMockDebug` sin romper prod. Solo se toca `app/src/mock/` + `shared/src/commonMain/fakes/`.
+- Verificar `assembleMockDebug` sin romper prod. Solo se toca `app/src/mock/` + `:mockkit`.
+- ⛔ **Los fakes salieron de `:shared` el 18-09 y no vuelven.** Estaban en `commonMain`, y en iOS eso
+  significa publicarlos: medido con `nm` sobre el Release del build 2 de TestFlight, **161 clases
+  `Fake*` exportadas** — `MockMainViewController` era público en `iosMain`, Kotlin/Native lo exporta
+  a `ComposeApp.h`, y un símbolo exportado es raíz de DCE que arrastra todo lo demás. Eso es
+  guideline 2.3.1 (funcionalidad oculta) y ya costó un rechazo en otra app del equipo. Ahora viven en
+  `:mockkit`, que depende de `:shared` y no al revés; `MockGraphGuardrailTest` vigila que ninguna
+  fuente publicable los importe. [IOS-STORE-SHOTS-WITHOUT-SHIPPING-THE-DEMO-CODE-001]
 
 ## Modelos de datos clave
 - `Spot` — plaza comunitaria: location, type (AUTO_DETECTED/MANUAL_REPORT), status, confidence, sizeCategory, carbodyType, enRouteCount, TTL

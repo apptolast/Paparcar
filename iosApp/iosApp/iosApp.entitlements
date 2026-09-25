@@ -2,6 +2,18 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- La capability de Sign in with Apple. [IOS-APPLE-SIGN-IN-ON-BASELOGIN-3-001]
+	     ⛔ SIN ESTA CLAVE el botón de Apple no hace NADA visible: `performRequests()` falla en el
+	     acto con `ASAuthorizationError.unknown` (1000), la hoja del sistema no llega a presentarse,
+	     y en pantalla solo se ve el parpadeo del estado de carga del botón. Es lo que reportaron
+	     los testers en iPhone físico el 19-09.
+	     El diseño del ticket la daba por puesta, pero este fichero NACIÓ en el ticket de push
+	     (47b54044) con `aps-environment` y nada más, así que la capability nunca llegó a firmarse.
+	     `Default` es Sign in with Apple normal; `Shared With You` es otra cosa. -->
+	<key>com.apple.developer.applesignin</key>
+	<array>
+		<string>Default</string>
+	</array>
 	<!-- La capability de Push Notifications. [IOS-THE-GROUP-CANNOT-REACH-AN-IPHONE-001]
 	     `development` es lo que firma un build de Debug; Xcode lo sustituye por `production` al
 	     archivar con un perfil de distribución. -->

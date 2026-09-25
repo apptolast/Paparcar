@@ -220,6 +220,7 @@ object GuardrailScope {
 
     private const val COMMON_MAIN = "commonMain"
     private const val ANDROID_MAIN = "androidMain"
+    private const val IOS_MAIN = "iosMain"
     private const val MOCK = "mock"
 
     /**
@@ -233,6 +234,35 @@ object GuardrailScope {
     ) { scope ->
         scope.files.filter { file ->
             file.inSourceSet(COMMON_MAIN, ANDROID_MAIN, MOCK)
+        }
+    }
+
+
+    /**
+     * Everything that reaches a STORE BINARY: `commonMain`, `androidMain` and `iosMain` of
+     * `:shared` and `:app` — the mock flavour and the whole `:mockkit` module excluded, because
+     * neither is compiled into a release artifact.
+     *
+     * Distinct from [productionSourceFiles] on both ends, and both differences matter:
+     *  · it ADDS `iosMain`, which no other population reads. That is where the leak this
+     *    guardrail exists for actually lived: `MockMainViewController` sat in `shared/src/iosMain`,
+     *    Kotlin/Native exported it to `ComposeApp.h`, an exported symbol is a DCE root, and it
+     *    dragged all 19 fakes into the App Store binary. A rule phrased over commonMain+androidMain
+     *    would have watched that happen and stayed green.
+     *  · it DROPS the mock flavour, which is allowed to speak to the fakes — that is its job.
+     *
+     * Paths are matched on `/mockkit/src/`, never on the bare word: an absolute path carries the
+     * folder the repo was cloned into. [TEST-A-GUARD-MUST-NOT-READ-THE-FOLDER-NAME-001]
+     */
+    fun shippedSourceFiles(): List<KoFileDeclaration> = population(
+        name = "store-binary sources (commonMain + androidMain + iosMain, no mock flavour, no :mockkit)",
+        floor = SHIPPED_SOURCES_FLOOR,
+    ) { scope ->
+        scope.files.filter { file ->
+            val path = file.path.replace('\\', '/')
+            file.inSourceSet(COMMON_MAIN, ANDROID_MAIN, IOS_MAIN) &&
+                !path.contains("/mockkit/src/") &&
+                !path.contains("/src/mock/")
         }
     }
 
@@ -315,6 +345,7 @@ object GuardrailScope {
     const val DETECTION_STAGES_FLOOR = 7            // measured  14
     const val COMMON_MAIN_PRODUCTION_FLOOR = 220    // measured 463
     const val PRODUCTION_SOURCES_FLOOR = 270        // measured 562
+    const val SHIPPED_SOURCES_FLOOR = 430           // measured 877
     const val DOMAIN_PRODUCTION_FLOOR = 100         // measured 210
     const val VEHICLE_TYPE_MENTIONS_FLOOR = 10      // measured  21
     const val FIELD_TRACE_FILES_FLOOR = 9           // measured  20

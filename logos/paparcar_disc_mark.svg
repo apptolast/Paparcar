@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="108" height="108">
+<!--
+  Paparcar disc mark.
+
+  Three closed subpaths, no even-odd fill needed:
+    1. ring — the disc, with the hub counter and the exit slot cut out (a C: simply connected,
+              so it fills correctly under the default non-zero rule)
+    2. hub  — the centre dot, an island inside that counter
+    3. foot — the descender: a capsule whose top is cut by an arc concentric with the disc, so
+              it hugs the rim. Its end cap is a true semicircle, radius = half the foot's width.
+
+  ⚠️ The slot is NOT a straight channel. Its two flanks are circles concentric about a point
+  0.699R to the left of the disc centre and 0.084R below it, radius 0.438R, half-width 0.0785R.
+  That arc was FITTED to the reference art (residual 0.42px mean, 0.79px max over 9 samples from
+  r=70 to r=148), and it is what makes the tail sweep instead of ending square. Drawing the slot
+  straight and rounding its corners hard was an earlier attempt to fake this curve; it scored
+  0.958 where the real arc scores 0.970, and it forced tip fillets three times larger.
+
+  Nothing was chosen by eye. Every number is measured on the reference and verified back on the
+  rasterised path:
+    dot / disc radius     0.159  (reference 0.159)
+    counter / disc radius 0.403  (reference 0.403)
+    dark channel          0.244  (reference 0.244)
+    foot width            0.825  (reference 0.825)
+  The dot is concentric with the disc: 0.2px of drift over a 163px radius, i.e. zero.
+  Corner radii — slot tips 2.5, slot/hub joints 1.5, foot shoulder 5.5, foot nape 7.3.
+-->
+  <g fill="#009F5E">
+    <path d="M49.11,50.81 A16.99,16.99 0 0 1 36.69,58.5 A2.5,2.5 0 0 0 35.26,62.81 A32.87,32.87 0 1 0 26.81,49.87 A2.5,2.5 0 0 0 27.65,51.02 A11.83,11.83 0 0 0 45.89,45.78 A1.5,1.5 0 0 0 45.84,44.6 A13.25,13.25 0 1 1 51.12,50.32 A1.5,1.5 0 0 0 49.11,50.81 Z"/>
+    <path d="M52.55,38.87 a5.23,5.23 0 1 0 10.45,0 a5.23,5.23 0 1 0 -10.45,0 Z"/>
+    <path d="M17.36,66.44 L17.36,88.44 A13.56,13.56 0 0 0 44.47,88.44 L44.47,75.65 A5.5,5.5 0 0 0 41.48,70.76 A35.82,35.82 0 0 1 30.25,61.78 A7.29,7.29 0 0 0 17.36,66.44 Z"/>
+  </g>
+</svg>
