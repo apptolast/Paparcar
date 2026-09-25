@@ -194,7 +194,7 @@ class MineturStationsSourceTest {
         // ⛔ Un catálogo entero de municipios para no mirarlo. Lo cazaron los tests de provincia.
         source().stationsNear(cadiz()).getOrThrow()
 
-        assertTrue(asked.none { it.endsWith("/Listados/Municipios/") }, "asked: ${'$'}asked")
+        assertTrue(asked.none { it.endsWith("/Listados/Municipios/") }, "asked: $asked")
     }
 
     @Test
@@ -228,8 +228,8 @@ class MineturStationsSourceTest {
         )
 
         assertTrue(result.isSuccess)
-        assertTrue(asked.any { it.endsWith("/FiltroProvincia/11") }, "asked: ${'$'}asked")
-        assertTrue(asked.none { it.contains("/Listados/") }, "el postal no necesita catálogo: ${'$'}asked")
+        assertTrue(asked.any { it.endsWith("/FiltroProvincia/11") }, "asked: $asked")
+        assertTrue(asked.none { it.contains("/Listados/") }, "el postal no necesita catálogo: $asked")
     }
 
     @Test
@@ -239,8 +239,8 @@ class MineturStationsSourceTest {
         val result = source().stationsNear(cadiz().copy(cityName = null, postalCode = "75001"))
 
         assertTrue(result.isSuccess)
-        assertTrue(asked.any { it.endsWith("/Listados/Provincias/") }, "asked: ${'$'}asked")
-        assertTrue(asked.any { it.endsWith("/FiltroProvincia/11") }, "asked: ${'$'}asked")
+        assertTrue(asked.any { it.endsWith("/Listados/Provincias/") }, "asked: $asked")
+        assertTrue(asked.any { it.endsWith("/FiltroProvincia/11") }, "asked: $asked")
     }
 
     // ── La tercera clave: las coordenadas ────────────────────────────────────
@@ -255,10 +255,10 @@ class MineturStationsSourceTest {
             FuelStationsQuery(36.5297, -6.2924, countryCode = "", regionName = null),
         )
 
-        assertTrue(result.isSuccess, "las coordenadas son clave suficiente: ${'$'}asked")
-        assertTrue(asked.any { it.endsWith("/FiltroProvincia/11") }, "asked: ${'$'}asked")
+        assertTrue(result.isSuccess, "las coordenadas son clave suficiente: $asked")
+        assertTrue(asked.any { it.endsWith("/FiltroProvincia/11") }, "asked: $asked")
         // Y sin catálogos: la clave numérica no empareja nombres, así que no hay nada que descargar.
-        assertTrue(asked.none { it.contains("/Listados/") }, "asked: ${'$'}asked")
+        assertTrue(asked.none { it.contains("/Listados/") }, "asked: $asked")
     }
 
     @Test

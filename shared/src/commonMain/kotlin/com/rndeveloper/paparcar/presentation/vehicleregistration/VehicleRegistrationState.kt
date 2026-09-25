@@ -139,7 +139,7 @@ data class VehicleRegistrationState(
      */
     val inferredHeightHint: String?
         get() = carbodyType?.heightBand()?.let { band ->
-            "${'$'}{band.lowMeters.oneDecimal()} – ${'$'}{band.highMeters.oneDecimal()}"
+            "${band.lowMeters.oneDecimal()} – ${band.highMeters.oneDecimal()}"
         }
 
     val canSubmit: Boolean
@@ -160,5 +160,5 @@ data class VehicleRegistrationState(
  *  única cifra de esta pantalla que se compone a mano. */
 private fun Float.oneDecimal(): String {
     val tenths = (this * 10f).toInt()
-    return "${'$'}{tenths / 10},${'$'}{tenths % 10}"
+    return "${tenths / 10},${tenths % 10}"
 }

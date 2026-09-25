@@ -52,7 +52,7 @@ fun PapSectionHeader(
 ) {
     Text(
         text = if (optional) {
-            "${'$'}{title.uppercase()} · ${'$'}{stringResource(Res.string.common_optional).uppercase()}"
+            "${title.uppercase()} · ${stringResource(Res.string.common_optional).uppercase()}"
         } else {
             title.uppercase()
         },
