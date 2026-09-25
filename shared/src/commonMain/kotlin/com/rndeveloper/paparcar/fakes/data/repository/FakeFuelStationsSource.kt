@@ -33,8 +33,8 @@ class FakeFuelStationsSource : FuelStationsSource {
             FuelStationsResult(
                 // ⛔ Generic names and LOCAL addresses, both on purpose
                 // [PLAY-SHOTS-EVERY-LANGUAGE-SHOWS-ITS-OWN-UI-001]. This fixture used to quote
-                // "Repsol" and "Cepsa" at Madrid addresses while the header above the list said
-                // Puerto de Santa María — a third-party trademark inside a store capture (the same
+                // "Repsol" and "Cepsa" at Dublin addresses while the header above the list said
+                // Dublin — a third-party trademark inside a store capture (the same
                 // policy that sent "Mercadona"/"Repsol" out of the 01-09 raws) sitting on top of an
                 // address 600 km from the pin. A fake that contradicts its own header teaches the
                 // reader to distrust the screen.
@@ -42,9 +42,9 @@ class FakeFuelStationsSource : FuelStationsSource {
                     station(
                         query = query,
                         id = "mock-1",
-                        name = "Área de Servicio La Bahía",
-                        address = "Avenida de la Libertad 24",
-                        town = "El Puerto de Santa María",
+                        name = "Bayside Service Station",
+                        address = "Amiens Street 24",
+                        town = "Dublin",
                         northMeters = 400.0,
                         eastMeters = 250.0,
                         cents = 3,
@@ -52,9 +52,9 @@ class FakeFuelStationsSource : FuelStationsSource {
                     station(
                         query = query,
                         id = "mock-2",
-                        name = "Estación de Servicio Valdelagrana",
-                        address = "Avenida de Valencia 8",
-                        town = "El Puerto de Santa María",
+                        name = "Northgate Fuel",
+                        address = "Custom House Quay 8",
+                        town = "Dublin",
                         northMeters = -900.0,
                         eastMeters = 600.0,
                         cents = 0,
@@ -65,8 +65,8 @@ class FakeFuelStationsSource : FuelStationsSource {
                         query = query,
                         id = "mock-3",
                         name = null,
-                        address = "Carretera de Rota km 3",
-                        town = "El Puerto de Santa María",
+                        address = "North Wall Quay 3",
+                        town = "Dublin",
                         northMeters = 2_600.0,
                         eastMeters = -1_500.0,
                         cents = 6,
@@ -74,9 +74,9 @@ class FakeFuelStationsSource : FuelStationsSource {
                     station(
                         query = query,
                         id = "mock-4",
-                        name = "Estación de Servicio El Palmar",
-                        address = "Calle Aurora 51",
-                        town = "El Puerto de Santa María",
+                        name = "Harbour Road Fuel",
+                        address = "Gardiner Street 51",
+                        town = "Dublin",
                         northMeters = -1_400.0,
                         eastMeters = -800.0,
                         cents = 1,
@@ -84,9 +84,9 @@ class FakeFuelStationsSource : FuelStationsSource {
                     station(
                         query = query,
                         id = "mock-5",
-                        name = "Área de Servicio Puerto Sherry",
-                        address = "Carretera de Sanlúcar km 2",
-                        town = "El Puerto de Santa María",
+                        name = "Marina Service Station",
+                        address = "East Wall Road 2",
+                        town = "Dublin",
                         northMeters = 1_900.0,
                         eastMeters = 2_400.0,
                         cents = 4,

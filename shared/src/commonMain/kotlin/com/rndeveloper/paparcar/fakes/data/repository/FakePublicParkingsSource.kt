@@ -41,7 +41,7 @@ class FakePublicParkingsSource(
                 parking(
                     query = query,
                     id = "mock-p1",
-                    name = "Parking Plaza Mayor",
+                    name = "Drury Street Car Park",
                     operator = "EMT",
                     kind = PublicParkingKind.UNDERGROUND,
                     northMeters = 260.0,
@@ -54,7 +54,7 @@ class FakePublicParkingsSource(
                 parking(
                     query = query,
                     id = "mock-p2",
-                    name = "Aparcamiento Estación",
+                    name = "Connolly Station Car Park",
                     operator = null,
                     kind = PublicParkingKind.SURFACE,
                     northMeters = -520.0,
@@ -83,7 +83,7 @@ class FakePublicParkingsSource(
                     query = query,
                     id = "mock-p4",
                     name = null,
-                    operator = "Ayuntamiento",
+                    operator = "City Hall Car Park",
                     kind = PublicParkingKind.SURFACE,
                     northMeters = -1_100.0,
                     eastMeters = -700.0,

@@ -35,8 +35,8 @@ object FakeData {
 
     private fun gps(
         agoMs: Long = 0L,
-        lat: Double = 40.4168,
-        lon: Double = -3.7038,
+        lat: Double = 53.3468,
+        lon: Double = -6.2538,
         accuracy: Float = 12f,
     ) = GpsPoint(
         latitude = lat,
@@ -54,50 +54,50 @@ object FakeData {
     // tile de gasto — así que la galería llevaba desde siempre sin poder enseñar ni el coste ni la
     // línea que dice de dónde sale. Un fake que no puede reproducir la pantalla no la vigila.
     val addrStreet = AddressInfo(
-        street = "Calle Gran Vía 32",
-        city = "Madrid",
-        region = "Comunidad de Madrid",
-        country = "España",
+        street = "Capel Street 32",
+        city = "Dublin",
+        region = "County Dublin",
+        country = "Ireland",
         countryCode = "es",
     )
 
     val addrFuel = AddressInfo(
         street = "Av. de la Castellana 110",
-        city = "Madrid",
-        region = "Comunidad de Madrid",
-        country = "España",
+        city = "Dublin",
+        region = "County Dublin",
+        country = "Ireland",
         countryCode = "es",
     )
 
     val addrSupermarket = AddressInfo(
-        street = "Calle Fuencarral 78",
-        city = "Madrid",
-        region = "Comunidad de Madrid",
-        country = "España",
+        street = "Dame Street 78",
+        city = "Dublin",
+        region = "County Dublin",
+        country = "Ireland",
         countryCode = "es",
     )
 
     val addrMall = AddressInfo(
-        street = "Calle Orense 4",
-        city = "Madrid",
-        region = "Comunidad de Madrid",
-        country = "España",
+        street = "Baggot Street 4",
+        city = "Dublin",
+        region = "County Dublin",
+        country = "Ireland",
         countryCode = "es",
     )
 
     val addrCafe = AddressInfo(
-        street = "Calle Serrano 25",
-        city = "Madrid",
-        region = "Comunidad de Madrid",
-        country = "España",
+        street = "Wexford Street 25",
+        city = "Dublin",
+        region = "County Dublin",
+        country = "Ireland",
         countryCode = "es",
     )
 
     val addrHighAccuracy = AddressInfo(
         street = "Paseo del Prado 8",
-        city = "Madrid",
-        region = "Comunidad de Madrid",
-        country = "España",
+        city = "Dublin",
+        region = "County Dublin",
+        country = "Ireland",
         countryCode = "es",
     )
 
@@ -132,7 +132,7 @@ object FakeData {
     /** Active session at a supermarket — auto-detected via vehicle-exit signal. */
     val activeSessionSupermarket = UserParking(
         id = "s_active_2",
-        location = gps(agoMs = 3_600_000L, lat = 40.420, lon = -3.710, accuracy = 8f),
+        location = gps(agoMs = 3_600_000L, lat = 53.3500, lon = -6.2600, accuracy = 8f),
         geofenceId = "geo_002",
         isActive = true,
         address = addrSupermarket,
@@ -156,7 +156,7 @@ object FakeData {
     )
     private val endedToday2 = UserParking(
         id = "s_t2",
-        location = gps(agoMs = 18_000_000L, lat = 40.419, lon = -3.706, accuracy = 25f),
+        location = gps(agoMs = 18_000_000L, lat = 53.3490, lon = -6.2560, accuracy = 25f),
         address = addrStreet,
         placeInfo = null,
         detectionReliability = 0.75f,
@@ -167,7 +167,7 @@ object FakeData {
     )
     private val endedYesterday1 = UserParking(
         id = "s_y1",
-        location = gps(agoMs = 86_400_000L + 3_600_000L, lat = 40.415, lon = -3.695),
+        location = gps(agoMs = 86_400_000L + 3_600_000L, lat = 53.3450, lon = -6.2450),
         address = addrMall,
         placeInfo = placeInfoMall,
         detectionReliability = 1.0f,
@@ -176,7 +176,7 @@ object FakeData {
     )
     private val endedYesterday2 = UserParking(
         id = "s_y2",
-        location = gps(agoMs = 86_400_000L + 14_400_000L, lat = 40.413, lon = -3.700),
+        location = gps(agoMs = 86_400_000L + 14_400_000L, lat = 53.3430, lon = -6.2500),
         address = addrCafe,
         placeInfo = placeInfoCafe,
         detectionReliability = 0.90f,
@@ -190,7 +190,7 @@ object FakeData {
     // exercises the human fallback title, never raw coordinates. [UI-LOCATION-FALLBACK-SPEAKS-HUMAN-001]
     private val endedUngeocoded = UserParking(
         id = "s_ungeo",
-        location = gps(agoMs = 86_400_000L + 43_200_000L, lat = 40.411, lon = -3.698),
+        location = gps(agoMs = 86_400_000L + 43_200_000L, lat = 53.3410, lon = -6.2480),
         address = null,
         placeInfo = null,
         detectionReliability = 0.75f,
@@ -212,7 +212,7 @@ object FakeData {
     // [UI-APPROXIMATE-ZONE-IN-HISTORY-001]
     private val endedApproximateZone = UserParking(
         id = "s_zone",
-        location = gps(agoMs = 2 * 86_400_000L + 10_800_000L, lat = 40.409, lon = -3.692),
+        location = gps(agoMs = 2 * 86_400_000L + 10_800_000L, lat = 53.3390, lon = -6.2420),
         address = addrStreet,
         placeInfo = null,
         detectionReliability = 0.5f,
@@ -253,7 +253,7 @@ object FakeData {
     val nearbySpots = listOf(
         Spot(
             id = "sp_1",
-            location = gps(agoMs = 4 * 60_000L, lat = 40.418, lon = -3.706),
+            location = gps(agoMs = 4 * 60_000L, lat = 53.3480, lon = -6.2560),
             reportedBy = "user_1",
             address = addrStreet,
             placeInfo = null,
@@ -263,7 +263,7 @@ object FakeData {
         ),
         Spot(
             id = "sp_2",
-            location = gps(agoMs = 15 * 60_000L, lat = 40.419, lon = -3.704),
+            location = gps(agoMs = 15 * 60_000L, lat = 53.3490, lon = -6.2540),
             reportedBy = "user_2",
             address = addrFuel,
             placeInfo = placeInfoFuel,
@@ -273,7 +273,7 @@ object FakeData {
         ),
         Spot(
             id = "sp_3",
-            location = gps(agoMs = 40 * 60_000L, lat = 40.417, lon = -3.708),
+            location = gps(agoMs = 40 * 60_000L, lat = 53.3470, lon = -6.2580),
             reportedBy = "user_3",
             address = addrSupermarket,
             placeInfo = placeInfoSupermarket,
@@ -283,7 +283,7 @@ object FakeData {
         ),
         Spot(
             id = "sp_4",
-            location = gps(agoMs = 8 * 60_000L, lat = 40.416, lon = -3.705),
+            location = gps(agoMs = 8 * 60_000L, lat = 53.3460, lon = -6.2550),
             reportedBy = "user_4",
             address = addrHighAccuracy,
             placeInfo = null,
@@ -295,7 +295,7 @@ object FakeData {
         // human fallback title, never raw coordinates. [UI-LOCATION-FALLBACK-SPEAKS-HUMAN-001]
         Spot(
             id = "sp_6_ungeocoded",
-            location = gps(agoMs = 6 * 60_000L, lat = 40.4155, lon = -3.7025),
+            location = gps(agoMs = 6 * 60_000L, lat = 53.3455, lon = -6.2525),
             reportedBy = "user_6",
             address = null,
             placeInfo = null,
@@ -309,7 +309,7 @@ object FakeData {
         // [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001]
         Spot(
             id = "sp_5_manual",
-            location = gps(agoMs = 2 * 60_000L, lat = 40.4185, lon = -3.7075),
+            location = gps(agoMs = 2 * 60_000L, lat = 53.3485, lon = -6.2575),
             reportedBy = "user_5",
             type = SpotType.MANUAL_REPORT,
             address = addrStreet,
@@ -323,7 +323,7 @@ object FakeData {
         // [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001]
         Spot(
             id = "sp_7_zone",
-            location = gps(agoMs = 3 * 60_000L, lat = 40.4172, lon = -3.7035),
+            location = gps(agoMs = 3 * 60_000L, lat = 53.3472, lon = -6.2535),
             reportedBy = "user_7",
             address = addrStreet,
             placeInfo = null,

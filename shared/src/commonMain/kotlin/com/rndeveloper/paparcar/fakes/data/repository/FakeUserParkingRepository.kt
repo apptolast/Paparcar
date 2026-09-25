@@ -48,11 +48,11 @@ class FakeUserParkingRepository(
         userId = "mock_user_001",
         vehicleId = "mock_vehicle_001",
         // On Av. de la Concepción — matching the address below; the old point sat on the riverbank.
-        location = GpsPoint(36.5932, -6.2322, 6f, now - 40 * 60_000L, 0f),
+        location = GpsPoint(53.3522, -6.2622, 6f, now - 40 * 60_000L, 0f),
         isActive = true,
         spotType = SpotType.AUTO_DETECTED,
         detectionReliability = 0.95f,
-        address = AddressInfo("Av. de la Concepción, 21", "Puerto de Santa María", "Cádiz", "España", "ES"),
+        address = AddressInfo("Camden Street, 21", "Dublin", "County Dublin", "Ireland", "IE"),
     )
 
     /**
@@ -87,19 +87,19 @@ class FakeUserParkingRepository(
             userId = "mock_user_001",
             vehicleId = "mock_vehicle_002",
             // In the city grid — the old point floated in the Guadalete on the Home map.
-            location = GpsPoint(36.5940, -6.2332, 5f, now - 3_600_000L, 0f),
+            location = GpsPoint(53.3530, -6.2632, 5f, now - 3_600_000L, 0f),
             isActive = true,
             spotType = SpotType.AUTO_DETECTED,
             detectionReliability = 0.92f,
-            address = AddressInfo("Calle San Bartolomé, 12", "Puerto de Santa María", "Cádiz", "España", "ES"),
+            address = AddressInfo("Wexford Street, 12", "Dublin", "County Dublin", "Ireland", "IE"),
         ))
 
         // ── Seat León (vehicle_001) — 65 sessions over 2 years ───────────────
         // Real-sounding streets (the placeholders leaked into the Play-listing captures);
         // indexed by modulo so streets still REPEAT and the "usual street" fact reaches ≥3.
         val leonStreets = listOf(
-            "Calle Larga", "Calle Cielos", "Calle Palacios", "Calle San Juan", "Calle Vicario",
-            "Av. de la Libertad", "Calle Santa Lucía", "Calle Ganado", "Calle Zarza",
+            "Dame Street", "Capel Street", "Baggot Street", "Camden Street", "Wexford Street",
+            "Pearse Street", "Thomas Street", "Aungier Street", "Clanbrassil Street",
         )
         for (i in 1..65) {
             // ⛔ NOT `i * 11` days. That spacing put the newest parking ELEVEN days back, so the
@@ -117,8 +117,8 @@ class FakeUserParkingRepository(
                 userId = "mock_user_001",
                 vehicleId = "mock_vehicle_001",
                 location = GpsPoint(
-                    36.5920 + (i % 7) * 0.0005,
-                    -6.2290 - (i % 5) * 0.0008,
+                    53.3510 + (i % 7) * 0.0005,
+                    -6.2590 - (i % 5) * 0.0008,
                     10f,
                     now - daysAgo * 86_400_000L - hourJitter,
                     0f,
@@ -150,13 +150,13 @@ class FakeUserParkingRepository(
                     i % 5 == 0 -> 0L
                     else -> 90_000L + (i % 11) * 47_000L
                 },
-                address = AddressInfo(leonStreets[i % 9], "Puerto de Santa María", "Cádiz", "España", "ES"),
+                address = AddressInfo(leonStreets[i % 9], "Dublin", "County Dublin", "Ireland", "IE"),
             ))
         }
 
         // ── Toyota Corolla BT (vehicle_002) — 45 sessions over 18 months ─────
         val corollaStreets = listOf(
-            "Calle Misericordia", "Calle Pagador", "Av. de la Bajamar", "Calle Cruces", "Calle Nevería",
+            "Manor Street", "Prussia Street", "North Circular Road", "Blessington Street", "Eccles Street",
         )
         for (i in 1..45) {
             // Same fix, gentler: this car is the BT profile (no route, so no km, no CO2 and no
@@ -167,8 +167,8 @@ class FakeUserParkingRepository(
                 userId = "mock_user_001",
                 vehicleId = "mock_vehicle_002",
                 location = GpsPoint(
-                    36.5880 + (i % 4) * 0.0006,
-                    -6.2310 - (i % 6) * 0.0004,
+                    53.3470 + (i % 4) * 0.0006,
+                    -6.2610 - (i % 6) * 0.0004,
                     8f,
                     now - daysAgo * 86_400_000L,
                     0f,
@@ -188,7 +188,7 @@ class FakeUserParkingRepository(
                 // [MOCK-THE-FLAGSHIP-FIGURE-HAS-NO-MOCK-DATA-001]
                 publishedSpot = i % 3 != 0,
                 endedAtMs = now - daysAgo * 86_400_000L + 8 * 3_600_000L,
-                address = AddressInfo(corollaStreets[i % 5], "El Puerto", "Cádiz", "España", "ES"),
+                address = AddressInfo(corollaStreets[i % 5], "Dublin", "County Dublin", "Ireland", "IE"),
             ))
         }
 
@@ -201,7 +201,7 @@ class FakeUserParkingRepository(
             id = "parking_leon_zone",
             userId = "mock_user_001",
             vehicleId = "mock_vehicle_001",
-            location = GpsPoint(36.5951, -6.2308, 12f, now - 4L * 86_400_000L, 0f),
+            location = GpsPoint(53.3541, -6.2608, 12f, now - 4L * 86_400_000L, 0f),
             isActive = false,
             spotType = SpotType.AUTO_DETECTED,
             detectionReliability = 0.5f,
@@ -209,7 +209,7 @@ class FakeUserParkingRepository(
             publishedSpot = false,
             endedAtMs = now - 4L * 86_400_000L + 2 * 3_600_000L,
             zoneRadiusMeters = 154f,
-            address = AddressInfo("Calle Larga, 43", "Puerto de Santa María", "Cádiz", "España", "ES"),
+            address = AddressInfo("Dame Street, 43", "Dublin", "County Dublin", "Ireland", "IE"),
         ))
 
         // ── Honda CBR 600 (vehicle_003) — DELIBERATELY EMPTY ────────────────
@@ -221,7 +221,7 @@ class FakeUserParkingRepository(
         // [UI-HISTORY-A-LOADING-LIST-MUST-NOT-CLAIM-TO-BE-EMPTY-001] [STATS-UI-001]
 
         // ── Ford Transit BT (vehicle_004) — 18 sessions over 6 months ────────
-        val transitStreets = listOf("Polígono Las Salinas", "Calle Valdés", "Av. de Sanlúcar")
+        val transitStreets = listOf("Broombridge Road", "Cabra Road", "Navan Road")
         for (i in 1..18) {
             val daysAgo = i * 10L
             add(UserParking(
@@ -229,8 +229,8 @@ class FakeUserParkingRepository(
                 userId = "mock_user_001",
                 vehicleId = "mock_vehicle_004",
                 location = GpsPoint(
-                    36.5860 + (i % 3) * 0.0007,
-                    -6.2330 - (i % 4) * 0.0003,
+                    53.3450 + (i % 3) * 0.0007,
+                    -6.2630 - (i % 4) * 0.0003,
                     12f,
                     now - daysAgo * 86_400_000L,
                     0f,
@@ -249,7 +249,7 @@ class FakeUserParkingRepository(
                     i % 4 == 0 -> 0L
                     else -> 120_000L + (i % 7) * 63_000L
                 },
-                address = AddressInfo(transitStreets[i % 3], "Puerto de Santa María", "Cádiz", "España", "ES"),
+                address = AddressInfo(transitStreets[i % 3], "Dublin", "County Dublin", "Ireland", "IE"),
             ))
         }
     }

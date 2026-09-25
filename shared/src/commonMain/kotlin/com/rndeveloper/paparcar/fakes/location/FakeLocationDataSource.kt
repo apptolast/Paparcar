@@ -33,8 +33,8 @@ class FakeLocationDataSource(
     private val runtime: DetectionRuntimeState? = null,
 ) : LocationDataSource {
     private val mockLocation = GpsPoint(
-        latitude = 36.5928,
-        longitude = -6.2319,
+        latitude = 53.3518,
+        longitude = -6.2619,
         accuracy = 8.5f,
         timestamp = Clock.System.now().toEpochMilliseconds(),
         speed = 0f,
@@ -138,37 +138,37 @@ class FakeLocationDataSource(
         // GPS "noise" (degrees) added to each emitted fix. 0 = clean test of the snapping itself; a
         // small value (~3 m, 0.00003) makes the raw trail wander so matching visibly corrects it.
         const val GPS_NOISE_DEG = 0.0
-        // A longer real-street circuit (~1.4 km) around El Puerto de Santa María, traced densely along
+        // A longer real-street circuit (~1.4 km) around Dublin, traced densely along
         // the visible OSM grid so the raw line already hugs streets and on-device map-matching only
         // refines it: Av. de Valencia → Av. Sanlúcar → a full loop of the Glorieta Juan de Austria
         // roundabout → the southern grid (C. San Juan) → back up. [ROUTE-SNAP-001]
         val DRIVING_ROUTE = listOf(
-            36.6066 to -6.2268,  // Av. de Valencia (NE roundabout)
-            36.6062 to -6.2274,
-            36.6058 to -6.2282,
-            36.6054 to -6.2291,
-            36.6051 to -6.2300,
-            36.6050 to -6.2309,  // onto Av. Sanlúcar / Plaza del Jardinero
-            36.6047 to -6.2310,
-            36.6043 to -6.2309,  // approach Glorieta Juan de Austria
-            36.6040 to -6.2310,  // — roundabout, one loop CCW —
-            36.6038 to -6.2313,
-            36.6036 to -6.2315,
-            36.6035 to -6.2312,
-            36.6037 to -6.2309,
-            36.6040 to -6.2311,  // — back to entry, then exit —
-            36.6037 to -6.2316,  // exit SW
-            36.6032 to -6.2318,
-            36.6026 to -6.2314,  // C. San Juan
-            36.6021 to -6.2307,
-            36.6017 to -6.2298,
-            36.6020 to -6.2288,
-            36.6026 to -6.2280,
-            36.6033 to -6.2274,
-            36.6041 to -6.2270,
-            36.6050 to -6.2268,
-            36.6058 to -6.2266,  // back N toward the roundabout
-            36.6065 to -6.2266,
+            53.3656 to -6.2568,  // Av. de Valencia (NE roundabout)
+            53.3652 to -6.2574,
+            53.3648 to -6.2582,
+            53.3644 to -6.2591,
+            53.3641 to -6.2600,
+            53.3640 to -6.2609,  // onto Navan Road / Phoenix Park gate
+            53.3637 to -6.2610,
+            53.3633 to -6.2609,  // approach Glorieta Juan de Austria
+            53.3630 to -6.2610,  // — roundabout, one loop CCW —
+            53.3628 to -6.2613,
+            53.3626 to -6.2615,
+            53.3625 to -6.2612,
+            53.3627 to -6.2609,
+            53.3630 to -6.2611,  // — back to entry, then exit —
+            53.3627 to -6.2616,  // exit SW
+            53.3622 to -6.2618,
+            53.3616 to -6.2614,  // C. San Juan
+            53.3611 to -6.2607,
+            53.3607 to -6.2598,
+            53.3610 to -6.2588,
+            53.3616 to -6.2580,
+            53.3623 to -6.2574,
+            53.3631 to -6.2570,
+            53.3640 to -6.2568,
+            53.3648 to -6.2566,  // back N toward the roundabout
+            53.3655 to -6.2566,
         )
     }
 }

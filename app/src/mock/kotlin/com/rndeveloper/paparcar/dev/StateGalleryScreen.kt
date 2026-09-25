@@ -337,7 +337,7 @@ private const val GALLERY_ASK_SHOWN_AT_MS = 1_756_000_860_000L
 private val GALLERY_ASK_CANDIDATE = GpsPoint(40.4168, -3.7038, 14f, GALLERY_ASK_SHOWN_AT_MS, 0f)
 
 private val sampleSearchResults = listOf(
-    SearchResult("Gran Vía, Madrid", 40.4203, -3.7058),
+    SearchResult("Grafton Street, Dublin", 53.3412, -6.2600),
     SearchResult("Gran Vía de les Corts Catalanes, Barcelona", 41.3809, 2.1677),
 )
 
@@ -2058,7 +2058,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         promptWindow = com.rndeveloper.paparcar.domain.detection.PendingPromptWindow(
                             shownAtMs = 1_758_567_840_000L,
                             vehicleName = "${FakeData.vehicleSedan.brand} ${FakeData.vehicleSedan.model}",
-                            street = "Calle Jesús de los Milagros 30",
+                            street = "Dame Street 30",
                         ),
                     ),
                 )
@@ -2155,7 +2155,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         promptWindow = com.rndeveloper.paparcar.domain.detection.PendingPromptWindow(
                             shownAtMs = 1_758_567_840_000L,
                             vehicleName = "${FakeData.vehicleSedan.brand} ${FakeData.vehicleSedan.model}",
-                            street = "Calle Jesús de los Milagros 30",
+                            street = "Dame Street 30",
                         ),
                     ),
                 )
@@ -2728,7 +2728,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                             FakeData.allSessions.mapIndexed { i, session ->
                                 session.copy(
                                     address = session.address?.copy(
-                                        street = if (i % 2 == 0) "Calle de Alcalá" else "Calle de O'Donnell",
+                                        street = if (i % 2 == 0) "Pearse Street" else "Thomas Street",
                                     ),
                                 )
                             },
@@ -4619,7 +4619,7 @@ private fun sharedCarState(parked: Boolean = true) = SharedCarState(
     parkedAtMs = 1_757_900_000_000L,
     authorUid = "mock_user_001",
     authorName = "Marta",
-    address = AddressInfo(street = "Calle de Ponzano, 14", city = "Madrid", region = null, country = "España"),
+    address = AddressInfo(street = "Leeson Street, 14", city = "Madrid", region = null, country = "España"),
     isParked = parked,
     updatedAtMs = 1_757_900_000_000L,
 )
