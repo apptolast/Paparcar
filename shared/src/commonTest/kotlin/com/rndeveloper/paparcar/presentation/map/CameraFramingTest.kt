@@ -2,6 +2,7 @@ package com.rndeveloper.paparcar.presentation.map
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 /**
  * [MAP-A-CAMERA-MOVE-MUST-NOT-COST-A-PINCH-001] Mover la cámara cambia DÓNDE miras, no cuánto te
@@ -49,6 +50,43 @@ class CameraFramingTest {
         val radii = listOf(20f, 80f, 200f, 400f, 800f, 1_600f, 4_000f)
         val zooms = radii.map { zoomForZoneRadius(it) }
         assertEquals(zooms.sortedDescending(), zooms, "la escalera debe ser monótona")
+    }
+
+    // ── [HOME-A-FOLLOWED-TRIP-MUST-STILL-OBEY-ITS-ZOOM-001] ──────────────────────────────────
+    // Seguir al conductor manda DÓNDE mira la cámara; el zoom sigue siendo del host. El mapa se
+    // saltaba el destino ENTERO mientras seguía —posición y zoom—, así que abrir la app en mitad
+    // de un viaje se quedaba en el zoom de arranque: el mundo entero, con el coche centrado.
+
+    @Test
+    fun should_zoom_in_on_a_followed_trip_when_the_camera_is_still_at_the_unplaced_world_view() {
+        // La issue #66 medida: cámara sin posar (~2.5), el viaje pide nivel conducción.
+        assertEquals(
+            15f,
+            followLockZoom(current = 2.5f, target = CameraTarget(0.0, 0.0, zoom = 15f), following = true),
+            "un viaje que se sigue desde la vista de mundo tiene que acercarse",
+        )
+    }
+
+    @Test
+    fun should_leave_the_zoom_alone_while_following_when_the_driver_already_looks_closer() {
+        // Sigue siendo un SUELO: media hora de viaje no puede deshacer el pellizco del usuario.
+        assertNull(
+            followLockZoom(current = 17f, target = CameraTarget(0.0, 0.0, zoom = 15f), following = true),
+        )
+    }
+
+    @Test
+    fun should_ask_for_nothing_while_following_when_the_target_carries_no_zoom() {
+        // Cada fix del puck reescribe el destino sin zoom: ninguno de ellos debe tocar la cámara.
+        assertNull(followLockZoom(current = 15f, target = CameraTarget(0.0, 0.0), following = true))
+    }
+
+    @Test
+    fun should_ask_for_nothing_when_no_trip_is_being_followed() {
+        // Sin enganche manda el tween de siempre; éste no debe duplicarlo.
+        assertNull(
+            followLockZoom(current = 2.5f, target = CameraTarget(0.0, 0.0, zoom = 15f), following = false),
+        )
     }
 
     private companion object {

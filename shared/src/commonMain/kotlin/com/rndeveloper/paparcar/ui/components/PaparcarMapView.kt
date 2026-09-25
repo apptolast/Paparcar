@@ -77,6 +77,7 @@ import com.rndeveloper.paparcar.domain.model.Zone
 import com.rndeveloper.paparcar.domain.parkings.FeeInfo
 import com.rndeveloper.paparcar.domain.zone.zoneContaining
 import com.rndeveloper.paparcar.presentation.map.CameraTarget
+import com.rndeveloper.paparcar.presentation.map.followLockZoom
 import com.rndeveloper.paparcar.presentation.map.settleZoom
 import com.rndeveloper.paparcar.domain.model.SpotFreshness
 import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
@@ -2306,6 +2307,28 @@ private fun rememberCameraAnimationState(
         }
     }
 
+    // [HOME-A-FOLLOWED-TRIP-MUST-STILL-OBEY-ITS-ZOOM-001] El enganche al puck manda la POSICIÓN, no
+    // el zoom. El tween de abajo se salta entero mientras se sigue —y debe seguir saltándoselo, o
+    // pelearía con el enganche—, así que éste es el único camino que le queda al host para pedir un
+    // nivel de zoom durante un viaje. Sólo se mueve cuando [followLockZoom] dice que hay algo que
+    // mover, así que los destinos que trae cada fix del puck (sin zoom) no lo tocan.
+    val followZoom = remember { Animatable(actualCamZoom) }
+    var followZoomEngaged by remember { mutableStateOf(false) }
+    // Clavado al TOKEN del destino que trae zoom: los ~1/s que llegan sin él no re-arrancan el
+    // efecto, que cancelaría la animación a medias y dejaría la cámara en un zoom intermedio.
+    val zoomRequest = cameraTarget?.takeIf { it.zoom != null }
+    LaunchedEffect(zoomRequest?.token, following) {
+        val wanted = followLockZoom(actualCamZoom, zoomRequest, following) ?: return@LaunchedEffect
+        followZoom.snapTo(actualCamZoom)
+        followZoomEngaged = true
+        followZoom.animateTo(wanted, tween(CAMERA_ANIM_MS, easing = FastOutSlowInEasing))
+    }
+    // Un dedo en el mapa gana: en cuanto el usuario toca (o el viaje acaba) el zoom vuelve a ser el
+    // real de la cámara, aunque la animación siga viva — lo que se deja de leer es su valor.
+    LaunchedEffect(userInteracting, following) {
+        if (userInteracting || !following) followZoomEngaged = false
+    }
+
     // Follow-engage glide progress: 0 = at the camera's current spot on engage, 1 = locked on the puck.
     // Reset to 0 on disengage so a later re-engage starts from the camera's real position instead of
     // flashing to the puck for one frame (the loc-button flicker). [DRIVE-PUCK-NATIVE-001]
@@ -2392,7 +2415,9 @@ private fun rememberCameraAnimationState(
                     lerpDouble(anchorLat, followPose.latitude, t),
                     lerpDouble(anchorLon, followPose.longitude, t),
                 ),
-                zoom = actualCamZoom,
+                // El enganche no trae zoom propio: el del usuario manda, salvo mientras el host
+                // esté pidiendo uno. [HOME-A-FOLLOWED-TRIP-MUST-STILL-OBEY-ITS-ZOOM-001]
+                zoom = if (followZoomEngaged) followZoom.value else actualCamZoom,
             ),
             isPlaced = isPlaced,
         )

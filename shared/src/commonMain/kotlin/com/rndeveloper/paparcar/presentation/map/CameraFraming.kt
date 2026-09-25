@@ -48,6 +48,34 @@ fun settleZoom(current: Float?, wanted: Float, intent: ZoomIntent): Float = when
 }
 
 /**
+ * El zoom que pide un destino mientras la cámara está ENGANCHADA al puck del viaje, o `null` si no
+ * hay nada que hacer. [HOME-A-FOLLOWED-TRIP-MUST-STILL-OBEY-ITS-ZOOM-001]
+ *
+ * ## El problema que resuelve
+ *
+ * Seguir al conductor y encuadrarlo son dos cosas, y el mapa sólo hacía la primera. Con el
+ * seguimiento enganchado, la cámara se pega a la posición del puck y **descarta el destino entero**
+ * —posición y zoom— porque un destino tirando de la posición pelearía con el enganche. Correcto
+ * para la posición; para el zoom, no: el zoom no lo manda el enganche, no lo manda nadie, y se
+ * queda en el que tuviera el mapa. Abrir la app en mitad de un viaje la abre en el zoom de
+ * arranque, que sin fix previo es el de «no sé dónde estás» — el mundo entero. La cámara SÍ iba al
+ * coche; lo que no hacía era acercarse, y es lo que reabrió la issue #66 después de darla por
+ * arreglada en el host: allí se pedía el zoom correcto y aquí se tiraba a la basura.
+ *
+ * ## La regla
+ *
+ * *El enganche manda DÓNDE; el zoom sigue siendo del host.* Y sigue siendo un suelo
+ * ([ZoomIntent.AtLeast]): a quien ya mira de cerca no se le aleja — por eso devuelve `null` cuando
+ * [settleZoom] no mueve nada, y así un viaje que se sigue durante media hora no vuelve a tocar el
+ * zoom que el usuario eligió con los dedos.
+ */
+fun followLockZoom(current: Float, target: CameraTarget?, following: Boolean): Float? {
+    if (!following) return null
+    val wanted = target?.zoom ?: return null
+    return settleZoom(current, wanted, target.zoomIntent).takeIf { it != current }
+}
+
+/**
  * El zoom que enseña una zona ENTERA, por su radio.
  *
  * Antes se editaba siempre a 14 —unos 4 km de ancho— para «ver el círculo completo». Para un garaje
