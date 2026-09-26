@@ -134,21 +134,75 @@ object TrailMapMatcher {
      *    of a data hole — drawn geometry, never measured. Each range includes its measured anchor
      *    endpoints, so the rendered inferred segment connects visually to the measured ones.
      *  - [cuts]: indices after which the line must BREAK when drawn — points[i] and points[i+1]
-     *    belong to different stretches with no plausible bridge between them. */
+     *    belong to different stretches with no plausible bridge between them.
+     *  - [coveredThrough]: how much of the INPUT this line speaks for — see below.
+     */
     class MatchedRoute(
         val points: List<GpsPoint>,
         val inferredSpans: List<IntRange>,
         val cuts: List<Int>,
-    )
+        /**
+         * Index, **into the trail handed to [match]**, of the last measurement this line
+         * represents. `input.lastIndex` means the line reaches the end of the trail; anything
+         * smaller means the tail from `coveredThrough + 1` on was dropped for want of a street and
+         * **is not drawn anywhere**. -1 for an empty input.
+         *
+         * ⛔ This is the only way a caller can tell a CORRECTED line from a SHORTENED one, and it
+         * exists because nothing could: a trailing run of off-road fixes used to fall out of the
+         * match silently, the line ended early, and the return value said nothing about it.
+         * [ROUTE-A-DRAWN-LINE-MUST-REACH-THE-CAR-001]
+         */
+        val coveredThrough: Int,
+    ) {
+        /** True when the line speaks for the whole trail handed to [match] — it reaches the car. */
+        fun covers(input: List<GpsPoint>): Boolean = coveredThrough >= input.lastIndex
 
-    /** Flat-points façade over [match] for callers that draw everything alike (the live trip). */
-    fun snap(points: List<GpsPoint>, roads: List<RoadWay>): List<GpsPoint> = match(points, roads).points
+        /**
+         * The line to DRAW: the matched geometry, continued with the measured tail it could not put
+         * on a street. On-road wherever there were streets, measured where there were none, and
+         * **always reaching the last fix** — which is where the car is.
+         *
+         * ⛔ Not a softening of [ROUTE-LINE-ONROAD-001]: that rule drops an off-road fix because the
+         * routed transition between the on-road fixes BRACKETING it crosses the same ground by the
+         * street, which is strictly better. A trailing run has no bracket after it, so dropping it
+         * substitutes nothing — it deletes ground the driver covered.
+         * [ROUTE-A-DRAWN-LINE-MUST-REACH-THE-CAR-001]
+         *
+         * @param input the very list handed to [match] — [coveredThrough] indexes into it.
+         */
+        fun drawnOver(input: List<GpsPoint>): List<GpsPoint> =
+            if (covers(input)) points else points + input.drop(coveredThrough + 1)
+
+        /** Metres of measured trail this line leaves undrawn — 0 when it reaches the car. */
+        fun shortfallMeters(input: List<GpsPoint>): Double {
+            if (covers(input)) return 0.0
+            var total = 0.0
+            for (i in (coveredThrough.coerceAtLeast(0)) until input.lastIndex) {
+                total += haversineMeters(
+                    input[i].latitude, input[i].longitude,
+                    input[i + 1].latitude, input[i + 1].longitude,
+                )
+            }
+            return total
+        }
+    }
+
+    /** Flat-points façade over [match] for callers that draw everything alike (the live trip).
+     *  Hands back the line to DRAW, so it reaches the last fix even when the tail found no street —
+     *  a flat façade that could still come back short is a trap. [ROUTE-A-DRAWN-LINE-MUST-REACH-THE-CAR-001] */
+    fun snap(points: List<GpsPoint>, roads: List<RoadWay>): List<GpsPoint> =
+        match(points, roads).drawnOver(points)
 
     fun match(points: List<GpsPoint>, roads: List<RoadWay>): MatchedRoute {
-        if (roads.isEmpty() || points.size < 2) return MatchedRoute(points, emptyList(), emptyList())
+        // The raw trail IS the input, so it covers all of it — there is nothing to report short.
+        if (roads.isEmpty() || points.size < 2) return raw(points)
         val graph = RoadGraph.build(roads)
-        if (graph.isEmpty) return MatchedRoute(points, emptyList(), emptyList())
-        val measurements = decimate(points)
+        if (graph.isEmpty) return raw(points)
+        // Indices INTO [points], not the points themselves: the match has to be able to say which
+        // measurement its line stops at, and that answer is an index in the caller's trail.
+        // [ROUTE-A-DRAWN-LINE-MUST-REACH-THE-CAR-001]
+        val kept = decimate(points)
+        val measurements = kept.map { points[it] }
         // The origin searches wider so a backdated parked spot set back from the road (a car park, a
         // driveway) still snaps onto the nearest street and the line STARTS on the road. Interior and
         // final fixes use the normal radius. [ROUTE-LINE-ONROAD-001]
@@ -161,11 +215,21 @@ object TrailMapMatcher {
         // streets. Only when fewer than two fixes touch any road is there nothing to match honestly
         // (rural / missing OSM) → keep the raw trail. [ROUTE-LINE-ONROAD-001]
         val onRoad = measurements.indices.filter { layers[it].isNotEmpty() }
-        if (onRoad.size < 2) return MatchedRoute(points, emptyList(), emptyList())
+        if (onRoad.size < 2) return raw(points)
         val keptMs = onRoad.map { measurements[it] }
         val keptLayers = onRoad.map { layers[it] }
-        return decode(keptMs, keptLayers, graph)
+        val decoded = decode(keptMs, keptLayers, graph)
+        // ⛔ Dropping an off-road fix is honest only while something BRACKETS it: the routed
+        // transition between its on-road neighbours crosses the same ground, by the street
+        // ([ROUTE-LINE-ONROAD-001]). A TRAILING run has no neighbour after it, so nothing replaces
+        // it — the line just ends early. Say so; the caller decides what to do about it.
+        // [ROUTE-A-DRAWN-LINE-MUST-REACH-THE-CAR-001]
+        return MatchedRoute(decoded.points, decoded.inferredSpans, decoded.cuts, kept[onRoad.last()])
     }
+
+    /** The trail handed back unmatched — no roads, no graph, or nothing on a street to build on. */
+    private fun raw(points: List<GpsPoint>) =
+        MatchedRoute(points, emptyList(), emptyList(), points.lastIndex)
 
     /**
      * Per-measurement Newson–Krumm σ: the fix's own reported accuracy, floored at
@@ -185,22 +249,22 @@ object TrailMapMatcher {
      *  spacing bucket the SHARPEST measurement represents it, not the first one that arrived
      *  (never the origin, and never when the swap would break the spacing to the previous kept
      *  point). [ROUTE-FIX-ACCURACY-001] */
-    private fun decimate(points: List<GpsPoint>): List<GpsPoint> {
-        val kept = ArrayList<GpsPoint>(points.size)
-        kept.add(points.first())
+    private fun decimate(points: List<GpsPoint>): List<Int> {
+        val kept = ArrayList<Int>(points.size)
+        kept.add(0)
         for (i in 1 until points.size - 1) {
             val p = points[i]
-            val last = kept.last()
+            val last = points[kept.last()]
             val d = haversineMeters(last.latitude, last.longitude, p.latitude, p.longitude)
             if (d >= MATCH_SPACING_METERS) {
-                kept.add(p)
+                kept.add(i)
             } else if (kept.size >= 2 && p.accuracy > 0f && last.accuracy > 0f && p.accuracy < last.accuracy) {
-                val prev = kept[kept.size - 2]
+                val prev = points[kept[kept.size - 2]]
                 val fromPrev = haversineMeters(prev.latitude, prev.longitude, p.latitude, p.longitude)
-                if (fromPrev >= MATCH_SPACING_METERS) kept[kept.size - 1] = p
+                if (fromPrev >= MATCH_SPACING_METERS) kept[kept.size - 1] = i
             }
         }
-        kept.add(points.last())
+        kept.add(points.lastIndex)
         return kept
     }
 
@@ -249,7 +313,9 @@ object TrailMapMatcher {
                 spans.add(bridgeStart..minOf(beforeAppend, out.lastIndex))
             }
         }
-        return MatchedRoute(out, spans, cuts)
+        // Covers every measurement it was handed — [match] already dropped the off-road ones and is
+        // the one that restates this against the CALLER's trail.
+        return MatchedRoute(out, spans, cuts, ms.lastIndex)
     }
 
     /** One decoded Viterbi stretch: its emitted street geometry plus the chosen boundary

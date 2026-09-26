@@ -5,6 +5,7 @@ import com.rndeveloper.paparcar.domain.places.RoadWay
 import com.rndeveloper.paparcar.domain.util.haversineMeters
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class TrailMapMatcherTest {
@@ -461,5 +462,71 @@ class TrailMapMatcherTest {
             val offset = haversineMeters(p.latitude, p.longitude, 36.6000, p.longitude)
             assertTrue(offset < 1.0, "expected the upgraded shared edge to win, a point is ${offset}m off it")
         }
+    }
+
+    // ── El casado corrige la forma, nunca acorta el viaje ───────────────────────────
+    // [ROUTE-A-DRAWN-LINE-MUST-REACH-THE-CAR-001]
+
+    @Test
+    fun `should declare that it does not cover a trailing run with no street`() {
+        val road = RoadWay(listOf(gp(36.6000, -6.2400), gp(36.6000, -6.2300)))
+        // Cuatro fixes sobre la calle y tres que se van ~330 m al norte, fuera de MAX_SNAP_METERS.
+        val onStreet = (0..3).map { gp(36.60005, -6.2390 + it * 0.0005) }
+        val offStreet = (0..2).map { gp(36.6030, -6.2370 + it * 0.0005) }
+        val trail = onStreet + offStreet
+
+        val matched = TrailMapMatcher.match(trail, listOf(road))
+
+        // Antes el recorte era MUDO: la cola se caía del match y el valor de retorno no lo decía.
+        assertFalse(matched.covers(trail), "una cola sin calle deja la línea corta y hay que declararlo")
+        assertTrue(
+            matched.coveredThrough < trail.lastIndex,
+            "coveredThrough tiene que apuntar dentro de la traza, salió ${matched.coveredThrough}",
+        )
+        assertTrue(matched.shortfallMeters(trail) > 0.0, "la cola sin dibujar tiene metros")
+    }
+
+    @Test
+    fun `should draw all the way to the last fix even when the tail found no street`() {
+        val road = RoadWay(listOf(gp(36.6000, -6.2400), gp(36.6000, -6.2300)))
+        val onStreet = (0..3).map { gp(36.60005, -6.2390 + it * 0.0005) }
+        val offStreet = (0..2).map { gp(36.6030, -6.2370 + it * 0.0005) }
+        val trail = onStreet + offStreet
+
+        // `snap` es la fachada que usa el viaje vivo: tiene que entregar la línea a DIBUJAR.
+        val drawn = TrailMapMatcher.snap(trail, listOf(road))
+
+        val gap = haversineMeters(
+            drawn.last().latitude, drawn.last().longitude,
+            trail.last().latitude, trail.last().longitude,
+        )
+        assertTrue(gap < 1.0, "la línea tiene que acabar en el último fix; se quedó a ${gap.toInt()} m")
+        // Y el tramo con calle sigue yendo por la calle: esto no afloja [ROUTE-LINE-ONROAD-001].
+        assertTrue(
+            drawn.any { haversineMeters(it.latitude, it.longitude, 36.6000, it.longitude) < 1.0 },
+            "el tramo cubierto tiene que seguir pegado a la calzada",
+        )
+    }
+
+    @Test
+    fun `should still drop an off-road fix that has street on both sides`() {
+        // ⛔ El contrapunto del test de arriba: un fix off-road INTERIOR sí se descarta, porque la
+        // transición ruteada entre sus vecinos on-road cruza el mismo terreno por la calle. La regla
+        // nueva es sobre los EXTREMOS, y no puede haber aflojado esta. [ROUTE-LINE-ONROAD-001]
+        val road = RoadWay(listOf(gp(36.6000, -6.2400), gp(36.6000, -6.2300)))
+        val trail = listOf(
+            gp(36.60005, -6.2390),
+            gp(36.6030, -6.2370),   // ~330 m al norte: ruido, con calle a los dos lados
+            gp(36.60005, -6.2350),
+        )
+
+        val drawn = TrailMapMatcher.snap(trail, listOf(road))
+
+        assertTrue(
+            drawn.none { it.latitude > 36.6010 },
+            "un off-road bracketeado no se dibuja crudo: la línea no puede subir al norte",
+        )
+        val matched = TrailMapMatcher.match(trail, listOf(road))
+        assertTrue(matched.covers(trail), "el último fix SÍ tiene calle, así que la línea cubre la traza")
     }
 }

@@ -6,7 +6,8 @@ import com.rndeveloper.paparcar.domain.detection.DetectionPhase
 import com.rndeveloper.paparcar.domain.detection.ports.DrivingRouteStore
 import com.rndeveloper.paparcar.domain.location.LocationDataSource
 import com.rndeveloper.paparcar.domain.location.UserLocationUi
-import com.rndeveloper.paparcar.domain.matching.TrailMapMatcher
+import com.rndeveloper.paparcar.domain.matching.RoadCoverage
+import com.rndeveloper.paparcar.domain.matching.TripLine
 import com.rndeveloper.paparcar.domain.model.DetectionReadiness
 import com.rndeveloper.paparcar.domain.model.DrivingPuck
 import com.rndeveloper.paparcar.domain.model.GpsPoint
@@ -123,7 +124,33 @@ class HomeTripController(
         // cached per trip bbox so a growing trip only refetches when it leaves the cached area. [ROUTE-SNAP-001]
         val trailForMatching = MutableStateFlow<List<GpsPoint>>(emptyList())
         var cachedRoads: List<RoadWay> = emptyList()
-        var cachedRoadsBbox: Bbox? = null
+        var cachedRoadsBbox: RoadCoverage? = null
+
+        // ── El testigo de una línea corta ────────────────────────────────────────
+        // Un viaje que se dibuja recortado tiene que dejar rastro donde se lee en campo, y el único
+        // prefijo que `FileAntilog` persiste es `PARKDIAG`
+        // ([IOS-A-DETECTION-THAT-FAILS-MUST-LEAVE-A-TRACE-001]). El `map-match: …` de debug de este
+        // fichero no lo lleva y además no sobrevive a un release: cuando el usuario reportó la
+        // línea recortada no había absolutamente nada que mirar.
+        //
+        // Por FLANCO, no por tick: este carril se re-evalúa cada 2,5 s, así que una línea por
+        // evaluación sería una tormenta sobre un solo episodio. Dos líneas: cuándo se queda corta y
+        // cuándo se recupera. [ROUTE-A-DRAWN-LINE-MUST-REACH-THE-CAR-001]
+        var lineFellShort = false
+        fun witnessShortLine(offRoadTailMeters: Double, fixesOutsideCoverage: Int) {
+            val short = fixesOutsideCoverage > 0 || offRoadTailMeters > 0.0
+            if (short == lineFellShort) return
+            lineFellShort = short
+            if (short) {
+                PaparcarLogger.w(
+                    DIAG,
+                    "✂ la línea del viaje no llegaba al coche — $fixesOutsideCoverage fixes fuera de la cobertura OSM" +
+                        " y ${offRoadTailMeters.toInt()} m de cola sin calle; ese tramo se dibuja MEDIDO",
+                )
+            } else {
+                PaparcarLogger.i(DIAG, "✓ la línea del viaje vuelve a ir por la calle hasta el coche")
+            }
+        }
 
         // The vehicle's currently-parked sessions — the durable, offline-first fallback for the trip
         // origin. The service publishes the departure point in memory at arm time, but a process
@@ -156,16 +183,16 @@ class HomeTripController(
                 trailForMatching
                     .debounce(MAP_MATCH_DEBOUNCE_MS.milliseconds)
                     .onEach { trail ->
-                        if (trail.size < MIN_MATCH_POINTS) {
+                        if (trail.size < TripLine.MIN_MATCH_POINTS) {
                             if (current.matchedTrail.isNotEmpty()) {
                                 current = current.copy(matchedTrail = emptyList())
                                 send(current)
                             }
                             return@onEach
                         }
-                        val tight = boundingBox(trail, 0.0)
-                        if (cachedRoadsBbox?.contains(tight) != true) {
-                            val fetch = boundingBox(trail, ROADS_FETCH_MARGIN_DEG)
+                        val tight = RoadCoverage.around(trail, 0.0)
+                        if (cachedRoadsBbox?.let { tight in it } != true) {
+                            val fetch = RoadCoverage.around(trail, ROADS_FETCH_MARGIN_DEG)
                             roadSource.getRoads(fetch.minLat, fetch.minLon, fetch.maxLat, fetch.maxLon)
                                 .onSuccess { roads ->
                                     if (roads.isNotEmpty()) {
@@ -179,9 +206,23 @@ class HomeTripController(
                             PaparcarLogger.d(tag, "map-match: no roads for bbox — keeping raw trail")
                             return@onEach
                         }
-                        val matched = withContext(Dispatchers.Default) { TrailMapMatcher.snap(trail, cachedRoads) }
-                        PaparcarLogger.d(tag, "map-match: ${trail.size} pts → ${matched.size} snapped, roads=${cachedRoads.size} ways")
-                        current = current.copy(matchedTrail = matched)
+                        // ⛔ El casado se pide SÓLO del tramo cuyas calles tenemos: un re-fetch que
+                        // falla (Overpass 429/504/mirror que contesta vacío) deja la caché anclada a
+                        // la zona vieja, y casar la traza entera contra ella tiraba los fixes nuevos
+                        // por «off-road» cuando lo que pasaba es que nunca pedimos ese terreno.
+                        // La regla y su porqué viven en [TripLine].
+                        val line = withContext(Dispatchers.Default) {
+                            TripLine.drawn(trail, cachedRoads, cachedRoadsBbox)
+                        }
+                        witnessShortLine(line.offRoadTailMeters, line.fixesOutsideCoverage)
+                        PaparcarLogger.d(
+                            tag,
+                            "map-match: ${trail.size} pts → ${line.drawn.size} dibujados" +
+                                ", roads=${cachedRoads.size} ways, fuera de cobertura=${line.fixesOutsideCoverage}",
+                        )
+                        // El contrato: `matchedTrail`, cuando no está vacía, es la línea COMPLETA
+                        // que hay que dibujar. Termina en el último fix medido, siempre.
+                        current = current.copy(matchedTrail = line.drawn)
                         send(current)
                     }
                     .catch { e -> PaparcarLogger.w(tag, "map-matching error", e) }
@@ -360,23 +401,6 @@ class HomeTripController(
         return parkedAt
     }
 
-    /** Lat/lon bounding box of [points] padded by [marginDeg] degrees on every side. */
-    private fun boundingBox(points: List<GpsPoint>, marginDeg: Double): Bbox {
-        val lats = points.map { it.latitude }
-        val lons = points.map { it.longitude }
-        return Bbox(
-            minLat = lats.min() - marginDeg,
-            minLon = lons.min() - marginDeg,
-            maxLat = lats.max() + marginDeg,
-            maxLon = lons.max() + marginDeg,
-        )
-    }
-
-    private data class Bbox(val minLat: Double, val minLon: Double, val maxLat: Double, val maxLon: Double) {
-        fun contains(o: Bbox): Boolean =
-            o.minLat >= minLat && o.minLon >= minLon && o.maxLat <= maxLat && o.maxLon <= maxLon
-    }
-
     // ⛔ `monitoredVehicle` se mudó a `model/DrivingMetaSource.kt`: desde
     // [HOME-A-TAP-THAT-ARMS-MUST-LOOK-ARMED-001] la pregunta «¿qué coche vigila este carril?» la
     // hacen DOS sitios —el puck de aquí y la línea de la card— y dos copias de esa elección es como
@@ -385,10 +409,17 @@ class HomeTripController(
     private companion object {
         const val TAG = "HomeTripController"
 
-        // Map-matching: debounce the snap so a growing trail doesn't re-match every fix; min points to
-        // bother snapping; how much to pad the road-fetch bbox so a growing trip rarely refetches.
+        /** ⛔ `FileAntilog` sólo persiste las etiquetas que empiezan por `PARKDIAG`, así que un
+         *  hallazgo que tenga que leerse en campo NO puede ir bajo [TAG].
+         *  [IOS-A-DETECTION-THAT-FAILS-MUST-LEAVE-A-TRACE-001] */
+        const val DIAG = "PARKDIAG/Route"
+
+        // Map-matching: debounce the snap so a growing trail doesn't re-match every fix; how much to
+        // pad the road-fetch bbox so a growing trip rarely refetches.
+        // ⛔ El mínimo de puntos para molestarse en casar NO se repite aquí: es
+        // [TripLine.MIN_MATCH_POINTS]. Dos constantes con el mismo significado se separan, y quien
+        // decide qué es casable es quien casa.
         const val MAP_MATCH_DEBOUNCE_MS = 2500L
-        const val MIN_MATCH_POINTS = 3
         const val ROADS_FETCH_MARGIN_DEG = 0.004 // ~400 m around the trip bbox [ROUTE-SNAP-001]
 
         // Plausibility ceiling for seeding the trail with the parked-spot origin: beyond this the
