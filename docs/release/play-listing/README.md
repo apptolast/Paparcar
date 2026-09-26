@@ -54,63 +54,92 @@ CHROME="/c/Program Files/Google/Chrome/Application/chrome.exe"
 > Copy vigente y su auditoría: `LISTING.md`. El razonamiento completo (qué se promete,
 > qué se descarta y por qué) está en `PLAN-OPTIMIZACION.md`.
 
-### ✅ Capturas de teléfono — rehechas el 17-09 en **Pixel 8**, con la UI en los 9 idiomas
-[PLAY-SHOTS-EVERY-LANGUAGE-SHOWS-ITS-OWN-UI-001]
+### ✅ Capturas de teléfono — rehechas el 25-09 en **Pixel 8**, compuestas y en los 9 idiomas
+[PLAY-SHOTS-A-LISTING-IS-COMPOSED-NOT-CROPPED-001]
 
 `assets/screenshots/{en,es,it,pt,fr,de,nl,pl,ro}/<locale>-play-shot-{1..8}.png` (1080×1920),
-p. ej. `de/de-play-shot-4.png`. El gráfico de funciones va igual: `de/de-feature-graphic-1024x500.png`.
-⛔ **El locale va en el NOMBRE, no sólo en la carpeta**: las 72 acaban juntas en la bandeja de
-descargas y en el selector del Console, y nueve ficheros llamados `play-shot-1.png` se pisan entre
-ellos sin forma de saber cuál es cuál sin abrirlos.
-**Lo que cambia respecto al set del 01-09**: el móvil de dentro del marco ya **no está en inglés
-en las nueve fichas** — cada idioma tiene sus 8 capturas tomadas con la app en ese idioma. Y el
-guion se rebalanceó a lo que entró después: gasolineras con precio, parkings públicos, panel de
-cifras y coche compartido (caen SpotFit, garaje y conducción).
+p. ej. `de/de-play-shot-4.png`. El gráfico de funciones va igual:
+`de/de-feature-graphic-1024x500.png`. ⛔ **El locale va en el NOMBRE, no sólo en la carpeta**: las
+72 acaban juntas en la bandeja de descargas y en el selector del Console, y nueve ficheros llamados
+`play-shot-1.png` se pisan entre ellos sin forma de saber cuál es cuál sin abrirlos.
 
-| # | Pantalla | Preset |
-|---|---|---|
-| 1 | Home, coche propio aparcado | `parked` |
-| 2 | Íd. con la hoja abierta: tus coches con calle y minuto | `parked` |
-| 3 | Carril de plazas libres | `map` |
-| 4 | Carril de gasolineras, precio por surtidor | `map` |
-| 5 | Peek de un parking público: tarifa, plazas, gálibo | `map` |
-| 6 | Panel de cifras: gasto, combustible, CO₂, sitio habitual | `numbers` |
-| 7 | Coche compartido: miembros e interruptor de rutas | `sharedcar` |
-| 8 | Ajustes: alertas y dónde se guardan tus viajes | `settings` |
+**Qué cambia respecto al set del 17-09.** Aquél era *una captura recortada con un titular encima*:
+sin marco, el móvil sangrando por el borde inferior y una pantalla por imagen. Y había caducado, con
+el mundo de demostración todavía en El Puerto de Santa María (`4b90ae506` lo mudó a **Dublín**).
+Ahora las ocho imágenes se **componen**:
 
-**Cómo se repite** (el flujo entero es reproducible, ya no hay parche manual que reaplicar):
-- **AVD `Pixel_8`** (1080×2400 @ 420 dpi — se creó a mano, el SDK solo traía el Pro). Mismo ratio
-  9:20 que el Pixel 8 Pro del set viejo, así que la plantilla del marco no cambió.
-- **`DevMainActivity` acepta `--es shot <preset>`** ([`ShotPresets.kt`]): aplica el escenario y monta
-  la app real con los chips DEV ocultos. ⛔ Ya **no** hace falta el parche `if (false)` en `DevRoot`
-  que el guion del 01-09 mandaba aplicar y revertir a mano.
-- **`-PmockAsProd`** quita el sufijo `.mock` del applicationId **y del versionName**. Hace falta
-  porque la clave de Maps está restringida a `com.rndeveloper.paparcar` + SHA-1 y `.mock` nunca se
-  añadió a esa lista: **desde el 03-09 el mapa del Dev Catalog sale NEGRO**. Es un apaño; el
-  arreglo de verdad es añadir el paquete `.mock` a la clave en la consola de GCP.
+1. **Una tira continua.** Las 8 son ocho ventanas de UN lienzo de 8640×1920: el degradado, los focos
+   verdes y la traza de ruta cruzan de una imagen a la siguiente, así que el carrusel se lee como un
+   solo panel — y cada imagen sigue valiendo suelta, porque nada con significado se parte por la mitad.
+2. **Marco de dispositivo de verdad.** Bisel, radio proporcional al ancho dibujado y sombra propia:
+   el móvil entra ENTERO.
+3. **La forma sigue a la promesa.** `hero` cuando una pantalla lo dice todo (1 y 8), `pair` cuando la
+   historia son dos momentos (3, 5 y 7), `detail` cuando el valor está en un dato que merece
+   ampliarse (2, 4 y 6). ⛔ **El recorte ampliado sale del MISMO raw**, nunca de una maqueta HTML que
+   imite la UI, y va **sin leyenda**: una leyenda serían nueve traducciones nuevas.
+
+| # | Forma | Qué enseña | Raws |
+|---|---|---|---|
+| 1 | hero | Home, coche propio aparcado: calle y minuto sobre el mapa | `home` |
+| 2 | detalle | Tus coches en la hoja + la fila del aparcado, ampliada | `sheet` |
+| 3 | par | Las plazas libres: marcadores en el mapa y filas en la lista | `spotmap` + `spots` |
+| 4 | detalle | Gasolineras + una fila con su precio, ampliada | `fuel` |
+| 5 | par | El carril de parkings y uno abierto: tarifa, plazas y gálibo | `carparks` + `carpeek` |
+| 6 | detalle | Panel de cifras + «tiempo buscando plaza», ampliado | `numbers` |
+| 7 | par | El garaje y el grupo del coche compartido | `garage` + `members` |
+| 8 | hero | Ajustes: qué avisa y qué no sale del móvil | `settings` |
+
+El copy de los 8 titulares **no cambió**: esta tanda cambia la FORMA, no lo que se promete.
+
+**Cómo se repite la tanda**
+
+```bash
+./gradlew :app:assembleMockDebug -PmockAsProd          # + install -r en el emulador
+bash tools/shoot.sh en  <rawroot>/en                   # 11 raws de un idioma (~8 min)
+python tools/scan.py raws <rawroot> en                 # ⛔ ANTES de renderizar
+bash tools/render.sh <rawroot> en es it pt fr de nl pl ro
+python tools/scan.py frames <ruta a assets>            # las 72 compuestas
+```
+
+- **AVD `Pixel_8`** (1080×2400 @ 420 dpi — se creó a mano, el SDK sólo traía el Pro).
+- ⛔ **El build de una tanda necesita las DOS mitades y se peleaban entre ellas**: el mapa sólo pinta
+  si el build pasa la restricción de la key de Maps (paquete + SHA-1, y **la huella de depuración no
+  está en esa lista**), y `--es shot <preset>` sólo funciona **sin R8** (R8 renombra las constantes
+  de `ShotPreset`, así que `from("parked")` devuelve null y la tanda dispara la pantalla que la app
+  hubiera restaurado). Medido el 25-09: mock+release pinta el mapa e ignora todos los presets;
+  mock+debug obedece los presets y pinta el mapa NEGRO. Por eso `-PmockAsProd` ahora **firma también
+  el debug con la key de release**: mismo paquete, mismo certificado, sin R8.
+- **`DevMainActivity` acepta `--es shot <preset>`** (`ShotPresets.kt` en `:mockkit`): monta la app
+  real con el escenario puesto y los chips DEV apagados.
 - Idioma por captura vía `adb shell cmd locale set-app-locales <pkg> --locales <L>` (per-app locale,
-  Android 13+). ⛔ `setprop persist.sys.locale` **no** vale: la imagen de sistema Play Store no
-  deja rootear.
-- Tema oscuro (`cmd uimode night yes`) + barra de estado en modo demo de SystemUI.
-- Script de captura y de render: ver el ticket `docs/backlog/play-shots-every-language-shows-its-own-ui-001.md`.
+  Android 13+). ⛔ `setprop persist.sys.locale` **no** vale: la imagen de sistema Play Store no deja
+  rootear. Los rótulos del mapa los localiza Google con ese mismo locale; los nombres de calle de
+  Dublín se quedan en inglés, que es el idioma del sitio.
+- Tema oscuro (`cmd uimode night yes`) + barra de estado en modo demo de SystemUI (reloj 9:30,
+  batería llena, sin notificaciones).
 
 ⚠️ **Los taps dentro de la hoja se resuelven por `uiautomator dump`, no por coordenada fija.** La
-hoja de Home no cae siempre en el mismo detente (medido: la misma gesto la dejó en 0, 642, 888 y
-sin abrir), así que cualquier `y` calibrado a ojo es una moneda al aire. Se busca el nodo por
-TEXTO: las pestañas por su **badge numérico** (`6`/`4`/`5`, cifras árabes iguales en los 9 idiomas)
-y la fila del parking por **«Parking Plaza Mayor»**, que es nombre propio y no se traduce.
+hoja no cae siempre en el mismo detente: medido, el MISMO gesto dejó la fila de pestañas en y=1202 y
+en y=1713. Se busca el nodo por TEXTO: las pestañas por su **badge numérico** (`6`/`4`/`5`, cifras
+árabes iguales en los 9 idiomas) y la fila del parking por **«Drury Street Car Park»**, nombre propio
+de la fixture que ningún idioma traduce.
 
-⛔ **Revisar las 72 con `tools/framescan.ps1` ANTES de subir. Verificar una muestra no vale.**
-Se hizo así la primera vez —las 8 de `en` y sólo shot4/shot5 del resto— y se colaron dos:
-`de/de-play-shot-2` con el diálogo **«Paparcar isn't responding»** del sistema encima, y
-`fr/fr-play-shot-1` con el **mapa sin cargar** (negro). Ninguno de los dos lo avisa nada: el fichero
-pesa lo normal y la captura *parece* una captura. El script los caza por color — el diálogo del
-sistema es gris **neutro** (`B−R ≤ 10`) mientras el mapa (28,42,64) y la hoja (19,26,36) son
-azulados, y el mapa sin tiles es casi negro.
+⛔ **Y un tap que no entra NO se nota**: deja una captura perfectamente plausible de OTRO carril. En
+la primera pasada de esta tanda salieron tres listas de plazas libres etiquetadas como gasolineras,
+parkings y ficha de parking. Por eso `select_lane` **verifica** que el carril está vivo, y lo
+verifica por ESTRUCTURA: el contador de la cabecera de la hoja, que vive en la columna izquierda
+(x<200), no «que ese número esté en pantalla» — el badge de la propia pestaña también lo está, y esa
+primera versión del chequeo daba por buena una selección que no había ocurrido.
 
-⚠️ **El emulador se cayó dos veces a media tanda** (WHPX `hr=80070005` tras muchos relanzamientos
-seguidos). Las capturas de esa ventana salen en **0 bytes**, no con contenido malo: verificar
-siempre tamaño antes de dar una tanda por buena.
+⛔ **Revisar la tanda con `tools/scan.py` ANTES de subir; mirar una muestra no vale.** Caza lo que no
+se nota: fichero de 0 bytes (el emulador se cae a media tanda y escribe vacío, no basura), diálogo
+del sistema por encima (gris **neutro**, `B−R ≤ 10`, mientras el mapa (28,42,64) y la hoja (19,26,36)
+son azulados), mapa sin tiles (casi negro) y **carril equivocado** (comparando la firma de `fuel`,
+`carparks` y `carpeek` contra la de `spots`).
+
+⚠️ **El emulador se cayó dos veces a media tanda** en la sesión del 17-09 (WHPX `hr=80070005` tras
+muchos relanzamientos seguidos). Las capturas de esa ventana salen en **0 bytes**: es lo primero que
+mira el scan.
 
 ### Sobre el ANR que se coló (leído de su traza, no supuesto)
 

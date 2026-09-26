@@ -161,6 +161,20 @@ extensions.configure<ApplicationExtension> {
         debug {
             isDebuggable = true
             isMinifyEnabled = false
+            // [PLAY-SHOTS-A-LISTING-IS-COMPOSED-NOT-CROPPED-001] A store-shot session needs BOTH
+            // halves at once and they used to pull apart: the map only paints if the build passes
+            // the Maps key restriction (package + SHA-1, and the debug certificate is not on that
+            // list), while the `--es shot <preset>` launch only works UNMINIFIED — R8 renames the
+            // `ShotPreset` constants, so `ShotPreset.from("parked")` returns null in a release
+            // build and the session silently shoots whatever screen the app happened to restore.
+            // Measured 25-09 on the Pixel 8: mock+release painted the map and ignored every
+            // preset; mock+debug honoured every preset and painted the map BLACK.
+            // So `-PmockAsProd` now also signs debug with the release key: same package, same
+            // certificate, no R8. It only applies when the keystore is present, so an ordinary
+            // `assembleMockDebug` on a machine without it is unaffected.
+            if (hasReleaseSigning && project.hasProperty("mockAsProd")) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             // RevenueCat Test Store (key test_...): permite probar el flujo de compra completo
             // sin que existan aún los productos reales en Play. [MONEY-001]
             buildConfigField(

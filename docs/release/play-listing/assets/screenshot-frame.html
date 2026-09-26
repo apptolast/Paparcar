@@ -1,212 +1,429 @@
 <!doctype html>
 <meta charset="utf-8">
+<!--
+  [PLAY-SHOTS-A-LISTING-IS-COMPOSED-NOT-CROPPED-001] Play carousel compositor.
+
+  Render with ?n=1..8&lang=en|es|it|pt|fr|de|nl|pl|ro (defaults: n=1, lang=en), 1080x1920.
+
+  Three things make this a COMPOSITION and not a cropped screenshot with a caption on top:
+
+  1. THE STRIP. The eight frames are eight windows onto ONE 8640x1920 canvas: `.strip` is drawn
+     whole and shifted left by (n-1)*1080. The gradient, the glow blobs and the route line cross
+     from one frame into the next, so the carousel reads as a single panel when you swipe it —
+     and each frame still stands alone, because nothing that carries meaning is cut in half.
+  2. THE DEVICE. The phone is inside a real bezel, whole, with its own shadow. The old template
+     let the capture bleed off the bottom edge, which reads as a developer's screen grab.
+  3. THE SHAPE FOLLOWS THE PROMISE. `hero` when one screen says it all, `pair` when the story is
+     two moments, `detail` when the value is one datum worth magnifying.
+
+  The magnified `detail` window is a crop of the SAME raw capture, never a hand-drawn imitation of
+  the UI: a callout drawn in HTML is a promise the binary doesn't sign. Its crop rect is in raw
+  device pixels (1080x2400) and it carries NO caption of its own — a caption would be a 10th
+  string to translate nine times, and the headline above already says what it means.
+-->
 <style>
   @font-face{font-family:Jakarta;src:url("fonts/plus_jakarta_sans_variable.ttf");font-weight:200 800}
   html,body{margin:0;padding:0;background:#000}
-  .frame{width:1080px;height:1920px;position:relative;overflow:hidden;
-         background:radial-gradient(130% 100% at 50% -10%, #15251F 0%, #0D1117 52%, #080B0A 100%)}
-  .glow{position:absolute;inset:0;
-        background:radial-gradient(60% 34% at 50% 12%, rgba(37,244,140,.16) 0%, rgba(37,244,140,0) 70%)}
-  .copy{position:absolute;left:70px;right:70px;top:84px;text-align:center}
-  .h{font-family:Jakarta;font-weight:800;font-size:66px;color:#F2F5F4;
-     letter-spacing:-1.5px;line-height:1.08;margin:0}
+  .frame{width:1080px;height:1920px;position:relative;overflow:hidden;background:#080B0A}
+
+  /* ---- the continuous strip -------------------------------------------------------------- */
+  .stripwrap{position:absolute;inset:0;overflow:hidden}
+  .strip{position:absolute;top:0;width:8640px;height:1920px}
+  .strip .base{position:absolute;inset:0;
+    background:
+      radial-gradient(1500px 1100px at 620px 240px,  rgba(37,244,140,.20), rgba(37,244,140,0) 68%),
+      radial-gradient(1300px 1000px at 2480px 1620px, rgba(37,244,140,.13), rgba(37,244,140,0) 70%),
+      radial-gradient(1500px 1200px at 4380px 180px,  rgba(37,244,140,.16), rgba(37,244,140,0) 68%),
+      radial-gradient(1400px 1100px at 6320px 1700px, rgba(37,244,140,.12), rgba(37,244,140,0) 70%),
+      radial-gradient(1500px 1200px at 8080px 300px,  rgba(37,244,140,.17), rgba(37,244,140,0) 68%),
+      linear-gradient(90deg, #0A100E 0%, #0C1512 18%, #090D0C 34%, #0C1613 52%, #090E0D 70%, #0C1512 86%, #0A100E 100%);
+  }
+  .strip svg{position:absolute;inset:0}
+  /* Darkens the top band so the headline keeps its contrast wherever a glow blob lands. */
+  .shade{position:absolute;inset:0;
+    background:linear-gradient(180deg, rgba(6,9,8,.72) 0%, rgba(6,9,8,.30) 26%, rgba(6,9,8,0) 44%)}
+
+  /* ---- copy ------------------------------------------------------------------------------ */
+  .copy{position:absolute;left:74px;right:74px;top:96px;text-align:center}
+  .h{font-family:Jakarta;font-weight:800;color:#F2F5F4;letter-spacing:-1.6px;
+     line-height:1.06;margin:0;font-size:66px}
   .h b{color:#25F48C;font-weight:800}
-  .s{font-family:Jakarta;font-weight:500;font-size:31px;color:#A9B4B1;
-     line-height:1.35;margin:22px auto 0;max-width:840px}
-  .shotwrap{position:absolute;left:50%;transform:translateX(-50%);bottom:-6px;
-            width:704px;border-radius:46px 46px 0 0;overflow:hidden;
-            box-shadow:0 -8px 90px rgba(0,0,0,.65), 0 0 0 2px rgba(37,244,140,.16)}
-  .shotwrap img{display:block;width:704px}
+  .s{font-family:Jakarta;font-weight:500;color:#A9B4B1;line-height:1.34;
+     margin:22px auto 0;max-width:860px;font-size:31px}
+
+  /* The composition sits in its own pool of light. Without it the device reads as a cut-out
+     pasted on black, however good the strip behind is. Tied to the phone, not to the strip, so it
+     travels with the composition instead of breaking the continuity of the background. */
+  .halo{position:absolute;left:50%;top:1180px;width:1500px;height:1200px;transform:translateX(-50%);
+        background:radial-gradient(50% 50% at 50% 50%, rgba(37,244,140,.17) 0%, rgba(37,244,140,.05) 46%, rgba(37,244,140,0) 72%)}
+
+  /* ---- device ---------------------------------------------------------------------------- */
+  .device{position:absolute;background:linear-gradient(160deg,#202624 0%,#0C100F 38%,#070A09 100%);
+          box-shadow:0 46px 90px rgba(0,0,0,.66), 0 8px 26px rgba(0,0,0,.5),
+                     0 0 0 1px rgba(255,255,255,.09);}
+  .device .screen{overflow:hidden;position:relative;background:#000}
+  .device img{display:block}
+  /* A hairline of light along the top-left edge: without it the bezel reads as a flat rectangle. */
+  .device .gloss{position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(150deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 26%)}
+
+  /* ---- magnified detail ------------------------------------------------------------------ */
+  .callout{position:absolute;padding:13px;border-radius:30px;
+           background:linear-gradient(160deg,#1A211F 0%,#0B100F 100%);
+           box-shadow:0 34px 70px rgba(0,0,0,.62), 0 0 0 1px rgba(37,244,140,.30),
+                      0 0 46px rgba(37,244,140,.12)}
+  .callout .win{overflow:hidden;border-radius:19px;position:relative;background:#0B0F0E}
+  .callout .win img{position:absolute;display:block}
 </style>
+
 <div class="frame">
-  <div class="glow"></div>
+  <div class="stripwrap"><div class="strip" id="strip">
+    <div class="base"></div>
+    <svg width="8640" height="1920" viewBox="0 0 8640 1920" fill="none" id="route"></svg>
+  </div></div>
+  <div class="shade"></div>
   <div class="copy"><h1 class="h" id="h"></h1><div class="s" id="s"></div></div>
-  <div class="shotwrap"><img id="img" src=""></div>
+  <div class="halo"></div>
+  <div id="stage"></div>
 </div>
+
 <script>
-  // [PLAY-SHOTS-EVERY-LANGUAGE-SHOWS-ITS-OWN-UI-001] Carousel order, rebalanced 16-09 to what
-  // shipped since the 01-09 set: fuel prices, public car parks, the numbers panel and shared
-  // cars. Capture order now matches frame order 1:1 — see the shoot script this ticket added
-  // for what each raw actually shows (`docs/release/play-listing/README.md`).
-  // Render with ?n=1..8&lang=en|es|it|pt|fr|de|nl|pl|ro (defaults: n=1, lang=en).
-  // Vocabulary is COPY-SPOT-IS-NOT-A-PARKING-001: the community's spot vs YOUR parking —
-  // posto/parcheggio · lugar/estacionamento · place/stationnement · Platz/Parkplatz ·
-  // plek/parkeerplaats · miejsce/parkowanie · loc/parcare. FR uses vous; the rest tutean.
-  const SHOTS = {
-    1:"screenshots/raw/shot1.png", 2:"screenshots/raw/shot2.png",
-    3:"screenshots/raw/shot3.png", 4:"screenshots/raw/shot4.png",
-    5:"screenshots/raw/shot5.png", 6:"screenshots/raw/shot6.png",
-    7:"screenshots/raw/shot7.png", 8:"screenshots/raw/shot8.png",
-  };
-  const T = {
-    en:{
-      1:{h:'Where did I park? <b>Paparcar remembers</b>',
-         s:'Your car, the street and the minute — saved automatically when you park.'},
-      2:{h:'It saves <b>itself</b>',
-         s:'No opening the app. No dropping a pin. No typing an address.'},
-      3:{h:'Spots others <b>just left</b>',
-         s:'On the map, in real time.'},
-      4:{h:'Know the price <b>before you queue</b>',
-         s:'Every forecourt nearby, with the price and when it was measured.'},
-      5:{h:'Car parks, with the <b>details that matter</b>',
-         s:'Tariff, spaces and max height — before you drive in.'},
-      6:{h:'Your driving, <b>in numbers</b>',
-         s:'Spend, fuel, CO₂ and how long you spend looking — every week.'},
-      7:{h:'One car, <b>marked by whoever drives it</b>',
-         s:'Share it with up to four people — the whole group sees where it is.'},
-      8:{h:'You decide what <b>Paparcar shares</b>',
-         s:'Your license plate never leaves your phone.'},
-    },
-    es:{
-      1:{h:'¿Dónde aparqué? <b>Paparcar lo recuerda</b>',
-         s:'Tu coche, la calle y el minuto: guardados automáticamente al aparcar.'},
-      2:{h:'Se guarda <b>solo</b>',
-         s:'Sin abrir la app. Sin poner un pin. Sin escribir una dirección.'},
-      3:{h:'Plazas que otros <b>acaban de dejar</b>',
-         s:'En el mapa, en tiempo real.'},
-      4:{h:'Conoce el precio <b>antes de hacer cola</b>',
-         s:'Cada gasolinera cercana, con el precio y cuándo se midió.'},
-      5:{h:'Parkings, con los <b>datos que importan</b>',
-         s:'Tarifa, plazas y altura máxima — antes de entrar.'},
-      6:{h:'Tu conducción, <b>en cifras</b>',
-         s:'Gasto, combustible, CO₂ y cuánto tardas en aparcar — cada semana.'},
-      7:{h:'Un coche, <b>marcado por quien lo conduce</b>',
-         s:'Compártelo hasta con cuatro personas — todo el grupo ve dónde está.'},
-      8:{h:'Tú decides qué <b>comparte Paparcar</b>',
-         s:'Tu matrícula nunca sale de tu móvil.'},
-    },
-    it:{
-      1:{h:'Dove ho parcheggiato? <b>Paparcar se lo ricorda</b>',
-         s:'La tua auto, la via e il minuto: salvati in automatico quando parcheggi.'},
-      2:{h:'Si salva <b>da solo</b>',
-         s:'Senza aprire l\'app. Senza mettere un segnaposto. Senza scrivere un indirizzo.'},
-      3:{h:'Posti che altri hanno <b>appena liberato</b>',
-         s:'Sulla mappa, in tempo reale.'},
-      4:{h:'Scopri il prezzo <b>prima di fare la fila</b>',
-         s:'Ogni distributore vicino, con il prezzo e quando è stato rilevato.'},
-      5:{h:'Parcheggi pubblici, con i <b>dati che contano</b>',
-         s:'Tariffa, posti e altezza massima — prima di entrare.'},
-      6:{h:'La tua guida, <b>in numeri</b>',
-         s:'Spesa, carburante, CO₂ e quanto tempo cerchi parcheggio — ogni settimana.'},
-      7:{h:'Un\'auto, <b>segnata da chi la guida</b>',
-         s:'Condividila fino a quattro persone — tutto il gruppo vede dove si trova.'},
-      8:{h:'Decidi tu cosa <b>condivide Paparcar</b>',
-         s:'La tua targa non esce mai dal tuo telefono.'},
-    },
-    pt:{
-      1:{h:'Onde estacionei? <b>O Paparcar lembra-se</b>',
-         s:'O teu carro, a rua e o minuto: guardados automaticamente ao estacionar.'},
-      2:{h:'Guarda-se <b>sozinho</b>',
-         s:'Sem abrir a aplicação. Sem colocar um pino. Sem escrever uma morada.'},
-      3:{h:'Lugares que outros <b>acabaram de deixar</b>',
-         s:'No mapa, em tempo real.'},
-      4:{h:'Sabe o preço <b>antes de encheres o depósito</b>',
-         s:'Cada bomba de gasolina perto de ti, com o preço e a hora a que foi medido.'},
-      5:{h:'Parques de estacionamento, com os <b>dados que importam</b>',
-         s:'Tarifa, lugares e altura máxima — antes de entrares.'},
-      6:{h:'A tua condução, <b>em números</b>',
-         s:'Gasto, combustível, CO₂ e quanto tempo demoras a estacionar — todas as semanas.'},
-      7:{h:'Um carro, <b>marcado por quem o conduz</b>',
-         s:'Partilha-o até com quatro pessoas — todo o grupo vê onde está.'},
-      8:{h:'Tu decides o que <b>o Paparcar partilha</b>',
-         s:'A tua matrícula nunca sai do teu telemóvel.'},
-    },
-    fr:{
-      1:{h:'Où me suis-je garé ? <b>Paparcar s\'en souvient</b>',
-         s:'Votre voiture, la rue et la minute — le tout enregistré automatiquement quand vous vous garez.'},
-      2:{h:'Il s\'enregistre <b>tout seul</b>',
-         s:'Sans ouvrir l\'application. Sans poser d\'épingle. Sans saisir d\'adresse.'},
-      3:{h:'Des places <b>tout juste libérées</b>',
-         s:'Sur la carte, en temps réel.'},
-      4:{h:'Connaissez le prix <b>avant de faire la queue</b>',
-         s:'Chaque station-service à proximité, avec le prix et l\'heure de la mesure.'},
-      5:{h:'Des parkings, avec les <b>informations qui comptent</b>',
-         s:'Tarif, places et hauteur maximale — avant d\'y entrer.'},
-      6:{h:'Votre conduite, <b>en chiffres</b>',
-         s:'Dépenses, carburant, CO₂ et le temps passé à chercher une place — chaque semaine.'},
-      7:{h:'Une voiture, <b>marquée par celui qui la conduit</b>',
-         s:'Partagez-la avec jusqu\'à quatre personnes — tout le groupe voit où elle est.'},
-      8:{h:'Vous décidez ce que <b>Paparcar partage</b>',
-         s:'Votre plaque d\'immatriculation ne quitte jamais votre téléphone.'},
-    },
-    de:{
-      1:{h:'Wo habe ich geparkt? <b>Paparcar merkt es sich</b>',
-         s:'Dein Auto, die Straße und die Minute — automatisch gespeichert, wenn du parkst.'},
-      2:{h:'Speichert sich <b>von selbst</b>',
-         s:'Ohne die App zu öffnen. Ohne Stecknadel. Ohne Adresse einzutippen.'},
-      3:{h:'Gerade frei gewordene <b>Plätze</b>',
-         s:'Auf der Karte, in Echtzeit.'},
-      4:{h:'Der Preis, <b>bevor du anstehst</b>',
-         s:'Jede Tankstelle in der Nähe, mit Preis und Messzeitpunkt.'},
-      5:{h:'Parkhäuser, mit den <b>Details, die zählen</b>',
-         s:'Gebühr, Plätze und Durchfahrtshöhe — bevor du reinfährst.'},
-      6:{h:'Deine Fahrten, <b>in Zahlen</b>',
-         s:'Ausgaben, Kraftstoff, CO₂ und Parkplatzsuche — jede Woche.'},
-      7:{h:'Ein Auto, <b>markiert von dem, der es fährt</b>',
-         s:'Teile es mit bis zu vier Personen — die ganze Gruppe sieht, wo es steht.'},
-      8:{h:'Du entscheidest, was <b>Paparcar teilt</b>',
-         s:'Dein Kennzeichen verlässt niemals dein Handy.'},
-    },
-    nl:{
-      1:{h:'Waar heb ik geparkeerd? <b>Paparcar onthoudt het</b>',
-         s:'Je auto, de straat en de minuut — automatisch opgeslagen als je parkeert.'},
-      2:{h:'Wordt <b>vanzelf</b> opgeslagen',
-         s:'Zonder de app te openen. Zonder speld. Zonder adres in te typen.'},
-      3:{h:'Plekken die anderen net <b>hebben vrijgemaakt</b>',
-         s:'Op de kaart, in realtime.'},
-      4:{h:'Ken de prijs <b>voordat je in de rij staat</b>',
-         s:'Elk tankstation in de buurt, met de prijs en het meetmoment.'},
-      5:{h:'Parkeergarages, met de <b>details die tellen</b>',
-         s:'Tarief, plekken en maximale hoogte — voordat je naar binnen rijdt.'},
-      6:{h:'Jouw ritten, <b>in cijfers</b>',
-         s:'Uitgaven, brandstof, CO₂ en hoe lang je zoekt naar een plek — elke week.'},
-      7:{h:'Eén auto, <b>gemarkeerd door wie erin rijdt</b>',
-         s:'Deel hem met tot vier mensen — de hele groep ziet waar hij staat.'},
-      8:{h:'Jij bepaalt wat <b>Paparcar deelt</b>',
-         s:'Je kenteken verlaat nooit je telefoon.'},
-    },
-    pl:{
-      1:{h:'Gdzie zaparkowałem? <b>Paparcar pamięta</b>',
-         s:'Twoje auto, ulica i minuta — zapisane automatycznie, gdy parkujesz.'},
-      2:{h:'Zapisuje się <b>samo</b>',
-         s:'Bez otwierania aplikacji. Bez pinezki. Bez wpisywania adresu.'},
-      3:{h:'Miejsca, które inni <b>właśnie zwolnili</b>',
-         s:'Na mapie, w czasie rzeczywistym.'},
-      4:{h:'Poznaj cenę <b>zanim staniesz w kolejce</b>',
-         s:'Każda stacja paliw w pobliżu, z ceną i godziną pomiaru.'},
-      5:{h:'Parkingi, z <b>danymi, które się liczą</b>',
-         s:'Opłata, miejsca i maksymalna wysokość — zanim wjedziesz.'},
-      6:{h:'Twoja jazda <b>w liczbach</b>',
-         s:'Wydatki, paliwo, CO₂ i czas szukania miejsca — co tydzień.'},
-      7:{h:'Jedno auto, <b>oznaczone przez tego, kto nim jedzie</b>',
-         s:'Udostępnij je aż czterem osobom — cała grupa widzi, gdzie jest.'},
-      8:{h:'Ty decydujesz, co <b>udostępnia Paparcar</b>',
-         s:'Twoja tablica rejestracyjna nigdy nie opuszcza telefonu.'},
-    },
-    ro:{
-      1:{h:'Unde am parcat? <b>Paparcar ține minte</b>',
-         s:'Mașina ta, strada și minutul — salvate automat când parchezi.'},
-      2:{h:'Se salvează <b>singur</b>',
-         s:'Fără să deschizi aplicația. Fără indicator. Fără să scrii o adresă.'},
-      3:{h:'Locuri pe care alții <b>tocmai le-au eliberat</b>',
-         s:'Pe hartă, în timp real.'},
-      4:{h:'Află prețul <b>înainte să stai la coadă</b>',
-         s:'Fiecare benzinărie din apropiere, cu prețul și ora la care a fost măsurat.'},
-      5:{h:'Parcări publice, cu <b>detaliile care contează</b>',
-         s:'Tarif, locuri și înălțime maximă — înainte să intri.'},
-      6:{h:'Traseele tale, <b>în cifre</b>',
-         s:'Cheltuieli, combustibil, CO₂ și cât timp cauți loc — în fiecare săptămână.'},
-      7:{h:'O mașină, <b>marcată de cel care o conduce</b>',
-         s:'Distribuie-o la până la patru persoane — tot grupul vede unde este.'},
-      8:{h:'Tu decizi ce <b>partajează Paparcar</b>',
-         s:'Numărul tău de înmatriculare nu îți părăsește niciodată telefonul.'},
-    },
-  };
-  const q = new URLSearchParams(location.search);
-  const n = q.get("n") || "1";
-  const lang = q.get("lang") || "en";
-  const f = T[lang][n];
-  document.getElementById("h").innerHTML = f.h;
-  document.getElementById("s").innerHTML = f.s;
-  document.getElementById("img").src = SHOTS[n];
+// ---------------------------------------------------------------------------------------------
+// Copy. Eight promises, nine languages — UNCHANGED from the 17-09 set on purpose: this ticket
+// changes the FORM of the carousel, not what it promises. Vocabulary follows
+// COPY-SPOT-IS-NOT-A-PARKING-001 (the community's spot vs YOUR parking): posto/parcheggio ·
+// lugar/estacionamento · place/stationnement · Platz/Parkplatz · plek/parkeerplaats ·
+// miejsce/parkowanie · loc/parcare. FR uses vous; the rest tutean.
+// ---------------------------------------------------------------------------------------------
+const T = {
+  en:{
+    1:{h:'Where did I park? <b>Paparcar remembers</b>',
+       s:'Your car, the street and the minute — saved automatically when you park.'},
+    2:{h:'It saves <b>itself</b>',
+       s:'No opening the app. No dropping a pin. No typing an address.'},
+    3:{h:'Spots others <b>just left</b>',
+       s:'On the map, in real time.'},
+    4:{h:'Know the price <b>before you queue</b>',
+       s:'Every forecourt nearby, with the price and when it was measured.'},
+    5:{h:'Car parks, with the <b>details that matter</b>',
+       s:'Tariff, spaces and max height — before you drive in.'},
+    6:{h:'Your driving, <b>in numbers</b>',
+       s:'Spend, fuel, CO₂ and how long you spend looking — every week.'},
+    7:{h:'One car, <b>marked by whoever drives it</b>',
+       s:'Share it with up to four people — the whole group sees where it is.'},
+    8:{h:'You decide what <b>Paparcar shares</b>',
+       s:'Your license plate never leaves your phone.'},
+  },
+  es:{
+    1:{h:'¿Dónde aparqué? <b>Paparcar lo recuerda</b>',
+       s:'Tu coche, la calle y el minuto: guardados automáticamente al aparcar.'},
+    2:{h:'Se guarda <b>solo</b>',
+       s:'Sin abrir la app. Sin poner un pin. Sin escribir una dirección.'},
+    3:{h:'Plazas que otros <b>acaban de dejar</b>',
+       s:'En el mapa, en tiempo real.'},
+    4:{h:'Conoce el precio <b>antes de hacer cola</b>',
+       s:'Cada gasolinera cercana, con el precio y cuándo se midió.'},
+    5:{h:'Parkings, con los <b>datos que importan</b>',
+       s:'Tarifa, plazas y altura máxima — antes de entrar.'},
+    6:{h:'Tu conducción, <b>en cifras</b>',
+       s:'Gasto, combustible, CO₂ y cuánto tardas en aparcar — cada semana.'},
+    7:{h:'Un coche, <b>marcado por quien lo conduce</b>',
+       s:'Compártelo hasta con cuatro personas — todo el grupo ve dónde está.'},
+    8:{h:'Tú decides qué <b>comparte Paparcar</b>',
+       s:'Tu matrícula nunca sale de tu móvil.'},
+  },
+  it:{
+    1:{h:'Dove ho parcheggiato? <b>Paparcar se lo ricorda</b>',
+       s:'La tua auto, la via e il minuto: salvati in automatico quando parcheggi.'},
+    2:{h:'Si salva <b>da solo</b>',
+       s:'Senza aprire l\'app. Senza mettere un segnaposto. Senza scrivere un indirizzo.'},
+    3:{h:'Posti che altri hanno <b>appena liberato</b>',
+       s:'Sulla mappa, in tempo reale.'},
+    4:{h:'Scopri il prezzo <b>prima di fare la fila</b>',
+       s:'Ogni distributore vicino, con il prezzo e quando è stato rilevato.'},
+    5:{h:'Parcheggi pubblici, con i <b>dati che contano</b>',
+       s:'Tariffa, posti e altezza massima — prima di entrare.'},
+    6:{h:'La tua guida, <b>in numeri</b>',
+       s:'Spesa, carburante, CO₂ e quanto tempo cerchi parcheggio — ogni settimana.'},
+    7:{h:'Un\'auto, <b>segnata da chi la guida</b>',
+       s:'Condividila fino a quattro persone — tutto il gruppo vede dove si trova.'},
+    8:{h:'Decidi tu cosa <b>condivide Paparcar</b>',
+       s:'La tua targa non esce mai dal tuo telefono.'},
+  },
+  pt:{
+    1:{h:'Onde estacionei? <b>O Paparcar lembra-se</b>',
+       s:'O teu carro, a rua e o minuto: guardados automaticamente ao estacionar.'},
+    2:{h:'Guarda-se <b>sozinho</b>',
+       s:'Sem abrir a aplicação. Sem colocar um pino. Sem escrever uma morada.'},
+    3:{h:'Lugares que outros <b>acabaram de deixar</b>',
+       s:'No mapa, em tempo real.'},
+    4:{h:'Sabe o preço <b>antes de encheres o depósito</b>',
+       s:'Cada bomba de gasolina perto de ti, com o preço e a hora a que foi medido.'},
+    5:{h:'Parques de estacionamento, com os <b>dados que importam</b>',
+       s:'Tarifa, lugares e altura máxima — antes de entrares.'},
+    6:{h:'A tua condução, <b>em números</b>',
+       s:'Gasto, combustível, CO₂ e quanto tempo demoras a estacionar — todas as semanas.'},
+    7:{h:'Um carro, <b>marcado por quem o conduz</b>',
+       s:'Partilha-o até com quatro pessoas — todo o grupo vê onde está.'},
+    8:{h:'Tu decides o que <b>o Paparcar partilha</b>',
+       s:'A tua matrícula nunca sai do teu telemóvel.'},
+  },
+  fr:{
+    1:{h:'Où me suis-je garé ? <b>Paparcar s\'en souvient</b>',
+       s:'Votre voiture, la rue et la minute — le tout enregistré automatiquement quand vous vous garez.'},
+    2:{h:'Il s\'enregistre <b>tout seul</b>',
+       s:'Sans ouvrir l\'application. Sans poser d\'épingle. Sans saisir d\'adresse.'},
+    3:{h:'Des places <b>tout juste libérées</b>',
+       s:'Sur la carte, en temps réel.'},
+    4:{h:'Connaissez le prix <b>avant de faire la queue</b>',
+       s:'Chaque station-service à proximité, avec le prix et l\'heure de la mesure.'},
+    5:{h:'Des parkings, avec les <b>informations qui comptent</b>',
+       s:'Tarif, places et hauteur maximale — avant d\'y entrer.'},
+    6:{h:'Votre conduite, <b>en chiffres</b>',
+       s:'Dépenses, carburant, CO₂ et le temps passé à chercher une place — chaque semaine.'},
+    7:{h:'Une voiture, <b>marquée par celui qui la conduit</b>',
+       s:'Partagez-la avec jusqu\'à quatre personnes — tout le groupe voit où elle est.'},
+    8:{h:'Vous décidez ce que <b>Paparcar partage</b>',
+       s:'Votre plaque d\'immatriculation ne quitte jamais votre téléphone.'},
+  },
+  de:{
+    1:{h:'Wo habe ich geparkt? <b>Paparcar merkt es sich</b>',
+       s:'Dein Auto, die Straße und die Minute — automatisch gespeichert, wenn du parkst.'},
+    2:{h:'Speichert sich <b>von selbst</b>',
+       s:'Ohne die App zu öffnen. Ohne Stecknadel. Ohne Adresse einzutippen.'},
+    3:{h:'Gerade frei gewordene <b>Plätze</b>',
+       s:'Auf der Karte, in Echtzeit.'},
+    4:{h:'Der Preis, <b>bevor du anstehst</b>',
+       s:'Jede Tankstelle in der Nähe, mit Preis und Messzeitpunkt.'},
+    5:{h:'Parkhäuser, mit den <b>Details, die zählen</b>',
+       s:'Gebühr, Plätze und Durchfahrtshöhe — bevor du reinfährst.'},
+    6:{h:'Deine Fahrten, <b>in Zahlen</b>',
+       s:'Ausgaben, Kraftstoff, CO₂ und Parkplatzsuche — jede Woche.'},
+    7:{h:'Ein Auto, <b>markiert von dem, der es fährt</b>',
+       s:'Teile es mit bis zu vier Personen — die ganze Gruppe sieht, wo es steht.'},
+    8:{h:'Du entscheidest, was <b>Paparcar teilt</b>',
+       s:'Dein Kennzeichen verlässt niemals dein Handy.'},
+  },
+  nl:{
+    1:{h:'Waar heb ik geparkeerd? <b>Paparcar onthoudt het</b>',
+       s:'Je auto, de straat en de minuut — automatisch opgeslagen als je parkeert.'},
+    2:{h:'Wordt <b>vanzelf</b> opgeslagen',
+       s:'Zonder de app te openen. Zonder speld. Zonder adres in te typen.'},
+    3:{h:'Plekken die anderen net <b>hebben vrijgemaakt</b>',
+       s:'Op de kaart, in realtime.'},
+    4:{h:'Ken de prijs <b>voordat je in de rij staat</b>',
+       s:'Elk tankstation in de buurt, met de prijs en het meetmoment.'},
+    5:{h:'Parkeergarages, met de <b>details die tellen</b>',
+       s:'Tarief, plekken en maximale hoogte — voordat je naar binnen rijdt.'},
+    6:{h:'Jouw ritten, <b>in cijfers</b>',
+       s:'Uitgaven, brandstof, CO₂ en hoe lang je zoekt naar een plek — elke week.'},
+    7:{h:'Eén auto, <b>gemarkeerd door wie erin rijdt</b>',
+       s:'Deel hem met tot vier mensen — de hele groep ziet waar hij staat.'},
+    8:{h:'Jij bepaalt wat <b>Paparcar deelt</b>',
+       s:'Je kenteken verlaat nooit je telefoon.'},
+  },
+  pl:{
+    1:{h:'Gdzie zaparkowałem? <b>Paparcar pamięta</b>',
+       s:'Twoje auto, ulica i minuta — zapisane automatycznie, gdy parkujesz.'},
+    2:{h:'Zapisuje się <b>samo</b>',
+       s:'Bez otwierania aplikacji. Bez pinezki. Bez wpisywania adresu.'},
+    3:{h:'Miejsca, które inni <b>właśnie zwolnili</b>',
+       s:'Na mapie, w czasie rzeczywistym.'},
+    4:{h:'Poznaj cenę <b>zanim staniesz w kolejce</b>',
+       s:'Każda stacja paliw w pobliżu, z ceną i godziną pomiaru.'},
+    5:{h:'Parkingi, z <b>danymi, które się liczą</b>',
+       s:'Opłata, miejsca i maksymalna wysokość — zanim wjedziesz.'},
+    6:{h:'Twoja jazda <b>w liczbach</b>',
+       s:'Wydatki, paliwo, CO₂ i czas szukania miejsca — co tydzień.'},
+    7:{h:'Jedno auto, <b>oznaczone przez tego, kto nim jedzie</b>',
+       s:'Udostępnij je aż czterem osobom — cała grupa widzi, gdzie jest.'},
+    8:{h:'Ty decydujesz, co <b>udostępnia Paparcar</b>',
+       s:'Twoja tablica rejestracyjna nigdy nie opuszcza telefonu.'},
+  },
+  ro:{
+    1:{h:'Unde am parcat? <b>Paparcar ține minte</b>',
+       s:'Mașina ta, strada și minutul — salvate automat când parchezi.'},
+    2:{h:'Se salvează <b>singur</b>',
+       s:'Fără să deschizi aplicația. Fără indicator. Fără să scrii o adresă.'},
+    3:{h:'Locuri pe care alții <b>tocmai le-au eliberat</b>',
+       s:'Pe hartă, în timp real.'},
+    4:{h:'Află prețul <b>înainte să stai la coadă</b>',
+       s:'Fiecare benzinărie din apropiere, cu prețul și ora la care a fost măsurat.'},
+    5:{h:'Parcări publice, cu <b>detaliile care contează</b>',
+       s:'Tarif, locuri și înălțime maximă — înainte să intri.'},
+    6:{h:'Traseele tale, <b>în cifre</b>',
+       s:'Cheltuieli, combustibil, CO₂ și cât timp cauți loc — în fiecare săptămână.'},
+    7:{h:'O mașină, <b>marcată de cel care o conduce</b>',
+       s:'Distribuie-o la până la patru persoane — tot grupul vede unde este.'},
+    8:{h:'Tu decizi ce <b>partajează Paparcar</b>',
+       s:'Numărul tău de înmatriculare nu îți părăsește niciodată telefonul.'},
+  },
+};
+
+// ---------------------------------------------------------------------------------------------
+// Composition. One entry per frame: which raws it mounts, in which shape, and where.
+// `screen` is the width the capture is drawn at (its 1080x2400 aspect is preserved); `crop` is in
+// RAW device pixels and `z` the scale the crop is drawn at — z=1 means one raw pixel per canvas
+// pixel, which next to a phone drawn at screen/1080 is a magnification of 1080/screen.
+// ---------------------------------------------------------------------------------------------
+const RAW = k => `screenshots/raw/${k}.png`;
+const FRAMES = {
+  // 1 · The promise, whole: your car on the map with the street and the minute under it.
+  1: { kind:'hero',   shot:'home',
+       device:{ screen:606, left:224, top:470 } },
+
+  // 2 · It saves itself — the sheet lists every car of yours, and the window magnifies the row
+  //     that proves it: street, minute, distance, all written without the user doing anything.
+  2: { kind:'detail', shot:'sheet',
+       device:{ screen:470, left:58, top:600 },
+       // The card itself, with a hair of margin so its rounded corners stay inside the window.
+       call:{ left:512, top:930, target:520, crop:[16,348,566,316],
+              fromAnchor:a => [a[0]-8, a[1]-8, a[2]-a[0]+16, a[3]-a[1]+16] } },
+
+  // 3 · The same answer twice, because that IS the feature: markers on the map, rows in the list.
+  3: { kind:'pair',   back:'spotmap', front:'spots',
+       backDev:{ screen:440, left:88,  top:520, rot:-4 },
+       frontDev:{ screen:492, left:512, top:676, rot:0 } },
+
+  // 4 · Fuel: the price lives in the row, so the window magnifies a row with its price and badge.
+  4: { kind:'detail', shot:'fuel',
+       device:{ screen:470, left:58, top:600 },
+       // The forecourt row is 1000 px wide: magnifying it whole would mean SHRINKING it. What the
+       // headline promises is the price, so the window takes the price column of this row and the
+       // next — which is also where the CHEAPEST / NEAREST badges live.
+       call:{ left:520, top:862, target:500, crop:[700,1592,362,306],
+              fromAnchor:a => { const w = a[2]-a[0], h = a[3]-a[1];
+                                return [a[0] + Math.round(w*0.64), a[1]-4,
+                                        Math.round(w*0.36), 2*h + 14]; } } },
+
+  // 5 · Car parks: the lane, and one of them opened on top with what you need before driving in.
+  5: { kind:'pair',   back:'carparks', front:'carpeek',
+       backDev:{ screen:440, left:88,  top:520, rot:-4 },
+       frontDev:{ screen:492, left:512, top:676, rot:0 } },
+
+  // 6 · The numbers panel, with the one figure nothing else in the market measures magnified.
+  6: { kind:'detail', shot:'numbers',
+       device:{ screen:470, left:58, top:600 },
+       // Anchored on the VALUE of the "finding a spot" tile, so the window frames the figure, its
+       // label and the trips it is measured over, wherever the panel happened to scroll to.
+       call:{ left:512, top:930, target:520, crop:[540,1628,500,232],
+              fromAnchor:a => [a[0]-34, a[1]-28, 500, 236] } },
+
+  // 7 · One car, several drivers: the garage behind, the group in front.
+  7: { kind:'pair',   back:'garage', front:'members',
+       backDev:{ screen:440, left:88,  top:520, rot:-4 },
+       frontDev:{ screen:492, left:512, top:676, rot:0 } },
+
+  // 8 · What leaves the phone and what never does. Closes the strip the way it opened: one screen.
+  8: { kind:'hero',   shot:'settings',
+       device:{ screen:606, left:224, top:470 } },
+};
+
+const RAW_W = 1080, RAW_H = 2400;
+
+// The bezel and the corner radius are proportional to the drawn width, so a phone at 452 and one
+// at 620 are the SAME device seen from further away — not two different products.
+function device({ screen, left, top, rot = 0 }, src) {
+  const b = Math.round(screen * 0.0215);              // bezel
+  const r = Math.round(screen * 0.088);               // outer radius
+  const h = Math.round(screen * RAW_H / RAW_W);
+  const el = document.createElement('div');
+  el.className = 'device';
+  el.style.cssText = `left:${left}px;top:${top}px;width:${screen + 2 * b}px;height:${h + 2 * b}px;
+    padding:${b}px;border-radius:${r}px;transform:rotate(${rot}deg)`;
+  el.innerHTML = `<div class="screen" style="width:${screen}px;height:${h}px;border-radius:${r - b}px">
+      <img src="${RAW(src)}" style="width:${screen}px">
+    </div><div class="gloss" style="border-radius:${r}px"></div>`;
+  return el;
+}
+
+// The window is always the same size on the canvas: the zoom is DERIVED from the rect the device
+// reported, not written down next to it. Clamped so a rect that comes back unexpectedly small
+// cannot blow the magnification up to something that reads as a different app.
+function callout(cfg, src, anchor) {
+  const { left, top, target } = cfg;
+  const crop = (anchor && cfg.fromAnchor) ? cfg.fromAnchor(anchor) : cfg.crop;
+  const z = Math.max(0.6, Math.min(1.35, target / crop[2]));
+  const [cx, cy, cw, ch] = crop;
+  const iw = Math.round(cw * z), ih = Math.round(ch * z);
+  const el = document.createElement('div');
+  el.className = 'callout';
+  el.style.cssText = `left:${left}px;top:${top}px;width:${iw}px`;
+  el.innerHTML = `<div class="win" style="width:${iw}px;height:${ih}px">
+      <img src="${RAW(src)}" style="width:${Math.round(RAW_W * z)}px;
+           left:${-Math.round(cx * z)}px;top:${-Math.round(cy * z)}px">
+    </div>`;
+  return el;
+}
+
+// ---------------------------------------------------------------------------------------------
+// The route line that crosses all eight frames. Drawn once over the whole strip, so whatever y it
+// leaves frame n at is the y it enters frame n+1 at — there is no seam to line up by hand.
+// ---------------------------------------------------------------------------------------------
+function routePath() {
+  // Kept in the band between the copy and the phones (y 430-560) and dropped to the outer margins
+  // lower down: a line that runs under the device is a line nobody sees.
+  const pts = [[-120,470],[420,520],[980,455],[1560,540],[2180,470],[2760,545],
+               [3340,465],[3960,535],[4540,470],[5120,545],[5700,465],[6320,535],
+               [6900,470],[7480,540],[8080,470],[8760,530]];
+  const R = 120;                                       // rounded turns, like a route, not a wave
+  let d = `M ${pts[0][0]} ${pts[0][1]}`;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const [px, py] = pts[i - 1], [x, y] = pts[i], [nx, ny] = pts[i + 1];
+    const a = Math.hypot(x - px, y - py), b = Math.hypot(nx - x, ny - y);
+    const t1 = Math.min(R, a / 2) / a, t2 = Math.min(R, b / 2) / b;
+    d += ` L ${x - (x - px) * t1} ${y - (y - py) * t1}`;
+    d += ` Q ${x} ${y} ${x + (nx - x) * t2} ${y + (ny - y) * t2}`;
+  }
+  const last = pts[pts.length - 1];
+  return d + ` L ${last[0]} ${last[1]}`;
+}
+
+(function drawRoute() {
+  const d = routePath();
+  document.getElementById('route').innerHTML = `
+    <defs><filter id="g" x="-20%" y="-60%" width="140%" height="220%">
+      <feGaussianBlur stdDeviation="26"/></filter></defs>
+    <path d="${d}" stroke="#25F48C" stroke-opacity=".20" stroke-width="16"
+          stroke-linecap="round" stroke-linejoin="round" filter="url(#g)"/>
+    <path d="${d}" stroke="#25F48C" stroke-opacity=".26" stroke-width="5"
+          stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="34 26"/>`;
+})();
+
+// ---------------------------------------------------------------------------------------------
+const q = new URLSearchParams(location.search);
+const n = q.get('n') || '1';
+const lang = q.get('lang') || 'en';
+// `anchor=x1,y1,x2,y2` — where the thing to magnify actually was on THIS locale's capture, read off
+// the device at shoot time. Without it the built-in rect (measured in English) is used.
+const anchor = (q.get('anchor') || '').split(',').map(Number);
+const anchorRect = anchor.length === 4 && anchor.every(v => Number.isFinite(v)) ? anchor : null;
+const f = T[lang][n], c = FRAMES[n];
+
+document.getElementById('strip').style.left = `${-(Number(n) - 1) * 1080}px`;
+document.getElementById('h').innerHTML = f.h;
+document.getElementById('s').innerHTML = f.s;
+
+const stage = document.getElementById('stage');
+if (c.kind === 'pair') {
+  stage.appendChild(device(c.backDev, c.back));
+  stage.appendChild(device(c.frontDev, c.front));
+} else {
+  stage.appendChild(device(c.device, c.shot));
+  if (c.kind === 'detail') stage.appendChild(callout(c.call, c.shot, anchorRect));
+}
+
+// German and Polish run long, and a headline that overflows its band lands ON the phone. Shrink
+// to fit instead of trusting one language's line count — measured, not eyeballed.
+function fit(el, maxH, from, min) {
+  let px = from;
+  el.style.fontSize = px + 'px';
+  while (el.scrollHeight > maxH && px > min) { px -= 2; el.style.fontSize = px + 'px'; }
+  return px;
+}
+document.fonts.ready.then(() => {
+  const h = document.getElementById('h'), s = document.getElementById('s');
+  fit(h, 232, 66, 44);
+  fit(s, 116, 31, 24);
+});
 </script>
