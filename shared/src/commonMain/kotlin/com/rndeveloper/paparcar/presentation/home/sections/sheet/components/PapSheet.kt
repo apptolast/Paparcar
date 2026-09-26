@@ -360,8 +360,17 @@ internal sealed interface PapSheetLead {
     data class NearbyCounter(
         val count: Int?,
         val icon: ImageVector,
-        /** El carril está preguntando ahora mismo: la cápsula late en vez de enseñar una cifra vieja
-         *  o un hueco. [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] */
+        /**
+         * El carril está preguntando ahora mismo.
+         * [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
+         *
+         * ⛔ **Late sólo cuando no hay cifra que enseñar**, que es la MISMA frase que dicen las filas
+         * de debajo (`isLoading && lista vacía` en `HomeFuelLane` / `HomeParkingsLane`). Con la
+         * respuesta recordada del disco pintada mientras vuela la de red
+         * [PARKINGS-A-REMEMBERED-MAP-ANSWERS-BEFORE-THE-NETWORK-001], esta cápsula escondía en un
+         * shimmer el mismo 5 que la pestaña y las cinco filas estaban enseñando a 300 dp de ahí.
+         * [HOME-A-SKELETON-SAYS-WE-ARE-ASKING-001]
+         */
         val isLoading: Boolean = false,
     ) : PapSheetLead
 
@@ -378,6 +387,24 @@ internal sealed interface PapSheetLead {
         val tint: Color? = null,
     ) : PapSheetLead
 }
+
+/**
+ * ¿Late la cápsula del contador en vez de enseñar una cifra?
+ * [HOME-A-SKELETON-SAYS-WE-ARE-ASKING-001]
+ *
+ * **Late cuando el carril pregunta y no hay nada que enseñar** — exactamente la misma frase que
+ * dicen las filas de debajo (`isLoading && lista vacía`, en `HomeFuelLane` y `HomeParkingsLane`).
+ *
+ * ⛔ El «y no hay nada» faltaba, y la contradicción se veía en una captura: parkings pintando su
+ * respuesta RECORDADA del disco mientras vuela la de red
+ * [PARKINGS-A-REMEMBERED-MAP-ANSWERS-BEFORE-THE-NETWORK-001] — pestaña «5», cinco filas, y la
+ * cápsula de arriba escondiendo ese mismo 5 detrás de un shimmer. Es el defecto que el KDoc de
+ * `laneAnsweringHere` ya describía desde la otra punta, arreglado para las filas y no para la cifra.
+ *
+ * Un `0` o un `null` no son cifra que enseñar: ahí el latido es correcto y sigue.
+ */
+internal fun nearbyCounterPulses(count: Int?, isLoading: Boolean): Boolean =
+    isLoading && (count ?: 0) == 0
 
 /** Eyebrow tint: green = own action, muted = neutral context. (The old blue "Manual" tone died
  *  with the tertiary retirement — reporting a spot IS an action, and a report's provenance is not a
@@ -485,7 +512,10 @@ private fun PapSheetLeadTile(lead: PapSheetLead) {
             // tranquilo. [UI-ONE-SKELETON-ONE-EMPHASIS-ONE-GREEN-001]
             val hasAny = (count ?: 0) > 0
             val accent = if (hasAny) PapColor.brandData else cs.onSurfaceVariant
-            if (lead.isLoading) {
+            // ⛔ …y sólo cuando NO hay cifra: esconder el número que las filas ya están pintando es
+            // contarle al usuario dos cosas distintas sobre lo mismo.
+            // [HOME-A-SKELETON-SAYS-WE-ARE-ASKING-001]
+            if (nearbyCounterPulses(count = count, isLoading = lead.isLoading)) {
                 // ⛔ El latido ES la cápsula, no algo DENTRO de ella. Con el shimmer metido en un
                 // rectangulito centrado se leían DOS cosas — una caja quieta con algo moviéndose
                 // dentro — y lo que está esperando es el contador entero. Misma huella (el tile
@@ -722,11 +752,6 @@ private const val STEPPER_TO_DISMISS_GAP_DP = 10
 private const val SWIPE_TRIGGER_DP = 64
 
 // Component dimensions (not spacing tokens — they belong to this molde).
-/** El latido del contador mientras su carril pregunta: ancho de dos cifras, alto de la cifra. */
-private const val COUNTER_SHIMMER_W_DP = 26
-private const val COUNTER_SHIMMER_H_DP = 20
-private const val COUNTER_SHIMMER_RADIUS_DP = 5
-
 private const val LEAD_TILE_DP = 46
 private const val LEAD_GLYPH_DP = 38
 private const val LEAD_ICON_DP = 24

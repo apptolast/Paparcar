@@ -1448,6 +1448,28 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     showsZoneHeader = true,
                 )
             },
+            // ⛔ La MISMA cabecera mientras el carril sigue preguntando sobre filas que YA se
+            // pintan (la respuesta recordada del disco). La cápsula enseña su cifra: pestaña, filas
+            // y contador dicen lo mismo. El latido se reserva para cuando no hay nada debajo.
+            // [HOME-A-SKELETON-SAYS-WE-ARE-ASKING-001]
+            // [PARKINGS-A-REMEMBERED-MAP-ANSWERS-BEFORE-THE-NETWORK-001]
+            Variant("PapSheet · browse expandido (PARKINGS recordados, aún preguntando)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                        userGpsPoint = sampleGps,
+                        nearbySpots = FakeData.nearbySpots,
+                        nearbyLens = HomeNearbyLens.PARKINGS,
+                        parkings = HomeParkingsSlice(
+                            parkings = galleryParkings,
+                            isLoading = true,
+                            anchorLat = sampleGps.latitude,
+                            anchorLon = sampleGps.longitude,
+                        ),
+                    ),
+                    showsZoneHeader = true,
+                )
+            },
             // ⛔ La que EJERCITA el caso que no se puede leer del otro: nadie ha entrado todavía en
             // Gasolineras, así que la cabecera enseña la MARCA del sujeto y ni un número. Un `0` aquí
             // sería un veredicto sobre el mundo que ninguna fuente ha dado.
@@ -1863,7 +1885,16 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
-            Variant("Peek · cargando (skeleton)", Placement.Surface) { peek(HomeState()) },
+            // ⛔ El esqueleto lo dibuja la PREGUNTA EN VUELO, no la falta de datos: por eso esta
+            // variante enciende el geocodificador en vez de dejar el estado vacío.
+            // [HOME-A-SKELETON-SAYS-WE-ARE-ASKING-001]
+            Variant("Peek · preguntando (skeleton)", Placement.Surface) {
+                peek(HomeState(isCameraGeocoding = true))
+            },
+            // …y la misma pantalla cuando esa pregunta ya CONTESTÓ sin nombre (sin red, sin vecino
+            // en caché que prestar): habla, no late. Es el estado de la captura del 26-09 00:59, que
+            // se quedaba latiendo para siempre. [HOME-A-SKELETON-SAYS-WE-ARE-ASKING-001]
+            Variant("Peek · la respuesta llegó sin nombre", Placement.Surface) { peek(HomeState()) },
             // The session's vehicle hasn't resolved from Room yet (vehicles omitted) → the peek's
             // vehicle lead breathes a skeleton instead of flashing the generic car for one frame.
             // [UI-VEHICLE-ICON-SKELETON-001]

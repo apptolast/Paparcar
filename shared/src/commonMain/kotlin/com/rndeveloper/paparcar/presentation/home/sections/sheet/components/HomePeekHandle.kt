@@ -268,6 +268,10 @@ fun HomePeekHandle(
                         drivingPlace = slice.drivingPlace,
                         drivingSecondaryLine = slice.drivingSecondaryLine,
                         cameraInfo = slice.cameraAddressAndPlace,
+                        // La MISMA noción de «asentándose» que usan los peeks de modo-pin: mientras
+                        // la cámara se mueve o el geocodificador está en vuelo, y ni un ms más.
+                        // [HOME-A-SKELETON-SAYS-WE-ARE-ASKING-001]
+                        isCameraSettling = slice.isCameraSettling,
                         userGpsPoint = slice.userGpsPoint,
                         freeCount = slice.freeCount,
                         showZoneHeader = browseShowsZoneHeader,
@@ -287,7 +291,17 @@ fun HomePeekHandle(
 
 @Composable
 private fun HomePeekSlice.settlingCameraTitle(): String =
-    cameraTitleWhileSettling(cameraAddressAndPlace, isSettling = isCameraMoving || isCameraGeocoding)
+    cameraTitleWhileSettling(cameraAddressAndPlace, isSettling = isCameraSettling)
+
+/**
+ * ¿Se está resolviendo AHORA el punto que mira la cámara? La cámara en movimiento o el
+ * geocodificador en vuelo — una sola definición, porque las cuatro cabeceras de peek la usan y dos
+ * definiciones de «estoy preguntando» son dos superficies que se contradicen: la del modo-pin caía
+ * al nombre honesto al asentarse y la de browse se quedaba en el esqueleto para siempre.
+ * [HOME-A-SKELETON-SAYS-WE-ARE-ASKING-001]
+ */
+private val HomePeekSlice.isCameraSettling: Boolean
+    get() = isCameraMoving || isCameraGeocoding
 
 /**
  * Drives [AnimatedContent] in [HomePeekHandle]. Variants store **identity only**

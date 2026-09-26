@@ -35,6 +35,8 @@ import com.rndeveloper.paparcar.presentation.util.compactRelativeTimeText
 import com.rndeveloper.paparcar.presentation.util.distanceMeters
 import com.rndeveloper.paparcar.presentation.util.distanceString
 import com.rndeveloper.paparcar.presentation.util.placeLineText
+import com.rndeveloper.paparcar.presentation.util.secondaryPlaceLine
+import com.rndeveloper.paparcar.presentation.util.toPlaceLine
 import com.rndeveloper.paparcar.ui.components.rememberDrivingStatePulse
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
@@ -92,6 +94,12 @@ internal fun BrowsePeek(
     /** [DET-ASK-STATE-001] A "did you park?" question is open — the phase eyebrow asks it. */
     isAwaitingAnswer: Boolean,
     cameraInfo: AddressAndPlace?,
+    /**
+     * La pregunta por el punto que mira la cámara está EN VUELO — o la cámara todavía se mueve.
+     * Es lo ÚNICO que autoriza a esta cabecera a dibujar un esqueleto: una respuesta vacía es una
+     * respuesta, y se escribe. [HOME-A-SKELETON-SAYS-WE-ARE-ASKING-001]
+     */
+    isCameraSettling: Boolean,
     userGpsPoint: GpsPoint?,
     freeCount: Int,
     showZoneHeader: Boolean,
@@ -304,25 +312,28 @@ internal fun BrowsePeek(
     }
 
     // ── Subject = the lane (no car to speak for, no live trip, expanded browse, or Browse opened once) ──
-    // Show skeleton when there is no displayable content — covers:
-    //  • info still null (initial load before first geocode)
-    //  • geocoding in flight with no previous content
-    //  • geocoding finished but address + POI both empty (prevents "unknown address" flash)
-    val hasContent = cameraInfo != null && (!cameraInfo.displayLine.isNullOrBlank() || cameraInfo.placeInfo != null)
-    if (!hasContent) {
+    // ⛔ **Un esqueleto dice «te estoy preguntando esto AHORA MISMO», y sólo la pregunta en vuelo
+    // puede decirlo.** Esto se dibujaba a partir de «no tengo nada que enseñar», que es un estado
+    // SIN SALIDA: sin red el geocodificador CONTESTA igualmente —fase 1 vacía, sin vecino en caché
+    // que prestar— y esta cabecera latía para siempre, con el carril de debajo ya respondido y la
+    // conexión restablecida hacía rato. La diferencia entre «contestó una nada» y «no contestó
+    // nadie» ya es doctrina en el repositorio que produce esta respuesta
+    // [POI-A-FAILED-LOOKUP-IS-NOT-AN-ANSWER-001]; la única de las cuatro cabeceras de peek que no la
+    // aplicaba era esta. [HOME-A-SKELETON-SAYS-WE-ARE-ASKING-001]
+    //
+    // Contestada y sin nombre → la cabecera con el fallback honesto, que es exactamente lo que hacen
+    // los peeks de modo-pin al asentarse (`cameraTitleWhileSettling`). Y el nombre sale del
+    // resolutor COMPARTIDO, no de una tercera copia de la misma cadena de fallbacks: dos copias son
+    // dos formas de nombrar el mismo punto, y de regalo la aproximación se declara «Cerca de X» aquí
+    // también. [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001] [GEO-CACHE-ANSWERS-NEARBY-001]
+    if (browseHeaderIsStillAsking(cameraInfo, isCameraSettling)) {
         PeekLocationSkeleton()
         return
     }
-    val title = if (cameraInfo.placeInfo != null) cameraInfo.placeInfo.name
-                else cameraInfo.displayLine ?: stringResource(Res.string.home_address_unknown)
+    val title = placeLineText(cameraInfo.toPlaceLine()) ?: stringResource(Res.string.home_address_unknown)
     // Secondary address line keeps the three zone variants the same height, so the
     // resting peek never changes size under the divider. [BUG-PEEK-DIVIDER-ALIGN]
-    val secondaryLine = if (cameraInfo.placeInfo != null) {
-        cameraInfo.address.displayLine?.takeIf { it != cameraInfo.placeInfo.name }
-    } else {
-        listOfNotNull(cameraInfo.address.city, cameraInfo.address.region)
-            .joinToString(", ").takeIf { it.isNotEmpty() }
-    }
+    val secondaryLine = cameraInfo.secondaryPlaceLine()
     // ⛔ El sujeto de esta cabecera es el CARRIL, no siempre la zona.
     // [HOME-THE-WATCH-COMES-FIRST-AND-THE-HEADER-FOLLOWS-THE-LANE-001]
     //
@@ -392,6 +403,22 @@ internal fun BrowsePeek(
  *
  * ⛔ This is asked ONCE per closing, never frame by frame: see [nextLaneHeaderLatch].
  */
+/**
+ * ¿Sigue esta cabecera ESPERANDO el nombre del punto que mira la cámara — lo único que la autoriza a
+ * dibujar un esqueleto? [HOME-A-SKELETON-SAYS-WE-ARE-ASKING-001]
+ *
+ * Dos mitades, y la segunda es la que faltaba:
+ *  - **no hay nombre** que enseñar (`toPlaceLine`, el mismo resolutor que nombra el punto), y
+ *  - **la pregunta sigue viva**: la cámara moviéndose o el geocodificador en vuelo.
+ *
+ * ⛔ Sin la segunda, «no tengo nombre» era un estado sin salida. Sin red el geocodificador contesta
+ * igual —fase 1 vacía, sin vecino que prestar—, así que la cabecera latía para siempre encima de un
+ * carril que ya había respondido. Una respuesta sin nombre es una respuesta: se escribe
+ * («Dirección desconocida»), no se disimula con una animación de estar trabajando.
+ */
+internal fun browseHeaderIsStillAsking(cameraInfo: AddressAndPlace?, isCameraSettling: Boolean): Boolean =
+    cameraInfo.toPlaceLine() == null && isCameraSettling
+
 internal fun laneKeepsHeaderOnCollapse(
     laneCount: Int?,
     laneLoading: Boolean,

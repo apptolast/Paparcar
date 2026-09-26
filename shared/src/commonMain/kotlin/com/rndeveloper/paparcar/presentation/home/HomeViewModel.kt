@@ -50,6 +50,7 @@ import com.rndeveloper.paparcar.domain.model.SpotVoteOutcome
 import com.rndeveloper.paparcar.domain.usecase.spot.SendSpotSignalUseCase
 import com.rndeveloper.paparcar.presentation.util.distanceMeters
 import com.rndeveloper.paparcar.presentation.util.resilient
+import com.rndeveloper.paparcar.presentation.util.toPlaceLine
 import com.rndeveloper.paparcar.domain.event.MapFocusEventBus
 import com.rndeveloper.paparcar.domain.event.ShowParkingAskEventBus
 import com.rndeveloper.paparcar.domain.event.StartAddParkingEventBus
@@ -73,6 +74,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
@@ -260,6 +262,7 @@ class HomeViewModel(
         subscribePermissions()
         subscribeGpsLocation()
         subscribeMapFocusEvents()
+        subscribeReconnects()
         subscribeStartAddParkingRequests()
         subscribeShowParkingAsks()
         subscribeDetectionReadiness()
@@ -759,6 +762,18 @@ class HomeViewModel(
          * waiting for, and re-judges how far the camera is from the user.
          */
         FIX,
+
+        /**
+         * **La red ha vuelto.** Lo que no se pudo preguntar vuelve a preguntarse, en el sitio donde
+         * no se pudo: un fallo BORRA el ancla (ver `fetchFuelStations` / `fetchPublicParkings`), así
+         * que el carril caído entra por el camino normal de «nadie ha contestado sobre este centro»
+         * y el que ya tiene respuesta asentada no se re-pregunta.
+         *
+         * ⛔ No es la tormenta que [FIX] evita: el disparo no es un fix cada 5 s, es una transición
+         * Offline→Online, que en un viaje entero ocurre un puñado de veces.
+         * [HOME-A-SKELETON-SAYS-WE-ARE-ASKING-001]
+         */
+        RECONNECT,
     }
 
     /** Lanes that were entered with no centre to ask around; the first fix asks for them. */
@@ -1028,6 +1043,8 @@ class HomeViewModel(
             )
         }
         fuelJob = viewModelScope.launch {
+            // Same measurement as the car-parks lane below, for the same reason.
+            val askedAtMs = Clock.System.now().toEpochMilliseconds()
             val result = getNearbyFuelStations(lat, lon, fuelType)
             // A superseded ask writes nothing, even when a source folded the cancellation into a
             // failed Result.
@@ -1036,7 +1053,8 @@ class HomeViewModel(
                 .onSuccess { nearby ->
                     PaparcarLogger.d(
                         TAG,
-                        "fuel: ${nearby.stations.size} stations around $lat,$lon" +
+                        "fuel: ${nearby.stations.size} stations around $lat,$lon in " +
+                            "${Clock.System.now().toEpochMilliseconds() - askedAtMs} ms" +
                             // ⛔ Which feed answered was not logged anywhere, and that is how a
                             // country reported as "publishes no prices" went unexamined for days.
                             (if (nearby.didFallBack) " (substitute: the national feed was not used)" else ""),
@@ -1067,7 +1085,8 @@ class HomeViewModel(
                 // transient 504 once left Paris blank until the user panned kilometres away.
                 // [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001] [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
                 .onFailure { e ->
-                    PaparcarLogger.w(TAG, "fuel stations lookup failed", e)
+                    val spentMs = Clock.System.now().toEpochMilliseconds() - askedAtMs
+                    PaparcarLogger.w(TAG, "fuel stations lookup failed after $spentMs ms", e)
                     updateState {
                         copy(
                             fuel = fuel.copy(
@@ -1102,6 +1121,12 @@ class HomeViewModel(
             )
         }
         parkingsJob = viewModelScope.launch {
+            // ⛔ **Cuánto tardó** — el único número que nadie registraba, y sin él «parkings tarda
+            // mucho» no se puede diagnosticar: la espera puede ser el mirror pensando, la caminata
+            // entre mirrors, o la ranura única de Overpass ocupada por otro carril
+            // (`OverpassQuota`, 10 s de techo). Las tres se leen igual en pantalla y distinto aquí.
+            // [HOME-A-SKELETON-SAYS-WE-ARE-ASKING-001]
+            val askedAtMs = Clock.System.now().toEpochMilliseconds()
             // ⛔ **What we already know, BEFORE the wire.**
             // [PARKINGS-A-REMEMBERED-MAP-ANSWERS-BEFORE-THE-NETWORK-001]
             //
@@ -1141,7 +1166,8 @@ class HomeViewModel(
                 .onSuccess { found ->
                     PaparcarLogger.d(
                         TAG,
-                        "parkings: ${found.parkings.size} car parks around $lat,$lon" +
+                        "parkings: ${found.parkings.size} car parks around $lat,$lon in " +
+                            "${Clock.System.now().toEpochMilliseconds() - askedAtMs} ms" +
                             (found.rememberedAtMs?.let { " (remembered from $it)" } ?: ""),
                     )
                     updateState {
@@ -1161,7 +1187,8 @@ class HomeViewModel(
                 }
                 // Same rule as fuel: no rows, no anchor, and the lane says it could not ask.
                 .onFailure { e ->
-                    PaparcarLogger.w(TAG, "public parkings lookup failed", e)
+                    val spentMs = Clock.System.now().toEpochMilliseconds() - askedAtMs
+                    PaparcarLogger.w(TAG, "public parkings lookup failed after $spentMs ms", e)
                     updateState {
                         copy(
                             parkings = parkings.copy(
@@ -1798,6 +1825,19 @@ class HomeViewModel(
         combine(permissionManager.permissionState, mapForeground, onlineAgain()) { perm, foreground, _ ->
             perm.hasCorePermissions to foreground
         }
+            // ⛔ **Sin permiso no hay pregunta en vuelo, y por tanto no hay espera que enseñar.**
+            // [HOME-A-SKELETON-SAYS-WE-ARE-ASKING-001]
+            //
+            // `isLoading` se enciende UNA vez, al abrir la suscripción, y sólo lo apagaba un fix
+            // — que sin permiso no llega nunca. Resultado: el velo de carga del mapa y el esqueleto
+            // de filas del carril de plazas puestos para siempre, tapando justo la frase que
+            // [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001] escribió para este momento («no se ha
+            // preguntado», que no es «no hay plazas»): era inalcanzable porque la rama de carga se
+            // comprueba antes.
+            //
+            // Con permiso y sin fix todavía, la espera SÍ es verdad —al GPS se le está preguntando—
+            // y el esqueleto se queda.
+            .onEach { (hasCore, _) -> if (!hasCore) updateState { copy(isLoading = false) } }
             .flatMapLatest { (hasCore, foreground) ->
                 if (hasCore && foreground) instrumentedHighAccuracyLocation() else emptyFlow()
             }
@@ -1873,6 +1913,49 @@ class HomeViewModel(
             .onStart { emit(ConnectivityStatus.Online) }
             .distinctUntilChanged()
             .filter { it == ConnectivityStatus.Online }
+
+    /**
+     * **Al volver la red se vuelve a preguntar lo que no se pudo contestar.**
+     * [HOME-A-SKELETON-SAYS-WE-ARE-ASKING-001]
+     *
+     * El observador de conectividad ya existía y esta pantalla ya lo escuchaba — pero sólo para
+     * reconstruir la suscripción de plazas. Todo lo demás se quedaba con la respuesta del apagón:
+     * la dirección de la cámara sin nombre y el carril con su `failed` puesto, esperando a que el
+     * usuario moviera el mapa. En la captura del 26-09 a las 00:59 el banner verde decía «Conexión
+     * restablecida» **encima** de una cabecera que seguía sin nombre.
+     *
+     * ⛔ Re-preguntar no es re-descargar: un carril con respuesta asentada que cubre la cámara no
+     * pregunta nada (ver [refreshNearby]), y un punto ya nombrado tampoco. Sólo revive lo que quedó
+     * sin contestar.
+     */
+    private fun subscribeReconnects() {
+        onlineAgain()
+            // ⛔ La primera emisión de [onlineAgain] es sintética: dice «hay red», no «ha vuelto la
+            // red». Si la app arrancó sin cobertura, la sintética y la real son dos emisiones
+            // distintas (el `distinctUntilChanged` sólo colapsa la repetida del arranque CON red),
+            // así que quitar una deja exactamente las reconexiones.
+            .drop(1)
+            .collectSafely("reconnect") {
+                PaparcarLogger.d(TAG, "network is back — re-asking what could not be answered")
+                HomeNearbyLens.entries.forEach { refreshNearby(it, NearbyTrigger.RECONNECT) }
+                regeocodeUnnamedPoints()
+            }
+    }
+
+    /**
+     * Los puntos que la red dejó SIN NOMBRE se vuelven a preguntar. Un punto nombrado —aunque sea
+     * con el vecino prestado de la caché— ya tiene respuesta y no se toca.
+     * [HOME-A-SKELETON-SAYS-WE-ARE-ASKING-001]
+     */
+    private fun regeocodeUnnamedPoints() {
+        val current = state.value
+        if (current.cameraAddressAndPlace.toPlaceLine() == null) {
+            viewportCentreOrGps()?.let { (lat, lon) -> geocodeCameraLocation(lat, lon) }
+        }
+        if (current.userAddressAndPlace.toPlaceLine() == null) {
+            current.userGpsPoint?.let { geocodeUserLocation(it.latitude, it.longitude) }
+        }
+    }
 
     private fun subscribeMapFocusEvents() {
         mapFocusEventBus.events

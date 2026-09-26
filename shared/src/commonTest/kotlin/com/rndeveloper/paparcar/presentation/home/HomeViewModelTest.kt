@@ -3223,6 +3223,75 @@ class HomeViewModelTest {
         assertTrue(!slice.isLoading)
     }
 
+    /**
+     * ⛔ **Sin permiso de ubicación nadie está preguntando, así que no hay espera que enseñar.**
+     * [HOME-A-SKELETON-SAYS-WE-ARE-ASKING-001]
+     *
+     * `isLoading` se encendía al abrir la suscripción de GPS y sólo lo apagaba un fix — que sin
+     * permiso no llega jamás: velo de carga en el mapa y esqueleto de filas en el carril, para
+     * siempre, tapando la frase «no se ha preguntado» que
+     * [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001] escribió justo para este momento.
+     */
+    @Test
+    fun `should_stopWaiting_when_nobodyIsAskingTheGps`() = runTest(testDispatcher) {
+        permissions.emit(FakePermissionManager.allDenied())
+        advanceUntilIdle()
+
+        assertFalse(vm.state.value.isLoading, "sin permiso no hay pregunta en vuelo que esperar")
+        assertTrue(vm.state.value.spotsUnasked, "y la frase honesta queda alcanzable")
+    }
+
+    /**
+     * ⛔ **Al volver la red se vuelve a preguntar lo que no se pudo contestar.**
+     * [HOME-A-SKELETON-SAYS-WE-ARE-ASKING-001]
+     *
+     * Un fallo borra el ancla a propósito, para que cualquier movimiento reintente — pero el usuario
+     * que se queda quieto mirando la pantalla no mueve nada, y el carril se quedaba caído con la
+     * conexión ya restablecida encima.
+     */
+    @Test
+    fun `should_askTheFallenLaneAgain_when_theNetworkComesBack`() = runTest(testDispatcher) {
+        parkingsSource.result = Result.failure(IllegalStateException("Overpass answered 504"))
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
+        advanceUntilIdle()
+        assertTrue(vm.state.value.parkings.failed)
+        val asksWhileDown = parkingsSource.askCount
+
+        parkingsSource.result = Result.success(listOf(spyParking()))
+        connectivity.emit(ConnectivityStatus.Offline)
+        connectivity.emit(ConnectivityStatus.Online)
+        advanceUntilIdle()
+
+        assertEquals(asksWhileDown + 1, parkingsSource.askCount, "la red volvió: el carril caído pregunta")
+        assertFalse(vm.state.value.parkings.failed)
+        assertEquals(1, vm.state.value.parkings.parkings.size)
+    }
+
+    /**
+     * ⛔ …y re-preguntar NO es re-descargar: un carril con respuesta asentada que cubre la cámara no
+     * debe nada a nadie por que el wifi haya parpadeado.
+     */
+    @Test
+    fun `should_askNobodyAgain_when_theNetworkComesBackAndTheLaneAlreadyAnswered`() = runTest(testDispatcher) {
+        parkingsSource.result = Result.success(listOf(spyParking()))
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
+        advanceUntilIdle()
+        val asksWhileUp = parkingsSource.askCount
+        assertTrue(asksWhileUp > 0)
+
+        connectivity.emit(ConnectivityStatus.Offline)
+        connectivity.emit(ConnectivityStatus.Online)
+        advanceUntilIdle()
+
+        assertEquals(asksWhileUp, parkingsSource.askCount, "la respuesta ya cubre esta cámara")
+    }
+
     @Test
     fun `should_askNobody_when_thereIsNoFix_andSayItCouldNotAsk`() = runTest(testDispatcher) {
         permissions.emit(FakePermissionManager.allGranted())
