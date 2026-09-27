@@ -24,12 +24,22 @@ service cloud.firestore {
       // `PROVISIONAL_SPOT_TTL_MS` 12 min, así que 3 h deja sitio al desfase de reloj del cliente
       // —el `expiresAt` lo calcula ÉL— sin dejar publicar una plaza que grite durante un mes.
       // Si el TTL sube, este número sube con él, y por eso está escrito de dónde viene.
+      //
+      // ⛔ La lista de estados es una COPIA del enum `SpotStatus`, en otro lenguaje y sin
+      // compilador que las ate — por eso la vigila `SpotStatusRulesParityGuardrailTest`. Aquí
+      // faltó `RELEASING` durante tres días y la plaza del embarque no se publicó ni una vez: la
+      // nominación es siempre la PRIMERA escritura de su documento, así que entra por ESTA puerta.
+      // El denied era mudo (worker con reintentos, descartado al vencer su TTL en cola).
+      // [SEC-A-RELEASING-SPOT-IS-DENIED-AT-THE-DOOR-001]
+      //
+      // `RETRACTED` NO está, y no es un olvido: una retractación sólo aterriza sobre un documento
+      // que ya existe. Crear una plaza ya retirada es escribir una lápida.
       allow create: if request.auth != null
                     && request.resource.data.reportedBy == request.auth.uid
                     && request.resource.data.expiresAt is int
                     && request.resource.data.expiresAt > request.time.toMillis()
                     && request.resource.data.expiresAt < request.time.toMillis() + 3 * 60 * 60 * 1000
-                    && request.resource.data.status in ['CONFIRMED', 'PROVISIONAL'];
+                    && request.resource.data.status in ['CONFIRMED', 'PROVISIONAL', 'RELEASING'];
 
       allow update: if request.auth != null
                     && (
@@ -42,7 +52,12 @@ service cloud.firestore {
                           && request.resource.data.reportedBy == resource.data.reportedBy
                           && request.resource.data.expiresAt is int
                           && request.resource.data.expiresAt < request.time.toMillis() + 3 * 60 * 60 * 1000
-                          && request.resource.data.status in ['CONFIRMED', 'PROVISIONAL', 'RETRACTED'])
+                          // Los CUATRO estados: por aquí pasan la promoción `RELEASING →
+                          // CONFIRMED` (el mecanismo entero de
+                          // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001], un documento que cambia de
+                          // estado y no dos plazas) y el reintento del worker sobre una nominación
+                          // que ya se escribió, que `set()` evalúa como UPDATE.
+                          && request.resource.data.status in ['CONFIRMED', 'PROVISIONAL', 'RELEASING', 'RETRACTED'])
                          // Un tercero sólo puede tocar los contadores comunitarios.
                          || request.resource.data.diff(resource.data).affectedKeys()
                               .hasOnly(['enRouteCount', 'acceptCount', 'rejectCount'])

@@ -34,6 +34,23 @@ describe('spots', () => {
     await assertFails(setDoc(spot(MEMBER), body({ status: 'RETRACTED' })));
   });
 
+  // [SEC-A-RELEASING-SPOT-IS-DENIED-AT-THE-DOOR-001] La plaza del embarque entra por CREATE —
+  // es la primera escritura de su documento— y la lista blanca no la conocía: tres días sin que
+  // saliera ni una, en silencio.
+  test('la plaza de un embarque SÍ se publica', async () => {
+    await assertSucceeds(setDoc(spot(MEMBER), body({ status: 'RELEASING' })));
+  });
+
+  test('la salida real promociona el MISMO documento, no publica otra plaza', async () => {
+    await assertSucceeds(setDoc(spot(MEMBER), body({ status: 'RELEASING' })));
+    await assertSucceeds(updateDoc(spot(MEMBER), { status: 'CONFIRMED' }));
+  });
+
+  test('el reintento del worker sobre una nominación ya escrita pasa', async () => {
+    await assertSucceeds(setDoc(spot(MEMBER), body({ status: 'RELEASING' })));
+    await assertSucceeds(setDoc(spot(MEMBER), body({ status: 'RELEASING' })));
+  });
+
   test('firmada con el uid de otro no se publica', async () => {
     await assertFails(setDoc(spot(MEMBER), body({ reportedBy: OUTSIDER })));
   });

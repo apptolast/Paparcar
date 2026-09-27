@@ -36,7 +36,13 @@ export interface PublishedSpot {
 }
 
 /** Why a spot was not announced at all. Named, so the log says something a human can act on. */
-export type SkipReason = 'no-geohash' | 'retracted' | 'already-expired';
+export type SkipReason =
+  | 'no-geohash'
+  | 'retracted'
+  | 'releasing'
+  | 'already-expired'
+  | 'gone'
+  | 'already-announced';
 
 export type SpotVerdict =
   | { kind: 'skip'; reason: SkipReason }
@@ -57,19 +63,32 @@ export function distanceMeters(
   return 2 * earthRadius * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+/** What a spot would be announced AS, or why it would not be announced at all. */
+type Offer =
+  | { ok: true; cell: string; isProvisional: boolean; expiresAt: number }
+  | { ok: false; reason: SkipReason };
+
 /**
- * Is this spot worth looking anybody up for, and in which cell.
+ * Does this spot, as it stands, offer a stranger a plaza right now?
  *
- * PROVISIONAL is announced — it is the freshest thing on the map and the one the old fifteen-minute
- * poll could never reach — but it comes back flagged, so the copy can say it is not confirmed.
+ * Asked of one VERSION of the document, so `verdictFor` can ask it of the document before and
+ * after the write and announce only the crossing between the two.
  */
-export function verdictFor(spot: PublishedSpot, nowMs: number): SpotVerdict {
+function offer(spot: PublishedSpot | undefined, nowMs: number): Offer {
+  if (!spot) return { ok: false, reason: 'gone' };
   if (!spot.geohash || spot.geohash.length < CELL_PRECISION) {
-    return { kind: 'skip', reason: 'no-geohash' };
+    return { ok: false, reason: 'no-geohash' };
   }
-  // Never reaches here on a create, but a spot written already-withdrawn would be a notification
-  // about a space the app itself does not believe in.
-  if (spot.status === 'RETRACTED') return { kind: 'skip', reason: 'retracted' };
+  // A spot written already-withdrawn would be a notification about a space the app itself does not
+  // believe in.
+  if (spot.status === 'RETRACTED') return { ok: false, reason: 'retracted' };
+
+  // ⛔ [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] Un embarque NO se anuncia, por las dos mitades de
+  // esa razón y cada una basta: la plaza vive CUATRO minutos, y sobre todo el coche **sigue
+  // dentro** — un push diciendo «hay una plaza en tu zona» sería falso en el instante en que
+  // suena. Mismo veredicto que `ZoneSpotAlertPolicy` toma en el cliente: son las dos mitades de
+  // la misma promesa y no pueden discrepar. Lo que sí se anuncia es su PROMOCIÓN, más abajo.
+  if (spot.status === 'RELEASING') return { ok: false, reason: 'releasing' };
 
   // Una plaza sin caducidad NO se anuncia. [SEC-A-SPOT-IS-NOT-A-MEGAPHONE-001]
   //
@@ -78,13 +97,47 @@ export function verdictFor(spot: PublishedSpot, nowMs: number): SpotVerdict {
   // nueva impide crearlas, pero una regla no repara las filas que ya existen: esto si.
   const expiresAt = typeof spot.expiresAt === 'number' ? spot.expiresAt : 0;
   if (expiresAt === 0 || expiresAt <= nowMs) {
-    return { kind: 'skip', reason: 'already-expired' };
+    return { ok: false, reason: 'already-expired' };
   }
   return {
-    kind: 'announce',
+    ok: true,
     cell: spot.geohash.slice(0, CELL_PRECISION),
     isProvisional: spot.status === 'PROVISIONAL',
     expiresAt,
+  };
+}
+
+/**
+ * Is this WRITE worth looking anybody up for, and in which cell.
+ *
+ * ⛔ El veredicto es sobre la TRANSICIÓN, no sobre el documento — se anuncia cuando el documento
+ * pasa a ofrecer una plaza y antes no la ofrecía. [SEC-A-RELEASING-SPOT-IS-DENIED-AT-THE-DOOR-001]
+ *
+ * Nació preguntando sólo por el documento nuevo porque su disparador era `onDocumentCreated`, y
+ * «creado» y «pasa a haber plaza» eran lo mismo. Dejaron de serlo con el embarque: la nominación
+ * gasta el CREATE diciendo que el coche sigue dentro, así que la salida real —la única noticia de
+ * verdad— llega como un UPDATE que aquel disparador no veía. Con el veredicto en la transición, la
+ * plaza se anuncia una vez y en el momento en que existe, venga por donde venga.
+ *
+ * PROVISIONAL is announced — it is the freshest thing on the map and the one the old fifteen-minute
+ * poll could never reach — but it comes back flagged, so the copy can say it is not confirmed. Su
+ * promoción a CONFIRMED no vuelve a anunciar: ya avisó al nacer.
+ */
+export function verdictFor(
+  before: PublishedSpot | undefined,
+  after: PublishedSpot | undefined,
+  nowMs: number,
+): SpotVerdict {
+  const now = offer(after, nowMs);
+  if (!now.ok) return { kind: 'skip', reason: now.reason };
+  // Ya había plaza antes de esta escritura: un contador comunitario, una promoción de
+  // PROVISIONAL a CONFIRMED… noticia del documento, no de la plaza.
+  if (offer(before, nowMs).ok) return { kind: 'skip', reason: 'already-announced' };
+  return {
+    kind: 'announce',
+    cell: now.cell,
+    isProvisional: now.isProvisional,
+    expiresAt: now.expiresAt,
   };
 }
 

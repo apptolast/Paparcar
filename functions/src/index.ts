@@ -1,4 +1,4 @@
-import { onDocumentCreated, onDocumentWritten } from 'firebase-functions/v2/firestore';
+import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { setGlobalOptions } from 'firebase-functions/v2';
 import * as logger from 'firebase-functions/logger';
 import { initializeApp } from 'firebase-admin/app';
@@ -72,24 +72,43 @@ const APNS_BACKGROUND = {
  *
  * ⛔ This function does I/O and nothing else. Every decision lives in `fanout.ts`, where it can be
  * tested without publishing a real spot and staring at a real phone.
+ *
+ * ⛔ `onDocumentWritten` y no `onDocumentCreated`, por la misma razón que `onSharedCarParked`: la
+ * noticia no es que el documento nazca. Desde [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] una plaza
+ * puede NACER diciendo que el coche sigue dentro (`RELEASING`) y volverse plaza de verdad en un
+ * UPDATE, que el disparador de creación no veía — las alertas de zona habrían dejado de salir en
+ * silencio justo para las plazas mejor detectadas.
+ * [SEC-A-RELEASING-SPOT-IS-DENIED-AT-THE-DOOR-001]
  */
-export const onSpotPublished = onDocumentCreated('spots/{spotId}', async (event) => {
-  const raw = event.data?.data();
-  if (!raw) return;
-
+export const onSpotPublished = onDocumentWritten('spots/{spotId}', async (event) => {
   const spotId = event.params.spotId;
-  const spot: PublishedSpot = {
+  const beforeRaw = event.data?.before?.data();
+  const afterRaw = event.data?.after?.data();
+  // Un borrado no es noticia para nadie: la plaza deja de estar y el mapa lo ve solo.
+  if (!afterRaw) return;
+
+  const after: PublishedSpot = {
     id: spotId,
-    latitude: raw.latitude,
-    longitude: raw.longitude,
-    geohash: raw.geohash,
-    reportedBy: raw.reportedBy,
-    status: raw.status,
-    expiresAt: raw.expiresAt,
+    latitude: afterRaw.latitude,
+    longitude: afterRaw.longitude,
+    geohash: afterRaw.geohash,
+    reportedBy: afterRaw.reportedBy,
+    status: afterRaw.status,
+    expiresAt: afterRaw.expiresAt,
   };
+  const before: PublishedSpot | undefined = beforeRaw && {
+    id: spotId,
+    latitude: beforeRaw.latitude,
+    longitude: beforeRaw.longitude,
+    geohash: beforeRaw.geohash,
+    reportedBy: beforeRaw.reportedBy,
+    status: beforeRaw.status,
+    expiresAt: beforeRaw.expiresAt,
+  };
+  const spot = after;
 
   const now = Date.now();
-  const verdict = verdictFor(spot, now);
+  const verdict = verdictFor(before, after, now);
   if (verdict.kind === 'skip') {
     logger.info('spot not announced', { spotId, reason: verdict.reason });
     return;

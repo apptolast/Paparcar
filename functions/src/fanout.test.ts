@@ -52,7 +52,7 @@ function spot(over: Partial<PublishedSpot> = {}): PublishedSpot {
 }
 
 test('announces a confirmed spot and names its cell', () => {
-  const verdict = verdictFor(spot(), NOW);
+  const verdict = verdictFor(undefined, spot(), NOW);
   assert.equal(verdict.kind, 'announce');
   if (verdict.kind !== 'announce') return;
   assert.equal(verdict.cell, 'ezjmgx');
@@ -60,29 +60,29 @@ test('announces a confirmed spot and names its cell', () => {
 });
 
 test('announces a PROVISIONAL spot, flagged — it is what push unlocks', () => {
-  const verdict = verdictFor(spot({ status: 'PROVISIONAL' }), NOW);
+  const verdict = verdictFor(undefined, spot({ status: 'PROVISIONAL' }), NOW);
   assert.equal(verdict.kind, 'announce');
   if (verdict.kind !== 'announce') return;
   assert.equal(verdict.isProvisional, true);
 });
 
 test('skips a spot with no usable geohash — there is nothing to look up', () => {
-  assert.deepEqual(verdictFor(spot({ geohash: undefined }), NOW), {
+  assert.deepEqual(verdictFor(undefined, spot({ geohash: undefined }), NOW), {
     kind: 'skip', reason: 'no-geohash',
   });
-  assert.deepEqual(verdictFor(spot({ geohash: 'ez' }), NOW), {
+  assert.deepEqual(verdictFor(undefined, spot({ geohash: 'ez' }), NOW), {
     kind: 'skip', reason: 'no-geohash',
   });
 });
 
 test('skips a RETRACTED spot — the app itself stopped believing in it', () => {
-  assert.deepEqual(verdictFor(spot({ status: 'RETRACTED' }), NOW), {
+  assert.deepEqual(verdictFor(undefined, spot({ status: 'RETRACTED' }), NOW), {
     kind: 'skip', reason: 'retracted',
   });
 });
 
 test('skips a spot that died before the trigger ran', () => {
-  assert.deepEqual(verdictFor(spot({ expiresAt: NOW - 1 }), NOW), {
+  assert.deepEqual(verdictFor(undefined, spot({ expiresAt: NOW - 1 }), NOW), {
     kind: 'skip', reason: 'already-expired',
   });
 });
@@ -92,9 +92,45 @@ test('skips a spot that died before the trigger ran', () => {
 // campo es una plaza que no caduca nunca y un aviso en el movil de desconocidos, asi que la
 // prudencia cambia de lado: sin caducidad valida no se anuncia.
 test('a spot with no TTL at all is not announced', () => {
-  assert.deepEqual(verdictFor(spot({ expiresAt: 0 }), NOW), {
+  assert.deepEqual(verdictFor(undefined, spot({ expiresAt: 0 }), NOW), {
     kind: 'skip', reason: 'already-expired',
   });
+});
+
+/**
+ * [SEC-A-RELEASING-SPOT-IS-DENIED-AT-THE-DOOR-001] El embarque y su promoción.
+ *
+ * Los cuatro juntos son el veredicto entero: la plaza se anuncia UNA vez, y en el instante en que
+ * existe de verdad — que desde el embarque ya no es el nacimiento del documento.
+ */
+test('un embarque no se anuncia: el coche sigue dentro', () => {
+  assert.deepEqual(verdictFor(undefined, spot({ status: 'RELEASING' }), NOW), {
+    kind: 'skip', reason: 'releasing',
+  });
+});
+
+test('la salida real SÍ se anuncia, aunque llegue como update', () => {
+  const verdict = verdictFor(spot({ status: 'RELEASING' }), spot(), NOW);
+  assert.equal(verdict.kind, 'announce');
+  if (verdict.kind !== 'announce') return;
+  assert.equal(verdict.cell, 'ezjmgx');
+  assert.equal(verdict.isProvisional, false);
+});
+
+test('un contador comunitario no vuelve a anunciar la misma plaza', () => {
+  assert.deepEqual(verdictFor(spot(), spot(), NOW), {
+    kind: 'skip', reason: 'already-announced',
+  });
+});
+
+test('promocionar una provisional a confirmada no reanuncia: ya avisó al nacer', () => {
+  assert.deepEqual(verdictFor(spot({ status: 'PROVISIONAL' }), spot(), NOW), {
+    kind: 'skip', reason: 'already-announced',
+  });
+});
+
+test('borrar una plaza no es noticia', () => {
+  assert.deepEqual(verdictFor(spot(), undefined, NOW), { kind: 'skip', reason: 'gone' });
 });
 
 test('never tells you about the space you just left', () => {

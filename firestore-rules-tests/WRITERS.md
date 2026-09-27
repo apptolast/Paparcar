@@ -35,6 +35,7 @@
 |---|---|
 | `publishSpot` (`set`, que sobre un doc existente evalúa **update**) | `spots.test.ts` · *publicar* · *sin caducidad* · *a un mes vista* · *estado que el cliente no escribe* · *firmada con el uid de otro* · **el dueño NO puede estirar la caducidad** |
 | `refreshSpot` / republicación | `spots.test.ts` · *el dueño republica dentro del techo* |
+| `publishSpot` con `claim = RELEASING` (la plaza del embarque) | `spots.test.ts` · *la plaza de un embarque SÍ se publica* · *la salida real promociona el MISMO documento* · *el reintento del worker* — ⛔ la lista de estados de la regla es una copia de `SpotStatus` y la ata `SpotStatusRulesParityGuardrailTest` |
 | `retractSpot` | `spots.test.ts` · *retractar es un update legítimo* |
 | contadores comunitarios | `spots.test.ts` · *un tercero solo toca los contadores* |
 | `deleteSpot` (barrido pasivo) | `spots.test.ts` · *cualquiera borra una plaza YA caducada, nadie una viva ajena* |
