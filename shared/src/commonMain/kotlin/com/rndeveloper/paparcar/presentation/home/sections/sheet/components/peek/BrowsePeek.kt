@@ -55,11 +55,10 @@ import paparcar.composeapp.generated.resources.home_browse_parked_meta
 import paparcar.composeapp.generated.resources.home_det_ask_eyebrow
 import paparcar.composeapp.generated.resources.home_det_monitoring
 import paparcar.composeapp.generated.resources.home_peek_car_parked_label
+import paparcar.composeapp.generated.resources.home_peek_parking_unmarked_title
 import paparcar.composeapp.generated.resources.home_peek_vehicle_parked_label
 import paparcar.composeapp.generated.resources.home_peek_vehicle_status
-import paparcar.composeapp.generated.resources.home_vehicle_chip_mark_parking
 import paparcar.composeapp.generated.resources.home_vehicle_chip_status_candidate
-import paparcar.composeapp.generated.resources.home_vehicle_chip_unmarked
 import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
 import paparcar.composeapp.generated.resources.location_approximate_near
 import paparcar.composeapp.generated.resources.location_fallback_parking
@@ -136,178 +135,40 @@ internal fun BrowsePeek(
     // un `onDismiss` vacío: un botón de cerrar que no cerraba nada. Hoy la ✕ nace de la lambda, así
     // que no pasarla ES no tener salida. [UI-A-CLOSE-X-MUST-CLOSE-SOMETHING-001]
 
-    // ── Subject = the car being driven RIGHT NOW (monitored trip) ─────────────
-    // Collapsed peek only. A live trip OUTRANKS any parked car — the vehicle being actively
-    // monitored is the one standing in for the user, same hierarchy the readiness already follows
-    // (Monitoring > Parked). The live phase reads in the eyebrow — EN RUTA while driving,
-    // APARCANDO… once it stops and the detector is confirming a spot — and the address follows the
-    // moving car via the camera geocode. This is where the removed floating "monitoring" pill's
-    // status now lives. [DET-STATUS-SHEET-001] [UI-BROWSE-DRIVING-OVER-PARKED-001]
+    // ── Sujeto = un COCHE ─────────────────────────────────────────────────────
+    // ⛔ Las tres ramas de coche viven en composables propios CUYA FIRMA NO VE `cameraInfo`. No es
+    // organización del fichero: es el invariante hecho estructura. *Si el sujeto de la cabecera es
+    // un COCHE, el título nombra al coche — nunca a la cámara.* Esa regla se rompió TRES veces en
+    // esta misma cabecera —el viaje vivo [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001], el coche aparcado
+    // [UI-SHEET-004] («un coche aparcado en dos sitios») y el coche sin marcar
+    // [HOME-AN-UNMARKED-CAR-HAS-NO-ADDRESS-001]— y las tres veces el arreglo fue el mismo: quitarle
+    // la cámara. Escrita como comentario se saltó tres veces; escrita como firma hay que ampliarla
+    // a propósito para volver a saltársela.
     //
-    // ⛔ Deliberately NOT released by `laneHeaderLatched`: a live trip (and the "did you park?"
-    // question it carries) is news, not the first-launch summary of your car — and collapsed, this
-    // eyebrow is the only place Home says it. [HOME-PEEK-FOLLOWS-THE-LANE-ONCE-OPENED-001]
+    // `cameraInfo` se queda donde su sujeto SÍ es la cámara: la cabecera del carril, al final.
+
     if (drivingMeta != null && !showZoneHeader) {
-        val vehicleName = vehicleSummary(drivingVehicle) ?: stringResource(Res.string.home_vehicle_fallback_name)
-        val isCandidate = drivingMeta.phase == DetectionPhase.Candidate
-        // Reuse the already-translated phase words (same as the old pill / vehicle chip) so the eyebrow
-        // stays i18n-complete without new per-locale strings. [DET-STATUS-SHEET-001]
-        //
-        // [DET-ASK-STATE-001] An OPEN question outranks both phase words: while the sheet is closed
-        // this eyebrow is the only voice Home has, and "APARCANDO…" reads as "sit back, I'm working"
-        // at the exact moment the app is waiting on the user. The answer itself lives one drag away,
-        // in the row the expanded sheet renders — the peek's job is to say there IS something to
-        // answer, not to grow a third pair of buttons.
-        val phaseWord = stringResource(
-            when {
-                isAwaitingAnswer -> Res.string.home_det_ask_eyebrow
-                isCandidate -> Res.string.home_vehicle_chip_status_candidate
-                else -> Res.string.home_det_monitoring
-            },
-        )
-        // [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001] The subject here is the CAR, so the address comes
-        // from the car — its own geocode, resolved by the slice. It used to come from the camera,
-        // which reads right only while the camera happens to be following the trip: pan the map
-        // mid-drive and this header calmly told you your car was on the street you were looking at,
-        // with the car's name next to it. That is the driving twin of the "one car parked in two
-        // places" bug [UI-SHEET-004] already fixed for the parked branch below. The camera keeps
-        // exactly the subject it owns: the zone header at the bottom of this file.
-        val title = placeLineText(drivingPlace) ?: stringResource(Res.string.home_address_unknown)
-        val secondaryLine = drivingSecondaryLine
-        val identity = vehicleIdentityColor(drivingVehicle?.monitoringStatus()?.watch() ?: VehicleWatch.Off)
-        PapSheet(
-            lead = PapSheetLead.Vehicle(
-                carbody = drivingVehicle?.carbodyType,
-                size = drivingVehicle?.sizeCategory,
-                color = drivingVehicle?.color,
-                loading = drivingVehicle == null,
-                // The trip is live, so the tile breathes — the same halo the vehicle chip shows one
-                // surface below. Without it the same trip looked alive in the chip and dead here.
-                // [UI-PEEK-DRIVING-HAS-NO-MOTION-001]
-                drivingHaloColor = identity,
-            ),
-            eyebrow = stringResource(Res.string.home_peek_vehicle_status, vehicleName, phaseWord).uppercase(),
-            // Only the NAME wears the identity colour (watch method); the phase word ("EN RUTA" /
-            // "APARCANDO…") is state and stays neutral — and, being state in motion, it BREATHES.
-            // The pulse rides the base eyebrow colour, so it reaches the phase words while the
-            // name's own span keeps its opaque identity colour: no new API, and the vehicle never
-            // blinks. [UI-COLOR-DOCTRINE-001] [UI-PEEK-DRIVING-HAS-NO-MOTION-001]
-            eyebrowColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = rememberDrivingStatePulse()),
-            eyebrowHighlight = vehicleName,
-            eyebrowHighlightColor = identity,
-            title = title,
-            subtitle = secondaryLine,
-            // No free-spots pill in the collapsed peek: the count already reads once the sheet is
-            // expanded (spots section header), so a trailing pill here just duplicates it.
+        DrivingCarHeader(
+            drivingVehicle = drivingVehicle,
+            drivingMeta = drivingMeta,
+            isAwaitingAnswer = isAwaitingAnswer,
+            drivingPlace = drivingPlace,
+            drivingSecondaryLine = drivingSecondaryLine,
         )
         return
     }
 
-    // ── Subject = the parked car (collapsed peek, no live trip, Browse never opened) ──
-    // Title/sub come from THE SESSION — static. The camera must never drag your parked
-    // car around ("one car parked in two places"). Expanded browse hands the header to
-    // the zone below: the car's info lives in its TUS VEHÍCULOS card. [UI-SHEET-004]
-    // Once Browse has been opened, the collapsed peek keeps the lane too.
-    // [HOME-PEEK-FOLLOWS-THE-LANE-ONCE-OPENED-001]
     if (parking != null && !followsLane) {
-        val vehicleName = vehicleSummary(parkingVehicle)
-        val eyebrow = if (vehicleName != null) {
-            stringResource(Res.string.home_peek_vehicle_parked_label, vehicleName)
-        } else {
-            stringResource(Res.string.home_peek_car_parked_label)
-        }
-        // [UI-APPROXIMATE-ZONE-IN-HISTORY-001] An approximate session reads "Near X" here too:
-        // this collapsed header has no ApproximateZoneRow below it (that lives in the parking
-        // peek), so the title itself must not claim a point the session refused to claim. The
-        // fallback stays plain — "Parking" names nothing exact to soften.
-        val resolvedTitle = peekTitle(
-            placeName = parking.placeInfo?.name,
-            addressLine = parking.address?.displayLine,
-            fallback = "",
-        ).takeIf { it.isNotBlank() }
-        val title = when {
-            resolvedTitle != null && parking.isApproximate ->
-                stringResource(Res.string.location_approximate_near, resolvedTitle)
-            resolvedTitle != null -> resolvedTitle
-            else -> stringResource(Res.string.location_fallback_parking)
-        }
-        val distM = userGpsPoint?.let {
-            distanceMeters(it.latitude, it.longitude, parking.location.latitude, parking.location.longitude)
-        }
-        val subtitle = if (parking.location.timestamp > 0L) {
-            val ago = compactRelativeTimeText(parking.location.timestamp)
-            if (distM != null) {
-                stringResource(Res.string.home_browse_parked_meta, ago, distanceString(distM))
-            } else {
-                stringResource(Res.string.home_browse_parked_ago, ago)
-            }
-        } else null
-        PapSheet(
-            lead = PapSheetLead.Vehicle(
-                carbody = parkingVehicle?.carbodyType,
-                size = parkingVehicle?.sizeCategory,
-                color = parkingVehicle?.color,
-                // Session's vehicle still resolving from Room → skeleton, not the generic fallback car.
-                loading = parkingVehicle == null,
-            ),
-            eyebrow = eyebrow.uppercase(),
-            // Only the NAME wears the vehicle's identity colour; "· APARCADO" is state and stays
-            // neutral. [UI-COLOR-DOCTRINE-001]
-            eyebrowColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            eyebrowHighlight = vehicleName,
-            eyebrowHighlightColor = vehicleIdentityColor(parkingVehicle?.monitoringStatus()?.watch() ?: VehicleWatch.Off),
-            title = title,
-            subtitle = subtitle,
-            // No free-spots pill in the collapsed peek: the count already reads once the sheet is
-            // expanded (spots section header), so a trailing pill here just duplicates it.
+        ParkedCarHeader(
+            parking = parking,
+            parkingVehicle = parkingVehicle,
+            userGpsPoint = userGpsPoint,
         )
         return
     }
 
-    // ── Subject = your car, NOT parked yet ────────────────────────────────────
-    // The header is the car's (the lane had nothing to show when the sheet closed) but there is no
-    // session to name. It still speaks: it says WHOSE car it is, that it is not marked, and what to
-    // do about it. Falling through to the lane here would leave Home's resting line on a counter the
-    // closing already judged empty — and would say nothing about the one action that is always
-    // available. [HOME-AN-UNPARKED-CAR-STILL-HAS-SOMETHING-TO-SAY-001]
-    //
-    // ⛔ No button, and the copy SAYS SO — same shape the spots lane already uses at zero: the sub is
-    // an activation hint («Desliza ↑ …»), not an imperative that looks tappable. The peek handle's
-    // tap belongs to the sheet, so a header that reads "Marcar aparcamiento" as a title would promise
-    // a press that does something else. The hint names the gesture that actually works, and one drag
-    // up is where the control lives. [UI-SHEET-003]
-    //
-    // Vocabulario: lo que se marca es TU APARCAMIENTO, no una plaza — la plaza es de la comunidad, y
-    // por eso el hint de al lado (avisar de una plaza) NO puede ser el mismo.
-    // [COPY-SPOT-IS-NOT-A-PARKING-001]
     if (!followsLane && unparkedVehicle != null) {
-        val vehicleName = vehicleSummary(unparkedVehicle) ?: stringResource(Res.string.home_vehicle_fallback_name)
-        PapSheet(
-            lead = PapSheetLead.Vehicle(
-                carbody = unparkedVehicle.carbodyType,
-                size = unparkedVehicle.sizeCategory,
-                color = unparkedVehicle.color,
-            ),
-            eyebrow = stringResource(
-                Res.string.home_peek_vehicle_status,
-                vehicleName,
-                stringResource(Res.string.home_vehicle_chip_unmarked),
-            ).uppercase(),
-            // Only the NAME wears the identity colour; "· SIN MARCAR" is state and stays neutral.
-            // [UI-COLOR-DOCTRINE-001]
-            eyebrowColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            eyebrowHighlight = vehicleName,
-            eyebrowHighlightColor = vehicleIdentityColor(unparkedVehicle.monitoringStatus().watch()),
-            // Where you are — the place you would be marking. Same camera resolver as the lane
-            // header, and the same fallback rule as every peek title: name the thing, never the
-            // coordinates. [UI-LOCATION-FALLBACK-SPEAKS-HUMAN-001]
-            title = peekTitle(
-                placeName = cameraInfo?.placeInfo?.name,
-                addressLine = cameraInfo?.displayLine,
-                fallback = stringResource(Res.string.home_vehicle_chip_mark_parking),
-            ),
-            subtitle = stringResource(Res.string.home_browse_hint_swipe_mark_parking),
-        )
+        UnmarkedCarHeader(vehicle = unparkedVehicle)
         return
     }
 
@@ -383,6 +244,195 @@ internal fun BrowsePeek(
         },
     )
 }
+
+// ── Subject = the car being driven RIGHT NOW (monitored trip) ─────────────
+// Collapsed peek only. A live trip OUTRANKS any parked car — the vehicle being actively
+// monitored is the one standing in for the user, same hierarchy the readiness already follows
+// (Monitoring > Parked). The live phase reads in the eyebrow — EN RUTA while driving,
+// APARCANDO… once it stops and the detector is confirming a spot — and the address follows the
+// moving car via ITS OWN geocode (⛔ no la de la cámara: ver `drivingPlace` abajo). This is where
+// the removed floating "monitoring" pill's status now lives.
+// [DET-STATUS-SHEET-001] [UI-BROWSE-DRIVING-OVER-PARKED-001]
+//
+// ⛔ Deliberately NOT released by `laneHeaderLatched`: a live trip (and the "did you park?"
+// question it carries) is news, not the first-launch summary of your car — and collapsed, this
+// eyebrow is the only place Home says it. [HOME-PEEK-FOLLOWS-THE-LANE-ONCE-OPENED-001]
+@Composable
+private fun DrivingCarHeader(
+    drivingVehicle: Vehicle?,
+    drivingMeta: DrivingMeta,
+    isAwaitingAnswer: Boolean,
+    drivingPlace: PlaceLine?,
+    drivingSecondaryLine: String?,
+) {
+    val vehicleName = vehicleSummary(drivingVehicle) ?: stringResource(Res.string.home_vehicle_fallback_name)
+    val isCandidate = drivingMeta.phase == DetectionPhase.Candidate
+    // Reuse the already-translated phase words (same as the old pill / vehicle chip) so the eyebrow
+    // stays i18n-complete without new per-locale strings. [DET-STATUS-SHEET-001]
+    //
+    // [DET-ASK-STATE-001] An OPEN question outranks both phase words: while the sheet is closed
+    // this eyebrow is the only voice Home has, and "APARCANDO…" reads as "sit back, I'm working"
+    // at the exact moment the app is waiting on the user. The answer itself lives one drag away,
+    // in the row the expanded sheet renders — the peek's job is to say there IS something to
+    // answer, not to grow a third pair of buttons.
+    val phaseWord = stringResource(
+        when {
+            isAwaitingAnswer -> Res.string.home_det_ask_eyebrow
+            isCandidate -> Res.string.home_vehicle_chip_status_candidate
+            else -> Res.string.home_det_monitoring
+        },
+    )
+    // [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001] The subject here is the CAR, so the address comes
+    // from the car — its own geocode, resolved by the slice. It used to come from the camera,
+    // which reads right only while the camera happens to be following the trip: pan the map
+    // mid-drive and this header calmly told you your car was on the street you were looking at,
+    // with the car's name next to it. That is the driving twin of the "one car parked in two
+    // places" bug [UI-SHEET-004] already fixed for the parked branch below. The camera keeps
+    // exactly the subject it owns: the zone header at the bottom of this file.
+    val title = placeLineText(drivingPlace) ?: stringResource(Res.string.home_address_unknown)
+    val secondaryLine = drivingSecondaryLine
+    val identity = vehicleIdentityColor(drivingVehicle?.monitoringStatus()?.watch() ?: VehicleWatch.Off)
+    PapSheet(
+        lead = PapSheetLead.Vehicle(
+            carbody = drivingVehicle?.carbodyType,
+            size = drivingVehicle?.sizeCategory,
+            color = drivingVehicle?.color,
+            loading = drivingVehicle == null,
+            // The trip is live, so the tile breathes — the same halo the vehicle chip shows one
+            // surface below. Without it the same trip looked alive in the chip and dead here.
+            // [UI-PEEK-DRIVING-HAS-NO-MOTION-001]
+            drivingHaloColor = identity,
+        ),
+        eyebrow = stringResource(Res.string.home_peek_vehicle_status, vehicleName, phaseWord).uppercase(),
+        // Only the NAME wears the identity colour (watch method); the phase word ("EN RUTA" /
+        // "APARCANDO…") is state and stays neutral — and, being state in motion, it BREATHES.
+        // The pulse rides the base eyebrow colour, so it reaches the phase words while the
+        // name's own span keeps its opaque identity colour: no new API, and the vehicle never
+        // blinks. [UI-COLOR-DOCTRINE-001] [UI-PEEK-DRIVING-HAS-NO-MOTION-001]
+        eyebrowColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = rememberDrivingStatePulse()),
+        eyebrowHighlight = vehicleName,
+        eyebrowHighlightColor = identity,
+        title = title,
+        subtitle = secondaryLine,
+        // No free-spots pill in the collapsed peek: the count already reads once the sheet is
+        // expanded (spots section header), so a trailing pill here just duplicates it.
+    )
+}
+
+// ── Subject = the parked car (collapsed peek, no live trip, Browse never opened) ──
+// Title/sub come from THE SESSION — static. The camera must never drag your parked
+// car around ("one car parked in two places"). Expanded browse hands the header to
+// the zone below: the car's info lives in its TUS VEHÍCULOS card. [UI-SHEET-004]
+// Once Browse has been opened, the collapsed peek keeps the lane too.
+// [HOME-PEEK-FOLLOWS-THE-LANE-ONCE-OPENED-001]
+@Composable
+private fun ParkedCarHeader(
+    parking: UserParking,
+    parkingVehicle: Vehicle?,
+    userGpsPoint: GpsPoint?,
+) {
+    val vehicleName = vehicleSummary(parkingVehicle)
+    val eyebrow = if (vehicleName != null) {
+        stringResource(Res.string.home_peek_vehicle_parked_label, vehicleName)
+    } else {
+        stringResource(Res.string.home_peek_car_parked_label)
+    }
+    // [UI-APPROXIMATE-ZONE-IN-HISTORY-001] An approximate session reads "Near X" here too:
+    // this collapsed header has no ApproximateZoneRow below it (that lives in the parking
+    // peek), so the title itself must not claim a point the session refused to claim. The
+    // fallback stays plain — "Parking" names nothing exact to soften.
+    val resolvedTitle = peekTitle(
+        placeName = parking.placeInfo?.name,
+        addressLine = parking.address?.displayLine,
+        fallback = "",
+    ).takeIf { it.isNotBlank() }
+    val title = when {
+        resolvedTitle != null && parking.isApproximate ->
+            stringResource(Res.string.location_approximate_near, resolvedTitle)
+        resolvedTitle != null -> resolvedTitle
+        else -> stringResource(Res.string.location_fallback_parking)
+    }
+    val distM = userGpsPoint?.let {
+        distanceMeters(it.latitude, it.longitude, parking.location.latitude, parking.location.longitude)
+    }
+    val subtitle = if (parking.location.timestamp > 0L) {
+        val ago = compactRelativeTimeText(parking.location.timestamp)
+        if (distM != null) {
+            stringResource(Res.string.home_browse_parked_meta, ago, distanceString(distM))
+        } else {
+            stringResource(Res.string.home_browse_parked_ago, ago)
+        }
+    } else null
+    PapSheet(
+        lead = PapSheetLead.Vehicle(
+            carbody = parkingVehicle?.carbodyType,
+            size = parkingVehicle?.sizeCategory,
+            color = parkingVehicle?.color,
+            // Session's vehicle still resolving from Room → skeleton, not the generic fallback car.
+            loading = parkingVehicle == null,
+        ),
+        eyebrow = eyebrow.uppercase(),
+        // Only the NAME wears the vehicle's identity colour; "· APARCADO" is state and stays
+        // neutral. [UI-COLOR-DOCTRINE-001]
+        eyebrowColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        eyebrowHighlight = vehicleName,
+        eyebrowHighlightColor = vehicleIdentityColor(parkingVehicle?.monitoringStatus()?.watch() ?: VehicleWatch.Off),
+        title = title,
+        subtitle = subtitle,
+        // No free-spots pill in the collapsed peek: the count already reads once the sheet is
+        // expanded (spots section header), so a trailing pill here just duplicates it.
+    )
+}
+
+// ── Subject = your car, NOT parked yet ────────────────────────────────────
+// The header is the car's (the lane had nothing to show when the sheet closed) but there is no
+// session to name. It still speaks: it says WHOSE car it is, that it is not marked, and what to
+// do about it. Falling through to the lane here would leave Home's resting line on a counter the
+// closing already judged empty — and would say nothing about the one action that is always
+// available. [HOME-AN-UNPARKED-CAR-STILL-HAS-SOMETHING-TO-SAY-001]
+//
+// Tres líneas, tres cosas distintas: el eyebrow dice QUIÉN, el título dice QUÉ le pasa, el sub dice
+// CÓMO se arregla.
+//
+// ⛔ No button, and the copy SAYS SO — same shape the spots lane already uses at zero: the sub is
+// an activation hint («Desliza ↑ …»), not an imperative that looks tappable. The peek handle's
+// tap belongs to the sheet, so an imperative in the title («Marcar aparcamiento», que es lo que
+// esta cabecera ponía cuando la cámara no tenía nombre) promete una pulsación que hace otra cosa.
+// The hint names the gesture that actually works, and one drag up is where the control lives.
+// [UI-SHEET-003]
+@Composable
+private fun UnmarkedCarHeader(vehicle: Vehicle) {
+    val vehicleName = vehicleSummary(vehicle) ?: stringResource(Res.string.home_vehicle_fallback_name)
+    PapSheet(
+        lead = PapSheetLead.Vehicle(
+            carbody = vehicle.carbodyType,
+            size = vehicle.sizeCategory,
+            color = vehicle.color,
+        ),
+        // El eyebrow se queda con el SUJETO y suelta el estado, que ahora es el título: si las tres
+        // líneas dicen «sin marcar», «sin aparcamiento marcado» y «marcar tu aparcamiento», la
+        // cabecera repite una cosa tres veces en lugar de decir tres.
+        eyebrow = vehicleName.uppercase(),
+        // Todo el eyebrow ES el nombre, así que lo viste entero la identidad de vigilancia — no hay
+        // estado teñido aquí, que es lo que la doctrina prohíbe. [UI-COLOR-DOCTRINE-001]
+        eyebrowColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        eyebrowHighlight = vehicleName,
+        eyebrowHighlightColor = vehicleIdentityColor(vehicle.monitoringStatus().watch()),
+        // ⛔ NO la calle de la cámara. Un coche sin marcar no tiene un «dónde» —eso es exactamente
+        // lo que le pasa—, así que el único sitio disponible era el de OTRO sujeto: bajo el nombre
+        // del coche, y con la misma anatomía que la rama de arriba (glifo + nombre + calle), se
+        // leía como su dirección, y panear el mapa lo «movía» de calle sin tocarlo.
+        // [HOME-AN-UNMARKED-CAR-HAS-NO-ADDRESS-001]
+        //
+        // El título dice el ESTADO, que es la noticia real del coche y no cambia con la cámara.
+        // Vocabulario: lo que falta por marcar es TU APARCAMIENTO, no una plaza — la plaza es de la
+        // comunidad, y por eso el hint hermano (avisar de una plaza) NO puede decir lo mismo.
+        // [COPY-SPOT-IS-NOT-A-PARKING-001]
+        title = stringResource(Res.string.home_peek_parking_unmarked_title),
+        subtitle = stringResource(Res.string.home_browse_hint_swipe_mark_parking),
+    )
+}
+
 
 /**
  * Does the lane deserve to keep the collapsed header, asked **at the moment the sheet closes**?

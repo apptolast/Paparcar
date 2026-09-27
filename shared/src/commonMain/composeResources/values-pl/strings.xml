@@ -35,7 +35,7 @@
     <string name="home_browse_parked_meta">Zaparkowano %1$s temu · %2$s od Ciebie</string>
     <string name="home_browse_parked_ago">Zaparkowano %1$s temu</string>
     <string name="home_browse_hint_swipe_report">Przesuń ↑, aby zgłosić miejsce</string>
-    <string name="home_browse_hint_swipe_mark_parking">Przesuń ↑, aby oznaczyć parkowanie</string>
+    <string name="home_browse_hint_swipe_mark_parking">Przesuń ↑, aby oznaczyć, gdzie zaparkowano</string>
     <string name="common_directions">Trasa</string>
     <string name="home_navigate_to_vehicle_cd">Trasa do auta</string>
     <string name="home_empty_title">Nie zgłoszono jeszcze żadnych miejsc</string>
@@ -396,6 +396,7 @@
     <string name="gps_disclaimer_confirm">Rozumiem</string>
     <string name="home_peek_dismiss_cd">Zamknij</string>
     <string name="home_peek_vehicle_parked_label">%1$s · zaparkowany</string>
+    <string name="home_peek_parking_unmarked_title">Brak oznaczonego parkowania</string>
     <string name="home_peek_vehicle_status">%1$s · %2$s</string>
     <string name="bt_config_cd_back">Wróć</string>
     <string name="vehicle_reg_cd_back">Wróć</string>

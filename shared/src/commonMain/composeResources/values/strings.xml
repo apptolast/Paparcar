@@ -78,7 +78,7 @@
     <string name="home_browse_parked_meta">Parked %1$s ago · %2$s from you</string>
     <string name="home_browse_parked_ago">Parked %1$s ago</string>
     <string name="home_browse_hint_swipe_report">Swipe ↑ to report a free spot</string>
-    <string name="home_browse_hint_swipe_mark_parking">Swipe ↑ to mark your parking</string>
+    <string name="home_browse_hint_swipe_mark_parking">Swipe ↑ to mark where you parked</string>
     <string name="home_address_unknown">Unknown location</string>
     <!-- Location title fallback when geocoding/POI failed (e.g. offline): names what the pin IS — a community spot vs your parking — never raw coordinates. [UI-LOCATION-FALLBACK-SPEAKS-HUMAN-001] -->
     <string name="location_fallback_spot">Spot on the map</string>
@@ -588,6 +588,7 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="home_peek_dismiss_cd">Dismiss</string>
     <string name="home_peek_car_parked_label">Your car is parked</string>
     <string name="home_peek_vehicle_parked_label">%1$s · parked</string>
+    <string name="home_peek_parking_unmarked_title">No parking marked</string>
     <!-- Sheet eyebrow "name · live-phase" — composes a vehicle name with a reused phase word
          (EN RUTA / APARCANDO… / APARCADO). Pure format, locale-independent. [DET-STATUS-SHEET-001] -->
     <string name="home_peek_vehicle_status">%1$s · %2$s</string>

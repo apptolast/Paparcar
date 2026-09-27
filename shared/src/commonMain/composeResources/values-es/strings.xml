@@ -62,7 +62,7 @@
     <string name="home_browse_parked_meta">Aparcado hace %1$s · a %2$s de ti</string>
     <string name="home_browse_parked_ago">Aparcado hace %1$s</string>
     <string name="home_browse_hint_swipe_report">Desliza ↑ para avisar de una plaza</string>
-    <string name="home_browse_hint_swipe_mark_parking">Desliza ↑ para marcar tu aparcamiento</string>
+    <string name="home_browse_hint_swipe_mark_parking">Desliza ↑ para marcar dónde has aparcado</string>
     <string name="home_address_unknown">Ubicación desconocida</string>
     <string name="location_fallback_spot">Plaza en el mapa</string>
     <string name="location_fallback_parking">Ubicación en el mapa</string>
@@ -546,6 +546,7 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="gps_disclaimer_confirm">Entendido</string>
     <string name="home_peek_dismiss_cd">Descartar</string>
     <string name="home_peek_vehicle_parked_label">%1$s · aparcado</string>
+    <string name="home_peek_parking_unmarked_title">Sin aparcamiento marcado</string>
     <string name="home_peek_vehicle_status">%1$s · %2$s</string>
     <string name="bt_config_cd_back">Atrás</string>
     <string name="vehicle_reg_cd_back">Atrás</string>
