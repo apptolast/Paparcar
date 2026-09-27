@@ -1,68 +1,82 @@
 FICHA DE PLAY STORE — de-DE
 ============================================================
+GENERADO por tools/make_paste.py desde LISTING-v1.3.0.md — no editar a mano.
 
 --- 1. NOMBRE DE LA APLICACION (28/30) ---
 Paparcar: wo hast du geparkt
 
---- 2. DESCRIPCION BREVE (76/80) ---
-Wo hast du geparkt? Paparcar merkt es sich. Dein Platz geht an den Nächsten.
+--- 2. DESCRIPCION BREVE (78/80) ---
+Wo hast du geparkt? Paparcar merkt es sich — mit Spritpreisen und Parkhäusern.
 
---- 3. DESCRIPCION COMPLETA (3213/4000) ---
+--- 3. DESCRIPCION COMPLETA (3956/4000) ---
 Wo hast du geparkt?
 
 Paparcar merkt es sich für dich.
 
-Parke, steig aus und mach mit deinem Tag weiter. Paparcar speichert automatisch, wo du das Auto abgestellt hast: ohne die App zu öffnen, ohne eine Stecknadel zu setzen und ohne eine Adresse einzutippen. Wenn du zurückkommst, weißt du, wo es steht und wie lange es schon dort steht.
+Parke, steig aus und mach mit deinem Tag weiter. Paparcar speichert automatisch, wo du das Auto abgestellt hast: ohne die App zu öffnen, ohne Stecknadel und ohne Adresse. Wenn du zurückkommst, weißt du, wo es steht und wie lange schon.
 
-Und Paparcar kann noch etwas. Wenn du losfährst, kann der Platz, den du frei machst, auf der Karte für die Fahrer in deiner Nähe erscheinen. Und du siehst die Plätze, die andere gerade frei gemacht haben. Je mehr Fahrer Paparcar in deiner Stadt nutzen, desto mehr Plätze können auf der Karte erscheinen.
+Wenn du losfährst, kann der Platz, den du frei machst, für die Fahrer in der Nähe veröffentlicht werden. Und du siehst die Plätze, die andere gerade frei gemacht haben. Je mehr Fahrer Paparcar in deiner Stadt nutzen, desto mehr Plätze erscheinen.
 
 SO FUNKTIONIERT ES
-
-1. PARKEN
-Paparcar erkennt, dass du fertig geparkt hast, und speichert die Stelle. Du kannst sie auch mit einem Tippen von Hand markieren.
-
-2. LOSFAHREN
-Die App erkennt, dass du wieder fährst.
-
-3. DEIN PLATZ WIRD FREI
-Wenn es so weit ist, wird dein Platz für die Fahrer in der Nähe veröffentlicht.
+1. Du parkst. Paparcar erkennt es und speichert den Ort. Ohne Bluetooth markierst du den ersten von Hand.
+2. Du fährst los. Die App erkennt es.
+3. Dein Platz wird für die Fahrer in der Nähe veröffentlicht, wenn es passt.
 
 DEIN PARKPLATZ, OHNE AUFWAND
 • Wo du das Auto abgestellt hast und wie lange es schon dort steht.
-• Alle deine Autos in einer Garage, jedes mit eigener Größe, Farbe und eigenem Bluetooth.
-• Dein Parkverlauf, mit der Anzahl der von der App erkannten Parkvorgänge und der Plätze, die du abgegeben hast.
-• Die Stelle stimmt nicht ganz? Verschiebe deinen Parkplatz auf der Karte und speichere ihn erneut.
+• Dein Verlauf, mit wie vielen Parkvorgängen die App erkannt und wie vielen Plätzen du weitergegeben hast.
+• Der Ort stimmt nicht? Verschiebe deinen Parkplatz auf der Karte und speichere erneut.
+• Jedes Auto mit seiner Größe, seiner Farbe und seinem Bluetooth.
 
 FREIE PLÄTZE IN ECHTZEIT
-• Sieh auf der Karte die Plätze, die andere Fahrer gerade frei gemacht haben.
-• Wann jeder frei wurde: ein Platz von vor zwei Minuten ist nicht dasselbe wie einer von vor zwanzig.
-• Wie viele Fahrer schon zu diesem Platz unterwegs sind.
-• Ob dein Auto hineinpasst: Paparcar vergleicht die Lücke mit der Größe deines Autos.
-• Du siehst im Vorbeigehen einen freien Platz? Melde ihn mit zwei Tipps für den nächsten Fahrer.
+• Die Plätze, die andere gerade frei gemacht haben, auf der Karte.
+• Wann jeder frei wurde: vor zwei Minuten ist nicht vor zwanzig.
+• Wie viele Fahrer schon unterwegs dorthin sind.
+• Ob dein Auto hineinpasst: Paparcar vergleicht die Lücke mit deinem.
+• Im Vorbeigehen einen freien Platz gesehen? Melde ihn mit zwei Tipps.
 
-AUTOMATISCHE ERKENNUNG, AUF ZWEI WEGEN
+TANKSTELLEN UND PARKHÄUSER, AUF DERSELBEN KARTE
+• Tankstellen mit dem Preis aus amtlichen Registern und der Uhrzeit der Messung. Spanien, Frankreich, Deutschland und Italien.
+• Der Preis des Kraftstoffs, den dein Auto tankt, kein allgemeiner Durchschnitt.
+• Parkhäuser mit Tarif, Durchfahrtshöhe und Stellplätzen, wenn die Quelle sie liefert.
+• Alles kostenlos: zu sehen, was um dich herum ist, steckt nie hinter einem Abo.
 
-• BLUETOOTH
-Wenn sich dein Auto mit dem Handy verbindet, hilft das Trennen der Verbindung dabei zu erkennen, dass du fertig geparkt hast. Eine präzise und effiziente Methode.
+DEINE ZAHLEN
+• Was du für Kraftstoff ausgibst und wie viel du verbrauchst.
+• Wie lange du nach einem Platz suchst.
+• Deine übliche Straße, dein üblicher Tag und die schwierigste Stunde.
 
-• UNTERSTÜTZTE ERKENNUNG
-Hat dein Auto kein Bluetooth, nutzt Paparcar Bewegung und Standort, um zu erkennen, wann du losgefahren bist und wo du angehalten hast.
+EIN AUTO, MEHRERE FAHRER
+• Teile ein Auto mit bis zu vier Personen. Wer es fährt, markiert den Parkplatz, und die ganze Gruppe sieht, wo es steht.
+• Strecke, Zeit und frei gewordene Plätze zählen für alle.
+• Deine Routen werden nur geteilt, wenn du es sagst.
 
-Paparcar will nicht raten. Wenn es sich nicht sicher ist, was passiert ist, fragt es dich, bevor ein Platz veröffentlicht wird.
+AUTOMATISCHE ERKENNUNG
+Verbindet sich dein Auto per Bluetooth mit dem Handy, hilft das Trennen zu erkennen, dass du fertig eingeparkt hast. Ohne Bluetooth nutzt Paparcar Bewegung und Standort.
+
+Paparcar will nicht raten. Wenn nicht sicher ist, was passiert ist, fragt es dich, bevor ein Platz veröffentlicht wird.
+
+PAPARCAR PLUS
+Kostenlos fragst du, und die App antwortet. Mit Plus wacht sie, während du nicht hinsiehst:
+• Hinweise, wenn in deiner Zone ein Platz frei wird, bei geschlossener App.
+• Hinweise, wenn der Preis an einer Tankstelle sinkt, der du folgst.
+• Dein ganzer Verlauf. Kostenlos bleiben die letzten 7 Tage.
+• Mehr als ein eigenes Auto und mehr als zwei private Zonen.
+• Ein geteiltes Auto anlegen. Einem beizutreten ist immer kostenlos.
 
 DATENSCHUTZ
-• Private Zonen: markiere Orte wie dein Zuhause, und Paparcar veröffentlicht dort keinen Platz, wenn du losfährst.
+• Private Zonen: markiere Orte wie dein Zuhause, dann wird dort kein Platz veröffentlicht.
 • Dein Kennzeichen verlässt niemals dein Handy.
-• Marke und Modell deines Autos sind privat: sie erscheinen nur dann auf dem Platz, den du frei machst, wenn du es aktivierst.
+• Marke und Modell erscheinen nur auf dem Platz, den du frei machst, wenn du das einschaltest.
 • Dein Standort wird niemals verkauft oder für Werbung genutzt.
 • Du kannst dein Konto und seine Daten in den Einstellungen oder im Web löschen.
 • Keine Werbung.
 
 STANDORT IM HINTERGRUND
 
-Paparcar verwendet Standortdaten auch dann, wenn die App geschlossen ist oder du sie nicht benutzt, um zu erkennen, wo du parkst, und um deinen Platz frei zu geben, wenn du losfährst.
+Paparcar nutzt Standortdaten auch dann, wenn die App geschlossen ist oder nicht verwendet wird, um zu erkennen, wo du parkst, und um deinen Platz frei zu geben, wenn du losfährst.
 
-Die automatische Erkennung braucht diese Berechtigung. Ohne sie funktioniert Paparcar weiter, aber du musst deine Parkvorgänge von Hand markieren und frei geben.
+Die automatische Erkennung braucht diese Berechtigung. Ohne sie funktioniert Paparcar weiterhin, aber du musst deine Parkvorgänge von Hand markieren und frei geben.
 
 Datenschutzerklärung:
 https://paparcar.com/privacy-policy

@@ -1,61 +1,75 @@
 FICHA DE PLAY STORE — en-US
 ============================================================
+GENERADO por tools/make_paste.py desde LISTING-v1.3.0.md — no editar a mano.
 
 --- 1. NOMBRE DE LA APLICACION (28/30) ---
 Paparcar: where did you park
 
---- 2. DESCRIPCION BREVE (65/80) ---
-Where did you park? Paparcar remembers — and your spot passes on.
+--- 2. DESCRIPCION BREVE (72/80) ---
+Where did you park? Paparcar remembers — plus fuel prices and car parks.
 
---- 3. DESCRIPCION COMPLETA (2734/4000) ---
+--- 3. DESCRIPCION COMPLETA (3580/4000) ---
 Where did you park?
 
 Paparcar remembers for you.
 
 Park, get out and get on with your day. Paparcar saves where you left the car automatically: without opening the app, dropping a pin or typing an address. When you come back, you know where it is and how long it has been there.
 
-And Paparcar does one more thing. When you drive off, the spot you leave can be published on the map for the drivers nearby. And you can see the spots other drivers have just left. The more drivers using Paparcar in your city, the more spots can appear on the map.
+When you drive off, the spot you leave can be published for the drivers nearby. And you can see the spots others have just left. The more drivers using Paparcar in your city, the more spots appear on the map.
 
 HOW IT WORKS
-
-1. PARK
-Paparcar detects that you have finished parking and saves the place. You can also mark it by hand with one tap.
-
-2. DRIVE OFF
-The app detects that you are driving again.
-
-3. YOUR SPOT IS FREED
-When appropriate, your spot is published for the drivers nearby.
+1. You park. Paparcar detects it and saves the place. With no Bluetooth, you mark the first parking by hand.
+2. You drive off. The app detects it.
+3. Your spot is published for the drivers nearby, when appropriate.
 
 YOUR PARKING, EFFORTLESS
 • Where you left the car, and how long it has been sitting there.
-• All your cars in one garage, each with its own size, colour and Bluetooth.
-• Your parking history, with how many the app detected and how many spots you have shared.
-• Not quite the right place? Move your parking on the map and save it again.
+• Your history, with how many parkings the app detected and how many spots you shared.
+• Not the right place? Move your parking on the map and save it again.
+• Every car with its own size, colour and Bluetooth.
 
 PARKING SPOTS IN REAL TIME
-• See on the map the spots other drivers have just left.
-• When each one was freed: a spot from two minutes ago is not the same as one from twenty.
-• How many drivers are already heading for that spot.
-• Whether your car fits: Paparcar compares the space against the size of yours.
-• See a free spot as you walk past? Report it in two taps for the next driver.
+• The spots other drivers have just left, on the map.
+• When each one was freed: two minutes ago is not twenty.
+• How many drivers are already heading there.
+• Whether your car fits: Paparcar compares the space against yours.
+• See a free spot as you walk past? Report it in two taps.
 
-AUTOMATIC DETECTION, TWO WAYS
+FUEL AND CAR PARKS, ON THE SAME MAP
+• Fuel stations with the price official registers publish, and the hour it was measured. Spain, France, Germany and Italy.
+• The price of the fuel your car actually takes, not a generic average.
+• Public car parks with their rate, height limit and spaces, where the source gives them.
+• All of it free: seeing what is around you is never behind a subscription.
 
-• BLUETOOTH
-If your car connects to your phone, the disconnection helps detect that you have finished parking. Precise and efficient.
+YOUR NUMBERS
+• What you spend on fuel, and how much you burn.
+• How long you spend looking for a spot.
+• Your usual street, your usual day, and the hour it gets hardest.
 
-• ASSISTED DETECTION
-If your car has no Bluetooth, Paparcar uses motion and location to detect when you started driving and where you stopped.
+ONE CAR, SEVERAL DRIVERS
+• Share a car with up to four people. Whoever drives it marks the parking, and the whole group sees where it is.
+• Distance, time and spots freed count for everyone.
+• Your routes are shared only if you say so.
+
+AUTOMATIC DETECTION
+If your car connects to your phone by Bluetooth, the disconnection helps detect that you have finished parking. If it has no Bluetooth, Paparcar uses motion and location instead.
 
 Paparcar does not want to guess. When it is not sure what happened, it asks you before publishing a spot.
+
+PAPARCAR PLUS
+Free, you ask and the app answers. With Plus, the app watches while you are not looking:
+• Alerts when a spot frees up in your area, with the app closed.
+• Alerts when the price drops at a station you follow.
+• Your whole history. Free keeps the last 7 days.
+• More than one car of your own, and more than two private zones.
+• Creating a shared car. Joining one is always free.
 
 PRIVACY
 • Private zones: mark places like your home and Paparcar will not publish a spot there when you leave.
 • Your license plate never leaves your phone.
-• Your car's brand and model are private: they only appear on the spot you free if you turn that on.
+• Your car's brand and model only appear on the spot you free if you turn that on.
 • Your location is never sold or used for advertising.
-• You can delete your account and its data from Settings or from the web.
+• You can delete your account and its data from Settings or the web.
 • No ads.
 
 LOCATION IN THE BACKGROUND

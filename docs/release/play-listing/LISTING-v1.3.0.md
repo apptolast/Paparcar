@@ -37,7 +37,36 @@ países con fuente. Y se dice explícitamente que **ver nunca se paga**, que es 
 
 ---
 
+## Nombre de la aplicación (30)
+
+<!-- paste-source: app-name -->
+
+Consolidados aquí el 27-09 desde `LISTING.md` (en-US, es-ES) y `LISTING-i18n.md` (los otros 7):
+estaban en dos ficheros y `paste/` se armaba a mano leyendo los dos, que es la vía por la que el
+copy se quedó dos generaciones atrás. El razonamiento de cada nombre sigue viviendo allí; lo que se
+pega, aquí. [PLAY-A-LISTING-MUST-MATCH-THE-BUILD-IN-PRODUCTION-001]
+
+| Locale | Texto | Largo |
+|---|---|---|
+| en-US | `Paparcar: where did you park` | 28/30 |
+| es-ES | `Paparcar: dónde aparcaste` | 25/30 |
+| it-IT | `Paparcar: dove ho parcheggiato` | 30/30 | ⚠️ **sin margen**. Si el Console lo rechaza: `Paparcar: dov'è la mia auto` (27).
+| pt-PT | `Paparcar: onde estacionaste` | 27/30 |
+| fr-FR | `Paparcar: où me suis-je garé` | 28/30 |
+| de-DE | `Paparcar: wo hast du geparkt` | 28/30 |
+| nl-NL | `Paparcar: waar staat je auto` | 28/30 |
+| pl-PL | `Paparcar: gdzie zaparkowałeś` | 28/30 |
+| ro-RO | `Paparcar: unde ai parcat` | 24/30 |
+
+---
+
 ## Descripción breve (80) — RECOMENDADA
+
+<!-- paste-source: short-description -->
+
+> ⛔ **Esta es la variante VIGENTE**, y hasta el 27-09 eso no estaba escrito en ningún sitio:
+> el fichero ofrecía dos tablas y `paste/` llevaba la otra. La de abajo se queda como registro
+> de lo que se descartó, no como una opción abierta.
 
 | Locale | Texto |
 |---|---|
@@ -51,7 +80,9 @@ países con fuente. Y se dice explícitamente que **ver nunca se paga**, que es 
 | pl-PL | `Gdzie zaparkowałeś? Paparcar pamięta. Z cenami paliw i parkingami.` |
 | ro-RO | `Unde ai parcat? Paparcar ține minte. Cu prețuri și parcări publice.` |
 
-### Alternativa — si prefieres conservar el remate comunitario
+### Alternativa — DESCARTADA (era el texto del 29-08)
+
+<!-- paste-source: none -->
 
 Es el texto vigente, intacto. Mantiene *«y tu plaza pasa al siguiente»*, que cuenta la comunidad
 desde lo que el usuario **da** (no promete disponibilidad), pero deja fuera gasolina y parkings.
