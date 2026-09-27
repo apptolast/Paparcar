@@ -2,6 +2,7 @@
 <resources>
     <string name="home_nearby_section_header">W tej okolicy</string>
     <string name="zone_alert_in_app">W %1$s właśnie zwolniło się miejsce</string>
+    <string name="spot_alert_nearby_in_app">Blisko Ciebie właśnie zwolniło się miejsce</string>
     <!-- HomeScreen -->
     <string name="home_search_placeholder">Szukaj strefy, ulicy…</string>
     <string name="home_search_no_results">Brak wyników dla tego wyszukiwania</string>

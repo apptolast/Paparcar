@@ -1,6 +1,6 @@
 # ZONE-AN-ALERT-NEAR-YOU-IS-NOT-AN-ALERT-IN-YOUR-ZONE-001 · el aviso que se pidió no es el que se implementó
 
-**Estado:** 📋 Abierto (27-09-2026) — dicho por el user, verificado en el código. Sin rama todavía.
+**Estado:** ✅ Done (27-09-2026) · rama `feature/ZONE-AN-ALERT-NEAR-YOU-IS-NOT-AN-ALERT-IN-YOUR-ZONE-001-nearby-lane` · worktree `../Paparcar-nearby-alert` · ⏳ sin ver en campo
 
 ## Problema
 
@@ -52,29 +52,110 @@ encenderlo gratis), pero deja un KDoc y dos tests afirmando una regla de product
   del carril free.
 - `alertChannelFor(mapOnScreen)` ya elige canal; para el carril cerca-de-ti sólo existe `IN_APP`.
 
-## Diseño (esbozo — se decide al abrir el ticket)
+## Diseño, tal como quedó
 
-Un veredicto propio, `EvaluateNearbySpotWorthTellingUseCase`, hermano de `isAlertableInZone` y **no
-una rama dentro de él**: la pregunta es distinta (anclada a tu posición, no a un círculo guardado).
+**Dos carriles, dos preguntas, y un invariante compartido.**
 
-⛔ **Dos cosas que no se pueden copiar del carril de zona:**
-1. **La memoria.** `ZoneWatchRepository` está keyada por zona, y `recordLook` marca la plaza como
-   contada **antes** de emitirla. Un segundo consumidor del mismo stream haría que el primero se
-   quedara sin nada (está avisado en el KDoc de `AlertChannel`). El carril cerca-de-ti necesita su
-   propio registro de «ya te lo conté», keyado por plaza.
-2. **El radio.** `ZONE_ALERT_MIN_RADIUS_METERS` son 500 m *desde un sitio que te importa*. «Cerca de
-   donde estás» mientras te mueves es otra cosa, y hay que decidirla con el user: un aviso a 500 m
-   de un semáforo no es una plaza para ti.
+| | Zona (ya existía) | Cerca de ti (nace aquí) |
+|---|---|---|
+| Ancla | un sitio que guardaste | **tu cuerpo** (`state.userGpsPoint`) |
+| Radio | `max(zona, 500 m)` | `NEARBY_SPOT_ALERT_RADIUS_METERS` = 500 m |
+| Vive | también con la app cerrada (worker + push) | sólo con el mapa delante |
+| Plan | **Plus** | **free** |
+| Canal | in-app o notificación, según `alertChannelFor` | **siempre in-app**, por construcción |
+| Memoria | durable (`ZoneWatchRepository`) | de sesión, en el controller |
 
-Preguntas abiertas para el user: ¿salta mientras conduces, o sólo parado/andando? ¿Hay tope de
-avisos por rato? ¿Y si la plaza es la que acabas de liberar tú?
+- **`domain/spot/SpotAlertEligibility.kt` · `isSpotWorthAnAlert(spot, ownUserId, nowMs)`** — los vetos
+  que no son de ningún carril: retirada, provisional, liberándose, caducada, y **la propia**. Estaban
+  dentro de `isAlertableInZone`, atados al círculo de la zona, y nunca fueron reglas de zona: estaban
+  en el único fichero que las necesitaba. Regla del user, 27-09: *una plaza que deja un usuario no se
+  le anuncia a ese usuario* — en este carril es el caso más probable de todos, porque la plaza que
+  acabas de liberar está a metros de ti.
+- **`domain/spot/NearbySpotAlertPolicy.kt` · `nearbySpotsWorthTelling(...)`** — puro y síncrono, en la
+  forma que el carril de zona ya había establecido (función de nivel superior, sin ceremonia de clase
+  inyectada). Decide: qué círculo, qué es novedad, y **una sola plaza por aviso, la más cercana**.
+- **`presentation/home/HomeNearbyAlertController`** — la memoria de sesión y el disparo. En Home, como
+  los otros cuatro controllers, porque es el único sitio donde ya están las dos entradas que hay que
+  cruzar: el fix y las plazas vivas. Pedirlas a nivel de app serían dos suscripciones y dos verdades
+  sobre dónde estás.
+- **`domain/notification/NearbySpotAlerts`** — hermano de `MapVisibility` y por la misma razón: una
+  señal, un dueño. Home decide, `AppViewModel` entrega, y entrega por **la misma ranura** que el aviso
+  de zona (`showSpotAlertInApp`, nueva y única) — dos emisores de un solo hueco sin un punto común es
+  cómo el temporizador se habría quedado clavado sin que ninguno pareciera culpable.
+  [NOTIF-A-FLOW-SPEAKS-THROUGH-ONE-SLOT-001]
+- **`SpotAlertCue.origin: SpotAlertOrigin`** — `InZone(zoneName)` | `NearYou`. El campo era
+  `zoneName: String` y el carril nuevo no tiene zona: meter `""` para decir «cerca de ti» es la clase
+  de codificación implícita que se podre. Con el tipo, un tercer carril no compila sin elegir su frase.
+
+### Las dos decisiones del user (27-09)
+
+- **Radio 500 m.** El mismo valor que el suelo del carril de zona, y **dos constantes a propósito**:
+  aquél es «la zona más ancha que se puede dibujar», éste es «hasta dónde andaría desde donde estoy».
+  Misma respuesta hoy, preguntas distintas — la lección que ya pagamos con `ctaFitsInline`.
+- **Salta también conduciendo**, porque es justo cuando una plaza cerca importa: dando vueltas
+  buscando sitio. ⛔ Y de ahí sale una regla que no es cosmética: el ancla **tiene** que ser tu fix y
+  no la cámara, porque la suscripción del mapa sigue a la cámara (5 km) y mediría «cerca» desde un
+  sitio que sólo estás mirando.
+
+### Lo que decidí yo, y queda dicho
+
+**La pauta entre avisos**, `NEARBY_SPOT_ALERT_MIN_GAP_MS` = 45 s, **derivada y no elegida**: a 30 km/h
+(8,3 m/s) el círculo de 500 m se renueva entero en ~60 s, así que 45 s permite como mucho un aviso por
+círculo nuevo. Sin pauta, una calle densa convierte el banner en un parpadeo.
+⛔ Una plaza callada por la pauta **no se apunta como contada**: espera y se anuncia al levantarse.
+Apuntarla sería la diferencia entre una cola y una fuga.
+
+Y la que va con ella: **la baseline apunta sólo lo que está DENTRO del círculo.** Eso es lo que hace
+el carril de proximidad y no de novedad — una plaza que aparece a 3 km no se apunta, así que sigue
+siendo noticia cuando llegues a 500 m de ella. Apuntar los 5 km enteros habría sido más limpio y
+habría matado en silencio el caso para el que existe: dando vueltas, casi toda plaza ya estaba ahí
+antes de que te acercaras.
 
 ## Criterio de éxito
 
-Con el mapa delante, sin Plus y **sin ninguna zona creada**, aparecer una plaza nueva a menos de
-`<radio a decidir>` de tu posición enseña el banner una sola vez. Test que hoy no puede pasar.
+Con el mapa delante, sin Plus y **sin ninguna zona creada**, aparecer una plaza nueva a menos de 500 m
+enseña el banner una sola vez. Antes de este ticket ese test no podía pasar.
 
-## Consumidores auditados
+## Consumidores auditados — ¿quién decide si una plaza se anuncia?
 
-Pendiente — se hace al abrir la rama. Entra de salida: el KDoc y los dos tests invertidos de
-`ObserveZoneSpotAlertsUseCase`, que afirman que el aviso de zona es gratis.
+| Decisor | Estado |
+|---|---|
+| `isAlertableInZone` (carril de zona, cliente) | ✅ ahora llama a `isSpotWorthAnAlert`; su test previo `ObserveZoneSpotAlertsUseCaseTest` sigue verde, y **se pone rojo** al quitar el veto |
+| `nearbySpotsWorthTelling` (carril nuevo, cliente) | ✅ mismo `isSpotWorthAnAlert` |
+| `functions/src/fanout.ts:158` (push, servidor) | ✅ **ya excluía al autor** (`sub.uid === spot.reportedBy`) — auditado, no tocado: es la puerta del push y su regla vive en el servidor por necesidad |
+| `ReportSpotReleasedUseCase` / `ReportSpotScheduler` | ✅ exentos: comparan autoría para los permisos de Firestore (editar/borrar), no para avisar |
+| `alertChannelFor` | ✅ exento: el carril nuevo no lo usa y está dicho por qué — es in-app por construcción |
+
+⛔ **Lo que este ticket NO arregla**, y queda abierto: el KDoc de `ObserveZoneSpotAlertsUseCase` y los
+dos tests invertidos siguen afirmando que el aviso de zona *«no será de pago»*. El user confirmó el
+27-09 que **sí es de pago**, y lo hacen cumplir los dos interruptores (`HomeViewModel.SetZoneNotify`,
+`SettingsViewModel.ToggleZoneAlertsNotif`). No se toca aquí porque cambiarlo es decidir sobre el
+carril de zona, no sobre éste — pero es una afirmación falsa por escrito y merece su ticket.
+
+## iOS
+
+**Paridad por construcción, y aquí eso es literal:** las cuatro piezas nuevas —el veredicto, la
+política, el controller y la señal— viven en `commonMain`, y la entrega es el mismo banner de Compose
+Multiplatform. No hay nada que escribir en `iosMain` porque este carril **nunca toca la bandeja del
+sistema**: lo único de plataforma del carril de zona era `AppNotificationManager`, y de eso es
+precisamente de lo que este se libra por diseño.
+
+⏳ **Sin ver en mano.** El cambio es visible (banner nuevo, frase nueva), así que falta una captura de
+la variante «Aviso · plaza nueva cerca de ti» de la galería, o del banner saltando en device. No es
+comprobable desde aquí.
+
+## Verificación
+
+- `./gradlew testAll --rerun-tasks` → ver el resumen del commit.
+- Tests nuevos: `NearbySpotAlertPolicyTest` (12) y `HomeNearbyAlertControllerTest` (5), más dos de
+  entrega en `AppViewModelTest`.
+- **Falsificado el veto de plaza propia** quitándolo de `isSpotWorthAnAlert`: caen los TRES niveles a
+  la vez — la política pura, el controller (que es lo que prueba que el uid llega de verdad al
+  veredicto) y el test ya existente del carril de zona (que prueba que la extracción no perdió nada).
+- `assembleMockDebug` + `compileProdDebugKotlin` OK. Variante nueva en la galería, al lado de la de
+  zona, para que se vea si algún día vuelven a decir lo mismo.
+- 9 locales para `spot_alert_nearby_in_app`, sin `'` ni `%%`.
+
+⛔ **`docs/detection/PARKING-DETECTION.md` no se toca, y es deliberado**: ese log es de la detección de
+aparcamiento (tickets `DET-*`), y esto es el reparto de avisos de plaza — ningún `ZONE-*` está ahí. Un
+aviso no coloca ningún pin, así que no hay `detectionPath` ni `armEvidence` que ampliar.

@@ -2,6 +2,7 @@
 <resources>
     <string name="home_nearby_section_header">In questa zona</string>
     <string name="zone_alert_in_app">Si è appena liberato un posto in %1$s</string>
+    <string name="spot_alert_nearby_in_app">Si è appena liberato un posto vicino a te</string>
     <!-- HomeScreen -->
     <string name="home_search_placeholder">Cerca una zona, una via…</string>
     <string name="home_search_no_results">Nessun risultato per questa ricerca</string>

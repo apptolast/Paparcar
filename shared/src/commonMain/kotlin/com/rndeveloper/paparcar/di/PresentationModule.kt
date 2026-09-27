@@ -5,6 +5,7 @@ import com.rndeveloper.paparcar.presentation.app.SplashViewModel
 import com.rndeveloper.paparcar.presentation.app.AppViewModel
 import com.rndeveloper.paparcar.presentation.home.HomeGeocodingController
 import com.rndeveloper.paparcar.presentation.home.HomeSearchController
+import com.rndeveloper.paparcar.presentation.home.HomeNearbyAlertController
 import com.rndeveloper.paparcar.presentation.home.HomeSpotsController
 import com.rndeveloper.paparcar.presentation.home.HomeTripController
 import com.rndeveloper.paparcar.presentation.home.HomeViewModel
@@ -45,6 +46,7 @@ val presentationModule = module {
     }
     factory { HomeSearchController(searchAddress = get()) }
     factory { HomeSpotsController(permissionManager = get(), observeNearbySpots = get()) }
+    factory { HomeNearbyAlertController(authRepository = get(), nearbySpotAlerts = get()) }
     // Explicit constructor (not viewModelOf): HomeViewModel has >22 ctor params and viewModelOf's
     // reflection helper only supports up to 22. [DET-TOGGLE-002]
     viewModel {
@@ -64,6 +66,9 @@ val presentationModule = module {
             // 37th + 38th: ToggleFollowFuelStationUseCase and ObserveFollowedFuelStationsUseCase.
             // [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
             get(), get(),
+            // 39th: HomeNearbyAlertController.
+            // [ZONE-AN-ALERT-NEAR-YOU-IS-NOT-AN-ALERT-IN-YOUR-ZONE-001]
+            get(),
         )
     }
     viewModelOf(::ParkingHistoryViewModel)

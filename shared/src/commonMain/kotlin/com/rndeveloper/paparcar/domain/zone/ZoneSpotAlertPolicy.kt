@@ -1,8 +1,8 @@
 package com.rndeveloper.paparcar.domain.zone
 
 import com.rndeveloper.paparcar.domain.model.Spot
-import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.domain.model.Zone
+import com.rndeveloper.paparcar.domain.spot.isSpotWorthAnAlert
 import com.rndeveloper.paparcar.domain.util.haversineMeters
 
 /**
@@ -13,8 +13,10 @@ import com.rndeveloper.paparcar.domain.util.haversineMeters
  * - [Zone.radiusMeters] answers **«where is my place»** — a pin with a tolerance. It goes from 50 m
  *   to 500 m and a user who drags it down to 50 is marking a doorway, not declaring that they only
  *   want to hear about spots inside their doorway.
- * - The alert needs **«how far would I walk from a free space to that place»**, and the app's own
- *   answer to "nearby" elsewhere is 2 km (`ObserveNearbySpotsUseCase.DEFAULT_SEARCH_RADIUS_METERS`).
+ * - The alert needs **«how far would I walk from a free space to that place»**, which is a different
+ *   question from how far the MAP looks: `ObserveNearbySpotsUseCase.DEFAULT_SEARCH_RADIUS_METERS` is
+ *   5 km (it said 2 km here until 27-09, and had been 5 since NEARBY-A-DELIBERATE-LOOK-IS-NOT-A-PAN-001
+ *   — a stale number in a comment, which is the cheapest kind of lie to leave behind).
  *
  * So the alert gets a FLOOR and not a multiplier: `max` honours the user who deliberately drew a
  * wide zone (500 m stays 500 m) and rescues the one who drew a pin. Adding to an explicit choice
@@ -43,6 +45,12 @@ const val ZONE_ALERT_MIN_RADIUS_METERS = 500f
  * this rule is a divergence waiting to happen, and the shape it would take is the worst one: the
  * two surfaces disagreeing about what counts as news. [DET-VERDICT-NOT-PREDICATE-001]
  *
+ * ⛔ **This function is now only about the ZONE.** The vetoes that had nothing to do with a circle —
+ * withdrawn, provisional and releasing spots, an expired one, and above all *your own spot is never
+ * your alert* — moved to [isSpotWorthAnAlert] when the nearby lane was born and needed the very same
+ * list. They were never zone rules; they were sitting in the only file that happened to need them.
+ * [ZONE-AN-ALERT-NEAR-YOU-IS-NOT-AN-ALERT-IN-YOUR-ZONE-001]
+ *
  * @param nowMs used only to drop spots that have already expired. A spot whose TTL ran out between
  *        the query and this call is not news; without the clock the worker would notify about a
  *        free space that stopped existing before the phone buzzed.
@@ -52,37 +60,12 @@ fun isAlertableInZone(
     zone: Zone,
     ownUserId: String?,
     nowMs: Long,
-): Boolean = when {
-    // Withdrawn: the app stopped believing in it. [DET-HANDOFF-NOT-MANUAL-001 §B.3]
-    spot.status == SpotStatus.RETRACTED -> false
-
-    // ⛔ A PROVISIONAL spot lives 12 minutes and the background look runs every 15, so by the time
-    // this path could tell anyone, the spot is gone. Excluded HERE and not only in the worker, so
-    // the two lanes cannot disagree — and stated rather than silently missed: promising a class of
-    // alert that structurally cannot arrive is worse than not offering it.
-    spot.status == SpotStatus.PROVISIONAL -> false
-
-    // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] And a RELEASING one for both of that reason's
-    // halves, each on its own enough: it lives FOUR minutes, so the 15-minute look could never
-    // reach anybody in time — and it is not a free space at all yet, so an alert that said "hay una
-    // plaza en tu zona" would be false at the instant it buzzed.
-    //
-    // ⚠️ Stated rather than left to the `else`: this `when` ends in one, so a new status is
-    // alertable by saying nothing. That is how a class of alert gets promised by accident.
-    spot.status == SpotStatus.RELEASING -> false
-
-    // Your own published spot is the place YOU just left — never an alert.
-    spot.reportedBy == ownUserId -> false
-
-    // Already dead by the time we looked.
-    spot.expiresAt != 0L && spot.expiresAt <= nowMs -> false
-
+): Boolean = isSpotWorthAnAlert(spot, ownUserId, nowMs) &&
     // The geo query overfetches by geohash bounds; the ALERT circle is the contract — and it is
     // deliberately not the zone's own, see [zoneAlertRadiusMeters].
-    else -> haversineMeters(
+    haversineMeters(
         zone.lat, zone.lon, spot.location.latitude, spot.location.longitude,
     ) <= zoneAlertRadiusMeters(zone)
-}
 
 /** What one look at one zone decided: what to say, and what to write down so it is not said twice. */
 data class ZoneWatchLook(

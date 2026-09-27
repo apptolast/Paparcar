@@ -71,6 +71,7 @@ import com.rndeveloper.paparcar.presentation.home.model.warnsLocationMissing
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import com.rndeveloper.paparcar.domain.notification.MapVisibility
+import com.rndeveloper.paparcar.domain.notification.NearbySpotAlerts
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -207,6 +208,13 @@ class HomeViewModelTest {
         )
         return HomeViewModel(
             mapVisibility = MapVisibility(),
+            // El carril de «plaza libre donde estás»: inerte aquí — su contrato vive en
+            // HomeNearbyAlertControllerTest y NearbySpotAlertPolicyTest.
+            // [ZONE-AN-ALERT-NEAR-YOU-IS-NOT-AN-ALERT-IN-YOUR-ZONE-001]
+            nearbyAlerts = HomeNearbyAlertController(
+                authRepository = FakeAuthRepository(),
+                nearbySpotAlerts = NearbySpotAlerts(),
+            ),
             permissionManager = permissions,
             locationDataSource = locationDataSource,
             observeDetectionReadiness = observeDetectionReadiness,

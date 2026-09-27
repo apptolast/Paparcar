@@ -13,6 +13,7 @@ import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.usecase.detection.PublishDetectionStateUseCase
 import com.rndeveloper.paparcar.domain.notification.AlertChannel
 import com.rndeveloper.paparcar.domain.notification.MapVisibility
+import com.rndeveloper.paparcar.domain.notification.NearbySpotAlerts
 import com.rndeveloper.paparcar.domain.notification.alertChannelFor
 import com.rndeveloper.paparcar.domain.usecase.zone.ObserveZoneSpotAlertsUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
@@ -37,6 +38,12 @@ class AppViewModel(
     private val observeZoneSpotAlerts: ObserveZoneSpotAlertsUseCase,
     /** Decide por qué canal sale el aviso. [ZONE-AN-ALERT-IS-DELIVERED-WHERE-YOU-CAN-SEE-IT-001] */
     private val mapVisibility: MapVisibility,
+    /**
+     * El carril gratis: una plaza que acaba de quedar libre donde ESTÁ el usuario, decidida en Home
+     * —el único sitio con el fix y las plazas ya en memoria— y entregada aquí, por la misma ranura
+     * que el aviso de zona. [ZONE-AN-ALERT-NEAR-YOU-IS-NOT-AN-ALERT-IN-YOUR-ZONE-001]
+     */
+    private val nearbySpotAlerts: NearbySpotAlerts,
     private val appNotificationManager: AppNotificationManager,
     // [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001] Collected HERE for the same reason the zone
     // alerts are: the one ViewModel alive for the whole UI session, whatever tab is open. A
@@ -144,25 +151,14 @@ class AppViewModel(
                 // el primero ya la marcó como contada. El canal se elige aquí.
                 // [ZONE-AN-ALERT-IS-DELIVERED-WHERE-YOU-CAN-SEE-IT-001]
                 when (alertChannelFor(mapVisibility.onScreen.value)) {
-                    AlertChannel.IN_APP -> {
-                        // Se retira solo: un aviso que habla de algo que ya está en el mapa no
-                        // tiene por qué esperar a que lo cierren.
-                        spotAlertHideJob?.cancel()
-                        spotAlertHideJob = viewModelScope.launch {
-                            delay(SPOT_ALERT_VISIBLE_MS)
-                            updateState { copy(spotAlert = null) }
-                        }
-                        updateState {
-                        copy(
-                            spotAlert = SpotAlertCue(
-                                spotId = alert.spot.id,
-                                zoneName = alert.zoneName,
-                                latitude = alert.spot.location.latitude,
-                                longitude = alert.spot.location.longitude,
-                            ),
-                        )
-                        }
-                    }
+                    AlertChannel.IN_APP -> showSpotAlertInApp(
+                        SpotAlertCue(
+                            spotId = alert.spot.id,
+                            origin = SpotAlertOrigin.InZone(alert.zoneName),
+                            latitude = alert.spot.location.latitude,
+                            longitude = alert.spot.location.longitude,
+                        ),
+                    )
                     AlertChannel.SYSTEM_NOTIFICATION -> appNotificationManager.showZoneSpotAlert(
                         zoneName = alert.zoneName,
                         latitude = alert.spot.location.latitude,
@@ -171,6 +167,28 @@ class AppViewModel(
                 }
             }
             .catch { e -> PaparcarLogger.w(TAG, "zone-alert delivery stream failed", e) }
+            .launchIn(viewModelScope)
+
+        // El carril gratis: una plaza recién libre DONDE ESTÁ el usuario.
+        // [ZONE-AN-ALERT-NEAR-YOU-IS-NOT-AN-ALERT-IN-YOUR-ZONE-001]
+        //
+        // ⛔ **Sin `alertChannelFor`, y no por olvido: este carril es in-app por construcción.** Sólo
+        // decide cuando el mapa está delante, porque es de ahí de donde salen el fix y las plazas, así
+        // que preguntar «¿está el mapa delante?» sería preguntar algo que ya se sabe. Y una
+        // notificación del sistema aquí sería peor que redundante: prometería vigilancia con la app
+        // cerrada, que es justo lo que este carril NO hace y lo que el de zona cobra por hacer.
+        nearbySpotAlerts.alerts
+            .onEach { spot ->
+                showSpotAlertInApp(
+                    SpotAlertCue(
+                        spotId = spot.id,
+                        origin = SpotAlertOrigin.NearYou,
+                        latitude = spot.location.latitude,
+                        longitude = spot.location.longitude,
+                    ),
+                )
+            }
+            .catch { e -> PaparcarLogger.w(TAG, "nearby-alert delivery stream failed", e) }
             .launchIn(viewModelScope)
 
         // [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001] Report whether detection can actually run.
@@ -186,6 +204,27 @@ class AppViewModel(
      *  anterior en vez de encolarse — nadie quiere leer una cola de avisos sobre un mapa que ya
      *  los está enseñando. [ZONE-AN-ALERT-IS-DELIVERED-WHERE-YOU-CAN-SEE-IT-001] */
     private var spotAlertHideJob: Job? = null
+
+    /**
+     * La ÚNICA forma de poner el aviso in-app en pantalla, para los dos carriles.
+     * [NOTIF-A-FLOW-SPEAKS-THROUGH-ONE-SLOT-001]
+     *
+     * ⛔ Existe porque desde [ZONE-AN-ALERT-NEAR-YOU-IS-NOT-AN-ALERT-IN-YOUR-ZONE-001] hay **dos**
+     * emisores y **una** ranura en el estado. Con el cuerpo copiado en cada colector, el temporizador
+     * sería lo primero en divergir: uno cancelaría el anterior y el otro no, y el aviso se quedaría
+     * clavado en pantalla sin que ninguno de los dos pareciera culpable.
+     *
+     * Se retira solo: un aviso que habla de algo que ya está en el mapa no tiene por qué esperar a
+     * que lo cierren.
+     */
+    private fun showSpotAlertInApp(cue: SpotAlertCue) {
+        spotAlertHideJob?.cancel()
+        spotAlertHideJob = viewModelScope.launch {
+            delay(SPOT_ALERT_VISIBLE_MS)
+            updateState { copy(spotAlert = null) }
+        }
+        updateState { copy(spotAlert = cue) }
+    }
 
     /** Auto-hide timer for the transient [ConnectivityBannerPhase.Restored] banner. */
     private var restoredHideJob: Job? = null

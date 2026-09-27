@@ -70,6 +70,7 @@ import com.rndeveloper.paparcar.domain.connectivity.ConnectivityBannerPhase
 import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.domain.preferences.ThemeMode
 import com.rndeveloper.paparcar.presentation.app.AppIntent
+import com.rndeveloper.paparcar.presentation.app.SpotAlertOrigin
 import com.rndeveloper.paparcar.presentation.app.AppViewModel
 import com.rndeveloper.paparcar.presentation.app.BootstrapFailure
 import com.rndeveloper.paparcar.presentation.app.SplashEffect
@@ -100,6 +101,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.error_bootstrap_fatal_body
+import paparcar.composeapp.generated.resources.spot_alert_nearby_in_app
 import paparcar.composeapp.generated.resources.zone_alert_in_app
 import paparcar.composeapp.generated.resources.error_bootstrap_fatal_dismiss
 import paparcar.composeapp.generated.resources.error_bootstrap_fatal_title
@@ -227,8 +229,16 @@ fun App(
                 // [ZONE-AN-ALERT-IS-DELIVERED-WHERE-YOU-CAN-SEE-IT-001]
                 PapSpotAlertBannerHost(
                     visible = appState.spotAlert != null,
+                    // Cada carril trae su frase, y el `when` obliga a elegirla: la de zona nombra la
+                    // zona, la de cerca de ti no tiene nombre que dar.
+                    // [ZONE-AN-ALERT-NEAR-YOU-IS-NOT-AN-ALERT-IN-YOUR-ZONE-001]
                     text = appState.spotAlert?.let { cue ->
-                        stringResource(Res.string.zone_alert_in_app, cue.zoneName)
+                        when (val origin = cue.origin) {
+                            is SpotAlertOrigin.InZone ->
+                                stringResource(Res.string.zone_alert_in_app, origin.zoneName)
+                            SpotAlertOrigin.NearYou ->
+                                stringResource(Res.string.spot_alert_nearby_in_app)
+                        }
                     },
                     onDismiss = { appViewModel.handleIntent(AppIntent.DismissSpotAlert) },
                     modifier = Modifier

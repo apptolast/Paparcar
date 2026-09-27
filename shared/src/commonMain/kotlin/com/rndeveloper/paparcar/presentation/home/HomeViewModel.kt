@@ -172,6 +172,12 @@ class HomeViewModel(
     // [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
     private val toggleFollowFuelStation: ToggleFollowFuelStationUseCase,
     private val observeFollowedFuelStations: ObserveFollowedFuelStationsUseCase,
+    /**
+     * El carril de «plaza libre donde estás». Aquí porque es el único sitio con las dos entradas que
+     * cruza — el fix y las plazas vivas — y AL FINAL del constructor porque los `get()` de Koin son
+     * posicionales. [ZONE-AN-ALERT-NEAR-YOU-IS-NOT-AN-ALERT-IN-YOUR-ZONE-001]
+     */
+    private val nearbyAlerts: HomeNearbyAlertController,
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
 
     /**
@@ -1769,7 +1775,13 @@ class HomeViewModel(
 
         spots.updates.collectSafely("spots") { update ->
             when (update) {
-                is SpotsUpdate.Data -> updateState { applyNewSpots(update.spots).copy(spotsUnasked = false) }
+                is SpotsUpdate.Data -> {
+                    updateState { applyNewSpots(update.spots).copy(spotsUnasked = false) }
+                    // Una tanda nueva de plazas puede traer la que merece interrumpir. El ancla es el
+                    // fix del usuario, NO el centro de la consulta (que sigue a la cámara).
+                    // [ZONE-AN-ALERT-NEAR-YOU-IS-NOT-AN-ALERT-IN-YOUR-ZONE-001]
+                    nearbyAlerts.look(state.value.userGpsPoint, update.spots)
+                }
                 is SpotsUpdate.Error ->
                     sendEffect(HomeEffect.ShowError(PaparcarError.Network.Unknown(update.message)))
                 // Sin centro no se ha preguntado, y el carril tiene que decir eso y no «no hay
@@ -1844,6 +1856,9 @@ class HomeViewModel(
             .onStart { updateState { copy(isLoading = true) } }
             .collectSafely("gpsLocation", notify = { e -> PaparcarError.Location.Unknown(e.message ?: "") }) { location ->
                 updateState { copy(isLoading = false, userGpsPoint = location) }
+                // Te has movido: lo que está «cerca de ti» ha cambiado aunque no haya plazas nuevas.
+                // [ZONE-AN-ALERT-NEAR-YOU-IS-NOT-AN-ALERT-IN-YOUR-ZONE-001]
+                nearbyAlerts.look(location, state.value.nearbySpots)
                 // The open lane may have been waiting for a centre, or the user may have moved in or
                 // out of its follow range. ⛔ Never a retry of a failed ask: see NearbyTrigger.FIX.
                 // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]

@@ -49,7 +49,7 @@ data class AppState(
 }
 
 /**
- * Lo que el aviso in-app necesita decir y ofrecer: de qué zona es, y dónde está la plaza para poder
+ * Lo que el aviso in-app necesita decir y ofrecer: de dónde sale, y dónde está la plaza para poder
  * ir. [ZONE-AN-ALERT-IS-DELIVERED-WHERE-YOU-CAN-SEE-IT-001]
  *
  * ⚠️ Lleva `id` y no sólo el texto porque un aviso tiene que poder REEMPLAZARSE: si llegan dos
@@ -58,7 +58,24 @@ data class AppState(
  */
 data class SpotAlertCue(
     val spotId: String,
-    val zoneName: String,
+    val origin: SpotAlertOrigin,
     val latitude: Double,
     val longitude: Double,
 )
+
+/**
+ * De cuál de los dos carriles viene el aviso, que es lo que decide la frase.
+ * [ZONE-AN-ALERT-NEAR-YOU-IS-NOT-AN-ALERT-IN-YOUR-ZONE-001]
+ *
+ * ⛔ **Un tipo, no un `zoneName` que a veces está vacío.** El campo era `zoneName: String` y el
+ * carril nuevo no tiene zona ninguna: colar `""` o un nulo para significar «cerca de ti» es
+ * exactamente la clase de codificación implícita que se podre — el `when` de abajo obliga a que cada
+ * carril traiga su frase, y un tercero no podrá compilar sin elegirla.
+ */
+sealed interface SpotAlertOrigin {
+    /** Una zona que el usuario guardó y vigila (Plus). Trae su nombre porque la frase lo dice. */
+    data class InZone(val zoneName: String) : SpotAlertOrigin
+
+    /** Donde está el usuario ahora mismo (gratis, sólo con el mapa delante). No hay nombre que dar. */
+    data object NearYou : SpotAlertOrigin
+}

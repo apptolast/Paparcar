@@ -90,6 +90,7 @@ import com.rndeveloper.paparcar.ui.components.PapSpotAlertBanner
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.first_steps_spotlight_caption
+import paparcar.composeapp.generated.resources.spot_alert_nearby_in_app
 import paparcar.composeapp.generated.resources.zone_alert_in_app
 import paparcar.composeapp.generated.resources.parking_detail_route_off_device
 import paparcar.composeapp.generated.resources.parking_detail_route_recalculating
@@ -1254,6 +1255,18 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
                     PapSpotAlertBanner(
                         text = stringResource(Res.string.zone_alert_in_app, "Casa"),
+                        onDismiss = {},
+                        modifier = Modifier.padding(bottom = 24.dp),
+                    )
+                }
+            },
+            // El OTRO carril, y por eso tiene su propia variante: mismo componente, frase distinta y
+            // sin nombre de zona que dar. Verlas juntas es la forma de notar si alguna vez vuelven a
+            // decir lo mismo. [ZONE-AN-ALERT-NEAR-YOU-IS-NOT-AN-ALERT-IN-YOUR-ZONE-001]
+            Variant("Aviso · plaza nueva cerca de ti") {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+                    PapSpotAlertBanner(
+                        text = stringResource(Res.string.spot_alert_nearby_in_app),
                         onDismiss = {},
                         modifier = Modifier.padding(bottom = 24.dp),
                     )

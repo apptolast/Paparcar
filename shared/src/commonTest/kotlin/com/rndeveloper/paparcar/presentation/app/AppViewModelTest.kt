@@ -2,6 +2,8 @@ package com.rndeveloper.paparcar.presentation.app
 
 import com.rndeveloper.paparcar.domain.detection.ParkingStrategyResolver
 import com.rndeveloper.paparcar.domain.model.DeviceCapabilities
+import com.rndeveloper.paparcar.domain.model.GpsPoint
+import com.rndeveloper.paparcar.domain.model.Spot
 import com.rndeveloper.paparcar.domain.usecase.detection.EvaluateDetectionReliabilityUseCase
 import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
 import com.rndeveloper.paparcar.domain.usecase.detection.PublishDetectionStateUseCase
@@ -35,6 +37,7 @@ import kotlinx.coroutines.test.setMain
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import com.rndeveloper.paparcar.domain.notification.MapVisibility
+import com.rndeveloper.paparcar.domain.notification.NearbySpotAlerts
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -52,6 +55,9 @@ class AppViewModelTest {
     private lateinit var fakeParkingRepo: FakeUserParkingRepository
     private lateinit var zoneAlerts: ObserveZoneSpotAlertsUseCase
     private lateinit var mapVisibility: MapVisibility
+    /** El segundo emisor de la MISMA ranura de aviso.
+     *  [ZONE-AN-ALERT-NEAR-YOU-IS-NOT-AN-ALERT-IN-YOUR-ZONE-001] */
+    private lateinit var nearbyAlerts: NearbySpotAlerts
     private lateinit var fakeNotifications: FakeAppNotificationManager
     // [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001] Signed out and with nothing granted, so the
     // publisher is inert here: its own contract is covered by PublishDetectionStateUseCaseTest.
@@ -79,6 +85,9 @@ class AppViewModelTest {
         // como corrían estos tests antes de que hubiera canales.
         // [ZONE-AN-ALERT-IS-DELIVERED-WHERE-YOU-CAN-SEE-IT-001]
         mapVisibility = MapVisibility()
+        // El carril de cerca de ti: mudo salvo que un test anuncie por él.
+        // [ZONE-AN-ALERT-NEAR-YOU-IS-NOT-AN-ALERT-IN-YOUR-ZONE-001]
+        nearbyAlerts = NearbySpotAlerts()
         fakeNotifications = FakeAppNotificationManager()
         detectionPublisher = PublishDetectionStateUseCase(
             permissionManager = fakePermissions,
@@ -100,6 +109,30 @@ class AppViewModelTest {
         )
     }
 
+
+    /**
+     * La ÚNICA construcción del ViewModel en este fichero.
+     *
+     * ⛔ Había **22 llamadas posicionales** idénticas salvo el observador de conectividad, así que
+     * añadir una dependencia rompia el fichero entero y en el sitio equivocado: los errores salían como
+     * «tipo incorrecto» en argumentos que nadie había tocado. Con nombres, el orden deja de importar
+     * — que es la misma leccion que el registro de Koin ya llevaba escrita para `HomeViewModel`.
+     * [ZONE-AN-ALERT-NEAR-YOU-IS-NOT-AN-ALERT-IN-YOUR-ZONE-001]
+     */
+    private fun viewModel(connectivity: FakeConnectivityObserver = fakeConnectivity) = AppViewModel(
+        permissionManager = fakePermissions,
+        appPreferences = fakePrefs,
+        connectivityObserver = connectivity,
+        vehicleRepository = fakeVehicleRepo,
+        zoneRepository = fakeZoneRepo,
+        userParkingRepository = fakeParkingRepo,
+        observeZoneSpotAlerts = zoneAlerts,
+        mapVisibility = mapVisibility,
+        nearbySpotAlerts = nearbyAlerts,
+        appNotificationManager = fakeNotifications,
+        publishDetectionState = detectionPublisher,
+    )
+
     @AfterTest
     fun tearDown() {
         Dispatchers.resetMain()
@@ -109,7 +142,7 @@ class AppViewModelTest {
 
     @Test
     fun `initial state is all false when no permissions granted`() {
-        val vm = AppViewModel(fakePermissions, fakePrefs, fakeConnectivity, fakeVehicleRepo, fakeZoneRepo, fakeParkingRepo, zoneAlerts, mapVisibility, fakeNotifications, detectionPublisher)
+        val vm = viewModel()
 
         assertFalse(vm.state.value.permissionsGranted)
         assertFalse(vm.state.value.locationServicesEnabled)
@@ -119,7 +152,7 @@ class AppViewModelTest {
     @Test
     fun `initial state reflects current permission state synchronously`() {
         fakePermissions.emit(FakePermissionManager.allGranted())
-        val vm = AppViewModel(fakePermissions, fakePrefs, fakeConnectivity, fakeVehicleRepo, fakeZoneRepo, fakeParkingRepo, zoneAlerts, mapVisibility, fakeNotifications, detectionPublisher)
+        val vm = viewModel()
 
         assertTrue(vm.state.value.permissionsGranted)
         assertTrue(vm.state.value.locationServicesEnabled)
@@ -129,7 +162,7 @@ class AppViewModelTest {
     @Test
     fun `initial state reflects permissions-only no GPS`() {
         fakePermissions.emit(FakePermissionManager.permissionsOnlyNoGps())
-        val vm = AppViewModel(fakePermissions, fakePrefs, fakeConnectivity, fakeVehicleRepo, fakeZoneRepo, fakeParkingRepo, zoneAlerts, mapVisibility, fakeNotifications, detectionPublisher)
+        val vm = viewModel()
 
         assertTrue(vm.state.value.permissionsGranted)
         assertFalse(vm.state.value.locationServicesEnabled)
@@ -148,7 +181,7 @@ class AppViewModelTest {
                 isLocationServicesEnabled = true,
             ),
         )
-        val vm = AppViewModel(fakePermissions, fakePrefs, fakeConnectivity, fakeVehicleRepo, fakeZoneRepo, fakeParkingRepo, zoneAlerts, mapVisibility, fakeNotifications, detectionPublisher)
+        val vm = viewModel()
 
         assertTrue(vm.state.value.isFullyOperational)
         assertFalse(vm.state.value.isDetectionReady)
@@ -158,7 +191,7 @@ class AppViewModelTest {
     @Test
     fun `isDetectionReady true when producer permissions complete`() {
         fakePermissions.emit(FakePermissionManager.allGranted())
-        val vm = AppViewModel(fakePermissions, fakePrefs, fakeConnectivity, fakeVehicleRepo, fakeZoneRepo, fakeParkingRepo, zoneAlerts, mapVisibility, fakeNotifications, detectionPublisher)
+        val vm = viewModel()
 
         assertTrue(vm.state.value.isDetectionReady)
     }
@@ -167,7 +200,7 @@ class AppViewModelTest {
 
     @Test
     fun `state updates when permissions are granted after creation`() = runTest {
-        val vm = AppViewModel(fakePermissions, fakePrefs, fakeConnectivity, fakeVehicleRepo, fakeZoneRepo, fakeParkingRepo, zoneAlerts, mapVisibility, fakeNotifications, detectionPublisher)
+        val vm = viewModel()
         assertFalse(vm.state.value.isFullyOperational)
 
         fakePermissions.emit(FakePermissionManager.allGranted())
@@ -180,7 +213,7 @@ class AppViewModelTest {
     @Test
     fun `state updates when permissions are revoked mid-session`() = runTest {
         fakePermissions.emit(FakePermissionManager.allGranted())
-        val vm = AppViewModel(fakePermissions, fakePrefs, fakeConnectivity, fakeVehicleRepo, fakeZoneRepo, fakeParkingRepo, zoneAlerts, mapVisibility, fakeNotifications, detectionPublisher)
+        val vm = viewModel()
         assertTrue(vm.state.value.isFullyOperational)
 
         fakePermissions.emit(FakePermissionManager.allDenied())
@@ -192,7 +225,7 @@ class AppViewModelTest {
     @Test
     fun `state updates when GPS is toggled off with permissions kept`() = runTest {
         fakePermissions.emit(FakePermissionManager.allGranted())
-        val vm = AppViewModel(fakePermissions, fakePrefs, fakeConnectivity, fakeVehicleRepo, fakeZoneRepo, fakeParkingRepo, zoneAlerts, mapVisibility, fakeNotifications, detectionPublisher)
+        val vm = viewModel()
         assertTrue(vm.state.value.isFullyOperational)
 
         fakePermissions.emit(FakePermissionManager.permissionsOnlyNoGps())
@@ -206,7 +239,7 @@ class AppViewModelTest {
 
     @Test
     fun `cold start online keeps banner hidden`() {
-        val vm = AppViewModel(fakePermissions, fakePrefs, fakeConnectivity, fakeVehicleRepo, fakeZoneRepo, fakeParkingRepo, zoneAlerts, mapVisibility, fakeNotifications, detectionPublisher)
+        val vm = viewModel()
 
         assertEquals(ConnectivityBannerPhase.Hidden, vm.state.value.connectivityBanner)
     }
@@ -214,14 +247,14 @@ class AppViewModelTest {
     @Test
     fun `cold start offline shows offline banner synchronously`() {
         val offlineConnectivity = FakeConnectivityObserver(ConnectivityStatus.Offline)
-        val vm = AppViewModel(fakePermissions, fakePrefs, offlineConnectivity, fakeVehicleRepo, fakeZoneRepo, fakeParkingRepo, zoneAlerts, mapVisibility, fakeNotifications, detectionPublisher)
+        val vm = viewModel(offlineConnectivity)
 
         assertEquals(ConnectivityBannerPhase.Offline, vm.state.value.connectivityBanner)
     }
 
     @Test
     fun `going offline shows offline banner`() = runTest(testDispatcher) {
-        val vm = AppViewModel(fakePermissions, fakePrefs, fakeConnectivity, fakeVehicleRepo, fakeZoneRepo, fakeParkingRepo, zoneAlerts, mapVisibility, fakeNotifications, detectionPublisher)
+        val vm = viewModel()
         assertEquals(ConnectivityBannerPhase.Hidden, vm.state.value.connectivityBanner)
 
         fakeConnectivity.emit(ConnectivityStatus.Offline)
@@ -231,7 +264,7 @@ class AppViewModelTest {
 
     @Test
     fun `reconnect shows restored banner then auto-hides`() = runTest(testDispatcher) {
-        val vm = AppViewModel(fakePermissions, fakePrefs, fakeConnectivity, fakeVehicleRepo, fakeZoneRepo, fakeParkingRepo, zoneAlerts, mapVisibility, fakeNotifications, detectionPublisher)
+        val vm = viewModel()
         fakeConnectivity.emit(ConnectivityStatus.Offline)
 
         fakeConnectivity.emit(ConnectivityStatus.Online)
@@ -244,7 +277,7 @@ class AppViewModelTest {
 
     @Test
     fun `going offline again before auto-hide keeps offline banner`() = runTest(testDispatcher) {
-        val vm = AppViewModel(fakePermissions, fakePrefs, fakeConnectivity, fakeVehicleRepo, fakeZoneRepo, fakeParkingRepo, zoneAlerts, mapVisibility, fakeNotifications, detectionPublisher)
+        val vm = viewModel()
         fakeConnectivity.emit(ConnectivityStatus.Offline)
         fakeConnectivity.emit(ConnectivityStatus.Online) // Restored, hide scheduled
 
@@ -257,7 +290,7 @@ class AppViewModelTest {
 
     @Test
     fun `drains pending vehicles on online cold start`() {
-        AppViewModel(fakePermissions, fakePrefs, fakeConnectivity, fakeVehicleRepo, fakeZoneRepo, fakeParkingRepo, zoneAlerts, mapVisibility, fakeNotifications, detectionPublisher)
+        viewModel()
 
         assertEquals(1, fakeVehicleRepo.pushPendingCallCount) // online → outbox drained once at init
     }
@@ -265,7 +298,7 @@ class AppViewModelTest {
     @Test
     fun `does not drain pending vehicles on offline cold start`() {
         val offline = FakeConnectivityObserver(ConnectivityStatus.Offline)
-        AppViewModel(fakePermissions, fakePrefs, offline, fakeVehicleRepo, fakeZoneRepo, fakeParkingRepo, zoneAlerts, mapVisibility, fakeNotifications, detectionPublisher)
+        viewModel(offline)
 
         assertEquals(0, fakeVehicleRepo.pushPendingCallCount) // offline → nothing to push yet
     }
@@ -273,7 +306,7 @@ class AppViewModelTest {
     @Test
     fun `drains pending vehicles on reconnect`() = runTest(testDispatcher) {
         val offline = FakeConnectivityObserver(ConnectivityStatus.Offline)
-        AppViewModel(fakePermissions, fakePrefs, offline, fakeVehicleRepo, fakeZoneRepo, fakeParkingRepo, zoneAlerts, mapVisibility, fakeNotifications, detectionPublisher)
+        viewModel(offline)
         assertEquals(0, fakeVehicleRepo.pushPendingCallCount)
 
         offline.emit(ConnectivityStatus.Online) // reconnect → push the offline edits to the cloud
@@ -286,7 +319,7 @@ class AppViewModelTest {
 
     @Test
     fun `MarkOnboardingCompleted calls setOnboardingCompleted once`() {
-        val vm = AppViewModel(fakePermissions, fakePrefs, fakeConnectivity, fakeVehicleRepo, fakeZoneRepo, fakeParkingRepo, zoneAlerts, mapVisibility, fakeNotifications, detectionPublisher)
+        val vm = viewModel()
         assertEquals(0, fakePrefs.setOnboardingCompletedCount)
 
         vm.handleIntent(AppIntent.MarkOnboardingCompleted)
@@ -297,7 +330,7 @@ class AppViewModelTest {
 
     @Test
     fun `MarkOnboardingCompleted is idempotent`() {
-        val vm = AppViewModel(fakePermissions, fakePrefs, fakeConnectivity, fakeVehicleRepo, fakeZoneRepo, fakeParkingRepo, zoneAlerts, mapVisibility, fakeNotifications, detectionPublisher)
+        val vm = viewModel()
 
         vm.handleIntent(AppIntent.MarkOnboardingCompleted)
         vm.handleIntent(AppIntent.MarkOnboardingCompleted)
@@ -310,7 +343,7 @@ class AppViewModelTest {
 
     @Test
     fun `should_startWithoutConsent_when_neverAccepted`() {
-        val vm = AppViewModel(fakePermissions, fakePrefs, fakeConnectivity, fakeVehicleRepo, fakeZoneRepo, fakeParkingRepo, zoneAlerts, mapVisibility, fakeNotifications, detectionPublisher)
+        val vm = viewModel()
 
         // A fresh install must ASK: the auth screen reads this flag to decide whether to draw the
         // checkbox and gate its CTAs.
@@ -319,7 +352,7 @@ class AppViewModelTest {
 
     @Test
     fun `should_persistConsent_when_accepted`() {
-        val vm = AppViewModel(fakePermissions, fakePrefs, fakeConnectivity, fakeVehicleRepo, fakeZoneRepo, fakeParkingRepo, zoneAlerts, mapVisibility, fakeNotifications, detectionPublisher)
+        val vm = viewModel()
 
         vm.handleIntent(AppIntent.AcceptLegalConsent)
 
@@ -333,17 +366,54 @@ class AppViewModelTest {
     fun `should_notAskAgain_when_consentWasAcceptedOnAPreviousRun`() {
         // Accept it, then throw the ViewModel away — this is a relaunch, and the only thing that
         // crosses over is the persisted preference.
-        AppViewModel(fakePermissions, fakePrefs, fakeConnectivity, fakeVehicleRepo, fakeZoneRepo, fakeParkingRepo, zoneAlerts, mapVisibility, fakeNotifications, detectionPublisher)
+        viewModel()
             .handleIntent(AppIntent.AcceptLegalConsent)
 
-        val relaunched = AppViewModel(
-            fakePermissions, fakePrefs, fakeConnectivity, fakeVehicleRepo, fakeZoneRepo, fakeParkingRepo,
-            zoneAlerts, mapVisibility, fakeNotifications, detectionPublisher,
-        )
+        val relaunched = viewModel()
 
         // True at construction time (not after some later emission): the auth screen decides whether
         // to draw the consent row on its FIRST composition, so a late value would flash the checkbox
         // at someone who already accepted.
         assertTrue(relaunched.state.value.hasAcceptedLegalConsent)
     }
+
+    // ── El carril de «cerca de ti» ────────────────────────────────────────────
+    // [ZONE-AN-ALERT-NEAR-YOU-IS-NOT-AN-ALERT-IN-YOUR-ZONE-001]
+
+    @Test
+    fun `should show the banner through the same slot when the nearby lane announces`() = runTest(testDispatcher) {
+        val vm = viewModel()
+        runCurrent()
+
+        nearbyAlerts.announce(nearbySpot)
+        runCurrent()
+
+        val cue = vm.state.value.spotAlert
+        assertEquals("s-near", cue?.spotId)
+        assertEquals(SpotAlertOrigin.NearYou, cue?.origin)
+    }
+
+    @Test
+    fun `should never reach the system tray from the nearby lane even with the map away`() = runTest(testDispatcher) {
+        // ⛔ Este carril es in-app por construcción: sólo decide con el mapa delante, y una
+        // notificación del sistema prometería vigilancia con la app cerrada — que es exactamente lo
+        // que NO hace, y lo que el carril de zona cobra por hacer.
+        mapVisibility.set(false)
+        val vm = viewModel()
+        runCurrent()
+
+        nearbyAlerts.announce(nearbySpot)
+        runCurrent()
+
+        assertTrue(fakeNotifications.zoneSpotAlerts.isEmpty(), "el carril gratis no manda notificaciones")
+        assertEquals(SpotAlertOrigin.NearYou, vm.state.value.spotAlert?.origin)
+    }
+
+    private val nearbySpot = Spot(
+        id = "s-near",
+        location = GpsPoint(40.0, -3.0, accuracy = 5f, timestamp = 1_000L, speed = 0f),
+        reportedBy = "someone-else",
+        expiresAt = 0L,
+    )
+
 }

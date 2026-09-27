@@ -29,6 +29,7 @@ import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.PurchasePlusUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.RestorePurchasesUseCase
 import com.rndeveloper.paparcar.domain.notification.MapVisibility
+import com.rndeveloper.paparcar.domain.notification.NearbySpotAlerts
 import com.rndeveloper.paparcar.domain.usecase.zone.ObserveZoneSpotAlertsUseCase
 import com.rndeveloper.paparcar.domain.usecase.zone.SaveOrUpdateZoneUseCase
 import com.rndeveloper.paparcar.domain.usecase.zone.SaveZoneUseCase
@@ -142,6 +143,9 @@ val domainModule = module {
     // se cuenta dentro de la app o por notificación.
     // [ZONE-AN-ALERT-IS-DELIVERED-WHERE-YOU-CAN-SEE-IT-001]
     single { MapVisibility() }
+    // Una senal, un dueno: Home decide y AppViewModel entrega.
+    // [ZONE-AN-ALERT-NEAR-YOU-IS-NOT-AN-ALERT-IN-YOUR-ZONE-001]
+    single { NearbySpotAlerts() }
 
     // Plus zone alerts. DOS carriles y UNA memoria: el stream mientras la app vive, el PUSH
     // mientras no. Los dos apuntan en el MISMO repositorio, que es lo que impide que la misma
