@@ -157,12 +157,17 @@ class AppViewModel(
                             origin = SpotAlertOrigin.InZone(alert.zoneName),
                             latitude = alert.spot.location.latitude,
                             longitude = alert.spot.location.longitude,
+                            unconfirmed = alert.spot.status.isUnconfirmedOffer,
                         ),
                     )
+                    // ⛔ `isProvisional` tenía default `false` y este call site lo omitía — inofensivo
+                    // mientras el stream vetaba las deducidas, y una promesa falsa en el instante en que
+                    // deja de vetarlas. [ALERT-A-PROVISIONAL-SPOT-IS-PUSHED-BUT-NOT-SHOWN-001]
                     AlertChannel.SYSTEM_NOTIFICATION -> appNotificationManager.showZoneSpotAlert(
                         zoneName = alert.zoneName,
                         latitude = alert.spot.location.latitude,
                         longitude = alert.spot.location.longitude,
+                        isProvisional = alert.spot.status.isUnconfirmedOffer,
                     )
                 }
             }
@@ -185,6 +190,7 @@ class AppViewModel(
                         origin = SpotAlertOrigin.NearYou,
                         latitude = spot.location.latitude,
                         longitude = spot.location.longitude,
+                        unconfirmed = spot.status.isUnconfirmedOffer,
                     ),
                 )
             }

@@ -65,4 +65,17 @@ enum class SpotStatus {
 
     /** Whether this spot is still on offer to the community. */
     val isAvailable: Boolean get() = this != RETRACTED
+
+    /**
+     * Whether an offer this status carries has to SAY that nobody measured the departure.
+     * [ALERT-A-PROVISIONAL-SPOT-IS-PUSHED-BUT-NOT-SHOWN-001]
+     *
+     * ⛔ Hoisted here when the alert became its second consumer: it was a local `val` inside
+     * `SpotPeek`, and two copies of «¿hay que decir que no está confirmada?» is how one surface ends
+     * up hedging and the other promising — about the same plaza, in the same minute.
+     *
+     * ⚠️ Not the same question as [isAvailable]. A RELEASING spot is available and NOT unconfirmed:
+     * there is no doubt about it at all, the car is simply still inside. Its words are its own.
+     */
+    val isUnconfirmedOffer: Boolean get() = this == PROVISIONAL
 }

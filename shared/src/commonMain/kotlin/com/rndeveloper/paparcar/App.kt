@@ -70,6 +70,7 @@ import com.rndeveloper.paparcar.domain.connectivity.ConnectivityBannerPhase
 import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.domain.preferences.ThemeMode
 import com.rndeveloper.paparcar.presentation.app.AppIntent
+import com.rndeveloper.paparcar.presentation.app.SpotAlertCue
 import com.rndeveloper.paparcar.presentation.app.SpotAlertOrigin
 import com.rndeveloper.paparcar.presentation.app.AppViewModel
 import com.rndeveloper.paparcar.presentation.app.BootstrapFailure
@@ -102,6 +103,8 @@ import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.error_bootstrap_fatal_body
 import paparcar.composeapp.generated.resources.spot_alert_nearby_in_app
+import paparcar.composeapp.generated.resources.spot_alert_nearby_in_app_unconfirmed
+import paparcar.composeapp.generated.resources.zone_alert_in_app_unconfirmed
 import paparcar.composeapp.generated.resources.zone_alert_in_app
 import paparcar.composeapp.generated.resources.error_bootstrap_fatal_dismiss
 import paparcar.composeapp.generated.resources.error_bootstrap_fatal_title
@@ -142,6 +145,36 @@ object Routes {
      *  screen so the panel opens on the same one. [STATS-PANEL-001] */
     const val STATS = "stats"
 }
+/**
+ * La frase del aviso de plaza: cuatro, y las cuatro obligadas por el tipo.
+ * [ALERT-A-PROVISIONAL-SPOT-IS-PUSHED-BUT-NOT-SHOWN-001]
+ *
+ * Dos preguntas independientes, y por eso cuatro frases y no un sufijo pegado:
+ * - **De dónde sale** — la de zona nombra la zona, la de cerca de ti no tiene nombre que dar.
+ *   [ZONE-AN-ALERT-NEAR-YOU-IS-NOT-AN-ALERT-IN-YOUR-ZONE-001]
+ * - **Si la salida se midió o se dedujo** — una deducida dice *«puede haber quedado libre»*, porque es
+ *   el único aviso que esa plaza va a tener y prometer certeza gastaría la confianza de la que vive
+ *   todo el aviso.
+ *
+ * ⛔ Cuatro frases enteras y no una plantilla con un «posiblemente» delante: en ocho de los nueve
+ * idiomas la duda cambia el verbo, no añade una palabra — *«acaba de quedar libre»* → *«puede haber
+ * quedado libre»*, *«właśnie zwolniło się»* → *«mogło zwolnić się»*. Una plantilla obligaría a cada
+ * traducción a caber en la gramática del inglés.
+ */
+@Composable
+private fun spotAlertText(cue: SpotAlertCue): String = when (val origin = cue.origin) {
+    is SpotAlertOrigin.InZone -> if (cue.unconfirmed) {
+        stringResource(Res.string.zone_alert_in_app_unconfirmed, origin.zoneName)
+    } else {
+        stringResource(Res.string.zone_alert_in_app, origin.zoneName)
+    }
+    SpotAlertOrigin.NearYou -> if (cue.unconfirmed) {
+        stringResource(Res.string.spot_alert_nearby_in_app_unconfirmed)
+    } else {
+        stringResource(Res.string.spot_alert_nearby_in_app)
+    }
+}
+
 
 private val BOTTOM_NAV_ROUTES = setOf(
     Routes.HOME,
@@ -229,17 +262,7 @@ fun App(
                 // [ZONE-AN-ALERT-IS-DELIVERED-WHERE-YOU-CAN-SEE-IT-001]
                 PapSpotAlertBannerHost(
                     visible = appState.spotAlert != null,
-                    // Cada carril trae su frase, y el `when` obliga a elegirla: la de zona nombra la
-                    // zona, la de cerca de ti no tiene nombre que dar.
-                    // [ZONE-AN-ALERT-NEAR-YOU-IS-NOT-AN-ALERT-IN-YOUR-ZONE-001]
-                    text = appState.spotAlert?.let { cue ->
-                        when (val origin = cue.origin) {
-                            is SpotAlertOrigin.InZone ->
-                                stringResource(Res.string.zone_alert_in_app, origin.zoneName)
-                            SpotAlertOrigin.NearYou ->
-                                stringResource(Res.string.spot_alert_nearby_in_app)
-                        }
-                    },
+                    text = appState.spotAlert?.let { spotAlertText(it) },
                     onDismiss = { appViewModel.handleIntent(AppIntent.DismissSpotAlert) },
                     modifier = Modifier
                         .align(Alignment.BottomCenter)

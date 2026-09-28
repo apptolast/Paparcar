@@ -3,6 +3,8 @@
     <string name="home_nearby_section_header">În această zonă</string>
     <string name="zone_alert_in_app">Tocmai s-a eliberat un loc în %1$s</string>
     <string name="spot_alert_nearby_in_app">Tocmai s-a eliberat un loc lângă tine</string>
+    <string name="zone_alert_in_app_unconfirmed">Poate s-a eliberat un loc în %1$s</string>
+    <string name="spot_alert_nearby_in_app_unconfirmed">Poate s-a eliberat un loc lângă tine</string>
     <!-- HomeScreen -->
     <string name="home_search_placeholder">Caută o zonă, stradă…</string>
     <string name="home_search_no_results">Niciun rezultat pentru această căutare</string>

@@ -61,6 +61,17 @@ data class SpotAlertCue(
     val origin: SpotAlertOrigin,
     val latitude: Double,
     val longitude: Double,
+    /**
+     * La salida se DEDUJO, nadie la midió, así que la frase no puede prometer certeza.
+     * [ALERT-A-PROVISIONAL-SPOT-IS-PUSHED-BUT-NOT-SHOWN-001]
+     *
+     * ⛔ Va en el cue y no se deduce en el call site porque **es el único aviso que esa plaza va a
+     * tener**: el id es el mismo en toda la publicación (`RELEASING → PROVISIONAL → CONFIRMED`, sobre
+     * `park.id`), así que la memoria de «ya contada» hace que anunciar en PROVISIONAL consuma el aviso
+     * y la promoción a CONFIRMED ya no vuelva a hablar — que es lo que el servidor dice que quiere.
+     * Si la duda no viaja aquí, no viaja nunca.
+     */
+    val unconfirmed: Boolean = false,
 )
 
 /**

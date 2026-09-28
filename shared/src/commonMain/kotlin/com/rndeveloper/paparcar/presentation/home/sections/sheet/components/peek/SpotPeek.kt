@@ -92,7 +92,10 @@ internal fun SpotPeek(
     // it drops the whole community loop (directions, "still there?", "it's gone") — every one of
     // those actions is about a space that exists — and says the one true thing instead.
     val isRetracted = spot.status == SpotStatus.RETRACTED
-    val isUnconfirmed = spot.status == SpotStatus.PROVISIONAL
+    // [ALERT-A-PROVISIONAL-SPOT-IS-PUSHED-BUT-NOT-SHOWN-001] El predicado vive en SpotStatus desde
+    // que el aviso es su segundo consumidor: una superficie hedgeando y la otra prometiendo sobre
+    // la misma plaza es lo que se evita teniéndolo en un solo sitio.
+    val isUnconfirmed = spot.status.isUnconfirmedOffer
     // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] Nobody has left yet. The age line is suppressed
     // below for the same reason the row swaps its pill: "hace 0 min" would be the freshest reading
     // on the sheet, about the one plaza that still has a car in it.

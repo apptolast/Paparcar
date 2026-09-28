@@ -31,16 +31,19 @@ fun isSpotWorthAnAlert(
     // Withdrawn: the app stopped believing in it. [DET-HANDOFF-NOT-MANUAL-001 §B.3]
     spot.status == SpotStatus.RETRACTED -> false
 
-    // ⛔ A PROVISIONAL spot lives 12 minutes and the background look runs every 15, so by the time
-    // that path could tell anyone, the spot is gone. Excluded HERE and not only in the worker, so
-    // the lanes cannot disagree — and stated rather than silently missed: promising a class of alert
-    // that structurally cannot arrive is worse than not offering it.
-    spot.status == SpotStatus.PROVISIONAL -> false
-
-    // [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] And a RELEASING one for both of that reason's halves,
-    // each on its own enough: it lives FOUR minutes, so a 15-minute look could never reach anybody
-    // in time — and it is not a free space at all yet, so an alert saying "there is a spot" would be
-    // false at the instant it buzzed.
+    // ⛔ [SPOT-A-BOARDING-IS-NOT-A-DEPARTURE-001] A RELEASING spot is not alertable because **the car
+    // is still in it**: an alert saying "there is a space" would be false at the instant it buzzed,
+    // and it would spend the one resource a parking app cannot give back — somebody else's drive.
+    // The news of that boarding is its PROMOTION, which the server announces on the TRANSITION.
+    // [SEC-A-RELEASING-SPOT-IS-DENIED-AT-THE-DOOR-001]
+    //
+    // ⚠️ This used to claim a second, independent half — «it lives four minutes, so a 15-minute look
+    // could never reach anybody in time». Both halves of that were wrong by 28-09: there is no
+    // 15-minute look ([ZONE-THERE-IS-NO-WORKER-AND-FIVE-KDOCS-SAY-THERE-IS-001]), and the four
+    // minutes are the **FLOOR, not the plan** — `SpotTtlPolicy.RELEASING_SPOT_TTL_MS` says so. The
+    // normal path is the sensors resolving it: measured driving promotes it, a refuted boarding
+    // withdraws it explicitly, and the TTL only covers neither happening.
+    // [ALERT-A-PROVISIONAL-SPOT-IS-PUSHED-BUT-NOT-SHOWN-001]
     //
     // ⚠️ Stated rather than left to the `else`: this `when` ends in one, so a NEW status would
     // become alertable by saying nothing. That is how a class of alert gets promised by accident.
@@ -54,5 +57,28 @@ fun isSpotWorthAnAlert(
     // Already dead by the time we looked.
     spot.expiresAt != 0L && spot.expiresAt <= nowMs -> false
 
+    // ⛔ **PROVISIONAL llega aquí, y que llegue es la decisión.**
+    // [ALERT-A-PROVISIONAL-SPOT-IS-PUSHED-BUT-NOT-SHOWN-001]
+    //
+    // Estaba vetada arriba hasta el 28-09, apoyada en la misma cadencia muerta que RELEASING —
+    // mientras el servidor SÍ la anunciaba (`fanout.ts`: `isProvisional: spot.status ===
+    // 'PROVISIONAL'`) y [AppNotificationManager.showZoneSpotAlert] ya llevaba el flag para matizar la
+    // frase, con un KDoc que prescribe justo lo contrario del veto: *«Said, never hidden… Different
+    // words, not a different silence.»* Resultado: una plaza deducida te llegaba con la app CERRADA y
+    // se perdía mirando el mapa.
+    //
+    // ⛔ **Y no lleva rama propia `-> true`, a propósito.** La tuvo durante diez minutos y fue un bug
+    // de verdad: un `-> true` explícito en una cadena de guardas **cortocircuita todo lo que va
+    // detrás**, así que se saltaba el veto de plaza propia y el de caducidad — una plaza deducida
+    // TUYA se te habría anunciado. Lo cazó `AlertStatusParityGuardrailTest` en su primera ejecución.
+    // La forma correcta de este `when` es: sólo vetos, y el `else` afirma.
+    //
+    // ⚠️ Matizar las palabras es del llamante. Esto contesta «¿podemos interrumpir por esta plaza?»,
+    // nunca «¿qué decimos» — y una deducida anunciada como confirmada gastaría la confianza de la que
+    // vive el aviso entero. La lleva `SpotStatus.isUnconfirmedOffer`.
+    //
+    // ⚠️ Que un estado NUEVO sea alertable por no decir nada lo vigilan dos testigos, no este
+    // comentario: `AlertStatusParityGuardrailTest` (contra los vetos del servidor) y
+    // `SpotAlertEligibilityTest`, que enumera los estados uno a uno.
     else -> true
 }

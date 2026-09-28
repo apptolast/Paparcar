@@ -91,6 +91,8 @@ import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.first_steps_spotlight_caption
 import paparcar.composeapp.generated.resources.spot_alert_nearby_in_app
+import paparcar.composeapp.generated.resources.zone_alert_in_app_unconfirmed
+import paparcar.composeapp.generated.resources.spot_alert_nearby_in_app_unconfirmed
 import paparcar.composeapp.generated.resources.zone_alert_in_app
 import paparcar.composeapp.generated.resources.parking_detail_route_off_device
 import paparcar.composeapp.generated.resources.parking_detail_route_recalculating
@@ -1267,6 +1269,28 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
                     PapSpotAlertBanner(
                         text = stringResource(Res.string.spot_alert_nearby_in_app),
+                        onDismiss = {},
+                        modifier = Modifier.padding(bottom = 24.dp),
+                    )
+                }
+            },
+            // Las dos MISMAS noticias cuando la salida se dedujo y nadie la midió: cambia el verbo, no
+            // el silencio. Están al lado de sus confirmadas justamente para poder leer las cuatro
+            // seguidas — es la única forma de notar si alguna vuelve a prometer certeza.
+            // [ALERT-A-PROVISIONAL-SPOT-IS-PUSHED-BUT-NOT-SHOWN-001]
+            Variant("Aviso · plaza SIN CONFIRMAR en tu zona") {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+                    PapSpotAlertBanner(
+                        text = stringResource(Res.string.zone_alert_in_app_unconfirmed, "Casa"),
+                        onDismiss = {},
+                        modifier = Modifier.padding(bottom = 24.dp),
+                    )
+                }
+            },
+            Variant("Aviso · plaza SIN CONFIRMAR cerca de ti") {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+                    PapSpotAlertBanner(
+                        text = stringResource(Res.string.spot_alert_nearby_in_app_unconfirmed),
                         onDismiss = {},
                         modifier = Modifier.padding(bottom = 24.dp),
                     )

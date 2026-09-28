@@ -44,8 +44,16 @@ class ZoneSpotAlertPolicyStatusTest {
     }
 
     @Test
-    fun should_staySilent_when_theDepartureWasOnlyDeducedOrWithdrawn() {
-        assertFalse(isAlertableInZone(spot(SpotStatus.PROVISIONAL), zone, ownUserId = "me", nowMs = 2_000L))
+    fun should_staySilent_when_theDepartureWasWithdrawn() {
         assertFalse(isAlertableInZone(spot(SpotStatus.RETRACTED), zone, ownUserId = "me", nowMs = 2_000L))
+    }
+
+    @Test
+    fun should_alert_when_theDepartureWasOnlyDeduced() {
+        // ⛔ Esto afirmaba lo contrario hasta el 28-09, y era la mitad EQUIVOCADA de una paridad que el
+        // propio servidor daba por hecha: `fanout.ts` anuncia las PROVISIONAL con `isProvisional: true`
+        // para que el copy las matice, y el carril local las tiraba. Resultado: te llegaba con la app
+        // CERRADA y se perdía mirando el mapa. [ALERT-A-PROVISIONAL-SPOT-IS-PUSHED-BUT-NOT-SHOWN-001]
+        assertTrue(isAlertableInZone(spot(SpotStatus.PROVISIONAL), zone, ownUserId = "me", nowMs = 2_000L))
     }
 }

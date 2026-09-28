@@ -3,6 +3,8 @@
     <string name="home_nearby_section_header">Nesta zona</string>
     <string name="zone_alert_in_app">Acabou de ficar livre um lugar em %1$s</string>
     <string name="spot_alert_nearby_in_app">Acabou de ficar livre um lugar perto de ti</string>
+    <string name="zone_alert_in_app_unconfirmed">Pode ter ficado livre um lugar em %1$s</string>
+    <string name="spot_alert_nearby_in_app_unconfirmed">Pode ter ficado livre um lugar perto de ti</string>
     <!-- HomeScreen -->
     <string name="home_search_placeholder">Procure uma zona, rua…</string>
     <string name="home_search_no_results">Sem resultados para essa pesquisa</string>

@@ -72,6 +72,16 @@ open class FakeAppNotificationManager : AppNotificationManager {
     /** Zone name of every free-spot card posted, in order. */
     val zoneSpotAlerts: MutableList<String> = mutableListOf()
 
+    /**
+     * `zoneName to isProvisional` de cada tarjeta, en orden.
+     * [ALERT-A-PROVISIONAL-SPOT-IS-PUSHED-BUT-NOT-SHOWN-001]
+     *
+     * ⛔ El flag se descartaba aquí, así que **ningún test podía ver si la frase se matizaba** — y el
+     * call site del carril local lo omitía, con default `false`. Un fake que tira un parámetro es un
+     * parámetro sin testigo.
+     */
+    val zoneSpotAlertsWithDoubt: MutableList<Pair<String, Boolean>> = mutableListOf()
+
     /** `authorName to addressLine` of every "the group parked it" card, in order. */
     val sharedCarParkedCards: MutableList<Pair<String?, String?>> = mutableListOf()
 
@@ -85,6 +95,7 @@ open class FakeAppNotificationManager : AppNotificationManager {
         isProvisional: Boolean,
     ) {
         zoneSpotAlerts.add(zoneName)
+        zoneSpotAlertsWithDoubt.add(zoneName to isProvisional)
     }
 
     override fun showSharedCarParked(

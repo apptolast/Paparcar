@@ -4,6 +4,9 @@ import com.rndeveloper.paparcar.domain.detection.ParkingStrategyResolver
 import com.rndeveloper.paparcar.domain.model.DeviceCapabilities
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.Spot
+import com.rndeveloper.paparcar.domain.model.Entitlement
+import com.rndeveloper.paparcar.domain.model.SpotStatus
+import com.rndeveloper.paparcar.domain.model.Zone
 import com.rndeveloper.paparcar.domain.usecase.detection.EvaluateDetectionReliabilityUseCase
 import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
 import com.rndeveloper.paparcar.domain.usecase.detection.PublishDetectionStateUseCase
@@ -54,6 +57,11 @@ class AppViewModelTest {
     private lateinit var fakeZoneRepo: FakeZoneRepository
     private lateinit var fakeParkingRepo: FakeUserParkingRepository
     private lateinit var zoneAlerts: ObserveZoneSpotAlertsUseCase
+    /** Las dos entradas del carril de zona, en campos para poder CONDUCIRLO desde un test.
+     *  [ALERT-A-PROVISIONAL-SPOT-IS-PUSHED-BUT-NOT-SHOWN-001] Se creaban inline en el setUp, así
+     *  que el stream era inalcanzable y su entrega no tenía testigo a este nivel. */
+    private lateinit var spotRepoForAlerts: FakeSpotRepository
+    private lateinit var entitlementRepo: FakeEntitlementRepository
     private lateinit var mapVisibility: MapVisibility
     /** El segundo emisor de la MISMA ranura de aviso.
      *  [ZONE-AN-ALERT-NEAR-YOU-IS-NOT-AN-ALERT-IN-YOUR-ZONE-001] */
@@ -74,16 +82,18 @@ class AppViewModelTest {
         fakeParkingRepo = FakeUserParkingRepository()
         // Quiet by default: no zones subscribed, entitlement FREE — the alert stream stays empty
         // so the connectivity/permission tests above it are undisturbed. [MONEY-001]
+        spotRepoForAlerts = FakeSpotRepository()
+        entitlementRepo = FakeEntitlementRepository()
         zoneAlerts = ObserveZoneSpotAlertsUseCase(
             zoneRepository = fakeZoneRepo,
-            spotRepository = FakeSpotRepository(),
+            spotRepository = spotRepoForAlerts,
             watchRepository = FakeZoneWatchRepository(),
             appPreferences = fakePrefs,
             authRepository = FakeAuthRepository(),
             // FREE, y con el gate restaurado eso vuelve a ser lo que mantiene el stream vacio aqui
             // — el comentario de arriba lo prometia y del 21-09 al 27-09 no era verdad.
             // [ZONE-A-PAID-ALERT-MUST-NOT-BE-DOCUMENTED-AS-FREE-001]
-            observeIsPlus = ObserveIsPlusUseCase(FakeEntitlementRepository()),
+            observeIsPlus = ObserveIsPlusUseCase(entitlementRepo),
         )
         // La señal que decide el canal del aviso: por defecto el mapa NO está delante, que es
         // como corrían estos tests antes de que hubiera canales.
@@ -413,11 +423,54 @@ class AppViewModelTest {
         assertEquals(SpotAlertOrigin.NearYou, vm.state.value.spotAlert?.origin)
     }
 
+    /** Una zona con su aviso encendido, que es la condición para que el stream de zona hable. */
+    private val zoneWithAlerts = Zone(
+        id = "z-1", userId = "u", name = "Casa",
+        lat = 40.0, lon = -3.0, iconKey = "home", createdAt = 0L,
+        radiusMeters = 250f, notifyOnSpot = true,
+    )
+
     private val nearbySpot = Spot(
         id = "s-near",
         location = GpsPoint(40.0, -3.0, accuracy = 5f, timestamp = 1_000L, speed = 0f),
         reportedBy = "someone-else",
         expiresAt = 0L,
     )
+
+
+    @Test
+    fun `should carry the doubt to the banner when the departure was only deduced`() = runTest(testDispatcher) {
+        // [ALERT-A-PROVISIONAL-SPOT-IS-PUSHED-BUT-NOT-SHOWN-001] La duda tiene que llegar al cue: es el
+        // UNICO aviso que esa plaza va a tener, porque anunciarla consume la memoria de «ya contada» y
+        // su promoción a CONFIRMED ya no vuelve a hablar.
+        val vm = viewModel()
+        runCurrent()
+
+        nearbyAlerts.announce(nearbySpot.copy(status = SpotStatus.PROVISIONAL))
+        runCurrent()
+
+        assertEquals(true, vm.state.value.spotAlert?.unconfirmed)
+    }
+
+    @Test
+    fun `should tell the notification the spot is not confirmed when the map is away`() = runTest(testDispatcher) {
+        // ⛔ Este call site OMITÍA `isProvisional`, cuyo default es `false`: inofensivo mientras el
+        // stream vetaba las deducidas, y una promesa falsa en el instante en que dejó de vetarlas.
+        mapVisibility.set(false)
+        fakeZoneRepo.zones = listOf(zoneWithAlerts)
+        entitlementRepo.emitEntitlement(Entitlement.PLUS)
+        val vm = viewModel()
+        runCurrent()
+
+        spotRepoForAlerts.spots = listOf(nearbySpot.copy(id = "s-deduced", status = SpotStatus.PROVISIONAL))
+        runCurrent()
+
+        assertEquals(
+            listOf("Casa" to true),
+            fakeNotifications.zoneSpotAlertsWithDoubt,
+            "la tarjeta del sistema tiene que saber que no está confirmada",
+        )
+        assertEquals(null, vm.state.value.spotAlert, "con el mapa fuera, el banner no habla")
+    }
 
 }

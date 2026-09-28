@@ -170,13 +170,30 @@ class NearbySpotAlertPolicyTest {
 
     @Test
     fun should_staySilent_when_theSpaceIsNotFreeYetOrNotFreeAnyMore() {
-        val states = listOf(SpotStatus.RELEASING, SpotStatus.PROVISIONAL, SpotStatus.RETRACTED)
+        // ⛔ PROVISIONAL salió de esta lista el 28-09 y no por capricho: el servidor YA la anunciaba
+        // y el puerto de notificación ya llevaba el flag para matizar la frase, así que vetarla aquí era
+        // la contradicción. [ALERT-A-PROVISIONAL-SPOT-IS-PUSHED-BUT-NOT-SHOWN-001]
+        val states = listOf(SpotStatus.RELEASING, SpotStatus.RETRACTED)
         for (status in states) {
             assertNull(
                 look(listOf(spot("s", metresEast = 50.0, status = status))).alert,
                 "$status no es una plaza libre de la que avisar",
             )
         }
+    }
+
+    @Test
+    fun should_announceTheDeducedSpot_when_nobodyMeasuredTheDeparture() {
+        // Una plaza deducida SÍ interrumpe — es la más fresca que existe. Lo que cambia son las
+        // palabras, no el silencio: la duda la lleva `SpotStatus.isUnconfirmedOffer` hasta el copy.
+        // [ALERT-A-PROVISIONAL-SPOT-IS-PUSHED-BUT-NOT-SHOWN-001]
+        val provisional = spot("s-deduced", metresEast = 80.0, status = SpotStatus.PROVISIONAL)
+
+        assertEquals("s-deduced", look(listOf(provisional)).alert?.id)
+        assertTrue(
+            provisional.status.isUnconfirmedOffer,
+            "y quien la entregue tiene que poder saber que hay que decir que no está confirmada",
+        )
     }
 
     @Test
