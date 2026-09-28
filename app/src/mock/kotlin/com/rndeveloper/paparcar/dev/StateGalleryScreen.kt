@@ -918,6 +918,17 @@ private fun markersShowcase() {
             FreeSpotMarker(reliability = SpotTone.RELEASING)
             FreeSpotMarker(reliability = SpotTone.RELEASING, selected = true)
         }
+        // [SPOT-A-DEDUCED-SPOT-LOOKS-LIKE-A-SURE-ONE-001] La salida se DEDUJO: mismo hueco y mismo
+        // anillo — esto sí es una plaza — pero el disco deja de anunciar y pasa a suponer. La última
+        // lleva TAMBIÉN la duda del sitio, que es el par que hay que mirar junto: son dudas distintas
+        // y tienen que poder leerse a la vez sin confundirse.
+        MarkerSectionLabel("FreeSpot · deducida — FRESH · RECENT · seleccionado · + zona")
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Bottom) {
+            FreeSpotMarker(reliability = SpotTone.FRESH, unconfirmed = true)
+            FreeSpotMarker(reliability = SpotTone.RECENT, unconfirmed = true)
+            FreeSpotMarker(reliability = SpotTone.FRESH, selected = true, unconfirmed = true)
+            FreeSpotMarker(reliability = SpotTone.FRESH, unconfirmed = true, approximate = true)
+        }
         // [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] Area spot: the ground dot becomes the target ⊙.
         MarkerSectionLabel("FreeSpot · zona — FRESH · RECENT · seleccionado")
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Bottom) {

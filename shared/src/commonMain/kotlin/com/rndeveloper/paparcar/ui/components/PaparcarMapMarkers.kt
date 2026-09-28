@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.HelpOutline
 import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.DirectionsCar
@@ -73,6 +74,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.jetbrains.compose.resources.stringResource
+import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.home_spot_unconfirmed_badge
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.model.SpotFreshness
 import com.rndeveloper.paparcar.domain.model.SpotTone
@@ -864,6 +868,10 @@ fun FreeSpotMarker(
      *  target ⊙, the same word the saved approximate parking's corner badge already speaks
      *  [UI-A-SAVED-ZONE-WEARS-ITS-DOUBT-TOO-001]. */
     approximate: Boolean = false,
+    /** [SPOT-A-DEDUCED-SPOT-LOOKS-LIKE-A-SURE-ONE-001] La salida se dedujo. Duda sobre la SALIDA, que
+     *  no es la de [approximate] — aquélla es duda sobre el SITIO y se dice en el punto del suelo (⊙).
+     *  Dos dudas distintas, dos portadores distintos, y una plaza puede tener las dos. */
+    unconfirmed: Boolean = false,
 ) {
     // La familia de MARCA sale del tema, no de una llamada suelta: si la app cambia de
     // tipografía, las etiquetas del mapa cambian con ella. [UI-TYPE-ONE-VOICE-REACHES-MATERIAL-001]
@@ -906,6 +914,7 @@ fun FreeSpotMarker(
             showAnnouncement = enRouteCount == 0,
             badgeColor = if (enRouteCount > 0) PapColor.live else reliability.tierVisual(isManual).color,
             releasing = enRouteCount == 0 && reliability == SpotTone.RELEASING,
+            unconfirmed = enRouteCount == 0 && unconfirmed,
         )
     }
 }
@@ -931,6 +940,8 @@ private fun DrawScope.drawApproximateSpotDot(s: Float, color: Color, paper: Colo
  * @param reliability tier driving colour/ring/badge.
  * @param enRouteCount when > 0 the puck turns the blue "reserved · en route" colour to mirror the
  *   map marker (ring/badge dropped; the row shows a separate en-route indicator).
+ * @param unconfirmed the departure behind this spot was DEDUCED. Same puck, different badge — see
+ *   [CommunitySpotOverlay]. [SPOT-A-DEDUCED-SPOT-LOOKS-LIKE-A-SURE-ONE-001]
  */
 @Composable
 fun SpotPuckIcon(
@@ -939,6 +950,7 @@ fun SpotPuckIcon(
     enRouteCount: Int = 0,
     selected: Boolean = false,
     isManual: Boolean = false,
+    unconfirmed: Boolean = false,
 ) {
     val paper = SpotPalette.Paper
     val ink = SpotPalette.Ink
@@ -960,6 +972,7 @@ fun SpotPuckIcon(
             showAnnouncement = enRouteCount == 0,
             badgeColor = if (enRouteCount > 0) PapColor.live else visual.color,
             releasing = enRouteCount == 0 && reliability == SpotTone.RELEASING,
+            unconfirmed = enRouteCount == 0 && unconfirmed,
         )
     }
 }
@@ -1044,6 +1057,13 @@ private fun CommunitySpotOverlay(
      * "free", which is the one reading that costs a stranger a wasted drive.
      */
     releasing: Boolean = false,
+    /**
+     * [SPOT-A-DEDUCED-SPOT-LOOKS-LIKE-A-SURE-ONE-001] La salida se DEDUJO: nadie midió que el coche se
+     * fuera. A diferencia de [releasing], el glifo principal **no cambia** — esto sí es un hueco, y
+     * creemos que está libre. Lo que cambia es la segunda pregunta que contesta el puck: qué clase de
+     * noticia es. No la anunciamos, la suponemos.
+     */
+    unconfirmed: Boolean = false,
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val scale = maxWidth.value / SPOT_VIEWBOX_W
@@ -1063,9 +1083,30 @@ private fun CommunitySpotOverlay(
         if (showAnnouncement) {
             // The megaphone ANNOUNCES a free space. A releasing plaza has nothing to announce yet,
             // so its badge is the way out: the car is leaving, that is the news.
+            //
+            // ⛔ Y una plaza DEDUCIDA no se anuncia: se supone. El disco es el sitio de «qué clase de
+            // noticia es esto», y ya era un `when` de dos, así que el tercero cabe sin inventar nada.
+            // Los tres son mutuamente excluyentes por construcción — `RELEASING` y `PROVISIONAL` son
+            // estados distintos del mismo campo. [SPOT-A-DEDUCED-SPOT-LOOKS-LIKE-A-SURE-ONE-001]
+            //
+            // ⛔ **Lo que NO se hace**: rayar el anillo (el discontinuo ya es la órbita de «gente en
+            // camino», ver `drawEnRoutePin`) ni teñirlo de ámbar (la rampa de frescura es EXCLUSIVA de la
+            // caducidad, y un ámbar aquí sería el «cuarto tono de libre» que el KDoc de arriba prohibe).
             Icon(
-                imageVector = if (releasing) Icons.AutoMirrored.Rounded.Logout else Icons.Rounded.Campaign,
-                contentDescription = null,
+                imageVector = when {
+                    releasing -> Icons.AutoMirrored.Rounded.Logout
+                    unconfirmed -> Icons.AutoMirrored.Rounded.HelpOutline
+                    else -> Icons.Rounded.Campaign
+                },
+                // ⛔ La Única etiqueta con palabras, y donde una palabra sí sirve: el lector de pantalla.
+                // `home_spot_unconfirmed_badge` existía en los 9 idiomas e **importado sin usar** desde que
+                // UI-SPOT-ROW-SAYS-WHAT-DECIDES-001 lo saco de la fila por ser «una palabra larga sin
+                // salida». Ahí sigue siendo verdad; aquí no ocupa ancho.
+                contentDescription = if (unconfirmed) {
+                    stringResource(Res.string.home_spot_unconfirmed_badge)
+                } else {
+                    null
+                },
                 tint = badgeColor,
                 modifier = Modifier
                     .offset(x = (47f * scale).dp, y = (6f * scale).dp)

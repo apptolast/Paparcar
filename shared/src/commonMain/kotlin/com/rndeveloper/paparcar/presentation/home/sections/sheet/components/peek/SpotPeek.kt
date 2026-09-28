@@ -128,6 +128,7 @@ internal fun SpotPeek(
         lead = PapSheetLead.CommunitySpot(
             reliability = freshnessLevel,
             isManual = spot.isManualReport,
+            unconfirmed = isUnconfirmed,
             enRouteCount = spot.enRouteCount,
         ),
         eyebrow = if (isRetracted) stringResource(Res.string.home_spot_retracted_eyebrow) else palette.label,

@@ -82,7 +82,6 @@ import paparcar.composeapp.generated.resources.home_report_subtitle
 import paparcar.composeapp.generated.resources.home_spot_freshness_fresh
 import paparcar.composeapp.generated.resources.home_spot_freshness_stale
 import paparcar.composeapp.generated.resources.home_spot_freshness_recent
-import paparcar.composeapp.generated.resources.home_spot_unconfirmed_badge
 import paparcar.composeapp.generated.resources.location_fallback_spot
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
 import com.rndeveloper.paparcar.ui.theme.PapColor
@@ -176,6 +175,9 @@ private fun SpotRowContent(
                 reliability = freshness,
                 enRouteCount = spot.enRouteCount,
                 isManual = spot.isManualReport,
+                // La fila deja de mentir sin escribir una palabra: el disco del puck dice que la
+                // salida se dedujo. [SPOT-A-DEDUCED-SPOT-LOOKS-LIKE-A-SURE-ONE-001]
+                unconfirmed = spot.status.isUnconfirmedOffer,
                 modifier = Modifier.size(BADGE_DP.dp),
             )
         },

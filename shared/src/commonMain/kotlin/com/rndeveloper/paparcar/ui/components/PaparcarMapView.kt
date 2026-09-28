@@ -456,6 +456,7 @@ internal fun freeSpotContentId(
     enRouteCount: Int = 0,
     manual: Boolean = false,
     approximate: Boolean = false,
+    unconfirmed: Boolean = false,
 ): String {
     val state = when {
         selected -> "sel"
@@ -471,11 +472,15 @@ internal fun freeSpotContentId(
     // "a" segment. Deliberately NOT encoded on the en-route branch: a reserved pin already
     // dominates its slot, and the rare zone+en-route combination keeps the pill (bounded key set).
     // [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001]
+    // Una plaza cuya salida se DEDUJO cambia el glifo de su disco, asi que necesita su propio bitmap
+    // — el segmento "u". Igual que el de area, NO se codifica en la rama de en-route: ese pin ya
+    // domina su hueco. [SPOT-A-DEDUCED-SPOT-LOOKS-LIKE-A-SURE-ONE-001]
     val approxSeg = if (approximate) "a_" else ""
+    val doubtSeg = if (unconfirmed) "u_" else ""
     return when {
         enRouteCount > 0 -> "${MARKER_FREE_SPOT_PREFIX}er${enRouteCount.coerceAtMost(EN_ROUTE_BUCKET_MAX)}_$state"
-        manual -> "${MARKER_FREE_SPOT_PREFIX}${tier.name.lowercase()}_m_$approxSeg$state"
-        else -> "${MARKER_FREE_SPOT_PREFIX}${tier.name.lowercase()}_$approxSeg$state"
+        manual -> "${MARKER_FREE_SPOT_PREFIX}${tier.name.lowercase()}_m_$doubtSeg$approxSeg$state"
+        else -> "${MARKER_FREE_SPOT_PREFIX}${tier.name.lowercase()}_$doubtSeg$approxSeg$state"
     }
 }
 
@@ -1228,6 +1233,7 @@ fun PaparcarMapView(
                         enRouteCount = spot.enRouteCount,
                         manual = spot.isManualReport,
                         approximate = spot.zoneRadiusMeters != null,
+                        unconfirmed = spot.status.isUnconfirmedOffer,
                     )
                     add(
                         Marker(
@@ -1391,7 +1397,9 @@ fun PaparcarMapView(
             put(MARKER_USER_DOT) { _ ->
                 UserLocationDot()
             }
-            // ── Free-spot bitmaps — 18 cached variants (3 tiers × auto/manual × nrm/dim/sel) ──
+            // ── Free-spot bitmaps — un id por (tono × manual × área × deducida × nrm/dim/sel) ──
+            // (decía «18 variantes»: ya eran 48 antes de añadir la duda, porque el tono y el área
+            //  entraron después y nadie recontó. Ahora el número no se escribe.)
             // Each (tier, manual, state) triple gets its own contentId so kmpmaps caches a distinct
             // bitmap and the on-map colour matches the peek modal badge. Manual provenance keeps its
             // own ids but draws the same pin. [MAP-MARKERS-RELIABILITY-001] [F5]
@@ -1404,14 +1412,22 @@ fun PaparcarMapView(
                     // Area spots need their own bitmaps (target ⊙ ground point).
                     // [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001]
                     listOf(false, true).forEach { approx ->
-                        put(freeSpotContentId(tier, selected = false, dim = false, manual = manual, approximate = approx)) { _ ->
-                            FreeSpotWithOverlays(reliability = tier, selected = false, isManual = manual, approximate = approx)
-                        }
-                        put(freeSpotContentId(tier, selected = false, dim = true, manual = manual, approximate = approx)) { _ ->
-                            DimWrapper { FreeSpotWithOverlays(reliability = tier, selected = false, isManual = manual, approximate = approx) }
-                        }
-                        put(freeSpotContentId(tier, selected = true, dim = false, manual = manual, approximate = approx)) { _ ->
-                            FreeSpotWithOverlays(reliability = tier, selected = true, isManual = manual, approximate = approx)
+                        // ⛔ El producto COMPLETO, incluidas combinaciones imposibles (una plaza
+                        // RELEASING no puede ser deducida, y un reporte manual tampoco): `put` registra
+                        // una FABRICA, no un bitmap — se rasteriza al pedirlo. Así que registrar de más
+                        // cuesta una entrada de mapa, y registrar de MENOS pinta NADA en silencio.
+                        // [SPOT-A-DEDUCED-SPOT-LOOKS-LIKE-A-SURE-ONE-001]
+                        // [UI-A-MARKER-ID-MUST-BRING-ITS-DRAWING-001]
+                        listOf(false, true).forEach { doubt ->
+                            put(freeSpotContentId(tier, selected = false, dim = false, manual = manual, approximate = approx, unconfirmed = doubt)) { _ ->
+                                FreeSpotWithOverlays(reliability = tier, selected = false, isManual = manual, approximate = approx, unconfirmed = doubt)
+                            }
+                            put(freeSpotContentId(tier, selected = false, dim = true, manual = manual, approximate = approx, unconfirmed = doubt)) { _ ->
+                                DimWrapper { FreeSpotWithOverlays(reliability = tier, selected = false, isManual = manual, approximate = approx, unconfirmed = doubt) }
+                            }
+                            put(freeSpotContentId(tier, selected = true, dim = false, manual = manual, approximate = approx, unconfirmed = doubt)) { _ ->
+                                FreeSpotWithOverlays(reliability = tier, selected = true, isManual = manual, approximate = approx, unconfirmed = doubt)
+                            }
                         }
                     }
                 }
@@ -2471,6 +2487,7 @@ private fun FreeSpotWithOverlays(
     enRouteCount: Int = 0,
     isManual: Boolean = false,
     approximate: Boolean = false,
+    unconfirmed: Boolean = false,
 ) {
     FreeSpotMarker(
         reliability = reliability,
@@ -2478,6 +2495,7 @@ private fun FreeSpotWithOverlays(
         enRouteCount = enRouteCount,
         isManual = isManual,
         approximate = approximate,
+        unconfirmed = unconfirmed,
     )
 }
 

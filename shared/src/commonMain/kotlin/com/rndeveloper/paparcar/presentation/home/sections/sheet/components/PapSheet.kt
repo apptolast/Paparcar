@@ -340,6 +340,9 @@ internal sealed interface PapSheetLead {
         val enRouteCount: Int = 0,
         /** Eyewitness report. Passed through to the puck, which draws it the same. [UI-COLOR-DOCTRINE-001 F5] */
         val isManual: Boolean = false,
+        /** La salida se dedujo: el puck lo dice en su disco.
+         *  [SPOT-A-DEDUCED-SPOT-LOOKS-LIKE-A-SURE-ONE-001] */
+        val unconfirmed: Boolean = false,
     ) : PapSheetLead
 
     /** Reporting a free spot — megaphone on the action-green tile. */
@@ -558,6 +561,7 @@ private fun PapSheetLeadTile(lead: PapSheetLead) {
                 reliability = lead.reliability,
                 enRouteCount = lead.enRouteCount,
                 isManual = lead.isManual,
+                unconfirmed = lead.unconfirmed,
                 modifier = Modifier.size(LEAD_TILE_DP.dp),
             )
 

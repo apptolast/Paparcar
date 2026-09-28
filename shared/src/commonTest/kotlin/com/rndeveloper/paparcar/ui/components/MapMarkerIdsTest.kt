@@ -115,6 +115,11 @@ class MapMarkerIdsTest {
             listOf(true to false, false to true, false to false).forEach { (selected, dim) ->
                 add(freeSpotContentId(tier, selected, dim))
                 add(freeSpotContentId(tier, selected, dim, manual = true))
+                // [SPOT-A-DEDUCED-SPOT-LOOKS-LIKE-A-SURE-ONE-001] Una plaza deducida cambia el glifo
+                // de su disco, asi que tiene bitmap propio y entra en el corpus: si su id no estuviera
+                // aqui, el chequeo de que TODO id emitido tiene destino no lo alcanzaria.
+                add(freeSpotContentId(tier, selected, dim, unconfirmed = true))
+                add(freeSpotContentId(tier, selected, dim, manual = true, unconfirmed = true))
             }
         }
         // En-route counts get their own bucket keys, tier-independent. Stops at the bucket ceiling:
@@ -330,4 +335,41 @@ class MapMarkerIdsTest {
         assertEquals(MarkerTapTarget.Inert, resolveMarkerTapTarget(""))
         assertEquals(MarkerTapTarget.Inert, resolveMarkerTapTarget("something_nobody_emits"))
     }
+
+    /**
+     * [SPOT-A-DEDUCED-SPOT-LOOKS-LIKE-A-SURE-ONE-001] Una plaza cuya salida se DEDUJO dibuja otro
+     * glifo en el disco del puck, asi que **no puede reusar el bitmap** de una medida.
+     *
+     * ⚠️ Y las dos dudas se combinan: la del SITIO (area → punto ⊙) y la de la SALIDA. Sus segmentos
+     * son vecinos en la clave, que es justo donde dos flags se pisan sin que nadie lo note.
+     */
+    @Test
+    fun should_changeTheId_when_theDepartureWasOnlyDeduced() {
+        val sure = freeSpotContentId(SpotTone.FRESH, selected = false, dim = false)
+        val deduced = freeSpotContentId(SpotTone.FRESH, selected = false, dim = false, unconfirmed = true)
+        val area = freeSpotContentId(SpotTone.FRESH, selected = false, dim = false, approximate = true)
+        val both = freeSpotContentId(
+            SpotTone.FRESH, selected = false, dim = false, approximate = true, unconfirmed = true,
+        )
+
+        assertEquals(
+            4,
+            setOf(sure, deduced, area, both).size,
+            "las cuatro combinaciones de las dos dudas son cuatro dibujos distintos, no dos",
+        )
+    }
+
+    /**
+     * El otro lado de la misma moneda: la rama de EN-ROUTE ignora la duda a proposito — ese pin ya
+     * domina su hueco y su clave codifica el cubo de gente, no el tono. Pinearlo evita que alguien
+     * "arregle" la asimetria y multiplique el juego de claves sin ganar un pixel.
+     */
+    @Test
+    fun should_ignoreTheDoubt_when_thePinIsAlreadyReserved() {
+        assertEquals(
+            freeSpotContentId(SpotTone.FRESH, selected = false, dim = false, enRouteCount = 2),
+            freeSpotContentId(SpotTone.FRESH, selected = false, dim = false, enRouteCount = 2, unconfirmed = true),
+        )
+    }
+
 }
