@@ -3,6 +3,7 @@ package com.rndeveloper.paparcar.ios.preferences
 import com.rndeveloper.paparcar.domain.spot.VouchedSpot
 import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
 import com.rndeveloper.paparcar.domain.detection.PendingSpotRelease
+import com.rndeveloper.paparcar.domain.detection.SpotReleaseLane
 import com.rndeveloper.paparcar.localePrefersImperialUnits
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
@@ -23,6 +24,7 @@ private const val KEY_AUTO_DETECT_PARKING = "auto_detect_parking"
 private const val KEY_PENDING_RELEASE_SPOT_ID = "pending_spot_release_id"
 private const val KEY_PENDING_RELEASE_VEHICLE_ID = "pending_spot_release_vehicle_id"
 private const val KEY_PENDING_RELEASE_AT = "pending_spot_release_at"
+private const val KEY_PENDING_RELEASE_LANE = "pending_spot_release_lane"
 private const val KEY_FIRST_PARK_NUDGE_COUNT = "first_park_nudge_count"
 private const val KEY_LAST_FIRST_PARK_NUDGE_AT = "last_first_park_nudge_at"
 private const val KEY_HAS_CONFIRMED_FIRST_PARK = "has_confirmed_first_park"
@@ -279,6 +281,9 @@ class IosAppPreferences : AppPreferences {
             spotId = spotId,
             vehicleId = userDefaults.stringForKey(KEY_PENDING_RELEASE_VEHICLE_ID),
             nominatedAtMs = userDefaults.integerForKey(KEY_PENDING_RELEASE_AT),
+            // Ausente = sello escrito por un build anterior a los carriles: lo puede retirar
+            // cualquiera. [DET-A-WITHDRAWAL-MUST-NAME-WHAT-IT-TAKES-BACK-001]
+            lane = userDefaults.stringForKey(KEY_PENDING_RELEASE_LANE) ?: SpotReleaseLane.LEGACY,
         )
     }
 
@@ -288,12 +293,14 @@ class IosAppPreferences : AppPreferences {
             ?.let { userDefaults.setObject(it, forKey = KEY_PENDING_RELEASE_VEHICLE_ID) }
             ?: userDefaults.removeObjectForKey(KEY_PENDING_RELEASE_VEHICLE_ID)
         userDefaults.setInteger(release.nominatedAtMs, forKey = KEY_PENDING_RELEASE_AT)
+        userDefaults.setObject(release.lane, forKey = KEY_PENDING_RELEASE_LANE)
     }
 
     override fun clearPendingSpotRelease() {
         userDefaults.removeObjectForKey(KEY_PENDING_RELEASE_SPOT_ID)
         userDefaults.removeObjectForKey(KEY_PENDING_RELEASE_VEHICLE_ID)
         userDefaults.removeObjectForKey(KEY_PENDING_RELEASE_AT)
+        userDefaults.removeObjectForKey(KEY_PENDING_RELEASE_LANE)
     }
 
     // ── Open "did you park?" question. [DET-ASK-STATE-001] ───────────────────

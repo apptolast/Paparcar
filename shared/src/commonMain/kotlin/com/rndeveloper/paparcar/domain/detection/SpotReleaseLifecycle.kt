@@ -82,6 +82,13 @@ object SpotReleaseLane {
     /** The detected departure, promoting the document it finds. */
     const val DEPARTURE = "departure"
 
+    /**
+     * [DET-A-WITHDRAWAL-MUST-NAME-WHAT-IT-TAKES-BACK-001] What a stamp written before lanes were
+     * recorded reads as. Any lane may withdraw one: the alternative leaves a phantom standing across
+     * the app update with nothing but the four-minute TTL able to reach it.
+     */
+    const val LEGACY = "legacy"
+
     /** The user's own "Me voy", promoting it. Told apart from [DEPARTURE] because the head start
      *  was then earned by a declaration and not by a measurement. */
     const val USER = "user"

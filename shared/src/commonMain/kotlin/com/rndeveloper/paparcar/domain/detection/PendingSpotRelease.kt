@@ -39,6 +39,22 @@ data class PendingSpotRelease(
     val vehicleId: String?,
     /** Epoch-ms the nomination was published. Bounds the withdrawal against the TTL. */
     val nominatedAtMs: Long,
+    /**
+     * [DET-A-WITHDRAWAL-MUST-NAME-WHAT-IT-TAKES-BACK-001] The [SpotReleaseLane] that published it,
+     * so only that lane can take it back.
+     *
+     * The two lanes share this one slot but not their jobs — the boarding is nominated by
+     * `btWatchJob` or by the coordinator's `detectionJob`, and each ends on its own schedule. A
+     * coordinator job that was already running when a Bluetooth CONNECT arrived (the CONNECT cancels
+     * `btHuntJob`, never `detectionJob`) used to end 18-36 s later and withdraw the plaza the other
+     * lane had just published — and, because the stamp deliberately survives a withdrawal, burn the
+     * session's ONE nomination with it. Both harms, silent.
+     *
+     * [SpotReleaseLane.LEGACY] is what a stamp written by an older build reads as, and anyone may
+     * withdraw that one: refusing it would leave a phantom standing across the update with nothing
+     * able to take it down but the TTL.
+     */
+    val lane: String = SpotReleaseLane.LEGACY,
 ) {
     /**
      * Is there still a document out there to withdraw at [nowMs]?

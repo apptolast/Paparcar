@@ -3,6 +3,7 @@
 package com.rndeveloper.paparcar.domain.usecase.spot
 
 import com.rndeveloper.paparcar.domain.detection.SpotReleaseAction
+import com.rndeveloper.paparcar.domain.detection.SpotReleaseLane
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEventLogger
 import com.rndeveloper.paparcar.domain.model.SpotTtlPolicy
@@ -65,6 +66,24 @@ class WithdrawSpotReleaseUseCase(
         val pending = appPreferences.pendingSpotRelease() ?: return false
         val now = nowMs()
         val liveMs = now - pending.nominatedAtMs
+        // ⛔ [DET-A-WITHDRAWAL-MUST-NAME-WHAT-IT-TAKES-BACK-001] Solo el carril que la abrió puede
+        // cerrarla. Antes de esta puerta el comentario del sitio que llama afirmaba «the trip it
+        // opened» y la llamada no comparaba nada: un job del Coordinator que siguiera vivo cuando
+        // llegó un CONNECT de Bluetooth (el CONNECT cancela `btHuntJob`, nunca `detectionJob`)
+        // terminaba 18-36 s después y se llevaba por delante la plaza del otro carril.
+        //
+        // Se NIEGA, no se relaja: el sello queda intacto, así que la sesión no gasta su única
+        // nominación y la plaza sigue en pie con su dueño legítimo todavía vigilándola —
+        // `btWatchJob` la retirará en `NeverDrove`, y si ese dueño muere queda la TTL de suelo.
+        if (pending.lane != lane && pending.lane != SpotReleaseLane.LEGACY) {
+            PaparcarLogger.d(
+                TAG,
+                "⊘ $lane no retira ${pending.spotId.take(8)} — la nominó ${pending.lane} " +
+                    "[DET-A-WITHDRAWAL-MUST-NAME-WHAT-IT-TAKES-BACK-001]",
+            )
+            record(SpotReleaseAction.SKIPPED, pending.spotId, lane, liveMs, REASON_NOT_MY_NOMINATION)
+            return false
+        }
         if (!pending.isLive(now, SpotTtlPolicy.RELEASING_SPOT_TTL_MS)) {
             PaparcarLogger.d(
                 TAG,
@@ -125,5 +144,8 @@ class WithdrawSpotReleaseUseCase(
 
     private companion object {
         const val TAG = "PARKDIAG/SpotRelease"
+
+        /** Citable: esta retirada era de otro carril. [DET-A-WITHDRAWAL-MUST-NAME-WHAT-IT-TAKES-BACK-001] */
+        const val REASON_NOT_MY_NOMINATION = "not_my_nomination"
     }
 }

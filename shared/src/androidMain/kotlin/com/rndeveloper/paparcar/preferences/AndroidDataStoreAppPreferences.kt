@@ -15,6 +15,7 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
 import com.rndeveloper.paparcar.domain.detection.PendingSpotRelease
+import com.rndeveloper.paparcar.domain.detection.SpotReleaseLane
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
 import com.rndeveloper.paparcar.domain.spot.VouchedSpot
@@ -240,6 +241,9 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
             spotId = spotId,
             vehicleId = snapshot[Keys.PENDING_RELEASE_VEHICLE_ID],
             nominatedAtMs = snapshot[Keys.PENDING_RELEASE_AT] ?: 0L,
+            // Ausente = sello escrito por un build anterior a los carriles: lo puede retirar
+            // cualquiera. [DET-A-WITHDRAWAL-MUST-NAME-WHAT-IT-TAKES-BACK-001]
+            lane = snapshot[Keys.PENDING_RELEASE_LANE] ?: SpotReleaseLane.LEGACY,
         )
     }
 
@@ -258,11 +262,13 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
             remove(Keys.PENDING_RELEASE_SPOT_ID)
             remove(Keys.PENDING_RELEASE_VEHICLE_ID)
             remove(Keys.PENDING_RELEASE_AT)
+            remove(Keys.PENDING_RELEASE_LANE)
         } else {
             this[Keys.PENDING_RELEASE_SPOT_ID] = release.spotId
             release.vehicleId?.let { this[Keys.PENDING_RELEASE_VEHICLE_ID] = it }
                 ?: remove(Keys.PENDING_RELEASE_VEHICLE_ID)
             this[Keys.PENDING_RELEASE_AT] = release.nominatedAtMs
+            this[Keys.PENDING_RELEASE_LANE] = release.lane
         }
     }
 
@@ -447,6 +453,7 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         val PENDING_RELEASE_SPOT_ID = stringPreferencesKey("pending_spot_release_id")
         val PENDING_RELEASE_VEHICLE_ID = stringPreferencesKey("pending_spot_release_vehicle_id")
         val PENDING_RELEASE_AT = longPreferencesKey("pending_spot_release_at")
+        val PENDING_RELEASE_LANE = stringPreferencesKey("pending_spot_release_lane")
         val FIRST_PARK_NUDGE_COUNT  = intPreferencesKey("first_park_nudge_count")
         val LAST_FIRST_PARK_NUDGE_AT = longPreferencesKey("last_first_park_nudge_at")
         val HAS_CONFIRMED_FIRST_PARK = booleanPreferencesKey("has_confirmed_first_park")

@@ -78,6 +78,9 @@ class NominateSpotReleaseUseCaseTest {
         assertEquals("park-1", event.sessionId)
         // The park's own fix travels, so the trace says from WHERE the plaza was claimed.
         assertEquals(location.latitude, event.location?.latitude)
+        // [DET-A-WITHDRAWAL-MUST-NAME-WHAT-IT-TAKES-BACK-001] Y el carril queda SELLADO, que es lo
+        // unico que despues permite a la retirada distinguir la suya de la del otro carril.
+        assertEquals(SpotReleaseLane.BT, prefs.storedSpotRelease?.lane)
     }
 
     @Test

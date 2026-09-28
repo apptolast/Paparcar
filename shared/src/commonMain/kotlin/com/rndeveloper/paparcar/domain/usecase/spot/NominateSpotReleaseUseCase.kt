@@ -116,7 +116,9 @@ class NominateSpotReleaseUseCase(
             promotion = false,
         )
         appPreferences.setPendingSpotRelease(
-            PendingSpotRelease(spotId = park.id, vehicleId = vehicleId, nominatedAtMs = nowMs()),
+            // [DET-A-WITHDRAWAL-MUST-NAME-WHAT-IT-TAKES-BACK-001] El carril viaja EN el sello: es
+            // lo único que permite que la retirada distinga la suya de la del otro carril.
+            PendingSpotRelease(spotId = park.id, vehicleId = vehicleId, nominatedAtMs = nowMs(), lane = lane),
         )
         PaparcarLogger.d(
             TAG,
