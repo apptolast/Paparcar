@@ -10,7 +10,7 @@ import com.rndeveloper.paparcar.domain.model.RouteInferenceResolution
 import com.rndeveloper.paparcar.domain.model.SpotType
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
-import com.rndeveloper.paparcar.domain.util.PolylineCodec
+import com.rndeveloper.paparcar.fakes.data.DemoStreets
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -18,9 +18,6 @@ import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.sin
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import com.rndeveloper.paparcar.domain.detection.DetectionPath
@@ -39,43 +36,6 @@ import com.rndeveloper.paparcar.domain.detection.DetectionPath
  *                      window produces on any car whose parkings are all older than 7 days.
  *   mock_vehicle_004 — Ford Transit · MODERATE. The ordinary middle case.
  */
-/**
- * Una traza plausible que TERMINA en el pin de la sesión, codificada como polilínea.
- * [MOCK-A-TRIP-WITHOUT-ITS-LINE-CANNOT-BE-SHOWN-001]
- *
- * Se genera, no se escribe a mano: 130 polilíneas literales serían ilegibles y quedarían
- * desincronizadas del mundo en cuanto las coordenadas se muevan otra vez — como ya pasó al
- * mudar la demo a Dublín. Arranca a ~1,5 km, avanza en tramos rectos con una desviación
- * pequeña y determinista (el `seed` es el índice de la sesión, así que cada viaje dibuja una
- * línea distinta pero siempre la misma).
- */
-private fun routeTo(lat: Double, lon: Double, seed: Int, atMs: Long): String {
-    val n = 26
-    val bearing = (seed * 47 % 360) * PI / 180.0
-    val startLat = lat - cos(bearing) * 0.0135
-    val startLon = lon - sin(bearing) * 0.0210
-    // ⛔ La desviación va PERPENDICULAR al rumbo y es una sola curva suave. Alternar el
-    // signo en cada vértice —lo que hacía antes— dibuja una sierra, no un trayecto: se vio
-    // en pantalla, no en el código.
-    val side = if (seed % 2 == 0) 1.0 else -1.0
-    val amp = 0.0022 + (seed % 3) * 0.0009
-    val pts = ArrayList<GpsPoint>(n + 1)
-    for (k in 0..n) {
-        val t = k.toDouble() / n
-        val off = sin(t * PI) * amp * side
-        pts.add(
-            GpsPoint(
-                latitude = startLat + (lat - startLat) * t + sin(bearing) * off,
-                longitude = startLon + (lon - startLon) * t - cos(bearing) * off,
-                accuracy = 8f,
-                timestamp = atMs - ((n - k) * 15_000L),
-                speed = 0f,
-            )
-        )
-    }
-    return PolylineCodec.encode(pts)
-}
-
 class FakeUserParkingRepository(
     private val runtime: DetectionRuntimeState? = null,
     private val scenario: com.rndeveloper.paparcar.fakes.MockScenario? = null,
@@ -136,12 +96,13 @@ class FakeUserParkingRepository(
         ))
 
         // ── Seat León (vehicle_001) — 65 sessions over 2 years ───────────────
-        // Real-sounding streets (the placeholders leaked into the Play-listing captures);
-        // indexed by modulo so streets still REPEAT and the "usual street" fact reaches ≥3.
-        val leonStreets = listOf(
-            "Dame Street", "Capel Street", "Baggot Street", "Camden Street", "Wexford Street",
-            "Pearse Street", "Thomas Street", "Aungier Street", "Clanbrassil Street",
-        )
+        // La CALLE es la fuente única: de una fila de `DemoStreets` salen el pin, la dirección,
+        // el trayecto y sus metros. Antes eran cuatro cuentas independientes —la calle por
+        // `i % 9`, la coordenada por `i % 7` y `i % 5`, la polilínea dibujada a ojo hacia ella y
+        // la distancia inventada— y no había forma de que hablaran del mismo sitio: el rótulo
+        // decía una calle, el pin caía en otra y la línea cruzaba las manzanas de en medio.
+        // Las calles siguen REPITIÉNDOSE por módulo, que es lo que hace que el dato de "tu calle
+        // de siempre" llegue a su umbral de ≥3. [MOCK-A-DEMO-ROUTE-MUST-FOLLOW-THE-STREETS-001]
         for (i in 1..65) {
             // ⛔ NOT `i * 11` days. That spacing put the newest parking ELEVEN days back, so the
             // free window (7 days) was empty on every car and the ficha opened on "no hay nada"
@@ -153,39 +114,46 @@ class FakeUserParkingRepository(
             // "hora punta" becomes whatever hour the emulator was launched at. A mode plus a
             // spread is what a real week looks like.
             val hourJitter = listOf(0L, 0L, 0L, 2L, 5L, 7L, 9L)[i % 7] * 3_600_000L
-            // La coordenada se calcula UNA vez: la usan el pin y la ruta que termina en él.
-            // Repetirla en los dos sitios es como se desincroniza un mundo al mudarlo.
-            val lat = 53.3510 + (i % 7) * 0.0005
-            val lon = -6.2590 - (i % 5) * 0.0008
             val atMs = now - daysAgo * 86_400_000L - hourJitter
+            val street = DemoStreets.leon[i % DemoStreets.leon.size]
+            // Un pin a mano no tiene conducción grabada que dibujar ni que medir; el resto llega
+            // a la calle por una de las aproximaciones reales, y a la misma calle se llega desde
+            // rumbos distintos, como en la vida.
+            // [MOCK-A-TRIP-WITHOUT-ITS-LINE-CANNOT-BE-SHOWN-001]
+            val manual = i % 6 == 0
+            val drive = if (manual) null else street.approaches[i % street.approaches.size]
             add(UserParking(
                 id = "parking_leon_$i",
                 userId = "mock_user_001",
                 vehicleId = "mock_vehicle_001",
-                location = GpsPoint(lat, lon, 10f, atMs, 0f),
+                // El coche acaba donde acaba el trayecto: este punto ES el último de la polilínea.
+                location = GpsPoint(street.endLat, street.endLon, 10f, atMs, 0f),
                 isActive = false,
-                spotType = if (i % 6 == 0) SpotType.MANUAL_REPORT else SpotType.AUTO_DETECTED,
+                spotType = if (manual) SpotType.MANUAL_REPORT else SpotType.AUTO_DETECTED,
                 detectionReliability = when {
-                    i % 6 == 0 -> 1.0f
+                    manual -> 1.0f
                     i % 3 == 0 -> 0.90f
                     else -> 0.77f
                 },
                 // Streets REPEAT so the "usual street" fact reaches its ≥3 threshold, like a real
                 // history does. Close provenance + route length feed the new stats.
                 // [VEH-STATS-SAY-SOMETHING-USEFUL-001]
-                detectionPath = if (i % 6 == 0) "manual" else "steps+egress",
+                detectionPath = if (manual) "manual" else "steps+egress",
                 publishedSpot = i % 4 != 0,
                 // Varied stays (1 h to 8 h) so the average is a real average, not one number
                 // repeated 65 times.
                 endedAtMs = atMs + (1 + i % 8) * 3_600_000L,
-                routeDistanceMeters = 900f + (i % 9) * 850f,
-                // Un pin a mano no tiene conducción grabada que dibujar; el resto sí.
-                // [MOCK-A-TRIP-WITHOUT-ITS-LINE-CANNOT-BE-SHOWN-001]
-                routePolyline = if (i % 6 == 0) null else routeTo(lat, lon, i, atMs),
+                // ⛔ La distancia es la LONGITUD DE ESA LÍNEA, no un número aparte: su contrato
+                // (`UserParking:109`) dice que la estampa el repositorio al escribir la ruta. La
+                // serie inventada de antes contradecía al dibujo y encima marcaba kilómetros en
+                // pines manuales, que no tienen viaje ninguno.
+                routeDistanceMeters = drive?.meters,
+                routePolyline = drive?.polyline,
                 // ⛔ La polilínea SOLA no basta: `routeAvailability()` exige además
                 // `routeSnapped`, y sin él la sesión se queda en «Recalculating route…»
-                // para siempre — que es lo que pasaba y parecía que no había ruta.
-                routeSnapped = i % 6 != 0,
+                // para siempre — que es lo que pasaba y parecía que no había ruta. Ahora la
+                // afirmación es cierta: la línea viene casada a la calzada de origen.
+                routeSnapped = drive != null,
                 // El veredicto de ParkingSearchTime es de TRES valores, y el catálogo reproduce
                 // los tres: un pin manual no tiene conducción grabada que medir (null), una
                 // llegada directa MIDE cero —cero es una medida, no un hueco— y el resto son
@@ -193,11 +161,11 @@ class FakeUserParkingRepository(
                 // cobertura («14 of 16 trips») no diría nada, y sin ceros la media mentiría hacia
                 // arriba. [MOCK-THE-FLAGSHIP-FIGURE-HAS-NO-MOCK-DATA-001]
                 searchTimeMs = when {
-                    i % 6 == 0 -> null
+                    manual -> null
                     i % 5 == 0 -> 0L
                     else -> 90_000L + (i % 11) * 47_000L
                 },
-                address = AddressInfo(leonStreets[i % 9], "Dublin", "County Dublin", "Ireland", "IE"),
+                address = AddressInfo(street.name, "Dublin", "County Dublin", "Ireland", "IE"),
             ))
         }
 
@@ -268,26 +236,28 @@ class FakeUserParkingRepository(
         // [UI-HISTORY-A-LOADING-LIST-MUST-NOT-CLAIM-TO-BE-EMPTY-001] [STATS-UI-001]
 
         // ── Ford Transit BT (vehicle_004) — 18 sessions over 6 months ────────
-        val transitStreets = listOf("Broombridge Road", "Cabra Road", "Navan Road")
+        // Misma fuente única que el León, en el norte de la ciudad.
+        // [MOCK-A-DEMO-ROUTE-MUST-FOLLOW-THE-STREETS-001]
         for (i in 1..18) {
             val daysAgo = i * 10L
-            val lat = 53.3450 + (i % 3) * 0.0007
-            val lon = -6.2630 - (i % 4) * 0.0003
             val atMs = now - daysAgo * 86_400_000L
+            val street = DemoStreets.transit[i % DemoStreets.transit.size]
+            val manual = i % 5 == 0
+            val drive = if (manual) null else street.approaches[i % street.approaches.size]
             add(UserParking(
                 id = "parking_transit_$i",
                 userId = "mock_user_001",
                 vehicleId = "mock_vehicle_004",
-                location = GpsPoint(lat, lon, 12f, atMs, 0f),
+                location = GpsPoint(street.endLat, street.endLon, 12f, atMs, 0f),
                 isActive = false,
-                spotType = if (i % 5 == 0) SpotType.MANUAL_REPORT else SpotType.AUTO_DETECTED,
-                detectionReliability = if (i % 5 == 0) 1.0f else 0.93f,
-                detectionPath = if (i % 5 == 0) DetectionPath.ManualPin.label else DetectionPath.VehicleExitWindow.label,
+                spotType = if (manual) SpotType.MANUAL_REPORT else SpotType.AUTO_DETECTED,
+                detectionReliability = if (manual) 1.0f else 0.93f,
+                detectionPath = if (manual) DetectionPath.ManualPin.label else DetectionPath.VehicleExitWindow.label,
                 publishedSpot = i % 2 == 0,
                 endedAtMs = atMs + 10 * 3_600_000L,
-                routeDistanceMeters = 2_400f + (i % 4) * 1_600f,
-                routePolyline = if (i % 5 == 0) null else routeTo(lat, lon, i * 3, atMs),
-                routeSnapped = i % 5 != 0,
+                routeDistanceMeters = drive?.meters,
+                routePolyline = drive?.polyline,
+                routeSnapped = drive != null,
                 // Mismo reparto de tres valores que el 001, con otros módulos: dos coches con la
                 // misma serie calcada delatarían que el dato es de pega.
                 searchTimeMs = when {
@@ -295,7 +265,7 @@ class FakeUserParkingRepository(
                     i % 4 == 0 -> 0L
                     else -> 120_000L + (i % 7) * 63_000L
                 },
-                address = AddressInfo(transitStreets[i % 3], "Dublin", "County Dublin", "Ireland", "IE"),
+                address = AddressInfo(street.name, "Dublin", "County Dublin", "Ireland", "IE"),
             ))
         }
     }
