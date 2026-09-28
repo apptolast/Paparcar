@@ -158,6 +158,9 @@ val domainModule = module {
             watchRepository = get(),
             appPreferences = get(),
             authRepository = get(),
+            // El gate VIVO de Plus: la pausa por caducidad.
+            // [ZONE-A-PAID-ALERT-MUST-NOT-BE-DOCUMENTED-AS-FREE-001]
+            observeIsPlus = get(),
         )
     }
 

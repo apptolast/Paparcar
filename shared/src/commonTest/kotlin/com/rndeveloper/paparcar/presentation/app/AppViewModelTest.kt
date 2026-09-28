@@ -80,6 +80,10 @@ class AppViewModelTest {
             watchRepository = FakeZoneWatchRepository(),
             appPreferences = fakePrefs,
             authRepository = FakeAuthRepository(),
+            // FREE, y con el gate restaurado eso vuelve a ser lo que mantiene el stream vacio aqui
+            // — el comentario de arriba lo prometia y del 21-09 al 27-09 no era verdad.
+            // [ZONE-A-PAID-ALERT-MUST-NOT-BE-DOCUMENTED-AS-FREE-001]
+            observeIsPlus = ObserveIsPlusUseCase(FakeEntitlementRepository()),
         )
         // La señal que decide el canal del aviso: por defecto el mapa NO está delante, que es
         // como corrían estos tests antes de que hubiera canales.

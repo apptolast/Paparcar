@@ -40,6 +40,7 @@ class ObserveZoneSpotAlertsUseCaseTest {
         watchRepository = watchRepo,
         appPreferences = prefs,
         authRepository = FakeAuthRepository(initialSession = FakeAuthRepository.authenticatedSession(userId = "me")),
+        observeIsPlus = ObserveIsPlusUseCase(entitlementRepo),
     )
 
     private fun zone(id: String = "z-1", notify: Boolean = true, radius: Float = 250f) = Zone(
@@ -82,21 +83,21 @@ class ObserveZoneSpotAlertsUseCaseTest {
     }
 
     @Test
-    fun `should_alertAFreeUserToo_because_theGateIsGone`() = runTest {
-        // ⛔ Este test decía lo CONTRARIO («should_stayQuiet_when_free») y se invierte a propósito,
-        // no se borra: decisión del user el 21-09, «no será de pago, al menos al principio»
-        // [ZONE-AN-ALERT-IS-DELIVERED-WHERE-YOU-CAN-SEE-IT-001]. Dejarlo escrito como afirmación es
-        // lo que impide que el gate vuelva sin querer con el próximo refactor de entitlements.
+    fun `should_stayQuiet_when_theUserIsFree`() = runTest {
+        // El aviso de zona es de PAGO — confirmado por el user el 27-09.
+        // [ZONE-A-PAID-ALERT-MUST-NOT-BE-DOCUMENTED-AS-FREE-001]
         //
-        // ⚠️ Y va contra el eje del producto —free = tú preguntas, Plus = la app te avisa—, así que
-        // el día que se cierre, se cierra aquí y este testigo es el que hay que dar la vuelta.
+        // ⛔ Del 21-09 al 27-09 este test afirmó lo contrario (`should_alertAFreeUserToo_because_the⁠GateIsGone`)
+        // y se quedó VERDE, porque el gate se quitó del stream mientras los dos interruptores que lo
+        // encienden seguían abriendo el paywall: probaba un camino que el producto no deja recorrer.
+        // Un test verde sobre un camino inalcanzable es peor que no tenerlo — respalda la afirmación
+        // falsa con la autoridad de la suite.
         entitlementRepo.emitEntitlement(Entitlement.FREE)
         zoneRepo.zones = listOf(zone())
 
         useCase().test {
             spotRepo.spots = listOf(spot("s-new"))
-            val alert = awaitItem()
-            assertEquals("s-new", alert.spot.id)
+            expectNoEvents()
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -197,7 +198,8 @@ class ObserveZoneSpotAlertsUseCaseTest {
      * WHILE free stayed unannounced for ever: the "already alerted" set lived in memory, so
      * regaining Plus rebuilt the stream, took a fresh baseline, and swallowed it. That silence was
      * a side effect of where the set lived, not a decision — and the set had to leave memory,
-     * because a worker cannot inherit it.
+     * because the OTHER lane (the server's push, handled by `PushMessageHandler`) cannot inherit it.
+     * (This said «a worker» until 27-09; there is no worker.)
      *
      * The decision now made on purpose: a spot **still alive** when the watch comes back IS worth
      * one interruption. It is not a backlog dump — the TTL filter bounds it to what is still free
@@ -209,11 +211,10 @@ class ObserveZoneSpotAlertsUseCaseTest {
      * honouring that cannot mean telling them everything at once when they unmute.
      */
     @Test
-    fun `should_keepAnnouncingAndKeepItsMemory_when_theEntitlementChanges`() = runTest {
-        // ⛔ Este test comprobaba la PAUSA por downgrade de Plus, y esa regla ya no existe
-        // [ZONE-AN-ALERT-IS-DELIVERED-WHERE-YOU-CAN-SEE-IT-001]. Lo que sí sigue valiendo —y es lo
-        // que de verdad protegía— es la MEMORIA: pase lo que pase con el plan, una plaza ya contada
-        // no vuelve a contarse. Por eso se reescribe en vez de borrarse.
+    fun `should_pauseAndResumeWithoutRepeating_when_theEntitlementChanges`() = runTest {
+        // ⛔ Este test afirmó del 21-09 al 27-09 que perder Plus no callaba nada — con el KDoc de
+        // justo arriba describiendo la pausa. Un KDoc y su test diciendo cosas opuestas en el mismo
+        // fichero. [ZONE-A-PAID-ALERT-MUST-NOT-BE-DOCUMENTED-AS-FREE-001]
         entitlementRepo.emitEntitlement(Entitlement.PLUS)
         zoneRepo.zones = listOf(zone())
 
@@ -221,15 +222,15 @@ class ObserveZoneSpotAlertsUseCaseTest {
             spotRepo.spots = listOf(spot("s-1"))
             assertEquals("s-1", awaitItem().spot.id)
 
-            // Perder Plus ya no calla nada: la plaza nueva se cuenta igual, en el momento.
+            // Perder Plus CALLA la entrega, y sin tocar el opt-in de la zona.
             entitlementRepo.emitEntitlement(Entitlement.FREE)
             spotRepo.spots = listOf(spot("s-1"), spot("s-while-free"))
-            assertEquals("s-while-free", awaitItem().spot.id)
+            expectNoEvents()
 
-            // Y recuperarlo tampoco repite lo ya dicho: `s-1` no vuelve con el cambio de plan.
+            // Recuperarlo reanuda la MISMA suscripción: la plaza que apareció mientras no pagaba y
+            // sigue viva merece UNA interrupción — y `s-1`, ya contada, no vuelve.
             entitlementRepo.emitEntitlement(Entitlement.PLUS)
-            spotRepo.spots = listOf(spot("s-1"), spot("s-while-free"), spot("s-after-return"))
-            assertEquals("s-after-return", awaitItem().spot.id)
+            assertEquals("s-while-free", awaitItem().spot.id)
             cancelAndIgnoreRemainingEvents()
         }
         assertEquals(true, zoneRepo.zones.single().notifyOnSpot, "el opt-in de la zona no lo toca nadie")

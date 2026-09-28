@@ -40,6 +40,12 @@ colector que hay, y no añadiendo otro.
 una tercera pantalla.
 
 ## 2 · El gate de Plus, fuera
+
+> ⛔ **REVERTIDO el 27-09-2026.** El user confirmó que el aviso de zona **sí es de pago**, y el
+> gate volvió al stream — ver `zone-a-paid-alert-must-not-be-documented-as-free-001.md`. Lo de abajo
+> se queda como registro fechado de lo que se decidió el 21-09, no como el estado actual: lo que se
+> quitó aquí fue el gate del STREAM, mientras los dos interruptores que lo encienden siguieron
+> abriendo el paywall, así que el comportamiento nunca llegó a ser gratis.
 Decisión del user el 21-09: *«no será de pago, al menos al principio»*.
 
 ⚠️ **Va contra el eje del producto** y hay que decirlo: *free = tú preguntas y la app responde ·
