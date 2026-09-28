@@ -3,7 +3,12 @@
 package com.rndeveloper.paparcar.domain.usecase.spot
 
 import com.rndeveloper.paparcar.domain.detection.PendingSpotRelease
+import com.rndeveloper.paparcar.domain.detection.SpotReleaseAction
+import com.rndeveloper.paparcar.domain.detection.sentry.triggerLedgerSessionId
+import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
+import com.rndeveloper.paparcar.domain.diagnostics.DetectionEventLogger
 import com.rndeveloper.paparcar.domain.model.AddressAndPlace
+import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.domain.model.SpotTtlPolicy
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
@@ -21,7 +26,7 @@ import kotlin.time.Clock
  */
 fun interface NominateSpotRelease {
     /** @see NominateSpotReleaseUseCase.invoke */
-    suspend operator fun invoke(vehicleId: String, boardingIsCredible: Boolean): Boolean
+    suspend operator fun invoke(vehicleId: String, boardingIsCredible: Boolean, lane: String): Boolean
 }
 
 /**
@@ -50,6 +55,7 @@ class NominateSpotReleaseUseCase(
     private val evaluate: EvaluateSpotReleaseNominationUseCase,
     private val reportSpotReleased: ReportSpotReleasedUseCase,
     private val appPreferences: AppPreferences,
+    private val detectionEventLogger: DetectionEventLogger,
     private val nowMs: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) : NominateSpotRelease {
 
@@ -57,9 +63,11 @@ class NominateSpotReleaseUseCase(
      * @param vehicleId the car that was just boarded.
      * @param boardingIsCredible the observing lane's own verdict on whether this edge is a real
      *   boarding — see [EvaluateSpotReleaseNominationUseCase].
+     * @param lane which lane saw the boarding (`bt` / `coordinator`), so the trace says WHO asked.
+     *   [DET-A-RELEASING-SPOT-MUST-SAY-IT-WENT-OUT-001]
      * @return true when a releasing spot went out.
      */
-    override suspend operator fun invoke(vehicleId: String, boardingIsCredible: Boolean): Boolean {
+    override suspend operator fun invoke(vehicleId: String, boardingIsCredible: Boolean, lane: String): Boolean {
         val session = runCatching { userParkingRepository.getActiveSessionByVehicle(vehicleId) }
             .onFailure { PaparcarLogger.w(TAG, "could not read the boarded car's session", it) }
             .getOrNull()
@@ -70,6 +78,9 @@ class NominateSpotReleaseUseCase(
         val zones = runCatching { zoneRepository.getPrivateZonesSnapshot() }
             .getOrElse { e ->
                 PaparcarLogger.w(TAG, "private zones unreadable — not nominating [privacy fails closed]", e)
+                // A refusal like any other, and the only one the evaluator never sees: it has to
+                // name itself or the lane shows a boarding that resolved into nothing.
+                record(SpotReleaseAction.SKIPPED, session?.id, lane, REASON_ZONES_UNREADABLE)
                 return false
             }
 
@@ -82,6 +93,7 @@ class NominateSpotReleaseUseCase(
         )
         if (verdict is SpotReleaseNomination.Skip) {
             PaparcarLogger.d(TAG, "⊘ boarding of $vehicleId nominates nothing — ${verdict.reason}")
+            record(SpotReleaseAction.SKIPPED, session?.id, lane, verdict.reason)
             return false
         }
         val publish = verdict as SpotReleaseNomination.Publish
@@ -111,10 +123,46 @@ class NominateSpotReleaseUseCase(
             "▶ plaza ${park.id.take(8)} published as RELEASING — somebody boarded $vehicleId " +
                 "(${SpotTtlPolicy.RELEASING_SPOT_TTL_MS / 60_000} min to become real)",
         )
+        // The park's own fix, so the trace says from WHERE the plaza was claimed and with what
+        // accuracy — the same question every other spatial event in this lane answers for free.
+        record(SpotReleaseAction.NOMINATED, park.id, lane, location = park.location)
         return true
+    }
+
+    /**
+     * [DET-A-RELEASING-SPOT-MUST-SAY-IT-WENT-OUT-001] Every ending of this use case leaves one
+     * event. Fire-and-forget by the logger's contract, and wrapped anyway: a diagnostics failure
+     * must never change whether a plaza was published.
+     *
+     * A refusal with no session ([EvaluateSpotReleaseNominationUseCase.REASON_NO_PLAZA]) has no
+     * parking document to hang from, so it goes under the daily trigger ledger — the same
+     * out-of-session convention `Trigger` and `ProcessDeath` already use.
+     */
+    private suspend fun record(
+        action: SpotReleaseAction,
+        sessionId: String?,
+        lane: String,
+        reason: String? = null,
+        location: GpsPoint? = null,
+    ) {
+        runCatching {
+            detectionEventLogger.log(
+                DetectionEvent.SpotRelease(
+                    sessionId = sessionId ?: triggerLedgerSessionId(nowMs()),
+                    timestampMs = nowMs(),
+                    action = action,
+                    lane = lane,
+                    reason = reason,
+                    location = location,
+                ),
+            )
+        }
     }
 
     private companion object {
         const val TAG = "PARKDIAG/SpotRelease"
+
+        /** The one refusal the evaluator never sees: the privacy read itself failed. */
+        const val REASON_ZONES_UNREADABLE = "zones_unreadable"
     }
 }

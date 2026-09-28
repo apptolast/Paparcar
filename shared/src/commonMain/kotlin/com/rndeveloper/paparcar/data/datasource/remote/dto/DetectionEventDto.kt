@@ -140,6 +140,7 @@ fun DetectionEvent.typeName(): String = when (this) {
     is DetectionEvent.DepartureVerdict -> "DEPARTURE_VERDICT"
     is DetectionEvent.DepartureProcessed -> "DEPARTURE_PROCESSED"
     is DetectionEvent.SpotRetracted -> "SPOT_RETRACTED"
+    is DetectionEvent.SpotRelease -> "SPOT_RELEASE"
     is DetectionEvent.Reverted -> "REVERTED"
     is DetectionEvent.Released -> "RELEASED"
     is DetectionEvent.OrphanCleaned -> "ORPHAN_CLEANED"
@@ -239,6 +240,14 @@ fun DetectionEvent.toDto(): DetectionEventDto {
         // [DET-HANDOFF-NOT-MANUAL-001 §B.3] How long the withdrawn spot was live rides the existing
         // "how old" column, same reuse as Reverted — no serializer surface change.
         is DetectionEvent.SpotRetracted -> base.copy(sessionAgeMs = sessionAgeMs)
+        // [DET-A-RELEASING-SPOT-MUST-SAY-IT-WENT-OUT-001] Existing columns only, no serializer
+        // surface change: the lifecycle step rides `action` (the column HOLD and CANDIDATE already
+        // use for exactly this), the refusal rides `reason` — the established "why" column — the
+        // asking lane rides `source`, same as GEOFENCE_REGISTRATION's re-registering lane, and how
+        // long the nomination was live rides the shared "how old" column, same reuse as
+        // SPOT_RETRACTED right above, which is the closest thing to this event there is.
+        is DetectionEvent.SpotRelease ->
+            base.copy(action = action.name, reason = reason, source = lane, sessionAgeMs = liveMs)
         is DetectionEvent.Reverted -> base.copy(sessionAgeMs = sessionAgeMs)
         // [PARK-DELETE-NO-DECLARE-001] The close reason rides in the existing `reason` column (same
         // one HonestClose uses) — no serializer surface change for a field that only adds provenance.

@@ -9,6 +9,8 @@ import com.rndeveloper.paparcar.domain.detection.DepartureProof
 import com.rndeveloper.paparcar.domain.detection.parkedSessionIsContradictedByBtConnect
 import com.rndeveloper.paparcar.domain.detection.ports.BtConnectStamp
 import com.rndeveloper.paparcar.domain.detection.ports.BtConnectStampReader
+import com.rndeveloper.paparcar.domain.detection.SpotReleaseAction
+import com.rndeveloper.paparcar.domain.detection.SpotReleaseLane
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEventLogger
 import com.rndeveloper.paparcar.domain.detection.DetectionPath
@@ -228,7 +230,23 @@ class ProcessConfirmedDepartureUseCase(
             runCatching {
                 appPreferences?.pendingSpotRelease()
                     ?.takeIf { it.spotId == spotId }
-                    ?.let { appPreferences.clearPendingSpotRelease() }
+                    ?.let { pending ->
+                        appPreferences.clearPendingSpotRelease()
+                        val promotedAtMs = Clock.System.now().toEpochMilliseconds()
+                        // [DET-A-RELEASING-SPOT-MUST-SAY-IT-WENT-OUT-001] The ending that means the
+                        // boarding did its job. Without it the lane is a funnel with no bottom:
+                        // every nomination reads as unresolved until its TTL runs out, and the
+                        // field cannot tell a head start that WORKED from one nobody claimed.
+                        detectionEventLogger?.log(
+                            DetectionEvent.SpotRelease(
+                                sessionId = spotId,
+                                timestampMs = promotedAtMs,
+                                action = SpotReleaseAction.PROMOTED,
+                                lane = SpotReleaseLane.DEPARTURE,
+                                liveMs = promotedAtMs - pending.nominatedAtMs,
+                            ),
+                        )
+                    }
             }.onFailure { PaparcarLogger.w(TAG, "could not retire the boarding stamp (continuing)", it) }
         } else if (sessionPinIsContradicted && publishSpot) {
             // [DET-A-BT-CONNECT-KNOWS-WHERE-THE-CAR-IS-001] Named apart from every other "nothing

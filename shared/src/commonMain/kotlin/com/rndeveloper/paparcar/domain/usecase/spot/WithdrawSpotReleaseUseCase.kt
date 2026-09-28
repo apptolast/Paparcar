@@ -2,6 +2,9 @@
 
 package com.rndeveloper.paparcar.domain.usecase.spot
 
+import com.rndeveloper.paparcar.domain.detection.SpotReleaseAction
+import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
+import com.rndeveloper.paparcar.domain.diagnostics.DetectionEventLogger
 import com.rndeveloper.paparcar.domain.model.SpotTtlPolicy
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.repository.SpotRepository
@@ -11,7 +14,7 @@ import kotlin.time.Clock
 /** [DET-COORDINATOR-NO-OPTIONAL-DEPS-001] The seam, for the same reason as its twin. */
 fun interface WithdrawSpotRelease {
     /** @see WithdrawSpotReleaseUseCase.invoke */
-    suspend operator fun invoke(): Boolean
+    suspend operator fun invoke(lane: String): Boolean
 }
 
 /**
@@ -44,20 +47,32 @@ fun interface WithdrawSpotRelease {
 class WithdrawSpotReleaseUseCase(
     private val spotRepository: SpotRepository,
     private val appPreferences: AppPreferences,
+    private val detectionEventLogger: DetectionEventLogger,
     private val nowMs: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) : WithdrawSpotRelease {
 
-    /** @return true when a spot was actually withdrawn. Safe to call with nothing pending. */
-    override suspend operator fun invoke(): Boolean {
+    /**
+     * @param lane which lane is asking (`bt` / `coordinator`). Recorded, not obeyed: this call still
+     *   withdraws whatever is pending. Making the asker visible is the whole point — the two lanes
+     *   are driven by different jobs and a withdrawal that cannot name its author cannot be told
+     *   apart from one lane taking down the other's nomination.
+     *   [DET-A-RELEASING-SPOT-MUST-SAY-IT-WENT-OUT-001]
+     * @return true when a spot was actually withdrawn. Safe to call with nothing pending.
+     */
+    override suspend operator fun invoke(lane: String): Boolean {
+        // Nothing pending is not an event: there was no nomination, so there is no lifecycle to
+        // report. Every coordinator job end calls this, and most of them have nothing to say.
         val pending = appPreferences.pendingSpotRelease() ?: return false
         val now = nowMs()
+        val liveMs = now - pending.nominatedAtMs
         if (!pending.isLive(now, SpotTtlPolicy.RELEASING_SPOT_TTL_MS)) {
             PaparcarLogger.d(
                 TAG,
                 "nothing to withdraw for ${pending.spotId.take(8)} — its releasing window ran out " +
-                    "${now - pending.nominatedAtMs - SpotTtlPolicy.RELEASING_SPOT_TTL_MS}ms ago " +
+                    "${liveMs - SpotTtlPolicy.RELEASING_SPOT_TTL_MS}ms ago " +
                     "[DET-RETRACT-DENIED-FOREVER-001]",
             )
+            record(SpotReleaseAction.WITHDRAW_EXPIRED, pending.spotId, lane, liveMs)
             return false
         }
         return spotRepository.retractSpot(pending.spotId)
@@ -65,15 +80,47 @@ class WithdrawSpotReleaseUseCase(
                 // Already swept, or offline. The short TTL is the floor precisely because this
                 // call can fail; nothing else to do here.
                 PaparcarLogger.w(TAG, "could not withdraw ${pending.spotId.take(8)} — the TTL still bounds it", it)
+                // ⛔ Recorded AFTER the wire answered, never before. A trace that says WITHDRAWN on
+                // a retraction the rules denied would leave a phantom standing and a log claiming
+                // it was taken down — the exact shape of lie this ticket exists to remove.
+                record(SpotReleaseAction.WITHDRAW_FAILED, pending.spotId, lane, liveMs, it.message)
             }
             .onSuccess {
                 PaparcarLogger.d(
                     TAG,
                     "withdrew the releasing plaza ${pending.spotId.take(8)} — the boarding never " +
-                        "became a departure (${now - pending.nominatedAtMs}ms live)",
+                        "became a departure (${liveMs}ms live)",
                 )
+                record(SpotReleaseAction.WITHDRAWN, pending.spotId, lane, liveMs)
             }
             .isSuccess
+    }
+
+    /**
+     * [DET-A-RELEASING-SPOT-MUST-SAY-IT-WENT-OUT-001] One event per ending, wrapped so a
+     * diagnostics failure can never change whether a plaza came down.
+     */
+    private suspend fun record(
+        action: SpotReleaseAction,
+        spotId: String,
+        lane: String,
+        liveMs: Long,
+        reason: String? = null,
+    ) {
+        runCatching {
+            detectionEventLogger.log(
+                DetectionEvent.SpotRelease(
+                    // The spot's id IS the parking session's id, so the event files itself under
+                    // the park it is about without carrying a column of its own.
+                    sessionId = spotId,
+                    timestampMs = nowMs(),
+                    action = action,
+                    lane = lane,
+                    reason = reason,
+                    liveMs = liveMs,
+                ),
+            )
+        }
     }
 
     private companion object {

@@ -303,6 +303,43 @@ sealed interface DetectionEvent {
         override val location: GpsPoint? = null,
     ) : DetectionEvent
 
+    /**
+     * [DET-A-RELEASING-SPOT-MUST-SAY-IT-WENT-OUT-001] The boarding lane's verdict on the plaza a
+     * boarded car still holds: whether a [com.rndeveloper.paparcar.domain.model.SpotStatus.RELEASING]
+     * spot went out, was refused, came down, or was promoted by the real departure.
+     *
+     * Until this existed the lane was **entirely** mute in remote — nomination and withdrawal only
+     * reached the local `parkdiag.log` — so a field-test could not close: the 27-09-2026 headphone
+     * test has the night's whole trace in Firestore and not one event of this lane. The refusal
+     * reasons its own evaluator calls *"the vocabulary a field diagnosis will quote when a releasing
+     * spot did or did not go out"* never left the device. [DET-VERDICT-NOT-PREDICATE-001]
+     *
+     * **One type for the whole lane**, not one per ending, for the reason [Trigger] gives: the field
+     * question is a histogram — *of N boardings, how many published and why did the rest stay
+     * quiet* — and that has to be one query.
+     *
+     * [sessionId] is the plaza's id, which IS the parking session's id (the promotion lands on the
+     * same document), so nothing new is needed to join this to the park. When there is no session to
+     * speak of — the `no_plaza` refusal — it is the daily trigger ledger, same out-of-session
+     * convention as [Trigger] and [ProcessDeath].
+     *
+     * @property lane WHO asked: `bt` or `coordinator`. The two halves are invoked by different jobs
+     *   (`btWatchJob` vs. the coordinator's detection job) and neither said so, which is exactly
+     *   what makes a cross-lane withdrawal indistinguishable from a lane withdrawing its own.
+     * @property reason The evaluator's refusal, verbatim, on [SpotReleaseAction.SKIPPED]. Null
+     *   otherwise.
+     * @property liveMs How long the nomination had been out, on the withdrawal actions.
+     */
+    data class SpotRelease(
+        override val sessionId: String,
+        override val timestampMs: Long,
+        val action: com.rndeveloper.paparcar.domain.detection.SpotReleaseAction,
+        val lane: String,
+        val reason: String? = null,
+        val liveMs: Long? = null,
+        override val location: GpsPoint? = null,
+    ) : DetectionEvent
+
     /** The user reverted a saved park [sessionAgeMs] after it was confirmed — a user-labelled
      *  FALSE POSITIVE, the highest-value signal detection telemetry can produce. */
     data class Reverted(

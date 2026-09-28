@@ -310,10 +310,15 @@ val detectionModule = module {
             evaluate = get(),
             reportSpotReleased = get(),
             appPreferences = get(),
+            detectionEventLogger = get(),
         )
     } bind NominateSpotRelease::class
     factory {
-        WithdrawSpotReleaseUseCase(spotRepository = get(), appPreferences = get())
+        WithdrawSpotReleaseUseCase(
+            spotRepository = get(),
+            appPreferences = get(),
+            detectionEventLogger = get(),
+        )
     } bind WithdrawSpotRelease::class
     factory {
         RunDepartureCheckUseCase(

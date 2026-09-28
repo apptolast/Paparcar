@@ -31,6 +31,7 @@ import com.rndeveloper.paparcar.domain.detection.measuredDepartureAtMs
 import com.rndeveloper.paparcar.domain.detection.sentry.TriggerDisposition
 import com.rndeveloper.paparcar.domain.detection.coordinatorMayArm
 import com.rndeveloper.paparcar.domain.detection.sentry.isArmSuppressedByUserStop
+import com.rndeveloper.paparcar.domain.detection.SpotReleaseLane
 import com.rndeveloper.paparcar.domain.detection.sentry.triggerLedgerSessionId
 import com.rndeveloper.paparcar.domain.detection.sentry.CheapWakeVerdict
 import com.rndeveloper.paparcar.domain.detection.sentry.cheapWakeVerdict
@@ -1256,7 +1257,7 @@ class CoordinatorDetectionService : LifecycleService() {
                 // 30 s to 3 min 51 s.
                 //
                 // ⛔ It does not confirm anything: what goes out says the car is still in the space.
-                session.vehicleId?.let { nominateSpotRelease(it, boardingIsCredible = true) }
+                session.vehicleId?.let { nominateSpotRelease(it, boardingIsCredible = true, lane = SpotReleaseLane.COORDINATOR) }
             }
             is ArEnterDecision.ArmMidTrip -> {
                 // Same machinery as a far-delivered EXIT: speed-gated departure re-check +
@@ -1729,7 +1730,7 @@ class CoordinatorDetectionService : LifecycleService() {
                 // deterministic boarding: somebody is IN this car and it still holds a plaza.
                 // Nominated here rather than in `handleBtConnected` because this is where the live
                 // session is in hand — and the session is what the publication is about.
-                nominateSpotRelease(vehicleId, boardingIsCredible)
+                nominateSpotRelease(vehicleId, boardingIsCredible, lane = SpotReleaseLane.BT)
                 // No CONNECT stamp → the departure would have no hour, and an undated departure
                 // publishes nothing downstream. [DET-AN-EXIT-IS-DATED-BY-THE-FIX-THAT-CROSSED-IT-001]
                 val connectedAtMs = com.rndeveloper.paparcar.bluetooth.BtConnectionStore.lastConnectedAt(
@@ -1766,7 +1767,7 @@ class CoordinatorDetectionService : LifecycleService() {
                         // departure — somebody sat in the car and the car stayed. Take the plaza
                         // back now instead of leaving it to the TTL: four minutes is long enough
                         // for a stranger to drive to an occupied street.
-                        withContext(NonCancellable) { withdrawSpotRelease() }
+                        withContext(NonCancellable) { withdrawSpotRelease(SpotReleaseLane.BT) }
                 }
             } catch (e: CancellationException) {
                 PaparcarLogger.d(DIAG, "  ✗ drive-away watch cancelled (disconnect or destroy)")
@@ -2427,7 +2428,7 @@ class CoordinatorDetectionService : LifecycleService() {
                     // out, `ProcessConfirmedDeparture` would have promoted the document and cleared
                     // the stamp on its way through. So the test is the stamp's mere survival — no
                     // outcome to read, no list of terminal labels to keep in sync.
-                    withdrawSpotRelease()
+                    withdrawSpotRelease(SpotReleaseLane.COORDINATOR)
                     maybeStampArrivalResolution() // [DET-BACKFILL-TAINT-001]
                     // AFTER the honest close consumed the previous witness — a session never
                     // witnesses for its own abort. [DET-UNWITNESSED-DISPLACEMENT-001]

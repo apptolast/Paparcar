@@ -7,6 +7,8 @@ import com.rndeveloper.paparcar.domain.analytics.AnalyticsTracker
 import com.rndeveloper.paparcar.domain.analytics.SessionEndReason
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEventLogger
+import com.rndeveloper.paparcar.domain.detection.SpotReleaseAction
+import com.rndeveloper.paparcar.domain.detection.SpotReleaseLane
 import com.rndeveloper.paparcar.domain.model.AddressAndPlace
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.ParkingReleaseReason
@@ -129,7 +131,23 @@ class ReleaseActiveParkingSessionUseCase(
             runCatching {
                 appPreferences?.pendingSpotRelease()
                     ?.takeIf { it.spotId == spotId }
-                    ?.let { appPreferences.clearPendingSpotRelease() }
+                    ?.let { pending ->
+                        appPreferences.clearPendingSpotRelease()
+                        // [DET-A-RELEASING-SPOT-MUST-SAY-IT-WENT-OUT-001] Same ending as the
+                        // detected departure's, and it has to be told from it: this promotion was
+                        // the user pressing "Me voy", which is the one case where the head start
+                        // was earned by a declaration and not by a measurement.
+                        val promotedAtMs = Clock.System.now().toEpochMilliseconds()
+                        detectionEventLogger.log(
+                            DetectionEvent.SpotRelease(
+                                sessionId = spotId,
+                                timestampMs = promotedAtMs,
+                                action = SpotReleaseAction.PROMOTED,
+                                lane = SpotReleaseLane.USER,
+                                liveMs = promotedAtMs - pending.nominatedAtMs,
+                            ),
+                        )
+                    }
             }.onFailure { PaparcarLogger.w(TAG, "could not retire the boarding stamp (continuing)", it) }
         }
 
