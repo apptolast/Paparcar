@@ -101,3 +101,14 @@
 # había aquí anclaba 2.122 métodos, y en Kotlin todos los composables de un fichero comparten la
 # misma clase `…Kt` — bastaba con que UNO se usara para que los demás no se pudieran podar.
 -keep class kotlin.Metadata { *; }
+
+# ── Sesión de captura: los nombres del preset son DATOS, no símbolos ─────────
+# [MOCK-A-SHOT-SESSION-MUST-REACH-EVERY-SCREEN-001]
+# `ShotPreset.from(key)` compara `it.name` contra lo que llega en `--es shot <key>`, así que
+# el nombre de cada constante es una CADENA que cruza el límite del proceso. R8 lo renombra
+# —es un nombre de campo como cualquier otro— y entonces `from()` devuelve null para todas:
+# la sesión no aterriza en la pantalla pedida, y no falla, simplemente graba lo que hubiera.
+# Medido el 25-09 y anotado en `app/build.gradle.kts`; la salida de entonces fue grabar en
+# debug, que es fluido a medias. Con esta regla el flavor mock se puede grabar en RELEASE.
+# La clase vive en `:mockkit` y no entra en prod: una regla sobre algo ausente no estorba.
+-keep enum com.rndeveloper.paparcar.dev.ShotPreset { *; }

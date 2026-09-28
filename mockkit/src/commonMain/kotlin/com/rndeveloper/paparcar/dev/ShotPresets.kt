@@ -39,6 +39,16 @@ enum class ShotPreset {
 
     /** Spare: a live trip, for the driving frame the 01-09 script used. */
     Driving,
+
+    /**
+     * El alta de vehiculo: sesion iniciada y NINGUN coche, que es lo que enruta a
+     * `VehicleRegistration`. [MOCK-A-SHOT-SESSION-MUST-REACH-EVERY-SCREEN-001]
+     *
+     * El Dev Catalog ya tenia su boton, pero entrar por ahi deja los chips DEV encima de la
+     * pantalla — `DevRoot` solo los apaga en una sesion de captura—, asi que la unica pantalla
+     * del arranque quedaba fuera del alcance de cualquier grabacion limpia.
+     */
+    Registration,
     ;
 
     companion object {
@@ -74,6 +84,10 @@ fun ShotPreset.applyTo(scenario: MockScenario, runtime: MutableDetectionRuntimeS
         ShotPreset.Driving -> {
             scenario.activeVehicleBluetooth.value = true
             runtime.setRunning(true)
+        }
+
+        ShotPreset.Registration -> {
+            scenario.session.value = MockScenario.Session.LoggedInNoVehicle
         }
     }
 }
