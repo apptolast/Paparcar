@@ -5,9 +5,12 @@ import com.rndeveloper.paparcar.domain.model.Spot
 /**
  * What the zone watch has already announced. [ZONE-AN-ALERT-NOBODY-IS-AWAKE-TO-RECEIVE-001]
  *
- * The memory the alert never had. Both lanes — the live stream and the background worker — read and
- * write the same rows, which is what stops them announcing the same free space twice or, worse,
- * disagreeing about what has already been said.
+ * The memory the alert never had. Both lanes — the live stream and the server's push, handled by
+ * `PushMessageHandler` — read and write the same rows, which is what stops them announcing the same
+ * free space twice or, worse, disagreeing about what has already been said.
+ *
+ * ⚠️ Said «the background worker» until 28-09; there is none.
+ * [ZONE-THERE-IS-NO-WORKER-AND-FIVE-KDOCS-SAY-THERE-IS-001]
  */
 interface ZoneWatchRepository {
 

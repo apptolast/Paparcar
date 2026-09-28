@@ -40,10 +40,15 @@ const val ZONE_ALERT_MIN_RADIUS_METERS = 500f
  * Whether a spot is one this zone's owner should ever be told about.
  * [ZONE-AN-ALERT-NOBODY-IS-AWAKE-TO-RECEIVE-001]
  *
- * ⛔ A top-level function and not a private method, because from this ticket there are **two**
- * callers — the live stream while the app is open, and the worker while it is not. Two copies of
- * this rule is a divergence waiting to happen, and the shape it would take is the worst one: the
- * two surfaces disagreeing about what counts as news. [DET-VERDICT-NOT-PREDICATE-001]
+ * ⛔ A top-level function and not a private method, because there are **two** callers — the live
+ * stream while the app is open, and the server's push (`PushMessageHandler`) while it is not. Two
+ * copies of this rule is a divergence waiting to happen, and the shape it would take is the worst
+ * one: the two surfaces disagreeing about what counts as news. [DET-VERDICT-NOT-PREDICATE-001]
+ *
+ * ⚠️ Said «the worker» until 28-09. There never was one after
+ * [ZONE-A-SPOT-TELLS-THE-SERVER-AND-THE-SERVER-TELLS-YOU-001] replaced the periodic look with the
+ * server's fanout — five KDocs across three files kept describing it.
+ * [ZONE-THERE-IS-NO-WORKER-AND-FIVE-KDOCS-SAY-THERE-IS-001]
  *
  * ⛔ **This function is now only about the ZONE.** The vetoes that had nothing to do with a circle —
  * withdrawn, provisional and releasing spots, an expired one, and above all *your own spot is never
@@ -52,8 +57,8 @@ const val ZONE_ALERT_MIN_RADIUS_METERS = 500f
  * [ZONE-AN-ALERT-NEAR-YOU-IS-NOT-AN-ALERT-IN-YOUR-ZONE-001]
  *
  * @param nowMs used only to drop spots that have already expired. A spot whose TTL ran out between
- *        the query and this call is not news; without the clock the worker would notify about a
- *        free space that stopped existing before the phone buzzed.
+ *        the query and this call is not news; without the clock a lane would announce a free space
+ *        that stopped existing before the phone buzzed.
  */
 fun isAlertableInZone(
     spot: Spot,
@@ -87,11 +92,15 @@ data class ZoneWatchLook(
  * What to tell the user about one zone, given what is there and what has already been said.
  * [ZONE-AN-ALERT-NOBODY-IS-AWAKE-TO-RECEIVE-001]
  *
- * Pure and synchronous: the reading and the writing are the caller's, so the SAME decision serves a
- * long-lived stream and a worker that starts from nothing every fifteen minutes. That is the whole
- * point — the old rule lived in a `var baselineTaken` and a `mutableSetOf` inside the stream, which
- * a worker cannot inherit: it would either take a fresh baseline every run and **never alert**, or
- * skip it and **dump the zone every quarter of an hour**.
+ * Pure and synchronous: the reading and the writing are the caller's, so the SAME decision serves the
+ * long-lived stream and the push that arrives with the app dead. That is the whole point — the old
+ * rule lived in a `var baselineTaken` and a `mutableSetOf` inside the stream, and a lane that starts
+ * from nothing cannot inherit either: it would take a fresh baseline every time and **never alert**,
+ * or skip it and **dump the whole zone**.
+ *
+ * ⚠️ This described «a worker that starts from nothing every fifteen minutes» until 28-09; the
+ * fifteen minutes were real once, the worker is not.
+ * [ZONE-THERE-IS-NO-WORKER-AND-FIVE-KDOCS-SAY-THERE-IS-001]
  *
  * @param hasBaseline whether this zone has ever been looked at. False is not "no spots": it is
  *        "nobody has asked yet", the same distinction the whole nearby layer already makes.
