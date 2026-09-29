@@ -159,10 +159,29 @@ Regla mental: *plumbing de UI → Material; concepto de Paparcar → vector prop
   `composeResources/drawable/` con variante `_dark`. Si usa `stroke-dasharray`, nested-svg, filtros
   o texto → **Compose Canvas** en commonMain (VectorDrawable NO soporta trazos discontinuos).
 - Nivel 1/2 se tintan con el tema; Nivel 3 trae su color.
-- **Compensación Óptica del Logo**: para que el logo se perciba igual en cualquier fondo,
-  el grosor de trazo de las ruedas varía según el contraste (irradiación):
-    - **Claro sobre Oscuro (Base)**: grosor **`6`** (fiel al SVG).
-    - **Oscuro sobre Claro (Compensado)**: grosor **`7`** (para evitar que el fondo se lo coma).
+- **⛔ El logo NO lleva disco, y su único ajuste por superficie es el VERDE**
+  [BRAND-A-NEW-MARK-EARNS-ITS-SURFACES-001]. La marca de 2022 necesitaba un disco oscuro detrás
+  para sostenerse; la de 2026 no. Lo que sí cambia es el relleno, y por una razón medida —
+  `PapGreen` #25F48C sobre blanco da **1,42:1**, que es justo lo que el disco tapaba:
+    - **sobre oscuro** → `PapGreen` `#25F48C`
+    - **sobre claro** → `PapGreenLight` `#009F5E` (3,01:1), el mismo verde de relleno que ya usan
+      botones, glifos y marcadores en tema claro.
+  ⛔ Los FONDOS de lienzo que siguen existiendo —`ic_launcher_background`, el `apple-touch-icon`,
+  el 512 de Play— **no son el disco**: son la baldosa que el sistema exige opaca.
+  ⛔ La antigua *Compensación Óptica* (trazo de rueda 6 sobre oscuro / 7 sobre claro) **murió, no se
+  movió**: la marca nueva no tiene ni un trazo — sus ruedas son coronas rellenas—, así que no hay
+  irradiación que compensar.
+- **⛔ El logo se GENERA, no se copia.** Fuente única: `docs/branding/master/`. `build_marks.py`
+  dibuja la marca desde su geometría y `export_surfaces.py` la escribe en todas las superficies.
+  Antes de eso, `grep -rl "M92.28,57.77"` devolvía **25 ficheros** con el path a mano dentro — y esa
+  es exactamente la razón por la que la regla de arriba tuvo que ser durante años una pareja de
+  números mágicos: no había de dónde derivarlos. **Si cambia el dibujo, se cambia un parámetro y se
+  vuelve a correr el exportador**, y después `node web/build.mjs` (la web hornea el logo en sus
+  páginas). A mano sólo quedan los dos HTML de `play-listing/assets/`, que no son plantillas.
+  ⛔ **Su lienzo NO es cuadrado** (`256 × 248`) y la marca es **full bleed**: toca los cuatro bordes.
+  Las superficies que se encuadran por el círculo envolvente (`frame(fraction)`) no se enteran, pero
+  **meter la marca en una caja cuadrada a pelo le corta la rueda derecha o la aplasta**. El ancho y
+  el alto se leen de `MARK_W`/`MARK_H` (web) o del `viewBox` del maestro; nunca se asumen iguales.
 
 ### ⛔ Tipografía — tres voces y un rol que manda [UI-TYPE-TWO-VOICES-ONE-ROW-001]
 Familia, tamaño **y peso** son propiedad del **ROL**, no del widget. Nunca elijas fuente, tamaño ni

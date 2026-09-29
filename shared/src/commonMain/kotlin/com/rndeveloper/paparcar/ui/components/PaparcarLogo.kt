@@ -14,19 +14,21 @@ import org.jetbrains.compose.resources.painterResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.paparcar_iconmark_forest
 import paparcar.composeapp.generated.resources.paparcar_iconmark_green
-import paparcar.composeapp.generated.resources.paparcar_logo
-import paparcar.composeapp.generated.resources.paparcar_logo_dark
 import paparcar.composeapp.generated.resources.paparcar_iconmark_white
 
 /**
- * Full Paparcar logo (disc + car glyph). Auto-resolves the disc treatment from
- * the current Material colour scheme so the badge stays visible on any surface:
- *  - light theme → Ink disc + neon-green glyph
- *  - dark theme  → neon-green disc + Ink glyph (the Ink disc would otherwise
- *                  blend into the dark surface)
+ * The Paparcar mark standing alone — splash, onboarding hero, headers.
  *
- * Use for splash, onboarding hero, headers — anywhere the brand needs to
- * stand alone on a neutral surface.
+ * ⛔ **Ya no lleva disco.** La marca de 2022 necesitaba uno oscuro detrás para
+ * sostenerse sobre cualquier superficie; ésta no. Lo único que sigue cambiando con
+ * el tema es el VERDE, y por una razón medida: `PapGreen` (#25F48C) sobre blanco da
+ * **1,42:1**, así que en claro el relleno es `PapGreenLight` (#009F5E, 3,01:1) — el
+ * mismo verde que el proyecto ya usa para botones, glifos y marcadores en tema claro.
+ *
+ * Sin el disco, esto y [PaparcarIconmark] pasan a ser la misma imagen y sólo se
+ * diferencian en el tamaño por defecto. Se mantienen los dos nombres porque dicen
+ * cosas distintas en el call site —*la marca sola* vs *la marca como glifo*— y
+ * porque fusionarlos tocaría una docena de pantallas sin ganar nada.
  */
 /**
  * The size the brand mark stands alone at — splash, auth, the Plus crest.
@@ -55,7 +57,8 @@ fun PaparcarLogo(
     size: Dp = PAPARCAR_LOGO_SIZE,
 ) {
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-    val resource = if (isDark) Res.drawable.paparcar_logo_dark else Res.drawable.paparcar_logo
+    val resource = if (isDark) Res.drawable.paparcar_iconmark_green
+                   else Res.drawable.paparcar_iconmark_forest
     Image(
         painter = painterResource(resource),
         contentDescription = "Paparcar",

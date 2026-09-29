@@ -10,8 +10,8 @@ Generado el 2026-08-29 para la **Ficha de Play Store predeterminada** (en-US).
 | `assets/alt-icon-512-*.png` | Dos alternativas del icono, por si prefieres otro tamaño de glifo o el fondo con halo |
 | `assets/icon.html`, `assets/feature.html` | Las fuentes de los dos gráficos. Se re-renderizan con Chrome headless (comando abajo) |
 
-Los gráficos están construidos con los assets reales del proyecto: el glifo sale de
-`composeResources/drawable/paparcar_logo.xml`, los colores de `ui/theme/Color.kt`
+Los gráficos están construidos con los assets reales del proyecto: el glifo sale del maestro
+`docs/branding/master/` (y ahí se regenera — ⛔ no se reescribe a mano en el HTML), los colores de `ui/theme/Color.kt`
 (`PapGreen #25F48C`, `PapInk #0D1117`, `PapAmber #F4A825`, `PapBlue #5B9EFF`) y la
 tipografía es la Outfit/Inter que embarca la app. No hay ni un color ni una fuente inventada.
 

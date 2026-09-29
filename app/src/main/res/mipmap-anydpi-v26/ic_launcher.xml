@@ -1,12 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Paparcar adaptive icon · combines background + foreground.
-  Android 8+ (API 26) uses this; older versions fall back to
-  the regular ic_launcher.png in mipmap-*.
+  Paparcar adaptive icon · background + foreground.
 
-  - background: solid neon-green vector
-  - foreground: white-ish icon raster, the actual paparcar mark
-  - monochrome: for Android 13+ themed icons (reuses foreground)
+  minSdk es 26, asi que ESTE fichero gana siempre. Los mipmap-*dpi/ic_launcher.png
+  de respaldo se borraron en BRAND-A-NEW-MARK-EARNS-ITS-SURFACES-001: eran diez
+  PNG que no se cargaban nunca.
+
+  - background: baldosa Ink con degradado (ic_launcher_background). ⛔ No es "el
+    disco" de la marca, que ya no existe: es el lienzo opaco que el sistema exige.
+  - foreground: la marca, GENERADA por docs/branding/master/export_surfaces.py
+  - monochrome: themed icons de Android 13+, reutiliza el foreground; funciona
+    porque la marca tiene contraformas de verdad y sobrevive al tinte plano.
 -->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
     <background android:drawable="@drawable/ic_launcher_background" />

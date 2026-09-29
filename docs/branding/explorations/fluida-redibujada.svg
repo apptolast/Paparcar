@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="248" height="220" viewBox="0 0 248 220" fill="#25F48C">
+  <!-- Paparcar - la FLUIDA REDIBUJADA. SALIDA de master/fluida.py: no editar a mano.
+
+       ⛔ Es un REDIBUJO, no una reproduccion. La Fluida reproducida vive en
+       reference/paparcar-mark-fluida.svg (IoU 0,971 contra su raster) y ahi se
+       llego al techo del original: su borde trae ruido de compresion y sus formas
+       vienen con bultos. Esto la toma de inspiracion y la dibuja limpia.
+
+       ⛔ Tampoco es el Compas con otros numeros. Cada pieza lleva su propio centro
+       -la contraforma NO es concentrica con la cabeza, el ojo tampoco- y lo que une
+       las piezas son ARCOS TANGENTES, no rectas: con una tangente comun el lomo
+       sale a 47,9 grados y la Fluida lleva 54,2 porque su borde CURVA. Esa es la
+       diferencia entera. -->
+  <path d="M162.4,59.2A14.8,14.8 0 1,0 162.4,88.8A14.8,14.8 0 1,0 162.4,59.2Z"/>
+  <path d="M153.718,159 A5,5 0 0,0 148.776,163.243 A49.9,49.9 0 1,0 236.04,138.388 A6,6 0 0,0 227.312,137.967 A85.7,85.7 0 0,1 213.95,148.513 A4.5,4.5 0 0,0 213.211,155.506 A21.5,21.5 0 1,1 177.631,164.224 A4,4 0 0,0 173.822,159 L153.718,159 Z"/>
+  <path d="M167.8,0 A76.3,76.3 0 0,0 110.89,25.477 A299.05,299.05 0 0,0 13.888,134.096 A51.5,51.5 0 1,0 92.356,200.77 L131.998,151.715 A10,10 0 0,1 139.776,148 L193.892,148 A76.3,76.3 0 0,0 167.8,0Z M52.7,190.4A23.2,23.2 0 1,1 52.7,144A23.2,23.2 0 1,1 52.7,190.4Z M101.653,103.16L121.189,59.586 A43.3,43.3 0 1,1 158.965,120.565 L111.25,118.652 A11,11 0 0,1 101.653,103.16Z"/>
+</svg>

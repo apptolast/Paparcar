@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="244" height="236" viewBox="0 0 244 236" fill="#25F48C">
+  <!--
+       Paparcar - la MARCA.  SALIDA de build_marks.py: no editar a mano.
+
+       Es el Compas COMPLETO, y es la unica forma que existe: la misma a todos los
+       tamanos. No hay variante pequena ni umbral de 32 dp que cada superficie tenga
+       que saber en que lado esta.
+
+       Sus valores no se eligieron a ojo: salen de AJUSTAR el maestro al raster del
+       que nacio el dibujo -el que se vectorizo a mano antes de que existiera este
+       fichero-. El ajuste dio 0,959 de solape contra ese original, frente al 0,875
+       de la version anterior; despues el trazo se adelgazo un paso a peticion del
+       user y el solape queda en 0,885. Cabeza R84 con su ojo r21,5 concentrico,
+       contraforma r51, agujeros r26,5, ruedas R53, acuerdo r18 y punta de gota r7.
+       Anillos 33 / 26,5 / 35,3: el trazo MODULA -engorda al girar-, y esa modulacion
+       es lo que hace que la marca se lea solida en vez de como un trazado de ancho
+       constante.
+
+       Que la distingue de la compacta:
+       · la rueda derecha es un ANILLO ABIERTO, separado del cuerpo por un canal de
+         8 u igual por los dos lados. Ese hueco es lo que sostiene la lectura de la
+         P: sin el, las dos ruedas quedan gemelas y la letra se afloja. Y no es solo
+         aire: por debajo de 7 u la rueda se funde con el cuerpo a tamano de icono.
+       · media luna y repisa, la ranura que el lobulo derecho le roba a la cabeza.
+
+       ⚠️ El precio, dicho y medido a pixeles reales: con el canal en 6 u la rueda
+       derecha FUNDE con el cuerpo por debajo de unos 28 px, asi que de 24 px para
+       abajo la marca sale en dos trozos -silueta + ojo-. No se desmiga en tres como
+       la version anterior, pero abajo se lee como la compacta. Donde importa es el
+       small icon de notificacion y los chips.
+
+       ⛔ Dos cosas del original NO se heredan, a proposito: su canal es desigual
+       (6,5 / 5) y su punta de gota va casi en pico. Igualar el canal y redondear la
+       punta cuesta 0,002 de solape y deja la marca sin una sola esquina viva.
+
+       El lienzo NO es cuadrado y el dibujo toca los cuatro bordes: quien lo reciba
+       tiene que respetar la relacion, no meterlo en una caja cuadrada.
+  -->
+  <path d="M160,62.5A21.5,21.5 0 1,0 160,105.5A21.5,21.5 0 1,0 160,62.5Z"/>
+  <path d="M143.042,176 A5,5 0 0,0 138.046,180.792 A53,53 0 1,0 232.999,150.673 A6,6 0 0,0 224.067,150.026 A92,92 0 0,1 210.074,161.179 A2,2 0 0,0 209.747,164.271 A26.5,26.5 0 1,1 164.629,180.393 A4,4 0 0,0 160.648,176 L143.042,176 Z"/>
+  <path d="M160,0 A84,84 0 0,0 91.146,35.885 L9.556,152.642 A53,53 0 1,0 105.953,185.239 A18,18 0 0,1 123.937,168 L160,168 A84,84 0 0,0 160,0Z M53,209.5A26.5,26.5 0 1,1 53,156.5A26.5,26.5 0 1,1 53,209.5Z M160,135L78.039,135 A7,7 0 0,1 72.205,124.132 L117.493,55.82 A51,51 0 1,1 160,135Z"/>
+</svg>

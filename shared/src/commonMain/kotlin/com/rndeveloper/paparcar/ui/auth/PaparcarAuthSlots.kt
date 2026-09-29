@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -37,7 +36,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
@@ -92,7 +90,6 @@ import paparcar.composeapp.generated.resources.auth_header_tagline
  *  domain sweep lands. [AUTH-A-SIGN-IN-ASKS-FOR-CONSENT-FIRST-001] */
 private const val LEGAL_PRIVACY_POLICY_URL = "https://paparcar.com/privacy-policy"
 
-private val LOGO_BADGE_ELEVATION = 6.dp
 private val HEADER_TOP_SPACING = 4.dp
 private val HEADER_LOGO_TEXT_GAP = 14.dp
 private val HEADER_TITLE_TAGLINE_GAP = 4.dp
@@ -285,11 +282,15 @@ private fun PaparcarAuthHeader() {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(HEADER_LOGO_TEXT_GAP),
         ) {
-            // Brand badge — the self-contained design-system logo (neon-green disc +
-            // forest car glyph). Drawn with a CircleShape drop-shadow so it keeps the
-            // raised "app icon" reading without an extra coloured Surface behind it.
+            // La marca, SIN fondo: se sostiene sola sobre cualquier soporte.
+            // ⛔ Aquí había un `Modifier.shadow(6.dp, CircleShape)`, herencia de cuando
+            // el logo llevaba disco. Sin disco hacía DOS destrozos a la vez, los dos
+            // visibles en el Motorola: pintaba una baldosa redonda fantasma —la sombra
+            // de un disco que ya no existe— y, como el `clip` de `shadow` vale
+            // `elevation > 0.dp` POR DEFECTO, RECORTABA la marca contra ese círculo.
+            // Y la marca es full bleed: toca los cuatro bordes de su caja, así que
+            // perdía la rueda izquierda por abajo y el lóbulo derecho por la derecha.
             PaparcarLogo(
-                modifier = Modifier.shadow(LOGO_BADGE_ELEVATION, CircleShape),
                 // Shared with the paywall's crest: same composition, one number.
                 // [UI-PAYWALL-THE-CREST-STANDS-BESIDE-ITS-NAME-001]
                 size = PAPARCAR_LOGO_BESIDE_NAME_SIZE,

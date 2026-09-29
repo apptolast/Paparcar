@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -39,7 +38,6 @@ import com.rndeveloper.paparcar.ui.theme.premiumInk
 import com.rndeveloper.paparcar.ui.theme.premiumSweep
 import org.jetbrains.compose.resources.painterResource
 import paparcar.composeapp.generated.resources.Res
-import paparcar.composeapp.generated.resources.paparcar_iconmark_white
 
 /**
  * The ONE surface that says "Paparcar Plus". [UI-COLOR-PLUS-WEARS-THE-BRAND-WITH-A-FINISH-001]
@@ -104,38 +102,8 @@ fun PapPremiumSurface(
     //
     // Corner-to-corner: `Brush.linearGradient` with no explicit start/end runs top-left →
     // bottom-right by default, which is exactly the diagonal a sheen needs.
-    val tones = premiumSweep
-    val sweep = metallicSweep(tones)
-    val grainPeriodPx = with(LocalDensity.current) { GRAIN_PERIOD_DP.dp.toPx() }
-    val grain = Brush.linearGradient(
-        0.00f to Color.Transparent,
-        0.35f to premiumEdge.copy(alpha = GRAIN_LIGHT_ALPHA),
-        0.50f to Color.Transparent,
-        0.65f to tones.shadow.copy(alpha = GRAIN_DARK_ALPHA),
-        1.00f to Color.Transparent,
-        start = Offset.Zero,
-        end = Offset(grainPeriodPx, grainPeriodPx),
-        tileMode = TileMode.Repeated,
-    )
-    val bevel = Brush.verticalGradient(
-        0.00f to premiumEdge.copy(alpha = BEVEL_TOP_ALPHA),
-        0.13f to Color.Transparent,
-        0.87f to Color.Transparent,
-        1.00f to tones.shadow.copy(alpha = BEVEL_BOTTOM_ALPHA),
-    )
-    val edge = BorderStroke(
-        width = PapBorders.thin,
-        brush = Brush.linearGradient(
-            // Two lit corners, not one fading to nothing: real metal catches the light at the
-            // corner facing it AND, faintly, at the one opposite. That second catch is a large part
-            // of why an edge reads as an OBJECT's rim rather than as a card's border — and it costs
-            // no extra lightness range, which is the axis that must not grow.
-            // [UI-PAYWALL-THE-CREST-STANDS-BESIDE-ITS-NAME-001]
-            0.00f to premiumEdge.copy(alpha = EDGE_BRIGHT_ALPHA),
-            0.55f to Color.Transparent,
-            1.00f to premiumEdge.copy(alpha = EDGE_COUNTER_ALPHA),
-        ),
-    )
+    val finish = premiumFinish()
+    val tones = finish.tones
     val subdued = emphasis == PapPremiumEmphasis.Subdued
     // The three layers are painted BEHIND the content, so the emphasis alpha fades the metal and
     // never the text on it. `Surface` already clips to `shape`, so the draw needs no shape of its
@@ -144,9 +112,9 @@ fun PapPremiumSurface(
     val body: @Composable () -> Unit = {
         Box(
             modifier = Modifier.drawBehind {
-                drawRect(brush = sweep, alpha = metalAlpha)
-                drawRect(brush = grain, alpha = metalAlpha)
-                drawRect(brush = bevel, alpha = metalAlpha)
+                drawRect(brush = finish.sweep, alpha = metalAlpha)
+                drawRect(brush = finish.grain, alpha = metalAlpha)
+                drawRect(brush = finish.bevel, alpha = metalAlpha)
             },
             content = content,
         )
@@ -159,7 +127,7 @@ fun PapPremiumSurface(
     val border = if (subdued) {
         BorderStroke(PapBorders.thin, tones.bed.copy(alpha = SUBDUED_EDGE_ALPHA))
     } else {
-        edge
+        finish.edge
     }
     if (onClick != null) {
         Surface(
@@ -239,6 +207,61 @@ private const val SUBDUED_EDGE_ALPHA = 0.45f
  * Even spacing would read as a printed pattern, so the gaps are deliberately irregular.
  * [UI-PLUS-A-BRAND-FILL-IS-NOT-A-METALLIC-FINISH-001]
  */
+/**
+ * El acabado, en UNA receta. [UI-PLUS-THE-MARK-IS-THE-METAL-001]
+ *
+ * 🔑 Vivía dentro de [PapPremiumSurface], y eso valía mientras el metal sólo supiera pintar un
+ * rectángulo detrás de algo. Desde que la cresta es **la marca cortada en metal** —y no una marca
+ * encima de un disco de metal— hay dos consumidores que tienen que compartir bandas, grano y bisel
+ * al pixel: si se separan, el producto tiene dos metales.
+ */
+private class PremiumFinish(
+    val tones: PremiumSweep,
+    val sweep: Brush,
+    val grain: Brush,
+    val bevel: Brush,
+    val edge: BorderStroke,
+)
+
+@Composable
+private fun premiumFinish(): PremiumFinish {
+    val tones = premiumSweep
+    val grainPeriodPx = with(LocalDensity.current) { GRAIN_PERIOD_DP.dp.toPx() }
+    return PremiumFinish(
+        tones = tones,
+        sweep = metallicSweep(tones),
+        grain = Brush.linearGradient(
+            0.00f to Color.Transparent,
+            0.35f to premiumEdge.copy(alpha = GRAIN_LIGHT_ALPHA),
+            0.50f to Color.Transparent,
+            0.65f to tones.shadow.copy(alpha = GRAIN_DARK_ALPHA),
+            1.00f to Color.Transparent,
+            start = Offset.Zero,
+            end = Offset(grainPeriodPx, grainPeriodPx),
+            tileMode = TileMode.Repeated,
+        ),
+        bevel = Brush.verticalGradient(
+            0.00f to premiumEdge.copy(alpha = BEVEL_TOP_ALPHA),
+            0.13f to Color.Transparent,
+            0.87f to Color.Transparent,
+            1.00f to tones.shadow.copy(alpha = BEVEL_BOTTOM_ALPHA),
+        ),
+        edge = BorderStroke(
+            width = PapBorders.thin,
+            brush = Brush.linearGradient(
+                // Two lit corners, not one fading to nothing: real metal catches the light at the
+                // corner facing it AND, faintly, at the one opposite. That second catch is a large
+                // part of why an edge reads as an OBJECT's rim rather than as a card's border — and
+                // it costs no extra lightness range, which is the axis that must not grow.
+                // [UI-PAYWALL-THE-CREST-STANDS-BESIDE-ITS-NAME-001]
+                0.00f to premiumEdge.copy(alpha = EDGE_BRIGHT_ALPHA),
+                0.55f to Color.Transparent,
+                1.00f to premiumEdge.copy(alpha = EDGE_COUNTER_ALPHA),
+            ),
+        ),
+    )
+}
+
 private fun metallicSweep(tones: PremiumSweep): Brush = Brush.linearGradient(
     0.00f to tones.bed,
     0.09f to tones.shadow,
@@ -265,54 +288,67 @@ private fun metallicSweep(tones: PremiumSweep): Brush = Brush.linearGradient(
 )
 
 /**
- * The Paparcar LOGO cast in metal — the disc, not a bare glyph.
- * [UI-PLUS-WEARS-THE-BRANDS-OWN-MARK-001]
+ * La marca de Paparcar **cortada en metal**: el propio logo lleva el acabado, y no hay disco.
+ * [UI-PLUS-THE-MARK-IS-THE-METAL-001]
  *
- * Plus is the brand dressed up, so the hero mark should be the BRAND, not a generic medal: a
- * trophy glyph said "achievement", and nothing is unlocked by subscribing.
+ * Plus es la marca vestida de gala, así que la pieza de cabecera tiene que ser la MARCA y no una
+ * medalla genérica: un glifo de trofeo decía "logro", y suscribirse no desbloquea nada.
  *
- * ⚠️ **The logo always keeps its disc.** A first cut used the bare iconmark and it was wrong twice
- * over: it stopped being the logo, and a bare glyph gives a gradient almost no area to happen in,
- * so it rendered as flat green. The disc is what the metal is FOR.
+ * ⛔ **Aquí vivía la nota contraria —*el logo siempre conserva su disco*— y hay que leer por qué
+ * murió, porque decía DOS cosas y sólo una era falsa.**
  *
- * The structure mirrors the logo's dark-theme form — coloured disc, ink glyph — with the metal
- * standing in for the green. That also settles which way round it goes: an Ink disc would simply
- * disappear on a dark surface, so the DISC is what carries the finish and the glyph is knocked out
- * of it in the surface's ink, exactly like every other child of a [PapPremiumSurface].
+ *  · *"sin disco deja de ser el logo"* — era cierto **del logo de 2022**, que necesitaba un disco
+ *    oscuro detrás para sostenerse. La marca de [BRAND-A-NEW-MARK-EARNS-ITS-SURFACES-001] no lo
+ *    lleva en NINGUNA superficie: ni launcher, ni splash, ni favicon, ni el small icon. Esta
+ *    cresta era el último disco del producto, y un disco que sólo existe en un sitio no es la
+ *    marca, es una excepción. Es el mismo patrón que ya mató al `1.22` de aquí abajo: *una
+ *    compensación sobrevive muda a la razón que la creó.*
+ *  · *"un glifo suelto no le da área al degradado, sale verde plano"* — esto **no** es doctrina
+ *    vieja, es física, y por eso no se descartó: se midió. La marca cubre el **44,6 %** de su
+ *    círculo envolvente y sus anillos miden 34/32/33 sobre un lienzo de 256 —el 13 % de la caja
+ *    cada uno—, así que las bandas del barrido (0,15 · 0,35 · 0,49 · 0,63 · 0,78 sobre la
+ *    diagonal) cruzan el dibujo varias veces en vez de caber dentro de un trazo. Verificado en
+ *    device a 72 dp: el metal se lee.
  *
- * Built from `PapPremiumSurface` with a circular shape rather than a private gradient, so the
- * crest and the cards can never drift apart.
+ * La consecuencia de no tener disco es que **la marca vuelve a medir lo que mide en todas partes**:
+ * su envolvente llena la caja, igual que en el splash y en `PaparcarLogo`. La cresta de Plus ya no
+ * es una marca más pequeña dentro de un círculo; es la misma marca, del mismo tamaño, en otro
+ * material.
+ *
+ * ⛔ Dibujar con pincel NO es teñir. `PaparcarMark` recibe un `Color` y un color no tiene bandas,
+ * así que la marca se usa como MÁSCARA: se pinta opaca, y el barrido, el grano y el bisel entran
+ * con `SrcIn`/`SrcAtop` recortados contra su alfa. Requiere `CompositingStrategy.Offscreen`, o el
+ * `SrcIn` recortaría contra lo que haya pintado debajo en la pantalla en vez de contra el glifo.
+ *
+ * Comparte [premiumFinish] con las cards, no una copia privada del degradado, para que la cresta y
+ * las superficies no puedan separarse.
  */
 @Composable
 fun PapPremiumMark(
     modifier: Modifier = Modifier,
     size: Dp = PAPARCAR_LOGO_SIZE,
 ) {
-    PapPremiumSurface(modifier = modifier.size(size), shape = CircleShape) {
-        // ⚠️ Do NOT inset the glyph here. `paparcar_iconmark_white` already carries the same 0.8
-        // group scale the full logo uses, so its padding is baked into the drawable. A first cut
-        // multiplied by another 0.58 on top and the glyph landed at ~0.46 of the disc: two insets
-        // stacked, and the crest read as tiny.
+    val finish = premiumFinish()
+    Box(
+        modifier = modifier
+            .size(size)
+            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+            .drawWithContent {
+                drawContent()
+                drawRect(brush = finish.sweep, blendMode = BlendMode.SrcIn)
+                drawRect(brush = finish.grain, blendMode = BlendMode.SrcAtop)
+                drawRect(brush = finish.bevel, blendMode = BlendMode.SrcAtop)
+            },
+    ) {
+        // El color es indiferente: este dibujo sólo aporta su ALFA, y las tres capas de arriba lo
+        // repintan entero. Blanco porque es lo que ya trae `paparcar_iconmark_white`.
         PaparcarMark(
-            tint = premiumInk,
-            size = size * GLYPH_OVERSCAN,
+            tint = Color.White,
+            size = size,
             modifier = Modifier.align(Alignment.Center),
         )
     }
 }
-
-/**
- * How much larger than the disc the glyph box is drawn.
- *
- * The artwork only spans about 54 % of its own canvas, so at 1.0 the car sits well inside the
- * disc and its 6-unit wheel strokes render thin. Scaling the box up fills the disc AND thickens
- * the strokes in one move — the alternative, a fatter `strokeWidth`, would mean a premium-only
- * copy of the logo diverging from the splash, the auth badge and the launcher.
- *
- * ⛔ There is a hard ceiling around 1.35: the wheels sit low and right, and past that their corner
- * crosses the circle and gets clipped by the disc. Measured from the path extents, not guessed.
- */
-private const val GLYPH_OVERSCAN = 1.22f
 
 /**
  * The CTA that BUYS Plus — the brand's metal cast as a button.

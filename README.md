@@ -97,12 +97,20 @@ Procedimiento completo (keystore, firma, versionado, rotación de claves) en
 
 ### Logo
 
-El logo corporativo es el coche verde neón sobre disco *ink* — idéntico al icono de launcher y
-**theme-independent** (el disco siempre es oscuro, lee igual en claro y oscuro). La fuente de
-verdad en la app es [`paparcar_logo.xml`](./shared/src/commonMain/composeResources/drawable/paparcar_logo.xml)
-(VectorDrawable, con variante `_dark`); para docs se usa
-[`docs/assets/paparcar-logo.svg`](./docs/assets/paparcar-logo.svg). Es un asset **Nivel 3**:
-trae su color de marca horneado, **nunca se tinta**.
+El logo es una **P** que es a la vez pin de ubicación y coche — las tres lecturas a la vez. **No
+lleva disco**: la marca de 2022 necesitaba uno oscuro detrás para sostenerse, ésta no. Lo único que
+cambia con la superficie es el verde: `PapGreen` `#25F48C` sobre oscuro, `PapGreenLight` `#009F5E`
+sobre claro (porque el primero sobre blanco da 1,42:1).
+
+⛔ **La fuente de verdad no es un fichero de la app: es un generador.**
+[`docs/branding/master/`](./docs/branding/master/) dibuja la marca desde su geometría —seis
+circunferencias y dos rectas tangentes— y `export_surfaces.py` la escribe en todas las superficies.
+Los drawables (`paparcar_iconmark_*`, `ic_launcher_foreground`, `splash_glyph`,
+`ic_notification_logo`, el favicon, `docs/assets/paparcar-logo.svg`) son **salida**: no se editan a
+mano. Detalle y nombres en [`docs/branding/README.md`](./docs/branding/README.md).
+
+Sigue siendo un asset **Nivel 3**: trae su color de marca horneado, **nunca se tinta** — salvo
+`paparcar_iconmark_white`, que existe precisamente para eso.
 
 Para mantener la consistencia visual ante el efecto óptico de irradiación, el logo aplica una
 **compensación de grosor** en sus trazos (ruedas):

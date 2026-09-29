@@ -9,6 +9,8 @@
  * `illus_*` VectorDrawables, converted by `tools/prepare-assets.py`, and bring their own colour.
  */
 
+import { MARK_W, MARK_H, MARK_PATHS } from './mark.generated.mjs';
+
 const glyphs = {
   // ── tier 1 · chrome ────────────────────────────────────────────────────────
   menu: 'M4 7.5h16M4 12h16M4 16.5h16',
@@ -67,33 +69,37 @@ export function icon(name, { className = '', title = '', size = 24 } = {}) {
 }
 
 /**
- * The brand mark. Which of the two shipped variants you get is decided by the SURFACE it lands on,
- * exactly as in the app:
+ * The brand mark.
  *
- *   · `surface: 'ink'`   → neon disc, Ink glyph, wheel stroke **7** — `paparcar_logo_dark.xml`
- *   · `surface: 'light'` → Ink disc, neon glyph, wheel stroke **6** — `paparcar_logo.xml`
+ * ⛔ **No disc.** The 2022 mark needed a dark disc behind it to hold up on any surface; this one
+ * does not. What still changes with the surface is the GREEN, and for a measured reason:
+ * `PapGreen` (#25F48C) on white is **1.42:1** — the disc was covering exactly that. So:
  *
- * ⛔ 'ink' is the DEFAULT here because this site is Ink from top to bottom. Putting the Ink-disc
- * variant on an Ink page makes the disc vanish into the background and leaves the glyph floating —
- * which is precisely the note the published privacy page already carried: *the header band is
- * always Ink, so the disc goes neon-green with the Ink glyph, the Ink disc would blend.*
+ *   · `surface: 'ink'`   → `#25F48C`, the brand green
+ *   · `surface: 'light'` → `#009F5E` (`PapGreenLight`), 3.01:1 — the fill the app already uses
+ *                          for buttons, glyphs and markers in light theme
  *
- * ⛔ The wheel stroke is NOT free either: it is the logo's optical compensation (CLAUDE.md
- * § Iconos). Light-on-dark is the faithful base at 6; dark-on-light goes to 7 so irradiation from
- * the bright disc does not eat the wheels. The two values are a pair — moving one alone breaks it.
+ * ⛔ 'ink' is the DEFAULT because this site is Ink from top to bottom.
+ *
+ * ⛔ The wheel-stroke pair (6 on dark, 7 on light) that used to live here is **gone, not moved**:
+ * the mark has no strokes at all any more — its wheels are filled rings. There is nothing left to
+ * compensate for irradiation.
+ *
+ * ⛔ El dibujo ya no está aquí: llega de `mark.generated.mjs`, que escribe
+ * `docs/branding/master/export_surfaces.py` desde el maestro paramétrico. La nota que había en su
+ * lugar («si cambia el dibujo, se regenera allí — no se reescribe aquí a mano») pedía a quien
+ * pasara por aquí que recordara una regla; ahora no hay dónde reescribirlo.
+ *
+ * ⚠️ `size` es la ALTURA. La marca es full-bleed sobre un lienzo que no es cuadrado, así que el
+ * ancho se deriva: forzar una caja cuadrada la aplastaría o le cortaría la rueda derecha.
  */
 export function logoMark({ size = 40, surface = 'ink', className = 'logo-mark' } = {}) {
-  const onInk = surface === 'ink';
-  const disc = onInk ? '#25F48C' : '#0D1117';
-  const glyph = onInk ? '#08090E' : '#25F48C';
-  const stroke = onInk ? 7 : 6;
-  return `<svg class="${className}" width="${size}" height="${size}" viewBox="0 0 108 108" aria-hidden="true" focusable="false">
-<circle cx="54" cy="54" r="54" fill="${disc}"/>
-<g transform="translate(54 54) scale(0.8) translate(-54 -54)">
-<path transform="translate(-6 -6)" fill="${glyph}" d="M92.28,57.77q-4.78,0.15 -14.83,0.24l-9.33,0.07h0c1.82,-2.13 6.79,-8.57 8,-10.44q3.66,-5.72 4.06,-10.31A7.26,7.26 0 0 0 77,30.25Q73.36,27.78 66.88,28a34.45,34.45 0 0 0 -8.79,1.49A35.71,35.71 0 0 0 43.66,38a51.59,51.59 0 0 0 -6.36,8.38q-1.77,2.74 -4.63,7.43c-1.9,3.12 -3.42,5.56 -4.54,7.31S25.6,65 23.91,67.59A1.34,1.34 0 0 0 25,69.67l64,0a1.36,1.36 0 0 0 1.14,-0.63l3.46,-5.54 2.49,-3.77a1.34,1.34 0 0 0 -1.18,-2.08Zm-49.74,0.3a1.34,1.34 0 0 1 -1.12,-2l1.3,-2.14c0.93,-1.55 1.88,-3.09 2.87,-4.63a31.51,31.51 0 0 1 3,-4 16.45,16.45 0 0 1 3.09,-2.63A16.21,16.21 0 0 1 59.88,40a8.71,8.71 0 0 1 5.47,1.26 3.75,3.75 0 0 1 1.54,3.84 15.56,15.56 0 0 1 -2.53,5.87c-0.93,1.44 -3.59,5.13 -5.27,7.21h-0.54Q50.81,58.2 42.54,58.07Z"/>
-<g transform="translate(-41.78 61.43) rotate(-40)"><ellipse cx="74.74" cy="82.86" rx="8.73" ry="6.15" fill="none" stroke="${glyph}" stroke-width="${stroke}"/></g>
-<g transform="translate(-50.1 38.57) rotate(-40)"><ellipse cx="39.18" cy="82.86" rx="8.73" ry="6.15" fill="none" stroke="${glyph}" stroke-width="${stroke}"/></g>
-</g></svg>`;
+  const fill = surface === 'ink' ? '#25F48C' : '#009F5E';
+  const width = Math.round((size * MARK_W) / MARK_H);
+  const paths = MARK_PATHS.map((d) => `<path d="${d}"/>`).join('\n');
+  return `<svg class="${className}" width="${width}" height="${size}" viewBox="0 0 ${MARK_W} ${MARK_H}" fill="${fill}" aria-hidden="true" focusable="false">
+${paths}
+</svg>`;
 }
 
 /** Google Play badge, drawn rather than shipped as an image so it stays crisp and themeable. */
