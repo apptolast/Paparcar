@@ -6,26 +6,57 @@ Generado el 2026-08-29 para la **Ficha de Play Store predeterminada** (en-US).
 |---|---|
 | `LISTING.md` | Los textos: nombre, descripción breve y completa, en **en-US** y **es-ES**, más los campos de contacto/URLs |
 | `assets/play-icon-512.png` | **Icono de la aplicación** — 512×512, PNG RGB (sin alpha), 15 KB |
-| `assets/play-feature-graphic-1024x500.png` | **Gráfico de funciones** — 1024×500, PNG RGB, 247 KB |
+| `assets/play-feature-graphic-1024x500.png` | **Gráfico de funciones** de la ficha predeterminada (en-US) — 1024×500, PNG RGB, 199 KB |
+| `assets/screenshots/<loc>/<loc>-feature-graphic-1024x500.png` | El mismo gráfico en los otros ocho idiomas. **Derivados y gitignored**: se regeneran, no se versionan |
 | `assets/alt-icon-512-*.png` | Dos alternativas del icono, por si prefieres otro tamaño de glifo o el fondo con halo |
-| `assets/icon.html`, `assets/feature.html` | Las fuentes de los dos gráficos. Se re-renderizan con Chrome headless (comando abajo) |
+| `assets/icon.html`, `assets/feature.html` | Las fuentes de los dos gráficos. Se re-renderizan con `tools/render_graphics.sh` (abajo) |
 
 Los gráficos están construidos con los assets reales del proyecto: el glifo sale del maestro
 `docs/branding/master/` (y ahí se regenera — ⛔ no se reescribe a mano en el HTML), los colores de `ui/theme/Color.kt`
 (`PapGreen #25F48C`, `PapInk #0D1117`, `PapAmber #F4A825`, `PapBlue #5B9EFF`) y la
-tipografía es la Outfit/Inter que embarca la app. No hay ni un color ni una fuente inventada.
+tipografía es la **Plus Jakarta Sans** que embarca la app — la única familia del repo desde
+`UI-TYPE-RETIRE-THE-OLD-FAMILIES-001`. No hay ni un color ni una fuente inventada.
+
+## Qué subir al Console, y de dónde sale
+
+Re-renderizado el **29-09-2026** con la marca de 2026
+[PLAY-THE-LISTING-ART-STILL-SHOWS-THE-2022-MARK-001].
+
+| Campo del Console | Fichero |
+|---|---|
+| Icono de la aplicación | `assets/play-icon-512.png` — uno solo, no se localiza |
+| Gráfico de funciones · en-US | `assets/play-feature-graphic-1024x500.png` |
+| Gráfico de funciones · los otros 8 | `assets/screenshots/<loc>/<loc>-feature-graphic-1024x500.png` |
+| Capturas de teléfono | `assets/screenshots/<loc>/<loc>-play-shot-{1..8}.png` — ⚠️ derivadas: si no están, `tools/render.sh` |
+| Nombre · breve · completa, 9 idiomas | `paste/play-<locale>.txt` (o `paste/play-listing-import.md` del tirón) |
+
+⛔ **Los gráficos por idioma y las capturas son derivados gitignored**: en un clon limpio no están,
+y eso es a propósito (59 MB en un repo de 88). Antes de abrir el Console, correr el render.
+
+⏳ **Lo que sigue pendiente del user desde el 27-09**, y que este ticket no toca: pegar la
+descripción completa de los 9 idiomas. El paso 1 de «CÓMO FUNCIONA» vivo en Play todavía dice
+«también puedes marcarlo a mano», y lo correcto está en `paste/` desde `72e78f9bd`.
 
 ## Re-renderizar los gráficos
 
 ```bash
-CHROME="/c/Program Files/Google/Chrome/Application/chrome.exe"
-"$CHROME" --headless=new --disable-gpu --hide-scrollbars --allow-file-access-from-files \
-  --force-device-scale-factor=1 --window-size=1024,500 \
-  --screenshot=out.png "file:///<ruta absoluta>/feature.html"
+python docs/branding/master/export_surfaces.py      # PRIMERO, si cambió el dibujo de la marca
+bash docs/release/play-listing/tools/render_graphics.sh             # icono + los 9 idiomas
+bash docs/release/play-listing/tools/render_graphics.sh feature es  # sólo uno
 ```
-`feature.html` necesita las fuentes en `./fonts/` (cópialas de
-`shared/src/commonMain/composeResources/font/`). El icono se renderiza con
-`--window-size=1536,512` y se recorta en tres celdas de 512.
+
+⛔ **Aquí había un comando de Chrome suelto, y ése es el defecto que este script cierra**
+[PLAY-THE-LISTING-ART-STILL-SHOWS-THE-2022-MARK-001]: los dos HTML llevan la **marca**, la marca se
+GENERA (`export_surfaces.py` reescribe sus grupos del glifo), y un comando que hay que copiar,
+completar a mano con una ruta absoluta y repetir diez veces no se vuelve a correr. Resultado
+medido: `play-icon-512.png` pasó **ocho días** enseñando el logo de 2022 mientras su propio
+`icon.html` ya tenía el de 2026 dentro.
+
+El script hace las tres cosas que el comando dejaba al lector: recorta las **tres celdas** del
+icono (el row es 1536×512), aplana a **RGB** (Chrome escribe RGBA y Play quiere los dos gráficos
+opacos) y da tiempo a que cargue la fuente — sin `--virtual-time-budget` la captura puede caer en
+la familia de respaldo, que **parece un render que salió bien**. `feature.html` busca las fuentes
+en `assets/fonts/` (ya están; salen de `shared/src/commonMain/composeResources/font/`).
 
 ---
 
@@ -123,7 +154,9 @@ misma tarea (ninguna de las cuatro se nombra hoy).
       **Localizado el 02-09 a los 9 idiomas**: `screenshots/{lang}/feature-graphic-1024x500.png`
       (la frase sale de `feature.html?lang=…`; tipografía migrada a Plus Jakarta Sans porque
       las Outfit/Inter que pedía la plantilla ya no existen en el repo — el
-      `play-feature-graphic-1024x500.png` de la raíz es el render Outfit del 29-08, superseded).
+      `play-feature-graphic-1024x500.png` de la raíz **ya no está superseded**: desde el 29-09
+      es exactamente el render `en` —misma Jakarta, misma marca— y es el único de los diez que
+      sobrevive a un clon limpio, porque los otros ocho son derivados gitignored).
 
 > Copy vigente y su auditoría: `LISTING.md`. El razonamiento completo (qué se promete,
 > qué se descarta y por qué) está en `PLAN-OPTIMIZACION.md`.

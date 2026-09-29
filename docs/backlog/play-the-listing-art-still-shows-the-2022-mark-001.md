@@ -1,6 +1,8 @@
 # PLAY-THE-LISTING-ART-STILL-SHOWS-THE-2022-MARK-001 · la ficha de Play sigue enseñando la marca que ya no existe
 
-**Estado:** 🔵 Abierto · sin rama · follow-up sacado a propósito del alcance de
+**Estado:** ✅ **Done** (29-09-2026) · rama
+`chore/PLAY-THE-LISTING-ART-STILL-SHOWS-THE-2022-MARK-001-relisting` · worktree
+`../Paparcar-play-art` · follow-up sacado a propósito del alcance de
 `BRAND-A-NEW-MARK-EARNS-ITS-SURFACES-001` (mergeado el 29-09-2026).
 
 ## Problema
@@ -51,3 +53,72 @@ encuadre.
 
 Pendiente de barrer al abrirlo: `grep -rl "play-icon-512\|feature-graphic" docs/ web/` para saber
 qué más referencia esos bytes (el README de release y, posiblemente, el generador de la ficha).
+
+---
+
+## Resuelto — qué se hizo el 29-09-2026
+
+**Primero, la comprobación que valida todo lo demás**: `python docs/branding/master/export_surfaces.py`
+no movió **un solo byte**. Es lo que demuestra que `icon.html` y `feature.html` ya llevaban la marca
+de 2026 y que lo único pendiente era rasterizar — no había nada que redibujar.
+
+### Nace `tools/render_graphics.sh`
+
+El README tenía un comando de Chrome que había que copiar, completarle una ruta absoluta a mano y
+repetir diez veces. Eso no es una herramienta: es una nota. Y el resultado está medido — los PNG
+llevaban **ocho días** con el logo de 2022 mientras su propia fuente ya tenía el de 2026.
+
+El script hace las tres cosas que el comando dejaba al lector:
+- **recorta las tres celdas** del icono (el row es 1536×512 y el vivo es la B, glifo a 0,72);
+- **aplana a RGB**, porque Chrome escribe RGBA y Play quiere los dos gráficos opacos;
+- **espera a la fuente** (`--virtual-time-budget=4000`). `feature.html` carga Plus Jakarta Sans por
+  `file://` y pinta el tagline desde un script: sin esa espera la captura puede caer en la familia
+  de respaldo, y eso **parece un render que salió bien**.
+
+⚠️ Al escribirlo mordió una trampa que merece quedar escrita: `cygpath -w | sed 's|\|/|g'` (la
+forma que usa `render.sh`) se rompió aquí, y con `set -eu` el fallo **no paró el script** — cayó al
+fallback POSIX y Chrome rindió **igualmente** capturas del tamaño correcto. Se cambió a
+`cygpath -m`, que ya devuelve barras normales. La lección es la de siempre en este ticket: el
+tamaño del PNG no dice nada de su contenido; **hay que mirarlo**.
+
+### Verificado mirando los píxeles, no el exit code
+
+- Icono y gráfico `en` abiertos y comprobados a ojo: marca de 2026, sin disco.
+- Las 9 franjas del tagline tienen **hash distinto** entre sí y ninguna está vacía — eso descarta de
+  una vez «el `?lang=` no se aplicó» y «la fuente no cargó».
+- Los tres iconos difieren entre ellos (no se cortó tres veces la misma celda).
+- El gráfico de la raíz es **idéntico** al `en`, que es la relación que debe cumplirse.
+
+### Y un arreglo de copy que salió al mirar el render
+
+El banner francés escribía el apóstrofo RECTO (`n'y pensez`, `s'en souvient`), heredado de vivir
+dentro de una cadena JS donde además había que escaparlo. En francés el recto es un sustituto de
+máquina de escribir: la forma correcta es la tipográfica `’` (U+2019). Cambiado en `feature.html`
+y re-renderizado sólo el `fr`. Es el ÚNICO idioma afectado — ninguno de los otros ocho taglines
+lleva apóstrofo.
+
+⛔ No confundir esta decisión con la regla de la app. Allí lo que se prohíbe es el ESCAPE: en
+`composeResources` el apóstrofo va crudo porque `\'` se imprime tal cual, con la barra dentro
+[COPY-APOSTROPHE-IS-NOT-ESCAPED-001]. Aquí no estamos en Compose Resources sino en HTML+JS, el
+escape funciona, y lo que se decide no es cómo escribirlo sino QUÉ GLIFO se dibuja.
+
+### Barrido de consumidores
+
+| Consumidor de la marca en la ficha | Estado |
+|---|---|
+| `assets/play-icon-512.png` (celda B) | ✅ regenerado |
+| `assets/alt-icon-512-small-glyph.png` (celda A) · `alt-icon-512-glow.png` (celda C) | ✅ regenerados |
+| `assets/play-feature-graphic-1024x500.png` (= `en`) | ✅ regenerado |
+| Los 9 `screenshots/<loc>/<loc>-feature-graphic-1024x500.png` | ✅ regenerados (derivados, gitignored) |
+| `assets/alt-feature-graphic-no-name-repeat.png` | 🗑 **borrado**: marca de 2022 **y** copy superseded el 29-08, no regenerable desde la plantilla |
+| `paste/` (los textos de los 9 idiomas) | ✅ `make_paste.py --check` → al día; el cambio de marca no toca copy |
+| `web/assets/img/apple-touch-icon.png` | ✅ ya traía la marca nueva del ticket de marca |
+| `web/assets/img/og-card.jpg` + `og-card-small.jpg` | 🔴 **SIGUEN CON LA MARCA DE 2022** → ticket propio |
+| Las 72 capturas de teléfono | ✅ no llevan la marca dentro |
+
+**El hallazgo que no estaba en el enunciado**: `web/tools/prepare-assets.py` construye la tarjeta
+social de `paparcar.com` pegando **`play-icon-512.png`** dentro (línea ~191). O sea que el icono de
+Play no es sólo el icono de Play: es también el logo de la tarjeta que se ve al compartir el enlace.
+`apple-touch-icon` sí se rehízo en el ticket de marca; la `og-card` no, y ahí sigue el disco. No se
+arregla aquí porque `prepare_social()` necesita el raw **es** de la sesión de Play, que no está
+versionado (sólo lo está el set `en`). → `docs/backlog/web-the-social-card-still-wears-the-2022-mark-001.md`

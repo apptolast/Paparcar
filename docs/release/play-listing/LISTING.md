@@ -232,9 +232,14 @@ Versión ES, por si algún día hay gráfico localizado:
 Aparca y olvídate. Paparcar lo recuerda.
 ```
 
-🟡 **Alternativa disponible sin decidir**: `assets/alt-feature-graphic-no-name-repeat.png`
-dice «Park and forget it. **It remembers for you.**». La versión aplicada repite «Paparcar»
-justo debajo del wordmark; la alternativa lo evita a cambio de un remate menos rotundo.
+⛔ **La alternativa `alt-feature-graphic-no-name-repeat.png` se BORRÓ el 29-09**
+[PLAY-THE-LISTING-ART-STILL-SHOWS-THE-2022-MARK-001]. Decía «Park and forget it. **It remembers
+for you.**» —copy superseded el 29-08— y, sobre todo, llevaba dibujada **la marca de 2022 con su
+disco**: un banner listo para subir, en la misma carpeta desde la que se sube, enseñando un logo
+que ya no existe. No era regenerable desde `feature.html` (la plantilla no tiene esa variante),
+así que no había forma de ponerla al día sin redibujarla a mano. Vive en el historial de git si
+alguna vez se quiere recuperar la idea: evitar que «Paparcar» se repita justo debajo del
+wordmark, a cambio de un remate menos rotundo.
 
 ---
 
