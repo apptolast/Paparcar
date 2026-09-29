@@ -23,6 +23,14 @@ Lo que NO se quita son los FONDOS de lienzo -el del icono adaptativo, el del
 apple-touch-icon, el 512 de Play-: esos no son el disco de la marca, son la
 baldosa que el sistema exige opaca.
 
+⛔ Y hay UNA excepcion, decidida por el user el 30-09: el grafico de funciones de
+Play (`feature.html`) SI lleva disco detras de la marca
+[PLAY-THE-BANNER-MARK-KEEPS-ITS-DISC-001]. Coherente con lo de arriba, no contra:
+su fraccion es 0.52896 -un emblema dentro de una composicion ajena, con el
+wordmark al lado-, mientras que en la app es F_MARK = 1.0, donde la marca ocupa lo
+que ocupaba el disco y por eso no lo necesita. Este script no lo toca: reescribe
+SOLO el grupo del glifo, y los dos <circle> del disco estan fuera de MARK_GROUP.
+
 ⛔ El verde no es uno, son dos, y la regla ya existia en el proyecto: sobre
 oscuro `PapGreen` #25F48C; sobre claro `PapGreenLight` #009F5E. Y no es gusto:
 #25F48C sobre blanco da 1,42:1 — medido. Es justo el sitio donde antes tapaba el

@@ -224,8 +224,11 @@ descripción breve, y en Play se ven juntas. El gráfico dice ahora lo que la br
 — el «cómo». Al ser más corta, el cuerpo subió de 27 px a 31 px: se lee mejor en la
 miniatura del listado.
 
-Sólo cambió el texto. La composición (glifo + wordmark + retícula + marcadores de plaza)
-se mantiene.
+Sólo cambió el texto. La composición (glifo sobre disco + wordmark + retícula + marcadores
+de plaza) se mantiene — y el **disco sigue ahí a propósito** desde el 30-09
+[PLAY-THE-BANNER-MARK-KEEPS-ITS-DISC-001]: es el único sitio del producto donde la marca lo lleva,
+porque aquí es un emblema al lado de un wordmark, no la marca llenando su caja. Ver CLAUDE.md
+§ *Iconos*.
 
 Versión ES, por si algún día hay gráfico localizado:
 ```

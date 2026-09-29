@@ -55,7 +55,17 @@
   <div class="left">
     <div class="mark">
       <svg class="disc" viewBox="0 0 108 108" xmlns="http://www.w3.org/2000/svg">
-        <!-- sin disco: la marca de 2026 se sostiene sola sobre el banner oscuro -->
+        <!-- El disco SOLO vive aqui, y no es una vuelta atras de la marca: es el soporte del
+             BANNER. Decidido por el user el 30-09 [PLAY-THE-BANNER-MARK-KEEPS-ITS-DISC-001].
+             El argumento que lo sostiene es medible: la fraccion del glifo (0.52896 en
+             PLAY_FRACTIONS) se conservo a proposito al cambiar la marca —mismo tamano optico—
+             pero ese tamano estaba calculado para vivir DENTRO del disco. Sin el, la marca se
+             queda en ~46 px al lado de un wordmark de 82 y flota. Con el, vuelve la proporcion
+             que se diseno. El aro verde a .28 es el mismo de PLAY-LISTING-001.
+             ⛔ Esto no habilita discos en la app: alli la marca se sostiene sola y la fraccion
+             es F_MARK = 1.0, que es justo lo contrario de este caso. -->
+        <circle cx="54" cy="54" r="54" fill="#0D1117"/>
+        <circle cx="54" cy="54" r="52.5" fill="none" stroke="#25F48C" stroke-opacity=".28" stroke-width="2"/>
         <g transform="translate(28.6314 29.8562) scale(0.18882)" fill="#25F48C">
           <path d="M160,62.5A21.5,21.5 0 1,0 160,105.5A21.5,21.5 0 1,0 160,62.5Z"/>
           <path d="M143.042,176 A5,5 0 0,0 138.046,180.792 A53,53 0 1,0 232.999,150.673 A6,6 0 0,0 224.067,150.026 A92,92 0 0,1 210.074,161.179 A2,2 0 0,0 209.747,164.271 A26.5,26.5 0 1,1 164.629,180.393 A4,4 0 0,0 160.648,176 L143.042,176 Z"/>

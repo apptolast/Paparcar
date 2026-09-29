@@ -168,6 +168,15 @@ Regla mental: *plumbing de UI → Material; concepto de Paparcar → vector prop
       botones, glifos y marcadores en tema claro.
   ⛔ Los FONDOS de lienzo que siguen existiendo —`ic_launcher_background`, el `apple-touch-icon`,
   el 512 de Play— **no son el disco**: son la baldosa que el sistema exige opaca.
+  ⛔ **UNA excepción, y es del user**: el **gráfico de funciones** de Play (`feature.html`) lleva el
+  disco —tinta `#0D1117` + aro `PapGreen` al 28 %— detrás de la marca
+  [PLAY-THE-BANNER-MARK-KEEPS-ITS-DISC-001, 30-09]. No es una vuelta atrás, y el motivo es
+  medible: la fracción del glifo de ese banner (`0.52896` en `PLAY_FRACTIONS`) se **conservó a
+  propósito** al cambiar de marca, y estaba calculada para vivir DENTRO del disco — sin él la marca
+  queda en ~46 px al lado de un wordmark de 82 y flota. En la app la fracción es `F_MARK = 1.0`, que
+  es exactamente lo contrario: ahí la marca ocupa lo que ocupaba el disco, y por eso no lo necesita.
+  *Regla mental: donde la marca llena su caja, no hay disco; donde es un emblema dentro de una
+  composición ajena, el soporte es legítimo.* Esto **no** abre la puerta a discos en la app.
   ⛔ La antigua *Compensación Óptica* (trazo de rueda 6 sobre oscuro / 7 sobre claro) **murió, no se
   movió**: la marca nueva no tiene ni un trazo — sus ruedas son coronas rellenas—, así que no hay
   irradiación que compensar.
