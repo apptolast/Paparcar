@@ -167,7 +167,23 @@ Regla mental: *plumbing de UI → Material; concepto de Paparcar → vector prop
     - **sobre claro** → `PapGreenLight` `#009F5E` (3,01:1), el mismo verde de relleno que ya usan
       botones, glifos y marcadores en tema claro.
   ⛔ Los FONDOS de lienzo que siguen existiendo —`ic_launcher_background`, el `apple-touch-icon`,
-  el 512 de Play— **no son el disco**: son la baldosa que el sistema exige opaca.
+  el 512 de Play, los tres iconos de iOS— **no son el disco**: son la **baldosa** que el sistema
+  exige opaca y luego enmascara a su gusto. Una baldosa no lleva ni disco ni emblema; comparte con
+  el resto el ENCUADRE, no el soporte. Las declara `tile_svg()` en `export_surfaces.py`, y sus dos
+  fracciones están MEDIDAS, no elegidas: `F_STORE_ICON = 0.51458` (la del icono de Play, que iOS
+  reutiliza tal cual — misma app, dos tiendas, un solo tamaño óptico) y `F_TOUCH = 0.7595`, medida
+  sobre el `apple-touch-icon` publicado.
+  ⛔ **`iosApp/` NO es una excepción al generador — lo fue, y costó caro**
+  [BRAND-THE-APPLE-SURFACES-ARE-OUTSIDE-THE-MASTER-001, 30-09]. Estuvo entero fuera de
+  `export_surfaces.py`, así que el icono de la app iOS siguió dibujando la marca **DESCARTADA**
+  —disco con ranura y pie, la que el user rechazó— hasta el 30-09, camino de TestFlight. Ningún
+  `grep` podía verlo: el dibujo vivía como **píxeles**. Ahora salen del maestro las cuatro
+  superficies de Apple (los 3 iconos de iOS + el touch icon), vía
+  `render_graphics.sh apple`, y lo vigila `BrandSurfaceGuardrailTest` **midiendo el PNG**: la marca
+  cubre 7,9 % de la baldosa de tienda y 17 % del touch icon; la descartada cubría 24,5 %.
+  ⛔ Las variantes **oscura y teñida de iOS 18 van SIN fondo**: el telón lo pone el sistema. Y no
+  son opcionales — si falta el fichero, iOS usa la clara también ahí, y el icono se queda brillante
+  en un home screen oscuro.
   ⛔ **DOS excepciones, y las dos son del user — el criterio que las une es UNO**:
   *donde la marca llena su caja, no hay disco; donde es un **emblema** dentro de una composición
   ajena —con un wordmark al lado—, el soporte es legítimo.* Eso se lee en un número: el emblema

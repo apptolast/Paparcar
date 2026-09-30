@@ -225,11 +225,14 @@ def prepare_social() -> None:
     print("social: og card ok")
 
 
-def prepare_touch_icon() -> None:
-    icon = Image.open(ROOT / "docs/release/play-listing/assets/play-icon-512.png").convert("RGB")
-    icon.resize((180, 180), Image.LANCZOS).save(OUT_IMG / "apple-touch-icon.png", "PNG", optimize=True)
-    print("icon: apple-touch ok")
-
+# ⛔ `prepare_touch_icon()` vivia aqui y ya no: el apple-touch-icon es una superficie de MARCA,
+# asi que lo genera `docs/branding/master/export_surfaces.py` y lo rasteriza
+# `render_graphics.sh apple` [BRAND-THE-APPLE-SURFACES-ARE-OUTSIDE-THE-MASTER-001].
+#
+# Lo que hacia aqui era redimensionar `play-icon-512.png`, el icono de OTRA superficie. Y el
+# fichero commiteado no era eso -llevaba la marca mas grande-, asi que correr este script por
+# cualquier otro motivo lo encogia sin que nadie lo pidiera. Un derivado que no coincide con su
+# generador es un generador decorativo.
 
 if __name__ == "__main__":
     # Las SCREENS son lo unico que necesita los raws de la sesion de Play; el arte, la tarjeta
@@ -253,4 +256,3 @@ if __name__ == "__main__":
         "art-empty": ("empty_records_dark", "Sin registros todavía"),
     })
     prepare_social()
-    prepare_touch_icon()

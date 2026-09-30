@@ -1,7 +1,19 @@
 # WEB-A-DERIVED-ASSET-MUST-MATCH-ITS-GENERATOR-001 · tres derivados de `web/` no son lo que su generador produce hoy
 
-**Estado:** 🔵 Abierto (sólo el testigo; el caso 1 ya lo corrigió master) · sin rama · dos
-hallazgos colaterales de
+**Estado:** ✅ **Done** — los dos casos cerrados, cada uno por su lado:
+- **Caso 1** (nombres con hash equivocado): lo corrigió master por su cuenta en `8c45ce88a`.
+- **Caso 2** (el `apple-touch-icon`): lo cierra
+  [BRAND-THE-APPLE-SURFACES-ARE-OUTSIDE-THE-MASTER-001](brand-the-apple-surfaces-are-outside-the-master-001.md),
+  que le da generador propio en vez de dejarlo derivado del icono de Play.
+  ⛔ Y con él cayó la premisa de este doc: se daba por hecho que el fichero publicado y el que
+  producía la función eran **el mismo dibujo a distinto tamaño**. No lo eran. Medido al
+  regenerarlo, el publicado está **estirado ~2,4 % en vertical** — su marca mide 110×109 px donde
+  la geometría del maestro (244×236) exige 110×106,4. Es la deformación que CLAUDE.md advierte al
+  meter una marca full-bleed en caja cuadrada, y nadie la había visto. El generado la corrige.
+- El **testigo** que faltaba existe: `BrandSurfaceGuardrailTest` mide el PNG, y sus cuatro
+  chequeos están falsificados.
+
+**Estado original:** 🔵 Abierto · sin rama · dos hallazgos colaterales de
 [WEB-THE-MARK-WEARS-ITS-DISC-ON-THE-SITE-001](web-the-mark-wears-its-disc-on-the-site-001.md)
 (30-09-2026). Ninguno se arregló allí: el primero es ruido ajeno al encargo y el segundo cambia un
 icono que el user declaró **exento** de aquel ticket.

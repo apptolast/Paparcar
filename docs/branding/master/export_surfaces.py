@@ -217,6 +217,65 @@ EMBLEM_BANNER = {'disc': INK, 'mark': GREEN, 'ring': GREEN}
 EMBLEM_SITE = {'disc': GREEN, 'mark': INK, 'ring': None}
 
 
+# -- Baldosas: las superficies que el SISTEMA enmascara ----------------------
+#
+# Ni disco ni emblema. Una baldosa es lo que el OS exige opaco y luego recorta a
+# su gusto -cuadrado redondeado en iOS, circulo o squircle en Android-, y CLAUDE.md
+# ya la excepciona: *no es el disco de la marca, es la baldosa que el sistema exige*.
+# Lo que comparten con el resto de superficies es el ENCUADRE, no el soporte.
+#
+# ⛔ Ninguna de estas fracciones se elige aqui. Las dos estan MEDIDAS:
+#   · F_STORE_ICON es la del icono de Play vivo, que ya estaba declarada en
+#     PLAY_FRACTIONS. El icono de iOS la reutiliza tal cual: es la misma app en dos
+#     tiendas, y dos tamanos opticos distintos no tendrian a que responder.
+#   · F_TOUCH sale de MEDIR el apple-touch-icon que el user aprobo (bbox del verde
+#     110x109 px sobre 180), corregida por el sesgo del propio metodo -0,2 %, medido
+#     sobre el icono de Play, cuya fraccion se conoce-. Es mas grande que la de
+#     tienda a proposito: ese icono no compite con otros en una rejilla de store.
+F_STORE_ICON = 0.51458
+F_TOUCH = 0.7595
+
+# Fondo de cada baldosa. `None` = SIN fondo: iOS 18 pone su propio telon detras de
+# la variante oscura y tine la variante monocroma, asi que una baldosa propia
+# competiria con el sistema en vez de acompanarlo.
+TILE_STORE = {'bg': ('#141918', '#0B0F0E'), 'mark': GREEN}   # el degradado de icon.html
+TILE_IOS_DARK = {'bg': None, 'mark': GREEN}
+TILE_IOS_TINTED = {'bg': None, 'mark': '#E8EDEB'}            # gris claro; el sistema lo tine
+TILE_TOUCH = {'bg': (INK, INK), 'mark': GREEN}               # PapInk PLANO, no el degradado
+
+
+def tile_svg(note, paint, fraction, size):
+    """Una baldosa cuadrada con la marca encuadrada dentro.
+
+    El lienzo es 108 como el de los graficos de Play, para que las fracciones de
+    los dos sean directamente comparables; `size` solo fija a que pixeles se
+    rasteriza.
+    """
+    tx, ty, sc = emblem_transform(fraction)
+    L = ['<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" '
+         'viewBox="0 0 %g %g">' % (size, size, EMBLEM_BOX, EMBLEM_BOX),
+         '  <!--', note, '  -->']
+    bg = paint['bg']
+    if bg:
+        top, bottom = bg
+        if top == bottom:
+            L.append('  <rect width="%g" height="%g" fill="%s"/>' % (EMBLEM_BOX, EMBLEM_BOX, top))
+        else:
+            L += ['  <defs>',
+                  '    <linearGradient id="tile" x1="%g" y1="0" x2="%g" y2="%g" '
+                  'gradientUnits="userSpaceOnUse">' % (EMBLEM_BOX / 2, EMBLEM_BOX / 2, EMBLEM_BOX),
+                  '      <stop offset="0" stop-color="%s"/>' % top,
+                  '      <stop offset="1" stop-color="%s"/>' % bottom,
+                  '    </linearGradient>',
+                  '  </defs>',
+                  '  <rect width="%g" height="%g" fill="url(#tile)"/>' % (EMBLEM_BOX, EMBLEM_BOX)]
+    L.append('  <g transform="translate(%.4f %.4f) scale(%.5f)" fill="%s">'
+             % (tx, ty, sc, paint['mark']))
+    L += ['    <path d="%s"/>' % x for x in paths()]
+    L += ['  </g>', '</svg>']
+    return NL.join(L) + NL
+
+
 def emblem_transform(fraction=F_EMBLEM, box=EMBLEM_BOX):
     """`translate` + `scale` que meten la marca en un disco de lado `box`.
 
@@ -377,7 +436,7 @@ def emblem_svg(note, size=512):
 # como diametro del envolvente sobre el lienzo 108. Se conservan a proposito — el
 # icono de Play esta publicado y esto cambia el dibujo, no su tamano optico.
 PLAY_FRACTIONS = {
-    'docs/release/play-listing/assets/icon.html': (0.42894, 0.51458, 0.51458),
+    'docs/release/play-listing/assets/icon.html': (0.42894, F_STORE_ICON, F_STORE_ICON),
     'docs/release/play-listing/assets/feature.html': (F_EMBLEM,),
 }
 
@@ -517,6 +576,30 @@ def main():
                      '    social de la web. No es una vuelta atras del disco: es el soporte\n'
                      '    de un emblema dentro de una composicion ajena, con wordmark al lado.'))
     write('web/lib/mark.generated.mjs', mark_mjs())
+
+    print()
+    print('Apple (baldosas; las rasteriza `render_graphics.sh apple`)')
+    write('docs/branding/apple/ios-app-icon.svg',
+          tile_svg('    Paparcar · icono de la app iOS, variante CLARA. GENERADO.\n'
+                   '    Mismo fondo y misma fraccion que el icono de Play: es la misma app en\n'
+                   '    dos tiendas, asi que no hay dos tamanos opticos que justificar.',
+                   TILE_STORE, F_STORE_ICON, 1024))
+    write('docs/branding/apple/ios-app-icon-dark.svg',
+          tile_svg('    Paparcar · icono de la app iOS, variante OSCURA (iOS 18). GENERADO.\n'
+                   '    SIN fondo: el sistema pone su propio telon detras. Una baldosa propia\n'
+                   '    competiria con el en vez de acompanarlo.',
+                   TILE_IOS_DARK, F_STORE_ICON, 1024))
+    write('docs/branding/apple/ios-app-icon-tinted.svg',
+          tile_svg('    Paparcar · icono de la app iOS, variante TENIDA (iOS 18). GENERADO.\n'
+                   '    Sin fondo y en gris claro: el color lo pone el usuario desde los ajustes\n'
+                   '    del sistema, asi que aqui solo se entrega la forma.',
+                   TILE_IOS_TINTED, F_STORE_ICON, 1024))
+    write('docs/branding/apple/web-touch-icon.svg',
+          tile_svg('    Paparcar · apple-touch-icon de la web (180). GENERADO.\n'
+                   '    Fondo PapInk PLANO y marca grande (F_TOUCH), que es lo que esta\n'
+                   '    publicado. Antes se derivaba del icono de Play y por eso correr\n'
+                   '    prepare-assets.py lo encogia sin que nadie lo pidiera.',
+                   TILE_TOUCH, F_TOUCH, 180))
 
     print()
     print('Graficos de Play (solo el grupo del glifo; el resto del HTML es a mano)')

@@ -291,25 +291,19 @@ class WebSiteParityGuardrailTest {
             )
         }
 
-        // d · the social card draws the emblem, never another surface's icon. The Play icon is
-        //     still legitimate for ONE consumer here — `prepare_touch_icon()`, which resizes it
-        //     into the home-screen tile — so what is counted is who OPENS it, not who names it:
-        //     the comment explaining this very trap names the file, and should keep naming it.
+        // d · the social card draws the generated emblem, never another surface's icon.
+        //     ⛔ The count of who may OPEN `play-icon-512.png` moved to BrandSurfaceGuardrailTest
+        //     when the touch icon stopped being built here
+        //     [BRAND-THE-APPLE-SURFACES-ARE-OUTSIDE-THE-MASTER-001]: that is a question about brand
+        //     surfaces, not about the website. What belongs here is the card itself.
         val assets = read(PREPARE_ASSETS)
         assertTrue(
             assets.contains(EMBLEM_RASTER),
-            "$PREPARE_ASSETS no longer builds the social card from the generated emblem " +
-                "($EMBLEM_RASTER).",
-        )
-        val readers = Regex("""Image\.open\([^)]*$PLAY_ICON""").findAll(assets).count()
-        assertEquals(
-            1, readers,
             buildString {
-                appendLine("$PREPARE_ASSETS opens $PLAY_ICON $readers times; only one may.")
-                appendLine("That reader is the home-screen tile, which IS that icon resized. The")
-                appendLine("social card has to draw the generated emblem: borrowing the Play tile is")
-                appendLine("how the 2022 mark stayed baked inside og-card.jpg for weeks after every")
-                appendLine("other surface had moved on, where no grep could see it.")
+                appendLine("$PREPARE_ASSETS no longer builds the social card from the generated")
+                appendLine("emblem ($EMBLEM_RASTER). Borrowing another surface's icon is how the")
+                appendLine("2022 mark stayed baked inside og-card.jpg for weeks after every other")
+                appendLine("surface had moved on, where no grep could see it.")
             },
         )
     }
@@ -409,7 +403,6 @@ class WebSiteParityGuardrailTest {
         const val SITE_ICONS = "web/lib/icons.mjs"
         const val PREPARE_ASSETS = "web/tools/prepare-assets.py"
         const val EMBLEM_RASTER = "paparcar-emblem-512.png"
-        const val PLAY_ICON = "play-icon-512.png"
 
         /**
          * `minSdk` is an API level; the site has to name the Android release a person recognises.

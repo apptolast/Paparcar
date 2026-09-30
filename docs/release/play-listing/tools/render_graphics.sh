@@ -3,7 +3,7 @@
 # Renders the two GRAPHICS of the listing — the 512 app icon and the 1024x500 feature graphic in
 # every locale — out of `assets/icon.html` and `assets/feature.html`.
 #
-# usage: render_graphics.sh [icon|feature|emblem|all] [locale ...]  (default: all, 9 locales)
+# usage: render_graphics.sh [icon|feature|emblem|apple|all] [locale ...]  (default: all)
 #
 # `emblem` no es de la ficha de Play: es el emblema que pega la tarjeta social de la web
 # [WEB-THE-MARK-WEARS-ITS-DISC-ON-THE-SITE-001]. Vive aqui porque este es el rasterizador
@@ -30,6 +30,8 @@ CHROME="/c/Program Files/Google/Chrome/Application/chrome.exe"
 TMP="${TMPDIR:-/tmp}/paparcar-play-render"
 mkdir -p "$TMP"
 WINTMP=$(cygpath -m "$TMP" 2>/dev/null) || WINTMP="$TMP"
+REPO=$(cd "$HERE/../../.." && pwd)
+WINREPO=$(cygpath -m "$REPO" 2>/dev/null) || WINREPO="$REPO"
 
 shoot() { # shoot <out-win-path> <w> <h> <url>
   # `--virtual-time-budget` is not decoration: `feature.html` loads Plus Jakarta Sans from
@@ -38,6 +40,22 @@ shoot() { # shoot <out-win-path> <w> <h> <url>
   "$CHROME" --headless=new --disable-gpu --hide-scrollbars --allow-file-access-from-files \
     --force-device-scale-factor=1 --virtual-time-budget=4000 \
     --window-size="$2,$3" --screenshot="$1" "$4" >/dev/null 2>&1
+}
+
+# Rasterise ONE svg at NxN. Chrome opens a bare .svg with the body's margin, which would shift
+# the drawing without the PNG's size ever betraying it — hence the zero-margin <img> wrapper.
+# `--default-background-color=00000000` keeps the alpha; the caller decides whether to flatten.
+svg_shot() { # svg_shot <repo-relative svg> <size> <out-win-path>
+  printf '%s\n' \
+    '<!doctype html><meta charset="utf-8">' \
+    "<style>html,body{margin:0;padding:0;background:transparent}" \
+    "img{display:block;width:$2px;height:$2px}</style>" \
+    "<img src=\"file:///$WINREPO/$1\">" \
+    > "$TMP/svg_shot.html"
+  "$CHROME" --headless=new --disable-gpu --hide-scrollbars --allow-file-access-from-files \
+    --force-device-scale-factor=1 --virtual-time-budget=2000 \
+    --default-background-color=00000000 \
+    --window-size="$2,$2" --screenshot="$3" "file:///$WINTMP/svg_shot.html" >/dev/null 2>&1
 }
 
 # Play wants both graphics opaque, and Chrome writes RGBA. Flattening here (instead of trusting the
@@ -73,6 +91,87 @@ if [ "$WHAT" = icon ] || [ "$WHAT" = all ]; then
   flatten "$TMP/icon-row.png" "$ASSETS/alt-icon-512-glow.png"        1024 0 1536 512
 fi
 
+if [ "$WHAT" = apple ] || [ "$WHAT" = all ]; then
+  # Las superficies de Apple [BRAND-THE-APPLE-SURFACES-ARE-OUTSIDE-THE-MASTER-001]. Hasta este
+  # ticket `iosApp/` estaba ENTERO fuera del generador, y por eso su icono siguio dibujando la
+  # marca DESCARTADA -disco con ranura y pie- mientras el resto del repo ya tenia la de 2026.
+  # Ningun grep lo delataba: el dibujo vivia como pixeles.
+  #
+  # Las tres variantes de iOS 18 no son decoracion: si faltan, el sistema usa la clara tambien en
+  # modo oscuro y tenido. La oscura y la tenida van SIN fondo a proposito (el telon lo pone iOS).
+  echo "Apple (3 iconos de iOS + el touch icon de la web)"
+  IOS="$REPO/iosApp/iosApp/Assets.xcassets/AppIcon.appiconset"
+
+  svg_shot docs/branding/apple/ios-app-icon.svg        1024 "$WINTMP/ios-light.png"
+  svg_shot docs/branding/apple/ios-app-icon-dark.svg   1024 "$WINTMP/ios-dark.png"
+  svg_shot docs/branding/apple/ios-app-icon-tinted.svg 1024 "$WINTMP/ios-tinted.png"
+  svg_shot docs/branding/apple/web-touch-icon.svg       180 "$WINTMP/touch.png"
+
+  # Se COMPRUEBA el contenido, no el exit code: un PNG del tamano pedido puede estar vacio, y en
+  # este mismo pipeline ya paso. Se mide por PROPORCIONES -cuanta marca, cuanto fondo, cuanta
+  # transparencia- porque sondear un pixel exige acertar donde cae un trazo.
+  python - "$TMP" "$IOS" "$REPO/web/assets/img/apple-touch-icon.png" <<'PY'
+import sys
+from PIL import Image
+
+tmp, ios, touch = sys.argv[1], sys.argv[2], sys.argv[3]
+
+
+def survey(path):
+    """Devuelve (lado, %marca verde o clara, %fondo opaco, %transparente)."""
+    im = Image.open(path).convert("RGBA")
+    px = im.load()
+    step = max(1, im.width // 128)
+    mark = solid = clear = 0
+    for y in range(0, im.height, step):
+        for x in range(0, im.width, step):
+            r, g, b, a = px[x, y]
+            if a < 16:
+                clear += 1
+            elif g > 150 and r < 140 and g - b > 40:      # PapGreen
+                mark += 1
+            elif r > 180 and g > 180 and b > 180:          # gris claro de la tenida
+                mark += 1
+            else:
+                solid += 1
+    tot = mark + solid + clear
+    return im, im.width, 100.0 * mark / tot, 100.0 * solid / tot, 100.0 * clear / tot
+
+
+def save(im, dst, opaque):
+    if opaque:
+        flat = Image.new("RGB", im.size, (0, 0, 0))
+        flat.paste(im, mask=im.split()[-1])
+        im = flat
+    im.save(dst, "PNG", optimize=True)
+
+
+# Los suelos salen de MEDIR, no de estimar. A la fraccion de tienda la marca cubre 7,9 % de su
+# baldosa -exactamente lo que mide el play-icon-512 publicado, que es la confirmacion de que iOS
+# y Play dibujan lo mismo-; el touch icon, mas grande, cubre 17,0 %. El suelo se pone holgado por
+# debajo: lo que tiene que cazar es "no hay glifo" (0 %), no una decima.
+jobs = [
+    # fichero temporal, destino, opaco, marca minima, transparencia esperada
+    ("ios-light.png",  ios + "/app-icon-1024.png",         True,   5.0,  0.0),
+    ("ios-dark.png",   ios + "/app-icon-1024-dark.png",    False,  5.0, 92.0),
+    ("ios-tinted.png", ios + "/app-icon-1024-tinted.png",  False,  5.0, 92.0),
+    ("touch.png",      touch,                              True,  12.0,  0.0),
+]
+for name, dst, opaque, min_mark, want_clear in jobs:
+    im, side, mark, solid, clear = survey(tmp + "/" + name)
+    label = dst.rsplit("/", 1)[-1]
+    if mark < min_mark:
+        sys.exit("  %s: solo %.1f%% de marca, se esperaba >=%.0f%% - el glifo no esta"
+                 % (label, mark, min_mark))
+    if abs(clear - want_clear) > 12.0:
+        sys.exit("  %s: %.1f%% transparente, se esperaba ~%.0f%% - el fondo no es el pedido"
+                 % (label, clear, want_clear))
+    save(im, dst, opaque)
+    print("  %-26s %dx%d  marca %.0f%%  fondo %.0f%%  transparente %.0f%%"
+          % (label, side, side, mark, solid, clear))
+PY
+fi
+
 if [ "$WHAT" = emblem ] || [ "$WHAT" = all ]; then
   # El emblema de la web: la marca sobre su disco VERDE (sobre la tinta plana del sitio,
   # un disco de tinta da 1,00:1 — ver export_surfaces.py). Se rasteriza CON ALFA: fuera
@@ -83,21 +182,7 @@ if [ "$WHAT" = emblem ] || [ "$WHAT" = all ]; then
   # mientras el resto del repo ya tenia la de 2026. Un PNG generado si vale; un PNG
   # prestado de otra superficie, no.
   echo "emblema de la web (512x512, con alfa)"
-  REPO=$(cd "$HERE/../../.." && pwd)
-  WINREPO=$(cygpath -m "$REPO" 2>/dev/null) || WINREPO="$REPO"
-  # Un <img> con margen cero: Chrome abre un SVG suelto con el margen del body, que
-  # descentraria el disco sin que el tamano del PNG lo delate.
-  printf '%s\n' \
-    '<!doctype html><meta charset="utf-8">' \
-    '<style>html,body{margin:0;padding:0;background:transparent}' \
-    'img{display:block;width:512px;height:512px}</style>' \
-    "<img src=\"file:///$WINREPO/docs/assets/paparcar-emblem.svg\">" \
-    > "$TMP/emblem.html"
-  "$CHROME" --headless=new --disable-gpu --hide-scrollbars --allow-file-access-from-files \
-    --force-device-scale-factor=1 --virtual-time-budget=2000 \
-    --default-background-color=00000000 \
-    --window-size=512,512 --screenshot="$WINTMP/emblem.png" \
-    "file:///$WINTMP/emblem.html" >/dev/null 2>&1
+  svg_shot docs/assets/paparcar-emblem.svg 512 "$WINTMP/emblem.png"
   # Se COMPRUEBA el contenido, no el exit code ni el tamano: un PNG del tamano pedido
   # puede estar vacio, y ya paso una vez con estos mismos graficos.
   python - "$TMP/emblem.png" "$REPO/docs/assets/paparcar-emblem-512.png" <<'PY'
