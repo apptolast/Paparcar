@@ -605,6 +605,9 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="auth_field_name">Name</string>
     <string name="auth_field_confirm_password">Confirm password</string>
     <string name="auth_forgot_password">Forgot password?</string>
+    <string name="auth_forgot_password_description">Enter your email. If that account has a password, we'll send a link to reset it.</string>
+    <string name="auth_forgot_password_sent_title">Check your email</string>
+    <string name="auth_forgot_password_sent_body">If that account has a password, the reset link is on its way. If nothing arrives, you may have created the account with Google — go back and sign in with Google.</string>
     <string name="auth_consent_accept">I accept the %1$s</string>
     <string name="auth_consent_privacy_policy">Privacy Policy</string>
 

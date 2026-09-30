@@ -512,6 +512,9 @@
     <string name="auth_field_name">Name</string>
     <string name="auth_field_confirm_password">Passwort bestätigen</string>
     <string name="auth_forgot_password">Passwort vergessen?</string>
+    <string name="auth_forgot_password_description">Gib deine E-Mail-Adresse ein. Wenn dieses Konto ein Passwort hat, senden wir einen Link zum Zurücksetzen.</string>
+    <string name="auth_forgot_password_sent_title">Sieh in dein Postfach</string>
+    <string name="auth_forgot_password_sent_body">Wenn dieses Konto ein Passwort hat, ist der Link unterwegs. Kommt nichts an, hast du das Konto vielleicht mit Google erstellt — geh zurück und melde dich mit Google an.</string>
     <string name="auth_consent_accept">Ich akzeptiere die %1$s</string>
     <string name="auth_consent_privacy_policy">Datenschutzerklärung</string>
     <string name="home_zone_saved_message">Zone gespeichert</string>

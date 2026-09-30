@@ -53,8 +53,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.apptolast.baselogin.domain.model.IdentityProvider
 import com.apptolast.baselogin.presentation.slots.AuthScreenSlots
+import com.apptolast.baselogin.presentation.slots.ForgotPasswordScreenSlots
 import com.apptolast.baselogin.presentation.slots.LoginScreenSlots
 import com.apptolast.baselogin.presentation.slots.RegisterScreenSlots
+import com.apptolast.baselogin.presentation.slots.defaultslots.DefaultSuccessContent
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import login.baselogin.generated.resources.Res as LoginRes
 import login.baselogin.generated.resources.apple_icon
@@ -84,6 +86,9 @@ import paparcar.composeapp.generated.resources.auth_field_email
 import paparcar.composeapp.generated.resources.auth_field_name
 import paparcar.composeapp.generated.resources.auth_field_password
 import paparcar.composeapp.generated.resources.auth_forgot_password
+import paparcar.composeapp.generated.resources.auth_forgot_password_description
+import paparcar.composeapp.generated.resources.auth_forgot_password_sent_body
+import paparcar.composeapp.generated.resources.auth_forgot_password_sent_title
 import paparcar.composeapp.generated.resources.auth_header_tagline
 
 /** Where the consent link points. Same document Settings links to; unify the constant when the
@@ -220,6 +225,10 @@ fun paparcarAuthSlots(
                 enabled = consentGiven,
             )
         },
+    ),
+    forgotPassword = ForgotPasswordScreenSlots(
+        description = { CompactForgotPasswordDescription() },
+        successContent = { CompactForgotPasswordSent() },
     ),
     )
 }
@@ -556,6 +565,50 @@ private fun providerMark(provider: IdentityProvider): ProviderMark? {
         // same call the library's own section makes.
         is IdentityProvider.Custom -> null
     }
+}
+
+/**
+ * El copy de "olvidé mi contraseña", que no promete lo que no puede saber.
+ * [AUTH-A-FAILED-SIGN-IN-MUST-NAME-THE-OTHER-DOOR-001]
+ *
+ * La librería promete de más: `forgot_password_screen_description` dice *"we'll send you a link"*.
+ * Medido el 30-09-2026 contra `pap-26`: con `emailPrivacyConfig.enableImprovedEmailPrivacy`
+ * activada, un reset sobre una cuenta SIN credencial de contraseña — la que se registró con Google
+ * — responde OK y **no envía nada**, porque admitirlo filtraría si la cuenta existe. Y no hay señal
+ * con la que acertar: `fetchSignInMethodsForEmail` devuelve vacío para un email de Google, para uno
+ * con contraseña y para uno inexistente. Así que el texto se vuelve **condicional**: promete el
+ * enlace solo si esa cuenta tiene contraseña, que es exactamente lo que el servidor garantiza.
+ */
+@Composable
+private fun CompactForgotPasswordDescription() {
+    Text(
+        text = stringResource(Res.string.auth_forgot_password_description),
+        // Prosa que se lee = el rol `body`. [UI-TYPE-TWO-VOICES-ONE-ROW-001]
+        style = PaparcarType.current.body,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+    )
+}
+
+/**
+ * Lo que se lee DESPUÉS de pedir el enlace — el mensaje que costó una tarde.
+ * [AUTH-A-FAILED-SIGN-IN-MUST-NAME-THE-OTHER-DOOR-001]
+ *
+ * El de la librería es *"Check Your Inbox — We've sent a password reset link to your email
+ * address."*: afirma un envío que puede no haber ocurrido, y deja al usuario esperando un correo que
+ * no existe. El nuestro dice causa, consecuencia y remedio — puede que la cuenta sea de Google,
+ * entonces no llega nada, y la salida es entrar con Google — sin revelar en ningún caso si la
+ * cuenta existe ni con qué proveedor.
+ *
+ * ⛔ La MAQUETA es la de la librería a propósito: `DefaultSuccessContent` ya recibe `title` y
+ * `description`, así que lo nuestro es el texto, no un segundo dibujo del mismo estado.
+ */
+@Composable
+private fun CompactForgotPasswordSent() {
+    DefaultSuccessContent(
+        title = stringResource(Res.string.auth_forgot_password_sent_title),
+        description = stringResource(Res.string.auth_forgot_password_sent_body),
+    )
 }
 
 @Composable

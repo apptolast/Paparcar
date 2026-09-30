@@ -517,6 +517,9 @@
     <string name="auth_field_name">Nume</string>
     <string name="auth_field_confirm_password">Confirmați parola</string>
     <string name="auth_forgot_password">Ai uitat parola?</string>
+    <string name="auth_forgot_password_description">Introdu adresa ta de e-mail. Dacă acel cont are o parolă, trimitem un link pentru a o reseta.</string>
+    <string name="auth_forgot_password_sent_title">Verifică e-mailul</string>
+    <string name="auth_forgot_password_sent_body">Dacă acel cont are o parolă, linkul este pe drum. Dacă nu ajunge nimic, poate ai creat contul cu Google: întoarce-te și conectează-te cu Google.</string>
     <string name="auth_consent_accept">Accept %1$s</string>
     <string name="auth_consent_privacy_policy">Politica de confidențialitate</string>
     <string name="home_zone_saved_message">Zonă salvată</string>

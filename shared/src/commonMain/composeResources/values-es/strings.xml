@@ -561,6 +561,9 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="auth_field_name">Nombre</string>
     <string name="auth_field_confirm_password">Confirmar contraseña</string>
     <string name="auth_forgot_password">¿Olvidaste tu contraseña?</string>
+    <string name="auth_forgot_password_description">Escribe tu correo. Si esa cuenta tiene contraseña, te enviamos un enlace para cambiarla.</string>
+    <string name="auth_forgot_password_sent_title">Mira tu correo</string>
+    <string name="auth_forgot_password_sent_body">Si esa cuenta tiene contraseña, el enlace va de camino. Si no te llega nada, puede que crearas la cuenta con Google: vuelve y entra con Google.</string>
     <string name="auth_consent_accept">Acepto la %1$s</string>
     <string name="auth_consent_privacy_policy">Política de Privacidad</string>
     <string name="home_zone_saved_message">Zona guardada</string>

@@ -11,6 +11,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.apptolast.baselogin.domain.model.IdentityProvider
 import com.apptolast.baselogin.presentation.screens.components.DefaultAuthContainer
+import com.apptolast.baselogin.presentation.slots.ForgotPasswordScreenSlots
 import com.apptolast.baselogin.presentation.slots.LoginScreenSlots
 import com.apptolast.baselogin.presentation.slots.defaultslots.DefaultDivider
 import com.rndeveloper.paparcar.di.paparcarLoginConfig
@@ -136,5 +137,68 @@ private fun MockLoginScreen(state: MockLoginState) {
         }
 
         slots.registerLink {}
+    }
+}
+
+// ── Forgot password ───────────────────────────────────────────────────────────
+// Los dos textos que [AUTH-A-FAILED-SIGN-IN-MUST-NAME-THE-OTHER-DOOR-001] reescribió, visibles
+// sin provocar un reset real. No van a la galería de estados del Dev Catalog porque esta pantalla
+// es de la LIBRERÍA: no tiene un `XxxContent(state=…)` nuestro que espejar, y sus dos estados no
+// dependen de ningún ViewModel — son los slots, que es justo lo que se pinta aquí.
+
+@Preview(name = "Olvidé mi contraseña — Oscuro", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun PaparcarForgotPasswordDarkPreview() {
+    PaparcarTheme {
+        Surface { MockForgotPasswordScreen(sent = false) }
+    }
+}
+
+@Preview(name = "Olvidé mi contraseña — Claro", showBackground = true)
+@Composable
+private fun PaparcarForgotPasswordLightPreview() {
+    PaparcarTheme {
+        Surface { MockForgotPasswordScreen(sent = false) }
+    }
+}
+
+@Preview(name = "Olvidé mi contraseña — enviado · Oscuro", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun PaparcarForgotPasswordSentDarkPreview() {
+    PaparcarTheme {
+        Surface { MockForgotPasswordScreen(sent = true) }
+    }
+}
+
+@Preview(name = "Olvidé mi contraseña — enviado · Claro", showBackground = true)
+@Composable
+private fun PaparcarForgotPasswordSentLightPreview() {
+    PaparcarTheme {
+        Surface { MockForgotPasswordScreen(sent = true) }
+    }
+}
+
+/**
+ * @param sent el estado de DESPUÉS de pulsar — el que prometía un correo que podía no salir.
+ */
+@Composable
+private fun MockForgotPasswordScreen(sent: Boolean) {
+    val slots: ForgotPasswordScreenSlots = paparcarAuthSlots(
+        hasAcceptedLegalConsent = true,
+        onLegalConsentAccepted = {},
+    ).forgotPassword
+
+    if (sent) {
+        slots.successContent()
+        return
+    }
+    DefaultAuthContainer(modifier = Modifier, verticalArrangement = slots.layoutVerticalArrangement) {
+        slots.header()
+        Spacer(modifier = Modifier.height(16.dp))
+        slots.description()
+        Spacer(modifier = Modifier.height(16.dp))
+        slots.emailField("", {}, null, true)
+        Spacer(modifier = Modifier.height(16.dp))
+        slots.submitButton({}, false, true, "Enviar enlace")
     }
 }

@@ -511,6 +511,9 @@
     <string name="auth_field_name">Nome</string>
     <string name="auth_field_confirm_password">Conferma password</string>
     <string name="auth_forgot_password">Password dimenticata?</string>
+    <string name="auth_forgot_password_description">Inserisci la tua email. Se quell'account ha una password, ti inviamo un link per reimpostarla.</string>
+    <string name="auth_forgot_password_sent_title">Controlla la tua email</string>
+    <string name="auth_forgot_password_sent_body">Se quell'account ha una password, il link sta arrivando. Se non arriva nulla, forse hai creato l'account con Google: torna indietro ed entra con Google.</string>
     <string name="auth_consent_accept">Accetto l'%1$s</string>
     <string name="auth_consent_privacy_policy">Informativa sulla privacy</string>
     <string name="home_zone_saved_message">Zona salvata</string>
