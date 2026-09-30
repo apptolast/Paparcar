@@ -84,8 +84,10 @@ este repo tiene comprobada.
 tiene **CRLF** donde los worktrees nuevos tienen LF. Es el mismo defecto de
 [`web-a-derived-asset-must-match-its-generator-001.md`](web-a-derived-asset-must-match-its-generator-001.md),
 que lo daba por cerrado «porque master lo corrigió»: no estaba cerrado, estaba **alternando** según
-quién construya. Se revirtió a mano; el arreglo real (normalizar a LF lo que escribe el build) sigue
-sin hacer.
+quién construya. Se revirtió a mano, y el arreglo real llegó el mismo día en
+[WEB-A-BUILD-MUST-NOT-DEPEND-ON-THE-CHECKOUT-001](web-a-build-must-not-depend-on-the-checkout-001.md):
+el build normaliza a LF **antes de hashear**, probado convirtiendo un asset a CRLF y obteniendo el
+mismo nombre y los mismos bytes.
 
 
 ---

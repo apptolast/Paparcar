@@ -1,7 +1,14 @@
 # WEB-A-DERIVED-ASSET-MUST-MATCH-ITS-GENERATOR-001 · tres derivados de `web/` no son lo que su generador produce hoy
 
 **Estado:** ✅ **Done** — los dos casos cerrados, cada uno por su lado:
-- **Caso 1** (nombres con hash equivocado): lo corrigió master por su cuenta en `8c45ce88a`.
+- **Caso 1** (nombres con hash equivocado): ⛔ **esto se escribió mal aquí.** Se dijo que «lo
+  corrigió master por su cuenta en `8c45ce88a`», y lo que hizo aquel release fue *reconstruir desde
+  un checkout con LF* — no arreglar nada. El 30-09 volvió a torcerse al construir desde el árbol
+  principal, que tiene CRLF. Lo cierra de verdad
+  [WEB-A-BUILD-MUST-NOT-DEPEND-ON-THE-CHECKOUT-001](web-a-build-must-not-depend-on-the-checkout-001.md):
+  el build normaliza a LF **antes de hashear**, y un testigo comprueba que cada asset se llame como
+  el sha256 de sus propios bytes.
+  *Un síntoma que desaparece sin que nadie lo arregle no está cerrado: está alternando.*
 - **Caso 2** (el `apple-touch-icon`): lo cierra
   [BRAND-THE-APPLE-SURFACES-ARE-OUTSIDE-THE-MASTER-001](brand-the-apple-surfaces-are-outside-the-master-001.md),
   que le da generador propio en vez de dejarlo derivado del icono de Play.
@@ -43,6 +50,10 @@ Es el mismo `.gitattributes` que [BRAND-A-NEW-MARK-EARNS-ITS-SURFACES-001] llam�
 medias»*, pero un escalón más abajo de lo documentado entonces: allí el ruido era un `M` con diff
 vacío —inocuo—, aquí es un **renombrado**, que sí entra en el árbol de quien reconstruya.
 
+> ⚠️ **Lo que sigue se escribió el 30-09 y resultó ser falso; se conserva porque el error es el
+> dato útil.** El release `8c45ce88a` no corrigió nada: reconstruyó desde un checkout con LF, que da
+> el nombre bueno por casualidad del entorno. Ver el bloque de arriba.
+>
 > ✅ **Ya corregido en master, y no por este ticket**: el release `8c45ce88a` (1.4.0) reconstruyó el
 > sitio y publicó los dos con su nombre bueno — `legal.c62e5db9.css` y `site.9feafadd.js`, los
 > mismos que había calculado WEB-THE-MARK-WEARS-ITS-DISC-ON-THE-SITE-001 antes de rebasar. Dos
