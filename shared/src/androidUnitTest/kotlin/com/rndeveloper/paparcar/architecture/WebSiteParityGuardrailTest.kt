@@ -35,6 +35,8 @@ import kotlin.test.fail
  *  4. The MARK the site ships against the parametric master it is generated from — including
  *     that the social card does not borrow another surface's icon, which is how the 2022 logo
  *     stayed baked inside `og-card.jpg`.
+ *  5. That every file the pages load is content-hashed, so no redeploy can be hidden by a cache —
+ *     the favicon was the one asset outside that rule, and tabs kept the 2022 mark because of it.
  *
  * ## What it deliberately does not do
  *
@@ -308,6 +310,74 @@ class WebSiteParityGuardrailTest {
         )
     }
 
+
+    // ── 7 · nothing the pages load can go stale ───────────────────────────────
+
+    /**
+     * Every file a page loads is content-hashed, so a changed file is a different URL and a cached
+     * copy can never be the wrong one. That is the promise `firebase.json` makes when it marks
+     * everything under `assets` as `immutable`, and the favicon was quietly outside it.
+     *
+     * (That path is written without its glob on purpose: a `slash-star-star` inside a block comment
+     * opens a NESTED comment in Kotlin, and the file never closes again.)
+     *
+     * It sat at a fixed `/favicon.svg` — the ONE visual asset whose URL did not move when its
+     * drawing did. So when the 2026 mark landed, tabs kept painting the 2022 one, and no redeploy
+     * could fix it [WEB-THE-FAVICON-IS-THE-ONE-ASSET-THAT-CAN-GO-STALE-001].
+     *
+     * Three doorways cannot be hashed, because the browser and the manifest spec ask for them by a
+     * fixed path: `/favicon.ico`, `/favicon.svg` and `/site.webmanifest`. They are allowed here by
+     * name, they must exist, and `firebase.json` has to make them revalidate — otherwise they
+     * inherit Hosting's default hour and the same bug comes back through the door that is left open.
+     */
+    @Test
+    fun `every file the pages load is content-hashed, and the doorways revalidate`() {
+        val pages = LOCALE_BASES.map { (_, base) -> "hosting/public$base/index.html" } +
+            listOf("hosting/public/privacy-policy.html", "hosting/public/delete-account.html")
+
+        for (page in pages) {
+            // ⛔ Dos trampas de literal, las dos pisadas al escribir esto:
+            //    · un raw string NO vale: termina en `"` y pegado a `"""` son cuatro comillas.
+            //    · `\.` es un escape ILEGAL en un string normal de Kotlin. Se usa `[.]`, que
+            //      dice lo mismo sin un solo backslash.
+            val refs = Regex("(?:href|src)=\"(/[^\"]+[.][a-z0-9]+)\"")
+                .findAll(read(page)).map { it.groupValues[1] }.distinct()
+            for (ref in refs) {
+                if (ref in LINKABLE_UNHASHED) continue
+                assertTrue(
+                    HASHED.containsMatchIn(ref),
+                    buildString {
+                        appendLine("$page loads $ref, which carries no content hash.")
+                        appendLine("A file served at a fixed URL keeps showing its previous content")
+                        appendLine("to anyone who has it cached — that is how the tab icon kept")
+                        appendLine("drawing the 2022 mark after the 2026 one shipped.")
+                        appendLine()
+                        appendLine("Publish it from web/assets/ so publishAssets() hashes it, and")
+                        appendLine("reference it through asset().")
+                    },
+                )
+            }
+        }
+
+        for (doorway in DOORWAYS) {
+            assertTrue(
+                repoFile("hosting/public$doorway").isFile,
+                "missing $doorway — the browser asks for it by that exact path.",
+            )
+        }
+
+        val rules = read("firebase.json")
+        assertTrue(
+            DOORWAYS.all { rules.contains(it.removePrefix("/")) } &&
+                rules.contains("must-revalidate"),
+            buildString {
+                appendLine("firebase.json no longer makes the unhashable icon paths revalidate.")
+                appendLine("Without that rule a root .svg/.ico matches none of the other sources")
+                appendLine("and inherits Hosting's default max-age=3600, which hides a redeploy.")
+            },
+        )
+    }
+
     // ── plumbing ──────────────────────────────────────────────────────────────
 
     /** `export const NAME = 'value'` → map. Only the string constants: those are the facts. */
@@ -403,6 +473,24 @@ class WebSiteParityGuardrailTest {
         const val SITE_ICONS = "web/lib/icons.mjs"
         const val PREPARE_ASSETS = "web/tools/prepare-assets.py"
         const val EMBLEM_RASTER = "paparcar-emblem-512.png"
+
+        /** `name.<8 hex>.ext` — what `publishAssets()` writes. */
+        val HASHED = Regex("""\.[0-9a-f]{8}\.[a-z0-9]+$""")
+
+/**
+         * The paths a browser (or the manifest spec) asks for by name, so they cannot move. They
+         * must exist at the root and `firebase.json` has to make them revalidate.
+         */
+        val DOORWAYS = listOf("/favicon.ico", "/favicon.svg", "/site.webmanifest")
+
+        /**
+         * Which of those a PAGE may still link by that fixed path — and `/favicon.svg` is not one
+         * of them, deliberately. It exists at the root for whoever asks for it directly, but a page
+         * has to point at the hashed copy: linking the fixed path is EXACTLY the defect this check
+         * was written for, and an allowlist that forgave it would have been decoration. Measured:
+         * with `/favicon.svg` allowed here, reverting the link went green.
+         */
+        val LINKABLE_UNHASHED = listOf("/favicon.ico", "/site.webmanifest")
 
         /**
          * `minSdk` is an API level; the site has to name the Android release a person recognises.

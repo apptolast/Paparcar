@@ -20,6 +20,30 @@ function alternates(pageKey) {
   return LOCALES.map((l) => ({ code: l.code, url: abs(routes(l.base)[pageKey]) }));
 }
 
+/**
+ * The icon links. One place, because there are THREE heads that need them — the pages, the 404 and
+ * the two legal pages — and they had drifted already: the 404 carried no apple-touch-icon.
+ *
+ * ⛔ The SVG goes through `asset()` like everything else. It used to sit at a fixed `/favicon.svg`,
+ * which made it the ONLY visual asset whose URL does not change when its content does — so a
+ * returning visitor kept the previous drawing, and that is exactly what happened when the 2026 mark
+ * landed [WEB-THE-FAVICON-IS-THE-ONE-ASSET-THAT-CAN-GO-STALE-001]. Content hashing is the only
+ * cache-busting that actually works; `firebase.json` says as much about `/assets/**`.
+ *
+ * ⛔ The `.ico` is NOT redundant with the SVG. Browsers ask for `/favicon.ico` on their own — for
+ * bookmarks, history and as the fallback where SVG favicons are not supported — and this site
+ * answered 404 to that request for its whole life. It stays at the root, unhashed, because that
+ * request is implicit and cannot be pointed anywhere else.
+ */
+export function iconLinks() {
+  return [
+    `<link rel="icon" type="image/svg+xml" href="${asset('/assets/img/favicon.svg')}">`,
+    '<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">',
+    `<link rel="apple-touch-icon" href="${asset('/assets/img/apple-touch-icon.png')}">`,
+    '<link rel="manifest" href="/site.webmanifest">',
+  ].join('\n');
+}
+
 function head({ t, pageKey, title, description, canonical, jsonLd, ogImage, noindex }) {
   // A page Hosting serves for every miss has no canonical URL and no translated twin: it must not
   // be indexed, and pointing `hreflang` at it would advertise it as a real page.
@@ -30,7 +54,7 @@ function head({ t, pageKey, title, description, canonical, jsonLd, ogImage, noin
 <meta name="robots" content="noindex, follow">
 <meta name="theme-color" content="#0D1117">
 <meta name="color-scheme" content="dark">
-<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+${iconLinks()}
 <link rel="preload" href="${asset('/assets/font/plus-jakarta-sans.woff2')}" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="${asset('/assets/css/site.css')}">`;
   }
@@ -50,8 +74,7 @@ ${links}
 <link rel="alternate" hreflang="x-default" href="${alts[0].url}">
 <meta name="theme-color" content="#0D1117">
 <meta name="color-scheme" content="dark">
-<link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<link rel="apple-touch-icon" href="${asset('/assets/img/apple-touch-icon.png')}">
+${iconLinks()}
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Paparcar">
 <meta property="og:locale" content="${t.locale}">

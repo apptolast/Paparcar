@@ -26,6 +26,7 @@ import { fileURLToPath } from 'node:url';
 import { ORIGIN, SUPPORT_EMAIL, PLAY_URL } from '../lib/config.mjs';
 import { logoMark } from '../lib/icons.mjs';
 import { asset, setAssetManifest } from '../lib/assets.mjs';
+import { iconLinks } from '../lib/layout.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const PUBLIC = join(ROOT, 'hosting', 'public');
@@ -67,8 +68,7 @@ function head(page) {
 <link rel="canonical" href="${ORIGIN}${page.path}">
 <meta name="theme-color" content="#0D1117">
 <meta name="color-scheme" content="dark">
-<link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<link rel="apple-touch-icon" href="${asset('/assets/img/apple-touch-icon.png')}">
+${iconLinks()}
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="Paparcar">
 <meta property="og:title" content="${page.title}">

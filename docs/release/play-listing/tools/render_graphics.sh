@@ -3,7 +3,7 @@
 # Renders the two GRAPHICS of the listing — the 512 app icon and the 1024x500 feature graphic in
 # every locale — out of `assets/icon.html` and `assets/feature.html`.
 #
-# usage: render_graphics.sh [icon|feature|emblem|apple|all] [locale ...]  (default: all)
+# usage: render_graphics.sh [icon|feature|emblem|apple|favicon|all] [locale ...]  (default: all)
 #
 # `emblem` no es de la ficha de Play: es el emblema que pega la tarjeta social de la web
 # [WEB-THE-MARK-WEARS-ITS-DISC-ON-THE-SITE-001]. Vive aqui porque este es el rasterizador
@@ -89,6 +89,77 @@ if [ "$WHAT" = icon ] || [ "$WHAT" = all ]; then
   flatten "$TMP/icon-row.png" "$ASSETS/alt-icon-512-small-glyph.png"    0 0  512 512
   flatten "$TMP/icon-row.png" "$ASSETS/play-icon-512.png"             512 0 1024 512
   flatten "$TMP/icon-row.png" "$ASSETS/alt-icon-512-glow.png"        1024 0 1536 512
+fi
+
+if [ "$WHAT" = favicon ] || [ "$WHAT" = all ]; then
+  # El icono de pestana [WEB-THE-FAVICON-IS-THE-ONE-ASSET-THAT-CAN-GO-STALE-001].
+  #
+  # El .ico lleva TRES tamanos dentro (16/32/48) porque eso es lo que el formato permite y lo que
+  # los navegadores eligen segun el contexto: 16 en la pestana, 32 en la barra de marcadores, 48
+  # en accesos directos del escritorio. Rasterizar uno y dejar que escalen da bordes sucios a 16.
+  echo "favicon (.ico 16/32/48 + baldosas 192/512 del manifest)"
+  for px in 16 32 48; do
+    svg_shot docs/branding/apple/favicon-ico.svg "$px" "$WINTMP/fav-$px.png"
+  done
+  svg_shot docs/branding/apple/web-icon-192.svg 192 "$WINTMP/web-icon-192.png"
+  svg_shot docs/branding/apple/web-icon-512.svg 512 "$WINTMP/web-icon-512.png"
+
+  python - "$TMP" "$REPO" <<'PY'
+import sys
+from PIL import Image
+
+tmp, repo = sys.argv[1], sys.argv[2]
+
+
+def mark_share(im):
+    """Que fraccion del icono pinta la marca. 0 % = render vacio."""
+    px = im.load()
+    step = max(1, im.width // 64)
+    mark = tot = 0
+    for y in range(0, im.height, step):
+        for x in range(0, im.width, step):
+            r, g, b, a = px[x, y]
+            tot += 1
+            if a > 128 and g > 90 and r < 140 and g - b > 30:
+                mark += 1
+    return 100.0 * mark / tot
+
+
+# El .ico: los tres tamanos en UN fichero. Pillow los guarda desde la imagen mas grande.
+frames = []
+for px in (16, 32, 48):
+    im = Image.open("%s/fav-%d.png" % (tmp, px)).convert("RGBA")
+    if im.size != (px, px):
+        sys.exit("  favicon %d: %dx%d, se esperaba %dx%d" % (px, im.size[0], im.size[1], px, px))
+    share = mark_share(im)
+    if share < 10.0:
+        sys.exit("  favicon %d: solo %.1f%% de marca - el glifo no esta" % (px, share))
+    frames.append(im)
+    print("  favicon %-3d  marca %.0f%%" % (px, share))
+
+ico = "%s/hosting/public/favicon.ico" % repo
+frames[-1].save(ico, format="ICO", sizes=[(16, 16), (32, 32), (48, 48)])
+# Se vuelve a ABRIR para comprobar que el fichero escrito trae de verdad los tres tamanos:
+# guardar sin error no prueba que esten dentro.
+with Image.open(ico) as check:
+    got = sorted(check.info.get("sizes", []))
+    if got != [(16, 16), (32, 32), (48, 48)]:
+        sys.exit("  favicon.ico: trae %s, se esperaban los tres tamanos" % (got,))
+print("  favicon.ico  16/32/48 dentro de un solo fichero")
+
+for px in (192, 512):
+    im = Image.open("%s/web-icon-%d.png" % (tmp, px)).convert("RGBA")
+    if im.size != (px, px):
+        sys.exit("  icon-%d: %dx%d" % (px, im.size[0], im.size[1]))
+    share = mark_share(im)
+    if share < 4.0:
+        sys.exit("  icon-%d: solo %.1f%% de marca" % (px, share))
+    flat = Image.new("RGB", im.size, (0, 0, 0))
+    flat.paste(im, mask=im.split()[-1])
+    dst = "%s/web/assets/img/icon-%d.png" % (repo, px)
+    flat.save(dst, "PNG", optimize=True)
+    print("  icon-%-3d     %dx%d  marca %.0f%%" % (px, px, px, share))
+PY
 fi
 
 if [ "$WHAT" = apple ] || [ "$WHAT" = all ]; then

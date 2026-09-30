@@ -20,7 +20,7 @@ import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { LOCALES, ORIGIN, routes, COPY_TOKENS } from './lib/config.mjs';
-import { setAssetManifest } from './lib/assets.mjs';
+import { asset, setAssetManifest } from './lib/assets.mjs';
 import { restyleLegal } from './tools/restyle-legal.mjs';
 import home from './pages/home.mjs';
 import support from './pages/support.mjs';
@@ -181,6 +181,25 @@ async function build() {
   setAssetManifest(assets);
   await emit('assets/manifest.json', `${JSON.stringify(assets, null, 2)}
 `);
+
+  // The web app manifest. It goes out HERE, before a single page is built, because the link
+  // checker asks the DISK whether `/site.webmanifest` exists — emitting it after the pages
+  // makes every page report a dead link to it.
+  // Its icons carry the content hash `publishAssets()` just gave them.
+  // ⛔ No `display` and no `start_url`: this declares an IDENTITY (name, colours, icons) so an
+  // Android home-screen shortcut has something to show. Adding either would make the site
+  // installable as an app, which is a product decision nobody has taken.
+  await emit('site.webmanifest', JSON.stringify({
+    name: 'Paparcar',
+    short_name: 'Paparcar',
+    theme_color: '#0D1117',
+    background_color: '#0D1117',
+    icons: [192, 512].map((px) => ({
+      src: asset(`/assets/img/icon-${px}.png`),
+      sizes: `${px}x${px}`,
+      type: 'image/png',
+    })),
+  }, null, 2) + '\n');
 
   for (const { code, base } of LOCALES) {
     const t = resolveTokens(await readJson(join(HERE, 'content', `${code}.json`)), `content/${code}.json`);

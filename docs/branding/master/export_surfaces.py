@@ -563,11 +563,39 @@ def main():
 
     print()
     print('Web y documentacion')
-    write('hosting/public/favicon.svg',
-          svg_mark('    Paparcar · favicon. GENERADO por docs/branding/master/export_surfaces.py.\n'
-                   '    Sin disco. La pestaña del navegador no la controlamos, asi que el color lo\n'
-                   '    decide prefers-color-scheme: verde de marca sobre chrome oscuro, verde\n'
-                   '    profundo sobre claro.', themed=True))
+    # El favicon se escribe DOS veces a proposito, y no es duplicidad:
+    #   · `web/assets/img/` es la FUENTE, que `publishAssets()` publica con hash de
+    #     contenido. Es lo que referencia el <link>, y es lo unico que garantiza que un
+    #     cambio de dibujo llegue al usuario: URL nueva
+    #     [WEB-THE-FAVICON-IS-THE-ONE-ASSET-THAT-CAN-GO-STALE-001].
+    #   · `hosting/public/favicon.svg` es la copia de raiz, para quien la pida a pelo.
+    favicon = svg_mark('    Paparcar · favicon. GENERADO por docs/branding/master/export_surfaces.py.\n'
+                       '    Sin disco. La pestaña del navegador no la controlamos, asi que el color\n'
+                       '    lo decide prefers-color-scheme: verde de marca sobre chrome oscuro,\n'
+                       '    verde profundo sobre claro.', themed=True)
+    write('web/assets/img/favicon.svg', favicon)
+    write('hosting/public/favicon.svg', favicon)
+
+    # ⛔ La fuente del .ico NO puede ser la de arriba: un .ico no entiende de
+    # prefers-color-scheme, asi que necesita UN color que aguante las dos pestanas.
+    # Medido: PapGreen da 1,31:1 sobre pestana clara -invisible- y una baldosa oscura se
+    # funde con la pestana oscura (1,32:1). PapGreenLight es el unico que no se hunde en
+    # ningun lado (3,08-3,43:1 en clara, 3,31-4,18:1 en oscura), y ademas es el fill BASE
+    # que ya usa el favicon SVG: en pestana clara los dos salen identicos.
+    write('docs/branding/apple/favicon-ico.svg',
+          svg_mark('    Paparcar · fuente del favicon.ico. GENERADO.\n'
+                   '    En PapGreenLight fijo: un .ico no puede ser tematico, y este es el\n'
+                   '    unico verde que aguanta pestana clara y oscura a la vez.',
+                   GREEN_LIGHT))
+
+    # Baldosas de la web: aterrizan sobre un fondo ajeno (pantalla de inicio, lista de
+    # apps), asi que llevan el suyo, igual que el icono de iOS y el de Play.
+    for px in (192, 512):
+        write('docs/branding/apple/web-icon-%d.svg' % px,
+              tile_svg('    Paparcar · icono %d de la web (manifest). GENERADO.\n'
+                       '    Baldosa, no glifo suelto: esto cae sobre el fondo de pantalla de\n'
+                       '    alguien. Mismo fondo y misma fraccion que el icono de iOS.' % px,
+                       TILE_STORE, F_STORE_ICON, px))
     write('docs/assets/paparcar-logo.svg',
           svg_mark('    Paparcar · la marca, para documentacion. GENERADO.', GREEN))
     write('docs/assets/paparcar-emblem.svg',

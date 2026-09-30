@@ -34,6 +34,11 @@
         "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
       },
       {
+        "//": "The three icon entry points that CANNOT be hashed, because browsers and the manifest spec ask for them by a fixed path. Without this rule a root .svg/.ico matches none of the others and inherits Hosting's default max-age=3600 — which is how the 2026 mark kept showing as the 2022 one in tabs [WEB-THE-FAVICON-IS-THE-ONE-ASSET-THAT-CAN-GO-STALE-001]. The drawings they point at ARE hashed; only these doorways revalidate.",
+        "source": "@(/favicon.ico|/favicon.svg|/site.webmanifest)",
+        "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
+      },
+      {
         "source": "**/*.@(html|xml|txt)",
         "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
       },

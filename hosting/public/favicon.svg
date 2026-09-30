@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="303" height="303" viewBox="-16.922 -23.409 302.551 302.551" fill="#009F5E">
   <!--
     Paparcar · favicon. GENERADO por docs/branding/master/export_surfaces.py.
-    Sin disco. La pestaña del navegador no la controlamos, asi que el color lo
-    decide prefers-color-scheme: verde de marca sobre chrome oscuro, verde
-    profundo sobre claro.
+    Sin disco. La pestaña del navegador no la controlamos, asi que el color
+    lo decide prefers-color-scheme: verde de marca sobre chrome oscuro,
+    verde profundo sobre claro.
   -->
   <style>
     @media (prefers-color-scheme: dark) { path { fill: #25F48C; } }
