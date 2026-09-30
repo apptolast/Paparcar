@@ -14,7 +14,7 @@
   <a href="https://play.google.com/store/apps/details?id=com.rndeveloper.paparcar">
     <img src="https://img.shields.io/badge/Google_Play-publicada-25F48C?logo=googleplay&logoColor=white&labelColor=0D1117" alt="En Google Play"/>
   </a>
-  <img src="https://img.shields.io/badge/versi%C3%B3n-1.3.0_(vc_14)-25F48C?labelColor=0D1117" alt="1.3.0"/>
+  <img src="https://img.shields.io/badge/versi%C3%B3n-1.4.0_(vc_15)-25F48C?labelColor=0D1117" alt="1.4.0"/>
   <a href="https://paparcar.com"><img src="https://img.shields.io/badge/web-paparcar.com-25F48C?labelColor=0D1117" alt="paparcar.com"/></a>
 </p>
 
@@ -28,10 +28,12 @@
 
 ---
 
-## Estado del proyecto · 2026-09-24 (master `ad101968a`)
+## Estado del proyecto · 2026-09-30 (master `d5e3e3f71`)
 
 **Publicada en Google Play** — [`com.rndeveloper.paparcar`](https://play.google.com/store/apps/details?id=com.rndeveloper.paparcar),
-**1.3.0 (versionCode 14)**, con la ficha y las capturas en los 9 idiomas. El día a día es medir la
+con la ficha y las capturas en los 9 idiomas. En producción está **1.3.0 (versionCode 14)**, del
+corte del 17-09; **1.4.0 (versionCode 15)** está cortado y firmado en `8c45ce88a` —AAB verificado con
+`-printcert` y notas en los 9 locales— pendiente de subir al Console. El día a día es medir la
 detección en dispositivos reales (Oppo + Redmi) con telemetría remota y cerrar el fallo que salga:
 política *fix-forward*, sin ramas de release largas. Lo que sigue vivo es producto, no lanzamiento.
 
@@ -44,6 +46,7 @@ política *fix-forward*, sin ramas de release largas. Lo que sigue vivo es produ
 | Red de seguridad (worker 15 min + reconcile de salidas perdidas) | ✅ |
 | Sync offline-first con reconcile LWW (vehículos, zonas, sesiones) | ✅ |
 | Votos de comunidad sobre plazas · frescura por edad (TTL 2 h) | ✅ |
+| Ciclo de vida de la plaza: `RELEASING` → `PROVISIONAL` → `CONFIRMED`, y `RETRACTED` como **estado**, no como borrado | ✅ `33aabb9ef` · `4a3b345be` · `caa54cc2d` |
 | Trayectos como producto: ruta medida, km, gasto, batería, tiempo buscando plaza | ✅ Fases 1-5, 7 y 8 |
 | Estadísticas con evidencia (cada cifra dice de cuánto sale y qué cubre) | ✅ `82e55f5ae` · Room v20 |
 | Gasolineras con precio de surtidor (ES · FR · DE · IT) + media nacional fuera | ✅ |
@@ -51,18 +54,19 @@ política *fix-forward*, sin ramas de release largas. Lo que sigue vivo es produ
 | Coche compartido (espejo del grupo: estado, historial y cifras) | ✅ · ⏳ campo con dos cuentas |
 | Paparcar Plus (RevenueCat) · límites free 7 d · 1 coche · 2 zonas | ✅ Gating soft; **ver** nunca se gatea |
 | Widget Android (aparcamiento activo, acciones, lista de coches) | ✅ |
-| Alertas de zona y de precio · push | ✅ |
-| UI / design system (una tipografía, color por método, 27 guardarraíles Konsist) | ✅ |
+| Alertas: zona (Plus) · precio de combustible (Plus) · plaza cerca de ti (free) · push | ✅ |
+| UI / design system (una tipografía, color por método, 33 guardarraíles Konsist) | ✅ |
+| Marca 2026: la geometría es la fuente, las superficies son salida de un generador | ✅ `01310a3b3` · `f4181114e` |
 | Puck de conducción nativo (fork kmp-maps en Maven Central) | ✅ · PR upstream [kmp-maps#170](https://github.com/software-mansion/kmp-maps/pull/170) |
 | Dev Catalog (flavor `mock` sin backend) | ✅ |
 | Telemetría de diagnóstico remota (Firestore, gate por flag) | ✅ Android e iOS |
-| Split `:app` + `:shared` | ✅ |
+| Split `:app` + `:shared` + `:mockkit` (los fakes fuera de todo binario publicable) | ✅ `6970b4065` |
 | `paparcar.com` (generador estático propio, ES/EN) | ✅ En vivo, con guardarraíl de paridad |
-| CI: build + `testAll` (incluye compilar el klib de iOS) + lane Apple bajo demanda | ✅ |
+| CI: build + `testAll` (compila el klib de iOS) + job Apple bajo demanda (link del framework, `commonTest` en el simulador y `xcodebuild` de la app) | ✅ Verde en master |
 | Superficie legal (privacidad, borrado de cuenta por web, data safety) | ✅ |
-| Publicación en Google Play (ficha, capturas y notas en 9 idiomas) | ✅ 1.3.0 (vc 14) |
+| Publicación en Google Play (ficha, capturas y notas en 9 idiomas) | ✅ 1.3.0 (vc 14) en producción · ⏳ 1.4.0 (vc 15) firmado, sin subir |
 | Detección iOS | 🟡 nativos y lazo GPS en master (`IosDetectionController`); sin validar en iPhone |
-| Publicación iOS | ❌ 0%: sin `GoogleService-Info.plist`, sin certificados, sin lane |
+| Publicación iOS | 🟡 El carril entero está en master (`fastlane` + `match`, entitlement de Apple, ficha de App Store Connect, icono): ⛔ **nada verificado** — se mergeó desde Windows, sin Xcode. Gate: levantar el proyecto en un Mac |
 
 Roadmap y bloqueantes en [`docs/ROADMAP.md`](./docs/ROADMAP.md).
 
@@ -78,8 +82,19 @@ rama de release larga — la política es *fix-forward*.
 ./gradlew :app:bundleProdRelease     # AAB para Play
 ```
 
-- Versionado y notas: `versionCode` / `versionName` en [`app/build.gradle.kts`](./app/build.gradle.kts);
-  las notas de tienda, en `docs/release/play-listing/paste/`.
+- Versionado: `versionCode` / `versionName` en [`app/build.gradle.kts`](./app/build.gradle.kts).
+  ⛔ **El `versionName` vive en DOS sitios**: `APP_VERSION` de `web/lib/config.mjs` tiene que decir lo
+  mismo, y `WebSiteParityGuardrailTest` lo compara — bumpear solo el Gradle deja la suite roja. Y
+  después hay que **reconstruir la web** (`node web/build.mjs`), o se despliega lo de antes.
+- Ficha y notas de tienda en `docs/release/play-listing/paste/`. La **ficha** la genera
+  `tools/make_paste.py`; las **notas de versión** (`release-notes-vX.Y.Z.txt`, 9 idiomas, tope de 500
+  caracteres por locale) se escriben **a mano**. ⛔ En Play el rumano es **`ro`**, no `ro-RO`.
+- ⛔ **El AAB no se versiona** — es derivado, sale de un commit y se regenera con un comando. Lo que
+  **sí** tiene que entrar en master es el commit del bump, o el bundle que se sube salió de un árbol
+  que no existe en ningún sitio.
+- ⛔ **La firma solo se comprueba con `keytool -printcert`**, nunca con «jar verified.»: el 03-09 salió
+  un AAB firmado con el certificado equivocado y el «verified» salía verde igual
+  (`local.properties` pierde la precedencia frente a `keystore.properties`).
 - ⛔ **Antes de cortar nada, `./gradlew testAll`** — nunca la suite de `:shared` sola: el verify del
   grafo del flavor `mock` vive en `:app` y el klib de iOS solo se compila ahí
   [TEST-A-GUARD-MUST-NOT-READ-THE-FOLDER-NAME-001].
@@ -97,25 +112,45 @@ Procedimiento completo (keystore, firma, versionado, rotación de claves) en
 
 ### Logo
 
-El logo es una **P** que es a la vez pin de ubicación y coche — las tres lecturas a la vez. **No
-lleva disco**: la marca de 2022 necesitaba uno oscuro detrás para sostenerse, ésta no. Lo único que
-cambia con la superficie es el verde: `PapGreen` `#25F48C` sobre oscuro, `PapGreenLight` `#009F5E`
-sobre claro (porque el primero sobre blanco da 1,42:1).
+El logo es una **P** que es a la vez pin de ubicación y coche — las tres lecturas a la vez. **En la
+app no lleva disco**: la marca de 2022 necesitaba uno oscuro detrás para sostenerse, la de 2026 no.
+Lo único que cambia con la superficie es el verde: `PapGreen` `#25F48C` sobre oscuro,
+`PapGreenLight` `#009F5E` sobre claro (porque el primero sobre blanco da 1,42:1).
 
 ⛔ **La fuente de verdad no es un fichero de la app: es un generador.**
 [`docs/branding/master/`](./docs/branding/master/) dibuja la marca desde su geometría —seis
 circunferencias y dos rectas tangentes— y `export_surfaces.py` la escribe en todas las superficies.
 Los drawables (`paparcar_iconmark_*`, `ic_launcher_foreground`, `splash_glyph`,
 `ic_notification_logo`, el favicon, `docs/assets/paparcar-logo.svg`) son **salida**: no se editan a
-mano. Detalle y nombres en [`docs/branding/README.md`](./docs/branding/README.md).
+mano. Si cambia el dibujo se cambia un parámetro y se vuelve a correr el exportador, y después
+`node web/build.mjs` (la web hornea el logo en sus páginas). Detalle y nombres en
+[`docs/branding/README.md`](./docs/branding/README.md).
+
+⛔ **Su lienzo no es cuadrado** (`244 × 236`, `MARK_W`/`MARK_H`) y la marca es **full bleed**: toca
+los cuatro bordes. Las superficies que se encuadran por el círculo envolvente no se enteran, pero
+meter la marca en una caja cuadrada a pelo le corta la rueda derecha o la aplasta.
 
 Sigue siendo un asset **Nivel 3**: trae su color de marca horneado, **nunca se tinta** — salvo
 `paparcar_iconmark_white`, que existe precisamente para eso.
 
-Para mantener la consistencia visual ante el efecto óptico de irradiación, el logo aplica una
-**compensación de grosor** en sus trazos (ruedas):
-- **Coche claro sobre fondo oscuro**: grosor **`6`** (fuente de verdad).
-- **Coche oscuro sobre fondo claro**: grosor **`7`** (compensación óptica).
+**Dos superficies sí llevan disco, y el criterio que las une es uno**: *donde la marca llena su
+caja no hace falta soporte; donde es un **emblema** dentro de una composición ajena —con un wordmark
+al lado— el soporte es legítimo.* Eso se lee en un número: la app pone la marca al `F_MARK = 1.0` de
+su caja, el emblema al `F_EMBLEM = 0.52896` de su disco. No abre la puerta a discos en la app.
+
+| Superficie | Disco | Marca | Aro | Por qué |
+|---|---|---|---|---|
+| Gráfico de funciones de Play (`feature.html`) | tinta `#0D1117` | `PapGreen` | `PapGreen` al 28 % | El fondo es un degradado verdoso; sin disco la marca queda en ~46 px al lado de un wordmark de 82 |
+| `paparcar.com` — cabecera, pie, las dos legales y la tarjeta social | `PapGreen` | tinta `#0D1117` | ninguno | El sitio es tinta **plana**: un disco de tinta daría **1,00:1**. Verde sobre tinta da **12,97:1** en los dos sentidos |
+
+El disco tampoco se escribe a mano: vive en `export_surfaces.py` (`EMBLEM_BANNER` / `EMBLEM_SITE` +
+`emblem_transform()`), que genera los dos `<circle>` del banner, las constantes de
+[`web/lib/mark.generated.mjs`](./web/lib/mark.generated.mjs) y `docs/assets/paparcar-emblem.svg`.
+Geometría compartida, pintura por superficie.
+
+⛔ La antigua *compensación óptica* de grosor de rueda (6 sobre oscuro / 7 sobre claro) **murió con
+la marca de 2022**: la de 2026 no tiene ni un trazo —sus ruedas son coronas rellenas—, así que no
+hay irradiación que compensar.
 
 ### Colores corporativos
 
@@ -189,7 +224,7 @@ multicolor sin tintar* (hero, onboarding, marcadores, vehículos). Detalle en [`
   (Activity Recognition) · DataStore 1.2.1
 - **Logging:** Napier 2.7.1 · **Licencias OSS:** AboutLibraries 15.2.0
 - **Tests:** JUnit 4 · Turbine 1.2.1 · Robolectric 4.17 · **Konsist 0.17.3**
-  (**27 guardarraíles** de arquitectura, copy e i18n)
+  (**33 guardarraíles** de arquitectura, copy, i18n, reglas de Firestore y paridad con la web)
 
 **Targets:** Android `minSdk 26 / target 37 / compile 37` · iOS `arm64 + simulatorArm64`
 
@@ -242,7 +277,7 @@ prohibido no ha cambiado — cero señales BT dentro del scoring del Coordinator
 Ambas convergen en `ConfirmParkingUseCase` → Room + Firestore + Geofence + Notification +
 WorkManager. El servicio Android serializa todos los triggers en un intake único; la **decisión**
 de cada trigger es un use case puro de `commonMain` — el service solo hace I/O y side-effects. Los
-predicados que alimentan a un veredicto viven como funciones puras en `domain/detection/` (106
+predicados que alimentan a un veredicto viven como funciones puras en `domain/detection/` (107
 ficheros), no como métodos privados del coordinator.
 
 Todo pin persiste su **procedencia**: `detectionPath` + `armEvidence`. En cualquier diagnóstico se
@@ -277,7 +312,14 @@ nunca se esconde.
 
 ## Modelos de datos clave
 
-- **`Spot`** — plaza comunitaria: location, type (auto/manual), confidence, sizeCategory, TTL
+- **`Spot`** — plaza comunitaria: location, type (auto/manual), confidence, sizeCategory, TTL y
+  **`status`**: cada plaza dice cómo de probada está la salida que hay detrás. `CONFIRMED` (la
+  salida se presenció), `PROVISIONAL` (solo se dedujo — se publica igual porque una plaza libre vale
+  minutos, pero se muestra sin confirmar, ordena por debajo y caduca antes), `RELEASING` (**el coche
+  sigue ahí y alguien acaba de subirse**), `RETRACTED` (retirada). ⛔ Retirar es un **estado**, no un
+  delete: un documento borrado desaparece del snapshot sin explicación y deja circulando a quien ya
+  iba de camino; uno retractado sigue llegando durante la gracia, el tiempo justo para decir por qué
+  se fue
 - **`UserParking`** — sesión propia: vehicleId, location, geofenceId, detectionMethod,
   `detectionPath`, `armEvidence`, ruta del viaje
 - **`Vehicle`** — brand, model, bluetoothDeviceId, sizeCategory, carbodyType, combustible y consumo,
@@ -301,22 +343,27 @@ shared/                 KMP — toda la lógica de producto
 │   ├── presentation/   ViewModels MVI + screens Compose (home, vehicles, settings, stats,
 │   │                   paywall, widget, onboarding, permissions…)
 │   ├── ui/             Design system (PaparcarType, componentes Pap*, tema, iconos, mapa)
-│   ├── detection/ push/ core/ di/   transversales
-│   └── fakes/          fakes scenario-aware que consume el Dev Catalog
+│   └── detection/ push/ core/ di/   transversales
 ├── src/androidMain/    detection/{service,worker,receiver,sensor}, location/, bluetooth/,
 │                       notification/, permissions/, diagnostics/, logging/, push/
 ├── src/iosMain/        CLLocation, CMMotion, CoreBluetooth, geofence, schedulers y el
 │                       IosDetectionController (sin stubs) + su parkdiag
-├── src/commonTest/     el grueso de los tests (374 ficheros): use cases, ViewModels, mappers y
+├── src/commonTest/     el grueso de los tests (383 ficheros): use cases, ViewModels, mappers y
 │                       el replay de trazas de campo reales
-└── src/androidUnitTest/  lo que necesita JVM/Android (52): 27 guardarraíles Konsist, Robolectric,
+└── src/androidUnitTest/  lo que necesita JVM/Android (58): 33 guardarraíles Konsist, Robolectric,
                           workers, paridad de deserializadores Firestore
 
 app/                    Shell Android — entry points, manifest, res, flavors, firma
 ├── src/main/           MainActivity, PaparcarApp, AppNotificationManagerImpl, res/
 └── src/mock/           Dev Catalog — modo demo sin backend (kotlin + res/manifest)
 
-iosApp/                 SwiftUI shell (delegado a Compose vía MainViewController)
+mockkit/                TODO lo falso: los 19 fakes scenario-aware, MockScenario, ShotPresets,
+                        iosMockModule y MockMainViewController. Depende de :shared y NUNCA al
+                        revés — Gradle rechaza el ciclo, así que producción no puede importarlo
+                        ni por descuido. Lo consumen el flavor mock, los tests de :shared y las
+                        capturas de iOS
+
+iosApp/                 SwiftUI shell (delegado a Compose vía MainViewController) + fastlane
 
 web/                    paparcar.com — generador estático propio (Node, cero dependencias)
 ├── content/{es,en}.json  TODO el copy de la web
@@ -346,6 +393,12 @@ dispositivo: launcher propio (`DevMainActivity`) con escenarios de sesión/permi
 (`MockScenario`) y una galería de estados (`StateGalleryScreen`) con paridad con los
 `*Previews.kt`. Toda pantalla/estado/condición de routing nueva debe reflejarse ahí en la misma
 tarea (regla ⛔ en [`CLAUDE.md`](./CLAUDE.md)).
+
+⛔ **Los fakes viven en `:mockkit`, no en `:shared`, y eso no es orden: es una guideline de Apple.**
+Cuando estaban en `commonMain`, Kotlin/Native exportaba **161 clases `Fake*`** a `ComposeApp.h` —un
+símbolo exportado es raíz de DCE—, o sea código muerto embarcado en el binario de iOS (guideline
+2.3.1). La dirección de la flecha *es* el diseño: `:mockkit → :shared`, nunca al revés, y Gradle
+rechaza el ciclo. Lo vigila `MockGraphGuardrailTest`.
 
 ```bash
 ./gradlew :app:assembleMockDebug
@@ -393,7 +446,9 @@ adb shell am start -n com.rndeveloper.paparcar.mock/com.rndeveloper.paparcar.Dev
 `testAll` existe para no poder escribirse a medias: `:shared:testDebugUnitTest` deja fuera el único
 guardarraíl que comprueba que el grafo del flavor `mock` se resuelve (`MockKoinModuleVerifyTest`, en
 `:app`), y `:shared:compileKotlinIosSimulatorArm64` es lo que caza un `actual` que falta. Son
-3.700+ tests, y `commonTest` corre además en el simulador de iOS dentro del job Apple.
+**3.800+ tests**. El job Apple —bajo demanda o en ramas `feature/IOS-*`— añade lo que solo un Mac
+puede decir: enlazar el framework, correr `commonTest` en el simulador de iOS y construir la app con
+`xcodebuild`.
 
 > ⛔ Un guardarraíl de Konsist no toca bytecode: Gradle lo da **UP-TO-DATE** y no llega a
 > ejecutarlo. Para falsificarlo de verdad, `--rerun-tasks`.
@@ -440,6 +495,7 @@ que fue verificado. Si no coinciden con el código, es un bug del doc.
 | [`docs/detection/PARKING-DETECTION.md`](./docs/detection/PARKING-DETECTION.md) | **Spec canónica de detección** + log de cada guard y por qué existe |
 | [`docs/detection/DETECTION-READINESS.md`](./docs/detection/DETECTION-READINESS.md) | Qué le decimos al usuario sobre la detección (readiness, tiers de permisos) |
 | [`docs/design/COLOR-SYSTEM.md`](./docs/design/COLOR-SYSTEM.md) | Significado de cada token de color — una historia por hex |
+| [`docs/branding/README.md`](./docs/branding/README.md) | **La marca** — su geometría, el generador y qué superficie sale de dónde |
 | [`docs/architecture/VEHICLE-CATEGORIZATION.md`](./docs/architecture/VEHICLE-CATEGORIZATION.md) | Talla × carrocería → `SpotFit` |
 | [`docs/analytics-data-contract.md`](./docs/analytics-data-contract.md) · [`analytics-data-audit.md`](./docs/analytics-data-audit.md) | De qué evidencia sale cada cifra de estadísticas y qué cubre |
 | [`docs/IOS_PLAN.md`](./docs/IOS_PLAN.md) | Estado real de iOS y qué falta para un beta |
@@ -447,7 +503,7 @@ que fue verificado. Si no coinciden con el código, es un bug del doc.
 | [`docs/release/RELEASE-PROCESS.md`](./docs/release/RELEASE-PROCESS.md) · [`RELEASE-SECURITY.md`](./docs/release/RELEASE-SECURITY.md) | Keystore, firma, corte de versión y endurecimiento de claves |
 | [`web/README.md`](./web/README.md) | **La web** — qué tocar en `web/` cuando cambia el producto, y qué lo vigila |
 | [`docs/legal/`](./docs/legal/) | Data safety y runbook de borrado de cuenta |
-| [`docs/backlog/README.md`](./docs/backlog/README.md) | **Índice de lo que sigue abierto** — 717 docs de ticket; aquí solo lo que queda |
+| [`docs/backlog/README.md`](./docs/backlog/README.md) | **Índice de lo que sigue abierto** — 758 docs de ticket; aquí solo lo que queda |
 | [`diagnostics/README.md`](./diagnostics/README.md) | Captura y procesado de logs de detección |
 
 **Registros fechados** — fotos que no envejecen mal porque llevan su fecha y su commit-base:
