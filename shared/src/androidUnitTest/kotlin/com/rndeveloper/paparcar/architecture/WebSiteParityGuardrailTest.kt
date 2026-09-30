@@ -4,9 +4,11 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Test
 import java.io.File
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.test.fail
 
@@ -366,16 +368,40 @@ class WebSiteParityGuardrailTest {
             )
         }
 
-        val rules = read("firebase.json")
-        assertTrue(
-            DOORWAYS.all { rules.contains(it.removePrefix("/")) } &&
-                rules.contains("must-revalidate"),
-            buildString {
-                appendLine("firebase.json no longer makes the unhashable icon paths revalidate.")
-                appendLine("Without that rule a root .svg/.ico matches none of the other sources")
-                appendLine("and inherits Hosting's default max-age=3600, which hides a redeploy.")
-            },
-        )
+        // ⛔ Cada puerta necesita su PROPIA regla, y se comprueba PARSEANDO el fichero.
+        //    La primera version de esto miraba solo que `firebase.json` contuviera los tres
+        //    nombres y la cadena `must-revalidate` — y una sola regla con
+        //    `"source": "@(/favicon.ico|/favicon.svg|/site.webmanifest)"` cumple las dos cosas
+        //    SIN CASAR CON NADA. Se desplego limpia, las tres rutas siguieron con el
+        //    max-age=3600 por defecto, y lo unico que lo enseño fue leer la cabecera de la URL
+        //    en vivo [WEB-A-HOSTING-HEADER-RULE-MUST-ACTUALLY-MATCH-001].
+        //    Un testigo que comprueba que un texto ESTA ESCRITO no comprueba que HAGA algo.
+        val headerRules = (Json.parseToJsonElement(read("firebase.json")) as JsonObject)
+            .let { it["hosting"] as JsonObject }
+            .let { it["headers"] as JsonArray }
+            .map { it as JsonObject }
+
+        for (doorway in DOORWAYS) {
+            val rule = assertNotNull(
+                headerRules.firstOrNull { (it["source"] as? JsonPrimitive)?.content == doorway },
+                buildString {
+                    appendLine("firebase.json has no rule whose source is exactly $doorway.")
+                    appendLine("A path that matches no source inherits Hosting's default")
+                    appendLine("max-age=3600, which hides a redeploy for an hour.")
+                    appendLine()
+                    appendLine("One rule per path: an @(a|b|c) alternation of full paths deploys")
+                    appendLine("clean and matches nothing — measured in production, 30-09-2026.")
+                },
+            )
+            val cacheControl = (rule["headers"] as JsonArray)
+                .map { it as JsonObject }
+                .firstOrNull { (it["key"] as? JsonPrimitive)?.content == "Cache-Control" }
+                ?.get("value") as? JsonPrimitive
+            assertTrue(
+                cacheControl?.content?.contains("must-revalidate") == true,
+                "the rule for $doorway does not make it revalidate: ${cacheControl?.content}",
+            )
+        }
     }
 
     // ── plumbing ──────────────────────────────────────────────────────────────
