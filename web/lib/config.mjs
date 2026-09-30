@@ -18,7 +18,7 @@ export const SUPPORT_EMAIL = 'support@paparcar.com';
 export const PRIVACY_PATH = '/privacy-policy';
 export const DELETE_PATH = '/delete-account';
 export const MIN_ANDROID = '8.0';
-export const APP_VERSION = '1.3.0';
+export const APP_VERSION = '1.4.0';
 
 /**
  * What the free plan includes, mirrored from the gates in `domain/entitlement/`

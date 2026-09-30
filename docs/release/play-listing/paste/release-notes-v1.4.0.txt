@@ -1,0 +1,81 @@
+<en-US>
+• Answer a trip from your home screen: a new widget, without opening the app.
+• Free spots near you now reach you on the map — and they no longer need Plus.
+• Your car's height counts: an unknown clearance is never a "it fits".
+• Fuel: the lane filters by what your car burns and prices the fuel it takes.
+• Car parks show their rate on the map.
+• A spot we inferred no longer looks like one we measured.
+• New look: the 2026 mark, on every screen.
+</en-US>
+<es-ES>
+• Contesta a un viaje desde la pantalla de inicio: widget nuevo, sin abrir la app.
+• Las plazas libres cerca de ti te llegan en el mapa, y ya no necesitan Plus.
+• El alto de tu coche cuenta: un gálibo desconocido nunca es un «cabes».
+• Gasolineras: el carril se filtra por lo que echas y cotiza tu combustible.
+• Los parkings enseñan su tarifa en el mapa.
+• Una plaza deducida deja de verse igual que una medida.
+• Imagen nueva: la marca de 2026, en todas las pantallas.
+</es-ES>
+<it-IT>
+• Rispondi a un viaggio dalla schermata Home: nuovo widget, senza aprire l'app.
+• I posti liberi vicino a te arrivano sulla mappa e non richiedono più Plus.
+• L'altezza della tua auto conta: un'altezza ignota non è mai un «ci stai».
+• Carburante: la corsia filtra per quello che metti e quota il tuo carburante.
+• I parcheggi pubblici mostrano la tariffa sulla mappa.
+• Un posto dedotto non sembra più uno misurato.
+• Nuova immagine: il marchio 2026, su ogni schermata.
+</it-IT>
+<pt-PT>
+• Responde a uma viagem a partir do ecrã principal: widget novo, sem abrir a app.
+• Os lugares livres perto de ti chegam no mapa e já não precisam de Plus.
+• A altura do teu carro conta: uma altura desconhecida nunca é um «cabes».
+• Combustível: a faixa filtra pelo que metes e cota o teu combustível.
+• Os parques de estacionamento mostram a tarifa no mapa.
+• Um lugar deduzido deixa de parecer um lugar medido.
+• Imagem nova: a marca de 2026, em todos os ecrãs.
+</pt-PT>
+<fr-FR>
+• Répondez à un trajet depuis l'écran d'accueil : nouveau widget, sans ouvrir l'app.
+• Les places libres près de vous arrivent sur la carte, et sans Plus.
+• La hauteur de votre voiture compte : une hauteur inconnue n'est jamais un « ça passe ».
+• Carburant : la file filtre selon ce que vous mettez et cote votre carburant.
+• Les parkings affichent leur tarif sur la carte.
+• Une place déduite ne ressemble plus à une place mesurée.
+• Nouvelle image : la marque 2026, sur tous les écrans.
+</fr-FR>
+<de-DE>
+• Beantworte eine Fahrt vom Startbildschirm: neues Widget, ohne die App zu öffnen.
+• Freie Plätze in deiner Nähe erreichen dich auf der Karte — ohne Plus.
+• Die Höhe deines Autos zählt: eine unbekannte Höhe ist nie ein «passt».
+• Kraftstoff: Die Spur filtert nach deinem Kraftstoff und rechnet mit seinem Preis.
+• Parkhäuser zeigen ihren Tarif auf der Karte.
+• Ein abgeleiteter Platz sieht nicht mehr aus wie ein gemessener.
+• Neues Bild: die Marke 2026, auf jedem Bildschirm.
+</de-DE>
+<nl-NL>
+• Beantwoord een rit vanaf je startscherm: nieuwe widget, zonder de app te openen.
+• Vrije plekken bij jou in de buurt komen op de kaart, en hoeven geen Plus meer.
+• De hoogte van je auto telt: een onbekende hoogte is nooit een «past».
+• Brandstof: de rij filtert op wat jij tankt en rekent met jouw brandstof.
+• Parkeergarages tonen hun tarief op de kaart.
+• Een afgeleide plek ziet er niet meer uit als een gemeten plek.
+• Nieuw beeld: het merk van 2026, op elk scherm.
+</nl-NL>
+<pl-PL>
+• Odpowiedz na przejazd z ekranu głównego: nowy widżet, bez otwierania aplikacji.
+• Wolne miejsca blisko ciebie trafiają na mapę i nie wymagają już Plus.
+• Wysokość twojego auta ma znaczenie: nieznana nigdy nie oznacza «zmieścisz się».
+• Paliwo: pas filtruje po tym, czym tankujesz, i wycenia twoje paliwo.
+• Parkingi pokazują swoją stawkę na mapie.
+• Miejsce wywnioskowane nie wygląda już jak zmierzone.
+• Nowy wygląd: znak 2026 na każdym ekranie.
+</pl-PL>
+<ro-RO>
+• Răspunde la o călătorie din ecranul principal: widget nou, fără a deschide aplicația.
+• Locurile libere de lângă tine ajung pe hartă și nu mai cer Plus.
+• Înălțimea mașinii contează: o înălțime necunoscută nu e niciodată un «încapi».
+• Carburant: banda filtrează după ce alimentezi și cotează carburantul tău.
+• Parcările publice își arată tariful pe hartă.
+• Un loc dedus nu mai arată ca unul măsurat.
+• Imagine nouă: marca 2026, pe fiecare ecran.
+</ro-RO>
