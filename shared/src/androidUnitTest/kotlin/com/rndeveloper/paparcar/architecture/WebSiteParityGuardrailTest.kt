@@ -32,6 +32,9 @@ import kotlin.test.fail
  *     [LocaleParityGuardrailTest] does it for the app's nine.
  *  3. The BUILT pages in `hosting/public` against the content they were generated from, so "I
  *     edited the copy and never ran the build" cannot deploy silently.
+ *  4. The MARK the site ships against the parametric master it is generated from — including
+ *     that the social card does not borrow another surface's icon, which is how the 2022 logo
+ *     stayed baked inside `og-card.jpg`.
  *
  * ## What it deliberately does not do
  *
@@ -219,6 +222,98 @@ class WebSiteParityGuardrailTest {
         }
     }
 
+
+    // ── 6 · the mark the site ships is the generated one ─────────────────────
+
+    /**
+     * The logo is GENERATED, not copied — and the site is where that rule has broken twice.
+     *
+     * Once in `icons.mjs`, which carried the three path strings inline under a note asking the
+     * next reader to remember to regenerate them elsewhere. And once, far more quietly, inside
+     * `og-card.jpg`: `prepare_social()` pasted `play-icon-512.png` — the icon of ANOTHER surface,
+     * an opaque tile — so the 2022 mark kept living inside a JPEG while every other surface had
+     * moved on. No `grep` finds a logo inside an image, and nothing here can look inside one.
+     *
+     * So this checks the MECHANISM rather than the pixels, which is the part that is mechanically
+     * knowable: the drawing comes from the master, the built pages carry what the generator wrote,
+     * and the social card does not borrow another surface's icon.
+     *
+     * [WEB-THE-MARK-WEARS-ITS-DISC-ON-THE-SITE-001]
+     */
+    @Test
+    fun `the mark the site ships comes from the master, not from a copy`() {
+        // a · the generated module still agrees with the master drawing
+        val masterPaths = Regex("""<path d="([^"]+)"/>""")
+            .findAll(read(MARK_MASTER)).map { it.groupValues[1] }.toList()
+        assertEquals(3, masterPaths.size, "$MARK_MASTER should hold the three paths of the mark")
+
+        val generated = read(MARK_GENERATED)
+        for (path in masterPaths) {
+            assertTrue(
+                generated.contains(path),
+                buildString {
+                    appendLine("$MARK_GENERATED does not carry a path that is in $MARK_MASTER.")
+                    appendLine("The master drawing moved and the exporter was never re-run, so the")
+                    appendLine("site draws the previous mark.")
+                    appendLine()
+                    appendLine("  cd docs/branding/master && python export_surfaces.py")
+                    appendLine("  node web/build.mjs")
+                },
+            )
+        }
+
+        // b · nobody pasted the BRAND drawing back into the hand-written module. Its other
+        //     icons legitimately carry path data — only the mark's own three are forbidden here.
+        val icons = read(SITE_ICONS)
+        for (path in masterPaths) {
+            assertTrue(
+                !icons.contains(path),
+                "$SITE_ICONS writes the mark's geometry inline. It arrives from $MARK_GENERATED; " +
+                    "pasting it here is the copy the parametric master exists to kill.",
+            )
+        }
+
+        // c · the built pages carry what the generator wrote — disc included
+        val transform = generated.firstGroup("""EMBLEM_TRANSFORM = '([^']+)'""")
+        val discFill = generated.firstGroup("""EMBLEM_DISC_FILL = '([^']+)'""")
+        for ((locale, base) in LOCALE_BASES) {
+            val page = read("hosting/public$base/index.html")
+            assertTrue(
+                page.contains(transform) && page.contains(discFill),
+                buildString {
+                    appendLine("the built page for '$locale' does not carry the generated emblem.")
+                    appendLine("Either the mark changed and the site was never rebuilt, or the disc")
+                    appendLine("was dropped from logoMark(). The site wears the emblem — disc and all —")
+                    appendLine("on its header, its footer and both legal pages.")
+                    appendLine()
+                    appendLine("  node web/build.mjs --check")
+                },
+            )
+        }
+
+        // d · the social card draws the emblem, never another surface's icon. The Play icon is
+        //     still legitimate for ONE consumer here — `prepare_touch_icon()`, which resizes it
+        //     into the home-screen tile — so what is counted is who OPENS it, not who names it:
+        //     the comment explaining this very trap names the file, and should keep naming it.
+        val assets = read(PREPARE_ASSETS)
+        assertTrue(
+            assets.contains(EMBLEM_RASTER),
+            "$PREPARE_ASSETS no longer builds the social card from the generated emblem " +
+                "($EMBLEM_RASTER).",
+        )
+        val readers = Regex("""Image\.open\([^)]*$PLAY_ICON""").findAll(assets).count()
+        assertEquals(
+            1, readers,
+            buildString {
+                appendLine("$PREPARE_ASSETS opens $PLAY_ICON $readers times; only one may.")
+                appendLine("That reader is the home-screen tile, which IS that icon resized. The")
+                appendLine("social card has to draw the generated emblem: borrowing the Play tile is")
+                appendLine("how the 2022 mark stayed baked inside og-card.jpg for weeks after every")
+                appendLine("other surface had moved on, where no grep could see it.")
+            },
+        )
+    }
+
     // ── plumbing ──────────────────────────────────────────────────────────────
 
     /** `export const NAME = 'value'` → map. Only the string constants: those are the facts. */
@@ -307,6 +402,14 @@ class WebSiteParityGuardrailTest {
         )
         const val BASE_STRINGS = "shared/src/commonMain/composeResources/values/strings.xml"
         const val SITE_CONFIG = "web/lib/config.mjs"
+
+        /** The parametric master's output, and the consumers that must agree with it. */
+        const val MARK_MASTER = "docs/branding/mark/paparcar-mark-compas-b.svg"
+        const val MARK_GENERATED = "web/lib/mark.generated.mjs"
+        const val SITE_ICONS = "web/lib/icons.mjs"
+        const val PREPARE_ASSETS = "web/tools/prepare-assets.py"
+        const val EMBLEM_RASTER = "paparcar-emblem-512.png"
+        const val PLAY_ICON = "play-icon-512.png"
 
         /**
          * `minSdk` is an API level; the site has to name the Android release a person recognises.

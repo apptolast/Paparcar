@@ -245,7 +245,7 @@ button { font: inherit; color: inherit; }
 
 .brand { display: inline-flex; align-items: center; gap: 0.6rem; }
 .brand__name { font-size: 1.2rem; font-weight: 800; letter-spacing: -0.015em; }
-.logo-mark { flex: none; border-radius: 50%; }
+.logo-mark { flex: none; }
 
 .nav { margin-inline: auto; }
 .nav__list { display: none; gap: 0.35rem; }

@@ -40,6 +40,8 @@ import io
 import os
 import re
 
+NL = chr(10)
+
 import build_marks
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -174,6 +176,70 @@ F_MARK = 1.0
 F_NOTIF = 0.92
 
 
+# -- El emblema: la marca SOBRE un disco -------------------------------------
+#
+# El caso contrario a F_MARK, y el criterio que los separa cabe en una linea:
+# *donde la marca llena su caja no hay disco; donde es un emblema dentro de una
+# composicion ajena -con un wordmark al lado- el soporte es legitimo*. Entonces el
+# tamano optico de la marca es una fraccion DEL DISCO, no del lienzo.
+#
+# La fraccion no se elige aqui: es la que ya tenia el banner de Play, conservada a
+# proposito al cambiar de marca porque estaba calculada para vivir DENTRO del disco
+# [PLAY-THE-BANNER-MARK-KEEPS-ITS-DISC-001].
+#
+# Desde WEB-THE-MARK-WEARS-ITS-DISC-ON-THE-SITE-001 tiene DOS consumidores: el
+# banner y la web (cabecera, pie, paginas legales y tarjeta social). Estaba escrito
+# a mano dentro de `feature.html`, y un dibujo de marca con dos definiciones es el
+# mismo agujero que este script existe para tapar. Ahora sale de aqui, y que el
+# banner salga byte-identico es la prueba de que no ha cambiado el dibujo.
+#
+# NO habilita discos en la app: alli la fraccion es F_MARK = 1.0, que es justo lo
+# contrario de este caso.
+EMBLEM_BOX = 108.0          # el lienzo del emblema, el que ya usaba el banner
+F_EMBLEM = 0.52896          # envolvente OPTICO de la marca sobre EMBLEM_BOX
+DISC_RING_OPACITY = '.28'   # el aro verde de PLAY-LISTING-001
+DISC_RING_WIDTH = 2
+DISC_RING_INSET = 1.5       # el aro se pinta DENTRO del borde, no a caballo de el
+
+# La geometria del emblema es UNA; la PINTURA depende del fondo que lo recibe, y no
+# es gusto sino contraste medido (30-09-2026):
+#   · Banner de Play: su fondo es un degradado verdoso (#15251F -> #0D1117) con un
+#     halo verde encima. Ahi el disco es de TINTA -mas oscuro que su entorno- y un
+#     aro verde al 28 % lo delimita.
+#   · Web: el fondo es tinta PLANA, `--ink #0d1117`, que es EXACTAMENTE el relleno
+#     de ese disco. Un disco de tinta da 1,00:1 -invisible-, y dejaria solo el aro
+#     mientras la marca encoge a la mitad. El disco que se ve sobre tinta es el
+#     VERDE, con el glifo en tinta: 12,97:1 en los dos sentidos. Es, ademas, el que
+#     la web ya llevaba antes de la marca de 2026.
+# Por eso no hay un aro en la variante de la web: sobre un disco verde, un aro verde
+# al 28 % no separa nada, y con 12,97:1 no hay nada que separar.
+EMBLEM_BANNER = {'disc': INK, 'mark': GREEN, 'ring': GREEN}
+EMBLEM_SITE = {'disc': GREEN, 'mark': INK, 'ring': None}
+
+
+def emblem_transform(fraction=F_EMBLEM, box=EMBLEM_BOX):
+    """`translate` + `scale` que meten la marca en un disco de lado `box`.
+
+    Es la MISMA matematica que encuadra el glifo del banner, extraida para que web
+    y banner no puedan desalinearse: si el maestro se mueve, se mueven los dos o
+    ninguno.
+    """
+    s = fraction * box / 2.0 / MEC_R
+    return box / 2 - MEC_C[0] * s, box / 2 - MEC_C[1] * s, s
+
+
+def disc_circles(paint=EMBLEM_BANNER):
+    """El disco, y su aro si la variante lo lleva."""
+    c = EMBLEM_BOX / 2
+    L = ['<circle cx="%g" cy="%g" r="%g" fill="%s"/>' % (c, c, c, paint['disc'])]
+    if paint['ring']:
+        L.append('<circle cx="%g" cy="%g" r="%g" fill="none" stroke="%s" '
+                 'stroke-opacity="%s" stroke-width="%g"/>'
+                 % (c, c, c - DISC_RING_INSET, paint['ring'], DISC_RING_OPACITY,
+                    DISC_RING_WIDTH))
+    return L
+
+
 # ── VectorDrawable ──────────────────────────────────────────────────────────
 def vd(note, color, width=248, height=248, group=None, fraction=None):
     d = paths()
@@ -279,6 +345,26 @@ def svg_mark(note, color=None, themed=False, fraction=F_MARK):
     return '\n'.join(L) + '\n'
 
 
+def emblem_svg(note, size=512):
+    """La marca SOBRE su disco, como fichero suelto. GENERADO.
+
+    Es la forma rasterizable del emblema: `render_graphics.sh emblem` lo convierte en
+    el PNG que pega la tarjeta social. Antes esa tarjeta pegaba el icono de Play -una
+    baldosa OPACA de otra superficie- y por eso arrastro la marca de 2022 dentro de un
+    JPEG durante semanas [WEB-THE-MARK-WEARS-ITS-DISC-ON-THE-SITE-001].
+    """
+    tx, ty, sc = emblem_transform()
+    L = ['<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" '
+         'viewBox="0 0 %g %g">' % (size, size, EMBLEM_BOX, EMBLEM_BOX),
+         '  <!--', note, '  -->']
+    L += ['  ' + c for c in disc_circles(EMBLEM_SITE)]
+    L.append('  <g transform="translate(%.4f %.4f) scale(%.5f)" fill="%s">'
+             % (tx, ty, sc, EMBLEM_SITE['mark']))
+    L += ['    <path d="%s"/>' % x for x in paths()]
+    L += ['  </g>', '</svg>']
+    return NL.join(L) + NL
+
+
 # ── Graficos de Play ────────────────────────────────────────────────────────
 #
 # `icon.html` y `feature.html` no son plantillas -traen fondo, degradados y
@@ -292,8 +378,18 @@ def svg_mark(note, color=None, themed=False, fraction=F_MARK):
 # icono de Play esta publicado y esto cambia el dibujo, no su tamano optico.
 PLAY_FRACTIONS = {
     'docs/release/play-listing/assets/icon.html': (0.42894, 0.51458, 0.51458),
-    'docs/release/play-listing/assets/feature.html': (0.52896,),
+    'docs/release/play-listing/assets/feature.html': (F_EMBLEM,),
 }
+
+# El disco del banner. `feature.html` tiene otros <circle> -los marcadores de plaza-
+# pero ninguno es un par tinta+aro, asi que el patron no los alcanza. Un grafico que
+# NO declara disco no se toca: el icono de Play es una baldosa, no un emblema.
+DISC_PAIR = re.compile(
+    r'<circle cx="[\d.]+" cy="[\d.]+" r="[\d.]+" fill="#0D1117"/>\s*'
+    r'<circle cx="[\d.]+" cy="[\d.]+" r="[\d.]+" fill="none" stroke="#25F48C" '
+    r'stroke-opacity="[\d.]+" stroke-width="[\d.]+"/>')
+
+PLAY_DISCS = {'docs/release/play-listing/assets/feature.html': 1}
 
 MARK_GROUP = re.compile(
     r'<g transform="translate\([\d.]+ [\d.]+\) scale\([\d.]+\)" fill="#25F48C">'
@@ -302,9 +398,8 @@ MARK_GROUP = re.compile(
 
 def play_group(fraction, indent):
     """El grupo del glifo, encuadrado por el circulo envolvente dentro del 108."""
-    s = fraction * 108.0 / 2.0 / MEC_R
-    L = ['<g transform="translate(%.4f %.4f) scale(%.5f)" fill="%s">'
-         % (54 - MEC_C[0] * s, 54 - MEC_C[1] * s, s, GREEN)]
+    tx, ty, sc = emblem_transform(fraction)
+    L = ['<g transform="translate(%.4f %.4f) scale(%.5f)" fill="%s">' % (tx, ty, sc, GREEN)]
     L += ['%s  <path d="%s"/>' % (indent, p) for p in paths()]
     L.append('%s</g>' % indent)
     return '\n'.join(L)
@@ -323,8 +418,20 @@ def write_play():
             indent = ' ' * (m.start() - text.rfind('\n', 0, m.start()) - 1)
             return play_group(next(it), indent)
 
-        io.open(p, 'w', encoding='utf-8', newline='\n').write(MARK_GROUP.sub(sub, text))
-        print('  escrito  %s  (%d grupos)' % (rel, len(fracs)))
+        text = MARK_GROUP.sub(sub, text)
+
+        discs = PLAY_DISCS.get(rel, 0)
+        found_d = DISC_PAIR.findall(text)
+        assert len(found_d) == discs, \
+            '%s: %d discos en el HTML, %d en PLAY_DISCS' % (rel, len(found_d), discs)
+        if discs:
+            def sub_disc(m):
+                pad = ' ' * (m.start() - text.rfind(NL, 0, m.start()) - 1)
+                return (NL + pad).join(disc_circles())
+            text = DISC_PAIR.sub(sub_disc, text)
+
+        io.open(p, 'w', encoding='utf-8', newline='\n').write(text)
+        print('  escrito  %s  (%d grupos, %d discos)' % (rel, len(fracs), discs))
 
 
 # ── Web ─────────────────────────────────────────────────────────────────────
@@ -347,6 +454,25 @@ def mark_mjs():
         L.append('  // %s' % name)
         L.append("  '%s'," % path)
     L.append('];')
+
+    # El EMBLEMA. La web no re-deriva nada: recibe el encuadre ya calculado por la
+    # misma funcion que encuadra el banner, para que no puedan desalinearse.
+    tx, ty, sc = emblem_transform()
+    L += ['',
+          '// El EMBLEMA: la marca SOBRE su disco. Lo llevan la cabecera, el pie, las dos',
+          '// paginas legales y la tarjeta social — no el favicon (glifo de pestana) ni el',
+          '// apple-touch-icon (baldosa que el sistema exige opaca).',
+          '// El disco sostiene un emblema dentro de una composicion ajena; donde la marca',
+          '// llena su caja no lo lleva. Mismo criterio que el banner de Play.',
+          '// La PINTURA no es la del banner, y por contraste medido: el fondo del sitio es',
+          '// --ink #0d1117, el MISMO color que el disco del banner, que ahi daria 1,00:1.',
+          '// Sobre tinta plana el disco que se ve es el verde, con el glifo en tinta:',
+          '// 12,97:1 en los dos sentidos. Sin aro: sobre un disco verde no separa nada.',
+          'export const EMBLEM_BOX = %g;' % EMBLEM_BOX,
+          "export const EMBLEM_DISC_FILL = '%s';" % EMBLEM_SITE['disc'],
+          "export const EMBLEM_MARK_FILL = '%s';" % EMBLEM_SITE['mark'],
+          "export const EMBLEM_TRANSFORM = 'translate(%.4f %.4f) scale(%.5f)';"
+          % (tx, ty, sc)]
     return '\n'.join(L) + '\n'
 
 
@@ -385,6 +511,11 @@ def main():
                    '    profundo sobre claro.', themed=True))
     write('docs/assets/paparcar-logo.svg',
           svg_mark('    Paparcar · la marca, para documentacion. GENERADO.', GREEN))
+    write('docs/assets/paparcar-emblem.svg',
+          emblem_svg('    Paparcar · el EMBLEMA: la marca sobre su disco. GENERADO.\n'
+                     '    Lo rasteriza `render_graphics.sh emblem` y lo pega la tarjeta\n'
+                     '    social de la web. No es una vuelta atras del disco: es el soporte\n'
+                     '    de un emblema dentro de una composicion ajena, con wordmark al lado.'))
     write('web/lib/mark.generated.mjs', mark_mjs())
 
     print()

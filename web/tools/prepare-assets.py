@@ -9,7 +9,9 @@ Three jobs, all of them "reuse what the product already has" rather than invent:
                 exact mistake the Play ticket existed to fix.
   2. ART      — the Compose `illus_*` VectorDrawables converted to plain SVG, so the site's
                 illustrations ARE the app's illustrations, not lookalikes.
-  3. SOCIAL   — the Open Graph card, drawn with the shipped Plus Jakarta Sans variable font.
+  3. SOCIAL   — the Open Graph card, drawn with the shipped Plus Jakarta Sans variable font
+                and the GENERATED brand emblem. Needs no capture session: its phone is the
+                committed `screen-1-es-1080.webp`, so a clean clone can rebuild it.
 
 Output lands in `web/assets/`, which is committed: the build script only copies it.
 """
@@ -166,7 +168,16 @@ def _font(size: int, weight: int) -> ImageFont.FreeTypeFont:
     return f
 
 
-def prepare_social(shot: Path) -> None:
+def prepare_social() -> None:
+    """The Open Graph card: what WhatsApp, Slack, X or iMessage show for a paparcar.com link.
+
+    ⛔ Reproducible from the REPO ALONE, and that is the whole point of this signature having no
+    argument. It used to take `<es-raw>/shot1.png`, a file from the Play capture session that is
+    not versioned — so the card could not be rebuilt, and it sat with the 2022 mark baked into it
+    while every other surface had moved on [WEB-THE-MARK-WEARS-ITS-DISC-ON-THE-SITE-001].
+    The phone now comes from `screen-1-es-1080.webp`, which IS committed and is that same capture
+    after `prepare_screens()` already cropped the status bar — so it must NOT be cropped again.
+    """
     W, H = 1200, 630
     card = Image.new("RGB", (W, H), INK)
     d = ImageDraw.Draw(card)
@@ -179,8 +190,7 @@ def prepare_social(shot: Path) -> None:
         shade = tuple(round(INK[c] + (INK_HIGH[c] - INK[c]) * (1 - t) * 0.5) for c in range(3))
         d.rounded_rectangle(box, radius=320, fill=shade)
 
-    phone = Image.open(shot).convert("RGB")
-    phone = phone.crop((0, STATUS_BAR_PX, phone.width, phone.height))
+    phone = Image.open(OUT_IMG / "screen-1-es-1080.webp").convert("RGB")
     ph = 700
     phone = phone.resize((round(phone.width * ph / phone.height), ph), Image.LANCZOS)
     mask = Image.new("L", phone.size, 0)
@@ -188,7 +198,16 @@ def prepare_social(shot: Path) -> None:
     card.paste(phone, (812, 96), mask)
     d.rounded_rectangle((812, 96, 812 + phone.width, 96 + ph), radius=46, outline=(59, 74, 94), width=3)
 
-    logo = Image.open(ROOT / "docs/release/play-listing/assets/play-icon-512.png").convert("RGBA")
+    # ⛔ El EMBLEMA generado, no el icono de Play. Pegar `play-icon-512.png` aqui era pegar
+    # el icono de OTRA superficie —una baldosa OPACA— y es como la marca de 2022 siguio
+    # viviendo dentro de este JPEG: ningun grep encuentra un logo dentro de una imagen.
+    # Lo genera `render_graphics.sh emblem` desde el maestro, con disco verde porque el fondo
+    # de esta tarjeta es tinta plana, igual que el del sitio.
+    emblem = ROOT / "docs/assets/paparcar-emblem-512.png"
+    if not emblem.is_file():
+        sys.exit(f"missing emblem: {emblem}\n  run: bash docs/release/play-listing/tools/"
+                 f"render_graphics.sh emblem")
+    logo = Image.open(emblem).convert("RGBA")
     logo = logo.resize((84, 84), Image.LANCZOS)
     card.paste(logo, (80, 74), logo)
     d.text((182, 92), "Paparcar", font=_font(46, 800), fill=ON_DARK)
@@ -213,11 +232,18 @@ def prepare_touch_icon() -> None:
 
 
 if __name__ == "__main__":
+    # Las SCREENS son lo unico que necesita los raws de la sesion de Play; el arte, la tarjeta
+    # social y el touch icon salen del repo. Sin argumentos se rehace esa parte, que es la que
+    # tiene que poder reconstruirse en un clon limpio.
     OUT_IMG.mkdir(parents=True, exist_ok=True)
-    if len(sys.argv) < 3:
-        sys.exit("usage: prepare-assets.py <es-raw-dir> <en-raw-dir>")
-    es_dir, en_dir = Path(sys.argv[1]), Path(sys.argv[2])
-    prepare_screens({"es": es_dir, "en": en_dir})
+    if len(sys.argv) not in (1, 3):
+        sys.exit("usage: prepare-assets.py [<es-raw-dir> <en-raw-dir>]\n"
+                 "  sin argumentos: art + social + touch icon (todo desde el repo)")
+    if len(sys.argv) == 3:
+        es_dir, en_dir = Path(sys.argv[1]), Path(sys.argv[2])
+        prepare_screens({"es": es_dir, "en": en_dir})
+    else:
+        print("screens: omitidas (sin raws de sesion)")
     prepare_art({
         "art-drive": ("illus_onb_how_dark", "Coche circulando con la detección activa"),
         "art-nearby": ("illus_onb_nearby_dark", "Plazas libres cerca en el mapa"),
@@ -226,5 +252,5 @@ if __name__ == "__main__":
         "art-welcome": ("illus_onb_welcome_dark", "Coche aparcado y localizado"),
         "art-empty": ("empty_records_dark", "Sin registros todavía"),
     })
-    prepare_social(es_dir / "shot1.png")
+    prepare_social()
     prepare_touch_icon()

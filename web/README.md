@@ -29,7 +29,8 @@ cambio, no después.
 | una feature que la web nombra | `content/es.json` **y** `content/en.json` | ⚠️ solo la paridad de claves |
 | una sección nueva de la home | `pages/home.mjs` + su copy en los dos idiomas + `SECTIONS` en `lib/config.mjs` | ⚠️ solo enlaces y anclas |
 | la política de privacidad o el borrado de cuenta | `hosting/public/*.html` **a mano** (⛔ no son salida del build) | ✅ otro test |
-| el logo, un color, un rol de tipografía | `lib/icons.mjs` · tokens de `assets/css/site.css` | ❌ a ojo |
+| el logo | ⛔ **no se toca aquí**: `docs/branding/master/export_surfaces.py` → `lib/mark.generated.mjs`, y luego `node web/build.mjs` | ✅ `WebSiteParityGuardrailTest` |
+| un color, un rol de tipografía | tokens de `assets/css/site.css` | ❌ a ojo |
 | la UI que sale en las capturas | `tools/prepare-assets.py` con los raws de la sesión de Play | ❌ a ojo |
 | un idioma nuevo | `content/<code>.json` + una línea en `LOCALES` | ⚠️ paridad de claves |
 
@@ -77,6 +78,7 @@ Assets (se regeneran solo cuando cambian las capturas o el arte de la app):
 
 ```bash
 python web/tools/prepare-assets.py <raws-es> <raws-en>   # capturas → WebP, illus_* → SVG, OG card
+python web/tools/prepare-assets.py                       # sin capturas: illus_*, OG card y touch icon
 python web/tools/prepare-font.py                          # Plus Jakarta Sans → woff2 subsetado
 node web/tools/restyle-legal.mjs                          # (ya lo hace el build; suelto solo para depurar)
 ```
@@ -87,7 +89,9 @@ node web/tools/restyle-legal.mjs                          # (ya lo hace el build
 build.mjs              generador (cero dependencias, Node 24)
 content/{es,en}.json   TODO el copy
 lib/config.mjs         los hechos verificables + rutas + locales
-lib/icons.mjs          iconos nivel 1/2 en la rejilla de 24, y el logo con su compensación óptica
+lib/icons.mjs          iconos nivel 1/2 en la rejilla de 24; el EMBLEMA (marca sobre disco) lo
+                       compone desde lib/mark.generated.mjs — aquí no se dibuja nada de marca
+lib/mark.generated.mjs GENERADO por docs/branding/master/export_surfaces.py. No editar.
 lib/components.mjs     eyebrow, botón, tarjeta, móvil, tier, FAQ…
 lib/layout.mjs         head con SEO/hreflang/JSON-LD, cabecera, pie
 pages/                 home · support · terms

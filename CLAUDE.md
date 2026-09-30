@@ -168,15 +168,28 @@ Regla mental: *plumbing de UI → Material; concepto de Paparcar → vector prop
       botones, glifos y marcadores en tema claro.
   ⛔ Los FONDOS de lienzo que siguen existiendo —`ic_launcher_background`, el `apple-touch-icon`,
   el 512 de Play— **no son el disco**: son la baldosa que el sistema exige opaca.
-  ⛔ **UNA excepción, y es del user**: el **gráfico de funciones** de Play (`feature.html`) lleva el
-  disco —tinta `#0D1117` + aro `PapGreen` al 28 %— detrás de la marca
-  [PLAY-THE-BANNER-MARK-KEEPS-ITS-DISC-001, 30-09]. No es una vuelta atrás, y el motivo es
-  medible: la fracción del glifo de ese banner (`0.52896` en `PLAY_FRACTIONS`) se **conservó a
-  propósito** al cambiar de marca, y estaba calculada para vivir DENTRO del disco — sin él la marca
-  queda en ~46 px al lado de un wordmark de 82 y flota. En la app la fracción es `F_MARK = 1.0`, que
-  es exactamente lo contrario: ahí la marca ocupa lo que ocupaba el disco, y por eso no lo necesita.
-  *Regla mental: donde la marca llena su caja, no hay disco; donde es un emblema dentro de una
-  composición ajena, el soporte es legítimo.* Esto **no** abre la puerta a discos en la app.
+  ⛔ **DOS excepciones, y las dos son del user — el criterio que las une es UNO**:
+  *donde la marca llena su caja, no hay disco; donde es un **emblema** dentro de una composición
+  ajena —con un wordmark al lado—, el soporte es legítimo.* Eso se lee en un número: el emblema
+  pone la marca al `F_EMBLEM = 0.52896` de su disco, y la app al `F_MARK = 1.0`, que es justo lo
+  contrario — ahí la marca ocupa lo que ocupaba el disco, y por eso no lo necesita. Las dos
+  excepciones **no** abren la puerta a discos en la app.
+    - **Gráfico de funciones de Play** (`feature.html`) [PLAY-THE-BANNER-MARK-KEEPS-ITS-DISC-001,
+      30-09]: sin disco la marca queda en ~46 px al lado de un wordmark de 82 y flota.
+    - **La web** —cabecera, pie, las dos páginas legales y la tarjeta social—
+      [WEB-THE-MARK-WEARS-ITS-DISC-ON-THE-SITE-001, 30-09].
+  ⛔ **El COLOR del disco lo decide el fondo, y es contraste medido, no gusto.** El banner cae sobre
+  un degradado verdoso (`#15251F → #0D1117`): ahí el disco es de **tinta** `#0D1117` y un aro
+  `PapGreen` al 28 % lo delimita. La web es tinta **plana** (`--ink #0d1117`), que es *exactamente*
+  ese relleno: un disco de tinta daría **1,00:1** — invisible — y dejaría sólo el aro mientras la
+  marca encoge a la mitad. Sobre tinta plana el disco que se ve es el **verde**, con el glifo en
+  tinta: **12,97:1 en los dos sentidos**, y es además el disco que la web ya llevaba antes de 2026.
+  Sin aro: sobre un disco verde, un aro verde al 28 % no separa nada.
+  ⛔ **El disco tampoco se escribe a mano.** Vive en `export_surfaces.py` (`EMBLEM_BANNER` /
+  `EMBLEM_SITE` + `emblem_transform()`), que escribe los dos `<circle>` del banner, las constantes
+  de `web/lib/mark.generated.mjs` y la superficie `docs/assets/paparcar-emblem.svg` — de donde
+  `render_graphics.sh emblem` saca el PNG que pega la tarjeta social. Geometría compartida, pintura
+  por superficie.
   ⛔ La antigua *Compensación Óptica* (trazo de rueda 6 sobre oscuro / 7 sobre claro) **murió, no se
   movió**: la marca nueva no tiene ni un trazo — sus ruedas son coronas rellenas—, así que no hay
   irradiación que compensar.
@@ -187,7 +200,7 @@ Regla mental: *plumbing de UI → Material; concepto de Paparcar → vector prop
   números mágicos: no había de dónde derivarlos. **Si cambia el dibujo, se cambia un parámetro y se
   vuelve a correr el exportador**, y después `node web/build.mjs` (la web hornea el logo en sus
   páginas). A mano sólo quedan los dos HTML de `play-listing/assets/`, que no son plantillas.
-  ⛔ **Su lienzo NO es cuadrado** (`256 × 248`) y la marca es **full bleed**: toca los cuatro bordes.
+  ⛔ **Su lienzo NO es cuadrado** (`244 × 236`) y la marca es **full bleed**: toca los cuatro bordes.
   Las superficies que se encuadran por el círculo envolvente (`frame(fraction)`) no se enteran, pero
   **meter la marca en una caja cuadrada a pelo le corta la rueda derecha o la aplasta**. El ancho y
   el alto se leen de `MARK_W`/`MARK_H` (web) o del `viewBox` del maestro; nunca se asumen iguales.

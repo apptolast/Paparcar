@@ -9,7 +9,13 @@
  * `illus_*` VectorDrawables, converted by `tools/prepare-assets.py`, and bring their own colour.
  */
 
-import { MARK_W, MARK_H, MARK_PATHS } from './mark.generated.mjs';
+import {
+  MARK_PATHS,
+  EMBLEM_BOX,
+  EMBLEM_DISC_FILL,
+  EMBLEM_MARK_FILL,
+  EMBLEM_TRANSFORM,
+} from './mark.generated.mjs';
 
 const glyphs = {
   // ── tier 1 · chrome ────────────────────────────────────────────────────────
@@ -69,36 +75,50 @@ export function icon(name, { className = '', title = '', size = 24 } = {}) {
 }
 
 /**
- * The brand mark.
+ * The brand EMBLEM: the mark on its disc.
  *
- * ⛔ **No disc.** The 2022 mark needed a dark disc behind it to hold up on any surface; this one
- * does not. What still changes with the surface is the GREEN, and for a measured reason:
- * `PapGreen` (#25F48C) on white is **1.42:1** — the disc was covering exactly that. So:
+ * ⛔ **The disc is back on the site, and it is not a rollback of the mark.** Decided by the user
+ * on 30-09 [WEB-THE-MARK-WEARS-ITS-DISC-ON-THE-SITE-001], on the same measured ground as the Play
+ * banner [PLAY-THE-BANNER-MARK-KEEPS-ITS-DISC-001]. The criterion is one line, and it cuts both
+ * ways: *where the mark FILLS its box it needs no disc; where it is an emblem inside someone
+ * else's composition — with a wordmark beside it — the support is legitimate.*
  *
- *   · `surface: 'ink'`   → `#25F48C`, the brand green
- *   · `surface: 'light'` → `#009F5E` (`PapGreenLight`), 3.01:1 — the fill the app already uses
- *                          for buttons, glyphs and markers in light theme
+ * Here the mark sits at `F_EMBLEM` (0.52896) of its disc, next to a `brand__name` wordmark. In the
+ * app the fraction is `F_MARK = 1.0`, the exact opposite: the mark occupies what the disc used to,
+ * which is why it holds on its own there. So this does NOT reopen discs in the app.
  *
- * ⛔ 'ink' is the DEFAULT because this site is Ink from top to bottom.
+ * ⛔ **The disc is GREEN here, not Ink like the banner's — and that is measured, not taste.**
+ * The banner sits on a greenish gradient (#15251F → #0D1117), so an Ink disc reads there as a
+ * darker medallion and a 28%-green ring delineates it. This site's ground is FLAT `--ink #0d1117`,
+ * which is *exactly* that disc's fill: it would land at **1.00:1** — invisible — leaving only the
+ * ring while the mark shrank to half its box. On flat Ink the disc that reads is the green one,
+ * with the glyph in Ink: **12.97:1 both ways**. It is also the disc this site already wore before
+ * the 2026 mark. No ring, for the same reason: on a green disc a 28%-green ring separates nothing.
  *
- * ⛔ The wheel-stroke pair (6 on dark, 7 on light) that used to live here is **gone, not moved**:
- * the mark has no strokes at all any more — its wheels are filled rings. There is nothing left to
- * compensate for irradiation.
+ * ⛔ So the geometry is shared with the banner and only the PAINT differs — `EMBLEM_BANNER` vs
+ * `EMBLEM_SITE` in the exporter. That is the same shape the project already gives colour: one
+ * drawing, a fill chosen by the surface it lands on.
  *
- * ⛔ El dibujo ya no está aquí: llega de `mark.generated.mjs`, que escribe
- * `docs/branding/master/export_surfaces.py` desde el maestro paramétrico. La nota que había en su
- * lugar («si cambia el dibujo, se regenera allí — no se reescribe aquí a mano») pedía a quien
- * pasara por aquí que recordara una regla; ahora no hay dónde reescribirlo.
+ * ⛔ The old `surface: 'ink' | 'light'` knob is **gone, not defaulted**. It picked between two
+ * greens because nothing sat behind the glyph (`PapGreen` on white is 1.42:1); the disc is what
+ * solves that now. A parameter that no longer changes anything is a lie, and no call site passed
+ * it.
  *
- * ⚠️ `size` es la ALTURA. La marca es full-bleed sobre un lienzo que no es cuadrado, así que el
- * ancho se deriva: forzar una caja cuadrada la aplastaría o le cortaría la rueda derecha.
+ * ⛔ Nothing here is drawn by hand: the disc, the ring and the framing transform all come from
+ * `mark.generated.mjs`, written by `docs/branding/master/export_surfaces.py` from the parametric
+ * master — the SAME `emblem_transform()` that frames the banner's glyph, so the two cannot drift.
+ *
+ * ⚠️ `size` is the DISC DIAMETER, and the emblem is square: the disc, not the full-bleed mark,
+ * is what meets the layout now.
  */
-export function logoMark({ size = 40, surface = 'ink', className = 'logo-mark' } = {}) {
-  const fill = surface === 'ink' ? '#25F48C' : '#009F5E';
-  const width = Math.round((size * MARK_W) / MARK_H);
+export function logoMark({ size = 40, className = 'logo-mark' } = {}) {
+  const c = EMBLEM_BOX / 2;
   const paths = MARK_PATHS.map((d) => `<path d="${d}"/>`).join('\n');
-  return `<svg class="${className}" width="${width}" height="${size}" viewBox="0 0 ${MARK_W} ${MARK_H}" fill="${fill}" aria-hidden="true" focusable="false">
+  return `<svg class="${className}" width="${size}" height="${size}" viewBox="0 0 ${EMBLEM_BOX} ${EMBLEM_BOX}" aria-hidden="true" focusable="false">
+<circle cx="${c}" cy="${c}" r="${c}" fill="${EMBLEM_DISC_FILL}"/>
+<g transform="${EMBLEM_TRANSFORM}" fill="${EMBLEM_MARK_FILL}">
 ${paths}
+</g>
 </svg>`;
 }
 

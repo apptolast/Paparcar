@@ -1,6 +1,33 @@
 # WEB-THE-SOCIAL-CARD-STILL-WEARS-THE-2022-MARK-001 · la tarjeta que se ve al compartir paparcar.com lleva el logo retirado
 
-**Estado:** 🔵 Abierto · sin rama · hallazgo del barrido de consumidores de
+**Estado:** ✅ **Done** — resuelto dentro de
+[WEB-THE-MARK-WEARS-ITS-DISC-ON-THE-SITE-001](web-the-mark-wears-its-disc-on-the-site-001.md)
+(30-09-2026), que llegó a la tarjeta por el otro lado: el user pidió revisar dónde más quedaba logo
+por actualizar y decidió que en la web el disco se queda.
+
+> ⛔ **La premisa de «por qué no se arregló» era falsa, y verla caer es lo útil de este doc.**
+> Decía que la tarjeta estaba bloqueada por el raw `es` de la sesión de Play, que no está
+> versionado. Pero `prepare_social()` hacía sobre ese raw lo mismo que `prepare_screens()` ya había
+> hecho —recortar `STATUS_BAR_PX` y escalar— y **su salida sí está versionada**:
+> `web/assets/img/screen-1-es-1080.webp`, 1080×2280 = 2400−120, ya recortada. El fichero que hacía
+> falta llevaba meses en el repo, a un directorio de distancia, escrito por la función de al lado.
+> *Un bloqueo heredado se vuelve a comprobar antes de citarlo.*
+
+Lo que se hizo, contra los dos caminos que este doc planteaba: el **segundo**, el que cierra la
+clase. `prepare_social()` ya no pega `play-icon-512.png` sino el emblema generado desde el maestro
+(`docs/assets/paparcar-emblem.svg` → `render_graphics.sh emblem`), su teléfono sale del webp
+versionado, y la firma se quedó **sin argumentos**: la tarjeta se reconstruye desde el repo solo.
+Verificado regenerando dos veces seguidas — mismo byte (`b1c51d9a…`), y otra vez el mismo tras
+rehacer la cadena entera desde cero.
+
+Y sí hay testigo, aunque no mire dentro de la imagen: `WebSiteParityGuardrailTest` cuenta **quién
+abre** `play-icon-512.png` y exige que sea uno solo —el touch icon, que ES ese icono redimensionado—,
+más la marca generada contra el maestro y el emblema dentro de las páginas construidas. Falsificado
+en los cuatro casos.
+
+---
+
+**Estado original:** 🔵 Abierto · sin rama · hallazgo del barrido de consumidores de
 `PLAY-THE-LISTING-ART-STILL-SHOWS-THE-2022-MARK-001` (29-09-2026).
 
 ## Problema
