@@ -7,6 +7,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Test
 import java.io.File
+import java.security.MessageDigest
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -39,6 +40,8 @@ import kotlin.test.fail
  *     stayed baked inside `og-card.jpg`.
  *  5. That every file the pages load is content-hashed, so no redeploy can be hidden by a cache —
  *     the favicon was the one asset outside that rule, and tabs kept the 2022 mark because of it.
+ *  6. That each published asset is named after the hash of its OWN bytes, which stopped being true
+ *     whenever the build ran from a checkout with different line endings.
  *
  * ## What it deliberately does not do
  *
@@ -404,6 +407,60 @@ class WebSiteParityGuardrailTest {
         }
     }
 
+
+    // ── 8 · a published asset is named after its own bytes ─────────────────
+
+    /**
+     * `publishAssets()` names every asset `name.<sha256[0:8]>.ext`. That name is the ONLY reason a
+     * long cache is safe: a changed file is a different URL. So the name has to actually BE the
+     * hash of the bytes next to it — and for a while it was not.
+     *
+     * The build hashed whatever was on disk, so a text file's name depended on the line endings of
+     * whoever ran it. Measured with one `legal.css`: 4895 bytes with CRLF in the main worktree,
+     * 4755 with LF in the index and in any fresh worktree — same CSS, two names. Building from the
+     * main worktree renamed an asset nobody had touched, twice, and the second time it reached a
+     * commit [WEB-A-BUILD-MUST-NOT-DEPEND-ON-THE-CHECKOUT-001].
+     *
+     * Reading the hash back off the file is the cheapest check there is, and it catches both that
+     * and any rename by hand. `manifest.json` is the one published file that is deliberately NOT
+     * hashed — `firebase.json` carries its own note saying it must never be pinned.
+     */
+    @Test
+    fun `every published asset is named after the hash of its own bytes`() {
+        val root = repoFile(PUBLISHED_ASSETS)
+        assertTrue(root.isDirectory, "missing $PUBLISHED_ASSETS — run `node web/build.mjs`.")
+
+        val files = root.walkTopDown().filter { it.isFile && it.name != "manifest.json" }.toList()
+        assertTrue(
+            files.size >= ASSET_FLOOR,
+            "only ${files.size} published assets; expected at least $ASSET_FLOOR. Did the build run?",
+        )
+
+        for (file in files) {
+            val named = assertNotNull(
+                HASHED_NAME.find(file.name),
+                "${file.name} carries no content hash. Everything under $PUBLISHED_ASSETS is " +
+                    "published by publishAssets(), which names files after their bytes.",
+            )
+            val actual = MessageDigest.getInstance("SHA-256")
+                .digest(file.readBytes())
+                .joinToString("") { "%02x".format(it) }
+                .take(8)
+            assertEquals(
+                named.groupValues[1], actual,
+                buildString {
+                    appendLine("${file.name} is not named after its own bytes (they hash to $actual).")
+                    appendLine()
+                    appendLine("Either it was renamed by hand, or it was built from a checkout whose")
+                    appendLine("line endings differ — the build normalises text to LF before hashing")
+                    appendLine("precisely so that cannot happen.")
+                    appendLine()
+                    appendLine("  node web/build.mjs --check")
+                },
+            )
+        }
+    }
+
     // ── plumbing ──────────────────────────────────────────────────────────────
 
     /** `export const NAME = 'value'` → map. Only the string constants: those are the facts. */
@@ -499,6 +556,14 @@ class WebSiteParityGuardrailTest {
         const val SITE_ICONS = "web/lib/icons.mjs"
         const val PREPARE_ASSETS = "web/tools/prepare-assets.py"
         const val EMBLEM_RASTER = "paparcar-emblem-512.png"
+
+        const val PUBLISHED_ASSETS = "hosting/public/assets"
+
+        /** The hash out of a published name. */
+        val HASHED_NAME = Regex("""\.([0-9a-f]{8})\.[a-z0-9]+$""")
+
+        /** Measured at 65 published assets on 30-09-2026; the floor sits well under it. */
+        const val ASSET_FLOOR = 30
 
         /** `name.<8 hex>.ext` — what `publishAssets()` writes. */
         val HASHED = Regex("""\.[0-9a-f]{8}\.[a-z0-9]+$""")

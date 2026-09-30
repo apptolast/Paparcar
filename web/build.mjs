@@ -34,6 +34,25 @@ const ASSETS_OUT = join(OUT, 'assets');
 
 const PAGES = { home, support, terms };
 
+/**
+ * Text that this build writes goes out with LF, whatever the checkout has on disk.
+ *
+ * ⛔ Not cosmetics: `publishAssets()` names every asset after the sha256 of its bytes, so without
+ * this the NAME of a text file depends on the line endings of whoever runs the build. Measured on
+ * 30-09-2026 with the same `legal.css` in two places of this repo: 4895 bytes with CRLF in the main
+ * worktree (`223eea16`) against 4755 with LF in the index and in any fresh worktree (`c62e5db9`) —
+ * same CSS, two names. Building from the main worktree renamed an asset nobody had touched, twice
+ * [WEB-A-BUILD-MUST-NOT-DEPEND-ON-THE-CHECKOUT-001].
+ *
+ * `.gitattributes` already declares `eol=lf`; this is the build honouring it.
+ *
+ * ⛔ By EXTENSION, never by sniffing: normalising a png, a webp or a woff2 corrupts it. Anything
+ * not on this list is copied byte for byte.
+ */
+const TEXT_EXT = new Set(['css', 'js', 'mjs', 'svg', 'json', 'map', 'txt', 'webmanifest', 'xml', 'html']);
+const isText = (name) => TEXT_EXT.has(name.split('.').pop().toLowerCase());
+const toLf = (bytes) => Buffer.from(bytes.toString('utf8').replace(/\r\n/g, '\n'), 'utf8');
+
 /** Files in `hosting/public` this build must never create, delete or overwrite. */
 const HAND_WRITTEN = ['privacy-policy.html', 'delete-account.html', 'favicon.svg'];
 
@@ -109,6 +128,8 @@ async function publishAssets() {
 
   for (const rel of [...files.filter((f) => !isReferencing(f)), ...files.filter(isReferencing)]) {
     let bytes = await readFile(join(from, rel));
+    // ⛔ Antes de hashear, no despues: el hash ES el nombre.
+    if (isText(rel)) bytes = toLf(bytes);
     if (isReferencing(rel)) {
       bytes = Buffer.from(
         bytes.toString('utf8').replace(/\/assets\/([\w./-]+)/g, (whole, path) =>
@@ -128,6 +149,9 @@ async function publishAssets() {
 }
 
 async function emit(path, contents) {
+  // Las paginas salen de literales de plantilla en ficheros `.mjs`, asi que un `.mjs` con CRLF
+  // meteria `\r` en el HTML por la misma puerta que lo metia en los assets.
+  if (typeof contents === 'string') contents = contents.replace(/\r\n/g, '\n');
   const full = join(OUT, path);
   await mkdir(dirname(full), { recursive: true });
   await writeFile(full, contents, 'utf8');
