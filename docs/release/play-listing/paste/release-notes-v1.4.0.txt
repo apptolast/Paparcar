@@ -70,7 +70,7 @@
 • Miejsce wywnioskowane nie wygląda już jak zmierzone.
 • Nowy wygląd: znak 2026 na każdym ekranie.
 </pl-PL>
-<ro-RO>
+<ro>
 • Răspunde la o călătorie din ecranul principal: widget nou, fără a deschide aplicația.
 • Locurile libere de lângă tine ajung pe hartă și nu mai cer Plus.
 • Înălțimea mașinii contează: o înălțime necunoscută nu e niciodată un «încapi».
@@ -78,4 +78,4 @@
 • Parcările publice își arată tariful pe hartă.
 • Un loc dedus nu mai arată ca unul măsurat.
 • Imagine nouă: marca 2026, pe fiecare ecran.
-</ro-RO>
+</ro>

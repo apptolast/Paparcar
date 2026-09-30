@@ -56,7 +56,7 @@ pega, aquí. [PLAY-A-LISTING-MUST-MATCH-THE-BUILD-IN-PRODUCTION-001]
 | de-DE | `Paparcar: wo hast du geparkt` | 28/30 |
 | nl-NL | `Paparcar: waar staat je auto` | 28/30 |
 | pl-PL | `Paparcar: gdzie zaparkowałeś` | 28/30 |
-| ro-RO | `Paparcar: unde ai parcat` | 24/30 |
+| ro | `Paparcar: unde ai parcat` | 24/30 |
 
 ---
 
@@ -78,7 +78,7 @@ pega, aquí. [PLAY-A-LISTING-MUST-MATCH-THE-BUILD-IN-PRODUCTION-001]
 | de-DE | `Wo hast du geparkt? Paparcar merkt es sich — mit Spritpreisen und Parkhäusern.` |
 | nl-NL | `Waar heb je geparkeerd? Paparcar onthoudt het. Met brandstofprijzen.` |
 | pl-PL | `Gdzie zaparkowałeś? Paparcar pamięta. Z cenami paliw i parkingami.` |
-| ro-RO | `Unde ai parcat? Paparcar ține minte. Cu prețuri și parcări publice.` |
+| ro | `Unde ai parcat? Paparcar ține minte. Cu prețuri și parcări publice.` |
 
 ### Alternativa — DESCARTADA (era el texto del 29-08)
 
@@ -708,7 +708,7 @@ Polityka prywatności:
 https://paparcar.com/privacy-policy
 ```
 
-### ro-RO
+### ro
 
 ```
 Unde ai parcat?

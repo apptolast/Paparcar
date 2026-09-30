@@ -672,7 +672,7 @@ https://paparcar.com/privacy-policy
 
 ---
 
-## Locale: ro-RO
+## Locale: ro
 
 ### App name
 Paparcar: unde ai parcat

@@ -17,7 +17,7 @@ import os
 import re
 import sys
 
-LOCALES = ["en-US", "es-ES", "it-IT", "pt-PT", "fr-FR", "de-DE", "nl-NL", "pl-PL", "ro-RO"]
+LOCALES = ["en-US", "es-ES", "it-IT", "pt-PT", "fr-FR", "de-DE", "nl-NL", "pl-PL", "ro"]
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 LISTING_DIR = os.path.dirname(HERE)
@@ -42,10 +42,15 @@ def _section(md, marker):
 
 
 def _table(md, marker):
-    """{locale: texto} de una tabla cuyas filas son: pipe, locale, pipe, texto entre backticks."""
+    """{locale: texto} de una tabla cuyas filas son: pipe, locale, pipe, texto entre backticks.
+
+    ⛔ La región es OPCIONAL. Ocho de los nueve locales de Play la llevan y el rumano NO: su
+    código es `ro` a secas. Con `[a-z]{2}-[A-Z]{2}` el parser no podía ni verlo.
+    [PLAY-A-LOCALE-CODE-IS-PLAYS-NOT-ANDROIDS-001]
+    """
     out = {}
     for line in _section(md, marker).splitlines():
-        m = re.match(r"^\|\s*([a-z]{2}-[A-Z]{2})\s*\|\s*`(.+?)`\s*\|", line)
+        m = re.match(r"^\|\s*([a-z]{2}(?:-[A-Z]{2})?)\s*\|\s*`(.+?)`\s*\|", line)
         if m:
             out[m.group(1)] = m.group(2)
     return out
@@ -55,7 +60,7 @@ def _full_descriptions(md):
     """{locale: texto} de los fences bajo `## Descripción completa`."""
     body = md[md.index("## Descripción completa"):]
     out = {}
-    for m in re.finditer(r"^### ([a-z]{2}-[A-Z]{2})\s*\n+```\n(.*?)\n```", body, re.S | re.M):
+    for m in re.finditer(r"^### ([a-z]{2}(?:-[A-Z]{2})?)\s*\n+```\n(.*?)\n```", body, re.S | re.M):
         out[m.group(1)] = m.group(2)
     return out
 

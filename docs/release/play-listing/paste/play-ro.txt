@@ -1,4 +1,4 @@
-FICHA DE PLAY STORE — ro-RO
+FICHA DE PLAY STORE — ro
 ============================================================
 GENERADO por tools/make_paste.py desde LISTING-v1.3.0.md — no editar a mano.
 

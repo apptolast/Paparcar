@@ -42,7 +42,7 @@ IA de Play: no conoce la tabla de vocabulario de arriba ni los topes de 30 / 80 
 | `values-de` | `de-DE` | |
 | `values-nl` | `nl-NL` | |
 | `values-pl` | `pl-PL` | |
-| `values-ro` | `ro-RO` | |
+| `values-ro` | `ro` | |
 
 ---
 
@@ -509,7 +509,7 @@ https://paparcar.com/privacy-policy
 
 ---
 
-## ro-RO
+## ro
 
 ### Nombre (30)
 ```

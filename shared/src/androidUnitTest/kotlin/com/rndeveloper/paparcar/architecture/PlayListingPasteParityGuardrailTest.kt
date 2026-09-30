@@ -136,7 +136,7 @@ class PlayListingPasteParityGuardrailTest {
 
     /** Locale to text, from the table rows a marker introduces: pipe, locale, pipe, backticked text. */
     private fun table(md: String, marker: String): Map<String, String> =
-        Regex("""^\|\s*([a-z]{2}-[A-Z]{2})\s*\|\s*`(.+?)`\s*\|""", RegexOption.MULTILINE)
+        Regex("""^\|\s*([a-z]{2}(?:-[A-Z]{2})?)\s*\|\s*`(.+?)`\s*\|""", RegexOption.MULTILINE)
             .findAll(section(md, marker))
             .associate { it.groupValues[1] to it.groupValues[2] }
 
@@ -145,7 +145,7 @@ class PlayListingPasteParityGuardrailTest {
         val heading = md.indexOf(FULL_DESCRIPTION_HEADING)
         if (heading < 0) fail("$LISTING_SOURCE has no '$FULL_DESCRIPTION_HEADING' heading")
         return Regex(
-            """^### ([a-z]{2}-[A-Z]{2})\s*\n+```\n(.*?)\n```""",
+            """^### ([a-z]{2}(?:-[A-Z]{2})?)\s*\n+```\n(.*?)\n```""",
             setOf(RegexOption.MULTILINE, RegexOption.DOT_MATCHES_ALL),
         )
             .findAll(md.substring(heading))
@@ -166,7 +166,7 @@ class PlayListingPasteParityGuardrailTest {
         const val FULL_DESCRIPTION_HEADING = "## Descripción completa"
 
         /** The nine the app ships, in the order the generator writes them. */
-        val LOCALES = listOf("en-US", "es-ES", "it-IT", "pt-PT", "fr-FR", "de-DE", "nl-NL", "pl-PL", "ro-RO")
+        val LOCALES = listOf("en-US", "es-ES", "it-IT", "pt-PT", "fr-FR", "de-DE", "nl-NL", "pl-PL", "ro")
         const val LOCALE_COUNT = 9
 
         /** Play's own ceiling, and a floor at under a third of it: measured at ~3.700 chars on 27-09. */

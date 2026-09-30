@@ -95,7 +95,7 @@ ofrecía dos tablas y `paste/` llevaba la otra (la del 29-08, «y tu plaza pasa 
 | de-DE | 28/30 | 78/80 | 3.956/4.000 |
 | nl-NL | 28/30 | 68/80 | 3.771/4.000 |
 | pl-PL | 28/30 | 66/80 | 3.628/4.000 |
-| ro-RO | 24/30 | 67/80 | 3.673/4.000 |
+| ro | 24/30 | 67/80 | 3.673/4.000 |
 
 ⛔ **fr-FR va a 11 caracteres del tope y it-IT no tiene ni uno de margen en el nombre.** Cualquier
 añadido al copy hay que medirlo ahí primero, no en en-US.

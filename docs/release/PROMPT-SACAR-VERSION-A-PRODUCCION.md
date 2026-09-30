@@ -30,7 +30,7 @@ pendiente de mí.
 
 - **Publicado**: Paparcar **1.0.0** (versionCode 10), en producción desde el 05-09-2026. La ficha ya
   está completa en 9 idiomas: **en-US** (predeterminada), **es-ES, it-IT, pt-PT, fr-FR, de-DE, nl-NL,
-  pl-PL, ro-RO**, con 8 capturas de teléfono y gráfico de funciones localizado por idioma.
+  pl-PL, ro**, con 8 capturas de teléfono y gráfico de funciones localizado por idioma.
 - **Lo que sale ahora**: **1.1.0**. El AAB lo compilo y lo subo yo — tú no tocas el binario ni la
   versión. Tu trabajo es la ficha y los formularios de contenido.
 - **Título y descripción breve actuales** (no los cambies sin decírmelo; están medidos y encadenan
