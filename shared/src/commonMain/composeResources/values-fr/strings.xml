@@ -201,6 +201,12 @@
     <!-- SettingsScreen -->
     <string name="settings_title">Paramètres</string>
     <string name="settings_profile_logout">Se d&#xE9;connecter</string>
+    <string name="settings_profile_email_verified">Vérifié</string>
+    <string name="settings_profile_email_unverified">Non confirmé</string>
+    <string name="settings_profile_email_verify_why">Confirme ton e-mail pour ne pas perdre l'accès par mot de passe.</string>
+    <string name="settings_profile_email_verify_cta">Envoyer le lien</string>
+    <string name="settings_profile_email_verify_sent">Lien envoyé</string>
+    <string name="settings_profile_email_verify_error">Nous n'avons pas pu envoyer l'e-mail. Réessaie dans un instant.</string>
     <string name="settings_profile_name_placeholder">Utilisateur</string>
     <string name="settings_section_appearance">Apparence</string>
     <string name="settings_theme_mode">Thème</string>

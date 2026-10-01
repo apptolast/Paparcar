@@ -79,7 +79,14 @@ class FakeAuthRepository(
 
     override suspend fun updatePassword(newPassword: String): Result<Unit> = Result.success(Unit)
 
-    override suspend fun sendEmailVerification(): Result<Unit> = Result.success(Unit)
+    var sendEmailVerificationResult: Result<Unit> = Result.success(Unit)
+    var sendEmailVerificationCallCount = 0
+        private set
+
+    override suspend fun sendEmailVerification(): Result<Unit> {
+        sendEmailVerificationCallCount++
+        return sendEmailVerificationResult
+    }
 
     override suspend fun reauthenticate(credentials: Credentials): AuthResult =
         AuthResult.Failure(AuthError.Unknown("stub"))
@@ -109,6 +116,14 @@ class FakeAuthRepository(
             userId: String = "user-123",
             email: String = "test@paparcar.io",
             displayName: String = "Test User",
-        ) = UserSession(userId = userId, email = email, displayName = displayName, photoUrl = null)
+            /** Por defecto FALSE, igual que una cuenta de contraseña recién creada en Firebase. [AUTH-AN-UNCONFIRMED-EMAIL-MUST-SAY-SO-001] */
+            isEmailVerified: Boolean = false,
+        ) = UserSession(
+            userId = userId,
+            email = email,
+            displayName = displayName,
+            photoUrl = null,
+            isEmailVerified = isEmailVerified,
+        )
     }
 }

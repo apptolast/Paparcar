@@ -177,3 +177,50 @@ private fun SettingsDetectionReadyPreview() {
         )
     }
 }
+
+// ── Estado del correo [AUTH-AN-UNCONFIRMED-EMAIL-MUST-SAY-SO-001] ───────────────────────
+
+@Preview(name = "Settings — correo verificado", showBackground = true)
+@Composable
+private fun SettingsEmailVerifiedPreview() {
+    PaparcarTheme(darkTheme = false) {
+        SettingsContent(
+            state = SettingsState(userProfile = loggedInProfile, emailVerified = true),
+        )
+    }
+}
+
+@Preview(name = "Settings — correo sin confirmar", showBackground = true)
+@Composable
+private fun SettingsEmailUnverifiedPreview() {
+    PaparcarTheme(darkTheme = false) {
+        SettingsContent(
+            state = SettingsState(userProfile = loggedInProfile, emailVerified = false),
+        )
+    }
+}
+
+@Preview(name = "Settings — correo sin confirmar · oscuro", showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun SettingsEmailUnverifiedDarkPreview() {
+    PaparcarTheme(darkTheme = true) {
+        SettingsContent(
+            state = SettingsState(userProfile = loggedInProfile, emailVerified = false),
+        )
+    }
+}
+
+@Preview(name = "Settings — correo · enlace ya enviado", showBackground = true)
+@Composable
+private fun SettingsEmailVerificationSentPreview() {
+    PaparcarTheme(darkTheme = false) {
+        SettingsContent(
+            state = SettingsState(
+                userProfile = loggedInProfile,
+                emailVerified = false,
+                emailVerificationSent = true,
+            ),
+        )
+    }
+}

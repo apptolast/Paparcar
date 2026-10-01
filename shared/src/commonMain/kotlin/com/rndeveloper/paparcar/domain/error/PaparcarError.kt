@@ -39,6 +39,10 @@ sealed class PaparcarError : Exception() {
         /** The operation requires an authenticated user but no active session was found. */
         data object NotAuthenticated : Auth()
         data object DeleteFailed : Auth()
+        /** El correo de confirmación no salió. Caso PROPIO y no [DeleteFailed] porque el `when`
+         *  de Ajustes colapsaba toda la rama `Auth` en «no se pudo borrar la cuenta»: un fallo al
+         *  confirmar el correo se habría leído como un borrado fallido. [AUTH-AN-UNCONFIRMED-EMAIL-MUST-SAY-SO-001] */
+        data object VerificationEmailFailed : Auth()
     }
 
     sealed class Parking : PaparcarError() {

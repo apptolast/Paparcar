@@ -55,6 +55,7 @@ class SettingsViewModel(
         observeActiveVehicle()
         observeReliability()
         observeEntitlement()
+        refreshEmailVerification()
         viewModelScope.launch {
             val userId = authRepository.getCurrentSession()?.userId
             if (userId != null) {
@@ -63,6 +64,53 @@ class SettingsViewModel(
                     .catch { e -> PaparcarLogger.w(TAG, "Failed to observe profile", e) }
                     .launchIn(viewModelScope)
             }
+        }
+    }
+
+    /**
+     * Lee del AUTH si el correo está confirmado, recargando ANTES la sesión. [AUTH-AN-UNCONFIRMED-EMAIL-MUST-SAY-SO-001]
+     *
+     * ⛔ El `refreshSession()` no es un extra: sin él, quien pulsa el enlace del correo y vuelve a
+     * la app seguiría leyendo «sin confirmar» **para siempre**, porque `isEmailVerified` viene de la
+     * sesión cacheada y nada la invalida.
+     *
+     * Best-effort, con el mismo patrón que ya usa `GetOrCreateUserProfileUseCase`: si la recarga
+     * falla, el flag se queda **como estaba**. No se invierte ni se borra — eso sería afirmar algo
+     * que no sabemos, y pintaría «sin confirmar» a quien sí lo tiene.
+     */
+    private fun refreshEmailVerification() {
+        viewModelScope.launch {
+            runCatching { authRepository.refreshSession() }
+                .onFailure { e -> PaparcarLogger.w(TAG, "refreshSession threw", e) }
+            val verified = authRepository.getCurrentSession()?.isEmailVerified
+            if (verified != null) updateState { copy(emailVerified = verified) }
+        }
+    }
+
+    /**
+     * Manda el correo de confirmación. [AUTH-AN-UNCONFIRMED-EMAIL-MUST-SAY-SO-001]
+     *
+     * ⛔ Directo al repositorio y sin caso de uso: el criterio de este ViewModel — escrito en su
+     * propio [SignOutUseCase] — es *¿orquesta consecuencias?*. Salir sí (retira los tokens de push);
+     * esto no toca Room, ni Firestore, ni push, ni geocercas. Un caso de uso aquí sería un
+     * passthrough. [DET-VERDICT-NOT-PREDICATE-001]
+     *
+     * El éxito NO marca el correo como confirmado: lo único que sabemos es que el enlace salió.
+     * Confirmarlo es cosa del usuario, y lo detecta [refreshEmailVerification] al volver.
+     */
+    private fun sendEmailVerification() {
+        if (state.value.isSendingEmailVerification || state.value.emailVerificationSent) return
+        updateState { copy(isSendingEmailVerification = true) }
+        viewModelScope.launch {
+            authRepository.sendEmailVerification()
+                .onSuccess {
+                    updateState { copy(isSendingEmailVerification = false, emailVerificationSent = true) }
+                }
+                .onFailure { e ->
+                    updateState { copy(isSendingEmailVerification = false) }
+                    PaparcarLogger.e(TAG, "Failed to send the verification email", e)
+                    sendEffect(SettingsEffect.ShowError(PaparcarError.Auth.VerificationEmailFailed))
+                }
         }
     }
 
@@ -272,6 +320,7 @@ class SettingsViewModel(
                 sendEffect(SettingsEffect.NavigateToLicenses)
             is SettingsIntent.OpenContact ->
                 sendEffect(SettingsEffect.OpenUrl(CONTACT_MAILTO))
+            is SettingsIntent.SendEmailVerification -> sendEmailVerification()
             is SettingsIntent.RequestSendDiagnostics ->
                 updateState { copy(showSendDiagnosticsConfirmation = true) }
             is SettingsIntent.UpdateDiagnosticsMessage ->

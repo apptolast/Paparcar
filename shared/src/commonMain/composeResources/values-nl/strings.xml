@@ -202,6 +202,12 @@
     <!-- SettingsScreen -->
     <string name="settings_title">Instellingen</string>
     <string name="settings_profile_logout">Uitloggen</string>
+    <string name="settings_profile_email_verified">Bevestigd</string>
+    <string name="settings_profile_email_unverified">Niet bevestigd</string>
+    <string name="settings_profile_email_verify_why">Bevestig je e-mailadres, zodat je de toegang met wachtwoord niet kwijtraakt.</string>
+    <string name="settings_profile_email_verify_cta">Link sturen</string>
+    <string name="settings_profile_email_verify_sent">Link verstuurd</string>
+    <string name="settings_profile_email_verify_error">We konden de e-mail niet versturen. Probeer het straks opnieuw.</string>
     <string name="settings_profile_name_placeholder">Gebruiker</string>
     <string name="settings_section_appearance">Weergave</string>
     <string name="settings_theme_mode">Thema</string>

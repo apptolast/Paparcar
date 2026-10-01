@@ -1,7 +1,18 @@
 # AUTH-EMAIL-VERIFICATION-AS-AN-OPT-IN-SETTING-001 · verificación de correo (post-1.0)
 
-**Estado:** 🟡 sin rama ni código, pero **ya no bloqueado** · anotada 03-09-2026 · desbloqueada
-15-09-2026 por [BUILD-DEPS-AT-LATEST-STABLE-002]
+**Estado:** ✅ **Done — implementado por [AUTH-AN-UNCONFIRMED-EMAIL-MUST-SAY-SO-001]** (`auth-an-unconfirmed-email-must-say-so-001.md`),
+01-10-2026. Anotada 03-09-2026, desbloqueada 15-09 por [BUILD-DEPS-AT-LATEST-STABLE-002].
+
+Salió **en Ajustes**, como este ticket proponía y el user confirmó el 15-09, con una diferencia sobre
+el boceto de abajo: el estado se muestra **siempre** — también cuando el correo ya está confirmado —,
+por transparencia (decisión del user, 01-10-2026). Y **sin muro en el registro**, que es lo que este
+ticket ya pedía: `RegisterEffect.EmailVerificationRequired` sigue sin usarse, porque la app no bloquea
+la entrada por un correo sin confirmar.
+
+⚠️ Lo que **no** cierra, y hay que saberlo: enviar el correo no verifica nada — hace falta que el
+usuario **pulse** el enlace. Así que el agujero por el que una cuenta de contraseña pierde su credencial
+al entrar con Google queda **cerrado solo para quien complete la verificación**. Cerrarlo del todo
+exigiría el muro que se descartó a propósito.
 
 ## 🔑 La mitad-librería ya existe: BaseLogin 3.0.0 expone el gancho
 

@@ -354,6 +354,12 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <!-- SettingsScreen -->
     <string name="settings_title">Settings</string>
     <string name="settings_profile_logout">Log out</string>
+    <string name="settings_profile_email_verified">Verified</string>
+    <string name="settings_profile_email_unverified">Not confirmed</string>
+    <string name="settings_profile_email_verify_why">Confirm your email so you don't lose password access.</string>
+    <string name="settings_profile_email_verify_cta">Send link</string>
+    <string name="settings_profile_email_verify_sent">Link sent</string>
+    <string name="settings_profile_email_verify_error">We couldn't send the email. Try again in a moment.</string>
     <string name="settings_profile_delete_account">Delete account</string>
     <string name="settings_delete_account_confirm_title">Delete account?</string>
     <string name="settings_delete_account_confirm_message">All your data will be permanently deleted. This action cannot be undone.</string>

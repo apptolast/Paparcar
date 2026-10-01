@@ -2831,6 +2831,23 @@ private val galleryGroups: List<ScreenGroup> = listOf(
         listOf(
             Variant("Con perfil") { SettingsContent(state = SettingsState(userProfile = sampleProfile)) },
             Variant("Sin perfil") { SettingsContent(state = SettingsState(userProfile = null)) },
+            // [AUTH-AN-UNCONFIRMED-EMAIL-MUST-SAY-SO-001] El estado del correo se ve SIEMPRE, por transparencia:
+            // los tres estados que puede tomar la fila, incluido el `null` que no pinta nada.
+            Variant("Correo verificado") {
+                SettingsContent(state = SettingsState(userProfile = sampleProfile, emailVerified = true))
+            },
+            Variant("Correo sin confirmar") {
+                SettingsContent(state = SettingsState(userProfile = sampleProfile, emailVerified = false))
+            },
+            Variant("Correo sin confirmar · enlace ya enviado") {
+                SettingsContent(
+                    state = SettingsState(
+                        userProfile = sampleProfile,
+                        emailVerified = false,
+                        emailVerificationSent = true,
+                    ),
+                )
+            },
             // [WIDGET-ACTIONS-002] La fila "añadir el widget" solo existe cuando el launcher
             // soporta el pin sheet — esta es su cara visible.
             Variant("Con fila de widget (launcher con pin)") {

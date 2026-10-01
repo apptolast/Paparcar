@@ -54,4 +54,7 @@ sealed class SettingsIntent {
     data object ConfirmDeleteAccount : SettingsIntent()
     data object DismissDeleteAccount : SettingsIntent()
     data object Logout : SettingsIntent()
+
+    /** Pide el correo de confirmación para la cuenta activa. [AUTH-AN-UNCONFIRMED-EMAIL-MUST-SAY-SO-001] */
+    data object SendEmailVerification : SettingsIntent()
 }

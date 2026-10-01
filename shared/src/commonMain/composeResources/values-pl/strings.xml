@@ -201,6 +201,12 @@
     <!-- SettingsScreen -->
     <string name="settings_title">Ustawienia</string>
     <string name="settings_profile_logout">Wyloguj si&#x0119;</string>
+    <string name="settings_profile_email_verified">Potwierdzony</string>
+    <string name="settings_profile_email_unverified">Niepotwierdzony</string>
+    <string name="settings_profile_email_verify_why">Potwierdź swój e-mail, żeby nie stracić dostępu przez hasło.</string>
+    <string name="settings_profile_email_verify_cta">Wyślij link</string>
+    <string name="settings_profile_email_verify_sent">Link wysłany</string>
+    <string name="settings_profile_email_verify_error">Nie udało się wysłać e-maila. Spróbuj za chwilę.</string>
     <string name="settings_profile_name_placeholder">U&#x017C;ytkownik</string>
     <string name="settings_section_appearance">Wygląd</string>
     <string name="settings_theme_mode">Motyw</string>

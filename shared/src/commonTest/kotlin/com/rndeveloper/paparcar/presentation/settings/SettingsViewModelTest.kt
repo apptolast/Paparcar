@@ -16,6 +16,7 @@ import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
 import com.rndeveloper.paparcar.domain.usecase.user.DeleteAccountUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.SetFirstStepsDismissedUseCase
+import com.apptolast.baselogin.domain.model.AuthState
 import com.rndeveloper.paparcar.fakes.FakeAppPreferences
 import com.rndeveloper.paparcar.fakes.FakeAuthRepository
 import com.rndeveloper.paparcar.fakes.testSignOutUseCase
@@ -122,6 +123,83 @@ class SettingsViewModelTest {
             com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase(entitlementRepo),
             widgetPinRequester,
         )
+    }
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+
+    // ── Estado del correo [AUTH-AN-UNCONFIRMED-EMAIL-MUST-SAY-SO-001] ─────────
+
+    @Test
+    fun `should_reportVerified_when_theSessionSaysTheEmailIsConfirmed`() = runTest {
+        auth.emitState(AuthState.Authenticated(FakeAuthRepository.authenticatedSession(isEmailVerified = true)))
+        val vm = buildVm()
+        assertEquals(true, vm.state.value.emailVerified)
+    }
+
+    @Test
+    fun `should_reportUnverified_when_theSessionSaysTheEmailIsNotConfirmed`() = runTest {
+        auth.emitState(AuthState.Authenticated(FakeAuthRepository.authenticatedSession(isEmailVerified = false)))
+        val vm = buildVm()
+        assertEquals(false, vm.state.value.emailVerified)
+    }
+
+    /**
+     * El refresco NO es opcional: sin él, quien confirma pulsando el enlace del correo seguiría
+     * leyendo «sin confirmar» para siempre, porque el flag viene de la sesión cacheada y nada la
+     * invalida.
+     */
+    @Test
+    fun `should_reloadTheSession_when_settingsOpens`() = runTest {
+        // El @BeforeTest ya construyó un ViewModel: ESA es la apertura de Ajustes que cuenta.
+        // Construir otro aquí contaría dos aperturas y el test afirmaría algo que el producto
+        // no hace.
+        assertEquals(1, auth.refreshSessionCallCount)
+    }
+
+    @Test
+    fun `should_markSent_when_theVerificationEmailGoesOut`() = runTest {
+        auth.emitState(AuthState.Authenticated(FakeAuthRepository.authenticatedSession(isEmailVerified = false)))
+        val vm = buildVm()
+        vm.handleIntent(SettingsIntent.SendEmailVerification)
+        assertTrue(vm.state.value.emailVerificationSent)
+        assertFalse(vm.state.value.isSendingEmailVerification)
+        assertEquals(1, auth.sendEmailVerificationCallCount)
+    }
+
+    /**
+     * Un envío fallido no puede dejar el botón en «enviado»: el usuario se quedaría esperando un
+     * correo que no salió, que es exactamente el fallo que cerró
+     * [AUTH-A-FAILED-SIGN-IN-MUST-NAME-THE-OTHER-DOOR-001].
+     */
+    @Test
+    fun `should_notMarkSent_when_theSendFails`() = runTest {
+        auth.emitState(AuthState.Authenticated(FakeAuthRepository.authenticatedSession(isEmailVerified = false)))
+        auth.sendEmailVerificationResult = Result.failure(IllegalStateException("boom"))
+        val vm = buildVm()
+        vm.handleIntent(SettingsIntent.SendEmailVerification)
+        assertFalse(vm.state.value.emailVerificationSent)
+        assertFalse(vm.state.value.isSendingEmailVerification)
+    }
+
+    /**
+     * Y el badge NO se mueve por haber enviado: lo único que sabemos es que el enlace salió, no que
+     * nadie lo haya pulsado. Confirmarlo es cosa del usuario.
+     */
+    @Test
+    fun `should_leaveTheBadgeUntouched_when_theEmailIsSent`() = runTest {
+        auth.emitState(AuthState.Authenticated(FakeAuthRepository.authenticatedSession(isEmailVerified = false)))
+        val vm = buildVm()
+        vm.handleIntent(SettingsIntent.SendEmailVerification)
+        assertEquals(false, vm.state.value.emailVerified)
+    }
+
+    @Test
+    fun `should_notSendTwice_when_itWasAlreadySent`() = runTest {
+        auth.emitState(AuthState.Authenticated(FakeAuthRepository.authenticatedSession(isEmailVerified = false)))
+        val vm = buildVm()
+        vm.handleIntent(SettingsIntent.SendEmailVerification)
+        vm.handleIntent(SettingsIntent.SendEmailVerification)
+        assertEquals(1, auth.sendEmailVerificationCallCount)
     }
 
     // ── Init ──────────────────────────────────────────────────────────────────

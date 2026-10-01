@@ -65,6 +65,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -94,6 +95,7 @@ import com.rndeveloper.paparcar.domain.permissions.RequiredPermission
 import com.rndeveloper.paparcar.domain.preferences.ThemeMode
 import com.rndeveloper.paparcar.presentation.permissions.PermissionsFocus
 import com.rndeveloper.paparcar.ui.components.PapAlertDialog
+import com.rndeveloper.paparcar.ui.components.PapBadge
 import com.rndeveloper.paparcar.ui.components.PapCollapsingTopBarScaffold
 import com.rndeveloper.paparcar.ui.components.PapDangerCard
 import com.rndeveloper.paparcar.ui.components.PapDialogAccent
@@ -101,6 +103,7 @@ import com.rndeveloper.paparcar.ui.components.PapDialogAction
 import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.ui.components.PapIconTile
 import com.rndeveloper.paparcar.ui.components.PapInfoRow
+import com.rndeveloper.paparcar.ui.components.PapStatusBadge
 import com.rndeveloper.paparcar.ui.components.PapListItem
 import com.rndeveloper.paparcar.ui.components.PapNavChevron
 import com.rndeveloper.paparcar.ui.components.PapNavRow
@@ -181,6 +184,12 @@ import paparcar.composeapp.generated.resources.settings_notif_parking
 import paparcar.composeapp.generated.resources.settings_notif_parking_desc
 import paparcar.composeapp.generated.resources.settings_privacy
 import paparcar.composeapp.generated.resources.settings_profile_delete_account
+import paparcar.composeapp.generated.resources.settings_profile_email_unverified
+import paparcar.composeapp.generated.resources.settings_profile_email_verified
+import paparcar.composeapp.generated.resources.settings_profile_email_verify_cta
+import paparcar.composeapp.generated.resources.settings_profile_email_verify_error
+import paparcar.composeapp.generated.resources.settings_profile_email_verify_sent
+import paparcar.composeapp.generated.resources.settings_profile_email_verify_why
 import paparcar.composeapp.generated.resources.settings_profile_logout
 import paparcar.composeapp.generated.resources.settings_profile_name_placeholder
 import paparcar.composeapp.generated.resources.settings_section_about
@@ -237,6 +246,7 @@ fun SettingsScreen(
     val msgDetectionStopped = stringResource(Res.string.home_det_stopped_msg)
     val msgTurnOn = stringResource(Res.string.home_det_stopped_action)
     val msgDeleteAccountError = stringResource(Res.string.settings_delete_account_error)
+    val msgVerifyEmailError = stringResource(Res.string.settings_profile_email_verify_error)
     val msgErrorUnknown = stringResource(Res.string.error_unknown)
     val msgDiagnosticsSent = stringResource(Res.string.settings_send_diagnostics_sent)
     val msgDiagnosticsError = stringResource(Res.string.settings_send_diagnostics_error)
@@ -257,11 +267,14 @@ fun SettingsScreen(
                 is SettingsEffect.NavigateToLicenses -> onNavigateToLicenses()
                 is SettingsEffect.NavigateToPaywall -> onOpenPaywall(effect.reason)
                 is SettingsEffect.OpenUrl -> uriHandler.openUri(effect.url)
-                // The only error this screen emits today is the account-deletion failure —
-                // surface it; anything new falls back to the generic message rather than
-                // vanishing. [SETTINGS-AUDIT-REMEDIATION-001]
+                // Cada error con SU mensaje, y lo nuevo cae en el genérico antes que
+                // desaparecer. [SETTINGS-AUDIT-REMEDIATION-001]
+                // ⛔ El caso del correo va ANTES de la rama `Auth` entera: colapsarla en
+                // «no se pudo borrar la cuenta» hacía que un envío fallido se leyera como un
+                // borrado fallido. [AUTH-AN-UNCONFIRMED-EMAIL-MUST-SAY-SO-001]
                 is SettingsEffect.ShowError -> snackbarHostState.showSnackbar(
                     message = when (effect.error) {
+                        is PaparcarError.Auth.VerificationEmailFailed -> msgVerifyEmailError
                         is PaparcarError.Auth -> msgDeleteAccountError
                         // The diagnostics upload is this screen's only Network emitter today.
                         is PaparcarError.Network -> msgDiagnosticsError
@@ -417,6 +430,10 @@ fun SettingsContent(
                             ?: stringResource(Res.string.settings_profile_name_placeholder),
                         email = state.userProfile?.email,
                         photoUrl = state.userProfile?.photoUrl,
+                        emailVerified = state.emailVerified,
+                        isSendingVerification = state.isSendingEmailVerification,
+                        verificationSent = state.emailVerificationSent,
+                        onSendVerification = { onIntent(SettingsIntent.SendEmailVerification) },
                         onLogout = { onIntent(SettingsIntent.Logout) },
                     )
                 }
@@ -928,6 +945,12 @@ private fun ProfileCardV2(
     displayName: String,
     email: String?,
     photoUrl: String?,
+    /** `null` mientras la sesión no se ha leído: entonces no se pinta nada, porque un badge
+     *  en blanco mentiría sobre un estado que aún no conocemos. [AUTH-AN-UNCONFIRMED-EMAIL-MUST-SAY-SO-001] */
+    emailVerified: Boolean?,
+    isSendingVerification: Boolean,
+    verificationSent: Boolean,
+    onSendVerification: () -> Unit,
     onLogout: () -> Unit,
 ) {
     val cs = MaterialTheme.colorScheme
@@ -952,6 +975,52 @@ private fun ProfileCardV2(
                             text = email,
                             style = PaparcarType.current.caption,
                             color = cs.onSurface.copy(alpha = PapAlpha.subtitle),
+                        )
+                    }
+                }
+            }
+
+            // El estado del correo, SIEMPRE — también cuando está confirmado, por transparencia
+            // (decisión del user, 01-10-2026). [AUTH-AN-UNCONFIRMED-EMAIL-MUST-SAY-SO-001]
+            //
+            // ⛔ No se consulta la lista de proveedores de la cuenta, y no hace falta: una cuenta de
+            // solo Google trae el correo ya verificado por el proveedor, así que sale «verificado»
+            // sola y el CTA no aparece nunca. Preguntar por los proveedores sería, además, pedirle
+            // al servidor justo lo que su protección de enumeración de emails oculta.
+            if (emailVerified != null) {
+                Spacer(Modifier.size(12.dp))
+                if (emailVerified) {
+                    PapStatusBadge(label = stringResource(Res.string.settings_profile_email_verified))
+                } else {
+                    PapBadge(
+                        label = stringResource(Res.string.settings_profile_email_unverified),
+                        // Neutro, no rojo: no está roto, está pendiente. El estado se escribe, no se
+                        // tiñe de alarma. [UI-COLOR-DOCTRINE-001]
+                        containerColor = cs.surfaceVariant,
+                        contentColor = cs.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.size(8.dp))
+                    Text(
+                        text = stringResource(Res.string.settings_profile_email_verify_why),
+                        style = PaparcarType.current.caption,
+                        color = cs.onSurface.copy(alpha = PapAlpha.subtitle),
+                    )
+                    TextButton(
+                        onClick = onSendVerification,
+                        // Una vez enviado queda fuera hasta volver a entrar en Ajustes: machacarlo
+                        // solo consigue que Firebase devuelva TooManyRequests.
+                        enabled = !isSendingVerification && !verificationSent,
+                        contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp),
+                    ) {
+                        Text(
+                            text = stringResource(
+                                if (verificationSent) {
+                                    Res.string.settings_profile_email_verify_sent
+                                } else {
+                                    Res.string.settings_profile_email_verify_cta
+                                },
+                            ),
+                            style = PaparcarType.current.cta,
                         )
                     }
                 }

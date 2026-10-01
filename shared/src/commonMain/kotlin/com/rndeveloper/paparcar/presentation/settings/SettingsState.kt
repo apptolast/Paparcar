@@ -36,6 +36,20 @@ data class SettingsState(
     val showSendDiagnosticsConfirmation: Boolean = false,
     /** Upload in flight; the consent dialog stays up showing progress until it resolves. */
     val isSendingDiagnostics: Boolean = false,
+    /** ¿Está confirmado el correo de la cuenta? `null` = la sesión aún no se ha leído, y un badge
+     *  en blanco mentiría.
+     *
+     *  ⛔ Sale de la SESIÓN (`UserSession.isEmailVerified`), **nunca** de [userProfile]: duplicar
+     *  en Firestore una verdad que vive en auth deja dos fuentes capaces de discrepar, y la del
+     *  perfil puede servir el valor viejo tras un sync. [AUTH-AN-UNCONFIRMED-EMAIL-MUST-SAY-SO-001] */
+    val emailVerified: Boolean? = null,
+    /** Envío en vuelo: el CTA pasa a cargando. */
+    val isSendingEmailVerification: Boolean = false,
+    /** Ya se mandó en esta visita a Ajustes — el CTA queda deshabilitado hasta volver a entrar.
+     *  Estado y no cuenta atrás **a propósito**: lo único que hay que evitar es que se machaque el
+     *  botón, y un temporizador exigiría un tick por segundo en una pantalla de configuración.
+     *  Si Firebase corta igualmente, su `TooManyRequests` sale por snackbar. */
+    val emailVerificationSent: Boolean = false,
     /**
      * What the user is writing about the failure. Survives dismissing the dialog and a failed
      * upload — it is cleared only once the report is actually sent. Losing four typed sentences to
