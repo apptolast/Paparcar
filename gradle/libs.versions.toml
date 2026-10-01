@@ -99,7 +99,7 @@ ktor = "3.5.2"
 # `SocialTokenResult.Failed`, `RegisterEffect.EmailVerificationRequired` y
 # `GoogleSignInProviderAndroid.PickerOutcome`. Comparado el AAR clase a clase: nada borrado.
 # Paparcar no hace `when` exhaustivo sobre ninguno, así que el bump es drop-in.
-baselogin = "3.0.0"
+baselogin = "3.0.2"
 
 # ── Monetización — RevenueCat purchases-kmp ─────────────────────────────────
 # core (SDK) + ui (Paywalls con plantilla remota) van SIEMPRE a la misma versión.

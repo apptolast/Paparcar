@@ -1,9 +1,9 @@
 # AUTH-A-FAILED-SIGN-IN-MUST-NAME-THE-OTHER-DOOR-001 · un login que falla tiene que nombrar la otra puerta
 
-**Estado:** 🟡 **La mitad A entra en master; el ticket NO está cerrado.** La mitad B1 está
-publicada como **BaseLogin 3.0.1** pero la app **todavía no la consume**: falta el bump de
-`libs.versions.toml`, que no se puede hacer hasta que el deployment se apruebe en el Central Portal
-(apuntar a una versión no publicada rompe el build). Ver *Lo que queda*.
+**Estado:** ✅ **Done — las dos mitades están en la app.** La A entró con el ticket; la B llega vía
+**BaseLogin 3.0.2** (la 3.0.1 no llegó a publicarse: su CI murió por un paquete del SDK retirado),
+ya liberada en Central y consumida desde `libs.versions.toml`. ⏳ Lo único pendiente es **verlo en
+mano** y su captura.
 
 ## Problema
 
@@ -183,15 +183,31 @@ comentario explica por qué macOS aunque no haga falta técnicamente: la cross-c
 *“still being stabilised”* y una versión en Central **no se puede borrar ni sobrescribir jamás** —
 para el paso irreversible, el host sin salvedades. **Publicar = pushear el tag.**
 
-### ⚠⚠ Lo que queda
+### ✅ Cerrado: la mitad B ya la consume la app
 
-1. **Aprobar el deployment en el Central Portal** (manual, y **permanente**). El job sube a un
-   deployment *pendiente* y se para ahí a propósito.
-2. **Bump a `3.0.1` en `gradle/libs.versions.toml`** — y solo DESPUÉS del punto 1: hasta que esté
-   liberada, Gradle no resuelve esa versión y el build de Paparcar se rompe. **Hasta ese bump, un
-   login fallido sigue diciendo *“Invalid email or password”* a secas**, y lo único que la app gana
-   es la mitad A — que ya es la que dejaba al usuario esperando un correo inexistente.
-3. Verlo **en mano** y su captura para la PR [PR-A-VISUAL-CHANGE-SHOWS-ITSELF-001].
+1. **BaseLogin 3.0.2 liberada en Central** y aprobada por el user. El tag **3.0.1 quedó huérfano**:
+   su run murió porque `android-actions/setup-android@v3` pide por defecto el paquete `tools`, que
+   Google **retiró** del SDK — el job se cae en el *setup*, y como `release` depende de él queda
+   **`skipped`**: el tag se pushea, el run sale rojo y **no publica nada sin decirlo**. Arreglado en
+   la librería con `with: packages: platform-tools`.
+2. **Bump a `3.0.2`** en `gradle/libs.versions.toml` **y en `CLAUDE.md`** (los `docs/backlog/` que
+   citan 3.0.0 son registros fechados y no se tocan).
+3. ⏳ Queda **verlo en mano** y la captura [PR-A-VISUAL-CHANGE-SHOWS-ITSELF-001].
+
+✅ **Y se comprobó que el copy viaja de verdad, no que «la versión subió»**: descomprimido el
+`baselogin-release.aar` 3.0.2 que Gradle resolvió y decodificado su
+`values*/strings.commonMain.cvr` (formato `string|clave|base64`, no XML), el texto publicado es:
+
+| locale | `auth_error_invalid_credentials` en el artefacto |
+|---|---|
+| `values` | Invalid email or password. If you created the account with Google, sign in with Google. |
+| `values-es` | Correo electrónico o contraseña incorrectos. Si creaste la cuenta con Google, entra con Google. |
+| `values-it` | Indirizzo e-mail o password errati. Se hai creato l'account con Google, entra con Google. |
+| `values-pt` | E-mail ou senha incorretos. Se criou a conta com o Google, entre com o Google. |
+| `values-ro` | Adresă de e-mail sau parolă incorectă. Dacă ai creat contul cu Google, conectează-te cu Google. |
+
+El apóstrofo de IT viaja **crudo** (`l'account`) y PT conserva la **forma de cortesía** de la
+librería, que no es la de Paparcar.
 
 ### Verificación
 | Qué | Resultado |
@@ -200,6 +216,8 @@ para el paso irreversible, el host sin salvedades. **Publicar = pushear el tag.*
 | `testAll --rerun-tasks` | ✅ **3839 tests, 0 fallos** (382 ficheros de resultados) |
 | Guards con **testigo**, no solo verde | `LocaleParityGuardrailTest` 5 · `ComposeResourcesEscapeGuardrailTest` 3 · `TypographyGuardrailTest` 5 · `ColorGuardrailTest` 8 — todos ejecutados, 0 fallos |
 | `:shared:compileKotlinIosSimulatorArm64` | ✅ compila con el cambio dentro (los slots son `commonMain`, así que a iOS le llega) |
+| Resolución de la dependencia 3.0.2 | ✅ `android` **y** `iossimulatorarm64` resuelven `io.github.apptolast:baselogin:3.0.2` (`:shared:dependencies`, los dos targets) |
+| Suite con 3.0.2 | ✅ **3841 tests, 0 fallos** |
 | En device / en mano | ⏳ **sin ver**. Los previews son el camino corto; el flujo real exige pedir un reset |
 
 ### Observación fuera de alcance
