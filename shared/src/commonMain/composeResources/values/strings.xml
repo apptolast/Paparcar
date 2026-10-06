@@ -355,7 +355,7 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="settings_title">Settings</string>
     <string name="settings_profile_logout">Log out</string>
     <string name="settings_profile_email_verified">Verified</string>
-    <string name="settings_profile_email_unverified">Not confirmed</string>
+    <string name="settings_profile_email_unverified">Email not confirmed</string>
     <string name="settings_profile_email_verify_why">Confirm your email so you don't lose password access.</string>
     <string name="settings_profile_email_verify_cta">Send link</string>
     <string name="settings_profile_email_verify_sent">Link sent</string>

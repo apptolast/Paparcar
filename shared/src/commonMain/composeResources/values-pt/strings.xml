@@ -202,7 +202,7 @@
     <string name="settings_title">Definições</string>
     <string name="settings_profile_logout">Terminar sess&#xE3;o</string>
     <string name="settings_profile_email_verified">Verificado</string>
-    <string name="settings_profile_email_unverified">Sem confirmar</string>
+    <string name="settings_profile_email_unverified">E-mail sem confirmar</string>
     <string name="settings_profile_email_verify_why">Confirma o teu e-mail para não perderes o acesso com senha.</string>
     <string name="settings_profile_email_verify_cta">Enviar link</string>
     <string name="settings_profile_email_verify_sent">Link enviado</string>

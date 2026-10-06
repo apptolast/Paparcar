@@ -203,7 +203,7 @@
     <string name="settings_title">Einstellungen</string>
     <string name="settings_profile_logout">Abmelden</string>
     <string name="settings_profile_email_verified">Bestätigt</string>
-    <string name="settings_profile_email_unverified">Nicht bestätigt</string>
+    <string name="settings_profile_email_unverified">E-Mail nicht bestätigt</string>
     <string name="settings_profile_email_verify_why">Bestätige deine E-Mail-Adresse, damit du den Zugang per Passwort nicht verlierst.</string>
     <string name="settings_profile_email_verify_cta">Link senden</string>
     <string name="settings_profile_email_verify_sent">Link gesendet</string>

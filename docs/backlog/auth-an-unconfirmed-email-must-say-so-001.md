@@ -59,9 +59,9 @@ correo está confirmado hasta que algo va mal.
 
 | `isEmailVerified` | Qué se pinta |
 |---|---|
-| `true` | badge **`VERIFICADO`** (`PapStatusBadge`, la variante semántica positiva que ya existe) |
-| `false` | badge **`SIN CONFIRMAR`** + una línea de por qué + CTA **«Enviar enlace»** |
-| `null` | nada: la sesión aún no se ha leído, y un badge en blanco mentiría |
+| `true` | un **sello inline en la misma línea del correo**: disco de 16 dp en el verde de acción con el check en tinta |
+| `false` | **fila de tarea** dentro de la tarjeta, separada por `PapDivider`: `PapListItem` + `PapIconTile` + el porqué + «Enviar enlace» |
+| `null` | nada: la sesión aún no se ha leído, y un sello en blanco mentiría |
 
 ⛔ **No hace falta saber qué proveedores tiene la cuenta.** Con `isEmailVerified` basta: las de solo
 Google salen «verificado» solas, y el CTA solo aparece cuando el flag es `false`. Se evita así
@@ -102,6 +102,49 @@ Ajustes. **Deliberadamente sin cuenta atrás**: un temporizador exige un reloj e
 por segundo para una pantalla de configuración, y lo único que hay que evitar es que se machaque el
 botón — que el estado ya evita. Si Firebase corta igualmente, `AuthError.TooManyRequests` sale por
 `SettingsEffect.ShowError` → snackbar, como el resto de errores.
+
+## Cómo se llegó al sello actual (y lo que costó medirlo)
+
+El primer intento fue un **chip `VERIFICADO`** (`PapStatusBadge`) en su propio renglón bajo el
+avatar. En device el user lo rechazó: *«queda como colgando dejando espacios innecesarios»* — un
+renglón entero y todo el ancho muerto a su derecha para decir una palabra, colgando además del
+avatar y no del dato que califica.
+
+Luego vinieron tres vueltas más, y de cada una salió algo medido:
+
+1. **Check suelto inline.** ⛔ `Icons.Rounded.CheckCircle` **reserva su caja (42×42 px en el árbol
+   de accesibilidad) y no pinta un solo píxel**: el sello existía solo para lectores de pantalla, y
+   llegó a darse por bueno en una captura. Se aisló comparando con el check que ya vive en esta
+   pantalla (`Configurado ✓` pinta `#25F48C` con `Icons.Rounded.Check` y el mismo `tint`), así que
+   el color no tenía la culpa: era el vector. **Usar `Check`, nunca `CheckCircle`.**
+2. **Check dentro de un disco.** El disco se construye a mano (`Box` + `background(CircleShape)`)
+   en vez de confiar en otro vector.
+3. **El color del par.** ⛔ La tinta del check **no puede ser `onPrimary` ni `PapColor.onAction`**
+   — que son el mismo color y es **BLANCO en el tema claro**. Medido:
+
+   | | tema oscuro | tema claro |
+   |---|---|---|
+   | tinta oscura sobre el disco | **12,97:1** | **5,52:1** |
+   | blanco sobre el disco | 1,46:1 | 3,43:1 |
+
+   Es el mismo par que la marca ya usa en la web (disco verde, glifo en tinta). El error del blanco
+   ya había mordido una vez en el proyecto: por eso existe `premiumInk` en `Color.kt`.
+4. **Tamaño.** De 20 dp a **16 dp** (42→26 px), la altura de la línea del correo: más grande, el
+   sello se come el renglón en vez de acompañarlo.
+
+### ⚠️ La alternativa que se probó y se descartó, con su razón
+
+Entre medias se construyó y se vio en device una **sección `CUENTA` con el correo como fila** y su
+estado en la columna de la derecha (`Verificado ✓` / `Enviar enlace ›`), al modo de Google Account:
+la tarjeta de identidad quedaba limpia y el estado vivía donde esta pantalla ya pone los estados.
+**El user la rechazó** (*«no me gusta nada así»*) y pidió volver al sello.
+
+Queda escrito porque el argumento que la sostenía sigue en pie y conviene no re-descubrirlo: la
+literatura de diseño llama **badge inflation** a decorar estados que **no piden ninguna acción**
+— *«ruido visual sin información»* — y el patrón dominante en la industria es no mostrar nada
+cuando el correo está verificado. **La decisión del producto es mostrarlo igualmente, por
+transparencia, y es del user.** Si algún día la tarjeta se recarga de señales, este es el primer
+sitio donde mirar.
 
 ## Criterio de éxito
 

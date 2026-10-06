@@ -202,7 +202,7 @@
     <string name="settings_title">Impostazioni</string>
     <string name="settings_profile_logout">Esci</string>
     <string name="settings_profile_email_verified">Verificata</string>
-    <string name="settings_profile_email_unverified">Da confermare</string>
+    <string name="settings_profile_email_unverified">Email da confermare</string>
     <string name="settings_profile_email_verify_why">Conferma la tua email per non perdere l'accesso con password.</string>
     <string name="settings_profile_email_verify_cta">Invia link</string>
     <string name="settings_profile_email_verify_sent">Link inviato</string>

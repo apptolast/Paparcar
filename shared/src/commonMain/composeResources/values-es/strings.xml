@@ -257,7 +257,7 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="settings_title">Ajustes</string>
     <string name="settings_profile_logout">Cerrar sesión</string>
     <string name="settings_profile_email_verified">Verificado</string>
-    <string name="settings_profile_email_unverified">Sin confirmar</string>
+    <string name="settings_profile_email_unverified">Correo sin confirmar</string>
     <string name="settings_profile_email_verify_why">Confirma tu correo para no quedarte sin acceso con contraseña.</string>
     <string name="settings_profile_email_verify_cta">Enviar enlace</string>
     <string name="settings_profile_email_verify_sent">Enlace enviado</string>

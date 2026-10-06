@@ -65,7 +65,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -83,6 +82,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.SubcomposeAsyncImage
@@ -95,7 +95,6 @@ import com.rndeveloper.paparcar.domain.permissions.RequiredPermission
 import com.rndeveloper.paparcar.domain.preferences.ThemeMode
 import com.rndeveloper.paparcar.presentation.permissions.PermissionsFocus
 import com.rndeveloper.paparcar.ui.components.PapAlertDialog
-import com.rndeveloper.paparcar.ui.components.PapBadge
 import com.rndeveloper.paparcar.ui.components.PapCollapsingTopBarScaffold
 import com.rndeveloper.paparcar.ui.components.PapDangerCard
 import com.rndeveloper.paparcar.ui.components.PapDialogAccent
@@ -103,7 +102,6 @@ import com.rndeveloper.paparcar.ui.components.PapDialogAction
 import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.ui.components.PapIconTile
 import com.rndeveloper.paparcar.ui.components.PapInfoRow
-import com.rndeveloper.paparcar.ui.components.PapStatusBadge
 import com.rndeveloper.paparcar.ui.components.PapListItem
 import com.rndeveloper.paparcar.ui.components.PapNavChevron
 import com.rndeveloper.paparcar.ui.components.PapNavRow
@@ -894,6 +892,61 @@ private fun ImprovementRow(
     )
 }
 
+/**
+ * El correo sin confirmar, como fila de tarea. [AUTH-AN-UNCONFIRMED-EMAIL-MUST-SAY-SO-001]
+ *
+ * Calca a propósito [ImprovementRow] / [SetupStatusTrailing], que es como esta pantalla ya dice
+ * «esto te falta» / «esto ya está» sin un solo chip de color. Un badge relleno aquí era un cuerpo
+ * extraño: gastaba el verde de la marca — que en este sistema significa acción — en algo que no se
+ * podía pulsar.
+ *
+ * No se reutiliza [ImprovementRow] tal cual porque su trailing tiene los textos de detección
+ * clavados ("Configurado" / "Configurar"); lo que se comparte es la receta, no el literal.
+ */
+@Composable
+private fun EmailVerificationRow(sent: Boolean, sending: Boolean, onClick: () -> Unit) {
+    PapListItem(
+        // Ya enviado (o enviándose) deja de ser pulsable: insistir solo consigue que Firebase
+        // conteste TooManyRequests.
+        modifier = if (sent || sending) Modifier else Modifier.clickable(onClick = onClick),
+        leading = { PapIconTile(icon = Icons.Rounded.Email) },
+        title = stringResource(Res.string.settings_profile_email_unverified),
+        subtitle = stringResource(Res.string.settings_profile_email_verify_why),
+        subtitleColor = settingsSubtitleColor(),
+        trailing = { EmailVerificationTrailing(sent = sent) },
+    )
+}
+
+@Composable
+private fun EmailVerificationTrailing(sent: Boolean) {
+    val cs = MaterialTheme.colorScheme
+    if (sent) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                stringResource(Res.string.settings_profile_email_verify_sent),
+                style = PaparcarType.current.label,
+                color = PapColor.actionText,
+            )
+            Icon(Icons.Rounded.Check, contentDescription = null, tint = cs.primary, modifier = Modifier.size(18.dp))
+        }
+    } else {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                stringResource(Res.string.settings_profile_email_verify_cta),
+                style = PaparcarType.current.label,
+                color = cs.onSurfaceVariant,
+            )
+            PapNavChevron()
+        }
+    }
+}
+
 @Composable
 private fun SetupStatusTrailing(configured: Boolean) {
     val cs = MaterialTheme.colorScheme
@@ -971,59 +1024,76 @@ private fun ProfileCardV2(
                         color = cs.onSurface,
                     )
                     if (email != null) {
-                        Text(
-                            text = email,
-                            style = PaparcarType.current.caption,
-                            color = cs.onSurface.copy(alpha = PapAlpha.subtitle),
-                        )
+                        // El sello va en la MISMA línea que el correo, no en una propia: [AUTH-AN-UNCONFIRMED-EMAIL-MUST-SAY-SO-001]
+                        // un chip debajo gastaba un renglón entero y todo el ancho a su derecha
+                        // para decir una palabra, y colgaba del avatar en vez de del dato que
+                        // califica.
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Text(
+                                text = email,
+                                style = PaparcarType.current.caption,
+                                color = cs.onSurface.copy(alpha = PapAlpha.subtitle),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false),
+                            )
+                            if (emailVerified == true) {
+                                // El check DENTRO de un disco, para que el sello tenga presencia sin
+                                // gastar un renglón propio ni el ancho entero.
+                                // [AUTH-AN-UNCONFIRMED-EMAIL-MUST-SAY-SO-001]
+                                //
+                                // ⛔ Disco en el VERDE DE ACCIÓN y tinta OSCURA, nunca `onPrimary` /
+                                // `PapColor.onAction` — que son el mismo color y es BLANCO en el tema
+                                // claro. Medido: tinta sobre el verde da 12,97:1 en oscuro y 5,52:1 en
+                                // claro; blanco sobre ese verde se queda en 1,46:1 y 3,43:1. El error
+                                // ya mordió una vez (ver [premiumInk] en `Color.kt`). Es, además, el
+                                // MISMO par que la marca usa en la web: disco verde, glifo en tinta.
+                                Box(
+                                    modifier = Modifier
+                                        // 16 dp: la altura de la línea del correo. Más grande,
+                                        // el sello se come el renglón en vez de acompañarlo.
+                                        .size(16.dp)
+                                        .background(cs.primary, CircleShape),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        // ⛔ `Check` y no `CheckCircle`: medido en device, el segundo
+                                        // reserva su caja (42x42 en el árbol de accesibilidad) y **no
+                                        // pinta un solo píxel**.
+                                        imageVector = Icons.Rounded.Check,
+                                        // Con texto, no decorativo: un glifo mudo desaparece para un
+                                        // lector de pantalla.
+                                        contentDescription = stringResource(
+                                            Res.string.settings_profile_email_verified,
+                                        ),
+                                        tint = PapInk,
+                                        modifier = Modifier.size(10.dp),
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
 
-            // El estado del correo, SIEMPRE — también cuando está confirmado, por transparencia
-            // (decisión del user, 01-10-2026). [AUTH-AN-UNCONFIRMED-EMAIL-MUST-SAY-SO-001]
+            // Cuando falta confirmarlo deja de ser un adorno y pasa a ser UNA TAREA, con la
+            // forma exacta de sus vecinas ("Bluetooth del coche", "Batería sin restricciones"):
+            // `PapListItem` + `PapIconTile` + trailing, y la fila entera pulsable. [AUTH-AN-UNCONFIRMED-EMAIL-MUST-SAY-SO-001]
             //
-            // ⛔ No se consulta la lista de proveedores de la cuenta, y no hace falta: una cuenta de
-            // solo Google trae el correo ya verificado por el proveedor, así que sale «verificado»
-            // sola y el CTA no aparece nunca. Preguntar por los proveedores sería, además, pedirle
-            // al servidor justo lo que su protección de enumeración de emails oculta.
-            if (emailVerified != null) {
+            // La asimetría con el estado confirmado es deliberada: el estado correcto se ACUSA (el
+            // sello de arriba) y el pendiente se ANUNCIA y se resuelve. Peso visual proporcional a
+            // la acción que hace falta, no al hecho de existir.
+            if (emailVerified == false) {
                 Spacer(Modifier.size(12.dp))
-                if (emailVerified) {
-                    PapStatusBadge(label = stringResource(Res.string.settings_profile_email_verified))
-                } else {
-                    PapBadge(
-                        label = stringResource(Res.string.settings_profile_email_unverified),
-                        // Neutro, no rojo: no está roto, está pendiente. El estado se escribe, no se
-                        // tiñe de alarma. [UI-COLOR-DOCTRINE-001]
-                        containerColor = cs.surfaceVariant,
-                        contentColor = cs.onSurfaceVariant,
-                    )
-                    Spacer(Modifier.size(8.dp))
-                    Text(
-                        text = stringResource(Res.string.settings_profile_email_verify_why),
-                        style = PaparcarType.current.caption,
-                        color = cs.onSurface.copy(alpha = PapAlpha.subtitle),
-                    )
-                    TextButton(
-                        onClick = onSendVerification,
-                        // Una vez enviado queda fuera hasta volver a entrar en Ajustes: machacarlo
-                        // solo consigue que Firebase devuelva TooManyRequests.
-                        enabled = !isSendingVerification && !verificationSent,
-                        contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp),
-                    ) {
-                        Text(
-                            text = stringResource(
-                                if (verificationSent) {
-                                    Res.string.settings_profile_email_verify_sent
-                                } else {
-                                    Res.string.settings_profile_email_verify_cta
-                                },
-                            ),
-                            style = PaparcarType.current.cta,
-                        )
-                    }
-                }
+                PapDivider()
+                EmailVerificationRow(
+                    sent = verificationSent,
+                    sending = isSendingVerification,
+                    onClick = onSendVerification,
+                )
             }
 
             // Logout outlined
