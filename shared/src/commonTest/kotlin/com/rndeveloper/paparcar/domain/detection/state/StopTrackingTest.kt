@@ -526,6 +526,63 @@ class StopTrackingTest {
         assertNotNull(result.state.anchorTrust.anchor, "the walk does not clear the anchor it measures")
     }
 
+    /**
+     * ⛔ **Un coche rodando al ralentí NO es una caminata** [DET-A-MANEUVERING-CAR-IS-NOT-AN-EGRESS-001].
+     *
+     * Campo 05-10-2026, Oppo, sesión `1791194402036` (el viaje Granada→El Puerto, 198 km): el coche
+     * buscaba sitio y sus fijaciones salieron a **2,76 · 3,75 · 2,98 · 1,57 · 2,21 · 1,39 m/s**.
+     * Seis, exactamente el umbral, y el `kinematic+egress` confirmó sobre una parada de dos minutos
+     * con **cero pasos** y **cero metros** de desplazamiento. El usuario aparcó de verdad un minuto
+     * después, 400 m más allá.
+     *
+     * La "banda peatonal" era *«por debajo de la barra de CONDUCCIÓN»* — 5 m/s, 18 km/h. Nadie anda
+     * a 18 km/h, y entre 2,5 y 5 m/s sólo caben un coche maniobrando y un corredor. El techo
+     * peatonal ya existía (`maxPedestrianSpeedMps`, 2,5 m/s = 9 km/h, *«brisk walking is ~1.7
+     * m/s»*): la señal usaba el umbral de la pregunta de al lado.
+     *
+     * Este test pone el caso de campo en la banda que lo delató — 3,75 m/s, acc creíble, ancla
+     * congelada — y exige que NO cuente.
+     */
+    @Test
+    fun should_not_count_a_car_creeping_for_a_space_as_kinematic_egress() {
+        val creeping = state(
+            anchorTrust = AnchorTrust(anchor = point(), capturedAtStop = 0L, frozenByRest = true),
+        )
+
+        val result = creeping.updateStopTracking(
+            // 3,75 m/s = 13,5 km/h. Bajo la barra de conducción, muy por encima de andar.
+            point(metersNorth = 12.0, accuracy = 2f, speed = 3.75f, at = 8_000L),
+            now = 8_000L,
+            config = config,
+        )
+
+        assertEquals(
+            0,
+            result.state.anchorTrust.kinematicEgressFixes,
+            "13,5 km/h es el coche buscando aparcamiento, no el conductor bajándose",
+        )
+    }
+
+    /**
+     * La discriminante del test de arriba, y la mitad que un umbral demasiado estrecho rompería: el
+     * carril nació para los móviles con podómetro mudo (Redmi/MIUI, [DET-KINEMATIC-EGRESS-001]), y
+     * un peatón real —~1,7 m/s a paso vivo— tiene que seguir contando.
+     */
+    @Test
+    fun should_still_count_a_brisk_walk_as_kinematic_egress() {
+        val walking = state(
+            anchorTrust = AnchorTrust(anchor = point(), capturedAtStop = 0L, frozenByRest = true),
+        )
+
+        val result = walking.updateStopTracking(
+            point(metersNorth = 12.0, accuracy = 2f, speed = 1.7f, at = 8_000L),
+            now = 8_000L,
+            config = config,
+        )
+
+        assertEquals(1, result.state.anchorTrust.kinematicEgressFixes)
+    }
+
     /** No freeze, no kinematic egress: the same fixes describe an approach on the other side of it. */
     @Test
     fun should_not_count_kinematic_egress_while_the_anchor_is_still_open() {

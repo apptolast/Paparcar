@@ -476,7 +476,11 @@ fun DetectionSessionState.updateStopTracking(
             if (anchorPinned && isDriving && !isRealDrive) {
                 val proof = if (it.isAnchorLocked(config)) "LOCKED (steps=${it.egress.stepCount})" else "FROZEN (end-of-drive stop)"
                 notes +=
-                    "  🔒 anchor $proof — ignoring walking-range speed " +
+                    // [DET-A-MANEUVERING-CAR-IS-NOT-AN-EGRESS-001] "walking-range" era mentira: esta
+                    // banda es TODO lo que va por debajo de la barra de conducción, maniobra de
+                    // aparcamiento incluida. El nombre importa — con él se eligió este mismo umbral
+                    // para contar fijaciones de caminata, y 13,5 km/h pasó por peatón.
+                    "  🔒 anchor $proof — ignoring sub-driving speed " +
                             "${location.speed} m/s (< ${config.minimumTripSpeedMps}) [ANCHOR-LOCK-001][DET-ANCHOR-FREEZE-001]"
             } else if (!anchorPinned && it.anchorTrust.anchor != null && isDriving && !isRealDrive && !outruns) {
                 notes +=
@@ -520,12 +524,21 @@ fun DetectionSessionState.updateStopTracking(
             }
             // [DET-KINEMATIC-EGRESS-001] The egress walk, measured by GPS: quality
             // pedestrian-band fixes while the anchor is frozen. Cleared with the anchor.
+            //
+            // ⛔ [DET-A-MANEUVERING-CAR-IS-NOT-AN-EGRESS-001] La banda es la PEATONAL
+            // (`maxPedestrianSpeedMps`, 2,5 m/s = 9 km/h), no «lo que no llega a conducción».
+            // Durante años fue `minimumTripSpeedMps` (5 m/s = 18 km/h) y entre los dos umbrales
+            // sólo caben un coche maniobrando y un corredor — nadie anda a 18 km/h. Campo
+            // 05-10-2026, sesión `1791194402036`: el coche buscaba sitio a 2,76/3,75/2,98/1,57/
+            // 2,21/1,39 m/s, se cumplieron las seis fijaciones justas y `kinematic+egress`
+            // confirmó sobre una parada de 2 min con CERO pasos y CERO metros de desplazamiento.
+            // El aparcamiento real llegó un minuto después, 400 m más allá.
             val newKinematicEgressFixes = when {
                 shouldClearBestStop -> 0
-                // [DET-KINEMATIC-EGRESS-001] The PEDESTRIAN band — speed BELOW the trip bar
-                // with the same accuracy gate. It shares the gate, not the question.
+                // [DET-KINEMATIC-EGRESS-001] The PEDESTRIAN band, with the same accuracy gate.
+                // It shares the gate, not the question.
                 it.anchorTrust.frozenByRest &&
-                    location.speed < config.minimumTripSpeedMps &&
+                    location.speed < config.maxPedestrianSpeedMps &&
                     isCredibleFixAccuracy(location, config.minGpsAccuracyForDriving) ->
                     it.anchorTrust.kinematicEgressFixes + 1
                 else -> it.anchorTrust.kinematicEgressFixes

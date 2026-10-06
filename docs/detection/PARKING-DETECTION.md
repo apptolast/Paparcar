@@ -499,6 +499,68 @@ See `diagnostics/README.md` at the repo root for the recommended layout when arc
 
 Each entry is one issue we shipped a fix for. Listed roughly in dependency order (mappers first, then pipeline, then algorithm). Every entry should explain *what was wrong*, *why it was wrong*, and *what guard exists today*. If you ever want to remove a guard, find its entry here first.
 
+### DET-A-MANEUVERING-CAR-IS-NOT-AN-EGRESS-001 — la «banda peatonal» era todo lo que no llega a conducción, y ahí cabe un coche buscando sitio
+
+**Commit:** pending. **Origen:** field real, 05-10-2026 (Oppo `0l7X59pt…`, app 1.4.0, carril
+COORDINATOR). Tercero de los tres FP del lote; el user lo describió como *«eso fue un stop, aparqué
+un minuto más tarde»*. Sesión `1791194402036`, el viaje Granada → El Puerto de 198 km:
+
+```
+15:04:39  FIX  36.593800,-6.239878  spd 0.00  acc 1.57   ← el coche para 4 s. ESTE punto se pinea
+15:04:45-51  spd 2.76 · 3.75 · 2.98 · 1.57      ┐ el coche rueda despacio buscando aparcamiento
+15:05:27-29  spd 2.21 · 1.39                    ┘ la SEXTA cierra el umbral
+15:05:29  HOLD OPENED  kinematic+egress
+15:05:31 → 15:07:29   118 s repitiendo 36.593522,-6.239660 IDÉNTICO, acc 1,5 m
+15:07:29  HOLD SETTLED (120004 ms) → CONFIRMED kinematic+egress conf=0.85
+```
+
+Las dos pruebas de que nadie se bajó estaban en la sesión y las dos son cero: **ni un evento STEP**
+en toda la ventana, y **cero metros** de desplazamiento durante los 118 s del hold.
+
+**Qué estaba mal.** Una línea de `StopTracking`:
+
+```kotlin
+location.speed < config.minimumTripSpeedMps   // 5 m/s = 18 km/h
+```
+
+La banda que afirma «esto es una caminata» era *«todo lo que no llega a conducción»*. Nadie anda a
+18 km/h, y entre 2,5 y 5 m/s sólo caben un coche maniobrando y un corredor.
+
+**Doctrina violada.** *El evento NOMINA, sólo el movimiento MEDIDO confirma*, en su forma más
+literal: el movimiento se midió bien y se le atribuyó el SUJETO equivocado. Y *fallo asimétrico* —
+ante dos hipótesis que la señal no separa, el carril se quedó con la que planta pin.
+
+**Fix — un símbolo, y el umbral ya existía.** `maxPedestrianSpeedMps` (2,5 m/s = 9 km/h) lleva años
+en el config con su KDoc: *«brisk walking is ~1.7 m/s, running commuters don't carry a parked-car
+session»*. El contador pasa a usarlo. Sobre los datos de campo, de las seis fijaciones que cerraron
+el umbral sobreviven tres (1,57 · 2,21 · 1,39) contra `kinematicEgressMinWalkFixes = 6` → no
+confirma. De paso, el mensaje de traza de `StopTracking:480` decía *«ignoring walking-range speed»*
+de esa misma banda y pasa a decir `sub-driving`: esa frase es la que hizo elegir este umbral para
+contar caminatas.
+
+**⛔ Lo que deliberadamente NO se hizo, y por qué.** Exigir además que el desplazamiento CONTINÚE
+durante el hold (los 118 s a cero metros lo delatan) sería apilar un guard sobre otro: el
+desplazamiento de un coche rodando y el de un peatón andando son indistinguibles en metros, y **lo
+único que separa las dos hipótesis con los datos disponibles es la velocidad**. Subir
+`confirmHoldMs` se descartó por lo mismo — el hold funciona (en ese viaje descartó bien a los 16 s y
+a los 102 s), y subirlo retrasaría todos los aparcamientos buenos para comprar un caso de campo.
+
+**Riesgo del fix acompañante.** El carril nació en [DET-KINEMATIC-EGRESS-001] para rescatar
+dispositivos con podómetro MUDO (Redmi/MIUI, que entregan los pasos en lotes 8 minutos tarde).
+Estrechar demasiado la banda convertiría eso en un falso negativo sistemático en ese hardware, así
+que el testigo del fix viene en pareja: `should_not_count_a_car_creeping_for_a_space_as_kinematic_egress`
+y `should_still_count_a_brisk_walk_as_kinematic_egress` (1,7 m/s).
+
+**Por qué hacía falta un testigo nuevo.** Los tests que ya existían ponían `kinematicEgressFixes`
+**a mano** y probaban el predicado que lo lee; **ninguno probaba cómo se incrementa**. Por eso la
+suite entera pasaba con la banda mal, y por eso el testigo se falsificó revirtiendo el símbolo antes
+de darlo por bueno [TEST-A-GREEN-SUITE-MUST-PROVE-IT-LOOKED-001].
+
+**Lo que este fix NO cierra.** El ancla se quedó con la parada de **4 segundos** teniendo una de
+**118 s** a 37 m, y con peor precisión que la que descartó. Es otro invariante —cómo se elige el
+ancla entre paradas candidatas— y choca de frente con la regla que impide que el pin siga al peatón:
+`docs/backlog/det-the-anchor-must-prefer-the-longer-rest-001.md`.
+
 ### DET-A-DEGRADED-PROMPT-MUST-NOT-AUTO-CONFIRM-001 — el silencio recompraba la precisión que la app acababa de negarse a afirmar
 
 **Commit:** pending. **Origen:** field real, tres falsos positivos reportados el 05-10-2026 (Oppo
