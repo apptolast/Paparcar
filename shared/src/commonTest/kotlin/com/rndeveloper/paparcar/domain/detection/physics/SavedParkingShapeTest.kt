@@ -50,6 +50,9 @@ class SavedParkingShapeTest {
         // silent by DESIGN rather than by pending work: the premise of the whole ladder — that
         // a car stopped somewhere — is what this verdict rejects.
         is UnattendedParkingSave.Discard -> SavedParkingShape.KeepSilent
+        // [DET-A-DEGRADED-PROMPT-MUST-NOT-AUTO-CONFIRM-001] The fifth rung, silent for the twin
+        // reason: the premise it rejects is not "a car stopped" but "we are allowed to record it".
+        is UnattendedParkingSave.DiscardDegraded -> SavedParkingShape.KeepSilent
     }
 
     /** `EvaluateHonestCloseUseCase`. This one already carries its radius; only the trust is implicit. */

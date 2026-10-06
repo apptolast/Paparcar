@@ -152,7 +152,12 @@ class ConfidenceScoringStage(
                     ),
                 )
                 hasExit || timeoutReached -> StageVerdict.Handled(
-                    newState = state.copy(confirmation = state.confirmation.notified(now)),
+                    // [DET-A-DEGRADED-PROMPT-MUST-NOT-AUTO-CONFIRM-001] THE ordinary question: the
+                    // Low/Medium prompt whose premise `DET-RECONCILE-001` describes, and the only
+                    // producer that may still be saved on silence. `null` says so explicitly.
+                    newState = state.copy(
+                        confirmation = state.confirmation.notified(now, degradedFrom = null),
+                    ),
                     effects = listOf(
                         DetectionEffect.NotifyPrompt(confidence, state.witnessedCarStop(fix)),
                         DetectionEffect.RecordPromptShown(
@@ -189,7 +194,9 @@ class ConfidenceScoringStage(
         // Prompt was never shown — fire it as part of this transition.
         is ConfirmationPhase.Idle, is ConfirmationPhase.LowReached -> StageVerdict.Handled(
             newState = state.copy(
-                confirmation = state.confirmation.candidate(now, state.egress.vehicleExitHint, now),
+                confirmation = state.confirmation.candidate(
+                    now, state.egress.vehicleExitHint, now, degradedFrom = null,
+                ),
             ),
             // The order is today's, and it is not the obvious one: the notification fires FIRST,
             // then the candidate marker, then the prompt marker.
@@ -208,7 +215,11 @@ class ConfidenceScoringStage(
         // when the user first saw a question. [BUG-STUCK-SESSION]
         is ConfirmationPhase.Notified -> StageVerdict.Handled(
             newState = state.copy(
-                confirmation = state.confirmation.candidate(now, state.egress.vehicleExitHint, phase.shownAt),
+                // The same question gaining confidence: it keeps its instant, so it keeps its cause.
+                // [DET-A-DEGRADED-PROMPT-MUST-NOT-AUTO-CONFIRM-001]
+                confirmation = state.confirmation.candidate(
+                    now, state.egress.vehicleExitHint, phase.shownAt, degradedFrom = phase.degradedFrom,
+                ),
             ),
             effects = listOf(DetectionEffect.RecordCandidateOpened("from Notified")),
             notes = notes(

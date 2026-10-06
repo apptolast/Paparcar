@@ -84,6 +84,43 @@ sealed interface UnattendedParkingSave {
      * this park silently is offering the user a one-tap way to lose their car.
      */
     data class Discard(val reason: UnattendedSaveReason) : UnattendedParkingSave
+
+    /**
+     * [DET-A-DEGRADED-PROMPT-MUST-NOT-AUTO-CONFIRM-001] **An exact pin is a claim of PRECISION, and
+     * a question born of refused evidence cannot buy that claim back with silence.**
+     *
+     * Reached only where [SaveExact] would otherwise stand: every anchor taint came back clean, so
+     * on an ordinary prompt this is exactly the trusted save [DET-RECONCILE-001] protects. What
+     * differs is the question. A DEGRADED prompt went on screen because a confirm path had already
+     * reached its verdict and the evidence was refused; waiting fifteen minutes adds no evidence,
+     * so the refusal still stands when the window closes.
+     *
+     * ## ⛔ Why it may NOT reach the zones, which is the whole shape of this verdict
+     *
+     * The first version of this guard ran before the ladder and killed every degraded save. It
+     * tumbled four replays of real field traces — `house_mirage_001`, `parafarmacia_2908`,
+     * `gondola_2608`, `an_inherited_drive…` — whose assertions say it better than this KDoc could:
+     * *«the drive and the park are both real — losing them is not the fix for pointing wrong»* and
+     * *«the park must be KEPT as a zone, not lost»*. All four reach the timeout with a degraded
+     * question AND a measured drive, and all four are deliberately kept as areas.
+     *
+     * So the rule is narrow by evidence, not by taste: *a bounded doubt costs PRECISION, never the
+     * park* [DET-WALK-ENTERED-ANCHOR-ZONE-001]. The degradation withdraws the one thing that was
+     * never bounded — the exact point — and leaves every bounded verdict standing. Field
+     * 2026-10-05 has one of each: session `1791232803918` degraded on `egress_not_at_anchor` and
+     * kept its 155,7 m zone (correctly — the car was inside it), while `1791123836936` degraded on
+     * `weak_evidence` and planted an EXACT pin in a pedestrian street, on a "drive" of two
+     * cold-start fixes, with 1192 STEP events saying the user was walking.
+     *
+     * ## Why not [Ask], which also refuses to pin
+     *
+     * The user has just ignored this exact question for the whole window. Asking again is the one
+     * exit that loops.
+     *
+     * @param promptReason The cause the degradation already named, carried through so the trace
+     *   says WHICH refusal outlived the window instead of a single anonymous label.
+     */
+    data class DiscardDegraded(val promptReason: PromptReason) : UnattendedParkingSave
 }
 
 /**
@@ -193,6 +230,14 @@ data class UnattendedSaveInput(
      * have pinned a railway terminus with `unattended_timeout` provenance and 0,5 reliability.
      */
     val roadPlausibility: RoadPlausibility,
+    /**
+     * [DET-A-DEGRADED-PROMPT-MUST-NOT-AUTO-CONFIRM-001] WHY the question on screen was asked —
+     * null for the ordinary Low/Medium prompt, the cause when a confirm DEGRADED into it.
+     *
+     * The only input here that is not a measurement: it is what the app already DECIDED about this
+     * stop, and the whole point is that fifteen minutes of silence must not quietly overturn it.
+     */
+    val promptDegradedFrom: PromptReason?,
 )
 
 /**
@@ -419,7 +464,23 @@ class EvaluateUnattendedParkingSaveUseCase(private val config: ParkingDetectionC
             )
         }
 
-        return UnattendedParkingSave.SaveExact
+        // [DET-A-DEGRADED-PROMPT-MUST-NOT-AUTO-CONFIRM-001] Last, and ONLY over the exact pin.
+        //
+        // Reaching here means every anchor taint came back clean, so on an ordinary prompt this is
+        // the trusted `SaveExact` [DET-RECONCILE-001] exists to protect — unchanged. But a DEGRADED
+        // question was put on screen because a confirm path had already reached its verdict and the
+        // evidence was refused, and an exact pin is a claim of PRECISION. Silence is not evidence,
+        // so it cannot buy back the precision the app had just declined to assert.
+        //
+        // ⛔ It stops exactly here, below every zone branch, and that boundary is the lesson of the
+        // field corpus rather than a preference: `house_mirage_001`, `parafarmacia_2908`,
+        // `gondola_2608` and `an_inherited_drive…` all reach the timeout with a degraded question
+        // AND a real measured drive, and all four are KEPT as areas on purpose — *«a bounded doubt
+        // costs precision, never the park»*. A guard placed any higher loses those four parkings,
+        // and losing a park is not the fix for pointing at the wrong spot.
+        return input.promptDegradedFrom
+            ?.let { UnattendedParkingSave.DiscardDegraded(it) }
+            ?: UnattendedParkingSave.SaveExact
     }
 
     /**

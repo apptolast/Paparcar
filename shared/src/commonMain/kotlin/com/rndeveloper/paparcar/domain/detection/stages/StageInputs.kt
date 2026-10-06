@@ -130,6 +130,9 @@ fun DetectionSessionState.unattendedSaveInput(
     anchorRestMs = restMs,
     humanPoweredRide = humanPoweredRide(now, config),
     roadPlausibility = roadPlausibility(config), // [DET-A-TRAIN-IS-NOT-A-CAR-001]
+    // [DET-A-DEGRADED-PROMPT-MUST-NOT-AUTO-CONFIRM-001] What the app already decided about this
+    // stop, as opposed to what it measured.
+    promptDegradedFrom = confirmation.promptDegradedFrom,
 )
 
 /** The verdict's whole reasoning, in one `parkdiag` line — unchanged, word for word. */

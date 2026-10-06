@@ -499,6 +499,95 @@ See `diagnostics/README.md` at the repo root for the recommended layout when arc
 
 Each entry is one issue we shipped a fix for. Listed roughly in dependency order (mappers first, then pipeline, then algorithm). Every entry should explain *what was wrong*, *why it was wrong*, and *what guard exists today*. If you ever want to remove a guard, find its entry here first.
 
+### DET-A-DEGRADED-PROMPT-MUST-NOT-AUTO-CONFIRM-001 — el silencio recompraba la precisión que la app acababa de negarse a afirmar
+
+**Commit:** pending. **Origen:** field real, tres falsos positivos reportados el 05-10-2026 (Oppo
+`0l7X59pt…`, app 1.4.0, carril COORDINATOR, Ford Focus). **Uno** de los tres sale de aquí:
+
+```
+sesión 1791123836936
+  16:25:49  DECISION CONFIRM_DEGRADED_PROMPT  steps+egress  reason=weak_evidence
+  16:40:51  DECISION CONFIRMED  unattended_timeout  conf=0.5          ← +15:02, sin respuesta
+  → pin EXACTO (zoneRadiusMeters: null) en Reyes Católicos 51, calle peatonal donde el coche
+    no puede entrar. La «conducción» que lo autorizó: DOS fijaciones de arranque en frío
+    (`drive 2/401fix`, vmax 21 km/h = 5,88 m/s contra una barra de 5,0, acc 5,2/13,5/18,2 m,
+    en los primeros 4 s), con 1192 eventos STEP diciendo que el usuario iba andando.
+```
+
+No fue OEM-kill ni Doze: 1597 eventos, `batteryUnrestricted=true`. Lógica nuestra.
+
+**Qué estaba mal.** `ResponseTimeoutStage` lee UN dato para decidir, `promptShownAt`, y su premisa
+está escrita en su propio KDoc [DET-RECONCILE-001]: *«el prompt sólo sale tras un viaje real, una
+parada real y una señal de vehicle-exit, así que sólo falta un tap humano»*. Esa frase se escribió
+cuando el prompt tenía **un** productor. Tiene cuatro, y **dos son degradaciones**:
+
+```
+ConfidenceScoringStage:155        notified(now)                 ← el prompt ordinario  ✅ la premisa vale
+DetectionEffectDispatcher:211     notified(effect.shownAt)      ← Candidate→Notified, preserva
+DetectionEffectDispatcher:243     notified(now)   ← DegradeToPrompt        🔴 pregunta PORQUE dudaba
+DetectionEffectDispatcher:63      degradedToPrompt(now)  ← implausible repark  🔴 ídem
+```
+
+Los cuatro escribían la misma `ConfirmationPhase.Notified(shownAt)`, y el `PromptReason` que explica
+la degradación **se emitía a la traza y moría ahí** — no viajaba al estado. El timeout no podía
+distinguirlos aunque hubiese querido.
+
+**Doctrina violada.** *Fallo asimétrico: ante la duda se PREGUNTA, nunca se planta una plaza
+fantasma.* Un pin exacto es la afirmación más fuerte que el carril automático sabe hacer, y el
+silencio del usuario no es movimiento medido. Pariente de
+[DET-A-USER-YES-DOES-NOT-SHRINK-A-WALK-ENTERED-DOUBT-001], donde un «sí» real no encogía una duda ya
+entrada; aquí ni siquiera hubo «sí».
+
+**Fix — la pregunta lleva su razón, y sólo se le retira el pin EXACTO.**
+
+- `ConfirmationPhase.Notified`/`.Candidate` ganan `degradedFrom: PromptReason?`, y
+  `ConfirmationLifecycle.notified(shownAt, degradedFrom)` lo pide **sin default**: `null` es la
+  respuesta permisiva, así que un productor futuro no puede comprarla callándose. Los cuatro
+  productores los encontró el compilador, no la memoria.
+- `UnattendedSaveInput.promptDegradedFrom` lo transporta al evaluador puro, donde vive la
+  precedencia entera [DET-WALK-ENTERED-ANCHOR-ZONE-001].
+- `EvaluateUnattendedParkingSaveUseCase` gana `UnattendedParkingSave.DiscardDegraded(promptReason)`
+  **en el último peldaño**, sustituyendo únicamente a `SaveExact`. Cierre por el patrón de
+  `closeNotARoadVehicle`: retira la notificación, emite `UNATTENDED_DEGRADED_PROMPT_DISCARD` y
+  estampa `AbortedUnattended("degraded_<reason>")` — cuyo `resolvesTheArrival = true` impide que el
+  backfill de la red de seguridad reintroduzca el pin por la otra puerta [DET-BACKFILL-TAINT-001].
+
+**⛔ Por qué la regla es ESTRECHA, y por qué eso lo decidió el corpus y no el criterio de quien la
+escribió.** La primera versión corría antes de la escalera y mataba todo save degradado. Tumbó
+cuatro replays de trazas reales, que lo dicen mejor que este documento: *«the drive and the park are
+both real — losing them is not the fix for pointing wrong»* (`an_inherited_drive…`), *«a bounded
+doubt costs precision, never the park»* (`gondola_2608`), *«the park must be KEPT as a zone, not
+lost»* (`house_mirage_001`, `parafarmacia_2908`). Las cuatro llegan al timeout con pregunta
+degradada **y** conducción medida. Conclusión: *«degradada» no discrimina* — lo que discrimina es
+**qué se afirma**. Un pin exacto es una afirmación de precisión; una zona es una duda acotada. La
+degradación retira sólo lo que nunca estuvo acotado.
+
+La misma sesión del lote lo confirma por el otro lado: `1791232803918` degradó en
+`egress_not_at_anchor` y guardó una **zona de 155,7 m** con conducción real (59 fijaciones creíbles,
+54 km/h) y el coche dentro del círculo. Esa decisión era correcta y este fix no la toca.
+
+**Riesgo del fix acompañante.** Romper la otra mitad: [DET-RECONCILE-001] sigue vigente para el
+prompt ordinario y perderlo cuesta el coche al usuario (campo 2026-07-06, Redmi). Cada test del
+comportamiento nuevo trae su discriminante — mismo estado, misma espera, pregunta ordinaria → sigue
+guardando (`ResponseTimeoutDegradedPromptTest.should_stillSave_when_theQuestionWasTheOrdinaryPrompt`).
+
+**Lo que este fix NO cierra**, y conviene no confundirlo con él:
+
+1. **La causa raíz de `1791123836936` sigue viva.** `measuredDriving` es `provenMaxSpeedMps >=
+   minimumTripSpeedMps` y **no mira cuántas fijaciones creíbles sostienen el pico**: dos muestras de
+   arranque en frío cruzan la barra y de ahí abajo toda la escalera asume «un aparcamiento existe».
+   Este fix impide que eso acabe en pin exacto *cuando además hubo degradación*; por los demás
+   caminos sigue abierto. Es `DET-LONE-SAMPLE`.
+2. **Una ZONA se dibuja como un pin exacto.** `1791232803918` guardó 155,7 m de radio y el usuario
+   ve un punto con un «?»: lee «el coche está AQUÍ» cuando la app dice «está en este círculo».
+   Defecto de presentación, ticket aparte.
+3. **El tercer FP del lote** es de otra raíz — `kinematic+egress` confunde un coche rodando al
+   ralentí buscando sitio con una persona bajándose →
+   `docs/backlog/det-a-maneuvering-car-is-not-an-egress-001.md`.
+4. `ResponseTimeoutStage` sigue mapeando `UnattendedParkingSave.Discard` (el tren) a efecto `null`,
+   así que desde el timeout ese veredicto ni retira la notificación ni estampa su outcome:
+   preexistente, de otro carril → `docs/backlog/det-a-train-discard-must-close-the-session-001.md`.
+
 ### DET-A-VERIFIED-BOARDING-MUST-REACH-THE-VETO-001 — el embarque que verificaba la salida no llegaba al juez que lo necesitaba
 
 **Commit:** pending. **Origen:** field real, 25-09-2026 — falso negativo del Oppo (`0l7X59pt…`,

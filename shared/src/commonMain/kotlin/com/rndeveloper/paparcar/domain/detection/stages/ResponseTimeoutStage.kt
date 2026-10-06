@@ -18,6 +18,19 @@ import com.rndeveloper.paparcar.domain.usecase.parking.UnattendedParkingSave
  * nobody noticed — while saving it wrong costs one correction tap. The asymmetry is the whole
  * argument, and it is why this stage exists at all.
  *
+ * ⛔ **And that premise has one narrow exception**
+ * [DET-A-DEGRADED-PROMPT-MUST-NOT-AUTO-CONFIRM-001]. The sentence above was written when the prompt
+ * had ONE producer. It has two: a confirm that is REFUSED degrades into the same question, through
+ * the same `Notified` phase, and for that one "only a human tap is missing" is precisely what the
+ * app decided was not true. `ConfirmationPhase.degradedFrom` now rides into `UnattendedSaveInput`
+ * so the verdict can tell them apart.
+ *
+ * What it takes away is only the EXACT pin — `DiscardDegraded` replaces `SaveExact` and nothing
+ * else. Every zone still saves, degraded question or not, because *a bounded doubt costs precision,
+ * never the park*: four replays of real traces (`house_mirage_001`, `parafarmacia_2908`,
+ * `gondola_2608`, `an_inherited_drive…`) reach this stage with a degraded question and a measured
+ * drive, and losing them would be a far worse bug than the one being fixed.
+ *
  * ## What this stage is NOT
  *
  * It is not the seven-way precedence. That used to live inline here — no-drive → unpinned →
@@ -71,6 +84,17 @@ class ResponseTimeoutStage(
             // [DET-A-TRAIN-IS-NOT-A-CAR-001] The only branch that produces no effect at all. The
             // session still ends below with every other one — what it does not do is speak.
             is UnattendedParkingSave.Discard -> null
+
+            // [DET-A-DEGRADED-PROMPT-MUST-NOT-AUTO-CONFIRM-001] The question outlived its window and
+            // the refusal that produced it still stands — so the EXACT pin it would have earned is
+            // withheld (every zone verdict above still saves). Unlike the branch above this one
+            // DOES emit an effect: there is a prompt on screen to take down, and an outcome to
+            // stamp so the 15-minute safety net does not re-decide the arrival just resolved.
+            is UnattendedParkingSave.DiscardDegraded -> DetectionEffect.CloseDegradedPrompt(
+                reasonKey = verdict.promptReason.key,
+                vehicleId = vehicleId,
+                at = fix,
+            )
 
             is UnattendedParkingSave.Ask -> DetectionEffect.AskUser(
                 reasonKey = verdict.reason.key,

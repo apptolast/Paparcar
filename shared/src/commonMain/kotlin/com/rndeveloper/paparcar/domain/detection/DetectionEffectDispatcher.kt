@@ -60,7 +60,17 @@ class DetectionEffectDispatcher(
     fun apply(outcome: EffectOutcome): Boolean {
         outcome.sessionOutcome?.let { ended -> state.update { it.copy(session = it.session.endedWith(ended)) } }
         if (outcome.degradeToPrompt) {
-            state.update { it.copy(confirmation = it.confirmation.degradedToPrompt(shownAt = nowMs())) }
+            state.update {
+                it.copy(
+                    confirmation = it.confirmation.degradedToPrompt(
+                        shownAt = nowMs(),
+                        // [DET-A-DEGRADED-PROMPT-MUST-NOT-AUTO-CONFIRM-001] The one producer that
+                        // degrades on a REJECTED SAVE rather than on a doubted proof — and the one
+                        // whose reason was never anywhere but the trace.
+                        reason = PromptReason.IMPLAUSIBLE_REPARK,
+                    ),
+                )
+            }
         }
         outcome.holdOpened?.let { pending ->
             state.update { it.copy(confirmation = it.confirmation.holding(pending)) }
@@ -208,7 +218,13 @@ class DetectionEffectDispatcher(
                     // stamped at wherever the count stands NOW.
                     state.update {
                         it.copy(
-                            confirmation = it.confirmation.notified(effect.shownAt),
+                            // [DET-A-DEGRADED-PROMPT-MUST-NOT-AUTO-CONFIRM-001] Candidate→Notified
+                            // is the SAME question losing confidence, not a new one: it keeps the
+                            // original instant, so it must keep the original cause too.
+                            confirmation = it.confirmation.notified(
+                                effect.shownAt,
+                                degradedFrom = it.confirmation.promptDegradedFrom,
+                            ),
                             egress = it.egress.candidateDiscarded(),
                         )
                     }
@@ -228,6 +244,12 @@ class DetectionEffectDispatcher(
                     apply(effects.closeNotARoadVehicle(effect.vehicleId, effect.at, now))
                     sessionCompleted = true
                 }
+                // [DET-A-DEGRADED-PROMPT-MUST-NOT-AUTO-CONFIRM-001] Same shape again: end it, say
+                // why to the trace, and say nothing to the user — who has already been asked.
+                is DetectionEffect.CloseDegradedPrompt -> {
+                    apply(effects.closeDegradedPrompt(effect.reasonKey, effect.vehicleId, effect.at, now))
+                    sessionCompleted = true
+                }
                 is DetectionEffect.DegradeToPrompt -> {
                     val posted = effects.degradeToPrompt(
                         alreadyPrompted = state.value.confirmation.promptShownAt != null,
@@ -240,7 +262,17 @@ class DetectionEffectDispatcher(
                     // The prompt window moves only when a prompt was actually POSTED: re-posting
                     // over one the user is already inside would restart their response timeout.
                     if (posted) {
-                        state.update { it.copy(confirmation = it.confirmation.notified(shownAt = now)) }
+                        state.update {
+                            it.copy(
+                                confirmation = it.confirmation.notified(
+                                    shownAt = now,
+                                    // The cause the effect already carries — the whole point of
+                                    // [DET-A-DEGRADED-PROMPT-MUST-NOT-AUTO-CONFIRM-001] is that it
+                                    // stops here instead of only in the trace.
+                                    degradedFrom = PromptReason.entries.first { r -> r.key == effect.reasonKey },
+                                ),
+                            )
+                        }
                     }
                 }
                 is DetectionEffect.NotifyPrompt -> effects.notifyPrompt(effect.confidence, effect.at)

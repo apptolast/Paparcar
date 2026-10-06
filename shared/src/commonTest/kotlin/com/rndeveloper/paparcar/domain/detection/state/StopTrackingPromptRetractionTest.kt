@@ -27,7 +27,7 @@ class StopTrackingPromptRetractionTest {
 
     /** A stop with an open question: the prompt was posted, the user has not answered. */
     private fun asked(at: Long = 0L) = DetectionSessionState(
-        confirmation = ConfirmationLifecycle().notified(shownAt = at),
+        confirmation = ConfirmationLifecycle().notified(shownAt = at, degradedFrom = null),
     )
 
     /** Above `minimumTripSpeedMps` (5 m/s) with a credible fix — unambiguous car movement. */

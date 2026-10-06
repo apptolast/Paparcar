@@ -427,6 +427,50 @@ class DetectionEffectExecutor(
     }
 
     /**
+     * [DET-A-DEGRADED-PROMPT-MUST-NOT-AUTO-CONFIRM-001] The response window closed on a question
+     * that only existed because a confirm had been REFUSED: end the session, take the question off
+     * screen, record which refusal outlived the window, and place nothing.
+     *
+     * Deliberately the same shape as [closeNotARoadVehicle] — end, dismiss, trace, no notification —
+     * and deliberately a separate function rather than a `silent` flag on [nudge], for the reason
+     * written there: silence has to be chosen, never obtained by omission.
+     *
+     * The outcome is an [SessionOutcome.AbortedUnattended] whose key carries the degradation
+     * (`degraded_weak_evidence`, `degraded_egress_not_at_anchor`, …) rather than a new arm of the
+     * type. That arm already answers all four memberships correctly for this ending, and one of
+     * them is load-bearing: `resolvesTheArrival = true` keeps the 15-minute safety net's backfill
+     * from re-deciding the arrival the coordinator just refused, which would reintroduce the pin
+     * through the other door [DET-BACKFILL-TAINT-001].
+     */
+    suspend fun closeDegradedPrompt(
+        reasonKey: String,
+        vehicleId: String?,
+        location: GpsPoint,
+        now: Long,
+    ): EffectOutcome {
+        PaparcarLogger.d(
+            DIAG,
+            "  ⊘ the prompt window closed on a DEGRADED question (reason=$reasonKey vehicle=$vehicleId) — " +
+                "the refusal that asked it still stands, so no pin, no zone and no second question " +
+                "[DET-A-DEGRADED-PROMPT-MUST-NOT-AUTO-CONFIRM-001]",
+        )
+        notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
+        diagnostics.emit { sid ->
+            DetectionEvent.Decision(
+                sid, now,
+                outcome = "UNATTENDED_DEGRADED_PROMPT_DISCARD",
+                pathLabel = DetectionPath.UnattendedTimeout.label,
+                location = location,
+                reason = reasonKey,
+            )
+        }
+        return EffectOutcome(
+            sessionOutcome = SessionOutcome.AbortedUnattended("degraded_$reasonKey"),
+            endsSession = true,
+        )
+    }
+
+    /**
      * [DET-SOLID-001] Every confirm condition holds but the evidence is too weak for a silent save —
      * an ENTER-only arm whose session never saw driving, falsifiable by a bus or a taxi. Ask instead:
      * a "Sí" flows through the user-confirm precedence and silence aborts at the response timeout.

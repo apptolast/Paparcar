@@ -19,10 +19,10 @@ class ConfirmationPhaseMappingTest {
     fun should_map_only_candidate_to_parking_when_confirmation_phase_advances() {
         assertEquals(DetectionPhase.Driving, ConfirmationPhase.Idle.toDetectionPhase())
         assertEquals(DetectionPhase.Driving, ConfirmationPhase.LowReached(firstReachedAt = 1_000L).toDetectionPhase())
-        assertEquals(DetectionPhase.Driving, ConfirmationPhase.Notified(shownAt = 2_000L).toDetectionPhase())
+        assertEquals(DetectionPhase.Driving, ConfirmationPhase.Notified(shownAt = 2_000L, degradedFrom = null).toDetectionPhase())
         assertEquals(
             DetectionPhase.Candidate,
-            ConfirmationPhase.Candidate(highReachedAt = 3_000L, hadVehicleExit = true, shownAt = 2_000L).toDetectionPhase(),
+            ConfirmationPhase.Candidate(highReachedAt = 3_000L, hadVehicleExit = true, shownAt = 2_000L, degradedFrom = null).toDetectionPhase(),
         )
     }
 }

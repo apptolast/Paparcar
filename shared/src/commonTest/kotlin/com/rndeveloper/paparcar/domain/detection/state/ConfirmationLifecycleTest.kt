@@ -2,6 +2,7 @@ package com.rndeveloper.paparcar.domain.detection.state
 
 import com.rndeveloper.paparcar.domain.detection.state.ConfirmationPhase
 import com.rndeveloper.paparcar.domain.model.GpsPoint
+import com.rndeveloper.paparcar.domain.usecase.parking.PromptReason
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -30,10 +31,10 @@ class ConfirmationLifecycleTest {
      */
     @Test
     fun should_leave_the_prompt_alone_when_a_hold_is_merely_discarded() {
-        val notified = ConfirmationLifecycle().notified(shownAt = 2_000L).holding(held)
+        val notified = ConfirmationLifecycle().notified(shownAt = 2_000L, degradedFrom = null).holding(held)
         val after = notified.discardingHold()
         assertNull(after.pendingConfirm)
-        assertEquals(ConfirmationPhase.Notified(2_000L), after.phase)
+        assertEquals(ConfirmationPhase.Notified(2_000L, degradedFrom = null), after.phase)
         assertEquals(2_000L, after.promptShownAt, "the response window must keep its original instant")
     }
 
@@ -44,8 +45,8 @@ class ConfirmationLifecycleTest {
      */
     @Test
     fun should_open_a_fresh_prompt_when_a_refused_save_degrades_the_hold() {
-        val after = ConfirmationLifecycle().notified(shownAt = 2_000L).holding(held)
-            .degradedToPrompt(shownAt = 9_000L)
+        val after = ConfirmationLifecycle().notified(shownAt = 2_000L, degradedFrom = null).holding(held)
+            .degradedToPrompt(shownAt = 9_000L, reason = PromptReason.IMPLAUSIBLE_REPARK)
         assertNull(after.pendingConfirm)
         assertEquals(9_000L, after.promptShownAt)
     }
@@ -57,7 +58,7 @@ class ConfirmationLifecycleTest {
     @Test
     fun should_carry_the_held_confirm_through_by_identity() {
         val lifecycle = ConfirmationLifecycle().holding(held)
-        val afterPhaseChange = lifecycle.notified(shownAt = 3_000L).userSaidYes()
+        val afterPhaseChange = lifecycle.notified(shownAt = 3_000L, degradedFrom = null).userSaidYes()
         assertSame(held, afterPhaseChange.pendingConfirm)
     }
 
@@ -67,11 +68,21 @@ class ConfirmationLifecycleTest {
      *  twice, so the response timeout must not restart. [BUG-STUCK-SESSION] */
     @Test
     fun should_keep_the_original_prompt_instant_when_high_arrives_after_a_prompt() {
-        val notified = ConfirmationLifecycle().notified(shownAt = 2_000L)
-        val candidate = notified.candidate(highReachedAt = 7_000L, hadVehicleExit = true, shownAt = notified.promptShownAt!!)
+        val notified = ConfirmationLifecycle().notified(shownAt = 2_000L, degradedFrom = null)
+        val candidate = notified.candidate(
+            highReachedAt = 7_000L,
+            hadVehicleExit = true,
+            shownAt = notified.promptShownAt!!,
+            degradedFrom = null,
+        )
         assertEquals(2_000L, candidate.promptShownAt)
         assertEquals(
-            ConfirmationPhase.Candidate(highReachedAt = 7_000L, hadVehicleExit = true, shownAt = 2_000L),
+            ConfirmationPhase.Candidate(
+                highReachedAt = 7_000L,
+                hadVehicleExit = true,
+                shownAt = 2_000L,
+                degradedFrom = null,
+            ),
             candidate.phase,
         )
     }
@@ -89,7 +100,7 @@ class ConfirmationLifecycleTest {
      */
     @Test
     fun should_restart_the_conversation_but_not_the_hold_when_the_stop_ends() {
-        val after = ConfirmationLifecycle().notified(2_000L).holding(held).stopEnded()
+        val after = ConfirmationLifecycle().notified(2_000L, degradedFrom = null).holding(held).stopEnded()
         assertEquals(ConfirmationPhase.Idle, after.phase)
         assertSame(held, after.pendingConfirm)
     }
@@ -99,7 +110,7 @@ class ConfirmationLifecycleTest {
     /** "Sí" is sticky and independent of the phase — it outranks every guard downstream. */
     @Test
     fun should_latch_the_users_yes_across_later_phase_changes() {
-        val after = ConfirmationLifecycle().userSaidYes().notified(2_000L).stopEnded()
+        val after = ConfirmationLifecycle().userSaidYes().notified(2_000L, degradedFrom = null).stopEnded()
         assertTrue(after.userConfirmed)
         assertFalse(ConfirmationLifecycle().userConfirmed)
     }

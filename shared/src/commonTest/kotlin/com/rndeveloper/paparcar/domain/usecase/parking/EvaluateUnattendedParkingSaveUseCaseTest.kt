@@ -62,6 +62,11 @@ class EvaluateUnattendedParkingSaveUseCaseTest {
         // [DET-A-TRAIN-IS-NOT-A-CAR-001] Permissive in the helper, mandatory in production —
         // same rule as the field above it.
         roadPlausibility: RoadPlausibility = RoadPlausibility.PLAUSIBLE,
+        // [DET-A-DEGRADED-PROMPT-MUST-NOT-AUTO-CONFIRM-001] Permissive here too, and for the third
+        // time said out loud: `null` means "the ordinary Low/Medium question", which is the only
+        // kind the ladder below may still save. Every scenario in this file is about an ordinary
+        // prompt; the degraded ones name it.
+        promptDegradedFrom: PromptReason? = null,
     ) = UnattendedSaveInput(
         witnessedRestFix = witnessedRestFix,
         maxSpeedMps = maxSpeedMps,
@@ -83,6 +88,7 @@ class EvaluateUnattendedParkingSaveUseCaseTest {
         anchorRestMs = anchorRestMs,
         humanPoweredRide = humanPoweredRide,
         roadPlausibility = roadPlausibility,
+        promptDegradedFrom = promptDegradedFrom,
     )
 
     // ── The field regression ─────────────────────────────────────────────────────────────────
@@ -553,6 +559,90 @@ class EvaluateUnattendedParkingSaveUseCaseTest {
 
         val ask = assertIs<UnattendedParkingSave.Ask>(verdict)
         assertEquals(UnattendedSaveReason.NOT_A_ROAD_SPEED, ask.reason)
+    }
+
+    // ── [DET-A-DEGRADED-PROMPT-MUST-NOT-AUTO-CONFIRM-001] ────────────────────────────────────
+
+    /**
+     * Field 2026-10-05, Oppo session `1791123836936`. The app degraded its own confirm into a
+     * question (`weak_evidence`) and then, fifteen minutes later with nobody having answered, saved
+     * an exact pin in a pedestrian street the car cannot enter.
+     *
+     * The input here is otherwise a perfectly trusted anchor — a clean `SaveExact` — which is the
+     * point: the refusal must outrank the ladder, not be arbitrated by it.
+     */
+    @Test
+    fun should_recordNothing_when_theQuestionItselfCameFromARefusedConfirm() {
+        val verdict = evaluate(input(promptDegradedFrom = PromptReason.WEAK_EVIDENCE))
+
+        val discarded = assertIs<UnattendedParkingSave.DiscardDegraded>(verdict)
+        assertEquals(PromptReason.WEAK_EVIDENCE, discarded.promptReason)
+    }
+
+    /**
+     * ⛔ **El límite de la regla, y lo aprendió el corpus de campo, no una preferencia.**
+     *
+     * Field 2026-10-05, sesión `1791232803918`: degradó en `egress_not_at_anchor` y el timeout
+     * guardó una ZONA de 155,7 m de radio. Mi primera versión de este guard también la mataba — y
+     * tumbó cuatro trazas reales (`house_mirage_001`, `parafarmacia_2908`, `gondola_2608`,
+     * `an_inherited_drive…`), cuyos mensajes dicen exactamente por qué: *«the drive and the park are
+     * both real — losing them is not the fix for pointing wrong»*.
+     *
+     * Una duda ACOTADA cuesta precisión, nunca el aparcamiento [DET-WALK-ENTERED-ANCHOR-ZONE-001].
+     * La degradación sólo retira lo que no estaba acotado: el pin exacto.
+     */
+    @Test
+    fun should_stillKeepTheParkAsAZone_when_aDegradedQuestionHasABoundedDoubt() {
+        val verdict = evaluate(
+            input(
+                egressBirth = EgressBirthJudgement.BORN_AWAY,
+                egressOriginFix = anchor.copy(latitude = anchor.latitude + 0.001),
+                sessionSawSteps = true,
+                promptDegradedFrom = PromptReason.EGRESS_NOT_AT_ANCHOR,
+            ),
+        )
+
+        val zone = assertIs<UnattendedParkingSave.SaveZone>(verdict)
+        assertEquals(UnattendedSaveReason.EGRESS_MISMATCH, zone.reason)
+    }
+
+    /**
+     * ⛔ The other half of the rule, and the one a careless fix would break: [DET-RECONCILE-001]
+     * stands for the ORDINARY prompt. A real trip, a real stop, a trusted anchor and no degradation
+     * still saves on silence — losing that is how a user loses their car (field 2026-07-06).
+     */
+    @Test
+    fun should_stillSaveOnSilence_when_theQuestionWasTheOrdinaryPrompt() {
+        assertIs<UnattendedParkingSave.SaveExact>(evaluate(input(promptDegradedFrom = null)))
+    }
+
+    /**
+     * The premise guards come FIRST and keep their historical labels: years of field traces are
+     * compared against `aborted_unattended_human_powered`, and a bicycle that also happened to be
+     * asked a degraded question must still read as a bicycle.
+     */
+    @Test
+    fun should_keepThePremiseVerdict_when_aDegradedQuestionMeetsAHumanPoweredRide() {
+        val verdict = evaluate(
+            input(humanPoweredRide = true, promptDegradedFrom = PromptReason.WEAK_EVIDENCE),
+        )
+
+        val ask = assertIs<UnattendedParkingSave.Ask>(verdict)
+        assertEquals(UnattendedSaveReason.HUMAN_POWERED, ask.reason)
+    }
+
+    /** Every degradation cause reaches the same refusal — the rule is about the KIND of question,
+     *  not about which of the six reasons produced it. */
+    @Test
+    fun should_refuseToRecord_when_anyPromptReasonOutlivesTheWindow() {
+        PromptReason.entries.forEach { reason ->
+            val verdict = evaluate(input(promptDegradedFrom = reason))
+            val discarded = assertIs<UnattendedParkingSave.DiscardDegraded>(
+                verdict,
+                "un prompt degradado por $reason no puede acabar en pin EXACTO",
+            )
+            assertEquals(reason, discarded.promptReason)
+        }
     }
 
     /**

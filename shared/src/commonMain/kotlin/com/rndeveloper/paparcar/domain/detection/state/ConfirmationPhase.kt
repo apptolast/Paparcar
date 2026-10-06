@@ -1,5 +1,7 @@
 package com.rndeveloper.paparcar.domain.detection.state
 
+import com.rndeveloper.paparcar.domain.usecase.parking.PromptReason
+
 /**
  * [REFACTOR-200: explicit state machine replacing the implicit 4-flag encoding]
  *
@@ -48,8 +50,20 @@ sealed interface ConfirmationPhase {
     /**
      * A Low/Medium confirmation prompt has been shown to the user at [shownAt] (epoch-ms).
      * Used to drive the response-timeout abort.
+     *
+     * @param degradedFrom WHY this question exists, or null when it is the ordinary Low/Medium
+     *   prompt. See [ConfirmationPhase.promptDegradedFrom].
+     *
+     *   ⛔ **No default, deliberately** [DET-A-DEGRADED-PROMPT-MUST-NOT-AUTO-CONFIRM-001]. `null`
+     *   is the PERMISSIVE answer — it is what lets the response timeout plant a pin — so a future
+     *   producer must not be able to buy it by saying nothing. That is the same accident
+     *   [UnattendedSaveInput] spells out at length, and it is why both producers of a degraded
+     *   prompt had to be found and changed by the compiler rather than by memory.
      */
-    data class Notified(val shownAt: Long) : ConfirmationPhase
+    data class Notified(
+        val shownAt: Long,
+        val degradedFrom: PromptReason?,
+    ) : ConfirmationPhase
 
     /**
      * High confidence reached at [highReachedAt] (epoch-ms). The user prompt has been
@@ -62,6 +76,7 @@ sealed interface ConfirmationPhase {
         val highReachedAt: Long,
         val hadVehicleExit: Boolean,
         val shownAt: Long,
+        val degradedFrom: PromptReason?,
     ) : ConfirmationPhase
 }
 
@@ -73,5 +88,31 @@ internal val ConfirmationPhase.promptShownAt: Long?
     get() = when (this) {
         is ConfirmationPhase.Notified -> shownAt
         is ConfirmationPhase.Candidate -> shownAt
+        else -> null
+    }
+
+/**
+ * [DET-A-DEGRADED-PROMPT-MUST-NOT-AUTO-CONFIRM-001] **Why the question on screen was asked** — null
+ * for the ordinary Low/Medium prompt, the [PromptReason] when a confirm DEGRADED into it.
+ *
+ * The companion of [promptShownAt], and the field that was missing. The response timeout reads the
+ * *when* and used to have no way to ask the *what kind*, so it treated both questions alike:
+ *
+ * - The ordinary prompt satisfies [DET-RECONCILE-001]'s premise — a real trip, a real stop and a
+ *   vehicle-exit signal already happened, and the only missing piece is a human tap. Saving it on
+ *   silence is right, and stays unchanged.
+ * - A DEGRADED prompt exists for the opposite reason: a confirm path reached its verdict and the
+ *   evidence was refused. Silence adds no evidence, so it may not buy back the one thing the app
+ *   had just declined to assert — the EXACT point. Bounded verdicts (every zone) are untouched.
+ *
+ * Field 2026-10-05, Oppo session `1791123836936`: `CONFIRM_DEGRADED_PROMPT/weak_evidence` at
+ * 16:25:49, then `CONFIRMED/unattended_timeout` at 16:40:51 with nobody having answered — an exact
+ * pin in a pedestrian street the car cannot enter, on a "drive" of two cold-start fixes, while 1192
+ * STEP events said the user was walking.
+ */
+internal val ConfirmationPhase.promptDegradedFrom: PromptReason?
+    get() = when (this) {
+        is ConfirmationPhase.Notified -> degradedFrom
+        is ConfirmationPhase.Candidate -> degradedFrom
         else -> null
     }

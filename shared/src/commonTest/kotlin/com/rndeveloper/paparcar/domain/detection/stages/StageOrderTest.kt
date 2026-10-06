@@ -122,6 +122,8 @@ class StageScaffoldTest {
         is DetectionEffect.DiscardCandidate -> "the Candidate(DISCARDED) branch of evaluateCandidatePhase"
         is DetectionEffect.SaveZone -> "saveUnattendedZone, with its fall-back-to-nudge"
         is DetectionEffect.SaveUnattended -> "the SaveExact branch of the response timeout"
+        is DetectionEffect.CloseDegradedPrompt ->
+            "closeDegradedPrompt (new: the degraded branch of the response timeout)"
         is DetectionEffect.CloseHumanPowered -> "closeHumanPoweredRide"
         is DetectionEffect.CloseNotARoadVehicle -> "closeNotARoadVehicle (new: no method it replaces — the silent close did not exist)"
         is DetectionEffect.RecordPromptShown -> "the PROMPT_SHOWN Decision event"

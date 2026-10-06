@@ -378,6 +378,24 @@ sealed interface DetectionEffect {
     data class CloseNotARoadVehicle(val vehicleId: String?, val at: GpsPoint) : DetectionEffect
 
     /**
+     * [DET-A-DEGRADED-PROMPT-MUST-NOT-AUTO-CONFIRM-001] The response window closed on a question
+     * that existed because a confirm had been REFUSED: end the session, record which refusal it
+     * was, place nothing and ask nothing.
+     *
+     * Shaped like [CloseNotARoadVehicle] on purpose — both are "end it and say why, to the trace
+     * only" — and kept separate for the same reason that one is not a flag on the nudge: a silent
+     * ending has to be chosen, never inherited.
+     *
+     * @param reasonKey [com.rndeveloper.paparcar.domain.usecase.parking.PromptReason.key] of the
+     *   degradation that outlived the window.
+     */
+    data class CloseDegradedPrompt(
+        val reasonKey: String,
+        val vehicleId: String?,
+        val at: GpsPoint,
+    ) : DetectionEffect
+
+    /**
      * [DET-C-02] Drop a held confirm and say WHY, in one move.
      *
      * The two halves always travel together and once did not: [DET-HOLD-BRANCHES-MUST-SPEAK-001]

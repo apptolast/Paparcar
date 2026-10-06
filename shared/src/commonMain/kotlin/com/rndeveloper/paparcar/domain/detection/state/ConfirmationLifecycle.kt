@@ -1,7 +1,9 @@
 package com.rndeveloper.paparcar.domain.detection.state
 
 import com.rndeveloper.paparcar.domain.detection.state.ConfirmationPhase
+import com.rndeveloper.paparcar.domain.detection.state.promptDegradedFrom
 import com.rndeveloper.paparcar.domain.detection.state.promptShownAt
+import com.rndeveloper.paparcar.domain.usecase.parking.PromptReason
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 
 /**
@@ -72,9 +74,19 @@ data class ConfirmationLifecycle(
     fun lowReached(now: Long): ConfirmationLifecycle =
         copy(phase = ConfirmationPhase.LowReached(now))
 
-    /** A prompt is now on screen; [shownAt] opens the response-timeout window. */
-    fun notified(shownAt: Long): ConfirmationLifecycle =
-        copy(phase = ConfirmationPhase.Notified(shownAt))
+    /**
+     * A prompt is now on screen; [shownAt] opens the response-timeout window.
+     *
+     * @param degradedFrom null for the ordinary Low/Medium question, the [PromptReason] when a
+     *   confirm degraded into it. **No default** — see [ConfirmationPhase.Notified] for why the
+     *   permissive answer must never be available by omission.
+     *   [DET-A-DEGRADED-PROMPT-MUST-NOT-AUTO-CONFIRM-001]
+     */
+    fun notified(shownAt: Long, degradedFrom: PromptReason?): ConfirmationLifecycle =
+        copy(phase = ConfirmationPhase.Notified(shownAt, degradedFrom))
+
+    /** [DET-A-DEGRADED-PROMPT-MUST-NOT-AUTO-CONFIRM-001] Why the question on screen was asked. */
+    val promptDegradedFrom: PromptReason? get() = phase.promptDegradedFrom
 
     /**
      * HIGH confidence: the candidate observation window opens.
@@ -83,8 +95,13 @@ data class ConfirmationLifecycle(
      * its ORIGINAL instant — the response timeout ticks from when the user first saw a question,
      * not from when the session got more confident about it.
      */
-    fun candidate(highReachedAt: Long, hadVehicleExit: Boolean, shownAt: Long): ConfirmationLifecycle =
-        copy(phase = ConfirmationPhase.Candidate(highReachedAt, hadVehicleExit, shownAt))
+    fun candidate(
+        highReachedAt: Long,
+        hadVehicleExit: Boolean,
+        shownAt: Long,
+        degradedFrom: PromptReason?,
+    ): ConfirmationLifecycle =
+        copy(phase = ConfirmationPhase.Candidate(highReachedAt, hadVehicleExit, shownAt, degradedFrom))
 
     /** The stop is over (the vehicle drove away): the conversation starts from scratch. */
     fun stopEnded(): ConfirmationLifecycle = copy(phase = ConfirmationPhase.Idle)
@@ -105,8 +122,8 @@ data class ConfirmationLifecycle(
      * a QUESTION: the hold is dropped and a prompt goes back on screen in the same move. Distinct
      * from [discardingHold] precisely because the user is now being asked something.
      */
-    fun degradedToPrompt(shownAt: Long): ConfirmationLifecycle =
-        copy(pendingConfirm = null, phase = ConfirmationPhase.Notified(shownAt))
+    fun degradedToPrompt(shownAt: Long, reason: PromptReason): ConfirmationLifecycle =
+        copy(pendingConfirm = null, phase = ConfirmationPhase.Notified(shownAt, degradedFrom = reason))
 
     // ── The user ──────────────────────────────────────────────────────────────
 
