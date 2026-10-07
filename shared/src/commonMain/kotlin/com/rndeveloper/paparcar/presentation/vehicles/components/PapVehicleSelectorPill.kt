@@ -30,6 +30,7 @@ import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
 import com.rndeveloper.paparcar.ui.theme.watch
+import com.rndeveloper.paparcar.ui.theme.PapControlHeight
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.my_car_unnamed_vehicle
@@ -71,7 +72,7 @@ internal fun PapVehicleSelectorPill(
 
     Surface(
         onClick = onClick,
-        modifier = modifier.height(TAB_HEIGHT_DP.dp),
+        modifier = modifier.height(PapControlHeight.chip),
         shape = RoundedCornerShape(PILL_RADIUS_DP.dp),
         color = bg,
         // Selected = tonal fill + MUTED accent border, honouring the "no neon border on selected"
@@ -124,9 +125,7 @@ private fun VehicleWatchDot(watch: VehicleWatch) {
 
 /** The pill's own height, so a row of them lines up with whatever sits beside it (the "+" chip in
  *  Vehicles, nothing in the panel). */
-internal const val VEHICLE_PILL_HEIGHT_DP = 36
 
-private const val TAB_HEIGHT_DP = VEHICLE_PILL_HEIGHT_DP
 private const val PILL_RADIUS_DP = 999
 private const val PILL_H_PAD_DP = 12
 private const val PILL_GAP_DP = 6

@@ -74,6 +74,7 @@ import com.rndeveloper.paparcar.ui.theme.PapBorders
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.PapColor
+import com.rndeveloper.paparcar.ui.theme.PapControlHeight
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_peek_parked_label
@@ -253,7 +254,7 @@ internal fun HomeVehicleChip(
                     onClick = onStopTrip,
                     modifier = Modifier.fillMaxWidth(),
                     fillWidth = true,
-                    height = STOP_PILL_HEIGHT_DP.dp,
+                    height = PapControlHeight.chip,
                 )
             }
         }
@@ -539,7 +540,7 @@ internal fun HomeVehicleCard(
                             )
                             .fillMaxWidth(),
                         fillWidth = true,
-                        height = STOP_PILL_HEIGHT_DP.dp,
+                        height = PapControlHeight.chip,
                     )
                 }
             }
@@ -765,5 +766,4 @@ private const val DRIVING_BORDER_DP = 1.5f // thicker live-blue border while dri
 // The stop pill: shorter than the story rows' 40dp CTA so the foot keeps its height, tonal in the
 // identity colour — same container language as the detection surface's identity tone.
 // [DET-STOP-BUTTON-001] [HOME-A-DRIVE-IS-ONE-NEWS-AND-THE-CARD-CARRIES-THE-STOP-001]
-private const val STOP_PILL_HEIGHT_DP = 34
 private const val STOP_PILL_TINT_ALPHA = 0.16f

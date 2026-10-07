@@ -84,6 +84,8 @@ import paparcar.composeapp.generated.resources.home_zone_radius_section
 import paparcar.composeapp.generated.resources.home_zone_save_action
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
 import com.rndeveloper.paparcar.ui.theme.PapColor
+import com.rndeveloper.paparcar.ui.theme.PapGap
+import com.rndeveloper.paparcar.ui.theme.PapIconSize
 
 // ═════════════════════════════════════════════════════════════════════════════
 // AddingZonePeek — "Nueva zona habitual" (create + edit). [HOME-ATOMIZE-001 F3]
@@ -187,7 +189,7 @@ internal fun AddingZonePeek(
                 radius = form.radius,
                 onRadiusChange = { onIntent(HomeIntent.SetZoneRadius(it)) },
             )
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(PapGap.block))
         },
         actions = {
             PapFooterButton(
@@ -323,7 +325,7 @@ private fun ZoneSaveDialog(
                 enabled = !form.isSaving,
                 onToggle = { onIntent(HomeIntent.SetZoneIsPrivate(it)) },
             )
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(PapGap.block))
             // [MONEY-001] Visible to everyone (soft gate): enabling as free is the attempt
             // that routes to the paywall — the VM decides, this row only asks.
             ZoneNotifyToggle(
@@ -421,7 +423,7 @@ private fun ZonePrivacyToggle(
                 imageVector = Icons.Rounded.Lock,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(18.dp),
+                modifier = Modifier.size(PapIconSize.withLabel),
             )
             Column {
                 Text(
@@ -462,7 +464,7 @@ private fun ZoneNotifyToggle(
                 imageVector = Icons.Rounded.Notifications,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(18.dp),
+                modifier = Modifier.size(PapIconSize.withLabel),
             )
             Text(
                 text = stringResource(Res.string.home_zone_form_notify_label),

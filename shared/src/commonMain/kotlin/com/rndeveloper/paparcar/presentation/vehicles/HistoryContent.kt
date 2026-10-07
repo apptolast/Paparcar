@@ -60,6 +60,7 @@ import com.rndeveloper.paparcar.ui.components.PapShimmerBlockScale
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import com.rndeveloper.paparcar.ui.theme.PapControlHeight
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
@@ -627,7 +628,7 @@ private fun HistorySkeletonSection(fillMaxSize: Boolean, modifier: Modifier = Mo
                 PapShimmerBox(
                     modifier = Modifier
                         .weight(1f)
-                        .height(SKELETON_CHIP_HEIGHT_DP.dp),
+                        .height(PapControlHeight.chip),
                     shape = RoundedCornerShape(999.dp),
                     alphaScale = PapShimmerBlockScale * SKELETON_CHIP_ALPHA_FACTOR,
                 )
@@ -668,7 +669,6 @@ private const val SECTION_TITLE_BOTTOM_GAP = 8
 private const val STATS_CARD_GAP = 16
 
 private const val SKELETON_CHART_HEIGHT_DP = 148
-private const val SKELETON_CHIP_HEIGHT_DP = 32
 private const val SKELETON_SESSION_HEIGHT_DP = 72
 private const val SKELETON_HEADER_WIDTH_DP = 80
 private const val SKELETON_HEADER_HEIGHT_DP = 12

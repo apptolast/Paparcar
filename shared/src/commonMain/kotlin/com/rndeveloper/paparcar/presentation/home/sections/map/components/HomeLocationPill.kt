@@ -31,12 +31,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.ZONE_CHIP_HEIGHT
 import com.rndeveloper.paparcar.presentation.util.MAP_FLOATING_SHADOW_DP
 import com.rndeveloper.paparcar.presentation.util.radiusString
 import com.rndeveloper.paparcar.ui.theme.PapMotion
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import com.rndeveloper.paparcar.ui.theme.PapControlHeight
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_gps_accuracy_banner
@@ -122,7 +122,7 @@ internal fun locationPillMessage(locationMissing: Boolean, accuracy: Float?): Lo
  * [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]. A fix too coarse to trust is [PapColor.danger]
  * and has nothing to tap: no setting makes the sky better.
  *
- * It wears the geometry of the floating family — [ZONE_CHIP_HEIGHT], stadium shape and the shadow
+ * It wears the geometry of the floating family — [PapControlHeight.chip], stadium shape and the shadow
  * every floating-over-map control carries. The FILL is the one thing it does NOT share: this pill's
  * colour IS its message, so it cannot go glass like the rest. [MAP-GLASS-001]
  */
@@ -187,7 +187,7 @@ fun HomeLocationPill(
                 // reason, and a pill that measures itself from its text is a pill of a different
                 // size in every locale.
                 modifier = Modifier
-                    .height(ZONE_CHIP_HEIGHT)
+                    .height(PapControlHeight.chip)
                     // Only the actionable message is a target: the whole pill, like the badge it
                     // replaces. A coarse fix has nowhere to send anyone.
                     .then(

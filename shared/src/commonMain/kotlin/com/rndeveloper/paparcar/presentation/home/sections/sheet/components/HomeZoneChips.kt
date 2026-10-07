@@ -47,6 +47,9 @@ import paparcar.composeapp.generated.resources.home_header_add_zone_hint
 import paparcar.composeapp.generated.resources.home_zone_action_edit
 import paparcar.composeapp.generated.resources.home_zone_private_label
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
+import com.rndeveloper.paparcar.ui.theme.PapGap
+import com.rndeveloper.paparcar.ui.theme.PapIconSize
+import com.rndeveloper.paparcar.ui.theme.PapControlHeight
 
 /**
  * Habitual-zone chip — a **glass stadium pill** that floats over the map in the
@@ -93,17 +96,23 @@ fun ZoneChip(
             // The height is DECLARED, not left to whichever child happens to be tallest: the add
             // chip next door has to match it, and an emergent height gives it nothing to match.
             // [UI-THE-ADD-ZONE-CHIP-IS-ONE-CHIP-IN-EVERY-STATE-001]
+            //
+            // ⛔ Y ya no lo declara ESTE fichero. La regla de arriba se descubrió aquí, para dos
+            // chips vecinos, y resultó ser la de TODO control de la app: vive en
+            // `PapControlHeight`, de donde salen también la píldora flotante del mapa y el
+            // selector de vehículo, que antes importaban el 34 de este chip o copiaban un 36.
+            // [UI-A-SCALE-NOBODY-USES-IS-NOT-A-SYSTEM-001]
             modifier = Modifier
-                .height(ZONE_CHIP_HEIGHT)
+                .height(PapControlHeight.chip)
                 .padding(start = 12.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(PapGap.chipRow),
         ) {
             Icon(
                 imageVector = zoneIconFor(iconKey),
                 contentDescription = null,
                 tint = zoneColor,
-                modifier = Modifier.size(ZONE_CHIP_ICON_DP.dp),
+                modifier = Modifier.size(PapIconSize.withLabel),
             )
             Text(
                 text = label,
@@ -183,7 +192,7 @@ fun AddZoneChip(
             // raises their font scale. The invitation is also the only thing on the row while it
             // shows — there is nothing beside it to be taller than.
             modifier = Modifier
-                .heightIn(min = ZONE_CHIP_HEIGHT)
+                .heightIn(min = PapControlHeight.chip)
                 .animateContentSize(PapMotion.medium()),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -203,7 +212,7 @@ fun AddZoneChip(
             // recorrer al abrirse porque no hay dos geometrías.
             Box(
                 modifier = Modifier
-                    .height(ZONE_CHIP_HEIGHT)
+                    .height(PapControlHeight.chip)
                     .padding(horizontal = ADD_ZONE_GLYPH_PAD_H_DP.dp),
                 contentAlignment = Alignment.Center,
             ) {
@@ -211,7 +220,7 @@ fun AddZoneChip(
                     imageVector = Icons.Rounded.Add,
                     contentDescription = stringResource(Res.string.home_header_add_zone),
                     tint = cs.primary,
-                    modifier = Modifier.size(ZONE_CHIP_ICON_DP.dp),
+                    modifier = Modifier.size(PapIconSize.withLabel),
                 )
             }
             AnimatedVisibility(
@@ -270,10 +279,8 @@ fun AddZoneChip(
  * chip that defines the row's rhythm, so the two can only agree.
  * [UI-THE-ADD-ZONE-CHIP-IS-ONE-CHIP-IN-EVERY-STATE-001]
  */
-internal val ZONE_CHIP_HEIGHT = 34.dp
 
 private const val ZONE_CHIP_RADIUS_DP = 999
-private const val ZONE_CHIP_ICON_DP = 18
 private const val ZONE_CHIP_LOCK_DP = 13
 private const val ADD_ZONE_TEXT_GAP_DP = 8
 
@@ -286,7 +293,7 @@ private const val ADD_ZONE_TEXT_GAP_DP = 8
  * breathing (46dp); more would start making the invitation a card instead of a chip.
  *
  * Only the EXPANDED state pays it: this padding lives inside the invitation's own
- * `AnimatedVisibility`, so collapsed the chip is still exactly the [ZONE_CHIP_HEIGHT] circle the
+ * `AnimatedVisibility`, so collapsed the chip is still exactly the [PapControlHeight.chip] circle the
  * row is built on. [UI-THE-ADD-ZONE-CHIP-IS-ONE-CHIP-IN-EVERY-STATE-001]
  */
 private const val ADD_ZONE_TEXT_PAD_V_DP = 7
@@ -294,7 +301,7 @@ private const val ADD_ZONE_TEXT_PAD_V_DP = 7
 /**
  * Aire a cada lado del "+", el mismo que un chip de zona da a su icono principal.
  *
- * Colapsado hace la píldora de 12 + 18 + 12 = 42dp sobre un alto de [ZONE_CHIP_HEIGHT], y expandido
+ * Colapsado hace la píldora de 12 + 18 + 12 = 42dp sobre un alto de [PapControlHeight.chip], y expandido
  * deja el glifo a 21dp del borde — donde está el del vecino. Un solo número para los dos estados:
  * antes eran un cuadrado (círculo) y un inset animado de 4dp que existía sólo para corregirlo.
  * [UI-HEADER-PILLS-SHARE-ONE-GEOMETRY-001] [UI-THE-ADD-ZONE-CHIP-IS-ONE-CHIP-IN-EVERY-STATE-001]

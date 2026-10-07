@@ -125,6 +125,7 @@ import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.outlineSubtle
 import com.rndeveloper.paparcar.ui.theme.PapColor
+import com.rndeveloper.paparcar.ui.theme.PapIconSize
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -930,7 +931,7 @@ private fun EmailVerificationTrailing(sent: Boolean) {
                 style = PaparcarType.current.label,
                 color = PapColor.actionText,
             )
-            Icon(Icons.Rounded.Check, contentDescription = null, tint = cs.primary, modifier = Modifier.size(18.dp))
+            Icon(Icons.Rounded.Check, contentDescription = null, tint = cs.primary, modifier = Modifier.size(PapIconSize.withLabel))
         }
     } else {
         Row(
@@ -960,7 +961,7 @@ private fun SetupStatusTrailing(configured: Boolean) {
                 style = PaparcarType.current.label,
                 color = PapColor.actionText,
             )
-            Icon(Icons.Rounded.Check, contentDescription = null, tint = cs.primary, modifier = Modifier.size(18.dp))
+            Icon(Icons.Rounded.Check, contentDescription = null, tint = cs.primary, modifier = Modifier.size(PapIconSize.withLabel))
         }
     } else {
         Row(

@@ -25,12 +25,13 @@ import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
+import com.rndeveloper.paparcar.ui.theme.PapGap
+import com.rndeveloper.paparcar.ui.theme.PapIconSize
 
 private val CHIP_SHAPE = PapShapes.chip
 private const val DISABLED_BG_ALPHA = 0.5f
 private val DISABLED_BORDER_ALPHA = PapAlpha.dim
 private val DISABLED_FG_ALPHA = PapAlpha.disabled
-private val CHIP_ICON_SIZE = 18.dp
 private val TRAILING_ICON_SIZE = 12.dp
 private val TRAILING_ICON_ALPHA = PapAlpha.muted
 
@@ -101,7 +102,7 @@ fun PaparcarFilterChip(
         Row(
             modifier = Modifier.padding(start = 12.dp, end = endPadding, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(PapGap.chipRow),
         ) {
             if (leadingIcon != null) {
                 Icon(
@@ -115,7 +116,7 @@ fun PaparcarFilterChip(
                     // [UI-ONE-SKELETON-ONE-EMPHASIS-ONE-GREEN-001]
                     // [UI-A-SELECTED-CHIP-IS-GREEN-BUT-ITS-WORD-IS-NOT-001]
                     tint = contentColor,
-                    modifier = Modifier.size(CHIP_ICON_SIZE),
+                    modifier = Modifier.size(PapIconSize.withLabel),
                 )
             }
             Text(

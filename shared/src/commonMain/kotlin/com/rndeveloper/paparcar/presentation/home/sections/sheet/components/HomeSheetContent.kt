@@ -70,6 +70,7 @@ import paparcar.composeapp.generated.resources.vehicle_size_medium
 import paparcar.composeapp.generated.resources.vehicle_size_moto
 import paparcar.composeapp.generated.resources.vehicle_size_small
 import paparcar.composeapp.generated.resources.vehicle_size_van
+import com.rndeveloper.paparcar.ui.theme.PapGap
 
 /**
  * Emits the sheet content items into a [LazyListScope].
@@ -813,7 +814,7 @@ private fun HomeSizeFilterBar(
                 }
             }
             .horizontalScroll(scrollState),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(PapGap.chipRow),
     ) {
         PaparcarFilterChip(
             label = allLabel,

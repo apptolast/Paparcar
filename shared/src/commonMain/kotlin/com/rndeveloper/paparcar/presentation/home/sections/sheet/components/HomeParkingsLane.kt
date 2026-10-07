@@ -25,6 +25,7 @@ import com.rndeveloper.paparcar.ui.components.chips.PaparcarFilterChip
 import com.rndeveloper.paparcar.ui.components.papHorizontalFadingEdges
 import com.rndeveloper.paparcar.ui.illustrations.EmptyParkingsIllustration
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import com.rndeveloper.paparcar.ui.theme.PapGap
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_parkings_empty
@@ -174,7 +175,7 @@ fun HomeParkingFilterBar(
     val scrollState = rememberScrollState()
     Row(
         modifier = modifier.papHorizontalFadingEdges(scrollState).horizontalScroll(scrollState),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(PapGap.chipRow),
     ) {
         PublicParkingFilter.entries.forEach { filter ->
             val isOn = selected == filter

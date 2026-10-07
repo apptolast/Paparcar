@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import com.rndeveloper.paparcar.ui.theme.PapControlHeight
 
 /**
  * The small chip-shaped CTA that rides INSIDE another surface — the detection story rows and the
@@ -32,8 +33,16 @@ fun PapCtaPill(
     modifier: Modifier = Modifier,
     /** Fill the available width and centre the label — used by stacked (full-width) CTAs. */
     fillWidth: Boolean = false,
-    /** Row-height variant: the vehicle-card foot uses a shorter pill than the story rows. */
-    height: Dp = PILL_HEIGHT_DP.dp,
+    /**
+     * Row-height variant: the vehicle-card foot uses a shorter pill than the story rows.
+     *
+     * ⛔ Only a STEP of [PapControlHeight] is a legal argument here — never a literal. The variant
+     * survives because 6dp between a chip-height foot and a story-row pill is a difference you can
+     * see on a phone, which is the test a step has to pass; the literal `34` that used to be passed
+     * in did not, it was just a number in another file.
+     * [UI-A-SCALE-NOBODY-USES-IS-NOT-A-SYSTEM-001]
+     */
+    height: Dp = PapControlHeight.pill,
 ) {
     Surface(
         shape = PapShapes.chip,
@@ -59,5 +68,4 @@ fun PapCtaPill(
     }
 }
 
-private const val PILL_HEIGHT_DP = 40
 private const val PILL_PADDING_DP = 16

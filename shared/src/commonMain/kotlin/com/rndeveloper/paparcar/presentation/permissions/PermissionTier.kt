@@ -19,8 +19,8 @@ import com.rndeveloper.paparcar.ui.components.PapSectionHeaderRow
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import com.rndeveloper.paparcar.ui.theme.PapIconSize
 
-private val HEADER_ICON_SIZE = 18.dp
 
 /**
  * Sección de permisos: cabecera de **beneficio** (icono semántico + [PapSectionHeaderRow] + check
@@ -51,7 +51,7 @@ internal fun PermissionTier(
                     imageVector = icon,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(HEADER_ICON_SIZE),
+                    modifier = Modifier.size(PapIconSize.withLabel),
                 )
             },
             trailing = if (satisfied) {
@@ -62,7 +62,7 @@ internal fun PermissionTier(
                         imageVector = Icons.Rounded.CheckCircle,
                         contentDescription = null,
                         tint = PapColor.progress,
-                        modifier = Modifier.size(HEADER_ICON_SIZE),
+                        modifier = Modifier.size(PapIconSize.withLabel),
                     )
                 }
             } else {

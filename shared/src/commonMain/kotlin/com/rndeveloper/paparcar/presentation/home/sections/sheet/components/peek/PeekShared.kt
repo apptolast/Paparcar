@@ -54,6 +54,7 @@ import paparcar.composeapp.generated.resources.home_peek_spot_recent
 import paparcar.composeapp.generated.resources.home_peek_spot_freshness_label
 import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
+import com.rndeveloper.paparcar.ui.theme.PapIconSize
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PeekShared — helpers common to the peek variants (meta rows, palettes,
@@ -61,7 +62,6 @@ import com.rndeveloper.paparcar.ui.theme.PapAlpha
 // ─────────────────────────────────────────────────────────────────────────────
 
 internal const val MS_PER_MINUTE = 60_000L
-private const val META_ICON_DP = 18
 private const val FIABILITY_SEG_HEIGHT_DP = 4
 
 internal enum class TravelMode { WALKING, DRIVING }
@@ -102,7 +102,7 @@ internal fun PeekMetaRow(
             imageVector = icon,
             contentDescription = null,
             tint = tint,
-            modifier = Modifier.size(META_ICON_DP.dp),
+            modifier = Modifier.size(PapIconSize.withLabel),
         )
         Text(
             text = text,
@@ -120,7 +120,7 @@ internal fun PeekMetaRow(
                 imageVector = Icons.Rounded.ChevronRight,
                 contentDescription = null,
                 tint = tint,
-                modifier = Modifier.size(META_ICON_DP.dp),
+                modifier = Modifier.size(PapIconSize.withLabel),
             )
         }
     }

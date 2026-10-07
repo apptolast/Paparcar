@@ -72,7 +72,6 @@ import com.rndeveloper.paparcar.ui.components.PapCollapsingTopBarScaffold
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import com.rndeveloper.paparcar.presentation.permissions.PermissionsFocus
 import com.rndeveloper.paparcar.presentation.vehicles.components.PapVehicleSelectorPill
-import com.rndeveloper.paparcar.presentation.vehicles.components.VEHICLE_PILL_HEIGHT_DP
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
 import com.rndeveloper.paparcar.ui.theme.watch
 import com.rndeveloper.paparcar.ui.components.PapDialogAccent
@@ -125,6 +124,7 @@ import paparcar.composeapp.generated.resources.vehicle_set_active_confirm_title
 import paparcar.composeapp.generated.resources.vehicle_status_active_cd
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
 import com.rndeveloper.paparcar.ui.theme.PapColor
+import com.rndeveloper.paparcar.ui.theme.PapControlHeight
 
 /**
  * VehiclesScreen (v1 redesign) — Vehicles + History fusionado.
@@ -578,7 +578,7 @@ private fun VehicleTabRow(
         }
         PaparcarAddChip(
             onClick = onAddVehicle,
-            modifier = Modifier.height(VEHICLE_PILL_HEIGHT_DP.dp),
+            modifier = Modifier.height(PapControlHeight.chip),
             contentDescription = stringResource(Res.string.my_car_add_vehicle),
         )
     }
@@ -663,7 +663,6 @@ private fun EmptyVehicleState(
 }
 
 private const val PILL_RADIUS_DP = 999
-private const val TAB_HEIGHT_DP = 36
 // Carousel page transform: off-centre pages dim to this alpha and shrink to this scale.
 private const val PAGER_MIN_ALPHA = 0.5f
 private const val PAGER_MIN_SCALE = 0.92f

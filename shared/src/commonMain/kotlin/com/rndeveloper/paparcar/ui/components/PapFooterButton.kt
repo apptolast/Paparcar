@@ -23,6 +23,9 @@ import com.rndeveloper.paparcar.ui.theme.PapBorders
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.greenOutline
+import com.rndeveloper.paparcar.ui.theme.PapControlHeight
+import com.rndeveloper.paparcar.ui.theme.PapGap
+import com.rndeveloper.paparcar.ui.theme.PapIconSize
 
 /**
  * Variant of the universal footer button.
@@ -69,7 +72,7 @@ fun PapFooterButton(
     val shape = PapShapes.chip
     val combinedModifier = modifier
         .fillMaxWidth()
-        .height(FOOTER_BUTTON_HEIGHT)
+        .height(PapControlHeight.button)
     val safeOnClick: () -> Unit = { if (!isLoading) onClick() }
 
     when (style) {
@@ -122,14 +125,14 @@ private fun FooterButtonContent(
 ) {
     if (isLoading) {
         CircularProgressIndicator(
-            modifier = Modifier.size(FOOTER_BUTTON_ICON_SIZE),
+            modifier = Modifier.size(PapIconSize.withLabel),
             strokeWidth = 2.dp,
             color = LocalContentColor.current,
         )
-        Spacer(Modifier.width(10.dp))
+        Spacer(Modifier.width(PapGap.iconLabel))
     } else if (leadingIcon != null) {
-        Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(FOOTER_BUTTON_ICON_SIZE))
-        Spacer(Modifier.width(10.dp))
+        Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(PapIconSize.withLabel))
+        Spacer(Modifier.width(PapGap.iconLabel))
     }
     Text(
         text = label,
@@ -137,5 +140,6 @@ private fun FooterButtonContent(
     )
 }
 
-private val FOOTER_BUTTON_HEIGHT    = 48.dp
-private val FOOTER_BUTTON_ICON_SIZE = 18.dp
+// ⛔ Sin constantes propias de altura ni de icono: las dos eran el MISMO número que ya declaraban
+// otros tres ficheros, con otro nombre. Ahora salen del rol.
+// [UI-A-SCALE-NOBODY-USES-IS-NOT-A-SYSTEM-001]

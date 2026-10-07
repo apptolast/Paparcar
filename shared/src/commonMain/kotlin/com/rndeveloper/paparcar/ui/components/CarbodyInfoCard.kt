@@ -43,6 +43,8 @@ import paparcar.composeapp.generated.resources.vehicle_registration_carbody_chan
 import paparcar.composeapp.generated.resources.vehicle_registration_carbody_manual_label
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
 import com.rndeveloper.paparcar.ui.theme.PapColor
+import com.rndeveloper.paparcar.ui.theme.PapGap
+import com.rndeveloper.paparcar.ui.theme.PapIconSize
 
 /**
  * Feedback card surfaced once the registration form has enough signal (brand +
@@ -138,7 +140,7 @@ fun CarbodyInfoCard(
             // Inference origin badge — flips between "auto" (sparkle) and "manual" (edit).
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(PapGap.chipRow),
             ) {
                 Icon(
                     imageVector = if (isManualOverride) Icons.Rounded.Edit else Icons.Rounded.AutoAwesome,
@@ -170,7 +172,7 @@ fun CarbodyInfoCard(
                     imageVector = alertIcon,
                     contentDescription = null,
                     tint = alertTint,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(PapIconSize.withLabel),
                 )
                 Text(
                     text = alertCopy,

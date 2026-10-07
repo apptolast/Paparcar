@@ -65,6 +65,7 @@ import com.rndeveloper.paparcar.ui.theme.figureOpticalLiftSp
 import com.rndeveloper.paparcar.ui.theme.greenOutline
 import com.rndeveloper.paparcar.ui.components.PapShimmerBlockScale
 import com.rndeveloper.paparcar.ui.theme.PapColor
+import com.rndeveloper.paparcar.ui.theme.PapGap
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_counter_unit_free
@@ -184,7 +185,7 @@ internal fun PapSheet(
         // ── Slot 2 · Banner ───────────────────────────────────────────────
         if (banner != null) {
             banner()
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(PapGap.block))
         }
 
         // ── Slot 3 · Meta rows + optional edit action ─────────────────────
@@ -204,13 +205,13 @@ internal fun PapSheet(
                     metaAction()
                 }
             }
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(PapGap.block))
         }
 
         // ── Slot 4 · Chips ────────────────────────────────────────────────
         if (chips != null) {
             chips()
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(PapGap.block))
         }
 
         // ── Escape hatch (forms — AddingZone) ─────────────────────────────

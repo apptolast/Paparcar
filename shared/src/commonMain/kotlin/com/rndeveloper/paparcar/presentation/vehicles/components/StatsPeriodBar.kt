@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.presentation.vehicles.StatsPeriod
 import com.rndeveloper.paparcar.ui.components.chips.PaparcarFilterChip
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import com.rndeveloper.paparcar.ui.theme.PapGap
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_filter_all
@@ -119,7 +120,7 @@ internal fun StatsPeriodBar(
             }
             .horizontalScroll(scrollState)
             .padding(horizontal = 16.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(PapGap.chipRow),
     ) {
         filters.forEach { filter ->
             if (filter is StatsPeriod.Year) {

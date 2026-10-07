@@ -31,6 +31,7 @@ import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.computeSpotFit
 import com.rndeveloper.paparcar.ui.components.label
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import com.rndeveloper.paparcar.ui.theme.PapGap
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_peek_spot_fit_does_not_fit
@@ -65,7 +66,7 @@ fun SpotFitRow(
                     .fillMaxWidth()
                     .padding(top = 6.dp, start = 4.dp, end = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(PapGap.chipRow),
             ) {
                 Text(
                     text = leftByLabel,

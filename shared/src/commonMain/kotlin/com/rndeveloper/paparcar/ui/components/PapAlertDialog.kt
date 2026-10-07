@@ -47,6 +47,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
+import com.rndeveloper.paparcar.ui.theme.PapControlHeight
+import com.rndeveloper.paparcar.ui.theme.PapGap
 
 /**
  * Visual tone for [PapAlertDialog]. Drives the icon-circle color and the
@@ -197,14 +199,14 @@ fun PapAlertDialog(
                 }
 
                 // ── Title + body ──────────────────────────────────────────
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(PapGap.block))
                 Text(
                     text = title,
                     style = PaparcarType.current.cardTitle,
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center,
                 )
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(PapGap.chipRow))
                 Text(
                     text = body,
                     style = PaparcarType.current.caption,
@@ -281,7 +283,7 @@ private fun PrimaryAction(
         enabled = enabled && !isLoading,
         modifier = Modifier
             .fillMaxWidth()
-            .height(BUTTON_HEIGHT_DP.dp),
+            .height(PapControlHeight.button),
         // Pill radius — same button silhouette as PapFooterButton. [UI-SHEET-002]
         shape = PapShapes.chip,
         colors = ButtonDefaults.buttonColors(
@@ -298,7 +300,7 @@ private fun PrimaryAction(
         } else {
             if (leadingIcon != null) {
                 Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(6.dp))
+                Spacer(Modifier.width(PapGap.chipRow))
             }
             Text(label, style = PaparcarType.current.cta)
         }
@@ -325,7 +327,7 @@ private fun SecondaryAction(
         enabled = enabled && !isLoading,
         modifier = Modifier
             .fillMaxWidth()
-            .height(BUTTON_HEIGHT_DP.dp),
+            .height(PapControlHeight.button),
         shape = PapShapes.chip,
         colors = ButtonDefaults.outlinedButtonColors(contentColor = accentColor),
         border = BorderStroke(PapBorders.medium, accentColor),
@@ -340,7 +342,7 @@ private fun SecondaryAction(
         } else if (leadingIcon != null) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(6.dp))
+                Spacer(Modifier.width(PapGap.chipRow))
                 Text(label, style = PaparcarType.current.cta)
             }
         } else {
@@ -369,7 +371,6 @@ private fun PapDialogAccent.onAccent(): Color = when (this) {
 
 private const val DIALOG_ENTER_SCALE = 0.92f
 private const val ICON_CIRCLE_DP = 56
-private const val BUTTON_HEIGHT_DP = 48
 private const val BUTTON_CORNER_DP = 12
 private val BODY_ALPHA = PapAlpha.body
 private const val CANCEL_ALPHA = 0.7f

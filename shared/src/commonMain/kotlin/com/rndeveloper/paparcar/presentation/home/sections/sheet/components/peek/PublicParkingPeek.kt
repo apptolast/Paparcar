@@ -29,6 +29,7 @@ import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
 import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import com.rndeveloper.paparcar.ui.theme.PapGap
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.common_directions
@@ -128,7 +129,7 @@ internal fun PublicParkingPeek(
                 // The one fact a van driver cannot guess from a map.
                 ParkingFactRow(stringResource(Res.string.parking_max_height, formatClearance(metres)))
             }
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(PapGap.block))
         },
         actions = {
             PapFooterButton(
