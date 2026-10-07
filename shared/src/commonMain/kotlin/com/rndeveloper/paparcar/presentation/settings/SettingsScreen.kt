@@ -1013,8 +1013,16 @@ private fun ProfileCardV2(
         color = cs.surfaceContainerHigh,
         border = outlineSubtle,
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        // ⛔ El padding horizontal lo ponen los HIJOS, no el Column: la fila del correo es un
+        // `PapListItem` y tiene que colgar del mismo raíl que sus vecinas de Ajustes. Metida dentro
+        // de un `padding(16.dp)` común quedaba **42 px hacia dentro por los dos lados** — medido en
+        // device contra «Bluetooth del coche»: su icono entraba 42 px y su CTA se quedaba 42 px
+        // corto del borde. [AUTH-AN-UNCONFIRMED-EMAIL-MUST-SAY-SO-001]
+        Column(modifier = Modifier.padding(vertical = 16.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            ) {
                 ProfileAvatar(displayName = displayName, photoUrl = photoUrl)
                 Spacer(Modifier.size(14.dp))
                 Column(modifier = Modifier.weight(1f)) {
@@ -1102,6 +1110,7 @@ private fun ProfileCardV2(
                 onClick = onLogout,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
                     .height(48.dp),
                 shape = PapShapes.row,
             ) {

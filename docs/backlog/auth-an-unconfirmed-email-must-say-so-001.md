@@ -146,6 +146,25 @@ cuando el correo está verificado. **La decisión del producto es mostrarlo igua
 transparencia, y es del user.** Si algún día la tarjeta se recarga de señales, este es el primer
 sitio donde mirar.
 
+### ⛔ La fila tiene que colgar del MISMO raíl que sus vecinas (07-10-2026)
+
+El user lo notó a ojo — *«¿por qué tengo la sensación de que “Enviar enlace” no está alineado con el
+resto de botones?»* — y el árbol de accesibilidad lo confirmó al píxel:
+
+| | empieza | termina | al borde |
+|---|---|---|---|
+| `Bluetooth del coche` → `Configurar` | 226 | 938 | 142 px |
+| `Correo sin confirmar` → `Enviar enlace` | **268** | **896** | **184 px** |
+
+**42 px metida hacia dentro por los DOS lados.** Causa: la fila vivía dentro del
+`Column(padding(16.dp))` de la tarjeta de perfil, mientras sus vecinas cuelgan directamente de su
+`PapOutlinedCard`. Un `PapListItem` trae su propio raíl — meterlo en un contenedor con padding
+propio lo desplaza entero.
+
+✅ Arreglado moviendo el padding horizontal del `Column` a los HIJOS que sí lo necesitan (el bloque
+de identidad y el botón de salir); la fila ocupa el ancho completo de la tarjeta. Medido después:
+226 y 938, idénticos a los de `Bluetooth del coche` y `Batería sin restricciones`.
+
 ## Criterio de éxito
 
 1. Una cuenta verificada muestra `VERIFICADO` en Ajustes. Una sin verificar muestra `SIN CONFIRMAR`,
