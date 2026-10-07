@@ -795,3 +795,6 @@ firestore-rules-tests/node_modules/
 # Scratch de sesiones de agente — nunca se versiona (tres borradores de mensaje de
 # commit se colaron en 41b2c8d72).
 .artifacts/
+
+# Plan del dry-run del seeder de la cuenta de demo: salida, no fuente
+demoseed-plan.*.json
