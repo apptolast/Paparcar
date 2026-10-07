@@ -13,7 +13,10 @@ entitlement `com.apple.developer.applesignin` (`iosApp/iosApp/iosApp.entitlement
 Services ID en `IOS-SIGN-IN-SETUP.md`. El único blob distinto era `app-icon-1024.png`, y el de la
 rama dibujaba la marca **DESCARTADA**: master lo regeneró desde el maestro en
 [BRAND-THE-APPLE-SURFACES-ARE-OUTSIDE-THE-MASTER-001] (`d7041d32c`), así que la versión de la rama
-era la vieja, no trabajo pendiente.
+era la vieja, no trabajo pendiente. ✅ Y su tip **no se perdió**: lo retiene el tag local
+`prerebase/feature/IOS-APPLE-SIGN-IN-ON-BASELOGIN-3-001`, que esta misma ficha ya dejaba puesto
+como vía de vuelta — pero ⛔ **ese tag no está en `origin`**, así que la vía de vuelta existe solo
+en esta máquina.
 
 ⛔ **Lo que el merge NO significa.** El código está dentro y la mitad Android está verificada
 (3 770 tests, `assembleMockDebug`, `compileProdDebugKotlin`), pero **nada de iOS se ha compilado**:

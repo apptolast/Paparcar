@@ -170,8 +170,15 @@ lane de release, Fastlane, un build en TestFlight y sus propias superficies de m
 
 | Ticket | Estado |
 |---|---|
-| `IOS-F0-001` | ✅ **Fase 0 EN MASTER** (`8c2daf096`). ⛔ Esta tabla decía *«en la rama `feature/IOS-F0-001-fase0` (tip `6627e649`), sin mergear»* y esa rama **ya no existe**; su tip quedó colgando sin ref |
-| [`ios-f2-a-wake-must-query-the-past-001`](ios-f2-a-wake-must-query-the-past-001.md) | ✅ **F2 en master** — `IosWakeMonitors.kt`, `IosSafetyNetRecords.kt` y `IosDetectionController.kt` están ahí y han seguido creciendo. ⛔ Decía *«en esa misma rama, no en master (`1e0a70f2`, `610128ab`)»*: los dos hashes son objetos **sin ref**, no trabajo pendiente |
+| `IOS-F0-001` | ✅ **Fase 0 EN MASTER** (`8c2daf096`). ⛔ Esta tabla decía *«en la rama `feature/IOS-F0-001-fase0` (tip `6627e649`), sin mergear»* y esa rama ya no existe — pero su tip **sí es alcanzable**, por el tag local `prerebase/feature/IOS-F0-001-fase0` |
+| [`ios-f2-a-wake-must-query-the-past-001`](ios-f2-a-wake-must-query-the-past-001.md) | ✅ **F2 en master** — `IosWakeMonitors.kt`, `IosSafetyNetRecords.kt` y `IosDetectionController.kt` están ahí y han seguido creciendo. ⛔ Decía *«en esa misma rama, no en master (`1e0a70f2`, `610128ab`)»*: no es trabajo pendiente, y los dos hashes viven bajo el mismo tag `prerebase/` |
+
+⛔⛔ **Los tags `prerebase/` son la red de seguridad, y son LOCALES.** `git tag -l 'prerebase/*'`
+devuelve tres (`…IOS-F0-001-fase0` → `6627e649f`, `…IOS-APPLE-SIGN-IN-ON-BASELOGIN-3-001` →
+`b227a9c4f`, `…DET-A-CAR-CONNECTION-ARMS…-aa-signal` → `0a4e3ccdf`) y **ninguno está en `origin`**
+(`git ls-remote --tags origin 'refs/tags/prerebase/*'` vuelve vacío). Es decir: el tip de una rama
+borrada sigue a un `git checkout <tag>` de distancia **en esta máquina y solo aquí**. Antes de decir
+que un hash «quedó colgando», `git tag --contains <hash>`.
 | [`ios-death-a-kill-that-signs-its-name-001`](ios-death-a-kill-that-signs-its-name-001.md) · [`ios-devcat-a-gallery-the-simulator-can-open-001`](ios-devcat-a-gallery-the-simulator-can-open-001.md) · [`ios-diag-a-log-that-survives-to-be-shipped-001`](ios-diag-a-log-that-survives-to-be-shipped-001.md) · [`ios-route-a-snap-the-drainer-never-does-001`](ios-route-a-snap-the-drainer-never-does-001.md) | ⚪ pendientes, sin rama |
 | [`ios-social-login-001`](ios-social-login-001.md) | 🔵 bloqueado hasta tener un Mac |
 

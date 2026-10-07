@@ -31,8 +31,15 @@ días.** Medido hoy sobre 773 ficheros:
 - El `README.md` del índice seguía anunciando **544 ficheros**, 230 menos de los que hay; su bucle
   de comprobación miraba solo `Estado`/`Status` y dejaba fuera los cinco docs que abren con
   `**Fecha:**`; y su sección de iOS daba por **«sin mergear, en la rama `feature/IOS-F0-001-fase0`»**
-  una Fase 0 que está en master desde `8c2daf096`, con esa rama ya borrada y sus hashes colgando sin
-  ref — además de encabezarse con un *«🧊 APARCADO por el user (07-09)»* que el user retiró el 22-09.
+  una Fase 0 que está en master desde `8c2daf096`, con esa rama ya borrada — además de encabezarse
+  con un *«🧊 APARCADO por el user (07-09)»* que el user retiró el 22-09.
+
+⛔⛔ **Corrección de este mismo barrido**: al principio escribí que los hashes de aquella rama
+«quedaban colgando sin ref». **Falso, y comprobable en un comando**: `git tag --contains <hash>` los
+encuentra bajo los tags `prerebase/`, la red de seguridad que las sesiones anteriores dejaron puesta.
+Decir que un hash es irrecuperable cuando está a un `checkout` de distancia es el mismo error que
+este ticket arregla, en la dirección contraria. Los tags, eso sí, **son locales**: no están en
+`origin`.
 
 ## Doctrina violada
 
