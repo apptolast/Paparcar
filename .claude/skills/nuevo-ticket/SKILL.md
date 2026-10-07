@@ -159,6 +159,12 @@ git branch -d <rama>
 
 - El doc `docs/backlog/<ticket>.md` ya se marcó **✅ Done** ANTES del squash (C.2) y viajó dentro de
   ese commit — aquí no queda nada que tocar en él, y **no lleva hash** por construcción.
+- ⛔ **Y al marcarlo, recontar las cifras de `docs/backlog/README.md`**: cerrar o abrir un doc las
+  cambia, y `BacklogStatusGuardrailTest` las compara con las medidas, así que no hacerlo es un build
+  rojo. El mensaje de fallo da la línea exacta a pegar, pero sale antes si se hace aquí.
+  Los dos comandos del cierre: `./gradlew testAll` y `python tools/backlog/branch_tell.py` — el
+  segundo es el chivato de la rama, que no está en la suite porque el CI clona shallow
+  [DOCS-THE-BACKLOG-STATUS-LOOP-MUST-BE-A-GUARD-001].
 - **Actualizar la memoria**: la línea de `MEMORY.md` pasa a ✅ master (+ hash), y editar las
   memorias antiguas que listaban esto como pendiente. No dejar pendientes zombis, y no recitar
   "pendiente" de entradas viejas sin contrastar contra `git log`.

@@ -1,6 +1,6 @@
 # Backlog — índice de lo que sigue abierto
 
-> **775 ficheros: 688 cerrados, 78 abiertos, 9 que no son tickets.** Este índice lista **solo lo que
+> **775 ficheros: 689 cerrados, 77 abiertos, 9 que no son tickets.** Este índice lista **solo lo que
 > queda**, para que la pregunta *"¿qué falta?"* se conteste leyendo y no listando el directorio.
 > Verificado contra master `1339ea263` el **2026-10-07**
 > [DOCS-A-CLOSED-TICKET-MUST-NOT-SAY-IT-IS-IN-REVIEW-001]. El barrido anterior
@@ -13,7 +13,9 @@
 > seguían diciendo *"🔵 En revisión · rama X"* con X borrada y su commit en master, 4 marcaban
 > cerrado con 🟢 —dos de ellos **fuera de cualquier etiqueta que el bucle lea**, uno en prosa y otro
 > en el TÍTULO— y 4 llevaban el estado en palabras, sin emoji. **Un comando en un README no es una
-> herramienta**; mientras no sea un guard, este índice vuelve a derivar.
+> herramienta** — así que desde el **07-10** lo ejecuta `BacklogStatusGuardrailTest` dentro de
+> `./gradlew testAll`, y estas cifras son parte de lo que comprueba
+> [DOCS-THE-BACKLOG-STATUS-LOOP-MUST-BE-A-GUARD-001].
 >
 > ⚠️ **master se mueve mientras auditas**: durante este barrido entraron **cinco** commits —
 > `9afbc5e5` (Alemania por Tankerkönig), `d7880ac7` (fusión del carril BT), `851b00ff` (la ✕ de
@@ -25,7 +27,36 @@
 > es lo que consultan [`../detection/PARKING-DETECTION.md`](../detection/PARKING-DETECTION.md) y la
 > skill `det-change` antes de tocar detección. Para buscar uno: `grep -rl <TICKET-ID> docs/backlog/`.
 
-## La regla: **todo doc lleva su línea de estado**
+## La regla: **todo doc lleva su línea de estado** — y desde el 07-10 **la ejecuta un guard**
+
+⛔ **Esto ya no se comprueba a mano.** `BacklogStatusGuardrailTest` corre dentro de
+`./gradlew testAll` y pone el build en rojo si: (a) un doc que no esté en su allowlist no tiene
+línea de estado, o la tiene sin un marcador del vocabulario; (b) cualquier `.md` lleva un **byte de
+control** —uno solo y `grep` trata el fichero ENTERO como binario—; (c) **las cifras de la cabecera
+de arriba no son las medidas**. Esa tercera es la que tiene dientes: cerrar un ticket obliga a
+recontar, y el mensaje de fallo te da la línea exacta que hay que pegar.
+
+⛔ **El chivato de la rama vive FUERA de la suite**, en
+[`tools/backlog/branch_tell.py`](../../tools/backlog/branch_tell.py):
+
+```bash
+python tools/backlog/branch_tell.py             # 0 = limpio · 1 = hay docs que mienten
+python tools/backlog/branch_tell.py --verbose   # qué rama cita cada doc abierto
+```
+
+No está en `testAll` por una razón **medida**, no por comodidad: el CI hace
+`actions/checkout@v4` con su `fetch-depth` por defecto, que es **1**. Sobre un clon shallow el
+chequeo no ve historial de `master`, así que ningún doc parece tener commit de implementación y
+saldría **verde para todos** — medido el 07-10 en un `git clone --depth 1`: *«Revisados 7 docs
+abiertos … **0 commits de master** … OK»*, un verde indistinguible del real. Por eso el script
+**se niega a correr** en esa situación en vez de mentir, y el guard vigila que siga negándose.
+
+⛔ Y la rama que cuenta es la del **bloque de estado**, no cualquiera que el doc mencione: la
+primera versión leía las 20 primeras líneas y acusó en falso a `ios-apple-sign-in-on-baselogin-3-001`,
+que está 🟡 con razón y nombra su rama en el párrafo donde explica que **se borró**. Hablar de una
+rama en prosa es legítimo; presentarla como si el trabajo siguiera ahí, no.
+
+El bucle de abajo se queda como **documentación del criterio** — es lo que el guard implementa:
 
 ```bash
 # ¿cuántos siguen abiertos? — decide el PRIMER emoji de la línea de estado
@@ -138,7 +169,6 @@ No esperan a un viaje: esperan a que vuelva a fallar lo que los originó.
 | [`infra-datastore-migration-001`](infra-datastore-migration-001.md) (arriba) | ✔ 15-09: **1 fichero** usa DataStore frente a **13** con `getSharedPreferences` — y esa asimetría es deliberada (prefs de usuario → DataStore · detección → SharedPrefs) |
 | [`DET-AUDIT-REMEDIATION-001`](DET-AUDIT-REMEDIATION-001.md) · [`audit-a12-001`](audit-a12-001.md) | 📋 planes de auditoría · ⚠️ **las ramas que citan ya no existen**; su contenido sigue vigente, sus punteros no |
 | [`infra-datastore-migration-001`](infra-datastore-migration-001.md) | 📋 propuesto 10-08. No urgente |
-| [`docs-the-backlog-status-loop-must-be-a-guard-001`](docs-the-backlog-status-loop-must-be-a-guard-001.md) | 📋 **el bucle de arriba no lo ejecuta nada**, y por eso este índice derivó 22 días. Pide un guard que lo falsifique dentro de `testAll` |
 | [`ui-the-light-theme-is-lighter-without-losing-its-edges-001`](ui-the-light-theme-is-lighter-without-losing-its-edges-001.md) | 🔵 **a verificar**: su rama ya no existe, pero el único commit que lo cita es un `docs(` — el barrido del 07-10 lo dejó abierto a propósito en vez de adivinar que aterrizó |
 | `PIPE-004` | ⏸ diferido — colapsar `EnrichParkingSessionWorker` + `UpdateParkingSessionAddressAndPlaceWorker`. ⚠️ **no tiene doc propio**: solo se le nombra en [`../refactors/PIPE-001-confirm-parking-pipeline.md`](../refactors/PIPE-001-confirm-parking-pipeline.md) |
 
