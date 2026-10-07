@@ -1,6 +1,8 @@
 # DET-LONE-SAMPLE-IS-NOT-A-DRIVE-001 · Un solo fix de velocidad todavía abre la sesión entera
 
-**Estado:** 🔵 Abierto, sin código · descubierto por el replay de
+**Estado:** ✅ Done — en master. Suite: **3856 tests, 0 fallos** (`testAll`), más
+`:app:assembleMockDebug` y `:app:compileProdDebugKotlin`. Sin resultado visual.
+· descubierto por el replay de
 [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001](det-exit-fix-cannot-prove-its-own-exit-001.md)
 · **03-09: las DOS barras candidatas implementadas y MEDIDAS contra el harness — las dos pierden un
 viaje real. El diseño de abajo está refutado tal como está escrito** (ver «Lo medido»)
@@ -136,3 +138,87 @@ investigaron — mirarlas antes que nada, porque no se ve la relación.
 
 ⛔ **No se dejó código**: la rama se revirtió entera y la suite quedó en 2.161/0. Lo que queda es
 esta medición, que es lo que faltaba para poder decidir.
+
+
+---
+
+## El cierre (06-10-2026) · no era la bandera de ciclo de vida, era la OTRA barra
+
+⛔ **Las dos barras que este doc proponía siguen refutadas, y no se volvieron a tocar.** El fix no
+sube `hasEverReachedDrivingSpeed`, así que la objeción central del 03-09 —*endurecer la bandera
+acorta la vida de un viaje real con stream pobre*— no aplica: `TRACE_CASA_GAP_ANCHOR_3008` sigue
+viva y sigue confirmando.
+
+### El campo que lo reencuadró
+
+Field 05-10-2026, Oppo, sesión `1791123836936` (uno de los tres FP del lote). Un sentry-wake armó la
+sesión a **1,4 km** del pin con el usuario **andando** por Granada, y se plantó un pin EXACTO en una
+calle peatonal. Al tirar del hilo, el `proven` que lo autorizó **no vino de la bandera ni del
+track**: vino de `SHORT_HOP`.
+
+```
+16:23:56  FIX  spd 5.88 m/s = 21.2 km/h  acc  5.2    ┐ las tres primeras fijaciones
+16:23:58  FIX  spd 3.78 m/s = 13.6 km/h  acc 13.5    │ de la sesión, en CUATRO segundos
+16:24:00  FIX  spd 5.65 m/s = 20.3 km/h  acc 18.2    ┘ — un receptor convergiendo en frío
+          posición recorrida en esos 4 s: 18 m
+          summary de la sesión: drive 2/401fix · vmax 21 km/h · steps 1192
+```
+
+Las tres pasaban toda la geometría contra el pin (1,4 km está muy por encima del suelo de 400 m, y
+en 4 s no se anda nada), así que el run llegó a 3, `SHORT_HOP` latchó, `provenMaxSpeedMps` se
+promovió a 5,88 m/s **y desde ahí toda la escalera leyó «esta sesión midió conducción»**.
+
+### La causa: dos barras para una pregunta, en el mismo fichero
+
+`shortHopQualifies` preguntaba «¿esta fijación mide conducción?» con
+`isCredibleDrivingSpeed`, cuyo listón es **`minimumDepartureSpeedKmh` = 10 km/h** — el de *«¿se está
+yendo conduciendo?»*, que es otra pregunta. Once líneas más arriba, en el mismo fichero, `fixInBand`
+responde la misma con **`minimumTripSpeedMps` = 18 km/h**. El espejismo vivía entre las dos.
+
+[DET-SENTRY-ARM-PEDESTRIAN-CLOCK-001] ya había visto el agujero del sentry-wake y lo cerró
+exigiendo que *«el run MIDA conducción fijación a fijación»*. La regla era correcta; el listón con
+el que se midió, no.
+
+### Los tres discriminantes probados, y por qué sólo uno vale
+
+| Candidato | Espejismo (FP3) | Hop real 14-08 | Hop tardío real 15-08 |
+|---|---|---|---|
+| **C** · el desplazamiento que la sesión OBSERVÓ supera el alcance peatonal | ✅ 18 m en 4 s, no cualifica | ✅ 900 m | ❌ **muere**: sólo ve la COLA del viaje, 33 m en 10 s con acc 23 m — paso peatonal |
+| **D** · barra de conducción (`minimumTripSpeedMps`) por fijación, run de 3 | ✅ el 13,6 km/h rompe el run | ❌ **muere**: su maniobra final va a 10,8 km/h y el run nunca llega a 3 | ✅ |
+| **D′** · igual, **run de 2** | ✅ | ✅ | ✅ |
+
+**C es la idea bonita y está medida como falsa**: en el hop tardío real el GPS está tan sucio
+(acc 23-24 m) que la posición apenas se separa, y su Doppler es lo único que lo distingue del
+espejismo. El desplazamiento observado no separa — 3,3 m/s el bueno contra 4,5 m/s el malo.
+
+### Lo que entra
+
+Una línea y una constante, **y se mueven juntas**: pedir más a cada fijación obliga a pedir menos
+fijaciones, o el viaje real del 14-08 (que acaba maniobrando a 10,8 km/h) se pierde.
+
+```kotlin
+// shortHopQualifies, al final de la escalera
+return fix.speed >= config.minimumTripSpeedMps     // era isCredibleDrivingSpeed → 10 km/h
+```
+```kotlin
+val shortHopProofFixes: Int = 2                    // era 3
+```
+
+**Testigo falsificado** [TEST-A-GREEN-SUITE-MUST-PROVE-IT-LOOKED-001]: con `return true` en esa
+línea, `should not prove the drive from a cold start burst below the driving bar` falla. Viene con
+su discriminante, `should still prove the drive at real driving speed` (7,1 m/s, la cola del viaje
+real del 15-08).
+
+### Y la nota de los NPE, por fin explicada
+
+El aviso del 03-09 —*«2 NPE en `ArmLabelTest` que no se investigaron, mirarlas antes que nada»*— se
+cerró de camino: **son flaky por orden de carga de clases, y no tienen ninguna relación con este
+ticket**. Medido: entre dos pasadas en las que sólo cambiaron COMENTARIOS, pasaron de verdes a rojos.
+→ `docs/backlog/test-armlabel-is-flaky-by-class-init-race-001.md`
+
+### Lo que sigue abierto
+
+El diseño original de este doc — subir `hasEverReachedDrivingSpeed` al listón de `driveProven` —
+**no se ha hecho y sigue refutado tal como está escrito**. Lo que se ha cerrado es la vía por la que
+el espejismo entraba de verdad. Si vuelve a aparecer un FP de esta familia, el reencuadre del 03-09
+(*separar «puede confirmar» de «puede seguir viva»*) sigue siendo la dirección.

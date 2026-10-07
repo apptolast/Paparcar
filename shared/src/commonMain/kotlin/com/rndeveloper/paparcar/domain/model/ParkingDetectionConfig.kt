@@ -494,9 +494,17 @@ data class ParkingDetectionConfig(
      *  Field 2026-08-14 22:56: 900 m of real displacement went unproven and cost the park. */
     val shortHopProofFloorMeters: Float = 400f,
     /** Consecutive credible fixes that must satisfy the displacement test before the drive counts.
-     *  A single fix can be a cache teleport; three in a row cannot — and a real arrival keeps
-     *  producing them. */
-    val shortHopProofFixes: Int = 3,
+     *  A single fix can be a cache teleport; a run cannot — and a real arrival keeps producing them.
+     *
+     *  ⛔ **Three until [DET-LONE-SAMPLE-IS-NOT-A-DRIVE-001], and the two numbers moved together.**
+     *  That ticket raised what each fix has to PROVE — the run now measures against the driving bar
+     *  (`minimumTripSpeedMps`, 18 km/h) instead of `minimumDepartureSpeedKmh` (10 km/h), which a
+     *  receiver converging out of a cold start clears for two or three samples. Asking more of each
+     *  fix and the same number of them would have cost a real park: field 2026-08-14 22:56 ends with
+     *  a parking manoeuvre at 10,8 km/h, and with the higher bar that fix no longer qualifies, so a
+     *  run of three never completes. The exchange is deliberate and measured — a shorter run of
+     *  STRICTLY driving fixes, rather than a longer one that a mirage can fill. */
+    val shortHopProofFixes: Int = 2,
     /** [DET-LONE-SAMPLE-CANNOT-UNFREEZE-AN-ANCHOR-001] Consecutive credible trip-speed fixes needed
      *  to clear a PINNED anchor. A pinned anchor is a rest the session WITNESSED — four fixes at
      *  0,0 m/s with 2,2 m of accuracy, field 2026-08-27 — and one sample does not overturn a

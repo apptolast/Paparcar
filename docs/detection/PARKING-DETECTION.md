@@ -499,6 +499,72 @@ See `diagnostics/README.md` at the repo root for the recommended layout when arc
 
 Each entry is one issue we shipped a fix for. Listed roughly in dependency order (mappers first, then pipeline, then algorithm). Every entry should explain *what was wrong*, *why it was wrong*, and *what guard exists today*. If you ever want to remove a guard, find its entry here first.
 
+### DET-LONE-SAMPLE-IS-NOT-A-DRIVE-001 — el short-hop medía "¿conduce?" con la barra de "¿se está yendo?", y entre las dos cabía un receptor en frío
+
+**Commit:** pending. **Origen:** field real, 05-10-2026 (Oppo `0l7X59pt…`), sesión `1791123836936` —
+el FP que plantó un pin EXACTO en una calle peatonal de Granada. Lo abría un ticket de un mes antes
+que apuntaba a otro sitio; ver «Lo que NO era».
+
+```
+sentry-wake arma la sesión a 1,4 km del pin, usuario ANDANDO
+16:23:56  FIX  spd 5.88 m/s = 21.2 km/h  acc  5.2   ┐ las tres primeras fijaciones,
+16:23:58  FIX  spd 3.78 m/s = 13.6 km/h  acc 13.5   │ en CUATRO segundos
+16:24:00  FIX  spd 5.65 m/s = 20.3 km/h  acc 18.2   ┘ receptor convergiendo en frío
+          la posición recorre 18 m en esos 4 s
+          summary: drive 2/401fix · vmax 21 km/h · steps 1192  ← iba andando
+```
+
+**Qué estaba mal.** `shortHopQualifies` preguntaba *«¿esta fijación mide conducción?»* con
+`isCredibleDrivingSpeed`, cuyo listón es `minimumDepartureSpeedKmh` = **10 km/h** — el de *«¿se está
+yendo conduciendo?»*, que es otra pregunta. Once líneas más arriba, en el MISMO fichero, `fixInBand`
+responde la misma con `minimumTripSpeedMps` = **18 km/h**. Dos barras para una pregunta, y el
+espejismo vivía entre ellas: las tres fijaciones cruzaban 10 km/h, el run llegaba a 3, `SHORT_HOP`
+latchaba, `provenMaxSpeedMps` se promovía a 5,88 m/s y de ahí abajo toda la escalera leía «esta
+sesión midió conducción».
+
+[DET-SENTRY-ARM-PEDESTRIAN-CLOCK-001] ya había visto el agujero del sentry-wake —*el sensor dispara
+horas después de que el usuario se haya ido, así que el reloj arranca a cero con un kilómetro de
+CAMINATA ya en el banco*— y lo cerró exigiendo que el run midiera conducción fijación a fijación. La
+regla era correcta; el listón con el que se medía, no.
+
+**Doctrina violada.** *El evento NOMINA, sólo el movimiento MEDIDO confirma.* Aquí el movimiento no
+se midió: se heredó la distancia a un pin viejo y se aceptó ruido de convergencia como velocidad.
+
+**Fix — una línea y una constante, y se mueven JUNTAS.**
+
+```kotlin
+return fix.speed >= config.minimumTripSpeedMps   // era isCredibleDrivingSpeed → 10 km/h
+val shortHopProofFixes: Int = 2                  // era 3
+```
+
+Pedir más a cada fijación obliga a pedir menos fijaciones: el viaje real de field 2026-08-14 termina
+con una maniobra de aparcamiento a **10,8 km/h**, y con la barra alta esa fijación ya no cualifica,
+así que un run de tres no se completa nunca. El intercambio es deliberado — un run más CORTO de
+fijaciones estrictamente de conducción, en vez de uno largo que un espejismo puede rellenar.
+
+**⛔ El candidato bonito está medido como FALSO.** La idea natural era exigir que el desplazamiento
+lo hubiera OBSERVADO la sesión (los 18 m en 4 s lo delatan). Mata un viaje real: el hop tardío de
+field 2026-08-15 sólo ve la COLA del trayecto — 33 m de posición en 10 s con accuracy 23-24 m, o sea
+**paso peatonal** — y su Doppler es lo único que lo separa del espejismo. Medido: 3,3 m/s el bueno
+contra 4,5 m/s el malo. El desplazamiento observado no discrimina.
+
+**Riesgo del fix acompañante.** `shortHopProofFixes` tiene `require(> 1)` por una razón (*«un solo
+fix puede ser un teleport de caché»*), y 2 sigue cumpliéndola. Lo que NO se tocó es
+`hasEverReachedDrivingSpeed`: las dos barras que el ticket original proponía para esa bandera se
+midieron el 03-09 y las dos matan `TRACE_CASA_GAP_ANCHOR_3008`, un viaje real. Siguen refutadas y no
+se re-litigaron.
+
+**Lo que NO era.** El ticket llevaba un mes apuntando a la bandera de ciclo de vida
+(`hasEverReachedDrivingSpeed`, «un fix suelto abre la sesión entera»). El FP de campo entraba por
+otra puerta: `DriveProofSource.SHORT_HOP`. La bandera sigue como estaba, y el reencuadre del 03-09
+—*separar «puede confirmar» de «puede seguir viva»*— sigue siendo la dirección si la familia
+reaparece.
+
+**De camino, una nota pendiente de un mes, cerrada.** El aviso *«2 NPE en `ArmLabelTest` sin
+explicar, mirarlas antes que nada»* no tenía relación con nada de esto: son **flaky por orden de
+carga de clases**. Medido entre dos pasadas en las que sólo cambiaron COMENTARIOS, verde → rojo.
+→ `docs/backlog/test-armlabel-is-flaky-by-class-init-race-001.md`
+
 ### DET-A-MANEUVERING-CAR-IS-NOT-AN-EGRESS-001 — la «banda peatonal» era todo lo que no llega a conducción, y ahí cabe un coche buscando sitio
 
 **Commit:** pending. **Origen:** field real, 05-10-2026 (Oppo `0l7X59pt…`, app 1.4.0, carril

@@ -352,12 +352,33 @@ data class DriveProof(
         if (distance < config.shortHopProofFloorMeters) return false
         if (distance <= anchor.accuracy + fix.accuracy + fenceRadiusMeters) return false
         // …and beyond what legs explain over the elapsed time — the same physics as the ride proof.
-        return config.isBeyondPedestrianReach(
-            distanceMeters = distance,
-            elapsedMs = elapsedSinceArmMs,
-            fenceRadiusMeters = fenceRadiusMeters,
-            accuracyMeters = anchor.accuracy + fix.accuracy,
-        )
+        if (!config.isBeyondPedestrianReach(
+                distanceMeters = distance,
+                elapsedMs = elapsedSinceArmMs,
+                fenceRadiusMeters = fenceRadiusMeters,
+                accuracyMeters = anchor.accuracy + fix.accuracy,
+            )
+        ) {
+            return false
+        }
+        // [DET-LONE-SAMPLE-IS-NOT-A-DRIVE-001] …and at DRIVING speed, not merely at departure speed.
+        //
+        // The clause note above already says the run must "MEASURE driving fix by fix". It did —
+        // against `isCredibleDrivingSpeed`, whose bar is `minimumDepartureSpeedKmh` (10 km/h). That
+        // is the bar for "is the user driving AWAY", a question about a departure; this run answers
+        // "is this vehicle moving", and the rest of this very file answers it eleven lines up with
+        // `minimumTripSpeedMps` (18 km/h). Two bars for one question, and the mirage lived between
+        // them: field 2026-10-05, Oppo session `1791123836936`, a sentry-wake armed 1,4 km from the
+        // pin with the user ON FOOT in Granada and the first three fixes of the session reported
+        // 21,2 / 13,6 / 20,3 km/h in FOUR SECONDS — a receiver converging out of a cold start. All
+        // three cleared 10 km/h, the run completed, `SHORT_HOP` latched, and every ladder below read
+        // "this session measured driving" and pinned a pedestrian street.
+        //
+        // ⛔ The displacement the session OBSERVED cannot do this job, and that is measured too: the
+        // real late-armed hop of field 2026-08-15 sees only the drive's TAIL — 33 m of position
+        // change across 10 s at accuracy 23-24 m — which is pedestrian pace. Its Doppler is the only
+        // thing that separates it from the mirage, so the bar has to be the Doppler's.
+        return fix.speed >= config.minimumTripSpeedMps
     }
 
     private companion object {

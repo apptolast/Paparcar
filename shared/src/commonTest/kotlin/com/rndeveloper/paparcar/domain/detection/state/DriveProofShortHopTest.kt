@@ -129,6 +129,36 @@ class DriveProofShortHopTest {
         assertFalse(proof(fix = drift), "drift within metres of the pin can never prove a drive")
     }
 
+    /**
+     * ⛔ **Tres fijaciones de arranque en frío no son un viaje** [DET-LONE-SAMPLE-IS-NOT-A-DRIVE-001].
+     *
+     * Campo 05-10-2026, Oppo, sesión `1791123836936`: un sentry-wake armó la sesión a **1,4 km** del
+     * pin con el usuario ANDANDO por Granada, y sus tres primeras fijaciones salieron a
+     * **21,2 / 13,6 / 20,3 km/h** en cuatro segundos — ruido de convergencia de un receptor en frío.
+     * Todas pasaban la geometría contra el pin (1,4 km está muy por encima del suelo de 400 m, y en
+     * 4 s no se anda nada), y `isCredibleDrivingSpeed` las aceptaba porque su listón es
+     * `minimumDepartureSpeedKmh` = **10 km/h**. `SHORT_HOP` latchó, `provenMaxSpeedMps` se promovió
+     * a 5,88 m/s, y desde ahí toda la escalera leyó «esta sesión midió conducción».
+     *
+     * El run ahora mide con la barra de CONDUCCIÓN (`minimumTripSpeedMps`, 5 m/s = 18 km/h), la
+     * misma que usa `fixInBand` once líneas más arriba en este mismo fichero. La de en medio, 13,6
+     * km/h, rompe el run.
+     */
+    @Test
+    fun `should not prove the drive from a cold start burst below the driving bar`() {
+        // La del medio del caso de campo: creíble para 10 km/h, muy lejos de conducir.
+        assertFalse(
+            proof(fix = fixAway(speedMps = 3.78f)),
+            "13,6 km/h es un receptor convergiendo, no un coche",
+        )
+    }
+
+    /** La discriminante: la cola de un viaje real, vista a 25-30 km/h (campo 15-08, Redmi). */
+    @Test
+    fun `should still prove the drive at real driving speed`() {
+        assertTrue(proof(fix = fixAway(speedMps = 7.1f)))
+    }
+
     @Test
     fun `should not prove the drive just below the displacement floor`() {
         // ~330 m — real movement, but under the floor: the proof stays conservative (asymmetric
