@@ -1,7 +1,6 @@
 # DET-A-REFUSED-TRIP-GIVES-THE-CAR-BACK-001 · Un viaje que el conductor niega devuelve el coche
 
-**Estado:** 🔵 En revisión · rama `bugfix/DET-A-REFUSED-TRIP-GIVES-THE-CAR-BACK-001` · worktree
-`../Paparcar-giveback`
+**Estado:** ✅ Done · master `fc9a66ef7`
 
 ## Problema
 

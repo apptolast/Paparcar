@@ -1,7 +1,6 @@
 # HOME-THE-CAMERA-FRAMES-WHAT-THE-LIST-SHOWS-001 · La cámara encuadra lo que la lista enseña
 
-**Estado:** 🔵 En revisión · rama `bugfix/HOME-THE-CAMERA-FRAMES-WHAT-THE-LIST-SHOWS-001` ·
-cierra **3 de las 4 partes** de la issue **#87**
+**Estado:** ✅ Done · master `0be43085f`
 
 ## Problema
 

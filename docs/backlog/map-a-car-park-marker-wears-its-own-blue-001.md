@@ -1,7 +1,6 @@
 # MAP-A-CAR-PARK-MARKER-WEARS-ITS-OWN-BLUE-001 · El parking público se dibuja azul, con su P blanca
 
-**Estado:** 🔵 En revisión · rama `feature/MAP-A-CAR-PARK-MARKER-WEARS-ITS-OWN-BLUE-001` ·
-worktree `../PaparcarKMP-issue30` · cierra la **issue #30**
+**Estado:** ✅ Done · master `19243d2a0` + `f25ecafa7` · cierra la **issue #30**
 
 ## Problema
 

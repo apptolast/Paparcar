@@ -1,6 +1,6 @@
 # UX-PARK-FLOW-001 — Análisis del flujo aparcar/desaparcar (AS-IS + objetivo)
 
-> **Estado**: ANÁLISIS (entregable de la fase de definición del placeholder `ux-park-flow-001.md`).
+> **Estado**: 📚 ANÁLISIS (entregable de la fase de definición del placeholder `ux-park-flow-001.md`), no un ticket.
 > Rama `feature/UX-PARK-FLOW-001-park-flow-redesign`. Redactado 2026-07-18 sobre `master @ 781cb666`.
 > **Re-verificado 2026-08-06 sobre `master @ b16a56bc`**: VEH-ACTIVE-FENCE-001 entró en master el
 > 21-07 (3 días después de redactar esto) — §0 reescrita, C1/C2/C7 curados en código, §3/§4/§5

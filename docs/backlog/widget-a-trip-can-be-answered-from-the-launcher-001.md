@@ -1,7 +1,6 @@
 # WIDGET-A-TRIP-CAN-BE-ANSWERED-FROM-THE-LAUNCHER-001 · El widget en ruta también tiene un verbo
 
-**Estado:** 🔵 En revisión · rama `feature/WIDGET-A-TRIP-CAN-BE-ANSWERED-FROM-THE-LAUNCHER-001` ·
-cierra la **issue #53**
+**Estado:** ✅ Done · master `d5696b774` · cierra la **issue #53**
 
 ## Problema
 

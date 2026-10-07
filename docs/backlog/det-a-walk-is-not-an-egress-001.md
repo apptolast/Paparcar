@@ -1,6 +1,6 @@
 # DET-A-WALK-IS-NOT-AN-EGRESS-001 · Andar no es bajarse de un coche
 
-**Estado:** 🔵 En revisión · rama `bugfix/DET-A-WALK-IS-NOT-AN-EGRESS-001` · cierra la **issue #72**
+**Estado:** ✅ Done · master `b4bf68862` · cierra la **issue #72**
 
 ## Problema
 

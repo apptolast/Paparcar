@@ -1,7 +1,6 @@
 # STATS-THE-DETECTION-SHOWS-ITS-HIT-RATE-001 · La detección enseña su acierto, en porcentaje y en anillo
 
-**Estado:** 🔵 En revisión · rama `feature/STATS-THE-DETECTION-SHOWS-ITS-HIT-RATE-001` ·
-worktree `../PaparcarKMP-issue51` · cierra la **issue #51**
+**Estado:** ✅ Done · master `4ef6cd541` · cierra la **issue #51**
 
 ## Problema
 

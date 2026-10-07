@@ -1,6 +1,6 @@
 # UX-PARK-FLOW-001 — Regresión de flujo UI aparcar/desaparcar
 
-> **Estado**: POR DEFINIR — placeholder decidido con el user 2026-07-16. Pendiente de análisis y
+> **Estado**: 📋 POR DEFINIR — placeholder decidido con el user 2026-07-16. Pendiente de análisis y
 > definición (sesión de diseño propia antes de especificar). Prioridad: backlog.
 
 ## Motivo

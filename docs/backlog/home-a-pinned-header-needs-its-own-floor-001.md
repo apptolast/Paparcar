@@ -1,7 +1,6 @@
 # HOME-A-PINNED-HEADER-NEEDS-ITS-OWN-FLOOR-001 · Una cabecera fijada necesita su propio suelo
 
-**Estado:** 🔵 En revisión · rama `bugfix/HOME-A-PINNED-HEADER-NEEDS-ITS-OWN-FLOOR-001` ·
-cierra la **issue #86**
+**Estado:** ✅ Done · master `c4ef9d79b` · cierra la **issue #86**
 
 ## Problema
 

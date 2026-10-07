@@ -1,7 +1,6 @@
 # DET-A-PARKED-BT-CAR-NEEDS-NO-RESIDENT-WATCHER-001 · El coche BT aparcado se despierta solo
 
-**Estado:** 🔵 En revisión · rama `bugfix/DET-A-PARKED-BT-CAR-NEEDS-NO-RESIDENT-WATCHER-001` ·
-cierra la **issue #57**
+**Estado:** ✅ Done · master `a428ba02b` · cierra la **issue #57**
 
 ## Problema
 

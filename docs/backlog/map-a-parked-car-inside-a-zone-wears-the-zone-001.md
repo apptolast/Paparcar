@@ -1,7 +1,6 @@
 # MAP-A-PARKED-CAR-INSIDE-A-ZONE-WEARS-THE-ZONE-001 · El coche aparcado dentro de una zona lleva su glifo
 
-**Estado:** 🔵 En revisión · rama `feature/MAP-A-PARKED-CAR-INSIDE-A-ZONE-WEARS-THE-ZONE-001` ·
-worktree `../PaparcarKMP-issue32` · cierra la **issue #32**
+**Estado:** ✅ Done · master `c3d2cace9` + `a24b6aae0` · cierra la **issue #32**
 
 ## Problema
 

@@ -1,7 +1,6 @@
 # MAP-EVERY-MARKER-SITS-THE-SAME-HEIGHT-OVER-ITS-DOT-001 · Todo marcador se apoya a la misma altura sobre su punto
 
-**Estado:** 🔵 En revisión · rama `feature/MAP-EVERY-MARKER-SITS-THE-SAME-HEIGHT-OVER-ITS-DOT-001` ·
-worktree `../PaparcarKMP-issue45` · cierra la **issue #45**
+**Estado:** ✅ Done · master `9860bff36` · cierra la **issue #45**
 
 ## Problema
 

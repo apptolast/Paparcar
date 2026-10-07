@@ -1,6 +1,6 @@
 # DEMO-A-REVIEW-ACCOUNT-MUST-LOOK-LIVED-IN-001 · la cuenta de review se entrega vacia y con el coche aparcado hace 20 dias
 
-**Estado:** 🟢 Sembrado y verificado en las DOS bases · ⏳ falta el entitlement de Plus (paso del user) · rama `chore/DEMO-A-REVIEW-ACCOUNT-MUST-LOOK-LIVED-IN-001-seed-review-account` · worktree `../Paparcar-demo-seed`
+**Estado:** ✅ Done · sembrado y verificado en las DOS bases · ⏳ falta conceder el entitlement de Plus a `bIx3P5psSQUzVVcGSdL33CZVOry2` (paso del user) · rama y worktree ya cerrados
 
 ## Problema
 Paparcar se presenta a Shipaton con una cuenta de prueba, `paparcar.review@gmail.com`

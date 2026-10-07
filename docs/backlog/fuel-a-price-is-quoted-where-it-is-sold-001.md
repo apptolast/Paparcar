@@ -1,7 +1,6 @@
 # FUEL-A-PRICE-IS-QUOTED-WHERE-IT-IS-SOLD-001 · El precio lo cotiza el mercado, no el móvil
 
-**Estado:** 🔵 En revisión · rama `bugfix/FUEL-A-PRICE-IS-QUOTED-WHERE-IT-IS-SOLD-001` ·
-worktree `../PaparcarKMP-issue40` · cierra la **issue #40**
+**Estado:** ✅ Done · master `4463ba956` · cierra la **issue #40**
 
 ## Problema
 

@@ -1,7 +1,6 @@
 # NOTIF-ONE-QUESTION-DESERVES-ONE-NOTIFICATION-001 · La tarjeta de guardado deja de preguntar lo ya respondido
 
-**Estado:** 🔵 En revisión · rama `bugfix/NOTIF-ONE-QUESTION-DESERVES-ONE-NOTIFICATION-001` ·
-worktree `../PaparcarKMP-issue34` · cierra la **issue #34**
+**Estado:** ✅ Done · master `f1296ae8c` · cierra la **issue #34**
 
 ## Problema
 

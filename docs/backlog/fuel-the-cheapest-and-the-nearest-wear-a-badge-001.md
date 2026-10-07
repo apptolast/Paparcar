@@ -1,7 +1,6 @@
 # FUEL-THE-CHEAPEST-AND-THE-NEAREST-WEAR-A-BADGE-001 · La gasolinera más barata y la más cercana se señalan
 
-**Estado:** 🔵 En revisión · rama `feature/FUEL-THE-CHEAPEST-AND-THE-NEAREST-WEAR-A-BADGE-001` ·
-worktree `../PaparcarKMP-issue33` · cierra la **issue #33**
+**Estado:** ✅ Done · master `80fd164c2` · cierra la **issue #33**
 
 ## Problema
 

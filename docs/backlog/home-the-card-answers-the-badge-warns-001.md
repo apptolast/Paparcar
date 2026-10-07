@@ -1,4 +1,6 @@
-# 🟢 HOME-THE-CARD-ANSWERS-THE-BADGE-WARNS-001
+# HOME-THE-CARD-ANSWERS-THE-BADGE-WARNS-001
+
+**Estado:** ✅ Done · master `c3d873b64`
 
 > La card de un coche **contesta**; el badge **avisa**. Todo lo de abajo sale de esa frontera, y
 > todo lo de abajo se vio MIRANDO la galería de estados en el emulador (23-09-2026), no leyendo.

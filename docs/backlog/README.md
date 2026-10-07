@@ -1,11 +1,19 @@
 # Backlog — índice de lo que sigue abierto
 
-> **544 ficheros: 481 cerrados, 54 abiertos, 9 que no son tickets.** Este índice lista **solo lo que
+> **775 ficheros: 688 cerrados, 78 abiertos, 9 que no son tickets.** Este índice lista **solo lo que
 > queda**, para que la pregunta *"¿qué falta?"* se conteste leyendo y no listando el directorio.
-> Verificado contra master `f1ddd2a5` el **2026-09-15** [DOCS-BACKLOG-TRUTH-002]: cada línea abierta
-> se comprobó con `git log master --grep=<ID>` **y, donde el ticket describe código, leyendo el
-> código y anotando `fichero:línea` en su doc** — las líneas citadas por tickets de agosto habían
-> corrido con `DET-PACKAGE-CLUSTERS-001` y el split `:app`/`:shared`.
+> Verificado contra master `1339ea263` el **2026-10-07**
+> [DOCS-A-CLOSED-TICKET-MUST-NOT-SAY-IT-IS-IN-REVIEW-001]. El barrido anterior
+> [DOCS-BACKLOG-TRUTH-002] se midió contra `f1ddd2a5` el **15-09** (544 ficheros, 481 cerrados, 54
+> abiertos): cada línea abierta se comprobó con `git log master --grep=<ID>` **y, donde el ticket
+> describe código, leyendo el código y anotando `fichero:línea` en su doc** — las líneas citadas por
+> tickets de agosto habían corrido con `DET-PACKAGE-CLUSTERS-001` y el split `:app`/`:shared`.
+>
+> ⛔ **Y entre los dos barridos el bucle de abajo no se ejecutó ni una vez en 22 días**: 23 docs
+> seguían diciendo *"🔵 En revisión · rama X"* con X borrada y su commit en master, 4 marcaban
+> cerrado con 🟢 —dos de ellos **fuera de cualquier etiqueta que el bucle lea**, uno en prosa y otro
+> en el TÍTULO— y 4 llevaban el estado en palabras, sin emoji. **Un comando en un README no es una
+> herramienta**; mientras no sea un guard, este índice vuelve a derivar.
 >
 > ⚠️ **master se mueve mientras auditas**: durante este barrido entraron **cinco** commits —
 > `9afbc5e5` (Alemania por Tankerkönig), `d7880ac7` (fusión del carril BT), `851b00ff` (la ✕ de
@@ -24,6 +32,9 @@
 cd docs/backlog
 for f in *.md; do
   st=$(grep -m1 -E '^[ \t]*>?[ \t]*\*{0,2}(Estado|Status)' "$f")
+  # Respaldo: 5 docs abren con **Fecha:** y uno (ios-f0-001) lleva las dos cosas en la MISMA
+  # linea, asi que mirar Fecha PRIMERO clasifica mal a los otros cuatro. Estado manda siempre.
+  [ -z "$st" ] && st=$(grep -m1 -E '^[ \t]*>?[ \t]*\*{0,2}Fecha' "$f")
   first=$(echo "$st" | grep -oE '✅|❌|🚫|🔵|🟡|🟠|🔴|⚪|🧊|📋|📚|🟢' | head -1)
   case "$first" in ✅|❌|🚫) ;; *) echo "$first $f";; esac
 done
@@ -52,6 +63,12 @@ PR desde rama…"* llevando días en master (`AUTH-A-SIGN-IN-ASKS-FOR-CONSENT-FI
 `FIRESTORE-DEBUG-BUILDS-USE-DEBUG-DATABASE-001`, `ONBOARDING-SELLS-THE-NEW-PRODUCT-001`,
 `HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001`) y **uno** que ya lo había resuelto otro ticket
 sin enterarse (`UI-MAP-LAYER-TOGGLES-LIVE-IN-TWO-CORNERS-001`).
+El del **07-10** cazó con el mismo chivato **23 más**, todos con su commit ya en master: los diez de
+la tanda de issues de UI/mapa (#30–#53), los cuatro de gasolineras, los cuatro de Home y
+`det-a-walk-is-not-an-egress-001`, `det-a-refused-trip-gives-the-car-back-001`,
+`det-a-parked-bt-car-needs-no-resident-watcher-001`,
+`notif-one-question-deserves-one-notification-001` y `stats-the-detection-shows-its-hit-rate-001`.
+Cada uno cita ya su hash en su línea de estado.
 
 ---
 
@@ -121,6 +138,8 @@ No esperan a un viaje: esperan a que vuelva a fallar lo que los originó.
 | [`infra-datastore-migration-001`](infra-datastore-migration-001.md) (arriba) | ✔ 15-09: **1 fichero** usa DataStore frente a **13** con `getSharedPreferences` — y esa asimetría es deliberada (prefs de usuario → DataStore · detección → SharedPrefs) |
 | [`DET-AUDIT-REMEDIATION-001`](DET-AUDIT-REMEDIATION-001.md) · [`audit-a12-001`](audit-a12-001.md) | 📋 planes de auditoría · ⚠️ **las ramas que citan ya no existen**; su contenido sigue vigente, sus punteros no |
 | [`infra-datastore-migration-001`](infra-datastore-migration-001.md) | 📋 propuesto 10-08. No urgente |
+| [`docs-the-backlog-status-loop-must-be-a-guard-001`](docs-the-backlog-status-loop-must-be-a-guard-001.md) | 📋 **el bucle de arriba no lo ejecuta nada**, y por eso este índice derivó 22 días. Pide un guard que lo falsifique dentro de `testAll` |
+| [`ui-the-light-theme-is-lighter-without-losing-its-edges-001`](ui-the-light-theme-is-lighter-without-losing-its-edges-001.md) | 🔵 **a verificar**: su rama ya no existe, pero el único commit que lo cita es un `docs(` — el barrido del 07-10 lo dejó abierto a propósito en vez de adivinar que aterrizó |
 | `PIPE-004` | ⏸ diferido — colapsar `EnrichParkingSessionWorker` + `UpdateParkingSessionAddressAndPlaceWorker`. ⚠️ **no tiene doc propio**: solo se le nombra en [`../refactors/PIPE-001-confirm-parking-pipeline.md`](../refactors/PIPE-001-confirm-parking-pipeline.md) |
 
 ## 📐 Producto — piden decisión, no un fix
@@ -143,12 +162,16 @@ No esperan a un viaje: esperan a que vuelva a fallar lo que los originó.
 | [`moving-car-native-marker-2026-07-01`](moving-car-native-marker-2026-07-01.md) | spike; el fork de kmp-maps que salió de aquí **ya está en Maven Central** |
 | *(sin ticket)* | **estilo de mapa**: el default sigue siendo `MapType.TERRAIN` y el JSON de marca solo rinde sobre `NORMAL`. Documentado en [`home-flow-analysis` §H2](home-flow-analysis.md) |
 
-## 🍎 iOS — 🧊 APARCADO por el user (07-09): no proponer trabajo iOS salvo que lo pida
+## 🍎 iOS — en marcha
+
+⛔ La nota *«🧊 APARCADO por el user (07-09): no proponer trabajo iOS»* que encabezaba esta sección
+queda **RETIRADA**: el user desaparcó iOS el **22-09** (lote de 9 issues), y desde entonces iOS tiene
+lane de release, Fastlane, un build en TestFlight y sus propias superficies de marca.
 
 | Ticket | Estado |
 |---|---|
-| `IOS-F0-001` | Fase 0 en la rama `feature/IOS-F0-001-fase0` (tip `6627e649`), **sin mergear** · PR #3 draft mergeable |
-| [`ios-f2-a-wake-must-query-the-past-001`](ios-f2-a-wake-must-query-the-past-001.md) | F2 completa **en esa misma rama**, no en master (`1e0a70f2`, `610128ab`) |
+| `IOS-F0-001` | ✅ **Fase 0 EN MASTER** (`8c2daf096`). ⛔ Esta tabla decía *«en la rama `feature/IOS-F0-001-fase0` (tip `6627e649`), sin mergear»* y esa rama **ya no existe**; su tip quedó colgando sin ref |
+| [`ios-f2-a-wake-must-query-the-past-001`](ios-f2-a-wake-must-query-the-past-001.md) | ✅ **F2 en master** — `IosWakeMonitors.kt`, `IosSafetyNetRecords.kt` y `IosDetectionController.kt` están ahí y han seguido creciendo. ⛔ Decía *«en esa misma rama, no en master (`1e0a70f2`, `610128ab`)»*: los dos hashes son objetos **sin ref**, no trabajo pendiente |
 | [`ios-death-a-kill-that-signs-its-name-001`](ios-death-a-kill-that-signs-its-name-001.md) · [`ios-devcat-a-gallery-the-simulator-can-open-001`](ios-devcat-a-gallery-the-simulator-can-open-001.md) · [`ios-diag-a-log-that-survives-to-be-shipped-001`](ios-diag-a-log-that-survives-to-be-shipped-001.md) · [`ios-route-a-snap-the-drainer-never-does-001`](ios-route-a-snap-the-drainer-never-does-001.md) | ⚪ pendientes, sin rama |
 | [`ios-social-login-001`](ios-social-login-001.md) | 🔵 bloqueado hasta tener un Mac |
 

@@ -1,7 +1,6 @@
 # UI-A-SCROLLING-CHIP-ROW-SAYS-SO-001 · Una fila de chips que se desplaza tiene que decirlo
 
-**Estado:** 🔵 En revisión · rama `feature/UI-A-SCROLLING-CHIP-ROW-SAYS-SO-001` ·
-worktree `../PaparcarKMP-issue50` · cierra la **issue #50**
+**Estado:** ✅ Done · master `4fab17605` · cierra la **issue #50**
 
 ## Problema
 

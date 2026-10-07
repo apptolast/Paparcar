@@ -1,8 +1,19 @@
 # IOS-APPLE-SIGN-IN-ON-BASELOGIN-3-001 · BaseLogin 3.0.0 + login con Apple y Google en iOS
 
-**Estado:** 🟡 **En master (squash, 25-09) pero NO terminado** · rama y worktree borrados · el hash
-vive en `MEMORY.md` · guía de configuración:
-[`docs/release/IOS-SIGN-IN-SETUP.md`](../release/IOS-SIGN-IN-SETUP.md)
+**Estado:** 🟡 **En master (squash, 25-09) pero NO terminado** · el hash vive en `MEMORY.md` ·
+guía de configuración: [`docs/release/IOS-SIGN-IN-SETUP.md`](../release/IOS-SIGN-IN-SETUP.md)
+
+⛔ **La rama remota sobrevivió al squash cinco días más que la local.** Esta línea decía *«rama y
+worktree borrados»* y era cierto **solo en local**: `origin/feature/IOS-APPLE-SIGN-IN-ON-BASELOGIN-3-001`
+(tip `b227a9c4f`, 18 commits propios, 120 por detrás) siguió viva hasta el **07-10**, cuando el
+barrido [DOCS-A-CLOSED-TICKET-MUST-NOT-SAY-IT-IS-IN-REVIEW-001] la verificó commit a commit antes
+de borrarla. Los cuatro commits posteriores al squash **ya están en master por contenido**: el
+entitlement `com.apple.developer.applesignin` (`iosApp/iosApp/iosApp.entitlements`), el
+`Config.xcconfig` con `MARKETING_VERSION=0.1.1` / `CURRENT_PROJECT_VERSION=2`, y las 8 menciones del
+Services ID en `IOS-SIGN-IN-SETUP.md`. El único blob distinto era `app-icon-1024.png`, y el de la
+rama dibujaba la marca **DESCARTADA**: master lo regeneró desde el maestro en
+[BRAND-THE-APPLE-SURFACES-ARE-OUTSIDE-THE-MASTER-001] (`d7041d32c`), así que la versión de la rama
+era la vieja, no trabajo pendiente.
 
 ⛔ **Lo que el merge NO significa.** El código está dentro y la mitad Android está verificada
 (3 770 tests, `assembleMockDebug`, `compileProdDebugKotlin`), pero **nada de iOS se ha compilado**:

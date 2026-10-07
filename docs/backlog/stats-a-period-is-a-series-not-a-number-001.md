@@ -126,4 +126,4 @@ El gasto no pierde nada: su cifra sigue en su tile, con su precio y su origen.
   cabecera de la card. Es la única duda de layout del ticket.
 - ⚠️ Cazado al vuelo: el sentinel `MINUTES_SLOT` se escribió una vez como **byte NUL crudo** y dejó
   el fichero marcado como binario — exactamente lo que `VehicleStatsBlock` documenta desde
-  [STATS-A-COMPUTED-LITRE-WITH-NO-READER-001]. Corregido al escape ` ` antes de compilar.
+  [STATS-A-COMPUTED-LITRE-WITH-NO-READER-001]. Corregido al escape `\u0000` antes de compilar.

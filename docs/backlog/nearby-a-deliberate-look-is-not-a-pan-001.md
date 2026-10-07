@@ -1,7 +1,6 @@
 # NEARBY-A-DELIBERATE-LOOK-IS-NOT-A-PAN-001 · Pedir un sitio no es arrastrar hasta él
 
-**Estado:** 🔵 En revisión · rama `feature/NEARBY-A-DELIBERATE-LOOK-IS-NOT-A-PAN-001` ·
-cierra la **issue #44**
+**Estado:** ✅ Done · master `af3d0ba32` · cierra la **issue #44**
 
 ## La pregunta de la issue
 

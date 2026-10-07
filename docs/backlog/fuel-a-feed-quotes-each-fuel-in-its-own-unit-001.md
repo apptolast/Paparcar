@@ -1,7 +1,6 @@
 # FUEL-A-FEED-QUOTES-EACH-FUEL-IN-ITS-OWN-UNIT-001 · Cada combustible trae su unidad, y leíamos la de la fila
 
-**Estado:** 🔵 En progreso · rama `bugfix/FUEL-A-FEED-QUOTES-EACH-FUEL-IN-ITS-OWN-UNIT-001-per-fuel-unit`
-· worktree `../Paparcar-fuel-unit`
+**Estado:** ✅ Done · master `1a283165c`
 
 ## Problema
 

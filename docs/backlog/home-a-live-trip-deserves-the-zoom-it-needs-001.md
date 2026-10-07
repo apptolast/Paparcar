@@ -1,6 +1,6 @@
 # HOME-A-LIVE-TRIP-DESERVES-THE-ZOOM-IT-NEEDS-001 · Un viaje en curso merece el zoom que necesita
 
-**Estado:** 🔵 En revisión · rama `bugfix/HOME-A-LIVE-TRIP-DESERVES-THE-ZOOM-IT-NEEDS-001`
+**Estado:** ✅ Done · master `baba6104f`
 
 ## Problema
 

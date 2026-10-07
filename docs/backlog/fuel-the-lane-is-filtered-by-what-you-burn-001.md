@@ -1,7 +1,6 @@
 # FUEL-THE-LANE-IS-FILTERED-BY-WHAT-YOU-BURN-001 · Filtros del carril de gasolineras
 
-**Estado:** 🔵 En revisión · rama `feature/FUEL-THE-LANE-IS-FILTERED-BY-WHAT-YOU-BURN-001` ·
-cierra la **issue #42** · ⛔ **sale de la rama de #37** (las dos tocan el orden del carril)
+**Estado:** ✅ Done · master `cda6f03d8` + `1fa6efcd3` · cierra la **issue #42**
 
 ## Problema
 

@@ -1,7 +1,6 @@
 # MAP-A-CAMERA-MOVE-MUST-NOT-COST-A-PINCH-001 · Ir a un sitio deja de alejarte
 
-**Estado:** 🔵 En revisión · rama `bugfix/MAP-A-CAMERA-MOVE-MUST-NOT-COST-A-PINCH-001` ·
-worktree `../PaparcarKMP-issue31` · cierra la **issue #31**
+**Estado:** ✅ Done · master `c11073ea8` · cierra la **issue #31**
 
 ## Problema
 

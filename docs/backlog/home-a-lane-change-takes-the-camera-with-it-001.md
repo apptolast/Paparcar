@@ -1,7 +1,6 @@
 # HOME-A-LANE-CHANGE-TAKES-THE-CAMERA-WITH-IT-001 · Cambiar de carril mueve el mapa y la lista
 
-**Estado:** 🔵 En revisión · rama `feature/HOME-A-LANE-CHANGE-TAKES-THE-CAMERA-WITH-IT-001` ·
-cierra la **issue #47**
+**Estado:** ✅ Done · master `258e7d79e` · cierra la **issue #47**
 
 ## Problema
 

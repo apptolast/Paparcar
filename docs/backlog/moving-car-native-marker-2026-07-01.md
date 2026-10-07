@@ -1,7 +1,7 @@
 # DRIVE-PUCK-NATIVE-001 — coche en movimiento como marker nativo (fork kmp-maps)
 
 **Fecha:** 2026-07-01
-**Estado:** BACKLOG (prueba / spike)
+**Estado:** 📋 BACKLOG (prueba / spike) — el fork de kmp-maps que salio de aqui ya esta en Maven Central
 **Prioridad:** baja (mejora de pulido; el overlay actual es aceptable)
 
 ## Problema

@@ -1,6 +1,6 @@
 # HOME-FLOW — Análisis del flujo completo de Home (AS-IS + objetivo)
 
-> **Estado**: ANÁLISIS (complemento de amplitud de `ux-park-flow-001-analysis.md`).
+> **Estado**: 📚 ANÁLISIS (complemento de amplitud de `ux-park-flow-001-analysis.md`), no un ticket.
 > Rama `feature/UX-PARK-FLOW-001-park-flow-redesign`. Redactado 2026-07-18 sobre `master @ 781cb666`.
 > **Re-verificado 2026-08-06 sobre `master @ b16a56bc`**: H1/H3/H4/H5/H6 siguen vigentes; los
 > defectos C1..C7 del doc de aparcar que se citaban aquí están curados en su parte de modelo

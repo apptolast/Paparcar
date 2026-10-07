@@ -1,7 +1,7 @@
 # SHARED-A-PARKING-TELLS-THE-GROUP-001 — el coche compartido avisa al grupo
 
-🟢 **Implementado, sin pasar por campo.** Rama `feature/SHARED-A-PARKING-TELLS-THE-GROUP-001`
-sobre master `ef49abdc`.
+**Estado:** ✅ Done · master `d6e890f28` · ⏳ sin pasar por campo (pide dos cuentas en el mismo grupo). Se escribio sobre master `ef49abdc`, en la rama
+`feature/SHARED-A-PARKING-TELLS-THE-GROUP-001`, ya borrada.
 
 ## El problema
 

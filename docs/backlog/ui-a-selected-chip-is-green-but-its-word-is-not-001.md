@@ -1,7 +1,6 @@
 # UI-A-SELECTED-CHIP-IS-GREEN-BUT-ITS-WORD-IS-NOT-001 · El chip elegido es verde; su palabra no
 
-**Estado:** 🔵 En revisión · rama `feature/UI-A-SELECTED-CHIP-IS-OUTLINED-NOT-FILLED-001` ·
-worktree `../Paparcar-chip` · cierra la **issue #49**
+**Estado:** ✅ Done · master `4ef3eda3b` · cierra la **issue #49**
 
 > ⚠️ **La rama conserva el ID viejo** (`…-IS-OUTLINED-NOT-FILLED-001`) porque renombrarla dejaría
 > huérfana la PR #55. El ID de dentro del código sí se renombró: ver *Cómo cambió el encargo*.

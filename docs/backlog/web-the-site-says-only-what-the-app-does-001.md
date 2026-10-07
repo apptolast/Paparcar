@@ -1,6 +1,6 @@
 # WEB-THE-SITE-SAYS-ONLY-WHAT-THE-APP-DOES-001 · paparcar.com, construida con lo que ya existe
 
-**Estado:** 🟢 Hecho y **desplegado** · **2026-09-17**, desde master `469e22b02`
+**Estado:** ✅ Hecho y **desplegado** · **2026-09-17**, desde master `469e22b02`
 **En vivo:** <https://paparcar.com> (dominio propio ya conectado a Hosting de `pap-26`)
 **Alcance:** web oficial completa en `web/` → `hosting/public`, ES + EN, más el rediseño del
 cascarón de las dos páginas legales que ya vivían ahí.

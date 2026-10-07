@@ -1,8 +1,6 @@
 # MAP-A-CAR-PARK-MARKER-SAYS-WHAT-IT-COSTS-001 · El parking dice lo que cuesta, con la cápsula de la gasolinera
 
-**Estado:** 🔵 En revisión · rama `feature/MAP-A-CAR-PARK-MARKER-SAYS-WHAT-IT-COSTS-001` ·
-worktree `../PaparcarKMP-issue46` · cierra la **issue #46** ·
-⛔ **sale de la rama de #35**, porque reescribe el mismo marcador
+**Estado:** ✅ Done · master `8fcf038ff` · cierra la **issue #46**
 
 ## Problema
 

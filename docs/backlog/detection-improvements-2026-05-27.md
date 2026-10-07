@@ -1,5 +1,7 @@
 # Paparcar — Detección de aparcamiento: mejoras + bugs reales — 2026-05-27
 
+**Estado:** 📚 ANÁLISIS de campo (27-05-2026) con su propia *Status legend* y un estado POR ÍTEM dentro; sin estado global porque no lo tiene — es el único de los tres análisis de campo que se quedó sin esta línea en el barrido [DOCS-BACKLOG-TRUTH-002].
+
 Origen: sesión de análisis y refactor del 2026-05-27. Sale del primer test de campo en Redmi (Oppo) + feedback de otros dos usuarios.
 
 Este documento agrupa:

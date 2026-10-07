@@ -1,7 +1,6 @@
 # PARKINGS-THE-LANE-FILTERS-BY-WHAT-WE-KNOW-001 · Filtros del carril de parkings
 
-**Estado:** 🔵 En revisión · rama `feature/PARKINGS-THE-LANE-FILTERS-BY-WHAT-WE-KNOW-001` ·
-cierra la **issue #43**
+**Estado:** ✅ Done · master `afa5d7dff` · cierra la **issue #43**
 
 ## Problema
 
