@@ -716,18 +716,30 @@ internal fun VehicleCard.isDriving(drivingVehicleId: String?): Boolean =
     session == null && drivingVehicleId != null && vehicle.id == drivingVehicleId
 
 /**
- * Order of the "TUS VEHÍCULOS" strip: the vehicle being actively monitored floats first (a live
- * trip outranks any parked car), then parked cars by the SAME preference that picks the preferred
- * session (most recent park first, watch rank only breaks ties — never Room's list order), then
- * unparked cars by watch rank. [CHIP-DRIVING-001] [UI-BROWSE-DRIVING-OVER-PARKED-001]
+ * Order of the "TUS VEHÍCULOS" strip: the car the app has something to SAY about floats first, then
+ * the vehicle being actively monitored (a live trip outranks any parked car), then parked cars by
+ * the SAME preference that picks the preferred session (most recent park first, watch rank only
+ * breaks ties — never Room's list order), then unparked cars by watch rank.
+ * [CHIP-DRIVING-001] [UI-BROWSE-DRIVING-OVER-PARKED-001]
+ *
+ * [subjectVehicleId] is the FIRST key, and it had to go above `isDriving`
+ * [HOME-A-CARS-NEWS-RIDES-ITS-OWN-CARD-001]: the hoist already existed, but it asked *"is this car
+ * driving?"*, and **an open question is not a confirmed drive** — the ask arrives once the trip is
+ * over. Measured 08-10 in the Dev Catalog with three cars: the car being asked about came THIRD,
+ * behind two that had nothing to say. A car that is driving is still its own subject, so nothing
+ * that used to float stops floating; the key is generalised, not replaced.
+ *
+ * Null subject (system-health stories, or none at all) leaves the previous order untouched.
  */
 internal fun vehiclesRowOrder(
     cards: List<VehicleCard>,
     drivingVehicleId: String?,
+    subjectVehicleId: String? = null,
 ): List<VehicleCard> {
     val parkedPreference = parkedSessionPreference(cards.map { it.vehicle })
     return cards.sortedWith(
-        compareByDescending<VehicleCard> { it.isDriving(drivingVehicleId) }
+        compareByDescending<VehicleCard> { subjectVehicleId != null && it.vehicle.id == subjectVehicleId }
+            .thenByDescending { it.isDriving(drivingVehicleId) }
             .thenBy(nullsLast(parkedPreference.reversed())) { it.session }
             .thenBy { it.vehicle.monitoringStatus().sortRank() },
     )

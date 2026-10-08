@@ -45,6 +45,10 @@ import kotlin.time.Clock
  * produce (the peek eyebrow names the trip's car, the row would name another).
  */
 private const val MOCK_PROMPT_VEHICLE = "Toyota Corolla"
+/** El MISMO coche que el nombre de arriba: `mock_vehicle_002`, que en el carril se llama
+ *  «Second car». Sin el id la pregunta no sabe de quién habla y la noticia no puede mudarse a su
+ *  card — que es justo el defecto. [HOME-A-CARS-NEWS-RIDES-ITS-OWN-CARD-001] */
+private const val MOCK_PROMPT_VEHICLE_ID = "mock_vehicle_002"
 
 /** El coche del garaje mock sobre el que se prueba la pregunta de grupo cerrado.
  *  [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] */
@@ -266,6 +270,7 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
                 PendingPromptWindow(
                     shownAtMs = nowMs,
                     vehicleName = MOCK_PROMPT_VEHICLE,
+                    vehicleId = MOCK_PROMPT_VEHICLE_ID,
                     candidate = MOCK_PROMPT_CANDIDATE.copy(timestamp = nowMs),
                     street = MOCK_PROMPT_STREET,
                 )

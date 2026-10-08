@@ -42,6 +42,7 @@ class AppNotificationManagerImpl(
     override fun showParkingConfirmation(
         score: Float,
         vehicleName: String?,
+        vehicleId: String?,
         candidate: GpsPoint?,
         street: String?,
     ) {
@@ -54,6 +55,10 @@ class AppNotificationManagerImpl(
                 PendingPromptWindow(
                     shownAtMs = System.currentTimeMillis(),
                     vehicleName = vehicleName,
+                    // [HOME-A-CARS-NEWS-RIDES-ITS-OWN-CARD-001] El id viaja por la MISMA escritura
+                    // que el nombre, y por eso no puede contradecirlo: es quien permite que la
+                    // pregunta se mude a la card de SU coche habiendo varios.
+                    vehicleId = vehicleId,
                     // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] The place AND the street
                     // travel with the wording, through the same single write, for the same
                     // anti-drift reason: the Home row must repeat this address, never re-derive it.

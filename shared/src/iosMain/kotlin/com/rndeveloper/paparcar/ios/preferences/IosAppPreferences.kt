@@ -37,6 +37,7 @@ private const val KEY_PENDING_NUDGE_SOURCE = "pending_park_nudge_source"
 private const val KEY_PENDING_NUDGE_VEHICLE_ID = "pending_park_nudge_vehicle_id"
 private const val KEY_PENDING_PROMPT_SHOWN_AT = "pending_prompt_window_shown_at"
 private const val KEY_PENDING_PROMPT_VEHICLE_NAME = "pending_prompt_window_vehicle_name"
+private const val KEY_PENDING_PROMPT_VEHICLE_ID = "pending_prompt_window_vehicle_id"
 private const val KEY_NOTIFY_PARKING_DETECTED = "notify_parking_detected"
 private const val KEY_NOTIFY_ZONE_SPOTS = "notify_zone_spots"
 private const val KEY_NOTIFY_FUEL_PRICES = "notify_fuel_prices"
@@ -310,6 +311,8 @@ class IosAppPreferences : AppPreferences {
         return PendingPromptWindow(
             shownAtMs = userDefaults.integerForKey(KEY_PENDING_PROMPT_SHOWN_AT),
             vehicleName = userDefaults.stringForKey(KEY_PENDING_PROMPT_VEHICLE_NAME),
+            // [HOME-A-CARS-NEWS-RIDES-ITS-OWN-CARD-001] Sin sujeto si lo escribió un build viejo.
+            vehicleId = userDefaults.stringForKey(KEY_PENDING_PROMPT_VEHICLE_ID),
         )
     }
 
@@ -322,12 +325,16 @@ class IosAppPreferences : AppPreferences {
         window.vehicleName
             ?.let { userDefaults.setObject(it, forKey = KEY_PENDING_PROMPT_VEHICLE_NAME) }
             ?: userDefaults.removeObjectForKey(KEY_PENDING_PROMPT_VEHICLE_NAME)
+        window.vehicleId
+            ?.let { userDefaults.setObject(it, forKey = KEY_PENDING_PROMPT_VEHICLE_ID) }
+            ?: userDefaults.removeObjectForKey(KEY_PENDING_PROMPT_VEHICLE_ID)
         pendingPromptWindowFlow.value = window
     }
 
     override fun clearPendingPromptWindow() {
         userDefaults.removeObjectForKey(KEY_PENDING_PROMPT_SHOWN_AT)
         userDefaults.removeObjectForKey(KEY_PENDING_PROMPT_VEHICLE_NAME)
+        userDefaults.removeObjectForKey(KEY_PENDING_PROMPT_VEHICLE_ID)
         pendingPromptWindowFlow.value = null
     }
 

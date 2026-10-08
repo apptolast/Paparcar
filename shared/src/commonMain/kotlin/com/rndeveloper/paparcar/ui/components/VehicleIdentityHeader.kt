@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.displayName
 import com.rndeveloper.paparcar.domain.model.monitoringStatus
@@ -129,21 +130,7 @@ fun VehicleIdentityHeader(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = if (alignsWithFirstLine) Alignment.Top else Alignment.CenterVertically,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(TILE_DP.dp)
-                    .clip(RoundedCornerShape(TILE_CORNER_DP.dp))
-                    .background(cs.surfaceContainerHighest),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (isDriving) DrivingRadarHalo(diameter = GLYPH_DP.dp, color = identity)
-                VehicleGlyph(
-                    carbody = vehicle.carbodyType,
-                    size = vehicle.sizeCategory,
-                    glyphSize = GLYPH_DP.dp,
-                    color = vehicle.color,
-                )
-            }
+            VehicleGlyphTile(vehicle = vehicle, isDriving = isDriving, haloColor = identity)
             Spacer(Modifier.width(TILE_TEXT_GAP_DP.dp))
             Column(modifier = Modifier.weight(1f)) {
                 // Identity line — watch glyph, then the name. Same order and same gap as the Home chip:
@@ -245,6 +232,41 @@ fun VehicleIdentityHeader(
                 statusLine()
             }
         }
+    }
+}
+
+/**
+ * La baldosa del coche: el glifo sobre su cuadro, con el halo de radar cuando va en ruta.
+ *
+ * Extraída de [VehicleIdentityHeader] porque desde
+ * [HOME-A-CARS-NEWS-RIDES-ITS-OWN-CARD-001] hay una segunda fila que tiene que decir de qué coche
+ * habla sin repetir su nombre: la card con noticia sustituye la fila de identidad por la noticia, y
+ * la identidad se queda donde no estorba — en el glifo. Copiar los cuatro números aquí al lado
+ * habría dado dos baldosas que se separan a la primera edición.
+ */
+@Composable
+fun VehicleGlyphTile(
+    vehicle: Vehicle,
+    modifier: Modifier = Modifier,
+    isDriving: Boolean = false,
+    haloColor: Color = Color.Unspecified,
+) {
+    Box(
+        modifier = modifier
+            .size(TILE_DP.dp)
+            .clip(RoundedCornerShape(TILE_CORNER_DP.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (isDriving && haloColor != Color.Unspecified) {
+            DrivingRadarHalo(diameter = GLYPH_DP.dp, color = haloColor)
+        }
+        VehicleGlyph(
+            carbody = vehicle.carbodyType,
+            size = vehicle.sizeCategory,
+            glyphSize = GLYPH_DP.dp,
+            color = vehicle.color,
+        )
     }
 }
 

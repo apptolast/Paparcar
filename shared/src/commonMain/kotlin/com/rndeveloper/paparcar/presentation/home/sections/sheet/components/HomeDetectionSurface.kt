@@ -138,6 +138,9 @@ fun HomeDetectionSurface(
      * no este parámetro: aquí sólo se dice cómo vestirse.
      */
     embedded: Boolean = false,
+    /** El glifo del coche del que habla la noticia, sólo en modo [embedded]: la card ya no pone su
+     *  fila de identidad encima. [HOME-A-CARS-NEWS-RIDES-ITS-OWN-CARD-001] */
+    embeddedLeading: (@Composable () -> Unit)? = null,
     /**
      * «Ahora no» para los avisos de SALUD DEL SISTEMA — permiso, detección apagada, vigilancia
      * frágil o parada, sin coche. Null = esta superficie no ofrece callar nada.
@@ -221,6 +224,7 @@ fun HomeDetectionSurface(
             onClick = story.window.candidate?.let { at -> { onFocusAsk(at) } },
             modifier = modifier,
             embedded = embedded,
+            embeddedLeading = embeddedLeading,
             )
 
         // [DET-NUDGE-PERSIST-001] The older, deadline-less ask: a parking record we could not place.
@@ -235,6 +239,7 @@ fun HomeDetectionSurface(
             onSecondary = onDismissNudge,
             modifier = modifier,
             embedded = embedded,
+            embeddedLeading = embeddedLeading,
             )
 
         DetectionStory.NoVehicle -> ActionRow(
@@ -246,6 +251,7 @@ fun HomeDetectionSurface(
             onPrimary = onAddVehicle,
             modifier = modifier,
             embedded = embedded,
+            embeddedLeading = embeddedLeading,
             onSilence = onSilenceNotice,
             )
 
@@ -260,6 +266,7 @@ fun HomeDetectionSurface(
             onPrimary = onActivateDetection,
             modifier = modifier,
             embedded = embedded,
+            embeddedLeading = embeddedLeading,
             onSilence = onSilenceNotice,
             )
 
@@ -275,6 +282,7 @@ fun HomeDetectionSurface(
             onPrimary = onOpenPermissions,
             modifier = modifier,
             embedded = embedded,
+            embeddedLeading = embeddedLeading,
             onSilence = onSilenceNotice,
             )
 
@@ -289,6 +297,7 @@ fun HomeDetectionSurface(
             onSecondary = onStartDrivingDetection,
             modifier = modifier,
             embedded = embedded,
+            embeddedLeading = embeddedLeading,
             )
 
         // A LIVE TRIP renders nothing here: the vehicle card tells it whole and carries the stop
@@ -312,6 +321,7 @@ fun HomeDetectionSurface(
                 onPrimary = {},
                 modifier = modifier,
                 embedded = embedded,
+                embeddedLeading = embeddedLeading,
                 )
 
             ParkedWatchBadge.WATCHING_FRAGILE -> ActionRow(
@@ -325,6 +335,7 @@ fun HomeDetectionSurface(
                 primaryStacksBelow = true,
                 modifier = modifier,
                 embedded = embedded,
+                embeddedLeading = embeddedLeading,
                 )
 
             ParkedWatchBadge.WATCH_INTERRUPTED -> ActionRow(
@@ -338,6 +349,7 @@ fun HomeDetectionSurface(
                 primaryStacksBelow = true,
                 modifier = modifier,
                 embedded = embedded,
+                embeddedLeading = embeddedLeading,
                 )
         }
 
@@ -400,6 +412,9 @@ private fun ActionRow(
      * que es la única forma de que las dos superficies no se puedan desincronizar.
      */
     embedded: Boolean = false,
+    /** El glifo del coche del que habla la noticia, sólo en modo [embedded]: la card ya no pone su
+     *  fila de identidad encima. [HOME-A-CARS-NEWS-RIDES-ITS-OWN-CARD-001] */
+    embeddedLeading: (@Composable () -> Unit)? = null,
     /**
      * «Ahora no»: la × del badge. Null = esta fila no se puede callar.
      * [UI-A-STATUS-BADGE-CAN-BE-DISMISSED-A-QUESTION-CANNOT-001]
@@ -490,7 +505,12 @@ private fun ActionRow(
                 // justo el aviso más grave. Si el gesto de callar un aviso se paga con la mitad de
                 // la razón por la que existe, el gesto sale caro.
                 subtitleMaxLines = if (onSilence != null && !embedded) 3 else 2,
-                leading = if (embedded) null else ({ IconTile(icon = icon, tone = tone) }),
+                // ⛔ Empotrada ya NO va sin baldosa. Perdía el tile porque la card ponía encima su
+                // fila de identidad con el glifo del coche; desde
+                // [HOME-A-CARS-NEWS-RIDES-ITS-OWN-CARD-001] la noticia OCUPA esa fila, así que si
+                // tampoco trajera glifo la card no diría de qué coche habla más que repitiendo su
+                // nombre dentro de la pregunta. El huésped pasa el glifo de SU coche.
+                leading = if (embedded) embeddedLeading else ({ IconTile(icon = icon, tone = tone) }),
                 contentPadding = PaddingValues(
                     start = CONTENT_START_DP.dp,
                     end = CONTENT_END_DP.dp,

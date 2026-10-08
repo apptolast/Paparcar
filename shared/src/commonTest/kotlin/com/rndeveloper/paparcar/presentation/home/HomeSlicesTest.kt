@@ -699,6 +699,52 @@ class HomeSlicesTest {
         assertEquals(listOf("veh-parked", "veh-bt", "veh-plain"), order.map { it.vehicle.id })
     }
 
+    // ── El sujeto de la noticia lidera ────────────────────────────────────────
+    // [HOME-A-CARS-NEWS-RIDES-ITS-OWN-CARD-001]
+
+    @Test
+    fun should_float_the_story_subject_first_even_when_it_is_neither_driving_nor_parked() {
+        // El caso medido el 08-10 en el Dev Catalog: tres coches, pregunta abierta sobre el tercero,
+        // y salía TERCERO — detrás de dos que no tenían nada que decir. El hoist existía, pero
+        // preguntaba «¿conduce?», y la pregunta llega cuando el viaje YA terminó.
+        val parked = VehicleCard(vehicle("veh-parked"), session("s1", "veh-parked"))
+        val bt = VehicleCard(vehicle("veh-bt", bluetoothDeviceId = "AA:BB"), session = null)
+        val asked = VehicleCard(vehicle("veh-asked"), session = null)
+        val order = vehiclesRowOrder(
+            listOf(parked, bt, asked),
+            drivingVehicleId = null,
+            subjectVehicleId = "veh-asked",
+        )
+        assertEquals(listOf("veh-asked", "veh-parked", "veh-bt"), order.map { it.vehicle.id })
+    }
+
+    @Test
+    fun should_keep_the_previous_order_when_the_story_has_no_subject() {
+        // Salud del sistema: sin sujeto, el orden de siempre queda intacto. La clave nueva
+        // GENERALIZA el hoist, no lo sustituye.
+        val parked = VehicleCard(vehicle("veh-parked"), session("s1", "veh-parked"))
+        val driving = VehicleCard(vehicle("veh-driving"), session = null)
+        val order = vehiclesRowOrder(
+            listOf(parked, driving),
+            drivingVehicleId = "veh-driving",
+            subjectVehicleId = null,
+        )
+        assertEquals(listOf("veh-driving", "veh-parked"), order.map { it.vehicle.id })
+    }
+
+    @Test
+    fun should_still_float_a_driving_subject_first() {
+        // Un coche en ruta ES sujeto de su propia historia: nada de lo que ya flotaba deja de flotar.
+        val parked = VehicleCard(vehicle("veh-parked"), session("s1", "veh-parked"))
+        val driving = VehicleCard(vehicle("veh-driving"), session = null)
+        val order = vehiclesRowOrder(
+            listOf(parked, driving),
+            drivingVehicleId = "veh-driving",
+            subjectVehicleId = "veh-driving",
+        )
+        assertEquals(listOf("veh-driving", "veh-parked"), order.map { it.vehicle.id })
+    }
+
     // ── Map slice: AddingParking vehicle resolution ───────────────────────────
 
     @Test

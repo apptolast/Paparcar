@@ -2220,11 +2220,38 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
-            // Y el contraste, que es lo que impide el fallo peor: con 2+ coches la tira son chips
-            // estrechos en un scroll horizontal, donde no cabe un título con sublínea y dos botones
-            // y donde el coche del que se habla puede estar fuera de pantalla. Ahí el badge se
-            // queda entero. Apartarse sin que nadie recoja la noticia la haría DESAPARECER.
-            Variant("Sheet · 2+ coches + pregunta abierta (la fila pregunta)") {
+            // Y con 2+ coches, LO MISMO. [HOME-A-CARS-NEWS-RIDES-ITS-OWN-CARD-001]
+            //
+            // ⛔ Aquí ponía *«(la fila pregunta)»* y el comentario explicaba por qué el badge se
+            // quedaba entero: *«la tira son chips estrechos… y el coche del que se habla puede estar
+            // fuera de pantalla»*. Las dos razones eran ciertas y las dos se cerraron por abajo — el
+            // sujeto se eleva al principio del carril y, llevando noticia, deja de ser un chip y se
+            // dibuja como card. Lo que queda de aquel aviso es su conclusión, que sigue en pie:
+            // *apartarse sin que nadie recoja la noticia la haría DESAPARECER*, y por eso el badge
+            // sigue siendo el huésped cuando la ventana NO dice de qué coche habla.
+            //
+            // El `vehicleId` es lo que hace que esta variante enseñe el camino nuevo: sin él la
+            // pregunta no tiene sujeto y la hoja cae al badge, que es exactamente el
+            // comportamiento de los builds anteriores a este campo.
+            Variant("Sheet · 2+ coches + pregunta abierta (la CARD del coche pregunta)") {
+                sheet(
+                    HomeState(
+                        hasCorePermissions = true,
+                        userGpsPoint = sampleGps,
+                        vehicles = listOf(FakeData.vehicleSedan, FakeData.vehicleCorolla),
+                        nearbySpots = FakeData.nearbySpots,
+                        promptWindow = com.rndeveloper.paparcar.domain.detection.PendingPromptWindow(
+                            shownAtMs = 1_758_567_840_000L,
+                            vehicleName = "${FakeData.vehicleSedan.brand} ${FakeData.vehicleSedan.model}",
+                            vehicleId = FakeData.vehicleSedan.id,
+                            street = "Dame Street 30",
+                        ),
+                    ),
+                )
+            },
+            // El contraste que la variante de arriba dejó de enseñar: una ventana SIN sujeto —la que
+            // escribió un build anterior al campo— sigue cayendo al badge suelto, con 2+ coches.
+            Variant("Sheet · 2+ coches + pregunta SIN sujeto (badge suelto)") {
                 sheet(
                     HomeState(
                         hasCorePermissions = true,

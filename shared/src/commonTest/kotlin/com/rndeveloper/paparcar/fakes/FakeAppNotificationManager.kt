@@ -28,6 +28,7 @@ open class FakeAppNotificationManager : AppNotificationManager {
     override fun showParkingConfirmation(
         score: Float,
         vehicleName: String?,
+        vehicleId: String?,
         candidate: GpsPoint?,
         street: String?,
     ) {

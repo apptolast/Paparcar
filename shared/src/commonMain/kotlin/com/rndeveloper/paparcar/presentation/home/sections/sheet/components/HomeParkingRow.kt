@@ -373,6 +373,22 @@ internal fun HomeVehicleCard(
         //     raíl vertical en Home quiere decir SIEMPRE «esto es un aviso, y así de serio es».
         Row(modifier = Modifier.height(IntrinsicSize.Min)) {
             Column(modifier = Modifier.weight(1f)) {
+                // ⛔ Con NOTICIA, la noticia OCUPA la fila del nombre — no se apila debajo de él.
+                // [HOME-A-CARS-NEWS-RIDES-ITS-OWN-CARD-001]
+                //
+                // Petición del user el 08-10, viendo la card en mano: *«¿para qué poner Second car
+                // si ya tenemos la pregunta? la pregunta y la info deberían ir ahí»*. Y midiendo le
+                // daba la razón dos veces:
+                //  · la card salía a **246 dp**, el 39 % de la hoja visible, porque apilaba
+                //    identidad + divisor + pregunta + dos cápsulas;
+                //  · y el coche quedaba nombrado DOS VECES y de dos maneras — «Second car» (su
+                //    `name`) arriba y «your Toyota Corolla» (`displayName()`) en la pregunta. En
+                //    superficies separadas se leían como dos cosas; pegados, como una contradicción.
+                //
+                // La pregunta ya nombra al coche, así que la fila de identidad no añadía dato: es la
+                // misma razón por la que este fichero ya retiró el raíl de color de la card — *«en
+                // la card no informaba de nada nuevo»*.
+                if (status == null) {
                 VehicleIdentityHeader(
                     vehicle = vehicle,
                     isDriving = isDriving,
@@ -398,12 +414,18 @@ internal fun HomeVehicleCard(
                 // Home vehicle chip style.
                 PapDivider()
                 Spacer(Modifier.height(CHIP_FOOT_GAP_DP.dp))
+                }
 
                 // Parked = two facts, two lines, one icon each: pin over clock. Same skeleton as
                 // the compact chip's and as the peek's meta rows, so the same car reads the same
                 // way whichever surface shows it.
                 // [UI-A-PARKED-CARD-SAYS-WHERE-AND-WHEN-IN-TWO-LINES-001]
                 if (status != null) {
+                    // El glifo del coche lo pone la PROPIA fila de la noticia, en su slot `leading`
+                    // — no un `Row` por fuera. Envolverlo aquí dejaba la baldosa centrada contra el
+                    // bloque entero, o sea a la altura de los botones, mientras el título corría por
+                    // encima a todo el ancho: dos columnas que no se conocen.
+                    // [UI-LIST-ITEM-001] [HOME-A-CARS-NEWS-RIDES-ITS-OWN-CARD-001]
                     Box(
                         modifier = Modifier.padding(
                             bottom = if (stopStacksBelow) 0.dp else CARD_V_PAD_DP.dp,

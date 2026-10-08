@@ -28,6 +28,10 @@ interface AppNotificationManager {
     fun showParkingConfirmation(
         score: Float,
         vehicleName: String? = null,
+        /** [HOME-A-CARS-NEWS-RIDES-ITS-OWN-CARD-001] WHICH car is being asked about. Travels beside
+         *  the name through the same single call that words the tray, for the same anti-drift
+         *  reason — and because the name alone cannot pick that car's card out of the lane. */
+        vehicleId: String? = null,
         candidate: GpsPoint? = null,
         /** [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] The street to name, already vetted by
          *  `ResolveAskedStreetUseCase`. Null = word the question without an address; never guess

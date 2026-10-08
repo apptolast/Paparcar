@@ -73,10 +73,11 @@ class NotifyParkingConfirmationUseCaseTest {
             override fun showParkingConfirmation(
                 score: Float,
                 vehicleName: String?,
+                vehicleId: String?,
                 candidate: GpsPoint?,
                 street: String?,
             ) {
-                super.showParkingConfirmation(score, vehicleName, candidate, street)
+                super.showParkingConfirmation(score, vehicleName, vehicleId, candidate, street)
                 capturedName = vehicleName
             }
         }
@@ -96,6 +97,7 @@ class NotifyParkingConfirmationUseCaseTest {
             override fun showParkingConfirmation(
                 score: Float,
                 vehicleName: String?,
+                vehicleId: String?,
                 candidate: GpsPoint?,
                 street: String?,
             ) {
@@ -118,6 +120,7 @@ class NotifyParkingConfirmationUseCaseTest {
             override fun showParkingConfirmation(
                 score: Float,
                 vehicleName: String?,
+                vehicleId: String?,
                 candidate: GpsPoint?,
                 street: String?,
             ) {
@@ -140,6 +143,7 @@ class NotifyParkingConfirmationUseCaseTest {
             override fun showParkingConfirmation(
                 score: Float,
                 vehicleName: String?,
+                vehicleId: String?,
                 candidate: GpsPoint?,
                 street: String?,
             ) {

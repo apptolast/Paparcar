@@ -91,6 +91,11 @@ class IosAppNotificationManagerImpl(
     override fun showParkingConfirmation(
         score: Float,
         vehicleName: String?,
+        // ⛔ Aceptado y NO usado, y eso es un hueco conocido, no un olvido:
+        // [HOME-A-CARS-NEWS-RIDES-ITS-OWN-CARD-001] esta implementación no escribe
+        // `PendingPromptWindow` — en iOS la pregunta vive sólo en la bandeja, así que no hay ventana
+        // a la que ponerle sujeto. El día que iOS persista la ventana, el id ya llega hasta aquí.
+        @Suppress("UNUSED_PARAMETER") vehicleId: String?,
         candidate: GpsPoint?,
         street: String?,
     ) {

@@ -9,6 +9,7 @@ import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
 import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import com.rndeveloper.paparcar.domain.model.GpsPoint
+import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.displayName
 import com.rndeveloper.paparcar.domain.model.ParkingConfidence
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
@@ -246,9 +247,11 @@ class DetectionEffectExecutor(
                         // aborts the session if the prompt is ignored.
                         PaparcarLogger.w(DIAG, "    ⊘ implausible repark → degrading to user prompt ($pathLabel) [DET-SOLID-001]")
                         val askedAt = state.witnessedCarStop(location)
+                        val asked = activeVehicle()
                         notificationPort.showParkingConfirmation(
                             IMPLAUSIBLE_REPARK_PROMPT_SCORE,
-                            activeVehicleName(),
+                            asked.askedName(),
+                            asked?.id,
                             // The question is about the car's witnessed stop, not about the
                             // rejected save's own point. [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001]
                             askedAt,
@@ -500,10 +503,12 @@ class DetectionEffectExecutor(
                 "[DET-SOLID-001][DET-PROMPT-STATES-ITS-REASON-001]",
         )
         if (alreadyPrompted) return false
-        val vehicleName = activeVehicleName()
+        val asked = activeVehicle()
+        val vehicleName = asked.askedName()
         notificationPort.showParkingConfirmation(
             WEAK_EVIDENCE_PROMPT_SCORE,
             vehicleName,
+            asked?.id,
             candidate,
             resolveAskedStreet(candidate),
         )
@@ -540,10 +545,22 @@ class DetectionEffectExecutor(
         location: GpsPoint? = null,
     ) = diagnostics.hold(action, nowMs(), heldMs, pathLabel, location)
 
-    private suspend fun activeVehicleName(): String? = runCatching {
+    /**
+     * El coche activo, UNA lectura. [HOME-A-CARS-NEWS-RIDES-ITS-OWN-CARD-001]
+     *
+     * Antes aquí sólo se derivaba el nombre y el objeto se tiraba, así que los dos sitios que
+     * publican la pregunta sabían cómo se llama el coche y no CUÁL es. Leerlo dos veces para sacar
+     * las dos cosas tampoco valía: entre lectura y lectura el coche activo puede cambiar, y la
+     * pregunta saldría con el nombre de uno y el id de otro.
+     */
+    private suspend fun activeVehicle() = runCatching {
         vehicleRepository.observeActiveVehicle().first()
-            ?.let { it.displayName(fallback = "").takeIf { name -> name.isNotBlank() } }
     }.getOrNull()
+
+    private fun Vehicle?.askedName(): String? =
+        this?.let { it.displayName(fallback = "").takeIf { name -> name.isNotBlank() } }
+
+    private suspend fun activeVehicleName(): String? = activeVehicle().askedName()
 
     private companion object {
         const val TAG = "DetectionEffectExecutor"

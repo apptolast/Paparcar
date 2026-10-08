@@ -296,6 +296,44 @@ fun resolveDetectionStory(
  * alojar un título, una sublínea y dos botones, ni sirve de nada si está fuera de pantalla. Meter
  * esa condición aquí habría atado una proyección pura a la anchura de un contenedor.
  */
+/**
+ * DE QUÉ COCHE habla esta historia, o null si no habla de ninguno.
+ * [HOME-A-CARS-NEWS-RIDES-ITS-OWN-CARD-001]
+ *
+ * [isTheCarsQuestion] contesta si la historia **cabe** en una card de coche; esto contesta **en
+ * cuál**. Son dos preguntas distintas y hasta ahora sólo existía la primera, porque con UN coche la
+ * segunda era trivial: la card era la única que había. Con dos o más, sin esta respuesta no hay a
+ * quién mudar la noticia — y ése, y no la anchura del chip, era el muro contra el que paró
+ * [HOME-AN-OPEN-QUESTION-IS-THE-CARS-NEWS-001].
+ *
+ * ⛔ **Por ID, nunca por nombre.** La pregunta ya viajaba con `vehicleName` para poder decirse igual
+ * en la bandeja y en Home, pero un nombre no identifica: dos coches pueden llamarse igual y el
+ * nombre se edita. El sujeto llega en `PendingPromptWindow.vehicleId`, escrito por la misma llamada
+ * que pone el nombre, así que no pueden contradecirse.
+ *
+ * ⛔ Y las historias de SALUD DEL SISTEMA devuelven null a propósito, no por falta de dato: un
+ * permiso, la detección apagada o un centinela muerto **repercuten a todos los coches**, así que no
+ * tienen sujeto que elegir. Es la misma frontera que [isTheCarsQuestion] y se mantiene por el mismo
+ * motivo — colgarlas de un coche nombraría al culpable equivocado.
+ *
+ * @param parkNudgeVehicleId el coche del nudge pendiente, que es quien tiene la pregunta sin plazo.
+ * @param activeVehicleId el coche activo — el sujeto del arranque en frío, que aún no ha aparcado.
+ */
+fun DetectionStory.subjectVehicleId(
+    parkNudgeVehicleId: String?,
+    activeVehicleId: String?,
+): String? = when (this) {
+    is DetectionStory.AwaitingAnswer -> window.vehicleId
+    DetectionStory.PendingAsk -> parkNudgeVehicleId
+    DetectionStory.AwaitingFirstPark -> activeVehicleId
+    DetectionStory.BlockedCore,
+    DetectionStory.Inactive,
+    DetectionStory.NoVehicle,
+    DetectionStory.Hidden,
+    is DetectionStory.Watching,
+    -> null
+}
+
 fun DetectionStory.isTheCarsQuestion(): Boolean = when (this) {
     // Las tres preguntas de un coche: con plazo, sin plazo, y la del arranque en frío.
     is DetectionStory.AwaitingAnswer -> true

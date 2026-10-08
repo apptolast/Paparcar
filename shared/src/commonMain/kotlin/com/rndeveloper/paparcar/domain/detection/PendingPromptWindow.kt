@@ -29,6 +29,21 @@ data class PendingPromptWindow(
      *  never word the same question differently. Null when the asking path had no name. */
     val vehicleName: String? = null,
     /**
+     * WHICH car the question is about. [HOME-A-CARS-NEWS-RIDES-ITS-OWN-CARD-001]
+     *
+     * Same family as [vehicleName], and the reason it had to join it: a NAME words the question,
+     * but it cannot pick a card out of a lane. With one vehicle the subject was trivial and nobody
+     * missed this; with two or more there was nobody to hoist, and matching by name would be a
+     * guess — two cars may share a name, and a name is editable while an id is not.
+     *
+     * That gap is exactly why [HOME-AN-OPEN-QUESTION-IS-THE-CARS-NEWS-001] could only move the
+     * question into the car's card for a single-vehicle garage.
+     *
+     * Null for asks posted before this field existed (a window persisted by an older build), and
+     * for any path that genuinely has no vehicle — read as "no subject", never as a car to guess.
+     */
+    val vehicleId: String? = null,
+    /**
      * [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] WHERE the question is about: the last place
      * this session witnessed the car stop, or the posting fix when there was no anchor yet.
      *

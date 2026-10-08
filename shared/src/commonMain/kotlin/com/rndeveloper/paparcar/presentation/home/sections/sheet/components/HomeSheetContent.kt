@@ -53,12 +53,14 @@ import com.rndeveloper.paparcar.presentation.home.isDriving
 import com.rndeveloper.paparcar.presentation.home.vehiclesRowOrder
 import com.rndeveloper.paparcar.presentation.home.model.DetectionStory
 import com.rndeveloper.paparcar.presentation.home.model.isTheCarsQuestion
+import com.rndeveloper.paparcar.presentation.home.model.subjectVehicleId
 import com.rndeveloper.paparcar.presentation.home.model.silencedBy
 import com.rndeveloper.paparcar.presentation.home.model.notice
 import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
 import com.rndeveloper.paparcar.presentation.home.model.resolveDetectionStory
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.HomeSheetAction
 import com.rndeveloper.paparcar.ui.components.PapSectionHeader
+import com.rndeveloper.paparcar.ui.components.VehicleGlyphTile
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -262,12 +264,23 @@ fun LazyListScope.homeSheetItems(
     // (23-09), porque repercute a todos los coches y porque dentro de la card sustituye la
     // información del coche por un botón que empuja a pulsar. Lo decide `isTheCarsQuestion()`.
     //
-    // ⛔ Y sólo con UN coche: con dos o más la tira son chips estrechos dentro de un scroll
-    // horizontal, donde no cabe un título con sublínea y dos botones, y donde el coche del que habla
-    // la noticia puede estar fuera de pantalla. Un aviso que hay que descubrir arrastrando es peor
-    // que el badge que sustituiría. Es la misma condición que el viaje ya exigía: sólo se narra en
-    // una card que está en pantalla.
-    val cardHostsTheStory = vehicleCards.size == 1 && detectionStory.isTheCarsQuestion()
+    // ⛔ Y hace falta SABER DE QUÉ COCHE habla: sin sujeto no hay card a la que mudarla.
+    // [HOME-A-CARS-NEWS-RIDES-ITS-OWN-CARD-001]
+    //
+    // Aquí ponía `vehicleCards.size == 1`, y la excepción daba dos razones: que con 2+ coches la
+    // tira son chips estrechos donde no cabe un título con sublínea y dos botones, y que el coche
+    // del que habla la noticia puede quedar fuera de pantalla. Las dos se han cerrado por abajo en
+    // vez de esquivarlas: el sujeto se eleva al principio del carril (`vehiclesRowOrder`) y, si
+    // lleva noticia, deja de ser un chip y se dibuja como la card a ancho completo que ya existía
+    // para el garaje de un coche. Lo que NO ha cambiado es la regla que las motivaba — *un aviso
+    // que hay que descubrir arrastrando es peor que el badge que sustituiría* —, y por eso el
+    // carril se lleva a su inicio cuando aparece (ver `vehiclesSection`).
+    val storySubjectVehicleId = detectionStory.subjectVehicleId(
+        parkNudgeVehicleId = slice.parkNudgeVehicleId,
+        activeVehicleId = coldStartVehicleId,
+    )
+    val cardHostsTheStory = detectionStory.isTheCarsQuestion() &&
+        vehicleCards.any { it.vehicle.id == storySubjectVehicleId }
 
     // ── 1. La VIGILANCIA — lo que está pasando con tu coche ahora mismo ────────────────────────
     // The ONE voice for "what is detection doing right now": loud action rows + discreet happy
@@ -330,6 +343,16 @@ fun LazyListScope.homeSheetItems(
                 onSilenceNotice = detectionStory.notice()?.let { notice ->
                     { onIntent(HomeIntent.SilenceDetectionNotice(notice)) }
                 },
+                // Dentro de la card, el glifo del coche del que habla la noticia: la card ya no pone
+                // su fila de identidad encima, y sin esto la única cosa que diría de qué coche
+                // hablamos sería el nombre repetido DENTRO de la pregunta.
+                // [HOME-A-CARS-NEWS-RIDES-ITS-OWN-CARD-001]
+                embeddedLeading = if (insideCard) {
+                    vehicleCards.firstOrNull { it.vehicle.id == storySubjectVehicleId }?.vehicle
+                        ?.let { subject -> { VehicleGlyphTile(vehicle = subject) } }
+                } else {
+                    null
+                },
             )
     }
 
@@ -371,7 +394,7 @@ fun LazyListScope.homeSheetItems(
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
             )
         }
-        vehiclesSection(slice, vehicleCards, onIntent, onAction, rowsScroll, cardStatus)
+        vehiclesSection(slice, vehicleCards, onIntent, onAction, rowsScroll, cardStatus, storySubjectVehicleId)
     }
 
     // ── 3. The nearby LANE: the chip row that picks a subject, and that subject's list ───────
@@ -439,6 +462,9 @@ private fun LazyListScope.vehiclesSection(
     /** El estado de ESTE coche, ya construido por la hoja, o null si lo pinta el badge suelto.
      *  [HOME-AN-OPEN-QUESTION-IS-THE-CARS-NEWS-001] */
     cardStatus: (@Composable () -> Unit)? = null,
+    /** De qué coche habla [cardStatus]. Null cuando no hay noticia de un coche concreto.
+     *  [HOME-A-CARS-NEWS-RIDES-ITS-OWN-CARD-001] */
+    storySubjectVehicleId: String? = null,
 ) {
     val userLocation = slice.userGpsPoint?.let { Pair(it.latitude, it.longitude) }
     // The vehicle whose trip is being detected RIGHT NOW (driving, not yet parked). [CHIP-DRIVING-001]
@@ -449,7 +475,7 @@ private fun LazyListScope.vehiclesSection(
     val isCandidatePhase = slice.drivingMeta?.phase == DetectionPhase.Candidate
     // Live state floats first: driving → parked (most recent park first, same preference as the
     // Browse peek subject) → monitoring config (BT, Active, Inactive). [UI-BROWSE-DRIVING-OVER-PARKED-001]
-    val sorted = vehiclesRowOrder(vehicleCards, drivingVehicleId)
+    val sorted = vehiclesRowOrder(vehicleCards, drivingVehicleId, storySubjectVehicleId)
 
     fun cardClick(card: VehicleCard): () -> Unit = {
         val session = card.session
@@ -470,9 +496,51 @@ private fun LazyListScope.vehiclesSection(
         }
     }
 
-    if (sorted.size == 1) {
-        // Single vehicle → one full-width card (no horizontal strip), roomier layout. [HOME-CARDS-001]
+    fun chipRow(cards: List<VehicleCard>) {
+        item("vehicles_row") {
+            LazyRow(
+                state = rowsScroll?.vehicles ?: rememberLazyListState(),
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                items(cards, key = { it.vehicle.id }) { card ->
+                    val onCardClick = remember(card.session?.id, card.vehicle.id, onIntent, onAction) {
+                        cardClick(card)
+                    }
+                    HomeVehicleChip(
+                        card = card,
+                        isDriving = card.isDriving(),
+                        isCandidate = card.isDriving() && isCandidatePhase,
+                        // One trip at a time, and the chip only reads it while it IS that trip.
+                        // [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001]
+                        drivingPlace = slice.drivingPlace,
+                        // Same stop as the single-vehicle card's. [DET-STOP-BUTTON-001]
+                        onStopTrip = { onIntent(HomeIntent.StopDetection) },
+                        onClick = onCardClick,
+                    )
+                }
+            }
+        }
+    }
+
+    // ¿Hay un coche que se dibuje como CARD a ancho completo, en vez de como chip?
+    // [HOME-A-CARS-NEWS-RIDES-ITS-OWN-CARD-001]
+    //
+    // Dos motivos, y el segundo es el que nace aquí:
+    //  · es el único coche del garaje — la maqueta de siempre [HOME-CARDS-001]; o
+    //  · LIDERA el carril y trae noticia, así que la noticia va dentro de SU card en vez de en una
+    //    segunda card encima. `vehiclesRowOrder` ya lo ha puesto primero, que es la otra mitad: sin
+    //    el hoist, la card del sujeto podía quedar fuera de pantalla, y *un aviso que hay que
+    //    descubrir arrastrando es peor que el badge que sustituiría*.
+    val leader = sorted.firstOrNull()
+    val leaderCarriesTheNews = cardStatus != null &&
+        storySubjectVehicleId != null &&
+        leader?.vehicle?.id == storySubjectVehicleId
+    if (sorted.size == 1 || leaderCarriesTheNews) {
         val card = sorted.first()
+        // Los demás siguen siendo chips detrás; con un solo coche no hay «detrás».
+        val rest = sorted.drop(1)
         item("vehicle_single") {
             HomeVehicleCard(
                 card = card,
@@ -494,32 +562,13 @@ private fun LazyListScope.vehiclesSection(
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
         }
+        // Los demás, detrás, como chips. UNA sola definición de la tira para las dos maquetas: con
+        // la card líder delante y sin ella. Duplicarla era el camino corto a que se tiñan distinto
+        // dentro de un mes — el mismo argumento que ya hizo una sola las dos cápsulas del par.
+        // [HOME-A-CARS-NEWS-RIDES-ITS-OWN-CARD-001]
+        if (rest.isNotEmpty()) chipRow(rest)
     } else {
-        item("vehicles_row") {
-            LazyRow(
-                state = rowsScroll?.vehicles ?: rememberLazyListState(),
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                items(sorted, key = { it.vehicle.id }) { card ->
-                    val onCardClick = remember(card.session?.id, card.vehicle.id, onIntent, onAction) {
-                        cardClick(card)
-                    }
-                    HomeVehicleChip(
-                        card = card,
-                        isDriving = card.isDriving(),
-                        isCandidate = card.isDriving() && isCandidatePhase,
-                        // One trip at a time, and the chip only reads it while it IS that trip.
-                        // [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001]
-                        drivingPlace = slice.drivingPlace,
-                        // Same stop as the single-vehicle card's. [DET-STOP-BUTTON-001]
-                        onStopTrip = { onIntent(HomeIntent.StopDetection) },
-                        onClick = onCardClick,
-                    )
-                }
-            }
-        }
+        chipRow(sorted)
     }
 }
 

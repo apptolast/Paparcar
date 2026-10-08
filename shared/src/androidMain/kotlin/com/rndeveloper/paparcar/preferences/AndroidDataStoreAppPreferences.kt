@@ -294,6 +294,9 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         return PendingPromptWindow(
             shownAtMs = shownAt,
             vehicleName = this[Keys.PENDING_PROMPT_VEHICLE_NAME],
+            // Una ventana escrita por un build anterior a este campo lee null, que es lo que es:
+            // «sin sujeto». Misma historia que `candidate`. [HOME-A-CARS-NEWS-RIDES-ITS-OWN-CARD-001]
+            vehicleId = this[Keys.PENDING_PROMPT_VEHICLE_ID],
             street = this[Keys.PENDING_PROMPT_STREET],
             // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Both halves or neither: half a
             // coordinate is a point off the coast of Africa, not a missing one. A window written by
@@ -320,12 +323,15 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         if (window == null) {
             remove(Keys.PENDING_PROMPT_SHOWN_AT)
             remove(Keys.PENDING_PROMPT_VEHICLE_NAME)
+            remove(Keys.PENDING_PROMPT_VEHICLE_ID)
             remove(Keys.PENDING_PROMPT_STREET)
             removePromptCandidate()
         } else {
             this[Keys.PENDING_PROMPT_SHOWN_AT] = window.shownAtMs
             window.vehicleName?.let { this[Keys.PENDING_PROMPT_VEHICLE_NAME] = it }
                 ?: remove(Keys.PENDING_PROMPT_VEHICLE_NAME)
+            window.vehicleId?.let { this[Keys.PENDING_PROMPT_VEHICLE_ID] = it }
+                ?: remove(Keys.PENDING_PROMPT_VEHICLE_ID)
             window.street?.let { this[Keys.PENDING_PROMPT_STREET] = it }
                 ?: remove(Keys.PENDING_PROMPT_STREET)
             window.candidate?.let {
@@ -469,6 +475,8 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         val PENDING_NUDGE_VEHICLE_ID = stringPreferencesKey("pending_park_nudge_vehicle_id")
         val PENDING_PROMPT_SHOWN_AT  = longPreferencesKey("pending_prompt_window_shown_at")
         val PENDING_PROMPT_VEHICLE_NAME = stringPreferencesKey("pending_prompt_window_vehicle_name")
+        /** [HOME-A-CARS-NEWS-RIDES-ITS-OWN-CARD-001] De QUÉ coche es la pregunta. */
+        val PENDING_PROMPT_VEHICLE_ID = stringPreferencesKey("pending_prompt_window_vehicle_id")
         // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Where the question is about. The ACCURACY
         // travels with the coordinate: a marker that cannot say how sure it is would be drawn as a
         // precise claim, which is the one thing an unconfirmed pin must not do.
