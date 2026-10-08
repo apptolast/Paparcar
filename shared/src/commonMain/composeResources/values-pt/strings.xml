@@ -938,6 +938,7 @@ Se a pergunta já não aparecer, muda em Definições → Paparcar → Localiza�
     <string name="stats_pace_basis">Sobre %1$d% do período</string>
     <string name="stats_insight_worst_time">%1$s das %2$s: demoras %3$s a estacionar</string>
     <string name="stats_insight_easiest_time">%1$s das %2$s: estacionas em %3$s</string>
+    <string name="stats_insight_easiest_time_direct">%1$s das %2$s: chegas e estacionas sem andar à procura</string>
     <string name="stats_insight_costliest_place">Em %1$s demoras %2$s a estacionar; nos teus outros locais, %3$s</string>
     <string name="stats_insight_trend_up">Estás à procura %1$s mais por viagem do que no período anterior</string>
     <string name="stats_insight_place_worse">Em %1$s demoras %2$s mais do que no período anterior</string>

@@ -939,6 +939,7 @@ Wenn die Frage nicht mehr erscheint, ändere es unter Einstellungen → Paparcar
     <string name="stats_pace_basis">Auf Basis von %1$d% des Zeitraums</string>
     <string name="stats_insight_worst_time">%1$s, %2$s: du brauchst %3$s zum Parken</string>
     <string name="stats_insight_easiest_time">%1$s, %2$s: du parkst in %3$s</string>
+    <string name="stats_insight_easiest_time_direct">%1$s, %2$s: du kommst an und parkst ohne zu suchen</string>
     <string name="stats_insight_costliest_place">An %1$s brauchst du %2$s zum Parken; an deinen anderen Orten %3$s</string>
     <string name="stats_insight_trend_up">Du suchst %1$s länger pro Fahrt als im Zeitraum davor</string>
     <string name="stats_insight_place_worse">An %1$s brauchst du %2$s länger als im Zeitraum davor</string>

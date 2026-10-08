@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.stats.insights.InsightKind
 import com.rndeveloper.paparcar.domain.stats.insights.StatsInsight
+import com.rndeveloper.paparcar.presentation.util.MS_PER_MINUTE
 import com.rndeveloper.paparcar.presentation.util.durationText
 import com.rndeveloper.paparcar.presentation.vehicles.DAY_FULL_RES
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
@@ -32,6 +33,7 @@ import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.stats_insight_costliest_place
 import paparcar.composeapp.generated.resources.stats_insight_easiest_time
+import paparcar.composeapp.generated.resources.stats_insight_easiest_time_direct
 import paparcar.composeapp.generated.resources.stats_insight_evidence
 import paparcar.composeapp.generated.resources.stats_insight_place_better
 import paparcar.composeapp.generated.resources.stats_insight_place_worse
@@ -124,12 +126,28 @@ private fun StatsInsight.sentence(): String {
             bandLabel(),
             value,
         )
-        InsightKind.EASIEST_TIME_TO_PARK -> stringResource(
-            Res.string.stats_insight_easiest_time,
-            days[values.dayIndex ?: 0],
-            bandLabel(),
-            value,
-        )
+        // ⛔ Un cero MEDIDO no se dice con un número. `ParkingSearchTime` es de tres valores y el
+        // `0` es una respuesta deliberada — *llegada DIRECTA*, con el suelo de 30–60 s retirado a
+        // propósito porque «booked the final approach as searching on every single trip»
+        // [STATS-EVERY-NUMBER-CITES-ITS-EVIDENCE-001]. El dato es correcto; lo que estaba roto eran
+        // las PALABRAS: `durationText` divide entre 60 000, así que toda media por debajo de un
+        // minuto sale «0 min» y la frase quedaba «viernes de 12-16: aparcas en 0 min», que se lee
+        // como un dato que falta. Misma familia que [UI-SPOT-CLOCKS-NEVER-READ-ZERO-001].
+        // [STATS-A-DIRECT-ARRIVAL-DOES-NOT-READ-AS-ZERO-MINUTES-001]
+        InsightKind.EASIEST_TIME_TO_PARK -> if ((values.valueMs ?: 0L) < MS_PER_MINUTE) {
+            stringResource(
+                Res.string.stats_insight_easiest_time_direct,
+                days[values.dayIndex ?: 0],
+                bandLabel(),
+            )
+        } else {
+            stringResource(
+                Res.string.stats_insight_easiest_time,
+                days[values.dayIndex ?: 0],
+                bandLabel(),
+                value,
+            )
+        }
         InsightKind.COSTLIEST_PLACE -> stringResource(
             Res.string.stats_insight_costliest_place,
             values.placeName.orEmpty(),

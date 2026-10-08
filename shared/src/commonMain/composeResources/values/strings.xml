@@ -979,6 +979,7 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="stats_pace_basis">From %1$d% of the period</string>
     <string name="stats_insight_worst_time">%1$s, %2$s: you take %3$s to park</string>
     <string name="stats_insight_easiest_time">%1$s, %2$s: you park in %3$s</string>
+    <string name="stats_insight_easiest_time_direct">%1$s, %2$s: you arrive and park without hunting</string>
     <string name="stats_insight_costliest_place">At %1$s you take %2$s to park; at your other places, %3$s</string>
     <string name="stats_insight_trend_up">You are spending %1$s more per trip hunting than last period</string>
     <string name="stats_insight_place_worse">%1$s is taking you %2$s longer than last period</string>

@@ -31,7 +31,14 @@ import paparcar.composeapp.generated.resources.relative_time_minutes
 import paparcar.composeapp.generated.resources.walk_time_span
 
 private const val TIME_RECOMPUTE_INTERVAL_MS = 60_000L
-private const val MS_PER_MINUTE = 60_000L
+/**
+ * La RESOLUCION con la que esta pantalla escribe un lapso: `durationText` divide entre esto, asi
+ * que **todo lo que quede por debajo se escribe «0 min»**. No es privado porque ese umbral es un
+ * hecho del formateador que otros tienen que poder consultar en vez de re-escribir el 60.000 —
+ * `StatsInsightsCard` lo usa para no decir «aparcas en 0 min» de una llegada directa
+ * [STATS-A-DIRECT-ARRIVAL-DOES-NOT-READ-AS-ZERO-MINUTES-001].
+ */
+internal const val MS_PER_MINUTE = 60_000L
 private const val MINUTES_PER_HOUR = 60L
 private const val HOURS_PER_DAY = 24L
 

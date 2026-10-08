@@ -938,6 +938,7 @@ Si la question n'apparaît plus, changez-le dans Réglages → Paparcar → Posi
     <string name="stats_pace_basis">Sur %1$d% de la période</string>
     <string name="stats_insight_worst_time">%1$s de %2$s : tu mets %3$s à te garer</string>
     <string name="stats_insight_easiest_time">%1$s de %2$s : tu te gares en %3$s</string>
+    <string name="stats_insight_easiest_time_direct">%1$s de %2$s : tu arrives et tu te gares sans tourner</string>
     <string name="stats_insight_costliest_place">À %1$s tu mets %2$s à te garer ; ailleurs, %3$s</string>
     <string name="stats_insight_trend_up">Tu cherches %1$s de plus par trajet que la période précédente</string>
     <string name="stats_insight_place_worse">À %1$s tu mets %2$s de plus que la période précédente</string>

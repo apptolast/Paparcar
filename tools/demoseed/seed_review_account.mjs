@@ -275,7 +275,51 @@ function sessionDoc(srcFields, opts) {
     f.publishedSpot = bool(false)
     f.communitySpotId = nul()
   }
+
+  // El tiempo de busqueda: se INVENTA solo donde el corpus real no lo tiene. Ver demoSearchTimeMs.
+  if (!opts.active && readInt(f, 'searchTimeMs') == null) {
+    const invented = demoSearchTimeMs(opts.id, readInt(f, 'timestamp'))
+    if (invented != null) f.searchTimeMs = int(invented)
+  }
   return { name: DOCS + '/users/' + DST_UID + '/parkingHistory/' + opts.id, fields: f }
+}
+
+/**
+ * Un tiempo de busqueda PLAUSIBLE para los clones a los que el corpus real no les dio ninguno.
+ *
+ * ⛔ Esto es dato de DEMO y se declara como tal: no toca ninguna sesion real, solo rellena los
+ * `searchTimeMs` que venian a null. Medido el 08-10 sobre las 282 sesiones del plan: 33 medidas
+ * > 0, 32 medidas en 0 (llegada directa) y **148 a null**, que dejaban **23 de las 42 celdas** de
+ * la rejilla dia x banda vacias (`ParkingHeatmap` exige >=2 muestras por celda). Una rejilla que
+ * no se llena no dice nada, y la cuenta de review existe para que se vea lo que la app sabe hacer.
+ *
+ * ⛔ Con FORMA, no con ruido uniforme: el coste sube por la tarde y baja de madrugada, que es lo
+ * que hace que el mapa de calor se lea como un hallazgo y no como un sorteo. Y una parte de las
+ * llegadas sigue siendo DIRECTA (0), porque eso es un valor legitimo del dominio — `0` significa
+ * «llego sin dar vueltas» y desde
+ * [STATS-A-DIRECT-ARRIVAL-DOES-NOT-READ-AS-ZERO-MINUTES-001] la frase ya lo dice con palabras.
+ *
+ * ⚠️ La hora se toma en la zona LOCAL del proceso, que es la misma en la que la app agrupa la
+ * rejilla (`toLocalDateTime`). Sembrar desde otra zona desplazaria las bandas.
+ */
+function demoSearchTimeMs(id, tsMs) {
+  if (tsMs == null) return null
+  const band = Math.floor(new Date(tsMs).getHours() / 4) // 6 bandas de 4 h, como ParkingHeatmap
+  // Minutos tipicos y probabilidad de llegada directa, por banda:
+  //            00-04  04-08  08-12  12-16  16-20  20-24
+  // ⛔ Las madrugadas se midieron primero a 1,5–1,8 min con 50–55 % de directas, y ocho celdas
+  // quedaban con media POR DEBAJO del minuto: `durationText` divide entre 60.000, asi que habrian
+  // escrito «0 min» igual. Suben lo justo para que ninguna celda baje de ~1,5 min sin perder que
+  // de noche se aparca mas facil que a las 19 h.
+  const TYPICAL = [2.4, 2.6, 3.4, 2.8, 6.2, 4.4]
+  const DIRECT = [0.28, 0.26, 0.22, 0.24, 0.1, 0.15]
+  if (stableUnit('direct|' + id) < DIRECT[band]) return 0
+  // +-55 % reproducible alrededor del tipico de su banda.
+  const spread = 1 + (stableUnit('span|' + id) - 0.5) * 1.1
+  const minutes = TYPICAL[band] * spread
+  // Suelo en MIN_SEARCH_MS (90 s): por debajo, el dominio lo llamaria directo y seria un 0 con
+  // disfraz. Techo holgado bajo MAX_PLAUSIBLE_SEARCH_MS (45 min).
+  return Math.max(90000, Math.min(20 * 60000, Math.round(minutes * 60000)))
 }
 
 function zoneDoc(z, center, nowMs) {

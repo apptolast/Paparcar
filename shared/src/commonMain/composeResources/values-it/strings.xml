@@ -938,6 +938,7 @@ Se la richiesta non compare più, cambiala in Impostazioni → Paparcar → Posi
     <string name="stats_pace_basis">Sul %1$d% del periodo</string>
     <string name="stats_insight_worst_time">%1$s dalle %2$s: impieghi %3$s a parcheggiare</string>
     <string name="stats_insight_easiest_time">%1$s dalle %2$s: parcheggi in %3$s</string>
+    <string name="stats_insight_easiest_time_direct">%1$s dalle %2$s: arrivi e parcheggi senza girare</string>
     <string name="stats_insight_costliest_place">A %1$s impieghi %2$s a parcheggiare; negli altri posti, %3$s</string>
     <string name="stats_insight_trend_up">Stai cercando %1$s in più a viaggio rispetto al periodo scorso</string>
     <string name="stats_insight_place_worse">A %1$s impieghi %2$s in più rispetto al periodo scorso</string>

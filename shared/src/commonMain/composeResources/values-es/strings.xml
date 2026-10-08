@@ -934,6 +934,7 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="stats_pace_basis">Sobre el %1$d% del periodo</string>
     <string name="stats_insight_worst_time">%1$s de %2$s: tardas %3$s en aparcar</string>
     <string name="stats_insight_easiest_time">%1$s de %2$s: aparcas en %3$s</string>
+    <string name="stats_insight_easiest_time_direct">%1$s de %2$s: llegas y aparcas sin dar vueltas</string>
     <string name="stats_insight_costliest_place">En %1$s tardas %2$s en aparcar; en tus otros sitios, %3$s</string>
     <string name="stats_insight_trend_up">Estás buscando %1$s más por viaje que el periodo anterior</string>
     <string name="stats_insight_place_worse">En %1$s tardas %2$s más que el periodo anterior</string>
