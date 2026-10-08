@@ -798,3 +798,9 @@ firestore-rules-tests/node_modules/
 
 # Plan del dry-run del seeder de la cuenta de demo: salida, no fuente
 demoseed-plan.*.json
+
+# Bytecode de Python: lo genera cualquier `import` o `py_compile` de los scripts de `tools/`
+# y de `docs/branding/master/`. Master tenia 0 ficheros .pyc por suerte, no por regla — el
+# primero se colo en el commit de MEM-A-DESCRIPTION-MUST-BE-VERIFIABLE-AGAINST-GIT-001.
+__pycache__/
+*.py[cod]

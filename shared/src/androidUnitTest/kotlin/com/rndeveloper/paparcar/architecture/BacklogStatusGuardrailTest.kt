@@ -48,8 +48,19 @@ import kotlin.test.fail
  * ([CI-A-GUARD-THAT-NEVER-STARTS-IS-NOT-A-GUARD-001], [TEST-A-GREEN-SUITE-MUST-PROVE-IT-LOOKED-001]).
  *
  * So it lives OUTSIDE the suite, in `tools/backlog/branch_tell.py`, which refuses to run on a
- * shallow clone instead of lying about it. [verifyBranchTellToolIsPresent] keeps it from being
- * deleted and keeps this class naming it. That split is a measured limitation, not a preference.
+ * shallow clone instead of lying about it. That split is a measured limitation, not a preference.
+ *
+ * ## The register of what this suite cannot watch
+ *
+ * [verifyTheChecksThatCannotLiveInThisSuiteStillExistAndStillRefuseToRunBlind] holds the list, so a
+ * check banished from the suite is not thereby forgotten: it must still exist, and it must still
+ * carry its refusal. Two rows today — the branch tell above, and
+ * `tools/memory/description_tell.py`, which judges the `description:` of every memory ficha against
+ * git [MEM-A-DESCRIPTION-MUST-BE-VERIFIABLE-AGAINST-GIT-001]. That one is doubly impossible here:
+ * besides needing full history, **the memory corpus lives outside this repo**, so on CI the folder
+ * is absent and a test over it would find nothing and pass.
+ *
+ * The register is what stops "it cannot be a test" from quietly becoming "nobody checks it".
  *
  * It also cannot tell whether the prose of an open doc is any good, or whether a new ticket got its
  * row in the index. Nothing can; that is what reading is for.
@@ -136,24 +147,28 @@ class BacklogStatusGuardrailTest {
     }
 
     @Test
-    fun verifyBranchTellToolIsPresent() {
-        val tool = File(repoRoot, BRANCH_TELL_TOOL)
-        assertTrue(
-            tool.isFile,
-            "$BRANCH_TELL_TOOL is gone. It carries the one check this suite CANNOT: that no open doc " +
-                "cites a branch which no longer exists while its ticket has a commit in master. It " +
-                "lives outside the suite because CI clones shallow (fetch-depth 1) and a guard " +
-                "asking git for history it does not have would go green on every doc.\n\n" +
-                "If it was moved, update this constant. If it was deleted, the branch tell died with " +
-                "it and nothing is watching the defect that opened " +
-                "DOCS-A-CLOSED-TICKET-MUST-NOT-SAY-IT-IS-IN-REVIEW-001.",
-        )
-        assertTrue(
-            tool.readText().contains(SHALLOW_REFUSAL),
-            "$BRANCH_TELL_TOOL no longer refuses to run on a shallow clone (looked for " +
-                "\"$SHALLOW_REFUSAL\"). A branch tell that cannot see history must SAY SO; one that " +
-                "quietly reports that nothing is wrong is worse than not having it.",
-        )
+    fun verifyTheChecksThatCannotLiveInThisSuiteStillExistAndStillRefuseToRunBlind() {
+        for (tool in OUT_OF_SUITE_TOOLS) {
+            val file = File(repoRoot, tool.path)
+            assertTrue(
+                file.isFile,
+                "${tool.path} is gone. It carries a check this suite CANNOT run: ${tool.carries}\n\n" +
+                    "It lives outside the suite because ${tool.why}\n\n" +
+                    "If it was moved, update OUT_OF_SUITE_TOOLS. If it was deleted, that check died " +
+                    "with it and nothing is watching the defect it existed for.",
+            )
+            val text = file.readText()
+            for (refusal in tool.refusals) {
+                assertTrue(
+                    text.contains(refusal),
+                    "${tool.path} no longer refuses to run blind — looked for \"$refusal\" and it is " +
+                        "not there.\n\nA check that cannot see what it judges must SAY SO and exit " +
+                        "non-zero. One that quietly reports that nothing is wrong is worse than not " +
+                        "having it at all: it converts «nobody looked» into «all clear» " +
+                        "[CI-A-GUARD-THAT-NEVER-STARTS-IS-NOT-A-GUARD-001].",
+                )
+            }
+        }
     }
 
     private fun backlogDocs(): List<File> {
@@ -224,10 +239,52 @@ class BacklogStatusGuardrailTest {
     private companion object {
         const val BACKLOG_RELATIVE = "docs/backlog"
         const val README_RELATIVE = "$BACKLOG_RELATIVE/README.md"
-        const val BRANCH_TELL_TOOL = "tools/backlog/branch_tell.py"
+        /**
+         * A check that this suite cannot host, and the phrases proving it still refuses to run blind.
+         *
+         * @param carries what the check is for — so a reader knows what dies if the file goes.
+         * @param why the MEASURED reason it cannot live in `testAll`.
+         * @param refusals text that must survive in the file. Not a style rule: each phrase belongs
+         *   to a guard clause that exits non-zero instead of reporting a vacuous "all clear".
+         */
+        private data class OutOfSuiteTool(
+            val path: String,
+            val carries: String,
+            val why: String,
+            val refusals: List<String>,
+        )
 
-        /** The phrase the tool must keep, so it can never go quiet on a clone without history. */
-        const val SHALLOW_REFUSAL = "shallow clone"
+        /**
+         * Declared here, never discovered by scanning `tools/` — a guard must not infer its own
+         * population [TEST-A-GUARD-MUST-NOT-READ-THE-FOLDER-NAME-001]. Adding a check that lives
+         * outside the suite means adding a row here, which is the point: the suite stays the index
+         * of what is watched, even for what it cannot watch itself.
+         */
+        val OUT_OF_SUITE_TOOLS = listOf(
+            OutOfSuiteTool(
+                path = "tools/backlog/branch_tell.py",
+                carries = "that no open backlog doc cites a branch which no longer exists while its " +
+                    "ticket already has a commit in master [DOCS-A-CLOSED-TICKET-MUST-NOT-SAY-IT-IS-IN-REVIEW-001].",
+                why = "it needs the full ref list and the full history of master, and CI checks out " +
+                    "with actions/checkout@v4 at its default fetch-depth of 1. Measured on a real " +
+                    "`git clone --depth 1`: the check answers «7 docs, 0 commits of master, OK» — " +
+                    "a green indistinguishable from the real one.",
+                refusals = listOf("shallow clone"),
+            ),
+            OutOfSuiteTool(
+                path = "tools/memory/description_tell.py",
+                carries = "that no memory ficha's `description:` claims something git denies — a " +
+                    "dead branch, work «sin mergear» that is in master, or a hash that is not in " +
+                    "master at all [MEM-A-DESCRIPTION-MUST-BE-VERIFIABLE-AGAINST-GIT-001]. 44 of " +
+                    "565 lied when it was written, because the frontmatter is drafted when a ticket " +
+                    "OPENS and nobody returns to it on merge.",
+                why = "the memory corpus lives OUTSIDE this repo " +
+                    "(`~/.claude/projects/<project>/memory`), so on CI — and in any clean checkout " +
+                    "— the folder is simply absent and a test would find nothing and pass. Its hash " +
+                    "check also needs full history, the same shallow-clone problem as above.",
+                refusals = listOf("shallow clone", "no existe la carpeta de memoria"),
+            ),
+        )
 
         /** 775 docs measured on 07-10-2026; the floor sits near half. */
         const val BACKLOG_FLOOR = 380
