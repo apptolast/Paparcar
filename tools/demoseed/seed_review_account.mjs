@@ -253,7 +253,15 @@ function sessionDoc(srcFields, opts) {
 
   if (opts.active) {
     // La sesion viva: aparcado hace unas horas, sin cerrar. Lo que Home tiene que ensenar.
-    f.timestamp = int(opts.nowMs - 4 * MS_HOUR - Math.round(stableUnit(opts.id + '|active') * 90 * 60000))
+    //
+    // ⛔⛔ Y tiene que ser LO MAS RECIENTE de la cuenta. El desplazamiento de frescura empuja los
+    // clones hacia hoy, asi que algunos caen DESPUES de `nowMs - 4 h` y dejaban al coche «aparcado
+    // ahora» por debajo de dos aparcamientos ya terminados: no puedes haber cerrado una sesion
+    // despues de la que sigue abierta. Lo vi leyendo Firestore tras sembrar, no razonando.
+    // Se ancla despues del clon cerrado mas nuevo, y nunca en el futuro.
+    const wanted = opts.nowMs - 4 * MS_HOUR - Math.round(stableUnit(opts.id + '|active') * 90 * 60000)
+    const afterNewest = opts.newestClosedMs != null ? opts.newestClosedMs + 45 * 60000 : 0
+    f.timestamp = int(Math.min(opts.nowMs - 20 * 60000, Math.max(wanted, afterNewest)))
     f.isActive = bool(true)
     f.endedAtMs = nul()
     f.publishedSpot = bool(false) // aun no se ha ido: no ha liberado nada
@@ -384,11 +392,37 @@ console.log('> Leyendo el corpus real de ' + SRC_UID + ' en (default)...')
 const src = await listCollection('users/' + SRC_UID, 'parkingHistory', null, SRC_ROOT)
 src.sort((a, b) => (readInt(a.fields, 'timestamp') || 0) - (readInt(b.fields, 'timestamp') || 0))
 const day = (ms) => new Date(ms).toISOString().slice(0, 10)
+const newestSrcMs = readInt(src[src.length - 1].fields, 'timestamp')
 console.log('  ' + src.length + ' sesiones, de ' + day(readInt(src[0].fields, 'timestamp')) +
-  ' a ' + day(readInt(src[src.length - 1].fields, 'timestamp')))
+  ' a ' + day(newestSrcMs))
+
+/**
+ * ⛔⛔ El desplazamiento de FRESCURA: cuantos dias enteros hay que empujar el corpus para que su
+ * sesion mas reciente caiga HOY.
+ *
+ * Sin esto la demo se queda atras SOLA. Las ventanas desplazan desde las fechas del corpus de
+ * ORIGEN (`w0` desplaza 0 dias), asi que el clon mas nuevo hereda el dia en que el user conducio
+ * por ultima vez. Sembrada el 30-09, el 08-10 los periodos «7 dias», «esta semana» y «este mes»
+ * estaban VACIOS — y la fila de periodos ABRE en «7 dias»
+ * [STATS-FIRST-CHIP-ANSWERS-NOW-001]. Re-ejecutar no bastaba: solo arreglaba el hueco si el user
+ * habia conducido ese mismo dia.
+ *
+ * Se desplaza en DIAS ENTEROS a proposito: mover 1,2 dias cambiaria la hora de cada aparcamiento y
+ * un corpus que aparca a las 4 de la manana no se parece a nadie. La hora del dia se conserva; lo
+ * que se mueve es la fecha.
+ */
+const freshShiftDays = Math.max(0, Math.floor((nowMs - newestSrcMs) / MS_DAY))
+if (freshShiftDays > 0) {
+  console.log('  frescura: +' + freshShiftDays + ' d para que lo mas reciente caiga hoy')
+}
 
 // La mas reciente es la que se convierte en la sesion VIVA de la cuenta de demo.
 const activeSource = src[src.length - 1]
+// El clon CERRADO mas nuevo: w0 no lleva jitter (su `shiftDays` es 0), asi que es la penultima
+// sesion de origen empujada los mismos dias enteros. Lo necesita la sesion viva para quedar encima.
+const newestClosedMs = src.length > 1
+  ? readInt(src[src.length - 2].fields, 'timestamp') + freshShiftDays * MS_DAY
+  : null
 const writes = []
 const newIds = new Set()
 
@@ -409,8 +443,9 @@ for (const w of WINDOWS) {
       update: sessionDoc(s.fields, {
         id,
         vehicle: isActive ? VEHICLES[0] : vehicleFor(w.key + '|' + srcId),
-        shiftMs: w.shiftDays * MS_DAY + jitter,
+        shiftMs: (w.shiftDays + freshShiftDays) * MS_DAY + jitter,
         nowMs,
+        newestClosedMs,
         active: isActive,
       }),
     })
