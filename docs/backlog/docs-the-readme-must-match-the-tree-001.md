@@ -67,10 +67,12 @@ Todo lo escrito se verificó contra el árbol, no contra la versión anterior de
 
 ## Queda abierto (fuera del encargo, no tocado)
 
-- 🔵 **`docs/ROADMAP.md:42`** sigue dando la detección iOS como «🧊 aparcada por el user (07-09)»,
-  desmentido el 22-09; y da `feature/IOS-F0-001-fase0` como viva cuando su contenido ya entró.
-- 🔵 **`docs/IOS_PLAN.md`** afirma «sin lane de Fastlane» y «sin `xcodebuild`: el proyecto no tiene
-  scheme compartido». Las dos cosas existen ya en master.
+- ✅ **`docs/ROADMAP.md:42`** y **`docs/IOS_PLAN.md`** — CERRADOS el **09-10** por
+  [DOCS-THE-IOS-DOCS-MUST-MATCH-THE-TREE-001](docs-the-ios-docs-must-match-the-tree-001.md). Y había
+  más de lo que esta lista veía: el ROADMAP daba Room en **v10** (va por **v20**), F8 «etapa 1 en
+  rama» (está en master, `3d1d80a67`) y una tabla de **cuatro ramas en vuelo** sin que exista
+  ninguna; el IOS_PLAN pedía `BGTaskScheduler` ya implementado y daba por ausente un
+  `GoogleService-Info.plist` que está gitignored a propósito.
 - 🔵 **El logo de la cabecera del README** es el `#25F48C` horneado: en GitHub con tema claro eso da
   **1,42:1**, que es justo el caso que `PapGreenLight` existe para resolver. Arreglarlo es una
   superficie nueva en `export_surfaces.py` (un `<picture>` con variante clara), no una edición del

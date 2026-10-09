@@ -39,9 +39,9 @@ Lo que queda para la 1.1.0 no es todo código: siguen pendientes acciones de cue
 | CI: build + tests + **compilación iOS en `macos-latest`** | ✅ `02a29f62` |
 | Superficie legal (política de privacidad, borrado de cuenta por web, data safety) | ✅ código; ⏳ acciones de cuenta |
 | Ficha de Play (9 idiomas, icono, gráfico) | ✅ Commiteada; faltan capturas |
-| Detección iOS | 🧊 **Aparcada por el user (07-09)**. Fases 0 y 2 viven en `feature/IOS-F0-001-fase0`, sin mergear |
-| Room & Keystore | ✅ Room KMP en **v10** (v8 ruta del viaje · v9 postal · v10 `searchTimeMs`) y claves cifradas |
-| **Ola 2 (Plus, Widget, Fuel)** | 🟡 **casi cerrada**: A1–F5 y F7 ✅ (Alemania entró el 15-09, `9afbc5e5`; sigue Italia). Quedan **F6b** (ocupación real de parkings) y **F8** (coche compartido: **etapa 1 en rama** desde el 15-09, etapas 2-3 sin empezar) → [`backlog/plus-roadmap-001.md`](./backlog/plus-roadmap-001.md) |
+| Detección iOS | ✅ **EN MASTER**: las fases 0 y 2 entraron con el squash `8c2daf096` y el carril de release con `6970b4065` — 17 ficheros en `shared/src/iosMain/.../detection/`. ⛔ Esta fila decía «🧊 Aparcada por el user (07-09)» y que vivían «en `feature/IOS-F0-001-fase0`, sin mergear»: el user **desaparcó iOS el 22-09** y esa rama ya no existe. ⏳ Sin medir en device |
+| Room & Keystore | ✅ Room KMP en **v20** — la v20 invalida los `searchTimeMs` medidos con la fórmula retirada — y claves cifradas. ⛔ Esta fila decía **v10**, diez migraciones atrás |
+| **Ola 2 (Plus, Widget, Fuel)** | 🟡 **casi cerrada**: A1–F5 y F7 ✅ (Alemania entró el 15-09, `9afbc5e5`; sigue Italia). Queda **F6b** (ocupación real de parkings). ⛔ Esta fila daba **F8** (coche compartido) por «etapa 1 en rama desde el 15-09, etapas 2-3 sin empezar»: está **EN MASTER** desde `3d1d80a67`, con `SharedCar.kt` en `commonMain`, y el rediseño del user lo volvió una sección de Vehículos en vez de una pantalla → [`backlog/plus-roadmap-001.md`](./backlog/plus-roadmap-001.md) |
 | Hosting de detección | ✅ **un solo FGS y una sola notificación** desde `d7880ac7`: `BluetoothDetectionService` borrado, el carril BT entra por el intake del sentinel en slots propios [DET-ONE-SERVICE-TWO-LANES-001] |
 | **Pivote trayectos** (14-09, 8 fases) | 🟢 **fases 1-5, 7 y 8 ✅ en master** (`b3d8168d` … `ddb448e4`): ruta en Room sin tope, muestreo Cruise, grabador BT, park BT confirmado con ruta medida, batería medida, tiempo-buscando-plaza, geometría local-first. Queda la fase 6 (vía A pin-a-pin) ⛔ gated por el viaje del **Kamiq** |
 
@@ -49,23 +49,28 @@ Lo que queda para la 1.1.0 no es todo código: siguen pendientes acciones de cue
 
 ## 🚧 En vuelo — ramas sin mergear
 
-### Independientes
+> 🧹 **Ninguna, re-verificado el 2026-10-09** contra `git for-each-ref`: el árbol tiene `master`
+> y los worktrees de las conversaciones vivas, nada más. El barrido del **07-10** cerró las tres
+> ramas que quedaban, borró cuatro backups y la remota de iOS.
+>
+> ⛔⛔ **Y esta tabla no debe volver a escribirse a mano.** Listaba CUATRO ramas y no existía
+> ninguna: `…-fuel-alerts` y `…-background-delivery` estaban en master desde `1cff6f266` y
+> `56d63e1f8`, el `chore/PLAY-A-SCREENSHOT-…` ya decía él mismo que su commit estaba dentro, y
+> `feature/IOS-F0-001-fase0` entró con el squash `8c2daf096` — su punta solo sobrevive en el tag
+> **local** `prerebase/feature/IOS-F0-001-fase0`. Su propio aviso decía *«esta tabla caduca en
+> horas»* y aun así se quedó tres semanas.
+>
+> ✅ **Lo que sí se puede consultar sin que caduque**, porque lo mide git en el momento:
+> ```bash
+> git worktree list                        # qué hay abierto AHORA
+> git for-each-ref refs/heads refs/remotes  # qué ramas existen
+> python tools/backlog/branch_tell.py       # qué doc de backlog cita una rama que ya no existe
+> ```
+> Y antes de decir que una rama está «sin mergear»: `git merge-base --is-ancestor <hash> master`
+> **y** `git -C <worktree> status --porcelain` — una rama puede tener cero commits propios y su
+> trabajo vivir sin commitear [DOCS-THE-IOS-DOCS-MUST-MATCH-THE-TREE-001].
 
-> ⚠️ **Esta tabla caduca en horas.** El 15-09 master se movió **seis veces** mientras se auditaba el
-> backlog (`9afbc5e5` → `d7880ac7` → `851b00ff` → `3ffb7eae` → `f1ddd2a5`), cerrando por el camino
-> cuatro ramas que estaban listadas aquí como vivas. Léela junto a `git worktree list`, nunca en su
-> lugar.
-
-| Rama (ahead/behind vs master, 15-09 `f1ddd2a5`) | Ticket | Estado |
-|---|---|---|
-| `feature/FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001-fuel-alerts` (0 / 0) | alertas de precio de combustible | 🔵 worktree `../Paparcar-fuel-alerts`, recién abierta y limpia |
-| `feature/ZONE-AN-ALERT-NOBODY-IS-AWAKE-TO-RECEIVE-001-background-delivery` (0 / 0) | entrega en background de las alertas de zona | 🔵 worktree `../Paparcar-zone-bg`, recién abierta y limpia |
-| `chore/PLAY-A-SCREENSHOT-…-shots-110` (0 / 66) | `PLAY-A-SCREENSHOT-MUST-SPEAK-THE-READERS-LANGUAGE-001` | 🟡 su commit ya está en master (0 commits propios); lo vivo son **4 ficheros sin commitear** + su doc sin trackear en `../Paparcar-play-shots-110`. Capturas localizadas de la 1.1.0 |
-| `feature/IOS-F0-001-fase0` (16 / 149) | `IOS-F0-001` + `IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001` | 🧊 aparcada. PR #3 draft mergeable, pero **149 commits por detrás**; mergear = abrir un gate de campo entero |
-
-> Cerradas el 15-09 y ya sin rama: `PRIV-A-TRACE-IS-NOT-A-STAT-001` (`ddb448e4`) ·
-> `UI-A-CLOSE-X-MUST-CLOSE-SOMETHING-001` (`851b00ff`) · `UI-A-PARKED-CARD-…` (`3ffb7eae`) ·
-> `HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001` (`f1ddd2a5`).
+> 📌 Las cerradas el 15-09 que esta tabla listaba —`PRIV-A-TRACE-IS-NOT-A-STAT-001` `ddb448e4` · `UI-A-CLOSE-X-MUST-CLOSE-SOMETHING-001` `851b00ff` · `UI-A-PARKED-CARD-…` `3ffb7eae` · `HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001` `f1ddd2a5`— siguen en master; se dejan citadas porque sus hashes son la única forma de encontrarlas.
 
 ---
 

@@ -1,8 +1,20 @@
 # Paparcar — Plan iOS
 
-> **Doc vivo.** Verificado contra master `46621e7f` el **2026-08-30** (`find shared/src/iosMain`,
-> `ls iosApp/iosApp/`, `.github/workflows/`). Sustituye y amplía `ios-contracts.md`, **borrado** en
-> este mismo barrido por estar reemplazado por completo (recuperable en el histórico de git).
+> **Doc vivo.** Re-verificado contra master `eabefa14c` el **2026-10-09** (`ls iosApp/fastlane/`,
+> `ls iosApp/iosApp.xcodeproj/xcshareddata/xcschemes/`, `grep BGTaskScheduler shared/src/iosMain`,
+> `grep PAPARCAR_DB_VERSION`). Sustituye y amplía `ios-contracts.md`, **borrado** en el barrido del
+> 30-08 por estar reemplazado por completo (recuperable en el histórico de git).
+>
+> ⛔⛔ **Lo que este doc daba por pendiente el 30-08 y HOY está hecho** — se corrige en línea más
+> abajo, y queda listado aquí porque un plan que pide trabajo ya entregado hace perder el tiempo: el
+> **scheme compartido** existe (`iosApp.xcscheme`), hay **cinco lanes de Fastlane** con firma por
+> `match`, la app ha estado **en TestFlight** (0.1.1, build 2), y **`BGTaskScheduler` está
+> implementado** — cuatro ficheros de `iosMain` lo usan y el `Info.plist` declara sus dos
+> identifiers.
+>
+> ⚠️ Desde el **08-10** este Windows tampoco compila iOS: **App Control bloquea la DLL de stubs de
+> Kotlin/Native**, así que `:shared:compileKotlinIosSimulatorArm64` muere antes del compilador.
+> Mientras siga así, el verde de iOS **no está medido en ninguna sesión**.
 >
 > 🔵 **Quién valida iOS:** un compañero con Mac. Desde el entorno de desarrollo principal (Windows) no
 > se puede compilar Kotlin/Native para iOS ni abrir Xcode — por eso todo lo de aquí se comprueba por
@@ -18,17 +30,28 @@
   permisos, connectivity y preferencias.
 - **Cero stubs.** `grep "class Stub\|object Stub" shared/src/iosMain` no devuelve nada; el paquete
   `ios/stub/` ya no existe. Lo que falta no es rellenar huecos.
-- **Lo que falta son dos cosas de ciclo de vida**, no de API:
-  1. el **lazo que empuja el stream de GPS al coordinator** (no hay equivalente al foreground
-     service de Android) → `IOS-F0-001` prepara los puertos, en rama sin mergear;
-  2. **persistencia tras process death** en los schedulers → hace falta `BGTaskScheduler`.
+- ✅ **Las dos cosas de ciclo de vida que faltaban el 30-08 están EN MASTER** (`8c2daf096` trajo
+  las fases 0 y 2; el carril de release, `6970b4065`):
+  1. el **lazo que empuja el stream de GPS al coordinator** — `IosDetectionController`, uno de los
+     17 ficheros de `shared/src/iosMain/.../detection/`. ⛔ El doc decía «en rama sin mergear», y esa
+     rama (`feature/IOS-F0-001-fase0`) ya no existe;
+  2. **persistencia tras process death** — `BGTaskScheduler` implementado, con
+     `com.rndeveloper.paparcar.refresh` y `.sync` en `BGTaskSchedulerPermittedIdentifiers`.
 - **`Info.plist` completo** con localización background, motion, bluetooth y `UIBackgroundModes`.
 - ✅ **CI compila `iosMain` en `macos-latest`** desde `02a29f62` — antes **nadie compilaba iOS nunca**.
-  Sin `xcodebuild`: el proyecto no tiene scheme compartido.
-- ❌ **Firebase App Distribution iOS sigue a 0%**: sin `GoogleService-Info.plist`, sin certificados,
-  sin lane de Fastlane.
-- **Estimación primer beta iOS: 6–9 h** para subir un IPA que arranque; **~18 h** para que la
-  detección funcione de punta a punta.
+- ✅ **El scheme compartido EXISTE**: `iosApp.xcodeproj/xcshareddata/xcschemes/iosApp.xcscheme`.
+  ⛔ El doc decía «el proyecto no tiene scheme compartido» y lo repetía como el bloqueo del CI de
+  distribución; era cierto el 30-08.
+- ✅ **La distribución iOS no está a 0%, y no va por Firebase App Distribution**: va por **TestFlight
+  con Fastlane + `match`**. `iosApp/fastlane/` tiene `Fastfile`, `Appfile`, `Matchfile`, `Snapfile`,
+  `metadata/` y cinco lanes — `bootstrap_match`, `match_certificates`, `build`, `beta` (sube a
+  TestFlight con build = último + 1) y `screenshots` (nueve idiomas, desde el grafo mock). La app ha
+  estado en TestFlight en **0.1.1, build 2**.
+  ⚠️ `GoogleService-Info.plist` sigue **fuera del repo, y a propósito**: está gitignored y
+  `GoogleServiceInfo.clientId()` lo lee del bundle — si falta, el botón de Google no se muestra.
+  Listarlo como «ausente» en una tabla de tareas lo hacía parecer un olvido.
+- **Lo que de verdad queda**: validar en hardware y cerrar el login de Google en iOS. La detección
+  de punta a punta está escrita y **sin medir en device**.
 
 ---
 
@@ -92,12 +115,12 @@ iosApp/
 
 ### 2.2 Lo que falta en el shell
 
-| Item | Estado (verificado 2026-08-30) |
+| Item | Estado (re-verificado 2026-10-09 contra master `eabefa14c`) |
 |------|--------|
-| `GoogleService-Info.plist` | ❌ Ausente — `FirebaseApp.configure()` falla **en silencio** en runtime |
-| **Scheme compartido** en `iosApp.xcodeproj` | ❌ — sin él no hay `xcodebuild`, y por eso el job de CI se queda en compilar Kotlin |
-| Provisioning profile (Ad Hoc / Distribution) | ❌ |
-| Distribution certificate | ❌ |
+| `GoogleService-Info.plist` | ⚪ **Fuera del repo a propósito** (gitignored). Lo lee `GoogleServiceInfo.clientId()` del bundle; sin él el botón de Google no se muestra. No es una tarea |
+| **Scheme compartido** en `iosApp.xcodeproj` | ✅ `xcshareddata/xcschemes/iosApp.xcscheme` |
+| Provisioning profile (App Store) | ✅ por **`match`** — `bootstrap_match` lo crea o renueva, `match_certificates` lo sincroniza en readonly |
+| Distribution certificate | ✅ por **`match`**, en su repo de certificados |
 | App Store / Ad Hoc deploy target | ❌ |
 | TestFlight metadata | ❌ |
 
@@ -122,8 +145,11 @@ iosApp/
 
 ### 🟠 Difíciles (3–6 h cada una)
 
-5. **BGTaskScheduler para los tres schedulers** — `BGProcessingTask` con `requiresNetworkConnectivity=true`, identifier en `Info.plist`, y el `sessionId` pendiente en `NSUserDefaults` para sobrevivir al kill. — _**~4 h**_
-6. **Fastlane iOS lane** — `fastlane init`, configurar `build_app` + `firebase_app_distribution`. Probar build local antes de CI. — _**~3 h**_
+5. ✅ **HECHO — `BGTaskScheduler` en los schedulers.** Lo usan `IosDetectionController`,
+   `IosWakeMonitors`, `PaparcarIosBootstrap` e `IosPushRegistry`, con
+   `com.rndeveloper.paparcar.refresh` y `.sync` en `BGTaskSchedulerPermittedIdentifiers`.
+6. ✅ **HECHO — lane de Fastlane**, y por TestFlight en vez de Firebase App Distribution: cinco
+   lanes en `iosApp/fastlane/Fastfile`, firma por `match`, subida con `beta`.
 7. **CI de distribución iOS** — hoy el CI **compila** `iosMain` pero no archiva ni firma. Extender con un job que ejecute Fastlane. ⚠️ Requiere antes un **scheme compartido** en el `.xcodeproj`: sin él no hay `xcodebuild`, que es justo por lo que el job actual se queda en la compilación de Kotlin. Secrets:
    - `APPLE_DEVELOPER_ID`
    - `APPLE_APP_SPECIFIC_PASSWORD`
