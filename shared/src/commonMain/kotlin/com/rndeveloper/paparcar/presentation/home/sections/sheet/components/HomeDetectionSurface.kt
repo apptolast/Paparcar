@@ -46,6 +46,8 @@ import com.rndeveloper.paparcar.presentation.util.formatClockTime
 import com.rndeveloper.paparcar.ui.theme.PapBorders
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
+import com.rndeveloper.paparcar.ui.theme.PapControlHeight
+import com.rndeveloper.paparcar.ui.theme.PapGap
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_det_notice_silence_cd
@@ -548,7 +550,15 @@ private fun ActionRow(
             if (stacksSomething) {
             Column(
                 modifier = Modifier.padding(horizontal = CONTENT_START_DP.dp),
-                verticalArrangement = Arrangement.spacedBy(CTA_ROW_GAP_DP.dp),
+                // Un solo control en el hueco —arriba hay texto, abajo una cápsula—, así que el
+                // aire invisible lo pone un lado nada más. [UI-THE-SPACING-SWEEP-IS-SCREEN-BY-SCREEN-001]
+                verticalArrangement = Arrangement.spacedBy(
+                    PapGap.betweenControls(
+                        visible = CTA_ROW_GAP_DP.dp,
+                        controlHeight = PapControlHeight.pill,
+                        sides = 1,
+                    ),
+                ),
             ) {
                 // Single CTA stacked full-width below: title + subtitle got the full row width above.
                 // For the alert watch rows (fragile / interrupted) [DET-WATCH-HONEST-001] — y para
@@ -620,9 +630,24 @@ private fun ActionRow(
                         // ahí es donde se confirma; en columna es la de arriba, que es donde se lee
                         // primero. El orden no se invierte por gusto: en las dos maquetas la acción
                         // que proponemos ocupa el sitio que se mira antes de decidir.
-                        // El hueco entre ellas lo pone el `spacedBy` de la columna de arriba.
-                        primaryPill(Modifier.fillMaxWidth())
-                        secondaryPill(Modifier.fillMaxWidth())
+                        //
+                        // ⛔ Y el hueco entre ellas YA NO lo pone el `spacedBy` de la columna de
+                        // arriba. Lo ponía, y por eso se veían **20,2 dp** donde la constante decía
+                        // 12: con un control pulsable a cada lado, el mínimo táctil de 48 dp añade
+                        // `(48 − 40)` de aire invisible que la constante no sabe que existe.
+                        // Aquí la pareja pide su hueco en lo que se VE.
+                        // [UI-THE-SPACING-SWEEP-IS-SCREEN-BY-SCREEN-001]
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(
+                                PapGap.betweenControls(
+                                    visible = CTA_ROW_GAP_DP.dp,
+                                    controlHeight = PapControlHeight.pill,
+                                ),
+                            ),
+                        ) {
+                            primaryPill(Modifier.fillMaxWidth())
+                            secondaryPill(Modifier.fillMaxWidth())
+                        }
                     }
                 }
             }

@@ -26,6 +26,7 @@ import com.rndeveloper.paparcar.presentation.home.sections.sheet.HomeSheetAction
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheet
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetLead
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetRoundIconButton
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetRoundButtonSize
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetStepper
 import com.rndeveloper.paparcar.presentation.util.distanceMeters
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
@@ -34,6 +35,7 @@ import com.rndeveloper.paparcar.domain.model.monitoringStatus
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
 import com.rndeveloper.paparcar.ui.theme.watch
+import com.rndeveloper.paparcar.ui.theme.PapGap
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_navigate_to_vehicle_cd
@@ -139,7 +141,16 @@ internal fun ParkingPeek(
         // anchored far-right. [UX-PARKED-STATE-001]
         metaAction = {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(META_ACTIONS_GAP_DP.dp),
+                // Los dos redondos ya reservan sus 48 de toque, así que el hueco se pide en lo que
+                // se VE. ⚠️ Con 38 dp pintados el aire invisible es de 5 por lado: lo mínimo que
+                // puede verse son 10, y pedir menos solaparía las áreas de toque.
+                // [UI-THE-SPACING-SWEEP-IS-SCREEN-BY-SCREEN-001]
+                horizontalArrangement = Arrangement.spacedBy(
+                    PapGap.betweenControls(
+                        visible = META_ACTIONS_GAP_DP.dp,
+                        controlHeight = PapSheetRoundButtonSize,
+                    ),
+                ),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 // Directions diamond — universally read as "navigate"; opens the user's

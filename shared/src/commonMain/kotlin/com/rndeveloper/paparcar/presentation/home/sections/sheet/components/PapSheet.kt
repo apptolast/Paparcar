@@ -30,6 +30,7 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -64,6 +65,7 @@ import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.figureOpticalLiftSp
 import com.rndeveloper.paparcar.ui.theme.greenOutline
 import com.rndeveloper.paparcar.ui.components.PapShimmerBlockScale
+import com.rndeveloper.paparcar.ui.components.PapStepperButtonSize
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PapGap
 import org.jetbrains.compose.resources.stringResource
@@ -273,7 +275,19 @@ private fun papSheetHeaderTrailing(
                     contentDescription = pager.nextContentDescription,
                     onClick = pager.onNext,
                 )
-                if (onDismiss != null) Spacer(Modifier.width(STEPPER_TO_DISMISS_GAP_DP.dp))
+                // Con los dos vecinos ya al mínimo táctil, el hueco pide lo VISIBLE y el token
+                // descuenta — si no, los 48 de cada uno lo habrían abierto solo.
+                // [UI-THE-SPACING-SWEEP-IS-SCREEN-BY-SCREEN-001]
+                if (onDismiss != null) {
+                    Spacer(
+                        Modifier.width(
+                            PapGap.betweenControls(
+                                visible = STEPPER_TO_DISMISS_GAP_DP.dp,
+                                controlHeight = PapStepperButtonSize,
+                            ),
+                        ),
+                    )
+                }
             }
             if (onDismiss != null) PapSheetDismissButton(onDismiss = onDismiss)
         }
@@ -675,6 +689,9 @@ internal fun PapSheetRoundIconButton(
 ) {
     Box(
         modifier = Modifier
+            // Área de toque al mínimo de 48 sin tocar lo que pinta: `Modifier.clickable` no lo
+            // aplica solo. [UI-THE-SPACING-SWEEP-IS-SCREEN-BY-SCREEN-001]
+            .minimumInteractiveComponentSize()
             .size(SHEET_ICON_BUTTON_DP.dp)
             .clip(CircleShape)
             .border(BorderStroke(PapBorders.medium, greenOutline), CircleShape)
@@ -695,6 +712,7 @@ internal fun PapSheetRoundIconButton(
 private fun PapSheetDismissButton(onDismiss: () -> Unit) {
     Box(
         modifier = Modifier
+            .minimumInteractiveComponentSize()
             .size(DISMISS_BUTTON_DP.dp)
             .clip(CircleShape)
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
@@ -762,6 +780,9 @@ private const val LEAD_GLYPH_DP = 38
 private const val LEAD_ICON_DP = 24
 private const val DISMISS_BUTTON_DP = 34
 private const val DISMISS_ICON_DP = 18
+/** Lo que PINTA un redondo del peek. Lo que OCUPA es el mínimo táctil de 48 dp, que es más —
+ *  quien calcule un hueco a su lado necesita este número. [UI-THE-SPACING-SWEEP-IS-SCREEN-BY-SCREEN-001] */
+internal val PapSheetRoundButtonSize: Dp = SHEET_ICON_BUTTON_DP.dp
 private const val SHEET_ICON_BUTTON_DP = 38
 private const val SHEET_ICON_GLYPH_DP = 18
 private const val BANNER_BADGE_DP = 20

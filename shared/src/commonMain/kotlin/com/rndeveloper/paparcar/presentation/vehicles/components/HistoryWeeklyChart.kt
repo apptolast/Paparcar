@@ -72,6 +72,8 @@ import paparcar.composeapp.generated.resources.stats_tile_search_time
 import paparcar.composeapp.generated.resources.stats_value_minutes
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
 import com.rndeveloper.paparcar.ui.theme.PapColor
+import com.rndeveloper.paparcar.ui.theme.PapControlHeight
+import com.rndeveloper.paparcar.ui.theme.PapGap
 
 private const val CHART_ENTER_DURATION = 800
 
@@ -115,10 +117,35 @@ internal fun ActivityCard(
         // FontWeight.Bold and a decorative arrow. [UI-IDENTITY-IS-SAID-ONCE-001]
         ActivityCardTitle(total = total, qualifierText = qualifierText)
         if (metrics.size > 1) {
-            Spacer(Modifier.height(METRIC_ROW_GAP_DP.dp))
+            // Arriba texto, abajo chips: el mínimo táctil añade el aire invisible de UN lado, así
+            // que la constante pide lo que se ve y el token descuenta.
+            // [UI-THE-SPACING-SWEEP-IS-SCREEN-BY-SCREEN-001]
+            Spacer(
+                Modifier.height(
+                    PapGap.betweenControls(
+                        visible = METRIC_ROW_GAP_DP.dp,
+                        controlHeight = PapControlHeight.chip,
+                        sides = 1,
+                    ),
+                ),
+            )
             ChartMetricRow(metrics = metrics, selected = metric, onSelected = onMetricSelected)
         }
-        Spacer(Modifier.height(CARD_TITLE_GAP_DP.dp))
+        // Y el de debajo descuenta SOLO si encima quedó la fila de chips; sin ella arriba hay
+        // texto, que no infla nada. [UI-THE-SPACING-SWEEP-IS-SCREEN-BY-SCREEN-001]
+        Spacer(
+            Modifier.height(
+                if (metrics.size > 1) {
+                    PapGap.betweenControls(
+                        visible = CARD_TITLE_GAP_DP.dp,
+                        controlHeight = PapControlHeight.chip,
+                        sides = 1,
+                    )
+                } else {
+                    CARD_TITLE_GAP_DP.dp
+                },
+            ),
+        )
         ActivityBarChart(data = data, metric = metric)
     }
 }
@@ -302,7 +329,7 @@ private fun ChartMetricRow(
     LazyRow(
         state = listState,
         modifier = Modifier.papHorizontalFadingEdges(listState),
-        horizontalArrangement = Arrangement.spacedBy(METRIC_CHIP_GAP_DP.dp),
+        horizontalArrangement = Arrangement.spacedBy(PapGap.chipRow),
     ) {
         items(metrics) { metric ->
             PaparcarFilterChip(
@@ -434,9 +461,14 @@ private const val TITLE_GAP_DP = 7
  */
 private const val QUALIFIER_LINES = 2
 
-/** Air between the card title and the metric chips, and between chip and chip. */
+/**
+ * Aire entre el título de la card y los chips de métrica, **en lo que se VE**.
+ * [UI-THE-SPACING-SWEEP-IS-SCREEN-BY-SCREEN-001]
+ *
+ * El de chip a chip se fue: era `8` mientras la barra de periodo usaba `6` para el mismo rol — dos
+ * filas de chips con dos aires. Ahora las dos piden [PapGap.chipRow].
+ */
 private const val METRIC_ROW_GAP_DP = 10
-private const val METRIC_CHIP_GAP_DP = 8
 private const val MS_PER_MINUTE = 60_000f
 /** Stands in for the figure inside the resolved minutes template. A control character, so no
  *  translation can contain it by accident — and written as the ESCAPE, never as a raw NUL byte in

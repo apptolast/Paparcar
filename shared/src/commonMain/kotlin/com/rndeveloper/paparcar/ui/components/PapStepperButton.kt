@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,7 +35,15 @@ internal fun PapStepperButton(
     modifier: Modifier = Modifier,
 ) {
     Box(
+        // ⛔ El área de toque era de **32 dp** y el mínimo son 48.
+        // [UI-THE-SPACING-SWEEP-IS-SCREEN-BY-SCREEN-001]
+        //
+        // `Modifier.clickable` NO aplica `minimumInteractiveComponentSize` — sólo lo hacen los
+        // componentes de Material3 (`Surface(onClick)`, `Button`, `Chip`…), así que un control
+        // dibujado a mano se queda exactamente con el área que pinta. Mismo patrón que el
+        // `IconButton` de Material3: el mínimo PRIMERO, el tamaño pintado después.
         modifier = modifier
+            .minimumInteractiveComponentSize()
             .size(PapStepperButtonSize)
             .clip(CircleShape)
             .clickable(onClick = onClick),
@@ -49,8 +58,8 @@ internal fun PapStepperButton(
     }
 }
 
-/** Footprint of a [PapStepperButton] — the size a caller must reserve so the layout doesn't reflow
- *  when one side has no neighbour to offer. */
+/** Lo que PINTA un [PapStepperButton]. Lo que OCUPA es el mínimo táctil de 48 dp, que es más:
+ *  [UI-THE-SPACING-SWEEP-IS-SCREEN-BY-SCREEN-001]. */
 internal val PapStepperButtonSize: Dp = STEPPER_TOUCH_DP.dp
 
 /**
@@ -78,7 +87,14 @@ internal fun PapStepperSlot(
         PapStepperButton(icon = icon, contentDescription = contentDescription, onClick = onClick, modifier = modifier)
         return
     }
-    Box(modifier = modifier.size(PapStepperButtonSize), contentAlignment = Alignment.Center) {
+    // El gastado reserva lo MISMO que el tappable —mínimo táctil incluido— o el bloque entre los dos
+    // chevrones se desliza al llegar a un extremo, que es justo lo que este slot existe para evitar.
+    Box(
+        modifier = modifier
+            .minimumInteractiveComponentSize()
+            .size(PapStepperButtonSize),
+        contentAlignment = Alignment.Center,
+    ) {
         Icon(
             imageVector = icon,
             contentDescription = null,

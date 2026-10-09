@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.ui.theme
 
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 // --- 4. SPACING ---
@@ -71,4 +72,30 @@ object PapGap {
      * that happened to land in the other file.
      */
     val iconLabel = 8.dp
+
+    /**
+     * El `spacedBy` que hay que PEDIR para que se VEAN [visible] dp entre dos controles pulsables de
+     * [controlHeight]. [UI-THE-SPACING-SWEEP-IS-SCREEN-BY-SCREEN-001]
+     *
+     * ⛔ **Una constante de hueco junto a un control no dice lo que se ve.** Material3 infla todo
+     * `Surface(onClick = …)` hasta el mínimo táctil de 48 dp y pinta su altura real centrada, así
+     * que cada control aporta [PapControlHeight.overhang] de aire invisible por lado:
+     *
+     * > hueco visible = `spacedBy` + (48 − altura) ... con un control a cada lado
+     *
+     * Medido: dos cápsulas de 40 dp con `spacedBy(12)` dejaban **20,2 dp** a la vista. Esto es lo
+     * que explica por qué los huecos se re-decidieron a mano por todo el árbol: nadie estaba
+     * afinando la constante, estaban afinando lo que SE VE contra una constante que no lo gobierna
+     * sola. Misma enfermedad que la altura emergente de
+     * [UI-A-SCALE-NOBODY-USES-IS-NOT-A-SYSTEM-001], un nivel más abajo.
+     *
+     * ⛔ Y **no se arregla quitando el mínimo táctil**: son 48 dp de área de toque: accesibilidad.
+     * Recortarlos para ganar píxeles es pagar el diseño con el dedo del usuario. Lo que se corrige
+     * es la CUENTA, no el área.
+     *
+     * Para un hueco entre un control y algo que NO lo es (un texto, un divisor), hay overhang de un
+     * solo lado — pásalo con [sides] = 1.
+     */
+    fun betweenControls(visible: Dp, controlHeight: Dp, sides: Int = 2): Dp =
+        (visible - PapControlHeight.overhang(controlHeight) * sides).coerceAtLeast(0.dp)
 }

@@ -36,6 +36,7 @@ import com.rndeveloper.paparcar.presentation.vehicles.StatsPeriod
 import com.rndeveloper.paparcar.ui.components.chips.PaparcarFilterChip
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.PapGap
+import com.rndeveloper.paparcar.ui.theme.PapControlHeight
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_filter_all
@@ -49,6 +50,8 @@ import paparcar.composeapp.generated.resources.history_filter_years
 
 // Width of the right-edge scroll-hint fade on the filter bar. [VEHICLES-REDESIGN-001]
 private const val FILTER_FADE_WIDTH_DP = 28
+/** El aire que la barra de periodo quiere que se VEA por encima y por debajo de sus chips. */
+private const val PERIOD_BAR_AIR_DP = 4
 
 private val FILTER_ICONS = mapOf(
     StatsPeriod.All to Icons.Rounded.GridView,
@@ -119,7 +122,19 @@ internal fun StatsPeriodBar(
                 }
             }
             .horizontalScroll(scrollState)
-            .padding(horizontal = 16.dp, vertical = 4.dp),
+            // ⛔ Sin padding vertical, y no por quitarlo: el chip ya trae **7 dp de aire invisible
+            // por lado** porque el mínimo táctil de 48 dp lo infla desde sus ~34 pintados. Los 4 que
+            // había encima se SUMABAN a eso y la fila se leía con 11 — el *«los chips parecen
+            // excesivamente separados»* que abrió #134. El aire lo pone el área de toque; añadirle
+            // más es contarlo dos veces. [UI-THE-SPACING-SWEEP-IS-SCREEN-BY-SCREEN-001]
+            .padding(
+                horizontal = 16.dp,
+                vertical = PapGap.betweenControls(
+                    visible = PERIOD_BAR_AIR_DP.dp,
+                    controlHeight = PapControlHeight.chip,
+                    sides = 1,
+                ),
+            ),
         horizontalArrangement = Arrangement.spacedBy(PapGap.chipRow),
     ) {
         filters.forEach { filter ->

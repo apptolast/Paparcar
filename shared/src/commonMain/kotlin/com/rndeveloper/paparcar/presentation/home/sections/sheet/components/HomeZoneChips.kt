@@ -28,6 +28,7 @@ import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -136,7 +137,9 @@ fun ZoneChip(
             // touch target instead of the old ×'s 14dp sliver.
             Box(
                 modifier = Modifier
-                    .size(ZONE_CHIP_EDIT_TAP_DP.dp)
+                    // El lapiz pintaba 28 dp de caja tactil. ⚠️ Su alto lo CAPA el chip (34 dp), asi que aqui el minimo solo gana a lo ancho — subir el chip es decision de diseno. [UI-THE-SPACING-SWEEP-IS-SCREEN-BY-SCREEN-001]
+            .minimumInteractiveComponentSize()
+            .size(ZONE_CHIP_EDIT_TAP_DP.dp)
                     .clip(CircleShape)
                     .clickable(onClick = onEdit),
                 contentAlignment = Alignment.Center,

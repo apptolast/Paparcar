@@ -20,6 +20,7 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -118,6 +119,8 @@ private fun ColorSwatch(
     val glyphTint = if (color.luminance() > CHECK_DARK_LUMINANCE) Color.Black else Color.White
     Box(
         modifier = Modifier
+            // La muestra pinta 40 dp; el dedo necesita 48. [UI-THE-SPACING-SWEEP-IS-SCREEN-BY-SCREEN-001]
+            .minimumInteractiveComponentSize()
             .size(SWATCH_SIZE)
             // Before .clickable, so the ripple is bounded by the circle instead of the layout box.
             // The fill is clipped on the inner Box, so without this the outer node has no shape and

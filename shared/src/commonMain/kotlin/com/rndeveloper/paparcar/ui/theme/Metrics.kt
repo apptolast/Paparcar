@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.ui.theme
 
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
@@ -58,6 +59,26 @@ object PapControlHeight {
      * to be the visual anchor of a peek, short enough not to dominate it.
      */
     val button = 48.dp
+
+    /**
+     * El mínimo táctil de Material3 (48 dp), y **la razón por la que [button] no miente**.
+     * [UI-THE-SPACING-SWEEP-IS-SCREEN-BY-SCREEN-001]
+     *
+     * No es una altura que se elija: es la que `minimumInteractiveComponentSize` impone en LAYOUT a
+     * cualquier control pulsable. Un control más bajo pinta su altura real **centrada** dentro de
+     * esos 48, así que reparte la diferencia arriba y abajo como aire invisible. Ver [overhang].
+     */
+    val touchTarget = 48.dp
+
+    /**
+     * El aire INVISIBLE que un control de [height] arrastra por cada lado, por el mínimo táctil.
+     *
+     * Medido en device el 08-10 con dos sondas: con la cápsula a 40 dp y `spacedBy(12)` el hueco
+     * que se VE entre dos apiladas era de **20,2 dp**; bajando la constante a 4 pasó a **12,2**; y
+     * subiendo la cápsula a 48 —sin tocar la constante— cayó a **4,2**. O sea, exactamente
+     * `(48 − altura)` repartido en dos.
+     */
+    fun overhang(height: Dp): Dp = ((touchTarget - height) / 2).coerceAtLeast(0.dp)
 }
 
 /**
