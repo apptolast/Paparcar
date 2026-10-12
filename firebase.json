@@ -18,6 +18,14 @@
       "firebase.json",
       "**/.*"
     ],
+    "redirects": [
+      {
+        "//": "Marketing shortcut (campaigns, social bios, QR) → the Play listing. The destination is `PLAY_URL` from web/lib/config.mjs, duplicated here because firebase.json cannot import it; WebSiteParityGuardrailTest checks the two agree. One exact source, same lesson as the header rules below: an alternation of paths deploys clean and matches nothing.",
+        "source": "/descargar",
+        "destination": "https://play.google.com/store/apps/details?id=com.rndeveloper.paparcar",
+        "type": 301
+      }
+    ],
     "headers": [
       {
         "//": "Everything under /assets is content-hashed by web/build.mjs (site.<hash>.css), so a changed file is a different URL and a cached copy can never be the wrong one. That is what earns `immutable`. ⛔ The previous max-age=900 on unhashed css/js shipped a real bug: HTML revalidates immediately, css did not, so a returning visitor got new markup painted by the previous stylesheet for a quarter of an hour.",

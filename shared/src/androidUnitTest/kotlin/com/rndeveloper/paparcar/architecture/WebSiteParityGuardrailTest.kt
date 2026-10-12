@@ -17,8 +17,10 @@ import kotlin.test.fail
  * The website is a CONSUMER of the product's truth, and consumers drift.
  *
  * `paparcar.com` states facts that live in this repository: the Play link is built from the
- * `applicationId`, "Android 8.0 or later" is `minSdk`, the privacy URL is the constant the app
- * itself opens, "the last 7 days" is [com.rndeveloper.paparcar.domain.entitlement.FREE_HISTORY_WINDOW_DAYS].
+ * `applicationId` — including the `/descargar` shortcut in `firebase.json`'s `hosting.redirects`,
+ * a second, independent copy of the same URL — "Android 8.0 or later" is `minSdk`, the privacy
+ * URL is the constant the app itself opens, "the last 7 days" is
+ * [com.rndeveloper.paparcar.domain.entitlement.FREE_HISTORY_WINDOW_DAYS].
  * None of that is enforced by anything the compiler sees: the site is plain files, so the day one
  * of those numbers changes the site keeps saying the old one, forever, in two languages, on the
  * page the Play listing links to.
@@ -53,6 +55,7 @@ import kotlin.test.fail
  * Falsify it with `./gradlew :shared:testDebugUnitTest --tests '*WebSiteParity*' --rerun-tasks`.
  *
  * [WEB-THE-SITE-SAYS-ONLY-WHAT-THE-APP-DOES-001] [TEST-A-GREEN-SUITE-MUST-PROVE-IT-LOOKED-001]
+ * [WEB-A-DOWNLOAD-LINK-NEEDS-A-ROUTE-001]
  */
 class WebSiteParityGuardrailTest {
 
@@ -111,6 +114,17 @@ class WebSiteParityGuardrailTest {
                 "SUPPORT_EMAIL", declared["SUPPORT_EMAIL"], "$BASE_STRINGS",
                 expected = "an address the app itself shows",
             ) { baseStrings.contains(it) }
+
+            val redirects = (Json.parseToJsonElement(read("firebase.json")) as JsonObject)
+                .let { it["hosting"] as JsonObject }["redirects"] as? JsonArray
+            val downloadDestination = redirects
+                ?.map { it as JsonObject }
+                ?.firstOrNull { (it["source"] as? JsonPrimitive)?.content == "/descargar" }
+                ?.let { (it["destination"] as? JsonPrimitive)?.content }
+            check(
+                "firebase.json · /descargar redirect", downloadDestination, "app/build.gradle.kts · applicationId",
+                expected = "…?id=$applicationId",
+            ) { it.endsWith("?id=$applicationId") }
         }
 
         assertTrue(
