@@ -1552,7 +1552,7 @@ private fun NearbyCapsuleMarker(
                 // Alineado por ABAJO contra la línea del puck: una cápsula de una línea y otra de
                 // dos se apoyan en el mismo sitio, y ninguna de las dos flota.
                 // [MAP-EVERY-MARKER-SITS-THE-SAME-HEIGHT-OVER-ITS-DOT-001]
-                .padding(start = 4.dp, end = 4.dp, bottom = bodyBottomPad) // + aire para que el borde no se recorte
+                .padding(start = FUEL_LABEL_CLIP_PAD, end = FUEL_LABEL_CLIP_PAD, bottom = bodyBottomPad) // aire para que el borde no se recorte
                 .clip(RoundedCornerShape(FUEL_LABEL_CORNER))
                 .background(paper.copy(alpha = FUEL_LABEL_BG_ALPHA))
                 .border(
@@ -1560,7 +1560,7 @@ private fun NearbyCapsuleMarker(
                     color = accent.copy(alpha = if (selected) 1f else FUEL_LABEL_BORDER_ALPHA),
                     shape = RoundedCornerShape(FUEL_LABEL_CORNER),
                 )
-                .padding(horizontal = 10.dp, vertical = 3.dp)
+                .padding(horizontal = FUEL_LABEL_PAD_H, vertical = FUEL_LABEL_PAD_V)
                 .heightIn(min = with(density) { (CAPSULE_BODY_MIN_U * s).toDp() }),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -1589,7 +1589,7 @@ private fun NearbyCapsuleMarker(
                 )
             }
             if (primaryText != null) {
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(FUEL_LABEL_GLYPH_TEXT_GAP))
                 Column(verticalArrangement = Arrangement.Center) {
                     Text(
                         text = primaryText,
@@ -1792,6 +1792,12 @@ private val PARKING_LABEL_PAD_H = 9.dp
 // vivian en el bloque de la zona y el surtidor los tomaba prestados -- por eso la misma forma decia
 // dos cosas a la vez. La zona se fue a rotulo de area, asi que la capsula (fondo, borde y su alpha)
 // se queda aqui, con la unica cosa puntual que lleva una cifra. [UI-A-ZONE-IS-AN-AREA-NOT-A-PIN-001]
+/** Los tres únicos aires de esta cápsula que no escalan con el zoom del marcador — el borde,
+ *  el relleno del cuerpo y el hueco glifo↔texto. [UI-THE-SPACING-SWEEP-BY-VOLUME-001] */
+private val FUEL_LABEL_CLIP_PAD = 4.dp
+private val FUEL_LABEL_PAD_H = 10.dp
+private val FUEL_LABEL_PAD_V = 3.dp
+private val FUEL_LABEL_GLYPH_TEXT_GAP = 8.dp
 private val FUEL_LABEL_CORNER = 999.dp
 private val FUEL_LABEL_BORDER = 1.dp
 private val FUEL_LABEL_BORDER_SEL = 2.dp

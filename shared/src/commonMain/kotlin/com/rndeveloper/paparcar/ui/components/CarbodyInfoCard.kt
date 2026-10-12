@@ -45,6 +45,8 @@ import com.rndeveloper.paparcar.ui.theme.PapAlpha
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PapGap
 import com.rndeveloper.paparcar.ui.theme.PapIconSize
+import com.rndeveloper.paparcar.ui.theme.PapBorders
+import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 
 /**
  * Feedback card surfaced once the registration form has enough signal (brand +
@@ -80,7 +82,7 @@ fun CarbodyInfoCard(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(CARD_CORNER_DP.dp),
         color = cs.surfaceContainerHigh,
-        border = BorderStroke(1.dp, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
+        border = BorderStroke(PapBorders.thin, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
     ) {
         Column(modifier = Modifier.padding(CARD_PADDING_DP.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -98,7 +100,7 @@ fun CarbodyInfoCard(
                         modifier = Modifier.size(ICON_SIZE_DP.dp),
                     )
                 }
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(PaparcarSpacing.md))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = sizeLabel,
@@ -107,7 +109,7 @@ fun CarbodyInfoCard(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Spacer(Modifier.height(2.dp))
+                    Spacer(Modifier.height(TITLE_SUBTITLE_GAP_DP))
                     Text(
                         text = carbody.label(),
                         style = PaparcarType.current.body,
@@ -120,12 +122,12 @@ fun CarbodyInfoCard(
                     onClick = onChange,
                     shape = RoundedCornerShape(CHANGE_PILL_RADIUS_DP.dp),
                     color = cs.surfaceContainerHighest,
-                    border = BorderStroke(1.dp, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
+                    border = BorderStroke(PapBorders.thin, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        modifier = Modifier.padding(horizontal = CHANGE_PILL_PAD_H_DP, vertical = CHANGE_PILL_PAD_V_DP),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(CHANGE_PILL_GAP_DP),
                     ) {
                         Text(
                             text = stringResource(Res.string.vehicle_registration_carbody_change),
@@ -136,7 +138,7 @@ fun CarbodyInfoCard(
                 }
             }
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(CARD_BLOCK_GAP_DP))
             // Inference origin badge — flips between "auto" (sparkle) and "manual" (edit).
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -146,7 +148,7 @@ fun CarbodyInfoCard(
                     imageVector = if (isManualOverride) Icons.Rounded.Edit else Icons.Rounded.AutoAwesome,
                     contentDescription = null,
                     tint = cs.primary,
-                    modifier = Modifier.size(14.dp),
+                    modifier = Modifier.size(BADGE_ICON_DP),
                 )
                 Text(
                     text = stringResource(
@@ -158,15 +160,15 @@ fun CarbodyInfoCard(
                 )
             }
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(CARD_BLOCK_GAP_DP))
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(ALERT_CORNER_DP.dp))
                     .background(alertTint.copy(alpha = ALERT_BG_ALPHA))
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                    .padding(horizontal = PaparcarSpacing.md, vertical = ALERT_PAD_V_DP),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
             ) {
                 Icon(
                     imageVector = alertIcon,
@@ -203,7 +205,7 @@ fun NonCarSizeBadge(
             title = sizeLabel,
             titleStyle = PaparcarType.current.rowTitle,
             contentPadding = PaddingValues(CARD_PADDING_DP.dp),
-            gap = 12.dp,
+            gap = PaparcarSpacing.md,
             leading = {
                 PapIconTile(
                     icon = com.rndeveloper.paparcar.ui.icons.PaparcarIcons.VehicleMotorcycle,
@@ -218,6 +220,13 @@ fun NonCarSizeBadge(
     }
 }
 
+private val TITLE_SUBTITLE_GAP_DP = 2.dp
+private val CHANGE_PILL_PAD_H_DP = 10.dp
+private val CHANGE_PILL_PAD_V_DP = 6.dp
+private val CHANGE_PILL_GAP_DP = 4.dp
+private val CARD_BLOCK_GAP_DP = 10.dp
+private val BADGE_ICON_DP = 14.dp
+private val ALERT_PAD_V_DP = 10.dp
 private const val CARD_CORNER_DP = 16
 private const val CARD_PADDING_DP = 14
 private const val CARD_BORDER_ALPHA = 0.4f

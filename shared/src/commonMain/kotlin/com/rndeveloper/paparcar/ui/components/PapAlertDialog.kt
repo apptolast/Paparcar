@@ -49,6 +49,8 @@ import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
 import com.rndeveloper.paparcar.ui.theme.PapControlHeight
 import com.rndeveloper.paparcar.ui.theme.PapGap
+import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
+import com.rndeveloper.paparcar.ui.theme.PapIconSize
 
 /**
  * Visual tone for [PapAlertDialog]. Drives the icon-circle color and the
@@ -172,7 +174,7 @@ fun PapAlertDialog(
                     .fillMaxWidth()
                     .imePadding()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp, vertical = 24.dp),
+                    .padding(horizontal = PaparcarSpacing.xl, vertical = PaparcarSpacing.xxl),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 // ── Icon hero ─────────────────────────────────────────────
@@ -193,7 +195,7 @@ fun PapAlertDialog(
                             imageVector = icon,
                             contentDescription = null,
                             tint = accentColor,
-                            modifier = Modifier.size(28.dp),
+                            modifier = Modifier.size(HERO_ICON_DP),
                         )
                     }
                 }
@@ -216,12 +218,12 @@ fun PapAlertDialog(
 
                 // ── Content (escape hatch: a confirm that captures a value) ─
                 if (content != null) {
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(PaparcarSpacing.lg))
                     content()
                 }
 
                 // ── Actions ───────────────────────────────────────────────
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(PaparcarSpacing.xl))
                 PrimaryAction(
                     label = primaryLabel,
                     onClick = onPrimary,
@@ -234,7 +236,7 @@ fun PapAlertDialog(
                 )
 
                 if (secondaryLabel != null && onSecondary != null) {
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(PaparcarSpacing.sm))
                     SecondaryAction(
                         label = secondaryLabel,
                         onClick = onSecondary,
@@ -246,7 +248,7 @@ fun PapAlertDialog(
                 }
 
                 if (cancelLabel != null) {
-                    Spacer(Modifier.height(2.dp))
+                    Spacer(Modifier.height(CANCEL_GAP_DP))
                     TextButton(
                         onClick = onDismiss,
                         enabled = loadingAction == null,
@@ -293,14 +295,14 @@ private fun PrimaryAction(
     ) {
         if (isLoading) {
             CircularProgressIndicator(
-                modifier = Modifier.size(16.dp),
-                strokeWidth = 2.dp,
+                modifier = Modifier.size(DIALOG_BUTTON_GLYPH_DP),
+                strokeWidth = PapBorders.strong,
                 color = onAccent,
             )
         } else {
             if (leadingIcon != null) {
-                Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(PapGap.chipRow))
+                Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(DIALOG_BUTTON_GLYPH_DP))
+                Spacer(Modifier.width(PapGap.iconLabel))
             }
             Text(label, style = PaparcarType.current.cta)
         }
@@ -335,14 +337,14 @@ private fun SecondaryAction(
         if (isLoading) {
             // The outline's own accent, not `onAccent`: this button has no fill to read against.
             CircularProgressIndicator(
-                modifier = Modifier.size(16.dp),
-                strokeWidth = 2.dp,
+                modifier = Modifier.size(DIALOG_BUTTON_GLYPH_DP),
+                strokeWidth = PapBorders.strong,
                 color = accentColor,
             )
         } else if (leadingIcon != null) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(PapGap.chipRow))
+                Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(DIALOG_BUTTON_GLYPH_DP))
+                Spacer(Modifier.width(PapGap.iconLabel))
                 Text(label, style = PaparcarType.current.cta)
             }
         } else {
@@ -372,5 +374,25 @@ private fun PapDialogAccent.onAccent(): Color = when (this) {
 private const val DIALOG_ENTER_SCALE = 0.92f
 private const val ICON_CIRCLE_DP = 56
 private const val BUTTON_CORNER_DP = 12
+private val HERO_ICON_DP = 28.dp
+private val CANCEL_GAP_DP = 2.dp
+/**
+ * ✅ **Unificado con el sistema** (decisión del user, 12-10-2026)
+ * [UI-THE-SPACING-SWEEP-BY-VOLUME-001]. El spinner y el icono de los botones de ESTE dialogo
+ * median 16 dp; `PapButton` -el boton canonico del que `PrimaryAction`/`SecondaryAction` son
+ * variantes- ya usa `PapIconSize.withLabel` (18 dp) para el MISMO rol desde #136. Mismo defecto que
+ * ya se corrigio en Settings (Logout/Delete, 16->18), en `BluetoothConfigScreen` y en
+ * `PapFooterButton` (#136, gap 10->8) — aqui con el mayor alcance de los cuatro: TODO dialogo de la
+ * app.
+ *
+ * Y el gap que acompaña al icono NO era un literal: ya era `PapGap.chipRow` (6 dp), un token real
+ * -pero el EQUIVOCADO. `chipRow` es "el aire dentro de una fila de chips"; el rol de este gap es
+ * "icono junto a su etiqueta dentro de un boton", que es `PapGap.iconLabel` (8 dp) -el mismo que
+ * usa `PapButton`-. Un token mal elegido pasa el chequeo de "nunca literal" y sigue siendo el
+ * defecto equivocado; se corrige junto con el icono para que la pareja quede a juego.
+ *
+ * Capturado antes/despues antes de aplicar.
+ */
+private val DIALOG_BUTTON_GLYPH_DP = PapIconSize.withLabel
 private val BODY_ALPHA = PapAlpha.body
 private const val CANCEL_ALPHA = 0.7f

@@ -41,6 +41,8 @@ import com.rndeveloper.paparcar.ui.components.rememberDrivingStatePulse
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
 import com.rndeveloper.paparcar.ui.theme.watch
+import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
+import com.rndeveloper.paparcar.ui.theme.PapGap
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_address_unknown
@@ -530,34 +532,46 @@ internal fun nextLaneHeaderLatch(
     else -> false
 }
 
+private val SKELETON_AVATAR_DP = 26.dp
+private val SKELETON_LINE_GAP_DP = 6.dp
+private val SKELETON_TITLE_HEIGHT_DP = 14.dp
+private val SKELETON_TITLE_CORNER_DP = 7.dp
+private val SKELETON_SUBTITLE_HEIGHT_DP = 10.dp
+private val SKELETON_SUBTITLE_CORNER_DP = 5.dp
+private val SKELETON_PILL_W_DP = 56.dp
+private val SKELETON_PILL_H_DP = 26.dp
+private val SKELETON_PILL_CORNER_DP = 8.dp
+
 @Composable
 private fun PeekLocationSkeleton() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             // Mirrors the browse header's inset so the skeleton doesn't jump on load.
-            .padding(horizontal = BROWSE_ROW_HORIZONTAL_PAD_DP.dp, vertical = 14.dp),
+            .padding(horizontal = BROWSE_ROW_HORIZONTAL_PAD_DP.dp, vertical = PapGap.block),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.md),
     ) {
-        PapShimmerBox(modifier = Modifier.size(26.dp), shape = CircleShape)
+        // Dimensiones de DIBUJO del esqueleto -no spacing-, como en HistoryContent y
+        // ParkingHistoryDetailScreen. [UI-THE-SPACING-SWEEP-BY-VOLUME-001]
+        PapShimmerBox(modifier = Modifier.size(SKELETON_AVATAR_DP), shape = CircleShape)
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(SKELETON_LINE_GAP_DP),
         ) {
             PapShimmerBox(
-                modifier = Modifier.fillMaxWidth(0.62f).height(14.dp),
-                shape = RoundedCornerShape(7.dp),
+                modifier = Modifier.fillMaxWidth(0.62f).height(SKELETON_TITLE_HEIGHT_DP),
+                shape = RoundedCornerShape(SKELETON_TITLE_CORNER_DP),
             )
             PapShimmerBox(
-                modifier = Modifier.fillMaxWidth(0.38f).height(10.dp),
-                shape = RoundedCornerShape(5.dp),
+                modifier = Modifier.fillMaxWidth(0.38f).height(SKELETON_SUBTITLE_HEIGHT_DP),
+                shape = RoundedCornerShape(SKELETON_SUBTITLE_CORNER_DP),
                 alphaScale = 0.7f,
             )
         }
         PapShimmerBox(
-            modifier = Modifier.size(width = 56.dp, height = 26.dp),
-            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.size(width = SKELETON_PILL_W_DP, height = SKELETON_PILL_H_DP),
+            shape = RoundedCornerShape(SKELETON_PILL_CORNER_DP),
             alphaScale = 0.7f,
         )
     }

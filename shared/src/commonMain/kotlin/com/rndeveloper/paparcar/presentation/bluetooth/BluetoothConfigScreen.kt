@@ -51,6 +51,9 @@ import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
 import com.rndeveloper.paparcar.ui.components.PapPrimaryButton
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
+import com.rndeveloper.paparcar.ui.theme.PapIconSize
+import com.rndeveloper.paparcar.ui.theme.PapGap
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -166,7 +169,7 @@ fun BluetoothConfigContent(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = SCREEN_H_PADDING),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
                 // Padding de contenido: la lista arranca bajo el título y pasa por debajo de la
                 // cabecera al scrollear, en vez de recortarse contra ella. [UI-TOPBAR-COLLAPSE-001]
                 contentPadding = PaddingValues(
@@ -180,7 +183,7 @@ fun BluetoothConfigContent(
                         style = PaparcarType.current.body,
                         color = cs.onSurfaceVariant,
                     )
-                    Spacer(Modifier.height(4.dp))
+                    Spacer(Modifier.height(PaparcarSpacing.xs))
                 }
 
                 item {
@@ -198,7 +201,7 @@ fun BluetoothConfigContent(
                             text = stringResource(Res.string.bt_config_no_devices),
                             style = PaparcarType.current.body,
                             color = cs.onSurfaceVariant,
-                            modifier = Modifier.padding(vertical = 8.dp),
+                            modifier = Modifier.padding(vertical = PaparcarSpacing.sm),
                         )
                     }
                 } else {
@@ -224,8 +227,8 @@ private fun BtOffState(
     onOpenBtSettings: () -> Unit = {},
 ) {
     Column(
-        modifier = modifier.padding(32.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+        modifier = modifier.padding(PaparcarSpacing.xxxl),
+        verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.lg, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(
@@ -241,8 +244,8 @@ private fun BtOffState(
             textAlign = TextAlign.Center,
         )
         OutlinedButton(onClick = onOpenBtSettings) {
-            Icon(Icons.Rounded.Bluetooth, contentDescription = null, modifier = Modifier.size(16.dp))
-            Spacer(Modifier.width(6.dp))
+            Icon(Icons.Rounded.Bluetooth, contentDescription = null, modifier = Modifier.size(PapIconSize.withLabel))
+            Spacer(Modifier.width(PapGap.iconLabel))
             Text(stringResource(Res.string.bt_config_open_bt_settings), style = PaparcarType.current.cta)
         }
     }
@@ -254,8 +257,8 @@ private fun BtPermissionState(
     onRequestPermission: () -> Unit = {},
 ) {
     Column(
-        modifier = modifier.padding(32.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+        modifier = modifier.padding(PaparcarSpacing.xxxl),
+        verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.lg, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(
@@ -296,8 +299,13 @@ private fun DeviceRow(
             subtitle = typeLabel,
             subtitleStyle = PaparcarType.current.label,
             // RadioButton brings its own touch padding, so this row hugs the start edge.
-            contentPadding = PaddingValues(start = 4.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
-            gap = 4.dp,
+            contentPadding = PaddingValues(
+                start = PaparcarSpacing.xs,
+                end = PaparcarSpacing.md,
+                top = DEVICE_ROW_PAD_V_DP,
+                bottom = DEVICE_ROW_PAD_V_DP,
+            ),
+            gap = PaparcarSpacing.xs,
             leading = { RadioButton(selected = selected, onClick = onClick) },
         )
     }
@@ -313,6 +321,7 @@ private fun BluetoothDeviceInfo.typeLabel(): String = when (type) {
 
 // ── Layout tokens ─────────────────────────────────────────────────────────────
 
+private val DEVICE_ROW_PAD_V_DP = 6.dp
 private val SCREEN_H_PADDING            = 16.dp
 private val LIST_V_PADDING              = 12.dp
 private val BT_OFF_ICON_SIZE            = 64.dp

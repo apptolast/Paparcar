@@ -30,6 +30,7 @@ import paparcar.composeapp.generated.resources.empty_records_dark
 import paparcar.composeapp.generated.resources.history_empty_subtitle
 import paparcar.composeapp.generated.resources.history_empty_title
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
+import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 
 /**
  * Active section header — a NEUTRAL [PapSectionHeaderRow] with a leading pulsing dot. Padding-top
@@ -43,12 +44,16 @@ import com.rndeveloper.paparcar.ui.theme.PapAlpha
  * @param accent the identity colour of the vehicle this timeline belongs to (blue = Bluetooth,
  *   green = assisted, grey = unwatched), resolved by the caller through `vehicleIdentityColor`.
  */
+private val HEADER_DOT_DP = 8.dp
+
 @Composable
 internal fun ActiveSectionHeader(text: String, accent: Color) {
     PapSectionHeaderRow(
         title = text,
-        modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
-        leading = { PulsingDot(color = accent, modifier = Modifier.size(8.dp)) },
+        modifier = Modifier.padding(top = PaparcarSpacing.md, bottom = PaparcarSpacing.xs),
+        // Compacta: esta cabecera NO quiere el halo pulsante a tamano completo (14dp), solo el
+        // nucleo. [UI-THE-SPACING-SWEEP-BY-VOLUME-001]
+        leading = { PulsingDot(color = accent, modifier = Modifier.size(HEADER_DOT_DP)) },
     )
 }
 
@@ -72,7 +77,7 @@ internal fun EmptyHistoryState(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 32.dp),
+            .padding(horizontal = PaparcarSpacing.xxxl),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {

@@ -85,6 +85,7 @@ import paparcar.composeapp.generated.resources.home_spot_freshness_recent
 import paparcar.composeapp.generated.resources.location_fallback_spot
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
 import com.rndeveloper.paparcar.ui.theme.PapColor
+import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 
 /**
  * Spot row (v1 redesign).
@@ -137,7 +138,7 @@ internal fun HomeSpotRow(
                 freshness = freshness,
                 ageMs = spot.ageMs(nowMs),
                 modifier = Modifier
-                    .padding(start = 13.dp, end = 16.dp, top = 12.dp, bottom = 12.dp)
+                    .padding(start = ROW_CONTENT_START_DP, end = PaparcarSpacing.lg, top = PaparcarSpacing.md, bottom = PaparcarSpacing.md)
                     .weight(1f),
             )
         }
@@ -317,13 +318,13 @@ internal fun HomeEmptySpots(
             style = PaparcarType.current.caption,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
-            modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 20.dp),
+            modifier = modifier.fillMaxWidth().padding(horizontal = PaparcarSpacing.lg, vertical = EMPTY_ROW_PAD_V_DP),
         )
     } else {
         Column(
-            modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier = modifier.fillMaxWidth().padding(horizontal = PaparcarSpacing.lg, vertical = PaparcarSpacing.sm),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.xs),
         ) {
             EmptySpotsIllustration(
                 modifier = Modifier.size(EMPTY_ILLUSTRATION_W.dp, EMPTY_ILLUSTRATION_H.dp),
@@ -338,6 +339,10 @@ internal fun HomeEmptySpots(
     }
 }
 
+private val ROW_CONTENT_START_DP = 13.dp
+private val EMPTY_ROW_PAD_V_DP = 20.dp
+private val EMPTY_ROW_CTA_GAP_DP = 6.dp
+
 @Composable
 internal fun HomeEmptyFilteredSpots(
     onClearFilter: () -> Unit,
@@ -346,7 +351,7 @@ internal fun HomeEmptyFilteredSpots(
     // Misma receta que su hermana: una linea. La diferencia es que aqui SI hay algo que hacer sin
     // salir del carril - quitar el filtro -, asi que la accion va en la misma linea, en texto.
     Row(
-        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 20.dp),
+        modifier = modifier.fillMaxWidth().padding(horizontal = PaparcarSpacing.lg, vertical = EMPTY_ROW_PAD_V_DP),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -355,7 +360,7 @@ internal fun HomeEmptyFilteredSpots(
             style = PaparcarType.current.caption,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Spacer(Modifier.width(6.dp))
+        Spacer(Modifier.width(EMPTY_ROW_CTA_GAP_DP))
         Text(
             text = stringResource(Res.string.home_filter_empty_clear),
             style = PaparcarType.current.label,
@@ -370,6 +375,9 @@ internal fun HomeEmptyFilteredSpots(
 // but with a trailing "+" instead of a chevron. The "+" alone signals the
 // add-action; the redundant "Notify the community" pill is dropped.
 // ─────────────────────────────────────────────────────────────────────────────
+
+private val REPORT_CARD_PAD_H_DP = 14.dp
+private val REPORT_CARD_GLYPH_DP = 22.dp
 
 @Composable
 internal fun HomeReportSpotCard(
@@ -402,8 +410,8 @@ internal fun HomeReportSpotCard(
             // la de habilitada moría en «…quieres compar…». Recortar una razón la deja diciendo la
             // mitad, y la altura no es nueva — la versión deshabilitada ya reservaba las dos.
             subtitleMaxLines = 2,
-            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp),
-            gap = 12.dp,
+            contentPadding = PaddingValues(horizontal = REPORT_CARD_PAD_H_DP, vertical = PaparcarSpacing.md),
+            gap = PaparcarSpacing.md,
             leading = {
                 // ⛔ Verde, y es una de las dos excepciones del presupuesto: esta tarjeta ES una
                 // acción — toda ella avisa de una plaza — así que su glifo dice lo mismo que su "+".
@@ -415,7 +423,7 @@ internal fun HomeReportSpotCard(
                     size = PRIMARY_CARD_ICON_BOX_DP.dp,
                     container = MaterialTheme.colorScheme.primaryContainer,
                     tint = PapColor.action,
-                    iconSize = 22.dp,
+                    iconSize = REPORT_CARD_GLYPH_DP,
                 )
             },
             trailing = {
@@ -423,7 +431,7 @@ internal fun HomeReportSpotCard(
                     Icons.Rounded.Add,
                     contentDescription = null,
                     tint = PapColor.action,
-                    modifier = Modifier.size(22.dp),
+                    modifier = Modifier.size(REPORT_CARD_GLYPH_DP),
                 )
             },
         )

@@ -97,6 +97,8 @@ import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
 import com.rndeveloper.paparcar.ui.theme.watch
 import com.rndeveloper.paparcar.ui.theme.PapColor
+import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
+import com.rndeveloper.paparcar.ui.theme.PapBorders
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
@@ -292,7 +294,7 @@ fun ParkingHistoryDetailScreen(
             RouteNoticePill(
                 text = stringResource(Res.string.parking_detail_route_recalculating),
                 spinning = true,
-                modifier = Modifier.align(Alignment.TopCenter).padding(top = 8.dp),
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = PaparcarSpacing.sm),
             )
         }
 
@@ -310,7 +312,7 @@ fun ParkingHistoryDetailScreen(
                 spinning = false,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = 8.dp, start = 24.dp, end = 24.dp),
+                    .padding(top = ROUTE_NOTICE_PILL_TOP_DP, start = ROUTE_NOTICE_PILL_H_DP, end = ROUTE_NOTICE_PILL_H_DP),
             )
         }
 
@@ -320,7 +322,7 @@ fun ParkingHistoryDetailScreen(
                 spinning = false,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = 8.dp, start = 24.dp, end = 24.dp),
+                    .padding(top = ROUTE_NOTICE_PILL_TOP_DP, start = ROUTE_NOTICE_PILL_H_DP, end = ROUTE_NOTICE_PILL_H_DP),
             )
         }
 
@@ -336,7 +338,7 @@ fun ParkingHistoryDetailScreen(
                 },
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = 56.dp, start = 24.dp, end = 24.dp),
+                    .padding(top = INFERRED_ROUTE_CARD_TOP_DP, start = ROUTE_NOTICE_PILL_H_DP, end = ROUTE_NOTICE_PILL_H_DP),
             )
         }
 
@@ -410,7 +412,7 @@ fun ParkingHistoryDetailScreen(
             onTypeSelected = { mapType = it },
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(end = 12.dp, top = 12.dp),
+                .padding(end = PaparcarSpacing.md, top = PaparcarSpacing.md),
         )
     }
     }
@@ -424,7 +426,12 @@ private fun InferredRouteQuestionCard(
     // Floating over the map → glass, per the map-chrome rule. The dimmed stretch on the map is the
     // subject; the card only asks. [ROUTE-GAP-HONEST-001]
     GlassSurface(modifier = modifier) {
-        Column(modifier = Modifier.padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 4.dp)) {
+        Column(modifier = Modifier.padding(
+            start = PaparcarSpacing.lg,
+            end = PaparcarSpacing.sm,
+            top = PaparcarSpacing.md,
+            bottom = PaparcarSpacing.xs,
+        )) {
             Text(
                 text = stringResource(Res.string.parking_detail_route_inferred_question),
                 style = PaparcarType.current.body,
@@ -568,25 +575,25 @@ private fun FocusedParking.timestampOrZero(): Long =
  */
 @Composable
 private fun HistoryParkingSkeleton() {
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)) {
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = PaparcarSpacing.xl, vertical = PaparcarSpacing.xs)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.md),
             modifier = Modifier.fillMaxWidth(),
         ) {
             PapShimmerBox(modifier = Modifier.size(SKELETON_LEAD_DP.dp), shape = CircleShape)
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(SKELETON_LINE_GAP_DP),
             ) {
                 PapShimmerBox(
-                    modifier = Modifier.fillMaxWidth(SKELETON_EYEBROW_FRACTION).height(10.dp),
-                    shape = RoundedCornerShape(5.dp),
+                    modifier = Modifier.fillMaxWidth(SKELETON_EYEBROW_FRACTION).height(SKELETON_EYEBROW_HEIGHT_DP),
+                    shape = RoundedCornerShape(SKELETON_EYEBROW_CORNER_DP),
                     alphaScale = SKELETON_SECONDARY_ALPHA,
                 )
                 PapShimmerBox(
-                    modifier = Modifier.fillMaxWidth(SKELETON_TITLE_FRACTION).height(16.dp),
-                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth(SKELETON_TITLE_FRACTION).height(SKELETON_TITLE_HEIGHT_DP),
+                    shape = RoundedCornerShape(SKELETON_TITLE_CORNER_DP),
                 )
             }
         }
@@ -596,8 +603,8 @@ private fun HistoryParkingSkeleton() {
                 modifier = Modifier
                     .padding(bottom = SKELETON_META_ROW_GAP.dp)
                     .fillMaxWidth(SKELETON_META_FRACTION)
-                    .height(12.dp),
-                shape = RoundedCornerShape(6.dp),
+                    .height(SKELETON_META_HEIGHT_DP),
+                shape = PapShapes.cell,
                 alphaScale = SKELETON_SECONDARY_ALPHA,
             )
         }
@@ -620,7 +627,7 @@ private fun HistoryParkingMissing() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = MISSING_V_PAD.dp),
+            .padding(horizontal = PaparcarSpacing.xl, vertical = MISSING_V_PAD.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
@@ -882,6 +889,15 @@ private const val KEY_UNRESOLVED = "unresolved"
 private const val KEY_NOT_FOUND = "not_found"
 // Widths as fractions of the card, sized off the real card's anatomy so nothing jumps on arrival.
 private const val SKELETON_LEAD_DP = 40
+/** Alto y radio de las dos líneas del esqueleto — dimensión de DIBUJO, no de spacing.
+ *  [UI-THE-SPACING-SWEEP-BY-VOLUME-001] */
+private val SKELETON_EYEBROW_HEIGHT_DP = 10.dp
+private val SKELETON_EYEBROW_CORNER_DP = 5.dp
+private val SKELETON_TITLE_HEIGHT_DP = 16.dp
+private val SKELETON_TITLE_CORNER_DP = 8.dp
+private val SKELETON_META_HEIGHT_DP = 12.dp
+private val SKELETON_LINE_GAP_DP = 6.dp
+
 private const val SKELETON_EYEBROW_FRACTION = 0.34f
 private const val SKELETON_TITLE_FRACTION = 0.72f
 private const val SKELETON_META_FRACTION = 0.55f
@@ -924,17 +940,17 @@ fun RouteNoticePill(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
             modifier = Modifier
                 // ⚠️ Un techo de ancho, no `fillMaxWidth`: sin él la frase se estira de borde a
                 // borde y deja de leerse como un aviso flotante; con él parte por donde tiene que
                 // partir y el fondo la envuelve entera.
                 .widthIn(max = ROUTE_PILL_MAX_W_DP.dp)
-                .padding(horizontal = 14.dp, vertical = 10.dp),
+                .padding(horizontal = ROUTE_PILL_PAD_H_DP, vertical = ROUTE_PILL_PAD_V_DP),
         ) {
             if (spinning) {
                 CircularProgressIndicator(
-                    strokeWidth = 2.dp,
+                    strokeWidth = PapBorders.strong,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(ROUTE_PILL_SPINNER_DP.dp),
                 )
@@ -947,6 +963,15 @@ fun RouteNoticePill(
         }
     }
 }
+
+/** Las dos píldoras idénticas (recalculando / sin recorrido) comparten posición — nombrado tras
+ *  encontrarlas repetidas verbatim. La tarjeta de pregunta usa el mismo margen lateral, a otra
+ *  altura. [UI-THE-SPACING-SWEEP-BY-VOLUME-001] */
+private val ROUTE_NOTICE_PILL_TOP_DP = PaparcarSpacing.sm
+private val ROUTE_NOTICE_PILL_H_DP = PaparcarSpacing.xxl
+private val INFERRED_ROUTE_CARD_TOP_DP = 56.dp
+private val ROUTE_PILL_PAD_H_DP = 14.dp
+private val ROUTE_PILL_PAD_V_DP = 10.dp
 
 private const val ROUTE_PILL_ELEVATION_DP = 3
 private const val ROUTE_PILL_SPINNER_DP = 14

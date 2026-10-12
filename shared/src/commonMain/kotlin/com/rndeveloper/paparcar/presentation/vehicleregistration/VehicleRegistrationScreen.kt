@@ -88,6 +88,7 @@ import com.rndeveloper.paparcar.ui.components.vehicleSizeLabel
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -313,11 +314,11 @@ fun VehicleRegistrationContent(
             // ── Identity section — brand + model (required) ───────────────────
             Column(
                 modifier = Modifier.padding(horizontal = SCREEN_H_PADDING),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.md),
             ) {
                 PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_identity))
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm)) {
                     Box(modifier = Modifier.weight(1f)) {
                         ExposedDropdownMenuBox(
                             expanded = brandExpanded,
@@ -409,7 +410,7 @@ fun VehicleRegistrationContent(
             // ── Carbody section — auto-inferred card + manual override picker ──
             Column(
                 modifier = Modifier.padding(horizontal = SCREEN_H_PADDING),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
             ) {
                 PapSectionHeader(title = stringResource(Res.string.vehicle_registration_carbody_section))
                 val expectsCarbody = state.expectsCarbody
@@ -443,7 +444,7 @@ fun VehicleRegistrationContent(
             if (state.expectsCarbody) {
                 Column(
                     modifier = Modifier.padding(horizontal = SCREEN_H_PADDING),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
                 ) {
                     PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_color), optional = true)
                     VehicleColorSelector(
@@ -461,7 +462,7 @@ fun VehicleRegistrationContent(
             // ── Nickname section — optional ───────────────────────────────────
             Column(
                 modifier = Modifier.padding(horizontal = SCREEN_H_PADDING),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.md),
             ) {
                 PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_optional), optional = true)
                 PapTextField(
@@ -531,7 +532,7 @@ fun VehicleRegistrationContent(
             if (!isNewVehicle) {
                 Column(
                     modifier = Modifier.padding(horizontal = SCREEN_H_PADDING),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
                 ) {
                     PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_detection), optional = true)
                     PapOutlinedCard(
@@ -562,7 +563,7 @@ fun VehicleRegistrationContent(
             // ── Privacy section ──────────────────────────────────────────────
             Column(
                 modifier = Modifier.padding(horizontal = SCREEN_H_PADDING),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
             ) {
                 PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_privacy), optional = true)
                 PapOutlinedCard(
@@ -598,10 +599,10 @@ fun VehicleRegistrationContent(
                         .fillMaxWidth()
                         .padding(horizontal = SCREEN_H_PADDING),
                 ) {
-                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                    Column(modifier = Modifier.padding(horizontal = PaparcarSpacing.lg, vertical = DELETE_CARD_V_PADDING)) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.md),
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.Delete,
@@ -623,7 +624,7 @@ fun VehicleRegistrationContent(
                                 text = stringResource(Res.string.my_car_delete_blocked_parked),
                                 style = PaparcarType.current.caption,
                                 color = cs.onSurface.copy(alpha = PapAlpha.subtitle),
-                                modifier = Modifier.padding(top = 6.dp),
+                                modifier = Modifier.padding(top = DELETE_REASON_TOP_GAP),
                             )
                         }
                     }
@@ -727,13 +728,13 @@ private fun VehicleHeroCard(
                 defaultCarbody = CarbodyType.HATCHBACK_MEDIUM,
                 modifier = Modifier.size(HERO_ICON_SIZE),
             )
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(PaparcarSpacing.md))
             Text(
                 text = heroName,
                 style = PaparcarType.current.sectionTitle,
                 color = nameColor,
             )
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(PaparcarSpacing.xs))
             Text(
                 text = sizeLabel,
                 style = PaparcarType.current.caption,
@@ -770,7 +771,7 @@ private fun VehicleRegistrationBottomBar(
         )
 
         if (hint != null && !isSaving) {
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(SUBMIT_HINT_GAP))
             Text(
                 text = hint,
                 style = PaparcarType.current.caption,
@@ -797,12 +798,12 @@ private fun FuelSection(
     val cs = MaterialTheme.colorScheme
     Column(
         modifier = Modifier.padding(horizontal = SCREEN_H_PADDING),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
     ) {
         PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_fuel))
         FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
         ) {
             FuelType.entries.forEach { fuel ->
                 PaparcarFilterChip(
@@ -880,8 +881,8 @@ private fun FuelSection(
                 color = cs.onSurfaceVariant,
             )
             FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
+                verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
             ) {
                 EnergyLabel.entries.forEach { label ->
                     val selected = state.energyLabel == label
@@ -900,6 +901,13 @@ private fun FuelSection(
 }
 
 // ── Layout tokens ─────────────────────────────────────────────────────────────
+
+/** El padding del cuerpo de la card de borrar, que no coincide con el de la escala —14 dp, no 16.
+ *  El aire bajo el motivo de bloqueo, y el aire CTA→pista: cada uno aparece una sola vez.
+ *  [UI-THE-SPACING-SWEEP-BY-VOLUME-001] */
+private val DELETE_CARD_V_PADDING = 14.dp
+private val DELETE_REASON_TOP_GAP = 6.dp
+private val SUBMIT_HINT_GAP = 6.dp
 
 private val SCREEN_H_PADDING             = 16.dp
 private val SECTION_SPACING              = 16.dp

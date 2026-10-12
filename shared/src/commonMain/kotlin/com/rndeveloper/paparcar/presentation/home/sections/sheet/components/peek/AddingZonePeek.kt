@@ -27,6 +27,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
@@ -86,6 +87,7 @@ import com.rndeveloper.paparcar.ui.theme.PapAlpha
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PapGap
 import com.rndeveloper.paparcar.ui.theme.PapIconSize
+import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 
 // ═════════════════════════════════════════════════════════════════════════════
 // AddingZonePeek — "Nueva zona habitual" (create + edit). [HOME-ATOMIZE-001 F3]
@@ -103,6 +105,7 @@ import com.rndeveloper.paparcar.ui.theme.PapIconSize
 // ═════════════════════════════════════════════════════════════════════════════
 
 private const val ZONE_ICON_CHIP_DP = 40
+private val ZONE_ICON_GLYPH_DP = 20.dp
 private val SECTION_LABEL_ALPHA = PapAlpha.subtitle
 
 /** The zone form's live values, projected from the peek slice by the orchestrator. */
@@ -206,7 +209,7 @@ internal fun AddingZonePeek(
                 modifier = Modifier.fillMaxWidth(),
             )
             if (form.isEditing) {
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(PaparcarSpacing.sm))
                 // The one sanctioned destructive red, behind a confirm — same contract as
                 // "delete record" in the parking modal. [UI-SHEET-004]
                 PapFooterButton(
@@ -317,9 +320,9 @@ private fun ZoneSaveDialog(
                     .focusRequester(focusRequester),
             )
             // El divisor separa la decisión que tiene el foco (el nombre) de lo que la zona SERÁ.
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(PaparcarSpacing.lg))
             PapDivider()
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(PaparcarSpacing.lg))
             ZonePrivacyToggle(
                 isPrivate = form.isPrivate,
                 enabled = !form.isSaving,
@@ -347,12 +350,16 @@ private fun ZoneIconPickerRow(
         // Aligned with the rest of the modal content (PapSheet already insets this
         // row). On scroll the icons clip at the content box. [ZONE-AREA-001]
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
     ) {
         items(items = ZoneIcon.PRESETS, key = { it }) { key ->
             val isSelected = key == selectedKey
             Box(
+                // ⛔ El area de toque era 40 dp, por debajo del minimo. Lo pintado no cambia:
+                // `minimumInteractiveComponentSize()` va ANTES del `.size()` pintado, igual que
+                // `IconButton` de Material3. [UI-THE-SPACING-SWEEP-BY-VOLUME-001]
                 modifier = Modifier
+                    .minimumInteractiveComponentSize()
                     .size(ZONE_ICON_CHIP_DP.dp)
                     .clip(CircleShape)
                     .background(
@@ -367,7 +374,7 @@ private fun ZoneIconPickerRow(
                     contentDescription = null,
                     tint = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp),
+                    modifier = Modifier.size(ZONE_ICON_GLYPH_DP),
                 )
             }
         }
@@ -417,7 +424,7 @@ private fun ZonePrivacyToggle(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
         ) {
             Icon(
                 imageVector = Icons.Rounded.Lock,
@@ -458,7 +465,7 @@ private fun ZoneNotifyToggle(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
         ) {
             Icon(
                 imageVector = Icons.Rounded.Notifications,

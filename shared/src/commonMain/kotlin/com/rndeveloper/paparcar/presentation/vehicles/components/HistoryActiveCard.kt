@@ -24,6 +24,10 @@ private const val PULSE_COLLAPSE_DURATION = PapMotion.PulseCollapse
  * (`COLOR-SYSTEM.md` §3), so it can never fall back to the brand green.
  * [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001]
  */
+private val BOX_DP = 14.dp
+private val CORE_DP = 8.dp
+private val RING_EXPANSION_DP = 6.dp
+
 @Composable
 internal fun PulsingDot(color: Color, modifier: Modifier = Modifier) {
     val ring = remember { Animatable(0f) }
@@ -33,12 +37,15 @@ internal fun PulsingDot(color: Color, modifier: Modifier = Modifier) {
             ring.animateTo(0f, tween(PULSE_COLLAPSE_DURATION, easing = PapMotion.EaseInOut))
         }
     }
-    Box(modifier = modifier.size(14.dp), contentAlignment = Alignment.Center) {
+    // Geometria del propio dibujo, acoplada: la caja (BOX_DP) es justo el maximo que alcanza el
+    // halo (CORE_DP + RING_EXPANSION_DP), y el nucleo en reposo mide CORE_DP. No es spacing de
+    // interfaz — es la animacion. [UI-THE-SPACING-SWEEP-BY-VOLUME-001]
+    Box(modifier = modifier.size(BOX_DP), contentAlignment = Alignment.Center) {
         Box(
             Modifier
-                .size((8 + 6 * ring.value).dp)
+                .size(CORE_DP + RING_EXPANSION_DP * ring.value)
                 .background(color.copy(alpha = (1f - ring.value) * 0.35f), CircleShape)
         )
-        Box(Modifier.size(8.dp).background(color, CircleShape))
+        Box(Modifier.size(CORE_DP).background(color, CircleShape))
     }
 }

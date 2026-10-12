@@ -12,19 +12,20 @@ import kotlin.test.assertTrue
  * which is outside [GuardrailScope.featureFiles] by construction, so the declarations themselves are
  * never the violation; re-declaring them next to a consumer is.
  *
- * ## Why these three checks and not the four that were planned
+ * ## Why there were only three checks for a while, and why there are four now
  *
- * The ticket drafted four, and two of them did not survive contact with the tree. Written down
- * because a rule that was considered and rejected is worth more than a rule that was never thought
- * of:
+ * The ticket drafted four, and one did not survive contact with the tree:
  *
  *  - *"no `Row` with `weight(1f)` children without a declared `verticalAlignment`"* — **retired**:
  *    the sweep found zero cases where that produced a defect (the weighted siblings are either
  *    already centred, or fixed-height components, or text), and `Alignment.Top` is correct when the
  *    siblings are text columns of different lengths. A prohibition with no witness is not a check.
- *  - *"no inline `dp` literal in `Modifier.size(...)`"* — **deferred to the screen-by-screen sweep**
- *    (issue #137): it has **30** live violations, and a check that cannot be green on the day it
- *    lands gets disabled, not fixed.
+ *
+ * The fourth — *"no inline `dp` literal in `Modifier.size(...)`"* — was **deferred, not dropped**
+ * [UI-THE-SPACING-SWEEP-BY-VOLUME-001]: it had 30 live violations when #136 closed, and a check
+ * that cannot be green on the day it lands gets disabled, not fixed. The screen-by-screen sweep
+ * (#137) brought it to 0 — bar two literals with their own written reason — so it joins the other
+ * three here.
  *
  * ## What these checks do NOT catch
  *
@@ -112,6 +113,36 @@ class SpacingGuardrailTest {
         )
     }
 
+    /**
+     * The fourth check: no feature file writes `Modifier.size(<literal>.dp)` — a bare number with
+     * no name, which is exactly the form the project's own magic-number rule forbids. Every real
+     * drawing dimension in this tree already has one: a control's silhouette comes from
+     * [com.rndeveloper.paparcar.ui.theme.PapControlHeight], an icon beside a label from
+     * [com.rndeveloper.paparcar.ui.theme.PapIconSize], and everything else — marker geometry,
+     * shimmer placeholders, a hero illustration — gets a `private val NAME_DP` where it is drawn.
+     *
+     * Two exemptions, and the allowlist names them instead of hiding them in a regex: the email
+     * seal and its checkmark in `SettingsScreen`, each already carrying its own written reason in
+     * the code (*"16 dp: la altura de la línea del correo"*) rather than a role this file could
+     * recognise. An allowlist that cannot say WHY each entry is in it is a hole, not an exception.
+     */
+    @Test
+    fun `no feature file inlines a literal size`() {
+        val violations = GuardrailScope.featureFiles()
+            .filterNot { it.name in SIZED_LITERAL_ALLOWLIST }
+            .flatMap { file ->
+                file.text.lines()
+                    .filter { line -> INLINE_SIZE_LITERAL_REGEX.containsMatchIn(line) }
+                    .map { line -> "${file.name}.kt: ${line.trim()}" }
+            }
+        val header = "[Modifier.size(<literal>.dp) - name it: a token if the role is shared, a " +
+            "private val if it is not] ${violations.size} violation(s):"
+        assertTrue(
+            violations.isEmpty(),
+            (listOf(header) + violations.map { "  - $it" }).joinToString(System.lineSeparator()),
+        )
+    }
+
     private companion object {
         /** A `val`/`const val` whose NAME claims to be a control's height. */
         val CONTROL_HEIGHT_DECL_REGEX =
@@ -122,6 +153,15 @@ class SpacingGuardrailTest {
 
         /** `Modifier.size(18.dp)` written out where the token belongs. */
         val INLINE_WITH_LABEL_ICON_REGEX = Regex("""\.size\(18\.dp\)""")
+
+        /** `Modifier.size(` (or `.height(`/`.width(` standing in for it) with a bare literal — the
+         *  general case the three earlier, narrower checks already carve their own slice out of. */
+        val INLINE_SIZE_LITERAL_REGEX = Regex("""\.size\(\s*\d+(?:\.\d+)?\.dp\s*\)""")
+
+        /** `SettingsScreen` carries two `.size(<literal>.dp)` calls with their OWN written reason
+         *  in the code — not a role this file's regex can name, so it is listed, not matched.
+         *  [UI-THE-SPACING-SWEEP-BY-VOLUME-001] */
+        val SIZED_LITERAL_ALLOWLIST = setOf("SettingsScreen")
 
         /**
          * The components that OWN a control's silhouette. Not an exemption list — the opposite: this

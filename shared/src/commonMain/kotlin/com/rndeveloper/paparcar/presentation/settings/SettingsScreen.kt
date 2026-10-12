@@ -126,6 +126,8 @@ import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.outlineSubtle
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PapIconSize
+import com.rndeveloper.paparcar.ui.theme.PapControlHeight
+import com.rndeveloper.paparcar.ui.theme.PapGap
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -360,7 +362,7 @@ fun SettingsContent(
                     showClearButton = false,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(PaparcarSpacing.sm))
                 Text(
                     text = stringResource(Res.string.settings_send_diagnostics_no_reply),
                     style = PaparcarType.current.caption,
@@ -717,7 +719,11 @@ fun SettingsContent(
 private fun SectionHeaderMuted(title: String) {
     PapSectionHeader(
         title = title,
-        modifier = Modifier.padding(top = 12.dp, bottom = 2.dp, start = 4.dp),
+        modifier = Modifier.padding(
+            top = SECTION_HEADER_TOP_DP,
+            bottom = SECTION_HEADER_BOTTOM_DP,
+            start = SECTION_HEADER_START_DP,
+        ),
     )
 }
 
@@ -726,9 +732,19 @@ private fun SectionHeaderDanger(title: String) {
     PapSectionHeader(
         title = title,
         color = MaterialTheme.colorScheme.error,
-        modifier = Modifier.padding(top = 12.dp, bottom = 2.dp, start = 4.dp),
+        modifier = Modifier.padding(
+            top = SECTION_HEADER_TOP_DP,
+            bottom = SECTION_HEADER_BOTTOM_DP,
+            start = SECTION_HEADER_START_DP,
+        ),
     )
 }
+
+/** El padding de una cabecera de sección muda o de aviso, repetido verbatim dos veces hasta
+ *  nombrarlo aquí. [UI-THE-SPACING-SWEEP-BY-VOLUME-001] */
+private val SECTION_HEADER_TOP_DP = PaparcarSpacing.md
+private val SECTION_HEADER_BOTTOM_DP = 2.dp
+private val SECTION_HEADER_START_DP = PaparcarSpacing.xs
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Detection & permissions section
@@ -830,10 +846,13 @@ private fun DetectionHealthRow(state: SettingsState, onFix: () -> Unit, onFixRel
                     shape = PapShapes.row,
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = PapColor.attention),
                     border = BorderStroke(PapBorders.thin, PapColor.attention),
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                    contentPadding = PaddingValues(
+                        horizontal = FIX_BUTTON_PADDING_H_DP,
+                        vertical = FIX_BUTTON_PADDING_V_DP,
+                    ),
                 ) {
-                    Icon(Icons.Rounded.Build, contentDescription = null, modifier = Modifier.size(14.dp))
-                    Spacer(Modifier.size(6.dp))
+                    Icon(Icons.Rounded.Build, contentDescription = null, modifier = Modifier.size(FIX_BUTTON_ICON_DP))
+                    Spacer(Modifier.size(FIX_BUTTON_ICON_GAP_DP))
                     Text(
                         stringResource(Res.string.settings_detection_fix),
                         style = PaparcarType.current.cta,
@@ -918,13 +937,19 @@ private fun EmailVerificationRow(sent: Boolean, sending: Boolean, onClick: () ->
     )
 }
 
+/** El aire entre el texto de la fila y su marca de confirmación / su flecha — repetido, sin
+ *  nombre, en los dos estados «listo» de esta pantalla (correo verificado, detección configurada).
+ *  [UI-THE-SPACING-SWEEP-BY-VOLUME-001] */
+private val TRAILING_CHECK_GAP_DP = 4.dp
+private val TRAILING_CHEVRON_GAP_DP = 2.dp
+
 @Composable
 private fun EmailVerificationTrailing(sent: Boolean) {
     val cs = MaterialTheme.colorScheme
     if (sent) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(TRAILING_CHECK_GAP_DP),
         ) {
             Text(
                 stringResource(Res.string.settings_profile_email_verify_sent),
@@ -936,7 +961,7 @@ private fun EmailVerificationTrailing(sent: Boolean) {
     } else {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            horizontalArrangement = Arrangement.spacedBy(TRAILING_CHEVRON_GAP_DP),
         ) {
             Text(
                 stringResource(Res.string.settings_profile_email_verify_cta),
@@ -954,7 +979,7 @@ private fun SetupStatusTrailing(configured: Boolean) {
     if (configured) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(TRAILING_CHECK_GAP_DP),
         ) {
             Text(
                 stringResource(Res.string.settings_detection_configured),
@@ -966,7 +991,7 @@ private fun SetupStatusTrailing(configured: Boolean) {
     } else {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            horizontalArrangement = Arrangement.spacedBy(TRAILING_CHEVRON_GAP_DP),
         ) {
             Text(
                 stringResource(Res.string.settings_detection_setup),
@@ -986,13 +1011,21 @@ private fun MiniHeader(text: String) {
     PapSectionHeaderRow(
         title = text,
         dense = true,
-        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
+        modifier = Modifier.padding(
+            start = PaparcarSpacing.lg,
+            end = PaparcarSpacing.lg,
+            top = PaparcarSpacing.md,
+            bottom = PaparcarSpacing.xs,
+        ),
     )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Account — Profile card (avatar + logout)
 // ─────────────────────────────────────────────────────────────────────────────
+
+/** El aire entre el avatar y el bloque de nombre/correo. */
+private val AVATAR_NAME_GAP_DP = 14.dp
 
 @Composable
 private fun ProfileCardV2(
@@ -1019,13 +1052,13 @@ private fun ProfileCardV2(
         // de un `padding(16.dp)` común quedaba **42 px hacia dentro por los dos lados** — medido en
         // device contra «Bluetooth del coche»: su icono entraba 42 px y su CTA se quedaba 42 px
         // corto del borde. [AUTH-AN-UNCONFIRMED-EMAIL-MUST-SAY-SO-001]
-        Column(modifier = Modifier.padding(vertical = 16.dp)) {
+        Column(modifier = Modifier.padding(vertical = PaparcarSpacing.lg)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(horizontal = 16.dp),
+                modifier = Modifier.padding(horizontal = PaparcarSpacing.lg),
             ) {
                 ProfileAvatar(displayName = displayName, photoUrl = photoUrl)
-                Spacer(Modifier.size(14.dp))
+                Spacer(Modifier.size(AVATAR_NAME_GAP_DP))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = displayName,
@@ -1039,7 +1072,7 @@ private fun ProfileCardV2(
                         // califica.
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.xs),
                         ) {
                             Text(
                                 text = email,
@@ -1096,7 +1129,7 @@ private fun ProfileCardV2(
             // sello de arriba) y el pendiente se ANUNCIA y se resuelve. Peso visual proporcional a
             // la acción que hace falta, no al hecho de existir.
             if (emailVerified == false) {
-                Spacer(Modifier.size(12.dp))
+                Spacer(Modifier.size(PaparcarSpacing.md))
                 PapDivider()
                 EmailVerificationRow(
                     sent = verificationSent,
@@ -1106,17 +1139,17 @@ private fun ProfileCardV2(
             }
 
             // Logout outlined
-            Spacer(Modifier.size(16.dp))
+            Spacer(Modifier.size(PaparcarSpacing.lg))
             OutlinedButton(
                 onClick = onLogout,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .height(48.dp),
+                    .padding(horizontal = PaparcarSpacing.lg)
+                    .height(PapControlHeight.button),
                 shape = PapShapes.row,
             ) {
-                Icon(Icons.AutoMirrored.Rounded.Logout, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.size(6.dp))
+                Icon(Icons.AutoMirrored.Rounded.Logout, contentDescription = null, modifier = Modifier.size(DESTRUCTIVE_BUTTON_ICON_DP))
+                Spacer(Modifier.size(DESTRUCTIVE_BUTTON_ICON_GAP_DP))
                 Text(
                     stringResource(Res.string.settings_profile_logout),
                     style = PaparcarType.current.cta,
@@ -1222,7 +1255,10 @@ private fun <K> SettingsSegmentedRow(
             selected = selected,
             onSelect = onSelect,
             optionIcon = optionIcon,
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 14.dp),
+            // 14 dp: el mismo "aire entre bloques" de un peek/hoja que PapGap.block ya mide — aquí
+            // separa el segmentado del final de la card, el último bloque de la sección.
+            // [UI-THE-SPACING-SWEEP-BY-VOLUME-001]
+            modifier = Modifier.padding(start = PaparcarSpacing.lg, end = PaparcarSpacing.lg, bottom = PapGap.block),
         )
     }
 }
@@ -1280,26 +1316,26 @@ private fun DangerZoneCard(
 ) {
     val cs = MaterialTheme.colorScheme
     PapDangerCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(PaparcarSpacing.lg)) {
             Text(
                 subtitle,
                 style = PaparcarType.current.caption,
                 color = cs.onSurface.copy(alpha = PapAlpha.body),
             )
-            Spacer(Modifier.size(10.dp))
+            Spacer(Modifier.size(DELETE_BUTTON_TOP_GAP_DP))
             OutlinedButton(
                 onClick = onClick,
                 enabled = !deleting,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp),
+                    .height(PapControlHeight.button),
                 shape = PapShapes.row,
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = cs.error),
                 border = BorderStroke(PapBorders.medium, cs.error),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Rounded.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.size(6.dp))
+                    Icon(Icons.Rounded.Delete, contentDescription = null, modifier = Modifier.size(DESTRUCTIVE_BUTTON_ICON_DP))
+                    Spacer(Modifier.size(DESTRUCTIVE_BUTTON_ICON_GAP_DP))
                     // Button text → cta, the app's button convention. [TYPO-AUDIT-001]
                     Text(label, style = PaparcarType.current.cta)
                 }
@@ -1339,3 +1375,25 @@ private const val DIAGNOSTICS_MESSAGE_MAX_LINES = 5
 private const val THEME_SWATCH_DP = 14
 private const val THEME_SWATCH_RING_DP = 1
 
+/** El botón "Fix" que vive dentro de la fila (único en este fichero: no hay un segundo
+ *  call site con el que contrastarlo). [UI-THE-SPACING-SWEEP-BY-VOLUME-001] */
+private val FIX_BUTTON_PADDING_H_DP = 14.dp
+private val FIX_BUTTON_PADDING_V_DP = 6.dp
+private val FIX_BUTTON_ICON_DP = 14.dp
+private val FIX_BUTTON_ICON_GAP_DP = 6.dp
+
+/**
+ * Icono + aire del botón de pie destructivo (Logout, Delete) — la MISMA pareja, repetida dos
+ * veces. [UI-THE-SPACING-SWEEP-BY-VOLUME-001]
+ *
+ * ✅ **Unificado con el sistema** (decisión del user, 09-10-2026):
+ * [PapIconSize.withLabel][com.rndeveloper.paparcar.ui.theme.PapIconSize.withLabel] (18) y
+ * [PapGap.iconLabel][com.rndeveloper.paparcar.ui.theme.PapGap.iconLabel] (8) sustituyen el `16`/`6`
+ * que tenían estos dos botones. Mismo defecto que #136 ya corrigió una vez en `PapFooterButton`
+ * (gap 10 vs 8) — aquí con Logout y Delete. Cambio VISIBLE, verificado con captura antes/después.
+ */
+// ✅ Unificado con el sistema (decisión del user, 09-10): el mismo defecto que #136 ya
+// corrigió una vez en `PapFooterButton` (gap 10 vs 8). Cambio VISIBLE, capturado antes/después.
+private val DESTRUCTIVE_BUTTON_ICON_DP = PapIconSize.withLabel
+private val DESTRUCTIVE_BUTTON_ICON_GAP_DP = PapGap.iconLabel
+private val DELETE_BUTTON_TOP_GAP_DP = 10.dp

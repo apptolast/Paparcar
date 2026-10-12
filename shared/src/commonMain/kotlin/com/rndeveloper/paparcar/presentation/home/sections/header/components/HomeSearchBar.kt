@@ -33,6 +33,8 @@ import com.rndeveloper.paparcar.ui.components.GlassSurface
 import com.rndeveloper.paparcar.ui.components.LocalMapInteracting
 import com.rndeveloper.paparcar.ui.components.PapClearIconButton
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import com.rndeveloper.paparcar.ui.theme.PapBorders
+import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -54,6 +56,8 @@ private val FLOATING_SHADOW_ELEVATION = 6.dp
 // Match the map-type FAB icon size/tint so the search lupa reads as a peer of
 // the layers/GPS/parked-car circular FABs on the opposite side.
 private val SEARCH_LEADING_ICON_SIZE = 24.dp
+private val SEARCH_BAR_CORNER_DP = 28.dp
+private val SEARCH_RESULT_ICON_DP = 16.dp
 
 @Composable
 fun HomeSearchBar(
@@ -92,9 +96,9 @@ fun HomeSearchBar(
     Column(modifier = modifier) {
         GlassSurface(
             shape = RoundedCornerShape(
-                topStart = 28.dp, topEnd = 28.dp,
-                bottomStart = if (dropdownVisible) 0.dp else 28.dp,
-                bottomEnd = if (dropdownVisible) 0.dp else 28.dp,
+                topStart = SEARCH_BAR_CORNER_DP, topEnd = SEARCH_BAR_CORNER_DP,
+                bottomStart = if (dropdownVisible) 0.dp else SEARCH_BAR_CORNER_DP,
+                bottomEnd = if (dropdownVisible) 0.dp else SEARCH_BAR_CORNER_DP,
             ),
             shadowElevation = FLOATING_SHADOW_ELEVATION,
             modifier = Modifier.fillMaxWidth(),
@@ -121,7 +125,7 @@ fun HomeSearchBar(
                 },
                 leadingIcon = {
                     if (isSearching) {
-                        CircularProgressIndicator(modifier = Modifier.size(SEARCH_LEADING_ICON_SIZE), strokeWidth = 2.dp)
+                        CircularProgressIndicator(modifier = Modifier.size(SEARCH_LEADING_ICON_SIZE), strokeWidth = PapBorders.strong)
                     } else {
                         Icon(
                             imageVector = Icons.Rounded.Search,
@@ -159,7 +163,7 @@ fun HomeSearchBar(
         // ── Results card ──────────────────────────────────────────────
         if (dropdownVisible) {
             GlassSurface(
-                shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp),
+                shape = RoundedCornerShape(bottomStart = PaparcarSpacing.lg, bottomEnd = PaparcarSpacing.lg),
                 colors = GlassDefaults.colors(
                     border = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
                 ),
@@ -168,21 +172,21 @@ fun HomeSearchBar(
             ) {
                 Column {
                     results.take(5).forEachIndexed { index, result ->
-                        if (index > 0) PapDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                        if (index > 0) PapDivider(modifier = Modifier.padding(horizontal = PaparcarSpacing.lg))
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { onResultClick(result) }
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                                .padding(horizontal = PaparcarSpacing.lg, vertical = PaparcarSpacing.md),
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     Icons.Rounded.Search,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(16.dp),
+                                    modifier = Modifier.size(SEARCH_RESULT_ICON_DP),
                                 )
-                                Spacer(Modifier.width(12.dp))
+                                Spacer(Modifier.width(PaparcarSpacing.md))
                                 Text(
                                     text = result.displayName,
                                     style = PaparcarType.current.caption,
@@ -198,15 +202,15 @@ fun HomeSearchBar(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                                .padding(horizontal = PaparcarSpacing.lg, vertical = PaparcarSpacing.md),
                         ) {
                             Icon(
                                 Icons.Rounded.SearchOff,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(16.dp),
+                                modifier = Modifier.size(SEARCH_RESULT_ICON_DP),
                             )
-                            Spacer(Modifier.width(12.dp))
+                            Spacer(Modifier.width(PaparcarSpacing.md))
                             Text(
                                 text = stringResource(Res.string.home_search_no_results),
                                 style = PaparcarType.current.caption,

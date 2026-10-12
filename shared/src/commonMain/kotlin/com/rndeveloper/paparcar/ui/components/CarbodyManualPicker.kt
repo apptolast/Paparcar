@@ -37,6 +37,8 @@ import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.PapColor
+import com.rndeveloper.paparcar.ui.theme.PapBorders
+import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.vehicle_registration_carbody_picker_dismiss
@@ -83,7 +85,7 @@ fun CarbodyManualPicker(
                     }
                 }
 
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(PaparcarSpacing.sm))
 
                 CarbodyType.entries
                     .groupBy { it.sizeCategory }
@@ -102,7 +104,7 @@ fun CarbodyManualPicker(
                                 },
                             )
                         }
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(PaparcarSpacing.sm))
                     }
             }
         }
@@ -119,11 +121,16 @@ private fun SizeHeader(size: VehicleSize) {
             // [HOME-VEH-REFINE-001]
             style = PaparcarType.current.badge,
             color = PapColor.actionText,
-            modifier = Modifier.padding(top = 6.dp, bottom = 4.dp),
+            modifier = Modifier.padding(top = HEADER_TOP_PAD_DP, bottom = PaparcarSpacing.xs),
         )
         PapDivider()
     }
 }
+
+private val HEADER_TOP_PAD_DP = 6.dp
+private val ROW_PAD_V_DP = 10.dp
+private val ICON_CIRCLE_DP = 36.dp
+private val ICON_GLYPH_DP = 22.dp
 
 @Composable
 private fun CarbodyRow(
@@ -137,21 +144,21 @@ private fun CarbodyRow(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = PaparcarSpacing.xs),
         shape = PapShapes.row,
         color = bg,
-        border = BorderStroke(if (isSelected) 1.5.dp else 1.dp, border),
+        border = BorderStroke(if (isSelected) PapBorders.medium else PapBorders.thin, border),
     ) {
         Row(
             modifier = Modifier
                 .clickable(onClick = onClick)
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(horizontal = PaparcarSpacing.md, vertical = ROW_PAD_V_DP),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.md),
         ) {
             Box(
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(ICON_CIRCLE_DP)
                     .clip(CircleShape)
                     .background(cs.primary.copy(alpha = 0.14f)),
                 contentAlignment = Alignment.Center,
@@ -160,7 +167,7 @@ private fun CarbodyRow(
                     painter = vehicleIconPainter(carbody = body, size = null),
                     contentDescription = null,
                     tint = Color.Unspecified, // native multi-colour silhouette [BOLT-MARKERS-001]
-                    modifier = Modifier.size(22.dp),
+                    modifier = Modifier.size(ICON_GLYPH_DP),
                 )
             }
             Text(

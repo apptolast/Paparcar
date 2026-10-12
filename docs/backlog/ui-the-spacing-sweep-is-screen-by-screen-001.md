@@ -1,10 +1,11 @@
 # UI-THE-SPACING-SWEEP-IS-SCREEN-BY-SCREEN-001 · Aplicar el sistema pantalla por pantalla, con capturas
 
-**Estado:** 🟡 **Parcial — mergeado el 2026-10-09** · rama
+**Estado:** ✅ **Done — mergeado el 2026-10-09, cerrado el 2026-10-12** · rama
 `refactor/UI-THE-SPACING-SWEEP-IS-SCREEN-BY-SCREEN-001-spacing-sweep` · GitHub issue
-[#137](https://github.com/apptolast/Paparcar/issues/137) · mitad 2 de 2 de
-[#134](https://github.com/apptolast/Paparcar/issues/134); la mitad 1 cerró en
-[#136](https://github.com/apptolast/Paparcar/issues/136), y el desvío a
+[#137](https://github.com/apptolast/Paparcar/issues/137) (cerrada —
+[`ui-the-spacing-sweep-by-volume-001`](ui-the-spacing-sweep-by-volume-001.md) entregó lo que este
+doc dejaba pendiente) · mitad 2 de 2 de [#134](https://github.com/apptolast/Paparcar/issues/134); la
+mitad 1 cerró en [#136](https://github.com/apptolast/Paparcar/issues/136), y el desvío a
 [#138](https://github.com/apptolast/Paparcar/issues/138) ya está en master.
 
 > Este cierre entrega la **ley del hueco junto a un control** (Hallazgo 0), su aplicación donde se

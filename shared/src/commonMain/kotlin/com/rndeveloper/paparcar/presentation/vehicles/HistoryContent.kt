@@ -61,6 +61,7 @@ import com.rndeveloper.paparcar.ui.theme.PapAlpha
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.PapControlHeight
+import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
@@ -323,7 +324,7 @@ fun HistoryContent(
                 item(key = "activity_section_label") {
                     Spacer(Modifier.height(SECTION_TITLE_TOP_GAP.dp))
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = PaparcarSpacing.lg),
                         verticalAlignment = Alignment.Bottom,
                     ) {
                         // Just the section title; the scoped count moved INTO the chart card as its
@@ -348,7 +349,7 @@ fun HistoryContent(
                     )
                 }
 
-                item(key = "chart_spacer") { Spacer(Modifier.height(8.dp)) }
+                item(key = "chart_spacer") { Spacer(Modifier.height(PaparcarSpacing.sm)) }
                 item(key = "chart") {
                     // Scoped km follow the same filter as the bars. The three "facts" that used to
                     // footer this card (day, street, auto share) moved to the figures card below:
@@ -357,7 +358,7 @@ fun HistoryContent(
                     // [STATS-UI-001]
                     // [UI-HISTORY-A-PARTIAL-SUM-IS-NOT-A-TOTAL-001] A sum that does not cover
                     // every parking in scope says so — for whichever measure the bars are drawing.
-                    Box(Modifier.padding(horizontal = 16.dp)) {
+                    Box(Modifier.padding(horizontal = PaparcarSpacing.lg)) {
                         ActivityCard(
                             data = activityBuckets,
                             total = scopeTotal,
@@ -375,7 +376,7 @@ fun HistoryContent(
                 resolved.periodStats?.let { periodStats ->
                     item(key = "period_stats") {
                         Spacer(Modifier.height(STATS_CARD_GAP.dp))
-                        Box(Modifier.padding(horizontal = 16.dp)) {
+                        Box(Modifier.padding(horizontal = PaparcarSpacing.lg)) {
                             VehicleStatsBlock(
                                 stats = periodStats,
                                 periodLabel = vehicleStatsPeriodLabel(state.activePeriod, isPlus),
@@ -403,7 +404,7 @@ fun HistoryContent(
                         Spacer(Modifier.height(SECTION_TITLE_TOP_GAP.dp))
                         Text(
                             text = stringResource(Res.string.history_section_label),
-                            modifier = Modifier.padding(horizontal = 16.dp),
+                            modifier = Modifier.padding(horizontal = PaparcarSpacing.lg),
                             style = PaparcarType.current.sectionTitle,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
@@ -413,7 +414,7 @@ fun HistoryContent(
 
                 if (activeSession != null) {
                     item(key = "active_label") {
-                        Box(Modifier.padding(horizontal = 16.dp)) {
+                        Box(Modifier.padding(horizontal = PaparcarSpacing.lg)) {
                             ActiveSectionHeader(
                                 text = stringResource(Res.string.history_active_section),
                                 accent = PapColor.brandData,
@@ -421,7 +422,7 @@ fun HistoryContent(
                         }
                     }
                     item(key = "active_session") {
-                        Box(Modifier.padding(horizontal = 16.dp)) {
+                        Box(Modifier.padding(horizontal = PaparcarSpacing.lg)) {
                             EndedSessionTimelineNode(
                                 session = activeSession,
                                 isLast = timelineItems.isEmpty(),
@@ -436,7 +437,7 @@ fun HistoryContent(
                 items(items = timelineItems, key = { it.key }) { timelineItem ->
                     // Filter changes swap the timeline set — animate item insert/remove/move
                     // so rows glide instead of snapping. [MOTION-POLISH-001]
-                    Box(Modifier.animateItem().padding(horizontal = 16.dp)) {
+                    Box(Modifier.animateItem().padding(horizontal = PaparcarSpacing.lg)) {
                         when (timelineItem) {
                             is TimelineItem.Header -> DayHeaderRow(label = timelineItem.label)
                             is TimelineItem.Session -> EndedSessionTimelineNode(
@@ -550,7 +551,7 @@ private fun PlusHistoryFooter(
     // CTA shrink from a full-width filled button to a line of text with a chevron — the card
     // already says "this is pressable", so a button inside it was saying it twice.
     PapPremiumSurface(
-        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier = modifier.fillMaxWidth().padding(horizontal = PaparcarSpacing.lg, vertical = PaparcarSpacing.sm),
         shape = PapShapes.card,
         emphasis = PapPremiumEmphasis.Subdued,
         onClick = onSeeAll,
@@ -609,46 +610,46 @@ private fun HistorySkeletonSection(fillMaxSize: Boolean, modifier: Modifier = Mo
         modifier = modifier
             .fillMaxWidth()
             .then(if (fillMaxSize) Modifier.fillMaxSize() else Modifier)
-            .padding(top = 6.dp),
+            .padding(top = SKELETON_SECTION_TOP_PAD),
     ) {
         PapShimmerBox(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = PaparcarSpacing.lg)
                 .height(SKELETON_CHART_HEIGHT_DP.dp),
             shape = RoundedCornerShape(SKELETON_CORNER_DP.dp),
             alphaScale = PapShimmerBlockScale,
         )
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(PaparcarSpacing.sm))
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = PaparcarSpacing.lg),
+            horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
         ) {
             repeat(SKELETON_FILTER_COUNT) {
                 PapShimmerBox(
                     modifier = Modifier
                         .weight(1f)
                         .height(PapControlHeight.chip),
-                    shape = RoundedCornerShape(999.dp),
+                    shape = PapShapes.chip,
                     alphaScale = PapShimmerBlockScale * SKELETON_CHIP_ALPHA_FACTOR,
                 )
             }
         }
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(PaparcarSpacing.md))
         PapShimmerBox(
             modifier = Modifier
-                .padding(start = 16.dp)
+                .padding(start = PaparcarSpacing.lg)
                 .width(SKELETON_HEADER_WIDTH_DP.dp)
                 .height(SKELETON_HEADER_HEIGHT_DP.dp),
-            shape = RoundedCornerShape(4.dp),
+            shape = RoundedCornerShape(SKELETON_HEADER_CORNER_DP),
             alphaScale = PapShimmerBlockScale * SKELETON_HEADER_ALPHA_FACTOR,
         )
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(PaparcarSpacing.sm))
         repeat(SKELETON_ROW_COUNT) {
             PapShimmerBox(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .padding(horizontal = PaparcarSpacing.lg, vertical = PaparcarSpacing.xs)
                     .height(SKELETON_SESSION_HEIGHT_DP.dp),
                 shape = RoundedCornerShape(SKELETON_CORNER_DP.dp),
                 alphaScale = PapShimmerBlockScale,
@@ -672,6 +673,8 @@ private const val SKELETON_CHART_HEIGHT_DP = 148
 private const val SKELETON_SESSION_HEIGHT_DP = 72
 private const val SKELETON_HEADER_WIDTH_DP = 80
 private const val SKELETON_HEADER_HEIGHT_DP = 12
+private val SKELETON_SECTION_TOP_PAD = 6.dp
+private val SKELETON_HEADER_CORNER_DP = 4.dp
 private const val SKELETON_CORNER_DP = 16
 private const val SKELETON_FILTER_COUNT = 4
 private const val SKELETON_ROW_COUNT = 3

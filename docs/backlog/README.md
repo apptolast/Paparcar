@@ -1,6 +1,6 @@
 # Backlog — índice de lo que sigue abierto
 
-> **783 ficheros: 696 cerrados, 78 abiertos, 9 que no son tickets.** Este índice lista **solo lo que
+> **784 ficheros: 698 cerrados, 77 abiertos, 9 que no son tickets.** Este índice lista **solo lo que
 > queda**, para que la pregunta *"¿qué falta?"* se conteste leyendo y no listando el directorio.
 > Verificado contra master `1339ea263` el **2026-10-07**
 > [DOCS-A-CLOSED-TICKET-MUST-NOT-SAY-IT-IS-IN-REVIEW-001]. El barrido anterior
@@ -170,7 +170,6 @@ No esperan a un viaje: esperan a que vuelva a fallar lo que los originó.
 | [`DET-AUDIT-REMEDIATION-001`](DET-AUDIT-REMEDIATION-001.md) · [`audit-a12-001`](audit-a12-001.md) | 📋 planes de auditoría · ⚠️ **las ramas que citan ya no existen**; su contenido sigue vigente, sus punteros no |
 | [`infra-datastore-migration-001`](infra-datastore-migration-001.md) | 📋 propuesto 10-08. No urgente |
 | [`ui-the-light-theme-is-lighter-without-losing-its-edges-001`](ui-the-light-theme-is-lighter-without-losing-its-edges-001.md) | 🔵 **a verificar**: su rama ya no existe, pero el único commit que lo cita es un `docs(` — el barrido del 07-10 lo dejó abierto a propósito en vez de adivinar que aterrizó |
-| [`ui-the-spacing-sweep-is-screen-by-screen-001`](ui-the-spacing-sweep-is-screen-by-screen-001.md) | 🟡 **parcial, mergeado** (issue [#137](https://github.com/apptolast/Paparcar/issues/137)): entra la ley del hueco junto a un control + 7 áreas de toque bajo el mínimo accesible + `TouchTargetGuardrailTest`. ⏳ **queda**: barrido por volumen (`SettingsScreen` 30 literales, `VehicleRegistrationScreen` 24…) y el 4º chequeo de `SpacingGuardrailTest` (#136) |
 | `PIPE-004` | ⏸ diferido — colapsar `EnrichParkingSessionWorker` + `UpdateParkingSessionAddressAndPlaceWorker`. ⚠️ **no tiene doc propio**: solo se le nombra en [`../refactors/PIPE-001-confirm-parking-pipeline.md`](../refactors/PIPE-001-confirm-parking-pipeline.md) |
 
 ## 📐 Producto — piden decisión, no un fix

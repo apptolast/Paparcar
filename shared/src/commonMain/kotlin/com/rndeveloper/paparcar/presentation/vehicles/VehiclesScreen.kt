@@ -125,6 +125,7 @@ import paparcar.composeapp.generated.resources.vehicle_status_active_cd
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PapControlHeight
+import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 
 /**
  * VehiclesScreen (v1 redesign) — Vehicles + History fusionado.
@@ -565,8 +566,13 @@ private fun VehicleTabRow(
         modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(scrollState)
-            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+            .padding(
+                start = PaparcarSpacing.lg,
+                end = PaparcarSpacing.lg,
+                top = PaparcarSpacing.sm,
+                bottom = PaparcarSpacing.sm,
+            ),
+        horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         vehicles.forEachIndexed { index, vehicle ->
@@ -600,7 +606,7 @@ private fun EmptyVehicleState(
     onJoinSharedCar: () -> Unit = {},
 ) {
     Column(
-        modifier = modifier.padding(horizontal = 32.dp),
+        modifier = modifier.padding(horizontal = PaparcarSpacing.xxxl),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -615,24 +621,24 @@ private fun EmptyVehicleState(
                 carbody = null,
                 size = VehicleSize.MEDIUM_SUV,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(60.dp),
+                modifier = Modifier.size(EMPTY_ICON_GLYPH_DP),
             )
         }
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(PaparcarSpacing.xl))
         Text(
             text = stringResource(Res.string.my_car_no_vehicle),
             style = PaparcarType.current.heroTitle,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
         )
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(EMPTY_TITLE_SUBTITLE_GAP_DP))
         Text(
             text = stringResource(Res.string.my_car_empty_subtitle),
             style = PaparcarType.current.body,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = EMPTY_BODY_ALPHA),
             textAlign = TextAlign.Center,
         )
-        Spacer(Modifier.height(28.dp))
+        Spacer(Modifier.height(EMPTY_SUBTITLE_CTA_GAP_DP))
         // The canonical filled CTA, not a hand-rolled twin. The old Surface filled itself with
         // `PapColor.actionText` — the dark READABLE-TEXT leg of the brand green (4.5:1 floor), so in
         // the light theme this was the one filled button darker than every other CTA in the app.
@@ -643,7 +649,7 @@ private fun EmptyVehicleState(
             onClick = onAddVehicle,
             style = PapFooterButtonStyle.Filled,
         )
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(PaparcarSpacing.md))
         TextButton(onClick = onJoinSharedCar) {
             Text(
                 text = stringResource(Res.string.vehicles_join_shared_car),
@@ -669,5 +675,8 @@ private const val PAGER_MIN_SCALE = 0.92f
 private const val ACTIVE_DOT_DP = 6
 private const val SELECTED_FILL_ALPHA = 0.14f
 private const val SELECTED_BORDER_ALPHA = 0.45f // muted "green-line", not the neon primary
+private val EMPTY_ICON_GLYPH_DP = 60.dp
+private val EMPTY_TITLE_SUBTITLE_GAP_DP = 10.dp
+private val EMPTY_SUBTITLE_CTA_GAP_DP = 28.dp
 private const val EMPTY_ICON_CIRCLE_DP = 120
 private val EMPTY_BODY_ALPHA = PapAlpha.body
