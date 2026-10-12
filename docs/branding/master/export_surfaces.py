@@ -596,8 +596,23 @@ def main():
                        '    Baldosa, no glifo suelto: esto cae sobre el fondo de pantalla de\n'
                        '    alguien. Mismo fondo y misma fraccion que el icono de iOS.' % px,
                        TILE_STORE, F_STORE_ICON, px))
+    # ⛔ El logo de la documentacion va TEMADO, por la misma razon que el favicon: el
+    # README de la raiz se lee en GitHub, y el tema del lector no lo controlamos. Con
+    # PapGreen horneado daba 1,42:1 sobre el blanco del tema claro — justo el caso para
+    # el que existe PapGreenLight (3,01:1), y el unico ajuste por superficie que la
+    # marca admite [BRAND-A-NEW-MARK-EARNS-ITS-SURFACES-001].
+    # Lo declaro abierto DOCS-THE-README-MUST-MATCH-THE-TREE-001 y lo cierra
+    # [BRAND-THE-README-MARK-NEEDS-ITS-LIGHT-GREEN-001].
+    #
+    # ⚠️ Degrada BIEN si el sanitizador de GitHub se come el `<style>`: el `fill` del
+    # `<svg>` ya es el verde profundo, asi que el peor caso es verde profundo en los dos
+    # temas — legible en ambos — y nunca el 1,42:1 de antes. Es la misma apuesta que ya
+    # acepta el favicon, y no se puede comprobar desde aqui: hay que mirarlo en GitHub.
     write('docs/assets/paparcar-logo.svg',
-          svg_mark('    Paparcar · la marca, para documentacion. GENERADO.', GREEN))
+          svg_mark('    Paparcar · la marca, para documentacion. GENERADO.\n'
+                   '    El README se lee en GitHub y su tema no lo controlamos, asi que el color\n'
+                   '    lo decide prefers-color-scheme: verde de marca sobre oscuro, verde\n'
+                   '    profundo sobre claro. PapGreen sobre blanco da 1,42:1.', themed=True))
     write('docs/assets/paparcar-emblem.svg',
           emblem_svg('    Paparcar · el EMBLEMA: la marca sobre su disco. GENERADO.\n'
                      '    Lo rasteriza `render_graphics.sh emblem` y lo pega la tarjeta\n'

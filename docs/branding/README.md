@@ -21,7 +21,7 @@
 | Marca en la app, tema claro | `…/paparcar_iconmark_forest.xml` | `#009F5E` |
 | Marca tintable (`PaparcarMark`) | `…/paparcar_iconmark_white.xml` | blanco |
 | Favicon | `hosting/public/favicon.svg` | según `prefers-color-scheme` |
-| Documentación | `docs/assets/paparcar-logo.svg` | `#25F48C` |
+| Documentación (README de la raíz) | `docs/assets/paparcar-logo.svg` | según `prefers-color-scheme` — el tema de GitHub no lo controlamos y `#25F48C` sobre su blanco da **1,42:1** |
 
 **A mano, porque no son plantillas:** `web/lib/icons.mjs` (`logoMark`),
 `docs/release/play-listing/assets/{icon,feature}.html` y `web/assets/img/apple-touch-icon.png`.

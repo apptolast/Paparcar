@@ -73,7 +73,8 @@ Todo lo escrito se verificó contra el árbol, no contra la versión anterior de
   rama» (está en master, `3d1d80a67`) y una tabla de **cuatro ramas en vuelo** sin que exista
   ninguna; el IOS_PLAN pedía `BGTaskScheduler` ya implementado y daba por ausente un
   `GoogleService-Info.plist` que está gitignored a propósito.
-- 🔵 **El logo de la cabecera del README** es el `#25F48C` horneado: en GitHub con tema claro eso da
+- ✅ **El logo de la cabecera del README** — CERRADO el **13-10** por [BRAND-THE-README-MARK-NEEDS-ITS-LIGHT-GREEN-001](brand-the-readme-mark-needs-its-light-green-001.md): la superficie pasa a `themed=True`, el mismo mecanismo del favicon. ⚠️ No hizo falta `<picture>` ni un segundo fichero. Lo que esta línea decía, y sigue siendo el motivo:
+  el `#25F48C` horneado, en GitHub con tema claro, da
   **1,42:1**, que es justo el caso que `PapGreenLight` existe para resolver. Arreglarlo es una
   superficie nueva en `export_surfaces.py` (un `<picture>` con variante clara), no una edición del
   README — el logo se genera, no se copia.
