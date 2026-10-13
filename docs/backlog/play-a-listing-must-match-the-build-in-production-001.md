@@ -1,6 +1,9 @@
 # PLAY-A-LISTING-MUST-MATCH-THE-BUILD-IN-PRODUCTION-001 · lo que se pega en el Console tiene que ser el copy vigente
 
 **Estado:** ✅ Done (código y docs) · ⏳ queda **pegar en el Console** las 9 descripciones completas
+· ⚠️ **y desde el 13-10 hay más que pegar**: con 1.4.0 publicada, la ficha debe moverse a describir
+ese build (widget, gálibo, acierto), lo que cambia la fuente de la que se pega →
+[PLAY-THE-LISTING-MOVES-TO-THE-PUBLISHED-BUILD-001](play-the-listing-moves-to-the-published-build-001.md)
 y confirmar la breve — eso no lo puede hacer el repo.
 
 ## Problema

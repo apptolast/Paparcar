@@ -119,9 +119,15 @@ toca bytecode sale **UP-TO-DATE** → `--rerun-tasks`.
 
 ### ⛔ La ficha describe el build PUBLICADO, no master
 
-Desde el corte de 1.3.0 hay más de 100 commits con resultado visible, y **ninguno está en Play**.
-No entran en la ficha hasta que se publique la versión que los lleva. Esperando a la pasada de
-1.4.0, con sus notas de versión:
+⏳→✅ **1.4.0 está en Play desde el 13-10-2026** (dicho por el user). Eso cambia el lado derecho de
+esta regla: las tres primeras de abajo **ya describen el build publicado**, así que por fin pueden
+entrar en la ficha. La cuarta sigue fuera, y no por la versión.
+
+⛔ Y entrar en la ficha es más que escribir copy: `LISTING-v1.3.0.md` sigue siendo la **fuente
+única** de los nueve idiomas, y su nombre está **cableado** en
+`PlayListingPasteParityGuardrailTest.LISTING_SOURCE`. Mover la ficha a 1.4.0 es por tanto fichero
+nuevo + regenerar `paste/` + mover esa constante, en la misma tarea. Ficha:
+`docs/backlog/play-the-listing-moves-to-the-published-build-001.md`.
 
 - **Widget del launcher** para contestar un viaje sin abrir la app (`ParkedWidget.kt`, 21-09). Play
   tiene casilla propia para widgets, así que además hay que marcarla.

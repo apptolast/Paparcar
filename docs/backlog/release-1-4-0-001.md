@@ -85,7 +85,20 @@ el vocabulario del proyecto — *plaza* para lo comunitario, *parking / car park
 
 **Nombre de la versión** para el Console (48/50): `1.4.0 (15) - Widget, avisos cerca de ti y gálibo`
 
-## Fuera de alcance, y hace falta antes de publicar
+## ✅ PUBLICADA en Play el 13-10-2026 (dicho por el user)
+
+El ⏳ que este doc arrastraba —subir el AAB y pegar las notas— está **hecho**. Lo que desbloquea, y
+que hasta hoy la regla de la ficha prohibía expresamente:
+
+- La ficha puede nombrar por fin el **widget**, el **gálibo** y el **acierto de la detección**:
+  llevan en master desde el 19–21-09 y hasta ahora no estaban en el build publicado.
+- ⛔ El **aviso «cerca de ti»** sigue FUERA, y no por la versión: hoy solo salta dentro de una zona
+  guardada, que es el aviso de Plus. Su ticket sigue abierto.
+- La **web** entra en la misma tarea: `web/content/{es,en}.json` no nombra ninguna de las tres.
+
+→ `docs/backlog/play-the-listing-moves-to-the-published-build-001.md`
+
+## Fuera de alcance, y hacía falta antes de publicar (histórico)
 
 - **La ficha**: `LISTING-v1.3.0.md` sigue describiendo el build publicado. Hasta que 1.4.0 esté en
   producción, la ficha no debe nombrar el widget, el gálibo ni el acierto de la detección
