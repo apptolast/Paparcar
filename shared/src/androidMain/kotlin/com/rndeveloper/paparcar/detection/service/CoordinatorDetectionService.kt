@@ -14,6 +14,7 @@ import androidx.work.WorkManager
 import com.google.android.gms.location.GeofencingEvent
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.rndeveloper.paparcar.isDebugBuild
+import com.rndeveloper.paparcar.detection.ExactHeartbeatScheduler
 import com.rndeveloper.paparcar.detection.SentryResidenceStore
 import com.rndeveloper.paparcar.detection.SignificantMotionMonitor
 import com.rndeveloper.paparcar.detection.UserStopStore
@@ -28,6 +29,7 @@ import com.rndeveloper.paparcar.domain.detection.DepartureProof
 import com.rndeveloper.paparcar.domain.detection.DetectionTrigger
 import com.rndeveloper.paparcar.domain.detection.freedSpotIsStillThere
 import com.rndeveloper.paparcar.domain.detection.measuredDepartureAtMs
+import com.rndeveloper.paparcar.domain.detection.sentry.HeartbeatLane
 import com.rndeveloper.paparcar.domain.detection.sentry.TriggerDisposition
 import com.rndeveloper.paparcar.domain.detection.coordinatorMayArm
 import com.rndeveloper.paparcar.domain.detection.sentry.isArmSuppressedByUserStop
@@ -394,6 +396,13 @@ class CoordinatorDetectionService : LifecycleService() {
                 DIAG,
                 "  → RESUME_SENTRY (${intent.getStringExtra(EXTRA_RESUME_SOURCE) ?: "unknown"}) — " +
                     "epilogue decides sentry vs stop [DET-WATCH-HONEST-001][DET-WATCH-REACTIVATE-001]",
+            )
+            // [DET-HEARTBEAT-LANE-REPAIR-001] The heartbeat by the lane that still gets delivered.
+            // Everything a tick does lives in the scheduler, shared with the broadcast receiver.
+            ACTION_HEARTBEAT -> ExactHeartbeatScheduler.onTickDelivered(
+                this,
+                detectionConfig,
+                HeartbeatLane.SERVICE,
             )
             ACTION_GEOFENCE_EXIT -> handleGeofenceExit(intent)
             ACTION_AR_TRANSITION -> handleArTransition(intent) // [DET-AR-FIRST-001]
@@ -2787,6 +2796,18 @@ class CoordinatorDetectionService : LifecycleService() {
         // tap. EXTRA_RESUME_SOURCE says which one, so a field log never has to guess.
         const val ACTION_RESUME_SENTRY = "com.rndeveloper.paparcar.ACTION_RESUME_SENTRY"
         const val EXTRA_RESUME_SOURCE = "com.rndeveloper.paparcar.EXTRA_RESUME_SOURCE"
+
+        /**
+         * [DET-HEARTBEAT-LANE-REPAIR-001] The parked-session heartbeat, when it comes by the service
+         * lane instead of the broadcast one. Armed by `ExactHeartbeatScheduler` only where that is
+         * legal and free — exact alarm granted AND a resident sentry — because on the Oppo CPH2371
+         * the broadcast lane died at an exact second while this one kept delivering the same
+         * physical events.
+         *
+         * ⛔ A pass-through, like RESUME_SENTRY: it re-arms the next tick and hands the check to the
+         * safety-net chain. It arms NO coordinator session. Waking is not evidence.
+         */
+        const val ACTION_HEARTBEAT = "com.rndeveloper.paparcar.ACTION_HEARTBEAT"
 
         /** [DET-CHEAP-WAKE-INSTEAD-OF-SILENCE-001] True when this sentry wake arrives during a quiet
          *  period and may only spend ONE fix. Absent/false = the normal full-session wake. */

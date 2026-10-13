@@ -9858,3 +9858,94 @@ test propio: lo sostienen el compilador y la tabla de verdad de la política.
 | `RevertParkingUseCase` («No, cancelar») | el pin era falso; no es una salida |
 | `handleWatchdogDeparture` («Ya me fui» del aviso *¿Sigues aparcado?*) | **exento con razón**: ese aviso salta porque nadie vio el EXIT y puede pasar horas en la bandeja — el viaje ya terminó. Es la MISMA razón por la que ese camino tampoco publica plaza [DET-WATCHDOG-DEPARTURE-KNOWS-NO-HOUR-001] |
 | `ProcessConfirmedDepartureUseCase` vía geofence EXIT | cubierto por convergencia: la sesión que cierra la salida **es** la que la detectó; el re-armado lo gobierna [DET-AR-REARM-001] |
+
+### DET-HEARTBEAT-LANE-REPAIR-001 — el heartbeat entra por la puerta que sí se abre (commit pending)
+
+**Reporte del user / del campo (21–22-08).** En el Oppo CPH2371 el heartbeat de 5 min se dispara y
+**su broadcast no llega nunca**: tres horas de ticks periódicos puntuales sin un solo heartbeat,
+con el proceso vivo, FGS corriendo, standby bucket EXEMPTED y el permiso de alarma exacta
+concedido.
+
+**Causa raíz — no es el heartbeat, es la COLA de broadcasts del device.** Casi un experimento
+controlado:
+
+| Carril | Mecanismo | Última entrega | Después de las 21:17 |
+|---|---|---|---|
+| Geofence EXIT → servicio | `getForegroundService` | 22:39:46 | ✅ 2 entregas |
+| `ExitWitness` | `getBroadcast` | **21:16:56** | ❌ ninguna |
+| Heartbeat | `getBroadcast` | **21:16:56** | ❌ ninguna |
+
+Los **dos** receivers de broadcast se callaron en el MISMO segundo y el carril de servicio siguió.
+Y el dato que lo cierra: a las 22:09:23 el mismo evento físico de geocerca disparó los dos
+PendingIntents —`GeofenceManagerImpl` arma `getForegroundService` para el EXIT y `getBroadcast`
+para el testigo— y sólo entró el del servicio. Mismo device, mismo instante, mismo evento, dos
+mecanismos, uno funciona. Cómo murió: las tres últimas entregas fueron una ráfaga de 5 segundos,
+varias con `fixAge` de ~2 h y el heartbeat «adelantado» 5 min respecto a su horario. Eso no es
+entrega puntual, es una cola vaciándose de golpe con datos rancios (`dumpsys alarm`:
+`aggregateTime` ≈ 5,2 h de registros in-flight).
+
+**Fix.** El tick viaja por `PendingIntent.getForegroundService` a `CoordinatorDetectionService` con
+`ACTION_HEARTBEAT`, o sea por el **intake único** [DET-INTAKE-001] en vez de por una puerta
+lateral. El handler es un pasamanos —re-armar y encolar el check de la red de seguridad— y ⛔ **no
+arma el coordinator**: despertar no es evidencia, y el evaluador exige las mismas pruebas de
+siempre.
+
+**Pero no incondicionalmente: dos guardas, y las dos evitan que la cura salga más cara que la
+enfermedad.** La decisión es una función pura de commonMain
+(`domain/detection/sentry/HeartbeatDeliveryLane.kt`, 5 tests):
+
+1. **`canScheduleExact`** — arrancar un FGS desde background sólo está exento si la alarma es
+   EXACTA y la app tiene `SCHEDULE_EXACT_ALARM`. Sin el permiso el scheduler cae a
+   `setAndAllowWhileIdle`, que **no** lleva esa exención: entregar ahí a un proceso que el OS mató
+   lanzaría en vez de despertar nada. Cambiar un carril atascado por uno que revienta no es un fix.
+2. **`sentryResident`** — el heartbeat se arma con «parked and idle», que no mira la estrategia.
+   Bajo BT el sentry **no** se queda residente [DET-STRATEGY-GATE-001], así que un arranque de
+   servicio cada 5 min sería una notificación de FGS parpadeando cada 5 minutos junto a un coche
+   simplemente aparcado. Bajo Coordinator el servicio ya está en foreground y el tick es un
+   `onStartCommand` más: sin proceso nuevo, sin notificación nueva.
+
+**Riesgo del fix acompañante — la trampa que no estaba en el diseño.** `AlarmManager.cancel()` casa
+por PendingIntent, y los dos carriles son **dos registros distintos** (tipo distinto, Intent
+distinto). Re-armar tras un cambio de carril sin cancelar el otro deja la alarma vieja pendiente: un
+tick zombi entrando por la puerta que acabábamos de descartar. Y el cambio de carril no es
+hipotético — la residencia cambia cada vez que un coche BT aparca al lado de uno Coordinator, y el
+permiso se puede revocar entre dos ticks. Por eso `sync` cancela **todos los carriles menos el
+elegido**, y el desarmado cancela los dos. Además el PendingIntent de broadcast se mantiene **byte
+por byte** (mismo request code, mismo Intent): una app actualizada en sitio puede tener un tick ya
+armado con ése, y sólo uno igual lo cancela o reemplaza.
+
+**Qué hace un tick, en UN sitio.** Ahora hay dos puertas (el receiver y `ACTION_HEARTBEAT`), así
+que el triple —marcar el carril vivo, re-armar, encolar el check— vive en
+`ExactHeartbeatScheduler.onTickDelivered`. Duplicarlo por puerta es cómo se separarían, y un
+heartbeat separado de su gemelo es invisible hasta que ya se ha perdido un viaje.
+
+**⚠️ El alcance honesto, y por eso se estampa el carril.** En un install targetSdk 33+ el acceso
+especial de alarma exacta está **denegado por defecto** y el proyecto decidió no pedirlo
+[DET-EXACT-HEARTBEAT-001], así que `exact=false` es el caso NORMAL y la mayoría de devices se
+quedan en broadcast: este fix no les llega. El Oppo del campo **sí** tenía el permiso concedido, que
+es lo que hace que ahí se pueda medir. Para que «el carril nuevo también murió» y «el carril nuevo
+no se usó aquí» no se lean igual desde Firestore, la cabecera de sesión estampa
+`exactHeartbeatLane` (`service` / `broadcast`) junto al `exactHeartbeatLaneDead` que ya existía
+[DET-HEARTBEAT-MISS-IS-EVIDENCE-001]. La telemetría mide igual sea cual sea el mecanismo: esto no
+es una apuesta a ciegas, es una apuesta instrumentada.
+
+**Lo que este atasco rompe MÁS ALLÁ del heartbeat — nombrado, no arreglado aquí.** Misma causa,
+tres víctimas: el `ExitWitness` de `GeofenceManagerImpl` (llegó con 2 h de retraso: un testigo
+rancio pasando por fresco, y ese gate decide si un desplazamiento cuenta como viaje), las acciones
+de las notificaciones (`getBroadcast` también — puede que el pendiente de DET-STOP-BUTTON-001 no
+fuera del botón sino de la cola) y el carril de **logging** de AR (el de DECISIÓN ya va por
+`getForegroundService`, así que las decisiones están a salvo; lo que se pudre es la traza).
+→ `docs/backlog/det-broadcast-queue-stall-001.md` es su paraguas.
+
+**Caminos auditados.**
+
+| Camino | Veredicto |
+|---|---|
+| `ParkingSafetyNetWorker` → `sync(parkedAndIdle)` | cerrado: firma intacta, la decisión del carril vive dentro de `sync` |
+| `ExactHeartbeatReceiver` | cerrado: pasa a ser **sólo la puerta**; su comportamiento se comparte |
+| `SOURCE_EXACT_ALARM` del worker | **exento con razón**: los dos carriles son el mismo trigger (una alarma exacta), y separarlos ensuciaría la métrica que mide si el carril vive |
+| `markLaneAlive` / `firedDelayMs` / racha de perdidos | cubierto por convergencia: los escribe `onTickDelivered`, que es común a las dos puertas |
+| `armedLane` → cabecera de sesión | cerrado: `DeviceInfoProvider` (contrato) + Android + iOS + `UnknownDeviceInfoProvider` + logger + DTO, paridad end-to-end |
+| Dev Catalog / `MockScenario` | **exento con razón**: no hay pantalla, estado MVI ni condición de routing nueva — el cambio es el mecanismo de entrega de un trigger |
+| `detectionPath` / `armEvidence` | **exento con razón**: no nace un camino de confirmación. El tick no confirma nada; el carril por el que entró se estampa en la cabecera, que es donde se diagnostica |
+| Strings / copy | **exento con razón**: cero texto para el usuario |

@@ -179,6 +179,7 @@ class FirestoreDetectionEventLogger(
                         requiresAutostart = deviceInfo.requiresAutostartWhitelist,
                         requiresOemBatteryFreeze = deviceInfo.requiresOemBatteryFreezeExemption,
                         exactHeartbeatLaneDead = deviceInfo.isExactHeartbeatLaneDead,
+                        exactHeartbeatLane = deviceInfo.exactHeartbeatLane?.name?.lowercase(),
                     ),
                 )
             }

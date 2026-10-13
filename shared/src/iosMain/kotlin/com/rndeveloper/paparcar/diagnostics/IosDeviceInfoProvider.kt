@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.diagnostics
 
+import com.rndeveloper.paparcar.domain.detection.sentry.HeartbeatLane
 import com.rndeveloper.paparcar.domain.diagnostics.DeviceInfoProvider
 import platform.Foundation.NSBundle
 import platform.UIKit.UIDevice
@@ -26,4 +27,8 @@ class IosDeviceInfoProvider : DeviceInfoProvider {
 
     /** [DET-HEARTBEAT-MISS-IS-EVIDENCE-001] No exact-alarm lane on iOS — nothing to be dead. */
     override val isExactHeartbeatLaneDead: Boolean = false
+
+    /** [DET-HEARTBEAT-LANE-REPAIR-001] And no lanes to choose between: iOS wakes by BGTask and
+     *  CLVisit/SLC, not by alarms, so there is no PendingIntent whose door could stall. */
+    override val exactHeartbeatLane: HeartbeatLane? = null
 }

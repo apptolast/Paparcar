@@ -1,8 +1,8 @@
 # DET-HEARTBEAT-LANE-REPAIR-001 · La cola de broadcasts del Oppo se atasca; el carril rápido tiene que entrar por donde sí se entrega
 
-**Estado:** 🟠 Abierto, sin código, **con evidencia de campo suficiente para decidir** ·
-decisión del user 22-08: *«no sería mala decisión»* · depende de `DET-HEARTBEAT-MISS-IS-EVIDENCE-001`
-(✅ master `0a0832cf`)
+**Estado:** 🟡 **Código en master** (13-10-2026) · ⏳ **falta medirlo en el Oppo**, que es la única
+cosa que puede cerrarlo · decisión del user 22-08: *«no sería mala decisión»* · depende de
+`DET-HEARTBEAT-MISS-IS-EVIDENCE-001` (✅ master `0a0832cf`)
 
 ## Problema
 
@@ -101,10 +101,75 @@ Misma causa, tres víctimas. **No se arreglan en este ticket**, pero quedan nomb
 - Con un vehículo **Bluetooth** aparcado, **cero notificaciones nuevas** cada 5 min.
 - Sin `SCHEDULE_EXACT_ALARM`, el carril sigue vivo por broadcast (no revienta).
 
-## Orden de trabajo
+## Orden de trabajo — y el orden en que pasó de verdad
 
-1. ⏳ **Primero: la línea base.** Que el Oppo estampe su primer `exactHeartbeatLaneDead: true` en
-   Firestore. Sin ese antes/después el cambio no es juzgable.
-2. La prueba barata de la acción de notificación (punto 2 de arriba) — 2 minutos, y decide si esto
-   es un ticket o el primero de tres.
-3. El cambio, con las dos guardas.
+El plan era 1 → 2 → 3. Se hizo **el 3 primero**, y queda dicho porque cambia qué significa el
+estado de este doc: el código está escrito y **no está medido**. Se puede hacer en este orden sin
+apostar a ciegas por una razón concreta: los pasos 1 y 2 necesitan **el móvil del user**, y el 3
+no — y la telemetría que hace juzgable el experimento viaja DENTRO del cambio (ver abajo), así que
+la primera sesión del build nuevo ya trae su propio antes/después.
+
+1. ⏳ **USER · La línea base.** Que el Oppo estampe `exactHeartbeatLaneDead: true` en Firestore con
+   el build ANTERIOR. Si ya hay sesiones con ese campo a `true`, la línea base existe y este paso
+   está hecho.
+2. ⏳ **USER · La prueba barata de 2 minutos** (punto 2 de «lo que rompe más allá del heartbeat»):
+   con el Oppo en este estado, pulsar la acción de una notificación y ver si `onReceive` corre. Si
+   no corre, esto no era un ticket sino el primero de tres →
+   [`det-broadcast-queue-stall-001`](det-broadcast-queue-stall-001.md).
+3. ✅ **El cambio, con las dos guardas.** Hecho.
+
+## ✅ Lo que se implementó (13-10-2026)
+
+- **La decisión, pura y en `commonMain`**: `domain/detection/sentry/HeartbeatDeliveryLane.kt` —
+  `heartbeatDeliveryLane(canScheduleExact, sentryResident)` → `SERVICE` / `BROADCAST`, con las dos
+  guardas del diseño y 5 tests. Uno de ellos recorre las cuatro combinaciones y exige que **sólo**
+  «las dos guardas puestas» abra el carril de servicio: la versión barata de esta función —una sola
+  guarda, la que uno recuerde— es la que revienta en un install sin el permiso o parpadea una
+  notificación a cada conductor con Bluetooth, y las dos sólo se verían en campo, en el móvil de
+  otro.
+- **El carril nuevo**: `ACTION_HEARTBEAT` en `CoordinatorDetectionService`, pasamanos como
+  `ACTION_RESUME_SENTRY`, por el intake único. No arma el coordinator.
+- **Qué hace un tick, en UN sitio**: `ExactHeartbeatScheduler.onTickDelivered`, compartido por las
+  dos puertas. El receiver se queda siendo **sólo la puerta**.
+- **El carril, estampado en la cabecera de sesión**: `exactHeartbeatLane` (`service`/`broadcast`),
+  end-to-end — contrato `DeviceInfoProvider` + Android + iOS + fallback + logger + DTO.
+
+### ⛔ La trampa que el diseño no vio: la alarma zombi
+
+`AlarmManager.cancel()` casa **por PendingIntent**, y los dos carriles son dos registros distintos
+(tipo distinto, Intent distinto). Re-armar tras un cambio de carril sin cancelar el otro deja la
+alarma vieja pendiente — un tick entrando por la puerta que acabábamos de descartar. Y el cambio de
+carril **no es hipotético**: la residencia cambia cuando un coche BT aparca al lado de uno
+Coordinator, y el permiso se puede revocar entre dos ticks. Por eso `sync` cancela todos los
+carriles menos el elegido, y el desarmado cancela los dos. El PendingIntent de broadcast se queda
+**byte por byte** como estaba: una app actualizada en sitio puede tener un tick armado con ése, y
+sólo uno igual lo cancela.
+
+### ⚠️ El alcance honesto de este fix
+
+En un install targetSdk 33+ el acceso especial de alarma exacta está **denegado por defecto**, y el
+proyecto decidió no pedirlo [DET-EXACT-HEARTBEAT-001]: `exact=false` es el caso NORMAL, así que la
+mayoría de devices **se quedan en broadcast y este fix no les llega**. El Oppo del campo sí tenía el
+permiso concedido —está escrito en el KDoc de `isExactHeartbeatLaneDead`, medido el 21-08— y por eso
+ahí sí se puede medir. Esa es también la razón de estampar el carril: sin él, «el carril nuevo
+también murió» y «el carril nuevo no se usó aquí» se leen igual desde Firestore, y piden movimientos
+opuestos.
+
+## Consumidores auditados
+
+| Camino | Veredicto |
+|---|---|
+| `ParkingSafetyNetWorker` → `sync(parkedAndIdle)` | cerrado: firma intacta, el carril se decide dentro de `sync` |
+| `ExactHeartbeatReceiver` | cerrado: pasa a ser sólo la puerta |
+| `SOURCE_EXACT_ALARM` | **exento con razón**: los dos carriles son el mismo trigger; separarlos ensuciaría la métrica del carril |
+| `markLaneAlive` / `firedDelayMs` / racha | cubierto por convergencia: los escribe `onTickDelivered`, común a las dos puertas |
+| `armedLane` → cabecera | cerrado con paridad end-to-end (contrato + Android + iOS + fallback + logger + DTO) |
+| request code `41_006` | cerrado: libre en todo el repo (verificado por `grep`) |
+| manifest | cerrado: el servicio ya está declarado y `SCHEDULE_EXACT_ALARM` también; el receiver sigue declarado porque su carril sigue existiendo |
+| Dev Catalog / `MockScenario` | **exento con razón**: ni pantalla, ni estado MVI, ni routing — es el mecanismo de entrega de un trigger |
+| `detectionPath` / `armEvidence` | **exento con razón**: no nace un camino de confirmación; el tick no confirma nada |
+| Strings | **exento con razón**: cero texto de usuario |
+
+**Suite:** `./gradlew testAll` — **3.898 tests, 0 fallos** (leído de los XML), con
+`HeartbeatDeliveryLaneTest` (5) y `ExactHeartbeatHealthTest` (9) entre ellos. Compilan Android **e
+iOS** (`compileKotlinIosSimulatorArm64`).

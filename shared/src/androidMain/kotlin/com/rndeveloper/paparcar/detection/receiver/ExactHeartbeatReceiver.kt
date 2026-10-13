@@ -3,11 +3,9 @@ package com.rndeveloper.paparcar.detection.receiver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import androidx.work.WorkManager
 import com.rndeveloper.paparcar.detection.ExactHeartbeatScheduler
-import com.rndeveloper.paparcar.detection.worker.ParkingSafetyNetWorker
+import com.rndeveloper.paparcar.domain.detection.sentry.HeartbeatLane
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
-import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -22,23 +20,17 @@ import org.koin.core.component.inject
  * WORKS on this device, so it clears the lost-tick streak before anything else. Everything that
  * judges the lane's health is written on the assumption that this code either runs or does not —
  * on the 2026-08-21 Oppo it did not, for three hours, while the alarms were being delivered.
+ *
+ * [DET-HEARTBEAT-LANE-REPAIR-001] And that is why this is no longer the only door: where the
+ * service lane is both legal and free, the tick arrives at `CoordinatorDetectionService` instead.
+ * What a delivered tick DOES lives in [ExactHeartbeatScheduler.onTickDelivered], once, so the two
+ * doors cannot drift apart — this class is now only the door.
  */
 class ExactHeartbeatReceiver : BroadcastReceiver(), KoinComponent {
 
     private val config: ParkingDetectionConfig by inject()
 
     override fun onReceive(context: Context, intent: Intent) {
-        val delay = ExactHeartbeatScheduler.firedDelayMs(context, System.currentTimeMillis())
-        PaparcarLogger.d(TAG, "⏰ exact heartbeat fired (doze stretch: ${delay ?: "?"} ms)")
-        ExactHeartbeatScheduler.markLaneAlive(context, config)
-        ExactHeartbeatScheduler.sync(context, shouldBeArmed = true, config = config)
-        ParkingSafetyNetWorker.enqueueCheckNow(
-            WorkManager.getInstance(context),
-            source = ParkingSafetyNetWorker.SOURCE_EXACT_ALARM,
-        )
-    }
-
-    private companion object {
-        const val TAG = "PARKDIAG/ExactNet"
+        ExactHeartbeatScheduler.onTickDelivered(context, config, HeartbeatLane.BROADCAST)
     }
 }

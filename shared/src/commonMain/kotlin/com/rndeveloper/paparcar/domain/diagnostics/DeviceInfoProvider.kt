@@ -1,5 +1,7 @@
 package com.rndeveloper.paparcar.domain.diagnostics
 
+import com.rndeveloper.paparcar.domain.detection.sentry.HeartbeatLane
+
 /**
  * Identifies the physical device and build that produced a detection trace. [DIAG-READABLE-001]
  *
@@ -58,6 +60,19 @@ interface DeviceInfoProvider {
      * never flagged.
      */
     val isExactHeartbeatLaneDead: Boolean
+
+    /**
+     * [DET-HEARTBEAT-LANE-REPAIR-001] Which door the armed heartbeat tick will arrive by, or null
+     * when nothing is armed (or the concept does not apply — iOS has no alarm lanes).
+     *
+     * Needed because the repair is CONDITIONAL. The service lane is taken only where it is legal
+     * (exact-alarm access granted) and free (a resident sentry, so no notification blinks), and on
+     * a targetSdk 33+ install that access is denied by default — so most devices keep the broadcast
+     * lane and the fix silently does not apply to them. Without this stamp, a session header where
+     * [isExactHeartbeatLaneDead] is still true cannot distinguish «the new lane died too» from «the
+     * new lane was never used here», and those two demand opposite next moves.
+     */
+    val exactHeartbeatLane: HeartbeatLane?
 }
 
 /** Fallback used when no platform binding is available (keeps the logger constructible anywhere). */
@@ -69,4 +84,5 @@ object UnknownDeviceInfoProvider : DeviceInfoProvider {
     override val requiresAutostartWhitelist: Boolean = false
     override val requiresOemBatteryFreezeExemption: Boolean = false
     override val isExactHeartbeatLaneDead: Boolean = false
+    override val exactHeartbeatLane: HeartbeatLane? = null
 }

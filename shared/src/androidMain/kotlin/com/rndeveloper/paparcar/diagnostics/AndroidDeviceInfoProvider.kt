@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Build
 import android.os.PowerManager
 import com.rndeveloper.paparcar.detection.ExactHeartbeatScheduler
+import com.rndeveloper.paparcar.domain.detection.sentry.HeartbeatLane
 import com.rndeveloper.paparcar.domain.diagnostics.DeviceInfoProvider
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.permissions.OemBackgroundReliabilityManager
@@ -42,6 +43,12 @@ class AndroidDeviceInfoProvider(
     // the battery exemption: a lane can die (or come back) between two sessions of the same day.
     override val isExactHeartbeatLaneDead: Boolean
         get() = runCatching { ExactHeartbeatScheduler.isLaneDead(context, config) }.getOrDefault(false)
+
+    // [DET-HEARTBEAT-LANE-REPAIR-001] Also live per access, and for a sharper reason than the
+    // others: the lane is re-decided on EVERY re-arm, so a Bluetooth car parking beside a
+    // Coordinator one moves it between two ticks of the same session.
+    override val exactHeartbeatLane: HeartbeatLane?
+        get() = runCatching { ExactHeartbeatScheduler.armedLane(context) }.getOrNull()
 
     private companion object {
         const val UNKNOWN = "unknown"

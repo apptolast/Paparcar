@@ -35,6 +35,11 @@ data class DetectionSessionDto(
     // this device: the safety net is down to the 15-min periodic grid, and a trip lost inside one
     // of those cells is attributable from here instead of from a cable.
     val exactHeartbeatLaneDead: Boolean? = null,
+    // [DET-HEARTBEAT-LANE-REPAIR-001] Which door the armed tick comes by ("service" / "broadcast").
+    // The repair is conditional — most installs keep the broadcast lane because the exact-alarm
+    // access is denied by default — so without this a dead lane cannot say whether the new one was
+    // even tried here.
+    val exactHeartbeatLane: String? = null,
     // Per-session rollup, patched on SESSION_ENDED [DIAG-READABLE-001]
     val endedAt: Long? = null,
     val maxSpeedKmh: Float? = null,
