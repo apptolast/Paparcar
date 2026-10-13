@@ -2,6 +2,7 @@
 
 package com.rndeveloper.paparcar.domain.usecase.fuel
 
+import com.rndeveloper.paparcar.domain.fuel.FollowedFuelStation
 import com.rndeveloper.paparcar.domain.fuel.FuelPriceSample
 import com.rndeveloper.paparcar.domain.fuel.localDayOf
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
@@ -82,12 +83,57 @@ class RunFuelPriceWatchUseCase(
         val today = localDayOf(now)
         val followedKeys = followed.map { it.stationKey }.toSet()
 
+        // Las respuestas que ya tenemos en este tick. La del usuario entra primero porque hace
+        // falta de todos modos para «más barata cerca», así que una seguida que caiga en su radio
+        // no cuesta una consulta extra.
+        val lookups = mutableListOf(answer.stations)
+        var extraLookups = 0
+
+        /**
+         * El precio de ESTA seguida hoy, preguntando **donde está la gasolinera** si la respuesta
+         * del usuario no la cubre. [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001]
+         *
+         * ⛔ Esto antes era `answer.stations.filter { it.stationKey in followedKeys }`, y ahí vivía
+         * el bug: la respuesta del usuario tiene un radio de 5 km alrededor del fix, así que una
+         * seguida más lejos **no grababa muestra ese día**. Con dos muestras de días distintos como
+         * requisito del veredicto ([EvaluateDailyPriceMoveUseCase]), la serie solo crecía los días
+         * en que el usuario pasaba cerca a la hora exacta del tick — y el aviso era inalcanzable
+         * justo para las gasolineras que uno sigue porque NO las tiene delante. El almacén ya
+         * copiaba la posición para esto y no se usaba.
+         *
+         * Cada respuesta nueva se guarda y sirve para el resto: N seguidas en una provincia cuestan
+         * UNA consulta.
+         */
+        suspend fun pricedToday(target: FollowedFuelStation): NearbyFuelStation? {
+            lookups.firstNotNullOfOrNull { list -> list.firstOrNull { it.stationKey == target.stationKey } }
+                ?.let { return it }
+            // ⛔ Techo por tick: cada disco nuevo es la descarga de una provincia entera, y el coste
+            // de datos de seguir gasolineras no puede crecer sin límite. Se registra cuando muerde
+            // — una muestra que no se toma es un hueco en la serie, no un precio que no se movió.
+            if (extraLookups >= MAX_LOOKUPS_PER_RUN) {
+                PaparcarLogger.d(TAG) { "· ${target.stationKey} sin muestra hoy — presupuesto de consultas agotado" }
+                return null
+            }
+            extraLookups++
+            val around = getNearbyFuelStations(
+                latitude = target.latitude,
+                longitude = target.longitude,
+                fuel = fuel,
+                radiusMeters = AROUND_FOLLOWED_RADIUS_M,
+            ).getOrElse { error ->
+                PaparcarLogger.w(TAG, "lookup around ${target.stationKey} failed", error)
+                return null
+            }
+            lookups += around.stations
+            return around.stations.firstOrNull { it.stationKey == target.stationKey }
+        }
+
         // ⛔ Only followed stations are recorded. The history exists to answer «did YOUR price
         // move», and writing a row for every forecourt the camera happened to pass would grow an
         // unbounded table whose extra rows nobody ever reads.
-        val samples = answer.stations
-            .filter { it.stationKey in followedKeys }
-            .mapNotNull { nearby ->
+        val samples = followed
+            .mapNotNull { target ->
+                val nearby = pricedToday(target) ?: return@mapNotNull null
                 val price = nearby.price ?: return@mapNotNull null
                 FuelPriceSample(
                     stationKey = nearby.stationKey,
@@ -139,5 +185,20 @@ class RunFuelPriceWatchUseCase(
          * a fresh fix to answer a question about yesterday's prices would spend battery for nothing.
          */
         const val MAX_FIX_AGE_MS = 10L * 60 * 1_000
+
+        /**
+         * Radio al preguntar **por una seguida, en su propio sitio**. Un kilómetro porque la
+         * gasolinera está en el centro exacto de la consulta: lo que se pide no es «qué hay por
+         * aquí» sino «este surtidor, hoy». [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001]
+         */
+        const val AROUND_FOLLOWED_RADIUS_M = 1_000
+
+        /**
+         * Consultas extra por tick, además de la del usuario. Ocho es más seguidas de las que un
+         * conductor tiene —se siguen las que se usan, no un catálogo— y a la vez un techo duro:
+         * cada consulta en un sitio nuevo baja el feed de una provincia entera, y un follow no
+         * puede costar datos sin límite una vez al día. Lo que no entra queda registrado.
+         */
+        const val MAX_LOOKUPS_PER_RUN = 8
     }
 }

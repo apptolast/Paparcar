@@ -1,6 +1,6 @@
 # Backlog — índice de lo que sigue abierto
 
-> **787 ficheros: 704 cerrados, 74 abiertos, 9 que no son tickets.** Este índice lista **solo lo que
+> **790 ficheros: 705 cerrados, 76 abiertos, 9 que no son tickets.** Este índice lista **solo lo que
 > queda**, para que la pregunta *"¿qué falta?"* se conteste leyendo y no listando el directorio.
 > Verificado contra master `1339ea263` el **2026-10-07**
 > [DOCS-A-CLOSED-TICKET-MUST-NOT-SAY-IT-IS-IN-REVIEW-001]. El barrido anterior
@@ -146,6 +146,7 @@ No esperan a un viaje: esperan a que vuelva a fallar lo que los originó.
 | Ticket | Qué falla (y dónde se comprobó) |
 |---|---|
 | [`map-the-handler-map-must-be-rebuilt-with-the-marker-list-001`](map-the-handler-map-must-be-rebuilt-with-the-marker-list-001.md) | al cambiar la vigilancia del viaje, **salida y llegada pierden su dibujo**: la lista de marcadores keya por `watchKey` y el mapa de handlers no. ✔ sigue vivo: `PaparcarMapView.kt:1202` — `watchKey` NO está entre las claves del `remember`, y `departureContentId(watchKey)`/`arrivalContentId(watchKey)` sí lo llevan |
+| [`fuel-the-map-capsule-must-wear-the-follow-001`](fuel-the-map-capsule-must-wear-the-follow-001.md) | la **cápsula del mapa** no dice si sigues esa gasolinera: [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001] le puso la estrella a la fila y al peek, y la tercera superficie —la más vista— quedó fuera. Pide device: `isFollowed` tiene que entrar en la clave de caché del marcador, como el `watchKey` de la fila de arriba |
 | [`ui-a-captured-name-needs-its-ceiling-001`](ui-a-captured-name-needs-its-ceiling-001.md) | el nombre de zona no tiene techo y viaja entero a Firestore. ✔ sigue vivo: `AddingZonePeek.kt:276-280`, `OutlinedTextField` con `onValueChange = onNameChange` sin `take(n)` (`singleLine` no es un límite) |
 | [`dev-an-edit-variant-must-edit-a-car-001`](dev-an-edit-variant-must-edit-a-car-001.md) | las variantes «Edición» de la galería pintan una **moto**. ✔ sigue vivo: `StateGalleryScreen.kt:2277-2285`, el state se construye sin `vehicleType` |
 | [`bug-home-fab-padding-2026-06-05`](bug-home-fab-padding-2026-06-05.md) | padding negativo en `HomeMapFabsLayer` (Nothing Phone A001). 1 evento, sin reproducir: su propio doc dice priorizar **solo si reaparece** |
@@ -178,6 +179,7 @@ No esperan a un viaje: esperan a que vuelva a fallar lo que los originó.
 |---|---|
 | [`trip-a-journey-is-a-chain-of-trips-001`](trip-a-journey-is-a-chain-of-trips-001.md) | 🔵 la proyección "viaje" del pivote: **4 decisiones de UX del user** antes de código |
 | [`plus-alerts-and-tiers-001`](plus-alerts-and-tiers-001.md) | 📋 doc de PRODUCTO: *free pregunta / Plus vigila y recuerda*. ⛔ VER parkings y gasolineras NO se gatea |
+| [`fuel-a-recorded-series-must-be-readable-001`](fuel-a-recorded-series-must-be-readable-001.md) | 🔵 se graban **30 días** de precios por gasolinera seguida y no se leen en ninguna pantalla (`observeHistoryFor`, cero consumidores en UI). Pide decidir dónde vive y qué dibuja con una serie que tiene huecos |
 | [`ui-where-does-the-per-zone-alert-list-live-001`](ui-where-does-the-per-zone-alert-list-live-001.md) | 🔵 dónde vive la lista de alertas por zona |
 | [`zone-subscribe-001`](zone-subscribe-001.md) | 🟡 entregado por la opción (a) vía MONEY-001 — queda ABIERTA solo la decisión (b), el TTL |
 | [`snap-to-park-001`](snap-to-park-001.md) | 🔵 sacar el ancla de dentro de edificios. Sin código y sin rama |

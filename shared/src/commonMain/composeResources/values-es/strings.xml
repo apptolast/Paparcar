@@ -1020,6 +1020,8 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="fuel_peek_step_next">Gasolinera siguiente</string>
     <string name="fuel_peek_follow">Seguir</string>
     <string name="fuel_peek_following">Siguiendo</string>
+    <string name="fuel_peek_follow_promise">Te avisaremos si su precio cambia</string>
+    <string name="fuel_peek_follow_promise_plus">Vigilarla a diario es Plus</string>
     <string name="home_fuel_error">No hemos podido cargar las gasolineras. Comprueba la conexión y vuelve a abrir esto.</string>
     <string name="home_fuel_no_prices">En este país no se publican los precios. Estas son las gasolineras cercanas.</string>
     <!-- [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] Fallback, not a verdict about the country -->

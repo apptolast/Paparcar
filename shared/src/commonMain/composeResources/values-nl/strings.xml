@@ -985,6 +985,8 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen â†’ Paparcar â
     <string name="fuel_peek_step_next">Volgend tankstation</string>
     <string name="fuel_peek_follow">Volgen</string>
     <string name="fuel_peek_following">Gevolgd</string>
+    <string name="fuel_peek_follow_promise">We laten het je weten als haar prijs verandert</string>
+    <string name="fuel_peek_follow_promise_plus">Haar dagelijks volgen is Plus</string>
     <string name="home_fuel_error">We konden de tankstations niet laden. Controleer je verbinding en open dit opnieuw.</string>
     <string name="home_fuel_no_prices">In dit land worden geen prijzen gepubliceerd. Dit zijn de tankstations in de buurt.</string>
     <!-- [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] Fallback, not a verdict about the country -->

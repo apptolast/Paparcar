@@ -3941,6 +3941,18 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
+            // ⛔ Las MISMAS filas con una seguida: la estrella va en la línea del nombre, el mismo
+            // objeto que lleva la cabecera del peek. Antes de [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001]
+            // la lista no distinguía una seguida de una cualquiera.
+            Variant("Con precios · una seguida", Placement.Surface) {
+                HomeFuelLane(
+                    slice = HomeFuelSlice(
+                        stations = galleryFuelStations,
+                        reportedAt = "09/09/2026 08:30:00",
+                    ),
+                    followedStationKeys = setOf("minetur|1"),
+                )
+            },
             // [FUEL-A-PRICE-IS-QUOTED-WHERE-IT-IS-SOLD-001] Las mismas filas en un mercado que cobra
             // por galon: el precio guardado sigue siendo por litro y lo que cambia es el borde.
             // ⛔ Lo que hace galones a estas filas es la MONEDA del precio (USD), no un
@@ -4094,9 +4106,12 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
-            // La MISMA gasolinera, ya seguida: la estrella se rellena y el botón dice el estado
-            // actual, no la acción. ⛔ Sin Plus por ningún lado — seguir es gratis; lo que se paga
-            // es que la app la vigile. [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
+            // La MISMA gasolinera, ya seguida: estrella en la línea del nombre, el botón dice el
+            // estado actual (no la acción) y debajo, la frase de un FREE — «vigilarla a diario es
+            // Plus». ⛔ La estrella no se gatea ni se esconde: seguir es gratis; lo que se paga es
+            // que la app la vigile, y por eso lo que cambia con Plus es la FRASE, no el gesto.
+            // [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
+            // [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001]
             Variant("Peek de gasolinera (seguida)", Placement.Surface) {
                 peek(
                     HomeState(
@@ -4107,6 +4122,24 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         selection = HomeSelection.FuelStation("1"),
                         userGpsPoint = sampleGps,
                         followedFuelStationKeys = setOf("minetur|1"),
+                    ),
+                )
+            },
+            // La misma, seguida, **con Plus**: la frase bajo la estrella cambia de «vigilarla a
+            // diario es Plus» a lo que va a pasar. Las dos variantes están aquí porque el fallo era
+            // justo que no hubiera ninguna: seguir no decía nada y el aviso tardaba un día.
+            // [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001]
+            Variant("Peek de gasolinera (seguida, con Plus)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        fuel = HomeFuelSlice(
+                            stations = galleryFuelStations,
+                            reportedAt = "09/09/2026 08:30:00",
+                        ),
+                        selection = HomeSelection.FuelStation("1"),
+                        userGpsPoint = sampleGps,
+                        followedFuelStationKeys = setOf("minetur|1"),
+                        isPlus = true,
                     ),
                 )
             },

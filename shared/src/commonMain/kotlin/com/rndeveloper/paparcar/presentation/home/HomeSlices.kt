@@ -209,6 +209,15 @@ data class HomePeekSlice(
      *  Free, never gated: what Plus buys is the watching, not the star.
      *  [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001] */
     val followedFuelStationKeys: Set<String>,
+    /**
+     * Whether this driver holds Plus — read ONLY to word what a follow promises, never to hide the
+     * star. [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001]
+     *
+     * ⛔ Following is free and stays free; what Plus buys is the daily watching. The star without
+     * this flag was the free user's whole experience of the feature: a gesture that silently did
+     * nothing, which is the one thing soft gating exists to prevent.
+     */
+    val isPlus: Boolean,
     /** The car parks the peek resolves a selection against — same reason the fuel list is here.
      *  [PARKINGS-ON-THE-MAP-001] */
     val publicParkings: List<NearbyPublicParking>,
@@ -404,6 +413,16 @@ data class HomeBrowseListSlice(
     /** "Where to refuel" — the answer only; whether it is ON SHOW is [nearbyLens].
      *  [FUEL-STATIONS-LIST-001] */
     val fuel: HomeFuelSlice,
+    /**
+     * `source|id` of the forecourts the user follows, so the LANE's rows wear the same mark the
+     * peek's header does. [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001]
+     *
+     * ⛔ Beside [fuel] and not inside it: the slice is the ANSWER (asked on entering the lane,
+     * replaced when the camera moves, emptied on failure) and this is the only thing in the lane the
+     * USER put there — the same opposite-lifetimes argument that keeps the follow out of the cache
+     * table. [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
+     */
+    val followedFuelStationKeys: Set<String>,
     /** "Car parks nearby" — same contract, same rule. [PARKINGS-ON-THE-MAP-001] */
     val parkings: HomeParkingsSlice,
     /** WHICH of the three nearby subjects the lane is answering. One lane at a time, so a subject
@@ -593,6 +612,9 @@ fun HomeState.toPeekSlice(): HomePeekSlice {
         // frase («no se pudo preguntar hoy») manda igualmente.
         fuelPricesAreLive = fuel.pricesAreLive && fuel.rememberedAtMs == null,
         followedFuelStationKeys = followedFuelStationKeys,
+        // Solo para decir qué promete seguir una gasolinera; la estrella no se gatea.
+        // [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001]
+        isPlus = isPlus,
         publicParkings = publicParkingsShown,
         votedSpotIds = votedSpotIds,
         drivingMeta = drivingMeta,
@@ -641,6 +663,9 @@ fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
         product = pricedFuelType,
         availableProducts = fuelProductsAvailable,
     ),
+    // Del store, no de la respuesta: la estrella de una fila tiene que estar puesta ya cuando la
+    // lista aterriza. [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001]
+    followedFuelStationKeys = followedFuelStationKeys,
     parkings = parkings.copy(
         parkings = publicParkingsShown,
         filter = parkingFilter,

@@ -672,6 +672,8 @@ private fun LazyListScope.nearbyLane(
                 },
                 isIntroducing = slice.nearbyIntro == NearbyComplement.FUEL,
                 hasFix = slice.userGpsPoint != null,
+                // La estrella de cada fila. [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001]
+                followedStationKeys = slice.followedFuelStationKeys,
             )
         }
     }

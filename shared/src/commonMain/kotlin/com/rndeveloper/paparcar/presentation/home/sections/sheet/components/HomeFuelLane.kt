@@ -70,6 +70,16 @@ fun HomeFuelLane(
     /** Whether Home has a position at all: without one the rows drop the distance, which is the one
      *  thing they say ABOUT THE USER. [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001] */
     hasFix: Boolean = true,
+    /**
+     * `source|id` de las gasolineras que el usuario sigue, para que la fila lo diga.
+     * [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001]
+     *
+     * ⛔ Va como parámetro y **no dentro de [HomeFuelSlice]**, por la misma razón por la que el
+     * follow no es una columna de la tabla de caché: el slice es la RESPUESTA (se pide al entrar al
+     * carril, se reemplaza al mover la cámara, se vacía al fallar) y esto es lo único del carril que
+     * lo puso el usuario. Vidas opuestas, sitios opuestos.
+     */
+    followedStationKeys: Set<String> = emptySet(),
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         // ⛔ ABOVE the five sentences below, the fuel-less one included: "your car has no fuel type"
@@ -125,6 +135,7 @@ fun HomeFuelLane(
                     stations = slice.stations,
                     onStationClick = onStationClick,
                     hasFix = hasFix,
+                    followedStationKeys = followedStationKeys,
                 )
                 // A price with no hour beside it is a price nobody can weigh — this whole phase
                 // exists because a proxy of the same data ran twelve hours behind.

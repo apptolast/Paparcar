@@ -225,6 +225,9 @@ fun HomePeekHandle(
                             pricesAreLive = slice.fuelPricesAreLive,
                             step = slice.fuelStationStep,
                             isFollowed = nearby.stationKey in slice.followedFuelStationKeys,
+                            // Solo para redactar lo que la estrella promete; no la esconde ni la
+                            // apaga. [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001]
+                            isPlus = slice.isPlus,
                             onIntent = onIntent,
                             onAction = onAction,
                         )

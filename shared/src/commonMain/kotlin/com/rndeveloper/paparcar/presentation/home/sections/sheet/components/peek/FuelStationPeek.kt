@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.fuel.FuelAvailability
 import com.rndeveloper.paparcar.domain.model.FuelType
@@ -24,6 +25,7 @@ import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
 import com.rndeveloper.paparcar.presentation.home.HomeIntent
 import com.rndeveloper.paparcar.presentation.home.PeekStep
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.HomeSheetAction
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.FuelFollowMark
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheet
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetEyebrowTone
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetLead
@@ -45,6 +47,8 @@ import paparcar.composeapp.generated.resources.common_directions
 import paparcar.composeapp.generated.resources.fuel_peek_eyebrow
 import paparcar.composeapp.generated.resources.fuel_peek_not_sold
 import paparcar.composeapp.generated.resources.fuel_peek_follow
+import paparcar.composeapp.generated.resources.fuel_peek_follow_promise
+import paparcar.composeapp.generated.resources.fuel_peek_follow_promise_plus
 import paparcar.composeapp.generated.resources.fuel_peek_following
 import paparcar.composeapp.generated.resources.fuel_peek_step_next
 import paparcar.composeapp.generated.resources.fuel_peek_step_prev
@@ -59,6 +63,10 @@ import paparcar.composeapp.generated.resources.location_fallback_station
 // ═════════════════════════════════════════════════════════════════════════════
 
 private const val NOT_SOLD_ALPHA = 0.6f
+
+/** Aire entre la estrella y la frase que dice qué va a hacer con ella — el mismo 8 dp que separa
+ *  los dos botones del pie. [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001] */
+private const val FOLLOW_PROMISE_GAP_DP = 8
 
 /** Past this, no drive-time estimate: an urban heuristic stretched over 100 km is a made-up number. */
 private const val FAR_FOR_DRIVE_TIME_M = 100_000f
@@ -91,6 +99,16 @@ internal fun FuelStationPeek(
      * behind the paywall would leave it selling a thing the user has never seen work.
      */
     isFollowed: Boolean = false,
+    /**
+     * Whether this driver holds Plus — read ONLY to word what the star promises.
+     * [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001]
+     *
+     * ⛔ It never hides or disables the star: following stays free. It decides between the two
+     * honest sentences a follow can say — "we will tell you if the price changes" and "watching it
+     * daily is Plus". Without it, a free user's follow did nothing, said nothing, and left the
+     * paywall selling a feature they had never seen work.
+     */
+    isPlus: Boolean = false,
     onIntent: (HomeIntent) -> Unit,
     onAction: (HomeSheetAction) -> Unit,
 ) {
@@ -115,6 +133,14 @@ internal fun FuelStationPeek(
         eyebrow = stringResource(Res.string.fuel_peek_eyebrow).uppercase(),
         eyebrowTone = PapSheetEyebrowTone.Action,
         title = title,
+        // La misma estrella que lleva su fila en la lista, en la misma relación con el nombre: lo
+        // que distingue una gasolinera seguida no puede ser el estado de un botón que está al final
+        // de la hoja. [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001]
+        titleMark = if (isFollowed) {
+            { FuelFollowMark() }
+        } else {
+            null
+        },
         // Address under the name — unless it already IS the title (a nameless OSM station).
         subtitle = station.address?.takeIf { it != title }
             ?: station.town?.takeIf { it != title },
@@ -226,6 +252,35 @@ internal fun FuelStationPeek(
                 style = PapFooterButtonStyle.Outlined,
                 modifier = Modifier.fillMaxWidth(),
             )
+            // ⛔ **Y lo que ese gesto PROMETE, en una línea.** Seguir sin más era un botón que
+            // cambiaba de palabra y nada más: el aviso llega al día siguiente como muy pronto —hacen
+            // falta dos lecturas de días distintos para que exista un movimiento que contar
+            // ([EvaluateDailyPriceMoveUseCase])— y además la vigilancia diaria es Plus. Un free
+            // seguía una gasolinera y no pasaba nada, nunca, sin una palabra. Eso no es gating
+            // blando: es silencio.
+            //
+            // Solo cuando está seguida: en la otra mitad el botón ya dice lo único que hay que
+            // saber («Seguir»), y adelantar la condición de Plus a quien no ha pedido nada es
+            // vender antes de contestar.
+            if (isFollowed) {
+                Spacer(Modifier.height(FOLLOW_PROMISE_GAP_DP.dp))
+                Text(
+                    text = stringResource(
+                        if (isPlus) {
+                            Res.string.fuel_peek_follow_promise
+                        } else {
+                            Res.string.fuel_peek_follow_promise_plus
+                        },
+                    ),
+                    style = PaparcarType.current.caption,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    // Centrada bajo el botón que explica, que es ancho completo y con su etiqueta
+                    // centrada: a la izquierda se leería como una nota de la hoja, no como la
+                    // consecuencia de ese gesto.
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         },
     )
 }

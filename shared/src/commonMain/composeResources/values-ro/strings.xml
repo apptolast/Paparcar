@@ -1042,6 +1042,8 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="fuel_peek_step_next">Benzinăria următoare</string>
     <string name="fuel_peek_follow">Urmărește</string>
     <string name="fuel_peek_following">Urmărită</string>
+    <string name="fuel_peek_follow_promise">Te anunțăm dacă prețul ei se schimbă</string>
+    <string name="fuel_peek_follow_promise_plus">Monitorizarea zilnică este Plus</string>
     <string name="home_fuel_error">Nu am putut încărca benzinăriile. Verifică conexiunea și deschide din nou.</string>
     <string name="home_fuel_no_prices">În această țară prețurile nu sunt publicate. Acestea sunt benzinăriile din apropiere.</string>
     <!-- [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] Fallback, not a verdict about the country -->

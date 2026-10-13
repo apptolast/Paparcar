@@ -121,6 +121,17 @@ internal fun PapSheet(
      *  words around it keep the base eyebrow colour. [UI-COLOR-DOCTRINE-001] */
     eyebrowHighlight: String? = null,
     eyebrowHighlightColor: Color? = null,
+    /**
+     * A mark that belongs to the TITLE and not to the sheet: a glyph drawn inline before the name,
+     * where a list row would wear it too. Null (the default) ⇒ the header is rendered exactly as it
+     * was. [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001]
+     *
+     * ⛔ Additive on purpose, rather than the fuel sheet hand-rolling its own header: the one thing
+     * every peek must share is the header band, because the collapse cut lands under it and a twin
+     * built next door is a second definition of that height. The mark rides INSIDE the one-line
+     * title row — it cannot grow the band.
+     */
+    titleMark: (@Composable () -> Unit)? = null,
     subtitle: String? = null,
     /** Modal-only escape hatch: peeks keep the fixed 1-line title (anchoring depends on the
      *  reserved header height); a MODAL sheet whose title carries a vehicle name may pass 2 so
@@ -173,6 +184,27 @@ internal fun PapSheet(
             title = title,
             titleStyle = PaparcarType.current.cardTitle,
             titleMaxLines = titleMaxLines,
+            // Con marca, la línea del título pasa a ser estructura — el mismo `titleSlot` con el que
+            // la fila de plaza mete su glifo POI. Sin marca no se toca nada: `title` sigue mandando.
+            // [UI-LIST-ITEM-001] [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001]
+            titleSlot = titleMark?.let { mark ->
+                {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(TITLE_MARK_GAP_DP.dp),
+                    ) {
+                        mark()
+                        Text(
+                            text = title,
+                            style = PaparcarType.current.cardTitle,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = titleMaxLines,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            },
             subtitle = subtitle,
             subtitleStyle = PaparcarType.current.caption,
             subtitleColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -759,6 +791,10 @@ private fun papSheetHeaderReservedHeight(): Dp {
 private const val HEADER_TEXT_STACK_SP = 54
 // PapListItem's overline→title gap (dp).
 private const val HEADER_OVERLINE_GAP_DP = 2
+// Aire entre la marca del título y el nombre — el mismo 5 dp que dejan las filas entre su glifo
+// inline y el suyo, para que la marca se lea igual en la hoja y en la lista.
+// [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001]
+private const val TITLE_MARK_GAP_DP = 5
 // Header contentPadding: top 12 + bottom 14.
 private const val HEADER_V_PAD_DP = 26
 // Drag pill block above the header: top 8 + pill 4 + bottom 2. Keep in sync with HomePeekHandle.

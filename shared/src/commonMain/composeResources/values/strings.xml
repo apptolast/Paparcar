@@ -1065,6 +1065,8 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="fuel_peek_step_next">Next station</string>
     <string name="fuel_peek_follow">Follow</string>
     <string name="fuel_peek_following">Following</string>
+    <string name="fuel_peek_follow_promise">We'll tell you if its price changes</string>
+    <string name="fuel_peek_follow_promise_plus">Watching it daily is Plus</string>
     <string name="home_fuel_error">We could not load the stations. Check your connection and open this again.</string>
     <string name="home_fuel_no_prices">Prices are not published in this country. These are the stations nearby.</string>
     <!-- [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] Fallback, not a verdict about the country -->

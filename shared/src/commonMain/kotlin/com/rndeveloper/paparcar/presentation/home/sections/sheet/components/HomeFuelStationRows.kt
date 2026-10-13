@@ -55,6 +55,9 @@ fun HomeFuelStationRow(
     /** What this forecourt can claim over the others in the same answer, if anything.
      *  [FUEL-THE-CHEAPEST-AND-THE-NEAREST-WEAR-A-BADGE-001] */
     badge: FuelStandoutBadge? = null,
+    /** Whether this is one the user follows — the row wears the same mark the peek's header does.
+     *  [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001] */
+    isFollowed: Boolean = false,
 ) {
     // A source can hold a forecourt with no name — France's official feed carries none at all, and
     // 1 in 25 OSM entries has neither name nor brand. Where it cannot name itself it is placed
@@ -71,8 +74,31 @@ fun HomeFuelStationRow(
         modifier = (if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .then(modifier),
         contentPadding = PaddingValues(0.dp),
-        titleStyle = PaparcarType.current.rowName,
-        titleMaxLines = 1,
+        // ⛔ La marca de seguimiento va en la línea del NOMBRE, no en `trailing`: ahí manda el
+        // precio, y el trailing es UNA afordancia compacta, no dos cosas apiladas junto a un badge
+        // que ya ocupa su segunda fila. Es el mismo mecanismo con el que la fila de plaza mete su
+        // glifo POI inline — `titleSlot`, el hermano estructurado de `title`.
+        // [UI-LIST-ITEM-001] [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001]
+        titleSlot = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(FOLLOW_MARK_GAP_DP.dp),
+            ) {
+                // Antes del nombre, como el glifo POI de la plaza: una marca que se busca de un
+                // barrido vertical tiene que estar en la columna por la que baja el ojo, no al
+                // final de un nombre que se corta con puntos suspensivos.
+                if (isFollowed) FuelFollowMark()
+                Text(
+                    text = title,
+                    // El nombre de la gasolinera es la identidad de la fila → MARCA (`rowName`).
+                    style = PaparcarType.current.rowName,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        },
         subtitle = subtitleFor(station, title, hasFix),
         subtitleMaxLines = 1,
         leading = {
@@ -261,6 +287,8 @@ fun HomeFuelStationRows(
     modifier: Modifier = Modifier,
     onStationClick: ((String) -> Unit)? = null,
     hasFix: Boolean = true,
+    /** `source|id` de las que el usuario sigue. [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001] */
+    followedStationKeys: Set<String> = emptySet(),
 ) {
     // Read ONCE for the whole answer, never per row: "the cheapest" is a claim about the list, and
     // asking each row to work it out would let two rows disagree.
@@ -277,6 +305,7 @@ fun HomeFuelStationRows(
                 // is a claim about nothing. [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
                 badge = standouts.badgeFor(station.stationKey)
                     ?.takeIf { hasFix || it == FuelStandoutBadge.CHEAPEST },
+                isFollowed = station.stationKey in followedStationKeys,
             )
             if (index < stations.lastIndex) {
                 PapDivider(modifier = Modifier.padding(start = 70.dp, end = 16.dp))
@@ -288,3 +317,8 @@ fun HomeFuelStationRows(
 /** Aire entre el precio y el badge que lo cualifica, en la columna del borde derecho.
  *  [FUEL-THE-CHEAPEST-AND-THE-NEAREST-WEAR-A-BADGE-001] */
 private const val TRAILING_STACK_GAP_DP = 4
+
+/** Aire entre la estrella de seguimiento y el nombre — **el mismo 5 dp** que la fila de plaza deja
+ *  entre su glifo POI y el suyo (`POI_ICON_GAP_DP`), porque las dos listas viven bajo las mismas
+ *  pestañas y se recorren con el mismo gesto. [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001] */
+private const val FOLLOW_MARK_GAP_DP = 5

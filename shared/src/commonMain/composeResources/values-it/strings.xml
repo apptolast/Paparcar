@@ -1024,6 +1024,8 @@ Se la richiesta non compare più, cambiala in Impostazioni → Paparcar → Posi
     <string name="fuel_peek_step_next">Distributore successivo</string>
     <string name="fuel_peek_follow">Segui</string>
     <string name="fuel_peek_following">Seguito</string>
+    <string name="fuel_peek_follow_promise">Ti avviseremo se il suo prezzo cambia</string>
+    <string name="fuel_peek_follow_promise_plus">Monitorarla ogni giorno è Plus</string>
     <string name="home_fuel_error">Non siamo riusciti a caricare i distributori. Controlla la connessione e riapri.</string>
     <string name="home_fuel_no_prices">In questo Paese i prezzi non sono pubblicati. Questi sono i distributori vicini.</string>
     <!-- [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] Fallback, not a verdict about the country -->

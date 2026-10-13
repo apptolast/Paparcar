@@ -1024,6 +1024,8 @@ Si la question n'apparaît plus, changez-le dans Réglages → Paparcar → Posi
     <string name="fuel_peek_step_next">Station suivante</string>
     <string name="fuel_peek_follow">Suivre</string>
     <string name="fuel_peek_following">Suivie</string>
+    <string name="fuel_peek_follow_promise">On te prévient si son prix change</string>
+    <string name="fuel_peek_follow_promise_plus">La surveiller chaque jour, c'est Plus</string>
     <string name="home_fuel_error">Impossible de charger les stations. Vérifie ta connexion et rouvre cette section.</string>
     <string name="home_fuel_no_prices">Les prix ne sont pas publiés dans ce pays. Voici les stations à proximité.</string>
     <!-- [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] Fallback, not a verdict about the country -->

@@ -1228,6 +1228,28 @@ class HomeSlicesTest {
             price = null,
         )
 
+    /**
+     * ⛔ La lista tiene que SABER cuáles sigues. [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001]
+     *
+     * El conjunto llevaba meses en el estado con un único consumidor —el peek—, y el carril no tenía
+     * por dónde enterarse: su slice no lo llevaba. Una fila que no puede saberlo no puede marcarlo,
+     * así que la estrella no era un olvido de diseño, era un dato que no llegaba.
+     */
+    @Test
+    fun should_carryTheFollowedKeysToTheLane_when_theUserFollowsAStation() {
+        val state = HomeState(
+            nearbyLens = HomeNearbyLens.FUEL,
+            fuel = com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice(
+                stations = listOf(fuelStation("a", 100.0), fuelStation("b", 200.0)),
+            ),
+            followedFuelStationKeys = setOf("test|a"),
+        )
+
+        assertEquals(setOf("test|a"), state.toBrowseListSlice().followedFuelStationKeys)
+        // Y el peek sigue leyendo el mismo conjunto: una sola verdad para las dos superficies.
+        assertEquals(setOf("test|a"), state.toPeekSlice().followedFuelStationKeys)
+    }
+
     @Test
     fun should_paintWhatTheLaneLists_when_theLaneIsOnFuel_andNothingWhenItIsNot() {
         // One store, one projection: the capsules are the rows, in the rows' order.

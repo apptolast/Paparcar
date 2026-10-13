@@ -1025,6 +1025,8 @@ Wenn die Frage nicht mehr erscheint, ändere es unter Einstellungen → Paparcar
     <string name="fuel_peek_step_next">Nächste Tankstelle</string>
     <string name="fuel_peek_follow">Folgen</string>
     <string name="fuel_peek_following">Gefolgt</string>
+    <string name="fuel_peek_follow_promise">Wir melden dir, wenn sich ihr Preis ändert</string>
+    <string name="fuel_peek_follow_promise_plus">Die tägliche Überwachung ist Plus</string>
     <string name="home_fuel_error">Die Tankstellen konnten nicht geladen werden. Prüfe die Verbindung und öffne das erneut.</string>
     <string name="home_fuel_no_prices">In diesem Land werden keine Preise veröffentlicht. Das sind die Tankstellen in der Nähe.</string>
     <!-- [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] Fallback, not a verdict about the country -->
