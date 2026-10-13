@@ -1,0 +1,14 @@
+# La ficha que describe el build PUBLICADO en Google Play — y el UNICO sitio donde vive su nombre.
+#
+# La leen tools/make_paste.py (para generar paste/) y PlayListingPasteParityGuardrailTest (para
+# comprobar que paste/ sigue siendo esa). Antes el nombre estaba cableado en los dos, asi que
+# escribir la ficha nueva y olvidar una de las dos copias dejaba un guard verde verificando una
+# ficha RETIRADA: un verde que no mira nada. [PLAY-THE-LISTING-MOVES-TO-THE-PUBLISHED-BUILD-001]
+#
+# Se cambia cuando Play PUBLICA una version nueva, no cuando master la escribe: la regla del
+# README de esta carpeta es que la ficha describe el build publicado. Las anteriores se quedan
+# como historico (LISTING.md, LISTING-i18n.md, LISTING-v1.3.0.md).
+#
+# Formato: una sola linea con el nombre del fichero, en esta carpeta. Lineas en blanco y lineas
+# que empiezan por # se ignoran.
+LISTING-v1.4.0.md

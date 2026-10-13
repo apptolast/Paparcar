@@ -1,6 +1,6 @@
 FICHA DE PLAY STORE — pl-PL
 ============================================================
-GENERADO por tools/make_paste.py desde LISTING-v1.3.0.md — no editar a mano.
+GENERADO por tools/make_paste.py desde LISTING-v1.4.0.md — no editar a mano.
 
 --- 1. NOMBRE DE LA APLICACION (28/30) ---
 Paparcar: gdzie zaparkowałeś
@@ -8,7 +8,7 @@ Paparcar: gdzie zaparkowałeś
 --- 2. DESCRIPCION BREVE (66/80) ---
 Gdzie zaparkowałeś? Paparcar pamięta. Z cenami paliw i parkingami.
 
---- 3. DESCRIPCION COMPLETA (3628/4000) ---
+--- 3. DESCRIPCION COMPLETA (3833/4000) ---
 Gdzie zaparkowałeś?
 
 Paparcar pamięta za Ciebie.
@@ -24,7 +24,8 @@ JAK TO DZIAŁA
 
 TWOJE PARKOWANIE, BEZ WYSIŁKU
 • Gdzie zostawiłeś auto i jak długo już tam stoi.
-• Twoja historia, z liczbą parkowań wykrytych przez aplikację i przekazanych miejsc.
+• Widżet na ekranie głównym: gdzie stoi auto, jak dojechać i jak odpowiedzieć w drodze.
+• Twoja historia i przekazane miejsca.
 • Miejsce nie jest dokładne? Przesuń swoje parkowanie na mapie i zapisz ponownie.
 • Każde auto z własnym rozmiarem, kolorem i Bluetooth.
 
@@ -39,12 +40,14 @@ STACJE PALIW I PARKINGI, NA TEJ SAMEJ MAPIE
 • Stacje paliw z ceną z oficjalnych rejestrów i godziną pomiaru. Hiszpania, Francja, Niemcy i Włochy.
 • Cena paliwa, którego używa Twoje auto, a nie ogólna średnia.
 • Parkingi publiczne z opłatą, maksymalną wysokością i liczbą miejsc, gdy źródło je podaje.
+• Zmieścisz się pod wysokością? Tylko gdy jesteśmy pewni — nieznana nigdy nie znaczy tak.
 • Wszystko za darmo: to, co widzisz wokół siebie, nigdy nie jest za abonamentem.
 
 TWOJE LICZBY
 • Ile wydajesz na paliwo i ile go zużywasz.
 • Ile czasu spędzasz na szukaniu miejsca.
 • Twoja zwykła ulica, Twój zwykły dzień i najtrudniejsza godzina.
+• Ile razy wykrywanie trafiło, w procentach, na zmierzonych przejazdach.
 
 JEDNO AUTO, KILKU KIEROWCÓW
 • Udostępnij auto nawet czterem osobom. Kto nim jedzie, oznacza parkowanie, a cała grupa widzi, gdzie stoi.

@@ -89,12 +89,12 @@
       {
         "icon": "pin",
         "title": "Tu coche siempre localizado",
-        "body": "La calle donde lo dejaste, cuánto tiempo lleva allí y a qué distancia estás. Con el historial de tus aparcamientos para saber dónde sueles dejarlo."
+        "body": "La calle donde lo dejaste, cuánto tiempo lleva allí y a qué distancia estás. Con el historial de tus aparcamientos para saber dónde sueles dejarlo, y un widget en la pantalla de inicio para verlo sin abrir la app."
       },
       {
         "icon": "auto",
         "title": "Detección automática",
-        "body": "Por el Bluetooth del coche, que es el método más preciso, o por movimiento y ubicación si tu coche no tiene. Las dos vías guardan el aparcamiento sin que hagas nada."
+        "body": "Por el Bluetooth del coche, que es el método más preciso, o por movimiento y ubicación si tu coche no tiene. Las dos vías guardan el aparcamiento sin que hagas nada, y en tus cifras ves cuánto acierta: el porcentaje de viajes que detectó sola."
       },
       {
         "icon": "spot",
@@ -104,7 +104,7 @@
       {
         "icon": "parking",
         "title": "Parkings públicos",
-        "body": "Dónde están, si son de pago, el horario, cuántas plazas tienen y qué altura máxima admiten. Con la ruta hasta la entrada."
+        "body": "Dónde están, si son de pago, el horario, cuántas plazas tienen y qué altura máxima admiten, comparada con la de tu coche: cuando no sabemos tu alto, Paparcar no te dice que cabes. Con la ruta hasta la entrada."
       },
       {
         "icon": "fuel",
@@ -114,7 +114,7 @@
       {
         "icon": "car",
         "title": "Tus vehículos",
-        "body": "Tus coches y motos, cada uno con su tamaño y su carrocería, para que Paparcar compare el hueco con el tuyo antes de que te desvíes. Y puedes compartir un coche con hasta cuatro personas."
+        "body": "Tus coches y motos, cada uno con su tamaño, su carrocería y su alto, para que Paparcar compare el hueco con el tuyo antes de que te desvíes. Y puedes compartir un coche con hasta cuatro personas."
       }
     ]
   },

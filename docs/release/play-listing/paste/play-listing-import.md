@@ -1,6 +1,6 @@
 # Paparcar — Google Play store listing (9 locales)
 
-<!-- GENERADO por tools/make_paste.py desde LISTING-v1.3.0.md — no editar a mano. -->
+<!-- GENERADO por tools/make_paste.py desde LISTING-v1.4.0.md — no editar a mano. -->
 
 Import these texts VERBATIM. Do not rewrite, rephrase, shorten or translate them:
 every locale below is already translated and character-counted.
@@ -32,7 +32,8 @@ HOW IT WORKS
 
 YOUR PARKING, EFFORTLESS
 • Where you left the car, and how long it has been sitting there.
-• Your history, with how many parkings the app detected and how many spots you shared.
+• A home screen widget: where the car is, directions, and a tap to answer mid-trip.
+• Your history, and how many spots you have shared.
 • Not the right place? Move your parking on the map and save it again.
 • Every car with its own size, colour and Bluetooth.
 
@@ -47,12 +48,14 @@ FUEL AND CAR PARKS, ON THE SAME MAP
 • Fuel stations with the price official registers publish, and the hour it was measured. Spain, France, Germany and Italy.
 • The price of the fuel your car actually takes, not a generic average.
 • Public car parks with their rate, height limit and spaces, where the source gives them.
+• Does your car clear the barrier? Only when we are sure — an unknown height is never a yes.
 • All of it free: seeing what is around you is never behind a subscription.
 
 YOUR NUMBERS
 • What you spend on fuel, and how much you burn.
 • How long you spend looking for a spot.
 • Your usual street, your usual day, and the hour it gets hardest.
+• How often detection got it right, in percent, over the trips it measured.
 
 ONE CAR, SEVERAL DRIVERS
 • Share a car with up to four people. Whoever drives it marks the parking, and the whole group sees where it is.
@@ -115,7 +118,8 @@ CÓMO FUNCIONA
 
 TU APARCAMIENTO, SIN ESFUERZO
 • Dónde dejaste el coche y cuánto tiempo lleva allí.
-• Tu historial, con cuántos aparcamientos detectó la app y cuántas plazas has cedido.
+• Un widget en la pantalla de inicio: dónde está el coche, cómo ir y contestar en ruta.
+• Tu historial y cuántas plazas has cedido.
 • ¿El sitio no es exacto? Mueve tu aparcamiento en el mapa y guárdalo de nuevo.
 • Cada coche con su tamaño, su color y su Bluetooth.
 
@@ -130,12 +134,14 @@ GASOLINERAS Y PARKINGS, EN EL MISMO MAPA
 • Gasolineras con el precio que publican los registros oficiales y la hora a la que se midió. España, Francia, Alemania e Italia.
 • El precio del combustible que usa tu coche, no una media genérica.
 • Parkings públicos con su tarifa, su gálibo y sus plazas, cuando la fuente los da.
+• ¿Cabes por el gálibo? Sólo cuando estamos seguros: un alto desconocido nunca es un «cabes».
 • Todo gratis: ver lo que tienes alrededor nunca está detrás de una suscripción.
 
 TUS CIFRAS
 • Cuánto te gastas en combustible y cuánto consumes.
 • Cuánto tiempo pasas buscando plaza.
 • Tu calle de siempre, tu día de siempre y la hora en que se pone más difícil.
+• Cuánto acierta la detección, en porcentaje, sobre los viajes que midió.
 
 UN COCHE, VARIOS CONDUCTORES
 • Comparte un coche hasta con cuatro personas. Quien lo conduce marca el aparcamiento y todo el grupo ve dónde está.
@@ -198,7 +204,8 @@ COME FUNZIONA
 
 IL TUO PARCHEGGIO, SENZA SFORZO
 • Dove hai lasciato l'auto e da quanto tempo è lì.
-• Il tuo storico, con quanti parcheggi ha rilevato l'app e quanti posti hai ceduto.
+• Un widget sulla schermata home: dov'è l'auto, come arrivarci e come rispondere in viaggio.
+• Il tuo storico e quanti posti hai ceduto.
 • Il punto non è esatto? Sposta il tuo parcheggio sulla mappa e salvalo di nuovo.
 • Ogni auto con la sua taglia, il suo colore e il suo Bluetooth.
 
@@ -213,12 +220,14 @@ DISTRIBUTORI E PARCHEGGI PUBBLICI, SULLA STESSA MAPPA
 • Distributori con il prezzo pubblicato dai registri ufficiali e l'ora del rilevamento. Spagna, Francia, Germania e Italia.
 • Il prezzo del carburante che usa davvero la tua auto, non una media generica.
 • Parcheggi pubblici con tariffa, altezza massima e posti, quando la fonte li fornisce.
+• Passi sotto la barriera? Solo quando ne siamo certi: un'altezza ignota non è mai un sì.
 • Tutto gratis: vedere cosa hai intorno non è mai dietro un abbonamento.
 
 I TUOI NUMERI
 • Quanto spendi di carburante e quanto ne consumi.
 • Quanto tempo passi a cercare posto.
 • La tua via di sempre, il tuo giorno di sempre e l'ora in cui è più difficile.
+• Quanto ci prende il rilevamento, in percentuale, sui viaggi misurati.
 
 UN'AUTO, PIÙ CONDUCENTI
 • Condividi un'auto fino a quattro persone. Chi la guida segna il parcheggio e tutto il gruppo vede dov'è.
@@ -281,7 +290,8 @@ COMO FUNCIONA
 
 O TEU ESTACIONAMENTO, SEM ESFORÇO
 • Onde deixaste o carro e há quanto tempo ali está.
-• O teu histórico, com quantos estacionamentos a aplicação detetou e quantos lugares cedeste.
+• Um widget no ecrã inicial: onde está o carro, como ir e responder a caminho.
+• O teu histórico e quantos lugares cedeste.
 • O sítio não está certo? Move o teu estacionamento no mapa e guarda outra vez.
 • Cada carro com o seu tamanho, a sua cor e o seu Bluetooth.
 
@@ -296,12 +306,14 @@ BOMBAS E PARQUES, NO MESMO MAPA
 • Bombas de combustível com o preço que os registos oficiais publicam e a hora da medição. Espanha, França, Alemanha e Itália.
 • O preço do combustível que o teu carro usa, não uma média genérica.
 • Parques de estacionamento com tarifa, altura máxima e lugares, quando a fonte os dá.
+• Passas na altura? Só quando temos a certeza: uma altura desconhecida nunca é um sim.
 • Tudo grátis: ver o que tens à volta nunca está atrás de uma subscrição.
 
 OS TEUS NÚMEROS
 • Quanto gastas em combustível e quanto consomes.
 • Quanto tempo passas à procura de lugar.
 • A tua rua do costume, o teu dia do costume e a hora em que fica mais difícil.
+• Quanto acerta a deteção, em percentagem, nas viagens que mediu.
 
 UM CARRO, VÁRIOS CONDUTORES
 • Partilha um carro até com quatro pessoas. Quem o conduz marca o estacionamento e todo o grupo vê onde está.
@@ -353,9 +365,9 @@ Où vous êtes-vous garé ?
 
 Paparcar s'en souvient pour vous.
 
-Garez-vous, sortez et continuez votre journée. Paparcar enregistre automatiquement où vous avez laissé la voiture : sans ouvrir l'application, sans épingle et sans saisir d'adresse. À votre retour, vous savez où elle est et depuis quand.
+Garez-vous, sortez et continuez votre journée. Paparcar enregistre automatiquement où vous avez laissé la voiture : sans ouvrir l'application, sans épingle ni adresse. À votre retour, vous savez où elle est et depuis quand.
 
-Quand vous repartez, la place que vous libérez peut être publiée pour les conducteurs à proximité. Et vous voyez celles que d'autres viennent de libérer. Plus il y a de conducteurs sur Paparcar dans votre ville, plus de places apparaissent.
+Quand vous repartez, la place que vous libérez peut être publiée pour les conducteurs à proximité. Et vous voyez celles que d'autres viennent de libérer. Plus il y a de conducteurs dans votre ville, plus de places apparaissent.
 
 COMMENT ÇA MARCHE
 1. Vous vous garez. Paparcar le détecte et enregistre l'endroit. Sans Bluetooth, marquez le premier à la main.
@@ -364,35 +376,38 @@ COMMENT ÇA MARCHE
 
 VOTRE STATIONNEMENT, SANS EFFORT
 • Où vous avez laissé la voiture et depuis combien de temps.
-• Votre historique, avec le nombre de stationnements détectés et de places cédées.
-• L'endroit n'est pas exact ? Déplacez-le sur la carte et enregistrez.
+• Un widget sur l'écran d'accueil : où est la voiture, l'itinéraire, et répondre en route.
+• Votre historique et les places cédées.
+• Pas le bon endroit ? Déplacez-le sur la carte et enregistrez.
 • Chaque voiture avec sa taille, sa couleur et son Bluetooth.
 
 DES PLACES EN TEMPS RÉEL
 • Les places que d'autres viennent de libérer, sur la carte.
-• Quand chacune s'est libérée : il y a deux minutes n'est pas il y a vingt.
+• Quand chacune s'est libérée : deux minutes, ce n'est pas vingt.
 • Combien de conducteurs s'y dirigent déjà.
 • Si votre voiture rentre : Paparcar compare l'espace à la vôtre.
 • Une place libre en passant ? Signalez-la en deux fois.
 
 STATIONS-SERVICE ET PARKINGS, SUR LA MÊME CARTE
-• Stations-service avec le prix publié par les registres officiels et l'heure du relevé. Espagne, France, Allemagne et Italie.
-• Le prix du carburant que votre voiture utilise, pas une moyenne générique.
+• Stations-service avec le prix des registres officiels et l'heure du relevé. Espagne, France, Allemagne, Italie.
+• Le prix du carburant de votre voiture, pas une moyenne générique.
 • Parkings publics avec tarif, hauteur maximale et nombre de places, quand la source les donne.
-• Le tout gratuitement : voir ce qui vous entoure n'est jamais derrière un abonnement.
+• Vous passez sous la barrière ? Seulement si c'est sûr : une hauteur inconnue n'est pas un oui.
+• Le tout gratuitement : voir n'est jamais payant.
 
 VOS CHIFFRES
 • Ce que vous dépensez en carburant et ce que vous consommez.
 • Le temps passé à chercher une place.
 • Votre rue habituelle, votre jour habituel et l'heure la plus difficile.
+• La part des trajets que la détection a trouvés toute seule, en pourcentage.
 
 UNE VOITURE, PLUSIEURS CONDUCTEURS
-• Partagez une voiture avec jusqu'à quatre personnes. Celui qui la conduit marque le stationnement, et tout le groupe voit où elle est.
-• Distance, temps et places libérées comptent pour tout le monde.
+• Partagez une voiture jusqu'à quatre : qui la conduit marque, tout le groupe voit où elle est.
+• Distance, temps et places libérées comptent pour tous.
 • Vos trajets ne sont partagés que si vous le décidez.
 
 DÉTECTION AUTOMATIQUE
-Si votre voiture se connecte au téléphone en Bluetooth, la déconnexion aide à détecter la fin du stationnement. Sans Bluetooth, Paparcar utilise le mouvement et la localisation.
+Si votre voiture se connecte en Bluetooth, la déconnexion aide à détecter la fin du stationnement. Sans Bluetooth, Paparcar utilise mouvement et localisation.
 
 Paparcar ne veut pas deviner. Quand il n'est pas sûr, il vous demande avant de publier une place.
 
@@ -400,23 +415,23 @@ PAPARCAR PLUS
 Gratuitement, vous demandez et l'application répond. Avec Plus, elle veille pendant que vous ne regardez pas :
 • Alertes quand une place se libère dans votre zone, application fermée.
 • Alertes quand le prix baisse dans une station que vous suivez.
-• Tout votre historique. L'offre gratuite garde les 7 derniers jours.
+• Tout votre historique. Gratuitement, les 7 derniers jours.
 • Plus d'une voiture à vous et plus de deux zones privées.
 • Créer une voiture partagée. En rejoindre une est toujours gratuit.
 
 CONFIDENTIALITÉ
-• Zones privées : marquez des lieux comme votre domicile, Paparcar n'y publiera pas de place.
+• Zones privées : marquez votre domicile, Paparcar n'y publie aucune place.
 • Votre plaque d'immatriculation ne quitte jamais votre téléphone.
 • La marque et le modèle n'apparaissent sur la place libérée que si vous l'activez.
 • Votre localisation n'est jamais vendue ni utilisée à des fins publicitaires.
-• Vous pouvez supprimer votre compte et ses données depuis les Paramètres ou le web.
+• Compte et données supprimables depuis les Paramètres ou le web.
 • Sans publicité.
 
 LOCALISATION EN ARRIÈRE-PLAN
 
 Paparcar utilise des données de localisation même lorsque l'application est fermée ou non utilisée, afin de détecter où vous vous garez et de libérer votre place quand vous repartez.
 
-La détection automatique a besoin de cette autorisation. Sans elle, Paparcar fonctionne quand même, mais vous devrez marquer et libérer vos stationnements à la main.
+La détection automatique a besoin de cette autorisation. Sans elle, Paparcar fonctionne, mais vous devrez marquer et libérer vos stationnements à la main.
 
 Politique de confidentialité :
 https://paparcar.com/privacy-policy
@@ -436,7 +451,7 @@ Wo hast du geparkt?
 
 Paparcar merkt es sich für dich.
 
-Parke, steig aus und mach mit deinem Tag weiter. Paparcar speichert automatisch, wo du das Auto abgestellt hast: ohne die App zu öffnen, ohne Stecknadel und ohne Adresse. Wenn du zurückkommst, weißt du, wo es steht und wie lange schon.
+Parke, steig aus und mach mit deinem Tag weiter. Paparcar speichert automatisch, wo du das Auto abgestellt hast: ohne App, ohne Stecknadel und ohne Adresse. Wenn du zurückkommst, weißt du, wo es steht und wie lange schon.
 
 Wenn du losfährst, kann der Platz, den du frei machst, für die Fahrer in der Nähe veröffentlicht werden. Und du siehst die Plätze, die andere gerade frei gemacht haben. Je mehr Fahrer Paparcar in deiner Stadt nutzen, desto mehr Plätze erscheinen.
 
@@ -447,8 +462,9 @@ SO FUNKTIONIERT ES
 
 DEIN PARKPLATZ, OHNE AUFWAND
 • Wo du das Auto abgestellt hast und wie lange es schon dort steht.
-• Dein Verlauf, mit wie vielen Parkvorgängen die App erkannt und wie vielen Plätzen du weitergegeben hast.
-• Der Ort stimmt nicht? Verschiebe deinen Parkplatz auf der Karte und speichere erneut.
+• Ein Widget auf dem Homescreen: wo das Auto steht, die Route, und unterwegs antworten.
+• Dein Verlauf und wie viele Plätze du weitergegeben hast.
+• Der Ort stimmt nicht? Verschiebe ihn auf der Karte und speichere erneut.
 • Jedes Auto mit seiner Größe, seiner Farbe und seinem Bluetooth.
 
 FREIE PLÄTZE IN ECHTZEIT
@@ -459,47 +475,49 @@ FREIE PLÄTZE IN ECHTZEIT
 • Im Vorbeigehen einen freien Platz gesehen? Melde ihn mit zwei Tipps.
 
 TANKSTELLEN UND PARKHÄUSER, AUF DERSELBEN KARTE
-• Tankstellen mit dem Preis aus amtlichen Registern und der Uhrzeit der Messung. Spanien, Frankreich, Deutschland und Italien.
-• Der Preis des Kraftstoffs, den dein Auto tankt, kein allgemeiner Durchschnitt.
+• Tankstellen mit dem Preis aus amtlichen Registern und der Uhrzeit. Spanien, Frankreich, Deutschland, Italien.
+• Der Preis des Kraftstoffs, den dein Auto tankt, kein Durchschnitt.
 • Parkhäuser mit Tarif, Durchfahrtshöhe und Stellplätzen, wenn die Quelle sie liefert.
-• Alles kostenlos: zu sehen, was um dich herum ist, steckt nie hinter einem Abo.
+• Passt dein Auto unter die Höhe? Nur wenn wir sicher sind — unbekannt ist nie ein Ja.
+• Alles kostenlos: Sehen steckt nie hinter einem Abo.
 
 DEINE ZAHLEN
 • Was du für Kraftstoff ausgibst und wie viel du verbrauchst.
 • Wie lange du nach einem Platz suchst.
 • Deine übliche Straße, dein üblicher Tag und die schwierigste Stunde.
+• Wie oft die Erkennung richtig lag, in Prozent, über die gemessenen Fahrten.
 
 EIN AUTO, MEHRERE FAHRER
-• Teile ein Auto mit bis zu vier Personen. Wer es fährt, markiert den Parkplatz, und die ganze Gruppe sieht, wo es steht.
+• Teile ein Auto mit bis zu vier Personen: wer fährt, markiert, die Gruppe sieht, wo es steht.
 • Strecke, Zeit und frei gewordene Plätze zählen für alle.
 • Deine Routen werden nur geteilt, wenn du es sagst.
 
 AUTOMATISCHE ERKENNUNG
-Verbindet sich dein Auto per Bluetooth mit dem Handy, hilft das Trennen zu erkennen, dass du fertig eingeparkt hast. Ohne Bluetooth nutzt Paparcar Bewegung und Standort.
+Verbindet sich dein Auto per Bluetooth, hilft das Trennen zu erkennen, dass du fertig eingeparkt hast. Ohne Bluetooth nutzt Paparcar Bewegung und Standort.
 
 Paparcar will nicht raten. Wenn nicht sicher ist, was passiert ist, fragt es dich, bevor ein Platz veröffentlicht wird.
 
 PAPARCAR PLUS
 Kostenlos fragst du, und die App antwortet. Mit Plus wacht sie, während du nicht hinsiehst:
-• Hinweise, wenn in deiner Zone ein Platz frei wird, bei geschlossener App.
+• Hinweise, wenn in deiner Zone ein Platz frei wird — App geschlossen.
 • Hinweise, wenn der Preis an einer Tankstelle sinkt, der du folgst.
-• Dein ganzer Verlauf. Kostenlos bleiben die letzten 7 Tage.
+• Dein ganzer Verlauf. Kostenlos die letzten 7 Tage.
 • Mehr als ein eigenes Auto und mehr als zwei private Zonen.
 • Ein geteiltes Auto anlegen. Einem beizutreten ist immer kostenlos.
 
 DATENSCHUTZ
-• Private Zonen: markiere Orte wie dein Zuhause, dann wird dort kein Platz veröffentlicht.
+• Private Zonen: markiere dein Zuhause, dort wird kein Platz veröffentlicht.
 • Dein Kennzeichen verlässt niemals dein Handy.
 • Marke und Modell erscheinen nur auf dem Platz, den du frei machst, wenn du das einschaltest.
 • Dein Standort wird niemals verkauft oder für Werbung genutzt.
-• Du kannst dein Konto und seine Daten in den Einstellungen oder im Web löschen.
+• Konto und Daten löschst du in den Einstellungen oder im Web.
 • Keine Werbung.
 
 STANDORT IM HINTERGRUND
 
 Paparcar nutzt Standortdaten auch dann, wenn die App geschlossen ist oder nicht verwendet wird, um zu erkennen, wo du parkst, und um deinen Platz frei zu geben, wenn du losfährst.
 
-Die automatische Erkennung braucht diese Berechtigung. Ohne sie funktioniert Paparcar weiterhin, aber du musst deine Parkvorgänge von Hand markieren und frei geben.
+Die automatische Erkennung braucht diese Berechtigung. Ohne sie funktioniert Paparcar weiter, aber du musst deine Parkvorgänge von Hand markieren und frei geben.
 
 Datenschutzerklärung:
 https://paparcar.com/privacy-policy
@@ -530,7 +548,8 @@ ZO WERKT HET
 
 JOUW PARKEERPLAATS, ZONDER MOEITE
 • Waar je de auto hebt achtergelaten en hoe lang hij er al staat.
-• Je geschiedenis, met hoeveel parkeerbeurten de app detecteerde en hoeveel plekken je doorgaf.
+• Een widget op je startscherm: waar de auto staat, de route, en onderweg antwoorden.
+• Je geschiedenis en hoeveel plekken je doorgaf.
 • Klopt de plek niet? Verplaats je parkeerplaats op de kaart en sla opnieuw op.
 • Elke auto met zijn eigen maat, kleur en Bluetooth.
 
@@ -545,12 +564,14 @@ TANKSTATIONS EN PARKEERGARAGES, OP DEZELFDE KAART
 • Tankstations met de prijs uit officiële registers en het tijdstip van de meting. Spanje, Frankrijk, Duitsland en Italië.
 • De prijs van de brandstof die jouw auto tankt, geen algemeen gemiddelde.
 • Parkeergarages met tarief, maximale hoogte en plaatsen, waar de bron die geeft.
+• Kom je onder de hoogte door? Alleen als we het zeker weten — onbekend is nooit een ja.
 • Allemaal gratis: zien wat er om je heen is, zit nooit achter een abonnement.
 
 JOUW CIJFERS
 • Wat je aan brandstof uitgeeft en hoeveel je verbruikt.
 • Hoe lang je zoekt naar een plek.
 • Je vaste straat, je vaste dag en het lastigste uur.
+• Hoe vaak de detectie het goed had, in procent, over de gemeten ritten.
 
 ÉÉN AUTO, MEERDERE BESTUURDERS
 • Deel een auto met maximaal vier mensen. Wie erin rijdt, markeert de parkeerplaats, en de hele groep ziet waar hij staat.
@@ -613,7 +634,8 @@ JAK TO DZIAŁA
 
 TWOJE PARKOWANIE, BEZ WYSIŁKU
 • Gdzie zostawiłeś auto i jak długo już tam stoi.
-• Twoja historia, z liczbą parkowań wykrytych przez aplikację i przekazanych miejsc.
+• Widżet na ekranie głównym: gdzie stoi auto, jak dojechać i jak odpowiedzieć w drodze.
+• Twoja historia i przekazane miejsca.
 • Miejsce nie jest dokładne? Przesuń swoje parkowanie na mapie i zapisz ponownie.
 • Każde auto z własnym rozmiarem, kolorem i Bluetooth.
 
@@ -628,12 +650,14 @@ STACJE PALIW I PARKINGI, NA TEJ SAMEJ MAPIE
 • Stacje paliw z ceną z oficjalnych rejestrów i godziną pomiaru. Hiszpania, Francja, Niemcy i Włochy.
 • Cena paliwa, którego używa Twoje auto, a nie ogólna średnia.
 • Parkingi publiczne z opłatą, maksymalną wysokością i liczbą miejsc, gdy źródło je podaje.
+• Zmieścisz się pod wysokością? Tylko gdy jesteśmy pewni — nieznana nigdy nie znaczy tak.
 • Wszystko za darmo: to, co widzisz wokół siebie, nigdy nie jest za abonamentem.
 
 TWOJE LICZBY
 • Ile wydajesz na paliwo i ile go zużywasz.
 • Ile czasu spędzasz na szukaniu miejsca.
 • Twoja zwykła ulica, Twój zwykły dzień i najtrudniejsza godzina.
+• Ile razy wykrywanie trafiło, w procentach, na zmierzonych przejazdach.
 
 JEDNO AUTO, KILKU KIEROWCÓW
 • Udostępnij auto nawet czterem osobom. Kto nim jedzie, oznacza parkowanie, a cała grupa widzi, gdzie stoi.
@@ -696,7 +720,8 @@ CUM FUNCȚIONEAZĂ
 
 PARCAREA TA, FĂRĂ EFORT
 • Unde ai lăsat mașina și de cât timp stă acolo.
-• Istoricul tău, cu câte parcări a detectat aplicația și câte locuri ai cedat.
+• Un widget pe ecranul principal: unde e mașina, traseul și un răspuns din mers.
+• Istoricul tău și câte locuri ai cedat.
 • Locul nu e exact? Mută-ți parcarea pe hartă și salveaz-o din nou.
 • Fiecare mașină cu dimensiunea, culoarea și Bluetooth-ul ei.
 
@@ -711,12 +736,14 @@ BENZINĂRII ȘI PARCĂRI PUBLICE, PE ACEEAȘI HARTĂ
 • Benzinării cu prețul din registrele oficiale și ora măsurării. Spania, Franța, Germania și Italia.
 • Prețul combustibilului pe care îl folosește mașina ta, nu o medie generică.
 • Parcări publice cu tarif, înălțime maximă și locuri, când sursa le oferă.
+• Încapi la înălțime? Doar când suntem siguri — o înălțime necunoscută nu e niciodată un da.
 • Totul gratuit: să vezi ce ai în jur nu stă niciodată în spatele unui abonament.
 
 CIFRELE TALE
 • Cât cheltui pe combustibil și cât consumi.
 • Cât timp petreci căutând un loc.
 • Strada ta obișnuită, ziua ta obișnuită și ora cea mai grea.
+• Cât de des a nimerit detectarea, în procente, pe traseele măsurate.
 
 O MAȘINĂ, MAI MULȚI ȘOFERI
 • Împarte o mașină cu până la patru persoane. Cine o conduce marchează parcarea, iar tot grupul vede unde este.

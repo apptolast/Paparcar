@@ -1,6 +1,6 @@
 FICHA DE PLAY STORE — nl-NL
 ============================================================
-GENERADO por tools/make_paste.py desde LISTING-v1.3.0.md — no editar a mano.
+GENERADO por tools/make_paste.py desde LISTING-v1.4.0.md — no editar a mano.
 
 --- 1. NOMBRE DE LA APLICACION (28/30) ---
 Paparcar: waar staat je auto
@@ -8,7 +8,7 @@ Paparcar: waar staat je auto
 --- 2. DESCRIPCION BREVE (68/80) ---
 Waar heb je geparkeerd? Paparcar onthoudt het. Met brandstofprijzen.
 
---- 3. DESCRIPCION COMPLETA (3771/4000) ---
+--- 3. DESCRIPCION COMPLETA (3972/4000) ---
 Waar heb je geparkeerd?
 
 Paparcar onthoudt het voor je.
@@ -24,7 +24,8 @@ ZO WERKT HET
 
 JOUW PARKEERPLAATS, ZONDER MOEITE
 • Waar je de auto hebt achtergelaten en hoe lang hij er al staat.
-• Je geschiedenis, met hoeveel parkeerbeurten de app detecteerde en hoeveel plekken je doorgaf.
+• Een widget op je startscherm: waar de auto staat, de route, en onderweg antwoorden.
+• Je geschiedenis en hoeveel plekken je doorgaf.
 • Klopt de plek niet? Verplaats je parkeerplaats op de kaart en sla opnieuw op.
 • Elke auto met zijn eigen maat, kleur en Bluetooth.
 
@@ -39,12 +40,14 @@ TANKSTATIONS EN PARKEERGARAGES, OP DEZELFDE KAART
 • Tankstations met de prijs uit officiële registers en het tijdstip van de meting. Spanje, Frankrijk, Duitsland en Italië.
 • De prijs van de brandstof die jouw auto tankt, geen algemeen gemiddelde.
 • Parkeergarages met tarief, maximale hoogte en plaatsen, waar de bron die geeft.
+• Kom je onder de hoogte door? Alleen als we het zeker weten — onbekend is nooit een ja.
 • Allemaal gratis: zien wat er om je heen is, zit nooit achter een abonnement.
 
 JOUW CIJFERS
 • Wat je aan brandstof uitgeeft en hoeveel je verbruikt.
 • Hoe lang je zoekt naar een plek.
 • Je vaste straat, je vaste dag en het lastigste uur.
+• Hoe vaak de detectie het goed had, in procent, over de gemeten ritten.
 
 ÉÉN AUTO, MEERDERE BESTUURDERS
 • Deel een auto met maximaal vier mensen. Wie erin rijdt, markeert de parkeerplaats, en de hele groep ziet waar hij staat.

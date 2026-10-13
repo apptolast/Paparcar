@@ -65,40 +65,48 @@ en `assets/fonts/` (ya están; salen de `shared/src/commonMain/composeResources/
 ### ⛔ Qué está vivo en Play y qué falta pegar — leído del Console el 27-09
 [PLAY-A-LISTING-MUST-MATCH-THE-BUILD-IN-PRODUCTION-001]
 
-**En producción: 1.3.0 (vc 14), cortada el 17-09.** La descripción completa viva es la de
-`LISTING-v1.3.0.md` — la promesa del garaje ya no está — **menos el paso 1 de «CÓMO FUNCIONA»**, que
-sigue siendo el viejo:
+**En producción: 1.4.0 (vc 15), publicada el 13-10-2026.** La ficha que hay que pegar es la de
+`LISTING-v1.4.0.md` (la nombra `published-listing.txt`), y **nada de ella está pegado todavía**: lo
+vivo en el Console sigue siendo el copy de 1.3.0 — sin las tres funciones nuevas y **con el paso 1
+viejo de «CÓMO FUNCIONA»**:
 
 | | Texto |
 |---|---|
 | Vivo en Play (es-ES) | «1. Aparcas. Paparcar lo detecta y guarda el sitio. **También puedes marcarlo a mano con un toque.**» |
 | Lo que hay que pegar | «1. Aparcas. Paparcar lo detecta y guarda el sitio. **Sin Bluetooth, el primer aparcamiento lo marcas tú.**» |
 
-⏳ **Paso del user: pegar la descripción completa de los 9 idiomas** desde `paste/`. `72e78f9bd`
-(25-09) corrigió esa línea porque el «también» la lee como un extra opcional y es lo contrario: en el
-carril Coordinator, sin Bluetooth, **el primer aparcamiento hay que marcarlo o no hay nada que
-vigilar ni que liberar**. Lleva 2 días corregida en el repo y sin salir de él.
+⏳ **Paso del user, en dos partes:**
 
-⚠️ Comprobar también la **descripción breve**: `LISTING-v1.3.0.md` declara vigente la variante que
-nombra gasolina y parkings, y hasta este ticket eso no estaba escrito en ninguna parte — el fichero
+1. **Pegar los 9 idiomas** desde `paste/` — nombre, breve y completa. Trae el paso 1 corregido
+   (`72e78f9bd`, 25-09: el «también» lo lee como un extra opcional y es lo contrario — en el carril
+   Coordinator, sin Bluetooth, **el primer aparcamiento hay que marcarlo o no hay nada que vigilar
+   ni que liberar**) **y** las tres funciones que 1.4.0 publicó.
+2. **Marcar la casilla de widget** en el Console. Es campo propio de Play, no copy: el texto puede
+   nombrar el widget y la ficha seguir sin declararlo.
+
+⚠️ Comprobar también la **descripción breve**: la vigente es la que nombra gasolina y parkings
+(intacta en 1.4.0 — no cabe una cuarta promesa en 80 caracteres), y hasta este ticket eso no estaba escrito en ninguna parte — el fichero
 ofrecía dos tablas y `paste/` llevaba la otra (la del 29-08, «y tu plaza pasa al siguiente»).
 
 **Largos con el paso 1 ya corregido dentro** (Play cuenta caracteres, no bytes):
 
 | Locale | Nombre | Breve | Completa |
 |---|---|---|---|
-| en-US | 28/30 | 72/80 | 3.580/4.000 |
-| es-ES | 25/30 | 75/80 | 3.690/4.000 |
-| it-IT | **30/30** | 70/80 | 3.712/4.000 |
-| pt-PT | 27/30 | 62/80 | 3.722/4.000 |
-| fr-FR | 28/30 | 73/80 | **3.989/4.000** |
-| de-DE | 28/30 | 78/80 | 3.956/4.000 |
-| nl-NL | 28/30 | 68/80 | 3.771/4.000 |
-| pl-PL | 28/30 | 66/80 | 3.628/4.000 |
-| ro | 24/30 | 67/80 | 3.673/4.000 |
+| en-US | 28/30 | 72/80 | 3.798/4.000 |
+| es-ES | 25/30 | 75/80 | 3.904/4.000 |
+| it-IT | **30/30** | 70/80 | 3.927/4.000 |
+| pt-PT | 27/30 | 62/80 | 3.905/4.000 |
+| fr-FR | 28/30 | 73/80 | **3.986/4.000** |
+| de-DE | 28/30 | 78/80 | **3.991/4.000** |
+| nl-NL | 28/30 | 68/80 | **3.972/4.000** |
+| pl-PL | 28/30 | 66/80 | 3.833/4.000 |
+| ro | 24/30 | 67/80 | 3.879/4.000 |
 
-⛔ **fr-FR va a 11 caracteres del tope y it-IT no tiene ni uno de margen en el nombre.** Cualquier
-añadido al copy hay que medirlo ahí primero, no en en-US.
+⛔ **fr-FR va a 14 caracteres del tope, de-DE a 9, y it-IT no tiene ni uno de margen en el
+nombre.** Cualquier añadido al copy hay que medirlo ahí primero, no en en-US — con 1.3.0 el francés
+tenía 11 libres y el alemán 44, así que las tres funciones de 1.4.0 **no cabían**: entraron
+condensando frases que decían lo mismo dos veces, idioma por idioma. El detalle está en
+`LISTING-v1.4.0.md` § *Lo que costó sitio*.
 
 ### ⛔ `paste/` se GENERA — no se edita a mano
 
@@ -107,43 +115,47 @@ python docs/release/play-listing/tools/make_paste.py            # escribe los 10
 python docs/release/play-listing/tools/make_paste.py --check     # solo comprueba
 ```
 
-La fuente única es `LISTING-v1.3.0.md`: nombres de app, descripción breve vigente y los 9 bloques de
-descripción completa. **Por qué existe el generador:** el copy vivía en dos sitios y nada los
+La fuente única es **la ficha que nombra `published-listing.txt`** (hoy `LISTING-v1.4.0.md`):
+nombres de app, descripción breve vigente y los 9 bloques de descripción completa. ⛔ Ese puntero es
+el ÚNICO sitio donde vive el nombre; antes estaba cableado en el generador **y** en el guard, así que
+escribir la ficha de un build nuevo y olvidar una copia dejaba el guard verificando una ficha
+retirada. [PLAY-THE-LISTING-MOVES-TO-THE-PUBLISHED-BUILD-001] **Por qué existe el generador:** el copy vivía en dos sitios y nada los
 comparaba, así que `paste/` se quedó **dos generaciones atrás** — 29 días prometiendo *«Todos tus
 coches en un mismo garaje»*, que `MONEY-001` ya había hecho falso (`FREE_OWN_VEHICLE_LIMIT = 1`). No
 llegó a producción por suerte: quien pegó, pegó del `.md`.
 
-El testigo es **`PlayListingPasteParityGuardrailTest`** (3 chequeos, los tres falsificados: editar un
-pegable a mano, borrarle el banner de generado, y romper el parser renombrando la cabecera). Como no
-toca bytecode sale **UP-TO-DATE** → `--rerun-tasks`.
+El testigo es **`PlayListingPasteParityGuardrailTest`** (4 chequeos, los cuatro falsificados:
+editar un pegable a mano, borrarle el banner, romper el parser renombrando la cabecera, mover el
+puntero sin regenerar `paste/`, y apuntarlo a una ficha que no existe). El banner exige el **nombre**
+de la ficha, no sólo la palabra GENERADO: así, mover el puntero y no regenerar sale rojo. Como no toca
+bytecode sale **UP-TO-DATE** → `--rerun-tasks`.
 
 ### ⛔ La ficha describe el build PUBLICADO, no master
 
-⏳→✅ **1.4.0 está en Play desde el 13-10-2026** (dicho por el user). Eso cambia el lado derecho de
-esta regla: las tres primeras de abajo **ya describen el build publicado**, así que por fin pueden
-entrar en la ficha. La cuarta sigue fuera, y no por la versión.
+✅ **1.4.0 está en Play desde el 13-10-2026**, y con eso esta regla cambió de lado: lo que hasta
+ayer prohibía nombrar, hoy lo obliga. Hecho en `LISTING-v1.4.0.md` y en la web, con cada promesa
+verificada contra el código **y** contra el corte del AAB publicado (`8c45ce88a`): las tres son
+ancestras de ese commit, así que están en lo que la gente tiene instalado.
 
-⛔ Y entrar en la ficha es más que escribir copy: `LISTING-v1.3.0.md` sigue siendo la **fuente
-única** de los nueve idiomas, y su nombre está **cableado** en
-`PlayListingPasteParityGuardrailTest.LISTING_SOURCE`. Mover la ficha a 1.4.0 es por tanto fichero
-nuevo + regenerar `paste/` + mover esa constante, en la misma tarea. Ficha:
-`docs/backlog/play-the-listing-moves-to-the-published-build-001.md`.
+| Qué entra | En master | Qué se promete |
+|---|---|---|
+| **Widget** del launcher | `d5696b774` | dónde está el coche, cómo ir, y contestar un viaje **sin abrir la app** |
+| **Gálibo** del coche | `a0f57bf1a` | el alto declarado, o la banda de su carrocería, contra la barrera — y un alto desconocido nunca es un «cabes» |
+| **Acierto** de la detección | `4ef6cd541` | el porcentaje de viajes que detectó sola, con el recuento detrás |
 
-- **Widget del launcher** para contestar un viaje sin abrir la app (`ParkedWidget.kt`, 21-09). Play
-  tiene casilla propia para widgets, así que además hay que marcarla.
-- **Gálibo del coche** contra el del parking: un alto desconocido nunca es un «cabes» (21-09).
-- **Acierto de la detección**, en porcentaje y en anillo (19-09).
-- El **aviso in-app** con el mapa delante (21-09) — ⛔ **no se anuncia todavía**: hoy sólo salta
-  para plazas dentro de una zona guardada, que es el aviso de Plus, no el de «cerca de ti» que se
-  pidió. Ver `docs/backlog/zone-an-alert-near-you-is-not-an-alert-in-your-zone-001.md`.
+⏳ Queda **del user**: pegar los 9 idiomas y **marcar la casilla de widget** del Console (campo de
+Play, no copy).
 
-La web es un consumidor más de esto mismo: al añadirlas, `web/content/{es,en}.json` entra en la
-misma tarea (ninguna de las cuatro se nombra hoy).
+⛔ **La cuarta NO entra, y no es por la versión.** El aviso de plaza cercana sólo salta hoy dentro de
+una zona guardada, que es el aviso de Plus → `docs/backlog/zone-an-alert-near-you-is-not-an-alert-in-your-zone-001.md`.
+
+✅ La web entró en la misma tarea (`web/content/{es,en}.json`, los dos idiomas, dentro de las
+tarjetas que ya hablaban de eso).
 
 
 ### ✅ Listo para pegar
 - [x] Nombre, descripción breve y descripción completa — los 9 idiomas en `paste/`, generados desde
-      `LISTING-v1.3.0.md`. ⛔ **Los largos NO se repiten aquí**: están en la tabla de arriba, y ésta
+      la ficha que nombra `published-listing.txt`. ⛔ **Los largos NO se repiten aquí**: están en la tabla de arriba, y ésta
       es la única que se mantiene. Tres cifras del 29-08 vivieron en esta lista hasta el 27-09
       contradiciendo al copy vigente, que es el mismo defecto que este ticket vino a cerrar.
       ⚠️ El nombre es **con tilde** en es-ES (`dónde`), y en it-IT va a 30/30 sin margen.

@@ -1,6 +1,6 @@
 FICHA DE PLAY STORE — ro
 ============================================================
-GENERADO por tools/make_paste.py desde LISTING-v1.3.0.md — no editar a mano.
+GENERADO por tools/make_paste.py desde LISTING-v1.4.0.md — no editar a mano.
 
 --- 1. NOMBRE DE LA APLICACION (24/30) ---
 Paparcar: unde ai parcat
@@ -8,7 +8,7 @@ Paparcar: unde ai parcat
 --- 2. DESCRIPCION BREVE (67/80) ---
 Unde ai parcat? Paparcar ține minte. Cu prețuri și parcări publice.
 
---- 3. DESCRIPCION COMPLETA (3673/4000) ---
+--- 3. DESCRIPCION COMPLETA (3879/4000) ---
 Unde ai parcat?
 
 Paparcar ține minte pentru tine.
@@ -24,7 +24,8 @@ CUM FUNCȚIONEAZĂ
 
 PARCAREA TA, FĂRĂ EFORT
 • Unde ai lăsat mașina și de cât timp stă acolo.
-• Istoricul tău, cu câte parcări a detectat aplicația și câte locuri ai cedat.
+• Un widget pe ecranul principal: unde e mașina, traseul și un răspuns din mers.
+• Istoricul tău și câte locuri ai cedat.
 • Locul nu e exact? Mută-ți parcarea pe hartă și salveaz-o din nou.
 • Fiecare mașină cu dimensiunea, culoarea și Bluetooth-ul ei.
 
@@ -39,12 +40,14 @@ BENZINĂRII ȘI PARCĂRI PUBLICE, PE ACEEAȘI HARTĂ
 • Benzinării cu prețul din registrele oficiale și ora măsurării. Spania, Franța, Germania și Italia.
 • Prețul combustibilului pe care îl folosește mașina ta, nu o medie generică.
 • Parcări publice cu tarif, înălțime maximă și locuri, când sursa le oferă.
+• Încapi la înălțime? Doar când suntem siguri — o înălțime necunoscută nu e niciodată un da.
 • Totul gratuit: să vezi ce ai în jur nu stă niciodată în spatele unui abonament.
 
 CIFRELE TALE
 • Cât cheltui pe combustibil și cât consumi.
 • Cât timp petreci căutând un loc.
 • Strada ta obișnuită, ziua ta obișnuită și ora cea mai grea.
+• Cât de des a nimerit detectarea, în procente, pe traseele măsurate.
 
 O MAȘINĂ, MAI MULȚI ȘOFERI
 • Împarte o mașină cu până la patru persoane. Cine o conduce marchează parcarea, iar tot grupul vede unde este.

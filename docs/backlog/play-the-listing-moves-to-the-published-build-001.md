@@ -1,6 +1,7 @@
 # PLAY-THE-LISTING-MOVES-TO-THE-PUBLISHED-BUILD-001 · 1.4.0 está en Play, la ficha sigue describiendo 1.3.0
 
-**Estado:** 📋 Abierto (13-10-2026) · sin empezar · **desbloqueado** por la publicación de 1.4.0
+**Estado:** ✅ Done (13-10-2026) · ⏳ queda el **paso del user en el Console**: pegar los 9 idiomas
+desde `paste/` y marcar la **casilla de widget**
 
 ## Problema
 
@@ -19,7 +20,7 @@ Las tres que entran, con la fecha en que aterrizaron:
 ⛔ **La cuarta NO entra, y no es por la versión.** El aviso in-app con el mapa delante solo salta
 hoy para plazas **dentro de una zona guardada**, que es el aviso de Plus, no el de «cerca de ti» que
 se pidió. Anunciarlo sería vender lo que la app no hace todavía — ver
-[`det-an-alert-near-you-is-not-an-alert-in-your-zone-001`](det-an-alert-near-you-is-not-an-alert-in-your-zone-001.md).
+[`zone-an-alert-near-you-is-not-an-alert-in-your-zone-001`](zone-an-alert-near-you-is-not-an-alert-in-your-zone-001.md).
 
 ## Doctrina violada
 
@@ -52,10 +53,42 @@ la ficha del 29-08 durante 29 días.
 
 ⛔ No se tocan a mano los ficheros de `paste/`: son salida.
 
+## ⚠️ Lo que el diseño no vio: el tope de 4000 no daba
+
+Medido ANTES de escribir una palabra, leyendo `paste/`: **el francés entraba con 11 caracteres
+libres de 4000 y el alemán con 44**. O sea que «las tres funciones en los nueve idiomas» era
+imposible tal cual, y el ticket no lo sabía.
+
+La salida no fue recortar las funciones nuevas, sino **quitar lo que se decía dos veces**:
+
+- El bullet del historial presumía de *«cuántos aparcamientos detectó la app»*, que es exactamente
+  la cifra nueva del acierto. Esa mitad **se muda** al bloque de cifras, en los nueve idiomas: el
+  neto es casi cero y la frase queda donde se entiende.
+- En FR y DE hubo además 11 y 10 condensaciones más (el reparto de coche, «ver nunca se paga», el
+  borrado de cuenta, la cabecera de gasolineras…). **Ninguna promesa cae ni cambia una cifra**: se
+  dicen más corto. ⛔ El bloque de **ubicación en segundo plano no se toca** — es texto que Play
+  exige, y recortarlo para hacer sitio a marketing sería exactamente la decisión equivocada.
+
+Margen final medido (de `paste/`, no estimado): en-US 202 · es-ES 96 · it-IT 73 · pt-PT 95 ·
+**fr-FR 14** · **de-DE 9** · nl-NL 28 · pl-PL 167 · ro 121.
+
+## 🔑 El nombre de la ficha pasa a vivir en UN sitio
+
+El diseño decía «mover `LISTING_SOURCE`». Al abrirlo resultó que el nombre estaba cableado **dos
+veces**: en el guard y en `tools/make_paste.py` (y allí, tres veces: la constante, el banner y el
+mensaje de error). Mover una y olvidar la otra es un verde que no mira nada, así que el arreglo es
+el invariante en un sitio: **`docs/release/play-listing/published-listing.txt`**, una línea, que
+leen el generador y el guard.
+
+Y el puntero por sí solo no basta: si se mueve y nadie regenera, `paste/` sigue siendo el de antes.
+Por eso el banner de los generados **nombra la ficha** (`GENERADO … desde LISTING-v1.4.0.md`) y el
+guard exige ese nombre, no sólo la palabra `GENERADO`. Falsificado: mover el puntero sin regenerar
+pone rojos dos chequeos; apuntarlo a una ficha inexistente, los cuatro.
+
 ## Criterio de éxito
 
-- `PlayListingPasteParityGuardrailTest` verde leyendo `LISTING-v1.4.0.md`, y **rojo** si se le deja
-  apuntando al de 1.3.0 mientras existe el nuevo.
+- ✅ `PlayListingPasteParityGuardrailTest` verde leyendo `LISTING-v1.4.0.md` (4 tests, leídos del XML
+  del informe, no del exit code), y **rojo** al devolver el puntero a 1.3.0 sin regenerar `paste/`.
 - Las tres funciones nombradas en los 9 idiomas de la ficha y en los 2 de la web.
 - El aviso «cerca de ti» **sin nombrar** en ninguna de las dos superficies.
 
@@ -66,5 +99,18 @@ la ficha del 29-08 durante 29 días.
 - `docs/backlog/release-1-4-0-001.md` — ✔ ya actualizado.
 - `WebSiteParityGuardrailTest` — ⚠️ vigila paridad de claves ES/EN y los hechos, **no** que una
   función nueva tenga sección. Eso es lectura, no testigo.
-- `LISTING.md` y `LISTING-i18n.md` — ⏳ sin auditar aquí: hay que ver si son históricos o fuentes
-  vivas antes de tocarlos.
+- `LISTING.md` y `LISTING-i18n.md` — ✔ **auditados: son históricos, y se quedan.** El primero es la
+  ficha del 29-08 (en-US + es-ES) y el segundo sus 7 traducciones; `LISTING-v1.3.0.md` ya decía en su
+  cabecera que **sustituye a sus bloques de descripción**, y lo que sigue vivo allí es el
+  *razonamiento* de cada nombre de app, que no se pega en ningún sitio. Ninguno de los dos lo lee ni
+  el generador ni el guard, así que no hay nada que mover: la cadena viva es
+  `published-listing.txt → LISTING-v1.4.0.md → paste/`.
+- `LISTING-v1.3.0.md` — ✔ **se queda como histórico**, por lo mismo. Y es donde vive ahora la tabla
+  descartada del 29-08: en 1.4.0 **no se reproduce**, porque era una segunda tabla en la misma
+  sección y una vez GANÓ por ser la última que el parser encontraba.
+- `web/content/{es,en}.json` — ✔ hecho, los dos idiomas. Sin tarjeta nueva: las seis de
+  `features.cards` son una rejilla y una séptima la deja coja, así que cada función entró en la
+  tarjeta que ya hablaba de eso (el coche localizado, la detección automática, los parkings
+  públicos) y el **alto** se suma a los datos del vehículo. Reconstruida con `node web/build.mjs`.
+- Enlace roto arrastrado: este doc, el README de la ficha y la ficha nueva apuntaban a
+  `det-an-alert-near-you-…`, y el fichero real empieza por `zone-`. Corregido en los tres.

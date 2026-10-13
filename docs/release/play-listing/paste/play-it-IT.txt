@@ -1,6 +1,6 @@
 FICHA DE PLAY STORE — it-IT
 ============================================================
-GENERADO por tools/make_paste.py desde LISTING-v1.3.0.md — no editar a mano.
+GENERADO por tools/make_paste.py desde LISTING-v1.4.0.md — no editar a mano.
 
 --- 1. NOMBRE DE LA APLICACION (30/30) ---
 Paparcar: dove ho parcheggiato
@@ -8,7 +8,7 @@ Paparcar: dove ho parcheggiato
 --- 2. DESCRIPCION BREVE (70/80) ---
 Dove hai parcheggiato? Paparcar se lo ricorda. Con prezzi e parcheggi.
 
---- 3. DESCRIPCION COMPLETA (3712/4000) ---
+--- 3. DESCRIPCION COMPLETA (3927/4000) ---
 Dove hai parcheggiato?
 
 Paparcar se lo ricorda per te.
@@ -24,7 +24,8 @@ COME FUNZIONA
 
 IL TUO PARCHEGGIO, SENZA SFORZO
 • Dove hai lasciato l'auto e da quanto tempo è lì.
-• Il tuo storico, con quanti parcheggi ha rilevato l'app e quanti posti hai ceduto.
+• Un widget sulla schermata home: dov'è l'auto, come arrivarci e come rispondere in viaggio.
+• Il tuo storico e quanti posti hai ceduto.
 • Il punto non è esatto? Sposta il tuo parcheggio sulla mappa e salvalo di nuovo.
 • Ogni auto con la sua taglia, il suo colore e il suo Bluetooth.
 
@@ -39,12 +40,14 @@ DISTRIBUTORI E PARCHEGGI PUBBLICI, SULLA STESSA MAPPA
 • Distributori con il prezzo pubblicato dai registri ufficiali e l'ora del rilevamento. Spagna, Francia, Germania e Italia.
 • Il prezzo del carburante che usa davvero la tua auto, non una media generica.
 • Parcheggi pubblici con tariffa, altezza massima e posti, quando la fonte li fornisce.
+• Passi sotto la barriera? Solo quando ne siamo certi: un'altezza ignota non è mai un sì.
 • Tutto gratis: vedere cosa hai intorno non è mai dietro un abbonamento.
 
 I TUOI NUMERI
 • Quanto spendi di carburante e quanto ne consumi.
 • Quanto tempo passi a cercare posto.
 • La tua via di sempre, il tuo giorno di sempre e l'ora in cui è più difficile.
+• Quanto ci prende il rilevamento, in percentuale, sui viaggi misurati.
 
 UN'AUTO, PIÙ CONDUCENTI
 • Condividi un'auto fino a quattro persone. Chi la guida segna il parcheggio e tutto il gruppo vede dov'è.

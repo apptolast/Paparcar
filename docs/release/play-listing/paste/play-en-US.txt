@@ -1,6 +1,6 @@
 FICHA DE PLAY STORE — en-US
 ============================================================
-GENERADO por tools/make_paste.py desde LISTING-v1.3.0.md — no editar a mano.
+GENERADO por tools/make_paste.py desde LISTING-v1.4.0.md — no editar a mano.
 
 --- 1. NOMBRE DE LA APLICACION (28/30) ---
 Paparcar: where did you park
@@ -8,7 +8,7 @@ Paparcar: where did you park
 --- 2. DESCRIPCION BREVE (72/80) ---
 Where did you park? Paparcar remembers — plus fuel prices and car parks.
 
---- 3. DESCRIPCION COMPLETA (3580/4000) ---
+--- 3. DESCRIPCION COMPLETA (3798/4000) ---
 Where did you park?
 
 Paparcar remembers for you.
@@ -24,7 +24,8 @@ HOW IT WORKS
 
 YOUR PARKING, EFFORTLESS
 • Where you left the car, and how long it has been sitting there.
-• Your history, with how many parkings the app detected and how many spots you shared.
+• A home screen widget: where the car is, directions, and a tap to answer mid-trip.
+• Your history, and how many spots you have shared.
 • Not the right place? Move your parking on the map and save it again.
 • Every car with its own size, colour and Bluetooth.
 
@@ -39,12 +40,14 @@ FUEL AND CAR PARKS, ON THE SAME MAP
 • Fuel stations with the price official registers publish, and the hour it was measured. Spain, France, Germany and Italy.
 • The price of the fuel your car actually takes, not a generic average.
 • Public car parks with their rate, height limit and spaces, where the source gives them.
+• Does your car clear the barrier? Only when we are sure — an unknown height is never a yes.
 • All of it free: seeing what is around you is never behind a subscription.
 
 YOUR NUMBERS
 • What you spend on fuel, and how much you burn.
 • How long you spend looking for a spot.
 • Your usual street, your usual day, and the hour it gets hardest.
+• How often detection got it right, in percent, over the trips it measured.
 
 ONE CAR, SEVERAL DRIVERS
 • Share a car with up to four people. Whoever drives it marks the parking, and the whole group sees where it is.

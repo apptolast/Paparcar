@@ -89,12 +89,12 @@
       {
         "icon": "pin",
         "title": "Your car, always located",
-        "body": "The street you left it on, how long it has been there and how far away you are. Plus the history of your parkings, so you can see where you usually leave it."
+        "body": "The street you left it on, how long it has been there and how far away you are. Plus the history of your parkings, so you can see where you usually leave it, and a home screen widget to check without opening the app."
       },
       {
         "icon": "auto",
         "title": "Automatic detection",
-        "body": "Through your car's Bluetooth, which is the most precise method, or through movement and location if your car doesn't have it. Either way the parking is saved without you doing anything."
+        "body": "Through your car's Bluetooth, which is the most precise method, or through movement and location if your car doesn't have it. Either way the parking is saved without you doing anything, and your numbers show how often it got it right: the share of trips it detected on its own."
       },
       {
         "icon": "spot",
@@ -104,7 +104,7 @@
       {
         "icon": "parking",
         "title": "Public car parks",
-        "body": "Where they are, whether they charge, opening hours, how many spaces they have and their maximum height. With directions to the entrance."
+        "body": "Where they are, whether they charge, opening hours, how many spaces they have and their maximum height, checked against your car's: when we do not know yours, Paparcar will not tell you that you fit. With directions to the entrance."
       },
       {
         "icon": "fuel",
@@ -114,7 +114,7 @@
       {
         "icon": "car",
         "title": "Your vehicles",
-        "body": "Your cars and motorbikes, each with its size and body type, so Paparcar can compare a gap with yours before you drive out of your way. And you can share a car with up to four people."
+        "body": "Your cars and motorbikes, each with its size, body type and height, so Paparcar can compare a gap with yours before you drive out of your way. And you can share a car with up to four people."
       }
     ]
   },

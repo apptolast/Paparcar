@@ -1,6 +1,6 @@
 FICHA DE PLAY STORE — es-ES
 ============================================================
-GENERADO por tools/make_paste.py desde LISTING-v1.3.0.md — no editar a mano.
+GENERADO por tools/make_paste.py desde LISTING-v1.4.0.md — no editar a mano.
 
 --- 1. NOMBRE DE LA APLICACION (25/30) ---
 Paparcar: dónde aparcaste
@@ -8,7 +8,7 @@ Paparcar: dónde aparcaste
 --- 2. DESCRIPCION BREVE (75/80) ---
 ¿Dónde aparcaste? Paparcar lo recuerda. Con precios de gasolina y parkings.
 
---- 3. DESCRIPCION COMPLETA (3690/4000) ---
+--- 3. DESCRIPCION COMPLETA (3904/4000) ---
 ¿Dónde aparcaste?
 
 Paparcar lo recuerda por ti.
@@ -24,7 +24,8 @@ CÓMO FUNCIONA
 
 TU APARCAMIENTO, SIN ESFUERZO
 • Dónde dejaste el coche y cuánto tiempo lleva allí.
-• Tu historial, con cuántos aparcamientos detectó la app y cuántas plazas has cedido.
+• Un widget en la pantalla de inicio: dónde está el coche, cómo ir y contestar en ruta.
+• Tu historial y cuántas plazas has cedido.
 • ¿El sitio no es exacto? Mueve tu aparcamiento en el mapa y guárdalo de nuevo.
 • Cada coche con su tamaño, su color y su Bluetooth.
 
@@ -39,12 +40,14 @@ GASOLINERAS Y PARKINGS, EN EL MISMO MAPA
 • Gasolineras con el precio que publican los registros oficiales y la hora a la que se midió. España, Francia, Alemania e Italia.
 • El precio del combustible que usa tu coche, no una media genérica.
 • Parkings públicos con su tarifa, su gálibo y sus plazas, cuando la fuente los da.
+• ¿Cabes por el gálibo? Sólo cuando estamos seguros: un alto desconocido nunca es un «cabes».
 • Todo gratis: ver lo que tienes alrededor nunca está detrás de una suscripción.
 
 TUS CIFRAS
 • Cuánto te gastas en combustible y cuánto consumes.
 • Cuánto tiempo pasas buscando plaza.
 • Tu calle de siempre, tu día de siempre y la hora en que se pone más difícil.
+• Cuánto acierta la detección, en porcentaje, sobre los viajes que midió.
 
 UN COCHE, VARIOS CONDUCTORES
 • Comparte un coche hasta con cuatro personas. Quien lo conduce marca el aparcamiento y todo el grupo ve dónde está.

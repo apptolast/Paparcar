@@ -10,7 +10,7 @@ import kotlin.test.fail
  * What we paste into the Play Console must BE the copy this repo calls current.
  * [PLAY-A-LISTING-MUST-MATCH-THE-BUILD-IN-PRODUCTION-001]
  *
- * The listing copy lived in two places — `LISTING-v1.3.0.md`, which is reviewed and reasoned about,
+ * The listing copy lived in two places — the reviewed `.md` (`LISTING-v1.3.0.md`, current back then),
  * and `paste/play-<locale>.txt`, which is what a human actually copies into the Console — and
  * nothing compared them. So they drifted, in the direction that costs money: for 29 days the
  * pastable files still promised *"all your cars in one garage"*, a promise `MONEY-001` had already
@@ -29,6 +29,15 @@ import kotlin.test.fail
  * this file exists to catch. Byte-for-byte equality is the tool's own `--check`; the invariant that
  * matters here — *the name, the short description and the full description that get pasted are the
  * ones the `.md` declares* — survives any change to the file's decoration.
+ *
+ * ## Which listing is the current one — and why that is not written here
+ *
+ * `published-listing.txt` names it, and this class reads that file. The name used to be hardcoded
+ * HERE and in the generator, so moving the listing to a newly published build meant editing two
+ * copies: forget one and the guard stays green while verifying a RETIRED listing — a green that
+ * looks at nothing. The pointer also has to agree with what was generated, so the banner check
+ * below demands the file name, not just the word GENERADO.
+ * [PLAY-THE-LISTING-MOVES-TO-THE-PUBLISHED-BUILD-001]
  *
  * ## What it deliberately does not do
  *
@@ -57,9 +66,10 @@ class PlayListingPasteParityGuardrailTest {
             val pasted = read(relative)
 
             assertTrue(
-                pasted.contains(GENERATED_MARKER),
-                "$relative lost its generated banner — it was hand-edited, which is how the copy " +
-                    "drifted in the first place. Regenerate with: $REGENERATE",
+                pasted.contains(generatedFrom),
+                "$relative does not say it was generated from $PUBLISHED_LISTING — either it was " +
+                    "hand-edited (which is how the copy drifted in the first place) or the pointer " +
+                    "moved and nobody regenerated. Regenerate with: $REGENERATE",
             )
 
             assertEquals(names.getValue(locale), pasted.field(1, relative), "app name in $relative")
@@ -74,7 +84,10 @@ class PlayListingPasteParityGuardrailTest {
         val relative = "$PASTE_DIR/play-listing-import.md"
         val importAll = read(relative)
 
-        assertTrue(importAll.contains(GENERATED_MARKER), "$relative lost its generated banner")
+        assertTrue(
+            importAll.contains(generatedFrom),
+            "$relative does not say it was generated from $PUBLISHED_LISTING. Regenerate with: $REGENERATE",
+        )
         for (locale in LOCALES) {
             assertTrue(
                 importAll.contains("## Locale: $locale"),
@@ -86,6 +99,32 @@ class PlayListingPasteParityGuardrailTest {
                     "Regenerate with: $REGENERATE",
             )
         }
+    }
+
+    /**
+     * The pointer is the single place the current listing is named, so it is worth its own witness:
+     * it must name exactly one file, and that file must exist. A pointer naming a deleted listing
+     * would otherwise surface as the confusing "not found from <root>" of every other assertion.
+     */
+    @Test
+    fun `should point at exactly one listing file that exists`() {
+        val lines = read(POINTER).lines()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() && !it.startsWith("#") }
+
+        assertEquals(
+            1,
+            lines.size,
+            "$POINTER must name exactly one listing file (comments start with #), found: $lines",
+        )
+        assertTrue(
+            File(repoRoot, "$LISTING_DIR/${lines.single()}").isFile,
+            "$POINTER names ${lines.single()}, which does not exist in $LISTING_DIR",
+        )
+        assertTrue(
+            lines.single().startsWith("LISTING-v"),
+            "$POINTER should name a versioned listing (LISTING-v<version>.md), not ${lines.single()}",
+        )
     }
 
     /**
@@ -158,7 +197,7 @@ class PlayListingPasteParityGuardrailTest {
 
     private companion object {
         const val LISTING_DIR = "docs/release/play-listing"
-        const val LISTING_SOURCE = "$LISTING_DIR/LISTING-v1.3.0.md"
+        const val POINTER = "$LISTING_DIR/published-listing.txt"
         const val PASTE_DIR = "$LISTING_DIR/paste"
         const val REGENERATE = "python $LISTING_DIR/tools/make_paste.py"
 
@@ -176,5 +215,22 @@ class PlayListingPasteParityGuardrailTest {
         val repoRoot: File = generateSequence(File("").absoluteFile) { it.parentFile }
             .firstOrNull { File(it, "settings.gradle.kts").isFile }
             ?: error("repo root not found from ${File("").absolutePath}")
+
+        /**
+         * The listing that describes the PUBLISHED build, as [POINTER] names it. Declared after
+         * [repoRoot] on purpose: a companion initialises in declaration order, and reading the
+         * pointer needs the root.
+         */
+        val PUBLISHED_LISTING: String = File(repoRoot, POINTER)
+            .takeIf { it.isFile }
+            ?.readLines()
+            ?.map { it.trim() }
+            ?.firstOrNull { it.isNotEmpty() && !it.startsWith("#") }
+            ?: error("$POINTER is missing or names no listing")
+
+        val LISTING_SOURCE: String = "$LISTING_DIR/$PUBLISHED_LISTING"
+
+        /** What a generated file must say it came from — the word alone was not enough. */
+        val generatedFrom: String = "$GENERATED_MARKER desde $PUBLISHED_LISTING"
     }
 }

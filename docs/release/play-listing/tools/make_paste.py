@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-"""Genera paste/ desde LISTING-v1.3.0.md, que es la ÚNICA fuente del copy que se pega.
+"""Genera paste/ desde la ficha que nombra `published-listing.txt`: la ÚNICA fuente del copy.
+
+⛔ El nombre de la ficha NO se escribe aquí. Vivía cableado en este fichero y, otra vez, en
+`PlayListingPasteParityGuardrailTest`; así que escribir la ficha de un build nuevo y olvidar una de
+las dos copias dejaba al guard verificando una ficha RETIRADA — verde y ciego.
+[PLAY-THE-LISTING-MOVES-TO-THE-PUBLISHED-BUILD-001]
 
 ⛔ Los ficheros de `paste/` NO se editan a mano. Existían a mano y por eso se quedaron dos
 generaciones atrás del `.md`: seguían prometiendo «todos tus coches en un mismo garaje» cuando el
@@ -21,10 +26,23 @@ LOCALES = ["en-US", "es-ES", "it-IT", "pt-PT", "fr-FR", "de-DE", "nl-NL", "pl-PL
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 LISTING_DIR = os.path.dirname(HERE)
-SOURCE = os.path.join(LISTING_DIR, "LISTING-v1.3.0.md")
+POINTER = os.path.join(LISTING_DIR, "published-listing.txt")
 PASTE_DIR = os.path.join(LISTING_DIR, "paste")
 
-BANNER = "GENERADO por tools/make_paste.py desde LISTING-v1.3.0.md — no editar a mano."
+
+def published_listing():
+    """El nombre de la ficha vigente. Una línea; se ignoran las vacías y las que empiezan por `#`."""
+    for line in io.open(POINTER, encoding="utf-8").read().splitlines():
+        name = line.strip()
+        if name and not name.startswith("#"):
+            return name
+    raise SystemExit("%s no nombra ninguna ficha" % POINTER)
+
+
+SOURCE_NAME = published_listing()
+SOURCE = os.path.join(LISTING_DIR, SOURCE_NAME)
+
+BANNER = "GENERADO por tools/make_paste.py desde %s — no editar a mano." % SOURCE_NAME
 
 
 def _section(md, marker):
@@ -75,7 +93,7 @@ def read_source():
         if loc not in table
     ]
     if missing:
-        raise SystemExit("LISTING-v1.3.0.md no tiene: %s" % ", ".join(missing))
+        raise SystemExit("%s no tiene: %s" % (SOURCE_NAME, ", ".join(missing)))
     return names, shorts, fulls
 
 
@@ -130,8 +148,9 @@ def main():
     if check:
         if stale:
             raise SystemExit(
-                "paste/ no coincide con LISTING-v1.3.0.md: %s\n"
-                "Regenera con: python docs/release/play-listing/tools/make_paste.py" % ", ".join(stale)
+                "paste/ no coincide con %s: %s\n"
+                "Regenera con: python docs/release/play-listing/tools/make_paste.py"
+                % (SOURCE_NAME, ", ".join(stale))
             )
         print("paste/ al dia (%d ficheros)" % len(wanted))
     else:
