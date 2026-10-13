@@ -6,6 +6,7 @@ import dev.gitlive.firebase.firestore.FirebaseFirestore
 import kotlin.time.Clock
 import com.rndeveloper.paparcar.data.datasource.remote.dto.AddressDto
 import com.rndeveloper.paparcar.data.datasource.remote.dto.ParkingHistoryDto
+import com.rndeveloper.paparcar.data.datasource.remote.dto.withRouteGeometryOf
 import com.rndeveloper.paparcar.data.datasource.remote.dto.withoutRouteGeometry
 import com.rndeveloper.paparcar.data.datasource.remote.dto.PlaceInfoDto
 import com.rndeveloper.paparcar.data.datasource.remote.dto.UserProfileDto
@@ -13,6 +14,7 @@ import com.rndeveloper.paparcar.data.datasource.remote.dto.VehicleDto
 import com.rndeveloper.paparcar.data.mapper.toDomain
 import com.rndeveloper.paparcar.data.mapper.toEntity
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
+import kotlinx.coroutines.flow.first
 
 class RemoteUserProfileDataSourceImpl(
     private val firestore: FirebaseFirestore,
@@ -24,7 +26,20 @@ class RemoteUserProfileDataSourceImpl(
     // write path is a second place to forget. Null = nobody shares anything (tests, and every
     // build before the mirror existed); the writer itself is a no-op for a car with no group.
     private val sharedCarMirror: com.rndeveloper.paparcar.domain.sharedcar.SharedCarMirror? = null,
+    // [PRIV-A-LAPSED-PLUS-STILL-UPLOADS-ROUTES-001] La otra mitad de la condición que la política
+    // anuncia. Se lee de la CACHÉ de entitlement (un `StateFlow` que ya vive en memoria), no de la
+    // red: esto corre en el camino de guardado de un aparcamiento y no puede esperar a RevenueCat.
+    //
+    // ⛔ Null significa **no filtrar**, no «es FREE». Es lo que mantiene explícito el comportamiento
+    // de los dobles de test —igual que los dos de arriba— y, sobre todo, evita que un fallo al
+    // construir el grafo deje de subir rutas en silencio a quien sí paga: una regresión muda es
+    // peor que la que este ticket arregla.
+    private val entitlement: com.rndeveloper.paparcar.domain.repository.EntitlementRepository? = null,
 ) : RemoteUserProfileDataSource {
+
+    private suspend fun isPlusNow(): Boolean = entitlement?.let {
+        it.observeEntitlement().first() == com.rndeveloper.paparcar.domain.model.Entitlement.PLUS
+    } ?: true
 
     private fun usersCollection() = firestore.collection(COLLECTION_USERS)
     private fun parkingHistoryCollection(userId: String) =
@@ -108,8 +123,34 @@ class RemoteUserProfileDataSourceImpl(
         // consent the FIGURES travel (distance, search time) and the GEOMETRY stays home. Applied
         // at this single door; the full-document set() also scrubs any previously-synced geometry
         // of this session on its next push, which is the retention promise keeping itself.
-        val outgoing = if (appPreferences?.syncRouteGeometry == true) session else session.withoutRouteGeometry()
-        parkingHistoryCollection(userId).document(session.id).set(outgoing)
+        //
+        // ⛔ Y el consentimiento solo es la MITAD de la condición que la política publicada anuncia:
+        // §2.5 dice que la ruta sube «solo si tienes Plus y activas la sincronización». La
+        // preferencia únicamente se puede ENCENDER siendo Plus, pero nadie la apagaba al perderlo,
+        // así que quien se dio de baja seguía subiendo su recorrido.
+        // [PRIV-A-LAPSED-PLUS-STILL-UPLOADS-ROUTES-001]
+        //
+        // Tres respuestas, no dos, y la tercera existe por el `set()` de documento completo:
+        //   · sin consentimiento → se ESCURRE la geometría, y el `set()` completo borra de la nube
+        //     la que hubiera. Es la promesa de retención cumpliéndose, y es decisión del usuario.
+        //   · con consentimiento y Plus → viaja, como siempre.
+        //   · con consentimiento y Plus CADUCADO → queda CONGELADA: se reenvía la que la nube ya
+        //     tiene, así que no entra nada nuevo y no se borra nada viejo. Esas rutas se subieron
+        //     pagando y con el consentimiento válido; borrarlas por dejar de pagar sería nosotros
+        //     eliminando datos del usuario, que es justo lo que este ticket NO debe hacer.
+        //
+        // Así se disuelve la tensión con `VehicleEntitlementGate` («losing Plus never deletes or
+        // disables anything»): esa doctrina protege LO TUYO —coches, zonas, historial—, y aquí no se
+        // apaga nada tuyo: se deja de prestar un servicio de pago (guardar tu recorrido en nuestra
+        // nube) a quien ya no lo paga.
+        val doc = parkingHistoryCollection(userId).document(session.id)
+        val consented = appPreferences?.syncRouteGeometry == true
+        val outgoing = when {
+            !consented -> session.withoutRouteGeometry()
+            isPlusNow() -> session
+            else -> session.withRouteGeometryOf(doc.get().toParkingHistoryDto())
+        }
+        doc.set(outgoing)
         // ⛔ AFTER the personal write and never in its place: the mirror is a projection of a
         // record that already exists.
         //

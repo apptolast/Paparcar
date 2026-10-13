@@ -853,6 +853,7 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <string name="settings_notif_month_recap_desc">Podsumowanie na koniec miesiąca: ile wydałeś i ile czasu szukałeś miejsca</string>
     <string name="settings_sync_routes">Zapisuj trasy na koncie</string>
     <string name="settings_sync_routes_desc">Twoje trasy są zapisywane tylko w tym telefonie, więc ponowna instalacja aplikacji je usuwa. Włącz to, aby trzymać je na koncie i widzieć na innych urządzeniach.</string>
+    <string name="settings_sync_routes_paused">Włączyłeś to z Plus. Bez Plus jest wstrzymane: nowe trasy zostają w telefonie, a już zapisane pozostają na miejscu.</string>
     <string name="home_zone_form_notify_label">Powiadamiaj o wolnych miejscach tutaj</string>
     <!-- Notification surface - MIRRORED from app/src/main/res (Android stays the live source until it migrates to composeResources); parity enforced by NotificationCopyParityTest [IOS-NOTIF-A-SURFACE-THAT-SPEAKS-ONE-LANGUAGE-001] -->
     <string name="notif_confirmation_title">Zaparkowałeś?</string>

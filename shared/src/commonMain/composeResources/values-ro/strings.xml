@@ -853,6 +853,7 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="settings_notif_month_recap_desc">Un rezumat la închiderea lunii: cât ai cheltuit și cât ai căutat</string>
     <string name="settings_sync_routes">Salvează rutele în contul tău</string>
     <string name="settings_sync_routes_desc">Traseele tale se salvează doar pe acest telefon, așa că reinstalarea aplicației le pierde. Activează asta ca să le păstrezi în cont și să le vezi pe celelalte dispozitive.</string>
+    <string name="settings_sync_routes_paused">Ai activat asta cu Plus. Fără Plus este în pauză: traseele noi rămân pe telefon, iar cele deja salvate rămân unde sunt.</string>
     <string name="home_zone_form_notify_label">Anunță-mă despre locuri libere aici</string>
     <!-- Notification surface - MIRRORED from app/src/main/res (Android stays the live source until it migrates to composeResources); parity enforced by NotificationCopyParityTest [IOS-NOTIF-A-SURFACE-THAT-SPEAKS-ONE-LANGUAGE-001] -->
     <string name="notif_confirmation_title">Ai parcat?</string>

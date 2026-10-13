@@ -879,6 +879,7 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="settings_notif_month_recap_desc">A summary when the month closes: what you spent and how long you spent looking</string>
     <string name="settings_sync_routes">Save your routes to your account</string>
     <string name="settings_sync_routes_desc">Your routes are stored only on this phone, so reinstalling the app loses them. Turn this on to keep them in your account and see them on your other devices.</string>
+    <string name="settings_sync_routes_paused">You turned this on with Plus. Without Plus it is paused: new routes stay on your phone, and the ones already saved stay where they are.</string>
     <string name="home_zone_form_notify_label">Alert me about free spots here</string>
     <!-- Notification surface - MIRRORED from app/src/main/res (Android stays the live source until it migrates to composeResources); parity enforced by NotificationCopyParityTest [IOS-NOTIF-A-SURFACE-THAT-SPEAKS-ONE-LANGUAGE-001] -->
     <string name="notif_confirmation_title">Did you park?</string>

@@ -839,6 +839,7 @@ Se la richiesta non compare più, cambiala in Impostazioni → Paparcar → Posi
     <string name="settings_notif_month_recap_desc">Un riepilogo alla chiusura del mese: quanto hai speso e quanto hai cercato</string>
     <string name="settings_sync_routes">Salva i tuoi percorsi nel tuo account</string>
     <string name="settings_sync_routes_desc">I tuoi percorsi restano solo su questo telefono, quindi reinstallando l'app li perdi. Attivalo per tenerli nel tuo account e vederli sugli altri dispositivi.</string>
+    <string name="settings_sync_routes_paused">Lo hai attivato con Plus. Senza Plus resta in pausa: i nuovi percorsi restano sul telefono e quelli già salvati restano dove sono.</string>
     <string name="home_zone_form_notify_label">Avvisami dei posti liberi qui</string>
     <!-- Notification surface - MIRRORED from app/src/main/res (Android stays the live source until it migrates to composeResources); parity enforced by NotificationCopyParityTest [IOS-NOTIF-A-SURFACE-THAT-SPEAKS-ONE-LANGUAGE-001] -->
     <string name="notif_confirmation_title">Hai parcheggiato?</string>

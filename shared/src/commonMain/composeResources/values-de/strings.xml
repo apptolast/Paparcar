@@ -840,6 +840,7 @@ Wenn die Frage nicht mehr erscheint, ändere es unter Einstellungen → Paparcar
     <string name="settings_notif_month_recap_desc">Eine Zusammenfassung zum Monatsende: was du ausgegeben und wie lange du gesucht hast</string>
     <string name="settings_sync_routes">Routen im Konto speichern</string>
     <string name="settings_sync_routes_desc">Deine Routen liegen nur auf diesem Handy — eine Neuinstallation verliert sie. Aktiviere dies, um sie in deinem Konto zu behalten und auf anderen Geräten zu sehen.</string>
+    <string name="settings_sync_routes_paused">Du hast das mit Plus aktiviert. Ohne Plus ist es pausiert: neue Routen bleiben auf dem Handy, die bereits gespeicherten bleiben, wo sie sind.</string>
     <string name="home_zone_form_notify_label">Bei freien Plätzen hier benachrichtigen</string>
     <!-- Notification surface - MIRRORED from app/src/main/res (Android stays the live source until it migrates to composeResources); parity enforced by NotificationCopyParityTest [IOS-NOTIF-A-SURFACE-THAT-SPEAKS-ONE-LANGUAGE-001] -->
     <string name="notif_confirmation_title">Hast du geparkt?</string>

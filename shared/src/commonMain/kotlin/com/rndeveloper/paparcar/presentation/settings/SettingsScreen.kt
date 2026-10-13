@@ -204,6 +204,7 @@ import paparcar.composeapp.generated.resources.settings_notif_month_recap_desc
 import paparcar.composeapp.generated.resources.settings_notif_zone_alerts
 import paparcar.composeapp.generated.resources.settings_sync_routes
 import paparcar.composeapp.generated.resources.settings_sync_routes_desc
+import paparcar.composeapp.generated.resources.settings_sync_routes_paused
 import paparcar.composeapp.generated.resources.settings_notif_zone_alerts_desc
 import paparcar.composeapp.generated.resources.settings_plus_badge_active
 import paparcar.composeapp.generated.resources.settings_plus_subtitle_active
@@ -567,10 +568,21 @@ fun SettingsContent(
                             PapDivider()
                             // [PRIV-A-TRACE-IS-NOT-A-STAT-001] Local-first: the route GEOMETRY only
                             // leaves the phone under this consent. Same soft gate as the row above.
+                            // ⛔ Y cuando Plus ha caducado teniendo el consentimiento puesto, la fila
+                            // DICE por qué está apagada. Un interruptor que se apaga solo y sin
+                            // explicación se lee como un bug — y aquí además tiene que contar las
+                            // dos mitades: lo nuevo no sube, y lo ya subido **no se borra**.
+                            // [PRIV-A-LAPSED-PLUS-STILL-UPLOADS-ROUTES-001]
                             PapSwitchRow(
                                 icon = Icons.Rounded.CloudUpload,
                                 label = stringResource(Res.string.settings_sync_routes),
-                                description = stringResource(Res.string.settings_sync_routes_desc),
+                                description = stringResource(
+                                    if (!state.isPlus && state.syncRouteGeometry) {
+                                        Res.string.settings_sync_routes_paused
+                                    } else {
+                                        Res.string.settings_sync_routes_desc
+                                    },
+                                ),
                                 checked = state.isPlus && state.syncRouteGeometry,
                                 onCheckedChange = { onIntent(SettingsIntent.ToggleRouteCloudSync(it)) },
                                 subtitleColor = settingsSubtitleColor(),

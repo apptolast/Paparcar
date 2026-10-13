@@ -839,6 +839,7 @@ Si la question n'apparaît plus, changez-le dans Réglages → Paparcar → Posi
     <string name="settings_notif_month_recap_desc">Un bilan à la fin du mois : ce que vous avez dépensé et le temps passé à chercher</string>
     <string name="settings_sync_routes">Enregistrer vos trajets dans votre compte</string>
     <string name="settings_sync_routes_desc">Tes trajets ne sont enregistrés que sur ce téléphone : réinstaller l'app les perd. Active ceci pour les garder dans ton compte et les voir sur tes autres appareils.</string>
+    <string name="settings_sync_routes_paused">Tu as activé ça avec Plus. Sans Plus, c est en pause : les nouveaux trajets restent sur ton téléphone et ceux déjà enregistrés restent où ils sont.</string>
     <string name="home_zone_form_notify_label">M'alerter des places libres ici</string>
     <!-- Notification surface - MIRRORED from app/src/main/res (Android stays the live source until it migrates to composeResources); parity enforced by NotificationCopyParityTest [IOS-NOTIF-A-SURFACE-THAT-SPEAKS-ONE-LANGUAGE-001] -->
     <string name="notif_confirmation_title">Tu t’es garé ?</string>

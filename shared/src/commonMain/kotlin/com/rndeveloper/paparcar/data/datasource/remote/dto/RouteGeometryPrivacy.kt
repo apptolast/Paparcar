@@ -26,3 +26,29 @@ fun ParkingHistoryDto.withoutRouteGeometry(): ParkingHistoryDto = copy(
     routeInferredSpans = null,
     routeInferredResolution = null,
 )
+
+/**
+ * The outgoing session carrying the geometry the CLOUD already holds, not the one on the device.
+ * [PRIV-A-LAPSED-PLUS-STILL-UPLOADS-ROUTES-001]
+ *
+ * Needed because the push is a **full-document `set()`**: a document sent without the geometry
+ * fields does not leave them alone, it DELETES them. That is exactly what we want when the user
+ * revokes the consent — the scrub above IS the retention promise — and exactly what we must not do
+ * when the thing that lapsed is Plus: those routes were uploaded while paying, with the consent
+ * valid, and losing them would be us deleting the user's data because they stopped subscribing.
+ *
+ * So while Plus is lapsed the geometry is **frozen, not refreshed and not erased**: what the cloud
+ * holds stays, and nothing new goes up — a later snap or a re-recorded line stays on the device.
+ * Copying `remote`'s fields rather than keeping `this`'s is the whole point; keeping the local ones
+ * would be an upload.
+ *
+ * ⛔ The four field names live **only here**, beside [withoutRouteGeometry], and that is deliberate:
+ * a list of fields written out a second time is a contract nobody checks, which is how
+ * [SYNC-THE-WORKDATA-FIELD-LIST-IS-A-CONTRACT-NOBODY-CHECKS-001] sent columns to null.
+ */
+fun ParkingHistoryDto.withRouteGeometryOf(remote: ParkingHistoryDto?): ParkingHistoryDto = copy(
+    routePolyline = remote?.routePolyline,
+    routeSnapped = remote?.routeSnapped ?: false,
+    routeInferredSpans = remote?.routeInferredSpans,
+    routeInferredResolution = remote?.routeInferredResolution,
+)

@@ -835,6 +835,7 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="settings_notif_month_recap_desc">Un resumen al cerrar el mes: lo que has gastado y lo que has tardado en aparcar</string>
     <string name="settings_sync_routes">Guardar tus rutas en tu cuenta</string>
     <string name="settings_sync_routes_desc">Tus rutas se guardan solo en este móvil, así que reinstalar la app las pierde. Actívalo para guardarlas en tu cuenta y verlas en tus otros dispositivos.</string>
+    <string name="settings_sync_routes_paused">Lo activaste con Plus. Sin Plus se queda en pausa: tus rutas siguen en el móvil y las que ya subiste se quedan donde están.</string>
     <string name="home_zone_form_notify_label">Avisarme de plazas libres aquí</string>
     <!-- Notification surface - MIRRORED from app/src/main/res (Android stays the live source until it migrates to composeResources); parity enforced by NotificationCopyParityTest [IOS-NOTIF-A-SURFACE-THAT-SPEAKS-ONE-LANGUAGE-001] -->
     <string name="notif_confirmation_title">¿Has aparcado?</string>

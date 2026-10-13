@@ -99,10 +99,18 @@ val dataModule = module {
         // [PRIV-A-TRACE-IS-NOT-A-STAT-001]
         // sharedCarMirror = the group's copy of a parking, written at the same door.
         // [VEH-SHARED-001]
+        // entitlement = la otra mitad de la condicion que anuncia la politica: la ruta sube «solo
+        // si tienes Plus y activas la sincronizacion», y la preferencia sola no comprobaba la
+        // primera mitad. [PRIV-A-LAPSED-PLUS-STILL-UPLOADS-ROUTES-001]
+        //
+        // ⛔ `getOrNull()` como sus dos hermanos, y el nulo significa NO FILTRAR: si el grafo no
+        // trae el repositorio, se sigue subiendo lo que el consentimiento permita. Es deliberado —
+        // dejar de subir en silencio a quien paga seria una regresion muda, peor que el defecto.
         RemoteUserProfileDataSourceImpl(
             get(),
             appPreferences = getOrNull(),
             sharedCarMirror = getOrNull(),
+            entitlement = getOrNull(),
         )
     }
     single<RemoteSharedCarDataSource> { RemoteSharedCarDataSourceImpl(get()) }

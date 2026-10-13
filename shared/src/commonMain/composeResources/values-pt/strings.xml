@@ -839,6 +839,7 @@ Se a pergunta já não aparecer, muda em Definições → Paparcar → Localiza�
     <string name="settings_notif_month_recap_desc">Um resumo quando o mês fecha: o que gastaste e quanto tempo passaste à procura</string>
     <string name="settings_sync_routes">Guardar as tuas rotas na tua conta</string>
     <string name="settings_sync_routes_desc">Os teus percursos ficam só neste telemóvel, por isso reinstalar a app perde-os. Ativa isto para os guardares na tua conta e os veres nos outros dispositivos.</string>
+    <string name="settings_sync_routes_paused">Ativaste isto com o Plus. Sem Plus fica em pausa: os novos percursos ficam no telemóvel e os já guardados ficam onde estão.</string>
     <string name="home_zone_form_notify_label">Avisar-me de lugares livres aqui</string>
     <!-- Notification surface - MIRRORED from app/src/main/res (Android stays the live source until it migrates to composeResources); parity enforced by NotificationCopyParityTest [IOS-NOTIF-A-SURFACE-THAT-SPEAKS-ONE-LANGUAGE-001] -->
     <string name="notif_confirmation_title">Estacionaste?</string>

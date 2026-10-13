@@ -840,6 +840,7 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen â†’ Paparcar â
     <string name="settings_notif_month_recap_desc">Een overzicht als de maand afsluit: wat je hebt uitgegeven en hoe lang je hebt gezocht</string>
     <string name="settings_sync_routes">Routes in je account bewaren</string>
     <string name="settings_sync_routes_desc">Je routes staan alleen op deze telefoon, dus de app opnieuw installeren betekent dat je ze kwijt bent. Zet dit aan om ze in je account te bewaren en op je andere apparaten te zien.</string>
+    <string name="settings_sync_routes_paused">Je hebt dit met Plus aangezet. Zonder Plus staat het op pauze: nieuwe routes blijven op je telefoon en de al opgeslagen routes blijven staan.</string>
     <string name="home_zone_form_notify_label">Waarschuw me voor vrije plekken hier</string>
 
     <!-- Fuel block [VEH-FUEL-001] -->
