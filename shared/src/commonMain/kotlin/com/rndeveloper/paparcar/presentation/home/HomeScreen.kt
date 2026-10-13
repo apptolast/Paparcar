@@ -449,8 +449,19 @@ private fun HomeContent(
     // ⛔ **Sin reloj** [ONB-A-GUIDE-ANSWERS-UNTIL-YOU-ACT-001]. Duraba 6 s fijos y el reporte fue
     // que «no capta la atención»: contestar «¿dónde está?» durante seis segundos es no contestar.
     // No puede quedarse encendido para siempre porque **sólo se enciende cuando el usuario lo
-    // PIDE** desde el checklist, y se apaga en cuanto actúa — al usar el control, al completarse el
-    // paso, o al salir de Browse (se fue a otra cosa).
+    // PIDE** desde el checklist, y se apaga en cuanto actúa. Tres interruptores, y los tres
+    // existen de verdad desde [ONB-A-GUIDE-MUST-NOT-OUTLIVE-THE-STEP-THAT-ASKED-FOR-IT-001]:
+    //
+    //   1. **al usar el control** — `FirstStepGuide.isUsedBy`, preguntado en los dos embudos
+    //      (`onIntentGuided` aquí abajo y el `onAction` de `HomeSheetSection`). Es el único que
+    //      apaga los tres destinos cuyo paso se cierra en el mismo toque que enciende el realce.
+    //   2. **al completarse el paso** — sólo para los destinos cuyo paso SOBREVIVE al toque.
+    //   3. **al salir de Browse** — se fue a otra cosa.
+    //
+    // ⛔⛔ Este comentario prometía los tres y durante semanas funcionaba **uno**: el 1 no existía y
+    // el 2 estaba escrito sólo para `ADD_ZONE_CHIP`, así que «Ver plazas» se quedaba realzado para
+    // siempre. *Una afirmación en un comentario no se ejecuta* — por eso la regla vive ahora en el
+    // enum, con su test recorriendo los cuatro destinos.
     var firstStepGuide by remember { mutableStateOf<FirstStepGuide?>(null) }
     LaunchedEffect(state.mode) {
         if (state.mode !is HomeMode.Browse) firstStepGuide = null
@@ -459,10 +470,28 @@ private fun HomeContent(
     // no». UNA condición para los dos, porque la pregunta es la misma —«¿sigue siendo esto lo que
     // te pido?»— y separarlas dejaría el aplazado señalado, que es discutirle al usuario un «no»
     // que acaba de dar. [ONB-A-GUIDE-ANSWERS-UNTIL-YOU-ACT-001]
-    val guidedStepStillAsked =
-        firstStepGuide != FirstStepGuide.ADD_ZONE_CHIP || state.firstSteps.current == FirstStep.PRIVATE_ZONE
+    //
+    // ⛔ Solo aplica a los destinos cuyo paso SOBREVIVE al toque, y eso lo dice el propio destino
+    // (`stepOutlivesTheTap`), no un `!=` escrito aquí. Antes la condición era
+    // `firstStepGuide != ADD_ZONE_CHIP || current == PRIVATE_ZONE`: para los otros TRES destinos el
+    // primer operando ya era `true`, el `||` la hacía cierta para siempre y el realce no se apagaba
+    // JAMÁS. Y generalizarla sin este filtro es peor: `FIND_SPOT` y `EXPLORE_NEARBY` se cierran en
+    // el MISMO toque que enciende el realce, así que se apagaría en el mismo fotograma y no se
+    // vería nunca. [ONB-A-GUIDE-MUST-NOT-OUTLIVE-THE-STEP-THAT-ASKED-FOR-IT-001]
+    val guidedStepStillAsked = firstStepGuide?.let { guide ->
+        !guide.stepOutlivesTheTap || state.firstSteps.current == guide.step
+    } ?: true
     LaunchedEffect(guidedStepStillAsked) {
         if (!guidedStepStillAsked) firstStepGuide = null
+    }
+    // ✅ El interruptor que el KDoc de arriba prometía y no existía: **usar el control**. Es el
+    // único que apaga el realce de los tres destinos cuyo paso ya está cerrado, y vive aquí —en los
+    // dos embudos por los que actúan los cuatro controles— para que ningún destino tenga su propia
+    // regla repartida por cuatro árboles de componentes.
+    // [ONB-A-GUIDE-MUST-NOT-OUTLIVE-THE-STEP-THAT-ASKED-FOR-IT-001]
+    val onIntentGuided: (HomeIntent) -> Unit = { intent ->
+        if (firstStepGuide?.isUsedBy(intent) == true) firstStepGuide = null
+        onIntent(intent)
     }
     // Hoisted with the list's own state: both must outlive the list while a detail sheet hides it.
     // [HOME-BROWSE-SURVIVES-THE-DETAIL-SHEET-001]
@@ -947,7 +976,7 @@ private fun HomeContent(
                     slice = headerSlice,
                     uiController = uiController,
                     userGpsPoint = state.userGpsPoint,
-                    onIntent = onIntent,
+                    onIntent = onIntentGuided,
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .fillMaxWidth()
@@ -1016,7 +1045,7 @@ private fun HomeContent(
                     frame = sheetFrame,
                     browseShowsZoneHeader = sheetBeyondPeek,
                     browseLaneHeaderLatched = browseLaneHeaderLatched,
-                    onIntent = onIntent,
+                    onIntent = onIntentGuided,
                     uiController = uiController,
                     // A stepper press IS a marker tap — same lambda, so select + camera + sheet
                     // can't drift between the two. [UI-PEEK-STEPS-BETWEEN-PINS-001]
@@ -1033,6 +1062,7 @@ private fun HomeContent(
                     onCollapseSheet = motion.animateToPeek,
                     onGuide = { target -> firstStepGuide = target },
                     firstStepGuide = firstStepGuide,
+                    onGuidedControlUsed = { firstStepGuide = null },
                     onActivateDetection = onActivateDetection,
                     onAddVehicle = onAddVehicle,
                     onOpenVehicle = onOpenVehicle,
@@ -1377,6 +1407,13 @@ private fun HomeSheetSection(
     /** Start highlighting a control a checklist step points at. [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001] */
     onGuide: (FirstStepGuide) -> Unit,
     firstStepGuide: FirstStepGuide?,
+    /**
+     * La tarjeta de avisar plaza es el unico de los cuatro controles guiados que actua por
+     * [HomeSheetAction] y no por [HomeIntent], asi que su apagado entra por aqui. La REGLA
+     * sigue viviendo en [FirstStepGuide.isUsedBy]; esto solo se la pregunta.
+     * [ONB-A-GUIDE-MUST-NOT-OUTLIVE-THE-STEP-THAT-ASKED-FOR-IT-001]
+     */
+    onGuidedControlUsed: () -> Unit,
     onActivateDetection: (focus: String) -> Unit,
     onAddVehicle: () -> Unit,
     onOpenVehicle: (vehicleId: String) -> Unit,
@@ -1385,6 +1422,7 @@ private fun HomeSheetSection(
     modifier: Modifier = Modifier,
 ) {
     val onAction: (HomeSheetAction) -> Unit = { action ->
+        if (firstStepGuide?.isUsedBy(action) == true) onGuidedControlUsed()
         when (action) {
             HomeSheetAction.ToggleSheet -> onToggle()
             // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] Its own screen: no surface of
