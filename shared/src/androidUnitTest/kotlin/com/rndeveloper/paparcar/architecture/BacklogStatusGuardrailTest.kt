@@ -263,8 +263,15 @@ class BacklogStatusGuardrailTest {
         val OUT_OF_SUITE_TOOLS = listOf(
             OutOfSuiteTool(
                 path = "tools/backlog/branch_tell.py",
-                carries = "that no open backlog doc cites a branch which no longer exists while its " +
-                    "ticket already has a commit in master [DOCS-A-CLOSED-TICKET-MUST-NOT-SAY-IT-IS-IN-REVIEW-001].",
+                carries = "that no open backlog doc presents a branch as alive when that branch no " +
+                    "longer exists — as a lie when its implementation commit can be named, and as " +
+                    "merely stale when it cannot, because a status line citing a dead branch is " +
+                    "false either way. A doc that says the branch died is exempt: that is the fix, " +
+                    "not the defect. It judges implementation by the FILES a commit touches, never " +
+                    "by its subject prefix: `fe576b3e5` is a `docs(ui)` commit carrying four real " +
+                    "colour tokens, and the prefix filter made it invisible " +
+                    "[DOCS-A-DEAD-BRANCH-IN-A-STATUS-LINE-IS-ALWAYS-STALE-001] " +
+                    "[DOCS-A-CLOSED-TICKET-MUST-NOT-SAY-IT-IS-IN-REVIEW-001].",
                 why = "it needs the full ref list and the full history of master, and CI checks out " +
                     "with actions/checkout@v4 at its default fetch-depth of 1. Measured on a real " +
                     "`git clone --depth 1`: the check answers «7 docs, 0 commits of master, OK» — " +

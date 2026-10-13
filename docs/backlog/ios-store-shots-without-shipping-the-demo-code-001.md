@@ -1,11 +1,19 @@
 # IOS-STORE-SHOTS-WITHOUT-SHIPPING-THE-DEMO-CODE-001 · Ficha y capturas del App Store, sin que el modo demo viaje en el .ipa
 
-**Estado:** 🔵 En progreso · rama `feature/IOS-STORE-SHOTS-WITHOUT-SHIPPING-THE-DEMO-CODE-001` ·
-worktree `../PaparcarKMP-storeshots`
+**Estado:** 🟡 **En master** (`6970b4065`, dentro del squash de
+IOS-APPLE-SIGN-IN-ON-BASELOGIN-3-001) · ⏳ falta un **Mac** para CORRER las capturas y subirlas ·
+⛔ la rama `feature/IOS-STORE-SHOTS-WITHOUT-SHIPPING-THE-DEMO-CODE-001` y el worktree
+`../PaparcarKMP-storeshots` que esta línea presentaba como vivos **ya no existen** (verificado el
+13-10-2026).
 
-⚠️ **Parte de `feature/IOS-APPLE-SIGN-IN-ON-BASELOGIN-3-001`, no de master**: `iosApp/fastlane/`
-(Fastfile, Appfile, Matchfile, firma de Release) nace en esa rama y aún no está mergeada. Mergear
-aquella ANTES que esta, o esta se lleva por delante ficheros que master no conoce.
+Entregado y medido el 13-10-2026: **92 ficheros** en `iosApp/fastlane/metadata/` —nombre,
+subtítulo, descripción, keywords, notas y las tres URLs, por idioma—, el `Snapfile`, y los lanes
+`screenshots` y `upload_metadata` del `Fastfile`. Y la mitad que da nombre al ticket, que el modo
+demo no viaje en el `.ipa`, vive en el módulo `:mockkit` con `MockGraphGuardrailTest` vigilando que
+ninguna fuente publicable importe un fake.
+
+⚠️ El aviso que esta cabecera llevaba —«parte de `IOS-APPLE-SIGN-IN-ON-BASELOGIN-3-001`, no de
+master; mergear aquella ANTES»— **ya no aplica**: aquella se mergeó, y esto entró con ella.
 
 ## Problema
 

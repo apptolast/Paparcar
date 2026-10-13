@@ -1,5 +1,15 @@
 # -*- coding: utf-8 -*-
-"""El chivato de la rama: un doc abierto que cita una rama BORRADA con su commit en master miente.
+"""El chivato de la rama: si un doc abierto cita una rama que ya no existe, su estado esta viejo.
+
+Dos severidades, y las dos salen con exit 1:
+
+  MIENTE     la rama citada no existe Y se localiza su commit de implementacion en master.
+  DESFASADO  la rama citada no existe y NO se localiza. No se puede decir donde esta el trabajo,
+             y por eso mismo la linea de estado no se puede creer.
+
+La segunda nacio el 13-10-2026: dos docs tenian su codigo en master dentro del squash de OTRO
+ticket, asi que no habia ningun commit con su ID en el asunto, y el chivato se callaba. Exigir
+probar DONDE aterrizo antes de acusar no lo autoriza a contestar OK.
 
 [DOCS-THE-BACKLOG-STATUS-LOOP-MUST-BE-A-GUARD-001]
 
@@ -71,9 +81,48 @@ BRANCH_RE = re.compile(r"(feature|bugfix|fix|refactor|chore|experiment)/[A-Za-z0
 # El bloque es la linea de estado mas sus continuaciones hasta la primera linea en blanco, porque
 # varias la parten en dos (`… · rama `X` ·` / `worktree `../Paparcar-…``).
 
+# ⛔ Citar una rama muerta PARA DECIR QUE ESTA MUERTA no es el defecto: es el arreglo.
+#
+# Medido el 13-10-2026, la primera vez que se ejecuto la severidad DESFASADO: de 6 docs seniala-
+# dos, 3 declaraban en su propia linea de estado que la rama ya no existe
+# (`DET-AUDIT-REMEDIATION-001`, `det-verdict-not-predicate-001`, `snap-to-park-001`). Acusarlos es
+# acusar al unico que hizo los deberes, y un chivato que llora con lo correcto se desactiva solo.
+#
+# Comparacion en MINUSCULAS, como en `tools/memory/description_tell.py`: alli un chequeo sensible a
+# mayusculas dejo pasar un defecto plantado, y se descubrio falsificando.
+# ⛔ Cada frase habla de la EXISTENCIA de la rama. Nada de «borrada» o «retirada» a secas: son
+# palabras de uso corriente en estos docs (una plaza se retira, un pin se borra) y exentarian un doc
+# por una frase que no habla de su rama. Una exencion asi de ancha es un agujero del tamano del
+# chequeo entero.
+BRANCH_DECLARED_DEAD = (
+    "ya no existe",
+    "ya no existen",
+    "nunca existio",
+    "nunca existió",
+    "se borro",
+    "se borró",
+    "se ha borrado",
+    "rama borrada",
+    "ramas borradas",
+    "rama retirada",
+    "ramas retiradas",
+    "sin rama",
+)
+
 # Suelo de historial: por debajo de esto el clon no sirve para este chequeo. El repo tenia ~1.575
 # commits el 07-10; un clon shallow trae 1.
 HISTORY_FLOOR = 200
+
+# ⛔ Que un commit sea «de documentacion» lo deciden los FICHEROS QUE TOCA, nunca su prefijo.
+#
+# La primera version descartaba los asuntos que empiezan por `docs(`, con una intencion correcta: un
+# commit de documentacion no es que el trabajo haya aterrizado. Pero el asunto no es la prueba.
+# Medido el 13-10-2026: `fe576b3e5` es un `docs(ui)` cuyo diff cambia `Color.kt` con cuatro `val`
+# nuevos -- los colores del tema claro, no KDoc. Con el filtro por prefijo,
+# `ui-the-light-theme-is-lighter-without-losing-its-edges-001` salia VERDE citando una rama borrada.
+#
+# Asi que un commit cuenta como implementacion cuando toca algo que no acaba en `.md`. Un commit que
+# solo toca `.md` es prosa, venga titulado como venga.
 
 
 def git(*args):
@@ -163,6 +212,25 @@ def status_block(text):
     return lines[index], "\n".join(lines[index:end])
 
 
+def master_commits():
+    """[(asunto, toca_codigo)] de todo master, en una sola pasada.
+
+    `toca_codigo` es «este commit cambia algun fichero que no acaba en `.md`». Ver la nota de
+    HISTORY_FLOOR: el prefijo del asunto no sirve para esto, y medirlo costo un falso verde.
+    """
+    out, subject, touches_code = [], None, False
+    for line in git("log", "--format=%x00%s", "--name-only", "master").splitlines():
+        if line.startswith("\0"):
+            if subject is not None:
+                out.append((subject, touches_code))
+            subject, touches_code = line[1:], False
+        elif line.strip() and not line.strip().lower().endswith(".md"):
+            touches_code = True
+    if subject is not None:
+        out.append((subject, touches_code))
+    return out
+
+
 def first_marker(line):
     found = [(line.index(m), m) for m in VOCABULARY if m in line]
     return min(found)[1] if found else None
@@ -174,14 +242,15 @@ def main():
     os.chdir(root)
     depth = require_full_history()
 
-    subjects = git("log", "--format=%s", "master").splitlines()
+    commits = master_commits()
     known = branches()
+    tags = {t.strip() for t in git("tag").splitlines() if t.strip()}
 
     docs = sorted(f for f in os.listdir(BACKLOG) if f.endswith(".md"))
     if not docs:
         die("%s no tiene docs: o se movio el directorio, o este chequeo lleva sin mirar nada." % BACKLOG)
 
-    liars, checked = [], 0
+    liars, stale, checked, exempt = [], [], 0, []
     for name in docs:
         if name in NOT_TICKETS:
             continue
@@ -203,30 +272,69 @@ def main():
         if not gone:
             continue
 
+        # ⛔ Espacios normalizados: el bloque es prosa ENVUELTA. `det-verdict-not-predicate-001`
+        # declara que su rama «ya no existen», pero con el salto de linea justo en medio, asi que
+        # buscar la frase tal cual no la encuentra. Un chequeo que depende de donde envuelve el
+        # texto no esta comprobando lo que cree. Medido el 13-10-2026.
+        lowered = " ".join(block.lower().split())
+        if any(said in lowered for said in BRANCH_DECLARED_DEAD):
+            exempt.append(name)
+            continue
+
         ticket = os.path.splitext(name)[0].upper()
-        impl = [s for s in subjects if ("[%s]" % ticket) in s and not s.startswith("docs(")]
+        impl = [subject for subject, touches_code in commits
+                if ("[%s]" % ticket) in subject and touches_code]
+        retained = sorted("prerebase/%s" % b for b in gone if "prerebase/%s" % b in tags)
         if impl:
             liars.append((name, marker, gone, impl))
+        else:
+            stale.append((name, marker, gone, retained))
 
     print(
         "Revisados %d docs abiertos que citan rama, sobre %d ficheros y %d commits de master."
         % (checked, len(docs), depth)
     )
-    if not liars:
-        print("OK: ningun doc abierto cita una rama borrada cuyo trabajo ya esta en master.")
+    if exempt:
+        print(
+            "  %d exento(s) por declarar en su propia linea que la rama murio: %s"
+            % (len(exempt), ", ".join(sorted(exempt)))
+        )
+    if not liars and not stale:
+        print("OK: ningun doc abierto cita una rama que ya no exista.")
         return 0
 
-    print("\n%d doc(s) MIENTEN — su rama ya no existe y su commit esta en master:\n" % len(liars))
-    for name, marker, gone, impl in liars:
-        print("  %s %s" % (marker, name))
-        print("      rama citada, inexistente: %s" % ", ".join(gone))
-        for subject in impl[:3]:
-            print("      en master: %s" % subject[:110])
-    print(
-        "\nArreglo: pasar su linea de estado a `**Estado:** <tick> Done - master `<hash>``, citando el\n"
-        "commit verificado. Un cierre RETROACTIVO si puede citar su hash: la regla de que un doc no\n"
-        "cita el suyo aplica al cierre simultaneo, donde el hash todavia no existe."
-    )
+    if liars:
+        print("\n%d doc(s) MIENTEN — su rama ya no existe y su commit esta en master:\n" % len(liars))
+        for name, marker, gone, impl in liars:
+            print("  %s %s" % (marker, name))
+            print("      rama citada, inexistente: %s" % ", ".join(gone))
+            for subject in impl[:3]:
+                print("      en master: %s" % subject[:110])
+        print(
+            "\nArreglo: pasar su linea de estado a `**Estado:** <tick> Done - master `<hash>``, citando el\n"
+            "commit verificado. Un cierre RETROACTIVO si puede citar su hash: la regla de que un doc no\n"
+            "cita el suyo aplica al cierre simultaneo, donde el hash todavia no existe."
+        )
+
+    if stale:
+        print(
+            "\n%d doc(s) DESFASADOS — citan una rama que no existe, y su ID no aparece en ningun\n"
+            "commit de master que toque codigo:\n" % len(stale)
+        )
+        for name, marker, gone, retained in stale:
+            print("  %s %s" % (marker, name))
+            print("      rama citada, inexistente: %s" % ", ".join(gone))
+            if retained:
+                print("      pero un tag la retiene (y es LOCAL): %s" % ", ".join(retained))
+            else:
+                print("      sin tag `prerebase/` que la retenga")
+        print(
+            "\nArreglo: averiguar donde esta su trabajo y escribirlo. Son dos casos reales, y los dos\n"
+            "dejan la linea de estado falsa: (a) el codigo entro en master dentro del squash de OTRO\n"
+            "ticket -- buscar por fichero, `git log -S` o `--diff-filter=A`, no por ID; (b) la rama se\n"
+            "borro con trabajo sin mergear, y entonces lo retiene como mucho un tag `prerebase/`.\n"
+            "⛔ Lo que NO vale es dejar la linea diciendo «en progreso · rama X» con X inexistente."
+        )
     return 1
 
 

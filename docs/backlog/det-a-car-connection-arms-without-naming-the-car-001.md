@@ -1,8 +1,11 @@
 # DET-A-CAR-CONNECTION-ARMS-WITHOUT-NAMING-THE-CAR-001 · el cable de Android Auto arma el carril, pero no dice de quién es el coche
 
-**Estado:** 🟡 DISEÑO, sin implementar · rama
-`feature/DET-A-CAR-CONNECTION-ARMS-WITHOUT-NAMING-THE-CAR-001-aa-signal` · worktree
-`../Paparcar-aa-signal`
+**Estado:** 🟡 DISEÑO en master (`1339ea263` — y ese commit toca **sólo este doc**), sin
+implementar · ⛔ la rama `feature/DET-A-CAR-CONNECTION-ARMS-WITHOUT-NAMING-THE-CAR-001-aa-signal` y
+el worktree `../Paparcar-aa-signal` que esta línea presentaba como vivos **ya no existen**
+(verificado el 13-10-2026); su commit pre-squash lo retiene el tag **local**
+`prerebase/feature/DET-A-CAR-CONNECTION-ARMS-WITHOUT-NAMING-THE-CAR-001-aa-signal`, que no está en
+ningún remoto.
 
 Nace de **issue #126** («¿sería muy complicado poner la app en Android Auto? ¿se podría hacer si el
 usuario conecta el cable al coche?»). La issue tenía dos preguntas y esta es la segunda — la app de

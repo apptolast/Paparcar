@@ -1,8 +1,23 @@
 # IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001 · wake-and-query: el corazón del tier asistido iOS
 
-**Estado:** 🔵 En progreso · rama `feature/IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001-wake-and-query`
-· worktree `../Paparcar-ios-f2` · base `feature/IOS-F0-001-fase0` (`27649206`) — todo iOS en el
-PR #3. Plan: `docs/IOS-IMPLEMENTATION-PLAN.md` §4 y §8-F2 (puntos 10-12).
+**Estado:** 🟡 **Las cuatro etapas están EN MASTER** (`8c2daf096`, dentro del squash de
+IOS-F0-001), y lo que queda son deberes de este doc, no código · ⛔ las ramas
+`feature/IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001-wake-and-query` y `feature/IOS-F0-001-fase0` y el
+worktree `../Paparcar-ios-f2` que esta línea presentaba como vivos **ya no existen** (verificado el
+13-10-2026). Plan: `docs/IOS-IMPLEMENTATION-PLAN.md` §4 y §8-F2 (puntos 10-12).
+
+Medido en código el 13-10-2026, etapa por etapa: **1** la escalera inline —`RunDepartureCheckUseCase`
+y `ProcessConfirmedDepartureUseCase` inyectados en `IosDetectionController`—; **2** `stepsSinceSeal`
+como query real de `CMPedometer` en `IosDetectionStepAnchors` (su KDoc dice *«a real CMPedometer
+range query since this ticket»*); **3** la reconstrucción por wake (`reconstructionCoordinator`,
+`reconstructedArmEvidence`, *«Each wake reconstructs, then checks»*); **4** el mesh de safety-net
+(`EvaluateSafetyNetCheckUseCase`, `IosWakeMonitors`, y los dos `BGTaskSchedulerPermittedIdentifiers`
+del `Info.plist`).
+
+⏳ Lo que falta es de este doc y de CI, no del carril: `PARKING-DETECTION.md` **no** documenta el
+carril iOS F2 por etapa —medido: sus menciones a «F2» son de otros tickets—, el barrido de
+consumidores de abajo sigue diciendo «(por etapa, pendiente)», y la sección «Ejecutado (05-09) —
+etapas 1 y 2, **pendiente de plegar**» llevaba un mes describiendo trabajo ya plegado.
 
 ## Problema
 

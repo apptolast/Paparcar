@@ -1,7 +1,17 @@
 # UI-THE-LIGHT-THEME-IS-LIGHTER-WITHOUT-LOSING-ITS-EDGES-001 · El tema claro, más claro
 
-**Estado:** 🔵 En revisión · rama `feature/UI-THE-LIGHT-THEME-IS-LIGHTER-WITHOUT-LOSING-ITS-EDGES-001` ·
-cierra la **issue #48**
+**Estado:** ✅ Done · master `fe576b3e5` · cierra la **issue #48** · ⏳ sin ver en device
+
+⛔ **Cierre RETROACTIVO el 13-10-2026.** Esta línea decía «🔵 En revisión · rama
+`feature/UI-THE-LIGHT-THEME-…`», y esa rama ya no existe. El trabajo está en master y se puede
+señalar con el dedo: `fe576b3e5` mueve los **cuatro** tokens del tema claro —`PapVariantLight`
+`#D8E0EE`→`#E4EAF5`, `PapSurfaceLight`, `PapAzure`, `PapAzureLow`— y escribe la medida de la
+segunda vuelta en el KDoc de `Color.kt`.
+
+⛔ Y aquí está por qué nadie lo cazó: el asunto de ese commit empieza por **`docs(ui)`**, y
+`tools/backlog/branch_tell.py` descartaba los `docs(` por considerarlos prosa. *Un commit `docs(`
+que toca algo que no es un `.md` no es un commit de docs*
+[DOCS-A-DEAD-BRANCH-IN-A-STATUS-LINE-IS-ALWAYS-STALE-001].
 
 ## Problema
 
