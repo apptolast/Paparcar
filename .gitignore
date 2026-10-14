@@ -804,3 +804,9 @@ demoseed-plan.*.json
 # primero se colo en el commit de MEM-A-DESCRIPTION-MUST-BE-VERIFIABLE-AGAINST-GIT-001.
 __pycache__/
 *.py[cod]
+
+# Materiales que se le pasan al diseñador: capturas del movil de PRODUCCION. Llevan la direccion
+# de casa, los nombres de las zonas privadas y el historial de movimientos — la misma razon por la
+# que los `parkdiag` crudos salieron del repo. Se regeneran con el movil delante; no viajan.
+# (`ig_inputs.zip` ya lo tapa el `*.zip` de mas arriba.)
+ig_inputs/
