@@ -33,8 +33,8 @@ class FakeLocationDataSource(
     private val runtime: DetectionRuntimeState? = null,
 ) : LocationDataSource {
     private val mockLocation = GpsPoint(
-        latitude = 53.3518,
-        longitude = -6.2619,
+        latitude = 40.4232,
+        longitude = -3.7005,
         accuracy = 8.5f,
         timestamp = Clock.System.now().toEpochMilliseconds(),
         speed = 0f,
@@ -138,37 +138,37 @@ class FakeLocationDataSource(
         // GPS "noise" (degrees) added to each emitted fix. 0 = clean test of the snapping itself; a
         // small value (~3 m, 0.00003) makes the raw trail wander so matching visibly corrects it.
         const val GPS_NOISE_DEG = 0.0
-        // A longer real-street circuit (~1.4 km) around Dublin, traced densely along
+        // A longer real-street circuit (~1.4 km) around Madrid, traced densely along
         // the visible OSM grid so the raw line already hugs streets and on-device map-matching only
         // refines it: Av. de Valencia → Av. Sanlúcar → a full loop of the Glorieta Juan de Austria
         // roundabout → the southern grid (C. San Juan) → back up. [ROUTE-SNAP-001]
         val DRIVING_ROUTE = listOf(
-            53.3656 to -6.2568,  // Av. de Valencia (NE roundabout)
-            53.3652 to -6.2574,
-            53.3648 to -6.2582,
-            53.3644 to -6.2591,
-            53.3641 to -6.2600,
-            53.3640 to -6.2609,  // onto Navan Road / Phoenix Park gate
-            53.3637 to -6.2610,
-            53.3633 to -6.2609,  // approach Glorieta Juan de Austria
-            53.3630 to -6.2610,  // — roundabout, one loop CCW —
-            53.3628 to -6.2613,
-            53.3626 to -6.2615,
-            53.3625 to -6.2612,
-            53.3627 to -6.2609,
-            53.3630 to -6.2611,  // — back to entry, then exit —
-            53.3627 to -6.2616,  // exit SW
-            53.3622 to -6.2618,
-            53.3616 to -6.2614,  // C. San Juan
-            53.3611 to -6.2607,
-            53.3607 to -6.2598,
-            53.3610 to -6.2588,
-            53.3616 to -6.2580,
-            53.3623 to -6.2574,
-            53.3631 to -6.2570,
-            53.3640 to -6.2568,
-            53.3648 to -6.2566,  // back N toward the roundabout
-            53.3655 to -6.2566,
+            40.4370 to -3.6965,  // entrada norte
+            40.4366 to -3.6970,
+            40.4362 to -3.6976,
+            40.4358 to -3.6983,
+            40.4355 to -3.6990,
+            40.4354 to -3.6997,  // hacia la via principal
+            40.4351 to -3.6998,
+            40.4347 to -3.6997,  // llegada a la glorieta
+            40.4344 to -3.6998,  // — roundabout, one loop CCW —
+            40.4342 to -3.7000,
+            40.4340 to -3.7002,
+            40.4339 to -3.6999,
+            40.4341 to -3.6997,
+            40.4344 to -3.6999,  // — back to entry, then exit —
+            40.4341 to -3.7002,  // exit SW
+            40.4336 to -3.7004,
+            40.4330 to -3.7001,  // C. San Juan
+            40.4325 to -3.6995,
+            40.4321 to -3.6988,
+            40.4324 to -3.6981,
+            40.4330 to -3.6974,
+            40.4337 to -3.6970,
+            40.4345 to -3.6966,
+            40.4354 to -3.6965,
+            40.4362 to -3.6963,  // back N toward the roundabout
+            40.4369 to -3.6963,
         )
     }
 }

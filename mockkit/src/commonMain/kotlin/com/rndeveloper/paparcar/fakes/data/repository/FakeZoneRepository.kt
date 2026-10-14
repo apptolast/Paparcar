@@ -72,9 +72,9 @@ class FakeZoneRepository(
         val GARAGE_SEED = Zone(
             id = "mock_zone_garage",
             userId = "mock_user_001",
-            name = "Home garage",
-            lat = 53.3522,
-            lon = -6.2622,
+            name = "Garaje de casa",
+            lat = 40.4236,
+            lon = -3.7007,
             iconKey = "HOME",
             createdAt = 0L,
             radiusMeters = 60f,

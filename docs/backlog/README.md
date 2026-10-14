@@ -1,6 +1,6 @@
 # Backlog — índice de lo que sigue abierto
 
-> **794 ficheros: 708 cerrados, 77 abiertos, 9 que no son tickets.** Este índice lista **solo lo que
+> **795 ficheros: 709 cerrados, 77 abiertos, 9 que no son tickets.** Este índice lista **solo lo que
 > queda**, para que la pregunta *"¿qué falta?"* se conteste leyendo y no listando el directorio.
 > Verificado contra master `1339ea263` el **2026-10-07**
 > [DOCS-A-CLOSED-TICKET-MUST-NOT-SAY-IT-IS-IN-REVIEW-001]. El barrido anterior

@@ -59,19 +59,19 @@ private const val MOCK_DISSOLVED_VEHICLE_ID = "mock_vehicle_001"
  *  [UI-MAP-PUCK-BELONGS-TO-THE-DRIVE-NOT-TO-ONE-LANE-001] */
 private const val MOCK_CONNECTED_AT_MS = 1L
 /** [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Where the mock question is ABOUT — inside the same
- *  County Dublin block as the seeded spots, so flipping `promptOpen` in the Dev Catalog draws the
+ *  same Madrid block as the seeded spots, so flipping `promptOpen` in the Dev Catalog draws the
  *  unconfirmed marker on screen instead of somewhere off the visible map. Without a place the row
  *  still renders but the marker never appears, which is a real state (a window from an older build)
  *  and NOT the one the scenario is for. */
-private val MOCK_PROMPT_CANDIDATE = GpsPoint(53.3512, -6.2618, 11f, 0L, 0f)
+private val MOCK_PROMPT_CANDIDATE = GpsPoint(40.4226, -3.7004, 11f, 0L, 0f)
 
 /** The street the mock question names — a real address in the same block, so the Dev Catalog
  *  shows the wording that ships and not a placeholder. */
-private const val MOCK_PROMPT_STREET = "Dame Street 22"
+private const val MOCK_PROMPT_STREET = "Calle de Fuencarral 22"
 
 class FakeGeocoderDataSource : GeocoderDataSource {
     override suspend fun getAddress(lat: Double, lon: Double): Result<AddressInfo> =
-        Result.success(AddressInfo("Grafton Street", "Dublin", "County Dublin", "Ireland", "IE"))
+        Result.success(AddressInfo("Gran Vía", "Madrid", "Madrid", "España", "ES"))
 
     override suspend fun searchByName(query: String, maxResults: Int): Result<List<SearchResult>> =
         Result.success(emptyList())

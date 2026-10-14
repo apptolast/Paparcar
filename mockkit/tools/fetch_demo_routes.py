@@ -25,12 +25,26 @@ UA = "paparcar-mock-routes/1.0 (+https://paparcar.com)"
 NOMINATIM = "https://nominatim.openstreetmap.org/search"
 OSRM = "https://router.project-osrm.org"
 
+# ── EL MUNDO DE DEMOSTRACION ────────────────────────────────────────────────────────────
+# [MOCK-THE-DEMO-WORLD-MOVES-TO-SPAIN-001]
+# Mover la ciudad es cambiar ESTAS constantes y volver a correr el script. Antes estaba
+# cableada en tres sitios distintos (la consulta al geocodificador, los sufijos de tramo y
+# el comentario del fichero generado), que es como una mudanza se queda a medias.
+CITY = "Madrid"
+COUNTRY = "España"
+
+# Sufijos con los que reintentar cuando el geocodificador no da con la CALZADA. En Dublin
+# hacian falta («Camden Street Lower»); en Madrid el nombre va completo y no se parte, asi
+# que basta el nombre tal cual. Si una ciudad nueva los necesita, se anaden aqui.
+NAME_VARIANTS = ("",)
+
 # Las calles del catalogo, tal cual las escribe FakeUserParkingRepository.
 LEON_STREETS = [
-    "Dame Street", "Capel Street", "Baggot Street", "Camden Street", "Wexford Street",
-    "Pearse Street", "Thomas Street", "Aungier Street", "Clanbrassil Street",
+    "Calle de Fuencarral", "Calle de Hortaleza", "Calle de Atocha", "Calle Mayor",
+    "Calle de Toledo", "Calle de Serrano", "Calle de Alcalá", "Calle de Génova",
+    "Calle de Sagasta",
 ]
-TRANSIT_STREETS = ["Broombridge Road", "Cabra Road", "Navan Road"]
+TRANSIT_STREETS = ["Paseo de la Castellana", "Calle de Bravo Murillo", "Avenida de América"]
 
 # Tres aproximaciones por calle: el mismo destino alcanzado desde rumbos distintos, que es
 # como se llega de verdad a la calle de siempre. Rumbo en grados, distancia en km.
@@ -49,7 +63,7 @@ def get(url):
 
 def geocode(street):
     q = urllib.parse.urlencode(
-        {"q": street + ", Dublin, Ireland", "format": "json", "limit": 1})
+        {"q": "%s, %s, %s" % (street, CITY, COUNTRY), "format": "json", "limit": 1})
     res = get(NOMINATIM + "?" + q)
     if not res:
         return None
@@ -131,11 +145,12 @@ def haversine(a, b):
 def destination(street):
     """Punto de la CALZADA de `street` donde acabaran los trayectos.
 
-    Se prueban varias formas de nombrarla porque en Dublin la misma calle se parte en tramos
-    (`Lower`/`Upper`) y el primer resultado del geocodificador puede ser el peatonal.
+    Se prueban las formas de [NAME_VARIANTS] porque en algunas ciudades la misma calle se
+    parte en tramos (en Dublin, `Lower`/`Upper`) y el primer resultado del geocodificador
+    puede ser el peatonal.
     """
     seed = None
-    for q in (street, street + " Lower", street + " Upper"):
+    for q in (street + v for v in NAME_VARIANTS):
         g = geocode(q)
         time.sleep(1.1)                       # Nominatim pide <=1 peticion/s
         if g is None:
@@ -212,7 +227,7 @@ HEADER = '''package com.rndeveloper.paparcar.fakes.data
  * [MOCK-A-DEMO-ROUTE-MUST-FOLLOW-THE-STREETS-001]
  *
  * GENERADO por `mockkit/tools/fetch_demo_routes.py` — no editar a mano. Las polilineas son
- * respuestas de OSRM sobre el grafo real de Dublin, en el mismo formato precision-5 que lee
+ * respuestas de OSRM sobre el grafo real de %(city)s, en el mismo formato precision-5 que lee
  * `PolylineCodec`, asi que entran literales.
  *
  * La RUTA manda sobre el pin, no al reves. Antes el catalogo inventaba una coordenada y
@@ -240,7 +255,7 @@ internal object DemoStreets {
 def emit(leon, transit):
     body = block("leon", leon) + "\n\n" + block("transit", transit)
     with open(OUT, "w", encoding="utf-8", newline="\n") as f:
-        f.write(HEADER + body + "\n}\n")
+        f.write((HEADER % {"city": CITY}) + body + "\n}\n")
     print("\nescrito: " + OUT)
 
 
