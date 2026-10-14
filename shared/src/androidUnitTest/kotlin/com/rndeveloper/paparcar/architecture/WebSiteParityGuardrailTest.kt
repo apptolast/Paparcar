@@ -115,16 +115,17 @@ class WebSiteParityGuardrailTest {
                 expected = "an address the app itself shows",
             ) { baseStrings.contains(it) }
 
-            val redirects = (Json.parseToJsonElement(read("firebase.json")) as JsonObject)
-                .let { it["hosting"] as JsonObject }["redirects"] as? JsonArray
-            val downloadDestination = redirects
-                ?.map { it as JsonObject }
-                ?.firstOrNull { (it["source"] as? JsonPrimitive)?.content == "/descargar" }
-                ?.let { (it["destination"] as? JsonPrimitive)?.content }
+            val downloadDestination = downloadShortcuts()[DOWNLOAD_PATH]
+            // ⛔ Not `endsWith("?id=…")` any more: the destination now carries `&referrer=` behind
+            // the id [MKT-AN-INSTALL-MUST-SAY-WHERE-IT-CAME-FROM-001]. Pinning the PREFIX against
+            // `PLAY_URL` is stricter than the old tail check, not looser — it ties the two copies of
+            // the URL together instead of checking each one against the id separately. What the
+            // referrer itself must say is the next test's job.
             check(
-                "firebase.json · /descargar redirect", downloadDestination, "app/build.gradle.kts · applicationId",
-                expected = "…?id=$applicationId",
-            ) { it.endsWith("?id=$applicationId") }
+                "firebase.json · $DOWNLOAD_PATH redirect", downloadDestination,
+                "$SITE_CONFIG · PLAY_URL (which this test already pins to the applicationId)",
+                expected = "${declared["PLAY_URL"]}&referrer=…",
+            ) { it.startsWith(declared["PLAY_URL"].orEmpty() + "&referrer=") }
         }
 
         assertTrue(
@@ -135,6 +136,106 @@ class WebSiteParityGuardrailTest {
                 appendLine()
                 appendLine("Fix `web/lib/config.mjs`, then rebuild and redeploy:")
                 appendLine("  node web/build.mjs --check && firebase deploy --only hosting")
+            },
+        )
+    }
+
+    // ── 1b · the download shortcuts carry where the click came from ───────────
+
+    /**
+     * `/descargar` and its siblings are the only bridge between a post and an install, and the
+     * `referrer` parameter is the only thing that survives the hop into the store: a UTM-tagged bio
+     * link loses its query there, and a 301 to a fixed URL drops the incoming one too. Without it
+     * Play files the install as organic and GA4 as `(direct)`, so nobody can tell whether the
+     * account brought one install or three hundred.
+     *
+     * ⛔ **And every way of getting it wrong is SILENT.** A missing `referrer`, a `utm_campaign` that
+     * names another territory, or a value written with literal `&` instead of `%26` — which Play
+     * splits into separate parameters of its own — all deploy clean, open the store, and lose the
+     * attribution without one error anywhere. That is exactly the shape of defect a guard is for;
+     * the alternative is finding out a month and a budget later.
+     *
+     * [MKT-AN-INSTALL-MUST-SAY-WHERE-IT-CAME-FROM-001]
+     */
+    @Test
+    fun `every download shortcut carries an encoded install referrer naming its own campaign`() {
+        val shortcuts = downloadShortcuts()
+
+        // The witness: if the redirect block is reorganised and the selector stops matching, this
+        // test would otherwise iterate an empty map and pass while the attribution is gone.
+        assertTrue(
+            shortcuts.containsKey(DOWNLOAD_PATH),
+            "[empty population] firebase.json has no redirect whose source is exactly " +
+                "'$DOWNLOAD_PATH' — found ${shortcuts.keys}. Either the shortcut was removed (and " +
+                "the bio of @paparcar_oficial now points at nothing) or `hosting.redirects` moved " +
+                "and this guard is no longer looking at anything.",
+        )
+
+        val problems = buildList {
+            shortcuts.forEach { (source, destination) ->
+                val expectedCampaign =
+                    if (source == DOWNLOAD_PATH) BIO_CAMPAIGN else source.removePrefix("$DOWNLOAD_PATH/")
+
+                val encoded = destination.substringAfter("&referrer=", missingDelimiterValue = "")
+                if (encoded.isEmpty()) {
+                    add("$source · no `&referrer=` at all → this install will be filed as organic")
+                    return@forEach
+                }
+                // Percent-encoded or nothing: a raw `&` or `=` here means Play reads the pieces as
+                // its own parameters and the referrer arrives truncated.
+                if (encoded.any { it == '&' || it == '=' }) {
+                    add(
+                        "$source · referrer is NOT percent-encoded ('$encoded'). Write %3D for '=' " +
+                            "and %26 for '&', or Play splits it into parameters of its own.",
+                    )
+                    return@forEach
+                }
+
+                val utm = encoded.replace("%3D", "=").replace("%26", "&")
+                    .split("&")
+                    .mapNotNull { pair ->
+                        pair.split("=", limit = 2).takeIf { it.size == 2 }?.let { it[0] to it[1] }
+                    }
+                    .toMap()
+
+                REQUIRED_UTM.filterNot(utm::containsKey).forEach {
+                    add("$source · referrer has no `$it`")
+                }
+                utm["utm_source"]?.takeIf { it != UTM_SOURCE }?.let {
+                    add("$source · utm_source is '$it', expected '$UTM_SOURCE'")
+                }
+                utm["utm_campaign"]?.takeIf { it != expectedCampaign }?.let {
+                    add(
+                        "$source · utm_campaign is '$it' but the path says '$expectedCampaign'. A " +
+                            "campaign that names another territory makes the acquisition report lie.",
+                    )
+                }
+                // Earned and bought must stay separable, or the spend cannot be divided by anything.
+                val medium = utm["utm_medium"]
+                val looksPaid = expectedCampaign.startsWith(PAID_SLUG_PREFIX)
+                if (medium != null && medium !in UTM_MEDIUMS) {
+                    add("$source · utm_medium is '$medium', expected one of $UTM_MEDIUMS")
+                } else if (medium != null && (medium == PAID_MEDIUM) != looksPaid) {
+                    add(
+                        "$source · utm_medium='$medium' and the slug '$expectedCampaign' disagree: a " +
+                            "bought zone is named '$PAID_SLUG_PREFIX…' and carries '$PAID_MEDIUM'. " +
+                            "Mixing them merges bought installs into the earned ones.",
+                    )
+                }
+            }
+        }
+
+        assertTrue(
+            problems.isEmpty(),
+            buildString {
+                appendLine("A download shortcut cannot say where its install came from:")
+                problems.forEach { appendLine("  $it") }
+                appendLine()
+                appendLine("Each `$DOWNLOAD_PATH*` redirect in firebase.json needs a destination like:")
+                appendLine(
+                    "  …details?id=<applicationId>&referrer=utm_source%3D$UTM_SOURCE" +
+                        "%26utm_medium%3Dsocial%26utm_campaign%3D<the path's own slug>",
+                )
             },
         )
     }
@@ -534,6 +635,23 @@ class WebSiteParityGuardrailTest {
 
     private fun contentOf(locale: String): String = read("web/content/$locale.json")
 
+    /**
+     * `source → destination` for every `/descargar…` redirect declared in `firebase.json`.
+     * One reader for the two tests that need them, so a reorganisation of that block can only
+     * break the selector in one place. [MKT-AN-INSTALL-MUST-SAY-WHERE-IT-CAME-FROM-001]
+     */
+    private fun downloadShortcuts(): Map<String, String> =
+        ((Json.parseToJsonElement(read("firebase.json")) as JsonObject)["hosting"] as JsonObject)
+            .let { it["redirects"] as? JsonArray }
+            ?.map { it as JsonObject }
+            ?.mapNotNull { rule ->
+                (rule["source"] as? JsonPrimitive)?.content
+                    ?.takeIf { it.startsWith(DOWNLOAD_PATH) }
+                    ?.let { it to (rule["destination"] as? JsonPrimitive)?.content.orEmpty() }
+            }
+            ?.toMap()
+            .orEmpty()
+
     private fun read(relative: String): String =
         repoFile(relative).takeIf { it.isFile }?.readText()
             ?: fail("not found from ${repoRoot.path}: $relative")
@@ -563,6 +681,27 @@ class WebSiteParityGuardrailTest {
         )
         const val BASE_STRINGS = "shared/src/commonMain/composeResources/values/strings.xml"
         const val SITE_CONFIG = "web/lib/config.mjs"
+
+        // ── the download shortcuts [MKT-AN-INSTALL-MUST-SAY-WHERE-IT-CAME-FROM-001] ──
+
+        /** The marketing shortcut, and the prefix of all its siblings. */
+        const val DOWNLOAD_PATH = "/descargar"
+
+        /** What the bare shortcut stands for: the bio link of the account, and the QR codes. */
+        const val BIO_CAMPAIGN = "bio"
+
+        /** Every shortcut is reached from one place today; a second source gets its own constant. */
+        const val UTM_SOURCE = "instagram"
+
+        const val PAID_MEDIUM = "paid"
+
+        /** Earned vs bought. Nothing else is a medium: the ledger only has those two columns. */
+        val UTM_MEDIUMS = listOf("social", PAID_MEDIUM)
+
+        val REQUIRED_UTM = listOf("utm_source", "utm_medium", "utm_campaign")
+
+        /** A bought radius is named `z-<place>`; every other slug is earned traffic. */
+        const val PAID_SLUG_PREFIX = "z-"
 
         /** The parametric master's output, and the consumers that must agree with it. */
         const val MARK_MASTER = "docs/branding/mark/paparcar-mark-compas-b.svg"

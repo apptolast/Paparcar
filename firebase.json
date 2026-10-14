@@ -20,9 +20,36 @@
     ],
     "redirects": [
       {
-        "//": "Marketing shortcut (campaigns, social bios, QR) → the Play listing. The destination is `PLAY_URL` from web/lib/config.mjs, duplicated here because firebase.json cannot import it; WebSiteParityGuardrailTest checks the two agree. One exact source, same lesson as the header rules below: an alternation of paths deploys clean and matches nothing.",
+        "//": "Marketing shortcuts (social bios, QR, campaigns) → the Play listing, each one carrying WHERE THE CLICK CAME FROM. The base URL is `PLAY_URL` from web/lib/config.mjs, duplicated here because firebase.json cannot import it; WebSiteParityGuardrailTest checks they agree. ⛔ The `referrer` parameter is the ONLY thing that survives the hop into the store: a UTM-tagged bio link loses its query there, and a 301 to a fixed URL drops the incoming one too — so without this, Play files every one of these installs as organic and GA4 as (direct), and nobody can tell whether the account brought one install or three hundred. ⛔ Its value is PERCENT-ENCODED (%3D, %26): a literal `&` inside it splits into separate Play parameters, the link still opens the store, and the attribution is lost with no error at all. ⛔ One entry per exact source, never an @(a|b|c) alternation — same lesson as the header rules below, which deployed clean and matched nothing. `utm_medium` separates earned (social) from bought (paid): without it the spend cannot be divided by anything. [MKT-AN-INSTALL-MUST-SAY-WHERE-IT-CAME-FROM-001]",
         "source": "/descargar",
-        "destination": "https://play.google.com/store/apps/details?id=com.rndeveloper.paparcar",
+        "destination": "https://play.google.com/store/apps/details?id=com.rndeveloper.paparcar&referrer=utm_source%3Dinstagram%26utm_medium%3Dsocial%26utm_campaign%3Dbio",
+        "type": 301
+      },
+      {
+        "//": "Territory links: one per creative territory of docs/marketing/INSTAGRAM-GROWTH-STRATEGY.md §5.2, so the acquisition report says WHICH IDEA brought people and not just 'Instagram'.",
+        "source": "/descargar/parte",
+        "destination": "https://play.google.com/store/apps/details?id=com.rndeveloper.paparcar&referrer=utm_source%3Dinstagram%26utm_medium%3Dsocial%26utm_campaign%3Dparte",
+        "type": 301
+      },
+      {
+        "source": "/descargar/vuelta",
+        "destination": "https://play.google.com/store/apps/details?id=com.rndeveloper.paparcar&referrer=utm_source%3Dinstagram%26utm_medium%3Dsocial%26utm_campaign%3Dvuelta",
+        "type": 301
+      },
+      {
+        "source": "/descargar/galibo",
+        "destination": "https://play.google.com/store/apps/details?id=com.rndeveloper.paparcar&referrer=utm_source%3Dinstagram%26utm_medium%3Dsocial%26utm_campaign%3Dgalibo",
+        "type": 301
+      },
+      {
+        "source": "/descargar/compartido",
+        "destination": "https://play.google.com/store/apps/details?id=com.rndeveloper.paparcar&referrer=utm_source%3Dinstagram%26utm_medium%3Dsocial%26utm_campaign%3Dcompartido",
+        "type": 301
+      },
+      {
+        "//": "Paid zone links: `utm_medium=paid`, one per bought radius (§9). The install is attributed per ZONE, not per ad — which ad works is what Meta's own CTR is for, and a route per ad would multiply paths and guardrails for nothing.",
+        "source": "/descargar/z-mostoles",
+        "destination": "https://play.google.com/store/apps/details?id=com.rndeveloper.paparcar&referrer=utm_source%3Dinstagram%26utm_medium%3Dpaid%26utm_campaign%3Dz-mostoles",
         "type": 301
       }
     ],
