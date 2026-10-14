@@ -1,0 +1,81 @@
+<en-US>
+• Fuel: prices moving around you now reach you free.
+• Plus watches the station you choose, with 30 days of history.
+• Fewer phantom spots: a car idling to park is not you getting out.
+• Your email says if it is confirmed, and lets you confirm it.
+• Signing in: if your account uses Google, the app says so.
+• Privacy: when Plus lapses, routes stop uploading; saved ones stay.
+• A direct arrival no longer reads "0 min".
+</en-US>
+<es-ES>
+• Gasolineras: lo que sube o baja a tu alrededor te llega gratis.
+• Plus vigila la gasolinera que elijas, con 30 días de histórico.
+• Menos plazas fantasma: un coche al ralentí no eres tú bajándote.
+• Tu correo dice si está confirmado, y puedes confirmarlo.
+• Entrar: si tu cuenta es de Google, la app ya te lo dice.
+• Privacidad: al caducar Plus, las rutas dejan de subirse.
+• Una llegada directa ya no se lee «0 min».
+</es-ES>
+<it-IT>
+• Carburante: ciò che sale o scende intorno a te ti arriva gratis.
+• Plus sorveglia il distributore che scegli, con 30 giorni di storico.
+• Meno posti fantasma: un'auto al minimo non sei tu che scendi.
+• La tua e-mail dice se è confermata, e puoi confermarla.
+• Accesso: se il tuo account usa Google, l'app te lo dice.
+• Privacy: se Plus scade, i percorsi non si caricano più.
+• Un arrivo diretto non si legge più «0 min».
+</it-IT>
+<pt-PT>
+• Combustível: o que sobe ou desce à tua volta chega-te grátis.
+• O Plus vigia a estação que escolheres, com 30 dias de histórico.
+• Menos lugares fantasma: um carro ao ralenti não és tu a sair.
+• O teu e-mail diz se está confirmado, e podes confirmá-lo.
+• Entrar: se a tua conta é do Google, a app já te avisa.
+• Privacidade: se o Plus expirar, as rotas deixam de ser enviadas.
+• Uma chegada direta já não se lê «0 min».
+</pt-PT>
+<fr-FR>
+• Carburant : les prix qui bougent autour de vous arrivent gratuitement.
+• Plus surveille la station que vous choisissez, 30 jours d'historique.
+• Moins de places fantômes : une voiture au ralenti, ce n'est pas vous.
+• Votre e-mail dit s'il est confirmé, et vous pouvez le confirmer.
+• Connexion : si votre compte passe par Google, l'app le dit.
+• Confidentialité : Plus expiré, les trajets ne montent plus.
+• Une arrivée directe ne se lit plus « 0 min ».
+</fr-FR>
+<de-DE>
+• Sprit: Was um dich herum steigt oder fällt, erreicht dich gratis.
+• Plus überwacht die Tankstelle deiner Wahl, mit 30 Tagen Verlauf.
+• Weniger Geister-Plätze: ein Auto im Leerlauf bist nicht du.
+• Deine E-Mail sagt, ob sie bestätigt ist, und du kannst das tun.
+• Anmelden: Nutzt dein Konto Google, sagt die App es jetzt.
+• Datenschutz: Läuft Plus ab, werden keine Routen mehr geladen.
+• Eine direkte Ankunft liest sich nicht mehr als «0 Min.».
+</de-DE>
+<nl-NL>
+• Brandstof: wat om je heen stijgt of daalt, bereikt je gratis.
+• Plus houdt het station in de gaten dat jij kiest, 30 dagen terug.
+• Minder spookplekken: een auto stationair ben jij niet.
+• Je e-mail zegt of hij bevestigd is, en je kunt dat doen.
+• Inloggen: gebruikt je account Google, dan zegt de app dat.
+• Privacy: loopt Plus af, dan worden routes niet meer geüpload.
+• Een directe aankomst leest niet meer als «0 min».
+</nl-NL>
+<pl-PL>
+• Paliwo: to, co rośnie lub spada wokół ciebie, dotrze bezpłatnie.
+• Plus pilnuje wybranej przez ciebie stacji, z 30 dniami historii.
+• Mniej miejsc-widm: auto na biegu jałowym to nie ty wysiadasz.
+• Twój e-mail mówi, czy jest potwierdzony, i możesz to zrobić.
+• Logowanie: jeśli konto używa Google, aplikacja to powie.
+• Prywatność: po wygaśnięciu Plus trasy nie są już wysyłane.
+• Bezpośredni dojazd nie czyta się już jako «0 min».
+</pl-PL>
+<ro>
+• Combustibil: ce urcă sau scade în jurul tău ajunge gratuit.
+• Plus urmărește stația pe care o alegi, cu 30 de zile de istoric.
+• Mai puține locuri-fantomă: o mașină în ralanti nu ești tu.
+• E-mailul tău spune dacă e confirmat și îl poți confirma.
+• Conectare: dacă contul tău e de Google, aplicația o spune.
+• Confidențialitate: la expirarea Plus, rutele nu se mai urcă.
+• O sosire directă nu se mai citește «0 min».
+</ro>
