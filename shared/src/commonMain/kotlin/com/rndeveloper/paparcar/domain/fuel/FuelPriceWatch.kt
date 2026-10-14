@@ -45,6 +45,39 @@ data class FollowedFuelStation(
 )
 
 /**
+ * El surtidor del que se guarda una serie, **sin decir por qué**.
+ * [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001]
+ *
+ * ⛔ Existe porque desde el 13-10 hay **dos** razones para guardar el precio de ayer, y el veredicto
+ * que compara las dos lecturas no tiene que saber cuál de ellas aplica:
+ *  · la estrellaste tú → [FollowedFuelStation], serie de 30 días, carril Plus;
+ *  · estabas al lado → una de tu alrededor, serie corta, carril free.
+ *
+ * Antes el veredicto tomaba `List<FollowedFuelStation>` y por tanto **afirmaba un follow** sobre
+ * cada estación que juzgaba. Meter ahí una de tu alrededor —aunque los campos encajaran— sería
+ * decirle al resto del código que el usuario la estrelló. La lista blanca es el TIPO, no un `if`.
+ *
+ * Lleva solo lo que hace falta para comparar y para NOMBRAR el resultado: la clave que identifica
+ * la serie, y el nombre y el sitio que la notificación necesita para escribir su frase y abrir el
+ * mapa donde toca.
+ */
+data class WatchedForecourt(
+    /** `source|id` — la clave de la serie. Ver [fuelStationKey]. */
+    val stationKey: String,
+    val name: String?,
+    val latitude: Double,
+    val longitude: Double,
+)
+
+/** El surtidor que el usuario estrelló, como sujeto de su serie. */
+fun FollowedFuelStation.asWatched() = WatchedForecourt(
+    stationKey = stationKey,
+    name = name,
+    latitude = latitude,
+    longitude = longitude,
+)
+
+/**
  * One reading of one pump on one day: what it charged, when the FEED said so, and when we looked.
  * [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
  *

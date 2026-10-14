@@ -274,12 +274,12 @@ interface AppNotificationManager {
     ) {}
 
     /**
-     * A followed station's price moved overnight (Paparcar Plus).
-     * [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
+     * A watched station's price moved overnight.
+     * [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001] [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001]
      *
-     * One notification for the whole set, never one per station: a driver who follows four pumps
-     * must not wake up to four cards. [deltaLabel] describes the lead station; [otherMovesCount] is
-     * how many more moved, so the copy can say so in one line.
+     * One notification per LANE, never one per station: a driver who follows four pumps must not
+     * wake up to four cards. [deltaLabel] describes the lead station; [otherMovesCount] is how many
+     * more moved in that same lane, so the copy can say so in one line.
      */
     fun showFuelPriceMove(
         stationName: String?,
@@ -291,6 +291,15 @@ interface AppNotificationManager {
         /** Whether [deltaLabel] is quoted per gallon. Same contract as in [showCheaperFuelNearby].
          *  [FUEL-A-PRICE-IS-QUOTED-WHERE-IT-IS-SOLD-001] */
         quotesPerGallon: Boolean = false,
+        /**
+         * Which lane is speaking. [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001]
+         *
+         * ⛔ Un TIPO y no un booleano, y no por estilo: decide dos cosas a la vez —el sujeto que
+         * nombra el título y la tarjeta en la que sale— y un `isFollowed: Boolean` en una llamada
+         * de siete parámetros es exactamente la forma de llamar «la que sigues» a una gasolinera
+         * que el usuario nunca estrelló. Mismo patrón que `SpotReleaseLane`.
+         */
+        lane: FuelMoveLane = FuelMoveLane.FOLLOWED,
     ) {}
 
     /**
@@ -377,6 +386,16 @@ interface AppNotificationManager {
 
         /** ID for the Plus "your station moved" alert — ONE card for the whole followed set. */
         const val FUEL_PRICE_MOVE_NOTIFICATION_ID = 2011
+
+        /**
+         * ID for the FREE "a pump near you moved" alert — one card for that whole lane.
+         * [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001]
+         *
+         * ⛔ Su propio id, no el 2011: los dos carriles pueden tener algo que decir el mismo día, y
+         * compartir id significa que el segundo **sobreescribe** al primero. El que se perdería es
+         * el de pago.
+         */
+        const val NEARBY_FUEL_MOVE_NOTIFICATION_ID = 2017
 
         /** [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] "Is this your car?" — the opportunistic
          *  link offer after a trip framed one BT audio port. iOS-only in practice. */

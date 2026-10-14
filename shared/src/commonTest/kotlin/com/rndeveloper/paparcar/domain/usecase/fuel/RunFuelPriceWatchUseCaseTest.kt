@@ -6,9 +6,11 @@ import com.rndeveloper.paparcar.domain.fuel.FollowedFuelStation
 import com.rndeveloper.paparcar.domain.fuel.FuelStation
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsQuery
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsResult
+import com.rndeveloper.paparcar.domain.fuel.FuelPriceSample
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsSource
 import com.rndeveloper.paparcar.domain.fuel.StationPrice
 import com.rndeveloper.paparcar.domain.fuel.fuelStationKey
+import com.rndeveloper.paparcar.domain.fuel.localDayOf
 import com.rndeveloper.paparcar.domain.geocoder.GeocoderDataSource
 import com.rndeveloper.paparcar.domain.location.LocationDataSource
 import com.rndeveloper.paparcar.domain.location.UserLocationUi
@@ -18,6 +20,7 @@ import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.Money
 import com.rndeveloper.paparcar.domain.model.SearchResult
+import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
@@ -34,6 +37,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
@@ -119,6 +123,17 @@ class RunFuelPriceWatchUseCaseTest {
         } ?: emptyMap(),
     )
 
+    /**
+     * Tres a tiro de desvío del usuario, porque **la mediana de dos es la más barata**
+     * (`sorted[(size - 1) / 2]`) y entonces el ahorro sale cero. Con 1,70 · 1,70 · 1,60 la mediana
+     * es 1,70 y la barata ahorra 10 c/l, por encima del suelo de 3.
+     */
+    private val AROUND_THE_USER = listOf(
+        station("normal-a", USER_LAT, USER_LON, 1.700),
+        station("normal-b", USER_LAT + 0.005, USER_LON, 1.700),
+        station("cheap", USER_LAT + 0.008, USER_LON, 1.600),
+    )
+
     private fun followed(id: String, lat: Double, lon: Double) = FollowedFuelStation(
         stationKey = fuelStationKey(SOURCE, id),
         source = SOURCE,
@@ -132,6 +147,9 @@ class RunFuelPriceWatchUseCaseTest {
     private class Harness(
         world: List<FuelStation>,
         plus: Boolean = true,
+        /** El sello de [NearbyComplement.FUEL]: «este usuario ha abierto el carril alguna vez», que
+         *  es lo que arma el carril free. [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001] */
+        askedAboutFuel: Boolean = true,
         fix: GpsPoint? = GpsPoint(
             latitude = USER_LAT, longitude = USER_LON, accuracy = 8f, timestamp = NOW_MS,
             speed = 0f,
@@ -139,6 +157,9 @@ class RunFuelPriceWatchUseCaseTest {
     ) {
         val source = FakeStationsSource(world)
         val watchRepository = FakeFuelWatchRepository()
+        val preferences = FakeAppPreferences().apply {
+            setIntroducedComplements(if (askedAboutFuel) setOf(NearbyComplement.FUEL) else emptySet())
+        }
         val useCase = RunFuelPriceWatchUseCase(
             watchRepository = watchRepository,
             vehicleRepository = FakeVehicleRepository(
@@ -158,7 +179,7 @@ class RunFuelPriceWatchUseCaseTest {
             observeIsPlus = ObserveIsPlusUseCase(
                 FakeEntitlementRepository(if (plus) Entitlement.PLUS else Entitlement.FREE),
             ),
-            appPreferences = FakeAppPreferences(),
+            appPreferences = preferences,
             evaluateDailyPriceMove = EvaluateDailyPriceMoveUseCase(),
             evaluateCheaperStationNearby = EvaluateCheaperStationNearbyUseCase(),
             clock = { NOW_MS },
@@ -182,7 +203,9 @@ class RunFuelPriceWatchUseCaseTest {
 
         val looked = assertIs<FuelWatchOutcome.Looked>(harness.useCase())
 
-        assertEquals(1, looked.samplesRecorded)
+        // Dos: la seguida de lejos y la de al lado del usuario, que la mide el carril free.
+        // [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001]
+        assertEquals(2, looked.samplesRecorded)
         val series = harness.watchRepository.historyFor(
             fuelStationKey(SOURCE, "far"), FuelType.DIESEL, 30,
         )
@@ -274,20 +297,172 @@ class RunFuelPriceWatchUseCaseTest {
         )
     }
 
-    /** La puerta de Plus PAUSA y no olvida: ni una muestra, ni una seguida tocada. [MONEY-001] */
+    // ── El reparto nuevo: tu alrededor es free, tus seguidas son Plus ────────
+    // [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001]
+
+    /**
+     * ⛔ **Un free SÍ recibe el aviso de su alrededor.** Hasta el 13-10 esto era
+     * `if (!isPlus) return Skipped("not-plus")` y un free no se enteraba ni de que la gasolinera de
+     * su calle estaba 10 c/l por debajo de lo normal por aquí. La referencia es la MEDIANA de la
+     * zona — la propia («donde sueles repostar») es la mitad que se paga.
+     */
     @Test
-    fun should_recordNothing_when_thisDriverHasNoPlus() = runTest {
+    fun should_tellAFreeDriverAboutACheaperPumpNearby_when_theyFollowNothing() = runTest {
+        val harness = Harness(world = AROUND_THE_USER, plus = false)
+
+        val looked = assertIs<FuelWatchOutcome.Looked>(harness.useCase())
+
+        val cheaper = assertNotNull(looked.cheaper, "el free se queda sin su aviso")
+        assertEquals("cheap", cheaper.station.id)
+        assertEquals(CheaperReference.AREA_MEDIAN, cheaper.reference)
+        // Y su alrededor queda MEDIDO, que es lo que permite el aviso de mañana.
+        assertEquals(AROUND_THE_USER.size, looked.samplesRecorded)
+        // Hoy no hay movimiento que contar: una sola lectura no es una serie.
+        assertEquals(emptyList(), looked.nearbyMoves)
+        assertEquals(emptyList(), looked.followedMoves)
+    }
+
+    /**
+     * Y el carril de las seguidas está APAGADO sin Plus: ni se pregunta por ellas. Se mide en las
+     * consultas, no solo en el resultado — un carril que consulta y luego calla habria gastado los
+     * datos del usuario para nada.
+     */
+    @Test
+    fun should_notWatchTheFollowedLane_when_theDriverHasNoPlus() = runTest {
         val harness = Harness(
-            world = listOf(station("near", USER_LAT, USER_LON, 1.699)),
+            world = AROUND_THE_USER + station("far", FAR_LAT, FAR_LON, 1.579),
             plus = false,
         )
-        harness.watchRepository.follow(followed("near", USER_LAT, USER_LON))
+        harness.watchRepository.follow(followed("far", FAR_LAT, FAR_LON))
 
-        val outcome = harness.useCase()
+        val looked = assertIs<FuelWatchOutcome.Looked>(harness.useCase())
 
-        assertEquals(FuelWatchOutcome.Skipped("not-plus"), outcome)
-        assertEquals(0, harness.source.queries.size)
+        assertEquals(emptyList(), looked.followedMoves)
+        assertEquals(1, harness.source.queries.size, "preguntó por una seguida sin Plus")
+        // Y la seguida no tiene ni una lectura: su carril no corrió.
+        assertTrue(
+            harness.watchRepository.historyFor(
+                fuelStationKey(SOURCE, "far"), FuelType.DIESEL, 30,
+            ).isEmpty(),
+        )
+        // Lo medido es su alrededor, que es el carril que sí le toca.
+        assertEquals(AROUND_THE_USER.size, looked.samplesRecorded)
+        // ⛔ PAUSA, no olvida: la seguida sigue ahí para cuando vuelva Plus. [MONEY-001]
         assertEquals(1, harness.watchRepository.getFollowed().size)
+    }
+
+    /**
+     * ⛔ **El aviso que el user pidió primero**: una de tu alrededor bajó respecto a ayer, sin
+     * seguir nada y sin Plus. [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001]
+     *
+     * Esto no se podía ni escribir antes de la fase B: la serie solo guardaba seguidas, así que una
+     * gasolinera sin estrella no tenía ayer con el que compararse.
+     */
+    @Test
+    fun should_reportANearbyMove_when_yesterdayWasMeasuredAndThePriceFell() = runTest {
+        val harness = Harness(world = AROUND_THE_USER, plus = false)
+        // Ayer la barata costaba 10 c/l más, con otro sello del feed.
+        harness.watchRepository.recordSamples(
+            listOf(
+                FuelPriceSample(
+                    stationKey = fuelStationKey(SOURCE, "cheap"),
+                    fuelType = FuelType.DIESEL,
+                    perUnit = Money(amount = 1.700, currency = "EUR"),
+                    reportedAtMs = NOW_MS - 90_000_000,
+                    observedAtMs = NOW_MS - 86_400_000,
+                    observedDay = localDayOf(NOW_MS) - 1,
+                ),
+            ),
+        )
+
+        val looked = assertIs<FuelWatchOutcome.Looked>(harness.useCase())
+
+        val move = looked.nearbyMoves.singleOrNull()
+        assertNotNull(move, "el free se queda sin el aviso de su alrededor: ${looked.nearbyMoves}")
+        assertEquals(fuelStationKey(SOURCE, "cheap"), move.station.stationKey)
+        assertEquals(PriceMoveDirection.DOWN, move.direction)
+        // Y no se cuela en el carril de pago.
+        assertEquals(emptyList(), looked.followedMoves)
+    }
+
+    /**
+     * ⛔ Una gasolinera SEGUIDA que además te rodea sale **solo** en su carril: si saliera en los
+     * dos, el mismo surtidor produciría dos tarjetas que se contradicen en el sujeto —«la que
+     * sigues» y «una cerca de ti»—. [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001]
+     */
+    @Test
+    fun should_keepAFollowedStationOutOfTheNearbyLane_when_itAlsoSitsAroundYou() = runTest {
+        val harness = Harness(world = AROUND_THE_USER)
+        harness.watchRepository.follow(followed("cheap", USER_LAT + 0.008, USER_LON))
+        harness.watchRepository.recordSamples(
+            listOf(
+                FuelPriceSample(
+                    stationKey = fuelStationKey(SOURCE, "cheap"),
+                    fuelType = FuelType.DIESEL,
+                    perUnit = Money(amount = 1.700, currency = "EUR"),
+                    reportedAtMs = NOW_MS - 90_000_000,
+                    observedAtMs = NOW_MS - 86_400_000,
+                    observedDay = localDayOf(NOW_MS) - 1,
+                ),
+            ),
+        )
+
+        val looked = assertIs<FuelWatchOutcome.Looked>(harness.useCase())
+
+        assertEquals(emptyList(), looked.nearbyMoves, "la seguida se colo en el carril free")
+        assertEquals(
+            listOf(fuelStationKey(SOURCE, "cheap")),
+            looked.followedMoves.map { it.station.stationKey },
+        )
+    }
+
+    /**
+     * El techo de escritura del carril free: la tabla de la serie se abrió **a medias** y a
+     * propósito. [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001]
+     */
+    @Test
+    fun should_measureAtMostTheCap_when_manyStationsSurroundYou() = runTest {
+        val crowd = (0 until NEARBY_CAP + 4).map { i ->
+            station("around-$i", USER_LAT + i * 0.002, USER_LON, 1.600 + i * 0.001)
+        }
+        val harness = Harness(world = crowd, plus = false)
+
+        val looked = assertIs<FuelWatchOutcome.Looked>(harness.useCase())
+
+        assertEquals(NEARBY_CAP, looked.samplesRecorded)
+    }
+
+    /**
+     * ⛔ **El freno del carril free**: solo avisa a quien ha preguntado por gasolineras alguna vez.
+     * Sin él la app notifica precios a quien nunca los ha mirado — y baja un feed de provincia al
+     * dia para todo el mundo.
+     */
+    @Test
+    fun should_skip_when_nobodyEverAskedAboutFuel() = runTest {
+        val harness = Harness(world = AROUND_THE_USER, plus = false, askedAboutFuel = false)
+
+        assertEquals(
+            FuelWatchOutcome.Skipped("never-asked-about-fuel"),
+            harness.useCase(),
+        )
+        assertEquals(0, harness.source.queries.size)
+    }
+
+    /**
+     * Pero el freno es del carril FREE, no de la puerta: haber estrellado una gasolinera es una
+     * intención más fuerte que haber abierto una pestaña, así que el carril Plus corre igual.
+     */
+    @Test
+    fun should_stillWatchTheFollowedLane_when_aPlusDriverCarriesNoFuelStamp() = runTest {
+        val harness = Harness(
+            world = listOf(station("far", FAR_LAT, FAR_LON, 1.579)),
+            askedAboutFuel = false,
+        )
+        harness.watchRepository.follow(followed("far", FAR_LAT, FAR_LON))
+
+        val looked = assertIs<FuelWatchOutcome.Looked>(harness.useCase())
+
+        assertEquals(1, looked.samplesRecorded)
     }
 
     private companion object {
@@ -302,6 +477,10 @@ class RunFuelPriceWatchUseCaseTest {
          * test, que es justo lo que debe pasar: es una decisión de coste de datos, no un detalle.
          */
         const val LOOKUP_BUDGET = 8
+
+        /** `RunFuelPriceWatchUseCase.NEARBY_SAMPLED_MAX`, a mano por la misma razón que el de
+         *  arriba: la constante es privada y moverla tiene que costar tocar este test. */
+        const val NEARBY_CAP = 10
 
         // Sol, y una seguida a ~55 km — fuera del radio de 5 km de la respuesta del usuario.
         const val USER_LAT = 40.4168

@@ -1,20 +1,25 @@
 package com.rndeveloper.paparcar.domain.usecase.fuel
 
-import com.rndeveloper.paparcar.domain.fuel.FollowedFuelStation
+import com.rndeveloper.paparcar.domain.fuel.WatchedForecourt
 import com.rndeveloper.paparcar.domain.fuel.FuelPriceSample
 import com.rndeveloper.paparcar.domain.model.FuelType
 
-/** Which way a followed price went. [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001] */
+/** Which way a watched price went. [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001] */
 enum class PriceMoveDirection { UP, DOWN }
 
 /**
- * A followed station's price moved, and both readings that prove it.
+ * A watched station's price moved, and both readings that prove it.
+ *
+ * ⛔ **Watched, not followed** [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001]: desde el 13-10 esto lo
+ * produce también el carril free, sobre una gasolinera de tu alrededor que nadie estrelló. Qué
+ * carril lo dijo lo sabe quien lo pide — y es lo que decide la FRASE («la que sigues» vs. «una cerca
+ * de ti») y la tarjeta en la que sale.
  *
  * [deltaPerUnit] is signed in the currency's own unit (−0.03 = three cents per litre cheaper), so a
  * reader never has to recombine a magnitude with a direction and get the sign wrong.
  */
 data class FuelPriceMove(
-    val station: FollowedFuelStation,
+    val station: WatchedForecourt,
     val fuelType: FuelType,
     val previous: FuelPriceSample,
     val current: FuelPriceSample,
@@ -23,7 +28,7 @@ data class FuelPriceMove(
 )
 
 /**
- * What happened overnight to the prices you follow.
+ * What happened overnight to the prices you have a stake in.
  * [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
  *
  * A verdict, not a predicate: its result is the sentence the notification says and the one a
@@ -38,16 +43,19 @@ data class FuelPriceMove(
 class EvaluateDailyPriceMoveUseCase {
 
     /**
-     * @param samplesByStation the history of each followed station for ONE fuel, oldest first.
-     *        Callers hand over what the user's own car burns: a move in a fuel you cannot put in
-     *        your tank is not news.
+     * @param subjects the forecourts whose series to read — followed ones, or the ones that were
+     *        around the driver. This verdict does not care which: «did this price move» is the same
+     *        question either way. [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001]
+     * @param samplesByStation the history of each subject for ONE fuel, oldest first. Callers hand
+     *        over what the user's own car burns: a move in a fuel you cannot put in your tank is
+     *        not news.
      */
     operator fun invoke(
-        followed: List<FollowedFuelStation>,
+        subjects: List<WatchedForecourt>,
         fuelType: FuelType,
         samplesByStation: Map<String, List<FuelPriceSample>>,
         minDeltaPerUnit: Double = MIN_DELTA_PER_UNIT,
-    ): List<FuelPriceMove> = followed.mapNotNull { station ->
+    ): List<FuelPriceMove> = subjects.mapNotNull { station ->
         val samples = samplesByStation[station.stationKey].orEmpty()
             .filter { it.fuelType == fuelType }
             .sortedBy { it.observedDay }

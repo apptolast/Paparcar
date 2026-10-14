@@ -813,7 +813,7 @@ Se la richiesta non compare più, cambiala in Impostazioni → Paparcar → Posi
     <string name="paywall_reason_zones">Free tiene due zone: con Plus puoi crearne altre.</string>
     <string name="paywall_reason_stats">Con Plus vedi le tue cifre per qualsiasi periodo.</string>
     <string name="paywall_reason_zone_alerts">Gli avvisi di posti liberi nelle tue zone fanno parte di Plus.</string>
-    <string name="paywall_reason_fuel_alerts">Gli avvisi sul prezzo del carburante fanno parte di Plus.</string>
+    <string name="paywall_reason_fuel_alerts">Monitorare un distributore che segui fa parte di Plus.</string>
     <string name="paywall_reason_month_recap">Il riepilogo del mese fa parte di Plus.</string>
     <string name="paywall_reason_route_cloud">Salvare i percorsi nel tuo account fa parte di Plus.</string>
     <string name="paywall_plan_monthly">Mensile</string>
@@ -834,7 +834,7 @@ Se la richiesta non compare più, cambiala in Impostazioni → Paparcar → Posi
     <string name="settings_notif_zone_alerts">Avvisi di zona</string>
     <string name="settings_notif_zone_alerts_desc">Avviso quando appare un posto libero nelle tue zone</string>
     <string name="settings_notif_fuel_alerts">Avvisi sul prezzo del carburante</string>
-    <string name="settings_notif_fuel_alerts_desc">Avviso quando un distributore che segui cambia prezzo o ce n'è uno più economico vicino</string>
+    <string name="settings_notif_fuel_alerts_desc">Avviso quando un distributore vicino a te cambia prezzo o ce n'è uno più economico, e quando si muove uno che segui</string>
     <string name="settings_notif_month_recap">Riepilogo del mese</string>
     <string name="settings_notif_month_recap_desc">Un riepilogo alla chiusura del mese: quanto hai speso e quanto hai cercato</string>
     <string name="settings_sync_routes">Salva i tuoi percorsi nel tuo account</string>

@@ -244,13 +244,15 @@ class SettingsViewModel(
                     updateState { copy(notifyMonthRecap = intent.enabled) }
                 }
             }
+            // ⛔ **Sin paywall, y es el cambio de plan hecho interruptor.**
+            // [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001] Desde el 13-10 el aviso de lo que sube o baja
+            // a TU ALREDEDOR es free, así que un free que enciende esto recibe algo de verdad. Si
+            // siguiera abriendo el paywall, la fila prometería Plus para activar una función que ya
+            // es suya. Lo que vende Plus se pide donde se encuentra el límite: la estrella de una
+            // gasolinera, que vigila un sujeto esté donde esté.
             is SettingsIntent.ToggleFuelAlertsNotif -> {
-                if (intent.enabled && !state.value.isPlus) {
-                    sendEffect(SettingsEffect.NavigateToPaywall(PaywallReason.FUEL_ALERTS))
-                } else {
-                    prefs.setNotifyFuelPrices(intent.enabled)
-                    updateState { copy(notifyFuelPrices = intent.enabled) }
-                }
+                prefs.setNotifyFuelPrices(intent.enabled)
+                updateState { copy(notifyFuelPrices = intent.enabled) }
             }
             // [PRIV-A-TRACE-IS-NOT-A-STAT-001] Same soft gate as the zone alerts: the trace only
             // leaves the phone under a Plus consent, and a free user's attempt IS the paywall

@@ -1,6 +1,6 @@
 package com.rndeveloper.paparcar.domain.usecase.fuel
 
-import com.rndeveloper.paparcar.domain.fuel.FollowedFuelStation
+import com.rndeveloper.paparcar.domain.fuel.WatchedForecourt
 import com.rndeveloper.paparcar.domain.fuel.FuelPriceSample
 import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.Money
@@ -18,14 +18,17 @@ import kotlin.test.assertTrue
 class EvaluateDailyPriceMoveUseCaseTest {
 
     private val useCase = EvaluateDailyPriceMoveUseCase()
-    private val station = FollowedFuelStation(
+    /**
+     * El sujeto de la serie, **sin decir por qué se guarda**: desde
+     * [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001] este veredicto juzga igual una seguida y una de tu
+     * alrededor, así que el fixture dejó de ser un `FollowedFuelStation` — que habría afirmado un
+     * follow sobre cada caso de este fichero.
+     */
+    private val station = WatchedForecourt(
         stationKey = "minetur|1234",
-        source = "minetur",
-        id = "1234",
         name = "Repsol Alcalá",
         latitude = 40.48,
         longitude = -3.36,
-        followedAtMs = 1_000L,
     )
 
     private fun sample(
@@ -47,7 +50,7 @@ class EvaluateDailyPriceMoveUseCaseTest {
     @Test
     fun should_reportADrop_when_theFeedStampMovedAndThePriceFell() {
         val moves = useCase(
-            followed = listOf(station),
+            subjects = listOf(station),
             fuelType = FuelType.DIESEL,
             samplesByStation = mapOf(
                 station.stationKey to listOf(
@@ -65,7 +68,7 @@ class EvaluateDailyPriceMoveUseCaseTest {
     @Test
     fun should_reportARise_when_theFeedStampMovedAndThePriceRose() {
         val moves = useCase(
-            followed = listOf(station),
+            subjects = listOf(station),
             fuelType = FuelType.DIESEL,
             samplesByStation = mapOf(
                 station.stationKey to listOf(
@@ -82,7 +85,7 @@ class EvaluateDailyPriceMoveUseCaseTest {
     @Test
     fun should_reportNothing_when_theFeedStampDidNotMove() {
         val moves = useCase(
-            followed = listOf(station),
+            subjects = listOf(station),
             fuelType = FuelType.DIESEL,
             samplesByStation = mapOf(
                 station.stationKey to listOf(
@@ -100,7 +103,7 @@ class EvaluateDailyPriceMoveUseCaseTest {
     @Test
     fun should_reportNothing_when_eitherSampleCarriesNoStamp() {
         val moves = useCase(
-            followed = listOf(station),
+            subjects = listOf(station),
             fuelType = FuelType.DIESEL,
             samplesByStation = mapOf(
                 station.stationKey to listOf(
@@ -116,7 +119,7 @@ class EvaluateDailyPriceMoveUseCaseTest {
     @Test
     fun should_reportNothing_when_bothReadingsBelongToTheSameDay() {
         val moves = useCase(
-            followed = listOf(station),
+            subjects = listOf(station),
             fuelType = FuelType.DIESEL,
             samplesByStation = mapOf(
                 station.stationKey to listOf(
@@ -132,7 +135,7 @@ class EvaluateDailyPriceMoveUseCaseTest {
     @Test
     fun should_reportNothing_when_theMoveIsBelowTheThreshold() {
         val moves = useCase(
-            followed = listOf(station),
+            subjects = listOf(station),
             fuelType = FuelType.DIESEL,
             samplesByStation = mapOf(
                 station.stationKey to listOf(
@@ -149,7 +152,7 @@ class EvaluateDailyPriceMoveUseCaseTest {
     @Test
     fun should_reportNothing_when_theCurrencyChanged() {
         val moves = useCase(
-            followed = listOf(station),
+            subjects = listOf(station),
             fuelType = FuelType.DIESEL,
             samplesByStation = mapOf(
                 station.stationKey to listOf(
@@ -174,7 +177,7 @@ class EvaluateDailyPriceMoveUseCaseTest {
     @Test
     fun should_reportNothing_when_thePumpChangedButThePriceDidNot() {
         val moves = useCase(
-            followed = listOf(station),
+            subjects = listOf(station),
             fuelType = FuelType.DIESEL,
             samplesByStation = mapOf(
                 station.stationKey to listOf(
@@ -191,7 +194,7 @@ class EvaluateDailyPriceMoveUseCaseTest {
     @Test
     fun should_reportADrop_when_thePumpStayedSelfAndThePriceFell() {
         val moves = useCase(
-            followed = listOf(station),
+            subjects = listOf(station),
             fuelType = FuelType.DIESEL,
             samplesByStation = mapOf(
                 station.stationKey to listOf(
@@ -208,7 +211,7 @@ class EvaluateDailyPriceMoveUseCaseTest {
     @Test
     fun should_reportNothing_when_onlyOneReadingExists() {
         val moves = useCase(
-            followed = listOf(station),
+            subjects = listOf(station),
             fuelType = FuelType.DIESEL,
             samplesByStation = mapOf(
                 station.stationKey to listOf(sample(day = 101, amount = 1.629, reportedAtMs = 200_000L)),
@@ -227,7 +230,7 @@ class EvaluateDailyPriceMoveUseCaseTest {
             .copy(fuelType = FuelType.GASOLINE)
 
         val moves = useCase(
-            followed = listOf(station),
+            subjects = listOf(station),
             fuelType = FuelType.DIESEL,
             samplesByStation = mapOf(station.stationKey to listOf(petrol, petrolLater)),
         )

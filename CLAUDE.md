@@ -509,6 +509,17 @@ paga. Por eso las alertas de zona ya eran Plus con el mapa gratis.
   cómo llegar— son free COMPLETO. Cobrarlo vacía el mapa justo para quien no paga, que es el problema
   que F5 y F6 existen para resolver.
 - Vendible encima: **vigilancia** (alertas) y **memoria** (más allá de los 7 días de historial).
+- ⛔ **Gasolineras salen de ese eje, por decisión del user (13-10)**
+  [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001]: ahí el free **sí** recibe avisos, y por notificación, de lo
+  que sube o baja **a su alrededor**. Lo que vende Plus no es el trabajo, es el **SUJETO y la
+  MEMORIA**: una gasolinera que tú nombraste, vigilada esté donde esté —sin pasar por delante—, con
+  tu referencia («menos que donde sueles repostar», frente a la mediana de la zona que ve el free) y
+  su serie de 30 días. ⚠️ Consecuencia asumida: **los dos carriles free de avisos no tienen la misma
+  forma** — el de plazas es in-app y sólo con el mapa delante, el de gasolineras es notificación con
+  la app cerrada. No unificarlos «por coherencia» sin el user.
+  Y el marco **público** cambió con ello (14-10): la web dice **«lo de alrededor es gratis, lo que tú
+  eliges es Plus»**, que describe también el reparto de plazas. «Quién trabaja» sigue decidiendo
+  dónde cae una feature nueva; lo que se lee fuera es lo otro.
 - ⛔ Gating **soft** siempre: la acción dispara el paywall, el botón nunca se esconde.
 
 ## Navegación

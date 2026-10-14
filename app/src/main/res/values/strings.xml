@@ -101,6 +101,7 @@
     <string name="notif_fuel_reference_area">the usual price nearby</string>
     <string name="notif_fuel_move_title_named">%1$s changed its price</string>
     <string name="notif_fuel_move_title">A station you follow changed its price</string>
+    <string name="notif_fuel_move_title_nearby">A station near you changed its price</string>
     <string name="notif_fuel_move_text_down">%1$s cheaper per litre than yesterday</string>
     <string name="notif_fuel_move_text_down_gallon">%1$s cheaper per gallon than yesterday</string>
     <string name="notif_fuel_move_text_up">%1$s dearer per litre than yesterday</string>

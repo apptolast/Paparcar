@@ -809,7 +809,7 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="paywall_reason_zones">Free se queda con dos zonas: con Plus puedes crear más.</string>
     <string name="paywall_reason_stats">Con Plus ves tus cifras en el periodo que elijas.</string>
     <string name="paywall_reason_zone_alerts">Los avisos de plazas libres en tus zonas son parte de Plus.</string>
-    <string name="paywall_reason_fuel_alerts">Los avisos de precio de carburante son parte de Plus.</string>
+    <string name="paywall_reason_fuel_alerts">Vigilar una gasolinera que sigues es parte de Plus.</string>
     <string name="paywall_reason_month_recap">El resumen del mes es parte de Plus.</string>
     <string name="paywall_reason_route_cloud">Guardar tus rutas en tu cuenta es parte de Plus.</string>
     <string name="paywall_plan_monthly">Mensual</string>
@@ -830,7 +830,7 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="settings_notif_zone_alerts">Alertas de zona</string>
     <string name="settings_notif_zone_alerts_desc">Aviso cuando aparezca una plaza libre en tus zonas</string>
     <string name="settings_notif_fuel_alerts">Alertas de precio de carburante</string>
-    <string name="settings_notif_fuel_alerts_desc">Aviso cuando una gasolinera que sigues cambie de precio o haya otra más barata cerca</string>
+    <string name="settings_notif_fuel_alerts_desc">Aviso cuando una gasolinera cerca de ti cambia de precio o hay otra más barata, y cuando se mueve una que sigues</string>
     <string name="settings_notif_month_recap">Resumen del mes</string>
     <string name="settings_notif_month_recap_desc">Un resumen al cerrar el mes: lo que has gastado y lo que has tardado en aparcar</string>
     <string name="settings_sync_routes">Guardar tus rutas en tu cuenta</string>

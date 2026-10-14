@@ -31,9 +31,19 @@ class FakeFuelWatchRepository : FuelWatchRepository {
         followed.value = followed.value.filterNot { it.stationKey == station.stationKey } + station
     }
 
+    /**
+     * ⛔ **Deja de seguir y la serie se QUEDA**, que es lo que hace el real desde
+     * [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001]: un unfollow ya no borra el historial, le encoge la
+     * ventana de 30 días a 3. Aquí antes se borraba entero, y eso modelaba una regla que el almacén
+     * ya no tiene — un fake que la conservara dejaría pasar tests sobre un producto que no existe.
+     *
+     * Y no encoge nada, a propósito: este doble **no modela las ventanas** (su [prune] es un
+     * contador y su [historyFor] ignora `days`), así que fingir un recorte con un reloj inventado
+     * sería sustituir una mentira por otra. La retención se prueba contra Room, donde vive la
+     * consulta: `FuelWatchStoreTest`.
+     */
     override suspend fun unfollow(stationKey: String) {
         followed.value = followed.value.filterNot { it.stationKey == stationKey }
-        samples.removeAll { it.stationKey == stationKey }
     }
 
     override suspend fun recordSamples(samples: List<FuelPriceSample>) {

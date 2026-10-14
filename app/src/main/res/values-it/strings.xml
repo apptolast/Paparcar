@@ -88,6 +88,7 @@
     <string name="notif_fuel_reference_area">il prezzo abituale della zona</string>
     <string name="notif_fuel_move_title_named">%1$s ha cambiato prezzo</string>
     <string name="notif_fuel_move_title">Un distributore che segui ha cambiato prezzo</string>
+    <string name="notif_fuel_move_title_nearby">Un distributore vicino a te ha cambiato prezzo</string>
     <string name="notif_fuel_move_text_down">%1$s in meno al litro rispetto a ieri</string>
     <string name="notif_fuel_move_text_down_gallon">%1$s in meno al gallone rispetto a ieri</string>
     <string name="notif_fuel_move_text_up">%1$s in più al litro rispetto a ieri</string>

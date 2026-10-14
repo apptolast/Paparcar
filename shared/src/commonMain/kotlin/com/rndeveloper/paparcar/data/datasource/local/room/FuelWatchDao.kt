@@ -49,14 +49,20 @@ interface FuelWatchDao {
     suspend fun pruneHistoryBefore(oldestDayKept: Long)
 
     /**
-     * The series of a station nobody follows any more. Swept in one place rather than remembered at
-     * every unfollow site — the referential gap is closed the same way the fuel cache closes its own.
+     * Las lecturas de una gasolinera **que nadie sigue**, pasada su ventana corta.
+     * [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001]
+     *
+     * ⛔ Esto sustituye a `deleteOrphanedHistory`, que borraba **toda** fila sin follow detrás. Esa
+     * consulta era correcta mientras la serie solo existía para las seguidas; desde que el carril
+     * free mide tu alrededor, las filas sin follow son la mayoría y aquel barrido borraba justo lo
+     * que se acababa de medir. Misma subconsulta, un `observedDay` de más: la referencia no se cierra
+     * borrando, se cierra **caducando antes**.
      */
     @Query(
-        "DELETE FROM fuel_price_history WHERE stationKey NOT IN " +
+        "DELETE FROM fuel_price_history WHERE observedDay < :oldestDayKept AND stationKey NOT IN " +
             "(SELECT stationKey FROM followed_fuel_stations)"
     )
-    suspend fun deleteOrphanedHistory()
+    suspend fun pruneUnfollowedHistoryBefore(oldestDayKept: Long)
 
     @Query("DELETE FROM followed_fuel_stations")
     suspend fun deleteAllFollowed()

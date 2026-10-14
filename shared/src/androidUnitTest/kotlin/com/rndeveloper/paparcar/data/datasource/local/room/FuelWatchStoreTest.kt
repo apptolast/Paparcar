@@ -114,22 +114,56 @@ class FuelWatchStoreTest {
         assertEquals(listOf(100L), history.map { it.observedDay })
     }
 
-    /** Unfollowing withdraws the subject; its series must not outlive it. */
+    /**
+     * ⛔ **Dejar de seguir ENCOGE la serie; no la borra.**
+     * [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001]
+     *
+     * Este test afirmaba lo contrario —`deleteOrphanedHistory`, serie vacía— y era correcto mientras
+     * la serie solo existía para seguidas. Desde que el carril free mide las gasolineras de tu
+     * alrededor, esa de la que acabas de quitar la estrella puede seguir estando al lado de tu casa:
+     * borrar «toda fila sin follow detrás» borraría justo lo que se acaba de medir. Lo que el
+     * unfollow retira es la ventana LARGA, y eso se cumple caducando antes, no borrando.
+     */
     @Test
-    fun should_dropTheSeries_when_theStationIsNoLongerFollowed() = runTest {
+    fun should_shrinkTheSeriesToTheShortWindow_when_theStationIsNoLongerFollowed() = runTest {
         val db = buildAppDatabase(context, "fuel-watch-orphans.db")
         val dao = db.fuelWatchDao()
 
         dao.follow(followed)
-        dao.upsertSamples(listOf(sample(day = 100, amount = 1.659, reportedAtMs = 100_000L)))
+        dao.upsertSamples(
+            listOf(
+                sample(day = 90, amount = 1.709, reportedAtMs = 90_000L),
+                sample(day = 100, amount = 1.659, reportedAtMs = 100_000L),
+            ),
+        )
         dao.unfollow(followed.stationKey)
-        dao.deleteOrphanedHistory()
+        // La ventana corta, como la aplica el repositorio al dejar de seguir: hoy es el día 100.
+        dao.pruneUnfollowedHistoryBefore(oldestDayKept = 97)
 
         val history = dao.historyFor("minetur|1234", "DIESEL", sinceDay = 0)
         val stillFollowed = dao.getFollowed()
         db.close()
 
-        assertTrue(history.isEmpty())
+        assertEquals(listOf(100L), history.map { it.observedDay }, "la lectura reciente sigue valiendo")
         assertTrue(stillFollowed.isEmpty())
+    }
+
+    /**
+     * Y mientras SÍ la sigues, la ventana corta no la toca: es lo único que separa su serie de la de
+     * una cualquiera de tu alrededor. [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001]
+     */
+    @Test
+    fun should_keepTheLongWindow_when_theStationIsStillFollowed() = runTest {
+        val db = buildAppDatabase(context, "fuel-watch-two-windows.db")
+        val dao = db.fuelWatchDao()
+
+        dao.follow(followed)
+        dao.upsertSamples(listOf(sample(day = 90, amount = 1.709, reportedAtMs = 90_000L)))
+        dao.pruneUnfollowedHistoryBefore(oldestDayKept = 97)
+
+        val history = dao.historyFor("minetur|1234", "DIESEL", sinceDay = 0)
+        db.close()
+
+        assertEquals(listOf(90L), history.map { it.observedDay })
     }
 }

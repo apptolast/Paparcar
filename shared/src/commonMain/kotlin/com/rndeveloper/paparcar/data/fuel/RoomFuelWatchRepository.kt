@@ -44,10 +44,16 @@ class RoomFuelWatchRepository(
 
     override suspend fun unfollow(stationKey: String) {
         dao.unfollow(stationKey)
-        // ⛔ The series goes with it, and it goes NOW rather than at the next prune: an unfollow is
-        // the user withdrawing a subject, and keeping its price history around would be keeping a
-        // record of a place they just said they do not want watched.
-        dao.deleteOrphanedHistory()
+        // ⛔ **La serie ENCOGE, no desaparece** — de 30 días a 3, y ahora mismo, no en el próximo
+        // barrido. [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001]
+        //
+        // Hasta el 13-10 aquí se borraba entera, con esta razón: un unfollow es el usuario retirando
+        // un sujeto, y guardar su historial sería guardar el registro de un sitio que acaba de decir
+        // que no quiere vigilado. Sigue siendo verdad **y ya no se puede cumplir borrando**: desde
+        // que el carril free mide las gasolineras de tu alrededor, esa de la que acabas de quitar la
+        // estrella puede seguir estando al lado de tu casa, y se medirá igual que sus vecinas. Lo que
+        // el unfollow retira de verdad es la ventana larga, que es lo que la distinguía de ellas.
+        dao.pruneUnfollowedHistoryBefore(sinceDay(FuelWatchRepository.NEARBY_RETENTION_DAYS))
     }
 
     override suspend fun recordSamples(samples: List<FuelPriceSample>) {
@@ -76,8 +82,10 @@ class RoomFuelWatchRepository(
             .map { rows -> rows.mapNotNull { it.toDomain() } }
 
     override suspend fun prune() {
+        // Las dos ventanas, de la larga a la corta: 30 días para las seguidas, 3 para las que solo
+        // se miden porque estabas al lado. [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001]
         dao.pruneHistoryBefore(sinceDay(FuelWatchRepository.RETENTION_DAYS))
-        dao.deleteOrphanedHistory()
+        dao.pruneUnfollowedHistoryBefore(sinceDay(FuelWatchRepository.NEARBY_RETENTION_DAYS))
     }
 
     private fun sinceDay(days: Int): Long = localDayOf(clock()) - days

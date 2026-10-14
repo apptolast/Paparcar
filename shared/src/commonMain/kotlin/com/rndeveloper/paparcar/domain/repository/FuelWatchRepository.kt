@@ -38,7 +38,10 @@ interface FuelWatchRepository {
 
     fun observeHistoryFor(stationKey: String, fuelType: FuelType, days: Int = RETENTION_DAYS): Flow<List<FuelPriceSample>>
 
-    /** Drops readings past the retention and series of stations nobody follows any more. */
+    /**
+     * Drops readings past the retention **of their lane** — las dos ventanas, en una pasada.
+     * [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001]
+     */
     suspend fun prune()
 
     companion object {
@@ -47,5 +50,18 @@ interface FuelWatchRepository {
          * shows; free sees 7, gated above this store exactly like every other history in the app.
          */
         const val RETENTION_DAYS = 30
+
+        /**
+         * Tres días para una gasolinera que **nadie estrelló** — las que se miden solo porque
+         * estabas al lado, y que existen para contestar «ayer costaba menos».
+         * [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001]
+         *
+         * ⛔ Tres y no treinta por dos razones que apuntan al mismo sitio: la ventana larga **es lo
+         * que se vende** (el eje memoria de Plus), y una serie diaria de las gasolineras que te
+         * rodean es, por aproximación, **una traza de dónde has estado**. Guardarla un mes sería
+         * acumular un historial de movimientos para contestar una pregunta sobre ayer. No sale del
+         * móvil, y aun así dura lo mínimo que la pregunta necesita.
+         */
+        const val NEARBY_RETENTION_DAYS = 3
     }
 }

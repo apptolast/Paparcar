@@ -814,7 +814,7 @@ Wenn die Frage nicht mehr erscheint, ändere es unter Einstellungen → Paparcar
     <string name="paywall_reason_zones">Kostenlos bleiben zwei Zonen – mit Plus kannst du weitere erstellen.</string>
     <string name="paywall_reason_stats">Mit Plus siehst du deine Zahlen für jeden Zeitraum.</string>
     <string name="paywall_reason_zone_alerts">Hinweise auf freie Plätze in deinen Zonen sind Teil von Plus.</string>
-    <string name="paywall_reason_fuel_alerts">Preisalarme für Kraftstoff sind Teil von Plus.</string>
+    <string name="paywall_reason_fuel_alerts">Eine Tankstelle, der du folgst, zu überwachen ist Teil von Plus.</string>
     <string name="paywall_reason_month_recap">Der Monatsrückblick ist Teil von Plus.</string>
     <string name="paywall_reason_route_cloud">Routen im Konto zu speichern ist Teil von Plus.</string>
     <string name="paywall_plan_monthly">Monatlich</string>
@@ -835,7 +835,7 @@ Wenn die Frage nicht mehr erscheint, ändere es unter Einstellungen → Paparcar
     <string name="settings_notif_zone_alerts">Zonen-Hinweise</string>
     <string name="settings_notif_zone_alerts_desc">Hinweis, wenn in deinen Zonen ein Platz frei wird</string>
     <string name="settings_notif_fuel_alerts">Preisalarme für Kraftstoff</string>
-    <string name="settings_notif_fuel_alerts_desc">Hinweis, wenn eine Tankstelle, der du folgst, den Preis ändert oder eine günstigere in der Nähe ist</string>
+    <string name="settings_notif_fuel_alerts_desc">Hinweis, wenn eine Tankstelle in deiner Nähe den Preis ändert oder eine günstigere auftaucht, und wenn eine sich bewegt, der du folgst</string>
     <string name="settings_notif_month_recap">Monatsrückblick</string>
     <string name="settings_notif_month_recap_desc">Eine Zusammenfassung zum Monatsende: was du ausgegeben und wie lange du gesucht hast</string>
     <string name="settings_sync_routes">Routen im Konto speichern</string>

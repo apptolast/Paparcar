@@ -496,6 +496,11 @@ class HomeViewModel(
             // [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
             is HomeIntent.ToggleFollowFuelStation -> onToggleFollowFuelStation(intent.stationKey)
 
+            // El toque sobre una frase que nombra un límite. Aquí no se decide nada: la pantalla ya
+            // sabe que es de Plus porque lo lee del slice, y lo que se pide es la explicación.
+            // [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001]
+            is HomeIntent.OpenPaywall -> sendEffect(HomeEffect.NavigateToPaywall(intent.reason))
+
             // Own parking sessions
             is HomeIntent.OpenReleaseDialog,
             is HomeIntent.DismissReleaseDialog,

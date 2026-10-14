@@ -534,15 +534,17 @@ fun SettingsContent(
                                 subtitleColor = settingsSubtitleColor(),
                             )
                             PapDivider()
-                            // [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001] Same shape as
-                            // the zone row above and for the same reason: the watch is the Plus
-                            // half, so a free user flipping it ON meets the paywall rather than a
-                            // switch that was never there. Following a station stays free.
+                            // ⛔ **NO lleva la forma de la fila de zona de arriba, y desde el
+                            // 13-10 es a propósito.** [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001] El
+                            // aviso de lo que sube o baja a tu ALREDEDOR es free, así que este
+                            // interruptor no se lee contra el plan: lo que enciende existe para
+                            // todos, y con Plus además vigila las que sigues. Leerlo como
+                            // `isPlus && …` mostraba OFF un carril que estaba corriendo.
                             PapSwitchRow(
                                 icon = Icons.Rounded.LocalGasStation,
                                 label = stringResource(Res.string.settings_notif_fuel_alerts),
                                 description = stringResource(Res.string.settings_notif_fuel_alerts_desc),
-                                checked = state.isPlus && state.notifyFuelPrices,
+                                checked = state.notifyFuelPrices,
                                 onCheckedChange = { onIntent(SettingsIntent.ToggleFuelAlertsNotif(it)) },
                                 subtitleColor = settingsSubtitleColor(),
                             )

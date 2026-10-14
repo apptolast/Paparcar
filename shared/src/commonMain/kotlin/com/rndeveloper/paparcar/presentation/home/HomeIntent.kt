@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.presentation.home
 
+import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.presentation.home.model.DetectionNotice
 import com.swmansion.kmpmaps.core.MapType
 import com.rndeveloper.paparcar.domain.model.GpsPoint
@@ -83,6 +84,21 @@ sealed class HomeIntent {
      * place the Plus gate is read — putting a second one here would be two gates to keep in step.
      */
     data class ToggleFollowFuelStation(val stationKey: String) : HomeIntent()
+
+    /**
+     * «Esto que acabo de leer es de Plus, enséñame Plus» — el toque sobre una frase que nombra un
+     * límite. [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001]
+     *
+     * ⛔ Existe porque el paywall de carburante se quedó **sin puerta**: su único disparador era el
+     * interruptor de Ajustes, y ese interruptor dejó de ser de pago el 13-10 cuando el aviso de lo
+     * que pasa a tu alrededor pasó a free. Un motivo de paywall que nadie puede abrir es una
+     * promesa que el embudo hace y no sostiene [PAYWALL-A-GATE-THAT-CHARGES-MUST-BE-SOLD-001].
+     *
+     * Así que la puerta se muda a donde el usuario SE ENCUENTRA el límite: la línea bajo la
+     * estrella de una gasolinera, que dice que vigilarla a diario es Plus. Gating soft en su forma
+     * más literal — la estrella sigue funcionando, lo que se ofrece es la explicación.
+     */
+    data class OpenPaywall(val reason: PaywallReason) : HomeIntent()
     data object ExitReportMode : HomeIntent()
     data object ConfirmReportSpot : HomeIntent()
     /** Toggle the size selection for a manual spot report; passing null clears it. */

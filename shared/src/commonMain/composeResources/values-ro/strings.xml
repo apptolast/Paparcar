@@ -827,7 +827,7 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="paywall_reason_zones">Gratuit păstrezi două zone – cu Plus poți crea mai multe.</string>
     <string name="paywall_reason_stats">Cu Plus îți vezi cifrele pentru orice perioadă.</string>
     <string name="paywall_reason_zone_alerts">Alertele de locuri libere în zonele tale fac parte din Plus.</string>
-    <string name="paywall_reason_fuel_alerts">Alertele de preț la carburant fac parte din Plus.</string>
+    <string name="paywall_reason_fuel_alerts">Monitorizarea unei benzinării urmărite face parte din Plus.</string>
     <string name="paywall_reason_month_recap">Rezumatul lunii face parte din Plus.</string>
     <string name="paywall_reason_route_cloud">Păstrarea rutelor în contul tău face parte din Plus.</string>
     <string name="paywall_plan_monthly">Lunar</string>
@@ -848,7 +848,7 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="settings_notif_zone_alerts">Alerte de zonă</string>
     <string name="settings_notif_zone_alerts_desc">Notificare când apare un loc liber în zonele tale</string>
     <string name="settings_notif_fuel_alerts">Alerte de preț la carburant</string>
-    <string name="settings_notif_fuel_alerts_desc">Notificare când o benzinărie urmărită își schimbă prețul sau există una mai ieftină în apropiere</string>
+    <string name="settings_notif_fuel_alerts_desc">Notificare când o benzinărie din apropiere își schimbă prețul sau apare una mai ieftină, și când se schimbă una urmărită</string>
     <string name="settings_notif_month_recap">Rezumatul lunii</string>
     <string name="settings_notif_month_recap_desc">Un rezumat la închiderea lunii: cât ai cheltuit și cât ai căutat</string>
     <string name="settings_sync_routes">Salvează rutele în contul tău</string>

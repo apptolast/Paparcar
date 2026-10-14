@@ -15,9 +15,19 @@ enum class PaywallReason {
     STATS,
     ZONE_ALERTS,
 
-    /** The fuel-price watch — a cheaper pump nearby, and what a followed station did overnight.
-     *  Its own entry and not folded into [ZONE_ALERTS]: the funnel's whole job is telling WHICH
-     *  vigilance someone wanted. [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001] */
+    /**
+     * Watching a station the user FOLLOWS — wherever it sits, with their own reference and its
+     * 30-day series. [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001]
+     *
+     * ⛔ **It no longer means «fuel price alerts»**, and the difference is the whole point: since
+     * 13-10 a free user IS told when a pump around them moves, or when a clearly cheaper one is
+     * nearby. What Plus sells here is the SUBJECT and the MEMORY, so this reason names that and
+     * nothing wider — a paywall that claims something the user already has teaches them to
+     * distrust the next card. [PAYWALL-A-GATE-THAT-CHARGES-MUST-BE-SOLD-001]
+     *
+     * Its own entry and not folded into [ZONE_ALERTS]: the funnel's whole job is telling WHICH
+     * vigilance someone wanted. [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
+     */
     FUEL_ALERTS,
 
     /** The month recap — the app's only unprompted word. Its own entry and not folded into

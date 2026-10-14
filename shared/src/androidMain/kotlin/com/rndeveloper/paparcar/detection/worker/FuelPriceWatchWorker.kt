@@ -9,7 +9,9 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.rndeveloper.paparcar.domain.model.Money
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
+import com.rndeveloper.paparcar.domain.notification.FuelMoveLane
 import com.rndeveloper.paparcar.domain.usecase.fuel.CheaperReference
+import com.rndeveloper.paparcar.domain.usecase.fuel.FuelPriceMove
 import com.rndeveloper.paparcar.domain.usecase.fuel.FuelWatchOutcome
 import com.rndeveloper.paparcar.domain.usecase.fuel.PriceMoveDirection
 import com.rndeveloper.paparcar.domain.usecase.fuel.RunFuelPriceWatchUseCase
@@ -56,25 +58,29 @@ class FuelPriceWatchWorker(
         }
 
         is FuelWatchOutcome.Looked -> {
-            notifyMoves(outcome)
+            // Un aviso por carril, y los dos pueden salir el mismo día: hablan de cosas distintas.
+            // [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001]
+            notifyMoves(outcome.followedMoves, FuelMoveLane.FOLLOWED)
+            notifyMoves(outcome.nearbyMoves, FuelMoveLane.NEARBY)
             notifyCheaper(outcome)
             Result.success()
         }
     }
 
-    private fun notifyMoves(outcome: FuelWatchOutcome.Looked) {
+    private fun notifyMoves(moves: List<FuelPriceMove>, lane: FuelMoveLane) {
         // The biggest mover leads; the rest are counted, never stacked into their own cards.
-        val lead = outcome.moves.maxByOrNull { abs(it.deltaPerUnit) } ?: return
+        val lead = moves.maxByOrNull { abs(it.deltaPerUnit) } ?: return
         notificationPort.showFuelPriceMove(
             stationName = lead.station.name,
             deltaLabel = Money(abs(lead.deltaPerUnit), lead.current.perUnit.currency).pumpPriceLabel(),
             wentUp = lead.direction == PriceMoveDirection.UP,
-            otherMovesCount = outcome.moves.size - 1,
+            otherMovesCount = moves.size - 1,
             latitude = lead.station.latitude,
             longitude = lead.station.longitude,
             // La unidad la dice la MONEDA del precio, no la región del móvil: la frase tiene que
             // decir lo mismo que la cifra. [FUEL-A-PRICE-IS-QUOTED-WHERE-IT-IS-SOLD-001]
             quotesPerGallon = pumpGallonForCurrency(lead.current.perUnit.currency) != null,
+            lane = lane,
         )
     }
 

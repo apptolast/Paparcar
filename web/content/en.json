@@ -188,29 +188,30 @@
   },
   "plus": {
     "eyebrow": "Paparcar Plus",
-    "title": "Looking is free. The app watching for you is Plus.",
-    "lead": "Seeing spots, car parks and petrol stations — with their prices, their rates and how to get there — is free and complete, and it will stay that way. Plus is for when you want the app to work while you are not looking, and to remember beyond the last week.",
+    "title": "What is around you is free. What you choose is Plus.",
+    "lead": "Seeing spots, car parks and petrol stations — with their prices, their rates and how to get there — is free and complete, and it will stay that way. So is being told what moves around you. Plus is for watching what YOU chose — your zones, the station you follow — wherever it is, and for remembering beyond the last week.",
     "columns": [
       {
         "name": "Free",
-        "tagline": "You ask, the app answers",
+        "tagline": "Here and now, in full",
         "items": [
           "Automatic parking detection",
           "The full map: spots, car parks and petrol stations",
           "Report a free spot you come across",
+          "An alert when a station near you changes its price, or a cheaper one turns up",
           "History and stats for the last {{historyDays}} days",
           "{{freeVehicles}} car and {{freeZones}} zones"
         ]
       },
       {
         "name": "Plus",
-        "tagline": "The app tells you, and remembers for you",
+        "tagline": "Watches what you choose, and remembers for you",
         "featured": true,
         "items": [
           "History and stats for any period",
           "Unlimited cars and zones",
           "An alert when a spot frees up in your zones",
-          "An alert when a station you follow drops its price",
+          "An alert when a station you follow changes its price, wherever it is",
           "A month recap: what you spent and how long you spent parking",
           "Your routes kept in your account, not only on this phone",
           "Share a car with up to four people"

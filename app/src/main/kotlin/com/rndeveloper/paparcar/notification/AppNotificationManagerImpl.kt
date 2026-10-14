@@ -15,6 +15,7 @@ import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
+import com.rndeveloper.paparcar.domain.notification.FuelMoveLane
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 
 class AppNotificationManagerImpl(
@@ -255,11 +256,21 @@ class AppNotificationManagerImpl(
         latitude: Double,
         longitude: Double,
         quotesPerGallon: Boolean,
+        lane: FuelMoveLane,
     ) {
         if (!appPreferences.notifyFuelPrices) return
+        // ⛔ El nombre sirve a los dos carriles — «Repsol Gran Vía ha cambiado de precio» es verdad
+        // la sigas o no—, y lo que NO se comparte es la frase de cuando no hay nombre: ahí hay que
+        // decir de quién se habla, y llamar «una que sigues» a una de tu alrededor sería regalar el
+        // eje de Plus en una línea. [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001]
         val title = stationName
             ?.let { context.getString(R.string.notif_fuel_move_title_named, it) }
-            ?: context.getString(R.string.notif_fuel_move_title)
+            ?: context.getString(
+                when (lane) {
+                    FuelMoveLane.FOLLOWED -> R.string.notif_fuel_move_title
+                    FuelMoveLane.NEARBY -> R.string.notif_fuel_move_title_nearby
+                },
+            )
         // ⛔ Four whole sentences, not a direction word glued onto a stem: «cheaper/dearer» inflects
         // with what follows it in half the nine locales, and a composed string is where that breaks
         // silently. The count is a separate variant for the same reason.
@@ -295,7 +306,15 @@ class AppNotificationManagerImpl(
             .setContentIntent(buildFocusIntent(RC_FUEL_PRICE_MOVE, latitude, longitude))
             .setAutoCancel(true)
             .build()
-        notificationManager.notify(AppNotificationManager.FUEL_PRICE_MOVE_NOTIFICATION_ID, notification)
+        // Una tarjeta por carril: los dos pueden tener algo que decir el mismo día.
+        // [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001]
+        notificationManager.notify(
+            when (lane) {
+                FuelMoveLane.FOLLOWED -> AppNotificationManager.FUEL_PRICE_MOVE_NOTIFICATION_ID
+                FuelMoveLane.NEARBY -> AppNotificationManager.NEARBY_FUEL_MOVE_NOTIFICATION_ID
+            },
+            notification,
+        )
     }
 
     /**

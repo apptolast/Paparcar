@@ -188,29 +188,30 @@
   },
   "plus": {
     "eyebrow": "Paparcar Plus",
-    "title": "Mirar es gratis. Que la app vigile por ti, es Plus.",
-    "lead": "Ver plazas, parkings y gasolineras —con sus precios, sus tarifas y cómo llegar— es gratis y completo, y va a seguir siéndolo. Plus es para cuando quieres que la app trabaje mientras tú no estás mirando, y que recuerde más allá de la última semana.",
+    "title": "Lo de alrededor es gratis. Lo que tú eliges, Plus.",
+    "lead": "Ver plazas, parkings y gasolineras —con sus precios, sus tarifas y cómo llegar— es gratis y completo, y va a seguir siéndolo. Y lo que se mueve a tu alrededor te lo cuenta la app sin pagar nada. Plus es para que vigile lo que TÚ has elegido —tus zonas, la gasolinera que sigues— esté donde esté, y para que recuerde más allá de la última semana.",
     "columns": [
       {
         "name": "Gratis",
-        "tagline": "Tú preguntas, la app responde",
+        "tagline": "Lo de aquí y ahora, completo",
         "items": [
           "Detección automática de aparcamiento",
           "El mapa completo: plazas, parkings y gasolineras",
           "Avisar de una plaza libre que veas",
+          "Aviso cuando una gasolinera cerca de ti cambia de precio, o hay otra más barata",
           "Historial y estadísticas de los últimos {{historyDays}} días",
           "{{freeVehicles}} coche y {{freeZones}} zonas"
         ]
       },
       {
         "name": "Plus",
-        "tagline": "La app te avisa a ti, y recuerda por ti",
+        "tagline": "Vigila lo que eliges, y recuerda por ti",
         "featured": true,
         "items": [
           "Historial y estadísticas de cualquier periodo",
           "Coches y zonas sin límite",
           "Aviso cuando aparece una plaza libre en tus zonas",
-          "Aviso cuando baja el precio de una gasolinera que sigues",
+          "Aviso cuando cambia el precio de una gasolinera que sigues, esté donde esté",
           "Resumen del mes: lo que gastaste y lo que tardaste en aparcar",
           "Tus rutas guardadas en tu cuenta, no solo en este móvil",
           "Compartir un coche con hasta cuatro personas"

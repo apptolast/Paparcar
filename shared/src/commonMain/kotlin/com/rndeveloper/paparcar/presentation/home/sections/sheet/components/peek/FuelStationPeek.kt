@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.presentation.home.sections.sheet.components.peek
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.domain.fuel.FuelAvailability
 import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
@@ -39,6 +41,7 @@ import com.rndeveloper.paparcar.presentation.util.fuelTypeLabel
 import com.rndeveloper.paparcar.presentation.util.relativeTimeText
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
+import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.PapGap
 import org.jetbrains.compose.resources.stringResource
@@ -273,12 +276,33 @@ internal fun FuelStationPeek(
                         },
                     ),
                     style = PaparcarType.current.caption,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    // ⛔ Sin Plus la frase **es la puerta del paywall**, así que se viste de enlace:
+                    // verde de acción y pulsable. [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001]
+                    // No es adorno — es la ÚNICA puerta que le queda a `PaywallReason.FUEL_ALERTS`
+                    // desde que el interruptor de Ajustes dejó de ser de pago, y un motivo que
+                    // nadie puede abrir es una promesa que el embudo no sostiene
+                    // [PAYWALL-A-GATE-THAT-CHARGES-MUST-BE-SOLD-001]. Con Plus la misma línea es
+                    // solo lo que va a pasar, y entonces no se pulsa ni se tiñe.
+                    color = if (isPlus) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        PapColor.actionText
+                    },
                     // Centrada bajo el botón que explica, que es ancho completo y con su etiqueta
                     // centrada: a la izquierda se leería como una nota de la hoja, no como la
                     // consecuencia de ese gesto.
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(
+                            if (isPlus) {
+                                Modifier
+                            } else {
+                                Modifier.clickable {
+                                    onIntent(HomeIntent.OpenPaywall(PaywallReason.FUEL_ALERTS))
+                                }
+                            },
+                        ),
                 )
             }
         },

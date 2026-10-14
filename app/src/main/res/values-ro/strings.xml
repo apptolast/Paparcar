@@ -88,6 +88,7 @@
     <string name="notif_fuel_reference_area">prețul obișnuit din zonă</string>
     <string name="notif_fuel_move_title_named">%1$s și-a schimbat prețul</string>
     <string name="notif_fuel_move_title">O benzinărie pe care o urmărești și-a schimbat prețul</string>
+    <string name="notif_fuel_move_title_nearby">O benzinărie din apropiere și-a schimbat prețul</string>
     <string name="notif_fuel_move_text_down">%1$s mai ieftin pe litru decât ieri</string>
     <string name="notif_fuel_move_text_down_gallon">%1$s mai ieftin pe galon decât ieri</string>
     <string name="notif_fuel_move_text_up">%1$s mai scump pe litru decât ieri</string>
