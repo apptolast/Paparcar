@@ -909,11 +909,53 @@ se vuelve a abrir **con el coste escrito**, no por comodidad.
 `referrer=instagram` en GA4), no te lo da el panel de anuncios. Es una división, pero hay que
 acordarse de hacerla.
 
-### 7.2 Lo que ya existe y hay que mirar (y nadie ha mirado)
+### 7.2 Dónde se ve, cuánto tarda, y cómo se distingue «no funciona» de «no procesado»
 
-- **Play Console → Adquisición de usuarios**: visitas a la ficha y conversión por `utm_source`.
-  Es gratis y lleva meses acumulando.
-- **GA4 / Firebase**: `first_open` con *First user source/medium*, y después los eventos propios.
+⛔ **Antes de mirar nada: un CLIC no genera el dato.** El install referrer sólo lo entrega Play en una
+**instalación nueva**. Si la app ya está en ese móvil, pulsar el enlace sólo abre la ficha: no hay
+`first_open`, no hay referrer, y GA4 no enseñará nada — **no porque esté roto, sino porque no había
+nada que atribuir**. Ésta es la confusión que hace dar por fallido un montaje que funciona.
+
+**La escalera de diagnóstico.** Cada peldaño responde a una pregunta distinta y tarda lo suyo; se
+suben en orden y **no se concluye nada saltándose uno**:
+
+| # | Dónde se mira | Cuánto tarda | Si está | Si falta |
+|---|---|---|---|---|
+| 1 | El `Location` del redirect, leído de la URL viva | inmediato | el clic sale etiquetado | el servidor está mal → es de este repo (§7.1) |
+| 2 | **DebugView** de Firebase (o `logcat -s FA FA-SVC`): el evento `first_open` | **segundos** | la app arrancó por primera vez de verdad | no hubo instalación nueva, o falta el flag de debug |
+| 3 | **Los parámetros de campaña de ese `first_open`** | **segundos** | ✅ **ésta es LA prueba: el referrer llegó** | Play no lo entregó → comprobar que el clic fue el del enlace etiquetado |
+| 4 | **GA4 → Adquisición de usuarios**, dimensión *First user source / medium* = `instagram / social` | **hasta 24-48 h** | consolidado en informes | **sigue procesando: no concluir** |
+| 5 | **Play Console → Adquisición de usuarios**, desglose por UTM | **~2 días** | visitas a la ficha e instalaciones por campaña | idem |
+
+**La prueba controlada, que es lo único que cierra la duda** (10 minutos, en el móvil de pruebas —
+⛔ **no en el de producción**, que pierdes el historial de detección):
+
+```bash
+# 1 · desinstalar, para que la siguiente instalación sea realmente la primera
+adb uninstall com.rndeveloper.paparcar
+# 2 · encender DebugView y los logs de Analytics
+adb shell setprop debug.firebase.analytics.app com.rndeveloper.paparcar
+adb shell setprop log.tag.FA VERBOSE
+adb shell setprop log.tag.FA-SVC VERBOSE
+# 3 · pulsar paparcar.com/descargar EN EL MÓVIL, instalar desde Play y abrir
+# 4 · leer el first_open y sus parámetros de campaña
+adb logcat -v time -s FA FA-SVC
+```
+
+Un reinstalar crea un **app instance id nuevo**, así que las dimensiones de «primer usuario» se
+vuelven a calcular — por eso la prueba vale aunque sea el mismo móvil y la misma cuenta.
+
+⚠️ **Y lo que NO se puede hacer desde esta conversación**: leer GA4 o Play Console. El MCP de Firebase
+trae Firestore, Auth, Crashlytics, Remote Config, Messaging, Functions y Hosting — **Analytics no
+está**, y Play Console no tiene acceso. Lo de los peldaños 1-3 sí lo puedo verificar yo (la URL viva
+y el `logcat` con el móvil conectado); los peldaños 4-5 los miras tú.
+🔵 **Arreglo sistémico, si queremos que deje de depender de eso**: activar el **export de GA4 a
+BigQuery** (tiene nivel gratuito). Con eso la pregunta «¿cuántos activos ha traído Instagram?» pasa a
+ser una consulta en vez de una captura de pantalla, y es contestable desde aquí.
+
+**Lo demás que ya existe y nadie ha mirado:**
+
+- **Play Console → Adquisición de usuarios**: lleva meses acumulando, y es gratis.
 - **Firestore**: `users/{uid}/parkingHistory` lleva `address.city` por sesión y `spots` lleva
   coordenadas → **dónde están ya los usuarios** (§4.2.1) y cuántas plazas publica la comunidad.
   *(⚠️ El MCP de Firebase falla con `read_time cannot be in the future` — desfase de reloj del
