@@ -222,7 +222,7 @@ def prepare_social() -> None:
     card.paste(logo, (80, 116 - logo.height // 2), logo)
 
     d.text((80, 232), "¿Dónde aparcaste?", font=_font(62, 800), fill=ON_DARK)
-    d.text((80, 308), "Paparcar lo recuerda", font=_font(62, 800), fill=NEON)
+    d.text((80, 308), "paparcar lo recuerda", font=_font(62, 800), fill=NEON)
     d.text((80, 384), "por ti.", font=_font(62, 800), fill=NEON)
     d.text(
         (80, 486),

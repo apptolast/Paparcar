@@ -3,22 +3,22 @@ FICHA DE PLAY STORE — ro
 GENERADO por tools/make_paste.py desde LISTING-v1.4.0.md — no editar a mano.
 
 --- 1. NOMBRE DE LA APLICACION (24/30) ---
-Paparcar: unde ai parcat
+paparcar: unde ai parcat
 
 --- 2. DESCRIPCION BREVE (67/80) ---
-Unde ai parcat? Paparcar ține minte. Cu prețuri și parcări publice.
+Unde ai parcat? paparcar ține minte. Cu prețuri și parcări publice.
 
 --- 3. DESCRIPCION COMPLETA (3879/4000) ---
 Unde ai parcat?
 
-Paparcar ține minte pentru tine.
+paparcar ține minte pentru tine.
 
-Parchează, coboară și vezi-ți de ziua ta. Paparcar salvează automat unde ai lăsat mașina: fără să deschizi aplicația, fără indicator și fără să scrii o adresă. Când te întorci, știi unde este și de cât timp.
+Parchează, coboară și vezi-ți de ziua ta. paparcar salvează automat unde ai lăsat mașina: fără să deschizi aplicația, fără indicator și fără să scrii o adresă. Când te întorci, știi unde este și de cât timp.
 
-Când pleci, locul pe care îl eliberezi poate fi publicat pentru șoferii din apropiere. Iar tu vezi locurile pe care alții tocmai le-au eliberat. Cu cât mai mulți șoferi folosesc Paparcar în orașul tău, cu atât mai multe locuri apar.
+Când pleci, locul pe care îl eliberezi poate fi publicat pentru șoferii din apropiere. Iar tu vezi locurile pe care alții tocmai le-au eliberat. Cu cât mai mulți șoferi folosesc paparcar în orașul tău, cu atât mai multe locuri apar.
 
 CUM FUNCȚIONEAZĂ
-1. Parchezi. Paparcar detectează și salvează locul. Fără Bluetooth, prima parcare o marchezi tu.
+1. Parchezi. paparcar detectează și salvează locul. Fără Bluetooth, prima parcare o marchezi tu.
 2. Pleci. Aplicația detectează.
 3. Locul tău este publicat pentru șoferii din apropiere, când este cazul.
 
@@ -33,7 +33,7 @@ LOCURI LIBERE ÎN TIMP REAL
 • Locurile pe care alții tocmai le-au eliberat, pe hartă.
 • Când s-a eliberat fiecare: acum două minute nu e acum douăzeci.
 • Câți șoferi se îndreaptă deja într-acolo.
-• Dacă mașina ta încape: Paparcar compară spațiul cu a ta.
+• Dacă mașina ta încape: paparcar compară spațiul cu a ta.
 • Vezi un loc liber când treci pe lângă? Raportează-l din două atingeri.
 
 BENZINĂRII ȘI PARCĂRI PUBLICE, PE ACEEAȘI HARTĂ
@@ -55,9 +55,9 @@ O MAȘINĂ, MAI MULȚI ȘOFERI
 • Traseele tale se partajează doar dacă spui tu.
 
 DETECTARE AUTOMATĂ
-Dacă mașina ta se conectează la telefon prin Bluetooth, deconectarea ajută la detectarea sfârșitului parcării. Fără Bluetooth, Paparcar folosește mișcarea și locația.
+Dacă mașina ta se conectează la telefon prin Bluetooth, deconectarea ajută la detectarea sfârșitului parcării. Fără Bluetooth, paparcar folosește mișcarea și locația.
 
-Paparcar nu vrea să ghicească. Când nu este sigur, te întreabă înainte de a publica un loc.
+paparcar nu vrea să ghicească. Când nu este sigur, te întreabă înainte de a publica un loc.
 
 PAPARCAR PLUS
 Gratuit, tu întrebi și aplicația răspunde. Cu Plus, aplicația veghează cât timp tu nu te uiți:
@@ -68,7 +68,7 @@ Gratuit, tu întrebi și aplicația răspunde. Cu Plus, aplicația veghează câ
 • Crearea unei mașini partajate. Să intri în una este întotdeauna gratuit.
 
 CONFIDENȚIALITATE
-• Zone private: marchează locuri precum casa ta, iar Paparcar nu va publica un loc acolo.
+• Zone private: marchează locuri precum casa ta, iar paparcar nu va publica un loc acolo.
 • Numărul tău de înmatriculare nu îți părăsește niciodată telefonul.
 • Marca și modelul apar pe locul pe care îl eliberezi doar dacă activezi asta.
 • Locația ta nu este niciodată vândută sau folosită pentru publicitate.
@@ -77,9 +77,9 @@ CONFIDENȚIALITATE
 
 LOCAȚIA ÎN FUNDAL
 
-Paparcar folosește date de locație chiar și atunci când aplicația este închisă sau nu este folosită, pentru a detecta unde parchezi și pentru a elibera locul tău când pleci.
+paparcar folosește date de locație chiar și atunci când aplicația este închisă sau nu este folosită, pentru a detecta unde parchezi și pentru a elibera locul tău când pleci.
 
-Detectarea automată are nevoie de această permisiune. Fără ea, Paparcar funcționează în continuare, dar va trebui să marchezi și să eliberezi parcările manual.
+Detectarea automată are nevoie de această permisiune. Fără ea, paparcar funcționează în continuare, dar va trebui să marchezi și să eliberezi parcările manual.
 
 Politica de confidențialitate:
 https://paparcar.com/privacy-policy

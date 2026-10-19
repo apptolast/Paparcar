@@ -205,7 +205,12 @@ class BrandSurfaceGuardrailTest {
             Triple("web/lib/layout.mjs", "brand__name", "the site header and footer"),
             Triple("web/tools/restyle-legal.mjs", "brand__name", "the two legal pages"),
             Triple("web/assets/css/site.css", ".brand__name {", "the stylesheet"),
-            Triple(PREPARE_ASSETS, "\"Paparcar\", font=", "the social card"),
+            // ⛔ El cebo NO es el nombre: es la FIRMA de la línea que lo dibujaba,
+            // `font=_font(46, 800)` — el único tamaño de esa tarjeta que no es un titular.
+            // Buscar la palabra dejó de valer en cuanto la marca pasó a minúscula
+            // [BRAND-THE-NAME-IS-WRITTEN-IN-LOWERCASE-001]: un guard que se cae cuando cambia
+            // la ortografía de lo que vigila no vigila nada.
+            Triple(PREPARE_ASSETS, "font=_font(46", "the social card"),
             Triple(FEATURE_GRAPHIC, "class=\"word\"", "the Play banner"),
             Triple(AUTH_SLOTS, "PaparcarLogo(", "the auth header"),
         )

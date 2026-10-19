@@ -3,22 +3,22 @@ FICHA DE PLAY STORE — pt-PT
 GENERADO por tools/make_paste.py desde LISTING-v1.4.0.md — no editar a mano.
 
 --- 1. NOMBRE DE LA APLICACION (27/30) ---
-Paparcar: onde estacionaste
+paparcar: onde estacionaste
 
 --- 2. DESCRIPCION BREVE (62/80) ---
-Onde estacionaste? O Paparcar lembra-se. Com preços e parques.
+Onde estacionaste? O paparcar lembra-se. Com preços e parques.
 
 --- 3. DESCRIPCION COMPLETA (3905/4000) ---
 Onde estacionaste?
 
-O Paparcar lembra-se por ti.
+O paparcar lembra-se por ti.
 
-Estaciona, sai do carro e segue com o teu dia. O Paparcar guarda onde deixaste o carro automaticamente: sem abrir a aplicação, sem pino e sem escrever uma morada. Quando voltares, sabes onde está e há quanto tempo ali está.
+Estaciona, sai do carro e segue com o teu dia. O paparcar guarda onde deixaste o carro automaticamente: sem abrir a aplicação, sem pino e sem escrever uma morada. Quando voltares, sabes onde está e há quanto tempo ali está.
 
-Quando sais, o lugar que deixas pode ser publicado para quem conduz ali perto. E tu vês os lugares que outros acabaram de libertar. Quantos mais condutores usarem o Paparcar na tua cidade, mais lugares aparecem no mapa.
+Quando sais, o lugar que deixas pode ser publicado para quem conduz ali perto. E tu vês os lugares que outros acabaram de libertar. Quantos mais condutores usarem o paparcar na tua cidade, mais lugares aparecem no mapa.
 
 COMO FUNCIONA
-1. Estacionas. O Paparcar deteta e guarda o sítio. Sem Bluetooth, marcas tu o primeiro estacionamento.
+1. Estacionas. O paparcar deteta e guarda o sítio. Sem Bluetooth, marcas tu o primeiro estacionamento.
 2. Sais. A aplicação deteta.
 3. O teu lugar é publicado para quem conduz ali perto, quando faz sentido.
 
@@ -33,7 +33,7 @@ LUGARES EM TEMPO REAL
 • Os lugares que outros condutores acabaram de libertar, no mapa.
 • Quando cada um ficou livre: há dois minutos não é há vinte.
 • Quantos condutores já vão a caminho.
-• Se o teu carro cabe: o Paparcar compara o espaço com o teu.
+• Se o teu carro cabe: o paparcar compara o espaço com o teu.
 • Vês um lugar livre ao passar? Avisa em dois toques.
 
 BOMBAS E PARQUES, NO MESMO MAPA
@@ -55,9 +55,9 @@ UM CARRO, VÁRIOS CONDUTORES
 • Os teus percursos só são partilhados se tu quiseres.
 
 DETEÇÃO AUTOMÁTICA
-Se o teu carro se liga ao telemóvel por Bluetooth, a desconexão ajuda a detetar que acabaste de estacionar. Se não tem Bluetooth, o Paparcar usa o movimento e a localização.
+Se o teu carro se liga ao telemóvel por Bluetooth, a desconexão ajuda a detetar que acabaste de estacionar. Se não tem Bluetooth, o paparcar usa o movimento e a localização.
 
-O Paparcar não quer adivinhar. Quando não tem a certeza do que aconteceu, pergunta-te antes de publicar um lugar.
+O paparcar não quer adivinhar. Quando não tem a certeza do que aconteceu, pergunta-te antes de publicar um lugar.
 
 PAPARCAR PLUS
 Grátis, tu perguntas e a aplicação responde. Com Plus, a aplicação vigia enquanto não estás a olhar:
@@ -68,7 +68,7 @@ Grátis, tu perguntas e a aplicação responde. Com Plus, a aplicação vigia en
 • Criar um carro partilhado. Entrar num é sempre grátis.
 
 PRIVACIDADE
-• Zonas privadas: marca sítios como a tua casa e o Paparcar não publicará um lugar ali quando saíres.
+• Zonas privadas: marca sítios como a tua casa e o paparcar não publicará um lugar ali quando saíres.
 • A tua matrícula nunca sai do teu telemóvel.
 • A marca e o modelo do teu carro só aparecem no lugar que libertas se tu o ativares.
 • A tua localização nunca é vendida nem usada para publicidade.
@@ -77,9 +77,9 @@ PRIVACIDADE
 
 LOCALIZAÇÃO EM SEGUNDO PLANO
 
-O Paparcar usa dados de localização mesmo quando a aplicação está fechada ou não está a ser usada, para detetar onde estacionas e para libertar o teu lugar quando sais.
+O paparcar usa dados de localização mesmo quando a aplicação está fechada ou não está a ser usada, para detetar onde estacionas e para libertar o teu lugar quando sais.
 
-A deteção automática precisa desta permissão. Sem ela, o Paparcar continua a funcionar, mas terás de marcar e libertar os teus estacionamentos à mão.
+A deteção automática precisa desta permissão. Sem ela, o paparcar continua a funcionar, mas terás de marcar e libertar os teus estacionamentos à mão.
 
 Política de privacidade:
 https://paparcar.com/privacy-policy

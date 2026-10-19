@@ -76,7 +76,7 @@ ${links}
 <meta name="color-scheme" content="dark">
 ${iconLinks()}
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Paparcar">
+<meta property="og:site_name" content="paparcar">
 <meta property="og:locale" content="${t.locale}">
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(description)}">

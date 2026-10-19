@@ -30,15 +30,15 @@
     <string name="notif_action_cancel_save">Nee, annuleren</string>
 
     <!-- Melding: toestemming ingetrokken terwijl de service actief was -->
-    <string name="notif_permission_revoked_title">Paparcar heeft toestemmingen nodig</string>
+    <string name="notif_permission_revoked_title">paparcar heeft toestemmingen nodig</string>
     <string name="notif_permission_revoked_text">Locatietoestemming ingetrokken — tik om te herstellen</string>
 
     <!-- Melding: fout bij het opslaan van de parkeerplaats -->
     <string name="notif_confirmation_failed_title">Parkeren niet opgeslagen</string>
-    <string name="notif_confirmation_failed_text">Parkeerplaats kon niet worden opgeslagen. Open Paparcar om het opnieuw te proberen.</string>
+    <string name="notif_confirmation_failed_text">Parkeerplaats kon niet worden opgeslagen. Open paparcar om het opnieuw te proberen.</string>
 
     <!-- Melding: debug (alleen ontwikkelingsbuilds) -->
-    <string name="notif_debug_title">Paparcar Debug</string>
+    <string name="notif_debug_title">paparcar Debug</string>
 
     <!-- Namen en beschrijvingen van meldingskanalen -->
     <string name="channel_detection_name">Parkeerplaatsdetectie</string>
@@ -57,7 +57,7 @@
     <string name="notif_still_parked_text">Je lijkt weg te zijn, maar deze parkeerplaats staat nog open. Laat weten of je al vertrokken bent, of markeer waar de auto nu staat.</string>
     <!-- DET-TOGGLE-002: cold-start nudge -->
     <string name="notif_first_park_nudge_title">Parkeer één keer om detectie te starten</string>
-    <string name="notif_first_park_nudge_text">Parkeer één keer met Paparcar; daarna geven we je plek automatisch vrij bij elk vertrek.</string>
+    <string name="notif_first_park_nudge_text">Parkeer één keer met paparcar; daarna geven we je plek automatisch vrij bij elk vertrek.</string>
     <string name="notif_first_park_nudge_action">Parkeerplaats markeren</string>
     <!-- DET-AR-FIRST-001 -->
     <string name="notif_mark_parking_title">Waar heb je je auto achtergelaten?</string>
@@ -66,11 +66,11 @@
     <string name="notif_action_ive_left">Ik ben weg</string>
     <string name="notif_action_mark_parking">Parkeerplaats markeren</string>
     <string name="notif_car_link_title">Was deze rit in %1$s?</string>
-    <string name="notif_car_link_text">Als het jouw auto is, koppel hem en Paparcar markeert je parkeerplek voortaan vanzelf.</string>
+    <string name="notif_car_link_text">Als het jouw auto is, koppel hem en paparcar markeert je parkeerplek voortaan vanzelf.</string>
     <string name="notif_car_link_device_fallback">deze auto</string>
     <string name="notif_action_link_yes">Ja, het is mijn auto</string>
     <string name="notif_action_link_no">Nee</string>
-    <string name="notif_background_kill_title">Je telefoon blokkeert Paparcar</string>
+    <string name="notif_background_kill_title">Je telefoon blokkeert paparcar</string>
     <string name="notif_background_kill_text">Het systeem heeft de parkeerdetectie urenlang op de achtergrond gepauzeerd. Tik om de app te openen en dit op te lossen in Instellingen → Detectie.</string>
     <string name="notif_sentry_title">Geparkeerd · ik let op je vertrek</string>
     <string name="notif_sentry_text">Als je wegrijdt, geven we je plek vrij voor anderen. Stil, minimaal batterijgebruik. Uit te zetten in Instellingen.</string>

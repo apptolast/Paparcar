@@ -35,9 +35,9 @@ const PAGES = [
   {
     file: 'privacy-policy.html',
     path: '/privacy-policy',
-    title: 'Privacy Policy · Política de Privacidad — Paparcar',
+    title: 'Privacy Policy · Política de Privacidad — paparcar',
     description:
-      'How Paparcar handles your data: what it collects, why it needs background location, who it is shared with and how to delete your account. English and Spanish.',
+      'How paparcar handles your data: what it collects, why it needs background location, who it is shared with and how to delete your account. English and Spanish.',
     h1: 'Privacy Policy',
     h1es: 'Política de Privacidad',
     kicker: 'Legal',
@@ -45,9 +45,9 @@ const PAGES = [
   {
     file: 'delete-account.html',
     path: '/delete-account',
-    title: 'Delete your account · Eliminar tu cuenta — Paparcar',
+    title: 'Delete your account · Eliminar tu cuenta — paparcar',
     description:
-      'How to delete your Paparcar account and its data, with the app installed or without it. English and Spanish.',
+      'How to delete your paparcar account and its data, with the app installed or without it. English and Spanish.',
     h1: 'Delete your account',
     h1es: 'Eliminar tu cuenta',
     kicker: 'Legal',
@@ -70,7 +70,7 @@ function head(page) {
 <meta name="color-scheme" content="dark">
 ${iconLinks()}
 <meta property="og:type" content="article">
-<meta property="og:site_name" content="Paparcar">
+<meta property="og:site_name" content="paparcar">
 <meta property="og:title" content="${page.title}">
 <meta property="og:description" content="${page.description}">
 <meta property="og:url" content="${ORIGIN}${page.path}">
@@ -88,7 +88,7 @@ function shell(page) {
 <a class="skip-link" href="#doc">Skip to content · Saltar al contenido</a>
 <header class="site-header">
   <div class="shell site-header__inner">
-    <a class="brand" href="/" aria-label="Paparcar">
+    <a class="brand" href="/" aria-label="paparcar">
       ${logoLockup({ width: 136 })}
     </a>
     <div class="site-header__actions">
@@ -106,7 +106,7 @@ ${END}`;
 function foot(page) {
   return `${FOOT_START}
 <footer>
-  <p>© 2026 Paparcar ·
+  <p>© 2026 paparcar ·
     <a href="/">paparcar.com</a> ·
     <a href="${page.file === 'privacy-policy.html' ? '/delete-account' : '/privacy-policy'}">${
       page.file === 'privacy-policy.html' ? 'Delete your account' : 'Privacy Policy'

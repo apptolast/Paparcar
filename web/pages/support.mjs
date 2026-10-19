@@ -5,7 +5,7 @@ import { SUPPORT_EMAIL, routes, ORIGIN } from '../lib/config.mjs';
 
 export default function support({ t, lang, base }) {
   const r = routes(base);
-  const subject = encodeURIComponent(t.lang === 'es' ? 'Soporte Paparcar' : 'Paparcar support');
+  const subject = encodeURIComponent(t.lang === 'es' ? 'Soporte paparcar' : 'paparcar support');
 
   const body = `<article class="doc">
   <div class="shell shell--narrow">

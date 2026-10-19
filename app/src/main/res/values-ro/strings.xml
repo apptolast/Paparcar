@@ -30,15 +30,15 @@
     <string name="notif_action_cancel_save">Nu, anulează</string>
 
     <!-- Notificare: permisiune revocată în timp ce serviciul era activ -->
-    <string name="notif_permission_revoked_title">Paparcar are nevoie de permisiuni</string>
+    <string name="notif_permission_revoked_title">paparcar are nevoie de permisiuni</string>
     <string name="notif_permission_revoked_text">Permisiunea de localizare a fost revocată — apasă pentru a restaura</string>
 
     <!-- Notificare: eroare la salvarea parcării -->
     <string name="notif_confirmation_failed_title">Parcare nesalvată</string>
-    <string name="notif_confirmation_failed_text">Nu s-a putut salva parcarea. Deschide Paparcar pentru a încerca din nou.</string>
+    <string name="notif_confirmation_failed_text">Nu s-a putut salva parcarea. Deschide paparcar pentru a încerca din nou.</string>
 
     <!-- Notificare: debug (doar build-uri de dezvoltare) -->
-    <string name="notif_debug_title">Paparcar Debug</string>
+    <string name="notif_debug_title">paparcar Debug</string>
 
     <!-- Nume și descrieri ale canalelor de notificare -->
     <string name="channel_detection_name">Detecție locuri</string>
@@ -57,7 +57,7 @@
     <string name="notif_still_parked_text">Pari să fii departe, dar această parcare este încă deschisă. Spune-ne dacă ai plecat deja sau marchează unde este mașina acum.</string>
     <!-- DET-TOGGLE-002: cold-start nudge -->
     <string name="notif_first_park_nudge_title">Parchează o dată pentru a porni detectarea</string>
-    <string name="notif_first_park_nudge_text">Parchează o dată cu Paparcar; apoi eliberăm automat locul tău de fiecare dată când pleci.</string>
+    <string name="notif_first_park_nudge_text">Parchează o dată cu paparcar; apoi eliberăm automat locul tău de fiecare dată când pleci.</string>
     <string name="notif_first_park_nudge_action">Marchează parcarea</string>
     <!-- DET-AR-FIRST-001 -->
     <string name="notif_mark_parking_title">Unde ți-ai lăsat mașina?</string>
@@ -66,11 +66,11 @@
     <string name="notif_action_ive_left">Am plecat</string>
     <string name="notif_action_mark_parking">Marchează parcarea</string>
     <string name="notif_car_link_title">Călătoria aceasta a fost în %1$s?</string>
-    <string name="notif_car_link_text">Dacă e mașina ta, asociaz-o și Paparcar îți va marca parcarea singur de acum înainte.</string>
+    <string name="notif_car_link_text">Dacă e mașina ta, asociaz-o și paparcar îți va marca parcarea singur de acum înainte.</string>
     <string name="notif_car_link_device_fallback">această mașină</string>
     <string name="notif_action_link_yes">Da, e mașina mea</string>
     <string name="notif_action_link_no">Nu</string>
-    <string name="notif_background_kill_title">Telefonul tău blochează Paparcar</string>
+    <string name="notif_background_kill_title">Telefonul tău blochează paparcar</string>
     <string name="notif_background_kill_text">Sistemul a oprit ore întregi detectarea parcării în fundal. Atinge pentru a deschide aplicația și a rezolva din Setări → Detectare.</string>
     <string name="notif_sentry_title">Parcată · atent la plecarea ta</string>
     <string name="notif_sentry_text">Când pleci, îți vom elibera locul pentru alții. Silențios, baterie minimă. Se dezactivează din Setări.</string>

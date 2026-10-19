@@ -214,8 +214,8 @@ async function build() {
   // Android home-screen shortcut has something to show. Adding either would make the site
   // installable as an app, which is a product decision nobody has taken.
   await emit('site.webmanifest', JSON.stringify({
-    name: 'Paparcar',
-    short_name: 'Paparcar',
+    name: 'paparcar',
+    short_name: 'paparcar',
     theme_color: '#0D1117',
     background_color: '#0D1117',
     icons: [192, 512].map((px) => ({

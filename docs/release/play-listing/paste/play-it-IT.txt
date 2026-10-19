@@ -3,22 +3,22 @@ FICHA DE PLAY STORE — it-IT
 GENERADO por tools/make_paste.py desde LISTING-v1.4.0.md — no editar a mano.
 
 --- 1. NOMBRE DE LA APLICACION (30/30) ---
-Paparcar: dove ho parcheggiato
+paparcar: dove ho parcheggiato
 
 --- 2. DESCRIPCION BREVE (70/80) ---
-Dove hai parcheggiato? Paparcar se lo ricorda. Con prezzi e parcheggi.
+Dove hai parcheggiato? paparcar se lo ricorda. Con prezzi e parcheggi.
 
 --- 3. DESCRIPCION COMPLETA (3927/4000) ---
 Dove hai parcheggiato?
 
-Paparcar se lo ricorda per te.
+paparcar se lo ricorda per te.
 
-Parcheggia, scendi e continua la tua giornata. Paparcar salva in automatico dove hai lasciato l'auto: senza aprire l'app, senza segnaposto e senza scrivere un indirizzo. Quando torni, sai dov'è e da quanto tempo è lì.
+Parcheggia, scendi e continua la tua giornata. paparcar salva in automatico dove hai lasciato l'auto: senza aprire l'app, senza segnaposto e senza scrivere un indirizzo. Quando torni, sai dov'è e da quanto tempo è lì.
 
-Quando riparti, il posto che lasci può essere pubblicato per chi guida lì vicino. E tu vedi i posti che altri hanno appena liberato. Più automobilisti usano Paparcar nella tua città, più posti compaiono sulla mappa.
+Quando riparti, il posto che lasci può essere pubblicato per chi guida lì vicino. E tu vedi i posti che altri hanno appena liberato. Più automobilisti usano paparcar nella tua città, più posti compaiono sulla mappa.
 
 COME FUNZIONA
-1. Parcheggi. Paparcar lo rileva e salva il luogo. Senza Bluetooth, il primo parcheggio lo segni tu.
+1. Parcheggi. paparcar lo rileva e salva il luogo. Senza Bluetooth, il primo parcheggio lo segni tu.
 2. Riparti. L'app lo rileva.
 3. Il tuo posto viene pubblicato per chi guida lì vicino, quando è il caso.
 
@@ -33,7 +33,7 @@ POSTI AUTO IN TEMPO REALE
 • I posti che altri hanno appena liberato, sulla mappa.
 • Quando si è liberato ciascuno: due minuti fa non è venti.
 • Quanti automobilisti stanno già andando lì.
-• Se la tua auto ci sta: Paparcar confronta lo spazio con la tua.
+• Se la tua auto ci sta: paparcar confronta lo spazio con la tua.
 • Vedi un posto libero mentre passi? Segnalalo in due tocchi.
 
 DISTRIBUTORI E PARCHEGGI PUBBLICI, SULLA STESSA MAPPA
@@ -55,9 +55,9 @@ UN'AUTO, PIÙ CONDUCENTI
 • I tuoi percorsi si condividono solo se lo dici tu.
 
 RILEVAMENTO AUTOMATICO
-Se la tua auto si collega al telefono via Bluetooth, la disconnessione aiuta a rilevare che hai finito di parcheggiare. Se non ha il Bluetooth, Paparcar usa movimento e posizione.
+Se la tua auto si collega al telefono via Bluetooth, la disconnessione aiuta a rilevare che hai finito di parcheggiare. Se non ha il Bluetooth, paparcar usa movimento e posizione.
 
-Paparcar non vuole indovinare. Quando non è sicuro di cosa sia successo, te lo chiede prima di pubblicare un posto.
+paparcar non vuole indovinare. Quando non è sicuro di cosa sia successo, te lo chiede prima di pubblicare un posto.
 
 PAPARCAR PLUS
 Gratis, sei tu a chiedere e l'app risponde. Con Plus, l'app sorveglia mentre tu non guardi:
@@ -68,7 +68,7 @@ Gratis, sei tu a chiedere e l'app risponde. Con Plus, l'app sorveglia mentre tu 
 • Creare un'auto condivisa. Entrare in una è sempre gratis.
 
 PRIVACY
-• Zone private: segna luoghi come casa tua e Paparcar non pubblicherà un posto lì quando riparti.
+• Zone private: segna luoghi come casa tua e paparcar non pubblicherà un posto lì quando riparti.
 • La tua targa non esce mai dal tuo telefono.
 • Marca e modello della tua auto compaiono sul posto che liberi solo se lo attivi tu.
 • La tua posizione non viene mai venduta né usata per pubblicità.
@@ -77,9 +77,9 @@ PRIVACY
 
 POSIZIONE IN SECONDO PIANO
 
-Paparcar usa i dati di posizione anche quando l'app è chiusa o non in uso, per rilevare dove parcheggi e per liberare il tuo posto quando riparti.
+paparcar usa i dati di posizione anche quando l'app è chiusa o non in uso, per rilevare dove parcheggi e per liberare il tuo posto quando riparti.
 
-Il rilevamento automatico ha bisogno di questo permesso. Senza, Paparcar funziona lo stesso, ma dovrai segnare e liberare i tuoi parcheggi a mano.
+Il rilevamento automatico ha bisogno di questo permesso. Senza, paparcar funziona lo stesso, ma dovrai segnare e liberare i tuoi parcheggi a mano.
 
 Informativa sulla privacy:
 https://paparcar.com/privacy-policy

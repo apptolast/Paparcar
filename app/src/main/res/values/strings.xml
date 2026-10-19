@@ -36,15 +36,15 @@
     <string name="notif_action_cancel_save">No, cancel</string>
 
     <!-- Notification: permission revoked while service was running -->
-    <string name="notif_permission_revoked_title">Paparcar needs permissions</string>
+    <string name="notif_permission_revoked_title">paparcar needs permissions</string>
     <string name="notif_permission_revoked_text">Location permission revoked — tap to restore</string>
 
     <!-- Notification: confirmation failed (exceptional error path) -->
     <string name="notif_confirmation_failed_title">Parking not saved</string>
-    <string name="notif_confirmation_failed_text">Could not save your parking. Open Paparcar to try again.</string>
+    <string name="notif_confirmation_failed_text">Could not save your parking. Open paparcar to try again.</string>
 
     <!-- Notification: OEM background-kill warning [OEM-KILL-001] -->
-    <string name="notif_background_kill_title">Your phone is blocking Paparcar</string>
+    <string name="notif_background_kill_title">Your phone is blocking paparcar</string>
     <string name="notif_background_kill_text">The system paused parking detection in the background for hours. Tap to open the app and fix it in Settings → Detection.</string>
 
     <!-- Notification: watchdog "still parked?" prompt (suspected missed geofence exit) -->
@@ -52,7 +52,7 @@
     <string name="notif_still_parked_text">You seem to be away, but this parking is still open. Tell us if you already left, or mark where the car is now.</string>
     <!-- DET-TOGGLE-002: cold-start nudge -->
     <string name="notif_first_park_nudge_title">Park once to start auto-detection</string>
-    <string name="notif_first_park_nudge_text">Park with Paparcar once — after that we free your spot automatically every time you leave.</string>
+    <string name="notif_first_park_nudge_text">Park with paparcar once — after that we free your spot automatically every time you leave.</string>
     <string name="notif_first_park_nudge_action">Mark parking</string>
     <!-- DET-AR-FIRST-001: unattended session ended without measured driving — ask where the car is -->
     <string name="notif_mark_parking_title">Where did you leave your car?</string>
@@ -62,12 +62,12 @@
     <string name="notif_action_mark_parking">Mark parking</string>
 
     <string name="notif_car_link_title">Was this trip in %1$s?</string>
-    <string name="notif_car_link_text">If it\'s your car, link it and Paparcar will mark your parking on its own from now on.</string>
+    <string name="notif_car_link_text">If it\'s your car, link it and paparcar will mark your parking on its own from now on.</string>
     <string name="notif_car_link_device_fallback">this car</string>
     <string name="notif_action_link_yes">Yes, it\'s my car</string>
     <string name="notif_action_link_no">No</string>
     <!-- Notification: debug (dev builds only) -->
-    <string name="notif_debug_title">Paparcar Debug</string>
+    <string name="notif_debug_title">paparcar Debug</string>
 
     <!-- Attribution tag label (required as resource reference by PackageParser) -->
     <string name="attribution_detection_label">Parking detection</string>

@@ -63,8 +63,8 @@
     <string name="pap_field_clear_cd">Șterge câmpul</string>
 
     <!-- OnboardingScreen -->
-    <string name="onboarding_page1_title">Bun venit la Paparcar</string>
-    <string name="onboarding_page1_subtitle">Paparcar are grijă de mașina ta: reține unde parchezi, îți transformă drumurile în cifre și, când pleci, eliberează locul pentru cei care caută în apropiere.</string>
+    <string name="onboarding_page1_title">Bun venit la paparcar</string>
+    <string name="onboarding_page1_subtitle">paparcar are grijă de mașina ta: reține unde parchezi, îți transformă drumurile în cifre și, când pleci, eliberează locul pentru cei care caută în apropiere.</string>
     <string name="onboarding_page2_title">Ce face pentru tine</string>
     <string name="onboarding_step1_title">Detectare automată</string>
     <string name="onboarding_step1_desc">Recunoaște singură drumurile și parcările tale și îți arată cheltuielile, CO₂ și obiceiurile.</string>
@@ -79,9 +79,9 @@
 
     <!-- PermissionsScreen -->
     <string name="permissions_title">Automatizează-ți parcarea</string>
-    <string name="permissions_subtitle">Paparcar ține minte pentru tine unde ai parcat — iar când pleci, locul se eliberează pentru altcineva.</string>
+    <string name="permissions_subtitle">paparcar ține minte pentru tine unde ai parcat — iar când pleci, locul se eliberează pentru altcineva.</string>
     <string name="permissions_core_title">Vezi locurile libere din jurul tău</string>
-    <string name="permissions_core_subtitle">Paparcar folosește locația ta pentru a-ți arăta harta și locurile din apropiere.</string>
+    <string name="permissions_core_subtitle">paparcar folosește locația ta pentru a-ți arăta harta și locurile din apropiere.</string>
     <string name="permissions_perm_location">Locație precisă</string>
     <string name="permissions_perm_location_desc">Pentru a salva cu precizie unde ai parcat vehiculul</string>
     <string name="permissions_perm_background">Locație în fundal</string>
@@ -98,14 +98,14 @@
     <string name="permissions_perm_autostart">Pornire automata / activitate in fundal</string>
     <string name="permissions_perm_autostart_desc">Optional — aplicatia functioneaza si fara aceasta, dar pe dispozitivele Xiaomi, OPPO si Huawei detectarea parcarii poate esua dupa cateva ore. Activarea permite aplicatiei sa se trezeasca in mod fiabil. Impact minim asupra bateriei.</string>
     <string name="permissions_perm_oem_battery">Economisire baterie in fundal</string>
-    <string name="permissions_perm_oem_battery_desc">Optional — dispozitivul tau OPPO/Realme poate ingheta aplicatiile in fundal. Fara aceasta, GPS-ul poate cadea in timpul detectarii. Dezactiveaza economisirea bateriei pentru Paparcar in setarile bateriei. Impact minim asupra bateriei.</string>
+    <string name="permissions_perm_oem_battery_desc">Optional — dispozitivul tau OPPO/Realme poate ingheta aplicatiile in fundal. Fara aceasta, GPS-ul poate cadea in timpul detectarii. Dezactiveaza economisirea bateriei pentru paparcar in setarile bateriei. Impact minim asupra bateriei.</string>
     <string name="permissions_status_optional">Opțional</string>
     <string name="permissions_btn_grant">Acordă permisiunile</string>
     <!-- DET-READY-001e -->
     <string name="permissions_btn_activate_detection">Activează detectarea automată</string>
     <string name="permissions_btn_not_now">Nu acum</string>
-    <string name="permissions_core_detection_teaser">Paparcar poate detecta automat și parcarea ta, eliberând locul când pleci. Poți activa asta mai târziu din hartă.</string>
-    <string name="permissions_bg_disclosure">Paparcar colectează date de localizare chiar și când aplicația este închisă sau nu este în uz, pentru a detecta automat unde parchezi. Locația ta nu este niciodată vândută și nici folosită pentru publicitate.</string>
+    <string name="permissions_core_detection_teaser">paparcar poate detecta automat și parcarea ta, eliberând locul când pleci. Poți activa asta mai târziu din hartă.</string>
+    <string name="permissions_bg_disclosure">paparcar colectează date de localizare chiar și când aplicația este închisă sau nu este în uz, pentru a detecta automat unde parchezi. Locația ta nu este niciodată vândută și nici folosită pentru publicitate.</string>
     <!-- PERM-FOOTER-001 -->
     <string name="permissions_btn_allow_background">Permite în fundal</string>
     <string name="permissions_btn_continue">Continuă</string>
@@ -227,9 +227,9 @@
     <string name="settings_privacy">Politică de confidențialitate</string>
     <string name="settings_licenses">Licențe open source</string>
     <string name="licenses_cd_back">Înapoi</string>
-    <string name="licenses_subtitle">Paparcar este construit cu software open source. Atinge o bibliotecă pentru a citi licența sub care este distribuită.</string>
+    <string name="licenses_subtitle">paparcar este construit cu software open source. Atinge o bibliotecă pentru a citi licența sub care este distribuită.</string>
     <string name="licenses_count">%1$d biblioteci · %2$d licențe</string>
-    <string name="licenses_error">Această versiune nu include lista de licențe, deci nu poate fi afișată. Reinstalarea Paparcar o restaurează.</string>
+    <string name="licenses_error">Această versiune nu include lista de licențe, deci nu poate fi afișată. Reinstalarea paparcar o restaurează.</string>
     <string name="licenses_detail_no_text">Acești termeni aparțin proprietarului lor și nu sunt distribuiți în aplicație. Deschide-i pentru a citi textul complet.</string>
     <string name="licenses_detail_open_terms">Citește termenii compleți</string>
     <string name="licenses_data_sources_header">Surse de date</string>
@@ -250,7 +250,7 @@
     <string name="error_gps_unavailable">Se așteaptă semnalul GPS…</string>
     <string name="error_search_failed">Căutarea nu funcționează momentan. Verifică conexiunea și încearcă din nou</string>
     <string name="error_bootstrap_offline_title">Fără conexiune la internet</string>
-    <string name="error_bootstrap_offline_body">Paparcar are nevoie de o conexiune pentru a-ți încărca datele. Verifică rețeaua și încearcă din nou.</string>
+    <string name="error_bootstrap_offline_body">paparcar are nevoie de o conexiune pentru a-ți încărca datele. Verifică rețeaua și încearcă din nou.</string>
     <string name="error_bootstrap_retry">Reîncearcă</string>
     <string name="error_bootstrap_still_offline">Încă fără conexiune</string>
     <string name="error_bootstrap_fatal_title">Contul nu a putut fi încărcat</string>
@@ -296,7 +296,7 @@
     <string name="my_car_add_vehicle">Adaugă vehicul</string>
     <string name="my_car_unnamed_vehicle">Vehicul fără nume</string>
     <string name="veh_bt_recommendation_title">Îmbunătățește precizia detectării</string>
-    <string name="veh_bt_recommendation_body">Asocierea Bluetooth-ului mașinii permite Paparcar să detecteze mult mai fiabil când parchezi, chiar și pe trasee scurte. Poți configura asta mai târziu din meniul vehiculului.</string>
+    <string name="veh_bt_recommendation_body">Asocierea Bluetooth-ului mașinii permite paparcar să detecteze mult mai fiabil când parchezi, chiar și pe trasee scurte. Poți configura asta mai târziu din meniul vehiculului.</string>
     <string name="veh_bt_recommendation_configure">Asociază Bluetooth</string>
     <string name="veh_bt_recommendation_skip">Mai târziu</string>
     <string name="my_car_empty_subtitle">Trebuie să știm ce conduci pentru a detecta când parchezi.</string>
@@ -365,7 +365,7 @@
     <string name="vehicle_size_explainer_card3_title">Cum să apară?</string>
     <string name="vehicle_size_explainer_card3_desc">Alege o culoare, un nume opțional și dacă marca și modelul să apară la locurile libere.</string>
     <string name="vehicle_size_explainer_card4_title">Cum îți putem detecta parcarea?</string>
-    <string name="vehicle_size_explainer_card4_desc">Paparcar poate folosi GPS-ul, senzorii de mișcare și, dacă este disponibil, Bluetooth-ul mașinii pentru a recunoaște plecarea.</string>
+    <string name="vehicle_size_explainer_card4_desc">paparcar poate folosi GPS-ul, senzorii de mișcare și, dacă este disponibil, Bluetooth-ul mașinii pentru a recunoaște plecarea.</string>
     <string name="vehicle_size_explainer_card5_title">Combustibil și costuri</string>
     <string name="vehicle_size_explainer_card5_desc">Pentru vehiculele cu combustibil, alege tipul. Consumul și prețurile ne ajută să estimăm costurile.</string>
     <string name="vehicle_size_explainer_card6_title">Eticheta de mediu</string>
@@ -376,7 +376,7 @@
     <string name="bt_config_subtitle">Selectează dispozitivul Bluetooth deja asociat cu mașina ta. Aplicația îl va folosi pentru a detecta când parchezi sau pleci.</string>
     <string name="bt_config_bt_off">Bluetooth-ul este dezactivat. Activează-l pentru a vedea dispozitivele asociate.</string>
     <string name="bt_config_open_bt_settings">Deschide setările Bluetooth</string>
-    <string name="bt_config_permission_rationale">Paparcar are nevoie de acces la Bluetooth pentru a citi dispozitivele asociate. Acordă permisiunea pentru a continua.</string>
+    <string name="bt_config_permission_rationale">paparcar are nevoie de acces la Bluetooth pentru a citi dispozitivele asociate. Acordă permisiunea pentru a continua.</string>
     <string name="bt_config_grant_permission">Acordă permisiunea</string>
     <string name="bt_config_no_devices">Nu s-au găsit dispozitive Bluetooth asociate. Asociază mai întâi Bluetooth-ul mașinii din setările de sistem.</string>
     <string name="bt_config_save">Salvează</string>
@@ -492,7 +492,7 @@
     <string name="settings_contact">Contact</string>
     <string name="settings_send_diagnostics">Raportează o problemă</string>
     <string name="settings_send_diagnostics_confirm_title">Trimiți diagnosticarea?</string>
-    <string name="settings_send_diagnostics_confirm_message">Se va trimite jurnalul tehnic recent al Paparcar de pe acest dispozitiv. Include locații aproximative din ultimele tale drumuri și parcări și îl folosim doar pentru a investiga problema.</string>
+    <string name="settings_send_diagnostics_confirm_message">Se va trimite jurnalul tehnic recent al paparcar de pe acest dispozitiv. Include locații aproximative din ultimele tale drumuri și parcări și îl folosim doar pentru a investiga problema.</string>
     <string name="settings_send_diagnostics_confirm_action">Trimite</string>
     <string name="settings_send_diagnostics_sent">Diagnosticare trimisă. Mulțumim, ne ocupăm de ea.</string>
     <string name="settings_send_diagnostics_error">Nu s-a putut trimite diagnosticarea. Verifică-ți conexiunea și încearcă din nou.</string>
@@ -516,7 +516,7 @@
 
     <!-- VehicleStatsRow inline cards -->
     <!-- Auth screens -->
-    <string name="brand_name">Paparcar</string>
+    <string name="brand_name">paparcar</string>
     <string name="auth_header_tagline">Găsește-ți locul, împarte spațiul</string>
     <string name="auth_field_email">E-mail</string>
     <string name="auth_field_password">Parolă</string>
@@ -584,13 +584,13 @@
 
     <!-- Background location guide -->
     <string name="permissions_bg_guide_title">Activează locația în fundal</string>
-    <string name="permissions_bg_guide_body">Pe ecranul următor:\n\n1. Atinge «Locație»\n2. Selectează «Permite tot timpul»\n3. Apasă Înapoi pentru a reveni la Paparcar</string>
+    <string name="permissions_bg_guide_body">Pe ecranul următor:\n\n1. Atinge «Locație»\n2. Selectează «Permite tot timpul»\n3. Apasă Înapoi pentru a reveni la paparcar</string>
     <string name="permissions_perm_precise">Precizia locației</string>
     <string name="permissions_perm_precise_desc">Necesară ca să marcăm parcarea pe locul exact, nu doar în zonă</string>
-    <string name="permissions_perm_precise_desc_ios">Locația ta este aproximativă, așa că Paparcar nu poate ști pe ce loc ai parcat. Activează «Locație precisă» în Setări → Paparcar → Locație.</string>
-    <string name="permissions_bg_guide_body_ios">Alege «Întotdeauna» ca Paparcar să detecteze parcarea cu aplicația închisă.
+    <string name="permissions_perm_precise_desc_ios">Locația ta este aproximativă, așa că paparcar nu poate ști pe ce loc ai parcat. Activează «Locație precisă» în Setări → paparcar → Locație.</string>
+    <string name="permissions_bg_guide_body_ios">Alege «Întotdeauna» ca paparcar să detecteze parcarea cu aplicația închisă.
 
-Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație → Întotdeauna.</string>
+Dacă întrebarea nu mai apare, schimbă din Setări → paparcar → Locație → Întotdeauna.</string>
     <string name="permissions_perm_location_services_desc_ios">Fără ele nicio aplicație nu te poate localiza. Activează-le în Setări → Confidențialitate și securitate → Servicii de localizare.</string>
     <string name="permissions_bg_guide_cta">Deschide setările</string>
     <string name="permissions_bg_guide_dismiss">Nu acum</string>
@@ -611,13 +611,13 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="home_det_novehicle_sub">Parchează și eliberează ușor</string>
     <string name="home_det_novehicle_cta">Adaugă</string>
     <string name="home_det_core_title">Activează locația</string>
-    <string name="home_det_core_sub">Paparcar nu merge fără ea</string>
+    <string name="home_det_core_sub">paparcar nu merge fără ea</string>
     <string name="home_det_core_cta">Activează</string>
     <string name="home_location_off_pill">Fără locație</string>
     <string name="home_det_producer_title">Activează detecția</string>
     <string name="home_det_producer_sub">Ține minte unde parchezi și eliberează locul</string>
     <string name="home_det_producer_cta">Activează</string>
-    <string name="home_det_pitch_title">Ce are Paparcar mai bun</string>
+    <string name="home_det_pitch_title">Ce are paparcar mai bun</string>
     <string name="home_det_pitch_body">Detectarea automată ține minte pentru tine unde ai parcat — iar când pleci, locul se eliberează pentru altcineva. Activeaz-o acum și uită de griji.</string>
     <string name="home_det_enabled_confirm">Detectare automată activată</string>
     <!-- DET-TOGGLE-002: in-app snackbar when detection drops to a stopped state -->
@@ -674,9 +674,9 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="vehicle_color_yellow">Galben</string>
     <string name="vehicle_color_gold">Auriu</string>
     <string name="vehicle_color_brown">Maro</string>
-    <string name="permissions_reliability_reduced_callout">Telefoanele ca al tău restricționează aplicațiile în fundal pentru a economisi bateria. Astfel, Paparcar poate rata momentul în care pleci cu mașina. Permite mai jos activitatea în fundal — sau împerechează Bluetooth-ul mașinii tale, opțiunea cea mai fiabilă.</string>
+    <string name="permissions_reliability_reduced_callout">Telefoanele ca al tău restricționează aplicațiile în fundal pentru a economisi bateria. Astfel, paparcar poate rata momentul în care pleci cu mașina. Permite mai jos activitatea în fundal — sau împerechează Bluetooth-ul mașinii tale, opțiunea cea mai fiabilă.</string>
     <string name="settings_detection_reliability_reduced">Telefonul tău poate limita detectarea</string>
-    <string name="settings_detection_reliability_reduced_desc">Telefonul tău restricționează aplicațiile în fundal — Paparcar ar putea rata momentul în care îți eliberezi locul</string>
+    <string name="settings_detection_reliability_reduced_desc">Telefonul tău restricționează aplicațiile în fundal — paparcar ar putea rata momentul în care îți eliberezi locul</string>
     <plurals name="history_activity_noun">
         <item quantity="one">parcare</item>
         <item quantity="few">parcări</item>
@@ -745,7 +745,7 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="first_steps_how_it_works">Cum funcționează</string>
     <string name="first_steps_done_cta">Gata</string>
     <string name="first_steps_complete_title">Totul e pregătit</string>
-    <string name="first_steps_complete_sub">Știi cum funcționează Paparcar. Acum doar condu.</string>
+    <string name="first_steps_complete_sub">Știi cum funcționează paparcar. Acum doar condu.</string>
     <string name="first_steps_not_yet">Nu acum</string>
     <string name="first_steps_fortify_bt_title">Conectează Bluetooth-ul mașinii</string>
     <string name="first_steps_fortify_bt_sub">Alege-o dintre dispozitivele deja împerecheate cu telefonul. Așa supravegherea nu depinde de telefonul rămas treaz.</string>
@@ -753,15 +753,15 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="first_steps_fortify_battery_sub">Telefonul poate opri supravegherea ca să economisească bateria. Permite-i să continue și locul tău se eliberează chiar și după ore.</string>
     <string name="first_steps_fortify_done_title">Supravegherea ta e solidă</string>
     <string name="first_steps_fortify_done_sub">Nu mai e nimic de configurat: când pleci, locul tău se eliberează singur.</string>
-    <string name="first_steps_deferred_title">Știi cum funcționează Paparcar</string>
+    <string name="first_steps_deferred_title">Știi cum funcționează paparcar</string>
     <string name="first_steps_deferred_sub">Ce ai lăsat pe mai târziu e tot acolo — cardul de detecție din acest ecran ți-l cere oricând.</string>
     <string name="first_steps_park_title">Marchează unde ai lăsat mașina</string>
-    <string name="first_steps_park_sub">Trage harta până la mașina ta și confirmă. Asta supraveghează Paparcar.</string>
+    <string name="first_steps_park_sub">Trage harta până la mașina ta și confirmă. Asta supraveghează paparcar.</string>
     <string name="first_steps_park_cta">Marchează parcarea</string>
-    <string name="first_steps_watch_title">Lasă Paparcar să o supravegheze</string>
+    <string name="first_steps_watch_title">Lasă paparcar să o supravegheze</string>
     <string name="first_steps_watch_sub">Cât timp mașina ta e parcată, aplicația o supraveghează. Când pleci, parcarea ta eliberează un loc pentru alt șofer — sau o închizi tu cu 'Plec'.</string>
-    <string name="first_steps_watch_on_title">Lasă Paparcar să-ți țină minte parcarea</string>
-    <string name="first_steps_watch_on_sub">Cu detectarea activată, Paparcar ține minte unde ai parcat — iar când pleci, locul pe care îl lași ajunge la cineva care caută unul, la fel ca tine.</string>
+    <string name="first_steps_watch_on_title">Lasă paparcar să-ți țină minte parcarea</string>
+    <string name="first_steps_watch_on_sub">Cu detectarea activată, paparcar ține minte unde ai parcat — iar când pleci, locul pe care îl lași ajunge la cineva care caută unul, la fel ca tine.</string>
     <string name="first_steps_spot_title">Găsește un loc liber în apropiere</string>
     <string name="first_steps_spot_sub">Locurile eliberate de alții apar pe hartă. Deschide lista și alege unul.</string>
     <string name="first_steps_spot_cta">Vezi locuri</string>
@@ -775,12 +775,12 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="first_steps_explain_park_title">Marchează unde ai lăsat mașina</string>
     <string name="first_steps_explain_park_body">Asta deschide parcarea ta: aplicația reține locul și începe să îl supravegheze. Manual o faci doar de prima dată.</string>
     <string name="first_steps_explain_park_way_title">De atunci, de mașină ne ocupăm noi</string>
-    <string name="first_steps_explain_park_way_body">Nu trebuie să ții minte strada, numărul sau etajul. Deschizi Paparcar și e acolo.</string>
+    <string name="first_steps_explain_park_way_body">Nu trebuie să ții minte strada, numărul sau etajul. Deschizi paparcar și e acolo.</string>
     <string name="first_steps_explain_park_note">Fără o parcare deschisă nu e nimic de supravegheat și nimic de eliberat: locul pe care îl primește alt șofer e cel pe care îl lași tu.</string>
     <string name="first_steps_explain_watch_title">Când pleci, locul tău rămâne liber pentru altcineva</string>
     <string name="first_steps_explain_watch_body">Parcarea ta devine un loc liber pentru comunitate: cineva parchează unde erai tu în loc să dea ocol. Se întâmplă în două feluri.</string>
     <string name="first_steps_explain_watch_auto_title">Singur</string>
-    <string name="first_steps_explain_watch_auto_body">Paparcar observă că ai plecat și anunță locul în locul tău, fără să atingi nimic.</string>
+    <string name="first_steps_explain_watch_auto_body">paparcar observă că ai plecat și anunță locul în locul tău, fără să atingi nimic.</string>
     <string name="first_steps_explain_watch_manual_title">Sau spui tu</string>
     <string name="first_steps_explain_watch_manual_body">Apeși 'Plec' pe parcarea ta și o închizi chiar tu, când vrei.</string>
     <string name="first_steps_explain_watch_note">Închiderea parcării nu te obligă să anunți nimic: 'Doar eliberează' o încheie fără să spună nimănui.</string>
@@ -804,8 +804,8 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
         <item quantity="other">Ai %1$d de parcări anterioare</item>
     </plurals>
     <string name="history_plus_footer_cta">Vezi tot cu Plus</string>
-    <string name="paywall_title">Paparcar Plus</string>
-    <string name="paywall_tagline">Paparcar veghează pentru tine și ține minte tot</string>
+    <string name="paywall_title">paparcar Plus</string>
+    <string name="paywall_tagline">paparcar veghează pentru tine și ține minte tot</string>
     <string name="paywall_benefits_title">Ce adaugă Plus</string>
     <string name="paywall_benefit_history">Tot istoricul tău: cheltuieli, timp, previziuni, precum și cele mai bune locații și ore</string>
     <string name="paywall_benefit_history_note">Gratuit: ultimele 7 zile</string>
@@ -841,7 +841,7 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="paywall_redeem_code">Am un cod</string>
     <string name="paywall_restore_none">Niciun abonament pe acest cont Google.</string>
     <string name="paywall_purchase_failed">Achiziția nu s-a finalizat — nu ți s-a perceput nimic.</string>
-    <string name="settings_plus_title">Paparcar Plus</string>
+    <string name="settings_plus_title">paparcar Plus</string>
     <string name="settings_plus_subtitle_free">Istoric complet și alerte de zonă</string>
     <string name="settings_plus_subtitle_active">Istoric complet și alerte de zonă, activ</string>
     <string name="settings_plus_badge_active">ACTIV</string>
@@ -872,13 +872,13 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="notif_action_ack">Am înțeles</string>
     <string name="notif_action_cancel_save">Nu, anulează</string>
     <string name="notif_confirmation_failed_title">Parcare nesalvată</string>
-    <string name="notif_confirmation_failed_text">Nu s-a putut salva parcarea. Deschide Paparcar pentru a încerca din nou.</string>
+    <string name="notif_confirmation_failed_text">Nu s-a putut salva parcarea. Deschide paparcar pentru a încerca din nou.</string>
     <string name="notif_still_parked_title">Încă parcat aici?</string>
     <string name="notif_still_parked_text">Pari să fii departe, dar această parcare este încă deschisă. Spune-ne dacă ai plecat deja sau marchează unde este mașina acum.</string>
     <string name="notif_action_ive_left">Am plecat</string>
     <string name="notif_action_mark_parking">Marchează parcarea</string>
     <string name="notif_car_link_title">Călătoria aceasta a fost în %1$s?</string>
-    <string name="notif_car_link_text">Dacă e mașina ta, asociaz-o și Paparcar îți va marca parcarea singur de acum înainte.</string>
+    <string name="notif_car_link_text">Dacă e mașina ta, asociaz-o și paparcar îți va marca parcarea singur de acum înainte.</string>
     <string name="notif_car_link_device_fallback">această mașină</string>
     <string name="notif_action_link_yes">Da, e mașina mea</string>
     <string name="notif_action_link_no">Nu</string>
@@ -1098,7 +1098,7 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="first_steps_pointing_up">Uită-te în partea de sus a hărții — ți-l arăt acolo.</string>
     <string name="first_steps_zone_no_garage">Nu am garaj</string>
     <string name="first_steps_explain_zone_title">Garajul tău nu e un loc liber</string>
-    <string name="first_steps_explain_zone_body">Când pleci, Paparcar îți eliberează locul pentru altcineva. Într-un garaj privat (acasă, la muncă) nimeni altcineva nu îl poate folosi.</string>
+    <string name="first_steps_explain_zone_body">Când pleci, paparcar îți eliberează locul pentru altcineva. Într-un garaj privat (acasă, la muncă) nimeni altcineva nu îl poate folosi.</string>
     <string name="first_steps_explain_zone_way_title">Adaugă o zonă privată</string>
     <string name="first_steps_explain_zone_way_body">Pune o zonă peste garaj și activează «Zonă privată». Parcările din interiorul ei nu sunt publicate când pleci.</string>
     <string name="first_steps_explain_zone_note">Se aplică parcărilor marcate după ce o creezi. Nu ai garaj privat? Răspunde «Nu am garaj» și pasul e gata.</string>

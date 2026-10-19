@@ -61,8 +61,8 @@
     <string name="pap_field_clear_cd">Wyczyść pole</string>
 
     <!-- OnboardingScreen -->
-    <string name="onboarding_page1_title">Witaj w Paparcar</string>
-    <string name="onboarding_page1_subtitle">Paparcar dba o Twój samochód: zapamiętuje, gdzie parkujesz, zamienia Twoje przejazdy w liczby, a gdy odjeżdżasz, zwalnia miejsce dla kierowców w pobliżu.</string>
+    <string name="onboarding_page1_title">Witaj w paparcar</string>
+    <string name="onboarding_page1_subtitle">paparcar dba o Twój samochód: zapamiętuje, gdzie parkujesz, zamienia Twoje przejazdy w liczby, a gdy odjeżdżasz, zwalnia miejsce dla kierowców w pobliżu.</string>
     <string name="onboarding_page2_title">Co robi dla Ciebie</string>
     <string name="onboarding_step1_title">Automatyczne wykrywanie</string>
     <string name="onboarding_step1_desc">Samo rozpoznaje przejazdy i parkowania, a potem pokazuje wydatki, CO₂ i nawyki.</string>
@@ -77,9 +77,9 @@
 
     <!-- PermissionsScreen -->
     <string name="permissions_title">Zautomatyzuj parkowanie</string>
-    <string name="permissions_subtitle">Paparcar pamięta za Ciebie, gdzie zaparkowałeś — a gdy odjeżdżasz, miejsce zwalnia się dla kogoś innego.</string>
+    <string name="permissions_subtitle">paparcar pamięta za Ciebie, gdzie zaparkowałeś — a gdy odjeżdżasz, miejsce zwalnia się dla kogoś innego.</string>
     <string name="permissions_core_title">Zobacz wolne miejsca wokół siebie</string>
-    <string name="permissions_core_subtitle">Paparcar używa Twojej lokalizacji, aby pokazać mapę i miejsca w pobliżu.</string>
+    <string name="permissions_core_subtitle">paparcar używa Twojej lokalizacji, aby pokazać mapę i miejsca w pobliżu.</string>
     <string name="permissions_perm_location">Dokładna lokalizacja</string>
     <string name="permissions_perm_location_desc">Aby dokładnie zapisać, gdzie zaparkowałeś swój pojazd</string>
     <string name="permissions_perm_background">Lokalizacja w tle</string>
@@ -96,14 +96,14 @@
     <string name="permissions_perm_autostart">Autostart / aktywnosc w tle</string>
     <string name="permissions_perm_autostart_desc">Opcjonalne — aplikacja dziala bez tego, ale na urzadzeniach Xiaomi, OPPO i Huawei wykrywanie moze przestac dzialac po kilku godzinach. Wlaczenie pozwala aplikacji niezawodnie sie budzic. Minimalny wplyw na baterie.</string>
     <string name="permissions_perm_oem_battery">Oszczedzanie baterii w tle</string>
-    <string name="permissions_perm_oem_battery_desc">Opcjonalne — urzadzenie OPPO/Realme moze zamrazac aplikacje w tle. Bez tego GPS moze sie wylaczac podczas wykrywania. Wylacz oszczedzanie baterii dla Paparcar w ustawieniach baterii. Minimalny wplyw na baterie.</string>
+    <string name="permissions_perm_oem_battery_desc">Opcjonalne — urzadzenie OPPO/Realme moze zamrazac aplikacje w tle. Bez tego GPS moze sie wylaczac podczas wykrywania. Wylacz oszczedzanie baterii dla paparcar w ustawieniach baterii. Minimalny wplyw na baterie.</string>
     <string name="permissions_status_optional">Opcjonalne</string>
     <string name="permissions_btn_grant">Przyznaj uprawnienia</string>
     <!-- DET-READY-001e -->
     <string name="permissions_btn_activate_detection">Włącz automatyczne wykrywanie</string>
     <string name="permissions_btn_not_now">Nie teraz</string>
-    <string name="permissions_core_detection_teaser">Paparcar może też automatycznie wykrywać Twoje parkowanie i zwalniać miejsce, gdy odjeżdżasz. Możesz to włączyć później z poziomu mapy.</string>
-    <string name="permissions_bg_disclosure">Paparcar zbiera dane o lokalizacji także wtedy, gdy aplikacja jest zamknięta lub nieużywana, aby automatycznie wykrywać, gdzie parkujesz. Twoja lokalizacja nigdy nie jest sprzedawana ani wykorzystywana do reklam.</string>
+    <string name="permissions_core_detection_teaser">paparcar może też automatycznie wykrywać Twoje parkowanie i zwalniać miejsce, gdy odjeżdżasz. Możesz to włączyć później z poziomu mapy.</string>
+    <string name="permissions_bg_disclosure">paparcar zbiera dane o lokalizacji także wtedy, gdy aplikacja jest zamknięta lub nieużywana, aby automatycznie wykrywać, gdzie parkujesz. Twoja lokalizacja nigdy nie jest sprzedawana ani wykorzystywana do reklam.</string>
     <!-- PERM-FOOTER-001 -->
     <string name="permissions_btn_allow_background">Zezwól na działanie w tle</string>
     <string name="permissions_btn_continue">Dalej</string>
@@ -225,9 +225,9 @@
     <string name="settings_privacy">Polityka prywatności</string>
     <string name="settings_licenses">Licencje open source</string>
     <string name="licenses_cd_back">Wstecz</string>
-    <string name="licenses_subtitle">Paparcar korzysta z oprogramowania open source. Dotknij biblioteki, aby przeczytać licencję, na której jest dostarczana.</string>
+    <string name="licenses_subtitle">paparcar korzysta z oprogramowania open source. Dotknij biblioteki, aby przeczytać licencję, na której jest dostarczana.</string>
     <string name="licenses_count">%1$d bibliotek · %2$d licencji</string>
-    <string name="licenses_error">Ta wersja nie zawiera listy licencji, więc nie można jej pokazać. Ponowna instalacja Paparcar ją przywraca.</string>
+    <string name="licenses_error">Ta wersja nie zawiera listy licencji, więc nie można jej pokazać. Ponowna instalacja paparcar ją przywraca.</string>
     <string name="licenses_detail_no_text">Te warunki należą do ich właściciela i nie są dołączane do aplikacji. Otwórz je, aby przeczytać pełny tekst.</string>
     <string name="licenses_detail_open_terms">Przeczytaj pełne warunki</string>
     <string name="licenses_data_sources_header">Źródła danych</string>
@@ -248,7 +248,7 @@
     <string name="error_gps_unavailable">Oczekiwanie na sygnał GPS…</string>
     <string name="error_search_failed">Wyszukiwanie obecnie nie działa. Sprawdź połączenie i spróbuj ponownie</string>
     <string name="error_bootstrap_offline_title">Brak połączenia z internetem</string>
-    <string name="error_bootstrap_offline_body">Paparcar potrzebuje połączenia, aby załadować Twoje dane. Sprawdź sieć i spróbuj ponownie.</string>
+    <string name="error_bootstrap_offline_body">paparcar potrzebuje połączenia, aby załadować Twoje dane. Sprawdź sieć i spróbuj ponownie.</string>
     <string name="error_bootstrap_retry">Spróbuj ponownie</string>
     <string name="error_bootstrap_still_offline">Nadal brak połączenia</string>
     <string name="error_bootstrap_fatal_title">Nie udało się załadować konta</string>
@@ -294,7 +294,7 @@
     <string name="my_car_add_vehicle">Dodaj pojazd</string>
     <string name="my_car_unnamed_vehicle">Pojazd bez nazwy</string>
     <string name="veh_bt_recommendation_title">Popraw dokładność wykrywania</string>
-    <string name="veh_bt_recommendation_body">Sparowanie Bluetooth Twojego samochodu pozwala Paparcar znacznie pewniej wykrywać, kiedy parkujesz, nawet podczas krótkich tras. Możesz to skonfigurować później z menu pojazdu.</string>
+    <string name="veh_bt_recommendation_body">Sparowanie Bluetooth Twojego samochodu pozwala paparcar znacznie pewniej wykrywać, kiedy parkujesz, nawet podczas krótkich tras. Możesz to skonfigurować później z menu pojazdu.</string>
     <string name="veh_bt_recommendation_configure">Sparuj Bluetooth</string>
     <string name="veh_bt_recommendation_skip">Później</string>
     <string name="my_car_empty_subtitle">Musimy wiedzieć, czym jeździsz, aby wykryć, kiedy parkujesz.</string>
@@ -363,7 +363,7 @@
     <string name="vehicle_size_explainer_card3_title">Jak ma się wyświetlać?</string>
     <string name="vehicle_size_explainer_card3_desc">Wybierz kolor, opcjonalną nazwę oraz czy marka i model mają być widoczne przy wolnych miejscach.</string>
     <string name="vehicle_size_explainer_card4_title">Jak możemy wykryć Twoje parkowanie?</string>
-    <string name="vehicle_size_explainer_card4_desc">Paparcar może używać GPS, czujników ruchu i, jeśli jest dostępny, Bluetooth Twojego auta, aby rozpoznać wyjazd.</string>
+    <string name="vehicle_size_explainer_card4_desc">paparcar może używać GPS, czujników ruchu i, jeśli jest dostępny, Bluetooth Twojego auta, aby rozpoznać wyjazd.</string>
     <string name="vehicle_size_explainer_card5_title">Paliwo i koszty</string>
     <string name="vehicle_size_explainer_card5_desc">W przypadku pojazdów spalinowych wybierz rodzaj paliwa. Spalanie i ceny pomagają oszacować koszty.</string>
     <string name="vehicle_size_explainer_card6_title">Etykieta środowiskowa</string>
@@ -374,7 +374,7 @@
     <string name="bt_config_subtitle">Wybierz urządzenie Bluetooth już sparowane z Twoim samochodem. Aplikacja użyje go do wykrywania, kiedy parkujesz lub odjeżdżasz.</string>
     <string name="bt_config_bt_off">Bluetooth jest wyłączony. Włącz go, aby zobaczyć sparowane urządzenia.</string>
     <string name="bt_config_open_bt_settings">Otwórz ustawienia Bluetooth</string>
-    <string name="bt_config_permission_rationale">Paparcar potrzebuje dostępu do Bluetooth, aby odczytać sparowane urządzenia. Przyznaj uprawnienie, aby kontynuować.</string>
+    <string name="bt_config_permission_rationale">paparcar potrzebuje dostępu do Bluetooth, aby odczytać sparowane urządzenia. Przyznaj uprawnienie, aby kontynuować.</string>
     <string name="bt_config_grant_permission">Przyznaj uprawnienie</string>
     <string name="bt_config_no_devices">Nie znaleziono sparowanych urządzeń Bluetooth. Najpierw sparuj Bluetooth samochodu w ustawieniach systemowych.</string>
     <string name="bt_config_save">Zapisz</string>
@@ -492,7 +492,7 @@
     <string name="settings_contact">Kontakt</string>
     <string name="settings_send_diagnostics">Zgłoś problem</string>
     <string name="settings_send_diagnostics_confirm_title">Wysłać diagnostykę?</string>
-    <string name="settings_send_diagnostics_confirm_message">Zostanie wysłany najnowszy dziennik techniczny Paparcar z tego urządzenia. Zawiera przybliżone lokalizacje ostatnich przejazdów i parkowań; używamy go wyłącznie do zbadania problemu.</string>
+    <string name="settings_send_diagnostics_confirm_message">Zostanie wysłany najnowszy dziennik techniczny paparcar z tego urządzenia. Zawiera przybliżone lokalizacje ostatnich przejazdów i parkowań; używamy go wyłącznie do zbadania problemu.</string>
     <string name="settings_send_diagnostics_confirm_action">Wyślij</string>
     <string name="settings_send_diagnostics_sent">Diagnostyka wysłana. Dziękujemy, zajmiemy się tym.</string>
     <string name="settings_send_diagnostics_error">Nie udało się wysłać diagnostyki. Sprawdź połączenie i spróbuj ponownie.</string>
@@ -516,7 +516,7 @@
 
     <!-- VehicleStatsRow inline cards -->
     <!-- Auth screens -->
-    <string name="brand_name">Paparcar</string>
+    <string name="brand_name">paparcar</string>
     <string name="auth_header_tagline">Znajdź swoje miejsce, podziel się przestrzenią</string>
     <string name="auth_field_email">E-mail</string>
     <string name="auth_field_password">Hasło</string>
@@ -581,13 +581,13 @@
     <string name="home_peek_spot_en_route">%1$d w drodze</string>
     <string name="home_peek_spot_size_unknown">Rozmiar nieokreślony</string>
     <string name="home_report_size_section">Rozmiar miejsca (opcjonalnie)</string>
-    <string name="permissions_bg_guide_body">Na następnym ekranie:\n\n1. Dotknij «Lokalizacja»\n2. Wybierz «Zezwalaj zawsze»\n3. Naciśnij Wstecz, aby wrócić do Paparcar</string>
+    <string name="permissions_bg_guide_body">Na następnym ekranie:\n\n1. Dotknij «Lokalizacja»\n2. Wybierz «Zezwalaj zawsze»\n3. Naciśnij Wstecz, aby wrócić do paparcar</string>
     <string name="permissions_perm_precise">Dokładność lokalizacji</string>
     <string name="permissions_perm_precise_desc">Potrzebna, żeby zapisać parkowanie w konkretnym miejscu, a nie w okolicy</string>
-    <string name="permissions_perm_precise_desc_ios">Twoja lokalizacja jest przybliżona, więc Paparcar nie wie, na którym miejscu stoisz. Włącz «Dokładną lokalizację» w Ustawieniach → Paparcar → Lokalizacja.</string>
-    <string name="permissions_bg_guide_body_ios">Wybierz «Zawsze», żeby Paparcar wykrywał parkowanie przy zamkniętej aplikacji.
+    <string name="permissions_perm_precise_desc_ios">Twoja lokalizacja jest przybliżona, więc paparcar nie wie, na którym miejscu stoisz. Włącz «Dokładną lokalizację» w Ustawieniach → paparcar → Lokalizacja.</string>
+    <string name="permissions_bg_guide_body_ios">Wybierz «Zawsze», żeby paparcar wykrywał parkowanie przy zamkniętej aplikacji.
 
-Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → Lokalizacja → Zawsze.</string>
+Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → paparcar → Lokalizacja → Zawsze.</string>
     <string name="permissions_perm_location_services_desc_ios">Bez nich żadna aplikacja Cię nie zlokalizuje. Włącz je w Ustawieniach → Prywatność i ochrona → Usługi lokalizacji.</string>
     <string name="permissions_bg_guide_cta">Otwórz ustawienia</string>
     <string name="permissions_bg_guide_dismiss">Nie teraz</string>
@@ -607,13 +607,13 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <string name="home_det_novehicle_sub">Parkuj i zwalniaj miejsca bez wysiłku</string>
     <string name="home_det_novehicle_cta">Dodaj</string>
     <string name="home_det_core_title">Włącz lokalizację</string>
-    <string name="home_det_core_sub">Paparcar bez niej nie działa</string>
+    <string name="home_det_core_sub">paparcar bez niej nie działa</string>
     <string name="home_det_core_cta">Włącz</string>
     <string name="home_location_off_pill">Brak lokalizacji</string>
     <string name="home_det_producer_title">Włącz wykrywanie</string>
     <string name="home_det_producer_sub">Pamięta, gdzie parkujesz, i zwalnia miejsce</string>
     <string name="home_det_producer_cta">Włącz</string>
-    <string name="home_det_pitch_title">To, co najlepsze w Paparcar</string>
+    <string name="home_det_pitch_title">To, co najlepsze w paparcar</string>
     <string name="home_det_pitch_body">Automatyczne wykrywanie pamięta za Ciebie, gdzie zaparkowałeś — a gdy odjeżdżasz, miejsce zwalnia się dla kogoś innego. Włącz je teraz i zapomnij o sprawie.</string>
     <string name="home_det_enabled_confirm">Automatyczne wykrywanie włączone</string>
     <!-- DET-TOGGLE-002: in-app snackbar when detection drops to a stopped state -->
@@ -670,9 +670,9 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <string name="vehicle_color_yellow">Żółty</string>
     <string name="vehicle_color_gold">Złoty</string>
     <string name="vehicle_color_brown">Brązowy</string>
-    <string name="permissions_reliability_reduced_callout">Telefony takie jak twój ograniczają aplikacje w tle, aby oszczędzać baterię. Przez to Paparcar może nie zauważyć, kiedy odjeżdżasz. Zezwól poniżej na działanie w tle — albo sparuj Bluetooth swojego auta, najbardziej niezawodną opcję.</string>
+    <string name="permissions_reliability_reduced_callout">Telefony takie jak twój ograniczają aplikacje w tle, aby oszczędzać baterię. Przez to paparcar może nie zauważyć, kiedy odjeżdżasz. Zezwól poniżej na działanie w tle — albo sparuj Bluetooth swojego auta, najbardziej niezawodną opcję.</string>
     <string name="settings_detection_reliability_reduced">Twój telefon może ograniczać wykrywanie</string>
-    <string name="settings_detection_reliability_reduced_desc">Twój telefon ogranicza aplikacje w tle — Paparcar może przegapić moment, w którym zwalniasz miejsce</string>
+    <string name="settings_detection_reliability_reduced_desc">Twój telefon ogranicza aplikacje w tle — paparcar może przegapić moment, w którym zwalniasz miejsce</string>
     <plurals name="history_activity_noun">
         <item quantity="one">parking</item>
         <item quantity="few">parkingi</item>
@@ -744,7 +744,7 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <string name="first_steps_how_it_works">Jak to działa</string>
     <string name="first_steps_done_cta">Gotowe</string>
     <string name="first_steps_complete_title">Wszystko gotowe</string>
-    <string name="first_steps_complete_sub">Wiesz już, jak działa Paparcar. Teraz po prostu jedź.</string>
+    <string name="first_steps_complete_sub">Wiesz już, jak działa paparcar. Teraz po prostu jedź.</string>
     <string name="first_steps_not_yet">Jeszcze nie</string>
     <string name="first_steps_fortify_bt_title">Połącz Bluetooth swojego auta</string>
     <string name="first_steps_fortify_bt_sub">Wybierz je spośród urządzeń już sparowanych z telefonem. Wtedy czuwanie nie zależy od tego, czy telefon nie zaśnie.</string>
@@ -752,15 +752,15 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <string name="first_steps_fortify_battery_sub">Telefon może zatrzymać czuwanie, by oszczędzać baterię. Pozwól mu działać, a twoje miejsce zwolni się nawet po godzinach.</string>
     <string name="first_steps_fortify_done_title">Twoje czuwanie jest solidne</string>
     <string name="first_steps_fortify_done_sub">Nie ma już nic do ustawienia: gdy odjeżdżasz, twoje miejsce zwalnia się samo.</string>
-    <string name="first_steps_deferred_title">Wiesz już, jak działa Paparcar</string>
+    <string name="first_steps_deferred_title">Wiesz już, jak działa paparcar</string>
     <string name="first_steps_deferred_sub">To, co zostawiłeś na później, wciąż tam jest — karta wykrywania na tym ekranie poprosi o to, kiedy zechcesz.</string>
     <string name="first_steps_park_title">Zaznacz, gdzie zostawiłeś samochód</string>
-    <string name="first_steps_park_sub">Przeciągnij mapę do swojego samochodu i potwierdź. To właśnie pilnuje Paparcar.</string>
+    <string name="first_steps_park_sub">Przeciągnij mapę do swojego samochodu i potwierdź. To właśnie pilnuje paparcar.</string>
     <string name="first_steps_park_cta">Zaznacz parkowanie</string>
-    <string name="first_steps_watch_title">Niech Paparcar go pilnuje</string>
+    <string name="first_steps_watch_title">Niech paparcar go pilnuje</string>
     <string name="first_steps_watch_sub">Kiedy samochód stoi zaparkowany, aplikacja go pilnuje. Gdy odjeżdżasz, twoje parkowanie zwalnia miejsce dla innego kierowcy — albo kończysz je sam przez 'Odjeżdżam'.</string>
-    <string name="first_steps_watch_on_title">Pozwól, aby Paparcar pamiętał za Ciebie, gdzie parkujesz</string>
-    <string name="first_steps_watch_on_sub">Z włączonym wykrywaniem Paparcar pamięta, gdzie zaparkowałeś — a gdy odjeżdżasz, miejsce, które zostawiasz, trafia do kogoś, kto go szuka, tak jak Ty.</string>
+    <string name="first_steps_watch_on_title">Pozwól, aby paparcar pamiętał za Ciebie, gdzie parkujesz</string>
+    <string name="first_steps_watch_on_sub">Z włączonym wykrywaniem paparcar pamięta, gdzie zaparkowałeś — a gdy odjeżdżasz, miejsce, które zostawiasz, trafia do kogoś, kto go szuka, tak jak Ty.</string>
     <string name="first_steps_spot_title">Znajdź wolne miejsce w pobliżu</string>
     <string name="first_steps_spot_sub">Miejsca zwolnione przez innych widać na mapie. Otwórz listę i wybierz jedno.</string>
     <string name="first_steps_spot_cta">Zobacz miejsca</string>
@@ -774,12 +774,12 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <string name="first_steps_explain_park_title">Zaznacz, gdzie zostawiłeś samochód</string>
     <string name="first_steps_explain_park_body">To otwiera twoje parkowanie: aplikacja zapamiętuje miejsce i zaczyna go pilnować. Ręcznie robisz to tylko za pierwszym razem.</string>
     <string name="first_steps_explain_park_way_title">Od tej chwili samochód to nasza sprawa</string>
-    <string name="first_steps_explain_park_way_body">Nie musisz pamiętać ulicy, numeru ani piętra. Otwierasz Paparcar i już tam jest.</string>
+    <string name="first_steps_explain_park_way_body">Nie musisz pamiętać ulicy, numeru ani piętra. Otwierasz paparcar i już tam jest.</string>
     <string name="first_steps_explain_park_note">Bez otwartego parkowania nie ma czego pilnować ani co zwalniać: miejsce, które dostaje inny kierowca, to to, które zostawiasz.</string>
     <string name="first_steps_explain_watch_title">Kiedy odjedziesz, twoje miejsce zwolni się dla kogoś innego</string>
     <string name="first_steps_explain_watch_body">Twoje parkowanie zamienia się w wolne miejsce dla społeczności: ktoś parkuje tam, gdzie stałeś, zamiast krążyć. Dzieje się to na dwa sposoby.</string>
     <string name="first_steps_explain_watch_auto_title">Samo</string>
-    <string name="first_steps_explain_watch_auto_body">Paparcar zauważa, że odjechałeś, i zgłasza miejsce za ciebie, bez twojego udziału.</string>
+    <string name="first_steps_explain_watch_auto_body">paparcar zauważa, że odjechałeś, i zgłasza miejsce za ciebie, bez twojego udziału.</string>
     <string name="first_steps_explain_watch_manual_title">Albo mówisz to ty</string>
     <string name="first_steps_explain_watch_manual_body">Naciskasz 'Odjeżdżam' przy swoim parkowaniu i zamykasz je sam, kiedy chcesz.</string>
     <string name="first_steps_explain_watch_note">Zamknięcie parkowania do niczego cię nie zobowiązuje: 'Tylko zwolnij' kończy je, nie mówiąc nikomu.</string>
@@ -804,8 +804,8 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
         <item quantity="other">Masz %1$d wcześniejszego parkingu</item>
     </plurals>
     <string name="history_plus_footer_cta">Zobacz wszystko z Plus</string>
-    <string name="paywall_title">Paparcar Plus</string>
-    <string name="paywall_tagline">Paparcar czuwa za ciebie i pamięta wszystko</string>
+    <string name="paywall_title">paparcar Plus</string>
+    <string name="paywall_tagline">paparcar czuwa za ciebie i pamięta wszystko</string>
     <string name="paywall_benefits_title">Co daje Plus</string>
     <string name="paywall_benefit_history">Cała Twoja historia: wydatki, czas, prognozy oraz najlepsze lokalizacje i godziny</string>
     <string name="paywall_benefit_history_note">Za darmo: ostatnie 7 dni</string>
@@ -841,7 +841,7 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <string name="paywall_redeem_code">Mam kod</string>
     <string name="paywall_restore_none">Nie znaleziono subskrypcji na tym koncie Google.</string>
     <string name="paywall_purchase_failed">Zakup nie doszedł do skutku — nic nie zostało pobrane.</string>
-    <string name="settings_plus_title">Paparcar Plus</string>
+    <string name="settings_plus_title">paparcar Plus</string>
     <string name="settings_plus_subtitle_free">Pełna historia i alerty stref</string>
     <string name="settings_plus_subtitle_active">Pełna historia i alerty stref, aktywne</string>
     <string name="settings_plus_badge_active">AKTYWNY</string>
@@ -872,13 +872,13 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <string name="notif_action_ack">Rozumiem</string>
     <string name="notif_action_cancel_save">Nie, anuluj</string>
     <string name="notif_confirmation_failed_title">Parkowanie nie zostało zapisane</string>
-    <string name="notif_confirmation_failed_text">Nie udało się zapisać parkowania. Otwórz Paparcar, aby spróbować ponownie.</string>
+    <string name="notif_confirmation_failed_text">Nie udało się zapisać parkowania. Otwórz paparcar, aby spróbować ponownie.</string>
     <string name="notif_still_parked_title">Nadal tu zaparkowany?</string>
     <string name="notif_still_parked_text">Wygląda na to, że jesteś daleko, ale to parkowanie jest wciąż otwarte. Powiedz nam, czy już odjechałeś, albo zaznacz, gdzie teraz stoi auto.</string>
     <string name="notif_action_ive_left">Już wyjechałem</string>
     <string name="notif_action_mark_parking">Zaznacz parkowanie</string>
     <string name="notif_car_link_title">Czy ta podróż odbyła się w %1$s?</string>
-    <string name="notif_car_link_text">Jeśli to Twój samochód, powiąż go, a Paparcar od teraz sam oznaczy Twoje parkowanie.</string>
+    <string name="notif_car_link_text">Jeśli to Twój samochód, powiąż go, a paparcar od teraz sam oznaczy Twoje parkowanie.</string>
     <string name="notif_car_link_device_fallback">tym samochodzie</string>
     <string name="notif_action_link_yes">Tak, to mój samochód</string>
     <string name="notif_action_link_no">Nie</string>
@@ -1102,7 +1102,7 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <string name="first_steps_pointing_up">Spójrz na górę mapy — właśnie to wskazuję.</string>
     <string name="first_steps_zone_no_garage">Nie mam garażu</string>
     <string name="first_steps_explain_zone_title">Twój garaż to nie wolne miejsce</string>
-    <string name="first_steps_explain_zone_body">Gdy odjeżdżasz, Paparcar zwalnia twoje miejsce dla kogoś innego. W prywatnym garażu (dom, praca) nikt inny nie może z niego skorzystać.</string>
+    <string name="first_steps_explain_zone_body">Gdy odjeżdżasz, paparcar zwalnia twoje miejsce dla kogoś innego. W prywatnym garażu (dom, praca) nikt inny nie może z niego skorzystać.</string>
     <string name="first_steps_explain_zone_way_title">Dodaj strefę prywatną</string>
     <string name="first_steps_explain_zone_way_body">Umieść strefę nad garażem i włącz «Strefa prywatna». Parkowania w jej obrębie nie są publikowane po wyjeździe.</string>
     <string name="first_steps_explain_zone_note">Dotyczy parkowań oznaczonych po jej utworzeniu. Nie masz prywatnego garażu? Odpowiedz «Nie mam garażu» i krok jest zrobiony.</string>

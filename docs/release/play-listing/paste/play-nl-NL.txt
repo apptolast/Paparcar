@@ -3,22 +3,22 @@ FICHA DE PLAY STORE — nl-NL
 GENERADO por tools/make_paste.py desde LISTING-v1.4.0.md — no editar a mano.
 
 --- 1. NOMBRE DE LA APLICACION (28/30) ---
-Paparcar: waar staat je auto
+paparcar: waar staat je auto
 
 --- 2. DESCRIPCION BREVE (68/80) ---
-Waar heb je geparkeerd? Paparcar onthoudt het. Met brandstofprijzen.
+Waar heb je geparkeerd? paparcar onthoudt het. Met brandstofprijzen.
 
 --- 3. DESCRIPCION COMPLETA (3972/4000) ---
 Waar heb je geparkeerd?
 
-Paparcar onthoudt het voor je.
+paparcar onthoudt het voor je.
 
-Parkeer, stap uit en ga verder met je dag. Paparcar slaat automatisch op waar je de auto hebt achtergelaten: zonder de app te openen, zonder speld en zonder adres. Als je terugkomt, weet je waar hij staat en hoe lang al.
+Parkeer, stap uit en ga verder met je dag. paparcar slaat automatisch op waar je de auto hebt achtergelaten: zonder de app te openen, zonder speld en zonder adres. Als je terugkomt, weet je waar hij staat en hoe lang al.
 
-Als je wegrijdt, kan de plek die je achterlaat worden gepubliceerd voor de bestuurders in de buurt. En jij ziet de plekken die anderen net hebben vrijgemaakt. Hoe meer bestuurders Paparcar in jouw stad gebruiken, hoe meer plekken verschijnen.
+Als je wegrijdt, kan de plek die je achterlaat worden gepubliceerd voor de bestuurders in de buurt. En jij ziet de plekken die anderen net hebben vrijgemaakt. Hoe meer bestuurders paparcar in jouw stad gebruiken, hoe meer plekken verschijnen.
 
 ZO WERKT HET
-1. Je parkeert. Paparcar merkt het en slaat de plek op. Zonder Bluetooth markeer je de eerste met de hand.
+1. Je parkeert. paparcar merkt het en slaat de plek op. Zonder Bluetooth markeer je de eerste met de hand.
 2. Je rijdt weg. De app merkt het.
 3. Jouw plek wordt gepubliceerd voor de bestuurders in de buurt, waar het past.
 
@@ -33,7 +33,7 @@ VRIJE PLEKKEN IN REALTIME
 • De plekken die anderen net hebben vrijgemaakt, op de kaart.
 • Wanneer elke plek vrijkwam: twee minuten geleden is niet twintig.
 • Hoeveel bestuurders er al heen rijden.
-• Of jouw auto past: Paparcar vergelijkt de ruimte met die van jou.
+• Of jouw auto past: paparcar vergelijkt de ruimte met die van jou.
 • Zie je in het voorbijgaan een vrije plek? Meld hem in twee tikken.
 
 TANKSTATIONS EN PARKEERGARAGES, OP DEZELFDE KAART
@@ -55,9 +55,9 @@ JOUW CIJFERS
 • Je routes worden alleen gedeeld als jij dat zegt.
 
 AUTOMATISCHE DETECTIE
-Maakt je auto via Bluetooth verbinding met je telefoon, dan helpt het verbreken te merken dat je klaar bent met parkeren. Zonder Bluetooth gebruikt Paparcar beweging en locatie.
+Maakt je auto via Bluetooth verbinding met je telefoon, dan helpt het verbreken te merken dat je klaar bent met parkeren. Zonder Bluetooth gebruikt paparcar beweging en locatie.
 
-Paparcar wil niet gokken. Als het niet zeker weet wat er is gebeurd, vraagt het het je voordat er een plek wordt gepubliceerd.
+paparcar wil niet gokken. Als het niet zeker weet wat er is gebeurd, vraagt het het je voordat er een plek wordt gepubliceerd.
 
 PAPARCAR PLUS
 Gratis vraag jij, en de app antwoordt. Met Plus waakt de app terwijl jij niet kijkt:
@@ -68,7 +68,7 @@ Gratis vraag jij, en de app antwoordt. Met Plus waakt de app terwijl jij niet ki
 • Een gedeelde auto aanmaken. Meedoen is altijd gratis.
 
 PRIVACY
-• Privézones: markeer plekken zoals je huis, dan publiceert Paparcar daar geen plek.
+• Privézones: markeer plekken zoals je huis, dan publiceert paparcar daar geen plek.
 • Je kenteken verlaat nooit je telefoon.
 • Merk en model verschijnen alleen op de plek die je vrijmaakt als je dat aanzet.
 • Je locatie wordt nooit verkocht of voor advertenties gebruikt.
@@ -77,9 +77,9 @@ PRIVACY
 
 LOCATIE OP DE ACHTERGROND
 
-Paparcar gebruikt locatiegegevens ook wanneer de app gesloten is of niet wordt gebruikt, om te detecteren waar je parkeert en om je plek vrij te geven als je wegrijdt.
+paparcar gebruikt locatiegegevens ook wanneer de app gesloten is of niet wordt gebruikt, om te detecteren waar je parkeert en om je plek vrij te geven als je wegrijdt.
 
-Automatische detectie heeft deze toestemming nodig. Zonder werkt Paparcar gewoon, maar moet je je parkeerbeurten met de hand markeren en vrijgeven.
+Automatische detectie heeft deze toestemming nodig. Zonder werkt paparcar gewoon, maar moet je je parkeerbeurten met de hand markeren en vrijgeven.
 
 Privacybeleid:
 https://paparcar.com/privacy-policy

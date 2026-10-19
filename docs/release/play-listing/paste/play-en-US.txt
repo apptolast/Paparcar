@@ -3,22 +3,22 @@ FICHA DE PLAY STORE — en-US
 GENERADO por tools/make_paste.py desde LISTING-v1.4.0.md — no editar a mano.
 
 --- 1. NOMBRE DE LA APLICACION (28/30) ---
-Paparcar: where did you park
+paparcar: where did you park
 
 --- 2. DESCRIPCION BREVE (72/80) ---
-Where did you park? Paparcar remembers — plus fuel prices and car parks.
+Where did you park? paparcar remembers — plus fuel prices and car parks.
 
 --- 3. DESCRIPCION COMPLETA (3798/4000) ---
 Where did you park?
 
-Paparcar remembers for you.
+paparcar remembers for you.
 
-Park, get out and get on with your day. Paparcar saves where you left the car automatically: without opening the app, dropping a pin or typing an address. When you come back, you know where it is and how long it has been there.
+Park, get out and get on with your day. paparcar saves where you left the car automatically: without opening the app, dropping a pin or typing an address. When you come back, you know where it is and how long it has been there.
 
-When you drive off, the spot you leave can be published for the drivers nearby. And you can see the spots others have just left. The more drivers using Paparcar in your city, the more spots appear on the map.
+When you drive off, the spot you leave can be published for the drivers nearby. And you can see the spots others have just left. The more drivers using paparcar in your city, the more spots appear on the map.
 
 HOW IT WORKS
-1. You park. Paparcar detects it and saves the place. With no Bluetooth, you mark the first parking by hand.
+1. You park. paparcar detects it and saves the place. With no Bluetooth, you mark the first parking by hand.
 2. You drive off. The app detects it.
 3. Your spot is published for the drivers nearby, when appropriate.
 
@@ -33,7 +33,7 @@ PARKING SPOTS IN REAL TIME
 • The spots other drivers have just left, on the map.
 • When each one was freed: two minutes ago is not twenty.
 • How many drivers are already heading there.
-• Whether your car fits: Paparcar compares the space against yours.
+• Whether your car fits: paparcar compares the space against yours.
 • See a free spot as you walk past? Report it in two taps.
 
 FUEL AND CAR PARKS, ON THE SAME MAP
@@ -55,9 +55,9 @@ ONE CAR, SEVERAL DRIVERS
 • Your routes are shared only if you say so.
 
 AUTOMATIC DETECTION
-If your car connects to your phone by Bluetooth, the disconnection helps detect that you have finished parking. If it has no Bluetooth, Paparcar uses motion and location instead.
+If your car connects to your phone by Bluetooth, the disconnection helps detect that you have finished parking. If it has no Bluetooth, paparcar uses motion and location instead.
 
-Paparcar does not want to guess. When it is not sure what happened, it asks you before publishing a spot.
+paparcar does not want to guess. When it is not sure what happened, it asks you before publishing a spot.
 
 PAPARCAR PLUS
 Free, you ask and the app answers. With Plus, the app watches while you are not looking:
@@ -68,7 +68,7 @@ Free, you ask and the app answers. With Plus, the app watches while you are not 
 • Creating a shared car. Joining one is always free.
 
 PRIVACY
-• Private zones: mark places like your home and Paparcar will not publish a spot there when you leave.
+• Private zones: mark places like your home and paparcar will not publish a spot there when you leave.
 • Your license plate never leaves your phone.
 • Your car's brand and model only appear on the spot you free if you turn that on.
 • Your location is never sold or used for advertising.
@@ -77,9 +77,9 @@ PRIVACY
 
 LOCATION IN THE BACKGROUND
 
-Paparcar uses location data even when the app is closed or not in use, in order to detect where you park and to free your spot when you drive away.
+paparcar uses location data even when the app is closed or not in use, in order to detect where you park and to free your spot when you drive away.
 
-Automatic detection needs this permission. Without it, Paparcar still works, but you will have to mark and free your parkings manually.
+Automatic detection needs this permission. Without it, paparcar still works, but you will have to mark and free your parkings manually.
 
 Privacy policy:
 https://paparcar.com/privacy-policy
