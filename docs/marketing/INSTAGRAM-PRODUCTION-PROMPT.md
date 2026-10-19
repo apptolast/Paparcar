@@ -9,17 +9,19 @@
 > posicionamiento, es un error de redacción de este fichero, no una puerta abierta.
 >
 > Escrito el **2026-10-13**, **revisado el 2026-10-14** — §8 reparte PROD/DEMO · P8 reescrita con los
-> precios medidos, en diésel · §13 rellena lo que ya tiene fuente · **el mercado es España y El Puerto
-> es el estudio** (§4.2) · **el eje de Plus corregido** con `FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001` —
-> contra master `3ad13cc72` (app 1.4.0 vc 15).
+> precios medidos, en diésel · **el mercado es España y El Puerto es el estudio** (§4.2) · **el eje de
+> Plus corregido** con `FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001`.
+> **Segunda revisión del 2026-10-19**: **§13.3 lleva ya las cinco medidas reales**, leídas de la
+> pantalla; **§13.4 nueva** — los datos **no sostienen el titular previsto** y dicen hacia dónde
+> girarlo; el mundo DEMO ya no es Dublín sino **Madrid**
+> [MOCK-THE-DEMO-WORLD-MOVES-TO-SPAIN-001]. Contra master `ad1a898bc` (app 1.5.0 vc 16).
 > Si la app cambia de versión o de funciones, **se actualiza el §2 del prompt** (los hechos
 > verificados) antes de volver a usarlo. Un prompt que promete la versión anterior es el mismo
 > defecto que [PLAY-A-LISTING-MUST-MATCH-THE-BUILD-IN-PRODUCTION-001] arregló en la ficha.
 >
-> **Se puede pegar tal cual.** El §13 ya lleva los precios medidos y las decisiones de territorio, y
-> lo que falta está nombrado **como pendiente dentro del prompt**, así que Claude Web produce con el
-> hueco puesto en vez de inventar. Lo que bloquea *publicar* —no producir— es rellenar lo que queda:
-> **`ZONA`** y **las cinco medidas que salen del móvil**.
+> **Se puede pegar tal cual.** El §13 lleva los precios medidos, las decisiones de territorio y las
+> cinco medidas reales. **Queda un solo hueco, `⟨ZONA⟩`**, nombrado como pendiente dentro del prompt
+> para que Claude Web produzca con él puesto en vez de inventarlo.
 
 ---
 
@@ -386,7 +388,7 @@ producción que sale impreso y no se puede arreglar después:
 | Origen | Qué es | Cuándo vale |
 |---|---|---|
 | **PROD** | la app real en el móvil del autor, con sus datos: sus cifras, su calle, los precios de hoy, un parking que existe | **siempre que el CONTENIDO de la pantalla sea el mensaje** |
-| **DEMO** | la app con un mundo de demostración: ciudad extranjera y datos fabricados | **sólo cuando el mensaje es el MECANISMO**, y nunca si se lee un nombre de calle |
+| **DEMO** | la app con el mundo de demostración: **Madrid** (Malasaña, desde el 14-10) y **cifras fabricadas** | **sólo cuando el mensaje es el MECANISMO**. La calle ya es española, así que lo que sigue prohibido es usar sus **números** |
 
 Reparto fijo, ya decidido — **no lo cambies**:
   · **PROD obligatorio**: **P2** y **P5** (sus cifras), **P4** (un parking real con su gálibo),
@@ -703,20 +705,48 @@ tres abiertas **L-D 24 H**:
     7 días. El parte mensual es otra pieza y llega cuando el mes cierre.
   · **Handle de la cuenta = `@paparcar_oficial`** (existe, con `paparcar.com/descargar` en la bio).
 
-### 13.3 · Pendientes de una lectura en el móvil del autor
+### 13.3 · Medidas reales, leídas de la pantalla el 14-10-2026 (periodo: últimos 7 días)
 
-Las cinco salen de la **misma pantalla**, en el periodo de 7 días. Hasta que lleguen, **las piezas
-P2 y P5 se producen con el hueco puesto**, maquetadas y listas para recibir el número:
+Copiadas de la pantalla «Tus cifras» de la app, no calculadas por nadie:
 
-  · **⟨MIN_BUSQUEDA⟩** — minutos medidos buscando sitio.
-  · **⟨N_VIAJES⟩** — la cobertura: «N de M viajes». Va siempre pegado al minuto; una suma sin su
-    cobertura no es una medición.
-  · **⟨HORA_PEOR⟩** y **⟨DIA_PEOR⟩** — la hora punta y el día habitual.
-  · **⟨SITIO⟩** — el sitio habitual.
+| Hueco | Valor | Cómo lo escribe la app |
+|---|---|---|
+| **⟨MIN_BUSQUEDA⟩** | **17 min** | buscando plaza |
+| **⟨N_VIAJES⟩** | **22 de 25 viajes** | la cobertura. **Va siempre pegada al minuto**: una suma sin su cobertura no es una medición |
+| **⟨HORA_PEOR⟩** | **16:00** | hora punta |
+| **⟨DIA_PEOR⟩** | **Domingo** | día habitual |
+| **⟨SITIO⟩** | **«Home»** | sitio habitual — 🔴 **NO PUBLICABLE**, ver abajo |
 
-⚠️ **Puede que alguno no exista, y es normal, no un fallo**: la app no compone una cifra sin muestra
-suficiente. Si un hueco vuelve vacío, **la lámina que lo llevaba se cae** y la pieza se publica más
-corta. Nunca se ensancha el periodo en silencio para que salga un número.
+Del mismo panel, por si una lámina las necesita: gasto **12,07 €** · combustible **6,2 L** · CO₂
+**16,7 kg** (las tres, 24 de 25 viajes) · duración media **6 h 39 min** · **25 aparcamientos** ·
+**127,5 km** · detectados solos **100 %** (24 de 24) · plazas cedidas **10** (+43 %) ·
+*desde siempre: 193 aparcamientos y 78 plazas cedidas a otro conductor*.
+
+🔴 **⟨SITIO⟩ no se publica.** «Home» es una **zona privada** del autor —confirmado en pantalla: el
+chip lleva el candado—, así que ese nombre es su casa. Lo mismo vale para «Work», el otro sitio de
+la tarjeta. Si una lámina necesita un sitio, **se cae la lámina**.
+
+### 13.4 · 🔴 LEE ESTO ANTES DE ESCRIBIR EL TITULAR DE P2 Y P5
+
+Con esas cifras delante, **el gancho previsto no se sostiene, y hay que decirlo en vez de maquillarlo**:
+
+- 17 min en **siete días** sobre 22 viajes son **≈46 segundos por viaje**.
+- En «Home» la media es **1 min**; en «Work», **0 min**.
+- Y lo que la app concluye sola, literal: *«Martes de 20–24: **aparcas en 0 min**»* · *«Lunes de 4–8:
+  **tardas 0 min** en aparcar»*.
+- La rejilla «Cuándo aparcas» sólo tiene **4 celdas con dato de 42**, y su celda más intensa es
+  justamente esa de 0 min: la escala es relativa y su máximo es casi cero.
+
+**Este conductor aparca sin dificultad. No hay hora imposible ni vueltas que enseñar.** Una pieza que
+diga «mira lo que cuesta aparcar» con 17 minutos a la semana se desmonta sola en el primer comentario.
+
+✅ **Gira el titular hacia lo que sí es extraordinario en estos datos**:
+**100 % detectados solos** (24 de 24 viajes) y **78 plazas cedidas a otro conductor** desde siempre,
+10 de ellas esta semana. Son cifras que se sostienen solas y que además cuentan lo que el producto
+hace de verdad. El minuto de búsqueda queda como **dato de apoyo**, no como titular.
+
+⚠️ Y la regla general sigue en pie: **si un hueco vuelve vacío, la lámina que lo llevaba se cae** y
+la pieza se publica más corta. Nunca se ensancha el periodo en silencio para que salga un número.
 
 ═══════════════════════════════════════════════════════════════════════════════
 END PROMPT
@@ -768,11 +798,17 @@ tiene todavía un mes completo de datos válidos — espera a que octubre cierre
 ### El origen de las capturas, que no es lo que parecía
 
 ⛔⛔ **El pipeline de capturas del repo (`docs/release/play-listing/tools/shoot.sh`, presets
-`--es shot <preset>`) es del flavor MOCK y sólo de él**: `ShotPresets` vive en `:mockkit`, y el mundo
-de demostración es Dublín. Es decir: **no puede producir una pantalla con las cifras reales del autor
-ni con una calle del estudio.** Por eso el §8 del prompt reparte PROD/DEMO pieza a pieza —
-una pieza con titular real y pantalla fabricada se contradice a sí misma, y encima en una campaña
-cuya premisa entera es ser del barrio del espectador.
+`--es shot <preset>`) es del flavor MOCK y sólo de él**: `ShotPresets` vive en `:mockkit`. Es decir:
+**no puede producir una pantalla con las cifras reales del autor.** Por eso el §8 del prompt reparte
+PROD/DEMO pieza a pieza — una pieza con titular real y pantalla fabricada se contradice a sí misma.
+
+✅ **La mitad geográfica de ese problema se cerró el 14-10**: el mundo de demostración ya es **Madrid**
+(Malasaña), con el pin anclado a su propia calle
+[MOCK-THE-DEMO-WORLD-MOVES-TO-SPAIN-001]. Lo que sigue en pie es lo otro, y es lo importante:
+**las cifras del mock son inventadas**, así que una pieza cuyo mensaje sea un NÚMERO sigue
+necesitando PROD. Lo que ya no hace falta es evitar el mock por la calle.
+⚠️ Y `-PmockAsProd` **también cambia el applicationId a prod**: el APK se instala como
+`com.rndeveloper.paparcar`, no como `…mock`. Nunca sobre el móvil de producción.
 
 Para las capturas **PROD** (P2, P4, P5, P8) hay que hacerlo a mano en el móvil de producción, con
 lista de limpieza antes de disparar: **zonas privadas fuera de plano, sin la dirección de casa, sin
