@@ -198,19 +198,28 @@ def prepare_social() -> None:
     card.paste(phone, (812, 96), mask)
     d.rounded_rectangle((812, 96, 812 + phone.width, 96 + ph), radius=46, outline=(59, 74, 94), width=3)
 
-    # ⛔ El EMBLEMA generado, no el icono de Play. Pegar `play-icon-512.png` aqui era pegar
+    # ⛔ El IMAGOTIPO generado, no el icono de Play. Pegar `play-icon-512.png` aqui era pegar
     # el icono de OTRA superficie —una baldosa OPACA— y es como la marca de 2022 siguio
     # viviendo dentro de este JPEG: ningun grep encuentra un logo dentro de una imagen.
-    # Lo genera `render_graphics.sh emblem` desde el maestro, con disco verde porque el fondo
-    # de esta tarjeta es tinta plana, igual que el del sitio.
-    emblem = ROOT / "docs/assets/paparcar-emblem-512.png"
-    if not emblem.is_file():
-        sys.exit(f"missing emblem: {emblem}\n  run: bash docs/release/play-listing/tools/"
-                 f"render_graphics.sh emblem")
-    logo = Image.open(emblem).convert("RGBA")
-    logo = logo.resize((84, 84), Image.LANCZOS)
-    card.paste(logo, (80, 74), logo)
-    d.text((182, 92), "Paparcar", font=_font(46, 800), fill=ON_DARK)
+    # Lo genera `render_graphics.sh lockup` desde el maestro, en su variante oscura porque
+    # el fondo de esta tarjeta es tinta plana, igual que el del sitio.
+    #
+    # ⛔ Y el nombre viaja DENTRO del PNG. Aqui habia un emblema sobre disco MAS un
+    # `d.text(..., "Paparcar", _font(46, 800))` al lado: la marca compuesta a mano, con un
+    # tamano de letra elegido en este fichero y que no coincidia con el de ninguna otra
+    # superficie. Ahora la palabra son contornos y no depende ni de que Jakarta cargue
+    # [BRAND-THE-MARK-GAINS-ITS-WORDMARK-001].
+    lockup = ROOT / "docs/assets/paparcar-imagotipo-1024.png"
+    if not lockup.is_file():
+        sys.exit(f"missing lockup: {lockup}\n  run: bash docs/release/play-listing/tools/"
+                 f"render_graphics.sh lockup")
+    logo = Image.open(lockup).convert("RGBA")
+    # El alto SALE de la relacion del PNG, no se declara: el imagotipo es 5,484:1 y
+    # redondear los dos lados por separado lo aplasta.
+    lw = 300
+    logo = logo.resize((lw, round(lw * logo.height / logo.width)), Image.LANCZOS)
+    # Centrado donde estaba el bloque anterior (y 74..158), para no mover la composicion.
+    card.paste(logo, (80, 116 - logo.height // 2), logo)
 
     d.text((80, 232), "¿Dónde aparcaste?", font=_font(62, 800), fill=ON_DARK)
     d.text((80, 308), "Paparcar lo recuerda", font=_font(62, 800), fill=NEON)

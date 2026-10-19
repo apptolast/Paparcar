@@ -604,7 +604,7 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="bt_config_cd_back">Back</string>
     <string name="vehicle_reg_cd_back">Back</string>
     <!-- Auth screens -->
-    <string name="auth_header_app_name">Paparcar</string>
+    <string name="brand_name">Paparcar</string>
     <string name="auth_header_tagline">Find your spot, share your space</string>
     <string name="auth_field_email">Email</string>
     <string name="auth_field_password">Password</string>

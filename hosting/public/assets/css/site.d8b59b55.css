@@ -243,9 +243,15 @@ button { font: inherit; color: inherit; }
   min-height: 68px;
 }
 
-.brand { display: inline-flex; align-items: center; gap: 0.6rem; }
-.brand__name { font-size: 1.2rem; font-weight: 800; letter-spacing: -0.015em; }
-.logo-mark { flex: none; }
+/* La marca del sitio es el IMAGOTIPO: un solo dibujo, simbolo y nombre dentro.
+   ⛔ Aqui habia tres reglas para dos piezas — `.brand` con su `gap`, `.brand__name`
+   (1.2rem/800, el nombre como TEXTO) y `.logo-mark` — porque la cabecera componia el
+   lockup a mano. Con una sola pieza no hay hueco que medir ni tipografia que elegir.
+   `height: auto` es obligatorio: el lockup es 5.484:1 y trae su viewBox generado;
+   fijarle los dos lados es como se aplasta un logo
+   [BRAND-THE-MARK-GAINS-ITS-WORDMARK-001]. */
+.brand { display: inline-flex; align-items: center; }
+.logo-lockup { flex: none; height: auto; }
 
 .nav { margin-inline: auto; }
 .nav__list { display: none; gap: 0.35rem; }

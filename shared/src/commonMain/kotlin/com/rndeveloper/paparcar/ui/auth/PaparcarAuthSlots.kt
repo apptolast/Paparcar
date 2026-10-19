@@ -26,8 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import com.rndeveloper.paparcar.ui.components.PapPrimaryButton
 import com.rndeveloper.paparcar.ui.components.PapProviderButton
-import com.rndeveloper.paparcar.ui.components.PAPARCAR_LOGO_BESIDE_NAME_SIZE
-import com.rndeveloper.paparcar.ui.components.PaparcarLogo
+import com.rndeveloper.paparcar.ui.components.PaparcarImagotipo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -79,7 +78,6 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.auth_cd_hide_password
 import paparcar.composeapp.generated.resources.auth_consent_accept
 import paparcar.composeapp.generated.resources.auth_consent_privacy_policy
-import paparcar.composeapp.generated.resources.auth_header_app_name
 import paparcar.composeapp.generated.resources.auth_cd_show_password
 import paparcar.composeapp.generated.resources.auth_field_confirm_password
 import paparcar.composeapp.generated.resources.auth_field_email
@@ -96,7 +94,6 @@ import paparcar.composeapp.generated.resources.auth_header_tagline
 private const val LEGAL_PRIVACY_POLICY_URL = "https://paparcar.com/privacy-policy"
 
 private val HEADER_TOP_SPACING = 4.dp
-private val HEADER_LOGO_TEXT_GAP = 14.dp
 private val HEADER_TITLE_TAGLINE_GAP = 4.dp
 private val HEADER_BOTTOM_SPACING = 8.dp
 private val FIELD_ICON_SIZE = 20.dp
@@ -287,45 +284,35 @@ private fun PaparcarAuthHeader() {
     ) {
         Spacer(modifier = Modifier.height(HEADER_TOP_SPACING))
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(HEADER_LOGO_TEXT_GAP),
-        ) {
-            // La marca, SIN fondo: se sostiene sola sobre cualquier soporte.
-            // ⛔ Aquí había un `Modifier.shadow(6.dp, CircleShape)`, herencia de cuando
-            // el logo llevaba disco. Sin disco hacía DOS destrozos a la vez, los dos
-            // visibles en el Motorola: pintaba una baldosa redonda fantasma —la sombra
-            // de un disco que ya no existe— y, como el `clip` de `shadow` vale
-            // `elevation > 0.dp` POR DEFECTO, RECORTABA la marca contra ese círculo.
-            // Y la marca es full bleed: toca los cuatro bordes de su caja, así que
-            // perdía la rueda izquierda por abajo y el lóbulo derecho por la derecha.
-            PaparcarLogo(
-                // Shared with the paywall's crest: same composition, one number.
-                // [UI-PAYWALL-THE-CREST-STANDS-BESIDE-ITS-NAME-001]
-                size = PAPARCAR_LOGO_BESIDE_NAME_SIZE,
-            )
+        // La marca, SIN fondo: se sostiene sola sobre cualquier soporte.
+        // ⛔ Aquí había un `Modifier.shadow(6.dp, CircleShape)`, herencia de cuando
+        // el logo llevaba disco. Sin disco hacía DOS destrozos a la vez, los dos
+        // visibles en el Motorola: pintaba una baldosa redonda fantasma —la sombra
+        // de un disco que ya no existe— y, como el `clip` de `shadow` vale
+        // `elevation > 0.dp` POR DEFECTO, RECORTABA la marca contra ese círculo.
+        // Y la marca es full bleed: toca los cuatro bordes de su caja, así que
+        // perdía la rueda izquierda por abajo y el lóbulo derecho por la derecha.
+        //
+        // ⛔ Y aquí había un `Row` de marca + `Text` con el nombre: el imagotipo
+        // compuesto a mano, uno de los seis que cada superficie se inventaba por su
+        // cuenta. Ahora el nombre va DENTRO del dibujo, así que la fila se queda sin
+        // segundo hijo y la composición es sencillamente una columna: imagotipo y,
+        // debajo, la frase que lo explica. [BRAND-THE-MARK-GAINS-ITS-WORDMARK-001]
+        //
+        // El nombre deja de ser texto y con él se va su decisión tipográfica: no hay
+        // `screenTitle` que elegir porque no hay nada que componer. El tagline
+        // conserva el suyo, que sí es prosa.
+        PaparcarImagotipo()
 
-            Column(horizontalAlignment = Alignment.Start) {
-                Text(
-                    text = stringResource(Res.string.auth_header_app_name),
-                    // App/brand name = a title → MARCA (screenTitle) via PaparcarType, not the raw
-                    // Material scale. [TYPO-AUDIT-001]
-                    style = PaparcarType.current.screenTitle,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Start,
-                )
+        Spacer(modifier = Modifier.height(HEADER_TITLE_TAGLINE_GAP))
 
-                Spacer(modifier = Modifier.height(HEADER_TITLE_TAGLINE_GAP))
-
-                Text(
-                    text = stringResource(Res.string.auth_header_tagline),
-                    // Tagline = prose → LECTURA (body) via PaparcarType. [TYPO-AUDIT-001]
-                    style = PaparcarType.current.body,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Start,
-                )
-            }
-        }
+        Text(
+            text = stringResource(Res.string.auth_header_tagline),
+            // Tagline = prose → LECTURA (body) via PaparcarType. [TYPO-AUDIT-001]
+            style = PaparcarType.current.body,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Start,
+        )
 
         Spacer(modifier = Modifier.height(HEADER_BOTTOM_SPACING))
     }

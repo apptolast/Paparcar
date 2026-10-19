@@ -510,7 +510,7 @@
 
     <!-- VehicleStatsRow inline cards -->
     <!-- Auth screens -->
-    <string name="auth_header_app_name">Paparcar</string>
+    <string name="brand_name">Paparcar</string>
     <string name="auth_header_tagline">Trova il tuo posto, condividi lo spazio</string>
     <string name="auth_field_email">Email</string>
     <string name="auth_field_password">Password</string>

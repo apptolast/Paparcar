@@ -23,13 +23,23 @@ Lo que NO se quita son los FONDOS de lienzo -el del icono adaptativo, el del
 apple-touch-icon, el 512 de Play-: esos no son el disco de la marca, son la
 baldosa que el sistema exige opaca.
 
-⛔ Y hay UNA excepcion, decidida por el user el 30-09: el grafico de funciones de
-Play (`feature.html`) SI lleva disco detras de la marca
-[PLAY-THE-BANNER-MARK-KEEPS-ITS-DISC-001]. Coherente con lo de arriba, no contra:
-su fraccion es 0.52896 -un emblema dentro de una composicion ajena, con el
-wordmark al lado-, mientras que en la app es F_MARK = 1.0, donde la marca ocupa lo
-que ocupaba el disco y por eso no lo necesita. Este script no lo toca: reescribe
-SOLO el grupo del glifo, y los dos <circle> del disco estan fuera de MARK_GROUP.
+⛔⛔ Y el disco ya no tiene NINGUNA excepcion: desde
+BRAND-THE-MARK-GAINS-ITS-WORDMARK-001 esta borrado del repo. Hubo dos, las dos del
+user -el banner de Play [PLAY-THE-BANNER-MARK-KEEPS-ITS-DISC-001] y la web
+[WEB-THE-MARK-WEARS-ITS-DISC-ON-THE-SITE-001]-, y las dos se sostenian sobre UNA
+razon medida: la marca a F_EMBLEM se quedaba en ~46 px al lado de un wordmark de 82
+y FLOTABA. El disco era la muleta de una composicion que nadie habia disenado.
+
+Ahora esa composicion existe y viene medida -el IMAGOTIPO: simbolo y palabra a
+1:5,8 con 14 u de canal-, asi que la razon desaparecio y con ella el disco. Sus
+tres consumidores (cabecera y pie de la web, banner, tarjeta social) eran
+exactamente las tres superficies que componian simbolo + texto a mano, y ahora
+las tres piden `lockup()`. Regla unica, sin excepciones que recordar:
+
+    la marca sola -> ISOTIPO, sin disco.  La marca diciendo su nombre -> IMAGOTIPO.
+
+⛔ La PALABRA no se dibuja aqui ni se puede derivar: es un entregable contorneado y
+vive en `wordmark.py`, su fuente unica. Este script la compone, nunca la escribe.
 
 ⛔ El verde no es uno, son dos, y la regla ya existia en el proyecto: sobre
 oscuro `PapGreen` #25F48C; sobre claro `PapGreenLight` #009F5E. Y no es gusto:
@@ -43,15 +53,22 @@ import re
 NL = chr(10)
 
 import build_marks
+import wordmark
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
 MARK = os.path.join(HERE, '..', 'mark', 'paparcar-mark-compas-b.svg')
+WORD = os.path.join(HERE, '..', 'mark', 'paparcar-wordmark.svg')
 
 GREEN = '#25F48C'          # PapGreen        — sobre oscuro
 GREEN_LIGHT = '#009F5E'    # PapGreenLight   — sobre claro (3,01:1)
 INK = '#0D1117'            # PapInk
 MOCK = '#DDD6FE'           # violeta del Dev Catalog
+# El casi-blanco de la PALABRA sobre oscuro. Viene del entregable y NO es un token
+# del proyecto: el mas cercano, `PapSurfaceLight` #F4F7FC, es una superficie azulada
+# con otro papel. El imagotipo es Nivel 3 -ilustracion- y Nivel 3 trae su color.
+# Medido: 17,60:1 sobre `PapInk`, el espejo del 18,99:1 que da la tinta sobre blanco.
+WORD_ON_DARK = '#F4F7F4'
 
 
 def paths():
@@ -73,6 +90,29 @@ def paths():
         '`python build_marks.py` antes de exportar.' % os.path.relpath(MARK, REPO))
     d = re.findall(r'<path d="([^"]+)"/>', svg)
     assert len(d) == 3, 'se esperaban 3 paths en %s' % MARK
+    return d
+
+
+def word_paths():
+    """Los ocho glifos de la PALABRA, en orden de lectura.
+
+    Mismo contrato que `paths()`, y por el mismo motivo: el SVG de `mark/` es
+    SALIDA y se comprueba contra lo que `wordmark.py` produce ahora mismo. Si
+    alguien lo edita a mano -o sustituye los glifos y no vuelve a correrlo- las seis
+    superficies del imagotipo saldrian con una palabra que ya no es la del maestro, y
+    ninguna fallaria al compilar.
+
+    `wordmark.check()` ademas mide la caja: el lienzo del lockup se calcula con
+    `WORD_W`, asi que una palabra mas ancha de lo declarado descentraria el
+    imagotipo en las seis a la vez.
+    """
+    wordmark.check()
+    svg = io.open(WORD, encoding='utf-8').read()
+    assert svg == wordmark.build(), (
+        '%s no coincide con wordmark.build(). El SVG es SALIDA: corre '
+        '`python wordmark.py` antes de exportar.' % os.path.relpath(WORD, REPO))
+    d = re.findall(r'<path d="([^"]+)"/>', svg)
+    assert len(d) == 8, 'se esperaban 8 glifos en %s' % WORD
     return d
 
 
@@ -176,45 +216,70 @@ F_MARK = 1.0
 F_NOTIF = 0.92
 
 
-# -- El emblema: la marca SOBRE un disco -------------------------------------
+# -- El IMAGOTIPO: la marca diciendo su nombre -------------------------------
 #
-# El caso contrario a F_MARK, y el criterio que los separa cabe en una linea:
-# *donde la marca llena su caja no hay disco; donde es un emblema dentro de una
-# composicion ajena -con un wordmark al lado- el soporte es legitimo*. Entonces el
-# tamano optico de la marca es una fraccion DEL DISCO, no del lienzo.
+# El caso contrario a F_MARK, y ahora el criterio cabe en una linea sin excepciones:
+# *la marca sola es el ISOTIPO; la marca con su palabra al lado es el IMAGOTIPO*.
+# Donde antes se componia simbolo + texto a mano -seis superficies, seis criterios,
+# la palabra con tres tratamientos tipograficos distintos- va este lockup.
 #
-# La fraccion no se elige aqui: es la que ya tenia el banner de Play, conservada a
-# proposito al cambiar de marca porque estaba calculada para vivir DENTRO del disco
-# [PLAY-THE-BANNER-MARK-KEEPS-ITS-DISC-001].
+# ⛔ Aqui vivia el EMBLEMA: la marca sobre un disco, con dos pinturas segun el fondo.
+# Esta borrado, y no por limpieza sino porque se quedo sin trabajo. Sus tres
+# consumidores -cabecera y pie de la web, banner de Play, tarjeta social- eran
+# exactamente las tres superficies que no tenian imagotipo que poner, y el disco era
+# la muleta de eso: la marca a 0,52896 se quedaba en ~46 px junto a un wordmark de 82
+# y flotaba. Con la composicion ya medida, no hay nada que apuntalar.
+# [BRAND-THE-MARK-GAINS-ITS-WORDMARK-001] retira las dos excepciones del user
+# [PLAY-THE-BANNER-MARK-KEEPS-ITS-DISC-001] [WEB-THE-MARK-WEARS-ITS-DISC-ON-THE-SITE-001].
 #
-# Desde WEB-THE-MARK-WEARS-ITS-DISC-ON-THE-SITE-001 tiene DOS consumidores: el
-# banner y la web (cabecera, pie, paginas legales y tarjeta social). Estaba escrito
-# a mano dentro de `feature.html`, y un dibujo de marca con dos definiciones es el
-# mismo agujero que este script existe para tapar. Ahora sale de aqui, y que el
-# banner salga byte-identico es la prueba de que no ha cambiado el dibujo.
-#
-# NO habilita discos en la app: alli la fraccion es F_MARK = 1.0, que es justo lo
-# contrario de este caso.
-EMBLEM_BOX = 108.0          # el lienzo del emblema, el que ya usaba el banner
-F_EMBLEM = 0.52896          # envolvente OPTICO de la marca sobre EMBLEM_BOX
-DISC_RING_OPACITY = '.28'   # el aro verde de PLAY-LISTING-001
-DISC_RING_WIDTH = 2
-DISC_RING_INSET = 1.5       # el aro se pinta DENTRO del borde, no a caballo de el
+# ⛔ Las TRES constantes estan MEDIDAS sobre el entregable del user
+# (`reference/paparcar-imagotipo-2026.svg`), no elegidas aqui. Y el lienzo NO se
+# declara: se DERIVA de ellas mas el maestro, que es lo que hace que mover un lobulo
+# en build_marks.py re-encuadre el imagotipo en las seis superficies a la vez.
+# La prueba de que el modelo reproduce el entregable es el ancho:
+#   9 + 45,43377 + 14,03723 + 262,20469 + 9 = 339,67569   contra 339.676 del fichero.
+BOX = 108.0                 # lienzo cuadrado de las baldosas y de los graficos de Play
+LOCKUP_PAD = 9.0            # aire alrededor del conjunto
+LOCKUP_GAP = 14.03723       # el canal entre simbolo y palabra
+LOCKUP_MARK_H = 43.94414    # alto de TINTA del simbolo (236 u del maestro x 0,18620398)
 
-# La geometria del emblema es UNA; la PINTURA depende del fondo que lo recibe, y no
-# es gusto sino contraste medido (30-09-2026):
-#   · Banner de Play: su fondo es un degradado verdoso (#15251F -> #0D1117) con un
-#     halo verde encima. Ahi el disco es de TINTA -mas oscuro que su entorno- y un
-#     aro verde al 28 % lo delimita.
-#   · Web: el fondo es tinta PLANA, `--ink #0d1117`, que es EXACTAMENTE el relleno
-#     de ese disco. Un disco de tinta da 1,00:1 -invisible-, y dejaria solo el aro
-#     mientras la marca encoge a la mitad. El disco que se ve sobre tinta es el
-#     VERDE, con el glifo en tinta: 12,97:1 en los dos sentidos. Es, ademas, el que
-#     la web ya llevaba antes de la marca de 2026.
-# Por eso no hay un aro en la variante de la web: sobre un disco verde, un aro verde
-# al 28 % no separa nada, y con 12,97:1 no hay nada que separar.
-EMBLEM_BANNER = {'disc': INK, 'mark': GREEN, 'ring': GREEN}
-EMBLEM_SITE = {'disc': GREEN, 'mark': INK, 'ring': None}
+# La geometria del imagotipo es UNA; la PINTURA la decide el fondo que lo recibe, y
+# es contraste medido, no gusto:
+#   · sobre oscuro -> simbolo PapGreen, palabra en el casi-blanco del entregable.
+#     17,60:1 sobre PapInk.
+#   · sobre claro  -> simbolo PapGreenLight, palabra en PapInk. 18,99:1 sobre blanco.
+# El verde no se decide aqui: PapGreen sobre blanco da 1,42:1, y por eso existe
+# PapGreenLight [BRAND-A-NEW-MARK-EARNS-ITS-SURFACES-001]. Lo que se anade es la
+# tinta de la palabra, que sale de un token que ya existia.
+LOCKUP_DARK = {'mark': GREEN, 'word': WORD_ON_DARK}
+LOCKUP_LIGHT = {'mark': GREEN_LIGHT, 'word': INK}
+
+
+def lockup_box():
+    """Lienzo del imagotipo y la escala del simbolo. DERIVADOS, no declarados.
+
+    Devuelve `(W, H, escala del simbolo, ancho del simbolo)`. El alto lo fija el
+    elemento mas alto -el simbolo, 43,94 contra los 42 de la palabra- mas el aire.
+    """
+    s = LOCKUP_MARK_H / CANVAS_H
+    mw = CANVAS_W * s
+    W = 2 * LOCKUP_PAD + mw + LOCKUP_GAP + wordmark.WORD_W
+    H = 2 * LOCKUP_PAD + max(LOCKUP_MARK_H, wordmark.WORD_H)
+    return W, H, s, mw
+
+
+def lockup_parts():
+    """Las dos piezas ya colocadas: `(transform del simbolo, transform de la palabra)`.
+
+    Los dos van CENTRADOS en el eje del lienzo. El entregable deja la palabra
+    exactamente centrada (10,0) y el simbolo a 9, a 0,028 del centro -tres
+    centesimas, por debajo de lo que cualquier rasterizador distingue-, asi que
+    centrar los dos reproduce el original y ademas es la regla que se puede explicar.
+    """
+    W, H, s, mw = lockup_box()
+    mark = (LOCKUP_PAD, (H - LOCKUP_MARK_H) / 2.0, s)
+    word = (LOCKUP_PAD + mw + LOCKUP_GAP, (H - wordmark.WORD_H) / 2.0)
+    return mark, word
 
 
 # -- Baldosas: las superficies que el SISTEMA enmascara ----------------------
@@ -251,24 +316,24 @@ def tile_svg(note, paint, fraction, size):
     los dos sean directamente comparables; `size` solo fija a que pixeles se
     rasteriza.
     """
-    tx, ty, sc = emblem_transform(fraction)
+    tx, ty, sc = box_transform(fraction)
     L = ['<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" '
-         'viewBox="0 0 %g %g">' % (size, size, EMBLEM_BOX, EMBLEM_BOX),
+         'viewBox="0 0 %g %g">' % (size, size, BOX, BOX),
          '  <!--', note, '  -->']
     bg = paint['bg']
     if bg:
         top, bottom = bg
         if top == bottom:
-            L.append('  <rect width="%g" height="%g" fill="%s"/>' % (EMBLEM_BOX, EMBLEM_BOX, top))
+            L.append('  <rect width="%g" height="%g" fill="%s"/>' % (BOX, BOX, top))
         else:
             L += ['  <defs>',
                   '    <linearGradient id="tile" x1="%g" y1="0" x2="%g" y2="%g" '
-                  'gradientUnits="userSpaceOnUse">' % (EMBLEM_BOX / 2, EMBLEM_BOX / 2, EMBLEM_BOX),
+                  'gradientUnits="userSpaceOnUse">' % (BOX / 2, BOX / 2, BOX),
                   '      <stop offset="0" stop-color="%s"/>' % top,
                   '      <stop offset="1" stop-color="%s"/>' % bottom,
                   '    </linearGradient>',
                   '  </defs>',
-                  '  <rect width="%g" height="%g" fill="url(#tile)"/>' % (EMBLEM_BOX, EMBLEM_BOX)]
+                  '  <rect width="%g" height="%g" fill="url(#tile)"/>' % (BOX, BOX)]
     L.append('  <g transform="translate(%.4f %.4f) scale(%.5f)" fill="%s">'
              % (tx, ty, sc, paint['mark']))
     L += ['    <path d="%s"/>' % x for x in paths()]
@@ -276,27 +341,18 @@ def tile_svg(note, paint, fraction, size):
     return NL.join(L) + NL
 
 
-def emblem_transform(fraction=F_EMBLEM, box=EMBLEM_BOX):
-    """`translate` + `scale` que meten la marca en un disco de lado `box`.
+def box_transform(fraction, box=BOX):
+    """`translate` + `scale` que centran la marca en un lienzo cuadrado de lado `box`.
 
-    Es la MISMA matematica que encuadra el glifo del banner, extraida para que web
-    y banner no puedan desalinearse: si el maestro se mueve, se mueven los dos o
-    ninguno.
+    `fraction` es el diametro del circulo envolvente OPTICO sobre el lado. Lo usan
+    las baldosas y el icono de Play, cada uno con su fraccion medida.
+
+    ⛔ `fraction` ya no tiene valor por defecto. Lo tuvo -`F_EMBLEM`, la del
+    emblema- y era el unico sitio del script donde el tamano optico de una
+    superficie podia salir de un descuido en vez de de una medida.
     """
     s = fraction * box / 2.0 / MEC_R
     return box / 2 - MEC_C[0] * s, box / 2 - MEC_C[1] * s, s
-
-
-def disc_circles(paint=EMBLEM_BANNER):
-    """El disco, y su aro si la variante lo lleva."""
-    c = EMBLEM_BOX / 2
-    L = ['<circle cx="%g" cy="%g" r="%g" fill="%s"/>' % (c, c, c, paint['disc'])]
-    if paint['ring']:
-        L.append('<circle cx="%g" cy="%g" r="%g" fill="none" stroke="%s" '
-                 'stroke-opacity="%s" stroke-width="%g"/>'
-                 % (c, c, c - DISC_RING_INSET, paint['ring'], DISC_RING_OPACITY,
-                    DISC_RING_WIDTH))
-    return L
 
 
 # ── VectorDrawable ──────────────────────────────────────────────────────────
@@ -404,23 +460,132 @@ def svg_mark(note, color=None, themed=False, fraction=F_MARK):
     return '\n'.join(L) + '\n'
 
 
-def emblem_svg(note, size=512):
-    """La marca SOBRE su disco, como fichero suelto. GENERADO.
+def lockup_groups(paint, indent='  ', classed=False):
+    """Los dos grupos del imagotipo -simbolo y palabra- ya colocados y pintados.
 
-    Es la forma rasterizable del emblema: `render_graphics.sh emblem` lo convierte en
-    el PNG que pega la tarjeta social. Antes esa tarjeta pegaba el icono de Play -una
-    baldosa OPACA de otra superficie- y por eso arrastro la marca de 2022 dentro de un
-    JPEG durante semanas [WEB-THE-MARK-WEARS-ITS-DISC-ON-THE-SITE-001].
+    Los comparten el SVG suelto, el VectorDrawable y el banner de Play, para que no
+    puedan desalinearse: si el maestro se mueve, se mueven los tres o ninguno.
+
+    `classed` le pone `class="mark"` / `class="word"` a cada grupo, que es lo que
+    necesita la variante temada para repintarlos desde un `<style>`.
     """
-    tx, ty, sc = emblem_transform()
-    L = ['<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" '
-         'viewBox="0 0 %g %g">' % (size, size, EMBLEM_BOX, EMBLEM_BOX),
+    (mx, my, ms), (wx, wy) = lockup_parts()
+    cm = ' class="mark"' if classed else ''
+    cw = ' class="word"' if classed else ''
+    L = ['%s<g%s transform="translate(%.4f %.4f) scale(%.6f)" fill="%s">'
+         % (indent, cm, mx, my, ms, paint['mark'])]
+    L += ['%s  <path d="%s"/>' % (indent, d) for d in paths()]
+    L.append('%s</g>' % indent)
+    L.append('%s<g%s transform="translate(%.4f %.4f)" fill="%s">'
+             % (indent, cw, wx, wy, paint['word']))
+    L += ['%s  <path d="%s"/>' % (indent, d) for d in word_paths()]
+    L.append('%s</g>' % indent)
+    return L
+
+
+def lockup_svg(note, paint=None, themed=False, width=None):
+    """El IMAGOTIPO como fichero suelto. GENERADO.
+
+    `themed=True` deja que `prefers-color-scheme` elija la variante, para las dos
+    superficies cuyo tema no controlamos: el README -que se lee en GitHub- y
+    cualquier visor de SVG. El `fill` base es el de la variante CLARA, asi que si un
+    sanitizador se come el `<style>` el peor caso es la variante clara en los dos
+    temas -legible en ambos-, nunca el 1,42:1 de PapGreen sobre blanco. Es la misma
+    apuesta que ya acepta el favicon.
+
+    ⛔ El lienzo NO es cuadrado (5,48:1) y el dibujo lo llena. Meterlo en una caja
+    cuadrada lo encoge a una quinta parte o lo deforma, asi que `width` fija el ancho
+    y el alto SALE de la relacion, nunca al contrario.
+    """
+    W, H, _s, _mw = lockup_box()
+    paint = paint or (LOCKUP_LIGHT if themed else LOCKUP_DARK)
+    w = width or W
+    L = ['<svg xmlns="http://www.w3.org/2000/svg" width="%.3f" height="%.3f" '
+         'viewBox="0 0 %.5f %.5f">' % (w, w * H / W, W, H),
          '  <!--', note, '  -->']
-    L += ['  ' + c for c in disc_circles(EMBLEM_SITE)]
-    L.append('  <g transform="translate(%.4f %.4f) scale(%.5f)" fill="%s">'
-             % (tx, ty, sc, EMBLEM_SITE['mark']))
-    L += ['    <path d="%s"/>' % x for x in paths()]
-    L += ['  </g>', '</svg>']
+    if themed:
+        L += ['  <style>',
+              '    @media (prefers-color-scheme: dark) {',
+              '      .mark { fill: %s; } .word { fill: %s; }' % (GREEN, WORD_ON_DARK),
+              '    }',
+              '  </style>']
+        L += lockup_groups(LOCKUP_LIGHT, classed=True)
+    else:
+        L += lockup_groups(paint)
+    L.append('</svg>')
+    return NL.join(L) + NL
+
+
+def lockup_svg_inline(paint, indent='', cls=None):
+    """El IMAGOTIPO como elemento `<svg>` para incrustar en un HTML ajeno.
+
+    Sin `width`/`height`: el tamano en px lo pone el CSS de la pagina que lo recibe,
+    que es quien sabe en que composicion cae. Lo que viaja desde aqui es el `viewBox`
+    -o sea la RELACION, lo que impide que alguien aplaste el logo- y el dibujo.
+    """
+    W, H, _s, _mw = lockup_box()
+    c = ' class="%s"' % cls if cls else ''
+    L = ['<svg%s viewBox="0 0 %.5f %.5f" xmlns="http://www.w3.org/2000/svg">' % (c, W, H)]
+    L += lockup_groups(paint, indent='  ')
+    L.append('</svg>')
+    return (NL + indent).join(L)
+
+
+def lockup_vd(note, paint, width=170):
+    """El IMAGOTIPO como VectorDrawable, para `composeResources`.
+
+    ⛔ Dos `fillColor` distintos en el mismo drawable, y a proposito: el imagotipo es
+    Nivel 3 -ilustracion, trae su color- asi que NO se tine desde el call site. Un
+    `ColorFilter.tint` encima lo dejaria de un solo color y se perderia justo lo que
+    distingue el simbolo de la palabra.
+
+    ⛔ `viewportWidth` y `viewportHeight` NO son iguales: 5,48:1. El alto en dp sale
+    de la relacion, no se declara, porque declararlo es como se aplasta un logo.
+    """
+    W, H, _s, _mw = lockup_box()
+    # ⛔ El alto en dp es ENTERO y el viewport no, asi que redondear deforma. Con 168
+    # dp el error era del 1,2 % -la relacion salia 5,419 contra 5,484- y eso es
+    # exactamente lo que se ve como un logo ligeramente aplastado, sin que nada falle.
+    # 170 lo deja en 0,004 %. No se elige mirando: se COMPRUEBA, para que cambiar este
+    # ancho por comodidad no reintroduzca la deformacion en silencio.
+    height = round(width * H / W)
+    skew = abs((width / float(height)) / (W / H) - 1.0)
+    assert skew < 0.002, (
+        'width=%d dp da %d dp de alto: relacion %.4f contra %.4f del maestro (%.2f %% de '
+        'deformacion). Elige un ancho cuyo alto caiga mas cerca de un entero.'
+        % (width, height, width / float(height), W / H, 100 * skew))
+    L = ['<?xml version="1.0" encoding="utf-8"?>',
+         '<!--', note, '-->',
+         '<vector xmlns:android="http://schemas.android.com/apk/res/android"',
+         '    android:width="%ddp"' % width,
+         '    android:height="%ddp"' % height,
+         '    android:viewportWidth="%.5f"' % W,
+         '    android:viewportHeight="%.5f">' % H,
+         '']
+    (mx, my, ms), (wx, wy) = lockup_parts()
+    L += ['    <group',
+          '        android:scaleX="%.6f"' % ms,
+          '        android:scaleY="%.6f"' % ms,
+          '        android:translateX="%.4f"' % mx,
+          '        android:translateY="%.4f">' % my]
+    for name, d in zip(build_marks.path_names(build_marks.CHOSEN), paths()):
+        L += ['        <!-- %s -->' % name,
+              '        <path',
+              '            android:fillColor="%s"' % paint['mark'],
+              '            android:pathData="%s" />' % d,
+              '']
+    L += ['    </group>',
+          '',
+          '    <group',
+          '        android:translateX="%.4f"' % wx,
+          '        android:translateY="%.4f">' % wy]
+    for name, d in zip(wordmark.glyph_names(), word_paths()):
+        L += ['        <!-- %s -->' % name,
+              '        <path',
+              '            android:fillColor="%s"' % paint['word'],
+              '            android:pathData="%s" />' % d,
+              '']
+    L += ['    </group>', '</vector>']
     return NL.join(L) + NL
 
 
@@ -437,18 +602,19 @@ def emblem_svg(note, size=512):
 # icono de Play esta publicado y esto cambia el dibujo, no su tamano optico.
 PLAY_FRACTIONS = {
     'docs/release/play-listing/assets/icon.html': (0.42894, F_STORE_ICON, F_STORE_ICON),
-    'docs/release/play-listing/assets/feature.html': (F_EMBLEM,),
 }
 
-# El disco del banner. `feature.html` tiene otros <circle> -los marcadores de plaza-
-# pero ninguno es un par tinta+aro, asi que el patron no los alcanza. Un grafico que
-# NO declara disco no se toca: el icono de Play es una baldosa, no un emblema.
-DISC_PAIR = re.compile(
-    r'<circle cx="[\d.]+" cy="[\d.]+" r="[\d.]+" fill="#0D1117"/>\s*'
-    r'<circle cx="[\d.]+" cy="[\d.]+" r="[\d.]+" fill="none" stroke="#25F48C" '
-    r'stroke-opacity="[\d.]+" stroke-width="[\d.]+"/>')
-
-PLAY_DISCS = {'docs/release/play-listing/assets/feature.html': 1}
+# El IMAGOTIPO del banner. Antes `feature.html` estaba en PLAY_FRACTIONS con la
+# fraccion del emblema y ademas declaraba un disco; ahora lleva el lockup entero, asi
+# que lo que se reescribe no es un grupo dentro de un SVG ajeno sino el SVG completo
+# -con su viewBox, que se DERIVA del maestro y de la caja de la palabra-.
+#
+# ⛔ Se sustituye el elemento entero, `viewBox` incluido, y no solo los grupos de
+# dentro: si el lienzo del imagotipo cambiase de relacion y el viewBox se quedase, el
+# banner saldria recortado o con aire de sobra, y el HTML no fallaria en nada.
+# El HTML y el CSS de alrededor siguen siendo a mano: este script escribe el DIBUJO.
+PLAY_LOCKUP = re.compile(r'<svg class="lockup"[^>]*>.*?</svg>', re.S)
+PLAY_LOCKUPS = {'docs/release/play-listing/assets/feature.html': LOCKUP_DARK}
 
 MARK_GROUP = re.compile(
     r'<g transform="translate\([\d.]+ [\d.]+\) scale\([\d.]+\)" fill="#25F48C">'
@@ -457,7 +623,7 @@ MARK_GROUP = re.compile(
 
 def play_group(fraction, indent):
     """El grupo del glifo, encuadrado por el circulo envolvente dentro del 108."""
-    tx, ty, sc = emblem_transform(fraction)
+    tx, ty, sc = box_transform(fraction)
     L = ['<g transform="translate(%.4f %.4f) scale(%.5f)" fill="%s">' % (tx, ty, sc, GREEN)]
     L += ['%s  <path d="%s"/>' % (indent, p) for p in paths()]
     L.append('%s</g>' % indent)
@@ -478,19 +644,23 @@ def write_play():
             return play_group(next(it), indent)
 
         text = MARK_GROUP.sub(sub, text)
-
-        discs = PLAY_DISCS.get(rel, 0)
-        found_d = DISC_PAIR.findall(text)
-        assert len(found_d) == discs, \
-            '%s: %d discos en el HTML, %d en PLAY_DISCS' % (rel, len(found_d), discs)
-        if discs:
-            def sub_disc(m):
-                pad = ' ' * (m.start() - text.rfind(NL, 0, m.start()) - 1)
-                return (NL + pad).join(disc_circles())
-            text = DISC_PAIR.sub(sub_disc, text)
-
         io.open(p, 'w', encoding='utf-8', newline='\n').write(text)
-        print('  escrito  %s  (%d grupos, %d discos)' % (rel, len(fracs), discs))
+        print('  escrito  %s  (%d grupos de marca)' % (rel, len(fracs)))
+
+    for rel, paint in PLAY_LOCKUPS.items():
+        p = os.path.join(REPO, rel)
+        text = io.open(p, encoding='utf-8').read()
+        found = PLAY_LOCKUP.findall(text)
+        assert len(found) == 1, \
+            '%s: %d <svg class="lockup">, se esperaba 1' % (rel, len(found))
+        m = PLAY_LOCKUP.search(text)
+        pad = ' ' * (m.start() - text.rfind(NL, 0, m.start()) - 1)
+        # El ancho en px lo manda el HTML por CSS (.lockup), no este SVG: aqui solo
+        # viajan la relacion y el dibujo.
+        svg = lockup_svg_inline(paint, pad, cls='lockup')
+        text = text[:m.start()] + svg + text[m.end():]
+        io.open(p, 'w', encoding='utf-8', newline='\n').write(text)
+        print('  escrito  %s  (imagotipo)' % rel)
 
 
 # ── Web ─────────────────────────────────────────────────────────────────────
@@ -514,24 +684,50 @@ def mark_mjs():
         L.append("  '%s'," % path)
     L.append('];')
 
-    # El EMBLEMA. La web no re-deriva nada: recibe el encuadre ya calculado por la
-    # misma funcion que encuadra el banner, para que no puedan desalinearse.
-    tx, ty, sc = emblem_transform()
+    # La PALABRA. La web no la re-deriva ni la escribe como texto: recibe los mismos
+    # ocho contornos que el resto de superficies. Que sean contornos y no un <span>
+    # es lo que hace que el logo no dependa de que la fuente haya cargado.
     L += ['',
-          '// El EMBLEMA: la marca SOBRE su disco. Lo llevan la cabecera, el pie, las dos',
-          '// paginas legales y la tarjeta social — no el favicon (glifo de pestana) ni el',
-          '// apple-touch-icon (baldosa que el sistema exige opaca).',
-          '// El disco sostiene un emblema dentro de una composicion ajena; donde la marca',
-          '// llena su caja no lo lleva. Mismo criterio que el banner de Play.',
-          '// La PINTURA no es la del banner, y por contraste medido: el fondo del sitio es',
-          '// --ink #0d1117, el MISMO color que el disco del banner, que ahi daria 1,00:1.',
-          '// Sobre tinta plana el disco que se ve es el verde, con el glifo en tinta:',
-          '// 12,97:1 en los dos sentidos. Sin aro: sobre un disco verde no separa nada.',
-          'export const EMBLEM_BOX = %g;' % EMBLEM_BOX,
-          "export const EMBLEM_DISC_FILL = '%s';" % EMBLEM_SITE['disc'],
-          "export const EMBLEM_MARK_FILL = '%s';" % EMBLEM_SITE['mark'],
-          "export const EMBLEM_TRANSFORM = 'translate(%.4f %.4f) scale(%.5f)';"
-          % (tx, ty, sc)]
+          '// La PALABRA del imagotipo: ocho glifos CONTORNEADOS, no texto. Minuscula a',
+          '// proposito — el logo escribe paparcar. Su caja NO es la del simbolo.',
+          'export const WORD_W = %g;' % wordmark.WORD_W,
+          'export const WORD_H = %g;' % wordmark.WORD_H,
+          'export const WORD_PATHS = [']
+    for name, path in zip(wordmark.glyph_names(), word_paths()):
+        L.append('  // %s' % name)
+        L.append("  '%s'," % path)
+    L.append('];')
+
+    # El IMAGOTIPO ya compuesto. La web recibe los dos `transform` calculados por la
+    # MISMA funcion que compone el banner de Play y el VectorDrawable de la app, para
+    # que las tres no puedan desalinearse.
+    #
+    # ⛔ Aqui vivian EMBLEM_DISC_FILL / EMBLEM_MARK_FILL / EMBLEM_TRANSFORM: el disco.
+    # Lo llevaban la cabecera, el pie, las dos paginas legales y la tarjeta social, y
+    # las cuatro eran simbolo + <span> compuestos a mano. Ahora las cuatro piden el
+    # imagotipo, el disco se quedo sin un solo call site y esta borrado.
+    W, H, _s, _mw = lockup_box()
+    (mx, my, ms), (wx, wy) = lockup_parts()
+    L += ['',
+          '// El IMAGOTIPO: simbolo y palabra, ya colocados. Lo llevan la cabecera, el pie,',
+          '// las dos paginas legales y la tarjeta social — es decir, todo sitio donde la',
+          '// marca dice su nombre. El favicon no (glifo de pestana) ni el apple-touch-icon',
+          '// (baldosa que el sistema exige opaca): alli la marca va sola.',
+          '// ⛔ El lienzo NO es cuadrado: %.3f:1. Fija el ANCHO y deja que el alto salga de'
+          % (W / H),
+          '// la relacion; declarar los dos es como se aplasta un logo.',
+          'export const LOCKUP_W = %.5f;' % W,
+          'export const LOCKUP_H = %.5f;' % H,
+          "export const LOCKUP_MARK_TRANSFORM = 'translate(%.4f %.4f) scale(%.6f)';"
+          % (mx, my, ms),
+          "export const LOCKUP_WORD_TRANSFORM = 'translate(%.4f %.4f)';" % (wx, wy),
+          '',
+          '// Las dos pinturas, y es contraste medido: 17,60:1 sobre PapInk y 18,99:1 sobre',
+          '// blanco. El sitio es tinta plana, asi que usa la oscura; el README, temada.',
+          "export const LOCKUP_DARK = { mark: '%s', word: '%s' };"
+          % (LOCKUP_DARK['mark'], LOCKUP_DARK['word']),
+          "export const LOCKUP_LIGHT = { mark: '%s', word: '%s' };"
+          % (LOCKUP_LIGHT['mark'], LOCKUP_LIGHT['word'])]
     return '\n'.join(L) + '\n'
 
 
@@ -540,6 +736,13 @@ def main():
     print('Marca: %s (%d caracteres de path)' % (os.path.relpath(MARK, REPO), sum(len(x) for x in d)))
     print('       lienzo %.0fx%.0f · envolvente OPTICO r=%.4f en (%.4f, %.4f) — DERIVADOS del maestro'
           % (CANVAS_W, CANVAS_H, MEC_R, MEC_C[0], MEC_C[1]))
+    w = word_paths()
+    W, H, s, mw = lockup_box()
+    print('Palabra: %s (%d glifos, %d caracteres) · caja %g x %g'
+          % (os.path.relpath(WORD, REPO), len(w), sum(len(x) for x in w),
+             wordmark.WORD_W, wordmark.WORD_H))
+    print('Imagotipo: lienzo %.5f x %.5f (%.3f:1) · simbolo x%.6f — DERIVADOS de las tres medidas'
+          % (W, H, W / H, s))
     print()
     print('Android · :app')
     write('app/src/main/res/drawable/ic_launcher_foreground.xml', vd(NOTE_ADAPT, GREEN, 108, 108, ADAPT))
@@ -560,6 +763,18 @@ def main():
           vd('  Paparcar · la marca en blanco, la variante TINTABLE. GENERADO.\n'
              '  Es la unica que se pinta con colorFilter desde el call site; las otras dos\n'
              '  traen su relleno y no se tiñen (Nivel 3 de CLAUDE.md).', '#FFFFFF', fraction=F_MARK))
+    write('shared/src/commonMain/composeResources/drawable/paparcar_imagotipo_dark.xml',
+          lockup_vd('  Paparcar · el IMAGOTIPO: la marca diciendo su nombre. GENERADO.\n'
+                    '  Variante de tema OSCURO. Lo pide `PaparcarImagotipo`, que es lo que va\n'
+                    '  donde antes se componia la marca mas un Text con el nombre al lado.\n'
+                    '  Dos fillColor a proposito: Nivel 3 trae su color y no se tiñe.',
+                    LOCKUP_DARK))
+    write('shared/src/commonMain/composeResources/drawable/paparcar_imagotipo_light.xml',
+          lockup_vd('  Paparcar · el IMAGOTIPO, variante de tema CLARO. GENERADO.\n'
+                    '  El simbolo en PapGreenLight porque PapGreen sobre blanco da 1,42:1, y\n'
+                    '  la palabra en PapInk: 18,99:1, el espejo del 17,60:1 de la variante\n'
+                    '  oscura. Ninguno de los dos se elige aqui.',
+                    LOCKUP_LIGHT))
 
     print()
     print('Web y documentacion')
@@ -613,11 +828,31 @@ def main():
                    '    El README se lee en GitHub y su tema no lo controlamos, asi que el color\n'
                    '    lo decide prefers-color-scheme: verde de marca sobre oscuro, verde\n'
                    '    profundo sobre claro. PapGreen sobre blanco da 1,42:1.', themed=True))
-    write('docs/assets/paparcar-emblem.svg',
-          emblem_svg('    Paparcar · el EMBLEMA: la marca sobre su disco. GENERADO.\n'
-                     '    Lo rasteriza `render_graphics.sh emblem` y lo pega la tarjeta\n'
-                     '    social de la web. No es una vuelta atras del disco: es el soporte\n'
-                     '    de un emblema dentro de una composicion ajena, con wordmark al lado.'))
+    # El imagotipo de la documentacion va TEMADO, por lo mismo que el logo de arriba:
+    # el README se lee en GitHub y su tema no lo controlamos.
+    write('docs/assets/paparcar-imagotipo.svg',
+          lockup_svg('    Paparcar · el IMAGOTIPO, para documentacion. GENERADO.\n'
+                     '    El README se lee en GitHub y su tema no lo controlamos, asi que el\n'
+                     '    color lo decide prefers-color-scheme. Sustituye al par\n'
+                     '    logo + h1 con el nombre escrito al lado.', themed=True))
+    # La fuente rasterizable de la tarjeta social. Variante OSCURA porque esa tarjeta
+    # es tinta plana, igual que el sitio. Antes aqui habia un EMBLEMA sobre disco y la
+    # tarjeta le escribia "Paparcar" al lado con Pillow: dos piezas, dos criterios.
+    write('docs/assets/paparcar-imagotipo-dark.svg',
+          lockup_svg('    Paparcar · el IMAGOTIPO sobre oscuro, para rasterizar. GENERADO.\n'
+                     '    Lo convierte en PNG `render_graphics.sh lockup` y lo pega la\n'
+                     '    tarjeta social, que ya no escribe el nombre por su cuenta.',
+                     LOCKUP_DARK))
+    # La variante PLANA sobre claro. No la pide ninguna superficie del repo -las que
+    # van sobre claro son temadas o VectorDrawable-, y existe porque un imagotipo que
+    # solo se puede entregar en su version oscura obliga a quien lo necesite sobre
+    # blanco a inventarse los colores, que es exactamente de donde venia el problema.
+    write('docs/assets/paparcar-imagotipo-light.svg',
+          lockup_svg('    Paparcar · el IMAGOTIPO sobre claro. GENERADO.\n'
+                     '    Simbolo en PapGreenLight y palabra en PapInk: 18,99:1 sobre\n'
+                     '    blanco. Para entregar la marca a cualquier soporte claro sin\n'
+                     '    que nadie tenga que elegir los colores por su cuenta.',
+                     LOCKUP_LIGHT))
     write('web/lib/mark.generated.mjs', mark_mjs())
 
     print()
@@ -660,6 +895,12 @@ def main():
     # el glifo + disco: sin disco son identicos a paparcar_iconmark_*
     drop('shared/src/commonMain/composeResources/drawable/paparcar_logo.xml')
     drop('shared/src/commonMain/composeResources/drawable/paparcar_logo_dark.xml')
+    # El EMBLEMA y su PNG: la marca sobre un disco. Sus cuatro consumidores -cabecera
+    # y pie de la web, paginas legales, tarjeta social- componian simbolo + texto a
+    # mano, y ahora piden el imagotipo. Sin un solo call site
+    # [BRAND-THE-MARK-GAINS-ITS-WORDMARK-001].
+    drop('docs/assets/paparcar-emblem.svg')
+    drop('docs/assets/paparcar-emblem-512.png')
 
     print()
     # Sin emoji: la consola de Windows va en cp1252 y un print con emoji revienta el

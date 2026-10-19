@@ -24,7 +24,7 @@ import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { ORIGIN, SUPPORT_EMAIL, PLAY_URL } from '../lib/config.mjs';
-import { logoMark } from '../lib/icons.mjs';
+import { logoLockup } from '../lib/icons.mjs';
 import { asset, setAssetManifest } from '../lib/assets.mjs';
 import { iconLinks } from '../lib/layout.mjs';
 
@@ -89,8 +89,7 @@ function shell(page) {
 <header class="site-header">
   <div class="shell site-header__inner">
     <a class="brand" href="/" aria-label="Paparcar">
-      ${logoMark({ size: 36 })}
-      <span class="brand__name">Paparcar</span>
+      ${logoLockup({ width: 136 })}
     </a>
     <div class="site-header__actions">
       <a class="backlink" href="/">← paparcar.com</a>

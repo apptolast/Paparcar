@@ -89,7 +89,7 @@ node web/tools/restyle-legal.mjs                          # (ya lo hace el build
 build.mjs              generador (cero dependencias, Node 24)
 content/{es,en}.json   TODO el copy
 lib/config.mjs         los hechos verificables + rutas + locales
-lib/icons.mjs          iconos nivel 1/2 en la rejilla de 24; el EMBLEMA (marca sobre disco) lo
+lib/icons.mjs          iconos nivel 1/2 en la rejilla de 24; el IMAGOTIPO (marca + nombre) lo
                        compone desde lib/mark.generated.mjs — aquí no se dibuja nada de marca
 lib/mark.generated.mjs GENERADO por docs/branding/master/export_surfaces.py. No editar.
 lib/components.mjs     eyebrow, botón, tarjeta, móvil, tier, FAQ…

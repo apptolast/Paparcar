@@ -1,8 +1,6 @@
 <p align="center">
-  <img src="docs/assets/paparcar-logo.svg" width="132" alt="Paparcar"/>
+  <img src="docs/assets/paparcar-imagotipo.svg" width="300" alt="paparcar"/>
 </p>
-
-<h1 align="center">Paparcar</h1>
 
 <p align="center">
   <b>Plazas de aparcamiento en tiempo real, compartidas por la comunidad.</b><br/>

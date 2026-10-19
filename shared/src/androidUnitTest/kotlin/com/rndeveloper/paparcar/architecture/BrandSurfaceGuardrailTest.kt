@@ -129,7 +129,164 @@ class BrandSurfaceGuardrailTest {
         )
     }
 
+    @Test
+    fun `every imagotype surface draws BOTH halves of the master`() {
+        val markPaths = Regex("""<path d="([^"]+)"/>""")
+            .findAll(read(MARK_MASTER)).map { it.groupValues[1] }.toList()
+        val wordPaths = Regex("""<path d="([^"]+)"/>""")
+            .findAll(read(WORD_MASTER)).map { it.groupValues[1] }.toList()
+        assertEquals(3, markPaths.size, "$MARK_MASTER should hold the three paths of the mark")
+        assertEquals(8, wordPaths.size, "$WORD_MASTER should hold the eight glyphs of the word")
+
+        for (surface in IMAGOTIPO_SURFACES) {
+            val text = read(surface)
+            for ((half, paths) in listOf(MARK_MASTER to markPaths, WORD_MASTER to wordPaths)) {
+                val missing = paths.count { !text.contains(it) }
+                assertEquals(
+                    0, missing,
+                    buildString {
+                        appendLine("$surface is missing $missing path(s) that are in $half.")
+                        appendLine("The imagotype is COMPOSED from two masters — the parametric")
+                        appendLine("symbol and the outlined word — and every surface receives both.")
+                        appendLine("A surface that carries one and not the other is drawing a lockup")
+                        appendLine("someone assembled by hand, which is the thing this exists to stop.")
+                        appendLine()
+                        appendLine("  cd docs/branding/master && python wordmark.py")
+                        appendLine("  cd docs/branding/master && python export_surfaces.py")
+                        appendLine("  node web/build.mjs")
+                    },
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `the imagotype raster carries both halves, in the right order`() {
+        val file = repoFile(IMAGOTIPO_RASTER).takeIf { it.isFile }
+            ?: fail(
+                "$IMAGOTIPO_RASTER is missing — the social card pastes it.\n" +
+                    "  bash docs/release/play-listing/tools/render_graphics.sh lockup",
+            )
+        val (symbol, word) = lockupCoverage(file)
+
+        // Measured on the generated raster, 19-10-2026. The symbol is a fifth of the drawing's
+        // width and the word fills the rest, so these two numbers are far enough apart that a
+        // swap, a missing half or a blank render cannot land inside either band.
+        assertTrue(
+            kotlin.math.abs(symbol.share - SYMBOL_COVERAGE) < TOLERANCE,
+            "$IMAGOTIPO_RASTER: symbol covers ${"%.1f".format(symbol.share)}%, " +
+                "expected $SYMBOL_COVERAGE% ± $TOLERANCE. Re-run render_graphics.sh lockup.",
+        )
+        assertTrue(
+            kotlin.math.abs(word.share - WORD_COVERAGE) < WORD_TOLERANCE,
+            "$IMAGOTIPO_RASTER: the word covers ${"%.1f".format(word.share)}%, " +
+                "expected $WORD_COVERAGE% ± $WORD_TOLERANCE. Re-run render_graphics.sh lockup.",
+        )
+        // The ORDER, which is what a coverage figure alone would miss: both halves could be
+        // present and sitting on top of each other — exactly what happens if the two translates
+        // come out equal — and the shares would barely move.
+        assertTrue(
+            symbol.centreX < 0.20 && word.centreX > 0.45,
+            buildString {
+                appendLine("$IMAGOTIPO_RASTER: the halves are not where the lockup puts them.")
+                appendLine("symbol centred at ${"%.0f".format(100 * symbol.centreX)}% of the width " +
+                    "(expected < 20%), word at ${"%.0f".format(100 * word.centreX)}% (expected > 45%).")
+                appendLine("Either they overlap or they are swapped.")
+            },
+        )
+    }
+
+    @Test
+    fun `no surface composes the brand name beside the mark any more`() {
+        // The defect class this ticket closed: six surfaces each pairing the symbol with the name
+        // set as TEXT, in three different typographic treatments. The imagotype replaced all six,
+        // and these are the shapes each of them used to have.
+        val handmade = listOf(
+            Triple("web/lib/layout.mjs", "brand__name", "the site header and footer"),
+            Triple("web/tools/restyle-legal.mjs", "brand__name", "the two legal pages"),
+            Triple("web/assets/css/site.css", ".brand__name {", "the stylesheet"),
+            Triple(PREPARE_ASSETS, "\"Paparcar\", font=", "the social card"),
+            Triple(FEATURE_GRAPHIC, "class=\"word\"", "the Play banner"),
+            Triple(AUTH_SLOTS, "PaparcarLogo(", "the auth header"),
+        )
+        for ((file, needle, where) in handmade) {
+            assertTrue(
+                !read(file).contains(needle),
+                buildString {
+                    appendLine("$file composes the brand name beside the mark again ($needle).")
+                    appendLine("That is the hand-made lockup the imagotype replaced in $where.")
+                    appendLine("Use the imagotype: logoLockup() on the web, PaparcarImagotipo in")
+                    appendLine("the app, the generated <svg class=\"lockup\"> in the banner.")
+                    appendLine("[BRAND-THE-MARK-GAINS-ITS-WORDMARK-001]")
+                },
+            )
+        }
+    }
+
+    @Test
+    fun `the disc is gone from the repo, not just from its two exceptions`() {
+        // Both disc exceptions were the user's, and both rested on one measured fact: the mark at
+        // F_EMBLEM floated next to an 82 px wordmark. The imagotype removed the reason, so the
+        // code went too — leaving a disc helper with no call sites would be an exception standing
+        // over something that no longer renders, which is a hole, not an exception.
+        val exporter = read(EXPORTER)
+        for (dead in listOf("def emblem_svg", "def disc_circles", "EMBLEM_SITE", "EMBLEM_BANNER")) {
+            assertTrue(
+                !exporter.contains(dead),
+                "$EXPORTER still defines $dead. The disc has no consumers left; delete it.",
+            )
+        }
+        assertTrue(
+            !repoFile("docs/assets/paparcar-emblem.svg").exists() &&
+                !repoFile("docs/assets/paparcar-emblem-512.png").exists(),
+            "The emblem files are back. Their only consumer was the social card, which pastes " +
+                "the imagotype now.",
+        )
+    }
+
     // ── plumbing ──────────────────────────────────────────────────────────────
+
+    /** Where one half of the lockup sits: how much it covers, and its centre as a share of width. */
+    private data class Half(val share: Double, val centreX: Double)
+
+    /**
+     * The two halves of the imagotype, measured apart.
+     *
+     * [markCoverage] lumps brand green and light grey together, which is right for a one-colour
+     * tile and useless here: the imagotype's whole point is that those two colours are two
+     * different things — the symbol and the word.
+     */
+    private fun lockupCoverage(file: File): Pair<Half, Half> {
+        val image = ImageIO.read(file) ?: fail("not a readable image: ${file.path}")
+        var symbol = 0
+        var word = 0
+        var symbolX = 0L
+        var wordX = 0L
+        var total = 0
+        for (y in 0 until image.height step 2) {
+            for (x in 0 until image.width step 2) {
+                val argb = image.getRGB(x, y)
+                val a = (argb ushr 24) and 0xFF
+                val r = (argb shr 16) and 0xFF
+                val g = (argb shr 8) and 0xFF
+                val b = argb and 0xFF
+                total++
+                if (a <= 128) continue
+                if (g > 180 && r < 120) {
+                    symbol++
+                    symbolX += x
+                } else if (minOf(r, g, b) > 190) {
+                    word++
+                    wordX += x
+                }
+            }
+        }
+        if (symbol == 0) fail("${file.path}: not one brand-green pixel — the symbol is missing")
+        if (word == 0) fail("${file.path}: not one near-white pixel — the WORD is missing")
+        return Half(100.0 * symbol / total, symbolX.toDouble() / symbol / image.width) to
+            Half(100.0 * word / total, wordX.toDouble() / word / image.width)
+    }
+
 
     /** Share of sampled pixels the mark covers: brand green, or the light grey of the tinted icon. */
     private fun markCoverage(file: File): Double {
@@ -165,9 +322,44 @@ class BrandSurfaceGuardrailTest {
 
     private companion object {
         const val MARK_MASTER = "docs/branding/mark/paparcar-mark-compas-b.svg"
+
+        /**
+         * The OTHER master. The symbol is drawn from parameters; the word cannot be — it is an
+         * outlined deliverable — so what it gets instead is a single place to live, which is what
+         * the repo's rule actually asks for. Two masters, one lockup.
+         */
+        const val WORD_MASTER = "docs/branding/mark/paparcar-wordmark.svg"
+
         const val APPICON = "iosApp/iosApp/Assets.xcassets/AppIcon.appiconset"
         const val TOUCH_ICON = "web/assets/img/apple-touch-icon.png"
         const val PREPARE_ASSETS = "web/tools/prepare-assets.py"
+        const val FEATURE_GRAPHIC = "docs/release/play-listing/assets/feature.html"
+        const val EXPORTER = "docs/branding/master/export_surfaces.py"
+        const val AUTH_SLOTS =
+            "shared/src/commonMain/kotlin/com/rndeveloper/paparcar/ui/auth/PaparcarAuthSlots.kt"
+
+        /** Every surface that draws the brand WITH its name. The isotype ones are not here. */
+        val IMAGOTIPO_SURFACES = listOf(
+            "docs/assets/paparcar-imagotipo.svg",
+            "docs/assets/paparcar-imagotipo-dark.svg",
+            "docs/assets/paparcar-imagotipo-light.svg",
+            "shared/src/commonMain/composeResources/drawable/paparcar_imagotipo_dark.xml",
+            "shared/src/commonMain/composeResources/drawable/paparcar_imagotipo_light.xml",
+            "web/lib/mark.generated.mjs",
+            FEATURE_GRAPHIC,
+        )
+
+        /** What the social card pastes. Generated by `render_graphics.sh lockup`. */
+        const val IMAGOTIPO_RASTER = "docs/assets/paparcar-imagotipo-1024.png"
+
+        /**
+         * Measured on the generated raster, 19-10-2026. The symbol is a fifth of the lockup's
+         * width and the word fills the rest, so the two shares sit far apart on purpose: a swap
+         * or a missing half lands nowhere near its band.
+         */
+        const val SYMBOL_COVERAGE = 4.5
+        const val WORD_COVERAGE = 23.6
+        const val WORD_TOLERANCE = 4.0
 
         val APPLE_SVGS = listOf(
             "docs/branding/apple/ios-app-icon.svg",

@@ -23,8 +23,21 @@
 | Favicon | `hosting/public/favicon.svg` | según `prefers-color-scheme` |
 | Documentación (README de la raíz) | `docs/assets/paparcar-logo.svg` | según `prefers-color-scheme` — el tema de GitHub no lo controlamos y `#25F48C` sobre su blanco da **1,42:1** |
 
-**A mano, porque no son plantillas:** `web/lib/icons.mjs` (`logoMark`),
-`docs/release/play-listing/assets/{icon,feature}.html` y `web/assets/img/apple-touch-icon.png`.
+### Y las del IMAGOTIPO — la marca CON su nombre
+
+| Superficie | Fichero | Pintura |
+|---|---|---|
+| Imagotipo en la app, tema oscuro | `composeResources/…/paparcar_imagotipo_dark.xml` | `#25F48C` + `#F4F7F4` |
+| Imagotipo en la app, tema claro | `…/paparcar_imagotipo_light.xml` | `#009F5E` + `#0D1117` |
+| Web (cabecera, pie, legales) | `web/lib/mark.generated.mjs` → `logoLockup()` | la oscura: el sitio es tinta plana |
+| Banner de Play | `…/assets/feature.html`, el `<svg class="lockup">` | la oscura |
+| Documentación (README de la raíz) | `docs/assets/paparcar-imagotipo.svg` | según `prefers-color-scheme` |
+| Fuente de la tarjeta social | `docs/assets/paparcar-imagotipo-dark.svg` | la oscura |
+| Entrega sobre claro | `docs/assets/paparcar-imagotipo-light.svg` | la clara |
+
+**A mano, porque no son plantillas:** `web/lib/icons.mjs` (`logoLockup`),
+`docs/release/play-listing/assets/{icon,feature}.html` (su HTML y su CSS; el **dibujo** de dentro sí
+se genera) y `web/assets/img/apple-touch-icon.png`.
 
 ### Borrados, no regenerados
 

@@ -11,10 +11,12 @@
 
 import {
   MARK_PATHS,
-  EMBLEM_BOX,
-  EMBLEM_DISC_FILL,
-  EMBLEM_MARK_FILL,
-  EMBLEM_TRANSFORM,
+  WORD_PATHS,
+  LOCKUP_W,
+  LOCKUP_H,
+  LOCKUP_MARK_TRANSFORM,
+  LOCKUP_WORD_TRANSFORM,
+  LOCKUP_DARK,
 } from './mark.generated.mjs';
 
 const glyphs = {
@@ -75,49 +77,45 @@ export function icon(name, { className = '', title = '', size = 24 } = {}) {
 }
 
 /**
- * The brand EMBLEM: the mark on its disc.
+ * The brand IMAGOTYPE: the mark *and its name*, as one drawing.
  *
- * ⛔ **The disc is back on the site, and it is not a rollback of the mark.** Decided by the user
- * on 30-09 [WEB-THE-MARK-WEARS-ITS-DISC-ON-THE-SITE-001], on the same measured ground as the Play
- * banner [PLAY-THE-BANNER-MARK-KEEPS-ITS-DISC-001]. The criterion is one line, and it cuts both
- * ways: *where the mark FILLS its box it needs no disc; where it is an emblem inside someone
- * else's composition — with a wordmark beside it — the support is legitimate.*
+ * This is what goes wherever the site says who it is — the header, the footer, both legal pages
+ * and the social card. It replaces a pair: `logoMark()` plus a `<span class="brand__name">` with
+ * the word set in Jakarta 800 beside it.
  *
- * Here the mark sits at `F_EMBLEM` (0.52896) of its disc, next to a `brand__name` wordmark. In the
- * app the fraction is `F_MARK = 1.0`, the exact opposite: the mark occupies what the disc used to,
- * which is why it holds on its own there. So this does NOT reopen discs in the app.
+ * ⛔ **The disc is gone, and so are both of its exceptions.** The site wore one
+ * [WEB-THE-MARK-WEARS-ITS-DISC-ON-THE-SITE-001] and so did the Play banner
+ * [PLAY-THE-BANNER-MARK-KEEPS-ITS-DISC-001], and both rested on ONE measured fact: the mark at
+ * `F_EMBLEM` came out ~46 px next to an 82 px wordmark and **floated**. The disc propped up a
+ * lockup nobody had designed. The imagotype arrives with that lockup measured — 1:5.8 between
+ * symbol and word, 14 u of channel — so the prop has nothing left to hold up and is deleted from
+ * the repo [BRAND-THE-MARK-GAINS-ITS-WORDMARK-001]. One rule, no exceptions to remember:
+ * *mark alone → the isotype, no disc. Mark saying its name → the imagotype.*
  *
- * ⛔ **The disc is GREEN here, not Ink like the banner's — and that is measured, not taste.**
- * The banner sits on a greenish gradient (#15251F → #0D1117), so an Ink disc reads there as a
- * darker medallion and a 28%-green ring delineates it. This site's ground is FLAT `--ink #0d1117`,
- * which is *exactly* that disc's fill: it would land at **1.00:1** — invisible — leaving only the
- * ring while the mark shrank to half its box. On flat Ink the disc that reads is the green one,
- * with the glyph in Ink: **12.97:1 both ways**. It is also the disc this site already wore before
- * the 2026 mark. No ring, for the same reason: on a green disc a 28%-green ring separates nothing.
+ * ⛔ **The word is eight OUTLINES, not text**, and that is the point of using it here rather than
+ * keeping a `<span>`: the logo now looks the same before the webfont loads, inside the headless
+ * Chrome that renders the Play banner, and inside the Pillow script that composes the social card
+ * — none of which can be trusted to have Jakarta. It also means the name cannot drift
+ * typographically from one surface to the next, which it already had in three ways.
  *
- * ⛔ So the geometry is shared with the banner and only the PAINT differs — `EMBLEM_BANNER` vs
- * `EMBLEM_SITE` in the exporter. That is the same shape the project already gives colour: one
- * drawing, a fill chosen by the surface it lands on.
+ * ⛔ Nothing here is drawn by hand: both groups' transforms, the viewBox and the two fills come
+ * from `mark.generated.mjs`, written by `docs/branding/master/export_surfaces.py` from the
+ * parametric master — the SAME `lockup_parts()` that composes the banner and the app's
+ * VectorDrawable, so the three cannot drift.
  *
- * ⛔ The old `surface: 'ink' | 'light'` knob is **gone, not defaulted**. It picked between two
- * greens because nothing sat behind the glyph (`PapGreen` on white is 1.42:1); the disc is what
- * solves that now. A parameter that no longer changes anything is a lie, and no call site passed
- * it.
- *
- * ⛔ Nothing here is drawn by hand: the disc, the ring and the framing transform all come from
- * `mark.generated.mjs`, written by `docs/branding/master/export_surfaces.py` from the parametric
- * master — the SAME `emblem_transform()` that frames the banner's glyph, so the two cannot drift.
- *
- * ⚠️ `size` is the DISC DIAMETER, and the emblem is square: the disc, not the full-bleed mark,
- * is what meets the layout now.
+ * ⚠️ `width` is the WIDTH, not a square side: the lockup is 5.484:1 and the height follows from
+ * the ratio. Passing a square size here is how a logo gets squashed, so there is no `size`.
  */
-export function logoMark({ size = 40, className = 'logo-mark' } = {}) {
-  const c = EMBLEM_BOX / 2;
-  const paths = MARK_PATHS.map((d) => `<path d="${d}"/>`).join('\n');
-  return `<svg class="${className}" width="${size}" height="${size}" viewBox="0 0 ${EMBLEM_BOX} ${EMBLEM_BOX}" aria-hidden="true" focusable="false">
-<circle cx="${c}" cy="${c}" r="${c}" fill="${EMBLEM_DISC_FILL}"/>
-<g transform="${EMBLEM_TRANSFORM}" fill="${EMBLEM_MARK_FILL}">
-${paths}
+export function logoLockup({ width = 150, className = 'logo-lockup', title = 'paparcar' } = {}) {
+  const mark = MARK_PATHS.map((d) => `<path d="${d}"/>`).join('\n');
+  const word = WORD_PATHS.map((d) => `<path d="${d}"/>`).join('\n');
+  const a11y = title ? `role="img" aria-label="${title}"` : 'aria-hidden="true" focusable="false"';
+  return `<svg class="${className}" width="${width}" height="${(width * LOCKUP_H) / LOCKUP_W}" viewBox="0 0 ${LOCKUP_W} ${LOCKUP_H}" ${a11y}>
+<g transform="${LOCKUP_MARK_TRANSFORM}" fill="${LOCKUP_DARK.mark}">
+${mark}
+</g>
+<g transform="${LOCKUP_WORD_TRANSFORM}" fill="${LOCKUP_DARK.word}">
+${word}
 </g>
 </svg>`;
 }

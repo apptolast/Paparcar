@@ -360,7 +360,13 @@ class WebSiteParityGuardrailTest {
      * knowable: the drawing comes from the master, the built pages carry what the generator wrote,
      * and the social card does not borrow another surface's icon.
      *
-     * [WEB-THE-MARK-WEARS-ITS-DISC-ON-THE-SITE-001]
+     * ⛔ Since the imagotype there are TWO masters to agree with, and the word is the one to watch:
+     * the symbol can always be re-derived from parameters, the word cannot — it is an outlined
+     * deliverable — which makes it exactly the kind of thing that gets pasted into a template "just
+     * this once". The site is also where the pair used to be assembled by hand, as `logoMark()`
+     * plus a `<span class="brand__name">`.
+     *
+     * [WEB-THE-MARK-WEARS-ITS-DISC-ON-THE-SITE-001] [BRAND-THE-MARK-GAINS-ITS-WORDMARK-001]
      */
     @Test
     fun `the mark the site ships comes from the master, not from a copy`() {
@@ -395,35 +401,54 @@ class WebSiteParityGuardrailTest {
             )
         }
 
-        // c · the built pages carry what the generator wrote — disc included
-        val transform = generated.firstGroup("""EMBLEM_TRANSFORM = '([^']+)'""")
-        val discFill = generated.firstGroup("""EMBLEM_DISC_FILL = '([^']+)'""")
+        // b-bis · and neither did anyone paste the WORD back in. It is the half that arrived
+        //         last and the one with no parametric source to fall back on, so it is the
+        //         likeliest to get copied into a template "just this once".
+        val wordPaths = Regex("""<path d="([^"]+)"/>""")
+            .findAll(read(WORD_MASTER)).map { it.groupValues[1] }.toList()
+        assertEquals(8, wordPaths.size, "$WORD_MASTER should hold the eight glyphs of the word")
+        for (path in wordPaths) {
+            assertTrue(
+                generated.contains(path),
+                "$MARK_GENERATED is missing a glyph that is in $WORD_MASTER — re-run " +
+                    "`python wordmark.py` and then the exporter.",
+            )
+            assertTrue(
+                !icons.contains(path),
+                "$SITE_ICONS writes the word's geometry inline. It arrives from $MARK_GENERATED.",
+            )
+        }
+
+        // c · the built pages carry what the generator wrote — BOTH halves of the imagotype
+        val markTransform = generated.firstGroup("""LOCKUP_MARK_TRANSFORM = '([^']+)'""")
+        val wordTransform = generated.firstGroup("""LOCKUP_WORD_TRANSFORM = '([^']+)'""")
         for ((locale, base) in LOCALE_BASES) {
             val page = read("hosting/public$base/index.html")
             assertTrue(
-                page.contains(transform) && page.contains(discFill),
+                page.contains(markTransform) && page.contains(wordTransform),
                 buildString {
-                    appendLine("the built page for '$locale' does not carry the generated emblem.")
-                    appendLine("Either the mark changed and the site was never rebuilt, or the disc")
-                    appendLine("was dropped from logoMark(). The site wears the emblem — disc and all —")
-                    appendLine("on its header, its footer and both legal pages.")
+                    appendLine("the built page for '$locale' does not carry the generated imagotype.")
+                    appendLine("Either the drawing changed and the site was never rebuilt, or the")
+                    appendLine("header went back to a mark plus a <span> with the name beside it.")
+                    appendLine("The site wears the imagotype on its header, its footer and both")
+                    appendLine("legal pages — it is one drawing, not two pieces.")
                     appendLine()
                     appendLine("  node web/build.mjs --check")
                 },
             )
         }
 
-        // d · the social card draws the generated emblem, never another surface's icon.
+        // d · the social card draws the generated imagotype, never another surface's icon.
         //     ⛔ The count of who may OPEN `play-icon-512.png` moved to BrandSurfaceGuardrailTest
         //     when the touch icon stopped being built here
         //     [BRAND-THE-APPLE-SURFACES-ARE-OUTSIDE-THE-MASTER-001]: that is a question about brand
         //     surfaces, not about the website. What belongs here is the card itself.
         val assets = read(PREPARE_ASSETS)
         assertTrue(
-            assets.contains(EMBLEM_RASTER),
+            assets.contains(LOCKUP_RASTER),
             buildString {
                 appendLine("$PREPARE_ASSETS no longer builds the social card from the generated")
-                appendLine("emblem ($EMBLEM_RASTER). Borrowing another surface's icon is how the")
+                appendLine("imagotype ($LOCKUP_RASTER). Borrowing another surface's icon is how the")
                 appendLine("2022 mark stayed baked inside og-card.jpg for weeks after every other")
                 appendLine("surface had moved on, where no grep could see it.")
             },
@@ -705,10 +730,18 @@ class WebSiteParityGuardrailTest {
 
         /** The parametric master's output, and the consumers that must agree with it. */
         const val MARK_MASTER = "docs/branding/mark/paparcar-mark-compas-b.svg"
+
+        /**
+         * The word's master. The imagotype has TWO, because only one half can be derived: the
+         * symbol is drawn from parameters, the word is an outlined deliverable whose single
+         * source of truth is `wordmark.py`. [BRAND-THE-MARK-GAINS-ITS-WORDMARK-001]
+         */
+        const val WORD_MASTER = "docs/branding/mark/paparcar-wordmark.svg"
+
         const val MARK_GENERATED = "web/lib/mark.generated.mjs"
         const val SITE_ICONS = "web/lib/icons.mjs"
         const val PREPARE_ASSETS = "web/tools/prepare-assets.py"
-        const val EMBLEM_RASTER = "paparcar-emblem-512.png"
+        const val LOCKUP_RASTER = "paparcar-imagotipo-1024.png"
 
         const val PUBLISHED_ASSETS = "hosting/public/assets"
 

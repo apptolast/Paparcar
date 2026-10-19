@@ -2,6 +2,7 @@ package com.rndeveloper.paparcar.ui.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -11,10 +12,14 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.brand_name
 import paparcar.composeapp.generated.resources.paparcar_iconmark_forest
 import paparcar.composeapp.generated.resources.paparcar_iconmark_green
 import paparcar.composeapp.generated.resources.paparcar_iconmark_white
+import paparcar.composeapp.generated.resources.paparcar_imagotipo_dark
+import paparcar.composeapp.generated.resources.paparcar_imagotipo_light
 
 /**
  * The Paparcar mark standing alone — splash, onboarding hero, headers.
@@ -50,6 +55,57 @@ val PAPARCAR_LOGO_SIZE = 96.dp
  * crest invent a 60 dp of its own. [UI-PAYWALL-THE-CREST-STANDS-BESIDE-ITS-NAME-001]
  */
 val PAPARCAR_LOGO_BESIDE_NAME_SIZE = 72.dp
+
+/**
+ * The width the IMAGOTYPE stands at when it heads a screen — the auth header today.
+ *
+ * ⛔ A WIDTH, not a size, and that is the whole point: the imagotype is 5.484:1, so what a surface
+ * can give it is horizontal room. Asking for a square `size` here is how a logo gets squashed.
+ *
+ * It is wider than [PAPARCAR_LOGO_BESIDE_NAME_SIZE] was (72 dp) because it now contains the name
+ * that used to sit next to it as a `Text`. The mark inside it reads smaller than the old 72 dp
+ * mark — measured, 31 dp of ink against 56 dp — and that is the trade a horizontal lockup makes:
+ * on a 360 dp phone a mark at its old optical size would need 434 dp of lockup beside it. The
+ * brand reads as one object instead of two, which is what it is.
+ */
+val PAPARCAR_IMAGOTIPO_WIDTH = 240.dp
+
+/**
+ * The Paparcar IMAGOTYPE: the mark **and its name**, as one drawing.
+ *
+ * Use it wherever the brand says who it is — a screen header, a hero. Use [PaparcarLogo] where the
+ * mark stands alone. The rule has no exceptions left: *mark alone → isotype; mark saying its name
+ * → imagotype*, and never a `PaparcarLogo` with a `Text` of the name composed beside it, which is
+ * what six surfaces were each doing their own way. [BRAND-THE-MARK-GAINS-ITS-WORDMARK-001]
+ *
+ * ⛔ **The word is drawn, not typed.** Its eight glyphs are outlines from the brand master, so it
+ * carries no typographic decision: it does NOT pass through `PaparcarType`, and it is not a
+ * typography-doctrine exception either — the three voices govern the app's TEXT, and this is an
+ * illustration [UI-TYPE-TWO-VOICES-ONE-ROW-001].
+ *
+ * ⛔ **Never tint it.** Tier 3 brings its own colour, and the two fills here are what distinguish
+ * the symbol from the word — a `ColorFilter` would flatten both into one and lose exactly that.
+ * The theme picks a whole VARIANT instead, for the measured reason that already governs the mark:
+ * `PapGreen` on white is 1.42:1, so light theme gets `PapGreenLight` plus `PapInk` for the word.
+ *
+ * ⚠️ Only the width is constrained: the height follows from the drawable's own ratio. That is also
+ * why the generated drawable is 170 × 31 dp and not 168 × 31 — the exporter refuses a width whose
+ * whole-dp height would skew the lockup by more than 0.2 %.
+ */
+@Composable
+fun PaparcarImagotipo(
+    modifier: Modifier = Modifier,
+    width: Dp = PAPARCAR_IMAGOTIPO_WIDTH,
+) {
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val resource = if (isDark) Res.drawable.paparcar_imagotipo_dark
+                   else Res.drawable.paparcar_imagotipo_light
+    Image(
+        painter = painterResource(resource),
+        contentDescription = stringResource(Res.string.brand_name),
+        modifier = modifier.width(width),
+    )
+}
 
 @Composable
 fun PaparcarLogo(

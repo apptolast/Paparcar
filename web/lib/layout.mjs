@@ -1,6 +1,6 @@
 /** The document shell: head, header, footer. Every page goes through `page()`. */
 import { esc, cx, button, storeButtons, icon } from './components.mjs';
-import { logoMark, playGlyph, appleGlyph } from './icons.mjs';
+import { logoLockup, playGlyph, appleGlyph } from './icons.mjs';
 import { ORIGIN, PLAY_URL, SUPPORT_EMAIL, LOCALES, SECTIONS, routes } from './config.mjs';
 import { asset } from './assets.mjs';
 
@@ -139,9 +139,8 @@ function header(t, pageKey, lang, base) {
 
   return `<header class="site-header" data-header>
   <div class="shell site-header__inner">
-    <a class="brand" href="${home}" aria-label="Paparcar">
-      ${logoMark({ size: 36 })}
-      <span class="brand__name">Paparcar</span>
+    <a class="brand" href="${home}" aria-label="paparcar">
+      ${logoLockup({ width: 136 })}
     </a>
 
     <nav class="nav" aria-label="${esc(t.nav.home)}">
@@ -199,9 +198,8 @@ function footer(t, lang, base, pageKey) {
   <div class="shell">
     <div class="footer__grid">
       <div class="footer__brand">
-        <a class="brand" href="${r.home}" aria-label="Paparcar">
-          ${logoMark({ size: 40 })}
-          <span class="brand__name">Paparcar</span>
+        <a class="brand" href="${r.home}" aria-label="paparcar">
+          ${logoLockup({ width: 152 })}
         </a>
         <p class="footer__tagline">${esc(t.footer.tagline)}</p>
       </div>

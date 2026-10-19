@@ -184,28 +184,15 @@ Regla mental: *plumbing de UI → Material; concepto de Paparcar → vector prop
   ⛔ Las variantes **oscura y teñida de iOS 18 van SIN fondo**: el telón lo pone el sistema. Y no
   son opcionales — si falta el fichero, iOS usa la clara también ahí, y el icono se queda brillante
   en un home screen oscuro.
-  ⛔ **DOS excepciones, y las dos son del user — el criterio que las une es UNO**:
-  *donde la marca llena su caja, no hay disco; donde es un **emblema** dentro de una composición
-  ajena —con un wordmark al lado—, el soporte es legítimo.* Eso se lee en un número: el emblema
-  pone la marca al `F_EMBLEM = 0.52896` de su disco, y la app al `F_MARK = 1.0`, que es justo lo
-  contrario — ahí la marca ocupa lo que ocupaba el disco, y por eso no lo necesita. Las dos
-  excepciones **no** abren la puerta a discos en la app.
-    - **Gráfico de funciones de Play** (`feature.html`) [PLAY-THE-BANNER-MARK-KEEPS-ITS-DISC-001,
-      30-09]: sin disco la marca queda en ~46 px al lado de un wordmark de 82 y flota.
-    - **La web** —cabecera, pie, las dos páginas legales y la tarjeta social—
-      [WEB-THE-MARK-WEARS-ITS-DISC-ON-THE-SITE-001, 30-09].
-  ⛔ **El COLOR del disco lo decide el fondo, y es contraste medido, no gusto.** El banner cae sobre
-  un degradado verdoso (`#15251F → #0D1117`): ahí el disco es de **tinta** `#0D1117` y un aro
-  `PapGreen` al 28 % lo delimita. La web es tinta **plana** (`--ink #0d1117`), que es *exactamente*
-  ese relleno: un disco de tinta daría **1,00:1** — invisible — y dejaría sólo el aro mientras la
-  marca encoge a la mitad. Sobre tinta plana el disco que se ve es el **verde**, con el glifo en
-  tinta: **12,97:1 en los dos sentidos**, y es además el disco que la web ya llevaba antes de 2026.
-  Sin aro: sobre un disco verde, un aro verde al 28 % no separa nada.
-  ⛔ **El disco tampoco se escribe a mano.** Vive en `export_surfaces.py` (`EMBLEM_BANNER` /
-  `EMBLEM_SITE` + `emblem_transform()`), que escribe los dos `<circle>` del banner, las constantes
-  de `web/lib/mark.generated.mjs` y la superficie `docs/assets/paparcar-emblem.svg` — de donde
-  `render_graphics.sh emblem` saca el PNG que pega la tarjeta social. Geometría compartida, pintura
-  por superficie.
+  ⛔⛔ **El disco está MUERTO y ya no tiene excepciones** [BRAND-THE-MARK-GAINS-ITS-WORDMARK-001,
+  19-10]. Hubo dos, las dos del user —el banner de Play [PLAY-THE-BANNER-MARK-KEEPS-ITS-DISC-001] y
+  la web [WEB-THE-MARK-WEARS-ITS-DISC-ON-THE-SITE-001]— y las dos se sostenían sobre **una sola
+  razón medida**: la marca a `F_EMBLEM = 0.52896` se quedaba en ~46 px al lado de un wordmark de 82
+  y **flotaba**. El disco era la muleta de una composición que nadie había diseñado. Ahora esa
+  composición existe —el **imagotipo**, abajo— así que la razón desapareció y con ella el disco:
+  `EMBLEM_*`, `disc_circles()`, `emblem_svg()` y `paparcar-emblem*` están **borrados**, no
+  desactivados. Un disco sin consumidores no es una excepción, es un agujero.
+
   ⛔ La antigua *Compensación Óptica* (trazo de rueda 6 sobre oscuro / 7 sobre claro) **murió, no se
   movió**: la marca nueva no tiene ni un trazo — sus ruedas son coronas rellenas—, así que no hay
   irradiación que compensar.
@@ -220,6 +207,38 @@ Regla mental: *plumbing de UI → Material; concepto de Paparcar → vector prop
   Las superficies que se encuadran por el círculo envolvente (`frame(fraction)`) no se enteran, pero
   **meter la marca en una caja cuadrada a pelo le corta la rueda derecha o la aplasta**. El ancho y
   el alto se leen de `MARK_W`/`MARK_H` (web) o del `viewBox` del maestro; nunca se asumen iguales.
+
+### ⛔ Isotipo o imagotipo — la marca sola, o la marca diciendo su nombre
+Regla mental, sin excepciones que recordar: *¿hay un nombre al lado? → **imagotipo**. ¿la marca va
+sola? → **isotipo**.* Lo que **nunca** vuelve a hacerse es componer símbolo + `Text`/`<span>` a mano:
+eso es lo que hacían seis superficies, cada una con su criterio y la palabra en tres tratamientos
+tipográficos distintos [BRAND-THE-MARK-GAINS-ITS-WORDMARK-001].
+- **Imagotipo** → cabecera de auth (`PaparcarImagotipo`), cabecera y pie de la web + páginas legales
+  (`logoLockup()`), banner de Play, tarjeta social OG, README.
+- **Isotipo** → splash, icono adaptativo, small icon de notificación, las cuatro baldosas de Apple,
+  favicon, Dev Catalog, onboarding, y el pie del README (marca sola sobre una línea de crédito).
+- **El paywall se queda en isotipo, y por dos razones independientes**: su marca está **fundida en
+  metal** (`PapPremiumMark` sobre `PapPremiumSurface`, que es el material de la pantalla) y un
+  imagotipo plano la apagaría; y su título no es el de la marca, es «Paparcar **Plus**».
+- ⛔ **La PALABRA son ocho contornos, no texto**, y por eso el imagotipo **no pasa por
+  `PaparcarType`** ni es una excepción a la doctrina tipográfica: los tres roles gobiernan el TEXTO
+  de la app, y esto es un dibujo. Que sean contornos es lo que hace que el logo se vea igual sin la
+  fuente cargada — en el Chrome headless que rasteriza el banner, en el Pillow que compone la
+  tarjeta social y en un VectorDrawable, que no sabe de fuentes.
+- ⛔ **Nunca se tiñe.** Es Nivel 3: trae su color, y sus **dos** rellenos son justo lo que distingue
+  el símbolo de la palabra — un `ColorFilter` los aplastaría en uno. El tema elige **variante
+  entera**: sobre oscuro `PapGreen` + `#F4F7F4` (17,60:1); sobre claro `PapGreenLight` + `PapInk`
+  (18,99:1). El verde no se decide aquí, lo manda la regla de arriba.
+- ⛔ **Su lienzo es 5,484:1 y el alto SALE de la relación.** Se fija el **ancho** y nada más: pedirle
+  un `size` cuadrado es como se aplasta un logo. Por eso el VectorDrawable es `170 × 31 dp` y no
+  `168 × 31` — el exportador **rechaza** un ancho cuyo alto entero deforme más de un 0,2 %.
+- ⛔ **La palabra tiene su propio maestro**, `docs/branding/master/wordmark.py`: el símbolo se dibuja
+  desde parámetros, la palabra es un entregable contorneado que no se puede derivar, así que lo que
+  tiene es **un solo sitio donde vive**. `export_surfaces.py` compone los dos; ninguna superficie
+  escribe sus paths. Lo vigila `BrandSurfaceGuardrailTest`, que exige que **cada** superficie del
+  imagotipo lleve los 3 paths del símbolo **y** los 8 de la palabra, y que **mide el PNG** de la
+  tarjeta social: símbolo 4,5 % centrado al 10 % del ancho, palabra 23,6 % al 57 % — dos mitades
+  presentes y en su orden, que es lo que una cifra de cobertura sola no vería.
 
 ### ⛔ Tipografía — tres voces y un rol que manda [UI-TYPE-TWO-VOICES-ONE-ROW-001]
 Familia, tamaño **y peso** son propiedad del **ROL**, no del widget. Nunca elijas fuente, tamaño ni

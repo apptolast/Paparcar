@@ -3,9 +3,9 @@
 # Renders the two GRAPHICS of the listing — the 512 app icon and the 1024x500 feature graphic in
 # every locale — out of `assets/icon.html` and `assets/feature.html`.
 #
-# usage: render_graphics.sh [icon|feature|emblem|apple|favicon|all] [locale ...]  (default: all)
+# usage: render_graphics.sh [icon|feature|lockup|apple|favicon|all] [locale ...]  (default: all)
 #
-# `emblem` no es de la ficha de Play: es el emblema que pega la tarjeta social de la web
+# `lockup` no es de la ficha de Play: es el IMAGOTIPO que pega la tarjeta social de la web
 # [WEB-THE-MARK-WEARS-ITS-DISC-ON-THE-SITE-001]. Vive aqui porque este es el rasterizador
 # del repo -no hay uno en Python: svglib parsea, pero reportlab no trae backend- y porque
 # lo que rasteriza es la MARCA, que es de lo que este script ya se ocupa.
@@ -45,17 +45,22 @@ shoot() { # shoot <out-win-path> <w> <h> <url>
 # Rasterise ONE svg at NxN. Chrome opens a bare .svg with the body's margin, which would shift
 # the drawing without the PNG's size ever betraying it — hence the zero-margin <img> wrapper.
 # `--default-background-color=00000000` keeps the alpha; the caller decides whether to flatten.
-svg_shot() { # svg_shot <repo-relative svg> <size> <out-win-path>
+# ⛔ El alto es un argumento OPCIONAL y por defecto es el ancho, porque hasta el
+# imagotipo todo lo que pasaba por aqui era cuadrado. El imagotipo es 5,484:1, y
+# rasterizarlo en una caja cuadrada lo deja a una quinta parte del tamano con cuatro
+# quintos de PNG vacio -o aplastado, si se le fuerzan los dos lados-.
+svg_shot() { # svg_shot <repo-relative svg> <width> <out-win-path> [height]
+  local H="${4:-$2}"
   printf '%s\n' \
     '<!doctype html><meta charset="utf-8">' \
     "<style>html,body{margin:0;padding:0;background:transparent}" \
-    "img{display:block;width:$2px;height:$2px}</style>" \
+    "img{display:block;width:$2px;height:${H}px}</style>" \
     "<img src=\"file:///$WINREPO/$1\">" \
     > "$TMP/svg_shot.html"
   "$CHROME" --headless=new --disable-gpu --hide-scrollbars --allow-file-access-from-files \
     --force-device-scale-factor=1 --virtual-time-budget=2000 \
     --default-background-color=00000000 \
-    --window-size="$2,$2" --screenshot="$3" "file:///$WINTMP/svg_shot.html" >/dev/null 2>&1
+    --window-size="$2,$H" --screenshot="$3" "file:///$WINTMP/svg_shot.html" >/dev/null 2>&1
 }
 
 # Play wants both graphics opaque, and Chrome writes RGBA. Flattening here (instead of trusting the
@@ -243,60 +248,76 @@ for name, dst, opaque, min_mark, want_clear in jobs:
 PY
 fi
 
-if [ "$WHAT" = emblem ] || [ "$WHAT" = all ]; then
-  # El emblema de la web: la marca sobre su disco VERDE (sobre la tinta plana del sitio,
-  # un disco de tinta da 1,00:1 — ver export_surfaces.py). Se rasteriza CON ALFA: fuera
-  # del disco no hay nada, y la tarjeta social compone encima de su propio fondo.
+if [ "$WHAT" = lockup ] || [ "$WHAT" = all ]; then
+  # El IMAGOTIPO de la web: simbolo y nombre, un solo dibujo. Se rasteriza CON ALFA
+  # porque la tarjeta social compone encima de su propio fondo.
   #
-  # Antes `prepare_social()` pegaba `play-icon-512.png`, el icono de OTRA superficie —una
-  # baldosa opaca—, y por eso la tarjeta arrastro la marca de 2022 dentro de un JPEG
-  # mientras el resto del repo ya tenia la de 2026. Un PNG generado si vale; un PNG
-  # prestado de otra superficie, no.
-  echo "emblema de la web (512x512, con alfa)"
-  svg_shot docs/assets/paparcar-emblem.svg 512 "$WINTMP/emblem.png"
+  # Aqui se rasterizaba el EMBLEMA -la marca sobre un disco verde- y `prepare_social()`
+  # le escribia "Paparcar" al lado con Pillow: dos piezas y dos criterios para una sola
+  # marca. Ahora el nombre viaja DENTRO del PNG, contorneado, asi que la tarjeta no
+  # necesita tener la fuente ni decidir el tamano del texto
+  # [BRAND-THE-MARK-GAINS-ITS-WORDMARK-001].
+  #
+  # Antes de eso, `prepare_social()` pegaba `play-icon-512.png`, el icono de OTRA
+  # superficie -una baldosa opaca-, y por eso la tarjeta arrastro la marca de 2022 dentro
+  # de un JPEG mientras el resto del repo ya tenia la de 2026. Un PNG generado si vale;
+  # un PNG prestado de otra superficie, no.
+  echo "imagotipo de la web (1024x187, con alfa)"
+  svg_shot docs/assets/paparcar-imagotipo-dark.svg 1024 "$WINTMP/lockup.png" 187
   # Se COMPRUEBA el contenido, no el exit code ni el tamano: un PNG del tamano pedido
   # puede estar vacio, y ya paso una vez con estos mismos graficos.
-  python - "$TMP/emblem.png" "$REPO/docs/assets/paparcar-emblem-512.png" <<'PY'
-import math
+  python - "$TMP/lockup.png" "$REPO/docs/assets/paparcar-imagotipo-1024.png" <<'PY'
 import sys
 from PIL import Image
 
-# Se mide por PROPORCIONES, no por pixeles concretos. Sondear un punto exige acertar
-# donde cae un trazo, y el primer intento fallo: el centroide de la tinta cae dentro
-# del OJO del pin, que es hueco. Las proporciones no dependen de acertar nada, y
-# cazan los dos fallos que importan: un disco sin marca dentro, y un PNG vacio del
-# tamano correcto -que es como este mismo pipeline enganio una vez-.
+# Se mide por PROPORCIONES y por POSICION, no sondeando pixeles concretos: acertar
+# donde cae un trazo es fragil -el centroide de la tinta del pin cae dentro de su ojo,
+# que es hueco, y asi fallo el primer intento de la version con disco-.
+#
+# Lo que se comprueba aqui es justo lo que el imagotipo puede romper y un PNG del
+# tamano correcto no delataria: que esten LAS DOS piezas y que esten en su sitio. El
+# verde a la izquierda y el casi-blanco a su derecha, sin solaparse. Un lockup al que
+# le falte la palabra, o cuyos dos grupos caigan uno encima del otro -lo que pasaria
+# si los dos translate salieran iguales-, muere aqui.
 src, dst = sys.argv[1], sys.argv[2]
 im = Image.open(src).convert("RGBA")
-if im.size != (512, 512):
-    sys.exit("  emblema: %dx%d, se esperaba 512x512" % im.size)
+W, H = im.size
+if (W, H) != (1024, 187):
+    sys.exit("  imagotipo: %dx%d, se esperaba 1024x187" % (W, H))
 px = im.load()
-ink = green = clear = 0
-for y in range(0, 512, 4):
-    for x in range(0, 512, 4):
+if px[2, 2][3] != 0:
+    sys.exit("  imagotipo: la esquina no es transparente, falta el alfa")
+green = white = clear = 0
+gx = wx = 0
+for y in range(0, H, 2):
+    for x in range(0, W, 2):
         r, g, b, a = px[x, y]
-        if a == 0:
+        if a < 128:
             clear += 1
-        elif max(r, g, b) < 80:
-            ink += 1
         elif g > 180 and r < 120:
             green += 1
-tot = (512 // 4) ** 2
-if px[4, 4][3] != 0:
-    sys.exit("  emblema: la esquina no es transparente, falta el alfa")
-# Un circulo inscrito en su caja deja fuera 1 - pi/4 = 21,5 %.
-want = 1 - math.pi / 4
-if abs(clear / tot - want) > 0.03:
-    sys.exit("  emblema: %.1f%% transparente, se esperaba ~%.1f%%: el disco no llena la caja"
-             % (100 * clear / tot, 100 * want))
-if green / tot < 0.50:
-    sys.exit("  emblema: solo %.1f%% verde, el disco no esta" % (100 * green / tot))
-if not 0.04 < ink / tot < 0.20:
-    sys.exit("  emblema: %.1f%% de tinta, la marca no esta dibujada dentro del disco"
-             % (100 * ink / tot))
+            gx += x
+        elif min(r, g, b) > 190:
+            white += 1
+            wx += x
+tot = (W // 2) * (H // 2)
+if green == 0:
+    sys.exit("  imagotipo: ni un pixel verde, el simbolo no esta")
+if white == 0:
+    sys.exit("  imagotipo: ni un pixel casi-blanco, la PALABRA no esta")
+gc, wc = gx / green / W, wx / white / W
+if gc > 0.16:
+    sys.exit("  imagotipo: el verde esta centrado en %.0f%% del ancho, se esperaba a la "
+             "izquierda (<16%%)" % (100 * gc))
+if wc < 0.45:
+    sys.exit("  imagotipo: la palabra esta centrada en %.0f%% del ancho, se esperaba a la "
+             "derecha del simbolo (>45%%)" % (100 * wc))
+if clear / tot < 0.60:
+    sys.exit("  imagotipo: solo %.0f%% transparente; un lockup deja mucho aire, esto parece "
+             "un fondo" % (100 * clear / tot))
 im.save(dst, "PNG", optimize=True)
-print("  paparcar-emblem-512.png  512x512  RGBA  disco %.0f%% verde, marca %.0f%% tinta, "
-      "esquina %.0f%% limpia" % (100 * green / tot, 100 * ink / tot, 100 * clear / tot))
+print("  paparcar-imagotipo-1024.png  %dx%d  RGBA  simbolo %.1f%% en x=%.0f%%, palabra "
+      "%.1f%% en x=%.0f%%" % (W, H, 100 * green / tot, 100 * gc, 100 * white / tot, 100 * wc))
 PY
 fi
 
