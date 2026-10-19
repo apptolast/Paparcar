@@ -20,8 +20,8 @@
 > defecto que [PLAY-A-LISTING-MUST-MATCH-THE-BUILD-IN-PRODUCTION-001] arregló en la ficha.
 >
 > **Se puede pegar tal cual.** El §13 lleva los precios medidos, las decisiones de territorio y las
-> cinco medidas reales. **Queda un solo hueco, `⟨ZONA⟩`**, nombrado como pendiente dentro del prompt
-> para que Claude Web produzca con él puesto en vez de inventarlo.
+> cinco medidas reales, y desde el 19-10 también `⟨ZONA⟩`. **No queda ningún hueco**: las piezas que
+> produzca salen listas para publicar, no para rellenar.
 
 ---
 
@@ -302,7 +302,7 @@ bloque fijo que se repite en todas las piezas de dato:
 ETIQUETA EN VERDE, MAYÚSCULAS           ← qué estamos midiendo
      1 1 ·  m i n                       ← CIFRA enorme + UNIDAD
 Titular de una línea, semibold           ← qué significa
-medido en 14 viajes · ⟨zona⟩ · oct 2026  ← LÍNEA DE EVIDENCIA, obligatoria
+22 de 25 viajes · centro de El Puerto · oct 2026   ← LÍNEA DE EVIDENCIA, obligatoria
 ```
 
 ⛔ **LÍNEA DE EVIDENCIA OBLIGATORIA bajo cualquier número.** Dice de dónde sale: la muestra, el sitio
@@ -695,10 +695,15 @@ tres abiertas **L-D 24 H**:
   · **⟨ESTUDIO⟩ = El Puerto de Santa María** (anillo de rodaje: Cádiz, Jerez de la Frontera). Es
     donde se graba y de donde salen las cifras. **Aparece en las líneas de evidencia, no en los
     titulares.**
-  · **⟨ZONA⟩ — PENDIENTE.** La zona concreta de donde sale la cifra del parte, para la línea de
-    evidencia. No es una elección libre: tiene que ser donde el autor aparca de verdad, para que la
-    cifra exista. ⛔ **Y no puede ser su zona privada**: la app se niega a publicar una plaza al
-    salir de su casa, así que un carrusel no va a publicar su portal.
+  · **⟨ZONA⟩ = «el centro de El Puerto»** — el sitio que va en la **línea de evidencia** de cada
+    cifra, nunca en el titular (§4.2). Forma recomendada de esa línea:
+    **`22 de 25 viajes · centro de El Puerto · oct 2026`**.
+    ⚠️ **Y un matiz de honestidad, porque la línea de evidencia es precisamente lo que no puede
+    estirarse**: los 17 min cubren **los 25 aparcamientos del periodo**, que ocurren por toda la
+    ciudad, no sólo en el centro. Si en alguna lámina la frase da a entender que la cifra es *sólo*
+    del centro, se escribe **«El Puerto de Santa María»** a secas y se acabó el problema.
+    ⛔ **Lo que NO puede aparecer nunca es el nombre de una zona del autor** —«Home», «Work»—: son
+    etiquetas suyas, y la primera es su casa (§13.3).
   · **⟨PERIODO⟩ = «los últimos 7 días»** — la ventana del plan gratuito. Se nombra así, literal, en
     toda línea de evidencia con cifra.
   · ⛔ **No existe «⟨MES⟩» todavía**: la campaña arranca a mitad de octubre y el primer parte es de
