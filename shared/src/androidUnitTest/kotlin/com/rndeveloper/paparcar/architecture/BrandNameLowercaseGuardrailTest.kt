@@ -108,7 +108,56 @@ class BrandNameLowercaseGuardrailTest {
         )
     }
 
+    @Test
+    fun `the store says the name the app says`() {
+        // ⛔ This is the check that was MISSING, and the gap was not random. The two Play HTML
+        // files are not templates — they carry their own copy inside — so they fall outside
+        // everything that looks like "copy" when you go looking for copy. The lowercase sweep left
+        // 28 occurrences there and the suite stayed green; what found it was rendering the banner
+        // and LOOKING at it, which is not a method.
+        //
+        // It is also the same hiding place twice over: `feature.html` is where the mark's own path
+        // data used to live by hand, and the listing is where the app name was duplicated until
+        // [PLAY-THE-LISTING-MOVES-TO-THE-PUBLISHED-BUILD-001] gave it one home.
+        // [BRAND-THE-LOWERCASE-GUARD-MISSED-THE-STORE-001]
+        val offenders = storeCopy().filter { read(it).contains(CAPITALISED) }
+        assertTrue(
+            offenders.isEmpty(),
+            buildString {
+                appendLine("the store still spells the brand with a capital in:")
+                offenders.forEach { appendLine("  $it") }
+                appendLine()
+                appendLine("This is what a user reads BEFORE installing, so it is the first thing")
+                appendLine("the brand says. The paste files are generated:")
+                appendLine("  python docs/release/play-listing/tools/make_paste.py")
+                appendLine("and the banner is re-rendered with:")
+                appendLine("  bash docs/release/play-listing/tools/render_graphics.sh feature")
+            },
+        )
+    }
+
     // ── plumbing ──────────────────────────────────────────────────────────────
+
+    /**
+     * Everything the store shows: the two graphics' own HTML, the LIVE listing and the paste files.
+     *
+     * ⛔ Which listing is live is not guessed from the file name — `LISTING.md` and
+     * `LISTING-i18n.md` read like the current ones and are the RETIRED ones. `published-listing.txt`
+     * names it, and that pointer exists because the name used to live in two places
+     * [PLAY-THE-LISTING-MOVES-TO-THE-PUBLISHED-BUILD-001]. The retired listings are the record of
+     * what was published on the day; rewriting them to match today would be falsifying them.
+     */
+    private fun storeCopy(): List<String> {
+        val live = repoFile(PUBLISHED_POINTER).readLines()
+            .map { it.trim() }
+            .firstOrNull { it.isNotEmpty() && !it.startsWith("#") }
+            ?: fail("$PUBLISHED_POINTER names no listing")
+        val pasted = repoFile("$LISTING_DIR/paste").listFiles()
+            ?.filter { it.isFile && it.name.endsWith(".txt") }
+            ?.map { "$LISTING_DIR/paste/${it.name}" }
+            .orEmpty()
+        return STORE_GRAPHICS + "$LISTING_DIR/$live" + pasted
+    }
 
     /** `name → value` for every `<string>` in an Android/Compose resources file. */
     private fun stringsOf(xml: String): List<Pair<String, String>> =
@@ -154,6 +203,18 @@ class BrandNameLowercaseGuardrailTest {
 
         /** The site's SOURCE copy. `hosting/public` is build output and follows from these. */
         val WEB_COPY = listOf("web/content/es.json", "web/content/en.json")
+
+        const val LISTING_DIR = "docs/release/play-listing"
+        const val PUBLISHED_POINTER = "$LISTING_DIR/published-listing.txt"
+
+        /**
+         * The two Play graphics. They are NOT templates — background, gradients and their own copy
+         * live inside — which is exactly why their text escaped a sweep that went looking for copy.
+         */
+        val STORE_GRAPHICS = listOf(
+            "$LISTING_DIR/assets/feature.html",
+            "$LISTING_DIR/assets/screenshot-frame.html",
+        )
 
         val repoRoot: File = generateSequence(File("").absoluteFile) { it.parentFile }
             .firstOrNull { File(it, "settings.gradle.kts").isFile }

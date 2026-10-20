@@ -76,25 +76,25 @@
         <path d="M253.80468750000003 16.8V33.6H245.40468750000002V16.8Q245.40468750000002 13.453125 246.68437500000005 10.36875Q247.96406250000004 7.284375000000001 250.32656250000002 4.921875Q252.68906250000003 2.5593749999999993 255.77343750000003 1.2796874999999996Q258.8578125 0.0 262.20468750000003 0.0V8.399999999999999Q258.7265625 8.399999999999999 256.265625 10.8609375Q253.80468750000003 13.321875000000002 253.80468750000003 16.8Z"/>
       </g>
     </svg>
-    <div class="tag" id="tag">Park and forget it.<br><b>Paparcar remembers.</b></div>
+    <div class="tag" id="tag">Park and forget it.<br><b>paparcar remembers.</b></div>
   </div>
 </div>
 <script>
   // Render with ?lang=en|es|it|pt|fr|de|nl|pl|ro (default en). Same taglines as the
   // listing copy: "remembers" verb matches each locale's short description verb.
   const TAGS = {
-    en:'Park and forget it.<br><b>Paparcar remembers.</b>',
-    es:'Aparca y olvídate.<br><b>Paparcar lo recuerda.</b>',
-    it:'Parcheggia e dimenticatene.<br><b>Paparcar se lo ricorda.</b>',
-    pt:'Estaciona e esquece.<br><b>O Paparcar lembra-se.</b>',
+    en:'Park and forget it.<br><b>paparcar remembers.</b>',
+    es:'Aparca y olvídate.<br><b>paparcar lo recuerda.</b>',
+    it:'Parcheggia e dimenticatene.<br><b>paparcar se lo ricorda.</b>',
+    pt:'Estaciona e esquece.<br><b>O paparcar lembra-se.</b>',
     // Apostrofo TIPOGRAFICO (U+2019), no el recto: en frances el recto es un
     // sustituto de maquina de escribir, y esto es un banner de tienda, no codigo.
     // De paso deja de necesitar escape dentro de la cadena JS.
-    fr:'Garez-vous et n’y pensez plus.<br><b>Paparcar s’en souvient.</b>',
-    de:'Parken und vergessen.<br><b>Paparcar merkt es sich.</b>',
-    nl:'Parkeer en vergeet het.<br><b>Paparcar onthoudt het.</b>',
-    pl:'Zaparkuj i zapomnij.<br><b>Paparcar pamięta.</b>',
-    ro:'Parchează și uită.<br><b>Paparcar ține minte.</b>',
+    fr:'Garez-vous et n’y pensez plus.<br><b>paparcar s’en souvient.</b>',
+    de:'Parken und vergessen.<br><b>paparcar merkt es sich.</b>',
+    nl:'Parkeer en vergeet het.<br><b>paparcar onthoudt het.</b>',
+    pl:'Zaparkuj i zapomnij.<br><b>paparcar pamięta.</b>',
+    ro:'Parchează și uită.<br><b>paparcar ține minte.</b>',
   };
   const lang = new URLSearchParams(location.search).get("lang") || "en";
   document.getElementById("tag").innerHTML = TAGS[lang];
