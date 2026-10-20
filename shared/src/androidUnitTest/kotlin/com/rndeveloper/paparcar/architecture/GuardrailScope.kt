@@ -195,21 +195,42 @@ object GuardrailScope {
 
     /**
      * **Páginas**: las pantallas que se scrollean como una columna de bloques — detectadas por su
-     * forma (`LazyColumn` con `contentPadding`), nunca enumeradas.
-     * [UI-A-PAGE-KEEPS-ONE-VERTICAL-RHYTHM-001]
+     * forma, nunca enumeradas.
+     * [UI-A-PAGE-KEEPS-ONE-VERTICAL-RHYTHM-001] [UI-A-PAGE-GUARD-MUST-SEE-PAST-THE-LIST-SHAPE-001]
      *
      * Enumerarlas sería el error que el ticket vino a cerrar: el ritmo vertical se rompió seis
      * veces porque cada pantalla NUEVA llegaba sin que nada la obligase a mirar lo que ya existía,
      * y una lista escrita a mano deja fuera exactamente a esa séptima.
+     *
+     * ⛔ **Pero una forma sola tampoco las ve a todas, y eso es verde por vacío.** La forma era
+     * `LazyColumn(` + `contentPadding`, y este árbol escribe una página de **dos** maneras: con una
+     * lista, y con un `Column` + `verticalScroll`. Medido el 20-10 sobre los 181 ficheros de
+     * `presentation/`: la primera forma selecciona 7 y la segunda 5, sin solaparse. Las cinco de
+     * scroll manual — alta de vehículo, onboarding, los dos explainers, el paywall — pasaban el
+     * guard **sin ser miradas**, que no es lo mismo que pasarlo.
+     *
+     * Las que no son páginas salen por una lista blanca nombrada en el propio guard, no ensanchando
+     * la forma: una exención con nombre se lee y se discute; una forma retorcida para que algo no
+     * entre, no. [TEST-A-GREEN-SUITE-MUST-PROVE-IT-LOOKED-001]
+     *
+     * ⛔ Lo que esta forma sigue SIN ver, por diseño, es la columna de bloques cuyo scroll pone
+     * otro — un pager, el `Column` de la pantalla, el mapa de debajo. Esas no se detectan: se
+     * nombran, y de eso se encarga el chequeo de superficies adheridas de
+     * `PageRhythmGuardrailTest`, que contesta la pregunta contraria (¿sigue adherido lo que
+     * migramos?) y sólo se puede contestar nombrando.
      */
     fun pageFiles(): List<KoFileDeclaration> = population(
-        name = "page lists (commonMain presentation.*, LazyColumn with contentPadding)",
+        name = "page surfaces (commonMain presentation.*, LazyColumn+contentPadding or verticalScroll)",
         floor = PAGE_FILES_FLOOR,
     ) { scope ->
         scope.files
             .filter { it.inSourceSet(COMMON_MAIN) }
             .filter { (it.packagee?.name ?: "").startsWith(PRESENTATION) }
-            .filter { it.text.contains("LazyColumn(") && it.text.contains("contentPadding") }
+            .filter { file ->
+                val scrollsAsAList = file.text.contains("LazyColumn(") &&
+                    file.text.contains("contentPadding")
+                scrollsAsAList || file.text.contains("verticalScroll(")
+            }
     }
 
     /** `commonMain` production sources — no test source set, no test-named file. */
@@ -369,7 +390,7 @@ object GuardrailScope {
     const val VEHICLE_TYPE_MENTIONS_FLOOR = 10      // measured  21
     const val FIELD_TRACE_FILES_FLOOR = 9           // measured  20
     const val TEST_SOURCES_FLOOR = 115              // measured 234
-    const val PAGE_FILES_FLOOR = 4                  // measured   7
+    const val PAGE_FILES_FLOOR = 6                  // measured  12
     const val ALL_CLASSES_FLOOR = 300
 
     /** Where the field traces live. Named once: [fieldTraceFiles] selects it, the rule reports it. */
