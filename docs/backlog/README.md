@@ -1,6 +1,6 @@
 # Backlog — índice de lo que sigue abierto
 
-> **801 ficheros: 715 cerrados, 77 abiertos, 9 que no son tickets.** Este índice lista **solo lo que
+> **802 ficheros: 715 cerrados, 78 abiertos, 9 que no son tickets.** Este índice lista **solo lo que
 > queda**, para que la pregunta *"¿qué falta?"* se conteste leyendo y no listando el directorio.
 > Verificado contra master `1339ea263` el **2026-10-07**
 > [DOCS-A-CLOSED-TICKET-MUST-NOT-SAY-IT-IS-IN-REVIEW-001]. El barrido anterior
@@ -193,6 +193,12 @@ No esperan a un viaje: esperan a que vuelva a fallar lo que los originó.
 | [`ux-park-flow-001`](ux-park-flow-001.md) | placeholder POR DEFINIR · análisis en [`ux-park-flow-001-analysis`](ux-park-flow-001-analysis.md) y [`home-flow-analysis`](home-flow-analysis.md) |
 | [`moving-car-native-marker-2026-07-01`](moving-car-native-marker-2026-07-01.md) | spike; el fork de kmp-maps que salió de aquí **ya está en Maven Central** |
 | *(sin ticket)* | **estilo de mapa**: el default sigue siendo `MapType.TERRAIN` y el JSON de marca solo rinde sobre `NORMAL`. Documentado en [`home-flow-analysis` §H2](home-flow-analysis.md) |
+
+## 🏪 Ficha de Play — abierto
+
+| Ticket | Nota |
+|---|---|
+| [`play-the-store-shots-still-live-in-dublin-001`](play-the-store-shots-still-live-in-dublin-001.md) | 🔵 las **72 capturas** (9 × 8) enseñan calles de **Dublín** y el titular con la marca en **mayúscula**. ⛔ **No vale re-renderizar**: `render.sh` pide raws POR IDIOMA y los del repo son planos y en inglés, así que un re-render arregla el titular y deja Dublín dentro. Necesita **sesión de emulador**, no una edición. Los 9 gráficos de funciones SÍ están listos |
 
 ## 🍎 iOS — en marcha
 
