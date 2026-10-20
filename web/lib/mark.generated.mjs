@@ -39,12 +39,12 @@ export const WORD_PATHS = [
 // las dos paginas legales y la tarjeta social — es decir, todo sitio donde la
 // marca dice su nombre. El favicon no (glifo de pestana) ni el apple-touch-icon
 // (baldosa que el sistema exige opaca): alli la marca va sola.
-// ⛔ El lienzo NO es cuadrado: 5.484:1. Fija el ANCHO y deja que el alto salga de
+// ⛔ El lienzo NO es cuadrado: 7.320:1. Fija el ANCHO y deja que el alto salga de
 // la relacion; declarar los dos es como se aplasta un logo.
-export const LOCKUP_W = 339.67569;
-export const LOCKUP_H = 61.94414;
-export const LOCKUP_MARK_TRANSFORM = 'translate(9.0000 9.0000) scale(0.186204)';
-export const LOCKUP_WORD_TRANSFORM = 'translate(68.4710 9.9721)';
+export const LOCKUP_W = 321.67569;
+export const LOCKUP_H = 43.94414;
+export const LOCKUP_MARK_TRANSFORM = 'translate(0.0000 0.0000) scale(0.186204)';
+export const LOCKUP_WORD_TRANSFORM = 'translate(59.4710 0.9721)';
 
 // Las dos pinturas, y es contraste medido: 17,60:1 sobre PapInk y 18,99:1 sobre
 // blanco. El sitio es tinta plana, asi que usa la oscura; el README, temada.

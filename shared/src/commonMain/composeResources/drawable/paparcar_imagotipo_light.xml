@@ -6,16 +6,16 @@
   oscura. Ninguno de los dos se elige aqui.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="170dp"
-    android:height="31dp"
-    android:viewportWidth="339.67569"
-    android:viewportHeight="61.94414">
+    android:width="183dp"
+    android:height="25dp"
+    android:viewportWidth="321.67569"
+    android:viewportHeight="43.94414">
 
     <group
         android:scaleX="0.186204"
         android:scaleY="0.186204"
-        android:translateX="9.0000"
-        android:translateY="9.0000">
+        android:translateX="0.0000"
+        android:translateY="0.0000">
         <!-- el ojo del pin -->
         <path
             android:fillColor="#009F5E"
@@ -34,8 +34,8 @@
     </group>
 
     <group
-        android:translateX="68.4710"
-        android:translateY="9.9721">
+        android:translateX="59.4710"
+        android:translateY="0.9721">
         <!-- p -->
         <path
             android:fillColor="#0D1117"

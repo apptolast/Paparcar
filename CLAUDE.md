@@ -229,15 +229,22 @@ tipográficos distintos [BRAND-THE-MARK-GAINS-ITS-WORDMARK-001].
   el símbolo de la palabra — un `ColorFilter` los aplastaría en uno. El tema elige **variante
   entera**: sobre oscuro `PapGreen` + `#F4F7F4` (17,60:1); sobre claro `PapGreenLight` + `PapInk`
   (18,99:1). El verde no se decide aquí, lo manda la regla de arriba.
-- ⛔ **Su lienzo es 5,484:1 y el alto SALE de la relación.** Se fija el **ancho** y nada más: pedirle
-  un `size` cuadrado es como se aplasta un logo. Por eso el VectorDrawable es `170 × 31 dp` y no
-  `168 × 31` — el exportador **rechaza** un ancho cuyo alto entero deforme más de un 0,2 %.
+- ⛔ **Su lienzo es 7,320:1 y el alto SALE de la relación.** Se fija el **ancho** y nada más: pedirle
+  un `size` cuadrado es como se aplasta un logo, y fijar **sólo** el ancho tampoco basta —el alto se
+  queda en el intrínseco y `ContentScale.Fit` no escala nada, que es como el logo salió a 170 dp
+  centrado dentro de 240 [BRAND-THE-IMAGOTIPO-MUST-FILL-ITS-WIDTH-001]. El VectorDrawable es
+  `183 × 25 dp` porque el exportador **rechaza** un ancho cuyo alto entero deforme más de un 0,2 %.
+- ⛔ **Su lienzo es la TINTA: no lleva margen.** El entregable traía 9 u de aire por los cuatro lados
+  —2,65 % del ancho— y eso **no** es la zona de respeto de la marca, es el margen con el que se
+  exportó el fichero. Un margen horneado se lo come toda superficie que coloque el logo y ninguna
+  lo pidió: desalineaba el login 5 dp, el banner de Play 12 px y la web otro tanto. **El aire es
+  composición y lo pone cada superficie**, que es la única que sabe cuánto.
 - ⛔ **La palabra tiene su propio maestro**, `docs/branding/master/wordmark.py`: el símbolo se dibuja
   desde parámetros, la palabra es un entregable contorneado que no se puede derivar, así que lo que
   tiene es **un solo sitio donde vive**. `export_surfaces.py` compone los dos; ninguna superficie
   escribe sus paths. Lo vigila `BrandSurfaceGuardrailTest`, que exige que **cada** superficie del
   imagotipo lleve los 3 paths del símbolo **y** los 8 de la palabra, y que **mide el PNG** de la
-  tarjeta social: símbolo 4,5 % centrado al 10 % del ancho, palabra 23,6 % al 57 % — dos mitades
+  tarjeta social: símbolo 6,7 % centrado al 8 % del ancho, palabra 34,6 % al 57 % — dos mitades
   presentes y en su orden, que es lo que una cifra de cobertura sola no vería.
 
 ### ⛔ Tipografía — tres voces y un rol que manda [UI-TYPE-TWO-VOICES-ONE-ROW-001]

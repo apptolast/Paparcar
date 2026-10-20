@@ -262,11 +262,22 @@ if [ "$WHAT" = lockup ] || [ "$WHAT" = all ]; then
   # superficie -una baldosa opaca-, y por eso la tarjeta arrastro la marca de 2022 dentro
   # de un JPEG mientras el resto del repo ya tenia la de 2026. Un PNG generado si vale;
   # un PNG prestado de otra superficie, no.
-  echo "imagotipo de la web (1024x187, con alfa)"
-  svg_shot docs/assets/paparcar-imagotipo-dark.svg 1024 "$WINTMP/lockup.png" 187
+  # ⛔ El alto SE DERIVA del viewBox del SVG. Estuvo cableado a 187 y duro exactamente
+  # hasta que el lockup cambio de relacion al quitarle el margen de exportacion: el
+  # <img> lleva los dos lados forzados, asi que un alto viejo no recorta ni avisa, ESTIRA
+  # el logo y el PNG sigue teniendo el tamano que se pidio.
+  # [BRAND-THE-IMAGOTIPO-MUST-FILL-ITS-WIDTH-001]
+  LOCKUP_W=1024
+  LOCKUP_H=$(sed -n 's/.*viewBox="0 0 \([0-9.]*\) \([0-9.]*\)".*/\1 \2/p' \
+    "$REPO/docs/assets/paparcar-imagotipo-dark.svg" | head -1 \
+    | awk -v w=$LOCKUP_W '{printf "%d", (w*$2/$1)+0.5}')
+  [ -n "$LOCKUP_H" ] && [ "$LOCKUP_H" -gt 0 ] || { echo "  imagotipo: no pude leer el viewBox"; exit 1; }
+  echo "imagotipo de la web (${LOCKUP_W}x${LOCKUP_H}, con alfa)"
+  svg_shot docs/assets/paparcar-imagotipo-dark.svg "$LOCKUP_W" "$WINTMP/lockup.png" "$LOCKUP_H"
   # Se COMPRUEBA el contenido, no el exit code ni el tamano: un PNG del tamano pedido
   # puede estar vacio, y ya paso una vez con estos mismos graficos.
-  python - "$TMP/lockup.png" "$REPO/docs/assets/paparcar-imagotipo-1024.png" <<'PY'
+  python - "$TMP/lockup.png" "$REPO/docs/assets/paparcar-imagotipo-1024.png" \
+      "$LOCKUP_W" "$LOCKUP_H" <<'PY'
 import sys
 from PIL import Image
 
@@ -280,10 +291,11 @@ from PIL import Image
 # le falte la palabra, o cuyos dos grupos caigan uno encima del otro -lo que pasaria
 # si los dos translate salieran iguales-, muere aqui.
 src, dst = sys.argv[1], sys.argv[2]
+want = (int(sys.argv[3]), int(sys.argv[4]))
 im = Image.open(src).convert("RGBA")
 W, H = im.size
-if (W, H) != (1024, 187):
-    sys.exit("  imagotipo: %dx%d, se esperaba 1024x187" % (W, H))
+if (W, H) != want:
+    sys.exit("  imagotipo: %dx%d, se esperaba %dx%d" % (W, H, want[0], want[1]))
 px = im.load()
 if px[2, 2][3] != 0:
     sys.exit("  imagotipo: la esquina no es transparente, falta el alfa")
@@ -312,7 +324,10 @@ if gc > 0.16:
 if wc < 0.45:
     sys.exit("  imagotipo: la palabra esta centrada en %.0f%% del ancho, se esperaba a la "
              "derecha del simbolo (>45%%)" % (100 * wc))
-if clear / tot < 0.60:
+# Medido 0,59 sobre el lockup YA RECORTADO (antes 0,67, con el margen de exportacion
+# dentro). El suelo no persigue ese numero: lo que caza es un PNG con fondo opaco, que
+# daria ~0. Con holgura, para que recortar o acercar las piezas no lo rompa de nuevo.
+if clear / tot < 0.45:
     sys.exit("  imagotipo: solo %.0f%% transparente; un lockup deja mucho aire, esto parece "
              "un fondo" % (100 * clear / tot))
 im.save(dst, "PNG", optimize=True)

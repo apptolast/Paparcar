@@ -239,7 +239,14 @@ F_NOTIF = 0.92
 # La prueba de que el modelo reproduce el entregable es el ancho:
 #   9 + 45,43377 + 14,03723 + 262,20469 + 9 = 339,67569   contra 339.676 del fichero.
 BOX = 108.0                 # lienzo cuadrado de las baldosas y de los graficos de Play
-LOCKUP_PAD = 9.0            # aire alrededor del conjunto
+# ⛔ El lienzo del imagotipo es su TINTA, sin margen. El entregable trae 9 u de aire
+# por los cuatro lados -2,65 % del ancho-, y eso NO es la zona de respeto de la
+# marca: es el margen con el que se exporto el fichero. La diferencia importa porque
+# un margen horneado se lo come toda superficie que coloque el logo, y ninguna lo
+# pidio: en el login lo dejaba 5 dp a la derecha del borde al que se alinea todo lo
+# demas -el user lo vio-, en el banner de Play 12 px, y en la web otro tanto.
+# El aire es COMPOSICION y lo pone cada superficie, que es la unica que sabe cuanto.
+# [BRAND-THE-IMAGOTIPO-MUST-FILL-ITS-WIDTH-001]
 LOCKUP_GAP = 14.03723       # el canal entre simbolo y palabra
 LOCKUP_MARK_H = 43.94414    # alto de TINTA del simbolo (236 u del maestro x 0,18620398)
 
@@ -258,27 +265,28 @@ LOCKUP_LIGHT = {'mark': GREEN_LIGHT, 'word': INK}
 def lockup_box():
     """Lienzo del imagotipo y la escala del simbolo. DERIVADOS, no declarados.
 
-    Devuelve `(W, H, escala del simbolo, ancho del simbolo)`. El alto lo fija el
-    elemento mas alto -el simbolo, 43,94 contra los 42 de la palabra- mas el aire.
+    Devuelve `(W, H, escala del simbolo, ancho del simbolo)`. El lienzo es la caja de
+    TINTA: el alto lo fija el elemento mas alto -el simbolo, 43,94 contra los 42 de
+    la palabra- y el ancho, simbolo + canal + palabra. Sin margen (ver LOCKUP_GAP).
     """
     s = LOCKUP_MARK_H / CANVAS_H
     mw = CANVAS_W * s
-    W = 2 * LOCKUP_PAD + mw + LOCKUP_GAP + wordmark.WORD_W
-    H = 2 * LOCKUP_PAD + max(LOCKUP_MARK_H, wordmark.WORD_H)
+    W = mw + LOCKUP_GAP + wordmark.WORD_W
+    H = max(LOCKUP_MARK_H, wordmark.WORD_H)
     return W, H, s, mw
 
 
 def lockup_parts():
     """Las dos piezas ya colocadas: `(transform del simbolo, transform de la palabra)`.
 
-    Los dos van CENTRADOS en el eje del lienzo. El entregable deja la palabra
-    exactamente centrada (10,0) y el simbolo a 9, a 0,028 del centro -tres
-    centesimas, por debajo de lo que cualquier rasterizador distingue-, asi que
-    centrar los dos reproduce el original y ademas es la regla que se puede explicar.
+    Los dos van CENTRADOS en el eje del lienzo, que es lo que hace el entregable: ahi
+    la palabra cae exactamente en el centro y el simbolo a 0,028 de el -por debajo de
+    lo que cualquier rasterizador distingue-. Como el simbolo es el mas alto, es el
+    que toca los dos bordes y la palabra la que queda centrada contra el.
     """
     W, H, s, mw = lockup_box()
-    mark = (LOCKUP_PAD, (H - LOCKUP_MARK_H) / 2.0, s)
-    word = (LOCKUP_PAD + mw + LOCKUP_GAP, (H - wordmark.WORD_H) / 2.0)
+    mark = (0.0, (H - LOCKUP_MARK_H) / 2.0, s)
+    word = (mw + LOCKUP_GAP, (H - wordmark.WORD_H) / 2.0)
     return mark, word
 
 
@@ -531,7 +539,7 @@ def lockup_svg_inline(paint, indent='', cls=None):
     return (NL + indent).join(L)
 
 
-def lockup_vd(note, paint, width=170):
+def lockup_vd(note, paint, width=183):
     """El IMAGOTIPO como VectorDrawable, para `composeResources`.
 
     ⛔ Dos `fillColor` distintos en el mismo drawable, y a proposito: el imagotipo es

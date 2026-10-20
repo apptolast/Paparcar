@@ -169,9 +169,10 @@ class BrandSurfaceGuardrailTest {
             )
         val (symbol, word) = lockupCoverage(file)
 
-        // Measured on the generated raster, 19-10-2026. The symbol is a fifth of the drawing's
-        // width and the word fills the rest, so these two numbers are far enough apart that a
-        // swap, a missing half or a blank render cannot land inside either band.
+        // Measured on the generated raster, 20-10-2026, AFTER the export margin came off — it was
+        // 4.5 / 23.6 while the lockup still carried 9 u of air on each side. The symbol is a
+        // seventh of the drawing's width and the word fills the rest, so these two numbers are far
+        // enough apart that a swap, a missing half or a blank render cannot land inside either band.
         assertTrue(
             kotlin.math.abs(symbol.share - SYMBOL_COVERAGE) < TOLERANCE,
             "$IMAGOTIPO_RASTER: symbol covers ${"%.1f".format(symbol.share)}%, " +
@@ -186,11 +187,11 @@ class BrandSurfaceGuardrailTest {
         // present and sitting on top of each other — exactly what happens if the two translates
         // come out equal — and the shares would barely move.
         assertTrue(
-            symbol.centreX < 0.20 && word.centreX > 0.45,
+            symbol.centreX < 0.18 && word.centreX > 0.45,
             buildString {
                 appendLine("$IMAGOTIPO_RASTER: the halves are not where the lockup puts them.")
                 appendLine("symbol centred at ${"%.0f".format(100 * symbol.centreX)}% of the width " +
-                    "(expected < 20%), word at ${"%.0f".format(100 * word.centreX)}% (expected > 45%).")
+                    "(expected < 18%), word at ${"%.0f".format(100 * word.centreX)}% (expected > 45%).")
                 appendLine("Either they overlap or they are swapped.")
             },
         )
@@ -358,12 +359,14 @@ class BrandSurfaceGuardrailTest {
         const val IMAGOTIPO_RASTER = "docs/assets/paparcar-imagotipo-1024.png"
 
         /**
-         * Measured on the generated raster, 19-10-2026. The symbol is a fifth of the lockup's
+         * Measured on the generated raster, 20-10-2026 — they were 4.5 / 23.6 while the lockup
+         * still carried the exporter's 9 u of air on each side, and both rose when that came off
+         * [BRAND-THE-IMAGOTIPO-MUST-FILL-ITS-WIDTH-001]. The symbol is a seventh of the lockup's
          * width and the word fills the rest, so the two shares sit far apart on purpose: a swap
          * or a missing half lands nowhere near its band.
          */
-        const val SYMBOL_COVERAGE = 4.5
-        const val WORD_COVERAGE = 23.6
+        const val SYMBOL_COVERAGE = 6.7
+        const val WORD_COVERAGE = 34.6
         const val WORD_TOLERANCE = 4.0
 
         val APPLE_SVGS = listOf(

@@ -2,12 +2,14 @@ package com.rndeveloper.paparcar.ui.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -59,16 +61,25 @@ val PAPARCAR_LOGO_BESIDE_NAME_SIZE = 72.dp
 /**
  * The width the IMAGOTYPE stands at when it heads a screen — the auth header today.
  *
- * ⛔ A WIDTH, not a size, and that is the whole point: the imagotype is 5.484:1, so what a surface
+ * ⛔ A WIDTH, not a size, and that is the whole point: the imagotype is 7.320:1, so what a surface
  * can give it is horizontal room. Asking for a square `size` here is how a logo gets squashed.
  *
  * It is wider than [PAPARCAR_LOGO_BESIDE_NAME_SIZE] was (72 dp) because it now contains the name
  * that used to sit next to it as a `Text`. The mark inside it reads smaller than the old 72 dp
- * mark — measured, 31 dp of ink against 56 dp — and that is the trade a horizontal lockup makes:
- * on a 360 dp phone a mark at its old optical size would need 434 dp of lockup beside it. The
+ * mark — measured, 33 dp of ink against 56 dp — and that is the trade a horizontal lockup makes:
+ * on a 360 dp phone a mark at its old optical size would need 411 dp of lockup beside it. The
  * brand reads as one object instead of two, which is what it is.
  */
 val PAPARCAR_IMAGOTIPO_WIDTH = 240.dp
+
+/**
+ * The lockup's width-to-height ratio, used ONLY when a painter reports no intrinsic size.
+ *
+ * ⛔ Not the source of truth — the painter is. This exists so a painter without an intrinsic size
+ * degrades to the right shape instead of to a crash or a squashed logo, and it is deliberately the
+ * only place in Kotlin that writes the number down.
+ */
+private const val PAPARCAR_IMAGOTIPO_RATIO = 321.67569f / 43.94414f
 
 /**
  * The Paparcar IMAGOTYPE: the mark **and its name**, as one drawing.
@@ -88,9 +99,24 @@ val PAPARCAR_IMAGOTIPO_WIDTH = 240.dp
  * The theme picks a whole VARIANT instead, for the measured reason that already governs the mark:
  * `PapGreen` on white is 1.42:1, so light theme gets `PapGreenLight` plus `PapInk` for the word.
  *
- * ⚠️ Only the width is constrained: the height follows from the drawable's own ratio. That is also
- * why the generated drawable is 170 × 31 dp and not 168 × 31 — the exporter refuses a width whose
- * whole-dp height would skew the lockup by more than 0.2 %.
+ * ⚠️ The caller gives a WIDTH and the height comes from the drawing's own ratio — read off the
+ * painter, never written here. A hand-copied 5.484 would be a fourth place where a number from the
+ * master lives, and the one that goes stale in silence the day the drawing changes.
+ *
+ * ⛔ **Both sides of the box have to be constrained, and that is not a detail.** `Modifier.width()`
+ * alone leaves the height at the drawable's intrinsic height, so the default `ContentScale.Fit`
+ * scales by `min(240/183, 25/25) = 1.0` — it does not scale at all — and `Alignment.Center` splits
+ * the leftover into equal gaps on each side. That shipped: on the login the mark drew at its
+ * native width and sat 35 dp in from the left edge every other child aligned to, which reads as
+ * two separate defects ("too small", "not aligned") and is one.
+ * [BRAND-THE-IMAGOTIPO-MUST-FILL-ITS-WIDTH-001] [UI-AUTH-HEADER-ALIGNS-WITH-ITS-FIELDS-001]
+ *
+ * ⛔ `ContentScale.FillWidth` is NOT the fix: it would scale the drawing while the node still
+ * measured its intrinsic height, so the logo would overflow its own box and clip. The box is what was wrong.
+ *
+ * ⚠️ The generated drawable is 183 × 25 dp because the exporter refuses a width
+ * whose whole-dp height would skew the lockup by more than 0.2 % — so the ratio read back here is
+ * the master's, to within that.
  */
 @Composable
 fun PaparcarImagotipo(
@@ -100,10 +126,16 @@ fun PaparcarImagotipo(
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val resource = if (isDark) Res.drawable.paparcar_imagotipo_dark
                    else Res.drawable.paparcar_imagotipo_light
+    val painter = painterResource(resource)
+    val size = painter.intrinsicSize
+    // A painter may report no intrinsic size; the lockup's own ratio is the only sane fallback,
+    // and it is the one the exporter guarantees the drawable was written with.
+    val ratio = if (size.isSpecified && size.height > 0f) size.width / size.height
+                else PAPARCAR_IMAGOTIPO_RATIO
     Image(
-        painter = painterResource(resource),
+        painter = painter,
         contentDescription = stringResource(Res.string.brand_name),
-        modifier = modifier.width(width),
+        modifier = modifier.width(width).aspectRatio(ratio),
     )
 }
 
