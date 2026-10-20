@@ -61,6 +61,8 @@ import com.rndeveloper.paparcar.ui.theme.PapAlpha
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.PapControlHeight
+import com.rndeveloper.paparcar.ui.theme.PapGap
+import com.rndeveloper.paparcar.ui.theme.PapPageRhythm
 import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
@@ -243,7 +245,11 @@ fun HistoryContent(
     // El padding del llamante entra como padding de CONTENIDO, no de layout: así la lista arranca
     // bajo la cabecera pero puede pasar por debajo de ella al scrollear. [UI-TOPBAR-COLLAPSE-001]
     val listPadding = PaddingValues(
-        top = contentPadding.calculateTopPadding() + if (header != null) 0.dp else LIST_V_PADDING,
+        // ⛔ Sin condicional. El `0.dp` existía porque la hero card traía su propio margen superior
+        // dentro del componente: el hueco con la cabecera de pantalla estaba, pero escondido en un
+        // bloque. Ahora lo pone la lista, que es de quien es.
+        // [UI-A-PAGE-KEEPS-ONE-VERTICAL-RHYTHM-001]
+        top = contentPadding.calculateTopPadding() + LIST_V_PADDING,
         bottom = contentPadding.calculateBottomPadding() + LIST_V_PADDING,
         start = contentPadding.calculateStartPadding(layoutDirection),
         end = contentPadding.calculateEndPadding(layoutDirection),
@@ -322,9 +328,9 @@ fun HistoryContent(
                 // "Activity" owns the chart + time filters. Its heading carries the scoped count as a
                 // green aside; the filters below re-bucket ONLY the chart. [HOME-VEH-REFINE-001 · Task 4]
                 item(key = "activity_section_label") {
-                    Spacer(Modifier.height(SECTION_TITLE_TOP_GAP.dp))
+                    Spacer(Modifier.height(SECTION_TITLE_TOP_GAP))
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = PaparcarSpacing.lg),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = PapPageRhythm.sideInset),
                         verticalAlignment = Alignment.Bottom,
                     ) {
                         // Just the section title; the scoped count moved INTO the chart card as its
@@ -335,7 +341,7 @@ fun HistoryContent(
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                     }
-                    Spacer(Modifier.height(SECTION_TITLE_BOTTOM_GAP.dp))
+                    Spacer(Modifier.height(SECTION_TITLE_BOTTOM_GAP_TO_CHIPS))
                 }
 
                 item(key = "filter_bar") {
@@ -349,7 +355,7 @@ fun HistoryContent(
                     )
                 }
 
-                item(key = "chart_spacer") { Spacer(Modifier.height(PaparcarSpacing.sm)) }
+                item(key = "chart_spacer") { Spacer(Modifier.height(FILTER_BAR_CHART_GAP)) }
                 item(key = "chart") {
                     // Scoped km follow the same filter as the bars. The three "facts" that used to
                     // footer this card (day, street, auto share) moved to the figures card below:
@@ -358,7 +364,7 @@ fun HistoryContent(
                     // [STATS-UI-001]
                     // [UI-HISTORY-A-PARTIAL-SUM-IS-NOT-A-TOTAL-001] A sum that does not cover
                     // every parking in scope says so — for whichever measure the bars are drawing.
-                    Box(Modifier.padding(horizontal = PaparcarSpacing.lg)) {
+                    Box(Modifier.padding(horizontal = PapPageRhythm.sideInset)) {
                         ActivityCard(
                             data = activityBuckets,
                             total = scopeTotal,
@@ -375,8 +381,8 @@ fun HistoryContent(
                 // both is legible without saying it. (User, 08-09.) [STATS-UI-001]
                 resolved.periodStats?.let { periodStats ->
                     item(key = "period_stats") {
-                        Spacer(Modifier.height(STATS_CARD_GAP.dp))
-                        Box(Modifier.padding(horizontal = PaparcarSpacing.lg)) {
+                        Spacer(Modifier.height(STATS_CARD_GAP))
+                        Box(Modifier.padding(horizontal = PapPageRhythm.sideInset)) {
                             VehicleStatsBlock(
                                 stats = periodStats,
                                 periodLabel = vehicleStatsPeriodLabel(state.activePeriod, isPlus),
@@ -401,20 +407,20 @@ fun HistoryContent(
                     // "History" heads the timeline as its own section — always the full list, never
                     // scoped by the Activity filter. [Task 4]
                     item(key = "history_section_label") {
-                        Spacer(Modifier.height(SECTION_TITLE_TOP_GAP.dp))
+                        Spacer(Modifier.height(SECTION_TITLE_TOP_GAP))
                         Text(
                             text = stringResource(Res.string.history_section_label),
-                            modifier = Modifier.padding(horizontal = PaparcarSpacing.lg),
+                            modifier = Modifier.padding(horizontal = PapPageRhythm.sideInset),
                             style = PaparcarType.current.sectionTitle,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
-                        Spacer(Modifier.height(SECTION_TITLE_BOTTOM_GAP.dp))
+                        Spacer(Modifier.height(SECTION_TITLE_BOTTOM_GAP))
                     }
                 }
 
                 if (activeSession != null) {
                     item(key = "active_label") {
-                        Box(Modifier.padding(horizontal = PaparcarSpacing.lg)) {
+                        Box(Modifier.padding(horizontal = PapPageRhythm.sideInset)) {
                             ActiveSectionHeader(
                                 text = stringResource(Res.string.history_active_section),
                                 accent = PapColor.brandData,
@@ -422,7 +428,7 @@ fun HistoryContent(
                         }
                     }
                     item(key = "active_session") {
-                        Box(Modifier.padding(horizontal = PaparcarSpacing.lg)) {
+                        Box(Modifier.padding(horizontal = PapPageRhythm.sideInset)) {
                             EndedSessionTimelineNode(
                                 session = activeSession,
                                 isLast = timelineItems.isEmpty(),
@@ -437,7 +443,7 @@ fun HistoryContent(
                 items(items = timelineItems, key = { it.key }) { timelineItem ->
                     // Filter changes swap the timeline set — animate item insert/remove/move
                     // so rows glide instead of snapping. [MOTION-POLISH-001]
-                    Box(Modifier.animateItem().padding(horizontal = PaparcarSpacing.lg)) {
+                    Box(Modifier.animateItem().padding(horizontal = PapPageRhythm.sideInset)) {
                         when (timelineItem) {
                             is TimelineItem.Header -> DayHeaderRow(label = timelineItem.label)
                             is TimelineItem.Session -> EndedSessionTimelineNode(
@@ -551,7 +557,7 @@ private fun PlusHistoryFooter(
     // CTA shrink from a full-width filled button to a line of text with a chevron — the card
     // already says "this is pressable", so a button inside it was saying it twice.
     PapPremiumSurface(
-        modifier = modifier.fillMaxWidth().padding(horizontal = PaparcarSpacing.lg, vertical = PaparcarSpacing.sm),
+        modifier = modifier.fillMaxWidth().padding(horizontal = PapPageRhythm.sideInset, vertical = PaparcarSpacing.sm),
         shape = PapShapes.card,
         emphasis = PapPremiumEmphasis.Subdued,
         onClick = onSeeAll,
@@ -615,14 +621,14 @@ private fun HistorySkeletonSection(fillMaxSize: Boolean, modifier: Modifier = Mo
         PapShimmerBox(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = PaparcarSpacing.lg)
+                .padding(horizontal = PapPageRhythm.sideInset)
                 .height(SKELETON_CHART_HEIGHT_DP.dp),
             shape = RoundedCornerShape(SKELETON_CORNER_DP.dp),
             alphaScale = PapShimmerBlockScale,
         )
         Spacer(Modifier.height(PaparcarSpacing.sm))
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = PaparcarSpacing.lg),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = PapPageRhythm.sideInset),
             horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
         ) {
             repeat(SKELETON_FILTER_COUNT) {
@@ -638,7 +644,7 @@ private fun HistorySkeletonSection(fillMaxSize: Boolean, modifier: Modifier = Mo
         Spacer(Modifier.height(PaparcarSpacing.md))
         PapShimmerBox(
             modifier = Modifier
-                .padding(start = PaparcarSpacing.lg)
+                .padding(start = PapPageRhythm.sideInset)
                 .width(SKELETON_HEADER_WIDTH_DP.dp)
                 .height(SKELETON_HEADER_HEIGHT_DP.dp),
             shape = RoundedCornerShape(SKELETON_HEADER_CORNER_DP),
@@ -649,7 +655,7 @@ private fun HistorySkeletonSection(fillMaxSize: Boolean, modifier: Modifier = Mo
             PapShimmerBox(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = PaparcarSpacing.lg, vertical = PaparcarSpacing.xs)
+                    .padding(horizontal = PapPageRhythm.sideInset, vertical = PaparcarSpacing.xs)
                     .height(SKELETON_SESSION_HEIGHT_DP.dp),
                 shape = RoundedCornerShape(SKELETON_CORNER_DP.dp),
                 alphaScale = PapShimmerBlockScale,
@@ -661,13 +667,43 @@ private fun HistorySkeletonSection(fillMaxSize: Boolean, modifier: Modifier = Mo
 // Section titles ("Activity" / "History") sit closer to their OWN content below than to the section
 // above — a generous top gap separates from the previous block, a tight bottom gap attaches the
 // title to what it heads. [HOME-VEH-REFINE-001]
-private const val SECTION_TITLE_TOP_GAP = 24
-private const val SECTION_TITLE_BOTTOM_GAP = 8
+//
+// ⛔ Esa asimetría ya no la elige esta pantalla: es la ley de [PapPageRhythm], medida en Ajustes.
+// Eran 24/8 contra los 20/10 de allí, y la diferencia se leía como «en vehicles el espaciado
+// vertical es más alto» (user, 19-10). [UI-A-PAGE-KEEPS-ONE-VERTICAL-RHYTHM-001]
+//
+// ⚠️ El hueco de ARRIBA se mide contra el último bloque del `header`, y ese bloque cambia con el
+// estado: sin grupo termina en una card (20 dp exactos), con grupo termina en la fila de chips de
+// alcance, que arrastra sus 7 dp de mínimo táctil y deja 27 a la vista. Descontarlo aquí a ciegas
+// dejaría el caso común en 13. Queda MEDIDO y escrito: arreglarlo exige que la cabecera declare en
+// qué termina, y eso es acoplar la lista a su cabecera por 7 dp.
+private val SECTION_TITLE_TOP_GAP = PapPageRhythm.beforeSection
 
-/** Between the Activity section's two cards: more air than between a card and its own filter row
- *  (8), less than between sections (24). They are siblings under one heading, and a sibling still
- *  needs room to be its own object. (User, 08-09-2026.) [STATS-UI-001] */
-private const val STATS_CARD_GAP = 16
+/** Bajo «Actividad» hay una fila de CHIPS —los filtros de periodo—, así que el hueco se pide por
+ *  lo que se VE: el chip arrastra su overhang de mínimo táctil y con los 10 dp de la ley escritos
+ *  a pelo se verían 17. [UI-THE-SPACING-SWEEP-IS-SCREEN-BY-SCREEN-001] */
+private val SECTION_TITLE_BOTTOM_GAP_TO_CHIPS = PapGap.betweenControls(
+    visible = PapPageRhythm.afterSection,
+    controlHeight = PapControlHeight.chip,
+    sides = 1,
+)
+
+/** Bajo «Historial» hay filas, no controles: el hueco de la ley se escribe tal cual. */
+private val SECTION_TITLE_BOTTOM_GAP = PapPageRhythm.afterSection
+
+/** Las dos cards de Actividad son hermanas bajo una misma cabecera, o sea el mismo hueco que
+ *  cualquier par de bloques hermanos de una página. Eran 16 — *"más aire que entre una card y su
+ *  fila de filtros, menos que entre secciones"* (user, 08-09-2026) —, un tercer escalón inventado
+ *  entre dos que ya existían. [UI-A-PAGE-KEEPS-ONE-VERTICAL-RHYTHM-001] [STATS-UI-001] */
+private val STATS_CARD_GAP = PapPageRhythm.block
+
+/** El chart y la fila de filtros que lo manda: hermanos pegados, con el overhang del chip
+ *  descontado para que se vean los mismos dp que entre dos cards. */
+private val FILTER_BAR_CHART_GAP = PapGap.betweenControls(
+    visible = PapPageRhythm.block,
+    controlHeight = PapControlHeight.chip,
+    sides = 1,
+)
 
 private const val SKELETON_CHART_HEIGHT_DP = 148
 private const val SKELETON_SESSION_HEIGHT_DP = 72
@@ -679,7 +715,7 @@ private const val SKELETON_CORNER_DP = 16
 private const val SKELETON_FILTER_COUNT = 4
 private const val SKELETON_ROW_COUNT = 3
 /** Holgura vertical de la lista con sus extremos. */
-private val LIST_V_PADDING = 8.dp
+private val LIST_V_PADDING = PapPageRhythm.edgeInset
 
 private const val SKELETON_CHIP_ALPHA_FACTOR = 0.85f
 private const val SKELETON_HEADER_ALPHA_FACTOR = 0.7f

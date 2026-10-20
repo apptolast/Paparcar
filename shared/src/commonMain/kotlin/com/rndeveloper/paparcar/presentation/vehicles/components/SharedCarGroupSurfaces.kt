@@ -48,6 +48,7 @@ import com.rndeveloper.paparcar.ui.components.PapShimmerBlockScale
 import com.rndeveloper.paparcar.ui.components.PapShimmerBox
 import com.rndeveloper.paparcar.ui.components.PapTextField
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.my_car_delete_cancel
@@ -121,7 +122,7 @@ fun SharedCarMembersSheet(
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
         ) {
             Text(
                 text = stringResource(Res.string.shared_car_members_title),

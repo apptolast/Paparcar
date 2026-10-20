@@ -64,6 +64,9 @@ import com.rndeveloper.paparcar.ui.components.PapLockedCard
 import com.rndeveloper.paparcar.ui.components.PapLockedPreview
 import com.rndeveloper.paparcar.ui.components.PapShimmerBlockScale
 import com.rndeveloper.paparcar.ui.components.PapShimmerBox
+import com.rndeveloper.paparcar.ui.theme.PapControlHeight
+import com.rndeveloper.paparcar.ui.theme.PapGap
+import com.rndeveloper.paparcar.ui.theme.PapPageRhythm
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
@@ -160,7 +163,7 @@ fun StatsContent(
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(vertical = LIST_V_PAD_DP.dp),
+            contentPadding = PaddingValues(vertical = PapPageRhythm.edgeInset),
         ) {
             // A panel that has not resolved yet must not claim the car has no figures — same rule
             // the history timeline lives by. [UI-HISTORY-A-LOADING-LIST-MUST-NOT-CLAIM-TO-BE-EMPTY-001]
@@ -172,7 +175,11 @@ fun StatsContent(
             if (state.showsVehicleSelector) {
                 item(key = "vehicles") {
                     VehicleChips(state = state, onIntent = onIntent)
-                    Spacer(Modifier.height(SECTION_GAP_DP.dp))
+                    // ⛔ Chips arriba Y chips abajo: el overhang se paga DOS veces, así que este
+                    // hueco es el único de la pantalla que no puede llegar a los 8 dp de la ley.
+                    // Su suelo son ~14 dp —los 7+7 del mínimo táctil— y bajarlo exigiría recortar
+                    // área de toque, que no se hace. [UI-A-PAGE-KEEPS-ONE-VERTICAL-RHYTHM-001]
+                    Spacer(Modifier.height(SECTION_GAP_BETWEEN_CHIP_ROWS))
                 }
             }
 
@@ -186,7 +193,7 @@ fun StatsContent(
                     // [STATS-A-FILTER-THAT-CANNOT-ANSWER-IS-NOT-OFFERED-001]
                     containerColor = MaterialTheme.colorScheme.surface,
                 )
-                Spacer(Modifier.height(SECTION_GAP_DP.dp))
+                Spacer(Modifier.height(SECTION_GAP_AFTER_CHIPS))
             }
 
             // The month that just closed — above everything, because it is the only thing here
@@ -200,15 +207,15 @@ fun StatsContent(
             // [MONEY-A-BLUR-IS-ONLY-HONEST-WHEN-THERE-IS-SOMETHING-BEHIND-IT-001]
             state.closedMonth?.let { recap ->
                 item(key = "recap") {
-                    Box(Modifier.padding(horizontal = H_PAD_DP.dp)) {
+                    Box(Modifier.padding(horizontal = PapPageRhythm.sideInset)) {
                         StatsMonthRecapCard(stats = recap, costPrice = state.closedMonthPrice)
                     }
-                    Spacer(Modifier.height(SECTION_GAP_DP.dp))
+                    Spacer(Modifier.height(SECTION_GAP))
                 }
             }
             if (state.closedMonth == null && state.locked.recap) {
                 item(key = "recap_locked") {
-                    Box(Modifier.padding(horizontal = H_PAD_DP.dp)) {
+                    Box(Modifier.padding(horizontal = PapPageRhythm.sideInset)) {
                         PapLockedCard(
                             title = stringResource(Res.string.stats_recap_title),
                             description = stringResource(Res.string.stats_locked_desc_recap),
@@ -218,7 +225,7 @@ fun StatsContent(
                             onClick = { onIntent(StatsIntent.OpenPaywall(PaywallReason.MONTH_RECAP)) },
                         )
                     }
-                    Spacer(Modifier.height(SECTION_GAP_DP.dp))
+                    Spacer(Modifier.height(SECTION_GAP))
                 }
             }
 
@@ -232,15 +239,15 @@ fun StatsContent(
             // [MONEY-A-BLUR-IS-ONLY-HONEST-WHEN-THERE-IS-SOMETHING-BEHIND-IT-001]
             if (state.isPlus && state.insights.isNotEmpty()) {
                 item(key = "insights") {
-                    Box(Modifier.padding(horizontal = H_PAD_DP.dp)) {
+                    Box(Modifier.padding(horizontal = PapPageRhythm.sideInset)) {
                         StatsInsightsCard(insights = state.insights)
                     }
-                    Spacer(Modifier.height(SECTION_GAP_DP.dp))
+                    Spacer(Modifier.height(SECTION_GAP))
                 }
             }
             if (state.locked.insights) {
                 item(key = "insights_locked") {
-                    Box(Modifier.padding(horizontal = H_PAD_DP.dp)) {
+                    Box(Modifier.padding(horizontal = PapPageRhythm.sideInset)) {
                         PapLockedCard(
                             title = stringResource(Res.string.stats_insights_title),
                             description = stringResource(Res.string.stats_locked_desc_insights),
@@ -248,7 +255,7 @@ fun StatsContent(
                             onClick = { onIntent(StatsIntent.OpenPaywall(PaywallReason.STATS)) },
                         )
                     }
-                    Spacer(Modifier.height(SECTION_GAP_DP.dp))
+                    Spacer(Modifier.height(SECTION_GAP))
                 }
             }
 
@@ -262,7 +269,7 @@ fun StatsContent(
                     // sessions: a bigger view of one car, never a second interpretation of it.
                     // [STATS-A-PERIOD-IS-A-SERIES-NOT-A-NUMBER-001]
                     val metric = resolveChartMetric(state.chartMetric, state.filteredSessions)
-                    Box(Modifier.padding(horizontal = H_PAD_DP.dp)) {
+                    Box(Modifier.padding(horizontal = PapPageRhythm.sideInset)) {
                         ActivityCard(
                             data = VehicleHistoryCalculator.buildActivityBuckets(
                                 sessions = state.filteredSessions,
@@ -287,7 +294,7 @@ fun StatsContent(
                             onMetricSelected = { onIntent(StatsIntent.SetChartMetric(it)) },
                         )
                     }
-                    Spacer(Modifier.height(SECTION_GAP_DP.dp))
+                    Spacer(Modifier.height(SECTION_GAP))
                 }
             }
             if (stats == null) {
@@ -296,12 +303,12 @@ fun StatsContent(
                         text = stringResource(Res.string.stats_panel_empty_body),
                         style = PaparcarType.current.body,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = H_PAD_DP.dp, vertical = EMPTY_V_PAD_DP.dp),
+                        modifier = Modifier.padding(horizontal = PapPageRhythm.sideInset, vertical = EMPTY_V_PAD_DP.dp),
                     )
                 }
             } else {
                 item(key = "figures") {
-                    Box(Modifier.padding(horizontal = H_PAD_DP.dp)) {
+                    Box(Modifier.padding(horizontal = PapPageRhythm.sideInset)) {
                         VehicleStatsBlock(
                             stats = stats,
                             periodLabel = vehicleStatsPeriodLabel(state.filter, state.isPlus),
@@ -322,8 +329,8 @@ fun StatsContent(
                     val nowMs = remember { Clock.System.now().toEpochMilliseconds() }
                     val (rows, elapsedPercent) = paceRows(state, nowMs)
                     if (rows.isNotEmpty()) {
-                        Spacer(Modifier.height(SECTION_GAP_DP.dp))
-                        Box(Modifier.padding(horizontal = H_PAD_DP.dp)) {
+                        Spacer(Modifier.height(SECTION_GAP))
+                        Box(Modifier.padding(horizontal = PapPageRhythm.sideInset)) {
                             StatsPaceCard(rows = rows, elapsedPercent = elapsedPercent)
                         }
                     }
@@ -334,8 +341,8 @@ fun StatsContent(
                 // [STATS-A-USUAL-PLACE-IS-A-CLUSTER-NOT-A-STREET-001]
                 if (state.isPlus) {
                     item(key = "places") {
-                        Spacer(Modifier.height(SECTION_GAP_DP.dp))
-                        Box(Modifier.padding(horizontal = H_PAD_DP.dp)) {
+                        Spacer(Modifier.height(SECTION_GAP))
+                        Box(Modifier.padding(horizontal = PapPageRhythm.sideInset)) {
                             StatsPlacesCard(places = stats.places)
                         }
                     }
@@ -362,8 +369,8 @@ fun StatsContent(
                             buildParkingHeatmap(state.filteredSessions, HeatMeasure.PARKINGS)
                         }
                     }
-                    Spacer(Modifier.height(SECTION_GAP_DP.dp))
-                    Box(Modifier.padding(horizontal = H_PAD_DP.dp)) {
+                    Spacer(Modifier.height(SECTION_GAP))
+                    Box(Modifier.padding(horizontal = PapPageRhythm.sideInset)) {
                         StatsWhenCard(
                             heatmap = grid,
                             measures = measures,
@@ -384,8 +391,8 @@ fun StatsContent(
             // them on exactly the week when the gap is widest.
             lockedCards(state.locked).forEach { locked ->
                 item(key = locked.key) {
-                    Spacer(Modifier.height(SECTION_GAP_DP.dp))
-                    Box(Modifier.padding(horizontal = H_PAD_DP.dp)) {
+                    Spacer(Modifier.height(SECTION_GAP))
+                    Box(Modifier.padding(horizontal = PapPageRhythm.sideInset)) {
                         PapLockedCard(
                             title = stringResource(locked.title),
                             description = stringResource(locked.description),
@@ -560,7 +567,7 @@ private fun VehicleChips(state: StatsState, onIntent: (StatsIntent) -> Unit) {
     LazyRow(
         state = vehiclePillsScroll,
         modifier = Modifier.papHorizontalFadingEdges(vehiclePillsScroll),
-        contentPadding = PaddingValues(horizontal = H_PAD_DP.dp),
+        contentPadding = PaddingValues(horizontal = PapPageRhythm.sideInset),
         horizontalArrangement = Arrangement.spacedBy(CHIP_GAP_DP.dp),
     ) {
         itemsIndexed(state.vehicles.orEmpty()) { index, vws ->
@@ -576,7 +583,7 @@ private fun VehicleChips(state: StatsState, onIntent: (StatsIntent) -> Unit) {
 @Composable
 private fun StatsSkeleton() {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = H_PAD_DP.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = PapPageRhythm.sideInset),
         verticalArrangement = Arrangement.spacedBy(SKELETON_GAP_DP.dp),
     ) {
         Row(
@@ -599,9 +606,25 @@ private fun StatsSkeleton() {
 
 private const val PERCENT = 100
 private const val CENTS = 100.0
-private const val H_PAD_DP = 16
-private const val LIST_V_PAD_DP = 8
-private const val SECTION_GAP_DP = 12
+/** El aire entre dos bloques hermanos de esta página, y el extra que hay que pedir cuando el de
+ *  arriba es una FILA DE CHIPS, que arrastra el overhang del mínimo táctil. Eran 12 dp propios de
+ *  esta pantalla —ni los 8 de Ajustes ni nada derivable de ellos—, y los dos primeros huecos, que
+ *  caen justo bajo chips, se veían a 19. [UI-A-PAGE-KEEPS-ONE-VERTICAL-RHYTHM-001] */
+private val SECTION_GAP = PapPageRhythm.block
+private val SECTION_GAP_AFTER_CHIPS = PapGap.betweenControls(
+    visible = PapPageRhythm.block,
+    controlHeight = PapControlHeight.chip,
+    sides = 1,
+)
+
+/** Y entre DOS filas de chips el overhang entra por los dos lados. Escribirlo como `sides = 1`
+ *  daba el mismo píxel —los dos caen en el suelo de 0— pero mentía sobre qué hay a cada lado, que
+ *  es lo único que el siguiente que lea esto va a creerse. */
+private val SECTION_GAP_BETWEEN_CHIP_ROWS = PapGap.betweenControls(
+    visible = PapPageRhythm.block,
+    controlHeight = PapControlHeight.chip,
+    sides = 2,
+)
 private const val EMPTY_V_PAD_DP = 24
 private const val CHIP_GAP_DP = 8
 private const val SKELETON_GAP_DP = 12

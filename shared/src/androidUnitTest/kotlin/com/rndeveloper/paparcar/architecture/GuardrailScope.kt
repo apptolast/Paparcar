@@ -193,6 +193,25 @@ object GuardrailScope {
             scope.files.filter { pathFragment.containsMatchIn(it.path.replace('\\', '/')) }
         }
 
+    /**
+     * **Páginas**: las pantallas que se scrollean como una columna de bloques — detectadas por su
+     * forma (`LazyColumn` con `contentPadding`), nunca enumeradas.
+     * [UI-A-PAGE-KEEPS-ONE-VERTICAL-RHYTHM-001]
+     *
+     * Enumerarlas sería el error que el ticket vino a cerrar: el ritmo vertical se rompió seis
+     * veces porque cada pantalla NUEVA llegaba sin que nada la obligase a mirar lo que ya existía,
+     * y una lista escrita a mano deja fuera exactamente a esa séptima.
+     */
+    fun pageFiles(): List<KoFileDeclaration> = population(
+        name = "page lists (commonMain presentation.*, LazyColumn with contentPadding)",
+        floor = PAGE_FILES_FLOOR,
+    ) { scope ->
+        scope.files
+            .filter { it.inSourceSet(COMMON_MAIN) }
+            .filter { (it.packagee?.name ?: "").startsWith(PRESENTATION) }
+            .filter { it.text.contains("LazyColumn(") && it.text.contains("contentPadding") }
+    }
+
     /** `commonMain` production sources — no test source set, no test-named file. */
     fun commonMainProductionFiles(): List<KoFileDeclaration> = population(
         name = "commonMain production files",
@@ -350,6 +369,7 @@ object GuardrailScope {
     const val VEHICLE_TYPE_MENTIONS_FLOOR = 10      // measured  21
     const val FIELD_TRACE_FILES_FLOOR = 9           // measured  20
     const val TEST_SOURCES_FLOOR = 115              // measured 234
+    const val PAGE_FILES_FLOOR = 4                  // measured   7
     const val ALL_CLASSES_FLOOR = 300
 
     /** Where the field traces live. Named once: [fieldTraceFiles] selects it, the rule reports it. */

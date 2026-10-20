@@ -31,6 +31,7 @@ import com.rndeveloper.paparcar.ui.components.PapNavChevron
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
 import com.rndeveloper.paparcar.ui.components.PapSectionHeader
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import com.rndeveloper.paparcar.ui.theme.PapPageRhythm
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -106,8 +107,8 @@ fun LicensesContent(
             // Licence Ouverte, IODL 2.0) REQUIRE the credit. Letting a missing library file take the attribution
             // down with it would turn a cosmetic failure into a licence breach.
             state.failedToLoad || state.libraries.isEmpty() -> Column(
-                modifier = Modifier.fillMaxSize().padding(padding).padding(SCREEN_H_PADDING),
-                verticalArrangement = Arrangement.spacedBy(ROW_GAP),
+                modifier = Modifier.fillMaxSize().padding(padding).padding(PapPageRhythm.sideInset),
+                verticalArrangement = Arrangement.spacedBy(PapPageRhythm.block),
             ) {
                 Text(
                     text = stringResource(Res.string.licenses_error),
@@ -120,15 +121,15 @@ fun LicensesContent(
             }
 
             else -> LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(horizontal = SCREEN_H_PADDING),
-                verticalArrangement = Arrangement.spacedBy(ROW_GAP),
+                modifier = Modifier.fillMaxSize().padding(horizontal = PapPageRhythm.sideInset),
+                verticalArrangement = Arrangement.spacedBy(PapPageRhythm.block),
                 contentPadding = PaddingValues(
-                    top = padding.calculateTopPadding() + LIST_V_PADDING,
-                    bottom = padding.calculateBottomPadding() + LIST_V_PADDING,
+                    top = padding.calculateTopPadding() + PapPageRhythm.edgeInset,
+                    bottom = padding.calculateBottomPadding() + PapPageRhythm.edgeInset,
                 ),
             ) {
                 item {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(LICENSE_NAME_VERSION_GAP)) {
                         Text(
                             text = stringResource(Res.string.licenses_subtitle),
                             style = PaparcarType.current.body,
@@ -179,7 +180,7 @@ fun LicensesContent(
  */
 @Composable
 private fun DataSourcesSection() {
-    Column(verticalArrangement = Arrangement.spacedBy(ROW_GAP)) {
+    Column(verticalArrangement = Arrangement.spacedBy(PapPageRhythm.block)) {
         PapSectionHeader(title = stringResource(Res.string.licenses_data_sources_header))
         DATA_SOURCES.forEach { source ->
             PapOutlinedCard(modifier = Modifier.fillMaxWidth()) {
@@ -291,6 +292,8 @@ private fun LibraryRow(
 // ── Layout tokens ─────────────────────────────────────────────────────────────
 
 private const val SEPARATOR = " · "
-private val SCREEN_H_PADDING = 16.dp
-private val LIST_V_PADDING = 12.dp
-private val ROW_GAP = 8.dp
+
+/** El nombre de una librería y su versión, dentro de una fila: no es ritmo de página —es lo mismo
+ *  que un título y su subtítulo—, y a 2 dp se leen como una sola cosa, que es la intención.
+ *  [UI-A-PAGE-KEEPS-ONE-VERTICAL-RHYTHM-001] */
+private val LICENSE_NAME_VERSION_GAP = 2.dp

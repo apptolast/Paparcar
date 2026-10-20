@@ -31,6 +31,7 @@ import com.rndeveloper.paparcar.ui.components.PapCollapsingTopBarScaffold
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
 import com.rndeveloper.paparcar.ui.components.PapPrimaryButton
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import com.rndeveloper.paparcar.ui.theme.PapPageRhythm
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
@@ -99,7 +100,7 @@ fun LicenseDetailContent(
             ) { CircularProgressIndicator() }
 
             license == null -> Box(
-                modifier = Modifier.fillMaxSize().padding(padding).padding(SCREEN_H_PADDING),
+                modifier = Modifier.fillMaxSize().padding(padding).padding(PapPageRhythm.sideInset),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -122,11 +123,11 @@ fun LicenseDetailContent(
                 modifier = Modifier
                     .fillMaxSize()
                     .windowInsetsPadding(WindowInsets.statusBars)
-                    .padding(horizontal = SCREEN_H_PADDING),
-                verticalArrangement = Arrangement.spacedBy(ROW_GAP),
+                    .padding(horizontal = PapPageRhythm.sideInset),
+                verticalArrangement = Arrangement.spacedBy(PapPageRhythm.block),
                 contentPadding = PaddingValues(
-                    top = padding.calculateTopPadding() + LIST_V_PADDING,
-                    bottom = padding.calculateBottomPadding() + LIST_V_PADDING,
+                    top = padding.calculateTopPadding() + PapPageRhythm.edgeInset,
+                    bottom = padding.calculateBottomPadding() + PapPageRhythm.edgeInset,
                 ),
             ) {
                 item {
@@ -162,7 +163,5 @@ fun LicenseDetailContent(
 
 // ── Layout tokens ─────────────────────────────────────────────────────────────
 
-private val SCREEN_H_PADDING = 16.dp
-private val LIST_V_PADDING = 12.dp
-private val ROW_GAP = 8.dp
+
 private val CARD_PADDING = 16.dp

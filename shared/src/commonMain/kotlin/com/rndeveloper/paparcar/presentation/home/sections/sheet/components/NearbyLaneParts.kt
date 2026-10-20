@@ -99,7 +99,7 @@ internal fun NearbyRowsSkeleton(itemCount: Int = SKELETON_ITEM_COUNT) {
                     alphaScale = PapShimmerBlockScale,
                 )
                 Spacer(modifier = Modifier.width(12.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(SKELETON_LINE_GAP)) {
                     PapShimmerBox(
                         modifier = Modifier.width(SKELETON_TITLE_WIDTH.dp).height(SKELETON_TITLE_H_DP.dp),
                         shape = RoundedCornerShape(SKELETON_LINE_RADIUS_DP.dp),
@@ -131,3 +131,7 @@ private const val SKELETON_SUBTITLE_ALPHA_FACTOR = 0.7f
 
 /** Divider inset that clears a row's leading 42dp glyph plus its 16dp gutter and 12dp gap. */
 internal const val ROW_DIVIDER_INSET_DP = 70
+
+/** Las dos líneas de un esqueleto de fila: el hueco imita el interlineado del título y su meta, que
+ *  es lo que la fila real pondrá ahí. [UI-A-PAGE-KEEPS-ONE-VERTICAL-RHYTHM-001] */
+private val SKELETON_LINE_GAP = 6.dp

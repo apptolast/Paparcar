@@ -15,6 +15,9 @@ import androidx.compose.material.icons.rounded.Group
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.rndeveloper.paparcar.ui.theme.PapControlHeight
+import com.rndeveloper.paparcar.ui.theme.PapGap
+import com.rndeveloper.paparcar.ui.theme.PapPageRhythm
 import com.rndeveloper.paparcar.domain.model.SharedCar
 import com.rndeveloper.paparcar.domain.model.SharedCarMember
 import com.rndeveloper.paparcar.ui.components.PapIconTile
@@ -91,9 +94,20 @@ fun SharedCarSection(
         },
         label = "shared-car-section",
     ) { isShared ->
+        // ⛔ El hueco se pide por lo que se VE, no por lo que se escribe: debajo de la card viene
+        // una fila de CHIPS, y un chip de 34 dp arrastra 7 dp de aire invisible por el mínimo
+        // táctil de Material. Con `spacedBy(8)` se veían 15 — casi el doble que entre dos cards de
+        // Ajustes, que es exactamente lo que el user señaló aquí.
+        // [UI-A-PAGE-KEEPS-ONE-VERTICAL-RHYTHM-001] [UI-THE-SPACING-SWEEP-IS-SCREEN-BY-SCREEN-001]
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(
+                PapGap.betweenControls(
+                    visible = PapPageRhythm.block,
+                    controlHeight = PapControlHeight.chip,
+                    sides = 1,
+                ),
+            ),
         ) {
             if (!isShared) {
                 PapOutlinedCard(

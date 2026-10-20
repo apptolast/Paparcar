@@ -54,6 +54,7 @@ import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import com.rndeveloper.paparcar.ui.theme.PapIconSize
 import com.rndeveloper.paparcar.ui.theme.PapGap
+import com.rndeveloper.paparcar.ui.theme.PapPageRhythm
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -168,13 +169,13 @@ fun BluetoothConfigContent(
             else -> LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = SCREEN_H_PADDING),
-                verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
+                    .padding(horizontal = PapPageRhythm.sideInset),
+                verticalArrangement = Arrangement.spacedBy(PapPageRhythm.block),
                 // Padding de contenido: la lista arranca bajo el título y pasa por debajo de la
                 // cabecera al scrollear, en vez de recortarse contra ella. [UI-TOPBAR-COLLAPSE-001]
                 contentPadding = PaddingValues(
-                    top = padding.calculateTopPadding() + LIST_V_PADDING,
-                    bottom = padding.calculateBottomPadding() + LIST_V_PADDING,
+                    top = padding.calculateTopPadding() + PapPageRhythm.edgeInset,
+                    bottom = padding.calculateBottomPadding() + PapPageRhythm.edgeInset,
                 ),
             ) {
                 item {
@@ -322,7 +323,6 @@ private fun BluetoothDeviceInfo.typeLabel(): String = when (type) {
 // ── Layout tokens ─────────────────────────────────────────────────────────────
 
 private val DEVICE_ROW_PAD_V_DP = 6.dp
-private val SCREEN_H_PADDING            = 16.dp
-private val LIST_V_PADDING              = 12.dp
+
 private val BT_OFF_ICON_SIZE            = 64.dp
 private const val BT_STATE_ICON_ALPHA   = 0.4f

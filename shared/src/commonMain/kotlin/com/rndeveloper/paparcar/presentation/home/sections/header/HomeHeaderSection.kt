@@ -33,7 +33,10 @@ import com.rndeveloper.paparcar.presentation.home.HomeHeaderSlice
 import com.rndeveloper.paparcar.presentation.home.sections.header.components.HomeSearchBar
 import com.rndeveloper.paparcar.presentation.util.MAP_FLOATING_SIDE_INSET_DP
 import com.rndeveloper.paparcar.presentation.home.sections.header.components.MapTypeToggle
+import com.rndeveloper.paparcar.ui.theme.PapControlHeight
+import com.rndeveloper.paparcar.ui.theme.PapGap
 import com.rndeveloper.paparcar.ui.theme.PapMotion
+import com.rndeveloper.paparcar.ui.theme.PapPageRhythm
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.AddZoneChip
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.ZoneChip
 
@@ -153,7 +156,11 @@ private fun HeaderZoneChips(
         // scroll edge-to-edge. [MAP-GLASS-001]
         contentPadding = PaddingValues(
             horizontal = MAP_FLOATING_SIDE_INSET_DP.dp,
-            vertical = CHIP_SHADOW_ROOM_DP.dp,
+            // ⚠️ La invitación expandida NO es un chip de 34: crece con su texto (44 dp medidos en
+            // EN, más en los locales largos), así que su overhang es menor y desconocido. Ahí el
+            // hueco se escribe entero y se ven ~10 dp en vez de 8 — el aire de más lo arrastra el
+            // chip, no el hueco. Suponer 34 dejaba la invitación a 3 dp del buscador, medido.
+            vertical = if (inviteToAddZone) PapPageRhythm.block else CHIP_TO_SEARCH_BAR_GAP,
         ),
     ) {
         items(zones, key = { it.id }) { zone ->
@@ -176,5 +183,25 @@ private fun HeaderZoneChips(
     }
 }
 
-private const val CHIP_SHADOW_ROOM_DP = 8
+/**
+ * El hueco entre el buscador y la fila de zonas, pedido por lo que se VE (8 dp, el mismo que
+ * separa dos cards en Ajustes) y no por lo que se escribe.
+ * [UI-A-PAGE-KEEPS-ONE-VERTICAL-RHYTHM-001]
+ *
+ * Eran 8 dp a pelo, con un nombre —*shadow room*— que describía el otro trabajo que hace este
+ * `contentPadding`: dejar sitio a la sombra de FAB del primer chip para que no se recorte contra el
+ * borde de la fila. Los dos trabajos caben en el mismo número, pero el que manda es el hueco, y
+ * el hueco no eran 8: un chip de 34 dp pinta su altura CENTRADA dentro de los 48 del mínimo táctil
+ * de Material, así que arrastraba 7 dp más por arriba y se veían **15** — el doble de lo que el
+ * resto de la app llama «dos bloques seguidos», y lo que el user señaló mirando esta pantalla
+ * (19-10). [UI-THE-SPACING-SWEEP-IS-SCREEN-BY-SCREEN-001]
+ *
+ * ⛔ El overhang NO se quita desactivando el mínimo táctil: son 48 dp de área de toque. Lo que se
+ * corrige es la cuenta — y de paso esos 7 dp invisibles son sitio de sobra para la sombra.
+ */
+private val CHIP_TO_SEARCH_BAR_GAP = PapGap.betweenControls(
+    visible = PapPageRhythm.block,
+    controlHeight = PapControlHeight.chip,
+    sides = 1,
+)
 

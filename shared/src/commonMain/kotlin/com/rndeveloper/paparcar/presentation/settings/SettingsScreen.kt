@@ -119,6 +119,7 @@ import com.rndeveloper.paparcar.ui.theme.PapAlpha
 import com.rndeveloper.paparcar.ui.theme.PapBorders
 import com.rndeveloper.paparcar.ui.theme.PapCardLight
 import com.rndeveloper.paparcar.ui.theme.PapInk
+import com.rndeveloper.paparcar.ui.theme.PapPageRhythm
 import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import com.rndeveloper.paparcar.ui.theme.PapMotion
 import com.rndeveloper.paparcar.ui.theme.PapShapes
@@ -415,12 +416,16 @@ fun SettingsContent(
                 // Padding de CONTENIDO (no del layout): la primera tarjeta arranca bajo el título y el
                 // resto pasa por debajo de la status bar al scrollear. [UI-TOPBAR-COLLAPSE-001]
                 contentPadding = PaddingValues(
-                    top = headerPadding.calculateTopPadding() + CONTENT_V_PADDING,
-                    bottom = headerPadding.calculateBottomPadding() + CONTENT_V_PADDING,
-                    start = headerPadding.calculateStartPadding(layoutDirection) + CONTENT_H_PADDING,
-                    end = headerPadding.calculateEndPadding(layoutDirection) + CONTENT_H_PADDING,
+                    top = headerPadding.calculateTopPadding() + PapPageRhythm.edgeInset,
+                    bottom = headerPadding.calculateBottomPadding() + PapPageRhythm.edgeInset,
+                    start = headerPadding.calculateStartPadding(layoutDirection) + PapPageRhythm.sideInset,
+                    end = headerPadding.calculateEndPadding(layoutDirection) + PapPageRhythm.sideInset,
                 ),
-                verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
+                // ⛔ El ritmo de ESTA pantalla es ahora el de todas, y se lee en `PapPageRhythm` —
+                // que se midió aquí. Lo que era `CONTENT_V_PADDING`/`CONTENT_H_PADDING` privados no
+                // era una preferencia de Ajustes: era la ley sin sitio donde vivir, así que cada
+                // otra página eligió la suya. [UI-A-PAGE-KEEPS-ONE-VERTICAL-RHYTHM-001]
+                verticalArrangement = Arrangement.spacedBy(PapPageRhythm.block),
             ) {
                 // ── 1 · Account (no section header — the card speaks for itself) ─
                 item {
@@ -755,9 +760,14 @@ private fun SectionHeaderDanger(title: String) {
 }
 
 /** El padding de una cabecera de sección muda o de aviso, repetido verbatim dos veces hasta
- *  nombrarlo aquí. [UI-THE-SPACING-SWEEP-BY-VOLUME-001] */
-private val SECTION_HEADER_TOP_DP = PaparcarSpacing.md
-private val SECTION_HEADER_BOTTOM_DP = 2.dp
+ *  nombrarlo aquí. [UI-THE-SPACING-SWEEP-BY-VOLUME-001]
+ *
+ *  Lo que se declara es el EXTRA sobre el `spacedBy` de la lista, porque el hueco que se ve es la
+ *  suma de los dos: `block` + esto = [PapPageRhythm.beforeSection] por arriba y
+ *  [PapPageRhythm.afterSection] por abajo. Escrito como resta para que mover la ley mueva la
+ *  pantalla, y no al revés. [UI-A-PAGE-KEEPS-ONE-VERTICAL-RHYTHM-001] */
+private val SECTION_HEADER_TOP_DP = PapPageRhythm.beforeSection - PapPageRhythm.block
+private val SECTION_HEADER_BOTTOM_DP = PapPageRhythm.afterSection - PapPageRhythm.block
 private val SECTION_HEADER_START_DP = PaparcarSpacing.xs
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1370,10 +1380,6 @@ private fun settingsSubtitleColor(): Color =
 // ─────────────────────────────────────────────────────────────────────────────
 // Tokens
 // ─────────────────────────────────────────────────────────────────────────────
-
-/** Holgura del contenido con el borde de pantalla y con la cabecera/borde inferior. */
-private val CONTENT_H_PADDING = PaparcarSpacing.lg
-private val CONTENT_V_PADDING = PaparcarSpacing.sm
 
 /** The bare Plus mark, matched to the leading tile it replaced so the row keeps its rhythm. */
 private const val PLUS_MARK_DP = 32

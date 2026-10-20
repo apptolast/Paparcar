@@ -99,3 +99,77 @@ object PapGap {
     fun betweenControls(visible: Dp, controlHeight: Dp, sides: Int = 2): Dp =
         (visible - PapControlHeight.overhang(controlHeight) * sides).coerceAtLeast(0.dp)
 }
+
+/**
+ * El ritmo VERTICAL de una página: cuánto aire hay entre dos bloques de una pantalla que se
+ * scrollea. [UI-A-PAGE-KEEPS-ONE-VERTICAL-RHYTHM-001]
+ *
+ * ## Por qué hay un tercer objeto de espaciado y no una constante más
+ *
+ * [PaparcarSpacing] es una ESCALA —una lista de números legales— y [PapGap] es el aire dentro de un
+ * control o de un bloque. Ninguno de los dos dice cuál de sus pasos separa dos CARDS de una página,
+ * y por eso cada pantalla lo eligió por su cuenta: medido el 19-10 sobre master, el margen de una
+ * página estaba declarado **cinco veces en privado** (`CONTENT_H_PADDING`/`CONTENT_V_PADDING`,
+ * `SCREEN_H_PADDING`/`LIST_V_PADDING` ×3, `H_PAD_DP`/`LIST_V_PAD_DP`) con dos valores distintos
+ * para el mismo rol, y el hueco entre hermanos valía 8 en Ajustes, 12 en Vehículos y 16 entre las
+ * dos cards de Actividad. Que cuatro de los cinco coincidieran en 16 a lo ancho era suerte: nada
+ * los ataba.
+ *
+ * La ley se lee de **Ajustes**, que es la única pantalla que ya tenía su ritmo entero declarado en
+ * un sitio —y la que el user señaló como la que quiere ver en todas (19-10).
+ *
+ * ## ⛔ Estos cinco números son huecos que se VEN, no `spacedBy` que se escriben
+ *
+ * Es la ley de [UI-THE-SPACING-SWEEP-IS-SCREEN-BY-SCREEN-001] un nivel más arriba: un control
+ * pulsable más bajo de 48 dp arrastra [PapControlHeight.overhang] de aire invisible por lado, así
+ * que una fila de chips pegada a una card con `spacedBy(8)` deja **15 dp** a la vista. Cuando uno
+ * de los lados del hueco es un control, el call site pide el suyo así:
+ *
+ * ```kotlin
+ * PapGap.betweenControls(PapPageRhythm.block, PapControlHeight.chip, sides = 1)
+ * ```
+ *
+ * No se toca a mano: ese 15 es exactamente lo que el user vio como «en vehicles el espaciado
+ * vertical es más alto», y lo que lo producía era la cuenta, no el gusto de nadie.
+ */
+object PapPageRhythm {
+    /**
+     * Dos bloques HERMANOS de una página (8dp) — card con card, card con una fila de chips, card
+     * con un banner.
+     *
+     * Es el `spacedBy` del `LazyColumn` de Ajustes, y el paso de escala que hace que una lista de
+     * cards se lea como una lista y no como cinco superficies sueltas. Absorbe el `12` de la
+     * cabecera de la página de vehículo y el `16` entre las dos cards de Actividad.
+     */
+    val block = PaparcarSpacing.sm
+
+    /**
+     * El último bloque de una sección y el TEXTO de la cabecera de la siguiente (20dp).
+     *
+     * En Ajustes no es una constante sino una suma —los 8 del `spacedBy` más los 12 que
+     * `SectionHeaderMuted` se pone encima—, y ese es justo el motivo por el que nadie podía
+     * copiarla: para repetir el ritmo de otra pantalla había que reconstruir su aritmética. Aquí es
+     * el hueco entero, que es lo que se ve.
+     *
+     * ⛔ No es `PaparcarSpacing.xl` por casualidad de valor: la escala no sabe nada de cabeceras.
+     * Si la ley cambia, cambia aquí.
+     */
+    val beforeSection = 20.dp
+
+    /**
+     * La cabecera de sección y el PRIMER bloque de su sección (10dp).
+     *
+     * La mitad de [beforeSection], y esa asimetría es el trabajo que hace una cabecera: pegada a lo
+     * que encabeza, despegada de lo que acaba de terminar. En Ajustes son los 2 dp de
+     * `SECTION_HEADER_BOTTOM_DP` más los 8 del `spacedBy`.
+     */
+    val afterSection = 10.dp
+
+    /** El contenido y el borde lateral de la pantalla (16dp). El `lg` de siempre, dicho por el rol
+     *  que lo usa en vez de por cinco constantes privadas que se llamaban casi igual. */
+    val sideInset = PaparcarSpacing.lg
+
+    /** El contenido y el principio/final de la lista (8dp) — el aire que separa la primera card de
+     *  la cabecera de la pantalla, y la última de la barra de navegación. */
+    val edgeInset = PaparcarSpacing.sm
+}

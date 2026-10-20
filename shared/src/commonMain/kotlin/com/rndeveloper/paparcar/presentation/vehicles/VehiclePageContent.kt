@@ -53,6 +53,7 @@ import com.rndeveloper.paparcar.presentation.util.vehicleFuelMetaLine
 import com.rndeveloper.paparcar.ui.components.VehicleIdentityHeader
 import androidx.compose.ui.text.style.TextOverflow
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
+import com.rndeveloper.paparcar.ui.theme.PapPageRhythm
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
 import com.rndeveloper.paparcar.ui.theme.watch
 import com.rndeveloper.paparcar.ui.theme.PapBorders
@@ -117,8 +118,13 @@ internal fun VehiclePageContent(
         sharedNote = sharedNote,
         modifier = Modifier.fillMaxSize(),
         header = {
+          // El mismo aire que Ajustes pone entre dos de sus cards: la hero y la sección del grupo
+          // son dos bloques hermanos de esta página, no dos superficies sueltas. Eran 12 dp
+          // elegidos aquí, que es lo que el user vio como «en vehicles el espaciado vertical es más
+          // alto». [UI-A-PAGE-KEEPS-ONE-VERTICAL-RHYTHM-001]
           androidx.compose.foundation.layout.Column(
-              verticalArrangement = Arrangement.spacedBy(12.dp),
+              modifier = Modifier.padding(horizontal = PapPageRhythm.sideInset),
+              verticalArrangement = Arrangement.spacedBy(PapPageRhythm.block),
           ) {
             VehicleHeroCard(
                 vehicleWithStats = vehicleWithStats,
@@ -172,7 +178,6 @@ internal fun VehiclePageContent(
                 onOfferShare = { onIntent(VehiclesIntent.ConfirmShareCar(vehicleId)) },
                 onOpenMembers = { onIntent(VehiclesIntent.ShowMembers(vehicleId)) },
                 onSetScope = { mineOnly -> onIntent(VehiclesIntent.SetSharedHistoryScope(mineOnly)) },
-                modifier = Modifier.padding(horizontal = 16.dp),
             )
           }
         },
@@ -344,10 +349,14 @@ private fun VehicleHeroCard(
     val isInactive = monitoring == VehicleMonitoringStatus.Inactive
     val cs = MaterialTheme.colorScheme
 
+    // ⛔ Sin margen propio. Llevaba `padding(16, 16, top = 8, bottom = 8)` DENTRO del componente,
+    // o sea su propio hueco con el mundo: sumado al `spacedBy` de la cabecera daba **16 dp** a la
+    // vista entre esta card y la del grupo, el doble de la ley, y nadie podía verlo leyendo el
+    // contenedor. Un bloque no se separa a sí mismo: el hueco es del que los ordena.
+    // [UI-A-PAGE-KEEPS-ONE-VERTICAL-RHYTHM-001]
     Surface(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+            .fillMaxWidth(),
         shape = PapShapes.card,
         color = cs.surfaceContainerHigh,
         // ⛔ Neutral border, not the watch colour. This card already says "vigilado por Bluetooth"

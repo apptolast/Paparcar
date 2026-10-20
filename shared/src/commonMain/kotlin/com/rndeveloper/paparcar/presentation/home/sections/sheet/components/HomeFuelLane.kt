@@ -30,6 +30,7 @@ import com.rndeveloper.paparcar.ui.components.papHorizontalFadingEdges
 import com.rndeveloper.paparcar.ui.illustrations.EmptyFuelStationsIllustration
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.PapGap
+import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_fuel_empty
@@ -198,7 +199,9 @@ private fun EmptyFuelStations() {
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        // La ilustración y sus dos líneas son UN bloque: el aire mínimo de la escala, no un
+        // ritmo de página. [UI-A-PAGE-KEEPS-ONE-VERTICAL-RHYTHM-001]
+        verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.xs),
     ) {
         EmptyFuelStationsIllustration(
             modifier = Modifier.size(EMPTY_ILLUSTRATION_W.dp, EMPTY_ILLUSTRATION_H.dp),

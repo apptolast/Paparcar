@@ -89,6 +89,7 @@ import com.rndeveloper.paparcar.ui.theme.PapAlpha
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
+import com.rndeveloper.paparcar.ui.theme.PapPageRhythm
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -909,7 +910,9 @@ private val DELETE_CARD_V_PADDING = 14.dp
 private val DELETE_REASON_TOP_GAP = 6.dp
 private val SUBMIT_HINT_GAP = 6.dp
 
-private val SCREEN_H_PADDING             = 16.dp
+/** El margen del contenido con el borde de pantalla: el mismo rol que en cualquier página, dicho
+ *  por su dueño. [UI-A-PAGE-KEEPS-ONE-VERTICAL-RHYTHM-001] */
+private val SCREEN_H_PADDING             = PapPageRhythm.sideInset
 private val SECTION_SPACING              = 16.dp
 private val CONTENT_TOP_SPACING          = 8.dp
 

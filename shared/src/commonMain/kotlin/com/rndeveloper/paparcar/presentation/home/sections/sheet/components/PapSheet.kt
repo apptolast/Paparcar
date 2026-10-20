@@ -68,6 +68,7 @@ import com.rndeveloper.paparcar.ui.components.PapShimmerBlockScale
 import com.rndeveloper.paparcar.ui.components.PapStepperButtonSize
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PapGap
+import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_counter_unit_free
@@ -230,7 +231,7 @@ internal fun PapSheet(
             ) {
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
                 ) {
                     meta?.invoke(this)
                 }

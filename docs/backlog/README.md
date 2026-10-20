@@ -1,6 +1,6 @@
 # Backlog — índice de lo que sigue abierto
 
-> **798 ficheros: 712 cerrados, 77 abiertos, 9 que no son tickets.** Este índice lista **solo lo que
+> **799 ficheros: 713 cerrados, 77 abiertos, 9 que no son tickets.** Este índice lista **solo lo que
 > queda**, para que la pregunta *"¿qué falta?"* se conteste leyendo y no listando el directorio.
 > Verificado contra master `1339ea263` el **2026-10-07**
 > [DOCS-A-CLOSED-TICKET-MUST-NOT-SAY-IT-IS-IN-REVIEW-001]. El barrido anterior
@@ -244,6 +244,7 @@ No son trabajo pendiente: son confirmaciones que faltan. Se listan para que nadi
 | [`geo-cache-answers-nearby-001`](geo-cache-answers-nearby-001.md) · [`data-room-starts-at-version-one-001`](data-room-starts-at-version-one-001.md) | ⏳ confirmación en device |
 | [`sync-reconcile-userparking-deferred-2026-07-03`](sync-reconcile-userparking-deferred-2026-07-03.md) | el reconcile cerrado; **Profile** sigue diferido |
 | [`settings-remodel-001-followups-2026-07-03`](settings-remodel-001-followups-2026-07-03.md) | validación en plataforma, sin código |
+| [`ui-a-page-keeps-one-vertical-rhythm-001`](ui-a-page-keeps-one-vertical-rhythm-001.md) | medido en A/B sobre emulador; ⏳ verlo en un **móvil real**, y una medición suelta de Home (15,2 dp con el binario nuevo) que no se reprodujo — ver «Cabo suelto» en el doc |
 | [`det-no-device-mute-in-remote-001`](det-no-device-mute-in-remote-001.md) · [`det-retract-denied-forever-001`](det-retract-denied-forever-001.md) | hechos; el doc existe para que la regla tenga dónde vivir |
 
 ## 🚧 Ojo: tickets cuyo doc **no está aquí**
