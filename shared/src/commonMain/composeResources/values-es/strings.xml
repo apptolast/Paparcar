@@ -561,7 +561,7 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → paparcar → Ubicación �
     <string name="vehicle_reg_cd_back">Atrás</string>
     <!-- Auth screens -->
     <string name="brand_name">paparcar</string>
-    <string name="auth_header_tagline">Encuentra tu plaza, comparte tu espacio</string>
+    <string name="auth_header_tagline">Recordamos dónde aparcaste. La plaza que dejas, otro la encuentra.</string>
     <string name="auth_field_email">Correo electrónico</string>
     <string name="auth_field_password">Contraseña</string>
     <string name="auth_field_name">Nombre</string>

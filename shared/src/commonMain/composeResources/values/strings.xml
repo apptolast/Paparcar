@@ -605,7 +605,7 @@ If the question no longer appears, change it in Settings → paparcar → Locati
     <string name="vehicle_reg_cd_back">Back</string>
     <!-- Auth screens -->
     <string name="brand_name">paparcar</string>
-    <string name="auth_header_tagline">Find your spot, share your space</string>
+    <string name="auth_header_tagline">We remember where you parked. The spot you leave, someone else finds.</string>
     <string name="auth_field_email">Email</string>
     <string name="auth_field_password">Password</string>
     <string name="auth_field_name">Name</string>

@@ -511,7 +511,7 @@
     <!-- VehicleStatsRow inline cards -->
     <!-- Auth screens -->
     <string name="brand_name">paparcar</string>
-    <string name="auth_header_tagline">Trova il tuo posto, condividi lo spazio</string>
+    <string name="auth_header_tagline">Ricordiamo dove hai parcheggiato. Il posto che lasci, lo trova un altro.</string>
     <string name="auth_field_email">Email</string>
     <string name="auth_field_password">Password</string>
     <string name="auth_field_name">Nome</string>

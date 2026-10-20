@@ -517,7 +517,7 @@
     <!-- VehicleStatsRow inline cards -->
     <!-- Auth screens -->
     <string name="brand_name">paparcar</string>
-    <string name="auth_header_tagline">Găsește-ți locul, împarte spațiul</string>
+    <string name="auth_header_tagline">Ținem minte unde ai parcat. Locul pe care îl lași îl găsește altcineva.</string>
     <string name="auth_field_email">E-mail</string>
     <string name="auth_field_password">Parolă</string>
     <string name="auth_field_name">Nume</string>

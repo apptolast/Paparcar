@@ -512,7 +512,7 @@
     <!-- VehicleStatsRow inline cards -->
     <!-- Auth screens -->
     <string name="brand_name">paparcar</string>
-    <string name="auth_header_tagline">Vind je plek, deel je ruimte</string>
+    <string name="auth_header_tagline">Wij onthouden waar je geparkeerd stond. De plek die je achterlaat, vindt iemand anders.</string>
     <string name="auth_field_email">E-mail</string>
     <string name="auth_field_password">Wachtwoord</string>
     <string name="auth_field_name">Naam</string>
