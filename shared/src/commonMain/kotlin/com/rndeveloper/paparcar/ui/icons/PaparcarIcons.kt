@@ -3,15 +3,19 @@ package com.rndeveloper.paparcar.ui.icons
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.DirectionsBike
 import androidx.compose.material.icons.rounded.AccountBalance
+import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.ElectricScooter
 import androidx.compose.material.icons.rounded.FitnessCenter
+import androidx.compose.material.icons.rounded.Group
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Hotel
 import androidx.compose.material.icons.rounded.LocalCafe
 import androidx.compose.material.icons.rounded.LocalGasStation
 import androidx.compose.material.icons.rounded.LocalHospital
 import androidx.compose.material.icons.rounded.LocalMall
 import androidx.compose.material.icons.rounded.LocalPharmacy
+import androidx.compose.material.icons.rounded.NearMe
 import androidx.compose.material.icons.rounded.Place
 import androidx.compose.material.icons.rounded.Restaurant
 import androidx.compose.material.icons.rounded.School
@@ -68,7 +72,7 @@ object PaparcarIcons {
     /**
      * El ACTO de ceder una plaza — la mano + corazón. Acompaña SIEMPRE a un texto que nombra el
      * acto: el tile «plazas cedidas» de las cifras y la línea «la comunidad te la cedió» del
-     * detalle de historial. No es el OBJETO: eso es [SpotGap].
+     * detalle de historial. No es el OBJETO: eso es [CommunitySpot].
      * [SPOT-A-FREE-SPOT-IS-A-GAP-NOT-A-GIFT-001]
      */
     val SpotGiven: ImageVector get() = Icons.Rounded.VolunteerActivism
@@ -88,6 +92,43 @@ object PaparcarIcons {
     val VehicleMotorcycle: ImageVector get() = Icons.Rounded.TwoWheeler
     val VehicleScooter: ImageVector get() = Icons.Rounded.ElectricScooter
     val VehicleBike: ImageVector get() = Icons.AutoMirrored.Rounded.DirectionsBike
+
+    // ── Conceptos del producto ───────────────────────────────────────────────
+    // [ICON-A-CONCEPT-KEEPS-ONE-GLYPH-ON-EVERY-SURFACE-001]
+    //
+    // Un concepto que la app NOMBRA se dibuja igual en todas partes, y por eso su glifo se decide
+    // aquí y no en el call site. Antes no: «cifras» salía con dos dibujos distintos en la misma
+    // pantalla de paywall, y `Group` significaba a la vez un coche compartido y los conductores
+    // que van a por una plaza. Pedir el Material crudo para uno de estos conceptos es lo que
+    // permite que la próxima superficie elija otro.
+    //
+    // ⛔ Y no sólo dentro de la app: `web/lib/glyphs.generated.mjs` se GENERA de aquí, porque la
+    // web ya llegó a servir una plaza y un parking que la app había retirado.
+
+    /** El coche que conducen varios [VEH-SHARED-001]. Suyo en exclusiva: los conductores en
+     *  camino a una plaza llevan [EnRoute], que es movimiento y no pertenencia. */
+    val SharedCar: ImageVector get() = Icons.Rounded.Group
+
+    /** Lo que ya pasó: la lista de sesiones y el gate que la alarga. */
+    val History: ImageVector get() = Icons.Rounded.History
+
+    /**
+     * Las cifras como CONCEPTO — el bloque entero, no una magnitud suelta (cada tile sigue
+     * llevando la suya: `Payments`, `Cloud`, `TravelExplore`…).
+     *
+     * ⛔ Barras, y nada más. Las dos alternativas obvias meten una segunda idea donde ya está
+     * gastada: `Insights` lleva la chispa de `Icons.Rounded.AutoAwesome`, que en ESA misma rejilla
+     * significa «detectado automáticamente», y `Leaderboard` es un podio, que dice *ranking* donde
+     * no se compite contra nadie. La lupa tampoco está libre: es `TravelExplore` = tiempo buscando
+     * plaza.
+     */
+    val Figures: ImageVector get() = Icons.Rounded.BarChart
+
+    /**
+     * Conductores yendo a por una plaza («3 en camino»). La flecha, no el grupo: lo que cuenta la
+     * cifra es gente MOVIÉNDOSE hacia allí, y el grupo ya es el coche compartido [SharedCar].
+     */
+    val EnRoute: ImageVector get() = Icons.Rounded.NearMe
 
 
     // ── Marcas de infraestructura "cerca de ti" ──────────────────────────────

@@ -11,7 +11,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Adjust
 import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.Group
 import androidx.compose.material.icons.rounded.Navigation
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.MaterialTheme
@@ -38,6 +37,7 @@ import com.rndeveloper.paparcar.presentation.util.freshness
 import com.rndeveloper.paparcar.presentation.util.radiusString
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
+import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.PapGap
 import org.jetbrains.compose.resources.stringResource
@@ -283,7 +283,7 @@ private fun SpotNote(text: String) {
 @Composable
 private fun SpotEnRouteRow(count: Int, accentColor: Color) {
     PeekMetaRow(
-        icon = Icons.Rounded.Group,
+        icon = PaparcarIcons.EnRoute,
         text = stringResource(Res.string.home_peek_spot_en_route, count),
         tint = accentColor,
     )

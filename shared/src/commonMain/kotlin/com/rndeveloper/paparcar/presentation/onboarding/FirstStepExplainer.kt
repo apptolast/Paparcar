@@ -11,7 +11,6 @@ import androidx.compose.material.icons.rounded.BatteryAlert
 import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.Explore
-import androidx.compose.material.icons.rounded.LocalGasStation
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.Sensors
@@ -263,7 +262,7 @@ internal fun FirstStep.explainerCopy(): ExplainerCopy = when (this) {
                 // a leer esos precios, y tiene que coincidir con lo que luego pinta la fila.
                 // [I18N-A-PRICE-IS-QUOTED-IN-THE-UNIT-YOU-BUY-IT-001]
                 body = exploreFuelExplainerBody(),
-                icon = Icons.Rounded.LocalGasStation,
+                icon = PaparcarIcons.Fuel,
             ),
         ),
         note = Res.string.first_steps_explain_explore_note,

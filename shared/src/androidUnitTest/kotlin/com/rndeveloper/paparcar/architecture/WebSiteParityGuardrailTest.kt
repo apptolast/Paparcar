@@ -601,7 +601,91 @@ class WebSiteParityGuardrailTest {
         }
     }
 
+    /**
+     * **Un concepto del producto se dibuja igual dentro y fuera de la app.**
+     * [ICON-A-CONCEPT-KEEPS-ONE-GLYPH-ON-EVERY-SURFACE-001]
+     *
+     * `web/lib/icons.mjs` llegó a declarar a mano su propio `spot` (un pin hueco) y su propio
+     * `parking` (una P sobre un cuadrado) y los sirvió durante meses, en dos idiomas — los dos
+     * RETIRADOS de la app hacía tiempo [SPOT-A-FREE-SPOT-IS-A-GAP-NOT-A-GIFT-001]
+     * [UI-THE-CAR-PARK-WEARS-OUR-OWN-P-001]. Ningún `grep` podía verlo: eran dos dibujos distintos
+     * del mismo concepto, cada uno correcto en su fichero.
+     *
+     * Tres preguntas, porque son tres formas distintas de romperlo:
+     *  1. que la web vuelva a DECLARAR un glifo de concepto en vez de consumirlo;
+     *  2. que alguien edite el módulo generado a mano, o cambie el dibujo en la app y no lo
+     *     regenere — se compara contra las constantes de `PaparcarIcons.kt`, que es la fuente;
+     *  3. que se regenere y no se reconstruya, que deja el sitio publicado con lo de antes.
+     */
+    @Test
+    fun `the site draws a product concept with the app's own glyph`() {
+        val icons = read(SITE_ICONS)
+        val generated = read(CONCEPT_GLYPHS_GENERATED)
+
+        // 1 · la web consume, no redibuja.
+        val redeclared = CONCEPT_KEYS.filter { key ->
+            Regex("""^\s{2}$key:""", RegexOption.MULTILINE).containsMatchIn(icons)
+        }
+        assertTrue(
+            redeclared.isEmpty(),
+            "$SITE_ICONS vuelve a declarar un glifo de concepto: ${redeclared.joinToString()}. " +
+                "Un concepto lo dibuja la app y la web lo importa de $CONCEPT_GLYPHS_GENERATED — " +
+                "declararlo aquí es como el sitio acabó sirviendo una plaza y un parking que la " +
+                "app había retirado. Regenera con `python docs/branding/icons/export_icons.py`.",
+        )
+
+        // 2 · lo generado es lo que dibuja la app, y nuestras dos marcas se pueden comparar
+        //     contra su fuente: viven como constantes en PaparcarIcons.kt.
+        val source = read(PAPARCAR_ICONS)
+        for ((key, konstant) in OWN_MARK_SOURCES) {
+            val expected = source.kotlinStringConst(konstant)
+            assertTrue(
+                generated.contains("d: '$expected'"),
+                buildString {
+                    appendLine("el glifo `$key` de la web no es el `$konstant` de la app.")
+                    appendLine()
+                    appendLine("O se editó el módulo generado a mano, o cambió el dibujo en")
+                    appendLine("$PAPARCAR_ICONS y nadie volvió a correr el exportador:")
+                    appendLine()
+                    appendLine("  python docs/branding/icons/export_icons.py")
+                    appendLine("  node web/build.mjs")
+                },
+            )
+        }
+
+        // 3 · y el sitio PUBLICADO lo lleva: regenerar sin reconstruir despliega lo de antes.
+        val shipped = Regex("""^\s{4}\{ d: '([^']+)'""", RegexOption.MULTILINE)
+            .findAll(generated).map { it.groupValues[1] }.toList()
+        assertTrue(shipped.size >= CONCEPT_KEYS.size, "$CONCEPT_GLYPHS_GENERATED quedó vacío")
+
+        // Sólo los conceptos que el copy nombra hoy: el módulo lleva los seis para que la web no
+        // pueda inventarse uno, pero exigir en la página los que no pinta sería decoración.
+        val es = contentOf("es")
+        val used = CONCEPT_KEYS.filter { key -> "\"icon\": \"$key\"" in es }
+        assertTrue(used.isNotEmpty(), "ningún concepto sale ya en web/content/es.json — ¿se renombró la clave?")
+
+        for ((_, base) in LOCALE_BASES) {
+            val page = read("hosting/public$base/index.html")
+            for (key in used) {
+                val first = Regex("""^  $key: \[\n\s{4}\{ d: '([^']+)'""", RegexOption.MULTILINE)
+                    .find(generated)?.groupValues?.get(1)
+                    ?: fail("$key no está en $CONCEPT_GLYPHS_GENERATED")
+                assertTrue(
+                    first in page,
+                    "hosting/public$base/index.html no sirve el glifo `$key` que dice el módulo " +
+                        "generado. Se regeneró sin reconstruir: `node web/build.mjs`.",
+                )
+            }
+        }
+    }
+
     // ── plumbing ──────────────────────────────────────────────────────────────
+
+    /** `X = "a" + "b"` → `ab`. Las constantes de path se parten en varias líneas. */
+    private fun String.kotlinStringConst(name: String): String {
+        val decl = firstGroup("""\b$name\b\s*(?::\s*String\s*)?=\s*((?:\s*"[^"]*"\s*\+?)+)""")
+        return Regex("\"([^\"]*)\"").findAll(decl).joinToString("") { it.groupValues[1] }
+    }
 
     /** `export const NAME = 'value'` → map. Only the string constants: those are the facts. */
     private fun declaredFacts(): Map<String, String> =
@@ -740,6 +824,26 @@ class WebSiteParityGuardrailTest {
 
         const val MARK_GENERATED = "web/lib/mark.generated.mjs"
         const val SITE_ICONS = "web/lib/icons.mjs"
+
+        // ── los glifos de concepto [ICON-A-CONCEPT-KEEPS-ONE-GLYPH-ON-EVERY-SURFACE-001] ──
+
+        const val CONCEPT_GLYPHS_GENERATED = "web/lib/glyphs.generated.mjs"
+
+        const val PAPARCAR_ICONS =
+            "shared/src/commonMain/kotlin/com/rndeveloper/paparcar/ui/icons/PaparcarIcons.kt"
+
+        /** Las claves de `CONCEPT_GLYPHS`, que son las que el copy del sitio nombra. */
+        val CONCEPT_KEYS = listOf("spot", "parking", "fuel", "sharedCar", "history", "figures")
+
+        /**
+         * Los dos que son dibujo NUESTRO y por eso se pueden comparar contra su fuente: viven como
+         * constantes en `PaparcarIcons.kt`. Los demás son Material y su path sale del jar que
+         * compila la app, así que de ellos sólo se comprueba que lleguen generados y publicados.
+         */
+        val OWN_MARK_SOURCES = mapOf(
+            "spot" to "SPOT_BAY_PATH",
+            "parking" to "GLYPH_P_PATH",
+        )
         const val PREPARE_ASSETS = "web/tools/prepare-assets.py"
         const val LOCKUP_RASTER = "paparcar-imagotipo-1024.png"
 

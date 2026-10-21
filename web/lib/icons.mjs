@@ -18,6 +18,7 @@ import {
   LOCKUP_WORD_TRANSFORM,
   LOCKUP_DARK,
 } from './mark.generated.mjs';
+import { CONCEPT_GLYPHS } from './glyphs.generated.mjs';
 
 const glyphs = {
   // ── tier 1 · chrome ────────────────────────────────────────────────────────
@@ -34,19 +35,12 @@ const glyphs = {
 const filled = {
   pin: 'M12 2.5a6.8 6.8 0 0 0-6.8 6.8c0 4.7 5.6 10.9 6.1 11.4a1 1 0 0 0 1.4 0c.5-.5 6.1-6.7 6.1-11.4A6.8 6.8 0 0 0 12 2.5Zm0 9.4a2.6 2.6 0 1 1 0-5.2 2.6 2.6 0 0 1 0 5.2Z',
   auto: 'M13.6 2.2a.7.7 0 0 1 .65.95L12.3 9.1h4.35a.7.7 0 0 1 .55 1.14l-8.1 10.3a.7.7 0 0 1-1.24-.6l1.68-6.44H5.3a.7.7 0 0 1-.55-1.13l8.3-10.6a.7.7 0 0 1 .55-.27Z',
-  // ⛔ A community SPOT is not a car park, and it must not wear the car park's "P"
-  // [COPY-SPOT-IS-NOT-A-PARKING-001]. A car park is an installation someone runs; a spot is a gap
-  // in the street that a driver just left. So: a HOLLOW pin — an empty space — with the dot of the
-  // driver who freed it. `parking` keeps the P, on a square, because that is the road sign.
-  spot: {
-    rule: 'evenodd',
-    d:
-      'M12 2.4a7.2 7.2 0 0 0-7.2 7.2c0 5 6 11.5 6.5 12a1 1 0 0 0 1.4 0c.5-.5 6.5-7 6.5-12A7.2 7.2 0 0 0 12 2.4Z' +
-      'M12 4.4a5.2 5.2 0 0 0-5.2 5.2c0 3.4 3.6 8.2 5.2 10 1.6-1.8 5.2-6.6 5.2-10A5.2 5.2 0 0 0 12 4.4Z' +
-      'M12 6.9a2.6 2.6 0 1 1 0 5.2 2.6 2.6 0 0 1 0-5.2Z',
-  },
-  parking: 'M6 3h12a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Zm3.3 3.6a.9.9 0 0 0-.9.9v8.9a1 1 0 0 0 2 0v-2.6h2.2a3.6 3.6 0 0 0 0-7.2Zm1.1 2h2.2a1.6 1.6 0 0 1 0 3.2h-2.2Z',
-  fuel: 'M4.8 3A1.8 1.8 0 0 1 6.6 1.2h5.8A1.8 1.8 0 0 1 14.2 3v17.2h1.3a.9.9 0 0 1 0 1.8H3.5a.9.9 0 0 1 0-1.8h1.3Zm2.2 1.6v4.2h5V4.6Zm10.1.1a.9.9 0 0 1 1.3 0l1.8 1.9c.5.5.8 1.2.8 1.9v7.9a1.9 1.9 0 0 1-3.8 0v-4.2h-1.4a.9.9 0 0 1 0-1.8h1.4V8.6l-2.1-2.2a.9.9 0 0 1 0-1.3Z',
+  // ⛔ Los glifos de CONCEPTO no se declaran aquí: `spot`, `parking`, `fuel` (y los tres que la
+  // web aún no pinta) llegan generados en `CONCEPT_GLYPHS`, derivados de `PaparcarIcons.kt`.
+  // Este bloque llegó a declarar los suyos a mano y sirvió durante meses, en dos idiomas, una
+  // plaza y un parking que la app había RETIRADO — un pin hueco y una P sobre un cuadrado.
+  // Un concepto del producto lo dibuja la app; la web lo consume.
+  // [ICON-A-CONCEPT-KEEPS-ONE-GLYPH-ON-EVERY-SURFACE-001]
   car: 'M5.6 5.4A2.4 2.4 0 0 1 7.9 3.8h8.2a2.4 2.4 0 0 1 2.3 1.6l1.4 4.1a2 2 0 0 1 1.2 1.8v5.4a1.5 1.5 0 0 1-1.5 1.5h-.6v1a1.4 1.4 0 0 1-2.8 0v-1H7.9v1a1.4 1.4 0 0 1-2.8 0v-1h-.6A1.5 1.5 0 0 1 3 16.7v-5.4c0-.8.5-1.5 1.2-1.8Zm2.1.8-1 3h10.6l-1-3a.6.6 0 0 0-.6-.4H8.3a.6.6 0 0 0-.6.4Zm-1 5.6a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6Zm10.6 0a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6Z',
   location: 'M12 1.4a.9.9 0 0 1 .9.9v1.35a8.1 8.1 0 0 1 7.05 7.05h1.35a.9.9 0 0 1 0 1.8h-1.35a8.1 8.1 0 0 1-7.05 7.05v1.35a.9.9 0 0 1-1.8 0v-1.35A8.1 8.1 0 0 1 4.05 13.1H2.7a.9.9 0 0 1 0-1.8h1.35A8.1 8.1 0 0 1 11.1 4.25V2.3a.9.9 0 0 1 .9-.9Zm0 4.7a6.1 6.1 0 1 0 0 12.2 6.1 6.1 0 0 0 0-12.2Zm0 3.2a2.9 2.9 0 1 1 0 5.8 2.9 2.9 0 0 1 0-5.8Z',
   steps: 'M13.4 1.9a2.1 2.1 0 1 1 0 4.2 2.1 2.1 0 0 1 0-4.2ZM11.6 7.1c1.4-.5 2.9.1 3.5 1.4l1 2.1c.3.6.8 1 1.4 1.2l1.6.5a1 1 0 0 1-.6 1.9l-1.6-.5a4.4 4.4 0 0 1-2.4-1.9l-.5 2.6 2.2 2.1c.4.4.6.9.6 1.4l.3 3.1a1.1 1.1 0 0 1-2.2.2l-.3-2.8-2.8-2.7-1 3.6-2.7 3.2a1.1 1.1 0 0 1-1.7-1.4l2.4-2.9L10.4 12l-1.5.9-.9 2.2a1 1 0 0 1-1.9-.8l1-2.5c.2-.4.5-.8.9-1Z',
@@ -62,18 +56,34 @@ const filled = {
 
 const STROKE_ONLY = new Set(Object.keys(glyphs));
 
-/** One 24-grid icon. `title` omitted ⇒ decorative, hidden from assistive tech. */
+/** `{d, transform?, rule?}` → un `<path>`. */
+function pathTag({ d, transform, rule }) {
+  const attrs = [
+    rule ? ` fill-rule="${rule}" clip-rule="${rule}"` : '',
+    transform ? ` transform="${transform}"` : '',
+  ].join('');
+  return `<path${attrs} d="${d}"/>`;
+}
+
+/**
+ * One 24-grid icon. `title` omitted ⇒ decorative, hidden from assistive tech.
+ *
+ * Un glifo puede ser VARIOS trazos, no uno: las barras de `figures` son tres piezas sueltas. Y uno
+ * puede traer su propio `transform` — la P de `parking` se dibuja en una rejilla de 48 y es su
+ * icono quien la encuadra, igual que en la app. Aplanarlos a un solo `<path>` sin transform es lo
+ * que obligaba a redibujarlos a mano para la web.
+ */
 export function icon(name, { className = '', title = '', size = 24 } = {}) {
-  const raw = STROKE_ONLY.has(name) ? glyphs[name] : filled[name];
+  const raw = STROKE_ONLY.has(name) ? glyphs[name] : (CONCEPT_GLYPHS[name] ?? filled[name]);
   if (!raw) throw new Error(`unknown icon: ${name}`);
-  const d = typeof raw === 'string' ? raw : raw.d;
-  const rule = typeof raw === 'string' ? '' : ` fill-rule="${raw.rule}"`;
+  const parts = Array.isArray(raw) ? raw : [typeof raw === 'string' ? { d: raw } : raw];
   const paint = STROKE_ONLY.has(name)
     ? 'fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"'
-    : `fill="currentColor"${rule}`;
+    : 'fill="currentColor"';
   const a11y = title ? `role="img" aria-label="${title}"` : 'aria-hidden="true" focusable="false"';
   const cls = className ? ` class="${className}"` : '';
-  return `<svg${cls} width="${size}" height="${size}" viewBox="0 0 24 24" ${paint} ${a11y}><path d="${d}"/></svg>`;
+  const body = parts.map(pathTag).join('');
+  return `<svg${cls} width="${size}" height="${size}" viewBox="0 0 24 24" ${paint} ${a11y}>${body}</svg>`;
 }
 
 /**

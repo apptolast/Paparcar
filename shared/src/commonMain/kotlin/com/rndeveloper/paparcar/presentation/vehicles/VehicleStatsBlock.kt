@@ -15,7 +15,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.ElectricBolt
-import androidx.compose.material.icons.rounded.LocalGasStation
 import androidx.compose.material.icons.rounded.Event
 import androidx.compose.material.icons.rounded.HourglassBottom
 import androidx.compose.material.icons.rounded.Payments
@@ -622,7 +621,7 @@ internal enum class StatTileKey {
  */
 private fun StatTileKey.icon(): ImageVector = when (this) {
     StatTileKey.COST -> Icons.Rounded.Payments
-    StatTileKey.FUEL -> Icons.Rounded.LocalGasStation
+    StatTileKey.FUEL -> PaparcarIcons.Fuel
     StatTileKey.ENERGY -> Icons.Rounded.ElectricBolt
     StatTileKey.CO2 -> Icons.Rounded.Cloud
     // The roaming magnifier: time spent hunting the spot. [TRIP-THE-SEARCH-FOR-A-SPOT-IS-MEASURED-001]

@@ -22,9 +22,6 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.EventAvailable
-import androidx.compose.material.icons.rounded.History
-import androidx.compose.material.icons.rounded.Group
-import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Route
@@ -56,6 +53,7 @@ import com.rndeveloper.paparcar.ui.components.PapPremiumButton
 import com.rndeveloper.paparcar.ui.components.PapPremiumMark
 import com.rndeveloper.paparcar.ui.components.PapPremiumSurface
 import com.rndeveloper.paparcar.ui.components.PapSectionHeader
+import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.theme.PapBorders
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
@@ -402,15 +400,15 @@ private class ReasonLine(val icon: ImageVector, val text: StringResource)
 /** [PaywallReason.GENERAL] is the Settings row — an entrance, not a gate, so it has no motive to
  *  name and gets no strip. */
 private fun reasonLine(reason: PaywallReason): ReasonLine? = when (reason) {
-    PaywallReason.HISTORY -> ReasonLine(Icons.Rounded.History, Res.string.paywall_reason_history)
+    PaywallReason.HISTORY -> ReasonLine(PaparcarIcons.History, Res.string.paywall_reason_history)
     PaywallReason.VEHICLES -> ReasonLine(Icons.Rounded.DirectionsCar, Res.string.paywall_reason_vehicles)
     PaywallReason.ZONES -> ReasonLine(Icons.Rounded.Map, Res.string.paywall_reason_zones)
-    PaywallReason.STATS -> ReasonLine(Icons.Rounded.Insights, Res.string.paywall_reason_stats)
+    PaywallReason.STATS -> ReasonLine(PaparcarIcons.Figures, Res.string.paywall_reason_stats)
     PaywallReason.ZONE_ALERTS -> ReasonLine(Icons.Rounded.NotificationsActive, Res.string.paywall_reason_zone_alerts)
     PaywallReason.FUEL_ALERTS -> ReasonLine(Icons.Rounded.NotificationsActive, Res.string.paywall_reason_fuel_alerts)
     PaywallReason.MONTH_RECAP -> ReasonLine(Icons.Rounded.EventAvailable, Res.string.paywall_reason_month_recap)
     PaywallReason.ROUTE_CLOUD -> ReasonLine(Icons.Rounded.Route, Res.string.paywall_reason_route_cloud)
-    PaywallReason.SHARED_CAR -> ReasonLine(Icons.Rounded.Group, Res.string.paywall_reason_shared_car)
+    PaywallReason.SHARED_CAR -> ReasonLine(PaparcarIcons.SharedCar, Res.string.paywall_reason_shared_car)
     PaywallReason.GENERAL -> null
 }
 
@@ -551,7 +549,7 @@ internal val PLUS_BENEFITS = listOf(
     // translations must avoid each language's reserved word for a spot (posto, plek, miejsce,
     // loc) and reach for its word for a place. [COPY-SPOT-IS-NOT-A-PARKING-001]
     PlusBenefit(
-        Icons.Rounded.History,
+        PaparcarIcons.History,
         Res.string.paywall_benefit_history,
         Res.string.paywall_benefit_history_note,
         // One row, two reasons, because there is ONE gate behind both — see above.
@@ -603,7 +601,7 @@ internal val PLUS_BENEFITS = listOf(
     ),
     // La feature estrella de Plus: el coche que conducen varios. [VEH-SHARED-001]
     PlusBenefit(
-        Icons.Rounded.Group,
+        PaparcarIcons.SharedCar,
         Res.string.paywall_benefit_shared_car,
         Res.string.paywall_benefit_shared_car_note,
         sells = setOf(PaywallReason.SHARED_CAR),

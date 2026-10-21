@@ -4,7 +4,6 @@ package com.rndeveloper.paparcar.presentation.vehicles.components
 import paparcar.composeapp.generated.resources.shared_car_routes_question_title
 import paparcar.composeapp.generated.resources.shared_car_routes_question_subtitle
 import com.rndeveloper.paparcar.ui.components.PapSwitchRow
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
@@ -18,7 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DirectionsCar
-import androidx.compose.material.icons.rounded.Group
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Route
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -47,6 +45,7 @@ import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
 import com.rndeveloper.paparcar.ui.components.PapShimmerBlockScale
 import com.rndeveloper.paparcar.ui.components.PapShimmerBox
 import com.rndeveloper.paparcar.ui.components.PapTextField
+import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import org.jetbrains.compose.resources.stringResource
@@ -147,7 +146,7 @@ fun SharedCarMembersSheet(
                         leading = {
                             PapIconTile(
                                 icon = if (member.role == SharedCarRole.OWNER) Icons.Rounded.DirectionsCar
-                                else Icons.Rounded.Group,
+                                else PaparcarIcons.SharedCar,
                             )
                         },
                         trailing = if (isOwner && !isMe && member.role != SharedCarRole.OWNER) {
@@ -315,7 +314,7 @@ fun JoinSharedCarDialogContent(
 ) {
     PapAlertDialog(
         onDismiss = onDismiss,
-        icon = Icons.Rounded.Group,
+        icon = PaparcarIcons.SharedCar,
         title = stringResource(Res.string.shared_car_join_title),
         body = stringResource(Res.string.shared_car_join_body),
         primaryLabel = stringResource(Res.string.shared_car_join_cta),

@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.LocalGasStation
 import androidx.compose.material.icons.rounded.Navigation
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.StarOutline
@@ -41,6 +40,7 @@ import com.rndeveloper.paparcar.presentation.util.fuelTypeLabel
 import com.rndeveloper.paparcar.presentation.util.relativeTimeText
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
+import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.PapGap
@@ -132,7 +132,7 @@ internal fun FuelStationPeek(
     val spokenFuels = FuelType.entries.filter { station.availabilityOf(it) != FuelAvailability.UNKNOWN }
 
     PapSheet(
-        lead = PapSheetLead.GenericIcon(Icons.Rounded.LocalGasStation),
+        lead = PapSheetLead.GenericIcon(PaparcarIcons.Fuel),
         eyebrow = stringResource(Res.string.fuel_peek_eyebrow).uppercase(),
         eyebrowTone = PapSheetEyebrowTone.Action,
         title = title,

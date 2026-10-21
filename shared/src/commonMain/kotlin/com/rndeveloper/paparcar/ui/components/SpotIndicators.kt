@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Group
 import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.Icon
@@ -21,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.stateColors
@@ -157,7 +157,7 @@ fun EnRouteIndicator(
         horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.xs),
     ) {
         Icon(
-            imageVector = Icons.Rounded.Group,
+            imageVector = PaparcarIcons.EnRoute,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = PapAlpha.subtitle),
             modifier = Modifier.size(IndicatorIconSize),

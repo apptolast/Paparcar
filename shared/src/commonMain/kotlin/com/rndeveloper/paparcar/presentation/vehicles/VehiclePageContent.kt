@@ -52,6 +52,7 @@ import com.rndeveloper.paparcar.domain.model.monitoringStatus
 import com.rndeveloper.paparcar.presentation.util.vehicleFuelMetaLine
 import com.rndeveloper.paparcar.ui.components.VehicleIdentityHeader
 import androidx.compose.ui.text.style.TextOverflow
+import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import com.rndeveloper.paparcar.ui.theme.PapPageRhythm
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
@@ -60,7 +61,6 @@ import com.rndeveloper.paparcar.ui.theme.PapBorders
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PapColor
-import androidx.compose.material.icons.rounded.Group
 import com.rndeveloper.paparcar.domain.sharedcar.CarWhereabouts
 import com.rndeveloper.paparcar.domain.sharedcar.carWhereabouts
 import com.rndeveloper.paparcar.presentation.vehicles.components.SharedCarSection
@@ -386,7 +386,7 @@ private fun VehicleHeroCard(
                 nameSuffix = if (isShared) {
                     {
                         Icon(
-                            imageVector = Icons.Rounded.Group,
+                            imageVector = PaparcarIcons.SharedCar,
                             contentDescription = stringResource(Res.string.shared_car_title),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(SHARED_MARK_DP.dp),

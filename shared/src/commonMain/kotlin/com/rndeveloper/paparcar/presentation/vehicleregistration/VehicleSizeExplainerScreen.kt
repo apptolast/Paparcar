@@ -22,7 +22,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Label
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.LocalGasStation
 import androidx.compose.material.icons.rounded.Sensors
 import androidx.compose.material.icons.rounded.Straighten
 import androidx.compose.material3.Icon
@@ -39,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.ui.components.PapPrimaryButton
 import com.rndeveloper.paparcar.ui.components.VehicleIcon
+import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.PapColor
@@ -131,7 +131,7 @@ fun VehicleSizeExplainerScreen(
                 isLast = false,
             )
             ExplainerTimelineStep(
-                icon = Icons.Rounded.LocalGasStation,
+                icon = PaparcarIcons.Fuel,
                 title = stringResource(Res.string.vehicle_size_explainer_card5_title),
                 description = stringResource(Res.string.vehicle_size_explainer_card5_desc),
                 isLast = false,

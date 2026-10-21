@@ -26,7 +26,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.rounded.BatteryFull
 import androidx.compose.material.icons.rounded.Bluetooth
@@ -45,7 +44,6 @@ import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.CloudUpload
 import androidx.compose.material.icons.rounded.EventAvailable
-import androidx.compose.material.icons.rounded.LocalGasStation
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Sensors
@@ -115,6 +113,7 @@ import com.rndeveloper.paparcar.ui.components.PapScrollToTopButton
 import com.rndeveloper.paparcar.ui.components.PapShimmerBox
 import com.rndeveloper.paparcar.ui.components.PapSwitchRow
 import com.rndeveloper.paparcar.ui.components.PapTextField
+import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
 import com.rndeveloper.paparcar.ui.theme.PapBorders
 import com.rndeveloper.paparcar.ui.theme.PapCardLight
@@ -546,7 +545,7 @@ fun SettingsContent(
                             // todos, y con Plus además vigila las que sigues. Leerlo como
                             // `isPlus && …` mostraba OFF un carril que estaba corriendo.
                             PapSwitchRow(
-                                icon = Icons.Rounded.LocalGasStation,
+                                icon = PaparcarIcons.Fuel,
                                 label = stringResource(Res.string.settings_notif_fuel_alerts),
                                 description = stringResource(Res.string.settings_notif_fuel_alerts_desc),
                                 checked = state.notifyFuelPrices,

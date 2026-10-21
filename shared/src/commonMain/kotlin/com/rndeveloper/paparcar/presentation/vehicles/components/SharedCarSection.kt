@@ -11,10 +11,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Group
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.theme.PapControlHeight
 import com.rndeveloper.paparcar.ui.theme.PapGap
 import com.rndeveloper.paparcar.ui.theme.PapPageRhythm
@@ -116,7 +116,7 @@ fun SharedCarSection(
                     PapListItem(
                         title = stringResource(Res.string.shared_car_share_cta),
                         subtitle = stringResource(Res.string.shared_car_row_sub_not_shared),
-                        leading = { PapIconTile(icon = Icons.Rounded.Group) },
+                        leading = { PapIconTile(icon = PaparcarIcons.SharedCar) },
                         trailing = { PapNavChevron() },
                     )
                 }
@@ -142,7 +142,7 @@ fun SharedCarSection(
                 PapListItem(
                     title = stringResource(Res.string.shared_car_members_title),
                     subtitle = memberLine,
-                    leading = { PapIconTile(icon = Icons.Rounded.Group) },
+                    leading = { PapIconTile(icon = PaparcarIcons.SharedCar) },
                     trailing = { PapNavChevron() },
                 )
             }

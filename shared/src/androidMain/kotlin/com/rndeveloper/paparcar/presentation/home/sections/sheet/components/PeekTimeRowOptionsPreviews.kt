@@ -20,7 +20,6 @@ import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.EditLocationAlt
-import androidx.compose.material.icons.rounded.Group
 import androidx.compose.material.icons.rounded.Navigation
 import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import androidx.compose.material.icons.rounded.Schedule
@@ -184,7 +183,7 @@ private fun CurrentSpotModal() {
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(Icons.Rounded.Group, null, tint = metaColor, modifier = Modifier.size(18.dp))
+                    Icon(PaparcarIcons.EnRoute, null, tint = metaColor, modifier = Modifier.size(18.dp))
                     Text("2 on the way", style = MaterialTheme.typography.labelSmall, color = metaColor)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -255,7 +254,7 @@ private fun ProposedSpotModal() {
             // SpotMetaRow NUEVO — misma fila prominente que ParkingDurationRow
             InfoRow(Icons.Rounded.Schedule, "Posted 5 min ago", accent)
             Spacer(Modifier.height(8.dp))
-            InfoRow(Icons.Rounded.Group, "2 on the way", accent)
+            InfoRow(PaparcarIcons.EnRoute, "2 on the way", accent)
             Spacer(Modifier.height(12.dp))
             FiabilityStub(accent)
             Spacer(Modifier.height(14.dp))

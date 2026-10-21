@@ -2,7 +2,6 @@ package com.rndeveloper.paparcar.presentation.vehicles
 import paparcar.composeapp.generated.resources.shared_car_routes_question_title
 import paparcar.composeapp.generated.resources.shared_car_routes_question_subtitle
 import com.rndeveloper.paparcar.ui.components.PapSwitchRow
-
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -27,7 +26,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.Group
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -69,6 +67,7 @@ import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.model.displayName
 import com.rndeveloper.paparcar.domain.model.monitoringStatus
 import com.rndeveloper.paparcar.ui.components.PapCollapsingTopBarScaffold
+import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import com.rndeveloper.paparcar.presentation.permissions.PermissionsFocus
 import com.rndeveloper.paparcar.presentation.vehicles.components.PapVehicleSelectorPill
@@ -411,7 +410,7 @@ private fun VehiclesPager(
     state.confirmGroupExit?.let { prompt ->
         PapAlertDialog(
             onDismiss = { onIntent(VehiclesIntent.ConfirmGroupExit(null)) },
-            icon = Icons.Rounded.Group,
+            icon = PaparcarIcons.SharedCar,
             title = stringResource(
                 if (prompt.isOwner) Res.string.shared_car_stop_sharing else Res.string.shared_car_leave,
             ),
@@ -450,7 +449,7 @@ private fun VehiclesPager(
     state.confirmShareCarId?.let { carId ->
         PapAlertDialog(
             onDismiss = { onIntent(VehiclesIntent.ConfirmShareCar(null)) },
-            icon = Icons.Rounded.Group,
+            icon = PaparcarIcons.SharedCar,
             title = stringResource(Res.string.shared_car_title),
             body = stringResource(Res.string.shared_car_not_shared_body),
             primaryLabel = stringResource(Res.string.shared_car_share_cta),
@@ -475,7 +474,7 @@ private fun VehiclesPager(
     state.dissolvedCar?.let { prompt ->
         PapAlertDialog(
             onDismiss = { onIntent(VehiclesIntent.KeepDissolvedCar) },
-            icon = Icons.Rounded.Group,
+            icon = PaparcarIcons.SharedCar,
             title = stringResource(Res.string.shared_car_dissolved_title, prompt.carName),
             body = if (prompt.takesTheFreeSlot) {
                 stringResource(Res.string.shared_car_dissolved_body_free_slot)

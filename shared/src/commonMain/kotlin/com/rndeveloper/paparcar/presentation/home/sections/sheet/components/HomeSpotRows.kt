@@ -23,8 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Campaign
-import androidx.compose.material.icons.rounded.FilterAltOff
-import androidx.compose.material.icons.rounded.Group
+import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.illustrations.EmptySpotsIllustration
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -270,7 +269,7 @@ private fun SpotMetaRow(spot: Spot, distanceM: Float?) {
         if (spot.enRouteCount > 0) {
             Spacer(Modifier.width(EN_ROUTE_LEAD_GAP_DP.dp))
             Icon(
-                imageVector = Icons.Rounded.Group,
+                imageVector = PaparcarIcons.EnRoute,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = META_MUTED_ALPHA),
                 modifier = Modifier.size(EN_ROUTE_ICON_DP.dp),
