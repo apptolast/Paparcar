@@ -3,22 +3,22 @@ FICHA DE PLAY STORE — es-ES
 GENERADO por tools/make_paste.py desde LISTING-v1.4.0.md — no editar a mano.
 
 --- 1. NOMBRE DE LA APLICACION (25/30) ---
-paparcar: dónde aparcaste
+Paparcar: dónde aparcaste
 
 --- 2. DESCRIPCION BREVE (75/80) ---
-¿Dónde aparcaste? paparcar lo recuerda. Con precios de gasolina y parkings.
+¿Dónde aparcaste? Paparcar lo recuerda. Con precios de gasolina y parkings.
 
 --- 3. DESCRIPCION COMPLETA (3904/4000) ---
 ¿Dónde aparcaste?
 
-paparcar lo recuerda por ti.
+Paparcar lo recuerda por ti.
 
-Aparca, bájate del coche y sigue con tu día. paparcar guarda dónde has dejado el coche automáticamente: sin abrir la app, sin poner un pin y sin escribir una dirección. Cuando vuelvas, sabrás dónde está y cuánto tiempo lleva allí.
+Aparca, bájate del coche y sigue con tu día. Paparcar guarda dónde has dejado el coche automáticamente: sin abrir la app, sin poner un pin y sin escribir una dirección. Cuando vuelvas, sabrás dónde está y cuánto tiempo lleva allí.
 
-Cuando te vas, la plaza que dejas puede publicarse para los conductores que están cerca. Y tú puedes ver las plazas que otros acaban de liberar. Cuantos más conductores usen paparcar en tu ciudad, más plazas aparecen en el mapa.
+Cuando te vas, la plaza que dejas puede publicarse para los conductores que están cerca. Y tú puedes ver las plazas que otros acaban de liberar. Cuantos más conductores usen Paparcar en tu ciudad, más plazas aparecen en el mapa.
 
 CÓMO FUNCIONA
-1. Aparcas. paparcar lo detecta y guarda el sitio. Sin Bluetooth, el primer aparcamiento lo marcas tú.
+1. Aparcas. Paparcar lo detecta y guarda el sitio. Sin Bluetooth, el primer aparcamiento lo marcas tú.
 2. Te vas. La app lo detecta.
 3. Tu plaza se publica para los conductores cercanos, cuando corresponde.
 
@@ -33,7 +33,7 @@ PLAZAS EN TIEMPO REAL
 • Las plazas que otros conductores acaban de liberar, en el mapa.
 • Cuándo se liberó cada una: no es lo mismo hace dos minutos que hace veinte.
 • Cuántos conductores van ya hacia allí.
-• Si tu coche cabe: paparcar compara el hueco con el tuyo.
+• Si tu coche cabe: Paparcar compara el hueco con el tuyo.
 • ¿Ves una plaza libre al pasar? Avísala en dos toques.
 
 GASOLINERAS Y PARKINGS, EN EL MISMO MAPA
@@ -55,9 +55,9 @@ UN COCHE, VARIOS CONDUCTORES
 • Tus rutas se comparten sólo si tú lo dices.
 
 DETECCIÓN AUTOMÁTICA
-Si tu coche se conecta al móvil por Bluetooth, la desconexión ayuda a detectar que has terminado de aparcar. Si no tiene Bluetooth, paparcar usa el movimiento y la ubicación.
+Si tu coche se conecta al móvil por Bluetooth, la desconexión ayuda a detectar que has terminado de aparcar. Si no tiene Bluetooth, Paparcar usa el movimiento y la ubicación.
 
-paparcar no quiere adivinar. Cuando no está seguro de lo que ha pasado, te pregunta antes de publicar una plaza.
+Paparcar no quiere adivinar. Cuando no está seguro de lo que ha pasado, te pregunta antes de publicar una plaza.
 
 PAPARCAR PLUS
 Gratis, tú preguntas y la app responde. Con Plus, la app vigila mientras tú no miras:
@@ -68,7 +68,7 @@ Gratis, tú preguntas y la app responde. Con Plus, la app vigila mientras tú no
 • Crear un coche compartido. Unirte a uno es siempre gratis.
 
 PRIVACIDAD
-• Zonas privadas: marca sitios como tu casa y paparcar no publicará una plaza allí cuando te vayas.
+• Zonas privadas: marca sitios como tu casa y Paparcar no publicará una plaza allí cuando te vayas.
 • Tu matrícula nunca sale de tu móvil.
 • La marca y el modelo de tu coche sólo aparecen en la plaza que liberas si tú lo activas.
 • Tu ubicación nunca se vende ni se usa para publicidad.
@@ -77,9 +77,9 @@ PRIVACIDAD
 
 UBICACIÓN EN SEGUNDO PLANO
 
-paparcar usa datos de ubicación incluso cuando la app está cerrada o no se está usando, para detectar dónde aparcas y para liberar tu plaza cuando te vas.
+Paparcar usa datos de ubicación incluso cuando la app está cerrada o no se está usando, para detectar dónde aparcas y para liberar tu plaza cuando te vas.
 
-La detección automática necesita este permiso. Sin él, paparcar sigue funcionando, pero tendrás que marcar y liberar tus aparcamientos a mano.
+La detección automática necesita este permiso. Sin él, Paparcar sigue funcionando, pero tendrás que marcar y liberar tus aparcamientos a mano.
 
 Política de privacidad:
 https://paparcar.com/privacy-policy

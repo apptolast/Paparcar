@@ -30,15 +30,15 @@
     <string name="notif_action_cancel_save">Nie, anuluj</string>
 
     <!-- Powiadomienie: uprawnienie odwołane podczas działania usługi -->
-    <string name="notif_permission_revoked_title">paparcar potrzebuje uprawnień</string>
+    <string name="notif_permission_revoked_title">Paparcar potrzebuje uprawnień</string>
     <string name="notif_permission_revoked_text">Uprawnienie do lokalizacji zostało odwołane — dotknij, aby przywrócić</string>
 
     <!-- Powiadomienie: błąd zapisywania parkowania -->
     <string name="notif_confirmation_failed_title">Parkowanie nie zostało zapisane</string>
-    <string name="notif_confirmation_failed_text">Nie udało się zapisać parkowania. Otwórz paparcar, aby spróbować ponownie.</string>
+    <string name="notif_confirmation_failed_text">Nie udało się zapisać parkowania. Otwórz Paparcar, aby spróbować ponownie.</string>
 
     <!-- Powiadomienie: debug (tylko buildy deweloperskie) -->
-    <string name="notif_debug_title">paparcar Debug</string>
+    <string name="notif_debug_title">Paparcar Debug</string>
 
     <!-- Nazwy i opisy kanałów powiadomień -->
     <string name="channel_detection_name">Wykrywanie miejsc</string>
@@ -57,7 +57,7 @@
     <string name="notif_still_parked_text">Wygląda na to, że jesteś daleko, ale to parkowanie jest wciąż otwarte. Powiedz nam, czy już odjechałeś, albo zaznacz, gdzie teraz stoi auto.</string>
     <!-- DET-TOGGLE-002: cold-start nudge -->
     <string name="notif_first_park_nudge_title">Zaparkuj raz, aby uruchomić wykrywanie</string>
-    <string name="notif_first_park_nudge_text">Zaparkuj raz z paparcar; potem automatycznie zwalniamy Twoje miejsce przy każdym wyjeździe.</string>
+    <string name="notif_first_park_nudge_text">Zaparkuj raz z Paparcar; potem automatycznie zwalniamy Twoje miejsce przy każdym wyjeździe.</string>
     <string name="notif_first_park_nudge_action">Zaznacz parkowanie</string>
     <!-- DET-AR-FIRST-001 -->
     <string name="notif_mark_parking_title">Gdzie zostawiłeś samochód?</string>
@@ -66,11 +66,11 @@
     <string name="notif_action_ive_left">Już wyjechałem</string>
     <string name="notif_action_mark_parking">Zaznacz parkowanie</string>
     <string name="notif_car_link_title">Czy ta podróż odbyła się w %1$s?</string>
-    <string name="notif_car_link_text">Jeśli to Twój samochód, powiąż go, a paparcar od teraz sam oznaczy Twoje parkowanie.</string>
+    <string name="notif_car_link_text">Jeśli to Twój samochód, powiąż go, a Paparcar od teraz sam oznaczy Twoje parkowanie.</string>
     <string name="notif_car_link_device_fallback">tym samochodzie</string>
     <string name="notif_action_link_yes">Tak, to mój samochód</string>
     <string name="notif_action_link_no">Nie</string>
-    <string name="notif_background_kill_title">Twój telefon blokuje paparcar</string>
+    <string name="notif_background_kill_title">Twój telefon blokuje Paparcar</string>
     <string name="notif_background_kill_text">System na wiele godzin wstrzymał wykrywanie parkowania w tle. Dotknij, aby otworzyć aplikację i naprawić to w Ustawienia → Wykrywanie.</string>
     <string name="notif_sentry_title">Zaparkowano · czekam na odjazd</string>
     <string name="notif_sentry_text">Gdy odjedziesz, zwolnimy Twoje miejsce dla innych. Cicho, minimalne zużycie baterii. Można wyłączyć w Ustawieniach.</string>

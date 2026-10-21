@@ -2,6 +2,8 @@
 
 **Estado:** ✅ Done
 
+> ⛔⛔ **REVERTIDO el 21-10 por [BRAND-THE-LOWERCASE-BELONGS-TO-THE-LOGO-ONLY-001](brand-the-lowercase-belongs-to-the-logo-only-001.md).** El user reabrió la decisión al ver la minúscula renderizada: **se queda en el logo y el texto vuelve a «Paparcar»**. Lo que sigue describe lo que se hizo y por qué — vale como acta, no como estado actual.
+
 ⚠️ **Apilada sobre `BRAND-THE-MARK-GAINS-ITS-WORDMARK-001`**, no sobre master. No es preferencia: las
 dos regeneran `hosting/public`, así que en paralelo chocarían en ~10 HTML generados. Esta entra
 **después**.

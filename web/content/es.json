@@ -3,33 +3,33 @@
   "dir": "ltr",
   "locale": "es_ES",
   "site": {
-    "title": "paparcar — ¿Dónde aparcaste? paparcar lo recuerda por ti",
-    "description": "paparcar detecta automáticamente cuándo aparcas y guarda dónde has dejado el coche, sin sacar el móvil. Con plazas libres, parkings y gasolineras.",
-    "ogAlt": "paparcar en un móvil: el mapa con el coche aparcado y la calle donde está.",
+    "title": "Paparcar — ¿Dónde aparcaste? Paparcar lo recuerda por ti",
+    "description": "Paparcar detecta automáticamente cuándo aparcas y guarda dónde has dejado el coche, sin sacar el móvil. Con plazas libres, parkings y gasolineras.",
+    "ogAlt": "Paparcar en un móvil: el mapa con el coche aparcado y la calle donde está.",
     "skipToContent": "Saltar al contenido"
   },
   "nav": {
     "home": "Inicio",
     "how": "Cómo funciona",
     "features": "Funcionalidades",
-    "plus": "paparcar Plus",
+    "plus": "Paparcar Plus",
     "faq": "Preguntas frecuentes",
     "menuOpen": "Abrir el menú",
     "menuClose": "Cerrar el menú",
-    "cta": "Descargar paparcar"
+    "cta": "Descargar Paparcar"
   },
   "hero": {
     "eyebrow": "Detección automática de aparcamiento",
     "title": [
       "¿Dónde aparcaste?",
-      "paparcar lo recuerda por ti."
+      "Paparcar lo recuerda por ti."
     ],
-    "lead": "paparcar detecta automáticamente cuándo aparcas y guarda la ubicación de tu coche. Cuando vuelvas, sabrás dónde está y cuánto tiempo lleva allí, sin haber tenido que sacar el móvil.",
-    "cta": "Descargar paparcar",
+    "lead": "Paparcar detecta automáticamente cuándo aparcas y guarda la ubicación de tu coche. Cuando vuelvas, sabrás dónde está y cuánto tiempo lleva allí, sin haber tenido que sacar el móvil.",
+    "cta": "Descargar Paparcar",
     "ctaSecondary": "Descubre cómo funciona",
     "meta": "Gratis en Google Play · Android {{minAndroid}} o superior · Sin anuncios",
-    "shotAlt": "Pantalla de inicio de paparcar: el mapa con el coche aparcado en la Avenida de la Concepción y el resumen abajo.",
-    "shotAltSecondary": "Hoja de paparcar con las plazas libres de la zona y los vehículos del usuario.",
+    "shotAlt": "Pantalla de inicio de Paparcar: el mapa con el coche aparcado en la Avenida de la Concepción y el resumen abajo.",
+    "shotAltSecondary": "Hoja de Paparcar con las plazas libres de la zona y los vehículos del usuario.",
     "badge": {
       "eyebrow": "Guardado automáticamente",
       "title": "Av. de la Concepción, 21",
@@ -57,33 +57,33 @@
   "how": {
     "eyebrow": "Cómo funciona",
     "title": "Tres pasos, y dos no son tuyos",
-    "lead": "paparcar trabaja mientras conduces. Lo único que haces tú es abrir la app cuando quieras volver al coche.",
+    "lead": "Paparcar trabaja mientras conduces. Lo único que haces tú es abrir la app cuando quieras volver al coche.",
     "steps": [
       {
         "n": "01",
         "title": "Conduce",
-        "body": "paparcar reconoce que estás usando tu coche. Si el coche tiene Bluetooth y lo emparejas una vez, la detección es más rápida y precisa. Si no lo tiene, la app se apoya en el movimiento y la ubicación.",
+        "body": "Paparcar reconoce que estás usando tu coche. Si el coche tiene Bluetooth y lo emparejas una vez, la detección es más rápida y precisa. Si no lo tiene, la app se apoya en el movimiento y la ubicación.",
         "art": "art-drive"
       },
       {
         "n": "02",
         "title": "Aparca",
-        "body": "Cuando el trayecto termina, paparcar confirma el aparcamiento y guarda dónde ha quedado el coche. Si no está seguro de lo que ha pasado, te pregunta: prefiere no dar nada por hecho.",
+        "body": "Cuando el trayecto termina, Paparcar confirma el aparcamiento y guarda dónde ha quedado el coche. Si no está seguro de lo que ha pasado, te pregunta: prefiere no dar nada por hecho.",
         "art": "art-automatic"
       },
       {
         "n": "03",
         "title": "Encuentra tu coche",
-        "body": "Abre paparcar y ahí está: la calle, cuánto tiempo lleva aparcado y a qué distancia estás. ¿El sitio no es exacto? Muévelo en el mapa y guárdalo de nuevo.",
+        "body": "Abre Paparcar y ahí está: la calle, cuánto tiempo lleva aparcado y a qué distancia estás. ¿El sitio no es exacto? Muévelo en el mapa y guárdalo de nuevo.",
         "art": "art-welcome"
       }
     ],
     "keyIdea": "No necesitas sacar el móvil para guardar dónde aparcaste.",
-    "shotAlt": "paparcar mostrando el coche aparcado con su dirección y el tiempo que lleva allí."
+    "shotAlt": "Paparcar mostrando el coche aparcado con su dirección y el tiempo que lleva allí."
   },
   "features": {
     "eyebrow": "Funcionalidades",
-    "title": "paparcar hace más",
+    "title": "Paparcar hace más",
     "lead": "Todo lo que sigue se ve gratis y completo. Ninguna capa del mapa está detrás de un pago.",
     "cards": [
       {
@@ -99,12 +99,12 @@
       {
         "icon": "spot",
         "title": "Plazas compartidas",
-        "body": "Cuando te vas, la plaza que dejas puede publicarse para quien esté cerca; y tú ves las que otros acaban de liberar, con cuándo se liberó cada una. Es información que ponen los conductores: cuantos más usen paparcar en tu ciudad, más plazas aparecerán. Cada plaza que cambia de manos es un coche que deja de dar vueltas: menos tráfico en la calle, y menos combustible quemado buscando sitio."
+        "body": "Cuando te vas, la plaza que dejas puede publicarse para quien esté cerca; y tú ves las que otros acaban de liberar, con cuándo se liberó cada una. Es información que ponen los conductores: cuantos más usen Paparcar en tu ciudad, más plazas aparecerán. Cada plaza que cambia de manos es un coche que deja de dar vueltas: menos tráfico en la calle, y menos combustible quemado buscando sitio."
       },
       {
         "icon": "parking",
         "title": "Parkings públicos",
-        "body": "Dónde están, si son de pago, el horario, cuántas plazas tienen y qué altura máxima admiten, comparada con la de tu coche: cuando no sabemos tu alto, paparcar no te dice que cabes. Con la ruta hasta la entrada."
+        "body": "Dónde están, si son de pago, el horario, cuántas plazas tienen y qué altura máxima admiten, comparada con la de tu coche: cuando no sabemos tu alto, Paparcar no te dice que cabes. Con la ruta hasta la entrada."
       },
       {
         "icon": "fuel",
@@ -114,14 +114,14 @@
       {
         "icon": "car",
         "title": "Tus vehículos",
-        "body": "Tus coches y motos, cada uno con su tamaño, su carrocería y su alto, para que paparcar compare el hueco con el tuyo antes de que te desvíes. Y puedes compartir un coche con hasta cuatro personas."
+        "body": "Tus coches y motos, cada uno con su tamaño, su carrocería y su alto, para que Paparcar compare el hueco con el tuyo antes de que te desvíes. Y puedes compartir un coche con hasta cuatro personas."
       }
     ]
   },
   "map": {
     "eyebrow": "Un solo mapa",
     "title": "Todo lo que necesitas para aparcar, en un mismo mapa.",
-    "lead": "paparcar junta en una sola pantalla lo que la comunidad libera y la información del entorno que ya existe. No todas las capas tienen la misma cobertura, y la app lo dice: cada plaza lleva cuándo se liberó y cada precio, cuándo se midió.",
+    "lead": "Paparcar junta en una sola pantalla lo que la comunidad libera y la información del entorno que ya existe. No todas las capas tienen la misma cobertura, y la app lo dice: cada plaza lleva cuándo se liberó y cada precio, cuándo se midió.",
     "layers": [
       {
         "key": "car",
@@ -131,7 +131,7 @@
       {
         "key": "spot",
         "title": "Plazas libres",
-        "body": "Las que otros conductores acaban de dejar. Dependen de que haya gente usando paparcar cerca de ti."
+        "body": "Las que otros conductores acaban de dejar. Dependen de que haya gente usando Paparcar cerca de ti."
       },
       {
         "key": "parking",
@@ -147,21 +147,21 @@
     "shots": [
       {
         "n": 2,
-        "alt": "Las plazas libres de la zona en paparcar, cada una con cuánto tiempo lleva libre."
+        "alt": "Las plazas libres de la zona en Paparcar, cada una con cuánto tiempo lleva libre."
       },
       {
         "n": 5,
-        "alt": "Ficha de un parking público en paparcar con tarifa, plazas y altura máxima."
+        "alt": "Ficha de un parking público en Paparcar con tarifa, plazas y altura máxima."
       },
       {
         "n": 4,
-        "alt": "Gasolineras cercanas en paparcar con el precio de cada una."
+        "alt": "Gasolineras cercanas en Paparcar con el precio de cada una."
       }
     ]
   },
   "automation": {
     "eyebrow": "Pensado para no sacar el móvil",
-    "title": "Aparca. paparcar se encarga del resto.",
+    "title": "Aparca. Paparcar se encarga del resto.",
     "lead": "La app está hecha para que no tengas que acordarte de usarla. No hay que abrirla al empezar el viaje ni al terminarlo, ni pulsar nada al bajarte del coche.",
     "steps": [
       {
@@ -182,12 +182,12 @@
       }
     ],
     "note": {
-      "title": "El único momento en que paparcar te pide algo",
+      "title": "El único momento en que Paparcar te pide algo",
       "body": "Es cuando no está seguro. Ante la duda la app pregunta en vez de colocar un pin donde no toca: prefiere quedarse corta a inventarse un aparcamiento que no ha ocurrido."
     }
   },
   "plus": {
-    "eyebrow": "paparcar Plus",
+    "eyebrow": "Paparcar Plus",
     "title": "Lo de alrededor es gratis. Lo que tú eliges, Plus.",
     "lead": "Ver plazas, parkings y gasolineras —con sus precios, sus tarifas y cómo llegar— es gratis y completo, y va a seguir siéndolo. Y lo que se mueve a tu alrededor te lo cuenta la app sin pagar nada. Plus es para que vigile lo que TÚ has elegido —tus zonas, la gasolinera que sigues— esté donde esté, y para que recuerde más allá de la última semana.",
     "columns": [
@@ -219,12 +219,12 @@
       }
     ],
     "footnote": "Plus se activa desde la app, donde verás los planes y el precio en tu moneda. Si dejas de tenerlo no se borra nada: los avisos se pausan, no se olvidan.",
-    "cta": "Descargar paparcar"
+    "cta": "Descargar Paparcar"
   },
   "trust": {
     "eyebrow": "Privacidad",
     "title": "Tus datos, de forma clara y transparente.",
-    "lead": "paparcar necesita saber dónde estás para poder decirte dónde dejaste el coche. Esto es todo lo que usa y para qué.",
+    "lead": "Paparcar necesita saber dónde estás para poder decirte dónde dejaste el coche. Esto es todo lo que usa y para qué.",
     "points": [
       {
         "icon": "location",
@@ -239,7 +239,7 @@
       {
         "icon": "lock",
         "title": "Zonas privadas",
-        "body": "Marca sitios como tu casa o tu trabajo y paparcar no publicará allí ninguna plaza cuando te vayas."
+        "body": "Marca sitios como tu casa o tu trabajo y Paparcar no publicará allí ninguna plaza cuando te vayas."
       },
       {
         "icon": "shield",
@@ -262,39 +262,39 @@
     "title": "Lo que suelen preguntarnos",
     "items": [
       {
-        "q": "¿Qué es paparcar?",
+        "q": "¿Qué es Paparcar?",
         "a": "Una app de móvil que recuerda dónde has aparcado. Detecta automáticamente cuándo terminas de conducir y guarda la ubicación de tu coche, para que puedas volver a él sin depender de tu memoria. Además te enseña en el mapa plazas libres que dejan otros conductores, parkings públicos y gasolineras."
       },
       {
-        "q": "¿Cómo sabe paparcar dónde he aparcado?",
+        "q": "¿Cómo sabe Paparcar dónde he aparcado?",
         "a": "Por dos vías. Si emparejas el Bluetooth de tu coche, la desconexión al bajarte es una señal precisa de que el viaje ha terminado. Si tu coche no tiene Bluetooth, la app usa el movimiento y la ubicación para reconocer cuándo empiezas a conducir y dónde te detienes. En los dos casos hace falta que haya habido conducción de verdad: un evento suelto no coloca un pin."
       },
       {
         "q": "¿Tengo que marcar manualmente dónde aparco?",
-        "a": "No, una vez está funcionando: ese es el objetivo de la app. Hay una excepción, y es al principio: si tu coche no tiene Bluetooth, paparcar todavía no sabe dónde está el coche, así que ese primer aparcamiento lo marcas tú y desde el siguiente viaje ya va sola. Con el Bluetooth del coche emparejado es automático desde el primer trayecto. En cualquier caso el botón se queda: puedes marcar el aparcamiento a mano cuando quieras, y corregir el sitio arrastrándolo en el mapa si la detección lo dejó unos metros más allá."
+        "a": "No, una vez está funcionando: ese es el objetivo de la app. Hay una excepción, y es al principio: si tu coche no tiene Bluetooth, Paparcar todavía no sabe dónde está el coche, así que ese primer aparcamiento lo marcas tú y desde el siguiente viaje ya va sola. Con el Bluetooth del coche emparejado es automático desde el primer trayecto. En cualquier caso el botón se queda: puedes marcar el aparcamiento a mano cuando quieras, y corregir el sitio arrastrándolo en el mapa si la detección lo dejó unos metros más allá."
       },
       {
-        "q": "¿Necesita paparcar acceso a mi ubicación?",
-        "a": "Sí, incluso cuando la app está cerrada o no la estás usando, porque el aparcamiento ocurre cuando no estás mirando el móvil. Sin ese permiso paparcar sigue funcionando, pero pierdes la parte automática: tendrás que marcar y liberar los aparcamientos tú."
+        "q": "¿Necesita Paparcar acceso a mi ubicación?",
+        "a": "Sí, incluso cuando la app está cerrada o no la estás usando, porque el aparcamiento ocurre cuando no estás mirando el móvil. Sin ese permiso Paparcar sigue funcionando, pero pierdes la parte automática: tendrás que marcar y liberar los aparcamientos tú."
       },
       {
         "q": "¿Funciona aunque no saque el móvil del bolsillo?",
-        "a": "Sí. La detección trabaja en segundo plano y no necesita que abras la app ni que toques la pantalla. En algunos móviles conviene quitarle a paparcar las restricciones de batería, porque el sistema puede retrasar el trabajo en segundo plano; la propia app te lo indica en Ajustes si hace falta."
+        "a": "Sí. La detección trabaja en segundo plano y no necesita que abras la app ni que toques la pantalla. En algunos móviles conviene quitarle a Paparcar las restricciones de batería, porque el sistema puede retrasar el trabajo en segundo plano; la propia app te lo indica en Ajustes si hace falta."
       },
       {
-        "q": "¿Puedo utilizar paparcar con varios vehículos?",
+        "q": "¿Puedo utilizar Paparcar con varios vehículos?",
         "a": "Sí. Cada vehículo tiene su tamaño, su carrocería y su Bluetooth, y el aparcamiento se guarda en el coche que corresponde. La versión gratuita incluye un vehículo propio; con Plus no hay límite. Además puedes compartir un coche con hasta cuatro personas y que todas vean dónde ha quedado."
       },
       {
         "q": "¿Qué son las plazas compartidas?",
-        "a": "Son plazas de la calle que otros conductores acaban de dejar libres, y que aparecen en el mapa durante un rato. Salen de la actividad de la comunidad: cuando alguien se va, su plaza puede publicarse para quien esté cerca. Por eso cuantos más conductores usen paparcar en tu ciudad, más plazas verás. No prometemos una plaza siempre, y cada una lleva escrito cuándo se liberó para que decidas si te compensa ir. Y para eso sirve la app más allá de tu propio coche: una plaza que alguien coge es un conductor menos dando vueltas, y dar vueltas buscando sitio es parte de lo que atasca una calle concurrida."
+        "a": "Son plazas de la calle que otros conductores acaban de dejar libres, y que aparecen en el mapa durante un rato. Salen de la actividad de la comunidad: cuando alguien se va, su plaza puede publicarse para quien esté cerca. Por eso cuantos más conductores usen Paparcar en tu ciudad, más plazas verás. No prometemos una plaza siempre, y cada una lleva escrito cuándo se liberó para que decidas si te compensa ir. Y para eso sirve la app más allá de tu propio coche: una plaza que alguien coge es un conductor menos dando vueltas, y dar vueltas buscando sitio es parte de lo que atasca una calle concurrida."
       },
       {
         "q": "¿Qué ocurre si la detección automática falla?",
-        "a": "paparcar está hecho para preferir quedarse corto antes que equivocarse: ante la duda te pregunta en vez de dar por hecho un aparcamiento. Si algún trayecto se le escapa, puedes marcar el sitio a mano en dos toques, y también corregir o borrar cualquier aparcamiento del historial."
+        "a": "Paparcar está hecho para preferir quedarse corto antes que equivocarse: ante la duda te pregunta en vez de dar por hecho un aparcamiento. Si algún trayecto se le escapa, puedes marcar el sitio a mano en dos toques, y también corregir o borrar cualquier aparcamiento del historial."
       },
       {
-        "q": "¿Qué es paparcar Plus?",
+        "q": "¿Qué es Paparcar Plus?",
         "a": "La versión de pago. Ver el mapa —plazas, parkings y gasolineras— es gratis y completo. Plus añade lo que exige que la app trabaje por ti: avisos cuando aparece una plaza en tus zonas o cuando baja el precio de una gasolinera que sigues, historial y estadísticas sin el límite de {{historyDays}} días, coches y zonas sin límite y el coche compartido. Los planes y el precio se ven dentro de la app."
       },
       {
@@ -306,15 +306,15 @@
   "finalCta": {
     "title": [
       "Deja de recordar dónde aparcaste.",
-      "paparcar lo recuerda por ti."
+      "Paparcar lo recuerda por ti."
     ],
     "lead": "Descárgala, empareja tu coche una vez y olvídate. La próxima vez que no sepas dónde lo dejaste, la app ya lo sabrá.",
-    "cta": "Descargar paparcar",
+    "cta": "Descargar Paparcar",
     "meta": "Gratis · Android {{minAndroid}} o superior",
-    "shotAlt": "paparcar mostrando el mapa con el coche aparcado y las plazas libres cercanas."
+    "shotAlt": "Paparcar mostrando el mapa con el coche aparcado y las plazas libres cercanas."
   },
   "footer": {
-    "tagline": "paparcar recuerda dónde has aparcado.",
+    "tagline": "Paparcar recuerda dónde has aparcado.",
     "columns": [
       {
         "title": "Producto",
@@ -332,7 +332,7 @@
             "href": "#features"
           },
           {
-            "label": "paparcar Plus",
+            "label": "Paparcar Plus",
             "href": "#plus"
           },
           {
@@ -385,8 +385,8 @@
     "appleName": "App Store"
   },
   "support": {
-    "title": "Soporte — paparcar",
-    "description": "Cómo contactar con el equipo de paparcar y resolver los problemas más habituales de la detección automática de aparcamiento.",
+    "title": "Soporte — Paparcar",
+    "description": "Cómo contactar con el equipo de Paparcar y resolver los problemas más habituales de la detección automática de aparcamiento.",
     "h1": "Soporte",
     "lead": "Escríbenos a support@paparcar.com y te contestamos. Si el problema es de detección, cuéntanos la hora aproximada del trayecto y qué esperabas que pasara: con eso podemos mirar los diagnósticos de tu sesión.",
     "cta": "Escribir a soporte",
@@ -401,10 +401,10 @@
       },
       {
         "title": "No veo plazas libres en el mapa",
-        "body": "Las plazas las liberan otros conductores al irse, así que dependen de cuánta gente esté usando paparcar cerca de ti. Que el mapa esté vacío no es un error de la app: es que ahora mismo no hay ninguna publicada en esa zona."
+        "body": "Las plazas las liberan otros conductores al irse, así que dependen de cuánta gente esté usando Paparcar cerca de ti. Que el mapa esté vacío no es un error de la app: es que ahora mismo no hay ninguna publicada en esa zona."
       },
       {
-        "title": "Facturación y paparcar Plus",
+        "title": "Facturación y Paparcar Plus",
         "body": "Las suscripciones se gestionan desde tu cuenta de Google Play: allí puedes ver la renovación, cambiar de plan o cancelar. Si algo no cuadra, escríbenos y lo miramos."
       },
       {
@@ -415,40 +415,40 @@
     "deleteLink": "Ver cómo eliminar tu cuenta"
   },
   "terms": {
-    "title": "Términos y condiciones — paparcar",
+    "title": "Términos y condiciones — Paparcar",
     "description": "Términos y condiciones de uso de la aplicación paparcar.",
     "h1": "Términos y condiciones",
     "updated": "Última actualización: 17 de septiembre de 2026",
     "draftNotice": {
       "title": "Borrador pendiente de revisión legal",
-      "body": "Este texto describe cómo funciona paparcar hoy y sirve como base de trabajo, pero todavía no ha pasado revisión jurídica. La política de privacidad sí es un documento definitivo y prevalece en todo lo relativo a datos personales."
+      "body": "Este texto describe cómo funciona Paparcar hoy y sirve como base de trabajo, pero todavía no ha pasado revisión jurídica. La política de privacidad sí es un documento definitivo y prevalece en todo lo relativo a datos personales."
     },
     "sections": [
       {
         "h": "1. Quién presta el servicio",
         "p": [
-          "paparcar es una aplicación para dispositivos móviles desarrollada y operada por el titular de la marca paparcar, con contacto en support@paparcar.com.",
+          "Paparcar es una aplicación para dispositivos móviles desarrollada y operada por el titular de la marca Paparcar, con contacto en support@paparcar.com.",
           "Al descargar, instalar o utilizar la aplicación aceptas estos términos. Si no estás de acuerdo con ellos, no utilices la aplicación."
         ]
       },
       {
         "h": "2. Qué es el servicio",
         "p": [
-          "paparcar detecta automáticamente los desplazamientos en vehículo y guarda la ubicación en la que has aparcado, para que puedas volver a encontrar tu vehículo. Además muestra en un mapa plazas liberadas por otros usuarios, parkings públicos y gasolineras.",
+          "Paparcar detecta automáticamente los desplazamientos en vehículo y guarda la ubicación en la que has aparcado, para que puedas volver a encontrar tu vehículo. Además muestra en un mapa plazas liberadas por otros usuarios, parkings públicos y gasolineras.",
           "El servicio se presta \"tal cual\". La detección automática depende de sensores del dispositivo, de los permisos concedidos y del comportamiento del sistema operativo, por lo que no puede garantizarse que detecte todos los aparcamientos ni que lo haga siempre con la misma precisión."
         ]
       },
       {
         "h": "3. Tu cuenta",
         "p": [
-          "Para usar paparcar necesitas una cuenta, que puedes crear con los métodos de acceso disponibles en la aplicación. Eres responsable de mantener el control del acceso a tu cuenta.",
+          "Para usar Paparcar necesitas una cuenta, que puedes crear con los métodos de acceso disponibles en la aplicación. Eres responsable de mantener el control del acceso a tu cuenta.",
           "Puedes eliminar tu cuenta en cualquier momento desde Ajustes o solicitándolo por correo, como se explica en la página de eliminación de cuenta."
         ]
       },
       {
         "h": "4. Uso responsable",
         "p": [
-          "No utilices la aplicación mientras conduces. paparcar está diseñado precisamente para que no tengas que manipular el móvil durante el trayecto.",
+          "No utilices la aplicación mientras conduces. Paparcar está diseñado precisamente para que no tengas que manipular el móvil durante el trayecto.",
           "La información sobre plazas, parkings y gasolineras es orientativa y puede no estar actualizada en el momento en que la consultas. Comprobar la señalización, las normas de estacionamiento y las condiciones del lugar es siempre responsabilidad de la persona que conduce.",
           "No está permitido publicar información falsa, automatizar el uso de la aplicación, ni intentar acceder a datos de otros usuarios."
         ]
@@ -461,9 +461,9 @@
         ]
       },
       {
-        "h": "6. paparcar Plus",
+        "h": "6. Paparcar Plus",
         "p": [
-          "paparcar ofrece funciones adicionales mediante una suscripción de pago. La contratación, la renovación, los precios y la cancelación se gestionan a través de la tienda de aplicaciones desde la que se realizó la compra, de acuerdo con sus condiciones.",
+          "Paparcar ofrece funciones adicionales mediante una suscripción de pago. La contratación, la renovación, los precios y la cancelación se gestionan a través de la tienda de aplicaciones desde la que se realizó la compra, de acuerdo con sus condiciones.",
           "Si la suscripción deja de estar activa, las funciones de Plus dejan de estar disponibles, pero no se elimina ninguno de tus datos."
         ]
       },
@@ -476,7 +476,7 @@
       {
         "h": "8. Responsabilidad",
         "p": [
-          "paparcar no se hace responsable de sanciones, retiradas de vehículo, daños u otros perjuicios derivados de decisiones tomadas a partir de la información mostrada en la aplicación, ni de la imposibilidad de encontrar una plaza.",
+          "Paparcar no se hace responsable de sanciones, retiradas de vehículo, daños u otros perjuicios derivados de decisiones tomadas a partir de la información mostrada en la aplicación, ni de la imposibilidad de encontrar una plaza.",
           "Nada en estos términos limita los derechos que te reconozca la normativa de consumo aplicable."
         ]
       },

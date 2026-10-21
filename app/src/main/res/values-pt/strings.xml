@@ -30,15 +30,15 @@
     <string name="notif_action_cancel_save">Não, cancelar</string>
 
     <!-- Notificação: permissão revogada enquanto o serviço estava ativo -->
-    <string name="notif_permission_revoked_title">paparcar precisa de permissões</string>
+    <string name="notif_permission_revoked_title">Paparcar precisa de permissões</string>
     <string name="notif_permission_revoked_text">Permissão de localização revogada — toque para restaurar</string>
 
     <!-- Notificação: erro ao salvar o estacionamento -->
     <string name="notif_confirmation_failed_title">Estacionamento não salvo</string>
-    <string name="notif_confirmation_failed_text">Não foi possível salvar o estacionamento. Abra o paparcar para tentar novamente.</string>
+    <string name="notif_confirmation_failed_text">Não foi possível salvar o estacionamento. Abra o Paparcar para tentar novamente.</string>
 
     <!-- Notificação: debug (apenas builds de desenvolvimento) -->
-    <string name="notif_debug_title">paparcar Debug</string>
+    <string name="notif_debug_title">Paparcar Debug</string>
 
     <!-- Nomes e descrições dos canais de notificação -->
     <string name="channel_detection_name">Deteção de Lugar</string>
@@ -57,7 +57,7 @@
     <string name="notif_still_parked_text">Parece que está longe, mas este estacionamento continua aberto. Diga-nos se já saiu, ou marque onde está o carro agora.</string>
     <!-- DET-TOGGLE-002: cold-start nudge -->
     <string name="notif_first_park_nudge_title">Estacione uma vez para ativar a deteção</string>
-    <string name="notif_first_park_nudge_text">Estacione com o paparcar uma vez; depois libertamos a sua vaga automaticamente sempre que sair.</string>
+    <string name="notif_first_park_nudge_text">Estacione com o Paparcar uma vez; depois libertamos a sua vaga automaticamente sempre que sair.</string>
     <string name="notif_first_park_nudge_action">Marcar estacionamento</string>
     <!-- DET-AR-FIRST-001 -->
     <string name="notif_mark_parking_title">Onde deixou o carro?</string>
@@ -66,11 +66,11 @@
     <string name="notif_action_ive_left">Já saí</string>
     <string name="notif_action_mark_parking">Marcar estacionamento</string>
     <string name="notif_car_link_title">Esta viagem foi no %1$s?</string>
-    <string name="notif_car_link_text">Se for o teu carro, associa-o e o paparcar marcará o teu estacionamento sozinho a partir de agora.</string>
+    <string name="notif_car_link_text">Se for o teu carro, associa-o e o Paparcar marcará o teu estacionamento sozinho a partir de agora.</string>
     <string name="notif_car_link_device_fallback">este carro</string>
     <string name="notif_action_link_yes">Sim, é o meu carro</string>
     <string name="notif_action_link_no">Não</string>
-    <string name="notif_background_kill_title">O teu telemóvel está a bloquear o paparcar</string>
+    <string name="notif_background_kill_title">O teu telemóvel está a bloquear o Paparcar</string>
     <string name="notif_background_kill_text">O sistema parou a deteção de estacionamento em segundo plano durante horas. Toca para abrir a app e resolver em Definições → Deteção.</string>
     <string name="notif_sentry_title">Estacionado · atento à tua saída</string>
     <string name="notif_sentry_text">Quando saíres, libertaremos o teu lugar para outros. Silenciosa, bateria mínima. Desativa-se nas Definições.</string>

@@ -30,15 +30,15 @@
     <string name="notif_action_cancel_save">Nein, abbrechen</string>
 
     <!-- Benachrichtigung: Berechtigung während des laufenden Dienstes widerrufen -->
-    <string name="notif_permission_revoked_title">paparcar benötigt Berechtigungen</string>
+    <string name="notif_permission_revoked_title">Paparcar benötigt Berechtigungen</string>
     <string name="notif_permission_revoked_text">Standortberechtigung widerrufen — tippen zum Wiederherstellen</string>
 
     <!-- Benachrichtigung: Fehler beim Speichern des Parkplatzes -->
     <string name="notif_confirmation_failed_title">Parken nicht gespeichert</string>
-    <string name="notif_confirmation_failed_text">Parkplatz konnte nicht gespeichert werden. Öffne paparcar, um es erneut zu versuchen.</string>
+    <string name="notif_confirmation_failed_text">Parkplatz konnte nicht gespeichert werden. Öffne Paparcar, um es erneut zu versuchen.</string>
 
     <!-- Benachrichtigung: Debug (nur Entwicklungs-Builds) -->
-    <string name="notif_debug_title">paparcar Debug</string>
+    <string name="notif_debug_title">Paparcar Debug</string>
 
     <!-- Namen und Beschreibungen der Benachrichtigungskanäle -->
     <string name="channel_detection_name">Stellplatzerkennung</string>
@@ -57,7 +57,7 @@
     <string name="notif_still_parked_text">Du scheinst weg zu sein, aber dieser Parkplatz ist noch offen. Sag uns, ob du schon losgefahren bist, oder markiere, wo das Auto jetzt steht.</string>
     <!-- DET-TOGGLE-002: cold-start nudge -->
     <string name="notif_first_park_nudge_title">Einmal parken, um die Erkennung zu starten</string>
-    <string name="notif_first_park_nudge_text">Parke einmal mit paparcar; danach geben wir deinen Platz bei jeder Abfahrt automatisch frei.</string>
+    <string name="notif_first_park_nudge_text">Parke einmal mit Paparcar; danach geben wir deinen Platz bei jeder Abfahrt automatisch frei.</string>
     <string name="notif_first_park_nudge_action">Parkplatz markieren</string>
     <!-- DET-AR-FIRST-001 -->
     <string name="notif_mark_parking_title">Wo hast du dein Auto abgestellt?</string>
@@ -66,11 +66,11 @@
     <string name="notif_action_ive_left">Ich bin weg</string>
     <string name="notif_action_mark_parking">Parkplatz markieren</string>
     <string name="notif_car_link_title">War diese Fahrt in %1$s?</string>
-    <string name="notif_car_link_text">Wenn es dein Auto ist, verknüpfe es und paparcar markiert deinen Parkplatz ab jetzt von selbst.</string>
+    <string name="notif_car_link_text">Wenn es dein Auto ist, verknüpfe es und Paparcar markiert deinen Parkplatz ab jetzt von selbst.</string>
     <string name="notif_car_link_device_fallback">diesem Auto</string>
     <string name="notif_action_link_yes">Ja, das ist mein Auto</string>
     <string name="notif_action_link_no">Nein</string>
-    <string name="notif_background_kill_title">Dein Handy blockiert paparcar</string>
+    <string name="notif_background_kill_title">Dein Handy blockiert Paparcar</string>
     <string name="notif_background_kill_text">Das System hat die Parkerkennung im Hintergrund stundenlang pausiert. Tippe, um die App zu öffnen und es unter Einstellungen → Erkennung zu beheben.</string>
     <string name="notif_sentry_title">Geparkt · achte auf deine Abfahrt</string>
     <string name="notif_sentry_text">Wenn du losfährst, geben wir deinen Parkplatz für andere frei. Lautlos, minimaler Akkuverbrauch. In den Einstellungen abschaltbar.</string>

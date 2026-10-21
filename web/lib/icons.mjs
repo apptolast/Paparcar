@@ -106,7 +106,7 @@ export function icon(name, { className = '', title = '', size = 24 } = {}) {
  * ⚠️ `width` is the WIDTH, not a square side: the lockup is 5.484:1 and the height follows from
  * the ratio. Passing a square size here is how a logo gets squashed, so there is no `size`.
  */
-export function logoLockup({ width = 150, className = 'logo-lockup', title = 'paparcar' } = {}) {
+export function logoLockup({ width = 150, className = 'logo-lockup', title = 'Paparcar' } = {}) {
   const mark = MARK_PATHS.map((d) => `<path d="${d}"/>`).join('\n');
   const word = WORD_PATHS.map((d) => `<path d="${d}"/>`).join('\n');
   const a11y = title ? `role="img" aria-label="${title}"` : 'aria-hidden="true" focusable="false"';

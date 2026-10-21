@@ -3,22 +3,22 @@ FICHA DE PLAY STORE — fr-FR
 GENERADO por tools/make_paste.py desde LISTING-v1.4.0.md — no editar a mano.
 
 --- 1. NOMBRE DE LA APLICACION (28/30) ---
-paparcar: où me suis-je garé
+Paparcar: où me suis-je garé
 
 --- 2. DESCRIPCION BREVE (73/80) ---
-Où vous êtes-vous garé ? paparcar s'en souvient. Prix et parkings inclus.
+Où vous êtes-vous garé ? Paparcar s'en souvient. Prix et parkings inclus.
 
 --- 3. DESCRIPCION COMPLETA (3986/4000) ---
 Où vous êtes-vous garé ?
 
-paparcar s'en souvient pour vous.
+Paparcar s'en souvient pour vous.
 
-Garez-vous, sortez et continuez votre journée. paparcar enregistre automatiquement où vous avez laissé la voiture : sans ouvrir l'application, sans épingle ni adresse. À votre retour, vous savez où elle est et depuis quand.
+Garez-vous, sortez et continuez votre journée. Paparcar enregistre automatiquement où vous avez laissé la voiture : sans ouvrir l'application, sans épingle ni adresse. À votre retour, vous savez où elle est et depuis quand.
 
 Quand vous repartez, la place que vous libérez peut être publiée pour les conducteurs à proximité. Et vous voyez celles que d'autres viennent de libérer. Plus il y a de conducteurs dans votre ville, plus de places apparaissent.
 
 COMMENT ÇA MARCHE
-1. Vous vous garez. paparcar le détecte et enregistre l'endroit. Sans Bluetooth, marquez le premier à la main.
+1. Vous vous garez. Paparcar le détecte et enregistre l'endroit. Sans Bluetooth, marquez le premier à la main.
 2. Vous repartez. L'application le détecte.
 3. Votre place est publiée pour les conducteurs à proximité.
 
@@ -33,7 +33,7 @@ DES PLACES EN TEMPS RÉEL
 • Les places que d'autres viennent de libérer, sur la carte.
 • Quand chacune s'est libérée : deux minutes, ce n'est pas vingt.
 • Combien de conducteurs s'y dirigent déjà.
-• Si votre voiture rentre : paparcar compare l'espace à la vôtre.
+• Si votre voiture rentre : Paparcar compare l'espace à la vôtre.
 • Une place libre en passant ? Signalez-la en deux fois.
 
 STATIONS-SERVICE ET PARKINGS, SUR LA MÊME CARTE
@@ -55,9 +55,9 @@ UNE VOITURE, PLUSIEURS CONDUCTEURS
 • Vos trajets ne sont partagés que si vous le décidez.
 
 DÉTECTION AUTOMATIQUE
-Si votre voiture se connecte en Bluetooth, la déconnexion aide à détecter la fin du stationnement. Sans Bluetooth, paparcar utilise mouvement et localisation.
+Si votre voiture se connecte en Bluetooth, la déconnexion aide à détecter la fin du stationnement. Sans Bluetooth, Paparcar utilise mouvement et localisation.
 
-paparcar ne veut pas deviner. Quand il n'est pas sûr, il vous demande avant de publier une place.
+Paparcar ne veut pas deviner. Quand il n'est pas sûr, il vous demande avant de publier une place.
 
 PAPARCAR PLUS
 Gratuitement, vous demandez et l'application répond. Avec Plus, elle veille pendant que vous ne regardez pas :
@@ -68,7 +68,7 @@ Gratuitement, vous demandez et l'application répond. Avec Plus, elle veille pen
 • Créer une voiture partagée. En rejoindre une est toujours gratuit.
 
 CONFIDENTIALITÉ
-• Zones privées : marquez votre domicile, paparcar n'y publie aucune place.
+• Zones privées : marquez votre domicile, Paparcar n'y publie aucune place.
 • Votre plaque d'immatriculation ne quitte jamais votre téléphone.
 • La marque et le modèle n'apparaissent sur la place libérée que si vous l'activez.
 • Votre localisation n'est jamais vendue ni utilisée à des fins publicitaires.
@@ -77,9 +77,9 @@ CONFIDENTIALITÉ
 
 LOCALISATION EN ARRIÈRE-PLAN
 
-paparcar utilise des données de localisation même lorsque l'application est fermée ou non utilisée, afin de détecter où vous vous garez et de libérer votre place quand vous repartez.
+Paparcar utilise des données de localisation même lorsque l'application est fermée ou non utilisée, afin de détecter où vous vous garez et de libérer votre place quand vous repartez.
 
-La détection automatique a besoin de cette autorisation. Sans elle, paparcar fonctionne, mais vous devrez marquer et libérer vos stationnements à la main.
+La détection automatique a besoin de cette autorisation. Sans elle, Paparcar fonctionne, mais vous devrez marquer et libérer vos stationnements à la main.
 
 Politique de confidentialité :
 https://paparcar.com/privacy-policy

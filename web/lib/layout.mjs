@@ -76,7 +76,7 @@ ${links}
 <meta name="color-scheme" content="dark">
 ${iconLinks()}
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="paparcar">
+<meta property="og:site_name" content="Paparcar">
 <meta property="og:locale" content="${t.locale}">
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(description)}">
@@ -139,7 +139,7 @@ function header(t, pageKey, lang, base) {
 
   return `<header class="site-header" data-header>
   <div class="shell site-header__inner">
-    <a class="brand" href="${home}" aria-label="paparcar">
+    <a class="brand" href="${home}" aria-label="Paparcar">
       ${logoLockup({ width: 136 })}
     </a>
 
@@ -198,7 +198,7 @@ function footer(t, lang, base, pageKey) {
   <div class="shell">
     <div class="footer__grid">
       <div class="footer__brand">
-        <a class="brand" href="${r.home}" aria-label="paparcar">
+        <a class="brand" href="${r.home}" aria-label="Paparcar">
           ${logoLockup({ width: 152 })}
         </a>
         <p class="footer__tagline">${esc(t.footer.tagline)}</p>

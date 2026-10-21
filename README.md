@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/paparcar-imagotipo.svg" width="300" alt="paparcar"/>
+  <img src="docs/assets/paparcar-imagotipo.svg" width="300" alt="Paparcar"/>
 </p>
 
 <p align="center">

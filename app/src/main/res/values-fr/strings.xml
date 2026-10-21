@@ -30,15 +30,15 @@
     <string name="notif_action_cancel_save">Non, annuler</string>
 
     <!-- Notification : permission révoquée pendant que le service était actif -->
-    <string name="notif_permission_revoked_title">paparcar a besoin d\'autorisations</string>
+    <string name="notif_permission_revoked_title">Paparcar a besoin d\'autorisations</string>
     <string name="notif_permission_revoked_text">Permission de localisation révoquée — appuyez pour restaurer</string>
 
     <!-- Notification : erreur lors de la sauvegarde du stationnement -->
     <string name="notif_confirmation_failed_title">Stationnement non sauvegardé</string>
-    <string name="notif_confirmation_failed_text">Impossible de sauvegarder votre stationnement. Ouvrez paparcar pour réessayer.</string>
+    <string name="notif_confirmation_failed_text">Impossible de sauvegarder votre stationnement. Ouvrez Paparcar pour réessayer.</string>
 
     <!-- Notification : debug (builds de développement uniquement) -->
-    <string name="notif_debug_title">paparcar Debug</string>
+    <string name="notif_debug_title">Paparcar Debug</string>
 
     <!-- Noms et descriptions des canaux de notification -->
     <string name="channel_detection_name">Détection de places</string>
@@ -57,7 +57,7 @@
     <string name="notif_still_parked_text">Vous semblez loin, mais ce stationnement est toujours ouvert. Dites-nous si vous êtes déjà parti, ou indiquez où est la voiture maintenant.</string>
     <!-- DET-TOGGLE-002: cold-start nudge -->
     <string name="notif_first_park_nudge_title">Garez-vous une fois pour activer la détection</string>
-    <string name="notif_first_park_nudge_text">Garez-vous une fois avec paparcar ; ensuite nous libérons votre place automatiquement à chaque départ.</string>
+    <string name="notif_first_park_nudge_text">Garez-vous une fois avec Paparcar ; ensuite nous libérons votre place automatiquement à chaque départ.</string>
     <string name="notif_first_park_nudge_action">Marquer le stationnement</string>
     <!-- DET-AR-FIRST-001 -->
     <string name="notif_mark_parking_title">Où avez-vous laissé votre voiture ?</string>
@@ -66,11 +66,11 @@
     <string name="notif_action_ive_left">Je suis parti</string>
     <string name="notif_action_mark_parking">Marquer le stationnement</string>
     <string name="notif_car_link_title">Ce trajet était-il dans %1$s ?</string>
-    <string name="notif_car_link_text">Si c\'est ta voiture, associe-la et paparcar marquera ton stationnement tout seul désormais.</string>
+    <string name="notif_car_link_text">Si c\'est ta voiture, associe-la et Paparcar marquera ton stationnement tout seul désormais.</string>
     <string name="notif_car_link_device_fallback">cette voiture</string>
     <string name="notif_action_link_yes">Oui, c\'est ma voiture</string>
     <string name="notif_action_link_no">Non</string>
-    <string name="notif_background_kill_title">Votre téléphone bloque paparcar</string>
+    <string name="notif_background_kill_title">Votre téléphone bloque Paparcar</string>
     <string name="notif_background_kill_text">Le système a suspendu la détection de stationnement en arrière-plan pendant des heures. Touchez pour ouvrir l\'appli et corriger dans Réglages → Détection.</string>
     <string name="notif_sentry_title">Garée · attentif à votre départ</string>
     <string name="notif_sentry_text">Quand vous partirez, nous libérerons votre place pour les autres. Silencieux, batterie minimale. Désactivable dans les Réglages.</string>

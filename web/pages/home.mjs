@@ -304,7 +304,7 @@ function jsonLd(t, base) {
     {
       '@context': 'https://schema.org',
       '@type': 'SoftwareApplication',
-      name: 'paparcar',
+      name: 'Paparcar',
       applicationCategory: 'TravelApplication',
       operatingSystem: 'Android 8.0+',
       url: `${ORIGIN}${r.home}`,

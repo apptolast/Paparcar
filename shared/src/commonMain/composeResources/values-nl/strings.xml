@@ -62,8 +62,8 @@
     <string name="pap_field_clear_cd">Veld wissen</string>
 
     <!-- OnboardingScreen -->
-    <string name="onboarding_page1_title">Welkom bij paparcar</string>
-    <string name="onboarding_page1_subtitle">paparcar let op je auto: het onthoudt waar je parkeert, maakt cijfers van je ritten en geeft bij vertrek de plek vrij voor wie in de buurt zoekt.</string>
+    <string name="onboarding_page1_title">Welkom bij Paparcar</string>
+    <string name="onboarding_page1_subtitle">Paparcar let op je auto: het onthoudt waar je parkeert, maakt cijfers van je ritten en geeft bij vertrek de plek vrij voor wie in de buurt zoekt.</string>
     <string name="onboarding_page2_title">Wat het voor je doet</string>
     <string name="onboarding_step1_title">Automatische detectie</string>
     <string name="onboarding_step1_desc">Herkent zelf je ritten en parkeerbeurten en toont je kosten, CO₂ en gewoonten.</string>
@@ -78,9 +78,9 @@
 
     <!-- PermissionsScreen -->
     <string name="permissions_title">Automatiseer je parkeren</string>
-    <string name="permissions_subtitle">paparcar onthoudt voor jou waar je geparkeerd staat — en als je wegrijdt, komt de plek vrij voor iemand anders.</string>
+    <string name="permissions_subtitle">Paparcar onthoudt voor jou waar je geparkeerd staat — en als je wegrijdt, komt de plek vrij voor iemand anders.</string>
     <string name="permissions_core_title">Zie vrije plekken om je heen</string>
-    <string name="permissions_core_subtitle">paparcar gebruikt je locatie om de kaart en plekken bij jou in de buurt te tonen.</string>
+    <string name="permissions_core_subtitle">Paparcar gebruikt je locatie om de kaart en plekken bij jou in de buurt te tonen.</string>
     <string name="permissions_perm_location">Nauwkeurige locatie</string>
     <string name="permissions_perm_location_desc">Om nauwkeurig op te slaan waar u uw voertuig heeft geparkeerd</string>
     <string name="permissions_perm_background">Achtergrondlocatie</string>
@@ -97,14 +97,14 @@
     <string name="permissions_perm_autostart">Automatisch opstarten / achtergrondactiviteit</string>
     <string name="permissions_perm_autostart_desc">Optioneel — de app werkt ook zonder, maar op Xiaomi-, OPPO- en Huawei-apparaten kan parkeerdetectie na enkele uren stoppen. Inschakelen zorgt ervoor dat de app betrouwbaar wakker wordt. Minimale impact op de batterij.</string>
     <string name="permissions_perm_oem_battery">Achtergrond energiebesparing</string>
-    <string name="permissions_perm_oem_battery_desc">Optioneel — uw OPPO/Realme-apparaat kan apps op de achtergrond bevriezen. Zonder dit kan GPS uitvallen tijdens detectie. Schakel energiebesparing voor paparcar uit in de batterij-instellingen. Minimale impact op de batterij.</string>
+    <string name="permissions_perm_oem_battery_desc">Optioneel — uw OPPO/Realme-apparaat kan apps op de achtergrond bevriezen. Zonder dit kan GPS uitvallen tijdens detectie. Schakel energiebesparing voor Paparcar uit in de batterij-instellingen. Minimale impact op de batterij.</string>
     <string name="permissions_status_optional">Optioneel</string>
     <string name="permissions_btn_grant">Machtigingen verlenen</string>
     <!-- DET-READY-001e -->
     <string name="permissions_btn_activate_detection">Automatische detectie inschakelen</string>
     <string name="permissions_btn_not_now">Niet nu</string>
-    <string name="permissions_core_detection_teaser">paparcar kan je parkeren ook automatisch detecteren en de plek vrijgeven wanneer je wegrijdt. Je kunt dit later via de kaart inschakelen.</string>
-    <string name="permissions_bg_disclosure">paparcar verzamelt locatiegegevens ook wanneer de app gesloten of niet in gebruik is, om automatisch te detecteren waar u parkeert. Uw locatie wordt nooit verkocht of voor advertenties gebruikt.</string>
+    <string name="permissions_core_detection_teaser">Paparcar kan je parkeren ook automatisch detecteren en de plek vrijgeven wanneer je wegrijdt. Je kunt dit later via de kaart inschakelen.</string>
+    <string name="permissions_bg_disclosure">Paparcar verzamelt locatiegegevens ook wanneer de app gesloten of niet in gebruik is, om automatisch te detecteren waar u parkeert. Uw locatie wordt nooit verkocht of voor advertenties gebruikt.</string>
     <!-- PERM-FOOTER-001 -->
     <string name="permissions_btn_allow_background">Op achtergrond toestaan</string>
     <string name="permissions_btn_continue">Doorgaan</string>
@@ -226,9 +226,9 @@
     <string name="settings_privacy">Privacybeleid</string>
     <string name="settings_licenses">Open source-licenties</string>
     <string name="licenses_cd_back">Terug</string>
-    <string name="licenses_subtitle">paparcar is gebouwd met opensourcesoftware. Tik op een bibliotheek om de licentie te lezen waaronder die wordt geleverd.</string>
+    <string name="licenses_subtitle">Paparcar is gebouwd met opensourcesoftware. Tik op een bibliotheek om de licentie te lezen waaronder die wordt geleverd.</string>
     <string name="licenses_count">%1$d bibliotheken · %2$d licenties</string>
-    <string name="licenses_error">Deze versie bevat de licentielijst niet, dus die kan niet worden getoond. paparcar opnieuw installeren herstelt hem.</string>
+    <string name="licenses_error">Deze versie bevat de licentielijst niet, dus die kan niet worden getoond. Paparcar opnieuw installeren herstelt hem.</string>
     <string name="licenses_detail_no_text">Deze voorwaarden zijn van hun eigenaar en worden niet met de app meegeleverd. Open ze om de volledige tekst te lezen.</string>
     <string name="licenses_detail_open_terms">Volledige voorwaarden lezen</string>
     <string name="licenses_data_sources_header">Gegevensbronnen</string>
@@ -249,7 +249,7 @@
     <string name="error_gps_unavailable">Wachten op GPS-signaal…</string>
     <string name="error_search_failed">Zoeken werkt momenteel niet. Controleer je verbinding en probeer het opnieuw</string>
     <string name="error_bootstrap_offline_title">Geen internetverbinding</string>
-    <string name="error_bootstrap_offline_body">paparcar heeft een verbinding nodig om je gegevens te laden. Controleer je netwerk en probeer het opnieuw.</string>
+    <string name="error_bootstrap_offline_body">Paparcar heeft een verbinding nodig om je gegevens te laden. Controleer je netwerk en probeer het opnieuw.</string>
     <string name="error_bootstrap_retry">Opnieuw proberen</string>
     <string name="error_bootstrap_still_offline">Nog steeds geen verbinding</string>
     <string name="error_bootstrap_fatal_title">Account kon niet worden geladen</string>
@@ -295,7 +295,7 @@
     <string name="my_car_add_vehicle">Voertuig toevoegen</string>
     <string name="my_car_unnamed_vehicle">Voertuig zonder naam</string>
     <string name="veh_bt_recommendation_title">Verbeter de detectienauwkeurigheid</string>
-    <string name="veh_bt_recommendation_body">Door de Bluetooth van je auto te koppelen, kan paparcar veel betrouwbaarder detecteren wanneer je parkeert, zelfs op korte trajecten. Je kunt dit later instellen via het menu van het voertuig.</string>
+    <string name="veh_bt_recommendation_body">Door de Bluetooth van je auto te koppelen, kan Paparcar veel betrouwbaarder detecteren wanneer je parkeert, zelfs op korte trajecten. Je kunt dit later instellen via het menu van het voertuig.</string>
     <string name="veh_bt_recommendation_configure">Bluetooth koppelen</string>
     <string name="veh_bt_recommendation_skip">Later</string>
     <string name="my_car_empty_subtitle">We moeten weten wat je rijdt om te detecteren wanneer je parkeert.</string>
@@ -364,7 +364,7 @@
     <string name="vehicle_size_explainer_card3_title">Hoe moet het verschijnen?</string>
     <string name="vehicle_size_explainer_card3_desc">Kies een kleur, een optionele naam en of merk en model op vrije plekken mogen staan.</string>
     <string name="vehicle_size_explainer_card4_title">Hoe kunnen we je parkeren detecteren?</string>
-    <string name="vehicle_size_explainer_card4_desc">paparcar kan gps, bewegingssensoren en, als het beschikbaar is, de Bluetooth van je auto gebruiken om te herkennen wanneer je wegrijdt.</string>
+    <string name="vehicle_size_explainer_card4_desc">Paparcar kan gps, bewegingssensoren en, als het beschikbaar is, de Bluetooth van je auto gebruiken om te herkennen wanneer je wegrijdt.</string>
     <string name="vehicle_size_explainer_card5_title">Brandstof en kosten</string>
     <string name="vehicle_size_explainer_card5_desc">Voor voertuigen met brandstof kies je het type. Verbruik en prijzen helpen ons je kosten te schatten.</string>
     <string name="vehicle_size_explainer_card6_title">Milieulabel</string>
@@ -375,7 +375,7 @@
     <string name="bt_config_subtitle">Selecteer het Bluetooth-apparaat dat al gekoppeld is aan je auto. De app gebruikt dit om te detecteren wanneer je parkeert of vertrekt.</string>
     <string name="bt_config_bt_off">Bluetooth is uitgeschakeld. Schakel het in om je gekoppelde apparaten te zien.</string>
     <string name="bt_config_open_bt_settings">Bluetooth-instellingen openen</string>
-    <string name="bt_config_permission_rationale">paparcar heeft Bluetooth-toegang nodig om je gekoppelde apparaten te lezen. Verleen de toestemming om door te gaan.</string>
+    <string name="bt_config_permission_rationale">Paparcar heeft Bluetooth-toegang nodig om je gekoppelde apparaten te lezen. Verleen de toestemming om door te gaan.</string>
     <string name="bt_config_grant_permission">Toestemming verlenen</string>
     <string name="bt_config_no_devices">Geen gekoppelde Bluetooth-apparaten gevonden. Koppel eerst het Bluetooth van je auto via de systeeminstellingen.</string>
     <string name="bt_config_save">Opslaan</string>
@@ -487,7 +487,7 @@
     <string name="settings_contact">Contact</string>
     <string name="settings_send_diagnostics">Een probleem melden</string>
     <string name="settings_send_diagnostics_confirm_title">Diagnose verzenden?</string>
-    <string name="settings_send_diagnostics_confirm_message">Het recente technische logboek van paparcar op dit apparaat wordt verzonden. Het bevat locaties bij benadering van je laatste ritten en parkeersessies en we gebruiken het alleen om het probleem te onderzoeken.</string>
+    <string name="settings_send_diagnostics_confirm_message">Het recente technische logboek van Paparcar op dit apparaat wordt verzonden. Het bevat locaties bij benadering van je laatste ritten en parkeersessies en we gebruiken het alleen om het probleem te onderzoeken.</string>
     <string name="settings_send_diagnostics_confirm_action">Verzenden</string>
     <string name="settings_send_diagnostics_sent">Diagnose verzonden. Bedankt, we gaan ermee aan de slag.</string>
     <string name="settings_send_diagnostics_error">Kon de diagnose niet verzenden. Controleer je verbinding en probeer het opnieuw.</string>
@@ -511,7 +511,7 @@
 
     <!-- VehicleStatsRow inline cards -->
     <!-- Auth screens -->
-    <string name="brand_name">paparcar</string>
+    <string name="brand_name">Paparcar</string>
     <string name="auth_header_tagline">Wij onthouden waar je geparkeerd stond. De plek die je achterlaat, vindt iemand anders.</string>
     <string name="auth_field_email">E-mail</string>
     <string name="auth_field_password">Wachtwoord</string>
@@ -577,13 +577,13 @@
     <string name="home_peek_spot_size_unknown">Grootte niet opgegeven</string>
     <string name="home_report_size_section">Grootte plek (optioneel)</string>
     <string name="permissions_bg_guide_title">Achtergrondlocatie inschakelen</string>
-    <string name="permissions_bg_guide_body">Op het volgende scherm:\n\n1. Tik op «Locatie»\n2. Kies «Altijd toestaan»\n3. Druk op Terug om terug te keren naar paparcar</string>
+    <string name="permissions_bg_guide_body">Op het volgende scherm:\n\n1. Tik op «Locatie»\n2. Kies «Altijd toestaan»\n3. Druk op Terug om terug te keren naar Paparcar</string>
     <string name="permissions_perm_precise">Nauwkeurigheid van locatie</string>
     <string name="permissions_perm_precise_desc">Nodig om je parkeren op de exacte plek te markeren, niet alleen in de buurt</string>
-    <string name="permissions_perm_precise_desc_ios">Je locatie is bij benadering, dus paparcar weet niet op welke plek je staat. Zet «Precieze locatie» aan via Instellingen → paparcar → Locatie.</string>
-    <string name="permissions_bg_guide_body_ios">Kies «Altijd» zodat paparcar je parkeren ook met gesloten app herkent.
+    <string name="permissions_perm_precise_desc_ios">Je locatie is bij benadering, dus Paparcar weet niet op welke plek je staat. Zet «Precieze locatie» aan via Instellingen → Paparcar → Locatie.</string>
+    <string name="permissions_bg_guide_body_ios">Kies «Altijd» zodat Paparcar je parkeren ook met gesloten app herkent.
 
-Als de vraag niet meer verschijnt, wijzig je het via Instellingen → paparcar → Locatie → Altijd.</string>
+Als de vraag niet meer verschijnt, wijzig je het via Instellingen → Paparcar → Locatie → Altijd.</string>
     <string name="permissions_perm_location_services_desc_ios">Zonder deze kan geen enkele app je vinden. Zet ze aan via Instellingen → Privacy en beveiliging → Locatievoorzieningen.</string>
     <string name="permissions_bg_guide_cta">Instellingen openen</string>
     <string name="permissions_bg_guide_dismiss">Nu niet</string>
@@ -602,13 +602,13 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen → paparcar �
     <string name="home_det_novehicle_sub">Parkeer en geef plekken moeiteloos vrij</string>
     <string name="home_det_novehicle_cta">Toevoegen</string>
     <string name="home_det_core_title">Locatie inschakelen</string>
-    <string name="home_det_core_sub">paparcar werkt er niet zonder</string>
+    <string name="home_det_core_sub">Paparcar werkt er niet zonder</string>
     <string name="home_det_core_cta">Inschakelen</string>
     <string name="home_location_off_pill">Geen locatie</string>
     <string name="home_det_producer_title">Detectie inschakelen</string>
     <string name="home_det_producer_sub">Onthoudt waar je parkeert, geeft de plek vrij</string>
     <string name="home_det_producer_cta">Inschakelen</string>
-    <string name="home_det_pitch_title">Het beste van paparcar</string>
+    <string name="home_det_pitch_title">Het beste van Paparcar</string>
     <string name="home_det_pitch_body">Automatische detectie onthoudt voor jou waar je geparkeerd staat — en als je wegrijdt, komt de plek vrij voor iemand anders. Zet het nu aan en kijk er niet meer naar om.</string>
     <string name="home_det_enabled_confirm">Automatische detectie geactiveerd</string>
     <!-- DET-TOGGLE-002: in-app snackbar when detection drops to a stopped state -->
@@ -665,9 +665,9 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen → paparcar �
     <string name="vehicle_color_yellow">Geel</string>
     <string name="vehicle_color_gold">Goud</string>
     <string name="vehicle_color_brown">Bruin</string>
-    <string name="permissions_reliability_reduced_callout">Telefoons zoals de jouwe beperken apps op de achtergrond om batterij te sparen. Hierdoor kan paparcar missen wanneer je wegrijdt. Sta hieronder achtergrondactiviteit toe — of koppel de Bluetooth van je auto, de betrouwbaarste optie.</string>
+    <string name="permissions_reliability_reduced_callout">Telefoons zoals de jouwe beperken apps op de achtergrond om batterij te sparen. Hierdoor kan Paparcar missen wanneer je wegrijdt. Sta hieronder achtergrondactiviteit toe — of koppel de Bluetooth van je auto, de betrouwbaarste optie.</string>
     <string name="settings_detection_reliability_reduced">Je telefoon kan de detectie beperken</string>
-    <string name="settings_detection_reliability_reduced_desc">Je telefoon beperkt apps op de achtergrond — paparcar kan het moment missen waarop je je plek vrijgeeft</string>
+    <string name="settings_detection_reliability_reduced_desc">Je telefoon beperkt apps op de achtergrond — Paparcar kan het moment missen waarop je je plek vrijgeeft</string>
     <plurals name="history_activity_noun">
         <item quantity="one">parkeerplaats</item>
         <item quantity="other">parkeerplaatsen</item>
@@ -733,7 +733,7 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen → paparcar �
     <string name="first_steps_how_it_works">Hoe het werkt</string>
     <string name="first_steps_done_cta">Klaar</string>
     <string name="first_steps_complete_title">Je bent er klaar voor</string>
-    <string name="first_steps_complete_sub">Je weet nu hoe paparcar werkt. Nu gewoon rijden.</string>
+    <string name="first_steps_complete_sub">Je weet nu hoe Paparcar werkt. Nu gewoon rijden.</string>
     <string name="first_steps_not_yet">Nog niet</string>
     <string name="first_steps_fortify_bt_title">Koppel de Bluetooth van je auto</string>
     <string name="first_steps_fortify_bt_sub">Kies hem uit de apparaten die je telefoon al gekoppeld heeft. Dan hangt het toezicht niet af van een wakkere telefoon.</string>
@@ -741,15 +741,15 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen → paparcar �
     <string name="first_steps_fortify_battery_sub">Je telefoon kan het toezicht stoppen om batterij te sparen. Sta toe dat het doorloopt en je plek komt ook uren later vrij.</string>
     <string name="first_steps_fortify_done_title">Je toezicht is solide</string>
     <string name="first_steps_fortify_done_sub">Er valt niets meer in te stellen: als je wegrijdt komt je plek vanzelf vrij.</string>
-    <string name="first_steps_deferred_title">Je weet hoe paparcar werkt</string>
+    <string name="first_steps_deferred_title">Je weet hoe Paparcar werkt</string>
     <string name="first_steps_deferred_sub">Wat je voor later liet staat er nog — de detectiekaart op dit scherm vraagt er weer om wanneer je wilt.</string>
     <string name="first_steps_park_title">Markeer waar je auto staat</string>
-    <string name="first_steps_park_sub">Sleep de kaart naar je auto en bevestig. Dat is wat paparcar bewaakt.</string>
+    <string name="first_steps_park_sub">Sleep de kaart naar je auto en bevestig. Dat is wat Paparcar bewaakt.</string>
     <string name="first_steps_park_cta">Parkeerplaats markeren</string>
-    <string name="first_steps_watch_title">Laat paparcar erop letten</string>
+    <string name="first_steps_watch_title">Laat Paparcar erop letten</string>
     <string name="first_steps_watch_sub">Zolang je auto geparkeerd staat houdt de app hem in de gaten. Als je wegrijdt, maakt je parkeerplaats een plek vrij voor iemand anders — of je sluit hem zelf met 'Ik vertrek'.</string>
-    <string name="first_steps_watch_on_title">Laat paparcar je parkeerplaats voor je onthouden</string>
-    <string name="first_steps_watch_on_sub">Met detectie aan onthoudt paparcar waar je geparkeerd staat — en als je wegrijdt, gaat de plek die je achterlaat naar iemand die er een zoekt, net als jij.</string>
+    <string name="first_steps_watch_on_title">Laat Paparcar je parkeerplaats voor je onthouden</string>
+    <string name="first_steps_watch_on_sub">Met detectie aan onthoudt Paparcar waar je geparkeerd staat — en als je wegrijdt, gaat de plek die je achterlaat naar iemand die er een zoekt, net als jij.</string>
     <string name="first_steps_spot_title">Vind een vrije plek in de buurt</string>
     <string name="first_steps_spot_sub">Plekken die anderen vrijmaken staan op de kaart. Open de lijst en kies er een.</string>
     <string name="first_steps_spot_cta">Plekken bekijken</string>
@@ -763,12 +763,12 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen → paparcar �
     <string name="first_steps_explain_park_title">Markeer waar je auto staat</string>
     <string name="first_steps_explain_park_body">Dat opent je parkeerplaats: de app onthoudt de plek en gaat hem bewaken. Alleen deze eerste keer doe je het met de hand.</string>
     <string name="first_steps_explain_park_way_title">Vanaf dan is de auto onze zorg</string>
-    <string name="first_steps_explain_park_way_body">Je hoeft de straat, het nummer of de verdieping niet te onthouden. Je opent paparcar en daar staat hij.</string>
+    <string name="first_steps_explain_park_way_body">Je hoeft de straat, het nummer of de verdieping niet te onthouden. Je opent Paparcar en daar staat hij.</string>
     <string name="first_steps_explain_park_note">Zonder open parkeerplaats is er niets te bewaken en niets vrij te geven: de plek die een andere bestuurder krijgt, is die jij achterlaat.</string>
     <string name="first_steps_explain_watch_title">Als je wegrijdt, komt jouw plek vrij voor een ander</string>
     <string name="first_steps_explain_watch_body">Je parkeerplaats wordt een vrije plek voor de gemeenschap: iemand parkeert waar jij stond in plaats van rondjes te rijden. Dat gebeurt op twee manieren.</string>
     <string name="first_steps_explain_watch_auto_title">Vanzelf</string>
-    <string name="first_steps_explain_watch_auto_body">paparcar merkt dat je bent weggereden en meldt de plek voor je, zonder dat je iets doet.</string>
+    <string name="first_steps_explain_watch_auto_body">Paparcar merkt dat je bent weggereden en meldt de plek voor je, zonder dat je iets doet.</string>
     <string name="first_steps_explain_watch_manual_title">Of jij zegt het</string>
     <string name="first_steps_explain_watch_manual_body">Je drukt op 'Ik vertrek' bij je parkeerplaats en sluit hem zelf af, wanneer je wilt.</string>
     <string name="first_steps_explain_watch_note">Je parkeerplaats afsluiten verplicht je tot niets: 'Alleen vrijgeven' beëindigt hem zonder het iemand te vertellen.</string>
@@ -791,8 +791,8 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen → paparcar �
         <item quantity="other">Je hebt %1$d eerdere parkeerplaatsen</item>
     </plurals>
     <string name="history_plus_footer_cta">Alles bekijken met Plus</string>
-    <string name="paywall_title">paparcar Plus</string>
-    <string name="paywall_tagline">paparcar let voor je op en onthoudt alles</string>
+    <string name="paywall_title">Paparcar Plus</string>
+    <string name="paywall_tagline">Paparcar let voor je op en onthoudt alles</string>
     <string name="paywall_benefits_title">Wat Plus toevoegt</string>
     <string name="paywall_benefit_history">Je volledige geschiedenis: uitgaven, tijd, prognoses en de beste locaties en tijdstippen</string>
     <string name="paywall_benefit_history_note">Gratis: de laatste 7 dagen</string>
@@ -828,7 +828,7 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen → paparcar �
     <string name="paywall_redeem_code">Ik heb een code</string>
     <string name="paywall_restore_none">Geen abonnement gevonden op dit Google-account.</string>
     <string name="paywall_purchase_failed">De aankoop is niet gelukt — er is niets in rekening gebracht.</string>
-    <string name="settings_plus_title">paparcar Plus</string>
+    <string name="settings_plus_title">Paparcar Plus</string>
     <string name="settings_plus_subtitle_free">Volledige geschiedenis en zonemeldingen</string>
     <string name="settings_plus_subtitle_active">Volledige geschiedenis en zonemeldingen, actief</string>
     <string name="settings_plus_badge_active">ACTIEF</string>
@@ -1041,7 +1041,7 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen → paparcar �
     <string name="first_steps_pointing_up">Kijk bovenaan de kaart — ik wijs het aan.</string>
     <string name="first_steps_zone_no_garage">Heb ik niet</string>
     <string name="first_steps_explain_zone_title">Je garage is geen vrije plek</string>
-    <string name="first_steps_explain_zone_body">Als je wegrijdt, geeft paparcar je plek vrij voor iemand anders. In een privégarage (thuis, op het werk) kan niemand anders hem gebruiken.</string>
+    <string name="first_steps_explain_zone_body">Als je wegrijdt, geeft Paparcar je plek vrij voor iemand anders. In een privégarage (thuis, op het werk) kan niemand anders hem gebruiken.</string>
     <string name="first_steps_explain_zone_way_title">Voeg een privézone toe</string>
     <string name="first_steps_explain_zone_way_body">Leg een zone over je garage en zet «Privézone» aan. Parkeerbeurten daarbinnen worden niet gepubliceerd als je vertrekt.</string>
     <string name="first_steps_explain_zone_note">Dit geldt voor parkeerplaatsen die je markeert nadat je de zone hebt gemaakt. Geen privégarage? Antwoord «Heb ik niet» en de stap is klaar.</string>
@@ -1062,13 +1062,13 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen → paparcar �
     <string name="notif_action_ack">Begrepen</string>
     <string name="notif_action_cancel_save">Nee, annuleren</string>
     <string name="notif_confirmation_failed_title">Parkeren niet opgeslagen</string>
-    <string name="notif_confirmation_failed_text">Parkeerplaats kon niet worden opgeslagen. Open paparcar om het opnieuw te proberen.</string>
+    <string name="notif_confirmation_failed_text">Parkeerplaats kon niet worden opgeslagen. Open Paparcar om het opnieuw te proberen.</string>
     <string name="notif_still_parked_title">Nog steeds hier geparkeerd?</string>
     <string name="notif_still_parked_text">Je lijkt weg te zijn, maar deze parkeerplaats staat nog open. Laat weten of je al vertrokken bent, of markeer waar de auto nu staat.</string>
     <string name="notif_action_ive_left">Ik ben weg</string>
     <string name="notif_action_mark_parking">Parkeerplaats markeren</string>
     <string name="notif_car_link_title">Was deze rit in %1$s?</string>
-    <string name="notif_car_link_text">Als het jouw auto is, koppel hem en paparcar markeert je parkeerplek voortaan vanzelf.</string>
+    <string name="notif_car_link_text">Als het jouw auto is, koppel hem en Paparcar markeert je parkeerplek voortaan vanzelf.</string>
     <string name="notif_car_link_device_fallback">deze auto</string>
     <string name="notif_action_link_yes">Ja, het is mijn auto</string>
     <string name="notif_action_link_no">Nee</string>

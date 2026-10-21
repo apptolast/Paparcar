@@ -3,22 +3,22 @@ FICHA DE PLAY STORE — pl-PL
 GENERADO por tools/make_paste.py desde LISTING-v1.4.0.md — no editar a mano.
 
 --- 1. NOMBRE DE LA APLICACION (28/30) ---
-paparcar: gdzie zaparkowałeś
+Paparcar: gdzie zaparkowałeś
 
 --- 2. DESCRIPCION BREVE (66/80) ---
-Gdzie zaparkowałeś? paparcar pamięta. Z cenami paliw i parkingami.
+Gdzie zaparkowałeś? Paparcar pamięta. Z cenami paliw i parkingami.
 
 --- 3. DESCRIPCION COMPLETA (3833/4000) ---
 Gdzie zaparkowałeś?
 
-paparcar pamięta za Ciebie.
+Paparcar pamięta za Ciebie.
 
-Zaparkuj, wysiądź i zajmij się swoimi sprawami. paparcar automatycznie zapisuje, gdzie zostawiłeś auto: bez otwierania aplikacji, bez pinezki i bez wpisywania adresu. Gdy wrócisz, wiesz, gdzie stoi i jak długo.
+Zaparkuj, wysiądź i zajmij się swoimi sprawami. Paparcar automatycznie zapisuje, gdzie zostawiłeś auto: bez otwierania aplikacji, bez pinezki i bez wpisywania adresu. Gdy wrócisz, wiesz, gdzie stoi i jak długo.
 
-Gdy odjeżdżasz, zwolnione miejsce może zostać opublikowane dla kierowców w pobliżu. A Ty widzisz miejsca, które inni właśnie zwolnili. Im więcej kierowców korzysta z paparcar w Twoim mieście, tym więcej miejsc się pojawia.
+Gdy odjeżdżasz, zwolnione miejsce może zostać opublikowane dla kierowców w pobliżu. A Ty widzisz miejsca, które inni właśnie zwolnili. Im więcej kierowców korzysta z Paparcar w Twoim mieście, tym więcej miejsc się pojawia.
 
 JAK TO DZIAŁA
-1. Parkujesz. paparcar to wykrywa i zapisuje miejsce. Bez Bluetootha pierwsze parkowanie oznaczasz ręcznie.
+1. Parkujesz. Paparcar to wykrywa i zapisuje miejsce. Bez Bluetootha pierwsze parkowanie oznaczasz ręcznie.
 2. Odjeżdżasz. Aplikacja to wykrywa.
 3. Twoje miejsce trafia do kierowców w pobliżu, gdy ma to sens.
 
@@ -33,7 +33,7 @@ WOLNE MIEJSCA W CZASIE RZECZYWISTYM
 • Miejsca, które inni właśnie zwolnili, na mapie.
 • Kiedy każde się zwolniło: dwie minuty temu to nie dwadzieścia.
 • Ilu kierowców już tam jedzie.
-• Czy Twoje auto się zmieści: paparcar porównuje lukę z Twoim.
+• Czy Twoje auto się zmieści: Paparcar porównuje lukę z Twoim.
 • Widzisz wolne miejsce, przechodząc obok? Zgłoś je dwoma dotknięciami.
 
 STACJE PALIW I PARKINGI, NA TEJ SAMEJ MAPIE
@@ -55,9 +55,9 @@ JEDNO AUTO, KILKU KIEROWCÓW
 • Twoje trasy są udostępniane tylko wtedy, gdy tak zdecydujesz.
 
 AUTOMATYCZNE WYKRYWANIE
-Jeśli Twoje auto łączy się z telefonem przez Bluetooth, rozłączenie pomaga wykryć koniec parkowania. Bez Bluetooth paparcar używa ruchu i lokalizacji.
+Jeśli Twoje auto łączy się z telefonem przez Bluetooth, rozłączenie pomaga wykryć koniec parkowania. Bez Bluetooth Paparcar używa ruchu i lokalizacji.
 
-paparcar nie chce zgadywać. Gdy nie ma pewności, pyta Cię, zanim opublikuje miejsce.
+Paparcar nie chce zgadywać. Gdy nie ma pewności, pyta Cię, zanim opublikuje miejsce.
 
 PAPARCAR PLUS
 Za darmo to Ty pytasz, a aplikacja odpowiada. Z Plus aplikacja czuwa, gdy Ty nie patrzysz:
@@ -68,7 +68,7 @@ Za darmo to Ty pytasz, a aplikacja odpowiada. Z Plus aplikacja czuwa, gdy Ty nie
 • Utworzenie współdzielonego auta. Dołączenie jest zawsze darmowe.
 
 PRYWATNOŚĆ
-• Strefy prywatne: oznacz miejsca takie jak dom, a paparcar nie opublikuje tam miejsca.
+• Strefy prywatne: oznacz miejsca takie jak dom, a Paparcar nie opublikuje tam miejsca.
 • Twoja tablica rejestracyjna nigdy nie opuszcza telefonu.
 • Marka i model pojawiają się przy zwalnianym miejscu tylko wtedy, gdy to włączysz.
 • Twoja lokalizacja nigdy nie jest sprzedawana ani używana do reklam.
@@ -77,9 +77,9 @@ PRYWATNOŚĆ
 
 LOKALIZACJA W TLE
 
-paparcar używa danych o lokalizacji także wtedy, gdy aplikacja jest zamknięta lub nieużywana, aby wykryć, gdzie parkujesz, i zwolnić Twoje miejsce, gdy odjeżdżasz.
+Paparcar używa danych o lokalizacji także wtedy, gdy aplikacja jest zamknięta lub nieużywana, aby wykryć, gdzie parkujesz, i zwolnić Twoje miejsce, gdy odjeżdżasz.
 
-Automatyczne wykrywanie potrzebuje tego uprawnienia. Bez niego paparcar nadal działa, ale parkowania trzeba oznaczać i zwalniać ręcznie.
+Automatyczne wykrywanie potrzebuje tego uprawnienia. Bez niego Paparcar nadal działa, ale parkowania trzeba oznaczać i zwalniać ręcznie.
 
 Polityka prywatności:
 https://paparcar.com/privacy-policy

@@ -15,10 +15,10 @@ export default function notFound({ t, lang, base }) {
     <p class="notfound__code" aria-hidden="true">404</p>
     <h1 class="notfound__title">Esta página no está donde la dejaste.</h1>
     <p class="notfound__lead">
-      El enlace no lleva a ninguna parte. Tu coche, en cambio, paparcar sí sabe dónde está.
+      El enlace no lleva a ninguna parte. Tu coche, en cambio, Paparcar sí sabe dónde está.
     </p>
     <p class="notfound__lead" lang="en">
-      This link does not lead anywhere. Your car, on the other hand, paparcar does know how to find.
+      This link does not lead anywhere. Your car, on the other hand, Paparcar does know how to find.
     </p>
     <div class="notfound__actions">
       ${button({ href: '/', label: 'Ir al inicio · Go home', icon: 'arrowRight' })}
@@ -36,7 +36,7 @@ export default function notFound({ t, lang, base }) {
     lang,
     base,
     pageKey: 'notFound',
-    title: '404 — paparcar',
+    title: '404 — Paparcar',
     description: '',
     noindex: true,
     body,
