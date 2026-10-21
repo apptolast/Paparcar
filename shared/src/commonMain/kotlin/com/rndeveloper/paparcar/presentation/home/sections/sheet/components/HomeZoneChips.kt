@@ -28,7 +28,6 @@ import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -92,8 +91,11 @@ fun ZoneChip(
         modifier = modifier,
     ) {
         Row(
-            // Tighter end inset than start: the pencil's 28dp touch box already carries
-            // its own optical margin around the 16dp glyph.
+            // Tighter end inset than start: the pencil's 28dp box already carries its own optical
+            // margin around the 16dp glyph — y desde
+            // [UI-A-TOUCH-TARGET-ALSO-PUSHES-SIDEWAYS-001] esa cuenta vuelve a ser cierta: el
+            // mínimo táctil la había convertido en 48 por debajo, y este comentario seguía
+            // hablando de 28. Un comentario no corrige un layout, pero sí fosiliza una cuenta.
             // The height is DECLARED, not left to whichever child happens to be tallest: the add
             // chip next door has to match it, and an emergent height gives it nothing to match.
             // [UI-THE-ADD-ZONE-CHIP-IS-ONE-CHIP-IN-EVERY-STATE-001]
@@ -137,9 +139,23 @@ fun ZoneChip(
             // touch target instead of the old ×'s 14dp sliver.
             Box(
                 modifier = Modifier
-                    // El lapiz pintaba 28 dp de caja tactil. ⚠️ Su alto lo CAPA el chip (34 dp), asi que aqui el minimo solo gana a lo ancho — subir el chip es decision de diseno. [UI-THE-SPACING-SWEEP-IS-SCREEN-BY-SCREEN-001]
-            .minimumInteractiveComponentSize()
-            .size(ZONE_CHIP_EDIT_TAP_DP.dp)
+                    // ⛔ **Sin `minimumInteractiveComponentSize()`, y es una decisión medida, no un
+                    // descuido.** [UI-A-TOUCH-TARGET-ALSO-PUSHES-SIDEWAYS-001]
+                    //
+                    // El mínimo impone 48×48 de LAYOUT, pero el alto lo capa el chip (34 dp,
+                    // declarado arriba), así que **sólo ganaba a lo ancho**: 48 para un glifo de 16
+                    // = 16 dp de aire invisible por lado. Medido en device el 20-10 (Pixel_8, 420
+                    // dpi): del glifo al borde del chip había 52 px = 19,8 dp, exactamente
+                    // `16 + 4` del padding de abajo.
+                    //
+                    // Y esos 16 dp no compraban accesibilidad: **un mínimo táctil que sólo se
+                    // cumple en un eje no es un mínimo, es aire.** El dedo tenía 34 dp en vertical
+                    // con el modificador puesto y los sigue teniendo sin él; lo único que cambia es
+                    // que el chip deja de reservar ancho que nadie veía. El área vuelve a ser la
+                    // que este control tuvo siempre, 28×34, y la alternativa —subir el chip a 48
+                    // para cumplirlo de verdad en los dos ejes— la descartó el user el 20-10:
+                    // engorda los chips de Home y arrastra al de añadir, que debe igualarlos.
+                    .size(ZONE_CHIP_EDIT_TAP_DP.dp)
                     .clip(CircleShape)
                     .clickable(onClick = onEdit),
                 contentAlignment = Alignment.Center,

@@ -41,6 +41,7 @@ class TouchTargetGuardrailTest {
     fun `a hand-drawn clickable declares its touch target`() {
         val violations = GuardrailScope.featureFiles()
             .filter { SIZED_CLICKABLE_REGEX.containsMatchIn(it.text) }
+            .filterNot { it.name in CAPPED_BY_ITS_CONTAINER }
             .filterNot { it.text.contains(MINIMUM_TOUCH_TARGET) }
             .map { it.name }
         assertTrue(
@@ -87,6 +88,25 @@ class TouchTargetGuardrailTest {
     }
 
     private companion object {
+        /**
+         * Controles cuyo contenedor ya **capa su alto**, así que el mínimo no puede cumplirse y
+         * pedirlo sólo infla a lo ancho. [UI-A-TOUCH-TARGET-ALSO-PUSHES-SIDEWAYS-001]
+         *
+         * ⛔ Es la Única forma legal de salir de este chequeo, y se gana con una medición: el
+         * lápiz de `HomeZoneChips` vive en una fila de 34 dp (`PapControlHeight.chip`), de modo
+         * que con `minimumInteractiveComponentSize()` su área era **48×34** — el mínimo cumplido
+         * en un solo eje— y el precio eran 16 dp de aire invisible por lado, medidos en device.
+         * Quitarlo no recorta el dedo en vertical, que es donde el chip manda; devuelve el área
+         * que el control tuvo siempre (28×34) y le quita al chip un ancho que nadie veía.
+         *
+         * ⛔ **Lo que NO autoriza**: un control suelto que simplemente prefiera verse más
+         * compacto. Si su contenedor no le capa el alto, el mínimo sí se cumple y quitarlo es
+         * pagar el diseño con el dedo del usuario. La otra salida —subir el contenedor a 48— sigue
+         * disponible y es la correcta cuando el diseño la admita; aquí la descartó el user el
+         * 20-10 porque engorda los chips de Home.
+         */
+        val CAPPED_BY_ITS_CONTAINER = setOf("HomeZoneChips")
+
         /** `.size(lo que sea)` y, en la misma cadena, `.clickable(`. */
         val SIZED_CLICKABLE_REGEX = Regex("""\.size\([^)]*\)[^;{}]{0,400}?\.clickable\(""", RegexOption.DOT_MATCHES_ALL)
 
