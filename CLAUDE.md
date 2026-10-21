@@ -29,24 +29,34 @@ Paparcar es una app KMP (Kotlin Multiplatform) de compartición de plazas de apa
 > — el índice de `search.maven.org/solrsearch` está obsoleto y miente por versiones enteras.
 > ⚠️ `kotlinx-datetime` publica una línea `0.8.0-0.6.x-compat` que **ordena después** de `0.8.0` sin
 > ser más nueva: es la variante de compatibilidad con la API 0.6. No leerla como un bump pendiente.
-- Lenguaje: Kotlin 2.4.20 (KSP 2.3.12) · Gradle 9.7.1 (**es la actual**, no hay 9.8)
-- Build: AGP 9.4.0 · compileSdk 37 · targetSdk 37 (Android 17) · minSdk 26
-- UI: Compose Multiplatform 1.12.0 · Material3 (JB) 1.9.0 (**no hay estable por encima**) · Navigation Compose 2.9.2
+> Re-verificado de nuevo el **2026-10-21** ([DEPS-REVENUECAT-3-10-AND-A-FULL-SWEEP-001], a raíz del
+> aviso de Play Console sobre `purchases-kmp-core`) — **18 claves** del catálogo subieron: Kotlin,
+> AGP, toda la familia Compose Multiplatform (7 claves, todas a la vez), `androidx-core-ktx`,
+> `work-runtime`, `konsist`, `kotlinx-serialization`, `aboutlibraries`, `coil`, `ktor`,
+> `firebase-bom` y, la que disparó el barrido, `purchases-kmp`. ⚠️ `firebase-bom` sube de MAJOR
+> (34→35) — revisado contra las release notes: solo sube `minSdkVersion` a 24 (sin efecto, el
+> nuestro ya es 26) y retira `firebase-ml-modeldownloader`, que no usamos. El resto ya estaba en su
+> última estable (`firebase-bom` **no** se publica en Maven Central, solo en `dl.google.com`).
+- Lenguaje: Kotlin 2.4.21 (KSP 2.3.12) · Gradle 9.7.1 (**es la actual**, no hay 9.8)
+- Build: AGP 9.4.1 · compileSdk 37 · targetSdk 37 (Android 17) · minSdk 26
+- UI: Compose Multiplatform 1.12.2 · Material3 (JB) 1.9.0 (**no hay estable por encima**) · Navigation Compose 2.9.2
 - Arquitectura: Clean Architecture + MVI (State + Intent + Effect)
 - DI: Koin 4.2.2
 - DB local: Room KMP 2.8.5 (SQLite bundled 2.7.1)
-- Backend: Firebase (GitLive KMP SDK 2.7.0) · firebase-bom 34.19.0
+- Backend: Firebase (GitLive KMP SDK 2.7.0) · firebase-bom 35.0.2
 - Auth: BaseLogin 3.0.2 (librería propia, **Maven Central** `io.github.apptolast:baselogin` desde
   2.0.0; JitPack quedó atrás) — ⛔ no se toca desde Paparcar
-- Async: Coroutines 1.11.0 + Flow · Serialization 1.11.0 · Datetime 0.8.0
+- Async: Coroutines 1.11.0 + Flow · Serialization 1.12.0 · Datetime 0.8.0
 - Mapas: kmp-maps **fork propio** `io.github.rndevelo.kmpmaps:core:0.9.1-puck6`, ya en Maven Central
   (marker de id estable; upstream SW Mansion 0.9.1 + PR #170 sin mergear) — su versión la manda
   nuestro repo, no upstream
-- Imágenes: Coil 3.6.2 + Ktor 3.5.2 (motor de red)
-- Monetización: RevenueCat `purchases-kmp` 3.8.0 — ⛔ **no volver a declarar el artefacto Android
-  `purchases` a mano**: 3.8.0 ya pina 10.20.0, la versión con las consumer rules de R8 estrechadas,
-  así que el puente de [R8-REVENUECAT-ALREADY-NARROWED-ITS-RULES-001] murió en
-  [BUILD-DEPS-AT-LATEST-STABLE-002]
+- Imágenes: Coil 3.6.3 + Ktor 3.6.0 (motor de red)
+- Monetización: RevenueCat `purchases-kmp` 3.14.0 (20-10-2026: Play avisó que 3.8.0/3.9.0 tienen un
+  bug que desloguea a quien actualiza desde antes de 3.0.0 — arreglado en 3.10.0; subido hasta la
+  última estable) — ⛔ **no volver a declarar el artefacto Android `purchases` a mano**: el wrapper
+  ya pina 10.27.0, por encima de la versión con las consumer rules de R8 estrechadas, así que el
+  puente de [R8-REVENUECAT-ALREADY-NARROWED-ITS-RULES-001] sigue muerto
+  [DEPS-REVENUECAT-3-10-AND-A-FULL-SWEEP-001]
 - Logging: Napier 2.7.1 · Monitoring: Firebase Crashlytics
 - ⛔ **El stack no es sólo Gradle**: hay DOS raíces npm con su propio lockfile —`functions/` (Cloud
   Functions, se despliega) y `firestore-rules-tests/` (devDeps del harness de reglas)— y

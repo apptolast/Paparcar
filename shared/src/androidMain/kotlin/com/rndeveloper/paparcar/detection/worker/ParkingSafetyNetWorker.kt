@@ -173,7 +173,10 @@ class ParkingSafetyNetWorker(
         // whose ENTER fired but whose session is gone was released with a failed/never-run removal
         // (NEVER_EXPIRE — it fires forever, and its own firing is its only observable). Runs BEFORE
         // the empty-sessions early return on purpose: no sessions at all is the most orphaned case.
-        val deliveredFenceIds = inputData.getStringArray(KEY_TRIGGERING_FENCE_IDS)?.toList().orEmpty()
+        // getStringArray() is deprecated since work-runtime 2.12.0 (mishandles arrays with null
+        // elements); the writer below never puts a null in, so filterNotNull() is a no-op here.
+        val deliveredFenceIds = inputData.getNullableStringArray(KEY_TRIGGERING_FENCE_IDS)
+            ?.filterNotNull().orEmpty()
         if (deliveredFenceIds.isNotEmpty()) {
             runCatching {
                 cleanOrphanEnterFences(

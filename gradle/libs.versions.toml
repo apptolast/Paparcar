@@ -6,32 +6,32 @@
 [versions]
 
 # ── Android ──────────────────────────────────────────────────────────────────
-agp = "9.4.0"
+agp = "9.4.1"
 android-compileSdk = "37"
 android-minSdk = "26"      # NotificationChannel (26) + FOREGROUND_SERVICE_LOCATION (29) → mínimo real 26
 android-targetSdk = "37"
 
 # ── Kotlin & KMP ─────────────────────────────────────────────────────────────
-componentsResources = "1.12.0"
-foundation = "1.12.0"
-kotlin = "2.4.20"
+componentsResources = "1.12.2"
+foundation = "1.12.2"
+kotlin = "2.4.21"
 ksp = "2.3.12"   # Esquema propio, independiente de la versión de Kotlin
 # ── Compose ──────────────────────────────────────────────────────────────────
-compose-plugin = "1.12.0"
+compose-plugin = "1.12.2"
 
 # ── AndroidX ─────────────────────────────────────────────────────────────────
 androidx-activityCompose = "1.13.0"
 androidx-appcompat = "1.8.0"
-androidx-core-ktx = "1.19.0"
+androidx-core-ktx = "1.19.1"
 androidx-lifecycle = "2.11.0"
 androidx-material = "1.14.0"
-material = "1.12.0"
+material = "1.12.2"
 material3 = "1.9.0"
 materialIconsExtended = "1.7.3"
-runtime = "1.12.0"
-ui = "1.12.0"
-uiToolingPreview = "1.12.0"
-work-runtime = "2.11.2"
+runtime = "1.12.2"
+ui = "1.12.2"
+uiToolingPreview = "1.12.2"
+work-runtime = "2.12.0"
 androidx-splashscreen = "1.2.0"
 androidx-datastore = "1.2.1"
 
@@ -40,14 +40,14 @@ junit = "4.13.2"
 androidx-test-junit = "1.3.0"
 androidx-espresso-core = "3.7.0"
 turbine = "1.2.1"
-konsist = "0.17.3"
+konsist = "0.18.1"
 robolectric = "4.17"
 androidx-test-core = "1.7.0"
 
 # ── Kotlinx ──────────────────────────────────────────────────────────────────
 kotlinx-coroutines = "1.11.0"
 kotlinx-datetime = "0.8.0"
-kotlinx-serialization = "1.11.0"
+kotlinx-serialization = "1.12.0"
 
 # ── DI — Koin ────────────────────────────────────────────────────────────────
 # Todos los módulos de Koin usan la misma versión. No hay versión separada.
@@ -60,7 +60,10 @@ sqlite = "2.7.1"
 
 # ── Firebase ─────────────────────────────────────────────────────────────────
 # GitLive SDK: wrapper KMP sobre Firebase oficial → va en commonMain
-firebase-bom = "34.19.0"
+# 35.0.0 (dl.google.com, no Maven Central: firebase-bom no se publica ahí) sube minSdkVersion de
+# todas las libs de Firebase a 24 — sin efecto, el nuestro ya es 26 — y retira
+# firebase-ml-modeldownloader del BoM, que Paparcar no usa. [DEPS-REVENUECAT-3-10-AND-A-FULL-SWEEP-001]
+firebase-bom = "35.0.2"
 firebase-crashlytics-plugin = "3.0.8"
 firebase-gitlive = "2.7.0"
 google-services = "4.5.0"
@@ -74,7 +77,7 @@ google-services = "4.5.0"
 kmp-maps = "0.9.1-puck6"
 
 # ── Licencias OSS — AboutLibraries ───────────────────────────────────────────
-aboutlibraries = "15.2.0"
+aboutlibraries = "15.3.0"
 
 # ── Logging — Napier ─────────────────────────────────────────────────────────
 napier = "2.7.1"
@@ -83,10 +86,10 @@ napier = "2.7.1"
 # coil-compose en commonMain (AsyncImage). Fetcher de red multiplataforma vía
 # coil-network-ktor3 (commonMain) + engine Ktor por plataforma: okhttp (Android),
 # darwin (iOS). Coil auto-registra el fetcher al estar en el classpath.
-coil = "3.6.2"
+coil = "3.6.3"
 
 # ── Ktor client — engine de red para Coil (KMP) ──────────────────────────────
-ktor = "3.5.2"
+ktor = "3.6.0"
 
 # ── Login Library ────────────────────────────────────────────────────────────
 # Publicada en Maven Central desde 2.0.0 (hasta 1.1.0 vivía en JitPack; nada nuevo saldrá allí).
@@ -104,12 +107,18 @@ baselogin = "3.0.2"
 # ── Monetización — RevenueCat purchases-kmp ─────────────────────────────────
 # core (SDK) + ui (Paywalls con plantilla remota) van SIEMPRE a la misma versión.
 # Desde 3.x el versionado es semver plano (ya no lleva el sufijo +X.Y.Z del SDK iOS).
-# ✅ El puente `purchases-android = "10.20.0"` ya NO existe: 3.8.0 pina el artefacto Android en
-# 10.20.0 por su cuenta, que es justo la versión donde las consumer rules dejaron de anclar el SDK
-# entero con `-keep class com.revenuecat.** { *; }` (estrechadas en el PR #3557). La condición que el
-# propio puente ponía para retirarse se cumplió. No volver a declararlo a mano salvo que el wrapper
-# BAJE el pin. [R8-REVENUECAT-ALREADY-NARROWED-ITS-RULES-001] [BUILD-DEPS-AT-LATEST-STABLE-002]
-purchases-kmp = "3.8.0"
+# ✅ El puente `purchases-android = "10.20.0"` ya NO existe: el artefacto Android lo pina el
+# wrapper por su cuenta — 10.27.0 en 3.14.0, por encima del punto donde las consumer rules dejaron
+# de anclar el SDK entero (PR #3557). No volver a declararlo a mano salvo que el wrapper BAJE el
+# pin. [R8-REVENUECAT-ALREADY-NARROWED-ITS-RULES-001] [BUILD-DEPS-AT-LATEST-STABLE-002]
+# 3.8.0 → 3.14.0 (20-10-2026): Play avisó por SDK Console — 3.8.0/3.9.0 tienen un bug que
+# desloguea a quien actualiza desde una versión anterior a 3.0.0 (recuperación de appUserID en
+# iOS tras el salto 2.x→3.x), arreglado en 3.10.0. Confirmado sin breaking changes de API entre
+# 3.8.0 y 3.14.0 para la superficie que usa Paparcar (`Purchases`, `PurchasesDelegate`,
+# `awaitCustomerInfo/Offerings/Purchase/Restore/LogIn/LogOut`, `CustomerInfo`, `Offerings`,
+# `Package`, `PurchasesError`, `StoreProduct`, `StoreTransaction`).
+# [DEPS-REVENUECAT-3-10-AND-A-FULL-SWEEP-001]
+purchases-kmp = "3.14.0"
 
 # ── Android-only ─────────────────────────────────────────────────────────────
 # play-services-location incluye Activity Recognition Transitions desde v17+
