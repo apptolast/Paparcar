@@ -844,7 +844,7 @@ trescientas. Y no había salida desde fuera del repo: los UTM de un enlace norma
 salto a la tienda, y un 301 a URL fija **descarta** también la query entrante. Lo único que sobrevive
 es el **install referrer** de Play, que Firebase lee en el primer `first_open`.
 
-**Las seis rutas vivas**, cada una con su `referrer` percent-encoded:
+**Las siete rutas vivas**, cada una con su `referrer` percent-encoded:
 
 ```
 /descargar            → …&referrer=utm_source%3Dinstagram%26utm_medium%3Dsocial%26utm_campaign%3Dbio
@@ -853,7 +853,14 @@ es el **install referrer** de Play, que Firebase lee en el primer `first_open`.
 /descargar/galibo     → …utm_campaign%3Dgalibo
 /descargar/compartido → …utm_campaign%3Dcompartido
 /descargar/z-mostoles → …utm_medium%3Dpaid%26utm_campaign%3Dz-mostoles
+/descargar/fb         → …&referrer=utm_source%3Dfacebook%26utm_medium%3Dsocial%26utm_campaign%3Dfb
 ```
+
+🔑 **`/descargar/fb` es la segunda fuente, no un territorio nuevo** (14-10 → 22-10,
+`MKT-ADD-FACEBOOK-ATTRIBUTION-ROUTE-001`): es el enlace propio de la página de Facebook, no el
+placement de Facebook dentro de la campaña pagada de Instagram — ese sigue excluido (§9.3). El guard
+de `WebSiteParityGuardrailTest` asumía un único `utm_source` para todas las rutas; ahora lee
+`UTM_SOURCE_OF_PATH` para saber qué ruta responde a qué cuenta.
 
 🟢 **El arreglo fue sólo de servidor**: la bio no se toca y el enlace es el mismo, así que desde el
 despliegue **todos los clics que ya se producían** se atribuyen. ⚠️ No es retroactivo: lo instalado

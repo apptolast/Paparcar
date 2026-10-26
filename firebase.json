@@ -51,6 +51,12 @@
         "source": "/descargar/z-mostoles",
         "destination": "https://play.google.com/store/apps/details?id=com.rndeveloper.paparcar&referrer=utm_source%3Dinstagram%26utm_medium%3Dpaid%26utm_campaign%3Dz-mostoles",
         "type": 301
+      },
+      {
+        "//": "Second earned source: the account's OWN Facebook page link, same shape as the Instagram bio above but naming `facebook`. This is not the Facebook placement inside the paid Instagram campaign — that stays excluded (INSTAGRAM-GROWTH-STRATEGY.md §9.3). [MKT-ADD-FACEBOOK-ATTRIBUTION-ROUTE-001]",
+        "source": "/descargar/fb",
+        "destination": "https://play.google.com/store/apps/details?id=com.rndeveloper.paparcar&referrer=utm_source%3Dfacebook%26utm_medium%3Dsocial%26utm_campaign%3Dfb",
+        "type": 301
       }
     ],
     "headers": [

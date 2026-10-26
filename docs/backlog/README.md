@@ -1,6 +1,6 @@
 # Backlog — índice de lo que sigue abierto
 
-> **807 ficheros: 720 cerrados, 78 abiertos, 9 que no son tickets.** Este índice lista **solo lo que
+> **808 ficheros: 721 cerrados, 78 abiertos, 9 que no son tickets.** Este índice lista **solo lo que
 > queda**, para que la pregunta *"¿qué falta?"* se conteste leyendo y no listando el directorio.
 > Verificado contra master `1339ea263` el **2026-10-07**
 > [DOCS-A-CLOSED-TICKET-MUST-NOT-SAY-IT-IS-IN-REVIEW-001]. El barrido anterior
@@ -253,6 +253,7 @@ No son trabajo pendiente: son confirmaciones que faltan. Se listan para que nadi
 | [`settings-remodel-001-followups-2026-07-03`](settings-remodel-001-followups-2026-07-03.md) | validación en plataforma, sin código |
 | [`ui-a-page-keeps-one-vertical-rhythm-001`](ui-a-page-keeps-one-vertical-rhythm-001.md) | medido en A/B sobre emulador; ⏳ verlo en un **móvil real**, y una medición suelta de Home (15,2 dp con el binario nuevo) que no se reprodujo — ver «Cabo suelto» en el doc |
 | [`det-no-device-mute-in-remote-001`](det-no-device-mute-in-remote-001.md) · [`det-retract-denied-forever-001`](det-retract-denied-forever-001.md) | hechos; el doc existe para que la regla tenga dónde vivir |
+| [`mkt-add-facebook-attribution-route-001`](mkt-add-facebook-attribution-route-001.md) | segunda fuente de atribución (`/descargar/fb`), análoga a las seis de Instagram; guard generalizado a `UTM_SOURCE_OF_PATH`. ⏳ desplegar y verlo UNA vez en device |
 
 ## 🚧 Ojo: tickets cuyo doc **no está aquí**
 

@@ -201,8 +201,9 @@ class WebSiteParityGuardrailTest {
                 REQUIRED_UTM.filterNot(utm::containsKey).forEach {
                     add("$source · referrer has no `$it`")
                 }
-                utm["utm_source"]?.takeIf { it != UTM_SOURCE }?.let {
-                    add("$source · utm_source is '$it', expected '$UTM_SOURCE'")
+                val expectedSource = UTM_SOURCE_OF_PATH[source] ?: UTM_SOURCE
+                utm["utm_source"]?.takeIf { it != expectedSource }?.let {
+                    add("$source · utm_source is '$it', expected '$expectedSource'")
                 }
                 utm["utm_campaign"]?.takeIf { it != expectedCampaign }?.let {
                     add(
@@ -799,8 +800,14 @@ class WebSiteParityGuardrailTest {
         /** What the bare shortcut stands for: the bio link of the account, and the QR codes. */
         const val BIO_CAMPAIGN = "bio"
 
-        /** Every shortcut is reached from one place today; a second source gets its own constant. */
+        /** The account most shortcuts are reached from; a path in [UTM_SOURCE_OF_PATH] overrides it. */
         const val UTM_SOURCE = "instagram"
+
+        /** The second source got its own constant, as planned above. [MKT-ADD-FACEBOOK-ATTRIBUTION-ROUTE-001] */
+        const val UTM_SOURCE_FACEBOOK = "facebook"
+
+        /** Which `/descargar…` path is reached from which account; everything else is [UTM_SOURCE]'s. */
+        val UTM_SOURCE_OF_PATH = mapOf("$DOWNLOAD_PATH/fb" to UTM_SOURCE_FACEBOOK)
 
         const val PAID_MEDIUM = "paid"
 
