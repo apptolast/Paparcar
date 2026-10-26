@@ -1,7 +1,10 @@
 # Paparcar — Release process
 
-> **Doc vivo.** Verificado contra master `ad101968a` el **2026-09-24** (`app/build.gradle.kts`,
-> `:app:tasks --all`, `git tag -l`, `docs/release/play-listing/`).
+> **Doc vivo.** Verificado contra master `e9078c6e2` el **2026-10-26** (`app/build.gradle.kts`,
+> `git tag -l`, `docs/release/play-listing/`, `tools/release/`).
+>
+> ⛔ Este doc **no repite los pasos mecánicos del corte**: los ejecuta `tools/release/cut.py` (§1.0).
+> Un procedimiento escrito dos veces se desincroniza, y aquí ya pasó.
 
 Single source of truth para cortar una release firmada y publicarla en **Google Play**. Mantener
 este archivo en sync con la realidad — si cambias la config de signing o el flujo de publicación,
@@ -109,34 +112,50 @@ con el mismo patrón: bien en tu APK, muerto en el de Play. Detalle en
 
 ## 1. Cortar una release
 
-### 1.0 La suite, antes de nada
+### 1.0 ⛔ El corte es UN COMANDO, y lo dispara el user
 
 ```bash
-./gradlew testAll
+python tools/release/cut.py 1.6.0          # el corte entero
+python tools/release/cut.py 1.6.0 --phases notes   # reanudar una fase suelta
 ```
 
-⛔ **`testAll`, nunca `:shared:testDebugUnitTest`**: esa deja fuera el verify del grafo del flavor
-`mock` (vive en `:app`) y la compilación del klib de iOS
-[TEST-A-GUARD-MUST-NOT-READ-THE-FOLDER-NAME-001]. Y si tocaste algo que solo vigila un guard de
-Konsist (imports, color, tipografía, copy, locales, web), `--rerun-tasks`: un import no cambia el
-bytecode, así que Gradle da el test por UP-TO-DATE y no llega a ejecutarlo.
+Los ocho pasos mecánicos viven en [`tools/release/cut.py`](../../tools/release/cut.py), no en este
+doc [RELEASE-THE-CUT-MUST-BE-ONE-COMMAND-001]. **Esta sección ya no los deletrea a propósito**: lo
+que un humano reejecuta de memoria se olvida por un paso distinto cada vez, y la prueba de que pasa
+estaba aquí mismo — §1.1 decía «hoy va por 14 / 1.3.0» con el árbol en 16 / 1.5.0.
 
-### 1.1 Bump de versión
+| El comando… | …y el fallo que evita |
+|---|---|
+| escribe `versionCode`+`versionName` en los **dos** sitios (Gradle y `web/lib/config.mjs`) | dejarse el de la web deja `WebSiteParityGuardrailTest` rojo, y es el único aviso |
+| reconstruye la web y avisa **si `hosting/public/` cambió** | desplegar lo de antes, o no desplegar lo que sí cambió |
+| `testAll --rerun-tasks` y comprueba que Gradle **no se salvó trabajo** | un guard de Konsist no cambia bytecode: sin `--rerun-tasks` sale UP-TO-DATE y no mira |
+| `bundleProdRelease --rerun-tasks` y copia el AAB fuera de `build/` | un bundle incremental miente por megas; y `*.aab` está gitignoreado, el siguiente build lo pisa |
+| `keytool -printcert` contra la huella **esperada y versionada** | el fallo del 2026-09-03 (§0.2), que `jar verified.` no podía ver |
+| sha256, bytes, entradas y el `versionName` leído **dentro** del bundle, con el anterior ausente | subir un binario de otro árbol |
+| valida las notas: 9 locales, cada uno ≤ 500 | que Play las corte sin avisar |
+| rellena `docs/backlog/release-<ver>-001.md` con las cifras **medidas** | el número viejo que se cuela al copiar de la terminal |
 
-En `app/build.gradle.kts → defaultConfig`:
+⛔ **Lo que el comando NO hace, a propósito: subir nada a Play.** Deja el AAB verificado y las
+cifras; publicar es irreversible y de cara al público, y es §1.5, a mano.
 
-- `versionCode` — entero, **siempre incrementar** entre releases (regla de Play). Hoy va por **14**.
-- `versionName` — string visible, `MAJOR.MINOR.PATCH`. Hoy, **1.3.0**.
+Y hay una fase novena, aparte porque necesita que el commit del bump EXISTA (commitear es del user):
 
-### 1.2 Release notes
+```bash
+python tools/release/cut.py 1.6.0 --phases tag
+```
 
-Dos ficheros, dos destinatarios:
+Las verificaciones están probadas **falsificándolas una a una** —no solo por el camino verde— en
+[`tools/release/test_cut.py`](../../tools/release/test_cut.py): `python tools/release/test_cut.py`.
 
-- **Play** — `docs/release/play-listing/paste/release-notes-v<versión>.txt`, con los 9 locales en
-  bloques `<en-US>…</en-US>`. ⛔ **Tope de 500 caracteres por locale**, y Play corta sin avisar:
-  medirlos uno a uno antes de pegar.
+### 1.1 Lo editorial, que ningún script escribe
+
+- **Notas de Play** — `docs/release/play-listing/paste/release-notes-v<versión>.txt`, los 9 locales
+  en bloques `<en-US>…</en-US>`. ⛔ El rumano es `<ro>`, **no `ro-RO`**: es un código de Play
+  [PLAY-A-LOCALE-CODE-IS-PLAYS-NOT-ANDROIDS-001]. El corte las **valida**, nunca las escribe.
 - **Changelog del repo** — [`distribution/release-notes.txt`](../../distribution/release-notes.txt),
   texto plano, la versión vigente.
+- **Nombre de la versión para el Console** — 50 caracteres, estilo `1.5.0 (16) - Precios cerca y
+  detección más fina`.
 
 ### 1.2b Reglas, índices y funciones — ANTES del binario
 
@@ -161,21 +180,14 @@ privacidad vuelve a prometer lo que el código no hace.
 
 ### 1.3 Build firmado
 
-```bash
-./gradlew :app:bundleProdRelease     # AAB — es lo que sube a Play
-./gradlew :app:assembleProdRelease   # APK — solo para el smoke test de §1.4
-```
+**El AAB y su verificación de firma son §1.0** — el corte los hace y compara el SHA-1 contra la
+huella versionada en `cut.py`, que es la única comprobación que caza el fallo de §0.2.
 
-Salidas: `app/build/outputs/bundle/prodRelease/app-prod-release.aab` y
-`app/build/outputs/apk/prod/release/app-prod-release.apk`.
-
-Verifica **con qué keystore** se firmó — no que esté firmado, sino cuál:
+Lo que sigue a mano es el **APK**, y solo porque el smoke test de §1.4 necesita algo instalable:
 
 ```bash
-keytool -J-Duser.language=en -printcert -jarfile app/build/outputs/apk/prod/release/app-prod-release.apk
+./gradlew :app:assembleProdRelease   # -> app/build/outputs/apk/prod/release/app-prod-release.apk
 ```
-
-El SHA-1 que imprima tiene que ser el de §0.4. Es la única comprobación que caza el fallo de §0.2.
 
 ⛔ **El mapping de R8 se sube solo, y así tiene que quedarse**
 [RELEASE-A-CRASH-WITHOUT-A-MAPPING-IS-UNREADABLE-001]. Estuvo al revés —apagado salvo que pasaras
@@ -215,10 +227,19 @@ Si algo de esto falla con minify-on y funciona con minify-off, falta un keep en
 
 ### 1.6 Tag + hosting
 
+La etiqueta es la respuesta a **«qué hay en producción»**, y hacía falta: 1.4.0 se publicó el 13-10
+con el árbol del 30-09 y nada en el repo lo decía. La pone el corte, que **se niega** si el bump no
+está commiteado o si la etiqueta ya existe:
+
 ```bash
-git tag -a v1.3.0 -m "Release 1.3.0"
-git push origin v1.3.0
+python tools/release/cut.py 1.6.0 --phases tag
+git push origin v1.6.0
 ```
+
+⛔ Etiquetas, **no** `develop`/`main`: se evaluó git-flow el 26-10-2026 y la mitad que aporta aquí
+—un puntero a lo publicado— la dan las etiquetas sin romper el histórico lineal ni el
+`merge --squash` de un commit por ticket. `git describe --tags --abbrev=0` dice qué hay en
+producción; un hotfix sale de esa etiqueta. ⚠️ Solo existe `v1.0.0`: de 1.2.0 a 1.5.0 nadie etiquetó.
 
 Y si la versión cambió algo que la web nombra (límites del plan free, `versionName`, una feature,
 la política), **reconstruir y desplegar** — la web es un consumidor más de la verdad del producto
