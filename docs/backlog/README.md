@@ -1,6 +1,6 @@
 # Backlog — índice de lo que sigue abierto
 
-> **809 ficheros: 722 cerrados, 78 abiertos, 9 que no son tickets.** Este índice lista **solo lo que
+> **809 ficheros: 723 cerrados, 77 abiertos, 9 que no son tickets.** Este índice lista **solo lo que
 > queda**, para que la pregunta *"¿qué falta?"* se conteste leyendo y no listando el directorio.
 > Verificado contra master `1339ea263` el **2026-10-07**
 > [DOCS-A-CLOSED-TICKET-MUST-NOT-SAY-IT-IS-IN-REVIEW-001]. El barrido anterior
@@ -220,7 +220,6 @@ borrada sigue a un `git checkout <tag>` de distancia **en esta máquina y solo a
 que un hash «quedó colgando», `git tag --contains <hash>`.
 | [`ios-death-a-kill-that-signs-its-name-001`](ios-death-a-kill-that-signs-its-name-001.md) · [`ios-devcat-a-gallery-the-simulator-can-open-001`](ios-devcat-a-gallery-the-simulator-can-open-001.md) · [`ios-diag-a-log-that-survives-to-be-shipped-001`](ios-diag-a-log-that-survives-to-be-shipped-001.md) · [`ios-route-a-snap-the-drainer-never-does-001`](ios-route-a-snap-the-drainer-never-does-001.md) | ⚪ pendientes, sin rama |
 | [`ios-social-login-001`](ios-social-login-001.md) | 🔵 bloqueado hasta tener un Mac |
-| [`ios-the-store-metadata-skips-romanian-001`](ios-the-store-metadata-skips-romanian-001.md) | ⚪ pendiente, sin rama — `metadata_from_play.py` se salta el rumano por DOS sitios (regex que exige `xx-XX`, y busca un `play-ro-RO.txt` que no existe), así que `metadata/ro/` no se puede regenerar. Los 9 locales de Play viven en **tres** listas y el rumano es donde se desvían. ⚠️ Su prioridad depende de si hay cuenta de App Store Connect: el user dice que no, el repo dice que sí |
 
 ---
 
@@ -254,6 +253,7 @@ No son trabajo pendiente: son confirmaciones que faltan. Se listan para que nadi
 | [`settings-remodel-001-followups-2026-07-03`](settings-remodel-001-followups-2026-07-03.md) | validación en plataforma, sin código |
 | [`ui-a-page-keeps-one-vertical-rhythm-001`](ui-a-page-keeps-one-vertical-rhythm-001.md) | medido en A/B sobre emulador; ⏳ verlo en un **móvil real**, y una medición suelta de Home (15,2 dp con el binario nuevo) que no se reprodujo — ver «Cabo suelto» en el doc |
 | [`det-no-device-mute-in-remote-001`](det-no-device-mute-in-remote-001.md) · [`det-retract-denied-forever-001`](det-retract-denied-forever-001.md) | hechos; el doc existe para que la regla tenga dónde vivir |
+| [`ios-the-store-metadata-skips-romanian-001`](ios-the-store-metadata-skips-romanian-001.md) | los 9 codigos de Play y su patron viven ya en `tools/release/play_locales.py`, y el rumano se genera (70 ficheros con error -> 72 en 10 idiomas). ⏳ `iosApp/fastlane/metadata/` sigue con el copy de la ficha anterior en los otros ocho idiomas: regenerarlo son 72 ficheros y toca cuando se suba la ficha de Apple |
 | [`release-the-cut-must-be-one-command-001`](release-the-cut-must-be-one-command-001.md) | el corte son **un comando** (`tools/release/cut.py`, 9 fases, 45 tests que las falsifican) y `RELEASE-PROCESS.md` ya no lo deletrea. ⏳ El primer corte completo se vera en el **proximo release** --el disparador es el user, no un merge-- y el workflow que lo invoque espera a que Actions arranque |
 | [`mkt-add-facebook-attribution-route-001`](mkt-add-facebook-attribution-route-001.md) | segunda fuente de atribución (`/descargar/fb`), análoga a las seis de Instagram; guard generalizado a `UTM_SOURCE_OF_PATH`. ⏳ desplegar y verlo UNA vez en device |
 

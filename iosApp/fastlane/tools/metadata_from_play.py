@@ -23,9 +23,18 @@ ROOT = pathlib.Path(__file__).resolve().parents[3]
 PASTE = ROOT / "docs" / "release" / "play-listing" / "paste"
 OUT = ROOT / "iosApp" / "fastlane" / "metadata"
 
-# Play's locale folders vs App Store Connect's language codes. Three of the nine differ, and
-# getting one wrong is a silent no-op upload: deliver ignores a folder it does not recognise.
+sys.path.insert(0, str(ROOT / "tools" / "release"))
+from play_locales import PLAY_LOCALES, tagged_blocks  # noqa: E402
+
+# Play's locale folders vs App Store Connect's language codes. Four of the nine differ, and getting
+# one wrong is a silent no-op upload: deliver ignores a folder it does not recognise.
 # Verified against FastlaneCore::Languages::ALL_LANGUAGES (fastlane 2.237).
+#
+# ⛔ The KEYS are Play's codes and must be exactly PLAY_LOCALES — `locale_coverage()` below checks
+# it, because this table said `ro-RO` for 27 days and nothing noticed: Romanian on the App Store
+# listing could not be regenerated at all, and the error was one line in a report that exits 0 when
+# run without --check. Romanian on Play is `ro`, with no region, and `ro-RO` is an ANDROID locale.
+# [PLAY-A-LOCALE-CODE-IS-PLAYS-NOT-ANDROIDS-001] [IOS-THE-STORE-METADATA-SKIPS-ROMANIAN-001]
 LOCALES = {
     "es-ES": "es-ES",
     "en-US": "en-US",
@@ -41,8 +50,21 @@ LOCALES = {
     "de-DE": "de-DE",
     "nl-NL": "nl-NL",
     "pl-PL": "pl",
-    "ro-RO": "ro",
+    "ro": "ro",
 }
+
+
+def locale_coverage():
+    """Los codigos de Play que esta tabla no cubre, o que se inventa.
+
+    Es el testigo de que las claves de arriba son las de Play: una clave de mas (`ro-RO`) deja un
+    idioma de la ficha SIN poder regenerarse, y una de menos lo deja sin tocar.
+    """
+    keys = set(LOCALES) - {"en-US|en-GB"}
+    return {
+        "sin cubrir": [loc for loc in PLAY_LOCALES if loc not in keys],
+        "inventados": sorted(loc for loc in keys if loc not in PLAY_LOCALES),
+    }
 
 # paparcar.com serves Spanish at the root and English under /en; there is no page for the other
 # seven languages, so they point at the English one — an existing page beats an invented path.
@@ -80,10 +102,12 @@ def parse_listing(text: str) -> dict:
 
 
 def release_notes(version_file: pathlib.Path) -> dict:
-    """`release-notes-<version>.txt` carries every locale in `<xx-XX>` tags."""
-    text = version_file.read_text(encoding="utf-8")
-    return {m.group(1): m.group(2).strip()
-            for m in re.finditer(r"<([a-z]{2}-[A-Z]{2})>\n(.*?)\n</\1>", text, flags=re.S)}
+    """`release-notes-<version>.txt` carries every locale in `<xx-XX>` tags -- or `<ro>`.
+
+    ⛔ Shared parser on purpose. This function had its own regex demanding `xx-XX`, so it read 8 of
+    the 9 locales and Romanian was invisible. [IOS-THE-STORE-METADATA-SKIPS-ROMANIAN-001]
+    """
+    return tagged_blocks(version_file.read_text(encoding="utf-8"))
 
 
 def main() -> int:
@@ -102,6 +126,13 @@ def main() -> int:
     print(f"notas de versión: {notes_file.name} ({len(notes)} idiomas)")
 
     problems, written = [], 0
+    coverage = locale_coverage()
+    for loc in coverage["sin cubrir"]:
+        problems.append(f"{loc}: locale de Play que la tabla LOCALES no cubre")
+    for loc in coverage["inventados"]:
+        problems.append(f"{loc}: no es un locale de Play (¿querías `{loc.split('-')[0]}`?)")
+    for loc in sorted(set(notes) - set(PLAY_LOCALES)):
+        problems.append(f"{loc}: locale que Play no admite en las notas")
     for play_locale, app_locale in LOCALES.items():
         play_file = play_locale.split("|")[0]
         src = PASTE / f"play-{play_file}.txt"

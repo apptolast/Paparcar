@@ -1,7 +1,13 @@
 # IOS-THE-STORE-METADATA-SKIPS-ROMANIAN-001 · la ficha de App Store se salta el rumano, en silencio
 
-**Estado:** ⚪ Pendiente, sin rama · abierto el 26-10-2026 desde
+**Estado:** ✅ **Done** (26-10-2026) · rama `fix/IOS-THE-STORE-METADATA-SKIPS-ROMANIAN-001-locales`
+· worktree `../Paparcar-ro-locales` — ambos se retiran al cerrar. Abierto el mismo día desde
 `RELEASE-THE-CUT-MUST-BE-ONE-COMMAND-001`, que tropezó con el mismo invariante por el otro lado.
+
+⏳ **Residual, deliberado**: `iosApp/fastlane/metadata/` sigue con el copy de la ficha anterior en
+los otros ocho idiomas (el script los daba por «desactualizado» ya antes de esto). Regenerarlo son
+72 ficheros y solo tiene sentido cuando se vaya a subir la ficha de Apple de verdad; ahora **se
+puede**, que es lo que faltaba.
 
 ## Problema
 
@@ -52,23 +58,41 @@ el aviso y sigue**, y la ficha se publica con un idioma viejo.
 
 ## Diseño
 
-Dos líneas de arreglo y **una decisión de sistema**, que es lo que de verdad pide este ticket:
+Dos líneas de arreglo y **una decisión de sistema**, que es lo que de verdad pedía este ticket.
 
-- la regex pasa a aceptar locale sin región, y `LOCALES` mapea `"ro" -> "ro"`;
-- ⛔ **los nueve códigos de locale de Play viven hoy en TRES sitios** —
-  `docs/release/play-listing/tools/make_paste.py` (`LOCALES`), `tools/release/cut.py` (`LOCALES`) y
-  esta tabla de `metadata_from_play.py`— y el rumano es justo donde los tres se desvían. Mientras
-  sean tres listas, un cuarto consumidor volverá a escribir `ro-RO`. El arreglo bueno es **un solo
-  sitio** del que los tres lean.
+`tools/release/play_locales.py` es el único dueño de **dos** cosas, no una: la lista de los nueve
+códigos **y el patrón que los lee** (`LOCALE_PATTERN`, con la región opcional). Esa pareja no es
+casual — el 30-09 la causa no estuvo en la tabla sino en el regex: `[a-z]{2}-[A-Z]{2}` **no puede
+casar `ro`**, así que aunque la lista fuera correcta el parser no veía el idioma. Separar lista y
+patrón es lo que permitió que este consumidor siguiera roto 27 días con la lista ya arreglada.
+
+Lo leen los **tres tools**: `make_paste.py` (ficha de Play), `cut.py` (fase de notas del corte) y
+`metadata_from_play.py` (ficha de App Store), que además pasa a mapear `"ro" -> "ro"`.
+
+⛔ **Y lo que NO se unifica, por decisión ya tomada y medida:**
+
+- `PlayListingPasteParityGuardrailTest.kt` **mantiene su propia copia de la lista**. Es el testigo
+  de `make_paste.py`: si leyera `play_locales` compararía el generador consigo mismo y no
+  comprobaría nada — *una prohibición sin testigo no es un chequeo*. Ya se decidió así en
+  `PLAY-A-LOCALE-CODE-IS-PLAYS-NOT-ANDROIDS-001` («el guard duplica la lista a propósito. No
+  factorizar») y aquí se respeta. Lo que sí se añade es un test que **lee ese fichero** y exige que
+  la copia siga coincidiendo: vigilar una copia no es compartirla.
+- `docs/release/play-listing/tools/scan.py` usa `["en", "es", …]`: son los nombres de las **carpetas
+  de capturas** del device, otro espacio de nombres. Unificarlo sería el mismo error de confundir
+  listas que da nombre al ticket padre.
 
 ## Criterio de éxito
 
-- [ ] `python iosApp/fastlane/tools/metadata_from_play.py --check` no reporta nada de `ro`, y
-      `metadata/ro/release_notes.txt` + `description.txt` se regeneran con el copy de la versión en
-      curso
-- [ ] un test que **falsifique** el caso: con `<ro>` en las notas, el parser lo lee; con `ro-RO`,
-      avisa. Sin él esto vuelve en el siguiente idioma sin región
-- [ ] los 9 códigos de Play se leen de **un** sitio, y los otros dos consumidores pasan a citarlo
+- [x] `metadata_from_play.py` ya no reporta nada de `ro`, y el rumano **se genera**: pasó de 70
+      ficheros con `ro-RO: falta play-ro-RO.txt` a **72 en 10 idiomas**, con `metadata/ro/` recibiendo
+      sus 7 ficheros generados — verificado escribiendo a un directorio temporal, sin tocar el
+      `metadata/` del repo
+- [x] **16 tests** en `tools/release/test_play_locales.py` que falsifican el caso: el patrón viejo
+      no puede ver `ro`, una tabla con `ro-RO` se delata (`locale_coverage()`), `cut.py` sigue
+      rechazando `ro-RO` en las notas, y los `play-<locale>.txt` que el script busca existen todos
+- [x] los 9 códigos y su patrón se leen de **un** sitio, y los tres tools lo citan
+- [x] `make_paste.py --check` limpio, los 45 tests de `cut.py` verdes tras el refactor, y la copia
+      del testigo de Kotlin comprobada contra la lista común
 
 ## Prioridad — depende de una cosa que el user tiene que confirmar
 

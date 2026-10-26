@@ -19,10 +19,15 @@ es lo que de verdad la va a ejecutar.
 """
 import io
 import os
+import pathlib
 import re
 import sys
 
-LOCALES = ["en-US", "es-ES", "it-IT", "pt-PT", "fr-FR", "de-DE", "nl-NL", "pl-PL", "ro"]
+# Los nueve codigos de Play y el patron que los lee —con la REGION OPCIONAL, que es donde estuvo el
+# fallo del rumano— viven en un solo sitio. [IOS-THE-STORE-METADATA-SKIPS-ROMANIAN-001]
+# parents: [0] tools · [1] play-listing · [2] release · [3] docs · [4] raiz del repo
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[4] / "tools" / "release"))
+from play_locales import LOCALE_PATTERN, PLAY_LOCALES as LOCALES  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 LISTING_DIR = os.path.dirname(HERE)
@@ -62,13 +67,15 @@ def _section(md, marker):
 def _table(md, marker):
     """{locale: texto} de una tabla cuyas filas son: pipe, locale, pipe, texto entre backticks.
 
-    ⛔ La región es OPCIONAL. Ocho de los nueve locales de Play la llevan y el rumano NO: su
-    código es `ro` a secas. Con `[a-z]{2}-[A-Z]{2}` el parser no podía ni verlo.
-    [PLAY-A-LOCALE-CODE-IS-PLAYS-NOT-ANDROIDS-001]
+    ⛔ La región es OPCIONAL — el rumano de Play es `ro` a secas, y con `[a-z]{2}-[A-Z]{2}` el
+    parser no podía ni verlo. El patrón sale de `play_locales.LOCALE_PATTERN` para que esa regla
+    tenga UN dueño: el mismo formato se leía aquí, en la fase de notas del corte y en la ficha de
+    App Store con tres regex distintas, y una de las tres seguía exigiendo región.
+    [PLAY-A-LOCALE-CODE-IS-PLAYS-NOT-ANDROIDS-001] [IOS-THE-STORE-METADATA-SKIPS-ROMANIAN-001]
     """
     out = {}
     for line in _section(md, marker).splitlines():
-        m = re.match(r"^\|\s*([a-z]{2}(?:-[A-Z]{2})?)\s*\|\s*`(.+?)`\s*\|", line)
+        m = re.match(r"^\|\s*(%s)\s*\|\s*`(.+?)`\s*\|" % LOCALE_PATTERN, line)
         if m:
             out[m.group(1)] = m.group(2)
     return out
@@ -78,7 +85,7 @@ def _full_descriptions(md):
     """{locale: texto} de los fences bajo `## Descripción completa`."""
     body = md[md.index("## Descripción completa"):]
     out = {}
-    for m in re.finditer(r"^### ([a-z]{2}(?:-[A-Z]{2})?)\s*\n+```\n(.*?)\n```", body, re.S | re.M):
+    for m in re.finditer(r"^### (%s)\s*\n+```\n(.*?)\n```" % LOCALE_PATTERN, body, re.S | re.M):
         out[m.group(1)] = m.group(2)
     return out
 

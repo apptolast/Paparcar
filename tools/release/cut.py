@@ -67,6 +67,9 @@ import subprocess
 import sys
 import zipfile
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import play_locales  # noqa: E402
+
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 GRADLE_FILE = ROOT / "app" / "build.gradle.kts"
 WEB_CONFIG = ROOT / "web" / "lib" / "config.mjs"
@@ -78,11 +81,10 @@ HOSTING = ROOT / "hosting" / "public"
 # bundle es derivado -- sale de un commit, no lo sustituye.
 EXPORT_DIR = ROOT.parent
 
-# Tope de Play por locale en las notas de version, y los NUEVE codigos de locale de Play.
-# ⛔ El rumano es `ro`, NO `ro-RO`: es un codigo de Play, no de Android
-# [PLAY-A-LOCALE-CODE-IS-PLAYS-NOT-ANDROIDS-001].
+# Tope de Play por locale en las notas de version. Los NUEVE codigos y como se parsean viven en
+# play_locales.py, con la doctrina del rumano (`ro`, sin region) y el regex que la respeta.
 NOTE_LIMIT = 500
-LOCALES = ["en-US", "es-ES", "it-IT", "pt-PT", "fr-FR", "de-DE", "nl-NL", "pl-PL", "ro"]
+LOCALES = play_locales.PLAY_LOCALES
 
 # Huella SHA-1 de la upload key vigente (`keystore/release.jks`, alias `paparcar-release`).
 #
@@ -461,25 +463,22 @@ def phase_measure():
 
 
 def parse_notes(path):
-    """`release-notes-<version>.txt` trae cada locale en etiquetas `<xx-XX>` -- o `<ro>`.
-
-    ⛔ El rumano NO lleva region, asi que una regex que exija `xx-XX` se lo salta en silencio.
-    """
-    text = path.read_text(encoding="utf-8")
-    return {m.group(1): m.group(2).strip()
-            for m in re.finditer(r"<([a-z]{2}(?:-[A-Z]{2})?)>\n(.*?)\n</\1>", text, re.S)}
+    """`release-notes-<version>.txt` trae cada locale en etiquetas `<xx-XX>` -- o `<ro>`."""
+    return play_locales.tagged_blocks(path.read_text(encoding="utf-8"))
 
 
 def check_notes(notes):
     problems = []
+    for loc in play_locales.missing(notes):
+        problems.append("%s: falta" % loc)
     for loc in LOCALES:
         if loc not in notes:
-            problems.append("%s: falta" % loc)
-        elif not notes[loc]:
+            continue
+        if not notes[loc]:
             problems.append("%s: vacio" % loc)
         elif len(notes[loc]) > NOTE_LIMIT:
             problems.append("%s: %d caracteres > %d" % (loc, len(notes[loc]), NOTE_LIMIT))
-    for loc in sorted(set(notes) - set(LOCALES)):
+    for loc in play_locales.unexpected(notes):
         problems.append("%s: locale que Play no espera (el rumano es `ro`, no `ro-RO`)" % loc)
     return problems
 
