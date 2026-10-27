@@ -18,7 +18,10 @@
 # opens another tab and the capture still looks plausible. `uiautomator dump` gives the real bounds:
 #   - the lane tabs are found by their COUNT BADGE ("6"/"4"/"5" in this fixture) — plain Arabic
 #     numerals, identical in all 9 locales, unlike "Fuel stations"/"Tankstellen"/…
-#   - the car-park row by "Drury Street Car Park", a fixture proper noun that no locale translates
+#   - the car-park row by "Parking Plaza Mayor", a fixture proper noun that no locale translates
+# ⛔ Esos literales son un CONTRATO con el mundo mock, y se rompio en silencio: la mudanza a Madrid
+# dejo dos de los tres apuntando a sitios que ya no existen. Lo vigila ahora
+# `CaptureAnchorGuardrailTest` [PLAY-SHOTS-THE-CAPTURE-ANCHORS-DIED-IN-THE-MOVE-001].
 set -u
 L="$1"; OUT="$2"; shift 2
 NAMES=("$@")
@@ -139,9 +142,11 @@ sheet)
   launch parked
   expand_sheet
   cap sheet
-  # The window in frame 2 magnifies the parked car's card; "Camden Street, 21" is the fixture
-  # address, identical in all nine locales.
-  anchor sheet "Camden Street, 21" --clickable --rect || echo "WARN: sheet anchor missing" >&2
+  # The window in frame 2 magnifies the parked car's card; this is the fixture address, identical
+  # in all nine locales. It moved with the demo world [MOCK-THE-DEMO-WORLD-MOVES-TO-SPAIN-001] and
+  # the anchor did not, which is how two of these three died unnoticed
+  # [PLAY-SHOTS-THE-CAPTURE-ANCHORS-DIED-IN-THE-MOVE-001].
+  anchor sheet "Calle de Fuencarral, 21" --clickable --rect || echo "WARN: sheet anchor missing" >&2
   ;;
 spotmap)
   # Frame 3 (pair, back) · The map itself: what the community is offering right now, as markers.
@@ -166,8 +171,12 @@ fuel)
   [ "$ok" = "1" ] || echo "ERROR: fuel gave up after 2 full attempts" >&2
   sleep 5
   cap fuel
-  # Frame 4 magnifies the price column; the anchor is the first forecourt's row.
-  anchor fuel "Northgate Fuel" --clickable --rect || echo "WARN: fuel anchor missing" >&2
+  # Frame 4 magnifies the price column; the anchor is a forecourt row with one below it.
+  # ⛔ By PREFIX, and not for brevity: every Madrid forecourt name carries an accent
+  # ("Estación", "Tetuán", "Área", "Chamartín") and `uiquery.py` compares by EXACT equality, so one
+  # mis-encoded character between bash, Windows argv and the XML dump loses the anchor — and losing
+  # it only prints a WARN, so the frame ships wrong. "Carburantes" is accent-free and unique.
+  anchor fuel "Carburantes" --starts-with --clickable --rect || echo "WARN: fuel anchor missing" >&2
   ;;
 carparks)
   # Frame 5 (pair, back) · The car-parks lane. "4" is its badge.
@@ -185,7 +194,7 @@ carpeek)
   ok=0
   for attempt in 1 2; do
     launch map; expand_sheet
-    if select_lane "4" && tap_text "Drury Street Car Park"; then ok=1; break; fi
+    if select_lane "4" && tap_text "Parking Plaza Mayor"; then ok=1; break; fi
   done
   [ "$ok" = "1" ] || echo "ERROR: carpeek gave up after 2 full attempts" >&2
   sleep 5
