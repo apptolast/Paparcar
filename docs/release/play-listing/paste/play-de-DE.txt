@@ -1,6 +1,6 @@
 FICHA DE PLAY STORE — de-DE
 ============================================================
-GENERADO por tools/make_paste.py desde LISTING-v1.4.0.md — no editar a mano.
+GENERADO por tools/make_paste.py desde LISTING-v1.5.0.md — no editar a mano.
 
 --- 1. NOMBRE DE LA APLICACION (28/30) ---
 Paparcar: wo hast du geparkt
@@ -8,7 +8,7 @@ Paparcar: wo hast du geparkt
 --- 2. DESCRIPCION BREVE (78/80) ---
 Wo hast du geparkt? Paparcar merkt es sich — mit Spritpreisen und Parkhäusern.
 
---- 3. DESCRIPCION COMPLETA (3991/4000) ---
+--- 3. DESCRIPCION COMPLETA (3982/4000) ---
 Wo hast du geparkt?
 
 Paparcar merkt es sich für dich.
@@ -41,7 +41,7 @@ TANKSTELLEN UND PARKHÄUSER, AUF DERSELBEN KARTE
 • Der Preis des Kraftstoffs, den dein Auto tankt, kein Durchschnitt.
 • Parkhäuser mit Tarif, Durchfahrtshöhe und Stellplätzen, wenn die Quelle sie liefert.
 • Passt dein Auto unter die Höhe? Nur wenn wir sicher sind — unbekannt ist nie ein Ja.
-• Alles kostenlos: Sehen steckt nie hinter einem Abo.
+• Kostenlos, Hinweise inklusive: Preise um dich, App geschlossen.
 
 DEINE ZAHLEN
 • Was du für Kraftstoff ausgibst und wie viel du verbrauchst.
@@ -60,9 +60,9 @@ Verbindet sich dein Auto per Bluetooth, hilft das Trennen zu erkennen, dass du f
 Paparcar will nicht raten. Wenn nicht sicher ist, was passiert ist, fragt es dich, bevor ein Platz veröffentlicht wird.
 
 PAPARCAR PLUS
-Kostenlos fragst du, und die App antwortet. Mit Plus wacht sie, während du nicht hinsiehst:
+Was dich umgibt, ist kostenlos. Plus bewacht, was du wählst, und merkt es sich:
 • Hinweise, wenn in deiner Zone ein Platz frei wird — App geschlossen.
-• Hinweise, wenn der Preis an einer Tankstelle sinkt, der du folgst.
+• Deine Tankstelle, wo sie auch steht, und 30 Tage Verlauf.
 • Dein ganzer Verlauf. Kostenlos die letzten 7 Tage.
 • Mehr als ein eigenes Auto und mehr als zwei private Zonen.
 • Ein geteiltes Auto anlegen. Einem beizutreten ist immer kostenlos.

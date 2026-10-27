@@ -1,6 +1,6 @@
 FICHA DE PLAY STORE — it-IT
 ============================================================
-GENERADO por tools/make_paste.py desde LISTING-v1.4.0.md — no editar a mano.
+GENERADO por tools/make_paste.py desde LISTING-v1.5.0.md — no editar a mano.
 
 --- 1. NOMBRE DE LA APLICACION (30/30) ---
 Paparcar: dove ho parcheggiato
@@ -8,7 +8,7 @@ Paparcar: dove ho parcheggiato
 --- 2. DESCRIPCION BREVE (70/80) ---
 Dove hai parcheggiato? Paparcar se lo ricorda. Con prezzi e parcheggi.
 
---- 3. DESCRIPCION COMPLETA (3927/4000) ---
+--- 3. DESCRIPCION COMPLETA (3952/4000) ---
 Dove hai parcheggiato?
 
 Paparcar se lo ricorda per te.
@@ -41,7 +41,7 @@ DISTRIBUTORI E PARCHEGGI PUBBLICI, SULLA STESSA MAPPA
 • Il prezzo del carburante che usa davvero la tua auto, non una media generica.
 • Parcheggi pubblici con tariffa, altezza massima e posti, quando la fonte li fornisce.
 • Passi sotto la barriera? Solo quando ne siamo certi: un'altezza ignota non è mai un sì.
-• Tutto gratis: vedere cosa hai intorno non è mai dietro un abbonamento.
+• Tutto gratis, avvisi compresi: quanto sale o scende intorno a te ti arriva ad app chiusa.
 
 I TUOI NUMERI
 • Quanto spendi di carburante e quanto ne consumi.
@@ -60,9 +60,9 @@ Se la tua auto si collega al telefono via Bluetooth, la disconnessione aiuta a r
 Paparcar non vuole indovinare. Quando non è sicuro di cosa sia successo, te lo chiede prima di pubblicare un posto.
 
 PAPARCAR PLUS
-Gratis, sei tu a chiedere e l'app risponde. Con Plus, l'app sorveglia mentre tu non guardi:
+Quello che hai intorno è gratis. Plus sorveglia quello che scegli tu, e lo ricorda:
 • Avvisi quando si libera un posto nella tua zona, con l'app chiusa.
-• Avvisi quando cala il prezzo in un distributore che segui.
+• Il distributore che segui, sorvegliato dove sia, e 30 giorni di storico.
 • Tutto il tuo storico. Il piano gratuito tiene gli ultimi 7 giorni.
 • Più di un'auto tua e più di due zone private.
 • Creare un'auto condivisa. Entrare in una è sempre gratis.

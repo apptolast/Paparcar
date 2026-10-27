@@ -1,6 +1,6 @@
 FICHA DE PLAY STORE — es-ES
 ============================================================
-GENERADO por tools/make_paste.py desde LISTING-v1.4.0.md — no editar a mano.
+GENERADO por tools/make_paste.py desde LISTING-v1.5.0.md — no editar a mano.
 
 --- 1. NOMBRE DE LA APLICACION (25/30) ---
 Paparcar: dónde aparcaste
@@ -8,7 +8,7 @@ Paparcar: dónde aparcaste
 --- 2. DESCRIPCION BREVE (75/80) ---
 ¿Dónde aparcaste? Paparcar lo recuerda. Con precios de gasolina y parkings.
 
---- 3. DESCRIPCION COMPLETA (3904/4000) ---
+--- 3. DESCRIPCION COMPLETA (3930/4000) ---
 ¿Dónde aparcaste?
 
 Paparcar lo recuerda por ti.
@@ -41,7 +41,7 @@ GASOLINERAS Y PARKINGS, EN EL MISMO MAPA
 • El precio del combustible que usa tu coche, no una media genérica.
 • Parkings públicos con su tarifa, su gálibo y sus plazas, cuando la fuente los da.
 • ¿Cabes por el gálibo? Sólo cuando estamos seguros: un alto desconocido nunca es un «cabes».
-• Todo gratis: ver lo que tienes alrededor nunca está detrás de una suscripción.
+• Todo gratis, avisos incluidos: lo que sube o baja a tu alrededor te llega con la app cerrada.
 
 TUS CIFRAS
 • Cuánto te gastas en combustible y cuánto consumes.
@@ -60,9 +60,9 @@ Si tu coche se conecta al móvil por Bluetooth, la desconexión ayuda a detectar
 Paparcar no quiere adivinar. Cuando no está seguro de lo que ha pasado, te pregunta antes de publicar una plaza.
 
 PAPARCAR PLUS
-Gratis, tú preguntas y la app responde. Con Plus, la app vigila mientras tú no miras:
+Lo que tienes alrededor es gratis. Plus vigila lo que tú eliges, y lo recuerda:
 • Avisos cuando se libera una plaza en tu zona, con la app cerrada.
-• Avisos cuando baja el precio en una gasolinera que sigues.
+• La gasolinera que sigues, vigilada esté donde esté, y 30 días de histórico.
 • Todo tu historial. El plan gratuito guarda los últimos 7 días.
 • Más de un coche propio y más de dos zonas privadas.
 • Crear un coche compartido. Unirte a uno es siempre gratis.

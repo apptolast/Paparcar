@@ -1,6 +1,6 @@
 FICHA DE PLAY STORE — ro
 ============================================================
-GENERADO por tools/make_paste.py desde LISTING-v1.4.0.md — no editar a mano.
+GENERADO por tools/make_paste.py desde LISTING-v1.5.0.md — no editar a mano.
 
 --- 1. NOMBRE DE LA APLICACION (24/30) ---
 Paparcar: unde ai parcat
@@ -8,7 +8,7 @@ Paparcar: unde ai parcat
 --- 2. DESCRIPCION BREVE (67/80) ---
 Unde ai parcat? Paparcar ține minte. Cu prețuri și parcări publice.
 
---- 3. DESCRIPCION COMPLETA (3879/4000) ---
+--- 3. DESCRIPCION COMPLETA (3861/4000) ---
 Unde ai parcat?
 
 Paparcar ține minte pentru tine.
@@ -41,7 +41,7 @@ BENZINĂRII ȘI PARCĂRI PUBLICE, PE ACEEAȘI HARTĂ
 • Prețul combustibilului pe care îl folosește mașina ta, nu o medie generică.
 • Parcări publice cu tarif, înălțime maximă și locuri, când sursa le oferă.
 • Încapi la înălțime? Doar când suntem siguri — o înălțime necunoscută nu e niciodată un da.
-• Totul gratuit: să vezi ce ai în jur nu stă niciodată în spatele unui abonament.
+• Totul gratuit, alertele incluse: prețurile din jurul tău ajung cu aplicația închisă.
 
 CIFRELE TALE
 • Cât cheltui pe combustibil și cât consumi.
@@ -60,9 +60,9 @@ Dacă mașina ta se conectează la telefon prin Bluetooth, deconectarea ajută l
 Paparcar nu vrea să ghicească. Când nu este sigur, te întreabă înainte de a publica un loc.
 
 PAPARCAR PLUS
-Gratuit, tu întrebi și aplicația răspunde. Cu Plus, aplicația veghează cât timp tu nu te uiți:
+Ce ai în jur e gratuit. Plus veghează ce alegi tu și ține minte:
 • Alerte când se eliberează un loc în zona ta, cu aplicația închisă.
-• Alerte când scade prețul la o benzinărie pe care o urmărești.
+• Benzinăria pe care o urmărești, oriunde e, și 30 de zile de istoric.
 • Tot istoricul tău. Planul gratuit păstrează ultimele 7 zile.
 • Mai mult de o mașină proprie și mai mult de două zone private.
 • Crearea unei mașini partajate. Să intri în una este întotdeauna gratuit.

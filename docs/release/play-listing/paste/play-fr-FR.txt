@@ -1,6 +1,6 @@
 FICHA DE PLAY STORE — fr-FR
 ============================================================
-GENERADO por tools/make_paste.py desde LISTING-v1.4.0.md — no editar a mano.
+GENERADO por tools/make_paste.py desde LISTING-v1.5.0.md — no editar a mano.
 
 --- 1. NOMBRE DE LA APLICACION (28/30) ---
 Paparcar: où me suis-je garé
@@ -8,7 +8,7 @@ Paparcar: où me suis-je garé
 --- 2. DESCRIPCION BREVE (73/80) ---
 Où vous êtes-vous garé ? Paparcar s'en souvient. Prix et parkings inclus.
 
---- 3. DESCRIPCION COMPLETA (3986/4000) ---
+--- 3. DESCRIPCION COMPLETA (3991/4000) ---
 Où vous êtes-vous garé ?
 
 Paparcar s'en souvient pour vous.
@@ -41,7 +41,7 @@ STATIONS-SERVICE ET PARKINGS, SUR LA MÊME CARTE
 • Le prix du carburant de votre voiture, pas une moyenne générique.
 • Parkings publics avec tarif, hauteur maximale et nombre de places, quand la source les donne.
 • Vous passez sous la barrière ? Seulement si c'est sûr : une hauteur inconnue n'est pas un oui.
-• Le tout gratuitement : voir n'est jamais payant.
+• Gratuit, alertes comprises : les prix autour de vous, app fermée.
 
 VOS CHIFFRES
 • Ce que vous dépensez en carburant et ce que vous consommez.
@@ -60,9 +60,9 @@ Si votre voiture se connecte en Bluetooth, la déconnexion aide à détecter la 
 Paparcar ne veut pas deviner. Quand il n'est pas sûr, il vous demande avant de publier une place.
 
 PAPARCAR PLUS
-Gratuitement, vous demandez et l'application répond. Avec Plus, elle veille pendant que vous ne regardez pas :
+Ce qui vous entoure est gratuit. Plus surveille ce que vous choisissez, et s'en souvient :
 • Alertes quand une place se libère dans votre zone, application fermée.
-• Alertes quand le prix baisse dans une station que vous suivez.
+• La station que vous suivez, où qu'elle soit, et 30 jours d'historique.
 • Tout votre historique. Gratuitement, les 7 derniers jours.
 • Plus d'une voiture à vous et plus de deux zones privées.
 • Créer une voiture partagée. En rejoindre une est toujours gratuit.

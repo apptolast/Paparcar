@@ -1,6 +1,6 @@
 # Paparcar — Google Play store listing (9 locales)
 
-<!-- GENERADO por tools/make_paste.py desde LISTING-v1.4.0.md — no editar a mano. -->
+<!-- GENERADO por tools/make_paste.py desde LISTING-v1.5.0.md — no editar a mano. -->
 
 Import these texts VERBATIM. Do not rewrite, rephrase, shorten or translate them:
 every locale below is already translated and character-counted.
@@ -49,7 +49,7 @@ FUEL AND CAR PARKS, ON THE SAME MAP
 • The price of the fuel your car actually takes, not a generic average.
 • Public car parks with their rate, height limit and spaces, where the source gives them.
 • Does your car clear the barrier? Only when we are sure — an unknown height is never a yes.
-• All of it free: seeing what is around you is never behind a subscription.
+• All of it free, alerts included: prices moving around you reach you with the app closed.
 
 YOUR NUMBERS
 • What you spend on fuel, and how much you burn.
@@ -68,9 +68,9 @@ If your car connects to your phone by Bluetooth, the disconnection helps detect 
 Paparcar does not want to guess. When it is not sure what happened, it asks you before publishing a spot.
 
 PAPARCAR PLUS
-Free, you ask and the app answers. With Plus, the app watches while you are not looking:
+What is around you is free. Plus watches what you choose, and remembers it:
 • Alerts when a spot frees up in your area, with the app closed.
-• Alerts when the price drops at a station you follow.
+• The station you follow, watched wherever it is, with 30 days of history.
 • Your whole history. Free keeps the last 7 days.
 • More than one car of your own, and more than two private zones.
 • Creating a shared car. Joining one is always free.
@@ -135,7 +135,7 @@ GASOLINERAS Y PARKINGS, EN EL MISMO MAPA
 • El precio del combustible que usa tu coche, no una media genérica.
 • Parkings públicos con su tarifa, su gálibo y sus plazas, cuando la fuente los da.
 • ¿Cabes por el gálibo? Sólo cuando estamos seguros: un alto desconocido nunca es un «cabes».
-• Todo gratis: ver lo que tienes alrededor nunca está detrás de una suscripción.
+• Todo gratis, avisos incluidos: lo que sube o baja a tu alrededor te llega con la app cerrada.
 
 TUS CIFRAS
 • Cuánto te gastas en combustible y cuánto consumes.
@@ -154,9 +154,9 @@ Si tu coche se conecta al móvil por Bluetooth, la desconexión ayuda a detectar
 Paparcar no quiere adivinar. Cuando no está seguro de lo que ha pasado, te pregunta antes de publicar una plaza.
 
 PAPARCAR PLUS
-Gratis, tú preguntas y la app responde. Con Plus, la app vigila mientras tú no miras:
+Lo que tienes alrededor es gratis. Plus vigila lo que tú eliges, y lo recuerda:
 • Avisos cuando se libera una plaza en tu zona, con la app cerrada.
-• Avisos cuando baja el precio en una gasolinera que sigues.
+• La gasolinera que sigues, vigilada esté donde esté, y 30 días de histórico.
 • Todo tu historial. El plan gratuito guarda los últimos 7 días.
 • Más de un coche propio y más de dos zonas privadas.
 • Crear un coche compartido. Unirte a uno es siempre gratis.
@@ -221,7 +221,7 @@ DISTRIBUTORI E PARCHEGGI PUBBLICI, SULLA STESSA MAPPA
 • Il prezzo del carburante che usa davvero la tua auto, non una media generica.
 • Parcheggi pubblici con tariffa, altezza massima e posti, quando la fonte li fornisce.
 • Passi sotto la barriera? Solo quando ne siamo certi: un'altezza ignota non è mai un sì.
-• Tutto gratis: vedere cosa hai intorno non è mai dietro un abbonamento.
+• Tutto gratis, avvisi compresi: quanto sale o scende intorno a te ti arriva ad app chiusa.
 
 I TUOI NUMERI
 • Quanto spendi di carburante e quanto ne consumi.
@@ -240,9 +240,9 @@ Se la tua auto si collega al telefono via Bluetooth, la disconnessione aiuta a r
 Paparcar non vuole indovinare. Quando non è sicuro di cosa sia successo, te lo chiede prima di pubblicare un posto.
 
 PAPARCAR PLUS
-Gratis, sei tu a chiedere e l'app risponde. Con Plus, l'app sorveglia mentre tu non guardi:
+Quello che hai intorno è gratis. Plus sorveglia quello che scegli tu, e lo ricorda:
 • Avvisi quando si libera un posto nella tua zona, con l'app chiusa.
-• Avvisi quando cala il prezzo in un distributore che segui.
+• Il distributore che segui, sorvegliato dove sia, e 30 giorni di storico.
 • Tutto il tuo storico. Il piano gratuito tiene gli ultimi 7 giorni.
 • Più di un'auto tua e più di due zone private.
 • Creare un'auto condivisa. Entrare in una è sempre gratis.
@@ -307,7 +307,7 @@ BOMBAS E PARQUES, NO MESMO MAPA
 • O preço do combustível que o teu carro usa, não uma média genérica.
 • Parques de estacionamento com tarifa, altura máxima e lugares, quando a fonte os dá.
 • Passas na altura? Só quando temos a certeza: uma altura desconhecida nunca é um sim.
-• Tudo grátis: ver o que tens à volta nunca está atrás de uma subscrição.
+• Tudo grátis, avisos incluídos: o que sobe ou desce à tua volta chega-te com a aplicação fechada.
 
 OS TEUS NÚMEROS
 • Quanto gastas em combustível e quanto consomes.
@@ -326,9 +326,9 @@ Se o teu carro se liga ao telemóvel por Bluetooth, a desconexão ajuda a deteta
 O Paparcar não quer adivinhar. Quando não tem a certeza do que aconteceu, pergunta-te antes de publicar um lugar.
 
 PAPARCAR PLUS
-Grátis, tu perguntas e a aplicação responde. Com Plus, a aplicação vigia enquanto não estás a olhar:
+O que tens à tua volta é grátis. O Plus vigia o que tu escolhes, e lembra-se:
 • Avisos quando fica livre um lugar na tua zona, com a aplicação fechada.
-• Avisos quando desce o preço numa bomba que segues.
+• A bomba que segues, vigiada onde quer que esteja, e 30 dias de histórico.
 • Todo o teu histórico. O plano grátis guarda os últimos 7 dias.
 • Mais do que um carro teu e mais do que duas zonas privadas.
 • Criar um carro partilhado. Entrar num é sempre grátis.
@@ -393,7 +393,7 @@ STATIONS-SERVICE ET PARKINGS, SUR LA MÊME CARTE
 • Le prix du carburant de votre voiture, pas une moyenne générique.
 • Parkings publics avec tarif, hauteur maximale et nombre de places, quand la source les donne.
 • Vous passez sous la barrière ? Seulement si c'est sûr : une hauteur inconnue n'est pas un oui.
-• Le tout gratuitement : voir n'est jamais payant.
+• Gratuit, alertes comprises : les prix autour de vous, app fermée.
 
 VOS CHIFFRES
 • Ce que vous dépensez en carburant et ce que vous consommez.
@@ -412,9 +412,9 @@ Si votre voiture se connecte en Bluetooth, la déconnexion aide à détecter la 
 Paparcar ne veut pas deviner. Quand il n'est pas sûr, il vous demande avant de publier une place.
 
 PAPARCAR PLUS
-Gratuitement, vous demandez et l'application répond. Avec Plus, elle veille pendant que vous ne regardez pas :
+Ce qui vous entoure est gratuit. Plus surveille ce que vous choisissez, et s'en souvient :
 • Alertes quand une place se libère dans votre zone, application fermée.
-• Alertes quand le prix baisse dans une station que vous suivez.
+• La station que vous suivez, où qu'elle soit, et 30 jours d'historique.
 • Tout votre historique. Gratuitement, les 7 derniers jours.
 • Plus d'une voiture à vous et plus de deux zones privées.
 • Créer une voiture partagée. En rejoindre une est toujours gratuit.
@@ -479,7 +479,7 @@ TANKSTELLEN UND PARKHÄUSER, AUF DERSELBEN KARTE
 • Der Preis des Kraftstoffs, den dein Auto tankt, kein Durchschnitt.
 • Parkhäuser mit Tarif, Durchfahrtshöhe und Stellplätzen, wenn die Quelle sie liefert.
 • Passt dein Auto unter die Höhe? Nur wenn wir sicher sind — unbekannt ist nie ein Ja.
-• Alles kostenlos: Sehen steckt nie hinter einem Abo.
+• Kostenlos, Hinweise inklusive: Preise um dich, App geschlossen.
 
 DEINE ZAHLEN
 • Was du für Kraftstoff ausgibst und wie viel du verbrauchst.
@@ -498,9 +498,9 @@ Verbindet sich dein Auto per Bluetooth, hilft das Trennen zu erkennen, dass du f
 Paparcar will nicht raten. Wenn nicht sicher ist, was passiert ist, fragt es dich, bevor ein Platz veröffentlicht wird.
 
 PAPARCAR PLUS
-Kostenlos fragst du, und die App antwortet. Mit Plus wacht sie, während du nicht hinsiehst:
+Was dich umgibt, ist kostenlos. Plus bewacht, was du wählst, und merkt es sich:
 • Hinweise, wenn in deiner Zone ein Platz frei wird — App geschlossen.
-• Hinweise, wenn der Preis an einer Tankstelle sinkt, der du folgst.
+• Deine Tankstelle, wo sie auch steht, und 30 Tage Verlauf.
 • Dein ganzer Verlauf. Kostenlos die letzten 7 Tage.
 • Mehr als ein eigenes Auto und mehr als zwei private Zonen.
 • Ein geteiltes Auto anlegen. Einem beizutreten ist immer kostenlos.
@@ -565,7 +565,7 @@ TANKSTATIONS EN PARKEERGARAGES, OP DEZELFDE KAART
 • De prijs van de brandstof die jouw auto tankt, geen algemeen gemiddelde.
 • Parkeergarages met tarief, maximale hoogte en plaatsen, waar de bron die geeft.
 • Kom je onder de hoogte door? Alleen als we het zeker weten — onbekend is nooit een ja.
-• Allemaal gratis: zien wat er om je heen is, zit nooit achter een abonnement.
+• Allemaal gratis, meldingen ook: prijzen om je heen bereiken je met de app dicht.
 
 JOUW CIJFERS
 • Wat je aan brandstof uitgeeft en hoeveel je verbruikt.
@@ -584,9 +584,9 @@ Maakt je auto via Bluetooth verbinding met je telefoon, dan helpt het verbreken 
 Paparcar wil niet gokken. Als het niet zeker weet wat er is gebeurd, vraagt het het je voordat er een plek wordt gepubliceerd.
 
 PAPARCAR PLUS
-Gratis vraag jij, en de app antwoordt. Met Plus waakt de app terwijl jij niet kijkt:
+Wat om je heen is, is gratis. Plus waakt over wat jij kiest, en onthoudt het:
 • Meldingen als er een plek vrijkomt in jouw zone, met de app dicht.
-• Meldingen als de prijs daalt bij een station dat je volgt.
+• Het station dat je volgt, waar het ook staat, en 30 dagen geschiedenis.
 • Je hele geschiedenis. Gratis blijven de laatste 7 dagen.
 • Meer dan één eigen auto en meer dan twee privézones.
 • Een gedeelde auto aanmaken. Meedoen is altijd gratis.
@@ -651,7 +651,7 @@ STACJE PALIW I PARKINGI, NA TEJ SAMEJ MAPIE
 • Cena paliwa, którego używa Twoje auto, a nie ogólna średnia.
 • Parkingi publiczne z opłatą, maksymalną wysokością i liczbą miejsc, gdy źródło je podaje.
 • Zmieścisz się pod wysokością? Tylko gdy jesteśmy pewni — nieznana nigdy nie znaczy tak.
-• Wszystko za darmo: to, co widzisz wokół siebie, nigdy nie jest za abonamentem.
+• Wszystko za darmo, także powiadomienia: ceny wokół Ciebie docierają przy zamkniętej aplikacji.
 
 TWOJE LICZBY
 • Ile wydajesz na paliwo i ile go zużywasz.
@@ -670,9 +670,9 @@ Jeśli Twoje auto łączy się z telefonem przez Bluetooth, rozłączenie pomaga
 Paparcar nie chce zgadywać. Gdy nie ma pewności, pyta Cię, zanim opublikuje miejsce.
 
 PAPARCAR PLUS
-Za darmo to Ty pytasz, a aplikacja odpowiada. Z Plus aplikacja czuwa, gdy Ty nie patrzysz:
+To, co masz wokół siebie, jest darmowe. Plus pilnuje tego, co wybierzesz, i to pamięta:
 • Powiadomienia, gdy w Twojej strefie zwalnia się miejsce, przy zamkniętej aplikacji.
-• Powiadomienia, gdy spada cena na stacji, którą obserwujesz.
+• Stacja, którą obserwujesz, gdziekolwiek jest, i 30 dni historii.
 • Cała Twoja historia. Plan darmowy zachowuje ostatnie 7 dni.
 • Więcej niż jedno własne auto i więcej niż dwie strefy prywatne.
 • Utworzenie współdzielonego auta. Dołączenie jest zawsze darmowe.
@@ -737,7 +737,7 @@ BENZINĂRII ȘI PARCĂRI PUBLICE, PE ACEEAȘI HARTĂ
 • Prețul combustibilului pe care îl folosește mașina ta, nu o medie generică.
 • Parcări publice cu tarif, înălțime maximă și locuri, când sursa le oferă.
 • Încapi la înălțime? Doar când suntem siguri — o înălțime necunoscută nu e niciodată un da.
-• Totul gratuit: să vezi ce ai în jur nu stă niciodată în spatele unui abonament.
+• Totul gratuit, alertele incluse: prețurile din jurul tău ajung cu aplicația închisă.
 
 CIFRELE TALE
 • Cât cheltui pe combustibil și cât consumi.
@@ -756,9 +756,9 @@ Dacă mașina ta se conectează la telefon prin Bluetooth, deconectarea ajută l
 Paparcar nu vrea să ghicească. Când nu este sigur, te întreabă înainte de a publica un loc.
 
 PAPARCAR PLUS
-Gratuit, tu întrebi și aplicația răspunde. Cu Plus, aplicația veghează cât timp tu nu te uiți:
+Ce ai în jur e gratuit. Plus veghează ce alegi tu și ține minte:
 • Alerte când se eliberează un loc în zona ta, cu aplicația închisă.
-• Alerte când scade prețul la o benzinărie pe care o urmărești.
+• Benzinăria pe care o urmărești, oriunde e, și 30 de zile de istoric.
 • Tot istoricul tău. Planul gratuit păstrează ultimele 7 zile.
 • Mai mult de o mașină proprie și mai mult de două zone private.
 • Crearea unei mașini partajate. Să intri în una este întotdeauna gratuit.

@@ -1,6 +1,6 @@
 FICHA DE PLAY STORE — nl-NL
 ============================================================
-GENERADO por tools/make_paste.py desde LISTING-v1.4.0.md — no editar a mano.
+GENERADO por tools/make_paste.py desde LISTING-v1.5.0.md — no editar a mano.
 
 --- 1. NOMBRE DE LA APLICACION (28/30) ---
 Paparcar: waar staat je auto
@@ -8,7 +8,7 @@ Paparcar: waar staat je auto
 --- 2. DESCRIPCION BREVE (68/80) ---
 Waar heb je geparkeerd? Paparcar onthoudt het. Met brandstofprijzen.
 
---- 3. DESCRIPCION COMPLETA (3972/4000) ---
+--- 3. DESCRIPCION COMPLETA (3982/4000) ---
 Waar heb je geparkeerd?
 
 Paparcar onthoudt het voor je.
@@ -41,7 +41,7 @@ TANKSTATIONS EN PARKEERGARAGES, OP DEZELFDE KAART
 • De prijs van de brandstof die jouw auto tankt, geen algemeen gemiddelde.
 • Parkeergarages met tarief, maximale hoogte en plaatsen, waar de bron die geeft.
 • Kom je onder de hoogte door? Alleen als we het zeker weten — onbekend is nooit een ja.
-• Allemaal gratis: zien wat er om je heen is, zit nooit achter een abonnement.
+• Allemaal gratis, meldingen ook: prijzen om je heen bereiken je met de app dicht.
 
 JOUW CIJFERS
 • Wat je aan brandstof uitgeeft en hoeveel je verbruikt.
@@ -60,9 +60,9 @@ Maakt je auto via Bluetooth verbinding met je telefoon, dan helpt het verbreken 
 Paparcar wil niet gokken. Als het niet zeker weet wat er is gebeurd, vraagt het het je voordat er een plek wordt gepubliceerd.
 
 PAPARCAR PLUS
-Gratis vraag jij, en de app antwoordt. Met Plus waakt de app terwijl jij niet kijkt:
+Wat om je heen is, is gratis. Plus waakt over wat jij kiest, en onthoudt het:
 • Meldingen als er een plek vrijkomt in jouw zone, met de app dicht.
-• Meldingen als de prijs daalt bij een station dat je volgt.
+• Het station dat je volgt, waar het ook staat, en 30 dagen geschiedenis.
 • Je hele geschiedenis. Gratis blijven de laatste 7 dagen.
 • Meer dan één eigen auto en meer dan twee privézones.
 • Een gedeelde auto aanmaken. Meedoen is altijd gratis.
