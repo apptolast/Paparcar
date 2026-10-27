@@ -49,6 +49,24 @@ def tagged_blocks(text):
     return {m.group(1): m.group(2).strip() for m in TAGGED_BLOCK_RE.finditer(text)}
 
 
+# Los pegables `paste/play-<locale>.txt` van en secciones `--- 1. NOMBRE ... ---`, con las cabeceras
+# en castellano en los nueve idiomas porque son etiquetas internas, no copy.
+PASTE_SECTION_RE = re.compile(r"^--- \d+\.[^\n]*---\s*$", re.M)
+
+
+def paste_sections(text):
+    """{name, short, full} de un pegable de la ficha.
+
+    ⛔ Vive aqui, con el resto de la lectura del copy de Play, y no copiado en cada consumidor: este
+    formato ya se parseaba en `metadata_from_play.py` y la fase `verify` del corte necesitaba lo
+    mismo. Dos parsers del mismo fichero es como nacio el fallo del rumano.
+    """
+    parts = PASTE_SECTION_RE.split(text)
+    if len(parts) < 4:
+        raise ValueError("esperaba al menos 3 secciones (nombre, breve, completa)")
+    return {"name": parts[1].strip(), "short": parts[2].strip(), "full": parts[3].strip()}
+
+
 def missing(found):
     """Los locales de Play que faltan en `found` (una lista, un dict o un set)."""
     return [loc for loc in PLAY_LOCALES if loc not in found]

@@ -68,6 +68,7 @@ import sys
 import zipfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import play_api  # noqa: E402
 import play_locales  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -107,8 +108,11 @@ SUITE_LEAVES = [
     ":shared:compileKotlinIosSimulatorArm64",
 ]
 
-PHASES = ["bump", "web", "suite", "bundle", "sign", "measure", "notes", "doc", "tag"]
-DEFAULT_PHASES = [p for p in PHASES if p != "tag"]
+PHASES = ["bump", "web", "suite", "bundle", "sign", "measure", "notes", "doc", "tag",
+          "verify", "upload"]
+# ⛔ `tag` necesita que el commit del bump exista, y `verify`/`upload` hablan con la tienda: las
+# tres se piden a mano. Subir a Play no puede ser el efecto de teclear el comando del corte.
+DEFAULT_PHASES = [p for p in PHASES if p not in ("tag", "verify", "upload")]
 
 DOC_OPEN = "<!-- cut:measured -->"
 DOC_CLOSE = "<!-- /cut:measured -->"
@@ -595,6 +599,134 @@ def phase_tag(version):
     return {"tag": "v%s" % version}
 
 
+# -------------------------------------------------------------- fase verify
+
+
+def live_state(play):
+    """Lee la tienda y descarta la edicion. Solo lectura: no hay `:commit` en ningun camino."""
+    edit = play.open_edit()
+    try:
+        return play.tracks(edit), play.listings(edit)
+    finally:
+        play.discard_edit(edit)
+
+
+def check_against_store(version, code, tracks, listings, paste_dir):
+    """Lo que la tienda contradice del repo. Devuelve (lineas, problemas).
+
+    ⛔ Que el repo vaya por DELANTE es normal: se acaba de bumpear y aun no se ha subido. Lo que no
+    puede pasar es lo contrario -- la tienda publicando un versionCode que el repo no conoce --
+    porque entonces el arbol no es el de produccion y nadie se habia enterado. Paso: la memoria dio
+    1.5.0 por "pendiente de subir" durante 13 dias estando ya publicada.
+    """
+    lines, problems = [], []
+    for track in tracks:
+        for release in track.get("releases", []):
+            codes = [int(c) for c in (release.get("versionCodes") or [])]
+            langs = sorted(n.get("language") for n in (release.get("releaseNotes") or []))
+            lines.append("%-11s %-10s %s  notas en %d idiomas"
+                         % (track.get("track"), release.get("status"),
+                            codes or "sin version", len(langs)))
+            for live in codes:
+                if live > code:
+                    problems.append(
+                        "%s publica versionCode %d y el repo va por %d: el arbol NO es el de ahi"
+                        % (track.get("track"), live, code))
+            if codes:
+                for absent in play_locales.missing(langs):
+                    problems.append("%s: la release viva no tiene notas en %s"
+                                    % (track.get("track"), absent))
+    live_locales = sorted(l.get("language") for l in listings)
+    lines.append("ficha publicada en %d idiomas: %s" % (len(live_locales), " ".join(live_locales)))
+    for absent in play_locales.missing(live_locales):
+        problems.append("la ficha publicada no tiene %s" % absent)
+
+    for listing in listings:
+        locale = listing.get("language")
+        source = paste_dir / ("play-%s.txt" % locale)
+        if not source.exists():
+            problems.append("%s: la tienda lo publica y el repo no tiene %s" % (locale, source.name))
+            continue
+        want = play_locales.paste_sections(source.read_text(encoding="utf-8"))
+        for field, live_value in (("name", listing.get("title")),
+                                 ("short", listing.get("shortDescription"))):
+            if (live_value or "").strip() != want[field]:
+                problems.append("%s/%s: la ficha viva no es la del repo\n       tienda: %r\n"
+                                "       repo  : %r" % (locale, field, live_value, want[field]))
+    return lines, problems
+
+
+def phase_verify():
+    code, version = read_gradle_versions()
+    play = play_api.Play(ROOT / play_api.CREDENTIAL)
+    say("   cuenta de servicio  %s" % play.account)
+    say("   el repo va por      %s (vc%d)" % (version, code))
+    try:
+        tracks, listings = live_state(play)
+    except play_api.PlayError as bad:
+        raise Fail(str(bad))
+
+    lines, problems = check_against_store(version, code, tracks, listings, PASTE)
+    for line in lines:
+        say("   " + line)
+    if problems:
+        raise Fail("la tienda contradice al repo:\n" +
+                   "\n".join("     %s" % p for p in problems))
+    say("   la tienda y el repo cuadran")
+    return {}
+
+
+# -------------------------------------------------------------- fase upload
+
+
+def phase_upload():
+    code, version = read_gradle_versions()
+    aab = aab_path(version, code)
+    if not aab.exists():
+        raise Fail("no existe %s: corre antes la fase bundle" % aab)
+
+    notes_path = PASTE / ("release-notes-v%s.txt" % version)
+    if not notes_path.exists():
+        raise Fail("faltan las notas: %s" % notes_path.relative_to(ROOT))
+    notes = parse_notes(notes_path)
+    problems = check_notes(notes)
+    if problems:
+        raise Fail("las notas no estan listas, no subo nada:\n" +
+                   "\n".join("     %s" % p for p in problems))
+
+    play = play_api.Play(ROOT / play_api.CREDENTIAL)
+    say("   cuenta de servicio  %s" % play.account)
+    say("   subiendo %s (%s MB) al canal %s"
+        % (aab.name, "{:.1f}".format(aab.stat().st_size / 1024 / 1024), play_api.UPLOAD_TRACK))
+
+    try:
+        edit = play.open_edit()
+    except play_api.PlayError as bad:
+        raise Fail(str(bad))
+    try:
+        got = play.upload_bundle(edit, aab)
+        if int(got) != code:
+            raise Fail("Play dice haber recibido el versionCode %s y el AAB es el %d" % (got, code))
+        say("   bundle aceptado: versionCode %s" % got)
+        play.set_track(edit, play_api.UPLOAD_TRACK, code,
+                       [(loc, notes[loc]) for loc in play_locales.PLAY_LOCALES])
+        say("   canal %s configurado en BORRADOR con las notas de los 9 locales"
+            % play_api.UPLOAD_TRACK)
+        # ⛔ El commit es lo unico que cambia algo en la cuenta. Si cualquier paso de arriba falla,
+        # la edicion se descarta y en Play no queda nada a medias.
+        play.commit_edit(edit)
+    except play_api.PlayError as bad:
+        play.discard_edit(edit)
+        raise Fail("%s\n     La edicion se ha descartado: en Play no queda nada a medias." % bad)
+    except Exception:
+        play.discard_edit(edit)
+        raise
+
+    say("   subido y en borrador.")
+    say("   OJO: NO esta publicado. Promoverlo a produccion es del user, en el Console.")
+    return {"uploaded_to": play_api.UPLOAD_TRACK}
+
+
 # ------------------------------------------------------------------------ main
 
 
@@ -632,6 +764,8 @@ def main():
         "notes": phase_notes,
         "doc": lambda: phase_doc(state),
         "tag": lambda: phase_tag(args.version),
+        "verify": phase_verify,
+        "upload": phase_upload,
     }
 
     say("corte de version -- repo %s" % ROOT)
@@ -656,7 +790,11 @@ def main():
     say("== listo " + "=" * 52)
     if "bundle" in wanted:
         say("   AAB: %s" % state.get("aab", "?"))
-    say("   OJO: subir a Play y publicar es del user. Este script no sube nada.")
+    if state.get("uploaded_to"):
+        say("   OJO: esta en BORRADOR en el canal %s. Publicar es del user, en el Console."
+            % state["uploaded_to"])
+    else:
+        say("   OJO: subir a Play y publicar es del user. Este script no sube nada.")
     if "tag" not in wanted and "bump" in wanted:
         say("   tras commitear el bump:  python tools/release/cut.py %s --phases tag"
             % state.get("version", "<version>"))

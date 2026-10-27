@@ -84,7 +84,9 @@ Sin estas 4 vars, el build de release genera un artefacto **sin firmar**
 
 La app existe en Play Console con el `applicationId` `com.rndeveloper.paparcar` y **Play App
 Signing** activo: lo que subimos es la *upload key* de §0.1; la clave con la que Google firma para
-el usuario la guarda Play. El AAB **se compila y se sube a mano** — no hay lane automatizada.
+el usuario la guarda Play. El AAB se compila con el corte (§1.0) y **se sube con `--phases
+upload`** a un canal de prueba, en borrador (§1.5); **publicar sigue siendo a mano**, y a
+propósito.
 
 La ficha (título, descripciones, capturas, gráfico) se mantiene en los 9 idiomas; el procedimiento
 para revisarla y rellenarla campo por campo está en
@@ -107,6 +109,23 @@ solo en lo descargado de la tienda, que es justo donde no estás mirando. Esa mi
 además a la restricción de la **Maps API key** en GCP (paquete + SHA-1), o el mapa sale en blanco
 con el mismo patrón: bien en tu APK, muerto en el de Play. Detalle en
 [`RELEASE-SECURITY.md`](./RELEASE-SECURITY.md).
+
+### 0.5 Credencial de la Play Developer API (para §1.5)
+
+Cuenta de servicio **`paparcar-publisher@pap-26.iam.gserviceaccount.com`**, creada el 27-10-2026.
+Su clave JSON vive en `google-application-credentials-play.json` en la raíz del repo, **fuera del
+control de versiones** (la tapa el patrón `**/google-application-credentials*.json`). Trátala como
+el keystore: con ella se puede subir a tu cuenta de Play.
+
+- Se crea en **Google Cloud → Cuentas de servicio** (sin ningún rol de GCP) y se le genera una clave
+  JSON. Los permisos que importan son los de Play.
+- ⛔ **Se autoriza invitándola por su correo en Play Console → Usuarios y permisos**, como una
+  persona — así está la de RevenueCat. La página «Acceso a la API» solo sirve para vincular el
+  proyecto de Cloud, y `pap-26` ya estaba vinculado.
+- Permisos dados, y nada más: *ver información de la app* + *administrar versiones en canales de
+  prueba*, **solo** sobre Paparcar. Sin permisos de cuenta. Por eso `upload` sube a `internal` y no
+  puede tocar producción aunque alguien se lo pida.
+- ⚠️ Los cambios de permisos tardan en propagar: un 401 recién hecho no significa que esté mal.
 
 ---
 
@@ -138,7 +157,9 @@ estaba aquí mismo — §1.1 decía «hoy va por 14 / 1.3.0» con el árbol en 1
 ⛔ **Lo que el comando NO hace, a propósito: subir nada a Play.** Deja el AAB verificado y las
 cifras; publicar es irreversible y de cara al público, y es §1.5, a mano.
 
-Y hay una fase novena, aparte porque necesita que el commit del bump EXISTA (commitear es del user):
+Y hay tres fases **fuera de la lista por defecto**, que se piden a mano. La primera porque
+necesita que el commit del bump EXISTA (commitear es del user); las otras dos porque hablan
+con la tienda y viven en §1.5:
 
 ```bash
 python tools/release/cut.py 1.6.0 --phases tag
@@ -217,6 +238,23 @@ Si algo de esto falla con minify-on y funciona con minify-off, falta un keep en
 `proguard-rules.pro`.
 
 ### 1.5 Subir a Play
+
+```bash
+python tools/release/cut.py --phases verify   # qué hay publicado AHORA, y si cuadra con el repo
+python tools/release/cut.py --phases upload   # sube el AAB al canal `internal`, en BORRADOR
+```
+
+⛔ **Ninguna de las dos está en las fases por defecto**: se piden a mano, porque subir a Play no
+puede ser el efecto de teclear el comando del corte [RELEASE-THE-CUT-REACHES-THE-STORE-001]. Y
+`upload` deja la versión en **borrador en un canal de prueba**: promover a producción es humano, en
+el Console, mirando. Necesitan la credencial de la cuenta de servicio
+(`google-application-credentials-play.json` en la raíz, gitignorada; ver §0.5).
+
+📌 **`verify` existe por un fallo real**: el 27-10 la primera lectura de la tienda destapó que 1.5.0
+llevaba **13 días publicada** mientras el repo y la memoria la daban por «pendiente de subir». Un
+«⏳ pendiente» sobre algo que vive en un sistema externo no se puede creer; ahora se pregunta.
+
+Si lo haces a mano en vez de con el comando, el orden es el mismo:
 
 1. Play Console → **Producción** (o *Prueba interna* si quieres una pasada previa) → nueva versión.
 2. Subir el `.aab` de §1.3.
