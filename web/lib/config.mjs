@@ -37,9 +37,23 @@ export const FREE_LIMITS = {
   freeZones: 2,
 };
 
+/**
+ * Cifras que Plus ENSEÑA, y que no son límites del plan free — por eso no viven en `FREE_LIMITS`,
+ * cuyo nombre promete otra cosa: esos son los topes que la app impone sin pagar.
+ *
+ * `fuelHistoryDays` es la ventana de la serie de precios de una gasolinera que sigues. Misma regla
+ * que los límites: **el copy no escribe la cifra**, la pide por marcador, y
+ * `WebSiteParityGuardrailTest` la compara contra `FuelWatchRepository.RETENTION_DAYS`.
+ * [WEB-A-PLUS-BULLET-MUST-SELL-THE-MEMORY-TOO-001]
+ */
+export const PLUS_FIGURES = {
+  fuelHistoryDays: 30,
+};
+
 /** The tokens the copy may use, and what each resolves to. */
 export const COPY_TOKENS = {
   ...Object.fromEntries(Object.entries(FREE_LIMITS).map(([k, v]) => [k, String(v)])),
+  ...Object.fromEntries(Object.entries(PLUS_FIGURES).map(([k, v]) => [k, String(v)])),
   minAndroid: MIN_ANDROID,
 };
 

@@ -211,7 +211,7 @@
           "History and stats for any period",
           "Unlimited cars and zones",
           "An alert when a spot frees up in your zones",
-          "An alert when a station you follow changes its price, wherever it is",
+          "An alert when a station you follow changes its price, wherever it is, with {{fuelHistoryDays}} days of history",
           "A month recap: what you spent and how long you spent parking",
           "Your routes kept in your account, not only on this phone",
           "Share a car with up to four people"

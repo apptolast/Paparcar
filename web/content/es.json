@@ -211,7 +211,7 @@
           "Historial y estadísticas de cualquier periodo",
           "Coches y zonas sin límite",
           "Aviso cuando aparece una plaza libre en tus zonas",
-          "Aviso cuando cambia el precio de una gasolinera que sigues, esté donde esté",
+          "Aviso cuando cambia el precio de una gasolinera que sigues, esté donde esté, con {{fuelHistoryDays}} días de histórico",
           "Resumen del mes: lo que gastaste y lo que tardaste en aparcar",
           "Tus rutas guardadas en tu cuenta, no solo en este móvil",
           "Compartir un coche con hasta cuatro personas"

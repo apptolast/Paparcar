@@ -282,21 +282,37 @@ class WebSiteParityGuardrailTest {
      */
     @Test
     fun `the free plan the site sells is the one the gates enforce`() {
-        val declared = declaredLimits()
+        assertFiguresAgreeWithTheirSource("FREE_LIMITS", FREE_LIMITS)
+    }
+
+    /**
+     * And the same for what Plus *shows*: the site saying 30 days of price history while the store
+     * keeps 20 is the same defect as lying about the free plan, in the half people pay for.
+     */
+    @Test
+    fun `the Plus figures the site states are the ones the app keeps`() {
+        assertFiguresAgreeWithTheirSource("PLUS_FIGURES", PLUS_FIGURES)
+    }
+
+    private fun assertFiguresAgreeWithTheirSource(
+        block: String,
+        sources: Map<String, Pair<String, String>>,
+    ) {
+        val declared = declaredNumbers(block)
 
         assertTrue(
-            declared.size >= FREE_LIMITS.size,
-            "[empty population] parsed ${declared.keys} out of $SITE_CONFIG's FREE_LIMITS, expected " +
-                "${FREE_LIMITS.keys}. The block was renamed and this guard stopped comparing.",
+            declared.size >= sources.size,
+            "[empty population] parsed ${declared.keys} out of $SITE_CONFIG's $block, expected " +
+                "${sources.keys}. The block was renamed and this guard stopped comparing.",
         )
 
-        for ((token, source) in FREE_LIMITS) {
+        for ((token, source) in sources) {
             val (file, constant) = source
             val enforced = read(file).firstGroup("""$constant\s*=\s*(\d+)""")
             assertEquals(
                 enforced,
                 declared[token],
-                "The site's free plan and the app's disagree on '$token': $constant is $enforced in " +
+                "The site and the app disagree on '$token': $constant is $enforced in " +
                     "$file, and web/lib/config.mjs says ${declared[token]}. Whichever moved, the " +
                     "other has to move with it — then rebuild and redeploy.",
             )
@@ -308,15 +324,17 @@ class WebSiteParityGuardrailTest {
      * typed back in as a numeral is exactly the drift this whole arrangement exists to prevent.
      */
     @Test
-    fun `every locale states the plan limits through the tokens, never as numerals`() {
+    fun `every locale states its figures through the tokens, never as numerals`() {
         for (locale in LOCALES) {
             val text = contentOf(locale)
-            val unused = FREE_LIMITS.keys.filterNot { text.contains("{{$it}}") }
+            val unused = (FREE_LIMITS.keys + PLUS_FIGURES.keys)
+                .filterNot { text.contains("{{$it}}") }
             assertTrue(
                 unused.isEmpty(),
                 "web/content/$locale.json no longer uses $unused. Either that language stopped " +
-                    "stating the free plan — check the plan table and the FAQ — or somebody typed " +
-                    "the number in by hand, which is the drift the token exists to stop.",
+                    "stating the free plan or what Plus shows — check the plan table and the FAQ — " +
+                    "or somebody typed the number in by hand, which is the drift the token exists " +
+                    "to stop.",
             )
         }
     }
@@ -694,10 +712,10 @@ class WebSiteParityGuardrailTest {
             .findAll(read(SITE_CONFIG))
             .associate { it.groupValues[1] to it.groupValues[2] }
 
-    /** The numbers inside `export const FREE_LIMITS = { … }`. */
-    private fun declaredLimits(): Map<String, String> {
-        val block = read(SITE_CONFIG).firstGroup("""export const FREE_LIMITS = \{([^}]*)}""")
-        return Regex("""(\w+):\s*(\d+)""").findAll(block)
+    /** The numbers inside `export const <block> = { … }`. */
+    private fun declaredNumbers(block: String): Map<String, String> {
+        val declaration = read(SITE_CONFIG).firstGroup("""export const $block = \{([^}]*)}""")
+        return Regex("""(\w+):\s*(\d+)""").findAll(declaration)
             .associate { it.groupValues[1] to it.groupValues[2] }
     }
 
@@ -788,6 +806,18 @@ class WebSiteParityGuardrailTest {
             "historyDays" to ("$ENTITLEMENT/HistoryEntitlementGate.kt" to "FREE_HISTORY_WINDOW_DAYS"),
             "freeVehicles" to ("$ENTITLEMENT/VehicleEntitlementGate.kt" to "FREE_OWN_VEHICLE_LIMIT"),
             "freeZones" to ("$ENTITLEMENT/ZoneEntitlementGate.kt" to "FREE_ZONE_LIMIT"),
+        )
+
+        /**
+         * And the figures that are not limits but **what Plus shows**, same arrangement: the copy
+         * asks for them by token so there is one place to compare.
+         * [WEB-A-PLUS-BULLET-MUST-SELL-THE-MEMORY-TOO-001]
+         */
+        val PLUS_FIGURES = mapOf(
+            "fuelHistoryDays" to (
+                "shared/src/commonMain/kotlin/com/rndeveloper/paparcar/domain/repository/" +
+                    "FuelWatchRepository.kt" to "RETENTION_DAYS"
+                ),
         )
         const val BASE_STRINGS = "shared/src/commonMain/composeResources/values/strings.xml"
         const val SITE_CONFIG = "web/lib/config.mjs"
