@@ -372,7 +372,8 @@ detección y "Marcar mi **plaza**" en el nudge — usando para lo TUYO la palabr
   (*parcheggio pubblico*, *parcare publică*). Y no es una **plaza**: una plaza la libera la comunidad
   en la calle, un parking público lo explota alguien y se entra con el coche.
 
-### ⛔ La web es un consumidor más de la verdad del producto [WEB-THE-SITE-SAYS-ONLY-WHAT-THE-APP-DOES-001]
+### ⛔ La web Y LA FICHA DE PLAY son consumidores de la verdad del producto
+[WEB-THE-SITE-SAYS-ONLY-WHAT-THE-APP-DOES-001] · [DOCS-THE-STORE-LISTING-IS-A-CONSUMER-TOO-001]
 `paparcar.com` se genera con `node web/build.mjs` desde `web/` hacia `hosting/public`, y **se
 despliega con `firebase deploy --only hosting`**. No es material de marketing aparte: es la URL que
 enlaza la ficha de Play, y dice cosas que viven en este repo. Un cambio de producto que no llegue
@@ -397,6 +398,34 @@ ahí deja la web prometiendo lo de antes, en dos idiomas, para siempre.
   en uso, y la salida construida vs. el copy. Como no toca bytecode, sale **UP-TO-DATE** →
   `--rerun-tasks`. Lo que NO vigila —que el copy sea bueno, que una feature nueva tenga sección—
   es esta tabla.
+
+#### Y la ficha de Play, que promete lo mismo a más gente
+
+⛔ **La ficha dispara con lo MISMO que la web, y durante trece días nadie lo sabía porque no estaba
+en esta tabla.** El 14-10 el marco público de las gasolineras pasó a «lo de alrededor es gratis, lo
+que tú eliges es Plus»; la web se movió en esa misma tarea y la ficha no, así que la tienda siguió
+vendiendo como Plus unos avisos que el plan gratuito ya recibía
+[PLAY-A-FREE-ALERT-READS-AS-PAID-001].
+
+La cadena es `docs/release/play-listing/published-listing.txt` → `LISTING-v<ver>.md` → `paste/`
+(se regenera con `make_paste.py`, ⛔ nunca a mano), la vigila
+`PlayListingPasteParityGuardrailTest`, y el checklist está en
+[`docs/release/play-listing/README.md`](docs/release/play-listing/README.md).
+
+⛔ **Pero su disparador NO es el mismo que el de la web, y confundirlos es el error contrario**: la
+web describe el producto, y **la ficha describe el build PUBLICADO**. De ahí dos casos, y sólo dos:
+
+| El cambio… | La ficha… |
+|---|---|
+| ya está **publicado** en Play (lo dice `cut.py --phases verify`) y la ficha promete otra cosa | se mueve **ahora**: ficha nueva, puntero, `paste/` regenerado |
+| aún **no** está publicado | **no se nombra todavía** — anunciarlo sería vender lo que la app no hace. Entra en el corte de esa versión, no en esta tarea |
+
+- ⛔ **El tope son 4000 por idioma y se mide ANTES de escribir, en FR y DE — nunca en en-US.** Son
+  los dos que van al borde (9 y 18 libres hoy). Si no cabe, la salida es **condensar lo que se dice
+  dos veces**, nunca recortar una promesa ni el bloque de ubicación en segundo plano, que Play exige.
+- ⛔ **Las dos superficies no tienen que decir lo mismo con las mismas palabras, pero no pueden
+  contradecirse.** Un carril free que en una es gratis y en la otra se cobra es un defecto, no un
+  matiz de tono.
 
 ### ⛔ Un caso de uso por VEREDICTO, nunca por PREDICADO [DET-VERDICT-NOT-PREDICATE-001]
 Regla mental: *si su resultado no se puede citar en un diagnóstico, no es un caso de uso.*

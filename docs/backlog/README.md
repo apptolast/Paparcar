@@ -1,6 +1,6 @@
 # Backlog — índice de lo que sigue abierto
 
-> **813 ficheros: 727 cerrados, 77 abiertos, 9 que no son tickets.** Este índice lista **solo lo que
+> **814 ficheros: 728 cerrados, 77 abiertos, 9 que no son tickets.** Este índice lista **solo lo que
 > queda**, para que la pregunta *"¿qué falta?"* se conteste leyendo y no listando el directorio.
 > Verificado contra master `1339ea263` el **2026-10-07**
 > [DOCS-A-CLOSED-TICKET-MUST-NOT-SAY-IT-IS-IN-REVIEW-001]. El barrido anterior
@@ -254,6 +254,7 @@ No son trabajo pendiente: son confirmaciones que faltan. Se listan para que nadi
 | [`ui-a-page-keeps-one-vertical-rhythm-001`](ui-a-page-keeps-one-vertical-rhythm-001.md) | medido en A/B sobre emulador; ⏳ verlo en un **móvil real**, y una medición suelta de Home (15,2 dp con el binario nuevo) que no se reprodujo — ver «Cabo suelto» en el doc |
 | [`det-no-device-mute-in-remote-001`](det-no-device-mute-in-remote-001.md) · [`det-retract-denied-forever-001`](det-retract-denied-forever-001.md) | hechos; el doc existe para que la regla tenga dónde vivir |
 | [`ios-the-store-metadata-skips-romanian-001`](ios-the-store-metadata-skips-romanian-001.md) | los 9 codigos de Play y su patron viven ya en `tools/release/play_locales.py`, y el rumano se genera (70 ficheros con error -> 72 en 10 idiomas). ⏳ `iosApp/fastlane/metadata/` sigue con el copy de la ficha anterior en los otros ocho idiomas: regenerarlo son 72 ficheros y toca cuando se suba la ficha de Apple |
+| [`docs-the-store-listing-is-a-consumer-too-001`](docs-the-store-listing-is-a-consumer-too-001.md) | la ficha de Play entra en la tabla de consumidores de `CLAUDE.md` — la causa de que la tienda mintiera 13 dias. ⛔ Con su propio disparador: la web describe el PRODUCTO, la ficha el build PUBLICADO, y por eso no es una fila mas |
 | [`play-a-free-alert-reads-as-paid-001`](play-a-free-alert-reads-as-paid-001.md) | la ficha pasa a 1.5.0, y lo que la movio fue una frase FALSA: vendia como Plus los avisos de gasolinera que el plan gratuito ya recibe. La web lo decia bien desde el 14-10, la tienda no. ⏳ Del user: pegar los 9 idiomas en el Console (y luego `--phases verify`) |
 | [`release-the-cut-reaches-the-store-001`](release-the-cut-reaches-the-store-001.md) | `cut.py --phases verify` lee la tienda (y destapo que 1.5.0 llevaba 13 dias publicada mientras el repo la daba por pendiente) y `--phases upload` sube al canal interno en borrador. ⏳ El `:commit` de la edicion no se ha ejercitado: hace falta un versionCode nuevo, o sea el proximo corte |
 | [`release-the-cut-must-be-one-command-001`](release-the-cut-must-be-one-command-001.md) | el corte son **un comando** (`tools/release/cut.py`, 9 fases, 45 tests que las falsifican) y `RELEASE-PROCESS.md` ya no lo deletrea. ⏳ El primer corte completo se vera en el **proximo release** --el disparador es el user, no un merge-- y el workflow que lo invoque espera a que Actions arranque |
