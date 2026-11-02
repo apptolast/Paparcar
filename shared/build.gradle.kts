@@ -398,6 +398,45 @@ tasks.withType<Test>().configureEach {
         .withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
+// ── Generador del snapshot de parkings ───────────────────────────────────────
+// [OSM-PRECOOKED-SNAPSHOT-001] El snapshot pre-cocinado **ejecuta el filtro de la app**
+// (`OsmPublicParkingParser`) en vez de reimplementarlo, y para eso hace falta correr codigo de
+// `commonMain` en una JVM de escritorio. `:shared` no tiene target `jvm` —solo `androidTarget()` y
+// dos de iOS—, asi que el unico classpath disponible es el **runtime de los tests de Android**, que
+// ya es esa JVM y no se empaqueta en nada. El `main()` vive en `androidUnitTest` por esa razon; el
+// porque esta escrito en `SnapshotToolMain`.
+val parkingSnapshotTool by tasks.registering(JavaExec::class) {
+    group = "paparcar"
+    description = "Genera el snapshot pre-cocinado de parkings ejecutando el filtro de la app."
+    // El classpath se toma del task de test YA RESUELTO, no de `runtimeDependencyFiles` a mano:
+    // pedirlo en crudo deja a Gradle eligiendo entre las variantes de `debugRuntimeElements`
+    // (`jar`, `android-symbol-with-package-name`, `supported-locale-list`...) sin un `artifactType`
+    // que desempate, y falla por ambiguedad. `Test.classpath` es lo que AGP ya decidio para correr
+    // los tests, que es exactamente la JVM que esta herramienta necesita. [MEDIDO al abrirlo]
+    // ⛔ El classpath NO se toma del task de test, y las dos formas obvias fallan distinto:
+    //   - `unitTest.runtimeDependencyFiles` a pelo deja a Gradle eligiendo entre las variantes de
+    //     `debugRuntimeElements` (`jar`, `android-symbol-with-package-name`, `supported-locale-list`)
+    //     sin un `artifactType` que desempate ⇒ **falla por ambiguedad**;
+    //   - `tasks.named<Test>("testDebugUnitTest").map { … }` resuelve, pero un provider derivado de
+    //     un task **arrastra su dependencia** ⇒ generar el snapshot **corria la suite entera**, y en
+    //     Windows la suite tiene un fallo intermitente de DLL que no tiene nada que ver con esto.
+    // Asi que se pide la vista de artefactos con el `artifactType` explicito, que es lo que AGP hace
+    // por dentro para el runtime de los tests. [MEDIDO al abrir el ticket]
+    val jarType = Attribute.of("artifactType", String::class.java)
+    classpath(
+        kotlin.androidTarget().compilations.getByName("debugUnitTest").output.allOutputs,
+        configurations.named("debugUnitTestRuntimeClasspath").map { runtime ->
+            runtime.incoming.artifactView { attributes { attribute(jarType, "jar") } }.files
+        },
+    )
+    dependsOn("compileDebugUnitTestKotlinAndroid")
+    mainClass.set("com.rndeveloper.paparcar.tools.parkings.SnapshotToolMain")
+    // Las rutas que se le pasan son del REPO (`tools/parkings/...`, `hosting/public`), no de
+    // `:shared`: por defecto un JavaExec corre en el directorio de su subproyecto y
+    // `tools/parkings/grid-fixtures.json` moria con NoSuchFileException. [MEDIDO al abrirlo]
+    workingDir = layout.settingsDirectory.asFile
+}
+
 dependencies {
     add("kspAndroid", libs.room.compiler)
     add("kspIosArm64", libs.room.compiler)

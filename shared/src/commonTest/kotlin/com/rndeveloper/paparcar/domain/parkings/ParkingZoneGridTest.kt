@@ -116,6 +116,108 @@ class ParkingZoneGridTest {
         assertTrue(widestSpanOf(polar) < 10_000.0, "a polar zone must still be bounded")
     }
 
+    // ── El nombre de la celda y su vecindario [OSM-PRECOOKED-SNAPSHOT-001] ──────
+
+    @Test
+    fun should_comeBackTheSameZone_when_itIsNamedAndReadAgain() {
+        val zone = ParkingZoneGrid.zoneOf(solLat, solLon)
+        assertEquals(zone, ParkingZoneGrid.zoneOf(zone.id))
+        // Un hemisferio sur y un oeste, que son los que llevan indices negativos en el nombre.
+        val southWest = ParkingZoneGrid.zoneOf(-34.60, -58.38)
+        assertEquals(southWest, ParkingZoneGrid.zoneOf(southWest.id))
+        assertTrue(southWest.id.startsWith("-"), "un indice negativo se escribe, got ${southWest.id}")
+    }
+
+    @Test
+    fun should_refuseAName_when_itIsNotOne() {
+        // ⛔ Esto lee un NOMBRE DE FICHERO y una clave de CDN: lo que no se puede justificar tiene
+        // que ser un fallo, no una suposicion. Un parse indulgente sirve los parkings de una celda
+        // bajo el nombre de otra y nada aguas abajo podria notarlo.
+        listOf("", "_", "1_", "_1", "1", "a_b", "1_2_", "01_2", "1_+2", " 1_2").forEach { bad ->
+            assertEquals(null, ParkingZoneGrid.zoneOf(bad), "'$bad' no es un nombre de celda")
+        }
+    }
+
+    /**
+     * ⛔ **El testigo del bloque, y lo que comprueba no es su forma: es su COBERTURA.**
+     * [OSM-PRECOOKED-SNAPSHOT-001]
+     *
+     * Para alguien plantado en cada una de las cuatro esquinas de su celda —que es donde la
+     * cobertura es minima— TODO lo que el carril promete ensenarle tiene que caer en alguna celda
+     * del bloque. 1.440 rumbos por esquina, sobre nueve puntos del mundo desde Kampala hasta el
+     * paralelo 89.
+     *
+     * Falsificado en las dos direcciones: con `BLOCK_REACH_METERS` sin la media celda, o con las
+     * columnas contadas en la banda del centro en vez de banda a banda, este test se pone rojo —
+     * las dos formas se probaron y las dos dejaban puntos fuera.
+     */
+    @Test
+    fun should_coverTheDisplayRadius_forSomebodyStandingInAnyCornerOfTheCell() {
+        val places = listOf(
+            40.4168 to -3.7038, 36.7213 to -4.4214, -34.60 to -58.38, 60.17 to 24.94,
+            0.3 to 32.58, 78.22 to 15.63, 41.0 to 0.0, -0.1 to -0.1, 89.5 to 100.0,
+        )
+        places.forEach { (lat, lon) ->
+            val zone = ParkingZoneGrid.zoneOf(lat, lon)
+            val block = ParkingZoneGrid.blockAround(zone).toSet()
+            // ⛔ El paso se saca EXACTO de dos centros contiguos, no caminando con `probeLonStep`:
+            // ese avanza a saltos de 8,5 m y sobreestima el paso, asi que `0,49999 x paso` caia
+            // FUERA de la celda y el test se acusaba a si mismo. Con los indices expuestos, la
+            // resta de dos centros es el paso y no hay nada que estimar. [MEDIDO al abrirlo]
+            val latStep = ParkingZoneGrid.Zone(zone.bandIndex + 1, zone.columnIndex).centreLatitude -
+                zone.centreLatitude
+            val lonStep = ParkingZoneGrid.Zone(zone.bandIndex, zone.columnIndex + 1).centreLongitude -
+                zone.centreLongitude
+            val radius = PublicParkingsQuery.DEFAULT_RADIUS_METERS.toDouble()
+            listOf(-1 to -1, -1 to 1, 1 to -1, 1 to 1).forEach { (latSign, lonSign) ->
+                // Un pelo DENTRO de la celda: la esquina exacta ya pertenece a la vecina.
+                val cornerLat = zone.centreLatitude + latSign * latStep * CORNER
+                val cornerLon = zone.centreLongitude + lonSign * lonStep * CORNER
+                assertEquals(
+                    zone, ParkingZoneGrid.zoneOf(cornerLat, cornerLon),
+                    "la esquina ($latSign,$lonSign) de $zone tiene que ser de su propia celda",
+                )
+                val metresPerDegreeLon = 111_320.0 * kotlin.math.cos(
+                    kotlin.math.abs(cornerLat) * kotlin.math.PI / 180.0,
+                ).coerceAtLeast(0.17364818)
+                (0 until BEARINGS).forEach { i ->
+                    val bearing = i * (360.0 / BEARINGS) * kotlin.math.PI / 180.0
+                    val probeLat = cornerLat + kotlin.math.cos(bearing) * radius / 111_320.0
+                    val probeLon = cornerLon + kotlin.math.sin(bearing) * radius / metresPerDegreeLon
+                    assertTrue(
+                        ParkingZoneGrid.zoneOf(probeLat, probeLon) in block,
+                        "en $lat,$lon: a ${radius.toInt()} m rumbo ${i * (360.0 / BEARINGS)} de la " +
+                            "esquina ($latSign,$lonSign) se sale del bloque",
+                    )
+                }
+            }
+        }
+    }
+
+    @Test
+    fun should_readEachCellOnce_andIncludeTheCellAskedAbout() {
+        val zone = ParkingZoneGrid.zoneOf(solLat, solLon)
+        val block = ParkingZoneGrid.blockAround(zone)
+        assertEquals(block.size, block.distinct().size, "una celda no se lee dos veces")
+        assertTrue(zone in block, "el bloque incluye la celda preguntada")
+        // ⛔ No es un cuadrado de anillos, y por eso no se afirma que lo sea: 13 a 21 celdas segun
+        // donde caiga, no 9. Lo que se afirma es que no se desmadra.
+        assertTrue(block.size in 9..32, "un bloque de ${block.size} celdas no es un vecindario")
+    }
+
+    /** Cuanto dentro de su celda se planta la esquina de prueba: casi en el borde, no encima. */
+    private val CORNER = 0.49999
+
+    /** Rumbos por esquina. 1.440 = uno cada cuarto de grado. */
+    private val BEARINGS = 1_440
+
+    /** How tall the zone is in degrees, recovered by walking north until it changes. */
+    private fun probeLatStep(zone: ParkingZoneGrid.Zone): Double {
+        var lat = zone.centreLatitude
+        while (ParkingZoneGrid.zoneOf(lat, zone.centreLongitude) == zone) lat += 0.00005
+        return (lat - zone.centreLatitude) * 2
+    }
+
     /** How wide the zone is in metres at its widest, which for a lat/lon cell is its lower edge. */
     private fun widestSpanOf(zone: ParkingZoneGrid.Zone): Double {
         val step = probeLonStep(zone)

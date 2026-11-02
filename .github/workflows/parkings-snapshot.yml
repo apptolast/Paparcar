@@ -1,0 +1,182 @@
+name: Parkings snapshot (weekly)
+
+# El snapshot pre-cocinado de la base de parkings. [OSM-PRECOOKED-SNAPSHOT-001]
+#
+# Un `amenity=parking` cambia en semanas o meses, asi que la base se cocina una vez por semana y se
+# sirve por CDN en vez de preguntarse a Overpass por usuario (4,68 s en frio en Madrid, 7,72 s en
+# Malaga, 504 en Barcelona — medido en los tickets de Overpass).
+#
+# ⚠️ **Este workflow no puede ejecutarse todavia y entra escrito a proposito.** El CI del repo esta
+# muerto desde el 13-09-2026 por facturacion (`project_ci_dead_since_2026_09_13`). Mientras lo este,
+# el snapshot se genera **a mano** con los comandos de `tools/parkings/README.md`, que son los
+# mismos pasos que hay aqui. Un workflow escrito y sin correr es peor que ninguno solo si nadie lo
+# dice; esta dicho.
+
+on:
+  schedule:
+    # Lunes a las 04:17 UTC. El minuto raro es para no caer en el pico de los cron en hora en punto
+    # contra los espejos de Geofabrik.
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+    inputs:
+      extracts:
+        description: 'Extractos de Geofabrik, separados por espacios (relativos a download.geofabrik.de)'
+        default: 'europe/spain-latest.osm.pbf africa/canary-islands-latest.osm.pbf'
+        required: false
+      deploy:
+        description: 'Publicar en Hosting al terminar'
+        type: boolean
+        default: false
+
+concurrency:
+  # ⛔ Nunca dos a la vez: las dos escribirian la misma version y la segunda desplegaria un
+  # directorio a medias.
+  group: parkings-snapshot
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    name: Build and publish the car-park base
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install pyosmium
+        run: pip install osmium
+
+      # El unico test que hay del extractor, y existe porque su bug borro un parking municipal del
+      # centro de Madrid sin que nada lo dijera. [OSM-PRECOOKED-SNAPSHOT-001]
+      - name: Test the extractor
+        run: python tools/parkings/test_osm_extract.py
+
+      # El tool corre sobre el runtime de los tests de `:shared`, asi que Gradle tiene que poder
+      # CONFIGURAR el proyecto: sin estos dos ficheros muere en "SDK location not found" /
+      # "google-services.json is missing". Mismos secretos que `ci.yml`.
+      - name: Inject Config
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+        run: |
+          echo "$GOOGLE_SERVICES_JSON" > app/google-services.json
+          echo "GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID" > local.properties
+          echo "MAPS_API_KEY=mock_key" >> local.properties
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Resolve week and extract
+        id: plan
+        run: |
+          # ⛔ `%G-W%V`, no `%Y-W%V`: en la semana que cruza el ano, `%Y` da el ano del DIA y `%G`
+          # el de la SEMANA ISO, asi que la primera semana de enero se publicaria como la ultima
+          # del ano que acaba de terminar y machacaria una version existente.
+          echo "week=$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
+          # DOS extractos para Espana, no uno: las Canarias estan en `africa/`, no en
+          # `europe/spain`, porque Geofabrik recorta por geografia y no por administracion. Medido:
+          # la caja del extracto de Espana es lon -9,30..4,31 y las islas estan entre -13 y -18, asi
+          # que con uno solo el snapshot deja las Canarias a CERO y **nada falla** — se publica un
+          # mapa vacio para 2,2 millones de personas. [MEDIDO 02-11-2026]
+          echo "extracts=${{ github.event.inputs.extracts || 'europe/spain-latest.osm.pbf africa/canary-islands-latest.osm.pbf' }}" >> "$GITHUB_OUTPUT"
+
+      # Un extracto por fichero, y la geometria se saca UNO A UNO: asi una region que no ha
+      # cambiado no se vuelve a extraer, y el que junta las partes es el tool, que **deduplica por
+      # id** (los recortes de Geofabrik se solapan en las fronteras).
+      - name: Download the Geofabrik extracts and pull out the geometry
+        run: |
+          mkdir -p /tmp/parkings
+          i=0
+          for extract in ${{ steps.plan.outputs.extracts }}; do
+            i=$((i + 1))
+            curl -fL --retry 3 --retry-delay 10 \
+              -o "/tmp/parkings/source-$i.osm.pbf" \
+              "https://download.geofabrik.de/$extract"
+            ls -la "/tmp/parkings/source-$i.osm.pbf"
+            python tools/parkings/osm_extract.py \
+              "/tmp/parkings/source-$i.osm.pbf" "/tmp/parkings/raw-$i.json"
+            # El PBF ya no hace falta y son cientos de MB en el disco del runner.
+            rm -f "/tmp/parkings/source-$i.osm.pbf"
+          done
+
+      # Aqui es donde corre el filtro DE LA APP. No hay un segundo filtro que mantener.
+      - name: Apply the app's own filter and write the cells
+        run: |
+          ./gradlew :shared:parkingSnapshotTool --no-daemon \
+            --args="--snapshot hosting/public ${{ steps.plan.outputs.week }} $(echo /tmp/parkings/raw-*.json)"
+
+      # El guardarrail de la rejilla, que es lo unico que puede cazar que el reparto en celdas haya
+      # cambiado sin que nadie regenerara la tabla que el backend del ticket 2 va a leer.
+      - name: Guard the grid fixtures
+        run: ./gradlew :shared:testDebugUnitTest --no-daemon --rerun-tasks --tests '*ParkingGridFixture*'
+
+      - name: Summarise
+        run: |
+          VER=hosting/public/parkings/v1/${{ steps.plan.outputs.week }}
+          echo "### Snapshot ${{ steps.plan.outputs.week }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- celdas: $(find "$VER" -name '*.json' ! -name index.json | wc -l)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- almacen: $(du -sh "$VER" | cut -f1)" >> "$GITHUB_STEP_SUMMARY"
+          python -c "import json;m=json.load(open('$VER/index.json'));print('- parkings:',m['parkings'])" \
+            >> "$GITHUB_STEP_SUMMARY"
+
+      # ⛔⛔ Un deploy de hosting ESPEJA el directorio: sube la web commiteada (que esta en git, 79
+      # ficheros) MAS las celdas generadas, y **borra la version anterior del snapshot** en el mismo
+      # despliegue que mueve el puntero. Por eso `latest.json` va con `must-revalidate` y por eso
+      # quien reciba un 404 en una celda tiene que volver a leer el puntero en vez de concluir que
+      # no hay parkings (obligacion de `PARKINGS-ONE-CALL-MERGED-001`).
+      #
+      # Y por eso el deploy es opt-in en la ejecucion manual: generar y mirar el resumen no toca
+      # produccion.
+      # ⛔ Si falta la credencial AVISA y se salta, no falla. A 02-11-2026 el repo tiene siete
+      # secretos y ninguno es este, asi que con un `exit 1` el cron pondria el workflow **en rojo
+      # todos los lunes** por una causa conocida que solo el user puede resolver. Un rojo semanal
+      # que nadie puede arreglar ensena a ignorar los rojos, y este repo ya lo pago: «un PR en rojo
+      # no significa nada» es lo que dejo master sin compilar para iOS con el guard puesto.
+      # El aviso va al resumen del run, donde se ve sin abrir logs.
+      - name: Publish to Hosting
+        id: publish
+        if: ${{ github.event_name == 'schedule' || github.event.inputs.deploy == 'true' }}
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/firebase-sa.json
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "::warning::snapshot generado pero NO publicado: falta el secreto FIREBASE_SERVICE_ACCOUNT"
+            {
+              echo ""
+              echo "### ⚠️ Generado, no publicado"
+              echo "Falta el secreto \`FIREBASE_SERVICE_ACCOUNT\`, asi que el \`firebase deploy\` no"
+              echo "puede autenticarse. Crearlo en Settings → Secrets, o publicar a mano con los"
+              echo "comandos de \`tools/parkings/README.md\`."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "$FIREBASE_SERVICE_ACCOUNT" > /tmp/firebase-sa.json
+          npx --yes firebase-tools@latest deploy --only hosting --project pap-26 --non-interactive
+          echo "published=true" >> "$GITHUB_OUTPUT"
+
+      # La leccion de [WEB-A-HOSTING-HEADER-RULE-MUST-ACTUALLY-MATCH-001]: una regla de cabeceras
+      # puede desplegarse limpia y no casar NADA, y solo se ve leyendo la URL viva.
+      - name: Verify the live headers
+        if: ${{ steps.publish.outputs.published == 'true' }}
+        run: |
+          set -e
+          POINTER=$(curl -fsS https://paparcar.com/parkings/v1/latest.json)
+          echo "$POINTER"
+          echo "$POINTER" | grep -q '"version":"${{ steps.plan.outputs.week }}"' \
+            || { echo "::error::el puntero vivo no es ${{ steps.plan.outputs.week }}"; exit 1; }
+          HEADERS=$(curl -fsSI https://paparcar.com/parkings/v1/latest.json)
+          echo "$HEADERS" | grep -iq 'cache-control: *public, *max-age=0, *must-revalidate' \
+            || { echo "::error::el puntero no revalida: la regla de cabeceras no ha casado"; exit 1; }

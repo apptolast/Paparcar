@@ -90,6 +90,16 @@
         "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
       },
       {
+        "//": "The pre-cooked car-park base [OSM-PRECOOKED-SNAPSHOT-001]. A published snapshot is IMMUTABLE under its week — a regeneration writes a NEW version and the pointer moves at the end — so the cells earn `immutable` for the same reason /assets does: a changed cell is a different URL and a cached copy can never be the wrong one. ⛔ The two rules are ordered exactly like /assets/** followed by /assets/manifest.json, which is the shape that is deployed and working: the specific one comes AFTER the general one. ⛔ And one glob per path, never an @(a|b|c) alternation of full paths — that form deployed clean and matched NOTHING [WEB-A-HOSTING-HEADER-RULE-MUST-ACTUALLY-MATCH-001], so this must be verified by reading Cache-Control off the live URL, not from this comment.",
+        "source": "/parkings/v1/**",
+        "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+      },
+      {
+        "//": "The POINTER, and the one file here that must never be pinned — same doorway rule as /favicon.ico. ⛔ A `.json` matches none of the other sources and would inherit Hosting's default max-age=3600, which hides a regeneration for an hour: readers would keep fusing last week's cells while the new ones sat published and unused.",
+        "source": "/parkings/v1/latest.json",
+        "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
+      },
+      {
         "source": "**/*.@(html|xml|txt)",
         "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
       },

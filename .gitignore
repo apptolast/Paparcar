@@ -810,3 +810,11 @@ __pycache__/
 # que los `parkdiag` crudos salieron del repo. Se regeneran con el movil delante; no viajan.
 # (`ig_inputs.zip` ya lo tapa el `*.zip` de mas arriba.)
 ig_inputs/
+
+# El snapshot pre-cocinado de parkings: SALIDA DE BUILD, no fuente [OSM-PRECOOKED-SNAPSHOT-001].
+# Son miles de ficheros por version (463 celdas solo la region de Madrid) que se regeneran con
+# `osm_extract.py` + `:shared:parkingSnapshotTool` desde un extracto de Geofabrik, y versionarlos
+# convertiria cada regeneracion semanal en un commit de miles de ficheros que nadie puede revisar.
+# Lo que SI viaja es `parkings/LICENSE.txt`, que es la licencia ODbL de lo que publicamos y se
+# escribe a mano.
+hosting/public/parkings/v1/

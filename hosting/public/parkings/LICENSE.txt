@@ -1,0 +1,69 @@
+Paparcar — pre-cooked public car-park base
+==========================================
+
+WHAT THIS IS
+
+A Derivative Database extracted from OpenStreetMap: the `amenity=parking` features of the
+covered area, filtered to the car parks a driver can actually use, split into fixed cells and
+published as one JSON file per cell.
+
+    /parkings/v1/latest.json              which version is current
+    /parkings/v1/<version>/index.json     the manifest: every cell and how many records it holds
+    /parkings/v1/<version>/<band>_<col>.json   one cell
+
+A version is immutable: a regeneration publishes a new version and then moves the pointer.
+
+
+LICENCE
+
+The source data is © OpenStreetMap contributors.
+
+    https://www.openstreetmap.org/copyright
+
+This is a Derivative Database of it, and it is offered to you under the SAME terms — the Open
+Database License (ODbL) version 1.0:
+
+    https://opendatacommons.org/licenses/odbl/1-0/
+
+The individual records inside it are available under the Database Contents License (DbCL) 1.0:
+
+    https://opendatacommons.org/licenses/dbcl/1-0/
+
+In short: use it, change it, share it. If you publish a database made from it, publish that
+under ODbL too, and keep the attribution to OpenStreetMap contributors.
+
+
+WHAT WAS CHANGED FROM THE SOURCE
+
+Nothing was added and nothing was invented. Every record carries only what OpenStreetMap
+already said about that feature. What the extraction does is select and reshape:
+
+  * Only `amenity=parking` features are kept.
+
+  * Roadside parking is dropped — `parking=street_side`, `lane`, `layby`, `on_kerb`,
+    `half_on_kerb` and `verge`. That is the kerb, not a facility you drive into.
+
+  * Features nobody may use are dropped: `access` of `private`, `no`, `permit`, `employees`,
+    `residents`, `agricultural`, `delivery` or `military`. `access=customers` is kept only when
+    `fee=yes`, because a garage that charges is one a stranger can drive into.
+
+  * A way or a relation is reduced to ONE point: the centre of its bounding box.
+
+  * `fee` is narrowed to three answers — paid, free, and NOBODY HAS SAID. Only the literal
+    values `yes` and `no` become the first two; every other value, and the absence of the tag,
+    becomes the third. An untagged car park is never reported as free.
+
+  * `maxheight` is read only when it is metric. An imperial clearance is left empty rather than
+    converted, because a guessed height is how a van gets wedged under a beam.
+
+  * Coordinates are rounded to 7 decimal places, which is the precision OpenStreetMap stores.
+
+  * Fields with no value are omitted from the JSON rather than written as null.
+
+The selection above is the app's own, and it is applied by the app's own code — so what is
+published here is exactly what Paparcar shows, not a separate interpretation of it.
+
+
+CONTACT
+
+    https://paparcar.com

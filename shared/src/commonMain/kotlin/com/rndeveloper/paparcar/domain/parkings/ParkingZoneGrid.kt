@@ -40,11 +40,34 @@ import kotlin.math.max
  */
 object ParkingZoneGrid {
 
-    /** The zone a point belongs to: its centre, and the radius that covers it whole. */
+    /**
+     * The zone a point belongs to — **identified by two integers, with its centre DERIVED**.
+     * [OSM-PRECOOKED-SNAPSHOT-001]
+     *
+     * ⛔ It used to hold the two centre coordinates, and that was fine while the zone only ever
+     * lived in memory. It stops being fine the moment a zone has to be **named** — a pre-cooked
+     * snapshot file, a CDN cache key — because a `Double` has **no single spelling**: Kotlin/JVM and
+     * Kotlin/Native are not obliged to print `40.4125` the same way, and two spellings of the same
+     * zone are two CDN entries, which is half the cache hits and twice the function runs **with no
+     * visible error anywhere**.
+     *
+     * Two integers have one spelling on every platform and in every language, so [id] is the zone's
+     * name and the centre is what you compute from it — never the other way round. Equality now
+     * compares the indices instead of two floating-point numbers, which is also the comparison the
+     * callers always meant.
+     */
     data class Zone(
-        val centreLatitude: Double,
-        val centreLongitude: Double,
-    )
+        val bandIndex: Int,
+        val columnIndex: Int,
+    ) {
+        val centreLatitude: Double get() = (bandIndex + HALF) * LAT_STEP
+
+        /** ⛔ Derived from [centreLatitude], never from a caller's own latitude — see [zoneOf]. */
+        val centreLongitude: Double get() = (columnIndex + HALF) * lonStepAt(centreLatitude)
+
+        /** The zone's NAME: what a snapshot file is called and what a cache key is keyed on. */
+        val id: String get() = "${bandIndex}_$columnIndex"
+    }
 
     /**
      * The zone containing this point.
@@ -56,15 +79,25 @@ object ParkingZoneGrid {
      * makes every point in that band agree on the grid by construction.
      */
     fun zoneOf(latitude: Double, longitude: Double): Zone {
-        val latStep = CELL_METERS / METERS_PER_DEGREE_LAT
-        val bandIndex = floor(latitude / latStep)
-        val centreLat = (bandIndex + HALF) * latStep
+        val bandIndex = floor(latitude / LAT_STEP)
+        val centreLat = (bandIndex + HALF) * LAT_STEP
+        val columnIndex = floor(longitude / lonStepAt(centreLat))
+        return Zone(bandIndex.toInt(), columnIndex.toInt())
+    }
 
-        val lonStep = CELL_METERS / metersPerDegreeLonAt(centreLat)
-        val columnIndex = floor(longitude / lonStep)
-        val centreLon = (columnIndex + HALF) * lonStep
-
-        return Zone(centreLat, centreLon)
+    /**
+     * A zone back from its [Zone.id], or null when the text is not one.
+     *
+     * ⛔ Strict on purpose: this reads a **file name and a cache key**, so anything it cannot account
+     * for has to be a miss rather than a guess. A lenient parse here serves one cell's car parks
+     * under another cell's name, and nothing downstream could tell.
+     */
+    fun zoneOf(id: String): Zone? {
+        val separator = id.lastIndexOf('_')
+        if (separator <= 0 || separator == id.lastIndex) return null
+        val band = id.substring(0, separator).toIntOrNull() ?: return null
+        val column = id.substring(separator + 1).toIntOrNull() ?: return null
+        return Zone(band, column).takeIf { it.id == id }
     }
 
     /** Whether two points fall in the same zone — i.e. whether panning owes the server anything. */
@@ -74,6 +107,70 @@ object ParkingZoneGrid {
         otherLatitude: Double,
         otherLongitude: Double,
     ): Boolean = zoneOf(latitude, longitude) == zoneOf(otherLatitude, otherLongitude)
+
+    /**
+     * **How far from a cell's centre the answer about that cell has to reach**, in metres.
+     * [OSM-PRECOOKED-SNAPSHOT-001]
+     *
+     * Cells **partition** the world: a pre-cooked cell holds what falls INSIDE it, never what its
+     * zone reaches ([ZONE_RADIUS_METERS]). The alternative was measured and rejected — a cell
+     * holding its whole reach publishes every car park in about twenty-one cells, which turns an
+     * 8 MB artefact into 380 MB and says the same thing twenty-one times.
+     *
+     * So the reach is covered by reading the cells AROUND the one asked about ([blockAround]), and
+     * how far that has to go is arithmetic, not a choice: the furthest anybody can stand from the
+     * centre is **half a cell** on each axis, and from there they are still promised
+     * [PublicParkingsQuery.DEFAULT_RADIUS_METERS].
+     */
+    val BLOCK_REACH_METERS: Double =
+        CELL_METERS * HALF + PublicParkingsQuery.DEFAULT_RADIUS_METERS
+
+    /**
+     * The cells whose contents answer about [zone] — the block that covers [BLOCK_REACH_METERS]
+     * around its centre. [OSM-PRECOOKED-SNAPSHOT-001]
+     *
+     * ⛔ **It is NOT a square of rings, and the first version of it was — it leaked.** Writing
+     * `ceil(radius / cell)` rings around the centre's own column is the obvious shape and it loses
+     * car parks, measured: from the south-west corner of Madrid's cell, a point 3 km away on a
+     * bearing of 255° lands in a column the 3 × 3 block does not contain. Two reasons, both
+     * structural:
+     *
+     * - **A column's width is derived from its own band's centre latitude** (see [zoneOf]), so the
+     *   grids of two neighbouring bands are OFFSET: `Zone(band + 1, column)` is not the cell due
+     *   north of `Zone(band, column)`, and the asked cell's centre can sit anywhere inside a
+     *   neighbouring band's column — up to half a cell off its middle. Rings counted from that
+     *   column are short on one side by however far off-centre it fell.
+     * - **A degree of longitude is worth fewer metres further from the equator**, so the reach in
+     *   DEGREES is larger at the far edge of the block than at the centre. Counting in cells of the
+     *   centre's own band understates it, and the error grows with latitude (it leaked twelve of
+     *   5.760 sample points at Svalbard against four at Madrid).
+     *
+     * So the block is derived from the **geographic box** the answer must cover, with the longitude
+     * delta taken at the box's worst latitude, and the columns resolved **per band**. Measured over
+     * nine cities from Kampala to the 89th parallel: **zero** sample points outside the block, at a
+     * cost of 13 to 21 cells instead of 9.
+     *
+     * ⛔ And it is deliberately **generous** at the edges (`floor` on both ends, so a boundary that
+     * is touched at a single line still gets its cell): a block that reads one file too many is
+     * cheap, and a block with a hole in it looks exactly like *"there are no car parks here"*.
+     */
+    fun blockAround(zone: Zone): List<Zone> {
+        val centreLat = zone.centreLatitude
+        val centreLon = zone.centreLongitude
+        val latDelta = BLOCK_REACH_METERS / METERS_PER_DEGREE_LAT
+        val firstBand = floor((centreLat - latDelta) / LAT_STEP).toInt()
+        val lastBand = floor((centreLat + latDelta) / LAT_STEP).toInt()
+        // El grado de longitud MAS CARO del bloque: el de la latitud mas alejada del ecuador, que
+        // es donde un metro vale mas grados. Tomarlo en el centro es lo que dejaba agujeros.
+        val worstLatitude = max(abs(centreLat - latDelta), abs(centreLat + latDelta))
+        val lonDelta = BLOCK_REACH_METERS / metersPerDegreeLonAt(worstLatitude)
+        return (firstBand..lastBand).flatMap { band ->
+            val step = lonStepAt((band + HALF) * LAT_STEP)
+            val firstColumn = floor((centreLon - lonDelta) / step).toInt()
+            val lastColumn = floor((centreLon + lonDelta) / step).toInt()
+            (firstColumn..lastColumn).map { Zone(band, it) }
+        }
+    }
 
     /**
      * How far a zone's answer has to reach.
@@ -118,6 +215,12 @@ object ParkingZoneGrid {
      */
     private fun metersPerDegreeLonAt(latitude: Double): Double =
         max(MIN_METERS_PER_DEGREE_LON, METERS_PER_DEGREE_LAT * cos(abs(latitude) * PI / 180.0))
+
+    /** A degree of longitude is worth fewer metres the further from the equator, so the step grows. */
+    private fun lonStepAt(latitude: Double): Double = CELL_METERS / metersPerDegreeLonAt(latitude)
+
+    /** A band is the same height everywhere, so its step is a constant and not a function. */
+    private val LAT_STEP: Double = CELL_METERS / METERS_PER_DEGREE_LAT
 
     /** `cos(80°)` — a zone at the eightieth parallel is as narrow as the grid is allowed to get. */
     private const val MIN_METERS_PER_DEGREE_LON = 111_320.0 * 0.17364818
