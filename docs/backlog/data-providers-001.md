@@ -1,7 +1,12 @@
 # DATA-PROVIDERS-001 · de dónde salen los datos externos, y quién los sirve
 
-**Estado:** 🔵 Abierto · documento de decisión, **sin código** · rama `chore/DATA-PROVIDERS-001-audit`
-· worktree `../Paparcar-dataproviders`
+**Estado:** 🔵 Abierto · **documento de decisión, sin código y SIN RAMA PROPIA** — está en master
+y las ramas las llevan sus tickets. Su rama original (`chore/DATA-PROVIDERS-001-audit`) se mergeó y
+se borró; lo cazo `branch_tell.py`, que es para lo que existe.
+· **Avance de la ola:** ✅ ticket 1 (snapshot pre-cocinado) · ✅ ticket 2 (una sola llamada) ·
+✅ ticket 3 (ocupación de Madrid) · 🔵 ticket 4 (la UI de la cifra) · 🔴 ticket 5 (Parclick,
+bloqueado) · 🔴 ticket 0 (los correos, sin enviar — y con 1 ciudad viva de 5, el NAP es el
+multiplicador)
 **Fecha:** 30-10-2026 · **Revaloriza** [`plus-roadmap-001.md`](plus-roadmap-001.md) §F5/§F6 y
 [`../parking-data-research.md`](../parking-data-research.md) (21-09-2026) con información nueva de
 Parclick, Parkopedia y MINETUR.
