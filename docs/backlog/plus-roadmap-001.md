@@ -362,6 +362,16 @@ una vez, no ir apilando.
 
 ---
 
+> ⚠️ **F5 y F6 están REVALORIZADAS por
+> [`data-providers-001.md`](data-providers-001.md) (30-10-2026)**, con información nueva de Parclick,
+> Parkopedia y MINETUR. Tres correcciones que afectan a lo escrito debajo:
+> 1. ⛔ **«Es el primer backend propio» ya no es cierto**: `functions/` existe con dos funciones v2
+>    desplegadas en `europe-west1` y Blaze activo. Lo único que F6b estrena es **Cloud Scheduler**.
+> 2. 🟡 La cadencia de **3 min** de F6b cabe en la capa gratuita de Firestore **al 86 %**, sin
+>    margen: empezar a **5 min** y escribir sólo cuando el valor cambia.
+> 3. 🟡 La base mundial de Overpass es **candidata a sustitución** por snapshots pre-cocinados en
+>    Hosting, y los adaptadores de precio de combustible de F5 **se quedan en cliente**.
+
 ### F5 · FUEL-PRICES-001 — precio real donde exista, media donde no, gasolineras cercanas
 
 **Estado: ✅ COMPLETA EN MASTER** — se ejecutó como cadena de tickets, no como uno:
