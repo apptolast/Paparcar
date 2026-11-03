@@ -13,6 +13,22 @@ service cloud.firestore {
     //             nunca reasignar reportedBy — cierra el "cualquiera reescribe el spot ajeno".
     //   - delete: el dueño, O cualquiera si el spot YA CADUCÓ (expiresAt < ahora) — un TTL
     //             server-side barato sin Cloud Functions que evita que la colección crezca sin fin.
+    // Ocupacion viva de los parkings publicos. [PARKINGS-LIVE-OCCUPANCY-001]
+    //   - read:  ABIERTO, sin autenticar. ⛔ Y es deliberado: lo lee la funcion `mergeCell`, que es
+    //            ANONIMA porque su respuesta la tiene que cachear el CDN (si dependiera de quien
+    //            pregunta correria una vez POR USUARIO). Ademas el dato no es de nadie: son plazas
+    //            libres que el Ayuntamiento de Madrid publica en abierto bajo CC BY 4.0, asi que no
+    //            hay nada que proteger — y la doctrina del producto dice que **nunca se gatea VER**
+    //            un parking.
+    //   - write: NADIE desde un cliente. Lo escribe `ingestOccupancy` con el SDK de admin, que se
+    //            salta estas reglas por definicion. Una escritura de cliente aqui seria alguien
+    //            inventandose cuantas plazas quedan en un parking que no es suyo, y la app lo
+    //            ensenaria como dato oficial con su licencia al lado.
+    match /publicParkings/{parkingKey} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     match /spots/{spotId} {
       allow read:   if request.auth != null;
 

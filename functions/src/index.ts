@@ -1,5 +1,6 @@
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { onRequest, type Response } from 'firebase-functions/v2/https';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { gzipSync } from 'node:zlib';
 import { setGlobalOptions } from 'firebase-functions/v2';
 import * as logger from 'firebase-functions/logger';
@@ -8,6 +9,13 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 import { isDeadToken, targetsFor, verdictFor, type PublishedSpot, type ZoneAlertSub } from './fanout';
 import { blockAround, cellId, zoneOf } from './parkingsGrid';
+import {
+  isWorthWriting,
+  parseMadrid,
+  toStored,
+  type CityMeasurement,
+  type StoredMeasurement,
+} from './cityOccupancy';
 import {
   cacheControlFor,
   hasPerishable,
@@ -402,6 +410,118 @@ async function readCell(version: string, cell: string): Promise<SnapshotCell | n
   return value;
 }
 
+/** Colección de la ocupación viva. ⛔ Espejada en `firestore.rules`. */
+const OCCUPANCY_COLLECTION = 'publicParkings';
+
+/** Cuánto vive la ocupación en memoria de la instancia. Corto: es el dato más perecedero que hay. */
+const OCCUPANCY_TTL_MS = 30_000;
+
+let occupancyCache: { measurements: CityMeasurement[]; atMs: number } | null = null;
+
+/**
+ * La ocupación viva, **entera**. [PARKINGS-LIVE-OCCUPANCY-001]
+ *
+ * ⛔ Se lee la colección COMPLETA y no por celda, a propósito: son **24 documentos** (Madrid, lo
+ * único medido vivo el 03-11) y una consulta geográfica sobre eso costaría un índice y una caja que
+ * mantener para ahorrar veinte lecturas. Quien filtra por proximidad es `fuseAvailability`, que ya
+ * tiene que hacerlo igual.
+ *
+ * ⚠️ **Y deja de ser cierto cuando la colección crezca.** El umbral no es un número redondo: es
+ * cuando leerla entera cueste más que su índice. Si entran el NAP nacional o varias ciudades, esto
+ * pasa a consulta por caja — y entonces el índice hay que verificarlo CONTRA PRODUCCIÓN, que es la
+ * lección de `OPS-A-COUNT-WITHOUT-ITS-INDEX-SILENCES-EVERY-ZONE-001`.
+ */
+async function readOccupancy(now: number): Promise<CityMeasurement[]> {
+  if (occupancyCache && now - occupancyCache.atMs < OCCUPANCY_TTL_MS) {
+    return occupancyCache.measurements;
+  }
+  const snapshot = await getFirestore().collection(OCCUPANCY_COLLECTION).get();
+  const measurements = snapshot.docs.map((doc) => {
+    const stored = doc.data() as StoredMeasurement;
+    return { key: doc.id, ...stored } as CityMeasurement;
+  });
+  occupancyCache = { measurements, atMs: now };
+  return measurements;
+}
+
+/**
+ * **Trae la ocupación de las ciudades y la guarda — escribiendo sólo lo que ha cambiado.**
+ * [PARKINGS-LIVE-OCCUPANCY-001]
+ *
+ * Es **lo único nuevo de infraestructura** en toda la ola: Cloud Scheduler. El resto —runtime,
+ * deploy, secretos, Blaze— ya estaba estrenado, al contrario de lo que el roadmap daba por hecho.
+ *
+ * ⛔ **Cada 5 minutos y no cada 3**, que es lo que fijaba el roadmap: la capa gratuita de Firestore
+ * es de 20.000 escrituras **al día**, y a 3 min reescribiendo los 24 de Madrid eran 11.520 — el
+ * 58 % — en su mayoría para repetir lo ya guardado.
+ *
+ * ⛔ **Solo I/O**: el parseo, qué merece escritura y la fusión viven en `cityOccupancy.ts`.
+ *
+ * ⛔ **Y si Madrid falla, no se borra nada.** Una ingesta que vaciara la colección ante un 500
+ * ajeno convertiría una caída de diez minutos del Ayuntamiento en «ningún parking de Madrid
+ * publica plazas libres», que es la mentira que este expediente entero evita. El dato viejo se
+ * queda, y es el `updatedAt` el que dice cuánto hace que se midió.
+ */
+export const ingestOccupancy = onSchedule(
+  { schedule: 'every 5 minutes', region: 'europe-west1', timeZone: 'Europe/Madrid', maxInstances: 1 },
+  async () => {
+    const now = Date.now();
+    let measurements: CityMeasurement[] = [];
+    try {
+      const response = await fetch(MADRID_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/xml; charset=utf-8',
+          SOAPAction: MADRID_SOAP_ACTION,
+        },
+        body: MADRID_ENVELOPE,
+      });
+      if (!response.ok) throw new Error(`madrid: HTTP ${response.status}`);
+      measurements = parseMadrid(await response.text(), now);
+    } catch (err) {
+      // ⛔ Se registra y se SALE sin tocar la colección. Ver el KDoc de arriba.
+      logger.error('madrid occupancy unreadable', err instanceof Error ? err : new Error(String(err)));
+      return;
+    }
+
+    if (measurements.length === 0) {
+      // Cero medidas no es un ciclo normal: es la forma de la respuesta cambiando. Nunca se
+      // interpreta como «hoy no hay plazas libres en Madrid».
+      logger.error('madrid occupancy parsed to nothing', new Error('shape changed?'));
+      return;
+    }
+
+    const db = getFirestore();
+    const collection = db.collection(OCCUPANCY_COLLECTION);
+    const existing = new Map(
+      (await collection.get()).docs.map((doc) => [doc.id, doc.data() as StoredMeasurement]),
+    );
+
+    let written = 0;
+    const batch = db.batch();
+    for (const measurement of measurements) {
+      const next = toStored(measurement);
+      if (!isWorthWriting(existing.get(measurement.key), next)) continue;
+      batch.set(collection.doc(measurement.key), next, { merge: true });
+      written++;
+    }
+    if (written > 0) await batch.commit();
+
+    // La línea del coste: `measurements` es lo que la ciudad publicó, `written` lo que nos cobran.
+    // La diferencia entre las dos es lo que ahorra escribir sólo cuando cambia.
+    logger.info('occupancy ingested', { measurements: measurements.length, written });
+  },
+);
+
+/** El servicio SOAP de Madrid. Público: ni clave, ni registro, ni token [MEDIDO 03-11-2026]. */
+const MADRID_ENDPOINT = 'https://servayto.madrid.es/MTPAR_WSINFO/InfoParking';
+const MADRID_SOAP_ACTION = '"http://tempuri.org/iInfoParking/GetListParking"';
+const MADRID_ENVELOPE =
+  '<?xml version="1.0" encoding="utf-8"?>' +
+  '<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tem="http://tempuri.org/">' +
+  '<soap:Body><tem:GetListParking><tem:language>es</tem:language></tem:GetListParking></soap:Body>' +
+  '</soap:Envelope>';
+
 /**
  * ⛔ **Comprime la respuesta NOSOTROS, porque Hosting no lo hace con la de una funcion.**
  *
@@ -475,10 +595,11 @@ export const mergeCell = onRequest(
       const block = blockAround(zone);
       const files = await Promise.all(block.map((z) => readCell(manifest.version, cellId(z))));
       const cells = files.filter((f): f is SnapshotCell => f !== null);
-      const payload = responseFor(cellId(zone), manifest, cells, now);
+      const payload = responseFor(cellId(zone), manifest, cells, now, await readOccupancy(now));
 
       logger.info('parkings cell served', {
         cell: payload.cell,
+        withAvailability: payload.parkings.filter((p) => p.availability).length,
         version: manifest.version,
         blockCells: block.length,
         withData: cells.length,

@@ -12,6 +12,13 @@
  * que ya sabe leer.
  */
 
+import {
+  MADRID_LICENCE,
+  MADRID_SOURCE,
+  fuseAvailability,
+  type CityMeasurement,
+} from './cityOccupancy';
+
 /** Un registro tal y como lo escribe el snapshot. Espejo de `PublicParkingSnapshotEntry.kt`. */
 export interface SnapshotEntry {
   readonly id: string;
@@ -64,6 +71,16 @@ export interface Availability {
   /** ⛔ Nunca un enum de confianza: `source` es PROCEDENCIA. El valor oficial es `OFFICIAL`. */
   readonly sourceKind: string;
   readonly licence: string;
+  /**
+   * ⛔ **`true` cuando la fuente NO sella su dato y [updatedAt] es NUESTRA hora de lectura.**
+   * [PARKINGS-LIVE-OCCUPANCY-001]
+   *
+   * Lo obligó Málaga al medirla: su CSV es `dato,id,libres` y no trae marca de tiempo, mientras
+   * Madrid sella **cada parking**. Sin este campo, *«hace 3 minutos»* significaría dos cosas
+   * distintas sin forma de distinguirlas — «la ciudad lo midió hace 3 min» y «lo preguntamos hace
+   * 3 min, y no sabemos de cuándo es» — y la cifra se presentaría con una precisión que no tiene.
+   */
+  readonly updatedAtIsFetch?: boolean;
 }
 
 export interface Offer {
@@ -96,6 +113,21 @@ export interface ApiResponse {
   readonly serve: boolean;
   readonly licences: Licence[];
   readonly parkings: ApiParking[];
+}
+
+/**
+ * ⛔ **`OFFICIAL` es lo que una fuente municipal ES, no cuánto nos fiamos de ella.** `source` ya
+ * dice la procedencia; esto dice su NATURALEZA. Ningún valor de este campo puede sonar a confianza
+ * — y en particular **nunca `CONFIRMED`**, que colisiona con `Spot.confidence` y `SpotStatus`.
+ */
+const OFFICIAL = 'OFFICIAL';
+
+/** La licencia de cada fuente municipal. Una fuente sin licencia conocida **no se acredita a medias**. */
+function licenceFor(source: string): Licence | null {
+  if (source === MADRID_SOURCE) {
+    return { id: MADRID_LICENCE, source, attribution: 'Ayuntamiento de Madrid' };
+  }
+  return null;
 }
 
 export const OSM_LICENCE: Licence = {
@@ -156,6 +188,8 @@ export function responseFor(
   manifest: SnapshotManifest,
   cells: SnapshotCell[],
   now: number,
+  /** Las medidas de ocupación que caen por aquí. Vacío en casi todo el territorio. */
+  measurements: readonly CityMeasurement[] = [],
 ): ApiResponse {
   const byId = new Map<string, ApiParking>();
   for (const file of cells) {
@@ -163,12 +197,37 @@ export function responseFor(
       if (!byId.has(entry.id)) byId.set(entry.id, entry);
     }
   }
+
+  // ⛔ La fusión vive en `cityOccupancy.ts` y **ante la duda no fusiona**: ver su KDoc. Aquí sólo
+  // se pega lo que ella ha decidido, y se pega con su TESTIGO (`mergedFrom`).
+  const base = [...byId.values()].map((p) => ({ id: p.id, lat: p.lat, lon: p.lon }));
+  const { matched } = fuseAvailability(base, measurements);
+  for (const [parkingId, measurement] of matched) {
+    const parking = byId.get(parkingId)!;
+    byId.set(parkingId, {
+      ...parking,
+      // El id de la medida viaja al lado del de la base: un emparejamiento que haya que auditar se
+      // puede seguir hasta sus dos mitades.
+      mergedFrom: [parking.id, measurement.key],
+      availability: {
+        free: measurement.free,
+        total: measurement.total,
+        updatedAt: measurement.updatedAt,
+        source: measurement.source,
+        sourceKind: OFFICIAL,
+        licence: measurement.licence,
+        updatedAtIsFetch: measurement.updatedAtIsFetch || undefined,
+      },
+    });
+  }
+
+  const sources = new Set([...matched.values()].map((m) => m.source));
   return {
     cell,
     baseVersion: manifest.version,
     generatedAt: now,
     serve: manifest.serve !== false,
-    licences: [OSM_LICENCE],
+    licences: [OSM_LICENCE, ...[...sources].map(licenceFor).filter((l): l is Licence => l !== null)],
     // Orden estable por id: dos respuestas de la misma celda son el mismo byte, así que el CDN y
     // cualquier comparación aguas abajo pueden fiarse de ello.
     parkings: [...byId.values()].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)),

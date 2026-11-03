@@ -7,10 +7,10 @@
   },
   "main": "lib/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node -e \"const fs=require('fs');fs.mkdirSync('lib/fixtures',{recursive:true});for(const f of fs.readdirSync('src/fixtures'))fs.copyFileSync(`src/fixtures/${f}`,`lib/fixtures/${f}`)\"",
     "build:watch": "tsc --watch",
     "lint": "tsc --noEmit",
-    "test": "tsc && node --test lib/*.test.js",
+    "test": "npm run build && node --test lib/*.test.js",
     "serve": "npm run build && firebase emulators:start --only functions",
     "deploy": "npm run build && firebase deploy --only functions",
     "verify:queries": "tsc && node lib/scripts/verify-prod-queries.js"

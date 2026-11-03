@@ -12,6 +12,8 @@
     }
   ],
   "hosting": {
+    "//": "⛔ `predeploy` que impide BORRAR el snapshot de parkings publicado: Hosting ESPEJA el directorio, y las celdas estan en .gitignore porque son salida de build, asi que cualquier worktree limpio esta a un comando de borrar las 12.566 celdas de produccion. Paso el 03-11-2026 y dejo `mergeCell` devolviendo 503 a cada celda; estaba escrito en dos docs y una memoria, y se repitio igual. Una trampa que se evita recordandola no esta evitada. [PARKINGS-LIVE-OCCUPANCY-001]",
+    "predeploy": ["python tools/parkings/guard_before_hosting_deploy.py"],
     "public": "hosting/public",
     "cleanUrls": true,
     "ignore": [

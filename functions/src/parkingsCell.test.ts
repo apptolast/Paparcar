@@ -11,6 +11,7 @@ import {
   type SnapshotEntry,
   type SnapshotManifest,
 } from './parkingsCell';
+import type { CityMeasurement } from './cityOccupancy';
 
 /**
  * [PARKINGS-ONE-CALL-MERGED-001]
@@ -154,4 +155,78 @@ test('hoy nada caduca, y con ocupacion si', () => {
     ],
   };
   assert.equal(hasPerishable(withLive), true);
+});
+
+// ─── La ocupación, pegada a la base [PARKINGS-LIVE-OCCUPANCY-001] ────────────
+
+function occupancyAt(lat: number, lon: number, over: Partial<CityMeasurement> = {}): CityMeasurement {
+  return {
+    key: 'madrid_3',
+    source: 'madrid',
+    name: 'Plaza de España',
+    latitude: lat,
+    longitude: lon,
+    free: 360,
+    total: 587,
+    updatedAt: NOW,
+    updatedAtIsFetch: false,
+    licence: 'cc-by-4.0',
+    ...over,
+  };
+}
+
+test('pega la ocupación al parking de la base, y lo DELATA con mergedFrom', () => {
+  const base = cell('c', [entry({ id: 'osm/way/7', lat: 40.4238, lon: -3.7122 })]);
+  const response = responseFor('c', manifest(), [base], NOW, [occupancyAt(40.4238, -3.7122)]);
+
+  const parking = response.parkings[0]!;
+  assert.equal(parking.availability?.free, 360);
+  assert.equal(parking.availability?.total, 587);
+  assert.equal(parking.availability?.source, 'madrid');
+  // ⛔ Procedencia, no confianza. Y NUNCA un valor que suene a confianza.
+  assert.equal(parking.availability?.sourceKind, 'OFFICIAL');
+  // El testigo: sus dos mitades, para poder auditar un emparejamiento.
+  assert.deepEqual(parking.mergedFrom, ['osm/way/7', 'madrid_3']);
+  // Y ahora la respuesta lleva algo perecedero, así que su TTL tiene que bajar solo.
+  assert.equal(hasPerishable(response), true);
+  assert.match(cacheControlFor(hasPerishable(response)), new RegExp(`s-maxage=${CACHE_LIVE_SECONDS}`));
+});
+
+test('acredita a la ciudad SOLO cuando sirve su dato', () => {
+  const base = cell('c', [entry({ id: 'osm/way/7', lat: 40.4238, lon: -3.7122 })]);
+  const withCity = responseFor('c', manifest(), [base], NOW, [occupancyAt(40.4238, -3.7122)]);
+  assert.deepEqual(withCity.licences.map((l) => l.id), ['odbl-1.0', 'cc-by-4.0']);
+
+  // Sin medida que pegar, no se acredita a nadie de más: una licencia citada sin usar su dato es
+  // ruido, y además sugiere una cobertura que no hay.
+  const withoutCity = responseFor('c', manifest(), [base], NOW, []);
+  assert.deepEqual(withoutCity.licences.map((l) => l.id), ['odbl-1.0']);
+});
+
+test('should_notAttachAnything_when_theMeasurementHasNoParkingNearby', () => {
+  // Un parking municipal que OSM no tiene. No se inventa un registro para colgarle la cifra: la
+  // base manda, y la medida se queda fuera (contada por `fuseAvailability`).
+  const base = cell('c', [entry({ id: 'osm/way/7', lat: 40.4238, lon: -3.7122 })]);
+  const response = responseFor('c', manifest(), [base], NOW, [occupancyAt(40.4500, -3.7122)]);
+
+  assert.equal(response.parkings[0]!.availability, undefined);
+  assert.equal(response.parkings[0]!.mergedFrom, undefined);
+  assert.equal(hasPerishable(response), false);
+  assert.deepEqual(response.licences.map((l) => l.id), ['odbl-1.0']);
+});
+
+test('⛔ updatedAtIsFetch sólo aparece cuando el sello es NUESTRO', () => {
+  const base = cell('c', [entry({ id: 'osm/way/7', lat: 40.4238, lon: -3.7122 })]);
+
+  // Madrid sella cada parking: el campo no viaja, porque su ausencia ya significa «es de la fuente»
+  // y escribir `false` en cada registro es pagar bytes por el caso normal.
+  const stamped = responseFor('c', manifest(), [base], NOW, [occupancyAt(40.4238, -3.7122)]);
+  assert.equal(stamped.parkings[0]!.availability?.updatedAtIsFetch, undefined);
+
+  // Una fuente que no sella —el caso de Málaga— tiene que decirlo, o la cifra se presenta con una
+  // precisión que no tiene.
+  const unstamped = responseFor('c', manifest(), [base], NOW, [
+    occupancyAt(40.4238, -3.7122, { updatedAtIsFetch: true }),
+  ]);
+  assert.equal(unstamped.parkings[0]!.availability?.updatedAtIsFetch, true);
 });
