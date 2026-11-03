@@ -1,5 +1,7 @@
 package com.rndeveloper.paparcar.di
 
+import com.rndeveloper.paparcar.data.analytics.MetaAnalyticsTracker
+import com.rndeveloper.paparcar.domain.analytics.AdAttributionTracker
 import com.rndeveloper.paparcar.domain.push.PushTokenProvider
 import com.rndeveloper.paparcar.domain.push.SharedCarFenceRefresher
 import com.rndeveloper.paparcar.push.FirebaseMessagingTokenProvider
@@ -94,6 +96,12 @@ val androidPlatformModule = module {
 
     // "Report a problem" ships the local parkdiag history. [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001]
     single<LocalDiagnosticsLog> { AndroidLocalDiagnosticsLog(androidContext()) }
+
+    // El carril de atribución publicitaria. Sólo existe en Android y sólo lo ata ESTE módulo: el
+    // mock arranca con `MockPaparcarApp`, que no lo carga, así que el Dev Catalog no puede mandar
+    // un evento a la cuenta de anuncios ni por descuido.
+    // [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001]
+    single<AdAttributionTracker> { MetaAnalyticsTracker(androidContext(), get()) }
 
     // ── Push ─────────────────────────────────────────────────────────────────────────────────────
     // Las dos vigilancias y el reparto viven en `commonMain` desde

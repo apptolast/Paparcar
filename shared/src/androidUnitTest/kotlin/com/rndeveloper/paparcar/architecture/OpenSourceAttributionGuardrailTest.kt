@@ -91,6 +91,7 @@ class OpenSourceAttributionGuardrailTest {
             "Play Core Software Development Kit Terms of Service",
             "Play Integrity API Terms of Service",
             "Go License",
+            "Facebook Platform License",
         )
 
         /** 282 on the day this was written; the floor only has to be too high for a broken export. */

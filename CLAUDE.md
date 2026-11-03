@@ -57,6 +57,16 @@ Paparcar es una app KMP (Kotlin Multiplatform) de compartición de plazas de apa
   ya pina 10.27.0, por encima de la versión con las consumer rules de R8 estrechadas, así que el
   puente de [R8-REVENUECAT-ALREADY-NARROWED-ITS-RULES-001] sigue muerto
   [DEPS-REVENUECAT-3-10-AND-A-FULL-SWEEP-001]
+- Atribución publicitaria: Meta App Events (`facebook-core` 19.0.0, **sólo** ese artefacto — nunca
+  `facebook-android-sdk`, que arrastra login y share). ⛔ Tres reglas que no son opinión
+  [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001]: (a) hacia una red publicitaria sale un
+  **nombre de evento y nada más** — la lista blanca es un `when` exhaustivo en
+  `domain/analytics/AdAttribution.kt`, ni celda ni `detectionPath`; (b) **nada sale antes del
+  consentimiento legal** (`hasAcceptedLegalConsent`), y lo que lo sostiene son los tres `false` del
+  manifest, no una buena intención; (c) el identificador de publicidad lo recoge **ese carril y
+  sólo él** — Firebase Analytics lo sigue teniendo prohibido. La política, la web y el Data Safety
+  son consumidores suyos y los vigila `AdvertisingDisclosureGuardrailTest`; la **ficha de Play no**,
+  que se mueve en el corte y la fuerza `cut.py`
 - Logging: Napier 2.7.1 · Monitoring: Firebase Crashlytics
 - ⛔ **El stack no es sólo Gradle**: hay DOS raíces npm con su propio lockfile —`functions/` (Cloud
   Functions, se despliega) y `firestore-rules-tests/` (devDeps del harness de reglas)— y

@@ -204,6 +204,11 @@ kotlin {
             // WorkManager
             api(libs.work.runtime.ktx)
 
+            // Meta SDK — App Events (Android). `implementation`, no `api`: el único sitio del
+            // repo que nombra a Facebook es `data/analytics/Meta*.kt`, y así :app no puede
+            // tocar el SDK ni por descuido. [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001]
+            implementation(libs.facebook.core)
+
             // DataStore Preferences
             api(libs.androidx.datastore.preferences)
 

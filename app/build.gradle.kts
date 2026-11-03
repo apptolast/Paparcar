@@ -85,7 +85,16 @@ extensions.configure<ApplicationExtension> {
             "GERMANY_FUEL_STATION_KEY",
             "\"${prop("GermanyFuelStationKey") ?: ""}\""
         )
+        // Meta App Events. UN solo deletreo por clave, como el resto de este fichero: el WIP
+        // aceptaba ademas `facebookAppId`/`facebookClientToken`, y dos nombres para la misma clave
+        // es como una clave pegada bien funciona en una maquina y no en CI, que lee env vars.
+        // Vacias = el carril publicitario no arranca, y la app va igual.
+        // [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001]
+        buildConfigField("String", "FACEBOOK_APP_ID", "\"${prop("FACEBOOK_APP_ID") ?: ""}\"")
+        buildConfigField("String", "FACEBOOK_CLIENT_TOKEN", "\"${prop("FACEBOOK_CLIENT_TOKEN") ?: ""}\"")
         manifestPlaceholders["MAPS_API_KEY"] = prop("MAPS_API_KEY") ?: ""
+        manifestPlaceholders["FACEBOOK_APP_ID"] = prop("FACEBOOK_APP_ID") ?: ""
+        manifestPlaceholders["FACEBOOK_CLIENT_TOKEN"] = prop("FACEBOOK_CLIENT_TOKEN") ?: ""
     }
 
     // Fail-fast: a release build without MAPS_API_KEY produces an APK whose map

@@ -5,7 +5,10 @@
 > prodRelease y los data sources de Firestore el 28-08-2026; ampliado el 08-09-2026 con los
 > eventos de producto de Firebase Analytics [ANALYTICS-EVENTS-001]; **re-verificado contra el
 > código el 16-09-2026 para la 1.2.0** — coche compartido, push al grupo, rutas y cuatro fuentes
-> de datos más [LEGAL-DATA-SAFETY-ANSWERS-FOR-1-2-0-001].
+> de datos más [LEGAL-DATA-SAFETY-ANSWERS-FOR-1-2-0-001]; **reabierto el 02-11-2026 con el SDK de
+> Meta** — la primera vez que algo de esta app sale hacia un tercero con fin PUBLICITARIO, y por
+> eso lo primero que cambia no es una fila, es el «Compartido = No» de abajo
+> [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001].
 >
 > **Política publicada (28-08-2026): <https://paparcar.com/privacy-policy>** — dominio custom
 > conectado el 02-09-2026 al site por defecto de pap-26 (`pap-26.web.app` sigue sirviendo lo mismo
@@ -26,9 +29,16 @@
 Para cada uno: **Recogido = Sí**. «Compartido» en el sentido de Play = transferido a terceros
 — Firebase/Crashlytics son *service providers* del desarrollador, eso **no** cuenta como
 "compartido"; las plazas visibles para otros usuarios son funcionalidad iniciada por el usuario,
-tampoco. → **Compartido = No** en todo.
+tampoco.
 
-⚠️ **Ese «No» hay que sostenerlo con dos argumentos distintos, no con uno** (16-09):
+⛔⛔ **Ese «Compartido = No en todo» se acabó el 02-11-2026.** Meta Platforms recibe tres nombres
+de evento y el identificador de publicidad del dispositivo, con fin publicitario, y eso es
+exactamente lo que Play llama *shared*: ni es un *service provider* nuestro (Meta decide qué hace
+con lo que recibe) ni es funcionalidad que inicie el usuario. → **Compartido = Sí** en las dos
+filas que lo tocan (App interactions · Device or other IDs), **No** en todas las demás.
+[MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001]
+
+⚠️ Los dos argumentos de abajo siguen en pie para el resto, y siguen siendo dos, no uno (16-09):
 1. **Entre usuarios** — plazas y coche compartido. Unirse a un grupo es un acto explícito y
    reversible (decisión del user, 16-09: *«compartimos si el usuario quiere»*), así que es
    funcionalidad iniciada por el usuario. Pero el coche compartido va **más lejos que una plaza**:
@@ -47,28 +57,49 @@ tampoco. → **Compartido = No** en todo.
 | Personal info → **Name** | displayName del proveedor | Obligatorio | Account management |
 | Photos → **Photos** | photoUrl del perfil Google (solo URL, no subimos fotos) — declarar como Personal info/other o Photos según criterio; lo defendible: **Personal info → Other info** | Opcional | Account management |
 | Health & fitness → **Physical activity** | Activity Recognition + pasos (se procesa en device; el RESUMEN viaja en diagnósticos/armEvidence → se declara) | Obligatorio para el carril Coordinator | App functionality |
-| App activity → **App interactions** | Eventos de producto (Firebase Analytics): aparcamiento confirmado/cerrado, plaza liberada/avisada. La ubicación viaja SOLO como celda geohash de ~150 m (nunca coordenada — invariante en `FirebaseAnalyticsTracker`, único traductor); sin uid en los params, identificados por el app-instance id de Firebase. Destino: Firebase Analytics (+ export a BigQuery cuando se active en consola); retención GA por defecto (14 meses). [ANALYTICS-EVENTS-001] | Obligatorio | Analytics |
+| App activity → **App interactions** · ⚠️ **Compartido = Sí** | Eventos de producto (Firebase Analytics): aparcamiento confirmado/cerrado, plaza liberada/avisada. La ubicación viaja SOLO como celda geohash de ~150 m (nunca coordenada — invariante en `FirebaseAnalyticsTracker`, único traductor); sin uid en los params, identificados por el app-instance id de Firebase. Destino: Firebase Analytics (+ export a BigQuery cuando se active en consola); retención GA por defecto (14 meses). [ANALYTICS-EVENTS-001]<br><br>**Y, desde la 1.6.0, a Meta**: `parking_confirmed`, `spot_released` y `paywall_shown` — **sólo el nombre**, sin un solo parámetro (ni celda, ni `detectionPath`, ni `armEvidence`). La lista la decide un `when` exhaustivo en `domain/analytics/AdAttribution.kt`, no un `if` en el sink. Nada sale antes de `hasAcceptedLegalConsent` [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001] | Obligatorio | Analytics, **Advertising or marketing** |
 | App activity → **Other user-generated content** | Vehículos (marca/modelo/matrícula opcional), zonas privadas, plazas avisadas. **Coche compartido**: nombre visible del coche, tu nombre de perfil ante el grupo, código de invitación e historial del grupo (km, tiempo buscando plaza, plaza liberada) — `sharedCars/{carId}` + `members/{uid}` + `sessions/*`. ⛔ El espejo NO tiene campo para matrícula, `armEvidence` ni `detectionPath`: la lista blanca es el TIPO | Opcional (solo si compartes un coche) | App functionality |
 | Financial info → **Purchase history** | Estado de la suscripción Plus. La compra la procesa Google Play; RevenueCat recibe **tu uid** como `appUserID` (`RevenueCatEntitlementRepositoryImpl.kt:92`) y el estado del entitlement — nunca ubicación, aparcamientos ni vehículos. ⚠️ Ya declarado en el Console (la app vende en producción); esta fila existe para que la chuleta deje de omitirlo | Opcional | App functionality, Account management |
 | App info & performance → **Crash logs** | Crashlytics | Obligatorio | Analytics |
 | App info & performance → **Diagnostics** | Telemetría de detección (Firestore `diagnostics/`) + parkdiag | Obligatorio | Analytics |
-| Device or other IDs → **Device or other IDs** | MAC/nombre del BT del coche del usuario; ids de instalación de Firebase (incluye el app-instance id de Analytics); **token de registro FCM/APNs** del dispositivo, guardado en **DOS** sitios: `zoneAlertSubs/{uid}_{zoneId}` —**una fila por zona**, no una por usuario— mientras las alertas de zona estén activas [ZONE-A-SPOT-TELLS-THE-SERVER-AND-THE-SERVER-TELLS-YOU-001] **y `sharedCars/{carId}/members/{uid}.tokens` mientras compartas un coche** (`functions/src/index.ts:205`) [VEH-SHARED-001] | Opcional (BT, y token: solo con alertas de zona o coche compartido) | App functionality, Analytics |
+| Device or other IDs → **Device or other IDs** · ⚠️ **Compartido = Sí** | **Identificador de publicidad (GAID)** — lo recoge el SDK de Meta y SOLO él: el permiso `com.google.android.gms.permission.AD_ID` vuelve al manifest por ese carril, y Firebase Analytics lo sigue teniendo prohibido con `google_analytics_adid_collection_enabled=false`, así que sus eventos siguen anclados al app-instance id [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001]. Además: MAC/nombre del BT del coche del usuario; ids de instalación de Firebase (incluye el app-instance id de Analytics); **token de registro FCM/APNs** del dispositivo, guardado en **DOS** sitios: `zoneAlertSubs/{uid}_{zoneId}` —**una fila por zona**, no una por usuario— mientras las alertas de zona estén activas [ZONE-A-SPOT-TELLS-THE-SERVER-AND-THE-SERVER-TELLS-YOU-001] **y `sharedCars/{carId}/members/{uid}.tokens` mientras compartas un coche** (`functions/src/index.ts:205`) [VEH-SHARED-001] | Opcional (BT, y token: solo con alertas de zona o coche compartido) | App functionality, Analytics |
 
-⛔ **Advertising ID: NO se declara y NO se recoge.** `play-services-measurement` (lo arrastra
-Firebase Analytics) fusiona el permiso `com.google.android.gms.permission.AD_ID`; el manifest lo
-elimina con `tools:node="remove"` — Paparcar no muestra anuncios. Si algún día entra AdMob, esto
-cambia aquí y en la política en la MISMA tarea. [ANALYTICS-EVENTS-001]
+⛔ **Advertising ID: SÍ se declara desde la 1.6.0, y conviene saber qué NO cambia con ello.**
+Hasta la 1.5.0 el manifest borraba los tres permisos con `tools:node="remove"` y esta chuleta decía
+lo contrario de lo que dice hoy [ANALYTICS-EVENTS-001]. Vuelven porque sin el GAID Meta no puede
+atribuir una instalación al anuncio que la pagó, que es para lo que entra el SDK.
+
+- Lo recoge **un solo carril**, y sólo tras el consentimiento legal: `MetaAdAttribution.activate`.
+- **Firebase Analytics sigue sin tocarlo** (`google_analytics_adid_collection_enabled=false`).
+- ⛔ **Y entran TRES permisos, no cinco.** `facebook-core` fusiona sola, sin que nadie la pida, las
+  dos APIs de Privacy Sandbox que sirven para **segmentar**: `ACCESS_ADSERVICES_TOPICS` (los
+  intereses que el sistema infiere) y `ACCESS_ADSERVICES_CUSTOM_AUDIENCE` (remarketing). Medido en
+  el manifiesto fusionado de prodDebug el 02-11-2026. Las dos se **retiran** con
+  `tools:node="remove"`: la política declara tres nombres de evento y el identificador de
+  publicidad «y nada más», y un binario que puede más de lo que dice el documento es justo el
+  defecto que esto viene a cerrar. Lo vigila `AdvertisingDisclosureGuardrailTest`.
+- La pregunta **«¿tu app contiene anuncios?» del Play Console sigue siendo NO**, y no es un matiz:
+  Paparcar no muestra ni un anuncio dentro. Lo que hay es medición de los anuncios que ponemos
+  FUERA. Las dos cosas se declaran en sitios distintos del Console y confundirlas es lo que
+  convierte una respuesta honesta en una infracción.
+[MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001]
 
 **No se recoge** (no declarar): contactos, SMS, archivos, micrófono, cámara, historial web,
 información financiera, datos de salud médicos.
 
 ## Declaraciones adicionales del Play Console (fuera del Data Safety)
 
-1. **Permissions declaration — `ACCESS_BACKGROUND_LOCATION`**: exige vídeo demo del flujo con el
+1. **App content → Advertising ID** (declaración propia, FUERA del Data Safety): marcar que la
+   app **usa** el identificador de publicidad, y sus finalidades: *Advertising or marketing* +
+   *Analytics*. Play cruza esta página con el permiso `AD_ID` del manifest y con la fila de Data
+   Safety: si las tres no dicen lo mismo, la publicación se para.
+   ⛔ En esa misma sección, **«Does your app contain ads?» → No**. Ver el ⛔ de arriba.
+   [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001]
+2. **Permissions declaration — `ACCESS_BACKGROUND_LOCATION`**: exige vídeo demo del flujo con el
    *prominent disclosure* en la app ANTES del diálogo de permiso, y que la funcionalidad principal
    lo justifique (aquí sí: detección automática). Verificar que el onboarding muestra ese aviso
    destacado — Play lo rechaza si solo está en la política.
-2. **Foreground service permissions** (targetSdk 34+): declarar el uso de
+3. **Foreground service permissions** (targetSdk 34+): declarar el uso de
    `FOREGROUND_SERVICE_LOCATION` con vídeo, y **nada más** — es el único tipo de FGS que la app usa
    y el único que pide. ✅ Verificado el 16-09-2026 sobre el AAB de la 1.2.0, los dos APK
    (`aapt2 dump permissions`) y los manifiestos fusionados regenerados con `--rerun-tasks`: los
@@ -77,9 +108,9 @@ información financiera, datos de salud médicos.
    DET-SAFETY-NET-FGS-IS-TYPED-DATA-SYNC-001 y **ya no lo reinyecta AGP** desde el bump a 9.4.0
    (con 9.3.2 sí lo hacía, y era ineliminable) — ver
    FGS-DATA-SYNC-IS-NO-LONGER-INJECTED-001. No hay nada que justificar por ese permiso.
-3. **Account deletion URL**: obligatoria desde 2024 — apuntar a la política publicada (ancla de la
+4. **Account deletion URL**: obligatoria desde 2024 — apuntar a la política publicada (ancla de la
    sección 6) o página propia.
-4. **URL de la política**: ✅ publicada en `https://paparcar.com/privacy-policy` (pública, sin
+5. **URL de la política**: ✅ publicada en `https://paparcar.com/privacy-policy` (pública, sin
    login; dominio custom del site pap-26, con `pap-26.web.app` de fallback — no romper la URL
    declarada en el Console). ⚠️ El MCP `firebase_deploy` es no-op: desplegar siempre con la CLI
    (`firebase deploy --only hosting`).

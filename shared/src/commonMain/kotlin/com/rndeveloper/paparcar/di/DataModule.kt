@@ -16,7 +16,9 @@ import com.rndeveloper.paparcar.data.geocoder.RoomLocalAddressAndPlaceDataSource
 import com.rndeveloper.paparcar.domain.geocoder.LocalAddressAndPlaceDataSource
 import com.rndeveloper.paparcar.data.datasource.remote.FirebaseDataSource
 import com.rndeveloper.paparcar.data.datasource.remote.FirebaseDataSourceImpl
+import com.rndeveloper.paparcar.data.analytics.CompositeAnalyticsTracker
 import com.rndeveloper.paparcar.data.analytics.FirebaseAnalyticsTracker
+import com.rndeveloper.paparcar.domain.analytics.AdAttributionTracker
 import com.rndeveloper.paparcar.data.datasource.remote.FirestoreDetectionEventLogger
 import com.rndeveloper.paparcar.data.datasource.remote.FirestoreDiagnosticsReportUploader
 import com.rndeveloper.paparcar.data.datasource.remote.FirestoreUiLocationLogger
@@ -134,7 +136,19 @@ val dataModule = module {
 
     // Product analytics — anonymous population-wide counters, cell-only location. A different
     // system from the opt-in diagnostics above, on purpose. [ANALYTICS-EVENTS-001]
-    single<AnalyticsTracker> { FirebaseAnalyticsTracker() }
+    //
+    // El carril publicitario entra por la MISMA ranura, con `getOrNull`: sólo Android lo ata
+    // (`androidPlatformModule`), así que en iOS la lista se queda en uno y nadie tiene que
+    // acordarse de nada. Lo que sale por ahí lo decide un `when` exhaustivo en el dominio, no
+    // este módulo. [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001]
+    single<AnalyticsTracker> {
+        CompositeAnalyticsTracker(
+            listOfNotNull(
+                FirebaseAnalyticsTracker(),
+                getOrNull<AdAttributionTracker>(),
+            ),
+        )
+    }
 
     // Consumer map-location diagnostics — local logcat always + gated Firestore mirror at
     // diagnostics/{userId}/uiLocation, same opt-in flag as detection. Verifies UI-LOC-FOREGROUND-001.

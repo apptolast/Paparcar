@@ -126,6 +126,10 @@ play-services-location = "21.4.0"
 glance = "1.2.0"
 lifecycleService = "2.11.0"
 navigation-compose = "2.9.2"
+# Meta SDK — SOLO `facebook-core` (App Events). ⛔ Nunca `facebook-android-sdk`, que arrastra
+# login, share y gráfico social: Paparcar no usa ninguno y cada uno es superficie publicada.
+# [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001]
+facebook-sdk = "19.0.0"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -244,6 +248,9 @@ glance-appwidget = { module = "androidx.glance:glance-appwidget", version.ref = 
 androidx-lifecycle-service = { group = "androidx.lifecycle", name = "lifecycle-service", version.ref = "lifecycleService" }
 # Compose Navigation KMP
 navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigation-compose" }
+
+# Meta SDK — App Events
+facebook-core = { module = "com.facebook.android:facebook-core", version.ref = "facebook-sdk" }
 
 
 # ─────────────────────────────────────────────────────────────────────────────

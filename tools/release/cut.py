@@ -61,6 +61,7 @@ irreversible y de cara al publico, y sigue siendo humana.
 """
 import argparse
 import hashlib
+import os
 import pathlib
 import re
 import subprocess
@@ -74,7 +75,8 @@ import play_locales  # noqa: E402
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 GRADLE_FILE = ROOT / "app" / "build.gradle.kts"
 WEB_CONFIG = ROOT / "web" / "lib" / "config.mjs"
-PASTE = ROOT / "docs" / "release" / "play-listing" / "paste"
+LISTING_DIR = ROOT / "docs" / "release" / "play-listing"
+PASTE = LISTING_DIR / "paste"
 BACKLOG = ROOT / "docs" / "backlog"
 HOSTING = ROOT / "hosting" / "public"
 
@@ -118,6 +120,18 @@ DOC_OPEN = "<!-- cut:measured -->"
 DOC_CLOSE = "<!-- /cut:measured -->"
 
 VERSION_RE = re.compile(r"^\d+\.\d+\.\d+$")
+
+# Las redes publicitarias que el binario puede llevar dentro. Por cada una: la clave del catalogo
+# de versiones, los nombres con los que la ficha tiene que nombrarla, la propiedad que lleva su
+# identificador de app y el `meta-data` del manifest donde ese identificador tiene que aterrizar.
+# [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001]
+AD_SDKS = {
+    "facebook-core": {
+        "names": ("Meta", "Facebook", "Instagram"),
+        "prop": "FACEBOOK_APP_ID",
+        "meta": "com.facebook.sdk.ApplicationId",
+    },
+}
 
 
 class Fail(Exception):
@@ -198,7 +212,118 @@ def aab_path(version, code):
 # ----------------------------------------------------------------- fase 1 bump
 
 
+def declared_ad_networks():
+    """Las redes publicitarias que ESTE arbol mete en el binario, por su nombre publico.
+
+    No basta con que la clave este en el catalogo: `libs.versions.toml` puede declarar una
+    dependencia que nadie usa. Lo que cuenta es que algun `build.gradle.kts` la pida.
+    """
+    builds = "\n".join(
+        f.read_text(encoding="utf-8")
+        for f in sorted(ROOT.glob("*/build.gradle.kts"))
+    )
+    catalog = (ROOT / "gradle" / "libs.versions.toml").read_text(encoding="utf-8")
+    out = []
+    for key, spec in AD_SDKS.items():
+        alias = key.replace("-", ".")
+        if ("%s = {" % key) in catalog and ("libs.%s" % alias) in builds:
+            out.append((key, spec))
+    return out
+
+
+def build_prop(key):
+    """Lo que `prop()` de `app/build.gradle.kts` resolveria para `key`, con su MISMO orden.
+
+    keystore.properties -> local.properties -> variable de entorno. Replicarlo aqui es a proposito:
+    este chequeo tiene que leer el valor por donde lo lee el build, no por donde nos convenga.
+    """
+    for name in ("keystore.properties", "local.properties"):
+        f = ROOT / name
+        if not f.exists():
+            continue
+        for line in f.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line.startswith("#") or "=" not in line:
+                continue
+            k, _, v = line.partition("=")
+            if k.strip() == key and v.strip():
+                return v.strip()
+    return (os.environ.get(key) or "").strip() or None
+
+
+def check_listing_names_the_ad_network(version):
+    """Un build que lleva una red publicitaria no se corta con una ficha que no la nombra.
+
+    ⛔ Esto NO es el guard de la web ni el de la politica: esos dos describen el PRODUCTO y se
+    mueven en la tarea que cambia el producto. La ficha describe el BUILD PUBLICADO, asi que su
+    momento es exactamente este -- el corte -- y ni uno antes: nombrar en la tienda algo que la
+    app todavia no hace es el defecto contrario. [DOCS-THE-STORE-LISTING-IS-A-CONSUMER-TOO-001]
+
+    El bloque de PRIVACIDAD de la ficha enumera que pasa con tus datos y termina en «sin
+    anuncios». Cada frase suya puede seguir siendo literalmente cierta con el SDK dentro -- no se
+    muestran anuncios, y la ubicacion no sale hacia ninguna red -- y aun asi el bloque entero se
+    lee como «nada tuyo se usa para publicidad», que deja de serlo. Por eso lo que se exige es que
+    la red se NOMBRE, no que desaparezca una frase: una prohibicion de frases se esquiva
+    reescribiendola. [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001]
+    """
+    networks = declared_ad_networks()
+    if not networks:
+        return
+    listing = LISTING_DIR / ("LISTING-v%s.md" % version)
+    nombres = ", ".join(spec["names"][0] for _, spec in networks)
+    if not listing.exists():
+        raise Fail(
+            "el build lleva %s y no existe %s.\n"
+            "    La ficha describe el build publicado: la que se va a publicar tiene que\n"
+            "    nombrar la red, en los nueve idiomas. Margen medido en la ficha anterior:\n"
+            "    fr-FR 9 libres y de-DE/nl-NL 18, asi que hay que CONDENSAR antes de escribir."
+            % (nombres, listing.name))
+    text = listing.read_text(encoding="utf-8")
+    try:
+        blocks = listing_locale_blocks(text)
+    except ValueError as exc:
+        raise Fail("no se pudo leer %s: %s" % (listing.name, exc))
+    falta = play_locales.missing(blocks)
+    if falta:
+        raise Fail("%s no tiene descripcion completa para: %s" % (listing.name, ", ".join(falta)))
+    mudos = []
+    for key, spec in networks:
+        for loc in LOCALES:
+            if not any(name in blocks[loc] for name in spec["names"]):
+                mudos.append("%s (%s)" % (loc, key))
+    if mudos:
+        raise Fail(
+            "el build lleva %s y la ficha no lo nombra en: %s.\n"
+            "    Un bloque de PRIVACIDAD que termina en «sin anuncios» sin decir que el movil\n"
+            "    manda el identificador de publicidad a esa red se lee como lo contrario de lo\n"
+            "    que hace el binario. [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001]"
+            % (nombres, ", ".join(mudos)))
+    say("   ficha: %s nombra la red publicitaria en los nueve idiomas" % listing.name)
+
+
+LISTING_BLOCK_RE = re.compile(
+    r"^### (%s)\s*\n+```\n(.*?)\n```" % play_locales.LOCALE_PATTERN, re.S | re.M)
+
+
+def listing_locale_blocks(text):
+    """{locale: descripcion completa} de una ficha `LISTING-v*.md`.
+
+    Solo la seccion de la descripcion completa: el nombre y la breve tienen sus propios bloques y
+    nadie va a nombrar una red publicitaria en 80 caracteres.
+    """
+    try:
+        start = text.index("## Descripci\u00f3n completa")
+    except ValueError:
+        raise ValueError("no tiene seccion «Descripcion completa»")
+    body = text[start:]
+    blocks = {m.group(1): m.group(2) for m in LISTING_BLOCK_RE.finditer(body)}
+    if not blocks:
+        raise ValueError("la seccion «Descripcion completa» no tiene bloques por idioma")
+    return blocks
+
+
 def phase_bump(version):
+    check_listing_names_the_ad_network(version)
     old_code, old_name = read_gradle_versions()
     web_old = read_web_version()
     say("   ahora: Gradle %s (vc%d) / web %s" % (old_name, old_code, web_old))
@@ -343,7 +468,59 @@ def phase_bundle():
 
     target.write_bytes(built[0].read_bytes())
     say("   %s -> %s" % (built[0].relative_to(ROOT), target))
+    check_aab_carries_the_ad_key(target)
     return {"aab": str(target)}
+
+
+def check_aab_carries_the_ad_key(aab):
+    """Un AAB que lleva la red publicitaria dentro y NO lleva su clave no se sube.
+
+    ⛔ Es el fallo mas caro de todos los de este ticket, porque es el unico que no se ve: la app
+    funciona igual, no hay crash, no hay log, y la atribucion esta muerta. O sea que pagas anuncios
+    sin poder medir ni uno, y lo descubres en el panel de Meta semanas despues.
+    Pasa con solo construir el corte en una maquina sin la clave en `local.properties` -- que es
+    exactamente lo que hacen CI y un clon limpio, a proposito
+    [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001].
+
+    Se mide en DOS pasos, y el segundo es el que tiene dientes:
+
+      1. la clave esta configurada donde el build la lee (`build_prop`, mismo orden que Gradle);
+      2. **ese valor aparece dentro del AAB**. El manifiesto de un AAB va en protobuf, pero las
+         cadenas viajan como UTF-8 crudo, asi que buscar los bytes del valor prueba que el
+         `manifestPlaceholder` aterrizo de verdad. Comprobar solo (1) seria creerle al input: si
+         el placeholder se rompe, el AAB sale sin clave y (1) sigue diciendo que todo bien.
+    """
+    networks = declared_ad_networks()
+    if not networks:
+        return
+    manifest = aab_manifest_bytes(aab)
+    for key, spec in networks:
+        value = build_prop(spec["prop"])
+        if not value:
+            raise Fail(
+                "el build lleva %s y %s esta vacia o no esta.\n"
+                "    Un AAB sin ella sube con la atribucion MUERTA y sin que nada se queje: la\n"
+                "    app va igual y los anuncios se pagan sin poder medirlos. Ponla en\n"
+                "    local.properties (o como variable de entorno) y vuelve a correr `bundle`."
+                % (spec["names"][0], spec["prop"]))
+        if value.encode("utf-8") not in manifest:
+            raise Fail(
+                "%s esta configurada pero NO aparece en el manifiesto de %s.\n"
+                "    El `manifestPlaceholder` de `%s` no aterrizo: el AAB se subiria con la\n"
+                "    clave vacia aunque tu maquina la tenga puesta."
+                % (spec["prop"], aab.name, spec["meta"]))
+        say("   %s: clave presente en el AAB (%d chars, %s...)"
+            % (spec["names"][0], len(value), value[:4]))
+
+
+def aab_manifest_bytes(aab):
+    """El manifiesto del modulo base de un AAB, en crudo (protobuf)."""
+    with zipfile.ZipFile(aab) as z:
+        entry = "base/manifest/AndroidManifest.xml"
+        if entry not in z.namelist():
+            raise Fail("%s no tiene %s: el formato del AAB cambio y este chequeo no mira nada"
+                       % (aab.name, entry))
+        return z.read(entry)
 
 
 # ----------------------------------------------------------------- fase 5 sign

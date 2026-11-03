@@ -48,14 +48,33 @@
          scheduler gates on canScheduleExactAlarms() and degrades to inexact. [DET-EXACT-HEARTBEAT-001] -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
-    <!-- Firebase Analytics (play-services-measurement) merges in the advertising-id permissions —
-         the GMS one plus the Android 13+ AdServices pair. Paparcar shows no ads and must not
-         collect the advertising id: removing all three keeps analytics app-instance-scoped and the
-         Play Data Safety form free of "Advertising ID". Verified in the MERGED prodDebug manifest,
-         not just here. [ANALYTICS-EVENTS-001] -->
-    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
-    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_AD_ID" tools:node="remove" />
-    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_ATTRIBUTION" tools:node="remove" />
+    <!-- Identificador de publicidad. Hasta la 1.5.0 los tres se BORRABAN del manifiesto fusionado
+         (play-services-measurement los mete por su cuenta) y la ficha prometía «sin anuncios»
+         [ANALYTICS-EVENTS-001]. Vuelven porque Paparcar se anuncia en Meta, y sin el GAID la
+         atribución de instalaciones no existe: el SDK mandaría eventos que nadie puede casar con
+         el anuncio que los pagó. [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001]
+
+         ⛔ Un permiso declarado NO es un permiso usado por todos. El único carril que lo recoge es
+         Meta App Events (`MetaAdAttribution.activate`, y sólo con consentimiento legal); Firebase
+         Analytics lo sigue teniendo prohibido con `google_analytics_adid_collection_enabled`
+         abajo, así que los eventos de producto siguen anclados al app-instance id, como estaban.
+         Declarados explícitamente para que `aapt2 dump permissions` diga lo que el formulario de
+         Data Safety declara, en vez de depender de lo que fusione una dependencia. -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_AD_ID" />
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_ATTRIBUTION" />
+
+    <!-- ⛔ Y hasta ahí. `facebook-core` fusiona además las DOS APIs de Privacy Sandbox que sirven
+         para SEGMENTAR, no para medir: Topics (los intereses que el sistema te infiere) y Custom
+         Audience (remarketing). Medido en el manifiesto fusionado de prodDebug el 02-11-2026 —
+         entran solas, sin que nadie las pida.
+
+         Paparcar no hace ninguna de las dos cosas: lo que la política publicada declara son tres
+         nombres de evento y el identificador de publicidad, «y nada más». Dejarlas entrar haría
+         que el binario pudiera más de lo que el documento dice, que es exactamente el defecto que
+         este ticket viene a cerrar. [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001] -->
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_TOPICS" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_CUSTOM_AUDIENCE" tools:node="remove" />
 
     <!-- Attribution tag required by ActivityRecognition.getClient(createAttributionContext(...))
          to avoid "attributionTag not declared in manifest" AppOps leak. [FGS-004] -->
@@ -219,6 +238,37 @@
                 <action android:name="com.rndeveloper.paparcar.ACTION_PARKING_REVERT" />
             </intent-filter>
         </receiver>
+
+        <!-- Firebase Analytics NO recoge el identificador de publicidad, aunque el permiso exista
+             por el carril de Meta: los eventos de producto siguen identificados sólo por el
+             app-instance id. [ANALYTICS-EVENTS-001, MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001] -->
+        <meta-data
+            android:name="google_analytics_adid_collection_enabled"
+            android:value="false" />
+
+        <!-- Meta App Events. Los ids entran por `manifestPlaceholders` desde `local.properties`,
+             como la clave de Maps: en un clon sin claves quedan vacíos y el carril no arranca.
+
+             ⛔ Los tres automatismos arrancan APAGADOS y es lo único que hace que esta app pueda
+             prometer que no manda nada sin consentimiento: con `AutoInitEnabled` a `true` el
+             ContentProvider del SDK inicializa y hace `activateApp` ANTES de que corra una línea
+             nuestra. Los enciende `MetaAdAttribution.activate`, con el consentimiento legal ya
+             aceptado. [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001] -->
+        <meta-data
+            android:name="com.facebook.sdk.ApplicationId"
+            android:value="${FACEBOOK_APP_ID}" />
+        <meta-data
+            android:name="com.facebook.sdk.ClientToken"
+            android:value="${FACEBOOK_CLIENT_TOKEN}" />
+        <meta-data
+            android:name="com.facebook.sdk.AutoInitEnabled"
+            android:value="false" />
+        <meta-data
+            android:name="com.facebook.sdk.AutoLogAppEventsEnabled"
+            android:value="false" />
+        <meta-data
+            android:name="com.facebook.sdk.AdvertiserIDCollectionEnabled"
+            android:value="false" />
 
     </application>
 </manifest>

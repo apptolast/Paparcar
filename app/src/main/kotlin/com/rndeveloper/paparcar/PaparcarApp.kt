@@ -14,6 +14,7 @@ import com.apptolast.baselogin.di.initLoginKoin
 import com.revenuecat.purchases.kmp.LogLevel
 import com.revenuecat.purchases.kmp.Purchases
 import com.revenuecat.purchases.kmp.PurchasesConfiguration
+import com.rndeveloper.paparcar.data.analytics.MetaAdAttribution
 import com.rndeveloper.paparcar.di.paparcarLoginConfig
 import com.rndeveloper.paparcar.detection.worker.FirstParkNudgeWorker
 import com.rndeveloper.paparcar.detection.worker.GeofenceJanitorWorker
@@ -72,6 +73,16 @@ class PaparcarApp : Application() {
             Napier.w("REVENUECAT_API_KEY is blank — Purchases SDK not configured", tag = "PaparcarApp")
         }
 
+        // Meta App Events — los ids se ponen antes de Koin y el SDK queda MUDO: no se inicializa,
+        // no recoge el identificador de publicidad y no manda el evento de sesión. Lo enciende
+        // `MetaAdAttribution.activate`, abajo si ya hay consentimiento legal y, si llega a mitad de
+        // sesión, el propio `MetaAnalyticsTracker`. `:app` no nombra a Facebook en ningún otro
+        // sitio — el SDK es `implementation` de `:shared`. [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001]
+        MetaAdAttribution.configure(
+            applicationId = BuildConfig.FACEBOOK_APP_ID,
+            clientToken = BuildConfig.FACEBOOK_CLIENT_TOKEN,
+        )
+
         // What Paparcar offers is declared in ONE place, shared with iOS and with the previews +
         // Dev Catalog gallery. Never inline a LoginLibraryConfig here: its flags default to
         // enabled and would put unsupported methods on the screen. [AUTH-PROVIDERS-EXPLICIT-001]
@@ -95,6 +106,14 @@ class PaparcarApp : Application() {
         // the user's choice rather than just the system dark setting. appPreferences is
         // synchronously available via the blocking DataStore warmup at Koin construction.
         val appPreferences = get<AppPreferences>()
+
+        // El carril publicitario, en el arranque de quien ya aceptó: el primer `activateApp` es el
+        // que atribuye la instalación, y hacerlo aquí se la lleva a la sesión 1 en vez de a la 2.
+        // Quien aún no ha aceptado no enciende nada. [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001]
+        if (appPreferences.hasAcceptedLegalConsent) {
+            MetaAdAttribution.activate(this)
+        }
+
         AppCompatDelegate.setDefaultNightMode(
             when (appPreferences.themeMode) {
                 ThemeMode.LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
