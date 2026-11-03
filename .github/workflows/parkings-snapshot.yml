@@ -149,21 +149,29 @@ jobs:
         if: ${{ github.event_name == 'schedule' || github.event.inputs.deploy == 'true' }}
         env:
           GOOGLE_APPLICATION_CREDENTIALS: /tmp/firebase-sa.json
+          # ⛔ **Los DOS nombres, y no es por gusto.** `firebase init hosting:github` —lo que cualquiera
+          # va a ejecutar para crear esto— **no** nombra el secreto `FIREBASE_SERVICE_ACCOUNT`: lo
+          # nombra `FIREBASE_SERVICE_ACCOUNT_<PROJECT_ID>` (verificado leyendo
+          # `lib/init/features/hosting/github.js` de firebase-tools 15.18). Con un solo nombre, quien
+          # lo creara por la via recomendada dejaria este paso avisando «falta el secreto» para
+          # siempre, con el secreto puesto. Se aceptan los dos y gana el que exista.
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_SERVICE_ACCOUNT_PAP_26: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_PAP_26 }}
         run: |
-          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
+          CREDENTIAL="${FIREBASE_SERVICE_ACCOUNT:-$FIREBASE_SERVICE_ACCOUNT_PAP_26}"
+          if [ -z "$CREDENTIAL" ]; then
             echo "::warning::snapshot generado pero NO publicado: falta el secreto FIREBASE_SERVICE_ACCOUNT"
             {
               echo ""
               echo "### ⚠️ Generado, no publicado"
-              echo "Falta el secreto \`FIREBASE_SERVICE_ACCOUNT\`, asi que el \`firebase deploy\` no"
-              echo "puede autenticarse. Crearlo en Settings → Secrets, o publicar a mano con los"
-              echo "comandos de \`tools/parkings/README.md\`."
+              echo "Falta la credencial: ni \`FIREBASE_SERVICE_ACCOUNT\` ni"
+              echo "\`FIREBASE_SERVICE_ACCOUNT_PAP_26\`. Sin ella el \`firebase deploy\` no puede"
+              echo "autenticarse. Ver \`tools/parkings/README.md\` § La credencial del despliegue."
             } >> "$GITHUB_STEP_SUMMARY"
             echo "published=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          echo "$FIREBASE_SERVICE_ACCOUNT" > /tmp/firebase-sa.json
+          echo "$CREDENTIAL" > /tmp/firebase-sa.json
           npx --yes firebase-tools@latest deploy --only hosting --project pap-26 --non-interactive
           echo "published=true" >> "$GITHUB_OUTPUT"
 

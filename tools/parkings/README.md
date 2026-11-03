@@ -124,6 +124,41 @@ entera 1,2 MB — **2,4×**, que es lo que cuesta poder pedir una celda sola.
   una celda y reciba un 404 tiene que volver a leer el puntero** en vez de concluir que no hay
   parkings. Eso último es obligación del consumidor — `PARKINGS-ONE-CALL-MERGED-001`.
 
+## La credencial del despliegue — y ⛔ por qué NO correr `firebase init hosting:github` a pelo
+
+El workflow semanal **genera** solo pero no **publica** hasta que exista una credencial de cuenta de
+servicio en los secretos del repo. Acepta **dos** nombres y gana el que exista:
+`FIREBASE_SERVICE_ACCOUNT` o `FIREBASE_SERVICE_ACCOUNT_PAP_26`.
+
+⛔ **Lo recomendado por ahi fuera es `firebase init hosting:github`, y en ESTE repo tiene dos
+efectos que hay que conocer antes** (verificados leyendo `lib/init/features/hosting/github.js` de
+firebase-tools 15.18, no supuestos):
+
+| Lo que hace | Por qué importa aquí |
+|---|---|
+| Nombra el secreto **`FIREBASE_SERVICE_ACCOUNT_<PROJECT_ID>`**, no el nombre pelado | por eso este workflow acepta los dos; con uno solo, quien lo creara por la vía recomendada dejaría el paso avisando «falta el secreto» **con el secreto puesto** |
+| Genera **`firebase-hosting-merge.yml`** y **`firebase-hosting-pull-request.yml`** | ⛔⛔ el primero despliega **hosting en cada push a master** — desde un checkout limpio de CI, que **no tiene las celdas** (están en `.gitignore`: son salida de build). Es decir: intentaría **borrar las 12.566 celdas publicadas en cada merge**. Es el incidente del 03-11, pero automatizado |
+
+🟢 El guard `predeploy` lo **para** (aborta el deploy en vez de borrar), así que el daño se
+convierte en un **rojo en cada merge a master** — que es mejor que un borrado, y aún así es ruido que
+enseña a ignorar los rojos.
+
+**Lo que sí hacer, en orden:**
+
+1. Crear la cuenta de servicio y su clave. Si se usa `firebase init hosting:github`, **borrar
+   inmediatamente después los dos workflows que genera**: aquí el único camino de despliegue es
+   `parkings-snapshot.yml`, que regenera las celdas **antes** de publicar.
+2. Guardar la clave como secreto. Con el JSON delante:
+   ```bash
+   gh secret set FIREBASE_SERVICE_ACCOUNT < ruta/a/la/clave.json
+   ```
+3. Comprobar que el próximo lunes publica de verdad — o lanzarlo a mano con
+   `workflow_dispatch` y `deploy: true`.
+
+⚠️ Una clave JSON es una credencial **de larga vida** en los secretos de GitHub. La alternativa sin
+clave es **Workload Identity Federation** (OIDC), que no deja nada que rotar; cuesta más de montar y
+necesita `gcloud` o la consola. Queda dicho para quien lo decida.
+
 ## Los otros modos del tool
 
 ```bash
