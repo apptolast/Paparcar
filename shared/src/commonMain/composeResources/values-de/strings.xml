@@ -234,6 +234,7 @@
     <string name="licenses_data_sources_header">Datenquellen</string>
     <string name="licenses_source_openvan_purpose">Durchschnittliche Kraftstoffpreise</string>
     <string name="licenses_source_osm_purpose">Parkhäuser, Tankstellen, Orte und Straßen</string>
+    <string name="licenses_source_osm_derived">Unsere gefilterte Kopie wird unter ODbL auf paparcar.com/parkings veröffentlicht</string>
     <string name="licenses_source_minetur_purpose">Zapfsäulenpreise in Spanien</string>
     <string name="licenses_source_prix_carburants_purpose">Zapfsäulenpreise in Frankreich</string>
     <string name="licenses_source_tankerkoenig_purpose">Zapfsäulenpreise in Deutschland</string>

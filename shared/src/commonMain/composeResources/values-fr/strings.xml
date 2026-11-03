@@ -233,6 +233,7 @@
     <string name="licenses_data_sources_header">Sources de données</string>
     <string name="licenses_source_openvan_purpose">Prix moyens des carburants</string>
     <string name="licenses_source_osm_purpose">Parkings, stations-service, lieux et rues</string>
+    <string name="licenses_source_osm_derived">Notre copie filtrée est publiée sous ODbL sur paparcar.com/parkings</string>
     <string name="licenses_source_minetur_purpose">Prix à la pompe en Espagne</string>
     <string name="licenses_source_prix_carburants_purpose">Prix à la pompe en France</string>
     <string name="licenses_source_tankerkoenig_purpose">Prix à la pompe en Allemagne</string>

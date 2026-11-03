@@ -233,6 +233,7 @@
     <string name="licenses_data_sources_header">Fontes de dados</string>
     <string name="licenses_source_openvan_purpose">Preços médios dos combustíveis</string>
     <string name="licenses_source_osm_purpose">Parques de estacionamento, postos de combustível, locais e ruas</string>
+    <string name="licenses_source_osm_derived">A nossa cópia filtrada é publicada sob ODbL em paparcar.com/parkings</string>
     <string name="licenses_source_minetur_purpose">Preços na bomba em Espanha</string>
     <string name="licenses_source_prix_carburants_purpose">Preços na bomba em França</string>
     <string name="licenses_source_tankerkoenig_purpose">Preços na bomba na Alemanha</string>

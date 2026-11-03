@@ -307,6 +307,7 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="licenses_data_sources_header">Fuentes de datos</string>
     <string name="licenses_source_openvan_purpose">Precios medios de carburante</string>
     <string name="licenses_source_osm_purpose">Parkings, gasolineras, lugares y calles</string>
+    <string name="licenses_source_osm_derived">Nuestra copia filtrada se publica bajo ODbL en paparcar.com/parkings</string>
     <string name="licenses_source_minetur_purpose">Precios de surtidor en España</string>
     <string name="licenses_source_prix_carburants_purpose">Precios de surtidor en Francia</string>
     <string name="licenses_source_tankerkoenig_purpose">Precios de surtidor en Alemania</string>

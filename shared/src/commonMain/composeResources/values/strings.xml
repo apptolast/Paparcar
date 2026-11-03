@@ -405,6 +405,7 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="licenses_data_sources_header">Data sources</string>
     <string name="licenses_source_openvan_purpose">National average fuel prices</string>
     <string name="licenses_source_osm_purpose">Car parks, fuel stations, places and streets</string>
+    <string name="licenses_source_osm_derived">Our filtered copy is published under ODbL at paparcar.com/parkings</string>
     <string name="licenses_source_minetur_purpose">Pump prices in Spain</string>
     <string name="licenses_source_prix_carburants_purpose">Pump prices in France</string>
     <string name="licenses_source_tankerkoenig_purpose">Pump prices in Germany</string>

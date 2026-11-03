@@ -74,6 +74,7 @@ import com.rndeveloper.paparcar.data.fuel.fuelHttpClient
 import com.rndeveloper.paparcar.data.fuel.MineturStationsSource
 import com.rndeveloper.paparcar.data.fuel.OpenVanAverageFuelPricesSource
 import com.rndeveloper.paparcar.data.fuel.OsmFuelStationsSource
+import com.rndeveloper.paparcar.data.parkings.ApiPublicParkingsSource
 import com.rndeveloper.paparcar.data.parkings.CachingPublicParkingsSource
 import com.rndeveloper.paparcar.data.parkings.DiskBackedPublicParkingsSource
 import com.rndeveloper.paparcar.data.parkings.OsmPublicParkingsSource
@@ -360,10 +361,19 @@ val dataModule = module {
     // [PARKINGS-A-REMEMBERED-MAP-ANSWERS-BEFORE-THE-NETWORK-001] es contestar además a «¿qué puedo
     // enseñar MIENTRAS pregunto?» (`remembered`), que es otra pregunta y no pisa a ninguna de las
     // dos: lo recordado se pinta y la respuesta viva lo sustituye.
+    //
+    // ⛔ **Y desde [PARKINGS-ONE-CALL-MERGED-001] la red tiene DOS escalones, en este orden**: la
+    // base ya fusionada por el backend (`/api/parkings`, un fichero de CDN: 0,05-0,20 s) y
+    // **Overpass detrás, intacto**, como fallback. Es aditivo a propósito: la 1.5.0 está publicada
+    // y lee Overpass, así que ese carril no se retira mientras haya versiones que lo usen.
+    // El ÚNICO cambio de este ticket en el cliente es esta línea.
     single<PublicParkingsSource> {
         CachingPublicParkingsSource(
             DiskBackedPublicParkingsSource(
-                delegate = OsmPublicParkingsSource(fuelHttpClient()),
+                delegate = ApiPublicParkingsSource(
+                    client = fuelHttpClient(),
+                    fallback = OsmPublicParkingsSource(fuelHttpClient()),
+                ),
                 disk = RoomPublicParkingsCache(parkingDao = get(), coverageDao = get()),
             )
         )

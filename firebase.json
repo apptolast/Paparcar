@@ -18,6 +18,13 @@
       "firebase.json",
       "**/.*"
     ],
+    "rewrites": [
+      {
+        "//": "UNA sola llamada para el movil: la base de parkings ya fusionada [PARKINGS-ONE-CALL-MERGED-001]. ⛔ El `.json` del path NO es cosmetico y no se quita: la regla de cabeceras `**/!(*.*)` de abajo casa CUALQUIER ruta cuyo ultimo segmento no tenga punto, asi que con `/api/parkings` el Hosting pisaba el `Cache-Control` de la funcion con `max-age=0, must-revalidate` --- MEDIDO en la URL viva, `X-Cache: MISS` --- y el CDN no cacheaba nada: la funcion habria corrido una vez POR USUARIO, que es justo el coste que todo este diseno evita. Con extension, la unica regla que casa es `**`, que no pone cache, y sobrevive el `Cache-Control` por RESPUESTA (120 s con ocupacion viva, 3600 s sin ella). La funcion esta en `europe-west1` como las otras dos, porque Firestore vive en `eur3` y la ocupacion del ticket 3 la va a leer de ahi. ⛔ Y su respuesta la cachea el CDN: sin eso la funcion correria una vez POR USUARIO en vez de una vez por celda y TTL.",
+        "source": "/api/parkings.json",
+        "function": { "functionId": "mergeCell", "region": "europe-west1" }
+      }
+    ],
     "redirects": [
       {
         "//": "Marketing shortcuts (social bios, QR, campaigns) → the Play listing, each one carrying WHERE THE CLICK CAME FROM. The base URL is `PLAY_URL` from web/lib/config.mjs, duplicated here because firebase.json cannot import it; WebSiteParityGuardrailTest checks they agree. ⛔ The `referrer` parameter is the ONLY thing that survives the hop into the store: a UTM-tagged bio link loses its query there, and a 301 to a fixed URL drops the incoming one too — so without this, Play files every one of these installs as organic and GA4 as (direct), and nobody can tell whether the account brought one install or three hundred. ⛔ Its value is PERCENT-ENCODED (%3D, %26): a literal `&` inside it splits into separate Play parameters, the link still opens the store, and the attribution is lost with no error at all. ⛔ One entry per exact source, never an @(a|b|c) alternation — same lesson as the header rules below, which deployed clean and matched nothing. `utm_medium` separates earned (social) from bought (paid): without it the spend cannot be divided by anything. [MKT-AN-INSTALL-MUST-SAY-WHERE-IT-CAME-FROM-001]",

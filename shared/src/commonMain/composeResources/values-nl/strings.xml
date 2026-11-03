@@ -234,6 +234,7 @@
     <string name="licenses_data_sources_header">Gegevensbronnen</string>
     <string name="licenses_source_openvan_purpose">Gemiddelde brandstofprijzen</string>
     <string name="licenses_source_osm_purpose">Parkeergarages, tankstations, plekken en straten</string>
+    <string name="licenses_source_osm_derived">Onze gefilterde kopie staat onder ODbL op paparcar.com/parkings</string>
     <string name="licenses_source_minetur_purpose">Pompprijzen in Spanje</string>
     <string name="licenses_source_prix_carburants_purpose">Pompprijzen in Frankrijk</string>
     <string name="licenses_source_tankerkoenig_purpose">Pompprijzen in Duitsland</string>

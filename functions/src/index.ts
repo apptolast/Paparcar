@@ -1,10 +1,20 @@
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
+import { onRequest, type Response } from 'firebase-functions/v2/https';
+import { gzipSync } from 'node:zlib';
 import { setGlobalOptions } from 'firebase-functions/v2';
 import * as logger from 'firebase-functions/logger';
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 import { isDeadToken, targetsFor, verdictFor, type PublishedSpot, type ZoneAlertSub } from './fanout';
+import { blockAround, cellId, zoneOf } from './parkingsGrid';
+import {
+  cacheControlFor,
+  hasPerishable,
+  responseFor,
+  type SnapshotCell,
+  type SnapshotManifest,
+} from './parkingsCell';
 import {
   targetsFor as sharedCarTargetsFor,
   verdictFor as sharedCarVerdictFor,
@@ -342,3 +352,149 @@ async function deliver(
     await ref.update({ tokens: FieldValue.arrayRemove(...dead) });
   }
 }
+
+// ─── /api/parkings ───────────────────────────────────────────────────────────
+
+/**
+ * Donde vive la base pre-cocinada. [PARKINGS-ONE-CALL-MERGED-001]
+ *
+ * ⛔ Es la MISMA Hosting que hace el `rewrite` hasta aqui, y a proposito: un solo artefacto, el que
+ * el ticket 1 publica y el que ODbL obliga a ofrecer. Overridable por entorno para poder apuntar al
+ * emulador sin tocar codigo.
+ */
+const PARKINGS_BASE_URL = process.env.PARKINGS_BASE_URL ?? 'https://paparcar.com';
+
+/** El esquema de la respuesta. Un `v` que no conocemos es un error, no algo que servir a medias. */
+const SCHEMA_VERSION = '1';
+
+/**
+ * ⛔ Las celdas son INMUTABLES bajo su version, asi que una vez leidas se quedan en la instancia
+ * para siempre: el `version/celda` es la llave y no hay nada que invalidar. El puntero NO, porque
+ * es lo que puede cambiar de semana y lo que lleva el interruptor.
+ */
+const cellCache = new Map<string, SnapshotCell | null>();
+let pointerCache: { manifest: SnapshotManifest; atMs: number } | null = null;
+
+/** Lo que el puntero vive en memoria de la instancia. Corto: lleva el interruptor. */
+const POINTER_TTL_MS = 60_000;
+
+async function readPointer(now: number): Promise<SnapshotManifest | null> {
+  if (pointerCache && now - pointerCache.atMs < POINTER_TTL_MS) return pointerCache.manifest;
+  const response = await fetch(`${PARKINGS_BASE_URL}/parkings/v1/latest.json`);
+  if (!response.ok) return null;
+  const manifest = (await response.json()) as SnapshotManifest;
+  pointerCache = { manifest, atMs: now };
+  return manifest;
+}
+
+async function readCell(version: string, cell: string): Promise<SnapshotCell | null> {
+  const key = `${version}/${cell}`;
+  const cached = cellCache.get(key);
+  if (cached !== undefined) return cached;
+  const response = await fetch(`${PARKINGS_BASE_URL}/parkings/v1/${version}/${cell}.json`);
+  // ⛔ Un 404 es «esta celda no tiene parkings», que es la respuesta correcta para la mayoria del
+  // territorio — NO un error. Lo que distingue «vacia» de «sin publicar» es el puntero, que ya se
+  // ha leido antes de llegar aqui.
+  const cell404 = response.status === 404;
+  if (!response.ok && !cell404) throw new Error(`cell ${key}: HTTP ${response.status}`);
+  const value = cell404 ? null : ((await response.json()) as SnapshotCell);
+  cellCache.set(key, value);
+  return value;
+}
+
+/**
+ * ⛔ **Comprime la respuesta NOSOTROS, porque Hosting no lo hace con la de una funcion.**
+ *
+ * Medido en la URL viva el 02-11: la celda de Sol son **95.188 B** y sin esto se mandan tal cual —
+ * Hosting SI comprime los ficheros estaticos (el `.json` de una celda viaja a 1,6 KB) pero la salida
+ * de la funcion sale entera. Son ~8× los datos del usuario, en la pantalla que el producto usa
+ * conduciendo.
+ *
+ * `Vary: accept-encoding` no es decorativo: sin el, el CDN guardaria UNA copia y se la daria tambien
+ * a quien no sepa descomprimirla.
+ */
+function sendJson(acceptEncoding: string | undefined, payload: unknown, response: Response): void {
+  const body = JSON.stringify(payload);
+  response.set('Content-Type', 'application/json; charset=utf-8');
+  response.set('Vary', 'Accept-Encoding');
+  if (!(acceptEncoding ?? '').includes('gzip')) {
+    response.send(body);
+    return;
+  }
+  response.set('Content-Encoding', 'gzip');
+  response.send(gzipSync(Buffer.from(body, 'utf8')));
+}
+
+/**
+ * **Los parkings de una celda, ya fusionados: UNA sola llamada para el movil.**
+ * [PARKINGS-ONE-CALL-MERGED-001]
+ *
+ * Hoy la unica fuente es la base de OpenStreetMap del ticket 1. Lo que justifica que haya una
+ * funcion y no una lectura directa del CDN es lo que viene: la ocupacion municipal (ticket 3) y
+ * Parclick (ticket 5) se fusionan **aqui**, una vez, y no una por plataforma — que es la decision
+ * del user en §E.3 del expediente y lo que decide un KMP que va a iOS.
+ *
+ * ⛔ **Solo I/O**, como las otras dos funciones de este fichero: el `blockAround`, la fusion y el
+ * `Cache-Control` viven en `parkingsGrid.ts` y `parkingsCell.ts`, con sus tests.
+ *
+ * ⛔ **ANONIMA y sin cookies**: un CDN no cachea lo que depende de quien pregunta, y sin cache esta
+ * funcion correria **una vez por usuario** en vez de una vez por celda y TTL. Encaja con la
+ * doctrina del producto: nunca se gatea VER un parking, asi que no hay nada que personalizar.
+ *
+ * ⛔ **Y si algo falla, falla DE VERDAD** (5xx) en vez de devolver una lista vacia: el cliente tiene
+ * Overpass de fallback y solo lo usa si esto se queja. Un 200 con `[]` seria «aqui no hay parkings»,
+ * que es la mentira que todo este expediente existe para no contar.
+ */
+export const mergeCell = onRequest(
+  { region: 'europe-west1', maxInstances: 10, cors: false, invoker: 'public' },
+  async (request, response) => {
+    const now = Date.now();
+    const cell = String(request.query.cell ?? '');
+    const schema = String(request.query.v ?? SCHEMA_VERSION);
+
+    if (schema !== SCHEMA_VERSION) {
+      response.status(400).json({ error: `unsupported schema v=${schema}` });
+      return;
+    }
+    const zone = zoneOf(cell);
+    if (!zone) {
+      response.status(400).json({ error: 'cell must be <band>_<column>' });
+      return;
+    }
+
+    try {
+      const manifest = await readPointer(now);
+      if (!manifest) {
+        // El puntero es lo que distingue «celda vacia» de «snapshot sin publicar». Sin el no se
+        // puede contestar sin mentir, asi que se admite el fallo y el cliente se va a Overpass.
+        logger.error('parkings pointer unreadable', new Error('latest.json not available'));
+        response.status(503).json({ error: 'pointer unavailable' });
+        return;
+      }
+
+      const block = blockAround(zone);
+      const files = await Promise.all(block.map((z) => readCell(manifest.version, cellId(z))));
+      const cells = files.filter((f): f is SnapshotCell => f !== null);
+      const payload = responseFor(cellId(zone), manifest, cells, now);
+
+      logger.info('parkings cell served', {
+        cell: payload.cell,
+        version: manifest.version,
+        blockCells: block.length,
+        withData: cells.length,
+        parkings: payload.parkings.length,
+        serve: payload.serve,
+      });
+
+      response.set('Cache-Control', cacheControlFor(hasPerishable(payload)));
+      sendJson(request.headers['accept-encoding'], payload, response);
+    } catch (err) {
+      logger.error(
+        'parkings cell failed',
+        err instanceof Error ? err : new Error(String(err)),
+        { cell },
+      );
+      response.status(503).json({ error: 'upstream unavailable' });
+    }
+  },
+);

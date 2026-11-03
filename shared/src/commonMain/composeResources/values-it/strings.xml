@@ -233,6 +233,7 @@
     <string name="licenses_data_sources_header">Fonti dei dati</string>
     <string name="licenses_source_openvan_purpose">Prezzi medi dei carburanti</string>
     <string name="licenses_source_osm_purpose">Parcheggi pubblici, distributori, luoghi e strade</string>
+    <string name="licenses_source_osm_derived">La nostra copia filtrata è pubblicata con licenza ODbL su paparcar.com/parkings</string>
     <string name="licenses_source_minetur_purpose">Prezzi alla pompa in Spagna</string>
     <string name="licenses_source_prix_carburants_purpose">Prezzi alla pompa in Francia</string>
     <string name="licenses_source_tankerkoenig_purpose">Prezzi alla pompa in Germania</string>

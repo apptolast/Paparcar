@@ -61,6 +61,14 @@ data class PublicParkingSnapshotManifest(
     val parkings: Int,
     /** `<cellId>` → cuántos parkings lleva. Ordenado para que dos generaciones iguales den el mismo byte. */
     val counts: Map<String, Int>,
+    /**
+     * ⛔ **El interruptor del carril de la API** [PARKINGS-ONE-CALL-MERGED-001]. Se escribe aquí
+     * porque el puntero `latest.json` es lo único de este artefacto que **cambia sin regenerar nada**
+     * y que ya va con `must-revalidate`: ponerlo a `false` y desplegar hosting manda a los clientes
+     * de vuelta a Overpass sin tocar la app y sin esperar un `fetch` de Remote Config, que la app no
+     * tiene. Se escribe siempre `true`; apagarlo es editar el fichero publicado.
+     */
+    val serve: Boolean = true,
 )
 
 /**

@@ -344,6 +344,14 @@ object SnapshotToolMain {
         // ⛔ Los nulos NO se escriben: el 94 % de los parkings no tiene `name`. Ver el KDoc de
         // `PublicParkingSnapshotEntry`.
         explicitNulls = false
+        // ⛔ **Pero los valores POR DEFECTO sí**, y esto no es cosmetica: kotlinx los omite, asi que
+        // `serve = true` del manifiesto no se escribia y el puntero publicado **no contenia la
+        // bandera**. El lado que la lee la interpreta ausente como `true`, asi que todo funcionaba
+        // — y el interruptor de [PARKINGS-ONE-CALL-MERGED-001] era inservible, porque una bandera
+        // que no esta escrita es una bandera que nadie puede encontrar para cambiarla.
+        // No afecta a las celdas: sus campos obligatorios no tienen defecto y los opcionales son
+        // nulos, que `explicitNulls = false` sigue omitiendo. [MEDIDO: mismo tamano]
+        encodeDefaults = true
     }
 
     /** La tabla de fixtures de la rejilla, tal y como se publica y se vigila. */

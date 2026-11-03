@@ -32,6 +32,7 @@ import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
 import com.rndeveloper.paparcar.ui.components.PapSectionHeader
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.PapPageRhythm
+import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -40,6 +41,7 @@ import paparcar.composeapp.generated.resources.licenses_cd_back
 import paparcar.composeapp.generated.resources.licenses_data_sources_header
 import paparcar.composeapp.generated.resources.licenses_source_minetur_purpose
 import paparcar.composeapp.generated.resources.licenses_source_openvan_purpose
+import paparcar.composeapp.generated.resources.licenses_source_osm_derived
 import paparcar.composeapp.generated.resources.licenses_source_osm_purpose
 import paparcar.composeapp.generated.resources.licenses_source_prix_carburants_purpose
 import paparcar.composeapp.generated.resources.licenses_source_osservaprezzi_purpose
@@ -192,6 +194,18 @@ private fun DataSourcesSection() {
                     subtitle = stringResource(source.purpose) + SEPARATOR + source.license,
                     subtitleStyle = PaparcarType.current.label,
                 )
+                // ⛔ Su propia línea, no pegado al subtítulo: lo de arriba dice QUÉ usamos y bajo qué
+                // licencia, y esto dice **dónde está nuestra copia** — que es otra frase y la única con
+                // una URL que alguien pueda seguir. Apelotonarlas dejaba una línea de tres frases que
+                // se corta justo donde empieza a importar.
+                source.notice?.let { notice ->
+                    Text(
+                        text = stringResource(notice),
+                        style = PaparcarType.current.caption,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = PaparcarSpacing.xs),
+                    )
+                }
             }
         }
     }
@@ -207,6 +221,19 @@ private data class DataSourceCredit(
     val name: String,
     val purpose: StringResource,
     val license: String,
+    /**
+     * ⛔ El aviso que la licencia pide cuando no sólo CONSULTAMOS el dato, sino que publicamos una
+     * base derivada de él y la app la USA. [PARKINGS-ONE-CALL-MERGED-001]
+     *
+     * ODbL obliga a dos cosas distintas y es fácil confundirlas: **atribuir** (eso es la fila de
+     * arriba, y ya estaba) y, al usar públicamente una base derivada, **dar aviso de que esa base
+     * está disponible bajo la misma licencia**. Desde que el carril de parkings lee nuestro snapshot
+     * pre-cocinado en vez de preguntar a Overpass en vivo, la segunda aplica — y lo único que la
+     * cumple de verdad es decir **dónde** está.
+     *
+     * Null en todas las demás: de ellas consumimos su feed, no redistribuimos una copia.
+     */
+    val notice: StringResource? = null,
 )
 
 /**
@@ -221,10 +248,16 @@ private val DATA_SOURCES = listOf(
         purpose = Res.string.licenses_source_openvan_purpose,
         license = "CC BY 4.0",
     ),
+    // ⛔ La ÚNICA fila con `notice`, y por un cambio real: desde
+    // [PARKINGS-ONE-CALL-MERGED-001] la app lee la base **pre-cocinada por nosotros**
+    // (`paparcar.com/api/parkings`) en vez de preguntar a Overpass en vivo. Consultar es *uso*;
+    // publicar un extracto filtrado es una **base de datos derivada**, y usarla públicamente obliga
+    // a avisar de que está disponible bajo ODbL. La atribución ya estaba; el aviso faltaba.
     DataSourceCredit(
         name = "OpenStreetMap",
         purpose = Res.string.licenses_source_osm_purpose,
         license = "ODbL 1.0",
+        notice = Res.string.licenses_source_osm_derived,
     ),
     DataSourceCredit(
         name = "Ministerio para la Transición Ecológica",

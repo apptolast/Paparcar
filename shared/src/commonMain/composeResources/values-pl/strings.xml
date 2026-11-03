@@ -233,6 +233,7 @@
     <string name="licenses_data_sources_header">Źródła danych</string>
     <string name="licenses_source_openvan_purpose">Średnie ceny paliw</string>
     <string name="licenses_source_osm_purpose">Parkingi, stacje paliw, miejsca i ulice</string>
+    <string name="licenses_source_osm_derived">Nasza przefiltrowana kopia jest publikowana na licencji ODbL na paparcar.com/parkings</string>
     <string name="licenses_source_minetur_purpose">Ceny na dystrybutorach w Hiszpanii</string>
     <string name="licenses_source_prix_carburants_purpose">Ceny na dystrybutorach we Francji</string>
     <string name="licenses_source_tankerkoenig_purpose">Ceny na dystrybutorach w Niemczech</string>
