@@ -3,6 +3,8 @@
 package com.rndeveloper.paparcar.presentation.home.sections.sheet.components
 
 import com.rndeveloper.paparcar.ui.components.papGuideHighlight
+import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
+import com.rndeveloper.paparcar.ui.theme.PapColor
 import androidx.compose.foundation.layout.PaddingValues
 import com.rndeveloper.paparcar.ui.components.PapIconTile
 import com.rndeveloper.paparcar.ui.components.PapListItem
@@ -21,9 +23,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Campaign
-import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.illustrations.EmptySpotsIllustration
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -69,6 +71,8 @@ import com.rndeveloper.paparcar.ui.theme.PapBorders
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.spot_indicator_en_route
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.home_spots_empty_try_parkings_sub
+import paparcar.composeapp.generated.resources.home_spots_empty_try_parkings_title
 import paparcar.composeapp.generated.resources.home_empty_subtitle
 import paparcar.composeapp.generated.resources.home_empty_title
 import paparcar.composeapp.generated.resources.home_filter_empty_clear
@@ -83,7 +87,6 @@ import paparcar.composeapp.generated.resources.home_spot_freshness_stale
 import paparcar.composeapp.generated.resources.home_spot_freshness_recent
 import paparcar.composeapp.generated.resources.location_fallback_spot
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
-import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 
 /**
@@ -458,3 +461,74 @@ private const val PRIMARY_CARD_ICON_CORNER_DP = 14
 // Same footprint as the fuel lane's empty illustration — one size for the three lanes.
 private const val EMPTY_ILLUSTRATION_W = 112
 private const val EMPTY_ILLUSTRATION_H = 96
+
+/**
+ * La alternativa ÚtIL cuando el carril de plazas está vacío.
+ * [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+ *
+ * ⛔ **UNA, nombrada por lo que es, y sólo si se puede ofrecer.** El estado vacío de las plazas es
+ * honesto —dice que aquí no hay ninguna— pero no ofrece salida, y con <20 usuarios ese es el estado
+ * que más veces se ve. Esta fila la da sin convertir la home en publicidad de sus propias
+ * secciones: un sujeto, su cifra real, y el camino para verlo.
+ *
+ * ⛔ **No se dibuja si no hay parkings que ofrecer.** Ofrecer una lista que al abrirla está vacía
+ * es peor que no ofrecer nada: cambia un vacío honesto por dos.
+ *
+ * ⛔ **Y no dice cuántos hay, dice a cuánto está el más cercano.** La cifra que decide si merece la
+ * pena pulsar es la distancia; el recuento ya lo lleva la pestaña a la que esto lleva. De paso evita
+ * un plural en nueve idiomas para un dato que se repite dos pantallas más allá.
+ *
+ * El borde discontinuo la separa de la tarjeta de avisar que va debajo: esa es una ACCIÓN del
+ * usuario, y esta es un atajo a otra respuesta.
+ */
+@Composable
+internal fun HomeTryCarParksCard(
+    nearestMeters: Float?,
+    onOpenCarParks: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    PapOutlinedCard(
+        onClick = onOpenCarParks,
+        modifier = modifier.fillMaxWidth(),
+        shape = PapShapes.card,
+    ) {
+        PapListItem(
+            title = stringResource(Res.string.home_spots_empty_try_parkings_title),
+            // Sin fix no hay distancia que rotular, y entonces la fila se queda con su título: el
+            // atajo sigue siendo verdad aunque no sepamos a cuánto está. Es lo que ya hace la fila
+            // de parking. [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
+            subtitle = nearestMeters?.let {
+                stringResource(Res.string.home_spots_empty_try_parkings_sub, distanceString(it))
+            },
+            titleStyle = PaparcarType.current.rowTitle,
+            titleMaxLines = 2,
+            subtitleStyle = PaparcarType.current.label,
+            subtitleMaxLines = 1,
+            contentPadding = PaddingValues(horizontal = REPORT_CARD_PAD_H_DP, vertical = PaparcarSpacing.md),
+            gap = PaparcarSpacing.md,
+            leading = {
+                // El azul del parking público, que es su identidad en todas las superficies. ⛔ No el
+                // verde de acción: esto no es una acción del usuario, es otra respuesta.
+                // [UI-COLOR-DOCTRINE-001]
+                PapIconTile(
+                    icon = PaparcarIcons.CarParkMark,
+                    size = PRIMARY_CARD_ICON_BOX_DP.dp,
+                    container = PapColor.carPark.copy(alpha = TRY_CAR_PARKS_TILE_ALPHA),
+                    tint = PapColor.carPark,
+                    iconSize = REPORT_CARD_GLYPH_DP,
+                )
+            },
+            trailing = {
+                Icon(
+                    Icons.AutoMirrored.Rounded.ArrowForward,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(REPORT_CARD_GLYPH_DP),
+                )
+            },
+        )
+    }
+}
+
+/** Lo justo para que la P azul se lea sobre la tarjeta sin competir con el verde de la de abajo. */
+private const val TRY_CAR_PARKS_TILE_ALPHA = 0.18f

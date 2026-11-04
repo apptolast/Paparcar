@@ -9,7 +9,6 @@
     <string name="home_search_placeholder">Caută o zonă, stradă…</string>
     <string name="home_search_no_results">Niciun rezultat pentru această căutare</string>
     <!-- PapSheet counter lead tile unit. [UI-SHEET-001] -->
-    <string name="home_counter_unit_free">libere</string>
     <string name="home_vehicle_chip_status_candidate">Parcare…</string>
     <!-- PapSheet actions + browse header. [UI-SHEET-001] -->
     <string name="home_parking_leave_release">Plec</string>
@@ -35,8 +34,6 @@
     <string name="home_spot_retracted_note">Cine l-a raportat nu a plecat până la urmă, așa că locul nu este liber. Caută altul în apropiere.</string>
     <string name="home_spot_retracted_action">Vezi alte locuri</string>
     <string name="home_browse_eyebrow_zone">Zona ta</string>
-    <string name="home_browse_parked_meta">Parcat acum %1$s · la %2$s de tine</string>
-    <string name="home_browse_parked_ago">Parcat acum %1$s</string>
     <string name="home_browse_hint_swipe_report">Glisează ↑ pentru a anunța un loc</string>
     <string name="home_browse_hint_swipe_mark_parking">Glisează ↑ pentru a marca unde ai parcat</string>
     <string name="common_directions">Indicații</string>
@@ -1062,6 +1059,7 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="subject_fuel_stations">Benzinării</string>
     <string name="subject_public_parkings">Parcări</string>
     <string name="subject_free_spots">Locuri</string>
+    <string name="subject_free_spots_full">Locuri comunitare</string>
     <string name="home_parkings_empty">Nicio parcare publică pe o rază de %1$s.</string>
     <string name="home_parkings_filter_covered">Acoperite</string>
     <string name="home_parkings_empty_filtered">Nicio parcare nu corespunde acestui filtru</string>
@@ -1168,4 +1166,48 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="shared_car_routes_question_title">Partajează și traseele mele</string>
     <string name="shared_car_routes_question_subtitle">Grupul vede linia pe unde ai condus. Poți schimba oricând.</string>
     <string name="shared_car_error_too_many_joined">Ești deja în 10 mașini partajate. Ieși dintr-una ca să intri în alta.</string>
+    <string name="home_spots_empty_try_parkings_title">Vezi parcările publice de aici</string>
+    <string name="home_spots_empty_try_parkings_sub">Cea mai apropiată este la %1$s</string>
+    <!-- Pie de PapOpportunityCard: el SEGUNDO destino de la tarjeta, la lista de ese sujeto.
+         Nombra el sujeto a proposito: «Ver las 3» a solas no inflexiona el articulo en ES/IT/PT/FR/RO
+         —un parking es masculino y una plaza femenina— y asi el pie es un nombre accesible por si solo.
+         [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001] -->
+    <plurals name="home_now_see_all_spots">
+        <item quantity="one">Vezi singurul loc comunitar</item>
+        <item quantity="few">Vezi toate cele %1$d locuri comunitare</item>
+        <item quantity="other">Vezi toate cele %1$d locuri comunitare</item>
+    </plurals>
+    <plurals name="home_now_see_all_car_parks">
+        <item quantity="one">Vezi singura parcare</item>
+        <item quantity="few">Vezi toate cele %1$d parcări</item>
+        <item quantity="other">Vezi toate cele %1$d parcări</item>
+    </plurals>
+    <plurals name="home_now_see_all_fuel_stations">
+        <item quantity="one">Vezi singura benzinărie</item>
+        <item quantity="few">Vezi toate cele %1$d benzinării</item>
+        <item quantity="other">Vezi toate cele %1$d benzinării</item>
+    </plurals>
+    <!-- «Aquí y ahora»: lo que merece el primer vistazo, un item por sujeto.
+         ⛔ El de gasolinera hace concordar el adjetivo con PRECIO, no con el producto:
+         «Gasolina 95 mas barata» y «Gasoleo A mas barato» no caben en una plantilla.
+         [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001] -->
+    <string name="home_now_section_header">Aici şi acum</string>
+    <string name="home_now_eyebrow_spot">Cel mai apropiat loc liber</string>
+    <string name="home_now_eyebrow_car_park">Cea mai apropiată parcare</string>
+    <string name="home_now_eyebrow_fuel">Cel mai mic preţ · %1$s</string>
+    <string name="home_now_eyebrow_fuel_plain">Cel mai mic preţ</string>
+    <!-- LÍNEA 1 del peek de browse: QUIEN · QUE le pasa · CUANDO. El «hace» sube aqui porque
+         responde CUANDO, que es la misma pregunta que el estado; el «a X m» baja a la linea 2,
+         que responde DONDE. Dos lineas, dos preguntas (user).
+         [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001] -->
+    <!-- CALIFICADOR de la linea 1 del peek: que le pasa al coche, y desde cuando. ⛔ Sin el
+         nombre dentro — el nombre es su propia pieza, con su color de identidad, y el estado
+         se queda neutro. [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001] -->
+    <string name="home_peek_parked_qualifier">parcat</string>
+    <string name="home_peek_parked_ago_qualifier">parcat acum %1$s</string>
+    <!-- SUJETO de la linea 1 del peek de una plaza. ⛔ Una plaza no tiene nombre propio, asi que
+         su nombre es lo que ES, y el calificador dice que le pasa («hace 3 min», «retirada»).
+         Vocabulario: es la PLAZA de la comunidad, en singular. [COPY-SPOT-IS-NOT-A-PARKING-001]
+         [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001] -->
+    <string name="home_peek_spot_subject">Loc comunitar</string>
 </resources>

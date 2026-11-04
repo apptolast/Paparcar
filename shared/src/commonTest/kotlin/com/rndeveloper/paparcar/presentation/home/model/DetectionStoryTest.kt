@@ -330,6 +330,45 @@ class DetectionStoryTest {
         )
     }
 
+    /**
+     * ⛔⛔ **Sin noticias del servicio no hay historia que contar.**
+     * [DET-A-SILENT-SERVICE-IS-NOT-A-DEAD-ONE-001]
+     *
+     * Este testigo **faltaba**, y lo destapó falsificar: quitar el filtro de `watchingStory()` no
+     * ponía rojo ni un test, así que la regla vivía sin vigilancia. Es la segunda vez en la misma
+     * tanda que la falsificación encuentra algo que los tests verdes no — una, un testigo que
+     * defendía el bug; esta, un testigo que no existía.
+     */
+    @Test
+    fun should_tellNoStory_when_theServiceHasNotSpokenYet() {
+        assertEquals(
+            DetectionStory.Hidden,
+            resolveDetectionStory(
+                DetectionUiState.Parked,
+                listOf(activeParkedCard),
+                parkedWatchBadge = ParkedWatchBadge.WATCH_UNKNOWN,
+            ),
+        )
+    }
+
+    /** Y en cuanto el servicio habla, la historia vuelve — el silencio dura un beat, no una sesión. */
+    @Test
+    fun should_tellTheStoryAgain_onceTheServiceSpeaks() {
+        assertEquals(
+            DetectionStory.Watching(
+                "Skoda Kamiq",
+                isParked = true,
+                watch = VehicleWatch.Assisted,
+                watchBadge = ParkedWatchBadge.WATCHING,
+            ),
+            resolveDetectionStory(
+                DetectionUiState.Parked,
+                listOf(activeParkedCard),
+                parkedWatchBadge = ParkedWatchBadge.WATCHING,
+            ),
+        )
+    }
+
     // ── Guided first steps take over the cold start [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] ──
 
     @Test

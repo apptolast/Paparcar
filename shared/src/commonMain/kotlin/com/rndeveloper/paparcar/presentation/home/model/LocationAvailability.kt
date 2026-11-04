@@ -45,7 +45,7 @@ fun homeHasNoLocation(hasCorePermissions: Boolean, detectionUiState: DetectionUi
  * location services OFF was never asked anything, so without this term their pill would go quiet
  * forever over a question that is never coming.
  *
- * A refusal already has its own moment — `locationWarningCue` opens the sheet onto the warning once
+ * A refusal already has its own moment — `warningOpenCue` opens the sheet onto the warning once
  * the answer is read [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]. This one only holds the
  * sentence until that moment arrives.
  */

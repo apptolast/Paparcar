@@ -28,6 +28,24 @@ class ObserveDepartureWatchGapUseCaseTest {
         assertTrue(gap, "a parked Coordinator car with a dead service IS an unwatched departure")
     }
 
+    /**
+     * ⛔⛔ **La mitad OPUESTA a la del badge de Home, y es deliberada.**
+     * [DET-A-SILENT-SERVICE-IS-NOT-A-DEAD-ONE-001]
+     *
+     * Home, con `ServicePresence.Unknown`, **no dice nada**: una frase sin medir es una acusación.
+     * Aquí, con el mismo valor, **sí hay hueco**: esta pregunta no produce una frase, produce una
+     * ACCIÓN — arrancar el vigilante. Arrancar uno que ya corre no cuesta nada; no arrancar uno
+     * muerto cuesta una plaza. Fallo asimétrico.
+     *
+     * Y por eso esto **preserva** el comportamiento anterior a que `Unknown` existiera: en un
+     * arranque en frío el resumidor sigue actuando igual que cuando el valor inicial era `Dead`.
+     */
+    @Test
+    fun should_reportGap_when_theServiceHasNotSpokenYet() = runTest {
+        val gap = buildUseCase(presence = ServicePresence.Unknown).invoke().first()
+        assertTrue(gap, "no proof of a watch is a gap to close — starting a live one costs nothing")
+    }
+
     @Test
     fun should_reportNoGap_when_serviceIsResidentInSentry() = runTest {
         val gap = buildUseCase(presence = ServicePresence.Sentry).invoke().first()

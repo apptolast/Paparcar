@@ -99,4 +99,64 @@ class ParkedWatchBadgeTest {
             ),
         )
     }
+
+    // ── Unknown: la falta de noticias no es un veredicto ──────────────────────────
+    // [DET-A-SILENT-SERVICE-IS-NOT-A-DEAD-ONE-001]
+
+    @Test
+    fun `a service that has not spoken yields no verdict, never an accusation`() {
+        assertEquals(
+            ParkedWatchBadge.WATCH_UNKNOWN,
+            resolveParkedWatchBadge(
+                hasParkedSession = true,
+                isBluetoothCovered = false,
+                presence = ServicePresence.Unknown,
+                isReliabilityReduced = false,
+            ),
+        )
+    }
+
+    @Test
+    fun `not knowing does not become fragile either`() {
+        // ⛔ Caer en FRAGILE sería la otra forma de inventarse un veredicto: la fiabilidad reducida
+        // califica una vigilancia VIVA, y aquí no sabemos si lo está.
+        assertEquals(
+            ParkedWatchBadge.WATCH_UNKNOWN,
+            resolveParkedWatchBadge(
+                hasParkedSession = true,
+                isBluetoothCovered = false,
+                presence = ServicePresence.Unknown,
+                isReliabilityReduced = true,
+            ),
+        )
+    }
+
+    @Test
+    fun `a bluetooth car is watched whether or not the service has spoken`() {
+        // Su salida la caza el receptor del manifiesto sin proceso residente, así que la presencia
+        // del FGS no le afecta — ni cuando es Dead ni cuando es Unknown.
+        assertEquals(
+            ParkedWatchBadge.WATCHING,
+            resolveParkedWatchBadge(
+                hasParkedSession = true,
+                isBluetoothCovered = true,
+                presence = ServicePresence.Unknown,
+                isReliabilityReduced = false,
+            ),
+        )
+    }
+
+    @Test
+    fun `an unmarked car is still an invitation, not an unknown`() {
+        // El orden importa: sin sesión no hay vigilancia sobre la que dudar.
+        assertEquals(
+            ParkedWatchBadge.PARK_MY_VEHICLE,
+            resolveParkedWatchBadge(
+                hasParkedSession = false,
+                isBluetoothCovered = false,
+                presence = ServicePresence.Unknown,
+                isReliabilityReduced = false,
+            ),
+        )
+    }
 }

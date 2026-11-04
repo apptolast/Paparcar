@@ -47,4 +47,21 @@ class DiskBackedFuelStationsSource(
             )
         )
     }
+
+    /**
+     * Lo que el disco guarda de esta consulta, sin tocar la red.
+     *
+     * ⛔ Misma forma que el rescate de arriba, y por la misma razón: `reportedAt` va a **null**
+     * porque es el sello que la FUENTE pone a una respuesta, y esta respuesta no ha ocurrido. Cada
+     * precio sigue llevando su propia hora, que es la parte honesta.
+     */
+    override suspend fun remembered(query: FuelStationsQuery): FuelStationsResult? =
+        disk.get(query)?.let { known ->
+            FuelStationsResult(
+                stations = known.stations,
+                reportedAt = null,
+                source = FuelStationsResult.UNKNOWN_SOURCE,
+                rememberedAtMs = known.fetchedAt,
+            )
+        }
 }

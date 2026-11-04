@@ -35,7 +35,8 @@ import com.rndeveloper.paparcar.presentation.home.model.isAttendedService
 import com.rndeveloper.paparcar.presentation.home.model.pumpPriceLabel
 import com.rndeveloper.paparcar.presentation.util.LocalPumpGallon
 import com.rndeveloper.paparcar.presentation.util.distanceMeters
-import com.rndeveloper.paparcar.presentation.util.formatDistance
+import com.rndeveloper.paparcar.presentation.util.distanceString
+import com.rndeveloper.paparcar.presentation.util.subjectWhereLine
 import com.rndeveloper.paparcar.presentation.util.fuelTypeLabel
 import com.rndeveloper.paparcar.presentation.util.relativeTimeText
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
@@ -71,8 +72,7 @@ private const val NOT_SOLD_ALPHA = 0.6f
  *  los dos botones del pie. [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001] */
 private const val FOLLOW_PROMISE_GAP_DP = 8
 
-/** Past this, no drive-time estimate: an urban heuristic stretched over 100 km is a made-up number. */
-private const val FAR_FOR_DRIVE_TIME_M = 100_000f
+// `FAR_FOR_DRIVE_TIME_M` vivía aquí y murió con su caso — ver `DistanceAndTimeRow` en el `meta`.
 
 /**
  * The whole station, not one price: the list row quotes only the active car's fuel, so this is
@@ -133,9 +133,26 @@ internal fun FuelStationPeek(
 
     PapSheet(
         lead = PapSheetLead.GenericIcon(PaparcarIcons.Fuel),
-        eyebrow = stringResource(Res.string.fuel_peek_eyebrow).uppercase(),
-        eyebrowTone = PapSheetEyebrowTone.Action,
+        // ⛔ La MISMA gramática que el resto de peeks (decisión del user, 30-10). El calificador es el
+        // PRODUCTO por el que está cotizada — más útil que repetir «GASOLINERA», que el propio glifo
+        // ya dice. [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+        eyebrow = "",
         title = title,
+        titleSlot = peekSubjectTitleSlot(
+            name = title,
+            // ⛔ `onSurface`, no el verde del tile: el verde es ACCIÓN en esta app, y el nombre de una
+            // gasolinera no lo es — teñirlo lo leería como un enlace. Una gasolinera no tiene
+            // identidad propia como la tienen un coche (su vigilancia), una plaza (su frescura) o un
+            // parking (su azul). [UI-COLOR-DOCTRINE-001]
+            nameColor = MaterialTheme.colorScheme.onSurface,
+            // ⛔ **Sin calificador, y no es un hueco olvidado.** Esta hoja ITEMIZA todos los
+            // carburantes que la fuente nombró, así que no hay UN producto que cualifique a la
+            // estación — ponerle uno sería elegir por ella. La estructura es la misma; lo que no hay
+            // es dato verdadero que meter. No preguntado ≠ vacío.
+            // [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+            qualifier = null,
+            maxLines = PEEK_MODAL_TITLE_MAX_LINES,
+        ),
         // La misma estrella que lleva su fila en la lista, en la misma relación con el nombre: lo
         // que distingue una gasolinera seguida no puede ser el estado de un botón que está al final
         // de la hoja. [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001]
@@ -144,9 +161,14 @@ internal fun FuelStationPeek(
         } else {
             null
         },
-        // Address under the name — unless it already IS the title (a nameless OSM station).
-        subtitle = station.address?.takeIf { it != title }
-            ?: station.town?.takeIf { it != title },
+        // La LÍNEA 2 de la gramática: **dónde · a cuánto**, en una sola línea y sin repetir la 1.
+        //
+        // ⛔ Aquí estaba el defecto que el user midió —*«las 2 últimas muestran dirección y a veces es
+        // repetitivo»*—: con nombre, el título era el nombre y esto la calle; **sin** nombre el título
+        // era la calle y esto la población, con la distancia aún en una fila aparte. Tres líneas para
+        // dos preguntas. [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+        // La cabecera NOMBRA; el cuerpo DESARROLLA. El sitio y la distancia abren los hechos.
+        // [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
         onDismiss = { onIntent(HomeIntent.SelectItem(null)) },
         // Step through the SAME action a row or a capsule fires — select, fly the camera, peek —
         // so the arrows cannot mean something a tap does not. [FUEL-PEEK-STEPS-BETWEEN-STATIONS-001]
@@ -157,22 +179,22 @@ internal fun FuelStationPeek(
             onNext = step.nextId?.let { id -> { onAction(HomeSheetAction.SelectFuelStation(id)) } },
         ),
         meta = {
-            // Beyond a real trip's distance the drive-time heuristic is an invented figure — the
-            // distance alone already says "you are looking far away".
-            // [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
-            if (distM != null && distM > FAR_FOR_DRIVE_TIME_M) {
-                PeekMetaRow(
-                    icon = Icons.Rounded.Navigation,
-                    text = formatDistance(distM),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            } else {
-                DistanceRow(
-                    distanceM = distM,
-                    mode = travelMode,
-                    accentColor = MaterialTheme.colorScheme.primary,
-                )
-            }
+            PeekPlaceRow(
+                place = subjectWhereLine(
+                    name = title,
+                    placeLine = station.address,
+                    secondaryLine = station.town,
+                    farText = null,
+                ),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            // ⛔ Sin fix no hay distancia que decir: null no es cero.
+            // [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
+            DistanceAndTimeRow(
+                distanceM = distM,
+                mode = travelMode,
+                accentColor = MaterialTheme.colorScheme.primary,
+            )
             station.schedule?.let { schedule ->
                 // As the source words it — "24H", "L-D: 07:00-22:00"… never parsed, never judged.
                 PeekMetaRow(
@@ -221,7 +243,6 @@ internal fun FuelStationPeek(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Spacer(Modifier.height(PapGap.block))
         },
         actions = {
             PapFooterButton(

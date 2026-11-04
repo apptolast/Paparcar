@@ -84,8 +84,15 @@ class ObserveDepartureWatchGapUseCase(
         residencyStillWanted(),
         detectionRuntime.presence,
     ) { wanted, presence ->
-        // Only a DEAD service is a gap: Sentry and Active are both genuinely watching.
-        presence == ServicePresence.Dead && wanted
+        // ⛔ **Un hueco es la AUSENCIA de vigilancia demostrada**, así que [ServicePresence.Unknown]
+        // cuenta igual que `Dead` — y eso **preserva el comportamiento** que tenía antes de que
+        // `Unknown` existiera, que es lo que hay que preservar aquí.
+        //
+        // Es la mitad OPUESTA a la del badge de Home, y a propósito: esta pregunta no produce una
+        // frase, produce una ACCIÓN — arrancar el vigilante. Arrancar uno que ya corre no cuesta
+        // nada; no arrancar uno muerto cuesta una plaza. Fallo asimétrico.
+        // [DET-A-SILENT-SERVICE-IS-NOT-A-DEAD-ONE-001]
+        !presence.isWatchingLive && wanted
     }.distinctUntilChanged()
 
     /**

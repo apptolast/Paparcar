@@ -192,7 +192,6 @@ internal fun AddingZonePeek(
                 radius = form.radius,
                 onRadiusChange = { onIntent(HomeIntent.SetZoneRadius(it)) },
             )
-            Spacer(Modifier.height(PapGap.block))
         },
         actions = {
             PapFooterButton(

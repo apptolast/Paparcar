@@ -408,6 +408,18 @@ fun LazyListScope.homeSheetItems(
     // ⛔ El corte entre LO MIO y LO DE AQUI. Sin el, la tira de coches y la fila de pestanas se
     // tocaban y el sheet se leia como una sola lista larga: el bloque fijo dejaba de parecer un
     // bloque. [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
+    // ── 2b. AQUÍ Y AHORA — lo que merece el primer vistazo ─────────────────────────
+    // Entre lo TUYO y lo DE AQUÍ, y ese sitio es la decisión: resume lo que hay debajo, así que va
+    // antes de la lista que resume. Se calla entera cuando no hay nada notable — no hay «hueco» que
+    // reservar, porque una sección vacía es la noticia de que no hay noticias.
+    // [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+    nowSection(
+        slice = slice,
+        filteredSpots = filteredSpots,
+        onIntent = onIntent,
+        onAction = onAction,
+    )
+
     item("mine_lane_split") {
         PapSectionHeader(
             title = stringResource(Res.string.home_nearby_section_header),
@@ -759,7 +771,29 @@ private fun LazyListScope.spotsLane(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                 )
             }
-        filteredSpots.isEmpty() -> item("empty") { HomeEmptySpots(unasked = slice.spotsUnasked) }
+        filteredSpots.isEmpty() -> {
+            item("empty") { HomeEmptySpots(unasked = slice.spotsUnasked) }
+            // [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001] El vacío de plazas es honesto pero no
+            // ofrecía salida, y con <20 usuarios es el estado que más veces se ve. UNA alternativa,
+            // nombrada por lo que es, y sólo si hay parkings que ofrecer — llevar a una lista que al
+            // abrirla está vacía cambia un vacío honesto por dos.
+            //
+            // ⛔ Va encima de la tarjeta de avisar y no debajo: avisar de una plaza es lo que el
+            // usuario puede HACER aquí, y eso cierra la sección. Esto es un atajo a otra respuesta.
+            val nearestCarPark = slice.parkings.parkings.minByOrNull { it.distanceMeters }
+            if (nearestCarPark != null) {
+                item("empty_try_parkings") {
+                    HomeTryCarParksCard(
+                        nearestMeters = nearestCarPark.distanceMeters
+                            .takeIf { slice.userGpsPoint != null }?.toFloat(),
+                        onOpenCarParks = {
+                            onIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
+                        },
+                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp),
+                    )
+                }
+            }
+        }
         else -> itemsIndexed(filteredSpots, key = { _, spot -> spot.id }) { index, spot ->
             Column {
                 HomeSpotRow(

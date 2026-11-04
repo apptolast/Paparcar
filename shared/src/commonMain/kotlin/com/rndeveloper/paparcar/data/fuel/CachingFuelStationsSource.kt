@@ -39,6 +39,20 @@ class CachingFuelStationsSource(
         return delegate.stationsNear(query).onSuccess { cache.put(key, it) }
     }
 
+    /**
+     * Lo de memoria si está vivo, y si no lo que recuerde la capa de abajo.
+     *
+     * ⛔ **No se salta el delegado cuando la memoria está vacía**, que es el error fácil aquí: el
+     * disco guarda mucho más tiempo que estos 15 minutos, y al arrancar la app la memoria está
+     * SIEMPRE vacía — justo el momento para el que esto existe.
+     */
+    override suspend fun remembered(query: FuelStationsQuery): FuelStationsResult? {
+        val key = with(query) {
+            locationCacheKey(latitude, longitude, radiusMeters, countryCode, regionName)
+        }
+        return cache.get(key) ?: delegate.remembered(query)
+    }
+
     private companion object {
         /**
          * Fifteen minutes. Long enough that a glance costs one request, short enough that a station

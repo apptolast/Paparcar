@@ -445,6 +445,57 @@ class HomeSlicesTest {
     }
 
     @Test
+    fun should_keepTheStoreReadable_when_itsLayerIsNotPainted() {
+        // ⛔ **El TESTIGO de que la tienda y lo-que-el-mapa-pinta NO son intercambiables.**
+        //
+        // Nace de un bug medido en el Pixel 8 (user, 03-11): tocar la tarjeta «PRECIO MÁS BAJO» de
+        // «Aquí y ahora» no abría nada. El handler de selección resolvía contra
+        // `toMapSlice().fuelStations`, que está **vacía cuando su capa no se dibuja**, así que su
+        // `firstOrNull { }?.let { }` no encontraba la estación y callaba. Estando en el carril de
+        // plazas, dos de las tres tarjetas eran toques muertos.
+        //
+        // Lo que este test fija es la ASIMETRÍA, no el handler: la tienda se lee desde cualquier
+        // carril, la capa del mapa no. Quien resuelva una selección contra la segunda vuelve a
+        // introducir el bug. [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
+        val onSpotsLane = HomeState(
+            nearbyLens = HomeNearbyLens.SPOTS,
+            userGpsPoint = GpsPoint(40.0, -3.0, accuracy = 10f, timestamp = 1_000L, speed = 0f),
+            fuel = com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice(
+                stations = listOf(fuelStation("a", 100.0)),
+                anchorLat = 40.0,
+                anchorLon = -3.0,
+            ),
+            parkings = HomeParkingsSlice(
+                parkings = listOf(nearbyParking("p", 200.0)),
+                anchorLat = 40.0,
+                anchorLon = -3.0,
+            ),
+        )
+
+        assertEquals(
+            emptyList(),
+            onSpotsLane.toMapSlice().fuelStations,
+            "el mapa no pinta la capa de gasolineras fuera de su carril — eso está bien",
+        )
+        assertEquals(
+            emptyList(),
+            onSpotsLane.toMapSlice().publicParkings,
+            "ni la de parkings",
+        )
+        assertEquals(
+            1,
+            onSpotsLane.fuelStationsShown.size,
+            "pero la TIENDA sigue ahí: una tarjeta de la hoja no es un pin, y tiene que poder " +
+                "resolver su sujeto desde cualquier carril",
+        )
+        assertEquals(
+            1,
+            onSpotsLane.publicParkingsShown.size,
+            "lo mismo para los parkings",
+        )
+    }
+
+    @Test
     fun should_notFlyTheCamera_when_theLaneOnlyDrifted() {
         // ⛔ La mitad que NO se relaja. Enseñar una gasolinera que está a 4 km es correcto; volar
         // hasta ella porque resulta ser la primera de la lista es lo que

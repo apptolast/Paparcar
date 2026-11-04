@@ -13,10 +13,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.detection.DetectionPhase
 import com.rndeveloper.paparcar.domain.model.AddressAndPlace
@@ -27,7 +30,6 @@ import com.rndeveloper.paparcar.domain.model.monitoringStatus
 import com.rndeveloper.paparcar.presentation.home.DrivingMeta
 import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheet
-import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetEyebrowTone
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetLead
 import com.rndeveloper.paparcar.presentation.util.PlaceLine
 import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
@@ -36,11 +38,15 @@ import com.rndeveloper.paparcar.presentation.util.distanceMeters
 import com.rndeveloper.paparcar.presentation.util.distanceString
 import com.rndeveloper.paparcar.presentation.util.placeLineText
 import com.rndeveloper.paparcar.presentation.util.secondaryPlaceLine
+import com.rndeveloper.paparcar.presentation.util.subjectWhereLine
 import com.rndeveloper.paparcar.presentation.util.toPlaceLine
 import com.rndeveloper.paparcar.ui.components.rememberDrivingStatePulse
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
+import com.rndeveloper.paparcar.ui.components.VehicleWatchLeadingIcon
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
 import com.rndeveloper.paparcar.ui.theme.watch
+import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import com.rndeveloper.paparcar.ui.theme.PapGap
 import org.jetbrains.compose.resources.stringResource
@@ -50,13 +56,14 @@ import paparcar.composeapp.generated.resources.home_browse_eyebrow_zone
 import paparcar.composeapp.generated.resources.subject_fuel_stations
 import paparcar.composeapp.generated.resources.subject_public_parkings
 import paparcar.composeapp.generated.resources.subject_free_spots
+import paparcar.composeapp.generated.resources.subject_free_spots_full
 import paparcar.composeapp.generated.resources.home_browse_hint_swipe_mark_parking
 import paparcar.composeapp.generated.resources.home_browse_hint_swipe_report
-import paparcar.composeapp.generated.resources.home_browse_parked_ago
-import paparcar.composeapp.generated.resources.home_browse_parked_meta
 import paparcar.composeapp.generated.resources.home_det_ask_eyebrow
 import paparcar.composeapp.generated.resources.home_det_monitoring
 import paparcar.composeapp.generated.resources.home_peek_car_parked_label
+import paparcar.composeapp.generated.resources.home_peek_parked_ago_qualifier
+import paparcar.composeapp.generated.resources.home_peek_parked_qualifier
 import paparcar.composeapp.generated.resources.home_peek_parking_unmarked_title
 import paparcar.composeapp.generated.resources.home_peek_vehicle_parked_label
 import paparcar.composeapp.generated.resources.home_peek_vehicle_status
@@ -213,7 +220,6 @@ internal fun BrowsePeek(
     // de unas nuevas: la cabecera y la pestaña que la produjo tienen que decir la misma palabra, y
     // dos juegos de strings para un nombre son dos sitios donde se puede escribir distinto.
     val isSpotsLane = !followsLane || nearbyLens == HomeNearbyLens.SPOTS
-    val hasAny = (if (isSpotsLane) freeCount else laneCount ?: 0) > 0
 
     PapSheet(
         lead = if (isSpotsLane) {
@@ -228,22 +234,69 @@ internal fun BrowsePeek(
                 },
             )
         },
-        eyebrow = stringResource(
-            when {
-                isSpotsLane -> Res.string.subject_free_spots
-                nearbyLens == HomeNearbyLens.PARKINGS -> Res.string.subject_public_parkings
-                else -> Res.string.subject_fuel_stations
-            },
-        ).uppercase(),
-        eyebrowTone = if (hasAny) PapSheetEyebrowTone.Action else PapSheetEyebrowTone.Neutral,
+        // ⛔ La MISMA gramática que el resto de estados del peek — y esta cabecera **estuvo fuera**,
+        // con el argumento de que era «un recuento y su sujeto, no un nombre y su sitio». Vista en
+        // device no se sostiene: tiene nombre (la calle que miras), calificador (el sujeto del
+        // carril) y dónde (la población). El RECUENTO no se pierde: lo lleva el tile contador, que
+        // es donde ya estaba. [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+        eyebrow = "",
         title = title,
-        // Collapsed, on the spots lane, with 0 spots: the sub is the activation hint; otherwise the
-        // address line.
-        subtitle = if (isSpotsLane && freeCount == 0 && !showZoneHeader) {
-            stringResource(Res.string.home_browse_hint_swipe_report)
-        } else {
-            secondaryLine
-        },
+        titleSlot = peekSubjectTitleSlot(
+            // ⛔ **El SUJETO es el nombre de esta cabecera, no la calle** (user, 30-10, viéndolo en el
+            // Oppo): «en vez de poner segundo coche, pones gasolineras, parkings o plazas en su
+            // color, y abajo su dirección». Lo tuve al revés una vuelta. Y el nombre sale de las
+            // MISMAS claves que rotulan su pestaña (`subject_*`): la cabecera y la pestaña que la
+            // produjo tienen que decir la misma palabra.
+            //
+            // ⛔ **La plaza usa aquí su forma LARGA** (user, 03-11): *«me sale ahora 6 plazas, pero
+            // no 6 plazas comunitarias»*. Y es un par, no dos palabras distintas — la regla de
+            // arriba prohíbe que la cabecera diga «Gasolineras» y su pestaña «Combustible», no que
+            // una lleve el calificador y la otra no.
+            //
+            // ⚠️ **La pestaña se queda en la corta, y está medido por qué**: su fila es un
+            // `stickyHeader` con `maxLines = 1`, el tab de plazas es 1,25 de tres pesos sobre 393 dp
+            // de pantalla, y «Plazas comunitarias» no entra — saldría «Plazas comu…». Esto es el
+            // «donde no quepa» que el propio user previó al pedir el renombrado.
+            //
+            // Parkings y gasolineras **no tienen forma larga** porque no la necesitan: su nombre no
+            // era ambiguo. El calificador nació para distinguir una plaza de la comunidad de un
+            // aparcamiento tuyo. [COPY-SPOT-IS-NOT-A-PARKING-001]
+            name = stringResource(
+                when {
+                    isSpotsLane -> Res.string.subject_free_spots_full
+                    nearbyLens == HomeNearbyLens.PARKINGS -> Res.string.subject_public_parkings
+                    else -> Res.string.subject_fuel_stations
+                },
+            ),
+            // El color que ese sujeto ya lleva en el resto de la app — no uno nuevo.
+            // ⛔ Plazas y gasolineras comparten verde: es el que tienen hoy en sus tiles, y
+            // distinguirlas no es trabajo del color sino del tile, que además lleva la cifra.
+            // [UI-COLOR-DOCTRINE-001]
+            // ⛔ **`onSurface`, sin color** (user, 02-11): *«para los peek, cuando mostramos tipo de
+            // lista —Plazas, Parkings o Gasolineras— déjalo en onSurface, no lo pongas verde ni azul
+            // ni nada»*. Esto REVIERTE lo que él mismo había pedido el 30-10 («en su color»), y la
+            // razón de que la vuelta sea la buena es la misma que ya rige en los modales: el color
+            // lo lleva el TILE, que aquí además carga la cifra. Tiñendo también el nombre, el verde
+            // de «Plazas» competía con el verde de ACCIÓN de los botones de abajo.
+            // [UI-COLOR-DOCTRINE-001]
+            nameColor = MaterialTheme.colorScheme.onSurface,
+            // ⛔ Sin calificador: la CIFRA ya está a la izquierda, en el tile. Repetirla aquí sería
+            // contar lo mismo dos veces a 60 dp de distancia.
+            qualifier = null,
+        ),
+        // Collapsed, on the spots lane, with 0 spots: the second line is the activation hint;
+        // otherwise where you are looking. ⛔ SIEMPRE hay segunda línea, que es lo que mantiene las
+        // tres variantes de zona a la misma altura bajo el divisor. [BUG-PEEK-DIVIDER-ALIGN]
+        subtitleSlot = peekWhereLine(
+            place = if (isSpotsLane && freeCount == 0 && !showZoneHeader) {
+                stringResource(Res.string.home_browse_hint_swipe_report)
+            } else {
+                // La DIRECCIÓN de lo que estás mirando: la calle primero y la población detrás, en
+                // una sola línea, para que lo que se recorte sea la población y no la calle.
+                listOfNotNull(title, secondaryLine).joinToString(PEEK_LINE_JOINER)
+            },
+            far = null,
+        ),
     )
 }
 
@@ -305,17 +358,32 @@ private fun DrivingCarHeader(
             // [UI-PEEK-DRIVING-HAS-NO-MOTION-001]
             drivingHaloColor = identity,
         ),
-        eyebrow = stringResource(Res.string.home_peek_vehicle_status, vehicleName, phaseWord).uppercase(),
-        // Only the NAME wears the identity colour (watch method); the phase word ("EN RUTA" /
-        // "APARCANDO…") is state and stays neutral — and, being state in motion, it BREATHES.
-        // The pulse rides the base eyebrow colour, so it reaches the phase words while the
-        // name's own span keeps its opaque identity colour: no new API, and the vehicle never
-        // blinks. [UI-COLOR-DOCTRINE-001] [UI-PEEK-DRIVING-HAS-NO-MOTION-001]
-        eyebrowColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = rememberDrivingStatePulse()),
-        eyebrowHighlight = vehicleName,
-        eyebrowHighlightColor = identity,
+        // ⛔ Sin eyebrow: el sujeto es el COCHE y vive en la línea 1. La MISMA gramática que el
+        // aparcado — lo único que cambia es el calificador y que aquí late.
+        eyebrow = "",
         title = title,
-        subtitle = secondaryLine,
+        titleSlot = peekSubjectTitleSlot(
+            name = vehicleName,
+            // El nombre en `onSurface` y la vigilancia en su glifo — ver la nota larga en
+            // `ParkingPeek`. El pulso del estado sigue viajando por el CALIFICADOR, así que ni el
+            // nombre ni el glifo parpadean.
+            // [UI-COLOR-DOCTRINE-001] [UI-PEEK-DRIVING-HAS-NO-MOTION-001]
+            nameColor = MaterialTheme.colorScheme.onSurface,
+            qualifier = phaseWord,
+            qualifierAlpha = rememberDrivingStatePulse(),
+            leadingGlyph = {
+                VehicleWatchLeadingIcon(
+                    watch = drivingVehicle?.monitoringStatus()?.watch() ?: VehicleWatch.Off,
+                    tint = identity,
+                )
+            },
+        ),
+        subtitleSlot = peekWhereLine(
+            place = title,
+            // ⛔ Aquí la línea 2 lleva la CALLE, no una distancia: un viaje vivo no se mide «desde
+            // ti» — tú vas dentro. Es el mismo hueco, con el dato que esta rama sí tiene.
+            far = secondaryLine,
+        ),
         // No free-spots pill in the collapsed peek: the count already reads once the sheet is
         // expanded (spots section header), so a trailing pill here just duplicates it.
     )
@@ -334,10 +402,20 @@ private fun ParkedCarHeader(
     userGpsPoint: GpsPoint?,
 ) {
     val vehicleName = vehicleSummary(parkingVehicle)
-    val eyebrow = if (vehicleName != null) {
-        stringResource(Res.string.home_peek_vehicle_parked_label, vehicleName)
+    // ⛔ **CUÁNDO sube a la línea 1**, junto al estado, porque responde la MISMA pregunta que él; el
+    // «a 180 m» baja a la línea 2, junto a la calle, porque responde DÓNDE. Dos líneas, dos preguntas
+    // — la decisión es del user, sobre *«¿qué haríamos con la info de aparcado hace …horas · a x metros
+    // de ti?»*. La tercera línea que las llevaba juntas desaparece.
+    // [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+    val parkedAgo = parking.location.timestamp
+        .takeIf { it > 0L }
+        ?.let { compactRelativeTimeText(it) }
+    // El CALIFICADOR de la línea 1: qué le pasa al coche y desde cuándo. El nombre va aparte, así
+    // que estas cadenas ya no lo llevan dentro.
+    val parkedQualifier = if (parkedAgo != null) {
+        stringResource(Res.string.home_peek_parked_ago_qualifier, parkedAgo)
     } else {
-        stringResource(Res.string.home_peek_car_parked_label)
+        stringResource(Res.string.home_peek_parked_qualifier)
     }
     // [UI-APPROXIMATE-ZONE-IN-HISTORY-001] An approximate session reads "Near X" here too:
     // this collapsed header has no ApproximateZoneRow below it (that lives in the parking
@@ -357,14 +435,18 @@ private fun ParkedCarHeader(
     val distM = userGpsPoint?.let {
         distanceMeters(it.latitude, it.longitude, parking.location.latitude, parking.location.longitude)
     }
-    val subtitle = if (parking.location.timestamp > 0L) {
-        val ago = compactRelativeTimeText(parking.location.timestamp)
-        if (distM != null) {
-            stringResource(Res.string.home_browse_parked_meta, ago, distanceString(distM))
-        } else {
-            stringResource(Res.string.home_browse_parked_ago, ago)
-        }
-    } else null
+    // LÍNEA 2: **dónde · a cuánto**, por la misma regla que el resto de sujetos — una sola
+    // gramática. ⛔ Deduplicada contra la línea 1: un sitio que se llamara como el coche no se
+    // escribe dos veces. Sin fix se queda con el sitio; null no es cero.
+    // ⛔ **La distancia NO va dentro de la línea**, va al borde derecho — ver `titleTrailing`. El
+    // texto elide por el final, así que ahí dentro sería siempre lo primero en caerse, y es la cifra
+    // que decide si vas andando. Medido en el emulador antes de moverla.
+    val placeLine = subjectWhereLine(
+        name = vehicleName.orEmpty(),
+        placeLine = title,
+        secondaryLine = null,
+        farText = null,
+    ) ?: title
     PapSheet(
         lead = PapSheetLead.Vehicle(
             carbody = parkingVehicle?.carbodyType,
@@ -373,14 +455,29 @@ private fun ParkedCarHeader(
             // Session's vehicle still resolving from Room → skeleton, not the generic fallback car.
             loading = parkingVehicle == null,
         ),
-        eyebrow = eyebrow.uppercase(),
-        // Only the NAME wears the vehicle's identity colour; "· APARCADO" is state and stays
-        // neutral. [UI-COLOR-DOCTRINE-001]
-        eyebrowColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        eyebrowHighlight = vehicleName,
-        eyebrowHighlightColor = vehicleIdentityColor(parkingVehicle?.monitoringStatus()?.watch() ?: VehicleWatch.Off),
-        title = title,
-        subtitle = subtitle,
+        // ⛔ Sin eyebrow: el sujeto es el COCHE y vive en la línea 1, no en una caps por encima.
+        eyebrow = "",
+        title = placeLine,
+        titleSlot = peekSubjectTitleSlot(
+            name = vehicleName ?: stringResource(Res.string.home_vehicle_fallback_name),
+            // El nombre en `onSurface` y la vigilancia en su glifo — ver la nota larga en
+            // `ParkingPeek`. [UI-COLOR-DOCTRINE-001]
+            nameColor = MaterialTheme.colorScheme.onSurface,
+            qualifier = parkedQualifier,
+            leadingGlyph = {
+                VehicleWatchLeadingIcon(
+                    watch = parkingVehicle?.monitoringStatus()?.watch() ?: VehicleWatch.Off,
+                )
+            },
+        ),
+        subtitleSlot = peekWhereLine(
+            place = placeLine,
+            far = distM?.let { distanceString(it) },
+        ),
+        // ⛔ **Sin tercera línea**, y la altura NO se mueve: la reserva de la cabecera es un
+        // `defaultMinSize` de tres líneas (14 + 24 + 16 sp), así que con dos el bloque respira dentro
+        // de la misma caja y los cuatro detents y el divisor peek/nav siguen sentados donde estaban.
+        // [BUG-PEEK-DIVIDER-ALIGN]
         // No free-spots pill in the collapsed peek: the count already reads once the sheet is
         // expanded (spots section header), so a trailing pill here just duplicates it.
     )

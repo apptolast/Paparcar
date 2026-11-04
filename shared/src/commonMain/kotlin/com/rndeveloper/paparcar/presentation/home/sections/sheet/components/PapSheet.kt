@@ -62,7 +62,6 @@ import com.rndeveloper.paparcar.ui.theme.PapBorders
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PapFonts
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
-import com.rndeveloper.paparcar.ui.theme.figureOpticalLiftSp
 import com.rndeveloper.paparcar.ui.theme.greenOutline
 import com.rndeveloper.paparcar.ui.components.PapShimmerBlockScale
 import com.rndeveloper.paparcar.ui.components.PapStepperButtonSize
@@ -71,7 +70,6 @@ import com.rndeveloper.paparcar.ui.theme.PapGap
 import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
-import paparcar.composeapp.generated.resources.home_counter_unit_free
 import paparcar.composeapp.generated.resources.home_peek_dismiss_cd
 
 /**
@@ -81,15 +79,57 @@ import paparcar.composeapp.generated.resources.home_peek_dismiss_cd
  *
  *  ┌──────────────────────────────────────────────────────────────────────┐
  *  │ ‹  [LEAD]  EYEBROW (state-tinted caps)                       [×]   › │
- *  │     46dp   Title — 1 line, ellipsis (the address)                    │
+ *  │     46dp   Title — `cardTitle`; hasta 2 lineas en un modal           │
  *  │            subtitle (optional, muted)                                │
  *  ├──────────────────────────────────────────────────────────────────────┤
  *  │  banner  — info strip (icon + title + sub) on surfaceContainerHigh   │
  *  │  meta    — icon+value rows       [metaAction: 38dp edit icon-button] │
  *  │  chips   — filter / size selector row                                │
- *  │  content — escape hatch (forms)                                      │
+ *  │  content — el DESGLOSE que respalda los hechos                       │
  *  │  actions — PapFooterButton stack (max 1 Filled = the loop action)    │
  *  └──────────────────────────────────────────────────────────────────────┘
+ *
+ * ⛔ **Gramatica de un MODAL de detalle — cinco bandas, siempre en este orden**
+ * [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+ *
+ * Un modal contesta cinco preguntas de arriba abajo, y cada banda contesta **una**. Si un dato no
+ * sabe a que pregunta responde, no es que falte un slot: es que no se ha decidido que es.
+ *
+ * | Banda | Pregunta | Slot | Que va aqui |
+ * |---|---|---|---|
+ * | 1 · Identidad | ¿que es esto? | header | el tile con su color + el NOMBRE, y nada mas |
+ * | 2 · Aviso | ¿algo que saber antes de leer? | `banner` | solo cuando algo no se cumple |
+ * | 3 · Hechos | ¿donde esta y como es? | `meta` | filas de un glifo y una linea, en `body` |
+ * | 4 · Desglose | la prueba, el detalle | `chips` / `content` | precios, notas, fiabilidad |
+ * | 5 · Accion | ¿que hago? | `actions` | un CTA canonico |
+ *
+ * De ahi salen tres reglas que **no** son de gusto — cada una con su medicion en el Oppo:
+ *
+ *  1. **La cabecera NOMBRA; el cuerpo DESARROLLA.** El sitio y la distancia **no** van en el
+ *     `subtitleSlot` de un modal: ahi comparten ancho con el racimo «‹ › ×» —432 px de 1080, los
+ *     tres botones de 48 dp— y salen recortados como «Calle de …». Abren la banda 3, a todo el
+ *     ancho, via `PeekPlaceRow` + `DistanceAndTimeRow`. El peek COLAPSADO si usa su linea 2: no
+ *     tiene cuerpo donde desarrollar nada.
+ *  2. **El titulo gana la jerarquia por ROL, no por color.** `cardTitle` (18sp Bold) contra `body`
+ *     (14sp Normal) en las filas. Cuando el titulo bajo a `rowName` —el mismo 14sp SemiBold que
+ *     `rowTitle`— tres filas de cuerpo le ganaban por acumulacion. Y el nombre va en `onSurface`:
+ *     la identidad la lleva el TILE, que es justo lo que manda [UI-COLOR-DOCTRINE-001].
+ *  3. **Una sola columna de hechos.** Todo lo de la banda 3 cuelga del MISMO canal de glifo, tenga
+ *     glifo o no (`PeekMetaRow(icon = null)` lo deja vacio, no lo colapsa). Tres hechos del parking
+ *     publico se pintaban 28 dp a la izquierda de sus vecinos por venir de un componente propio.
+ *
+ * ⛔ Y `content` **ya no es un «escape hatch»**: cuatro modales lo usaban de cuerpo y los cuatro
+ * cerraban con el mismo `Spacer(PapGap.block)` escrito a mano — la firma exacta de un hueco que
+ * falta. El aire de cada banda lo pone la hoja, una vez.
+ *
+ * Un FORMULARIO sigue viviendo ahi y es legitimo (`AddingZonePeek`, `ReportPeek`): un formulario
+ * **es** el cuerpo de su hoja, no el desglose de unos hechos, asi que ocupa la banda 4 entera y no
+ * tiene banda 3. Lo que ya no vale es colgar de `content` un HECHO —eso es banda 3— ni un AVISO
+ * —eso es `banner`— solo porque el slot aceptaba cualquier cosa.
+ *
+ * ⚠️ Fuera de esta gramatica queda `ParkingHistoryDetailScreen`, que compone su banda 1 con
+ * eyebrow + titulo + subtitulo (la ciudad). No es Home y su cabecera no pelea con un `×`, asi que
+ * no se ha tocado; si alguna vez se unifica, la ciudad baja a la banda 3 como una fila mas.
  *
  * **Subject rule** (decided by the caller): the lead tile is the SUBJECT of
  * the sheet. With a parked car the subject is the vehicle (lead = car glyph,
@@ -149,6 +189,23 @@ internal fun PapSheet(
      *  the header at full width, exactly as it was before the stepper existed.
      *  [UI-PEEK-STEPS-BETWEEN-PINS-001] */
     stepper: PapSheetStepper? = null,
+    /**
+     * La línea del TÍTULO entera, cuando no es un título sino una **composición de dos piezas**: un
+     * nombre y su calificador. [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+     *
+     * ⛔ **Existe porque hay cabeceras cuyo sujeto NO es el título.** En el peek del coche aparcado
+     * el sujeto es el COCHE — «Seat León · aparcado hace 31m»— y la dirección es dónde está, no su
+     * nombre. Con `title` a secas la dirección se llevaba `cardTitle` y el coche quedaba en un
+     * eyebrow en caps: la jerarquía, invertida (user, viéndolo en el emulador).
+     *
+     * Es el mismo contrato que [PapListItem] ya tenía y que la fila de plaza usa para su glifo POI;
+     * aquí sólo se reenvía. Gana a [titleMark], que es el caso pequeño del mismo mecanismo.
+     * [UI-LIST-ITEM-001]
+     */
+    titleSlot: (@Composable () -> Unit)? = null,
+    /** La línea 2 entera — **dónde · a cuánto**, con la cifra en su propia columna para que lo que
+     *  elida sea el sitio y no el número. Ver `PeekCarLines`. */
+    subtitleSlot: (@Composable () -> Unit)? = null,
     banner: (@Composable () -> Unit)? = null,
     meta: (@Composable ColumnScope.() -> Unit)? = null,
     metaAction: (@Composable () -> Unit)? = null,
@@ -172,6 +229,19 @@ internal fun PapSheet(
         // chrome, so the peek's actions stay actions. A 32dp chevron is shorter than the 46dp lead
         // tile, so the reserved header height (and with it the peek's measured height, the collapse
         // cut and the peek/nav divider) is untouched. [UI-PEEK-STEPS-BETWEEN-PINS-001] [UI-SHEET-006]
+        // ── Slot 0 · Chrome — `‹ › ×` en SU PROPIA línea, encima del título ─────────
+        // ⛔ **Estaba en el `trailing` de la cabecera y se comía el título** (user, 02-11):
+        // *«los iconos ‹ › × deberían ir una línea arriba del título para no comérselo, asumiendo
+        // el mismo comportamiento de diseño que otras modales de este estilo»*. Y es el patrón de
+        // una bottom sheet de Material 3: el chrome vive arriba, con el asa, y el contenido empieza
+        // después — no compartiendo renglón con él.
+        //
+        // Medido en el Pixel 8: el racimo ocupaba 432 px de los 1080 y al título le dejaba 345
+        // —unos 12 caracteres a 18sp Bold—, que es por lo que salían «Parking de …» y «apar…».
+        // En su propia fila el título pasa a disponer de ~777 px: **2,25×**.
+        // [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001] [UI-PEEK-STEPS-BETWEEN-PINS-001]
+        papSheetHeaderChrome(stepper, onDismiss)?.invoke()
+
         PapListItem(
             modifier = Modifier.defaultMinSize(minHeight = papSheetHeaderReservedHeight()),
             // Blank = no eyebrow at all, not an empty line with its spacing. An embedded sheet (the
@@ -188,7 +258,9 @@ internal fun PapSheet(
             // Con marca, la línea del título pasa a ser estructura — el mismo `titleSlot` con el que
             // la fila de plaza mete su glifo POI. Sin marca no se toca nada: `title` sigue mandando.
             // [UI-LIST-ITEM-001] [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001]
-            titleSlot = titleMark?.let { mark ->
+            // ⛔ El slot completo manda sobre la marca: son el mismo mecanismo a dos tamaños, y
+            // ofrecer los dos a la vez sería dejar que dos composiciones se pisen.
+            titleSlot = titleSlot ?: titleMark?.let { mark ->
                 {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -207,14 +279,23 @@ internal fun PapSheet(
                 }
             },
             subtitle = subtitle,
+            subtitleSlot = subtitleSlot,
             subtitleStyle = PaparcarType.current.caption,
             subtitleColor = MaterialTheme.colorScheme.onSurfaceVariant,
             subtitleMaxLines = subtitleMaxLines,
             // Horizontal inset already applied by the parent Column; keep the sheet's own top/bottom.
-            contentPadding = PaddingValues(top = 12.dp, bottom = 14.dp),
+            // ⛔ **Top 2, no 12** (user, 03-11): *«el peek sigue teniendo la misma altura de cuando
+            // tenía 3 líneas de texto, podríamos reducir un pelin su altura»*. El aire de arriba lo
+            // pone ahora la FILA DE CHROME —y donde no hay chrome, el bloque del asa—, así que los
+            // 12 de la cabecera eran un segundo margen sobre el mismo hueco.
+            //
+            // ⚠️ Lo que NO se puede recortar es `HEADER_TEXT_STACK_SP`: parece que sobra una línea
+            // porque los modales ya no pintan eyebrow, pero `UnmarkedCarHeader` —un estado real del
+            // peek: coche sin aparcamiento marcado— sí pinta las tres. Bajarlo a dos líneas haría ESE
+            // estado más alto que los demás, que es justo la desigualdad que el user prohibió.
+            contentPadding = PaddingValues(top = HEADER_TOP_PAD_DP.dp, bottom = HEADER_BOTTOM_PAD_DP.dp),
             gap = 12.dp,
             leading = { PapSheetLeadTile(lead) },
-            trailing = papSheetHeaderTrailing(stepper, onDismiss),
         )
 
         // ── Slot 2 · Banner ───────────────────────────────────────────────
@@ -249,10 +330,18 @@ internal fun PapSheet(
             Spacer(Modifier.height(PapGap.block))
         }
 
-        // ── Escape hatch (forms — AddingZone) ─────────────────────────────
-        content?.invoke(this)
+        // ── Slot 5 · Detalle — el desglose que respalda los hechos de arriba
+        // ⛔ **Era «escape hatch (forms — AddingZone)» y lo usaban CUATRO modales de detalle**
+        // (plaza, parking, gasolinera, zona) para colgar su cuerpo. Un hueco sin gap declarado:
+        // los cuatro terminaban con el MISMO `Spacer(PapGap.block)` escrito a mano, que es la firma
+        // exacta de un hueco que falta. Ahora la banda existe y el aire lo pone la hoja, una vez.
+        // [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+        if (content != null) {
+            content(this)
+            Spacer(Modifier.height(PapGap.block))
+        }
 
-        // ── Slot 5 · Actions ──────────────────────────────────────────────
+        // ── Slot 6 · Actions ──────────────────────────────────────────────
         actions?.invoke(this)
 
         // Bottom air only when the sheet has a body — a bare header (browse
@@ -278,7 +367,14 @@ internal data class PapSheetStepper(
 }
 
 /**
- * The header's trailing cluster: `‹ › ×`. The chevrons come FIRST and the dismiss × stays last,
+ * El chrome de la hoja: `‹ › ×`, **en su propia fila sobre el título y repartido a los extremos**
+ * — el par de chevrones al principio, el × al final.
+ *
+ * ⛔ **No lleva flecha de atrás, y es deliberado** (preguntado por el user el 03-11). Tres razones:
+ * un `←` al lado del `‹` son dos glifos apuntando al mismo sitio con significados distintos;
+ * «atrás» promete una pila de navegación que aquí no existe —seleccionar un pin no navega, cambia
+ * la selección—; y el atrás del sistema ya cierra la hoja, así que pintarlo gastaría 48 dp en
+ * repetir lo que el móvil ya hace. [UI-A-CLOSE-X-MUST-CLOSE-SOMETHING-001] The chevrons come FIRST and the dismiss × stays last,
  * where the user already reaches for it — no state loses its way out. [UI-PEEK-STEPS-BETWEEN-PINS-001]
  *
  * The three don't look alike on purpose: a filled circle acts on THIS card (dismiss), a bare glyph
@@ -288,37 +384,37 @@ internal data class PapSheetStepper(
  * The × is drawn from [onDismiss] itself — no separate "should there be one" flag — so a header can
  * never show a way out it does not have. [UI-A-CLOSE-X-MUST-CLOSE-SOMETHING-001]
  */
-private fun papSheetHeaderTrailing(
+private fun papSheetHeaderChrome(
     stepper: PapSheetStepper?,
     onDismiss: (() -> Unit)?,
 ): (@Composable () -> Unit)? {
     val pager = stepper?.takeIf { it.hasAny }
     if (pager == null && onDismiss == null) return null
     return {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (pager != null) {
-                // The pair is ONE control, so they sit tight together and the air goes before the ×.
-                PapStepperSlot(
-                    icon = Icons.Rounded.ChevronLeft,
-                    contentDescription = pager.prevContentDescription,
-                    onClick = pager.onPrev,
-                )
-                PapStepperSlot(
-                    icon = Icons.Rounded.ChevronRight,
-                    contentDescription = pager.nextContentDescription,
-                    onClick = pager.onNext,
-                )
-                // Con los dos vecinos ya al mínimo táctil, el hueco pide lo VISIBLE y el token
-                // descuenta — si no, los 48 de cada uno lo habrían abierto solo.
-                // [UI-THE-SPACING-SWEEP-IS-SCREEN-BY-SCREEN-001]
-                if (onDismiss != null) {
-                    Spacer(
-                        Modifier.width(
-                            PapGap.betweenControls(
-                                visible = STEPPER_TO_DISMISS_GAP_DP.dp,
-                                controlHeight = PapStepperButtonSize,
-                            ),
-                        ),
+        Row(
+            modifier = Modifier.fillMaxWidth().height(PapSheetChromeRowHeight),
+            // ⛔ **A los EXTREMOS, no apelotonados al final** (user, 03-11): *«redistribuir
+            // horizontalmente los botones ‹ › ×»*. Moverse ENTRE pines y CERRAR este son dos
+            // trabajos distintos, y ahora que el chrome tiene fila propia a todo el ancho se separan
+            // por la máxima distancia posible. Eso resuelve de raíz el mal toque que el KDoc de
+            // abajo describía y que el hueco de 10 dp sólo mitigaba — con él murió
+            // `STEPPER_TO_DISMISS_GAP_DP`, porque el reparto ya es el separador.
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // El par ES un solo control, así que sigue junto; la fila vacía cuando no hay pager deja
+            // que `SpaceBetween` empuje el × a su esquina de siempre.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (pager != null) {
+                    PapStepperSlot(
+                        icon = Icons.Rounded.ChevronLeft,
+                        contentDescription = pager.prevContentDescription,
+                        onClick = pager.onPrev,
+                    )
+                    PapStepperSlot(
+                        icon = Icons.Rounded.ChevronRight,
+                        contentDescription = pager.nextContentDescription,
+                        onClick = pager.onNext,
                     )
                 }
             }
@@ -513,42 +609,22 @@ private fun PapSheetLeadTile(lead: PapSheetLead) {
             // [UI-ONE-SKELETON-ONE-EMPHASIS-ONE-GREEN-001] [UI-COLOR-DOCTRINE-001]
             val accent = if (hasSpots) PapColor.brandData else cs.onSurfaceVariant
             LeadTileBox(container = if (hasSpots) cs.primaryContainer else cs.surfaceContainerHighest) {
-                // Centrar la CAJA de texto no centra lo que se ve: encima del dígito sobra el
-                // ascenso que no usa, y debajo de las mayúsculas sobra el descenso. Con Jakarta ese
-                // hueco es 0.29 em y el bloque quedaba pegado al borde inferior del tile. La
-                // corrección sale de las métricas de la familia, así que sigue valiendo si la
-                // familia cambia. [UI-SHEET-001] [UI-TYPE-FAMILY-CANDIDATES-001]
-                val type = PaparcarType.current
-                // El lift sale en SP porque lo dictan las metricas de la letra, y se aplica en DP
-                // porque es un desplazamiento de layout: convertirlo con la densidad es lo que hace
-                // que siga valiendo cuando el usuario agranda el tipo del sistema. Tomarlo como dp
-                // sin convertir coincide solo con fontScale = 1.0; con la letra grande el hueco
-                // muerto crece y la correccion no, asi que el par volvia a hundirse — el mismo
-                // sintoma que [UI-SHEET-001] habia arreglado. [UI-TYPE-SYSTEM-HYGIENE-001]
-                val opticalLift = with(LocalDensity.current) {
-                    PapFonts.current.figureOpticalLiftSp(
-                        figureSp = type.counter.fontSize.value,
-                        unitSp = type.counterUnit.fontSize.value,
-                    ).sp.toDp()
-                }
-                Column(
-                    modifier = Modifier.offset(y = -opticalLift),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        text = "${lead.count}",
-                        style = PaparcarType.current.counter,
-                        color = accent,
-                        maxLines = 1,
-                    )
-                    Text(
-                        text = stringResource(Res.string.home_counter_unit_free).uppercase(),
-                        style = PaparcarType.current.counterUnit,
-                        color = accent,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
+                // ⛔ **Sólo la cifra: «LIBRES» se fue** (user, 03-11): *«6 libres en plazas
+                // comunitarias, quita libres, es redundante»*. Y lo era por partida doble — el
+                // nombre que hay al lado ya dice de qué se cuentan, y una plaza comunitaria **es**
+                // libre por definición: la palabra no añadía un hecho, repetía el sujeto.
+                //
+                // Con ella se fueron sus dos acompañantes, que existían sólo para sostenerla: el
+                // `Column` y el `opticalLift` de `figureOpticalLiftSp`, que compensaba el hueco
+                // muerto ENTRE el dígito y la unidad. Sin unidad no hay par que equilibrar, y el
+                // tile queda exactamente igual que el de parkings y gasolineras — que nunca
+                // tuvieron unidad, y por eso era este el que desentonaba. [UI-SHEET-001]
+                Text(
+                    text = "${lead.count}",
+                    style = PaparcarType.current.counter,
+                    color = accent,
+                    maxLines = 1,
+                )
             }
         }
 
@@ -777,13 +853,21 @@ internal fun papSheetHeaderBandHeight(): Dp =
     // edge: with a zero-margin cut, the next block starts on the very cut line and any rounding
     // (or a meta icon standing taller than its text line) leaks a sliver above the nav. 8dp of
     // clearance keeps everything below the header reliably hidden. [UI-SHEET-006]
-    PILL_BLOCK_DP.dp + papSheetHeaderReservedHeight() - BAND_BOTTOM_CLEARANCE_DP.dp
+    // ⛔ **La fila de chrome se cuenta SIEMPRE, tenga chrome o no**, y es deliberado: el user fijó
+    // que *«el peek tendrá siempre la misma altura y estructura para todos sus estados»*. Contarla
+    // sólo cuando hay `‹ › ×` dejaría el peek de browse —que no los tiene— más bajo que el de un pin.
+    PILL_BLOCK_DP.dp + PapSheetChromeRowHeight + papSheetHeaderReservedHeight() -
+        BAND_BOTTOM_CLEARANCE_DP.dp
 
 /** Reserved header min-height — vertical padding + max(lead tile, 3-line text stack).
  *  The RESERVE stays full-size; only the band cut above subtracts clearance. */
 @Composable
 private fun papSheetHeaderReservedHeight(): Dp {
     val textStack = with(LocalDensity.current) { HEADER_TEXT_STACK_SP.sp.toDp() } + HEADER_OVERLINE_GAP_DP.dp
+    // ⛔ **Sin la fila de chrome**: esto es el `minHeight` del PROPIO `PapListItem`, y la fila vive
+    // fuera de él. Sumárselo aquí lo contó dos veces y abrió ~130 px de aire muerto entre el
+    // `‹ › ×` y el título — visto en el Pixel 8 nada más moverlo. Quien tiene que contar las dos
+    // cosas es `papSheetHeaderBandHeight`, que mide la hoja PLEGADA.
     return HEADER_V_PAD_DP.dp + max(LEAD_TILE_DP.dp, textStack)
 }
 
@@ -796,16 +880,19 @@ private const val HEADER_OVERLINE_GAP_DP = 2
 // inline y el suyo, para que la marca se lea igual en la hoja y en la lista.
 // [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001]
 private const val TITLE_MARK_GAP_DP = 5
-// Header contentPadding: top 12 + bottom 14.
-private const val HEADER_V_PAD_DP = 26
+// Header contentPadding, declarado por partes para que el reserve no pueda derivar del total viejo.
+private const val HEADER_TOP_PAD_DP = 2
+private const val HEADER_BOTTOM_PAD_DP = 14
+private const val HEADER_V_PAD_DP = HEADER_TOP_PAD_DP + HEADER_BOTTOM_PAD_DP
 // Drag pill block above the header: top 8 + pill 4 + bottom 2. Keep in sync with HomePeekHandle.
 internal const val PILL_BLOCK_DP = 14
+
+// Alto de la fila de chrome (`‹ › ×`). Es el del propio botón: la fila no añade aire porque
+// arriba ya está el bloque del asa y abajo el padding superior de la cabecera.
+internal val PapSheetChromeRowHeight: Dp = PapStepperButtonSize
 // How far the band cut bites into the header's bottom padding (< HEADER_V_PAD_DP's bottom 14).
 private const val BAND_BOTTOM_CLEARANCE_DP = 8
 
-// Air between the chevron pair and the dismiss ×. Enough that the two stop reading as one strip of
-// buttons; the chevrons themselves sit tight together, because they ARE one control.
-private const val STEPPER_TO_DISMISS_GAP_DP = 10
 
 // Swipe distance that commits a page step — same threshold as the history detail's, so the two
 // surfaces need the same flick. Comfortably above tap slop, well below half the card's width.

@@ -697,9 +697,10 @@ private fun HomeContent(
                     // explanation is what finished it.
                     // [ONBOARDING-THE-COMMUNITY-STEP-CANNOT-DEMAND-A-SPOT-001]
                     firstStepsCue = browseSlice.firstStepsCue,
-                    // A refused first-entry location ask opens the sheet on the warning.
-                    // [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
-                    locationWarningCue = state.locationWarningCue,
+                    // Un aviso que el usuario tiene que descubrir arrastrando no es un aviso:
+                    // una ubicación rechazada o una vigilancia muerta despliegan la hoja sobre su
+                    // fila. [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
+                    warningOpenCue = state.warningOpenCue,
                 )
 
                 // Tap-toggle, programmatic expand and nested-scroll collapse — see [SheetMotion].
@@ -803,7 +804,24 @@ private fun HomeContent(
                 // call-time so the lambda stays identity-stable — and from the very list the map
                 // painted, so no drawn pin can be a dead tap. [FUEL-STATIONS-MAP-AND-PEEK-001]
                 // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
-                val currentFuelStations = rememberUpdatedState(mapSlice.fuelStations)
+                // ⛔⛔ **Contra LA TIENDA, no contra lo que el mapa pintó.** Era
+                // `mapSlice.fuelStations`, y esa lista está **vacía cuando su capa no se dibuja**
+                // (`HomeSlices.kt`: `if (showsFuelOnMap) … else emptyList()`), así que el
+                // `firstOrNull { }?.let { }` no encontraba nada y **no hacía nada, en silencio**.
+                //
+                // Medido en el Pixel 8 (user, 03-11): *«cuando pulso en la card de PRECIO MÁS BAJO
+                // no se abre la modal de la gasolinera destacada»*. Estando en el carril de plazas,
+                // dos de las tres tarjetas de «Aquí y ahora» eran **toques muertos** — sólo vivía la
+                // de plaza, porque las plazas se pintan siempre.
+                //
+                // La causa no es el handler: es que **una tarjeta de la hoja no es un pin**. El KDoc
+                // de abajo dice «desde la misma lista que el mapa pintó, para que ningún pin
+                // dibujado sea un toque muerto», y para un PIN es exactamente lo correcto; lo que
+                // estaba mal era reutilizarlo desde una superficie que no es el mapa. Resolver
+                // contra la tienda cubre a los dos: lo pintado es un SUBCONJUNTO de la tienda, así
+                // que el pin sigue sin poder ser un toque muerto.
+                // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
+                val currentFuelStations = rememberUpdatedState(state.fuelStationsShown)
                 val onFuelStationMarkerClick: (String) -> Unit = remember(uiController, motion) {
                     { stationId ->
                         currentFuelStations.value.firstOrNull { it.station.id == stationId }?.let { s ->
@@ -815,7 +833,24 @@ private fun HomeContent(
                 }
 
                 // Same gesture again, for the car parks. [PARKINGS-ON-THE-MAP-001]
-                val currentPublicParkings = rememberUpdatedState(mapSlice.publicParkings)
+                // ⛔⛔ **Contra LA TIENDA, no contra lo que el mapa pintó.** Era
+                // `mapSlice.publicParkings`, y esa lista está **vacía cuando su capa no se dibuja**
+                // (`HomeSlices.kt`: `if (showsParkingsOnMap) … else emptyList()`), así que el
+                // `firstOrNull { }?.let { }` no encontraba nada y **no hacía nada, en silencio**.
+                //
+                // Medido en el Pixel 8 (user, 03-11): *«cuando pulso en la card de PRECIO MÁS BAJO
+                // no se abre la modal de la gasolinera destacada»*. Estando en el carril de plazas,
+                // dos de las tres tarjetas de «Aquí y ahora» eran **toques muertos** — sólo vivía la
+                // de plaza, porque las plazas se pintan siempre.
+                //
+                // La causa no es el handler: es que **una tarjeta de la hoja no es un pin**. El KDoc
+                // de abajo dice «desde la misma lista que el mapa pintó, para que ningún pin
+                // dibujado sea un toque muerto», y para un PIN es exactamente lo correcto; lo que
+                // estaba mal era reutilizarlo desde una superficie que no es el mapa. Resolver
+                // contra la tienda cubre a los dos: lo pintado es un SUBCONJUNTO de la tienda, así
+                // que el pin sigue sin poder ser un toque muerto.
+                // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
+                val currentPublicParkings = rememberUpdatedState(state.publicParkingsShown)
                 val onPublicParkingMarkerClick: (String) -> Unit = remember(uiController, motion) {
                     { parkingId ->
                         currentPublicParkings.value.firstOrNull { it.parking.id == parkingId }?.let { p ->

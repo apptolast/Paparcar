@@ -965,7 +965,10 @@ fun SpotPuckIcon(
             // Centre the puck circle (viewBox centre y = 34) vertically in the square slot — the marker
             // viewBox reserves the lower rows for the tail we're omitting here.
             translate(top = size.height / 2f - SPOT_PUCK_CENTER_Y * s) {
-                drawSpotPuck(s, visual, selected, paper, ink)
+                // Cuadrado SIEMPRE: los dos únicos consumidores de `SpotPuckIcon` son la fila de
+                // la lista y la cabecera de la hoja, y en las dos el molde es el tile. El marcador
+                // del mapa no pasa por aquí — sigue redondo, que es lo que es un pin.
+                drawSpotPuck(s, visual, selected, paper, ink, square = true)
             }
         }
         CommunitySpotOverlay(
@@ -1011,12 +1014,51 @@ private fun DrawScope.drawPuckBody(
     paper: Color,
     ink: Color,
     radius: Float = 29f,
+    /** `true` ⇒ el cuerpo es un **cuadrado redondeado** en vez de un disco, ocupando la misma caja.
+     *
+     *  ⛔ Sólo para las superficies de LISTA y HOJA (`SpotPuckIcon`), nunca para el marcador del
+     *  mapa: *«que el icono de las plazas comunitarias en la lista y en la modal sean cuadradas como
+     *  el de parkings y gasolineras»* (user, 03-11). En el mapa un pin redondo es un pin; en una
+     *  fila, el cuadrado es el molde del tile y la plaza era la única que desentonaba.
+     *
+     *  ⚠️ Matiza `HOME-PUCK-001` («un solo sujeto en las tres superficies») sin romperlo: lo que
+     *  sigue compartido es el COLOR del tier, el glifo, el anillo de TTL y el badge — todo lo que
+     *  codifica *qué clase de plaza es*. Lo único que cambia es el soporte, y el soporte lo manda la
+     *  superficie. */
+    square: Boolean = false,
 ) {
     val c = Offset(36f * s, 34f * s)
-    if (selected) drawCircle(ink, radius = (radius + 3.4f) * s, center = c, style = Stroke(width = 3.2f * s))
-    drawCircle(color, radius = radius * s, center = c)
-    drawCircle(paper, radius = radius * s, center = c, style = Stroke(width = 3.2f * s))
+    if (!square) {
+        if (selected) drawCircle(ink, radius = (radius + 3.4f) * s, center = c, style = Stroke(width = 3.2f * s))
+        drawCircle(color, radius = radius * s, center = c)
+        drawCircle(paper, radius = radius * s, center = c, style = Stroke(width = 3.2f * s))
+        return
+    }
+    // El redondeo sale de la proporción del tile canónico, no de un número elegido: `PapShapes.card`
+    // son 16 dp sobre un tile de 46, o sea 0,348 del lado. Aplicado al lado de ESTA caja (2r), el
+    // cuadrado se lee con el mismo radio óptico que el de parkings y gasolineras.
+    val side = radius * 2f * s
+    val topLeft = Offset(c.x - side / 2f, c.y - side / 2f)
+    val corner = CornerRadius(side * PUCK_SQUARE_CORNER_FRACTION)
+    if (selected) {
+        val grow = 3.4f * s
+        drawRoundRect(
+            color = ink,
+            topLeft = Offset(topLeft.x - grow, topLeft.y - grow),
+            size = Size(side + grow * 2f, side + grow * 2f),
+            cornerRadius = CornerRadius(corner.x + grow),
+            style = Stroke(width = 3.2f * s),
+        )
+    }
+    drawRoundRect(color = color, topLeft = topLeft, size = Size(side, side), cornerRadius = corner)
+    drawRoundRect(
+        color = paper, topLeft = topLeft, size = Size(side, side),
+        cornerRadius = corner, style = Stroke(width = 3.2f * s),
+    )
 }
+
+/** 16 dp de radio sobre el tile de 46 dp de `PapShapes.card`. [UI-LIST-ITEM-001] */
+private const val PUCK_SQUARE_CORNER_FRACTION = 16f / 46f
 
 /** TTL ring: faint full base (r22) + a bright arc whose length = [fraction]. Static per tier. */
 private fun DrawScope.drawTtlRing(s: Float, fraction: Float, paper: Color) {
@@ -1041,8 +1083,15 @@ private fun DrawScope.drawBadgeDisc(s: Float, tier: Color, discColor: Color) {
  * [FreeSpotMarker] (which adds the shadow + separated position dot around it) and the tail-less
  * [SpotPuckIcon] used inside list containers. [HOME-PUCK-001]
  */
-private fun DrawScope.drawSpotPuck(s: Float, v: SpotTierVisual, selected: Boolean, paper: Color, ink: Color) {
-    drawPuckBody(s, v.color, selected, paper, ink)
+private fun DrawScope.drawSpotPuck(
+    s: Float,
+    v: SpotTierVisual,
+    selected: Boolean,
+    paper: Color,
+    ink: Color,
+    square: Boolean = false,
+) {
+    drawPuckBody(s, v.color, selected, paper, ink, square = square)
     v.ringFraction?.let { drawTtlRing(s, it, paper) }
     drawBadgeDisc(s, v.color, paper)
 }

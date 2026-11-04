@@ -157,5 +157,10 @@ fun resolveSentryKillVerdict(
     presence == ServicePresence.Sentry -> SentryKillVerdict.None
     rebootedSince -> SentryKillVerdict.ClearStamp
     presence == ServicePresence.Active -> SentryKillVerdict.ClearStamp
+    // ⛔ [ServicePresence.Unknown] cae aquí **a propósito**, y es el único sitio donde «no ha
+    // hablado» SÍ es prueba de muerte: esta pregunta sólo se hace cuando la residencia **se
+    // esperaba** y el proceso es nuevo, así que un vigilante que no dice nada es un vigilante que
+    // ya no está. La misma falta de noticias significa dos cosas distintas según quién pregunte —
+    // ver `ServicePresence.isWatchingLive`. [DET-A-SILENT-SERVICE-IS-NOT-A-DEAD-ONE-001]
     else -> SentryKillVerdict.Killed
 }

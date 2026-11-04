@@ -32,6 +32,7 @@ import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapS
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetStepper
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.SpotFitRow
 import com.rndeveloper.paparcar.presentation.util.distanceMeters
+import com.rndeveloper.paparcar.presentation.util.distanceString
 import com.rndeveloper.paparcar.presentation.util.isManualReport
 import com.rndeveloper.paparcar.presentation.util.freshness
 import com.rndeveloper.paparcar.presentation.util.radiusString
@@ -42,6 +43,7 @@ import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.PapGap
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.home_peek_spot_subject
 import paparcar.composeapp.generated.resources.common_directions
 import paparcar.composeapp.generated.resources.home_peek_spot_age_hour
 import paparcar.composeapp.generated.resources.home_peek_spot_approximate
@@ -63,7 +65,6 @@ import paparcar.composeapp.generated.resources.home_spot_unconfirmed_note
 // SpotPeek — selected community spot. [HOME-ATOMIZE-001 F3]
 // ═════════════════════════════════════════════════════════════════════════════
 
-private const val WALK_DISTANCE_THRESHOLD_M = 400f
 private const val NOTE_ALPHA = 0.75f
 private const val MINUTES_PER_HOUR = 60
 private const val SPOT_APPROXIMATE_ROW_MAX_LINES = 3
@@ -104,8 +105,15 @@ internal fun SpotPeek(
     val distM = userLocation?.let { (uLat, uLon) ->
         distanceMeters(uLat, uLon, spot.location.latitude, spot.location.longitude)
     }
-    // Auto-switch to walking mode when the spot is close enough to walk.
-    val travelMode = if (distM != null && distM < WALK_DISTANCE_THRESHOLD_M) TravelMode.WALKING else TravelMode.DRIVING
+    // ⛔ **Siempre EN COCHE**, y la pregunta del user lo dejó claro: *«pone cuánto a pie, pero
+    // ¿qué decide si poner a pie o a coche? Tendría más sentido a coche en este caso»*. Tenía razón,
+    // y el umbral que había (400 m) estaba contestando a otra cosa.
+    //
+    // A una PLAZA LIBRE se va con el coche — es el sitio donde vas a dejarlo; llegar andando a una
+    // plaza no sirve de nada. A pie se va a TU COCHE, que es justo el otro peek y el que sí usa
+    // `WALKING`. El modo no mide una distancia: dice **qué vas a hacer al llegar**.
+    // [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+    val travelMode = TravelMode.DRIVING
     // Only a witness votes. The same rule the use case enforces, asked here so the buttons are
     // never offered where they would be refused. [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001]
     val canVote = SpotVotePolicy.canVote(distM?.toDouble())
@@ -132,18 +140,60 @@ internal fun SpotPeek(
             unconfirmed = isUnconfirmed,
             enRouteCount = spot.enRouteCount,
         ),
-        eyebrow = if (isRetracted) stringResource(Res.string.home_spot_retracted_eyebrow) else palette.label,
-        // Freshness tint also rides the eyebrow; the lead puck itself now carries the
-        // tier colour/ring, matching the map marker and list row. [HOME-PUCK-001]
-        // A withdrawn spot has no freshness left to tint — the eyebrow states it in ink.
-        // [UI-COLOR-DOCTRINE-001]
-        eyebrowColor = if (isRetracted) MaterialTheme.colorScheme.onSurfaceVariant else palette.accent,
+        // ⛔ La MISMA gramática que el peek del coche (decisión del user, 30-10): sujeto · calificador
+        // arriba, dónde · a cuánto abajo. Una plaza no tiene nombre propio, así que su nombre es lo
+        // que ES y el calificador dice qué le pasa — su antigüedad, que es el dato que decide si
+        // merece la pena ir, o que fue retirada. [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+        eyebrow = "",
         title = title,
-        // How old the offer is, on the header's third line — the same slot where the browse peek
-        // puts "aparcado hace 1 h" for your own car. It is the fact that decides whether this spot
-        // is worth driving to, so it reads with the address instead of queueing among the meta rows
-        // (where it used to sit, and where it now no longer appears). [UI-SHEET-001]
-        subtitle = ageText,
+        titleSlot = peekSubjectTitleSlot(
+            name = stringResource(Res.string.home_peek_spot_subject),
+            // La rampa de frescura es la identidad de una plaza, igual que el método de vigilancia
+            // lo es de un coche — y es el ÚNICO sitio donde esa rampa vale.
+            // ⛔ Una plaza retirada no tiene frescura que teñir: lo dice en tinta. [UI-COLOR-DOCTRINE-001]
+            // ⛔ **`onSurface`, sin color de identidad** (user, 30-10): *«será en color normal, no le
+            // metas color»*. En el modal el nombre ES el título de la hoja, no el nombre dentro de
+            // una fila, y el color de identidad ya lo lleva el TILE de la izquierda — que es
+            // literalmente lo que manda la doctrina: *«el glifo lleva el color; el nombre queda en
+            // `onSurface`»*. La excepción escrita ahí es «el eyebrow del peek, donde no hay glifo», y
+            // aquí no hay eyebrow **ni** falta glifo: hay tile. [UI-COLOR-DOCTRINE-001]
+            //
+            // Los CARRILES («Plazas», «Parkings», «Gasolineras») sí siguen en su color, y es otra
+            // petición del mismo user: ahí el nombre es la CATEGORÍA, no un sujeto con tile propio.
+            // Retirada: el gris de «ya no está» sí se queda — no es identidad, es AUSENCIA, y es la
+            // misma señal que ya lleva su fila en la lista.
+            nameColor = if (isRetracted) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
+            qualifier = null,
+            maxLines = PEEK_MODAL_TITLE_MAX_LINES,
+        ),
+        // ⛔ **El calificador baja a su propia línea, y sin el ·** (user, 03-11): *«cuando tengamos el
+        // título seguido de ·, poner esa línea abajo de la primera línea sin ·»*. Con los dos en un
+        // solo `Text` de 2 líneas el corte caía a mitad de frase —«Plaza comunitaria · Publicada
+        // hace 1 / min»— porque el envoltorio no sabe dónde acaba una idea.
+        //
+        // Y no hace falta componer nada: es el `subtitle` de la hoja, el slot declarado para la
+        // segunda línea bajo el título, que los modales dejaron libre al bajar el sitio al cuerpo.
+        // El separador desaparece con él — un · une dos cosas en una línea; en dos líneas sobra.
+        subtitle = if (isRetracted) {
+            stringResource(Res.string.home_spot_retracted_eyebrow)
+        } else {
+            ageText ?: palette.label
+        },
+        // La cabecera NOMBRA; el cuerpo DESARROLLA. El sitio y la distancia abren los hechos.
+        // [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+        // ⛔ **El encaje es un AVISO, no un hecho: banda 2.** Lo pedía el user viéndolo en el Pixel
+        // (02-11): *«que ‹en camino› vaya seguido del resto de datos, ya que queda lo de ‹muy justo
+        // para tu compacto familiar› cortada en medio»*. Y tiene razón por partida doble: `SpotFitRow`
+        // no es una fila de texto sino un **pill** con su propio fondo, así que partía en dos la
+        // columna de hechos; y lo que dice —si tu coche cabe— es exactamente lo que la banda de
+        // aviso existe para decir antes de que leas nada.
+        banner = if (isRetracted) null else {
+            { SpotFitRow(spot = spot, vehicle = activeVehicle) }
+        },
         onDismiss = { onIntent(HomeIntent.SelectItem(null)) },
         // Step to the neighbouring spot in the SAME order the sheet lists them. A withdrawn spot
         // has already dropped out of that order, so its step is empty and the header renders
@@ -158,10 +208,17 @@ internal fun SpotPeek(
             if (isRetracted) {
                 // Fit, distance, age and en-route are all facts about a space to drive to. There
                 // isn't one. The address in the title is enough to know WHICH report this was.
-                DistanceRow(distanceM = distM, mode = travelMode, accentColor = MaterialTheme.colorScheme.onSurfaceVariant)
+                // ⛔ Sólo el TIEMPO: la distancia ya la lleva la línea 2 de la cabecera, y lo que
+                // esta fila añade es cuánto se tarda. [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+                PeekPlaceRow(place = title, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                DistanceAndTimeRow(
+                    distanceM = distM,
+                    mode = travelMode,
+                    accentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             } else {
-                SpotFitRow(spot = spot, vehicle = activeVehicle)
-                DistanceRow(distanceM = distM, mode = travelMode, accentColor = palette.accent)
+                PeekPlaceRow(place = title, tint = palette.accent)
+                DistanceAndTimeRow(distanceM = distM, mode = travelMode, accentColor = palette.accent)
                 if (spot.enRouteCount > 0) {
                     SpotEnRouteRow(count = spot.enRouteCount, accentColor = palette.accent)
                 }
@@ -201,7 +258,6 @@ internal fun SpotPeek(
                     }
                 }
             }
-            Spacer(Modifier.height(PapGap.block))
         },
         actions = {
             if (isRetracted) {

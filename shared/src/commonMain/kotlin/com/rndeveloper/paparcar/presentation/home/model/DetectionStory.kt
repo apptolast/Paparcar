@@ -185,6 +185,11 @@ fun resolveDetectionStory(
         ) {
             return DetectionStory.Hidden
         }
+        // ⛔ **Sin noticias del servicio no hay historia que contar.** Va ANTES de todo lo demás:
+        // no es que la fila ceda ante otra superficie, es que todavía no hay veredicto, y un beat
+        // después lo habrá. La card del coche sigue diciendo la verdad —aparcado, y dónde— sin
+        // afirmar nada sobre el vigilante. [DET-A-SILENT-SERVICE-IS-NOT-A-DEAD-ONE-001]
+        if (badge == ParkedWatchBadge.WATCH_UNKNOWN) return DetectionStory.Hidden
         // ⛔ La fila calmada se calla si la card del coche ya la cuenta: coche aparcado y vigilancia
         // SANA es exactamente lo que esa card enseña, con su nombre y su calle.
         // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]

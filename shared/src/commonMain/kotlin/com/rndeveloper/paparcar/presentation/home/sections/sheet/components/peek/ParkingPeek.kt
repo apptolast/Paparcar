@@ -29,10 +29,12 @@ import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapS
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetRoundButtonSize
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetStepper
 import com.rndeveloper.paparcar.presentation.util.distanceMeters
+import com.rndeveloper.paparcar.presentation.util.distanceString
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
 import com.rndeveloper.paparcar.domain.model.monitoringStatus
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
+import com.rndeveloper.paparcar.ui.components.VehicleWatchLeadingIcon
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
 import com.rndeveloper.paparcar.ui.theme.watch
 import com.rndeveloper.paparcar.ui.theme.PapGap
@@ -49,6 +51,7 @@ import paparcar.composeapp.generated.resources.home_peek_parking_duration_hm
 import paparcar.composeapp.generated.resources.home_peek_parking_duration_min
 import paparcar.composeapp.generated.resources.home_peek_parking_duration_now
 import paparcar.composeapp.generated.resources.home_peek_step_next_car
+import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
 import paparcar.composeapp.generated.resources.home_peek_step_prev_car
 import paparcar.composeapp.generated.resources.home_peek_vehicle_parked_label
 import paparcar.composeapp.generated.resources.location_fallback_parking
@@ -83,11 +86,6 @@ internal fun ParkingPeek(
     // [UI-COLOR-DOCTRINE-001]
     val accentColor = vehicleIdentityColor(vehicle?.monitoringStatus()?.watch() ?: VehicleWatch.Off)
     val vehicleName = vehicleSummary(vehicle)
-    val headerLabel = if (vehicleName != null) {
-        stringResource(Res.string.home_peek_vehicle_parked_label, vehicleName)
-    } else {
-        stringResource(Res.string.home_peek_car_parked_label)
-    }
 
     PapSheet(
         lead = PapSheetLead.Vehicle(
@@ -96,13 +94,50 @@ internal fun ParkingPeek(
             color = vehicle?.color,
             loading = vehicle == null,
         ),
-        eyebrow = headerLabel.uppercase(),
-        // Only the NAME wears the identity colour (watch method); the state words around it stay
-        // neutral — "TOYOTA COROLLA (verde/azul) · APARCADO (onSurface)". [UI-COLOR-DOCTRINE-001]
-        eyebrowColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        eyebrowHighlight = vehicleName,
-        eyebrowHighlightColor = accentColor,
+        // ⛔ La MISMA gramática que el peek COLAPSADO de este mismo coche. Tenían dos jerarquías
+        // distintas —cerrado decía el nombre arriba, abierto lo metía en una caps y daba la voz grande
+        // a la calle— y es el mismo coche visto cerrado y abierto.
+        // [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+        eyebrow = "",
         title = title,
+        titleSlot = peekSubjectTitleSlot(
+            name = vehicleName ?: stringResource(Res.string.home_vehicle_fallback_name),
+            // ⛔ **`onSurface`, y la vigilancia en su GLIFO** (user, 03-11): *«el título ‹Mi coche›
+            // sigue estando en color; a partir de ahora lo pondremos siempre en onSurface y su
+            // respectivo icono de detección en su color, como en vehicle screen»*.
+            //
+            // Esto no es una excepción nueva: es **retirar la que yo había dejado viva**. La
+            // doctrina dice literalmente *«el glifo lleva el color; el nombre queda en onSurface»*,
+            // con una sola excepción escrita —el eyebrow del peek, «donde no hay glifo»— y aquí sí
+            // lo hay. [UI-COLOR-DOCTRINE-001] [UI-VEH-STATUS-IS-A-GLYPH-NOT-A-LABEL-001]
+            nameColor = MaterialTheme.colorScheme.onSurface,
+            leadingGlyph = {
+                VehicleWatchLeadingIcon(watch = vehicle?.monitoringStatus()?.watch() ?: VehicleWatch.Off)
+            },
+            // ⛔ **Sin calificador, al contrario que el peek colapsado**, y la diferencia tiene
+            // motivo: el colapsado no tiene cuerpo, así que su línea 1 carga también el ESTADO y el
+            // CUÁNDO. Aquí el cuerpo existe y lo dice entero — `ParkingDurationRow`, dos filas más
+            // abajo, da «2h 15m» / «hace 3 días», vivo y con más precisión.
+            //
+            // Lo pedía el user viéndolo en el Oppo (30-10): *«en la modal de coche pone apar… y es
+            // redundante, abajo vienen los datos»*. Y era doblemente malo: no sólo repetía, sino que
+            // **lo único que se veía de él era el recorte** — la elipsis cae al final por
+            // construcción, así que una palabra que ya sobraba se gastaba el ancho del stepper
+            // «‹ › ×» para acabar en «apar…». Un calificador que no cabe no cualifica nada.
+            //
+            // La regla que queda: **el peek RESUME en una línea de nombre + una de sitio; el modal
+            // nombra y DESARROLLA abajo.** [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+            qualifier = null,
+            maxLines = PEEK_MODAL_TITLE_MAX_LINES,
+        ),
+        // ⛔ **El MODAL no repite lo que desarrolla debajo** (user, 30-10): la calle y la distancia
+        // que el peek colapsado resume en su línea 2 bajan aquí al contenido, como filas con su
+        // glifo. Decirlas arriba Y abajo era redundante — y de paso era lo que hacía que la
+        // cabecera peleara por el ancho con el `‹ › ×`: medido en el Oppo, el stepper se queda 204 px
+        // y al texto le sobraban 538 de 1080, así que la calle salía como «Calle de …».
+        //
+        // La regla que queda, y es la que vale para todos: **el peek RESUME en dos líneas, el modal
+        // DESARROLLA abajo.** [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
         onDismiss = { onIntent(HomeIntent.SelectItem(null)) },
         // With a second car, going from one to the other used to mean closing this peek and
         // hunting for the other marker or chip. Same chrome as the spot peek and the history
@@ -114,7 +149,12 @@ internal fun ParkingPeek(
             onNext = step.nextId?.let { id -> { onAction(HomeSheetAction.StepToVehicle(id)) } },
         ),
         meta = {
-            DistanceRow(distanceM = distM, mode = TravelMode.WALKING, accentColor = accentColor)
+            // DÓNDE está el coche — la primera fila del desarrollo, porque es la respuesta que se
+            // viene a buscar al abrir el modal.
+            PeekPlaceRow(place = title, tint = accentColor)
+            // A cuánto y cuánto se tarda, juntos: aquí abajo no hay stepper que les quite ancho, así
+            // que la distancia y el tiempo caben en la misma fila sin recortar nada.
+            DistanceAndTimeRow(distanceM = distM, mode = TravelMode.WALKING, accentColor = accentColor)
             ParkingDurationRow(timestampMs = parking.location.timestamp, accentColor = accentColor)
             // Last row, and only when the session is an AREA: the distance above is measured to the
             // centre of a circle we are not sure about, so the caveat has to follow it, not precede

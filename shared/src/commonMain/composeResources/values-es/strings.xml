@@ -8,7 +8,6 @@
     <string name="spot_alert_nearby_in_app_unconfirmed">Puede haber quedado libre una plaza cerca de ti</string>
     <string name="home_search_no_results">Sin resultados para esa búsqueda</string>
     <!-- Unidad del contador del PapSheet. [UI-SHEET-001] -->
-    <string name="home_counter_unit_free">libres</string>
     <!-- Header de la sección "Tus vehículos" en el sheet; singular/plural según nº de vehículos. [MULTI-PARKING-001] [HOME-CARDS-001] -->
     <plurals name="home_vehicles_section_header">
         <item quantity="one">Tu vehículo</item>
@@ -62,8 +61,6 @@
     <string name="home_empty_subtitle">Sé el primero en avisar de una</string>
     <!-- Header de browse (PapSheet): eyebrow de zona + subtítulo aparcado + hint sin plazas. [UI-SHEET-001] -->
     <string name="home_browse_eyebrow_zone">Tu zona</string>
-    <string name="home_browse_parked_meta">Aparcado hace %1$s · a %2$s de ti</string>
-    <string name="home_browse_parked_ago">Aparcado hace %1$s</string>
     <string name="home_browse_hint_swipe_report">Desliza ↑ para avisar de una plaza</string>
     <string name="home_browse_hint_swipe_mark_parking">Desliza ↑ para marcar dónde has aparcado</string>
     <string name="home_address_unknown">Ubicación desconocida</string>
@@ -1040,6 +1037,7 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="subject_fuel_stations">Gasolineras</string>
     <string name="subject_public_parkings">Parkings</string>
     <string name="subject_free_spots">Plazas</string>
+    <string name="subject_free_spots_full">Plazas comunitarias</string>
     <string name="home_parkings_empty">No hay parkings públicos a menos de %1$s.</string>
     <string name="home_parkings_filter_covered">Cubiertos</string>
     <string name="home_parkings_empty_filtered">Ningún parking cumple ese filtro</string>
@@ -1145,4 +1143,45 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="shared_car_routes_question_title">Compartir también mis rutas</string>
     <string name="shared_car_routes_question_subtitle">El grupo ve la línea de por dónde condujiste. Puedes cambiarlo cuando quieras.</string>
     <string name="shared_car_error_too_many_joined">Ya estás en 10 coches compartidos. Sal de uno para entrar en otro.</string>
+    <string name="home_spots_empty_try_parkings_title">Mira los parkings públicos de aquí</string>
+    <string name="home_spots_empty_try_parkings_sub">El más cercano está a %1$s</string>
+    <!-- Pie de PapOpportunityCard: el SEGUNDO destino de la tarjeta, la lista de ese sujeto.
+         Nombra el sujeto a proposito: «Ver las 3» a solas no inflexiona el articulo en ES/IT/PT/FR/RO
+         —un parking es masculino y una plaza femenina— y asi el pie es un nombre accesible por si solo.
+         [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001] -->
+    <plurals name="home_now_see_all_spots">
+        <item quantity="one">Ver la única plaza comunitaria</item>
+        <item quantity="other">Ver las %1$d plazas comunitarias</item>
+    </plurals>
+    <plurals name="home_now_see_all_car_parks">
+        <item quantity="one">Ver el único parking</item>
+        <item quantity="other">Ver los %1$d parkings</item>
+    </plurals>
+    <plurals name="home_now_see_all_fuel_stations">
+        <item quantity="one">Ver la única gasolinera</item>
+        <item quantity="other">Ver las %1$d gasolineras</item>
+    </plurals>
+    <!-- «Aquí y ahora»: lo que merece el primer vistazo, un item por sujeto.
+         ⛔ El de gasolinera hace concordar el adjetivo con PRECIO, no con el producto:
+         «Gasolina 95 mas barata» y «Gasoleo A mas barato» no caben en una plantilla.
+         [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001] -->
+    <string name="home_now_section_header">Aquí y ahora</string>
+    <string name="home_now_eyebrow_spot">Plaza libre más cerca</string>
+    <string name="home_now_eyebrow_car_park">Parking más cerca</string>
+    <string name="home_now_eyebrow_fuel">Precio más bajo · %1$s</string>
+    <string name="home_now_eyebrow_fuel_plain">Precio más bajo</string>
+    <!-- LÍNEA 1 del peek de browse: QUIEN · QUE le pasa · CUANDO. El «hace» sube aqui porque
+         responde CUANDO, que es la misma pregunta que el estado; el «a X m» baja a la linea 2,
+         que responde DONDE. Dos lineas, dos preguntas (user).
+         [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001] -->
+    <!-- CALIFICADOR de la linea 1 del peek: que le pasa al coche, y desde cuando. ⛔ Sin el
+         nombre dentro — el nombre es su propia pieza, con su color de identidad, y el estado
+         se queda neutro. [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001] -->
+    <string name="home_peek_parked_qualifier">aparcado</string>
+    <string name="home_peek_parked_ago_qualifier">aparcado hace %1$s</string>
+    <!-- SUJETO de la linea 1 del peek de una plaza. ⛔ Una plaza no tiene nombre propio, asi que
+         su nombre es lo que ES, y el calificador dice que le pasa («hace 3 min», «retirada»).
+         Vocabulario: es la PLAZA de la comunidad, en singular. [COPY-SPOT-IS-NOT-A-PARKING-001]
+         [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001] -->
+    <string name="home_peek_spot_subject">Plaza comunitaria</string>
 </resources>

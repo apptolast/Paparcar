@@ -1,6 +1,6 @@
 # Backlog — índice de lo que sigue abierto
 
-> **819 ficheros: 733 cerrados, 77 abiertos, 9 que no son tickets.** Este índice lista **solo lo que
+> **819 ficheros: 733 cerrados, 77 abiertos, 9 que no son tickets.** Este índice lista **solo lo que**
 > queda**, para que la pregunta *"¿qué falta?"* se conteste leyendo y no listando el directorio.
 > Verificado contra master `1339ea263` el **2026-10-07**
 > [DOCS-A-CLOSED-TICKET-MUST-NOT-SAY-IT-IS-IN-REVIEW-001]. El barrido anterior
@@ -116,6 +116,7 @@ Cada uno cita ya su hash en su línea de estado.
 
 | Ticket | Qué falla |
 |---|---|
+| [`det-a-stop-at-a-pump-is-not-a-parking-001`](det-a-stop-at-a-pump-is-not-a-parking-001.md) | 🔵 Parar en un surtidor se mide como APARCAR, así que al irte **libera una plaza que no existe** — falso positivo con coste para un tercero, la clase que la doctrina prohíbe. El precedente del arreglo ya existe: las zonas privadas guardan sesión y **no publican**. ⛔ Primer paso: **contarlo** cruzando `parkdiag.log` contra la capa de gasolineras, no arreglarlo |
 | [`det-blind-after-lost-park-001`](det-blind-after-lost-park-001.md) | perder un aparcamiento deja la app **ciega** para el viaje siguiente. ⚠️ auditado 03-09: el honest close NO lo cubre — la vía 1 pide **decisión de producto**. ✔ 15-09: `CoordinatorDetectionService.kt:1333` (`?: return` sin pin) y `EvaluateArEnterArmUseCase.kt:78` (`NoSession`) intactos |
 | [`det-lone-sample-is-not-a-drive-001`](det-lone-sample-is-not-a-drive-001.md) | un solo fix de velocidad abre la sesión entera. ⚠️ medido 03-09: las 2 barras candidatas **pierden un viaje real** (`CASA_GAP_ANCHOR`). ✔ 15-09: la regla vive ahora en `state/FixReduction.kt:105` (el doc citaba el detector viejo) y el `provisionalCrossing` solo la **revoca a posteriori** |
 | [`det-a-bt-connect-knows-where-the-car-is-001`](det-a-bt-connect-knows-where-the-car-is-001.md) | 🟡 mitad 1 en master. ⚠️⚠️ la mitad 2 es el agujero gordo: la plaza de **A puede publicarse con el coche ya en B** |
@@ -152,6 +153,14 @@ No esperan a un viaje: esperan a que vuelva a fallar lo que los originó.
 | [`bug-home-fab-padding-2026-06-05`](bug-home-fab-padding-2026-06-05.md) | padding negativo en `HomeMapFabsLayer` (Nothing Phone A001). 1 evento, sin reproducir: su propio doc dice priorizar **solo si reaparece** |
 | [`vehicles-multimarker-2026-05-19`](vehicles-multimarker-2026-05-19.md) | 🟡 sprint PARCIAL — los marcadores existen; el resto quedó diferido |
 | [`fuel-a-peek-does-not-mark-your-car-001`](fuel-a-peek-does-not-mark-your-car-001.md) | 📋 el peek de gasolinera lista todos los productos sin distinguir cuál compra el coche activo — para un híbrido, «Gasoline» y «Diesel» se leen igual de relevantes. Pide decisión de producto |
+
+## 🏠 Home — rediseño en curso
+
+| Ticket | Nota |
+|---|---|
+| [`home-one-tab-answers-one-intention-001`](home-one-tab-answers-one-intention-001.md) | 🔵 Los carriles agrupan por **fuente de datos** (Plazas·Parkings·Gasolineras) cuando el usuario llega con una **intención**: `Aparcar` / `Repostar`. ⛔ Agrupar sí, **fundir la lista no** — una plaza caduca y un parking no, así que un solo orden exigiría un solo modelo de confianza y hay dos; y los filtros (tamaño vs tarifa/gálibo) no componen |
+| [`home-the-first-glance-speaks-for-the-car-001`](home-the-first-glance-speaks-for-the-car-001.md) | 🔵 **fase 1** del rediseño (dirección B, elegida por el user). Presentación: peek de dos líneas + «Aquí y ahora», gramática única de dos líneas, pestañas reponderadas, checklist a una fila. ⛔ La 1.8 (standout en parkings) se **retiró al leer el código**: no hay importe que comparar, «más cercano» es redundante y «gratis» ya lo dice la fila |
+| [`det-a-silent-service-is-not-a-dead-one-001`](det-a-silent-service-is-not-a-dead-one-001.md) | 🟢 Salió de revisar los avisos de Home: `ServicePresence` valía **`Dead` por defecto**, así que la app acusaba al sistema de haber matado al vigilante en **cada arranque en frío** con coche aparcado. Gana `Unknown` — **no saber no es saber que no** — y cada consumidor declara qué pregunta hace: Home calla sin medir, el resumidor actúa igual que antes. ⚠️ Había un testigo falsificado **defendiendo el bug** |
 
 ## 🧪 Salud de build / KMP
 

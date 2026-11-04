@@ -103,6 +103,25 @@ interface FuelStationsSource {
      * it means the second. That distinction is also what lets the registry know when to fall back.
      */
     suspend fun stationsNear(query: FuelStationsQuery): Result<FuelStationsResult>
+
+    /**
+     * Lo que esta fuente ya puede decir de [query] **sin preguntar a nadie**, o null cuando nunca
+     * se ha registrado nada sobre ella. [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+     *
+     * ⛔ **No es otra variante de [stationsNear] y no la sustituye.** Existe para que el primer
+     * vistazo pueda decir algo del complemento que **nadie ha preguntado todavía**: al arrancar,
+     * Home pregunta por el carril por defecto —plazas— y el de gasolineras no se pide hasta que el
+     * usuario toca su pestaña. Sin esto, «Aquí y ahora» abre siempre con una sola tarjeta.
+     *
+     * ⛔ Y su valor **lleva su `rememberedAtMs`**, así que ninguna superficie puede confundirlo con
+     * una respuesta fresca: eso es lo que permite enseñarlo sin mentir.
+     *
+     * Null es el valor honesto por defecto: una fuente que sólo sabe PREGUNTAR no recuerda nada.
+     * Lo sobrescriben únicamente las capas que **guardan** algo — memoria y disco. Es el mismo
+     * contrato, con la misma forma, que el lado de los parkings.
+     * [PARKINGS-A-REMEMBERED-MAP-ANSWERS-BEFORE-THE-NETWORK-001]
+     */
+    suspend fun remembered(query: FuelStationsQuery): FuelStationsResult? = null
 }
 
 /**

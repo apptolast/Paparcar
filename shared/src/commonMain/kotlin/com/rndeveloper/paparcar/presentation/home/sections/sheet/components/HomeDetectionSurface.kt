@@ -353,6 +353,12 @@ fun HomeDetectionSurface(
                 embedded = embedded,
                 embeddedLeading = embeddedLeading,
                 )
+
+            // ⛔ Inalcanzable, y la rama existe para que lo siga siendo: `resolveDetectionStory`
+            // devuelve `Hidden` sin noticias del servicio, así que esta superficie nunca recibe la
+            // duda. Si alguien quitara ese filtro, el compilador no se quejaría — pero esta rama
+            // dice qué haría: **nada**, nunca acusar. [DET-A-SILENT-SERVICE-IS-NOT-A-DEAD-ONE-001]
+            ParkedWatchBadge.WATCH_UNKNOWN -> Unit
         }
 
         DetectionStory.Hidden -> Unit

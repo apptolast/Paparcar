@@ -553,11 +553,11 @@ class HomeViewModelTest {
 
         freshVm.answerFirstEntryAsk(granted = false)
 
-        assertEquals(1, freshVm.state.value.locationWarningCue)
+        assertEquals(1, freshVm.state.value.warningOpenCue)
         // Later trips to the background and back are not a new refusal.
         freshVm.handleIntent(HomeIntent.SetMapForeground(false))
         freshVm.handleIntent(HomeIntent.SetMapForeground(true))
-        assertEquals(1, freshVm.state.value.locationWarningCue)
+        assertEquals(1, freshVm.state.value.warningOpenCue)
     }
 
     @Test
@@ -605,7 +605,7 @@ class HomeViewModelTest {
         assertTrue(freshVm.state.value.toFabsSlice().locationMissing)
         // …y sin el paréntesis completo la hoja NO se auto-abre: eso sigue exigiendo la prueba de que
         // el diálogo estuvo delante. [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
-        assertEquals(0, freshVm.state.value.locationWarningCue)
+        assertEquals(0, freshVm.state.value.warningOpenCue)
     }
 
     @Test
@@ -615,7 +615,7 @@ class HomeViewModelTest {
 
         freshVm.answerFirstEntryAsk(granted = false)
 
-        assertEquals(0, freshVm.state.value.locationWarningCue)
+        assertEquals(0, freshVm.state.value.warningOpenCue)
     }
 
     @Test
@@ -625,7 +625,7 @@ class HomeViewModelTest {
 
         freshVm.answerFirstEntryAsk(granted = true)
 
-        assertEquals(0, freshVm.state.value.locationWarningCue)
+        assertEquals(0, freshVm.state.value.warningOpenCue)
     }
 
     @Test

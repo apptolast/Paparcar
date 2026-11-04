@@ -22,6 +22,7 @@ import com.rndeveloper.paparcar.presentation.home.model.isAttendedService
 import com.rndeveloper.paparcar.presentation.home.model.pumpPriceLabel
 import com.rndeveloper.paparcar.presentation.util.LocalPumpGallon
 import com.rndeveloper.paparcar.presentation.util.formatDistance
+import com.rndeveloper.paparcar.presentation.util.subjectWhereLine
 import com.rndeveloper.paparcar.ui.components.PapBadge
 import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.ui.components.PapIconTile
@@ -150,15 +151,18 @@ fun HomeFuelStationRow(
  * [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
  */
 @Composable
-private fun subtitleFor(station: NearbyFuelStation, title: String, hasFix: Boolean): String? {
-    val distance = if (hasFix) formatDistance(station.distanceMeters.toFloat()) else null
-    val where = listOfNotNull(station.station.address, station.station.town)
-        .firstOrNull { it != title }
-    return when {
-        distance != null && where != null -> "$distance · $where"
-        else -> distance ?: where
-    }
-}
+private fun subtitleFor(station: NearbyFuelStation, title: String, hasFix: Boolean): String? =
+    // ⛔ La regla ya no vive aquí: era la ÚNICA superficie que la cumplía, en privado, mientras los
+    // tres peeks de detalle no la tenían. Lo que cambia al compartirla es el ORDEN — el sitio
+    // primero, la distancia después—, que es la gramática que el user pidió: la línea 2 responde
+    // *dónde · a cuánto*, y leer la cifra antes de la cosa que mide la deja sin sujeto.
+    // [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+    subjectWhereLine(
+        name = title,
+        placeLine = station.station.address,
+        secondaryLine = station.station.town,
+        farText = if (hasFix) formatDistance(station.distanceMeters.toFloat()) else null,
+    )
 
 /**
  * The price, at the pump's own precision — and who pumps it, when that is a question.

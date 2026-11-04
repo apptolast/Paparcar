@@ -86,9 +86,16 @@ import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.presentation.map.FocusedParking
 import com.rndeveloper.paparcar.presentation.map.HistoryDetailSheet
 import com.rndeveloper.paparcar.presentation.map.RouteNoticePill
+import com.rndeveloper.paparcar.ui.components.PapBadge
+import com.rndeveloper.paparcar.ui.components.PapIconTile
+import com.rndeveloper.paparcar.ui.components.PapOpportunityCard
 import com.rndeveloper.paparcar.ui.components.PapSpotAlertBanner
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.home_now_see_all_car_parks
+import paparcar.composeapp.generated.resources.home_now_see_all_fuel_stations
+import paparcar.composeapp.generated.resources.home_now_see_all_spots
 import paparcar.composeapp.generated.resources.first_steps_spotlight_caption
 import paparcar.composeapp.generated.resources.spot_alert_nearby_in_app
 import paparcar.composeapp.generated.resources.zone_alert_in_app_unconfirmed
@@ -1956,6 +1963,35 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
+            // ⛔⛔ **El peek de B: DOS líneas, dos preguntas.** Línea 1 = quién · qué le pasa · **cuándo**;
+            // línea 2 = dónde · **a cuánto**. La tercera línea —que llevaba «aparcado hace 2 h · a 180 m
+            // de ti» junta— ya no existe, y la ALTURA no se mueve: la reserva de la cabecera es un
+            // mínimo de tres líneas, así que con dos el bloque respira dentro de la misma caja.
+            // Lo que hay que mirar aquí en mano: que «· a 180 m» **no se elida** al final de la línea 2.
+            // [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+            Variant("Peek · coche aparcado (2 líneas)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                        vehicles = listOf(FakeData.vehicleSedan),
+                        activeSessions = listOf(FakeData.activeSession.copy(vehicleId = FakeData.vehicleSedan.id)),
+                        userGpsPoint = sampleGps,
+                        nearbySpots = FakeData.nearbySpots,
+                    ),
+                )
+            },
+            // ⛔ El mismo peek **sin fix**: la línea 2 se queda con el sitio y no inventa una cifra.
+            // Null no es cero. [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001]
+            Variant("Peek · coche aparcado, SIN ubicación (línea 2 sin cifra)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                        vehicles = listOf(FakeData.vehicleSedan),
+                        activeSessions = listOf(FakeData.activeSession.copy(vehicleId = FakeData.vehicleSedan.id)),
+                        nearbySpots = FakeData.nearbySpots,
+                    ),
+                )
+            },
             // A live trip OUTRANKS a parked car as the peek subject: driving the Corolla while the
             // sedan sits parked → the peek says "EN RUTA", not the sedan's parked header.
             // [UI-BROWSE-DRIVING-OVER-PARKED-001]
@@ -2188,6 +2224,30 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
+            // ⛔⛔ **El arranque en frío, que es la variante que falta justo al lado de la de arriba.**
+            // Mismo estado —coche aparcado, carril Coordinator— pero el servicio **no ha hablado
+            // todavía**, que es lo que pasa en CADA arranque en frío. Lo que hay que poder ver aquí
+            // es que **no hay fila de vigilancia**: ni roja ni verde. La card del coche dice la
+            // verdad (aparcado, y dónde) y un beat después habrá veredicto.
+            //
+            // Antes de [DET-A-SILENT-SERVICE-IS-NOT-A-DEAD-ONE-001] esta variante era IGUAL que la
+            // de arriba — «Vigilancia inmediata en pausa» — y la hoja se abría sola encima.
+            // Las dos juntas son el antes y el después del defecto.
+            Variant("Sheet · 1 coche · arranque en frío (el servicio aún no ha hablado ⇒ SIN fila)") {
+                sheet(
+                    HomeState(
+                        hasCorePermissions = true,
+                        userGpsPoint = sampleGps,
+                        vehicles = listOf(FakeData.vehicleSedan),
+                        activeSessions = listOf(FakeData.activeSession.copy(vehicleId = FakeData.vehicleSedan.id)),
+                        nearbySpots = FakeData.nearbySpots,
+                        detectionReadiness = DetectionReadiness.Parked(
+                            FakeData.activeSession.copy(vehicleId = FakeData.vehicleSedan.id),
+                        ),
+                        servicePresence = com.rndeveloper.paparcar.domain.detection.ServicePresence.Unknown,
+                    ),
+                )
+            },
             // El aviso SIN plazo: un aparcamiento que la detección nominó y no pudo colocar. No es
             // la pregunta con deadline — dice otra cosa y ofrece otra salida. [DET-NUDGE-PERSIST-001]
             Variant("Sheet · 1 coche · aviso sin plazo (aparcamiento perdido)") {
@@ -2329,6 +2389,157 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             },
             Variant("Sheet · vacío (dashed + avisar plaza)") {
                 sheet(HomeState(hasCorePermissions = true, nearbySpots = emptyList()))
+            },
+            // ⛔ AQUÍ Y AHORA con los TRES sujetos: una tarjeta por sujeto, en orden fijo, cada una
+            // con sus dos destinos. Es el primer nivel entero. [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+            //
+            // ⛔⛔ **La furgoneta, no el León, y eso NO es un detalle de atrezzo.** El carril se cotiza
+            // por lo que gasta el coche ACTIVO (`pricedFuelType`), y las gasolineras de este fixture
+            // sólo cotizan **diésel**. Con el León —gasolina— no hay precio para su producto, así que
+            // `nearbyNotables` **no emite tarjeta de gasolinera**: la variante se llamaba «los 3
+            // sujetos» y enseñaba dos. La regla funcionaba; el que mentía era el nombre.
+            // Ver la variante de debajo, que es justo ese caso dicho en voz alta.
+            Variant("Sheet · Aquí y ahora (los 3 sujetos)") {
+                sheet(
+                    HomeState(
+                        hasCorePermissions = true,
+                        userGpsPoint = sampleGps,
+                        nearbySpots = FakeData.nearbySpots,
+                        vehicles = listOf(FakeData.vehicleVan),
+                        parkings = HomeParkingsSlice(
+                            parkings = galleryParkings,
+                            anchorLat = sampleGps.latitude,
+                            anchorLon = sampleGps.longitude,
+                        ),
+                        fuel = HomeFuelSlice(
+                            stations = galleryFuelStations,
+                            reportedAt = "09/09/2026 08:30:00",
+                        ),
+                    ),
+                )
+            },
+            // ⛔ El mismo estado con un coche de **gasolina**: las gasolineras siguen ahí y el carril
+            // las sigue listando, pero **sin cifra para su producto**, así que no hay tarjeta. Es el
+            // umbral del sujeto FUEL hecho visible — *sin precio no hay noticia*, aunque haya
+            // gasolineras. [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+            Variant("Sheet · Aquí y ahora (coche de gasolina ⇒ SIN tarjeta de gasolinera)") {
+                sheet(
+                    HomeState(
+                        hasCorePermissions = true,
+                        userGpsPoint = sampleGps,
+                        nearbySpots = FakeData.nearbySpots,
+                        vehicles = listOf(FakeData.vehicleSedan),
+                        parkings = HomeParkingsSlice(
+                            parkings = galleryParkings,
+                            anchorLat = sampleGps.latitude,
+                            anchorLon = sampleGps.longitude,
+                        ),
+                        fuel = HomeFuelSlice(
+                            stations = galleryFuelStations,
+                            reportedAt = "09/09/2026 08:30:00",
+                        ),
+                    ),
+                )
+            },
+            // ⛔ Y el otro lado de la regla: sólo plazas ⇒ **una** tarjeta, no tres huecos. La
+            // sección no reserva sitio para lo que no existe.
+            Variant("Sheet · Aquí y ahora (sólo plazas)") {
+                sheet(
+                    HomeState(
+                        hasCorePermissions = true,
+                        userGpsPoint = sampleGps,
+                        nearbySpots = FakeData.nearbySpots,
+                        vehicles = listOf(FakeData.vehicleSedan),
+                    ),
+                )
+            },
+            // ⛔ El vacío de plazas con una SALIDA, que es el caso que la tarjeta existe para
+            // cubrir: con <20 usuarios es el estado que más veces se ve. La variante de arriba NO
+            // la enseña —no hay parkings que ofrecer— y ese es justo el otro caso de la regla:
+            // no se dibuja si no se puede ofrecer. [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+            Variant("Sheet · vacío CON parkings cerca (mira los parkings de aquí)") {
+                sheet(
+                    HomeState(
+                        hasCorePermissions = true,
+                        nearbySpots = emptyList(),
+                        userGpsPoint = sampleGps,
+                        parkings = HomeParkingsSlice(
+                            parkings = galleryParkings,
+                            anchorLat = sampleGps.latitude,
+                            anchorLon = sampleGps.longitude,
+                        ),
+                    ),
+                )
+            },
+        ),
+    ),
+    // ⛔ El componente de DOS DESTINOS: el cuerpo abre el item, el pie abre su lista. Las cuatro
+    // variantes son las cuatro decisiones del componente — con cifra, sin cifra, con chip, y el pie
+    // en singular—, que es lo que un pie con plural por sujeto puede equivocar en nueve idiomas.
+    // [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+    ScreenGroup(
+        "Home · oportunidad (dos destinos)",
+        listOf(
+            Variant("Gasolinera · con cifra y chip", Placement.Surface) {
+                PapOpportunityCard(
+                    eyebrow = "GASOLINA 95 MÁS BARATA",
+                    name = "Repsol · Ronda de Valencia",
+                    onOpen = {},
+                    footerLabel = pluralStringResource(Res.plurals.home_now_see_all_fuel_stations, 3, 3),
+                    onOpenList = {},
+                    leading = { PapIconTile(icon = PaparcarIcons.Fuel, tint = PapColor.actionText) },
+                    figure = "1,529",
+                    figureUnit = "€/l",
+                    figureColor = PapColor.attention,
+                    caption = "Ronda de Valencia 12 · a 450 m",
+                    stamp = "Precio oficial · hoy",
+                    chip = {
+                        PapBadge(
+                            label = "MÁS BARATA",
+                            containerColor = PapColor.attention.copy(alpha = GALLERY_CHIP_ALPHA),
+                            contentColor = PapColor.attention,
+                        )
+                    },
+                )
+            },
+            Variant("Plaza · sin cifra", Placement.Surface) {
+                PapOpportunityCard(
+                    eyebrow = "PLAZA LIBRE MÁS CERCANA",
+                    name = "Calle de Embajadores 44",
+                    onOpen = {},
+                    footerLabel = pluralStringResource(Res.plurals.home_now_see_all_spots, 7, 7),
+                    onOpenList = {},
+                    leading = { PapIconTile(icon = PaparcarIcons.CommunitySpot, tint = PapColor.action) },
+                    caption = "a 120 m",
+                    stamp = "Liberada hace 2 min",
+                )
+            },
+            Variant("Parking · pie en singular", Placement.Surface) {
+                PapOpportunityCard(
+                    eyebrow = "PARKING MÁS CERCANO",
+                    name = "Parking Benavente",
+                    onOpen = {},
+                    footerLabel = pluralStringResource(Res.plurals.home_now_see_all_car_parks, 1, 1),
+                    onOpenList = {},
+                    leading = { PapIconTile(icon = PaparcarIcons.CarParkMark, tint = PapColor.carPark) },
+                    caption = "Plaza de Benavente · a 260 m",
+                    stamp = "De pago · gálibo 1,8 m",
+                )
+            },
+            // ⛔ El nombre largo es un caso, no un adorno: una gasolinera con marca y calle no cabe
+            // en una linea, y elidirla deja al usuario sin saber cual es.
+            Variant("Nombre largo · dos lineas", Placement.Surface) {
+                PapOpportunityCard(
+                    eyebrow = "GASÓLEO A MÁS BARATO",
+                    name = "Estación de Servicio Carburantes Martínez e Hijos · Avenida de la Albufera",
+                    onOpen = {},
+                    footerLabel = pluralStringResource(Res.plurals.home_now_see_all_fuel_stations, 12, 12),
+                    onOpenList = {},
+                    figure = "1,489",
+                    figureUnit = "€/l",
+                    figureColor = PapColor.attention,
+                    caption = "Avenida de la Albufera 120 · a 1,2 km",
+                )
             },
         ),
     ),
@@ -4143,6 +4354,22 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
+            // ⛔ El caso que la gramática de dos líneas arregla: **sin nombre**, el título es la
+            // carretera, así que la línea 2 baja un nivel — «Alcobendas · a 3,1 km», no la carretera
+            // otra vez. Y la distancia ya no se dice dos veces: la fila de debajo es sólo el tiempo.
+            // [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+            Variant("Peek de gasolinera (sin nombre · línea 2 baja un nivel)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        fuel = HomeFuelSlice(
+                            stations = galleryFuelStations,
+                            reportedAt = "09/09/2026 08:30:00",
+                        ),
+                        selection = HomeSelection.FuelStation("3"),
+                        userGpsPoint = sampleGps,
+                    ),
+                )
+            },
             // OSM: la estación existe, ningún precio y ninguna afirmación sobre surtidores.
             Variant("Peek de gasolinera (OSM, sin precios)", Placement.Surface) {
                 peek(
@@ -4790,3 +5017,6 @@ private fun sharedMockVehicle(shareRoutes: Boolean = true, paired: Boolean = tru
     ownerUid = "mock_user_001",
     shareRoutesInGroup = shareRoutes,
 )
+
+/** El par tonal del chip de la galería — el mismo peso que el badge de una fila de gasolinera. */
+private const val GALLERY_CHIP_ALPHA = 0.16f

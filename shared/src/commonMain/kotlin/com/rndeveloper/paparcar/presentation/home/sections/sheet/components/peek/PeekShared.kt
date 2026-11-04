@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.DirectionsWalk
 import androidx.compose.material.icons.rounded.Adjust
 import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.Navigation
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -25,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.model.SpotTone
@@ -81,7 +83,19 @@ internal fun vehicleSummary(vehicle: Vehicle?): String? {
  */
 @Composable
 internal fun PeekMetaRow(
-    icon: ImageVector,
+    /** `null` → la fila deja el **canal del glifo vacío**, no lo colapsa.
+     *
+     *  ⛔ Nace de un defecto MEDIDO en el Oppo: el modal del parking público ponía «1 min en coche»
+     *  (con glifo) en x=126 y justo debajo «Altura máx. 1,9 m» (sin glifo) en **x=48** — dos hechos
+     *  consecutivos del mismo tipo desalineados 28 dp, porque eran dos componentes distintos que no
+     *  se conocían. Un hecho sin glifo sigue siendo un hecho: cuelga del mismo canal.
+     *
+     *  ⚠️ **El nulo es el último recurso, no el atajo.** Cuando escribí esto afirmé que el set
+     *  extendido de Material no estaba en el classpath, y era FALSO — la app ya usa
+     *  `AccessTimeFilled`, `Adjust`, `Bolt` y `Campaign`, que salen todos de ahí. Así que los tres
+     *  hechos del parking que justificaron este parámetro **ya llevan su glifo**. Antes de pasar
+     *  `null`, comprobar que de verdad no hay ninguno que diga la verdad sobre ese dato. */
+    icon: ImageVector?,
     text: String,
     tint: Color,
     maxLines: Int = 1,
@@ -98,18 +112,34 @@ internal fun PeekMetaRow(
         verticalAlignment = if (maxLines == 1) Alignment.CenterVertically else Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = tint,
-            modifier = Modifier.size(PapIconSize.withLabel),
-        )
+        if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(PapIconSize.withLabel),
+            )
+        } else {
+            Spacer(Modifier.size(PapIconSize.withLabel))
+        }
         Text(
             text = text,
-            // These meta rows ARE the card's primary info, standalone with the full width — the
-            // DATA-role precondition (token competing for horizontal space) doesn't hold, so they
-            // read as LECTURA, not as CIFRA. [PEEK-META-INTER-001]
-            style = PaparcarType.current.rowTitle,
+            // LECTURA, no CIFRA: estas filas van solas a todo el ancho, así que la precondición del
+            // rol DATA —un token peleando por el espacio horizontal— no se cumple.
+            // [PEEK-META-INTER-001]
+            //
+            // ⛔ **`body`, no `rowTitle`, y eso cambia desde que el modal DESARROLLA la cabecera**
+            // (user, 30-10): *«tenemos más grandes el contenido del body que el del head del título,
+            // habría que adaptar el contenido del body para que no se lleve jerarquía visual»*.
+            // Medído: `rowTitle` y `rowName` son **el mismo 14sp SemiBold**, así que tres filas de
+            // cuerpo con su glifo en color pesaban más que una línea de cabecera — la jerarquía
+            // quedaba invertida por acumulación.
+            //
+            // El KDoc anterior decía que estas filas SON la información principal de la tarjeta, y
+            // era verdad mientras la cabecera no nombraba al sujeto. Ahora sí lo nombra, en MARCA y
+            // con su color de identidad, así que esto pasa a ser **desarrollo**: mismo tamaño, un
+            // peso menos. [UI-TYPE-TWO-VOICES-ONE-ROW-001]
+            style = PaparcarType.current.body,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = SheetTokens.META_VALUE_ALPHA),
             maxLines = maxLines,
             overflow = TextOverflow.Ellipsis,
@@ -154,26 +184,223 @@ internal fun ApproximateZoneRow(
 
 private const val APPROXIMATE_ROW_MAX_LINES = 3
 
+// `DistanceRow` vivió aquí y **murió con su caso**: desde que los cuatro peeks ponen la distancia en
+// su línea 2, ninguno la renderiza. Un componente que nadie pinta no es un componente. Lo que
+// añadía de verdad —el TIEMPO— sobrevive justo debajo.
+// [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+
+/**
+ * **A cuánto y cuánto se tarda**, en una fila del CONTENIDO — no de la cabecera.
+ * [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+ *
+ * ⚠️ Esto es la antigua `DistanceRow`, que **murió y vuelve**, y el viaje de ida y vuelta es la
+ * historia: se retiró cuando los seis peeks pasaron a poner la distancia en su línea 2, y vuelve
+ * cuando el user decidió lo contrario para el MODAL — *«los datos que había en el peek deberán ir
+ * desarrollados en el contenido de abajo, ya que está redundante»*. La regla que queda es más simple
+ * que las dos: **el peek RESUME en dos líneas, el modal DESARROLLA abajo.**
+ *
+ * Y aquí abajo no hay `‹ › ×` que le quite ancho — medido en el Oppo, el stepper se queda 204 px y
+ * al texto de la cabecera le sobraban 538 de 1080 —, así que las dos cifras caben sin recortar.
+ *
+ * Null en el tiempo = no hay tiempo que sostener a esa distancia, y entonces la fila es SÓLO la
+ * distancia: ni tiempo ni el separador que lo anunciaba.
+ * [COPY-A-DURATION-ROLLS-INTO-HOURS-AND-A-CAPACITY-IS-NOT-FREE-SPACES-001]
+ */
 @Composable
-internal fun DistanceRow(distanceM: Float?, mode: TravelMode, accentColor: Color) {
+internal fun DistanceAndTimeRow(distanceM: Float?, mode: TravelMode, accentColor: Color) {
     if (distanceM == null) return
-    val icon = when (mode) {
-        TravelMode.WALKING -> Icons.AutoMirrored.Rounded.DirectionsWalk
-        TravelMode.DRIVING -> Icons.Rounded.Navigation
-    }
-    // Null = no hay tiempo que sostener a esa distancia, y entonces la fila es SÓLO la distancia:
-    // ni tiempo ni el separador que lo anunciaba.
-    // [COPY-A-DURATION-ROLLS-INTO-HOURS-AND-A-CAPACITY-IS-NOT-FREE-SPACES-001]
     val timeText = when (mode) {
         TravelMode.WALKING -> walkTimeString(distanceM)
         TravelMode.DRIVING -> driveTimeString(distanceM)
     }
     PeekMetaRow(
-        icon = icon,
+        icon = when (mode) {
+            TravelMode.WALKING -> Icons.AutoMirrored.Rounded.DirectionsWalk
+            TravelMode.DRIVING -> Icons.Rounded.Navigation
+        },
         text = distanceString(distanceM) + timeText?.let { "${SheetTokens.META_SEPARATOR}$it" }.orEmpty(),
         tint = accentColor,
     )
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+// La GRAMÁTICA de dos líneas del peek — **una sola para TODOS sus estados** (decisión del user,
+// 30-10): coche aparcado, viaje vivo, plaza, parking público y gasolinera dicen su nombre y su
+// calificador arriba, y dónde están y a cuánto abajo. Misma altura, misma estructura.
+// [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+// ═══════════════════════════════════════════════════════════════════════
+
+/**
+ * LÍNEA 1 — **quién · qué le pasa**, con el nombre al frente.
+ *
+ * ⛔ **El NOMBRE es el sujeto, no la dirección**, y esto corrige una jerarquía invertida que el user
+ * vio en el emulador: la dirección se llevaba `cardTitle` —la voz grande— y el sujeto quedaba en un
+ * eyebrow en caps. En el prototipo que aprobó es al revés.
+ *
+ * ⛔ **Sólo el nombre lleva color de identidad**; el calificador —«aparcado hace 31m», «en ruta»,
+ * «hace 3 min»— es ESTADO y se queda neutro. El estado se escribe, no se tiñe.
+ * [UI-COLOR-DOCTRINE-001]
+ *
+ * ⛔⛔ **El nombre va en `cardTitle`, que es el rol que `PapSheet` YA declaraba para su título**
+ * —y su KDoc nombra este caso con todas las letras: *«vehicle name, **peek title**, dialog
+ * title»*—, no en `rowName`. Esto nace de un defecto MÍO, dicho por el user el 30-10:
+ * *«el nombre… se puede poner en negrita»* y *«tenemos más grandes el contenido del body que el del
+ * head del título»*. Al meter el `titleSlot` sustituí el 18sp Bold de la hoja por un 14sp
+ * SemiBold — **degradé el título de una hoja a rol de nombre-de-fila**, sin querer y en los seis
+ * peeks a la vez. La jerarquía invertida no era del cuerpo: era del título, que había bajado.
+ *
+ * Medido: `papSheetHeaderReservedHeight()` reserva su pila de texto con **`lineHeight` 24sp**, que
+ * es justo la de `cardTitle` — así que lo que no encajaba era el 20 de `rowName`, y el alto de la
+ * cabecera no se mueve al arreglarlo.
+ *
+ * El calificador cae a `body` (14sp Normal): al lado de un 18sp Bold, mantenerlo en `rowTitle`
+ * (14sp SemiBold) lo leía como un segundo título. [UI-TYPE-TWO-VOICES-ONE-ROW-001]
+ */
+@Composable
+internal fun peekSubjectTitleSlot(
+    name: String,
+    nameColor: Color,
+    qualifier: String?,
+    qualifierAlpha: Float = 1f,
+    maxLines: Int = 1,
+    /** Glifo que va **DELANTE** del nombre, en su color. Para un coche es su método de vigilancia
+     *  (`VehicleWatchLeadingIcon`), la misma anatomía que la pantalla de vehículos y el chip de
+     *  Home: *«el nombre siempre en onSurface y su respectivo icono de detección en su color, como
+     *  en vehicle screen»* (user, 03-11).
+     *
+     *  ⛔ **Delante, no detrás** — lo puse detrás y el user lo corrigió al verlo. El propio
+     *  componente lo dice en su nombre: es un *leading* icon, y así lo colocan ya `HomeParkingRow`
+     *  y `VehicleIdentityHeader`. Detrás el glifo se lee como un sufijo del nombre; delante es lo
+     *  que el nombre ES. [UI-COLOR-DOCTRINE-001] [UI-VEH-STATUS-IS-A-GLYPH-NOT-A-LABEL-001]
+     */
+    leadingGlyph: (@Composable () -> Unit)? = null,
+): @Composable () -> Unit = {
+    // ⛔⛔ **UN solo `Text`, no dos en un `Row`**, y esto es un bug medido en el emulador, no una
+    // preferencia. Con dos `Text` el calificador no llevaba peso, así que se medía primero y se
+    // quedaba el ancho entero: el NOMBRE colapsaba a cero y el peek del parking salía literalmente
+    // como «· Underground car …», empezando por el separador. Justo al revés de lo que hace falta.
+    //
+    // En una sola cadena la elipsis cae al FINAL por construcción: el nombre —que es el sujeto—
+    // sobrevive siempre y lo que se recorta es el calificador, que es lo prescindible. Es la misma
+    // técnica con la que `PapListItem` tiñe el nombre del vehículo dentro de su eyebrow.
+    // [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+    val qualifierStyle = PaparcarType.current.body.toSpanStyle().copy(
+        // El pulso del estado en movimiento viaja por aquí, así que el nombre nunca parpadea.
+        // [UI-PEEK-DRIVING-HAS-NO-MOTION-001]
+        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = qualifierAlpha),
+    )
+    val subject: @Composable (Modifier) -> Unit = { mod ->
+    Text(
+        text = buildAnnotatedString {
+            append(name)
+            if (qualifier != null) {
+                val start = length
+                append(" $PEEK_LINE_SEPARATOR $qualifier")
+                addStyle(qualifierStyle, start, length)
+            }
+        },
+        style = PaparcarType.current.cardTitle,
+        color = nameColor,
+        // ⛔ **Una línea en el carril, DOS en el modal** (user, 30-10): *«si queda muy largo el
+        // título que pueda ser 2 líneas»*. Y el reparto no es un gusto, sale de lo medido: el racimo
+        // «‹ › ×» se come 432 px de los 1080 del Oppo —los tres botones de 48 dp, el ‹ deshabilitado
+        // INCLUIDO, que no sale en el volcado de uiautomator pero sí ocupa—, así que al título le
+        // quedan 345 px: unos 12 caracteres a 18sp Bold. «Parking de varias plantas» no cabe en una
+        // línea y no va a caber nunca.
+        //
+        // El carril se queda en una porque ahí el nombre es corto por construcción («Plazas»,
+        // «Parkings», «Gasolineras») y porque su cabecera es la que define la altura de la hoja
+        // plegada — envolver ahí cambiaría el alto del peek, que el user fijó para todos sus estados.
+        maxLines = maxLines,
+        overflow = TextOverflow.Ellipsis,
+        modifier = mod,
+    )
+    }
+    if (leadingGlyph == null) {
+        subject(Modifier)
+    } else {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(PEEK_SUBJECT_GLYPH_GAP_DP.dp),
+        ) {
+            // ⛔ El GLIFO no cede ancho y el nombre sí: sin `weight` en el glifo para que no
+            // desaparezca cuando falta sitio, y `fill = false` en el nombre para que no estire
+            // cuando sobra. Es el mismo reparto que `peekWhereLine` hace con su cifra.
+            leadingGlyph()
+            subject(Modifier.weight(1f, fill = false))
+        }
+    }
+}
+
+// Aire entre el nombre y su glifo de vigilancia — el mismo 5 dp que deja el título con su marca.
+private const val PEEK_SUBJECT_GLYPH_GAP_DP = 5
+
+/**
+ * LÍNEA 2 — **dónde · a cuánto**, con la cifra en su propia columna.
+ *
+ * ⛔ **Y esa columna es la decisión que el emulador corrigió.** Con el «a 180 m» dentro del mismo
+ * `Text`, en pantalla salió `Repsol Av. Castellana · 1450.6 …`: el texto elide por el FINAL, así que
+ * la cifra era siempre lo primero en caerse — al revés de lo que hace falta, porque un nombre se
+ * abrevia sin perder la respuesta y una distancia no. Aquí el sitio lleva el `weight` y la cifra no,
+ * así que **elide el sitio y el número sobrevive**, que es lo que hace el prototipo.
+ *
+ * ⛔ **LECTURA, no CIFRA**: comparte caja de línea con un nombre en MARCA, y una cifra dentro de una
+ * FILA se queda en la voz de lectura — medido en device el 29-08. [PEEK-META-INTER-001]
+ */
+@Composable
+internal fun peekWhereLine(place: String, far: String?): @Composable () -> Unit = {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        // ⛔ Un sujeto puede no tener DÓNDE que escribir — un parking público no trae dirección en
+        // ninguna fuente — y entonces la línea 2 es sólo la cifra, sin punto medio colgando delante.
+        // Blanco no es un sitio. [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+        val hasPlace = place.isNotBlank()
+        if (hasPlace) Text(
+            text = place,
+            style = PaparcarType.current.body,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+        if (far != null) {
+            Text(
+                text = if (hasPlace) " $PEEK_LINE_SEPARATOR $far" else far,
+                style = PaparcarType.current.caption,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
+        }
+    }
+}
+
+/** El separador de las dos piezas de una línea — el mismo punto medio que usa el resto de la hoja. */
+private const val PEEK_LINE_SEPARATOR = "·"
+
+/** El mismo separador, con sus espacios, para quien compone la línea ANTES de pasarla. */
+/**
+ * La PRIMERA fila de hechos de un modal: dónde está esto.
+ *
+ * ⛔ **Baja de la cabecera al cuerpo** (user, 30-10): *«el resto de info que mostrábamos en peek
+ * pasará al body de la modal»*. La cabecera NOMBRA — el cuerpo DESARROLLA. Antes el sitio vivía en
+ * el `subtitleSlot`, donde compartía ancho con el racimo «‹ › ×» (432 px de 1080 medidos en el
+ * Oppo) y salía recortado como «Calle de …»; aquí va a todo el ancho de la hoja.
+ *
+ * Sitio en blanco ⇒ **no hay fila**, no una fila vacía: un parking público no trae dirección en
+ * ninguna fuente, y callarse es decir la verdad. [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+ */
+@Composable
+internal fun PeekPlaceRow(place: String?, tint: Color) {
+    val text = place?.takeIf { it.isNotBlank() } ?: return
+    PeekMetaRow(icon = Icons.Rounded.LocationOn, text = text, tint = tint, maxLines = PEEK_PLACE_MAX_LINES)
+}
+
+/** Una dirección puede necesitar dos líneas; ya no compite con el stepper, así que puede gastarlas. */
+private const val PEEK_PLACE_MAX_LINES = 2
+
+/** Un título de MODAL puede envolver a dos líneas; el de un carril, no — ver `peekSubjectTitleSlot`. */
+internal const val PEEK_MODAL_TITLE_MAX_LINES = 2
+
+internal const val PEEK_LINE_JOINER = " $PEEK_LINE_SEPARATOR "
 
 @Composable
 internal fun FiabilityIndicator(level: SpotTone) {

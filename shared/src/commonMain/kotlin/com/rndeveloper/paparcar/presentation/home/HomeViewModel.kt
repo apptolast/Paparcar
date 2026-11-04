@@ -28,7 +28,9 @@ import com.rndeveloper.paparcar.domain.notification.MapVisibility
 import com.rndeveloper.paparcar.domain.spot.VouchedSpot
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.presentation.home.model.ViewportRefetch
+import com.rndeveloper.paparcar.presentation.home.model.ParkedWatchBadge
 import com.rndeveloper.paparcar.presentation.home.model.resolveDrivingMeta
+import com.rndeveloper.paparcar.presentation.home.model.watchInterruptionEarnsAnOpen
 import com.rndeveloper.paparcar.presentation.home.model.warnsLocationMissing
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.model.ParkingReleaseReason
@@ -84,6 +86,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -274,6 +277,7 @@ class HomeViewModel(
         subscribeDetectionReadiness()
         subscribeDetectionReliability()
         subscribeServicePresence()
+        subscribeWatchInterruption()
         subscribeParkNudge()
         subscribePromptWindow()
         subscribeFirstSteps()
@@ -328,7 +332,7 @@ class HomeViewModel(
         firstEntryDialogShown = false
         val denied = !permissionManager.permissionState.value.hasLocationPermission
         if (denied && state.value.detectionUiState.warnsLocationMissing) {
-            updateState { copy(locationWarningCue = locationWarningCue + 1) }
+            updateState { copy(warningOpenCue = warningOpenCue + 1) }
         }
     }
 
@@ -823,6 +827,20 @@ class HomeViewModel(
         hasWarmedUpLanes = true
 
         warmUpJob = viewModelScope.launch {
+            // ⛔ **Primero lo que ya sabemos, y sin preguntar a nadie.**
+            // [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+            //
+            // El calentamiento de abajo es SECUENCIAL por obligación —una ranura de Overpass—, así
+            // que el segundo carril llega entre 3 y 16 s después de abrir la app, y hasta 40 s en el
+            // peor caso medido. Durante todo ese rato «Aquí y ahora» sólo podía enseñar plazas,
+            // que vienen de Firestore.
+            //
+            // ⚠️ Y esto **corrige el plan**, que decía que sin este paso el carrusel «arranca sólo
+            // con la tarjeta de plazas». No es cierto: `warmUpHiddenLanes` ya existía y los trae.
+            // Lo que faltaba no era el contenido, era **cuándo**: el primer vistazo no puede ser lo
+            // último que se rellena.
+            paintRememberedComplements(centre)
+
             WARM_UP_ORDER
                 .filter { it != state.value.nearbyLens }
                 .forEach { lens ->
@@ -832,6 +850,62 @@ class HomeViewModel(
                         HomeNearbyLens.FUEL -> fuelJob?.join()
                         HomeNearbyLens.PARKINGS -> parkingsJob?.join()
                         HomeNearbyLens.SPOTS -> Unit
+                    }
+                }
+        }
+    }
+
+    /**
+     * Lo que el disco recuerda de los dos complementos, pintado ANTES de preguntar nada.
+     * [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+     *
+     * ⛔ **No toca `isLoading` ni el ancla.** Un recuerdo no es una respuesta: dejar el ancla
+     * puesta haría creer a [refreshNearby] que este suelo ya se preguntó, y entonces el recuerdo se
+     * quedaría para siempre en pantalla sin que nadie lo refrescara. Y `isLoading` sigue en marcha
+     * porque **sí** estamos preguntando: el carril ya sabe pintar filas recordadas sin esqueleto, y
+     * ya se calla la nota de «sin conexión» mientras carga.
+     * [PARKINGS-A-REMEMBERED-MAP-ANSWERS-BEFORE-THE-NETWORK-001]
+     *
+     * ⛔ **Ni la selección.** Un recuerdo no es un veredicto sobre lo que sigue existiendo, así
+     * que no puede ser lo que le cierre a nadie su ficha abierta.
+     *
+     * ⛔ **Y sólo lo que NO se está mirando.** El carril activo lo pinta su propia petición, que
+     * ya lee su recuerdo por su cuenta; escribirlo también aquí sería una segunda escritura
+     * compitiendo con una respuesta viva que puede haber llegado ya.
+     */
+    private suspend fun paintRememberedComplements(centre: Pair<Double, Double>) {
+        val (lat, lon) = centre
+        val active = state.value.nearbyLens
+
+        if (active != HomeNearbyLens.PARKINGS) {
+            runCatching { getNearbyPublicParkings.remembered(lat, lon) }
+                .getOrNull()
+                ?.takeIf { it.parkings.isNotEmpty() }
+                ?.let { known ->
+                    PaparcarLogger.d(TAG, "warm-up: ${known.parkings.size} remembered car parks painted first")
+                    updateState {
+                        copy(parkings = parkings.copy(parkings = known.parkings, rememberedAtMs = known.rememberedAtMs))
+                    }
+                }
+        }
+
+        if (active != HomeNearbyLens.FUEL) {
+            runCatching { getNearbyFuelStations.remembered(lat, lon, activeFuelType()) }
+                .getOrNull()
+                ?.takeIf { it.stations.isNotEmpty() }
+                ?.let { known ->
+                    PaparcarLogger.d(TAG, "warm-up: ${known.stations.size} remembered stations painted first")
+                    updateState {
+                        copy(
+                            fuel = fuel.copy(
+                                stations = known.stations,
+                                rememberedAtMs = known.rememberedAtMs,
+                                // ⛔ El sello de la FUENTE no se hereda: esta respuesta no ha
+                                // ocurrido, y fechar la lista con la hora del feed viejo sería
+                                // datarla por un suceso que no pasó. Cada precio lleva la suya.
+                                reportedAt = null,
+                            ),
+                        )
                     }
                 }
         }
@@ -2079,6 +2153,39 @@ class HomeViewModel(
                 updateState { copy(servicePresence = presence) }
             }
     }
+
+    /**
+     * [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001] La vigilancia acaba de MORIR → la hoja se abre
+     * sobre la fila que lo explica y lo arregla.
+     *
+     * ⛔ **Se observa el badge DERIVADO, no sus cuatro señales.** `HomeState.parkedWatchBadge` ya
+     * combina sesión, Bluetooth, presencia del servicio y fiabilidad; un `if` sobre
+     * `ServicePresence.Dead` aquí sería una quinta regla capaz de discrepar de la fila que abre —
+     * abriría la hoja por un coche cubierto por Bluetooth, al que la presencia del FGS no afecta.
+     * Es el mismo patrón que el latch del checklist: `state.map { … }.distinctUntilChanged()`.
+     *
+     * ⛔ Y **quién se gana la interrupción es una función pura** —`watchInterruptionEarnsAnOpen`—,
+     * no el `distinctUntilChanged`: éste sólo evita repetir el mismo valor, y la regla que importa
+     * (muerta sí, frágil no) tiene que ser legible y testeable sin un ViewModel.
+     */
+    private fun subscribeWatchInterruption() {
+        state
+            .map { it.parkedWatchBadge }
+            .distinctUntilChanged()
+            .runningFold(WatchBadgeStep()) { step, badge -> WatchBadgeStep(from = step.to, to = badge) }
+            .collectSafely("watchInterruption") { step ->
+                if (watchInterruptionEarnsAnOpen(step.from, step.to)) {
+                    updateState { copy(warningOpenCue = warningOpenCue + 1) }
+                }
+            }
+    }
+
+    /** Dos valores consecutivos del badge de vigilancia — lo que hace falta para ver una
+     *  TRANSICIÓN, que es sobre lo que decide `watchInterruptionEarnsAnOpen`. */
+    private data class WatchBadgeStep(
+        val from: ParkedWatchBadge? = null,
+        val to: ParkedWatchBadge? = null,
+    )
 
     // ── Stream error policy ───────────────────────────────────────────────────
 

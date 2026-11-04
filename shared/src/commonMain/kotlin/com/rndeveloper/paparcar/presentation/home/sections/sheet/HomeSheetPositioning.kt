@@ -359,11 +359,14 @@ internal fun SheetTransitionEffects(
      */
     firstStepsCue: String? = null,
     /**
-     * [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001] `HomeState.locationWarningCue`: non-zero
-     * after the first-entry location ask was refused. Same role as [promptShownAtMs] — the KEY of
-     * an auto-open, so it fires once per refusal.
+     * [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001] `HomeState.warningOpenCue`: the KEY of an
+     * auto-open onto the warning that leads the detection stories, same role as [promptShownAtMs].
+     *
+     * ⛔ Esta superficie **no sabe de qué aviso se trata, y no debe saberlo**: rebobina y despliega,
+     * que es lo mismo para una ubicación rechazada y para una vigilancia muerta. Quién se gana la
+     * apertura lo decide el estado; un `when` aquí sería la precedencia viviendo en dos sitios.
      */
-    locationWarningCue: Int = 0,
+    warningOpenCue: Int = 0,
 ) {
     val peekOffsetPx = positioning.peekOffsetPx
     val peekSnapTolerancePx = with(LocalDensity.current) { PEEK_LAYOUT_SNAP_TOLERANCE.toPx() }
@@ -535,11 +538,11 @@ internal fun SheetTransitionEffects(
         }
     }
 
-    // [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001] A refused first-entry location ask opens the
-    // sheet on its warning: the badge rides the header and the amber row leads the detection
-    // stories in the list. Rewinds first, like the other automatic openings.
-    LaunchedEffect(locationWarningCue) {
-        if (locationWarningCue > 0) {
+    // [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001] Un aviso se abre sobre su fila: la pastilla
+    // del mapa dice la falta y la fila de la lista lleva causa, consecuencia y remedio. Rebobina
+    // primero, como el resto de aperturas automáticas.
+    LaunchedEffect(warningOpenCue) {
+        if (warningOpenCue > 0) {
             lazyListState.scrollToItem(0)
             sheetOffsetPx.animateTo(positioning.expandedOffsetPx, SheetSnapSpec)
         }

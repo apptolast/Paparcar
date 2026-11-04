@@ -67,14 +67,50 @@ interface DetectionPhaseSink {
  * produce today. Gated behind an internal flag (default OFF) for F1.
  */
 enum class ServicePresence {
-    /** No process, no FGS, no notification — the service is not running at all. */
+    /**
+     * **El servicio no ha hablado todavía en este proceso.** No es un estado del servicio: es la
+     * ausencia de información sobre él. [DET-A-SILENT-SERVICE-IS-NOT-A-DEAD-ONE-001]
+     *
+     * ⛔ **Y es el valor INICIAL, no [Dead].** Este flujo lo escribe únicamente el propio servicio,
+     * en sus tres bordes de ciclo de vida, y vive **en memoria del proceso**. Así que en un arranque
+     * en frío vale lo que valga por defecto *hasta que el servicio arranque y diga Sentry* — y
+     * mientras valiera [Dead], toda superficie que leyera «¿está muerto?» recibía un **sí** que
+     * nadie había medido. Medido: Home decía «Vigilancia inmediata en pausa» en **cada** arranque
+     * en frío con coche aparcado en carril Coordinator.
+     *
+     * Es la doctrina del proyecto aplicada a una lectura: *no saber no es saber que no*, y *el
+     * evento NOMINA, sólo lo MEDIDO confirma*. Lo mismo que
+     * [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001] dice de una respuesta: **no preguntado ≠
+     * vacío ≠ fallido**.
+     *
+     * ⛔ Y **no significa lo mismo para todos**: ver [isWatchingLive] y la nota de
+     * `resolveSentryKillVerdict`. Una FRASE al usuario calla sin información; una ACCIóN idémpotente
+     * y segura —arrancar el vigilante— actúa igual, porque arrancar uno que ya corre no cuesta nada
+     * y no arrancar uno muerto cuesta una plaza.
+     */
+    Unknown,
+
+    /** No process, no FGS, no notification — the service is not running at all. ⛔ Lo escribe el
+     *  servicio al destruirse: es una muerte MEDIDA, no la falta de noticias de [Unknown]. */
     Dead,
 
     /** Alive and foreground but idle: GPS off, no tracking job — waiting to catch the next departure. */
     Sentry,
 
     /** A tracking job is in flight (GPS on, following a trip). */
-    Active,
+    Active;
+
+    /**
+     * ¿Estamos vigilando **demostradamente**? Sólo [Sentry] y [Active] lo son.
+     *
+     * ⛔ Existe para que cada consumidor **declare qué pregunta hace** en vez de comparar contra un
+     * valor y heredar lo que signifique mañana. Las dos preguntas no son la negación una de la otra:
+     *  - «¿puedo AFIRMAR que vigilo?» → `isWatchingLive` (y [Unknown] responde **no**, así que no se
+     *    afirma — pero tampoco se acusa);
+     *  - «¿hay un hueco que CERRAR?» → `!isWatchingLive` (y [Unknown] responde **sí**, así que el
+     *    resumidor sigue actuando igual que antes de que [Unknown] existiera).
+     */
+    val isWatchingLive: Boolean get() = this == Sentry || this == Active
 }
 
 /**
@@ -90,9 +126,10 @@ interface DetectionRuntimeState {
     /** True while a tracking job is running in the foreground service. */
     val isRunning: StateFlow<Boolean>
 
-    /** Coarse lifecycle of the service process itself. Defaults to [ServicePresence.Dead] so doubles
-     *  that don't exercise it need no change. [DET-RESIDENT-FGS-001] */
-    val presence: StateFlow<ServicePresence> get() = ALWAYS_DEAD
+    /** Coarse lifecycle of the service process itself. Defaults to [ServicePresence.Unknown]: un doble
+     *  que no lo ejerce **no ha dicho nada**, que es distinto de afirmar que el servicio está muerto.
+     *  [DET-RESIDENT-FGS-001] [DET-A-SILENT-SERVICE-IS-NOT-A-DEAD-ONE-001] */
+    val presence: StateFlow<ServicePresence> get() = ALWAYS_UNKNOWN
 
     /** The current trip's origin (departing vehicle + spot), or null when idle / origin unknown.
      *  Default no-op so test/preview doubles that don't exercise it need no change. [DEPART-CONSISTENCY-001] */
@@ -111,7 +148,7 @@ interface DetectionRuntimeState {
         val NO_TRIP: StateFlow<TripContext?> = MutableStateFlow(null).asStateFlow()
         val ALWAYS_DRIVING: StateFlow<DetectionPhase> = MutableStateFlow(DetectionPhase.Driving).asStateFlow()
         val NEVER_PROVEN: StateFlow<Boolean> = MutableStateFlow(false).asStateFlow()
-        val ALWAYS_DEAD: StateFlow<ServicePresence> = MutableStateFlow(ServicePresence.Dead).asStateFlow()
+        val ALWAYS_UNKNOWN: StateFlow<ServicePresence> = MutableStateFlow(ServicePresence.Unknown).asStateFlow()
     }
 }
 
@@ -131,7 +168,9 @@ class MutableDetectionRuntimeState : DetectionRuntimeState, DetectionPhaseSink {
     private val _phase = MutableStateFlow(DetectionPhase.Driving)
     override val phase: StateFlow<DetectionPhase> = _phase.asStateFlow()
 
-    private val _presence = MutableStateFlow(ServicePresence.Dead)
+    // ⛔ Unknown, no Dead: hasta que el servicio hable no hay nada medido que contar.
+    // [DET-A-SILENT-SERVICE-IS-NOT-A-DEAD-ONE-001]
+    private val _presence = MutableStateFlow(ServicePresence.Unknown)
     override val presence: StateFlow<ServicePresence> = _presence.asStateFlow()
 
     private val _driveProven = MutableStateFlow(false)
@@ -185,7 +224,7 @@ class StaticDetectionRuntimeState(
     running: Boolean = false,
     trip: TripContext? = null,
     phase: DetectionPhase = DetectionPhase.Driving,
-    presence: ServicePresence = ServicePresence.Dead,
+    presence: ServicePresence = ServicePresence.Unknown,
     driveProven: Boolean = false,
 ) : DetectionRuntimeState {
     override val isRunning: StateFlow<Boolean> = MutableStateFlow(running).asStateFlow()

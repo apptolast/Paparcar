@@ -61,4 +61,21 @@ class FuelStationsRegistry(
             fallback.stationsNear(query).getOrThrow().copy(didFallBack = true)
         }
     }
+
+    /**
+     * Lo recordado por la fuente a la que esta consulta le TOCA — y si ésa no recuerda nada, lo que
+     * recuerde el suelo mundial. [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+     *
+     * ⛔ El mismo reparto que [stationsNear] y por `claims`, no por `covers`: si el recuerdo
+     * saliera de otra fuente que la que contesta en vivo, la tarjeta del primer vistazo cotizaría un
+     * precio que la lista de abajo nunca va a enseñar.
+     *
+     * ⛔ Y **no se marca `didFallBack`**: esa marca dice que el feed nacional *falló al preguntar*,
+     * y aquí no se ha preguntado nada. Ponerla aquí haría que el carril acusara de un fallo que no
+     * ha ocurrido. [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+     */
+    override suspend fun remembered(query: FuelStationsQuery): FuelStationsResult? {
+        val preferred = national.firstOrNull { it.claims(query) }
+        return preferred?.remembered(query) ?: fallback.remembered(query)
+    }
 }

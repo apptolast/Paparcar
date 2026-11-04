@@ -26,12 +26,23 @@ class GetNearbyFuelStationsUseCaseTest {
             Result.success(emptyList())
     }
 
-    private class FakeSource(private val result: FuelStationsResult) : FuelStationsSource {
+    private class FakeSource(
+        private val result: FuelStationsResult,
+        /** Lo que esta fuente GUARDA, o null si no guarda nada — el valor honesto por defecto. */
+        private val rememberedResult: FuelStationsResult? = null,
+    ) : FuelStationsSource {
         var seen: FuelStationsQuery? = null
+        var rememberedSeen: FuelStationsQuery? = null
+        var asksOverTheWire = 0
         override fun covers(countryCode: String) = true
         override suspend fun stationsNear(query: FuelStationsQuery): Result<FuelStationsResult> {
             seen = query
+            asksOverTheWire++
             return Result.success(result)
+        }
+        override suspend fun remembered(query: FuelStationsQuery): FuelStationsResult? {
+            rememberedSeen = query
+            return rememberedResult
         }
     }
 
@@ -272,5 +283,85 @@ class GetNearbyFuelStationsUseCaseTest {
         assertNull(result.stations.single().price)
         // Still listed: where to stop is a fair question even when nothing can be priced.
         assertEquals(1, result.stations.size)
+    }
+
+    // ── remembered(): lo que se puede decir sin preguntar ──────────────────────────
+    // [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+
+    @Test
+    fun `should_answerFromWhatIsRemembered_withoutAskingAnybody`() = runTest {
+        val source = FakeSource(
+            result = FuelStationsResult(emptyList()),
+            rememberedResult = FuelStationsResult(
+                listOf(station("ES1", prices = mapOf(FuelType.DIESEL to StationPrice(Money(1.759, "EUR"))))),
+                rememberedAtMs = 1_000L,
+            ),
+        )
+        val known = GetNearbyFuelStationsUseCase(source, FakeGeocoder(madrid))
+            .remembered(40.4168, -3.7038, FuelType.DIESEL)
+
+        assertEquals(listOf("ES1"), known?.stations?.map { it.station.id })
+        // ⛔ Lo que lo hace honesto: viaja fechado, así que ninguna superficie puede tomarlo por
+        // una respuesta fresca.
+        assertEquals(1_000L, known?.rememberedAtMs)
+        // ⛔ Y ni un viaje a la red: es el punto entero de este camino.
+        assertEquals(0, source.asksOverTheWire)
+    }
+
+    @Test
+    fun `should_rememberNothing_when_nobodyHasBeenHere`() = runTest {
+        val source = FakeSource(result = FuelStationsResult(emptyList()))
+        assertNull(
+            GetNearbyFuelStationsUseCase(source, FakeGeocoder(madrid))
+                .remembered(40.4168, -3.7038, FuelType.DIESEL),
+        )
+    }
+
+    @Test
+    fun `should_askTheSameZone_as_theLiveAnswer`() = runTest {
+        // ⛔ La misma consulta que [invoke], y por la provincia: una clave de caché PARECIDA es una
+        // clave distinta, o sea un fallo de caché mudo y un primer vistazo que nunca recuerda nada.
+        val source = FakeSource(result = FuelStationsResult(emptyList()))
+        val useCase = GetNearbyFuelStationsUseCase(source, FakeGeocoder(madrid))
+        useCase.invoke(40.4168, -3.7038, FuelType.DIESEL)
+        useCase.remembered(40.4168, -3.7038, FuelType.DIESEL)
+
+        assertEquals(source.seen, source.rememberedSeen)
+    }
+
+    @Test
+    fun `should_priceTheRememberedStations_forThisCarsFuel`() = runTest {
+        // Un recuerdo se cotiza como la respuesta viva — por el PRODUCTO del surtidor, no por la
+        // mecánica del coche. [FUEL-A-HYBRID-FILLS-UP-WITH-PETROL-001]
+        val source = FakeSource(
+            result = FuelStationsResult(emptyList()),
+            rememberedResult = FuelStationsResult(
+                listOf(station("ES1", prices = mapOf(FuelType.GASOLINE to StationPrice(Money(1.639, "EUR"))))),
+                rememberedAtMs = 1_000L,
+            ),
+        )
+        val known = GetNearbyFuelStationsUseCase(source, FakeGeocoder(madrid))
+            .remembered(40.4168, -3.7038, FuelType.HYBRID)
+
+        assertEquals(1.639, known?.stations?.single()?.price?.perUnit?.amount)
+    }
+
+    @Test
+    fun `should_measureTheRememberedStations_fromWhereYouAreNow`() = runTest {
+        // ⛔ La distancia es TUYA, no del recuerdo: se mide al leerlo, nunca se guarda.
+        val source = FakeSource(
+            result = FuelStationsResult(emptyList()),
+            rememberedResult = FuelStationsResult(
+                listOf(station("ES1", lat = 40.4168, lon = -3.7038)),
+                rememberedAtMs = 1_000L,
+            ),
+        )
+        val useCase = GetNearbyFuelStationsUseCase(source, FakeGeocoder(madrid))
+
+        val fromThere = useCase.remembered(40.4268, -3.7038, FuelType.DIESEL)
+        assertTrue((fromThere?.stations?.single()?.distanceMeters ?: 0.0) > 1_000.0)
+
+        val fromHere = useCase.remembered(40.4168, -3.7038, FuelType.DIESEL)
+        assertTrue((fromHere?.stations?.single()?.distanceMeters ?: 1.0) < 1.0)
     }
 }

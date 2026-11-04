@@ -4273,6 +4273,72 @@ Spec: `docs/backlog/ui-the-ask-is-a-camera-subject-001.md`.
 
 ---
 
+### DET-A-SILENT-SERVICE-IS-NOT-A-DEAD-ONE-001 — «no ha hablado» no es «lo mataron» (pending)
+
+**Report.** Del user, revisando los avisos de Home: *«el badge que aparece abajo del sheet cuando
+faltan permisos o hay vigilancia muerta sigue estando no?»*. La fila estaba intacta — lo que se
+destapó al verificarla es que **se mostraba cuando no debía**.
+
+**Root cause.** `ServicePresence` valía **`Dead` por defecto**, en los tres sitios que lo inicializan
+(el default de la interfaz, el holder de producción, el doble de tests). Pero ese flujo lo escribe
+**únicamente el propio servicio**, en sus tres bordes de ciclo de vida (`Active` al lanzar un job,
+`Sentry` al hacerse residente, `Dead` en su `onDestroy`), y vive **en memoria del proceso**. O sea:
+en un arranque en frío vale el default *hasta que el servicio arranca y dice `Sentry`* — y mientras
+ese default fuera `Dead`, toda superficie que preguntara «¿está muerto?» recibía un **sí que nadie
+había medido**.
+
+Consecuencia en pantalla: con coche aparcado en carril Coordinator, `resolveParkedWatchBadge`
+devolvía `WATCH_INTERRUPTED` y Home decía **«Vigilancia inmediata en pausa de tu <coche> · Tu móvil
+la pausó»** en **cada arranque en frío**, hasta que el servicio armaba. La app acusaba al sistema de
+un asesinato que no había ocurrido.
+
+⚠️ El defecto era **anterior** a esta tanda, pero `HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001` lo
+amplificó de síntoma barato a secuestro: su `warningOpenCue` **despliega la hoja** sobre la fila del
+aviso, así que el falso positivo pasó de una fila que se corrige sola a abrirse la hoja en cada
+arranque.
+
+**Fix.** `ServicePresence` gana un miembro **`Unknown`**, que es ahora el valor inicial en los tres
+sitios. No es un estado del servicio: es la **ausencia de información** sobre él. Es la doctrina del
+proyecto aplicada a una lectura — *no saber no es saber que no*, *el evento NOMINA y sólo lo MEDIDO
+confirma* — y la misma forma que `FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001` ya le dio a una
+respuesta: **no preguntado ≠ vacío ≠ fallido**.
+
+⛔ **Y la misma falta de noticias significa cosas distintas según quién pregunte**, así que cada
+consumidor declara su pregunta vía `ServicePresence.isWatchingLive` en vez de comparar contra un
+valor:
+
+| Consumidor | Qué pregunta | `Unknown` responde | Por qué |
+|---|---|---|---|
+| `resolveParkedWatchBadge` (Home) | ¿puedo **afirmar** que vigilo? | **no** → `WATCH_UNKNOWN`, que no se pinta | una FRASE sin medir es una acusación; y caer en `WATCHING` sería la mentira que `DET-WATCH-HONEST-001` existe para impedir |
+| `ObserveDepartureWatchGapUseCase` | ¿hay un hueco que **cerrar**? | **sí** → hueco, igual que `Dead` | produce una ACCIÓN idempotente, no una frase: arrancar un vigilante que ya corre no cuesta nada, no arrancar uno muerto cuesta una plaza. **Fallo asimétrico**, y preserva el comportamiento anterior |
+| `resolveSentryKillVerdict` | ¿mataron al residente? | **sí** → `Killed` (cae en el `else`) | es el único sitio donde el silencio SÍ prueba la muerte: la pregunta sólo se hace cuando la residencia **se esperaba** y el proceso es nuevo |
+| `CoordinatorDetectionService` · `SignificantMotionMonitor` | ¿soy residente **ahora**? | no (comparan `== Sentry`) | sin cambio: `Unknown` se comporta como `Dead` para ellos, que es lo correcto |
+
+`WATCH_UNKNOWN` **no se dibuja**: `resolveDetectionStory` lo resuelve a `Hidden` antes de que
+ninguna superficie lo vea. La card del coche ya dice la verdad —aparcado, y dónde— sin afirmar nada
+sobre el vigilante, y un beat después hay veredicto. Un aviso que se desdice solo cuesta más que el
+silencio que lo precede.
+
+**Barrido de consumidores.** `grep -rn "ServicePresence"` → 4 lectores reales (tabla de arriba), 8
+escritores (service, iOS controller, Dev Catalog, fakes) y el resto KDoc. Los dos `when` sobre
+`ParkedWatchBadge` los encontró **el compilador** al añadir el miembro —`DetectionNotice.notice()` y
+`HomeDetectionSurface`—, que es el barrido gratis que da un enum sellado. Los presets del Dev
+Catalog que escriben `Dead` quedan **exentos con razón**: ahí el user AFIRMA la muerte a propósito
+con su interruptor.
+
+**Companion-fix risk.** Que `Unknown` se cuele como «sano» en algún sitio y la app prometa una
+vigilancia sin demostrar. Pinned por `a service that has not spoken yields no verdict, never an
+accusation` y `not knowing does not become fragile either`; y la mitad opuesta, por
+`should_reportGap_when_theServiceHasNotSpokenYet`.
+
+⚠️ **Y la lección que vale más que el arreglo**: la función del cue de Home tenía un test
+—`should_open_when_home_arrives_with_the_watch_already_dead`— que **defendía el bug**, con su
+falsificación en verde. Falsificar prueba que el test MIRA; **no prueba que mire lo correcto**. La
+premisa («llegar con la vigilancia ya muerta») era falsa: aquello no era una vigilancia muerta, era
+una sin medir.
+
+Spec: `docs/backlog/det-a-silent-service-is-not-a-dead-one-001.md`.
+
 ## 3. Open questions / future work
 
 - **GPS sampling boost during CANDIDATE (PARKING-001 Option B).** Switch the LocationDataSource to a 1 s `minUpdateIntervalMillis` request when entering the CANDIDATE phase, returning to 2 s on exit. Increases density of fixes that refine `bestStopLocation` within the new initial-stop window after a reposition burst. Adds the complexity of swapping the location source mid-session — hold off until A is validated in the field.

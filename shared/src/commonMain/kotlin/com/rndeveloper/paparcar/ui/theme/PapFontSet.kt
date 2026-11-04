@@ -53,20 +53,6 @@ class PapFontSet(
     val figureDescentEm: Float,
 )
 
-/**
- * Cuánto hay que SUBIR un bloque «cifra sobre unidad» para que lo que se ve quede centrado en su
- * caja, en vez de estarlo la caja de texto.
- *
- * Arriba sobra el ascenso que el dígito no usa; abajo, el descenso que las mayúsculas no usan. La
- * corrección es la mitad de la diferencia. Medido en device: el contador del sheet pasó de 14 px
- * descentrado a 2 px. [UI-SHEET-001]
- */
-fun PapFontSet.figureOpticalLiftSp(figureSp: Float, unitSp: Float): Float {
-    val deadTop = (figureAscentEm - figureCapHeightEm) * figureSp
-    val deadBottom = figureDescentEm * unitSp
-    return (deadTop - deadBottom) / 2f
-}
-
 /** El font set activo, para lo poco que necesita las MÉTRICAS de la fuente y no un rol. */
 object PapFonts {
     val current: PapFontSet

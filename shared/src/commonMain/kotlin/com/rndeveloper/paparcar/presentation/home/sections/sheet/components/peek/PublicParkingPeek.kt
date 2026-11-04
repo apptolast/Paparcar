@@ -8,11 +8,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Navigation
 import androidx.compose.material.icons.rounded.AccessTimeFilled
+import androidx.compose.material.icons.rounded.Height
+import androidx.compose.material.icons.rounded.LocalParking
+import androidx.compose.material.icons.rounded.Payments
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.rndeveloper.paparcar.domain.parkings.FeeInfo
 import com.rndeveloper.paparcar.domain.usecase.parkings.NearbyPublicParking
 import com.rndeveloper.paparcar.presentation.home.HomeIntent
@@ -24,6 +28,7 @@ import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapS
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetLead
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetStepper
 import com.rndeveloper.paparcar.presentation.util.distanceMeters
+import com.rndeveloper.paparcar.presentation.util.distanceString
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
 import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
@@ -81,11 +86,42 @@ internal fun PublicParkingPeek(
             container = PapColor.carPark,
             tint = PapColor.onCarPark,
         ),
-        eyebrow = stringResource(Res.string.parking_peek_eyebrow).uppercase(),
-        eyebrowTone = PapSheetEyebrowTone.Action,
+        // ⛔ La MISMA gramática que el resto de peeks (decisión del user, 30-10).
+        // [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+        eyebrow = "",
         title = title,
-        // The kind under the name — unless the title already IS the kind.
+        titleSlot = peekSubjectTitleSlot(
+            name = title,
+            // ⛔ **`onSurface`, sin color de identidad** (user, 30-10): *«será en color normal, no le
+            // metas color»*. En el modal el nombre ES el título de la hoja, no el nombre dentro de
+            // una fila, y el color de identidad ya lo lleva el TILE de la izquierda — que es
+            // literalmente lo que manda la doctrina: *«el glifo lleva el color; el nombre queda en
+            // `onSurface`»*. La excepción escrita ahí es «el eyebrow del peek, donde no hay glifo», y
+            // aquí no hay eyebrow **ni** falta glifo: hay tile. [UI-COLOR-DOCTRINE-001]
+            //
+            // Los CARRILES («Plazas», «Parkings», «Gasolineras») sí siguen en su color, y es otra
+            // petición del mismo user: ahí el nombre es la CATEGORÍA, no un sujeto con tile propio.
+            nameColor = MaterialTheme.colorScheme.onSurface,
+            // Su tipo es el calificador — salvo que el tipo YA sea el nombre, y entonces no se
+            // repite. Misma deduplicación que tenía el subtítulo.
+            qualifier = null,
+            maxLines = PEEK_MODAL_TITLE_MAX_LINES,
+        ),
+        // ⛔ **El calificador baja a su propia línea, y sin el ·** (user, 03-11): *«cuando tengamos el
+        // título seguido de ·, poner esa línea abajo de la primera línea sin ·»*. Con los dos en un
+        // solo `Text` de 2 líneas el corte caía a mitad de frase —«Plaza comunitaria · Publicada
+        // hace 1 / min»— porque el envoltorio no sabe dónde acaba una idea.
+        //
+        // Y no hace falta componer nada: es el `subtitle` de la hoja, el slot declarado para la
+        // segunda línea bajo el título, que los modales dejaron libre al bajar el sitio al cuerpo.
+        // El separador desaparece con él — un · une dos cosas en una línea; en dos líneas sobra.
+        // Su tipo — salvo que el tipo YA sea el nombre, y entonces no se repite.
         subtitle = kindLabel.takeIf { it != title },
+        // ⛔ **Sin fila de sitio**, y no es un olvido: un parking público no trae dirección en
+        // ninguna fuente (`PublicParking` no tiene campo). Sus hechos abren por la distancia.
+        // [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+        // La cabecera NOMBRA; el cuerpo DESARROLLA. El sitio y la distancia abren los hechos.
+        // [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
         onDismiss = { onIntent(HomeIntent.SelectItem(null)) },
         // ‹ / › walk the car parks in the list's own order, through the SAME action a row or a
         // capsule fires — the same stepper the spot and fuel peeks use.
@@ -97,7 +133,7 @@ internal fun PublicParkingPeek(
             onNext = step.nextId?.let { id -> { onAction(HomeSheetAction.SelectPublicParking(id)) } },
         ),
         meta = {
-            DistanceRow(
+            DistanceAndTimeRow(
                 distanceM = distM,
                 mode = TravelMode.DRIVING,
                 accentColor = MaterialTheme.colorScheme.primary,
@@ -111,25 +147,31 @@ internal fun PublicParkingPeek(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        },
-        content = {
+            // Los tres hechos del parking son HECHOS, no un desglose: viven en la misma banda que
+            // la distancia y el horario, colgando del mismo canal. Venían del difunto
+            // `ParkingFactRow`, que los pintaba 28 dp a la izquierda de sus vecinos.
             // ⛔ UNKNOWN says nothing at all. It is not "free", and it is not "unknown" written out
             // either — a row that exists only to say we do not know is noise in a peek this small.
             when (parking.fee) {
-                FeeInfo.PAID -> ParkingFactRow(stringResource(Res.string.parking_fee_paid))
-                FeeInfo.FREE -> ParkingFactRow(stringResource(Res.string.parking_fee_free))
+                FeeInfo.PAID -> ParkingFactRow(Icons.Rounded.Payments, stringResource(Res.string.parking_fee_paid))
+                FeeInfo.FREE -> ParkingFactRow(Icons.Rounded.Payments, stringResource(Res.string.parking_fee_free))
                 FeeInfo.UNKNOWN -> Unit
             }
             parking.capacity?.let { spaces ->
                 // The TOTAL, and it is never dressed as availability: how many are free right now is
                 // what `PARKINGS-LIVE-OCCUPANCY-001` will answer, and until then nobody claims it.
-                ParkingFactRow(stringResource(Res.string.parking_capacity, spaces.toString()))
+                ParkingFactRow(
+                    Icons.Rounded.LocalParking,
+                    stringResource(Res.string.parking_capacity, spaces.toString()),
+                )
             }
             parking.maxHeightMeters?.let { metres ->
                 // The one fact a van driver cannot guess from a map.
-                ParkingFactRow(stringResource(Res.string.parking_max_height, formatClearance(metres)))
+                ParkingFactRow(
+                    Icons.Rounded.Height,
+                    stringResource(Res.string.parking_max_height, formatClearance(metres)),
+                )
             }
-            Spacer(Modifier.height(PapGap.block))
         },
         actions = {
             PapFooterButton(
@@ -153,15 +195,21 @@ internal fun PublicParkingPeek(
 
 /** One stated fact, in the reading voice. */
 @Composable
-private fun ParkingFactRow(text: String) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        Text(
-            text = text,
-            style = PaparcarType.current.body,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f),
-        )
-    }
+private fun ParkingFactRow(icon: ImageVector, text: String) {
+    // ⛔ **El mismo molde que sus vecinas, y con su glifo.** Era un `Row` propio con su
+    // `padding(vertical = 4.dp)` y sin canal, así que estos tres hechos salían 28 dp a la izquierda
+    // de la distancia y el horario — medido en el Oppo: x=48 contra x=126.
+    //
+    // El canal lo arregló primero dejándolo VACÍO, y eso estaba a medias: *«para la modal de parking
+    // le faltan un icono al resto de datos»* (user, 02-11). Tenía razón, y mi excusa era falsa —
+    // escribí que el set extendido de Material no estaba en el classpath y sí lo está: la app ya usa
+    // `AccessTimeFilled`, `Adjust`, `Bolt` y `Campaign`, que son todos de ahí. Nivel 2 del sistema de
+    // iconos: concepto de UI → Material Rounded con `tint`. [UI-LIST-ITEM-001]
+    PeekMetaRow(
+        icon = icon,
+        text = text,
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 /**

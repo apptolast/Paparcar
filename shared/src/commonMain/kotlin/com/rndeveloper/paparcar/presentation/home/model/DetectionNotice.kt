@@ -41,7 +41,13 @@ fun DetectionStory.notice(): DetectionNotice? = when (this) {
         ParkedWatchBadge.WATCHING_FRAGILE -> DetectionNotice.WatchFragile
         ParkedWatchBadge.WATCH_INTERRUPTED -> DetectionNotice.WatchInterrupted
         // La línea calmada y la de «marca tu vehículo» no son avisos: no hay nada que callar.
-        ParkedWatchBadge.WATCHING, ParkedWatchBadge.PARK_MY_VEHICLE -> null
+        // ⛔ Y «todavía no se sabe» tampoco: callar una duda no la resuelve, y la historia ya la
+        // resuelve a `Hidden` antes de llegar aquí, así que no hay ni fila que llevar la ×.
+        // [DET-A-SILENT-SERVICE-IS-NOT-A-DEAD-ONE-001]
+        ParkedWatchBadge.WATCHING,
+        ParkedWatchBadge.PARK_MY_VEHICLE,
+        ParkedWatchBadge.WATCH_UNKNOWN,
+        -> null
     }
     is DetectionStory.AwaitingAnswer,
     DetectionStory.PendingAsk,

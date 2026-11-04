@@ -2,6 +2,7 @@ package com.rndeveloper.paparcar.domain.usecase.fuel
 
 import com.rndeveloper.paparcar.domain.fuel.FuelStation
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsQuery
+import com.rndeveloper.paparcar.domain.fuel.FuelStationsResult
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsSource
 import com.rndeveloper.paparcar.domain.fuel.fuelStationKey
 import com.rndeveloper.paparcar.domain.geocoder.GeocoderDataSource
@@ -103,11 +104,56 @@ class GetNearbyFuelStationsUseCase(
         fuel: FuelType?,
         radiusMeters: Int = FuelStationsQuery.DEFAULT_RADIUS_METERS,
     ): Result<NearbyFuelStations> {
+        val query = queryFor(latitude, longitude, radiusMeters)
+
+        // What this car buys at the pump, which is what every feed is indexed by. A hybrid asking
+        // for «hybrid» matched nothing anywhere and came back unpriced in silence.
+        // [FUEL-A-HYBRID-FILLS-UP-WITH-PETROL-001]
+        val product = fuel?.pumpProduct
+
+        return stations.stationsNear(query).map { result ->
+            answeredFor(result, latitude, longitude, product)
+        }
+    }
+
+    /**
+     * Lo que la app ya puede decir de este punto **sin preguntar a nadie**, o null cuando nunca ha
+     * guardado nada de aquí. [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+     *
+     * ⛔ **No sustituye a [invoke] ni compite con él.** Existe para el momento en que nadie ha
+     * preguntado por las gasolineras todavía: al arrancar, Home pide el carril por defecto —plazas—
+     * y éste no se pide hasta que el usuario toca su pestaña. Sin esto, «Aquí y ahora» abre con una
+     * sola tarjeta y el primer vistazo no enseña de qué es capaz la app.
+     *
+     * Misma consulta, mismo filtrado y mismas distancias que [invoke] — compartiendo [queryFor] y
+     * [answeredFor] en vez de repetirlos, porque dos copias de «qué gasolineras merece enseñar» es
+     * cómo la lista recordada y la viva acaban discrepando. El mismo contrato que
+     * `GetNearbyPublicParkingsUseCase.remembered`.
+     * [PARKINGS-A-REMEMBERED-MAP-ANSWERS-BEFORE-THE-NETWORK-001]
+     */
+    suspend fun remembered(
+        latitude: Double,
+        longitude: Double,
+        fuel: FuelType?,
+        radiusMeters: Int = FuelStationsQuery.DEFAULT_RADIUS_METERS,
+    ): NearbyFuelStations? = stations
+        .remembered(queryFor(latitude, longitude, radiusMeters))
+        ?.let { answeredFor(it, latitude, longitude, fuel?.pumpProduct) }
+
+    /**
+     * La ÚNICA definición de la consulta. Vivía dentro de [invoke]; sacarla es lo que permite que
+     * [remembered] pregunte por la MISMA zona en vez de por una parecida — y una clave de caché
+     * parecida es una clave distinta, o sea un fallo de caché silencioso.
+     */
+    private suspend fun queryFor(
+        latitude: Double,
+        longitude: Double,
+        radiusMeters: Int,
+    ): FuelStationsQuery {
         // A failed geocode is not a failed request: the fallback covers the world and does not need
         // a region, so an unknown country still gets the user a list of places to refuel.
         val address = geocoder.getAddress(latitude, longitude).getOrNull()
-
-        val query = FuelStationsQuery(
+        return FuelStationsQuery(
             latitude = latitude,
             longitude = longitude,
             countryCode = address?.countryCode.orEmpty(),
@@ -127,13 +173,18 @@ class GetNearbyFuelStationsUseCase(
             postalCode = address?.postalCode,
             radiusMeters = radiusMeters,
         )
+    }
 
-        // What this car buys at the pump, which is what every feed is indexed by. A hybrid asking
-        // for «hybrid» matched nothing anywhere and came back unpriced in silence.
-        // [FUEL-A-HYBRID-FILLS-UP-WITH-PETROL-001]
-        val product = fuel?.pumpProduct
-
-        return stations.stationsNear(query).map { result ->
+    /**
+     * El único sitio donde una respuesta SOBRE UNA ZONA se vuelve una respuesta SOBRE QUIEN
+     * PREGUNTA: filtrada por lo que este coche compra, medida desde donde está y con su clave.
+     */
+    private fun answeredFor(
+        result: FuelStationsResult,
+        latitude: Double,
+        longitude: Double,
+        product: FuelType?,
+    ): NearbyFuelStations =
             NearbyFuelStations(
                 stations = result.stations
                     // ⛔ Hidden ONLY when the source states a negative. An untagged OSM station is
@@ -165,6 +216,4 @@ class GetNearbyFuelStationsUseCase(
                 didFallBack = result.didFallBack,
                 pricesAreLive = result.pricesAreLive,
             )
-        }
-    }
 }

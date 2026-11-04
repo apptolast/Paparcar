@@ -96,11 +96,20 @@ data class HomeState(
      *  keep the ask. [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001] */
     val showDetectionPitch: Boolean = false,
     /**
-     * Bumped when the first-entry location ask is refused while the location warning applies: the
-     * KEY of the sheet's auto-open onto that warning. A counter, not a flag, so it opens once per
-     * refusal and a sheet dragged back down stays down. [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
+     * The KEY of the sheet's auto-open onto the WARNING that leads the detection stories. A counter,
+     * not a flag, so it opens once per cause and a sheet dragged back down stays down.
+     * [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
+     *
+     * ⛔ **ONE counter for every cause, and that is the point.** Two causes bump it today:
+     *  - the first-entry location ask was **refused** while the location warning applies;
+     *  - the departure watch just **died** (`watchInterruptionEarnsAnOpen`).
+     *
+     * A second counter beside this one would have been a second copy of «rebobina y despliega» — and
+     * the day the two drift is the day a warning opens the sheet twice or not at all. A third cause
+     * bumps THIS field and writes its own verdict, never its own cue.
+     * [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
      */
-    val locationWarningCue: Int = 0,
+    val warningOpenCue: Int = 0,
     /**
      * The first-entry location ask has been made at least once on this install — the persisted
      * `AppPreferences.hasRequestedLocationPermission`, mirrored into state so the projections can
@@ -250,11 +259,16 @@ data class HomeState(
 
     /**
      * Real lifecycle of the Coordinator foreground service — [ServicePresence.Sentry]/[ServicePresence.Active]
-     * mean the departure watch is genuinely live; [ServicePresence.Dead] means it was killed or never
-     * (re)started. Drives the honest watch badge so "Vigilando tu sitio" never claims to watch a spot
-     * the OS stopped watching. [DET-WATCH-HONEST-001]
+     * mean the departure watch is genuinely live; [ServicePresence.Dead] means it was killed. Drives
+     * the honest watch badge so "Vigilando tu sitio" never claims to watch a spot the OS stopped
+     * watching. [DET-WATCH-HONEST-001]
+     *
+     * ⛔ **Arranca en [ServicePresence.Unknown], no en `Dead`.** Decía `Dead` y eso hacía que Home
+     * acusara al sistema de haber matado al vigilante en **cada arranque en frío** con coche
+     * aparcado — antes de que el servicio hubiera tenido ocasión de decir nada.
+     * [DET-A-SILENT-SERVICE-IS-NOT-A-DEAD-ONE-001]
      */
-    val servicePresence: ServicePresence = ServicePresence.Dead,
+    val servicePresence: ServicePresence = ServicePresence.Unknown,
 
     // ── Guided first steps. [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] ──
 
