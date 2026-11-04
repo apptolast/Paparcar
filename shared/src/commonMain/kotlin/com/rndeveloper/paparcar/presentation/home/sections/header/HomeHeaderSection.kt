@@ -1,6 +1,5 @@
 package com.rndeveloper.paparcar.presentation.home.sections.header
 
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -141,11 +140,6 @@ private fun HeaderZoneChips(
     highlightAddZone: Boolean,
 ) {
     val rowState = rememberLazyListState()
-    // The add chip is the LAST item: with a few zones it can sit off screen, so the tutorial brings it
-    // into view. [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001]
-    LaunchedEffect(highlightAddZone) {
-        if (highlightAddZone) rowState.animateScrollToItem(zones.size)
-    }
     LazyRow(
         state = rowState,
         modifier = Modifier.fillMaxWidth(),
