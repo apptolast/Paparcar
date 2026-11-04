@@ -63,8 +63,8 @@ import paparcar.composeapp.generated.resources.subject_public_parkings
  *
  * ⛔ **La anchura entró porque las otras dos no bastaban.** Este KDoc decía «no son pares» mientras
  * la fila repartía `weight(1f)` a las tres, así que la asimetría que declara sólo existía en el
- * default y en el orden — y ninguno de los dos se ve al mirar la fila. Ahora las plazas llevan
- * [PRODUCT_TAB_WEIGHT]. [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+ * default y en el orden — y ninguno de los dos se ve al mirar la fila. La fila mantiene ahora
+ * tres celdas iguales para que las etiquetas largas no pierdan espacio. [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
  *
  * The count is shown **only where it is known**: spots always (the feed is a live subscription), a
  * complement only after its lane has actually been asked. ⛔ A `0` on a subject nobody asked yet is a
@@ -100,12 +100,10 @@ internal fun HomeNearbyLensRow(
                 lens = lens,
                 onSelect = onSelect,
                 highlighted = highlighted,
-                // ⛔ MÁS ancha que las otras dos, y eso ES la jerarquía que el ⛔ de abajo
-                // declara. Hasta [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001] las tres iban a
-                // `weight(1f)`, así que el KDoc decía «no son pares» y la fila las pintaba
-                // idénticas: la asimetría vivía sólo en el default y en el orden, y ninguna de
-                // las dos se ve al mirar la fila.
-                modifier = Modifier.weight(PRODUCT_TAB_WEIGHT),
+                // Las tres son pestañas del mismo nivel y deben conservar una celda
+                // horizontal idéntica. Dar más peso a plazas estrechaba las etiquetas largas de
+                // parkings y gasolineras y hacía que la última quedara elidida.
+                modifier = Modifier.weight(1f),
             )
             LensTab(
                 subject = HomeNearbyLens.PARKINGS,
@@ -241,16 +239,9 @@ private fun LensTab(
 }
 
 /**
- * Lo que la pestaña de PLAZAS ocupa frente a cada complemento.
- * [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
- *
- * ⛔ **1,25 y no 1,5.** Medido sobre el ancho real de la fila: a 390 dp, con 1,25 las plazas se
- * llevan 136 dp y cada complemento 109, que es un cuarto más sin que ninguna de las dos etiquetas
- * largas —«Gasolineras», «Parkings»— pierda sitio. A 1,5 los complementos bajan a 100 dp y
- * «Gasolineras» empieza a elidir en los locales que la escriben largo, y una pestaña que no se
- * puede leer no es una jerarquía: es una esquina recortada.
+ * Las tres pestañas ocupan el mismo ancho para que sus etiquetas queden alineadas y centradas,
+ * incluso cuando una muestra una cifra y otra muestra un icono.
  */
-private const val PRODUCT_TAB_WEIGHT = 1.25f
 
 private const val TAB_TOP_PADDING_DP = 14
 private const val TAB_CONTENT_HEIGHT_DP = 24

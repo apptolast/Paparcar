@@ -9,8 +9,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Navigation
-import androidx.compose.material.icons.rounded.Star
-import androidx.compose.material.icons.rounded.StarOutline
+import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.NotificationsNone
 import androidx.compose.material.icons.rounded.AccessTimeFilled
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -68,7 +68,7 @@ import paparcar.composeapp.generated.resources.location_fallback_station
 
 private const val NOT_SOLD_ALPHA = 0.6f
 
-/** Aire entre la estrella y la frase que dice qué va a hacer con ella — el mismo 8 dp que separa
+/** Aire entre la campana y la frase que dice qué va a hacer con ella — el mismo 8 dp que separa
  *  los dos botones del pie. [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001] */
 private const val FOLLOW_PROMISE_GAP_DP = 8
 
@@ -97,7 +97,7 @@ internal fun FuelStationPeek(
      * Whether this forecourt is one the user follows.
      * [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
      *
-     * ⛔ The star is FREE and stays free. Following is the app answering something you just told it;
+     * ⛔ Following is FREE and stays free. The bell represents the price watch;
      * what Plus buys is the app watching that station while you are not looking. Hiding the gesture
      * behind the paywall would leave it selling a thing the user has never seen work.
      */
@@ -106,7 +106,7 @@ internal fun FuelStationPeek(
      * Whether this driver holds Plus — read ONLY to word what the star promises.
      * [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001]
      *
-     * ⛔ It never hides or disables the star: following stays free. It decides between the two
+     * ⛔ It never hides or disables the bell: following stays free. It decides between the two
      * honest sentences a follow can say — "we will tell you if the price changes" and "watching it
      * daily is Plus". Without it, a free user's follow did nothing, said nothing, and left the
      * paywall selling a feature they had never seen work.
@@ -260,10 +260,10 @@ internal fun FuelStationPeek(
                 style = PapFooterButtonStyle.Filled,
                 modifier = Modifier.fillMaxWidth(),
             )
-            // The star. Outlined, under the primary: it is not what you came here to do — you came
-            // to see the price — but it is the gesture that turns this forecourt into a subject the
-            // app can watch. The label states the CURRENT state, never the action, so the button
-            // reads the same way as the switch it will end up feeding.
+            // The bell. Outlined when inactive and filled when followed: following is
+            // free, while the price-watch notifications are the Plus benefit explained below.
+            // The label states the CURRENT state, never the action, so the button reads the same
+            // way as the watch it will end up feeding.
             Spacer(Modifier.height(8.dp))
             PapFooterButton(
                 label = if (isFollowed) {
@@ -271,7 +271,11 @@ internal fun FuelStationPeek(
                 } else {
                     stringResource(Res.string.fuel_peek_follow)
                 },
-                leadingIcon = if (isFollowed) Icons.Rounded.Star else Icons.Rounded.StarOutline,
+                leadingIcon = if (isFollowed) {
+                    Icons.Rounded.Notifications
+                } else {
+                    Icons.Rounded.NotificationsNone
+                },
                 onClick = { onAction(HomeSheetAction.ToggleFollowFuelStation(nearby.stationKey)) },
                 style = PapFooterButtonStyle.Outlined,
                 modifier = Modifier.fillMaxWidth(),

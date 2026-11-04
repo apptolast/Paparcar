@@ -2,7 +2,7 @@ package com.rndeveloper.paparcar.presentation.home.sections.sheet.components
 
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -13,8 +13,8 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.fuel_peek_following
 
 /**
- * «Ésta es una de las tuyas» — la marca de una gasolinera seguida, **en todas las superficies que
- * pintan una gasolinera**. [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001]
+ * «Ésta es una de las que sigues» — la campana de una gasolinera seguida, **en todas las superficies
+ * que pintan una gasolinera**. [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001]
  *
  * ⛔ Un solo objeto, y existe porque no existía: `followedFuelStationKeys` llevaba meses en el
  * estado con **un** consumidor —el botón de pie del peek—, así que la lista no distinguía una
@@ -22,12 +22,12 @@ import paparcar.composeapp.generated.resources.fuel_peek_following
  * final de su propia hoja. Dos superficies dibujando cada una su propia marca es la forma de que
  * dentro de tres meses digan dos cosas distintas.
  *
- * ## Por qué una estrella verde, y no otra cosa
+ * ## Por qué una campana verde, y no otra cosa
  *
  * Verde de acción legible ([PapColor.actionText]), el mismo que lleva el botón que la enciende: la
- * estrella es la **huella de un gesto del usuario**, no identidad de vehículo (`papCarBlue` / gris)
- * ni rampa de frescura (los cuatro de las plazas). Y es una marca, no un estado del mundo, así que
- * no la escribe ninguna palabra. [UI-COLOR-DOCTRINE-001]
+ * campana es la **huella de un seguimiento elegido por el usuario**, no identidad de vehículo
+ * (`papCarBlue` / gris) ni rampa de frescura (los cuatro de las plazas). Y es una marca, no un estado
+ * del mundo, así que no la escribe ninguna palabra. [UI-COLOR-DOCTRINE-001]
  *
  * ## Y su etiqueta es la del botón, no una nueva
  *
@@ -38,7 +38,7 @@ import paparcar.composeapp.generated.resources.fuel_peek_following
 @Composable
 internal fun FuelFollowMark(modifier: Modifier = Modifier) {
     Icon(
-        imageVector = Icons.Rounded.Star,
+        imageVector = Icons.Rounded.Notifications,
         // No es decorativa: es la única diferencia entre esta fila y la de al lado.
         contentDescription = stringResource(Res.string.fuel_peek_following),
         tint = PapColor.actionText,
