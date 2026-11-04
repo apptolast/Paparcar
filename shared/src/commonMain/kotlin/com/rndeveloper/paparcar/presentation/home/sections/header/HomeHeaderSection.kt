@@ -166,7 +166,7 @@ private fun HeaderZoneChips(
                 onEdit = remember(zone.id, onEditZone) { { onEditZone(zone.id) } },
             )
         }
-        item("add_zone") {
+        item {
             AddZoneChip(
                 expanded = inviteToAddZone,
                 onAddZone = onAddZone,
