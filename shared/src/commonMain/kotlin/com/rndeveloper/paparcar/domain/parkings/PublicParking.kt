@@ -66,6 +66,19 @@ data class PublicParking(
     val maxHeightMeters: Double? = null,
     /** Opening hours as the source words them. Not parsed: a wrong parse closes an open car park. */
     val openingHours: String? = null,
+    /**
+     * Cuántas plazas quedan AHORA, donde alguna ciudad lo publique.
+     * [PARKINGS-A-LIVE-COUNT-OUTRANKS-A-TARIFF-001]
+     *
+     * ⛔ **Null es la norma, como todo lo de arriba**: hoy la publican **24 parkings de Madrid** de
+     * los 70.062 de España. No es un campo que falte por rellenar: es un campo que la mayor parte
+     * del mundo no tiene, y por eso la escalera de [ParkingHeadline] tiene que saber callarse.
+     *
+     * ⛔ Y **no se persiste en Room**: la caña de disco guarda 30 días y un recuento de plazas libres
+     * de hace tres semanas es exactamente la mentira que esto no puede contar. La base se recuerda;
+     * la medida, nunca.
+     */
+    val availability: ParkingAvailability? = null,
 ) {
     /**
      * The name to show, or null when nobody wrote one — in which case the UI titles the row by

@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.data.parkings
 
 import com.rndeveloper.paparcar.domain.parkings.FeeInfo
+import com.rndeveloper.paparcar.domain.parkings.ParkingAvailability
 import com.rndeveloper.paparcar.domain.parkings.PublicParking
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingKind
 import kotlinx.serialization.Serializable
@@ -70,6 +71,15 @@ data class ParkingsApiEntry(
 @Serializable
 data class ParkingsApiAvailability(
     val free: Int = 0,
+    /**
+     * ⛔ **`true` cuando la fuente NO sella su dato y `updatedAt` es NUESTRA hora de lectura.**
+     * [PARKINGS-LIVE-OCCUPANCY-001]
+     *
+     * Nullable y no `Boolean = false`: el backend **lo omite** cuando es falso — Madrid sella cada
+     * parking, y escribir `false` en cada registro es pagar bytes por el caso normal. Ausente se lee
+     * como «el sello es de la fuente».
+     */
+    val updatedAtIsFetch: Boolean? = null,
     val total: Int? = null,
     val updatedAt: Long = 0,
     /** ⛔ Procedencia, NO confianza: `madrid`, `malaga`… El tipo de fuente va aparte. */
@@ -107,4 +117,21 @@ fun ParkingsApiEntry.toPublicParking(): PublicParking = PublicParking(
     fee = FeeInfo.entries.firstOrNull { it.name == fee } ?: FeeInfo.UNKNOWN,
     maxHeightMeters = maxHeightM,
     openingHours = openingHours,
+    // ⛔ Esto se estaba TIRANDO: la respuesta traía la ocupación de Madrid y moría en el mapeo,
+    // porque `PublicParking` no tenía el campo. La cifra estaba contestada en el servidor y no
+    // llegaba a la pantalla. [PARKINGS-A-LIVE-COUNT-OUTRANKS-A-TARIFF-001]
+    availability = availability?.toDomain(),
+)
+
+/**
+ * ⛔ **Sin `free` no hay medida.** Un bloque de ocupación al que le falta la cifra no se convierte
+ * en `free = 0`: eso diría «completo» de un parking que no ha dicho nada. El DTO tiene defaults
+ * porque viene de la red, y aquí es donde se deja de confiar en ellos.
+ */
+private fun ParkingsApiAvailability.toDomain(): ParkingAvailability = ParkingAvailability(
+    free = free,
+    total = total,
+    updatedAtMs = updatedAt,
+    source = source,
+    isStampedByUs = updatedAtIsFetch ?: false,
 )
