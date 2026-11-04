@@ -825,6 +825,7 @@ private fun HomeContent(
                 val onFuelStationMarkerClick: (String) -> Unit = remember(uiController, motion) {
                     { stationId ->
                         currentFuelStations.value.firstOrNull { it.station.id == stationId }?.let { s ->
+                            onIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.FUEL))
                             onIntent(HomeIntent.SelectItem(HomeSelection.FuelStation(stationId)))
                             uiController.goToPlace(s.station.latitude, s.station.longitude)
                             motion.animateToExpanded()
@@ -854,6 +855,7 @@ private fun HomeContent(
                 val onPublicParkingMarkerClick: (String) -> Unit = remember(uiController, motion) {
                     { parkingId ->
                         currentPublicParkings.value.firstOrNull { it.parking.id == parkingId }?.let { p ->
+                            onIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
                             onIntent(HomeIntent.SelectItem(HomeSelection.PublicParking(parkingId)))
                             uiController.goToPlace(p.parking.latitude, p.parking.longitude)
                             motion.animateToExpanded()
