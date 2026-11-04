@@ -284,7 +284,7 @@ color: el estado se escribe, no se tiñe).
   que cualifica el título de justo debajo), `cta`, `rowTitle` (título ESTRUCTURAL de fila: cabecera
   de la superficie de detección, paso de onboarding, estado vacío, fila de Ajustes), `subtitle`(16sp),
   `body`, `label`, `caption`, `meta` (la meta-line bajo un título), `badge` (`FIABLE`,
-  `SIN CONFIRMAR`, `ACTIVO`, `MEDIANO`, `3 en camino`)
+  `SIN CONFIRMAR`, `MEDIANO`, `3 en camino`, `MÁS BARATA`)
 - **CIFRA** — una cifra que es el SUJETO DE SU PROPIO BLOQUE, nunca dentro de una línea de texto:
   `statNumber`(25sp) + `statLabel`, `counter` + `counterUnit`, `chartLabel`, `chartValue`
 - Regla mental, tres preguntas con una sola respuesta: *¿es un nombre propio o un título? → MARCA.

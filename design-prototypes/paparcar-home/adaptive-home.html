@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paparcar · C · Adaptive home</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/base.css">
+</head>
+<body>
+<script src="assets/proto.js"></script>
+<script src="assets/shell.js"></script>
+<script>
+/* ============================================================================
+   ALTERNATIVA C · ADAPTIVE HOME — v2
+
+   Idea: la estructura no se mueve nunca. Lo que adapta es el CONTENIDO de una
+   línea de noticia, decidido por una precedencia fija y pura.
+
+   Diferencia con B, que es la que se está comparando: donde B pone un CARRUSEL
+   de hasta tres notables con el mismo trato, C pone UNA línea elegida por
+   precedencia — y cinco de sus nueve reglas CALLAN.
+   ============================================================================ */
+
+/* La precedencia. Pura, ordenada y citable en un diagnóstico. */
+function newsFor(s) {
+  if (s.perms === 'blocked')
+    return { rule: 'PERMISO_CORE', mute: true,
+             why: 'Falta un permiso: la fila de abajo lo pide, y una oportunidad encima sería ruido.' };
+  if (s.ask === 'pending')
+    return { rule: 'PREGUNTA_ABIERTA', mute: true,
+             why: 'Hay una pregunta con plazo. Nada compite con ella.' };
+  if (s.watch === 'interrupted')
+    return { rule: 'VIGILANCIA_MUERTA', mute: true,
+             why: 'La promesa central está rota; se arregla antes de ofrecer nada.' };
+  if (s.car === 'unmarked' && s.spots > 0)
+    return { rule: 'CONTRIBUCION', kind: 'spot', lens: null,
+             text: 'Tu aparcamiento ha liberado una plaza', sub: 'Ya la ve la comunidad',
+             why: 'Un hecho tuyo y de ahora mismo gana a cualquier dato del entorno.' };
+  // ⛔ Aquí había una regla `EN_RUTA` que CALLABA conduciendo, y la retiró el user
+  // (27-10) con el argumento que la desmonta: «¿quién dice que una persona
+  // conduciendo no pueda parar a repostar?». Repostar se hace SÓLO conduciendo,
+  // así que apagar las gasolineras justo ahí era apagarlas siempre que sirven.
+  //
+  // Y el argumento editorial que le quedaba —«el viaje es lo que se cuenta»— no
+  // se sostiene: el viaje YA lo cuenta la zona ① («En ruta · Ronda de Valencia»),
+  // así que la zona de noticia está libre. Conduciendo es, de hecho, el momento
+  // de MÁXIMO valor de lo que hay alrededor.
+  //
+  // Lo que sí se mantiene: la hoja no se despliega sola, y las tres reglas de
+  // arriba siguen callando — un permiso que falta, una pregunta con plazo o una
+  // vigilancia muerta sí ganan a cualquier dato del entorno.
+
+  // A partir de aquí el ambiente, y con los MISMOS umbrales que B usa para sus
+  // notables — así las dos alternativas no pueden discrepar sobre qué es
+  // afirmable; sólo sobre cuántas cosas caben en el primer vistazo.
+  const list = notables(s);
+  const first = list[0];
+  if (!first) return { rule: 'SILENCIO', mute: true,
+                       why: 'Nada que podamos afirmar: ' + notablesWhyEmpty(s).join(' · ') };
+  const L = subjectLines(first.kind, first.item, s);
+  const rule = { spot: 'PLAZA_CERCA', parking: 'PARKING_CERCA', fuel: 'PRECIO_VALIDO' }[first.kind];
+  return {
+    rule, kind: first.kind, lens: first.lens, index: 0,
+    text: `${L.name}${L.figure ? ` · ${L.figure}${L.unit ? ' ' + L.unit : ''}` : ''}`,
+    sub: `${L.where || ''}${L.far ? ` · a ${L.far}` : ''}${first.stamp ? ` · ${first.stamp}` : ''}`,
+    why: first.why,
+  };
+}
+
+function peekMineC(s) {
+  const n = newsFor(s);
+  const tones = { spot: 'var(--spot-fresh)', parking: 'var(--car-park)', fuel: 'var(--amber)' };
+
+  // ③ La noticia. Altura RESERVADA aunque calle: es la mitad de lo que hace
+  // predecible a C — nada salta de sitio cuando aparece o desaparece.
+  const news = n.mute
+    ? `<div style="min-height:46px;display:flex;align-items:center">
+         <span class="t-caption muted" style="opacity:.5">—</span>
+       </div>`
+    : `<div style="min-height:46px">
+         <button class="row" type="button" style="padding:4px 0;min-height:46px"
+                 ${n.lens ? `data-open="${n.kind}" data-i="${n.index}" data-lens="${n.lens}"`
+                          : 'data-act="expand"'}>
+           <span style="color:${tones[n.kind] || 'var(--green)'};display:flex">
+             ${icon(n.kind === 'parking' ? 'parking' : n.kind === 'fuel' ? 'fuel' : 'spot', 18)}
+           </span>
+           <span class="grow">
+             <span class="t-rowTitle" style="display:block">${esc(n.text)}</span>
+             <span class="t-caption muted">${esc(n.sub)}</span>
+           </span>
+           <span class="trail">${icon('chevron', 18)}</span>
+         </button>
+       </div>`;
+
+  return `
+    ${carTwoLines(s)}
+    <div style="height:10px"></div>
+    <hr class="divider">
+    ${news}
+    <hr class="divider">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;padding:12px 0 14px">${carActions(s)}</div>`;
+}
+
+function bodyBlocksC(s) {
+  let out = '';
+  if (s.onboarding) out += firstStepsBlock(1, 4);
+  out += systemHealthRow(s);
+  if (s.cars > 1) {
+    out += provinceHead('Tus vehículos', `${s.cars} registrados`);
+    out += vehiclesStrip(s);
+  }
+  out += `<div style="height:14px"></div>`;
+  return out;
+}
+
+bootPrototype({
+  id: 'C',
+  title: 'C · Adaptive home',
+  idea: 'Zonas fijas con altura reservada; lo que adapta es el contenido de UNA línea de noticia, '
+      + 'elegida por precedencia. Cinco de sus nueve reglas callan.',
+  note: '<b>Qué comparar con B:</b> recorre los estados y fíjate en que las zonas no se mueven ni '
+      + 'una vez — y en que a menudo la línea de noticia está MUDA donde B enseñaría tarjetas. '
+      + 'Abajo se ve qué regla ha ganado. La pregunta de producto es si prefieres una cosa elegida '
+      + 'por ti o hasta tres ofrecidas al usuario.',
+  peekHeight: 276,
+  peekMine: peekMineC,
+  bodyBlocks: bodyBlocksC,
+  why: (s) => {
+    const n = newsFor(s);
+    const modeTxt = { mine: 'tu coche + la noticia', lane: 'las pestañas del carril',
+                      detail: 'la hoja de detalle' }[ui.headerMode];
+    return `<b>Cabecera ahora:</b> ${modeTxt}.<br>
+      <b>Regla ganadora:</b> <code>${n.rule}</code><br>${esc(n.why)}<br>
+      <b>Zona de noticia:</b> ${n.mute ? 'muda (altura reservada)' : esc(n.text)}<br>
+      <b>B enseñaría:</b> ${notables(s).length} tarjeta(s) aquí.`;
+  },
+});
+</script>
+</body>
+</html>

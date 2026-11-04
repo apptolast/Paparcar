@@ -1,7 +1,36 @@
 # FUEL-A-RECORDED-SERIES-MUST-BE-READABLE-001 · se graban 30 días de precios y no se ven en ninguna pantalla
 
-**Estado:** 🔵 Abierto · sin empezar · pide decisión de producto (¿dónde vive?) antes que código ·
+**Estado:** 🟡 Abierto · **la decisión de producto YA ESTÁ TOMADA** (29-10), falta el código ·
 sale de [FUEL-A-FOLLOW-MUST-SHOW-ITSELF-001](fuel-a-follow-must-show-itself-001.md).
+
+## ✅ Dónde vive — contestado por el rediseño de la home (29-10)
+
+Este doc pedía *«decisión de producto (¿dónde vive?) antes que código»*. La respuesta salió de
+[`UX-THE-HOME-MUST-EARN-ITS-FIRST-GLANCE-001`](ux-the-home-must-earn-its-first-glance-001.md), a
+raíz de una idea del user (*«últimas actualizaciones cerca»*):
+
+> **No vive en una pantalla nueva: vive en la tarjeta de gasolinera de «Aquí y ahora», que
+> prefiere el CAMBIO al NIVEL.**
+> Con movimiento: «**Bajó hoy cerca de ti** · −4 cts · Repsol Embajadores · 1,489 €/L».
+> Sin movimiento: «**Gasolina 95 más barata** · 1,419 €/L».
+
+Por qué **no** una sección propia: sólo tiene **un sujeto** (una plaza ya es un cambio por
+naturaleza — el carril de plazas *es* el feed de novedades; de los parkings no se muestrea ocupación
+en el tiempo), rompería el **orden fijo** del primer vistazo, y el mismo hueco lo dice mejor.
+
+**Y las subidas también se cuentan**: contar sólo las bajadas convierte la app en un cupón — una
+subida también cambia una decisión (repostar hoy o mañana).
+
+⛔ La negativa que lo hace honesto es la que este repo ya tenía escrita en
+`EvaluateDailyPriceMoveUseCase`: *«dos filas que difieren no es un precio que cambia»* — hace falta
+que **las dos muestras lleven sello de la fuente y los sellos difieran**, más el umbral de
+≥0,5 c/l. Y un movimiento **no se salta** el umbral de frescura de la tarjeta.
+
+**Dónde está especificado:** `design-prototypes/paparcar-home/b-decisions.md` §14 (el razonamiento)
+y `interaction-spec.md` §2.3 (la regla) + §9 **tarea 2.4** (la implementación, que es la que cierra
+este ticket).
+
+⚠️ **Sigue abierto** porque falta el código. Lo que ya no le falta es la decisión.
 
 ## Problema
 

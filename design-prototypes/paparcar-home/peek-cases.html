@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paparcar · Casos del peek</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/base.css">
+<style>
+  body { background: #15181c; }
+  :root[data-theme="light"] body { background: #e4e8ee; }
+  .sheethead {
+    max-width: 1500px; margin: 0 auto; padding: 28px 20px 0; color: #e7eaee;
+  }
+  :root[data-theme="light"] .sheethead { color: #1b2430; }
+  .sheethead h1 { font: 800 clamp(24px,4vw,34px)/1.12 var(--font); margin: 0 0 8px; letter-spacing: -.6px; }
+  .sheethead p { font: 400 15px/1.6 var(--font); color: #a4adba; max-width: 76ch; margin: 0 0 12px; }
+  :root[data-theme="light"] .sheethead p { color: #4a5568; }
+  .sheethead a { color: #6fe0ab; }
+  .groupbar {
+    max-width: 1500px; margin: 26px auto 0; padding: 0 20px;
+    display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  }
+  .groupbar h2 {
+    font: 800 12px/1 var(--font); letter-spacing: 1.4px; text-transform: uppercase;
+    color: #6fe0ab; margin: 0;
+  }
+  .groupbar span { font: 400 13px/1.5 var(--font); color: #a4adba; }
+  :root[data-theme="light"] .groupbar span { color: #4a5568; }
+  .themebar { max-width: 1500px; margin: 0 auto; padding: 14px 20px 0; }
+  .themebar button {
+    min-height: 34px; padding: 0 12px; margin-right: 6px; cursor: pointer;
+    border-radius: 8px; border: 1px solid #3c434c; background: #2a2f36; color: #dfe4ea;
+    font: 600 12px/1 var(--font);
+  }
+  .themebar button[aria-pressed="true"] { background: #6fe0ab; border-color: #6fe0ab; color: #0d2a1e; }
+  .themebar button:focus-visible { outline: 2px solid #6fe0ab; outline-offset: 2px; }
+  /* Cada caso se pinta al ANCHO REAL del contenido de la hoja: 390 − 16 − 16. */
+  .case .inner { width: 358px; max-width: 100%; }
+</style>
+</head>
+<body>
+<div class="sheethead">
+  <h1>Todos los casos del peek, a la vez</h1>
+  <p>
+    Una hoja de contactos. Cada tarjeta pinta el contenido de la cabecera de la hoja en un caso
+    concreto, <strong>al ancho real del contenido</strong> (358 px = 390 − 16 − 16) y con los roles
+    tipográficos de <code>PaparcarType.kt</code>. Debajo de cada una, la regla que la gobierna.
+  </p>
+  <p>
+    Sirve para decidir sin ir caso por caso en el prototipo:
+    <a href="smart-mobility.html">B</a> · <a href="vehicle-first.html">A</a> ·
+    <a href="adaptive-home.html">C</a> · <a href="index.html">índice</a> ·
+    <a href="b-decisions.md">las decisiones y lo que queda por decidir</a>
+  </p>
+</div>
+<div class="themebar">
+  <button type="button" data-theme-set="dark" aria-pressed="true">Oscuro</button>
+  <button type="button" data-theme-set="light">Claro</button>
+</div>
+
+<div id="out"></div>
+
+<script src="assets/proto.js"></script>
+<script src="assets/shell.js"></script>
+<script>
+/* ============================================================================
+   Hoja de contactos de los casos del peek.
+
+   No es la app ni un prototipo navegable: es una herramienta para VER muchos
+   casos a la vez y poder decidir la gramática sin recorrerlos de uno en uno.
+   Llama a las MISMAS funciones que los tres prototipos, así que si aquí se ve
+   bien, allí se ve igual.
+   ============================================================================ */
+
+const base = (patch) => Object.assign({}, DEFAULT_SCENARIO, patch);
+
+/** Pinta un caso, con su título y la regla que lo gobierna. */
+function caseCard(title, note, html, verdict) {
+  return `
+    <article class="case">
+      <header><b>${esc(title)}</b><span>${esc(note)}</span></header>
+      <div class="inner">${html}</div>
+      <p class="verdict">${verdict}</p>
+    </article>`;
+}
+
+function group(title, note, cards) {
+  return `
+    <div class="groupbar"><h2>${esc(title)}</h2><span>${esc(note)}</span></div>
+    <div class="casegrid">${cards.join('')}</div>`;
+}
+
+/** Ejecuta `fn` con otro coche en cabeza de garaje, y lo deja como estaba. */
+function withVehicle(v, fn) {
+  const keep = DEMO.vehicles[0];
+  DEMO.vehicles[0] = v;
+  try { return fn(); } finally { DEMO.vehicles[0] = keep; }
+}
+
+/* ── 1 · El coche, en dos líneas [P6] ─────────────────────────────────────── */
+
+const carCases = [
+  caseCard('Aparcado', 'el caso normal',
+    carTwoLines(base({})),
+    'Línea 1 contesta <b>qué · cuándo</b>; línea 2, <b>dónde · a cuánto</b>. Es el reparto que '
+    + 'evita la tercera línea. ⛔ Y fíjate en lo que <b>no</b> hay: ningún badge de vigilancia. '
+    + 'Sana no lleva chip — el método lo dicen el glifo y el color, y el estado ya está escrito.'),
+
+  caseCard('Aparcado sin ubicación', 'permiso concedido, sin fix',
+    carTwoLines(base({ loc: 'missing' })),
+    '⛔ La distancia <b>no existe</b>: sin fix no hay «de ti» que decir, y no se escribe un «—» '
+    + 'ni un 0. La calle sí, porque es de la sesión, no de tu posición.'),
+
+  caseCard('Nombre largo', 'la calle se recorta, la distancia no',
+    withVehicle({ id: 'v9', name: 'Volkswagen Transporter T6.1', watch: 'active', size: 'Furgoneta',
+                  addr: 'Avenida del Manzanares con Paseo de los Melancólicos, 118',
+                  ago: 'hace 2 h 10 min', dist: '180 m' },
+      () => carTwoLines(base({}))),
+    'La distancia lleva <b>ancho propio</b> al final de su línea. Lo que cede es la calle, que es '
+    + 'el dato largo y el menos volátil.'),
+
+  caseCard('En ruta', 'viaje vivo',
+    carTwoLines(base({ car: 'driving' })),
+    'No hay «cuándo» porque no hay sesión que fechar, y la línea 2 es <b>dónde está el coche '
+    + 'ahora</b> — su propio geocode, no el último aparcamiento.'),
+
+  caseCard('Sin aparcamiento marcado', 'no sabemos dónde está',
+    carTwoLines(base({ car: 'unmarked' })),
+    'La línea 2 dice <b>qué no sabemos</b> en vez de dejar un hueco. Sin dirección no se inventa '
+    + 'la de la cámara.'),
+
+  caseCard('Pregunta abierta', '«¿has aparcado?» con plazo',
+    carTwoLines(base({ ask: 'pending' })),
+    'El plazo viaja en la línea 2. Esta noticia <b>gana a todo</b>: con ella arriba, la cabecera '
+    + 'nunca pasa a hablar del carril.'),
+
+  caseCard('Vigilancia frágil', 'ámbar, sigue funcionando',
+    carTwoLines(base({ watch: 'fragile' })),
+    'Aquí sí hay chip, porque hay algo que no se cumple — y es un <b>botón</b>: abre la fila que '
+    + 'lleva el texto entero y el remedio. Avisa, pero no enmudece el ambiente: una vigilancia '
+    + 'frágil sigue vigilando. Lo que sí lo calla es la <b>pausa</b>.'),
+
+  caseCard('Vigilancia interrumpida', 'rojo, el servicio murió',
+    carTwoLines(base({ watch: 'interrupted' })),
+    'Honesto por construcción: se resuelve contra el servicio <b>real</b>. Un badge verde sobre un '
+    + 'servicio muerto es la mentira más cara de esta app — y por eso el verde no existe: el chip '
+    + 'sólo aparece cuando algo falla, así que verlo YA es la noticia.'),
+
+  caseCard('Falta permiso', 'la app apenas funciona',
+    carTwoLines(base({ perms: 'blocked' })),
+    'La identidad del coche cae a <b>gris</b>: sin permiso no hay método de vigilancia que pintar. '
+    + 'El badge nombra el problema; la fila de abajo lo explica y lo arregla.'),
+
+  caseCard('Moto por Bluetooth', 'otra identidad, misma gramática',
+    withVehicle(DEMO.vehicles[1], () => carTwoLines(base({}))),
+    'El <b>azul</b> dice cómo se vigila, nunca en qué estado está. ⛔ Y <b>no</b> pone la palabra '
+    + '«Bluetooth»: <code>UI-VEH-STATUS-IS-A-GLYPH-NOT-A-LABEL-001</code> dice que ninguna '
+    + 'superficie imprime el tier como texto. Mi primera versión lo hacía.'),
+
+  caseCard('Compacto', 'cuando la cabecera lleva el carril',
+    carTwoLines(base({}), { compact: true }),
+    'La misma gramática a un tamaño menor: el coche no desaparece cuando lees el carril, se '
+    + '<b>encoge</b>. Así la cabecera siempre dice de quién habla.'),
+];
+
+/* ── 2 · El detalle de un sujeto [P7] ─────────────────────────────────────── */
+
+function detailCase(title, note, scen, detail, verdict) {
+  const keep = { lens: ui.lens, detail: ui.detail };
+  ui.detail = detail; ui.lens = detail.kind === 'spot' ? 'spots'
+    : detail.kind === 'parking' ? 'parkings' : 'fuel';
+  const html = detailPeek(scen, ui);
+  ui.lens = keep.lens; ui.detail = keep.detail;
+  return caseCard(title, note, html, verdict);
+}
+
+const detailCases = [
+  detailCase('Plaza libre', 'sujeto SIN nombre propio', base({ spots: 4 }),
+    { kind: 'spot', index: 0 },
+    '⛔ Una plaza no tiene nombre, así que la línea 1 es su <b>tipo + para quién cabe</b> y la 2 la '
+    + 'dirección. <b>La dirección aparece en una sola línea</b> — ahí estaba la repetición.'),
+
+  detailCase('Plaza caducando', 'la cifra lleva el color de frescura', base({ spots: 4 }),
+    { kind: 'spot', index: 3 },
+    'La edad va al <b>trailing</b> como CIFRA, con la rampa de frescura. Nunca en una tercera línea.'),
+
+  detailCase('Parking con gálibo', 'sujeto CON nombre propio', base({ parkings: 3 }),
+    { kind: 'parking', index: 0 },
+    'Línea 1 = nombre · cabe tu coche. Línea 2 = <b>qué es</b> + a cuánto, no la calle: repetir el '
+    + 'nombre de la vía bajo el nombre del parking no añade nada.'),
+
+  detailCase('Parking sin gálibo', '«sin dato» no es «no cabe»',
+    base({ parkings: 3, clearance: 'unknown' }), { kind: 'parking', index: 0 },
+    '⛔ Se ofrece igual y se <b>dice</b> que no lo sabemos. Ocultarlo sería decidir por el usuario '
+    + 'con un dato que no tenemos.'),
+
+  detailCase('Gasolinera con precio', 'la cifra manda', base({ fuel: 'prices' }),
+    { kind: 'fuel', index: 2 },
+    'El precio al trailing, el producto como calificador y la <b>hora de la fuente</b> debajo. Un '
+    + 'dato externo dice cuándo se midió o no se afirma.'),
+
+  detailCase('Precio demasiado viejo', 'se muestra, pero avisando',
+    base({ fuel: 'prices', fuelAge: 'stale' }), { kind: 'fuel', index: 2 },
+    'La cifra sigue ahí —es la que publica la fuente— pero <b>deja de ser noticia</b>: con esto, '
+    + '«Aquí y ahora» no la ofrece y la precedencia de C se la salta.'),
+
+  detailCase('Gasolinera sin precio', 'la fuente no lo publica aquí',
+    base({ fuel: 'noprices' }), { kind: 'fuel', index: 0 },
+    '⛔ Sin figura, y la frase dice <b>por qué</b>. «No hay precios» y «no hemos podido preguntar» '
+    + 'son dos sentencias distintas y sólo una es un veredicto.'),
+
+  detailCase('Con la vigilancia muerta', 'el aviso no cede ni aquí',
+    base({ fuel: 'prices', watch: 'interrupted' }), { kind: 'fuel', index: 2 },
+    '⛔ Con un sujeto abierto la cabecera es del sujeto y el coche no sale — <b>pero un aviso no '
+    + 'cede en ningún modo</b>. Enterarse de que la app dejó de vigilar tu coche no puede depender '
+    + 'de cerrar una ficha primero. Y al pulsarlo cierra el detalle y abre la fila que lo arregla.'),
+];
+
+/* ── 3 · La cabecera cuando se lee el carril [P2] ──────────────────────────── */
+
+function laneCase(lens, scen, verdict) {
+  const keep = ui.lens; ui.lens = lens;
+  const html = lanePeek(scen, ui);
+  ui.lens = keep;
+  return caseCard(`Leyendo ${laneName(lens).toLowerCase()}`, 'cabecera en modo carril', html, verdict);
+}
+
+const laneCases = [
+  laneCase('spots', base({ spots: 4 }),
+    'Lleva las <b>pestañas</b>, no una frase sobre ellas: así volver a otro sujeto desde el fondo '
+    + 'de una lista no cuesta ni un scroll.'),
+  laneCase('parkings', base({ parkings: 3 }),
+    'El coche se <b>encoge</b> a una línea pero no desaparece: la cabecera sigue diciendo de quién '
+    + 'es esta pantalla.'),
+  laneCase('fuel', base({ fuel: 'prices' }),
+    'El contador sólo existe <b>donde se sabe</b>: un complemento no conoce su cifra hasta que se '
+    + 'entra en su carril.'),
+
+  laneCase('parkings', base({ parkings: 3, watch: 'fragile' }),
+    '⚠️ <b>Aquí estaba el hueco que cazó el user.</b> El trailing lo ocupaba el nombre del carril '
+    + '—que la fila de pestañas de debajo ya dice y además marca— y el badge <b>desaparecía</b>. '
+    + 'Ahora el trailing es del badge.'),
+
+  laneCase('spots', base({ spots: 4, watch: 'interrupted' }),
+    'La regla, en una frase: <b>el badge de vigilancia sólo existe cuando algo no se cumple</b>, y '
+    + 'entonces <b>no cede</b> en ninguno de los tres modos de cabecera. Compara con los casos de '
+    + 'arriba: ahí, sanos, el trailing está vacío.'),
+
+  laneCase('fuel', base({ fuel: 'prices', perms: 'blocked' }),
+    'Y con el permiso ausente, la identidad del coche cae a <b>gris</b>: sin permiso no hay método '
+    + 'de vigilancia que pintar.'),
+];
+
+/* ── 4 · «Aquí y ahora» y su umbral [P1 · P4] ─────────────────────────────── */
+
+function nowCase(title, note, scen, verdict) {
+  const cards = nowCards(scen);
+  const html = cards
+    ? `<div class="provincehead"><span class="t-sectionHeader">Aquí y ahora</span>
+         <span class="side t-caption">lo que merece la pena cerca</span></div>
+       <div style="display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px">${cards}</div>`
+    : `<p class="t-caption muted" style="margin:0;padding:10px 0">
+         (la sección no se renderiza: ni título, ni hueco)</p>
+       ${scrollCue('Desliza para ver qué hay en esta zona')}`;
+  return caseCard(title, note, html, verdict);
+}
+
+const nowCases = [
+  nowCase('Los tres sujetos', 'plaza + parking + precio fresco',
+    base({ spots: 4, parkings: 3, fuel: 'prices' }),
+    'Uno por sujeto y en <b>orden fijo</b> (plaza · parking · gasolinera), el mismo que las '
+    + 'pestañas. Reordenar por «cuán notable es» haría impredecible el primer vistazo.'),
+
+  nowCase('Sin plazas', 'la comunidad todavía no llega aquí',
+    base({ spots: 0, parkings: 3, fuel: 'prices' }),
+    'Es el caso real de Paparcar hoy: la sección <b>sigue teniendo valor</b> sin comunidad. Esto es '
+    + 'lo que A no tiene y lo que hace B defendible.'),
+
+  nowCase('Precio viejo', 'la gasolinera deja de ser notable',
+    base({ spots: 4, parkings: 3, fuel: 'prices', fuelAge: 'stale' }),
+    '⛔ Un precio que no puede decir cuándo se midió <b>no se afirma</b>. La lista sigue '
+    + 'mostrándolo con su aviso; el primer vistazo, no.'),
+
+  nowCase('Sin precios en la zona', 'hay gasolineras, no cifras',
+    base({ spots: 0, parkings: 3, fuel: 'noprices' }),
+    'La tarjeta de gasolina <b>desaparece</b>, pero su pestaña y su lista siguen ahí. Sin cifra no '
+    + 'hay noticia; con gasolineras sí hay respuesta.'),
+
+  nowCase('Sólo un parking', 'el pie se adapta al singular',
+    base({ spots: 0, parkings: 1, fuel: 'none' }),
+    '«Ver la única» en vez de «Ver las 1». Un plural mal puesto delata una app traducida a medias.'),
+
+  nowCase('Nada afirmable', 'el caso que decide si B aguanta',
+    base({ spots: 0, parkings: 0, fuel: 'none' }),
+    '⛔ Sin notables la sección <b>no existe</b>. Lo que queda no es una caja vacía: es la pista de '
+    + 'que la hoja sigue — que es lo que de verdad le falta al usuario ahí.'),
+
+  nowCase('Un precio BAJÓ hoy', 'el cambio gana al nivel',
+    base({ spots: 0, parkings: 0, fuel: 'prices', fuelMove: 'drop' }),
+    '⛔ <b>El CAMBIO gana al NIVEL, en el mismo hueco.</b> Un precio que lleva meses igual es un '
+    + 'hecho; que haya bajado 4 céntimos HOY es noticia, y es lo que mueve a desviarse. No es una '
+    + 'cuarta tarjeta ni una sección de «últimas actualizaciones»: es la misma tarjeta contando algo '
+    + 'mejor. Los datos ya existen y son <b>gratis</b> — <code>nearbyMoves</code>, radio '
+    + '<b>1 km</b> (<code>AROUND_FOLLOWED_RADIUS_M</code>), anclándose en dónde ESTÁS.'),
+
+  nowCase('Y también cuando SUBE', 'callar las subidas es contar la mitad',
+    base({ spots: 0, parkings: 0, fuel: 'prices', fuelMove: 'rise' }),
+    'Si sólo se contaran las bajadas, la app sería un cupón y no una medición. Una subida también '
+    + 'cambia una decisión — repostar hoy o mañana.'),
+
+  nowCase('Movimiento con precio viejo', 'el umbral no se salta',
+    base({ spots: 0, parkings: 3, fuel: 'prices', fuelAge: 'stale', fuelMove: 'drop' }),
+    '⛔ Un movimiento <b>no resucita</b> un precio que no se puede afirmar. Si la fuente no publica '
+    + 'nada reciente aquí, no hay tarjeta de gasolinera — por mucho que las muestras difieran. '
+    + 'Y la regla de la app es aún más estricta: <i>«dos filas que difieren no es un precio que '
+    + 'cambia»</i> — hace falta que <b>las dos muestras lleven sello de la fuente y los sellos '
+    + 'difieran</b>.'),
+
+  nowCase('CONDUCIENDO', 'decisión del user: no se filtra nada',
+    base({ car: 'driving', spots: 4, parkings: 3, fuel: 'prices' }),
+    '⛔ Propuse reducirlo a plaza y parking y <b>el user lo retiró</b>: <i>«¿quién dice que una '
+    + 'persona conduciendo no pueda parar a repostar?»</i>. Repostar se hace <b>sólo</b> '
+    + 'conduciendo, así que apagar las gasolineras ahí era apagarlas siempre que sirven. Lo único '
+    + 'que se mantiene: la hoja no se despliega sola.'),
+
+  nowCase('Sin gálibo', '«sin dato» se ofrece igual',
+    base({ spots: 0, parkings: 3, fuel: 'none', clearance: 'unknown' }),
+    'El parking se ofrece con el calificador «Gálibo sin dato». No saber si cabe no es saber que no '
+    + 'cabe.'),
+];
+
+/* ── 5 · Cuál de la lista es la que interesa, y quándo NO se dice ──────── */
+
+/** Ejecuta `fn` con otra lista de gasolineras, y la deja como estaba. */
+function withFuel(list, fn) {
+  const keep = DEMO.fuel;
+  DEMO.fuel = list;
+  try { return fn(); } finally { DEMO.fuel = keep; }
+}
+
+function laneCaseFuel(title, note, list, scen, verdict) {
+  const keep = ui.lens; ui.lens = 'fuel';
+  const html = withFuel(list, () => fuelLane(scen));
+  ui.lens = keep;
+  return caseCard(title, note, html, verdict);
+}
+
+const F = (id, name, m, price) => ({ id, name, m, price, follow: false });
+
+const standoutCases = [
+  laneCaseFuel('El caso normal', 'tres precios distintos', DEMO.fuel, base({ fuel: 'prices' }),
+    '⛔ **Esto no lo inventé: ya está en la app** desde '
+    + '<code>FUEL-THE-CHEAPEST-AND-THE-NEAREST-WEAR-A-BADGE-001</code>, y el user lo revisó dos '
+    + 'veces. Mi prototipo se lo había dejado fuera. <b>Sólo la más barata sube</b>; la más '
+    + 'cercana lleva su chip pero no reordena nada.'),
+
+  laneCaseFuel('Empate al mínimo', 'dos cotizan 1,809',
+    [F('a', 'Repsol Embajadores', 300, 1.809), F('b', 'Cepsa Ronda', 700, 1.809),
+     F('c', 'Ballenoil Méndez', 1400, 1.919)],
+    base({ fuel: 'prices' }),
+    '⛔ <b>Un empate COMPARTE el badge, no lo mata.</b> La primera versión exigía ser '
+    + '<i>estrictamente</i> la más barata y en un mapa real eso borraba el chip casi siempre: los '
+    + 'surtidores se copian el precio a la milésima. La verdad comprobable en el surtidor es que '
+    + '<b>las dos son las más baratas</b>.'),
+
+  laneCaseFuel('Empate UNIVERSAL', 'todas cobran lo mismo',
+    [F('a', 'Repsol Embajadores', 300, 1.629), F('b', 'Cepsa Ronda', 700, 1.629),
+     F('c', 'Ballenoil Méndez', 1400, 1.629)],
+    base({ fuel: 'prices' }),
+    '⛔ Aquí <b>sí se calla</b>: si todas cobran lo mismo, «la más barata» no distingue nada — '
+    + 'sería ruido en las tres filas, no información. Lo que queda es «MÁS CERCANA», que sí '
+    + 'distingue.'),
+
+  laneCaseFuel('La más cercana no cotiza', 'el caso de medio mundo',
+    [F('a', 'Estación sin precio', 180, null), F('b', 'Cepsa Ronda', 700, 1.529),
+     F('c', 'Ballenoil Méndez', 1400, 1.419)],
+    base({ fuel: 'prices' }),
+    'La más cercana se mide sobre <b>todas</b>, no sólo las que cotizan: en un país cuyo feed no '
+    + 'publica precios — la mayoría del mundo, y la razón por la que el user pidió esto — la '
+    + 'realmente más cercana queda al fondo. <b>El badge nombra lo que el orden no puede decir</b>, '
+    + 'y sigue sin adelantarla.'),
+
+  laneCaseFuel('Una sola gasolinera', 'sin con quién compararla',
+    [F('a', 'Repsol Embajadores', 300, 1.489)], base({ fuel: 'prices' }),
+    '⛔ <b>Ningún superlativo sobre un candidato.</b> Con una gasolinera no hay «la más barata»: '
+    + 'hay una gasolinera.'),
+
+  laneCaseFuel('Sin precios en la zona', 'la fuente no los publica',
+    DEMO.fuel, base({ fuel: 'noprices' }),
+    'Sin cifras no hay «más barata» que decir, pero la <b>más cercana</b> aguanta: los metros son '
+    + 'metros. Y la frase de abajo dice por qué no hay precios.'),
+
+  caseCard('Parkings · decidido', 'el user dijo sí (28-10)',
+    (() => { const k = ui.lens; ui.lens = 'parkings';
+             const h = parkingsLane(base({ parkings: 3 })); ui.lens = k; return h; })(),
+    'Con las <b>mismas negativas</b> que las gasolineras. Y la que más manda aquí: con la tarifa '
+    + 'sin publicar — que es lo normal — <b>no hay «más barato» que decir</b> y queda sólo '
+    + '«MÁS CERCANO». Esa negativa es la que lo hace honesto en la mayoría de zonas. '
+    + '⚠️ En la app <b>todavía no existe</b>: es trabajo de implementación, ya decidido.'),
+
+  caseCard('Plazas · NUNCA', 'la negativa más importante',
+    (() => { const k = ui.lens; ui.lens = 'spots';
+             const h = spotsLane(base({ spots: 4 })); ui.lens = k; return h; })(),
+    '⛔ <b>Una plaza no lleva «la mejor», y no es una omisión.</b> Una gasolinera no se agota; una '
+    + 'plaza sí. Señalar «la mejor» entre cuatro manda a todo el mundo a la misma, y la app '
+    + '<b>ya cuenta</b> cuánta gente va de camino a una (<code>Spot.enRouteCount</code>): '
+    + 'convertiría esa cifra en una carrera que nosotros habríamos empezado. Lo que una plaza lleva '
+    + 'es su <b>frescura</b> y su <b>edad</b> — hechos sobre ella, no un veredicto comparativo.'),
+];
+
+/* ── Pintado ───────────────────────────────────────────────────────────────── */
+
+document.getElementById('out').innerHTML =
+    group('1 · Tu coche en dos líneas', 'la decisión sobre «hace 2 h» y «a 180 m»', carCases)
+  + group('2 · El detalle de un sujeto', 'la misma gramática para plaza, parking y gasolinera', detailCases)
+  + group('3 · La cabecera leyendo el carril', 'qué dice el sheet cuando el foco está en la lista', laneCases)
+  + group('4 · Aquí y ahora', 'qué entra, qué no, y qué pasa cuando no entra nada', nowCases)
+  + group('5 · Cuál de la lista es la que interesa',
+          'y las seis cosas que el chip se NIEGA a afirmar', standoutCases);
+
+document.querySelector('.themebar').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-theme-set]');
+  if (!b) return;
+  document.documentElement.dataset.theme = b.dataset.themeSet;
+  document.querySelectorAll('[data-theme-set]').forEach((x) =>
+    x.setAttribute('aria-pressed', String(x === b)));
+});
+
+/* Los controles de ESTA página no son la app: son botones de una hoja de
+   contactos. Para que ninguno parezca pulsable sin responder, se desactivan
+   todos los de dentro de los casos. */
+document.querySelectorAll('#out button').forEach((b) => {
+  b.setAttribute('tabindex', '-1');
+  b.setAttribute('aria-disabled', 'true');
+  b.style.cursor = 'default';
+  b.addEventListener('click', (e) => e.preventDefault());
+});
+</script>
+</body>
+</html>

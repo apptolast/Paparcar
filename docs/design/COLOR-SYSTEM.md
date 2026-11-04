@@ -142,11 +142,26 @@ que además alarga el primer escalón de su propia rampa hacia el ámbar.
 
 Resolver único `ui/theme/VehicleIdentity.kt` → `vehicleIdentityColor(watch)`:
 
-| Vigilancia | Color | Glifo junto al nombre | Badge | Borde de tarjeta | Marcador mapa |
-|---|---|---|---|---|---|
-| **Detección activa** (Coordinator/asistida) | `papWatchGreen` (**ya no** `primary`) | radar/geocerca (`Icons.Rounded.Radar`) | "ACTIVO" | verde vigilancia @ 0.55 | marco `PapWatchGreenLight` |
-| **Bluetooth** (automático) | `papCarBlue` | marca BT | "BLUETOOTH" | azul @ 0.55 | marco `PapBlueLight` |
-| **Sin vigilar** | gris `onSurfaceVariant` | anillo hueco | "INACTIVO" | outline neutro | marco `PapOutlineVariantLight` |
+| Vigilancia | Color | Glifo junto al nombre | Borde de tarjeta | Marcador mapa |
+|---|---|---|---|---|
+| **Detección activa** (Coordinator/asistida) | `papWatchGreen` (**ya no** `primary`) | radar/geocerca (`Icons.Rounded.Radar`) | verde vigilancia @ 0.55 | marco `PapWatchGreenLight` |
+| **Bluetooth** (automático) | `papCarBlue` | marca BT | azul @ 0.55 | marco `PapBlueLight` |
+| **Sin vigilar** | gris `onSurfaceVariant` | anillo hueco | outline neutro | marco `PapOutlineVariantLight` |
+
+⛔ **Aquí había una columna «Badge» con "ACTIVO" / "BLUETOOTH" / "INACTIVO". Retirada el 27-10-2026,
+porque describía un producto que ya no existe.** La retiró
+[UI-VEH-STATUS-IS-A-GLYPH-NOT-A-LABEL-001]: el tier de vigilancia **es un glifo y un color, y
+ninguna superficie lo imprime como texto**. Las tres cadenas siguen vivas —`vehicleWatchPinLabel()`
+en `VehicleStatusIndicators.kt`— pero **sólo como `contentDescription`** de ese glifo, que es el
+único canal que le queda a un lector de pantalla y a quien no distinga el verde del gris. Borrar las
+cadenas era la limpieza tentadora y la equivocada; borrar la columna es la correcta.
+
+> ⚠️ **Y la fila sobrevivió 2 meses al cambio que la desmentía.** Costó lo que cuestan estas cosas:
+> en el rediseño de la home de octubre se diseñó un badge de vigilancia **con el tier escrito**
+> —«Bluetooth», «Vigilando tu sitio»— leyendo esta tabla como fuente de verdad. *Un comentario que
+> sobrevive al cambio que lo desmiente cuesta más que ninguno*, y una tabla de doctrina es un
+> comentario grande. Lo que la app dice del tier se lee en `VehicleStatusIndicators.kt`, no aquí;
+> esta tabla dice **de qué color** se pinta, y nada más.
 
 El color viaja con el coche a todas partes — pero lo lleva su GLIFO de método (icono/badge/punto/
 borde/marco del marcador), no el texto del nombre: el nombre queda en `onSurface` (glifo + nombre

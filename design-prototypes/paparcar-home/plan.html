@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paparcar · Plan de implementación de B</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root { color-scheme: dark; --ink:#e7eaee; --dim:#a4adba; --line:#343a42;
+          --bg:#1a1d21; --card:#22262c; --green:#6fe0ab; --amber:#f5c86b; --red:#ff8d8d;
+          --font:"Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--font);
+         -webkit-font-smoothing:antialiased; padding-block:36px; padding-inline:20px; }
+  .wrap { max-width:1120px; margin:0 auto; }
+  h1 { font-size:clamp(26px,4.5vw,38px); line-height:1.1; margin:0 0 8px; letter-spacing:-.7px; }
+  p { color:var(--dim); line-height:1.6; margin:0 0 14px; }
+  .lead { color:var(--ink); font-size:17px; max-width:72ch; }
+  a { color:var(--green); }
+  code { background:#2a2f36; padding:1px 5px; border-radius:4px; font-size:.88em; }
+  .tag { display:inline-block; padding:4px 10px; border-radius:999px; font:700 10px/1 var(--font);
+         letter-spacing:1.2px; text-transform:uppercase; background:#2a2f36; color:var(--dim); }
+
+  .note { border-left:3px solid var(--green); background:rgba(111,224,171,.07);
+          padding:12px 0 12px 14px; border-radius:0 8px 8px 0; margin:18px 0; }
+  .note.warn { border-color:var(--amber); background:rgba(245,200,107,.08); }
+  .note.stop { border-color:var(--red); background:rgba(255,141,141,.08); }
+
+  /* ── Las fases, como carriles ── */
+  .phase { margin:34px 0 0; border:1px solid var(--line); border-radius:14px; overflow:hidden;
+           background:var(--card); }
+  .phase > header { display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;
+                    padding:14px 18px; background:#1e2227; border-bottom:1px solid var(--line); }
+  .phase > header b { font:800 15px/1.2 var(--font); }
+  .phase > header .what { color:var(--dim); font-size:13px; }
+  .phase > header .cost { margin-left:auto; font:700 11px/1 var(--font); letter-spacing:.8px;
+                          text-transform:uppercase; padding:5px 10px; border-radius:999px; }
+  .cost[data-k="pres"]  { background:rgba(111,224,171,.16); color:var(--green); }
+  .cost[data-k="state"] { background:rgba(245,200,107,.16); color:var(--amber); }
+  .cost[data-k="sys"]   { background:rgba(255,255,255,.08); color:var(--dim); }
+
+  .task { display:grid; gap:4px 14px; padding:14px 18px; border-bottom:1px solid var(--line);
+          grid-template-columns:52px 1fr 92px; align-items:start; }
+  .task:last-child { border-bottom:0; }
+  .task .id { font:700 13px/1.5 var(--font); color:var(--dim); font-variant-numeric:tabular-nums; }
+  .task .ttl { font:700 14px/1.45 var(--font); }
+  .task .sub { grid-column:2; color:var(--dim); font-size:13px; line-height:1.55; }
+  .task .risk { font:700 10px/1 var(--font); letter-spacing:.7px; text-transform:uppercase;
+                padding:5px 8px; border-radius:6px; text-align:center; }
+  .risk[data-r="bajo"]  { background:rgba(111,224,171,.14); color:var(--green); }
+  .risk[data-r="medio"] { background:rgba(245,200,107,.14); color:var(--amber); }
+  .risk[data-r="alto"]  { background:rgba(255,141,141,.14); color:var(--red); }
+  .task[data-flag="true"] { background:rgba(245,200,107,.05); }
+  .task .files { grid-column:2; margin-top:4px; font-size:12px; color:#8e97a4; }
+
+  .legend { display:flex; gap:16px; flex-wrap:wrap; margin:16px 0 0; font-size:13px; color:var(--dim); }
+  .legend span { display:inline-flex; align-items:center; gap:6px; }
+  .dot { width:10px; height:10px; border-radius:3px; display:inline-block; }
+
+  .links { display:flex; gap:8px; flex-wrap:wrap; margin:18px 0 0; }
+  .links a { padding:8px 12px; border:1px solid var(--line); border-radius:9px;
+             text-decoration:none; color:var(--ink); font:600 13px/1 var(--font); }
+  footer { margin-top:44px; padding-top:18px; border-top:1px solid var(--line);
+           color:var(--dim); font-size:13px; }
+  h2 { font-size:20px; margin:40px 0 10px; letter-spacing:-.2px; }
+  ul { color:var(--dim); line-height:1.65; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <span class="tag">UX-THE-HOME-MUST-EARN-ITS-FIRST-GLANCE-001 · plan de B</span>
+  <h1>Qué habría que construir, y en qué orden</h1>
+  <p class="lead">
+    El plan de <strong>B · Smart mobility</strong>: 4 fases, 24 tareas. Ordenadas por
+    <strong>lo que aporta partido por lo que arriesga</strong>, no por lo fácil. Ninguna toca la
+    detección.
+  </p>
+
+  <div class="note">
+    <strong>La fase 1 no añade ni un campo al estado.</strong> Es composición de datos que ya
+    existen y reordenar lo que ya se pinta — y resuelve el grueso del diagnóstico. Si sólo se hiciera
+    la fase 1, la home ya se entendería antes.
+  </div>
+
+  <div class="legend">
+    <span><i class="dot" style="background:#6fe0ab"></i> riesgo bajo</span>
+    <span><i class="dot" style="background:#f5c86b"></i> medio</span>
+    <span><i class="dot" style="background:#ff8d8d"></i> alto</span>
+    <span>⚠️ = tarea que hay que ver en device o que revierte algo ya decidido</span>
+  </div>
+
+  <div class="links">
+    <a href="index.html">Índice</a>
+    <a href="smart-mobility.html">Ver B funcionando</a>
+    <a href="peek-cases.html">Los 44 casos</a>
+    <a href="interaction-spec.md">La spec completa</a>
+    <a href="b-decisions.md">Por qué cada decisión</a>
+  </div>
+
+  <!-- ══ FASE 1 ══ -->
+  <section class="phase">
+    <header>
+      <b>Fase 1 · Claridad y jerarquía</b>
+      <span class="what">presentación pura — ni un campo nuevo en el estado</span>
+      <span class="cost" data-k="pres">9 tareas</span>
+    </header>
+
+    <div class="task">
+      <span class="id">1.1</span>
+      <span class="ttl">Gramática de 2 líneas, para el coche y los tres sujetos</span>
+      <span class="risk" data-r="medio">medio</span>
+      <span class="sub">La 3.ª línea repetía la dirección. Causa: sujetos <em>sin nombre propio</em>
+        (una plaza no se llama de ninguna manera). Riesgo medio porque es un barrido: hoy son filas
+        independientes y pasan a compartir esqueleto.</span>
+      <span class="files"><code>BrowsePeek</code> · <code>FuelStationPeek</code> ·
+        <code>PublicParkingPeek</code> · <code>ParkingPeek</code> · <code>HomeSpotRows</code> ·
+        <code>HomeFuelStationRows</code> · <code>HomeParkingRow</code></span>
+    </div>
+
+    <div class="task">
+      <span class="id">1.2</span>
+      <span class="ttl">El peek de B: coche + aviso + «Aquí y ahora»</span>
+      <span class="risk" data-r="medio">medio</span>
+      <span class="sub">Es el cambio que resuelve el diagnóstico central. Medio porque cambia la
+        altura del peek, y de ella deriva toda la geometría de anclas.</span>
+      <span class="files"><code>BrowsePeek</code> · <code>PapSheet</code> ·
+        <code>computeSheetPositioning</code> (ya testeable)</span>
+    </div>
+
+    <div class="task">
+      <span class="id">1.3</span>
+      <span class="ttl">Tarjeta de dos destinos, con «Ver las N»</span>
+      <span class="risk" data-r="bajo">bajo</span>
+      <span class="sub">El cuerpo abre ese item; el pie abre su lista. Dos botones hermanos, no uno
+        dentro de otro.</span>
+      <span class="files">nuevo <code>PapOpportunityCard</code></span>
+    </div>
+
+    <div class="task">
+      <span class="id">1.4</span>
+      <span class="ttl">Pestañas reponderadas 1,25 : 1 : 1</span>
+      <span class="risk" data-r="bajo">bajo</span>
+      <span class="sub">La jerarquía que el KDoc ya declara y que tres tercios idénticos no
+        comunican. Comprobar que los 9 locales no truncan.</span>
+      <span class="files"><code>HomeNearbyLensRow</code></span>
+    </div>
+
+    <div class="task">
+      <span class="id">1.5</span>
+      <span class="ttl">Checklist a una fila de progreso + cabeceras de provincia</span>
+      <span class="risk" data-r="bajo">bajo</span>
+      <span class="sub">Hasta 6 filas encima de todo pasan a una con su progreso.
+        <code>FirstStepsCard</code> se conserva íntegra: sólo cambia la puerta.</span>
+      <span class="files">nuevo <code>PapProgressRow</code> · <code>HomeSheetContent</code></span>
+    </div>
+
+    <div class="task">
+      <span class="id">1.6</span>
+      <span class="ttl">Alternativa útil cuando no hay plazas</span>
+      <span class="risk" data-r="bajo">bajo</span>
+      <span class="sub">Una sola, nombrada por lo que es, y sólo si se puede ofrecer.
+        <code>publicParkingsShown</code> ya está.</span>
+      <span class="files"><code>HomeSheetContent</code> (<code>spotsLane</code>)</span>
+    </div>
+
+    <div class="task">
+      <span class="id">1.7</span>
+      <span class="ttl">El aviso de vigilancia, sólo cuando avisa</span>
+      <span class="risk" data-r="bajo">bajo</span>
+      <span class="sub">Fuera el chip verde permanente, que además etiquetaba el tier — lo que
+        <code>UI-VEH-STATUS-IS-A-GLYPH-NOT-A-LABEL-001</code> prohíbe imprimir.</span>
+      <span class="files"><code>BrowsePeek</code> + el resolver</span>
+    </div>
+
+    <div class="task">
+      <span class="id">1.8</span>
+      <span class="ttl">Standout «MÁS BARATA / MÁS CERCANA» también en parkings</span>
+      <span class="risk" data-r="bajo">bajo</span>
+      <span class="sub">Decidido el 28-10. Mismas seis negativas; la que manda aquí: sin tarifa
+        publicada no hay «más barato» que decir.</span>
+      <span class="files">⚠️ renombrar <code>FuelStandouts</code> — pasa a servir dos sujetos ·
+        <code>HomeParkingRow</code></span>
+    </div>
+
+    <div class="task" data-flag="true">
+      <span class="id">1.9</span>
+      <span class="ttl">⚠️ Retirar «En esta zona» y «Tus vehículos»</span>
+      <span class="risk" data-r="bajo">bajo</span>
+      <span class="sub"><strong>Revierte dos decisiones que tomaste en device.</strong> Va al final
+        de la fase y con A/B en mano, no por convicción del documento. Si vuelven a leerse como un
+        solo bloque, se revierte.</span>
+      <span class="files"><code>HomeSheetContent</code></span>
+    </div>
+  </section>
+
+  <!-- ══ FASE 2 ══ -->
+  <section class="phase">
+    <header>
+      <b>Fase 2 · Estados y contenido contextual</b>
+      <span class="what">aquí sí entran casos de uso y un campo persistido</span>
+      <span class="cost" data-k="state">7 tareas</span>
+    </header>
+
+    <div class="task">
+      <span class="id">2.1</span>
+      <span class="ttl"><code>ResolveNearbyNotablesUseCase</code></span>
+      <span class="risk" data-r="bajo">bajo</span>
+      <span class="sub">Un notable por sujeto, orden fijo, umbral por sujeto. Puro, sin I/O. Test por
+        umbral <em>y</em> por «sin notables no hay sección». Fakes, no mocks.</span>
+      <span class="files">nuevo <code>domain/usecase/home/</code> + test</span>
+    </div>
+
+    <div class="task" data-flag="true">
+      <span class="id">2.2</span>
+      <span class="ttl">⚠️ La cabecera sigue al scroll</span>
+      <span class="risk" data-r="alto">medio-alto</span>
+      <span class="sub"><strong>La única que puede no salir tan limpia como el prototipo.</strong>
+        Las pestañas, que hoy ya se quedan fijas al llegar arriba, pasan a fijarse en la parte de la
+        hoja que <em>no</em> hace scroll. Eso cambia el alto del peek, del que depende la geometría
+        de anclas. El prototipo lo resuelve dejando las pestañas del cuerpo invisibles pero con su
+        hueco; en Compose, igual — o se acepta un desplazamiento al cruzar el umbral.</span>
+      <span class="files"><code>HomeScreen</code> · <code>HomeBottomSheet</code> ·
+        <code>BrowsePeek</code></span>
+    </div>
+
+    <div class="task">
+      <span class="id">2.3</span>
+      <span class="ttl">Lo recordado al instante + petición condicionada</span>
+      <span class="risk" data-r="bajo">bajo</span>
+      <span class="sub">La tarjeta se pinta <strong>sin esperar a nadie</strong>, y si hace falta se
+        pide a la vez y se actualiza al llegar — el patrón que los parkings ya tienen. Sólo se pide
+        si no hay nada recordado de esta zona: una provincia de gasolineras son megas.</span>
+      <span class="files"><code>HomeViewModel</code> · ⚠️ nuevo <code>remembered()</code> en el lado
+        del combustible (en parkings ya existe)</span>
+    </div>
+
+    <div class="task">
+      <span class="id">2.4</span>
+      <span class="ttl">El CAMBIO de precio en la tarjeta</span>
+      <span class="risk" data-r="medio">medio</span>
+      <span class="sub">«Bajó hoy cerca de ti · −4 cts» en vez del nivel.
+        <strong>Cierra <code>FUEL-A-RECORDED-SERIES-MUST-BE-READABLE-001</code></strong>: 30 días de
+        serie que hoy no se leen en ninguna pantalla.</span>
+      <span class="files"><code>HomeViewModel</code> lee <code>nearbyMoves</code> ·
+        <code>HomeFuelSlice</code></span>
+    </div>
+
+    <div class="task">
+      <span class="id">2.5</span>
+      <span class="ttl">La hoja se abre sola, sólo con novedad</span>
+      <span class="risk" data-r="medio">medio</span>
+      <span class="sub">A media hoja, nunca entera. Nunca conduciendo, ni con pregunta con plazo, ni
+        con la vigilancia en pausa, ni sin permiso. <strong>Es el único campo nuevo persistido</strong>:
+        la marca de «visto», sin la cual reabre con la misma noticia cada vez.</span>
+      <span class="files"><code>HomeScreen</code> · ⚠️ <code>AppPreferences</code></span>
+    </div>
+
+    <div class="task">
+      <span class="id">2.6</span>
+      <span class="ttl">Al plegar, la hoja vuelve arriba</span>
+      <span class="risk" data-r="bajo">bajo</span>
+      <span class="sub">Plegar es un gesto de «ya está»: el peek recupera tu coche y «Aquí y
+        ahora».</span>
+      <span class="files"><code>nextLaneHeaderLatch</code> y su call site</span>
+    </div>
+
+    <div class="task">
+      <span class="id">2.7</span>
+      <span class="ttl">Strings nuevos en los 9 locales</span>
+      <span class="risk" data-r="bajo">bajo</span>
+      <span class="sub">En la misma tarea, no después. Faltar en un locale no crashea: sale en
+        inglés, en silencio.</span>
+      <span class="files"><code>composeResources/values*/strings.xml</code> ·
+        <code>LocaleParityGuardrailTest</code></span>
+    </div>
+  </section>
+
+  <!-- ══ FASE 3 ══ -->
+  <section class="phase">
+    <header>
+      <b>Fase 3 · Sistema de diseño</b>
+      <span class="what">consolidar lo que la fase 1 maquetó, y dos verificaciones pendientes</span>
+      <span class="cost" data-k="sys">4 tareas</span>
+    </header>
+
+    <div class="task">
+      <span class="id">3.1</span>
+      <span class="ttl">Los tres componentes nuevos, como componentes</span>
+      <span class="risk" data-r="bajo">bajo</span>
+      <span class="sub"><code>PapPeekSubject</code> · <code>PapOpportunityCard</code> ·
+        <code>PapProgressRow</code>, con sus reglas de uso y su sitio en la galería.</span>
+    </div>
+
+    <div class="task" data-flag="true">
+      <span class="id">3.2</span>
+      <span class="ttl">⚠️ El botón verde en tema claro mide 3,43:1</span>
+      <span class="risk" data-r="medio">medio</span>
+      <span class="sub">Por debajo del 4,5:1 que la doctrina del propio proyecto exige a un relleno
+        frente a su etiqueta. <code>PapOnGreenContainerLight</code> da 4,65:1 <strong>sin tocar el
+        verde</strong>. En device primero: el verde ya se revocó una vez en mano.</span>
+      <span class="files"><code>Theme.kt</code></span>
+    </div>
+
+    <div class="task">
+      <span class="id">3.3</span>
+      <span class="ttl">Comprobar que los pulsos respetan «reducir movimiento»</span>
+      <span class="risk" data-r="bajo">bajo</span>
+      <span class="sub">Está escrito en la doctrina, no verificado en el código.</span>
+    </div>
+
+    <div class="task" data-flag="true">
+      <span class="id">3.4</span>
+      <span class="ttl">⚠️ El peek con la letra al 130 %</span>
+      <span class="risk" data-r="medio">medio</span>
+      <span class="sub">Lo único que queda que <strong>no es una decisión, es una medición</strong>.
+        Con la letra grande del sistema el peek crece y el mapa se encoge; la altura reservada tiene
+        que estar en <em>líneas</em>, no en dp fijos.</span>
+      <span class="files">device con la fuente grande</span>
+    </div>
+  </section>
+
+  <!-- ══ FASE 4 ══ -->
+  <section class="phase">
+    <header>
+      <b>Fase 4 · Valor de la información</b>
+      <span class="what">lo que exige cálculos nuevos — nada de esto bloquea a las tres anteriores</span>
+      <span class="cost" data-k="sys">4 tareas</span>
+    </header>
+
+    <div class="task">
+      <span class="id">4.1</span>
+      <span class="ttl">Veredicto de comparación de precios</span>
+      <span class="risk" data-r="medio">medio</span>
+      <span class="sub">«X está 0,07 €/l por debajo, a 600 m». El test que importa es el negativo:
+        con fechas o productos distintos <strong>no debe comparar</strong>.</span>
+    </div>
+
+    <div class="task">
+      <span class="id">4.2</span>
+      <span class="ttl">«Ahorro potencial», con su volumen al lado</span>
+      <span class="risk" data-r="medio">medio</span>
+      <span class="sub">Diferencia por litro ≠ ahorro potencial ≠ ahorro conseguido. La cifra nunca
+        sale sin el volumen que la genera escrito al lado.</span>
+    </div>
+
+    <div class="task">
+      <span class="id">4.3</span>
+      <span class="ttl">El recap del mes cerrado, una línea</span>
+      <span class="risk" data-r="medio">medio</span>
+      <span class="sub">Conecta la home con lo que ya se calcula. Es memoria, y la memoria es Plus:
+        gating <strong>soft</strong> — la línea se ve bloqueada, nunca oculta.</span>
+    </div>
+
+    <div class="task">
+      <span class="id">4.4</span>
+      <span class="ttl">Umbral de frescura por FUENTE</span>
+      <span class="risk" data-r="medio">medio</span>
+      <span class="sub">Uno por fuente, con su nombre y su motivo. Una constante global enmudecería
+        a Alemania, que es la única que garantiza tiempo real por ley.</span>
+    </div>
+  </section>
+
+  <h2>Lo que no entra en ninguna fase</h2>
+  <ul>
+    <li>Tocar la detección.</li>
+    <li>El carril «oportunidades» <strong>mezclado</strong> — un sujeto, un control del mapa.</li>
+    <li>Persistir el carril activo · un cuarto tab · un dashboard de estadísticas en la home.</li>
+    <li>Una sección de «últimas actualizaciones» — vive en la tarjeta que ya existe.</li>
+    <li>«La mejor plaza»: una plaza se agota, y la app ya cuenta quién va de camino.</li>
+    <li>Repintar la marca · cambiar la familia de neutros.</li>
+  </ul>
+
+  <div class="note stop">
+    <strong>Y antes de implementar, lo que hay que mirar en mano:</strong> el peek de B con la letra
+    al 130 % (3.4), el botón verde en tema claro (3.2), y el A/B de la 1.9. Tres cosas, y ninguna es
+    una decisión de diseño — son mediciones.
+  </div>
+
+  <footer>
+    Fase de diseño. <strong>Nada de esto está implementado</strong>, y el plan no se ejecuta sin que
+    lo apruebes. El porqué de cada decisión está en
+    <a href="b-decisions.md">b-decisions.md</a>; la spec completa, en
+    <a href="interaction-spec.md">interaction-spec.md</a> §9.
+  </footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paparcar · B · Smart mobility</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/base.css">
+</head>
+<body>
+<script src="assets/proto.js"></script>
+<script src="assets/shell.js"></script>
+<script>
+/* ============================================================================
+   ALTERNATIVA B · SMART MOBILITY — v2, con las siete decisiones de la revisión
+
+   Idea de producto: el primer vistazo son DOS cosas y en este orden —
+   tu coche en dos líneas, y lo que merece la pena a tu alrededor AHORA.
+
+   Qué cambia respecto a la v1, y por qué (cada punto es una pregunta del user):
+
+   [P1] Las tarjetas de «Aquí y ahora» tienen DOS destinos: el cuerpo abre ESE
+        item (cámara + hoja de detalle, igual que su fila de la lista) y el pie
+        abre SU LISTA. Dos destinos, dos controles.
+   [P2] La cabecera pasa a hablar del carril SÓLO cuando el carril es lo que se
+        está leyendo, y vuelve al coche al subir. Al plegar, la hoja vuelve
+        arriba. Las tres políticas se pueden comparar en el panel.
+   [P3] «Primeros pasos» tiene su cabecera de provincia, como «Aquí y ahora».
+   [P4] Un notable por sujeto, orden fijo, cada uno con su umbral. Sin notables,
+        la sección NO existe.
+   [P6] El peek del coche son dos líneas: «nombre · estado cuándo» y
+        «dónde · a cuánto».
+   [P7] El peek de CUALQUIER sujeto usa esa misma gramática de dos líneas, con
+        la cifra al trailing — se acabó la tercera línea repetida.
+   ============================================================================ */
+
+function peekMineB(s) {
+  const cards = nowCards(s);
+  const why = notablesWhyEmpty(s);
+
+  return `
+    ${carTwoLines(s)}
+    <div style="height:12px"></div>
+    <hr class="divider">
+    ${cards ? `
+      <div style="padding-top:12px">
+        <div class="provincehead" style="padding:0 0 10px">
+          <span class="t-sectionHeader">Aquí y ahora</span>
+          <span class="side t-caption">lo que merece la pena cerca</span>
+        </div>
+        <div style="display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:12px">
+          ${cards}
+        </div>
+      </div>`
+    : `
+      <!-- ⛔ Sin notables la sección no existe: ni título, ni hueco, ni caja
+           diciendo que no hay nada. Lo que queda es la pista de que la hoja
+           sigue, que es lo que de verdad le falta al usuario aquí. -->
+      ${scrollCue('Desliza para ver qué hay en esta zona')}`}`;
+}
+
+function bodyBlocksB(s) {
+  let out = '';
+
+  // [P3] Con su cabecera de provincia, igual que «Aquí y ahora».
+  if (s.onboarding) out += firstStepsBlock(1, 4);
+
+  // La salud del SISTEMA: repercute a todos los coches, así que no vive dentro
+  // de la card de uno. Sólo sale cuando dice algo que la cabecera no dice ya.
+  out += systemHealthRow(s);
+
+  // El coche, con su gestión completa — la cabecera lo ANUNCIA, esto lo gestiona.
+  out += provinceHead(s.cars > 1 ? 'Tus vehículos' : 'Tu coche',
+                      s.cars > 1 ? `${s.cars} registrados` : null);
+  out += vehiclesStrip(s);
+  out += `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;padding:12px 16px 0">${carActions(s)}</div>
+    <div style="height:20px"></div>`;
+
+  // ⛔ Y aquí NO hay cabecera «En esta zona»: la fila de pestañas ES la cabecera
+  // de su provincia. Una cabecera que repite lo que el control de debajo ya dice
+  // no separa nada, sólo gasta 56 dp.
+  return out;
+}
+
+bootPrototype({
+  id: 'B',
+  title: 'B · Smart mobility',
+  idea: 'Dos cosas en el primer vistazo: tu coche en dos líneas, y lo que merece la pena cerca '
+      + 'ahora. Cada tarjeta lleva a su item y a su lista.',
+  note: '<b>Prueba esto, en este orden:</b> (1) pulsa el CUERPO de una tarjeta → se abre la hoja '
+      + 'de detalle y el pin se marca en el mapa; (2) pulsa «Ver las 3» → se abre su lista; '
+      + '(3) despliega y baja hasta el carril → la cabecera pasa a llevar las pestañas; sube y '
+      + 'vuelve tu coche; (4) pon «Gasolineras: sin precios» → la tarjeta de gasolina desaparece '
+      + 'pero la lista sigue estando; (5) deja los tres sujetos sin nada → «Aquí y ahora» no '
+      + 'existe.',
+  peekHeight: 300,
+  peekMine: peekMineB,
+  bodyBlocks: bodyBlocksB,
+  why: (s) => {
+    const list = notables(s);
+    const why = notablesWhyEmpty(s);
+    const modeTxt = { mine: 'tu coche + Aquí y ahora', lane: 'las pestañas del carril',
+                      detail: 'la hoja de detalle del sujeto abierto' }[ui.headerMode];
+    return `
+      <b>Cabecera ahora:</b> ${modeTxt}.<br>
+      <b>Aquí y ahora:</b> ${list.length
+        ? list.map((n) => `${esc(n.eyebrow)} <span style="opacity:.7">(${esc(n.why)})</span>`).join('<br>')
+        : `<span style="color:var(--amber)">no existe</span> — ${why.join(' · ')}`}<br>
+      <b>Al plegar:</b> ${{ reset: 'la hoja vuelve arriba (recomendada)',
+                            keep: 'el peek mantiene el sujeto leído (lo de hoy)',
+                            car: '⚠ el peek vuelve al coche con el scroll abajo' }[s.latch]}.`;
+  },
+});
+</script>
+</body>
+</html>

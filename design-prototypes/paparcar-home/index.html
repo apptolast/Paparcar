@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paparcar · Prototipos de la home</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root { color-scheme: dark; --ink:#e7eaee; --dim:#a4adba; --line:#343a42;
+          --bg:#1a1d21; --card:#22262c; --green:#6fe0ab; --amber:#f5c86b; --red:#ff8d8d;
+          --font:"Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); padding-block: 40px;
+         padding-inline: 20px;
+         font-family:var(--font); -webkit-font-smoothing:antialiased; }
+  .wrap { max-width: 1000px; margin: 0 auto; }
+  h1 { font-size: clamp(28px, 5vw, 40px); line-height:1.1; margin:0 0 10px; letter-spacing:-.8px; }
+  h2 { font-size: 21px; margin: 44px 0 12px; letter-spacing:-.2px; }
+  h3 { font-size: 16px; margin: 0 0 6px; }
+  p  { color: var(--dim); line-height: 1.6; margin: 0 0 14px; }
+  .lead { font-size: 17px; color: var(--ink); max-width: 68ch; }
+  a { color: var(--green); }
+  code { background:#2a2f36; padding:1px 5px; border-radius:4px; font-size:.9em; }
+
+  .tag { display:inline-block; padding:4px 10px; border-radius:999px; font:700 10px/1 var(--font);
+         letter-spacing:1.2px; text-transform:uppercase; background:#2a2f36; color:var(--dim); }
+  .tag.win { background:rgba(111,224,171,.16); color:var(--green); }
+
+  .cards { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); }
+  .opt { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px;
+         display:flex; flex-direction:column; gap:10px; }
+  .opt.win { border-color:var(--green); }
+  .opt ul { margin:0; padding-left:18px; color:var(--dim); line-height:1.6; font-size:14px; }
+  .opt .go { margin-top:auto; display:inline-block; padding:10px 14px; border-radius:10px;
+             border:1px solid var(--line); text-decoration:none; color:var(--ink);
+             font:600 14px/1 var(--font); text-align:center; }
+  .opt.win .go { background:var(--green); color:#0d2a1e; border-color:var(--green); }
+
+  .tablewrap { overflow-x:auto; border:1px solid var(--line); border-radius:12px; }
+  table { border-collapse:collapse; width:100%; min-width:640px; font-size:14px; }
+  th, td { padding:10px 12px; text-align:left; border-bottom:1px solid var(--line); }
+  th { font:700 11px/1.3 var(--font); letter-spacing:.8px; text-transform:uppercase; color:var(--dim);
+       background:#1e2227; position:sticky; top:0; }
+  td:first-child { color:var(--ink); }
+  tbody tr:last-child td { border-bottom:0; }
+  .n { font-variant-numeric:tabular-nums; text-align:center; font-weight:700; }
+  .n[data-s="5"] { color:#8ee9b5; } .n[data-s="4"] { color:var(--green); }
+  .n[data-s="3"] { color:var(--amber); } .n[data-s="2"], .n[data-s="1"] { color:var(--red); }
+  tfoot td { font-weight:800; background:#1e2227; }
+
+  .note { border-left:3px solid var(--green); background:rgba(111,224,171,.07);
+          padding:12px 0 12px 14px; border-radius:0 8px 8px 0; margin:18px 0; }
+  .note.warn { border-color:var(--amber); background:rgba(245,200,107,.08); }
+  .docs { display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); }
+  .docs a { display:block; padding:14px; background:var(--card); border:1px solid var(--line);
+            border-radius:12px; text-decoration:none; color:var(--ink); }
+  .docs a span { display:block; color:var(--dim); font-size:13px; margin-top:3px; line-height:1.5; }
+  footer { margin-top:48px; padding-top:20px; border-top:1px solid var(--line);
+           color:var(--dim); font-size:13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <span class="tag">UX-THE-HOME-MUST-EARN-ITS-FIRST-GLANCE-001 · 27-10-2026</span>
+  <h1>Tres homes para Paparcar</h1>
+  <p class="lead">
+    Tres direcciones con diferencias <strong>reales</strong> de arquitectura de la información, no
+    tres pieles. Comparten el mismo armazón, los mismos tokens y los mismos datos de demostración
+    a propósito: así la comparación mide <em>dónde va cada cosa</em>, no quién eligió mejores colores.
+  </p>
+
+  <div class="note">
+    <strong>Estado (27-10, 2.ª vuelta):</strong> el user se inclina por <strong>B</strong>. Las
+    siete decisiones de su revisión están aplicadas, y las que no son exclusivas de B —gramática de
+    dos líneas, peek de detalle unificado, cabecera dirigida por scroll, cabeceras de provincia—
+    están en <strong>las tres</strong>, para que lo que se siga comparando sea sólo lo que de verdad
+    las distingue. Detalle y lo que queda por decidir: <a href="b-decisions.md">b-decisions.md</a>.
+  </div>
+
+  <div class="note">
+    <strong>Tres decisiones más, del mismo día.</strong>
+    <strong>(1) Conduciendo no se filtra nada</strong> — los tres sujetos, gasolineras incluidas:
+    <em>«¿quién dice que una persona conduciendo no pueda parar a repostar?»</em>. Repostar se hace
+    sólo conduciendo, así que la regla <code>EN_RUTA</code> que callaba en C está retirada
+    (<a href="b-decisions.md">§10</a>).
+    <strong>(2) El badge de vigilancia sólo existe cuando algo no se cumple</strong>: al preguntar
+    el user si seguía intacto aparecieron <em>dos</em> fallos míos — desaparecía leyendo el carril,
+    y encima etiquetaba el tier («Bluetooth»), que
+    <code>UI-VEH-STATUS-IS-A-GLYPH-NOT-A-LABEL-001</code> prohíbe imprimir. Sano no lleva chip; el
+    aviso es un botón que abre la fila con el remedio (<a href="b-decisions.md">§11</a>).
+    <strong>(3) El umbral de «precio viejo» es por FUENTE</strong>, con las cuatro conductas reales
+    inventariadas (<a href="b-decisions.md">§12</a>).
+  </div>
+
+  <div class="note">
+    <strong>Marcar cuál es la mejor: ya existía.</strong> El chip <em>MÁS BARATA</em> /
+    <em>MÁS CERCANA</em> está en la app desde
+    <code>FUEL-THE-CHEAPEST-AND-THE-NEAREST-WEAR-A-BADGE-001</code> — lo que faltaba era que el
+    prototipo lo reprodujera. Ya lo hace, con sus <strong>seis negativas</strong> (un solo candidato,
+    empate compartido, empate universal, dos monedas, distancias empatadas, un chip por fila), las
+    seis con testigo falsificado. Y la que propongo yo: <strong>una plaza nunca lleva «la
+    mejor»</strong> — una gasolinera no se agota, una plaza sí, y la app ya cuenta quién va de camino
+    (<a href="b-decisions.md">§13</a>).
+  </div>
+
+  <div class="note">
+    <strong>Cuarta vuelta (28-10).</strong> <strong>Standout en parkings: sí</strong> — con las
+    mismas seis negativas, y la que más manda ahí: sin tarifa publicada no hay «más barato» que
+    decir. <strong>Al plegar: <code>reset</code></strong>, la hoja vuelve arriba.
+    <strong>«Últimas actualizaciones cerca»</strong> ya tiene datos reales y gratis
+    (<code>nearbyMoves</code>, radio 1 km ya decidido en el código) y contesta un ticket abierto:
+    no es una sección nueva — <em>la tarjeta de gasolinera prefiere el CAMBIO al NIVEL</em>.
+    Y <strong>la hoja se abre sola al arrancar</strong>, pero el disparador es «hay novedad», no
+    «hay contenido», a media hoja y nunca por encima de tu coche
+    (<a href="b-decisions.md">§14 y §15</a>).
+  </div>
+
+  <div class="note">
+    <strong>El condicionante que lo decide todo:</strong> Paparcar tiene menos de 20 usuarios. El
+    carril que la home abre por defecto —plazas de la comunidad— es el único cuyo contenido depende
+    de que esa comunidad exista. Ninguna de las tres propuestas esconde las plazas; las tres
+    resuelven de forma distinta qué pasa cuando no hay ninguna.
+  </div>
+
+  <h2>Cómo explorar cada una</h2>
+  <p>
+    Abre cualquier archivo <code>.html</code> de esta carpeta directamente en el navegador — no hace
+    falta servidor, ni claves de API, ni conexión (sin red se usa la tipografía del sistema).
+    Cada prototipo trae a su derecha un <strong>panel de control</strong> que no es parte de la app:
+    cambia el estado del coche, la vigilancia, las plazas, los precios y los permisos, y la pantalla
+    responde. Arrastra la cabecera de la hoja, o pulsa en ella; con teclado, Tab hasta la cabecera y
+    ↑ / ↓.
+  </p>
+  <p>
+    Los prototipos <strong>declaran reglas</strong> («el badge de vigilancia sólo existe cuando algo no se cumple», «una plaza nunca lleva la mejor», «sin notables la
+    sección no existe», «ningún botón decorativo», «la dirección en una sola línea»), y una
+    prohibición sin testigo no es una prohibición. Para ejecutarlas:
+  </p>
+  <p><code>node design-prototypes/paparcar-home/verify.js</code></p>
+  <p>
+    Sin dependencias. Recorre los 14 ejes de estado × 3 carriles × 4 estados de detalle en las tres
+    alternativas, más las reglas de arriba y la fidelidad del CSS —
+    <strong>22.714 comprobaciones</strong>. Cada regla se añadió <em>falsificándola</em> primero: si
+    no se pone roja al romper lo que vigila, no vigila nada.
+  </p>
+
+  <div class="cards">
+    <article class="opt">
+      <span class="tag">A</span>
+      <h3>Vehicle-first</h3>
+      <p>El coche es el sujeto permanente del primer vistazo.</p>
+      <ul>
+        <li><strong>Resuelve:</strong> que hoy no se ve el estado del coche sin arrastrar.</li>
+        <li><strong>Riesgo:</strong> desaprovecha el dato del entorno cuando sí existe.</li>
+        <li><strong>Prueba:</strong> «Sin marcar» + «Vigilancia interrumpida».</li>
+      </ul>
+      <a class="go" href="vehicle-first.html">Abrir A</a>
+    </article>
+
+    <article class="opt win">
+      <span class="tag win">B · preferida por el user</span>
+      <h3>Smart mobility</h3>
+      <p>Tu coche en dos líneas, y hasta tres tarjetas de lo que merece la pena cerca. Cada tarjeta
+      lleva a su item <em>y</em> a su lista.</p>
+      <ul>
+        <li><strong>Resuelve:</strong> que lo más rico en datos esté a cuatro toques.</li>
+        <li><strong>Riesgo:</strong> sin datos la sección no existe — y eso hoy pasa a menudo.</li>
+        <li><strong>Prueba:</strong> pulsa el cuerpo de una tarjeta, luego «Ver las 3», luego baja
+        al carril y sube.</li>
+      </ul>
+      <a class="go" href="smart-mobility.html">Abrir B</a>
+    </article>
+
+    <article class="opt">
+      <span class="tag">C · recomendada por el análisis</span>
+      <h3>Adaptive home</h3>
+      <p>Zonas fijas; lo que adapta es el contenido de <em>una</em> línea, por precedencia pura.</p>
+      <ul>
+        <li><strong>Resuelve:</strong> las dos cosas, sin prometer lo que no hay.</li>
+        <li><strong>Riesgo:</strong> calla a menudo donde B enseñaría algo.</li>
+        <li><strong>Prueba:</strong> recórrelo y mira <em>qué regla gana</em> y cuántas tarjetas
+        pondría B en el mismo estado.</li>
+      </ul>
+      <a class="go" href="adaptive-home.html">Abrir C</a>
+    </article>
+  </div>
+
+  <p style="margin-top:18px">
+    Y lo que se construiría si dices que sí: <a href="plan.html"><strong>el plan en una
+    página</strong></a> — 4 fases, 24 tareas, con su riesgo y las tres cosas que hay que ver en
+    device antes de empezar.
+  </p>
+
+  <h2>Ver todos los casos a la vez</h2>
+  <p>
+    Recorrer estados de uno en uno no sirve para decidir una gramática. <strong>44 casos del peek
+    pintados uno al lado de otro</strong>, al ancho real del contenido de la hoja (358 px) y con los
+    roles tipográficos del código: el coche en sus diez situaciones, el detalle de los tres sujetos,
+    la cabecera leyendo cada carril, «Aquí y ahora» con sus siete casos de umbral, y las seis negativas del chip de «la mejor».
+  </p>
+  <div class="docs" style="margin-bottom:18px">
+    <a href="peek-cases.html"><strong>Hoja de contactos de los casos del peek</strong>
+      <span>44 casos, cada uno con la regla que lo gobierna debajo. Oscuro y claro.</span></a>
+    <a href="b-decisions.md"><strong>Las siete decisiones, y lo que falta decidir</strong>
+      <span>Qué se decidió, qué se descartó y por qué · 7 preguntas abiertas que son del user.</span></a>
+  </div>
+
+  <h2>¿El HTML es la pantalla real?</h2>
+  <p>
+    <strong>No, y una de las divergencias maquillaba el diseño a favor del prototipo.</strong> El
+    CSS aplicaba <code>tabular-nums</code> —cifras de ancho fijo— y Compose Multiplatform 1.12
+    <strong>no aplica <code>fontFeatureSettings</code></strong> aunque la fuente declare la feature:
+    el prototipo alineaba columnas de cifras que en la app bailan. Está quitado. En el otro sentido,
+    el levante óptico de las CIFRAS (que Compose calcula con las métricas reales de Plus Jakarta
+    Sans: cap 0,745 · ascenso 1,038 · descenso 0,222 em) ahora sí está replicado: a 21/9 px la
+    fórmula da 2,08 px, y es lo que aplica el prototipo.
+  </p>
+  <p>
+    <strong>Se puede juzgar aquí:</strong> tipografía, tamaños, pesos, color, espaciado, radios y la
+    geometría de las cuatro anclas de la hoja (misma fracción 0,42 que el código).
+    <strong>No se puede:</strong> la textura del mapa, los iconos al píxel, el tacto exacto del
+    arrastre, y <strong>el comportamiento con fuente grande</strong> — que es justo el caso que hay
+    que ver en device antes de implementar el peek de B. La tabla completa, en
+    <a href="b-decisions.md">b-decisions.md</a> §0.
+  </p>
+
+  <h2>Matriz de evaluación</h2>
+  <p>
+    Escala 1–5, con la ponderación justificada en
+    <a href="comparison.md">comparison.md</a> §3. Son <strong>juicios de diseño</strong>, no
+    resultados de experimentos: ninguna afirma mejorar conversión, retención ni satisfacción.
+  </p>
+  <p>
+    ⚠️ <strong>Las puntuaciones son de la primera vuelta.</strong> Con las decisiones compartidas
+    aplicadas, A y B suben donde se las penalizaba por cosas que ya no son suyas: «toques para las
+    tareas principales» y «coherencia del sistema de diseño» ahora son iguales en las tres. Lo que
+    sigue separándolas es una sola pregunta — <em>cuántas cosas caben en el primer vistazo</em> — y
+    ésa no la decide una matriz.
+  </p>
+
+  <div class="tablewrap">
+  <table>
+    <thead>
+      <tr><th>Criterio</th><th>Peso</th><th>A</th><th>B</th><th>C</th><th>Hoy</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Claridad inmediata del estado del vehículo</td><td class="n">15 %</td>
+          <td class="n" data-s="5">5</td><td class="n" data-s="3">3</td><td class="n" data-s="5">5</td><td class="n" data-s="2">2</td></tr>
+      <tr><td>Facilidad para encontrar la acción principal</td><td class="n">12 %</td>
+          <td class="n" data-s="5">5</td><td class="n" data-s="3">3</td><td class="n" data-s="5">5</td><td class="n" data-s="3">3</td></tr>
+      <tr><td>Utilidad sin plazas compartidas</td><td class="n">15 %</td>
+          <td class="n" data-s="3">3</td><td class="n" data-s="4">4</td><td class="n" data-s="5">5</td><td class="n" data-s="2">2</td></tr>
+      <tr><td>Valor de gasolineras y precios</td><td class="n">8 %</td>
+          <td class="n" data-s="2">2</td><td class="n" data-s="5">5</td><td class="n" data-s="4">4</td><td class="n" data-s="2">2</td></tr>
+      <tr><td>Legibilidad y relación con el mapa</td><td class="n">8 %</td>
+          <td class="n" data-s="3">3</td><td class="n" data-s="2">2</td><td class="n" data-s="3">3</td><td class="n" data-s="5">5</td></tr>
+      <tr><td>Descubrimiento de las funcionalidades</td><td class="n">7 %</td>
+          <td class="n" data-s="3">3</td><td class="n" data-s="5">5</td><td class="n" data-s="4">4</td><td class="n" data-s="3">3</td></tr>
+      <tr><td>Toques para las tareas principales</td><td class="n">10 %</td>
+          <td class="n" data-s="4">4</td><td class="n" data-s="5">5</td><td class="n" data-s="5">5</td><td class="n" data-s="2">2</td></tr>
+      <tr><td>Carga cognitiva (menos es mejor)</td><td class="n">10 %</td>
+          <td class="n" data-s="5">5</td><td class="n" data-s="2">2</td><td class="n" data-s="4">4</td><td class="n" data-s="2">2</td></tr>
+      <tr><td>Coherencia del sistema de diseño</td><td class="n">5 %</td>
+          <td class="n" data-s="5">5</td><td class="n" data-s="3">3</td><td class="n" data-s="5">5</td><td class="n" data-s="4">4</td></tr>
+      <tr><td>Accesibilidad</td><td class="n">5 %</td>
+          <td class="n" data-s="5">5</td><td class="n" data-s="3">3</td><td class="n" data-s="4">4</td><td class="n" data-s="4">4</td></tr>
+      <tr><td>Viabilidad y mantenimiento</td><td class="n">10 %</td>
+          <td class="n" data-s="5">5</td><td class="n" data-s="2">2</td><td class="n" data-s="4">4</td><td class="n" data-s="5">5</td></tr>
+      <tr><td>Capacidad de evolucionar con la comunidad</td><td class="n">10 %</td>
+          <td class="n" data-s="3">3</td><td class="n" data-s="4">4</td><td class="n" data-s="5">5</td><td class="n" data-s="3">3</td></tr>
+    </tbody>
+    <tfoot>
+      <tr><td>Total ponderado (sobre 5)</td><td class="n">115 %*</td>
+          <td class="n">4,01</td><td class="n">3,41</td><td class="n">4,51</td><td class="n">2,90</td></tr>
+    </tfoot>
+  </table>
+  </div>
+  <p style="font-size:13px">
+    * Los pesos suman 115 porque se declararon por importancia relativa y no se normalizaron a mano;
+    el total divide por la suma real. El detalle del cálculo, criterio a criterio, está en
+    <a href="comparison.md">comparison.md</a> §4.
+  </p>
+
+  <div class="note warn">
+    <strong>Lo que esta matriz no dice.</strong> «Hoy» se puntúa contra el código leído, no contra
+    una sesión en device. Las columnas A/B/C se puntúan contra los prototipos de esta carpeta, no
+    contra una implementación. Y ninguna fila mide negocio: con 20 usuarios no hay significancia
+    para eso. Las hipótesis que habría que validar con personas están en
+    <a href="../../docs/design/home-ux-audit.md">la auditoría</a> §10.
+  </div>
+
+  <h2>Documentos</h2>
+  <div class="docs">
+    <a href="../../docs/design/home-ux-audit.md">Auditoría de UX
+      <span>El diagnóstico sobre el código real: anatomía, alturas medidas, las ocho preguntas y los
+      estados vacíos.</span></a>
+    <a href="comparison.md">Comparativa y recomendación
+      <span>Las tres alternativas en detalle, la ponderación justificada, el cálculo y la decisión.</span></a>
+    <a href="design-system.md">Sistema de diseño
+      <span>Tokens, roles tipográficos, componentes, estados semánticos y reglas de accesibilidad.</span></a>
+    <a href="plan.html"><strong>El plan, en una página</strong>
+      <span>4 fases, 24 tareas, con su riesgo y lo que hay que ver en device. Esto es lo que se
+      construiría.</span></a>
+    <a href="b-decisions.md">Las siete decisiones (2.ª vuelta)
+      <span>La revisión del user, punto por punto: fidelidad, dos destinos, cabecera por scroll,
+      umbrales y la gramática de dos líneas.</span></a>
+    <a href="peek-cases.html">Hoja de contactos del peek
+      <span>28 casos a la vez, con su regla debajo.</span></a>
+    <a href="interaction-spec.md">Spec de interacción
+      <span>Los estados de la propuesta ganadora, su precedencia, qué se ve en cada ancla y el
+      plan de implementación por fases.</span></a>
+  </div>
+
+  <footer>
+    Todo el contenido de los prototipos es de <strong>demostración</strong> y está marcado como tal
+    en pantalla. Ninguna cifra, dirección, precio o plaza proviene de la app, de un usuario real ni
+    de una fuente de datos. Fase de diseño: no se ha modificado ninguna pantalla de producción.
+  </footer>
+
+</div>
+</body>
+</html>

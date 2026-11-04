@@ -1,0 +1,663 @@
+/* ============================================================================
+   Paparcar — base del prototipo de home.
+   Lenguaje visual COMPARTIDO por las tres alternativas, para que la comparación
+   mida arquitectura de la información y no quién eligió colores más bonitos.
+
+   Tokens tomados de shared/.../ui/theme/Color.kt, Spacing.kt, Shapes.kt y
+   PaparcarType.kt. Donde un valor no existe en el código se marca con PROTO.
+   ============================================================================ */
+
+/* ── 1 · Tokens ───────────────────────────────────────────────────────────── */
+
+:root {
+  /* Tema oscuro — los valores vivos de Color.kt (base azul-navy, H217°). */
+  --surface-lowest: #08090E;  /* PapInkDeep     — detrás del mapa */
+  --surface:        #0D1117;  /* PapInk         — base de la app */
+  --container:      #131A24;  /* PapInkContainer— hoja, nav */
+  --high:           #1A2232;  /* PapInkHigh     — tarjetas */
+  --highest:        #222C3E;  /* PapInkHighest  — modales */
+
+  --on:             #EBF2EF;  /* PapOnDark */
+  --on-muted:       #8EA0B4;  /* PapOnDarkMuted */
+  --outline:        #3B4A5E;  /* PapNeutralOutline */
+  --divider:        rgba(59, 74, 94, .55);
+
+  --green:          #25F48C;  /* PapGreen — marca y acción */
+  --on-green:       #06281A;
+  --green-muted:    #133D28;  /* primaryContainer */
+  --green-outline:  #226D49;
+
+  --amber:          #F4A825;  /* PapAmber — atención */
+  --amber-muted:    #3D2A10;
+  --red:            #FF5252;  /* PapRed — urgente, nunca en un CTA */
+  --red-muted:      #3D1010;
+
+  --car-blue:       #5B9EFF;  /* PapCarBlueDark — identidad Bluetooth */
+  --car-blue-muted: #0F1F3D;
+  --car-park:       #3E8FD4;  /* PapCarParkBlueDark — parking público */
+  --live:           #2F6BFF;  /* PapLiveMap — movimiento que NO es tuyo */
+  --watch-green:    #0FBF9A;  /* PapWatchGreen — vigilancia */
+  --watch-muted:    #0B3A31;
+  --spot-fresh:     #8FE83C;  /* PapSpotFresh */
+  --spot-cooling:   #F4A825;
+  --spot-expiring:  #FF5252;
+
+  /* Lienzo del mapa — ilustrativo. El mapa real lo pinta kmp-maps. PROTO */
+  --map-bed:        #0B1410;
+  --map-road:       #243B32;
+  --map-road-minor: #18241E;
+  --map-water:      #10202B;
+
+  /* Espaciado — Spacing.kt */
+  --xs: 4px; --sm: 8px; --md: 12px; --lg: 16px; --xl: 20px; --xxl: 24px;
+  --gap-chiprow: 6px;   /* PapGap.chipRow */
+  --gap-block: 14px;    /* PapGap.block */
+  --gap-iconlabel: 8px; /* PapGap.iconLabel */
+
+  /* Radios — Shapes.kt / PapShapes */
+  --r-cell: 6px; --r-row: 12px; --r-card: 16px; --r-sheet: 20px; --r-chip: 999px;
+
+  /* El atajo `font` necesita una familia REAL: `inherit` no es gramática válida ahí
+     y tiraría la declaración entera. [medido en la spec de CSS Fonts] */
+  --font: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system,
+          "Segoe UI", Roboto, sans-serif;
+
+  --tap: 48px;          /* área táctil mínima */
+  --border-hair: 1px;
+  --nav-h: 64px;
+
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --surface-lowest: #FFFFFF;
+  --surface:        #F4F7FC;  /* PapSurfaceLight */
+  --container:      #F0F4FB;  /* PapAzure */
+  --high:           #FFFFFF;  /* PapCardLight */
+  --highest:        #FFFFFF;
+
+  --on:             #0E1A2E;  /* PapOnSurfaceLight */
+  --on-muted:       #374460;  /* PapOnVariantLight */
+  --outline:        #BDC8DF;  /* PapOutlineVariantLight */
+  --divider:        rgba(189, 200, 223, .9);
+
+  --green:          #009F5E;  /* PapGreenLight */
+  --on-green:       #FFFFFF;
+  --green-muted:    #A8F5D0;
+  --green-outline:  #009F5E;
+
+  --amber:          #B56000;  /* PapAmberLight */
+  --amber-muted:    #FFDDB3;
+  --red:            #C3201D;
+  --red-muted:      #FFDAD6;
+
+  --car-blue:       #0057CA;  /* PapCarBlueLight */
+  --car-blue-muted: #D7E3FF;
+  --car-park:       #00468F;  /* PapCarParkBlueLight */
+  --watch-green:    #05876D;  /* PapWatchGreenLight */
+  --watch-muted:    #AAF0D8;
+  --spot-fresh:     #5FBF1F;
+  --spot-cooling:   #E08200;
+  --spot-expiring:  #E0322F;
+
+  --map-bed:        #E7EEE9;
+  --map-road:       #FFFFFF;
+  --map-road-minor: #F2F6F3;
+  --map-water:      #CFE0EC;
+
+  color-scheme: light;
+}
+
+/* ── 2 · Reset y página contenedora (el "escritorio", no la app) ─────────── */
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #1a1d21;
+  color: #e7eaee;
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+:root[data-theme="light"] body { background: #dfe4ea; color: #1b2430; }
+
+a { color: #6fe0ab; }
+
+.stage {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 28px 16px 64px;
+}
+
+/* ── 3 · El teléfono ─────────────────────────────────────────────────────── */
+
+.phone {
+  position: relative;
+  width: 390px;
+  height: 844px;
+  flex: 0 0 auto;
+  border-radius: 42px;
+  background: var(--surface);
+  color: var(--on);
+  overflow: hidden;
+  box-shadow: 0 0 0 10px #0c0e11, 0 0 0 11px #2a3038, 0 30px 60px rgba(0,0,0,.55);
+  isolation: isolate;
+}
+@media (max-width: 430px) {
+  .stage { padding: 0; gap: 0; }
+  .phone {
+    width: 100vw; height: 100svh; border-radius: 0; box-shadow: none;
+  }
+}
+
+.statusbar {
+  position: absolute; inset: 0 0 auto 0; height: 44px; z-index: 40;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 22px; pointer-events: none;
+  font: 600 13px/1 var(--font); color: var(--on);
+  text-shadow: 0 1px 3px rgba(0,0,0,.5);
+}
+:root[data-theme="light"] .statusbar { text-shadow: 0 1px 3px rgba(255,255,255,.6); }
+.statusbar .glyphs { display: flex; gap: 5px; align-items: center; }
+
+/* ── 4 · Tipografía — los roles de PaparcarType.kt ───────────────────────── */
+/* MARCA = nombres y títulos · LECTURA = lo que se lee o se pulsa · CIFRA = una
+   cifra que protagoniza su bloque. Solo `color` se decide en el call site.     */
+
+.t-screenTitle  { font: 800 24px/32px var(--font); letter-spacing: -.5px; }
+.t-sectionTitle { font: 700 20px/26px var(--font); letter-spacing: -.2px; }
+.t-cardTitle    { font: 700 18px/24px var(--font); letter-spacing: .15px; }
+.t-rowName      { font: 600 14px/20px var(--font); letter-spacing: .1px; }
+
+.t-sectionHeader{ font: 800 12px/16px var(--font); letter-spacing: 1px; text-transform: uppercase; }
+.t-eyebrow      { font: 700 11px/14px var(--font); letter-spacing: 1.2px; text-transform: uppercase; }
+.t-cta          { font: 600 15px/20px var(--font); letter-spacing: .1px; }
+.t-rowTitle     { font: 600 14px/20px var(--font); letter-spacing: .25px; }
+.t-subtitle     { font: 400 16px/24px var(--font); letter-spacing: .5px; }
+.t-body         { font: 400 14px/20px var(--font); letter-spacing: .25px; }
+.t-label        { font: 600 12px/16px var(--font); letter-spacing: .5px; }
+.t-caption      { font: 400 12px/16px var(--font); letter-spacing: .4px; }
+.t-meta         { font: 400 12px/16px var(--font); letter-spacing: .2px; }
+.t-badge        { font: 600 12px/16px var(--font); letter-spacing: .4px; }
+
+/* ⛔ SIN `font-variant-numeric: tabular-nums`. CMP 1.12 no aplica `fontFeatureSettings`
+   aunque Plus Jakarta Sans declare la feature, así que el prototipo tampoco puede: alinear
+   aquí cifras que en la app bailan sería maquillar el diseño. [medido en el catálogo] */
+.t-statNumber   { font: 700 20px/20px var(--font); letter-spacing: -.4px; }
+.t-statLabel    { font: 600 12px/15px var(--font); letter-spacing: .6px; text-transform: uppercase; }
+.t-counter      { font: 700 21px/21px var(--font); letter-spacing: -.3px; }
+.t-counterUnit  { font: 600 9px/9px var(--font);  letter-spacing: .5px; }
+
+.muted { color: var(--on-muted); }
+
+/* ── 5 · Mapa ────────────────────────────────────────────────────────────── */
+
+.map {
+  position: absolute; inset: 0; z-index: 0;
+  background: var(--map-bed);
+}
+.map svg { width: 100%; height: 100%; display: block; }
+
+.map-chrome {
+  position: absolute; inset: 52px 12px auto 12px; z-index: 20;
+  display: flex; flex-direction: column; gap: var(--sm);
+  transition: opacity .22s ease, transform .22s ease;
+}
+.map-chrome[data-hidden="true"] { opacity: 0; transform: translateY(-10px); pointer-events: none; }
+
+.searchbar {
+  display: flex; align-items: center; gap: var(--gap-iconlabel);
+  height: 46px; padding: 0 var(--lg);
+  background: color-mix(in srgb, var(--container) 86%, transparent);
+  backdrop-filter: blur(14px);
+  border: var(--border-hair) solid var(--divider);
+  border-radius: var(--r-chip);
+  color: var(--on-muted);
+  box-shadow: 0 6px 18px rgba(0,0,0,.28);
+}
+.zonechips { display: flex; gap: var(--gap-chiprow); overflow-x: auto; scrollbar-width: none; }
+.zonechips::-webkit-scrollbar { display: none; }
+
+.chip {
+  flex: 0 0 auto; display: inline-flex; align-items: center; gap: var(--xs);
+  height: 34px; padding: 0 var(--md);
+  border-radius: var(--r-chip);
+  border: var(--border-hair) solid var(--divider);
+  background: color-mix(in srgb, var(--container) 86%, transparent);
+  backdrop-filter: blur(14px);
+  color: var(--on); font: 600 12px/1 var(--font); letter-spacing: .4px;
+  cursor: pointer;
+}
+.chip[aria-pressed="true"] {
+  border-color: var(--green-outline);
+  background: color-mix(in srgb, var(--green) 16%, var(--container));
+  color: var(--on);
+}
+.chip:focus-visible, .pill:focus-visible, .tab:focus-visible,
+.navitem:focus-visible, .row:focus-visible, .handle:focus-visible {
+  outline: 2px solid var(--green); outline-offset: 2px;
+}
+
+.map-fabs {
+  position: absolute; right: 12px; z-index: 20;
+  display: flex; flex-direction: column; gap: var(--sm);
+  transition: bottom .28s cubic-bezier(.2,.8,.2,1), opacity .22s ease;
+}
+.fab {
+  width: 46px; height: 46px; border-radius: var(--r-chip);
+  display: grid; place-items: center; cursor: pointer;
+  background: color-mix(in srgb, var(--container) 90%, transparent);
+  backdrop-filter: blur(14px);
+  border: var(--border-hair) solid var(--divider);
+  color: var(--on);
+  box-shadow: 0 6px 18px rgba(0,0,0,.3);
+}
+.fab[data-accent="green"] { background: var(--green); color: var(--on-green); border-color: transparent; }
+
+.locpill {
+  position: absolute; left: 12px; z-index: 20; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 30px; padding: 0 12px; border-radius: var(--r-chip);
+  background: color-mix(in srgb, var(--container) 90%, transparent);
+  backdrop-filter: blur(14px);
+  border: var(--border-hair) solid var(--divider);
+  font: 600 11px/1 var(--font); letter-spacing: .4px; color: var(--on-muted);
+  transition: bottom .28s cubic-bezier(.2,.8,.2,1), opacity .22s ease;
+}
+.locpill[data-warn="true"] { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 45%, transparent); }
+
+/* ── 6 · Hoja inferior ───────────────────────────────────────────────────── */
+
+.sheet {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 30;
+  background: var(--container);
+  border-radius: var(--r-sheet) var(--r-sheet) 0 0;
+  box-shadow: 0 -12px 34px rgba(0,0,0,.42);
+  display: flex; flex-direction: column;
+  will-change: transform;
+  touch-action: none;
+}
+.sheet::before {
+  content: ""; position: absolute; top: 7px; left: 50%; transform: translateX(-50%);
+  width: 34px; height: 4px; border-radius: 2px; background: var(--outline);
+}
+.handle {
+  flex: 0 0 auto; padding: 18px var(--lg) 0; cursor: grab;
+  -webkit-user-select: none; user-select: none;
+}
+.handle[data-grabbing="true"] { cursor: grabbing; }
+.sheet-body {
+  /* `position: relative` NO es decoración: hace del cuerpo el `offsetParent`
+     de la fila de pestañas, y sin eso `tabs.offsetTop` se mediría contra la
+     hoja entera —incluyendo la cabecera— y la comparación con `scrollTop` que
+     decide el sujeto de la cabecera daría siempre falso. */
+  position: relative;
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.sheet-body::-webkit-scrollbar { width: 4px; }
+.sheet-body::-webkit-scrollbar-thumb { background: var(--outline); border-radius: 2px; }
+
+/* ── 7 · Navegación ──────────────────────────────────────────────────────── */
+
+.bottomnav {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 35;
+  height: var(--nav-h);
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  background: var(--container);
+  border-top: var(--border-hair) solid var(--divider);
+  transition: transform .26s ease, opacity .2s ease;
+}
+.bottomnav[data-hidden="true"] { transform: translateY(100%); opacity: 0; }
+.navitem {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px; border: 0; background: none; cursor: pointer;
+  color: var(--on-muted); font: 600 11px/1 var(--font); letter-spacing: .3px;
+}
+.navitem[aria-current="page"] { color: var(--green); }
+
+/* ── 8 · Piezas reutilizadas (PapListItem, PapIconTile, PapCtaPill…) ─────── */
+
+.card {
+  background: var(--high); border-radius: var(--r-card);
+  border: var(--border-hair) solid var(--divider);
+}
+.card.flat { background: transparent; }
+
+.row {
+  display: flex; align-items: center; gap: var(--md);
+  width: 100%; padding: var(--md) var(--lg);
+  background: none; border: 0; color: inherit; text-align: left;
+  cursor: pointer; min-height: var(--tap);
+}
+.row:hover { background: color-mix(in srgb, var(--on) 5%, transparent); }
+.row .grow { flex: 1 1 auto; min-width: 0; }
+.row .trail { flex: 0 0 auto; color: var(--on-muted); }
+
+.tile {
+  flex: 0 0 auto; width: 40px; height: 40px; border-radius: var(--r-row);
+  display: grid; place-items: center;
+  background: color-mix(in srgb, var(--on) 8%, transparent);
+  color: var(--on-muted);
+}
+.tile[data-identity="active"] { background: var(--green-muted); color: var(--green); }
+.tile[data-identity="bt"]     { background: var(--car-blue-muted); color: var(--car-blue); }
+.tile[data-identity="off"]    { background: color-mix(in srgb, var(--on) 8%, transparent); color: var(--on-muted); }
+.tile[data-identity="park"]   { background: color-mix(in srgb, var(--car-park) 20%, transparent); color: var(--car-park); }
+.tile[data-identity="fuel"]   { background: color-mix(in srgb, var(--amber) 18%, transparent); color: var(--amber); }
+.tile[data-identity="spot"]   { background: color-mix(in srgb, var(--spot-fresh) 18%, transparent); color: var(--spot-fresh); }
+
+.pill {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--gap-iconlabel);
+  min-height: 40px; padding: 0 var(--lg);
+  border-radius: var(--r-chip); border: var(--border-hair) solid transparent;
+  font: 600 15px/20px var(--font); letter-spacing: .1px;
+  cursor: pointer; background: none; color: var(--on);
+}
+.pill[data-kind="primary"]   { background: var(--green); color: var(--on-green); }
+.pill[data-kind="secondary"] { border-color: var(--green-outline); color: var(--green); }
+.pill[data-kind="quiet"]     { border-color: var(--divider); color: var(--on); }
+.pill[data-kind="danger"]    { border-color: color-mix(in srgb, var(--red) 55%, transparent); color: var(--red); }
+.pill[disabled] { opacity: .45; cursor: not-allowed; }
+.pill.block { width: 100%; }
+.pill.small { min-height: 34px; padding: 0 var(--md); font: 600 12px/1 var(--font); letter-spacing: .4px; }
+
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: var(--r-chip);
+  font: 600 11px/14px var(--font); letter-spacing: .6px; text-transform: uppercase;
+}
+.badge[data-tone="watch"]  { background: var(--watch-muted); color: var(--watch-green); }
+.badge[data-tone="warn"]   { background: var(--amber-muted); color: var(--amber); }
+.badge[data-tone="error"]  { background: var(--red-muted);   color: var(--red); }
+.badge[data-tone="neutral"]{ background: color-mix(in srgb, var(--on) 10%, transparent); color: var(--on-muted); }
+.badge[data-tone="bt"]     { background: var(--car-blue-muted); color: var(--car-blue); }
+
+/* El chip que señala la fila que interesa. PAR TONAL, no relleno macizo: al
+   final de la fila la prominencia ya se la da la POSICIÓN, y dos badges con la
+   misma forma y distinto peso se leerían como dos NIVELES de afirmación al
+   cambiar de pestaña, cuando dicen lo mismo — «ésta es la que te interesa» —
+   sobre carriles distintos. Caja y esquina POR DEFECTO, las de `SpotAgeIndicator`. */
+.standout {
+  display: inline-block; margin-top: 4px;
+  padding: 4px 8px; border-radius: var(--r-cell);
+  font: 600 12px/16px var(--font); letter-spacing: .4px; white-space: nowrap;
+}
+/* Verde de marca para lo que habla del PRECIO: la más barata es LA respuesta. */
+.standout[data-claim="price"]    { background: var(--green-muted); color: var(--green); }
+/* Neutro para la distancia: es un dato de orientación, no una respuesta. */
+.standout[data-claim="distance"] {
+  background: color-mix(in srgb, var(--on) 10%, transparent); color: var(--on-muted);
+}
+
+.divider { height: 1px; background: var(--divider); border: 0; margin: 0; }
+.divider.inset { margin-left: 70px; margin-right: var(--lg); }
+
+.sectionhead {
+  padding: var(--lg) var(--lg) var(--sm);
+  color: var(--on-muted);
+}
+
+/* La barra de acento de una fila que PIDE algo (HomeDetectionSurface). */
+.actionrow {
+  display: flex; gap: var(--md); align-items: flex-start;
+  padding: var(--md) var(--lg) var(--md) 13px;
+  border-radius: var(--r-card);
+  border: var(--border-hair) solid var(--divider);
+  border-left: 3px solid var(--green);
+  background: var(--high);
+}
+.actionrow[data-tone="warn"]  { border-left-color: var(--amber); }
+.actionrow[data-tone="error"] { border-left-color: var(--red); }
+.actionrow[data-tone="ask"]   { border-left-color: var(--live); }
+
+/* Pestañas de sujeto — el ancho es DECISIÓN de cada alternativa. */
+.tabs {
+  position: sticky; top: 0; z-index: 2;
+  background: var(--container);
+  display: grid;
+}
+.tab {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  padding: 14px 4px 0; border: 0; background: none; cursor: pointer;
+  color: var(--on-muted);
+}
+.tab[aria-selected="true"] { color: var(--on); }
+.tab .tabtop { display: flex; align-items: center; gap: var(--gap-iconlabel); height: 24px; }
+.tab .count {
+  padding: 1px 5px; border-radius: var(--r-cell);
+  background: color-mix(in srgb, currentColor 16%, transparent);
+  font: 600 12px/16px var(--font);
+}
+.tab .ind { width: 100%; height: 3px; border-radius: 3px 3px 0 0; background: transparent; }
+.tab[aria-selected="true"] .ind { background: var(--green); }
+
+/* Estado vacío — una LÍNEA, no una caja. */
+.emptyline {
+  padding: var(--xl) var(--lg);
+  text-align: center; color: var(--on-muted);
+}
+.emptyline .art { display: block; margin: 0 auto var(--sm); opacity: .75; }
+
+.skel {
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--on) 7%, transparent) 25%,
+    color-mix(in srgb, var(--on) 13%, transparent) 37%,
+    color-mix(in srgb, var(--on) 7%, transparent) 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s linear infinite;
+  border-radius: var(--r-cell);
+}
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .skel { animation: none; }
+  * { transition-duration: .01ms !important; }
+}
+
+/* Sello de DEMO — obligatorio: nada de este contenido es real. */
+.demotag {
+  position: absolute; z-index: 45; top: 15px; left: 50%; transform: translateX(-50%);
+  padding: 3px 10px; border-radius: var(--r-chip);
+  background: rgba(0,0,0,.62); color: #ffd98a;
+  border: 1px solid rgba(255,217,138,.4);
+  font: 700 9px/1 var(--font); letter-spacing: 1.2px; text-transform: uppercase;
+  pointer-events: none;
+}
+:root[data-theme="light"] .demotag { background: rgba(255,255,255,.85); color: #8a5a00; border-color: #e0b062; }
+
+/* Aviso transitorio del prototipo — un control que parece pulsable responde. */
+.prototoast {
+  position: absolute; z-index: 46; left: 16px; right: 16px; bottom: 84px; margin: 0;
+  padding: 10px 14px; border-radius: var(--r-row);
+  background: color-mix(in srgb, var(--highest) 94%, transparent);
+  border: var(--border-hair) solid var(--divider);
+  color: var(--on); font: 400 12px/16px var(--font); letter-spacing: .4px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.4); text-align: center;
+}
+
+/* ── 9 · Panel de control del prototipo (NO es parte de la app) ──────────── */
+
+.panel {
+  flex: 0 1 330px; min-width: 290px;
+  background: #22262c; border: 1px solid #343a42; border-radius: 14px;
+  padding: 18px; color: #dfe4ea;
+  font: 400 13px/1.5 var(--font);
+}
+:root[data-theme="light"] .panel { background: #fff; border-color: #c6ccd6; color: #1b2430; }
+.panel h1 { font: 800 19px/1.25 var(--font); margin: 0 0 2px; }
+.panel h2 {
+  font: 700 10px/1 var(--font); letter-spacing: 1.3px; text-transform: uppercase;
+  color: #8e97a4; margin: 20px 0 8px;
+}
+.panel p { margin: 0 0 10px; color: #a9b2bf; }
+:root[data-theme="light"] .panel p, :root[data-theme="light"] .panel h2 { color: #4a5568; }
+.panel .note {
+  border-left: 3px solid #6fe0ab; padding: 8px 0 8px 10px; margin: 12px 0;
+  background: rgba(111,224,171,.07); border-radius: 0 6px 6px 0;
+}
+.seg { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.seg > span { flex: 1 0 100%; font: 600 11px/1 var(--font); color: #8e97a4; margin-bottom: 2px; }
+:root[data-theme="light"] .seg > span { color: #4a5568; }
+.seg button {
+  flex: 1 1 auto; min-height: 34px; padding: 0 10px; cursor: pointer;
+  border-radius: 8px; border: 1px solid #3c434c; background: #2a2f36; color: #dfe4ea;
+  font: 600 12px/1 var(--font);
+}
+:root[data-theme="light"] .seg button { background: #eef1f5; border-color: #c6ccd6; color: #1b2430; }
+.seg button[aria-pressed="true"] { background: #6fe0ab; border-color: #6fe0ab; color: #0d2a1e; }
+.seg button:focus-visible { outline: 2px solid #6fe0ab; outline-offset: 2px; }
+
+.panel .why {
+  margin-top: 14px; padding: 10px 12px; border-radius: 10px;
+  background: #1c2026; border: 1px dashed #3c434c; font: 400 12px/1.5 var(--font);
+}
+:root[data-theme="light"] .panel .why { background: #f4f6f9; border-color: #c6ccd6; }
+.panel .why b { color: #6fe0ab; }
+:root[data-theme="light"] .panel .why b { color: #0a7a52; }
+
+.panel .navlinks { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.panel .navlinks a {
+  padding: 7px 11px; border-radius: 8px; border: 1px solid #3c434c;
+  text-decoration: none; color: #dfe4ea; font: 600 12px/1 var(--font);
+}
+:root[data-theme="light"] .panel .navlinks a { color: #1b2430; border-color: #c6ccd6; }
+.panel .navlinks a[aria-current="page"] { border-color: #6fe0ab; color: #6fe0ab; }
+
+.sr {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   10 · v2 — las piezas que salen de la revisión del user (27-10)
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── 10.1 · Cabecera de PROVINCIA ────────────────────────────────────────────
+   Un título de sección se gana su sitio cuando NOMBRA una provincia que el
+   usuario tiene que distinguir, y no cuando repite lo que el bloque ya dice.
+   «Aquí y ahora» nombra un conjunto CURADO (no la lista de un tipo) y
+   «Primeros pasos» nombra una provincia temporal: las dos se lo ganan.
+   La fila de pestañas ES la cabecera de su provincia, así que no lleva otra. */
+
+.provincehead {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: var(--sm); padding: 0 0 10px;
+  color: var(--on-muted);
+}
+.provincehead .side { flex: 0 0 auto; color: var(--on-muted); }
+
+/* ── 10.2 · Tarjeta de oportunidad — DOS destinos ───────────────────────────
+   El cuerpo abre ESE item (cámara + hoja de detalle, igual que su fila de la
+   lista). El pie abre SU LISTA. Son dos destinos distintos y por eso son dos
+   controles distintos: un solo tap no puede significar las dos cosas.
+   ⛔ No es un <button> dentro de otro (HTML inválido y foco imposible): es un
+   contenedor con dos botones hermanos. */
+
+.opcard {
+  flex: 0 0 auto; width: 212px;
+  display: flex; flex-direction: column;
+  background: var(--high); border: var(--border-hair) solid var(--divider);
+  border-radius: var(--r-card); overflow: hidden;
+}
+.opcard-main {
+  flex: 1 1 auto; display: block; width: 100%;
+  padding: 12px 12px 10px; border: 0; background: none;
+  color: inherit; text-align: left; cursor: pointer;
+}
+.opcard-main:hover { background: color-mix(in srgb, var(--on) 5%, transparent); }
+.opcard-eyebrow { display: flex; align-items: center; gap: var(--gap-iconlabel); margin-bottom: 8px; }
+.opcard-more {
+  flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between;
+  width: 100%; min-height: 40px; padding: 0 12px;
+  border: 0; border-top: var(--border-hair) solid var(--divider);
+  background: none; color: var(--green); cursor: pointer;
+  font: 600 12px/1 var(--font); letter-spacing: .4px;
+}
+.opcard-more:hover { background: color-mix(in srgb, var(--green) 10%, transparent); }
+.opcard-main:focus-visible, .opcard-more:focus-visible {
+  outline: 2px solid var(--green); outline-offset: -2px;
+}
+
+/* El bloque CIFRA + unidad, con el LEVANTE ÓPTICO medido de Plus Jakarta Sans.
+   Una caja de texto mide ascent+descent (1,038 + 0,222 em), pero un dígito sólo
+   pinta hasta la altura de mayúscula (0,745 em) y no baja de la línea base. El
+   hueco muerto es lo que hunde el número contra el borde de su celda.
+   lift = ((ascent − cap)·figura − descent·unidad) / 2 → a 21/9 px son 2,1 px. */
+.figureblock { display: flex; align-items: baseline; gap: 3px; transform: translateY(-2px); }
+
+/* ── 10.3 · La gramática de DOS líneas, para cualquier sujeto ───────────────
+   línea 1 = NOMBRE del sujeto · su calificador
+   línea 2 = DÓNDE · a CUÁNTO de ti        (la dirección trunca; la distancia NO)
+   la cifra propia del sujeto va al TRAILING, nunca en una tercera línea.
+   ⛔ Si el sujeto no tiene nombre propio, la línea 1 es su TIPO + calificador y
+   la 2 la dirección: la dirección no aparece nunca en las dos. */
+
+.sline1, .sline2 { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.sline1 .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sline1 .qual { flex: 0 0 auto; color: var(--on); }
+.sline2 .where {
+  min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; color: var(--on-muted);
+}
+.sline2 .far { flex: 0 0 auto; color: var(--on-muted); }  /* nunca trunca */
+.dot { flex: 0 0 auto; color: var(--on-muted); opacity: .7; }
+
+/* ── 10.4 · La cabecera de la hoja, dirigida por el SCROLL ──────────────────
+   El sujeto de la cabecera describe LO QUE SE ESTÁ LEYENDO. Arriba, tu coche;
+   dentro del carril, el carril. Es reversible y continuo, y por eso es
+   predecible: la cabecera nunca habla de algo que no esté debajo. */
+
+.handle { transition: none; }
+.handle-zone { overflow: hidden; }
+.handle-zone[data-collapsing="true"] { transition: max-height .22s ease, opacity .18s ease; }
+
+.lanehead { display: flex; align-items: center; gap: var(--md); padding: 2px 0 12px; }
+.lanehead .count {
+  padding: 2px 7px; border-radius: var(--r-cell);
+  background: color-mix(in srgb, var(--on) 12%, transparent);
+  font: 600 12px/16px var(--font);
+}
+
+/* La pista de que hay MÁS abajo. Responde a «si no llega hasta abajo no sabe
+   qué quiere decir el sheet»: el borde inferior de la cabecera dice que lo de
+   debajo sigue, en vez de dejar que el corte parezca el final. */
+.scrollcue {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 6px 0 10px; color: var(--on-muted);
+  font: 400 11px/14px var(--font); letter-spacing: .3px;
+}
+.scrollcue svg { opacity: .8; }
+.scrollcue svg.rot90 { transform: rotate(90deg); }
+
+/* ── 10.5 · Galería de casos (peek-cases.html) ──────────────────────────────
+   No es la app: es una hoja de contactos para poder ver muchos casos a la vez. */
+
+.casegrid {
+  display: grid; gap: 18px; padding: 24px 20px 64px;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  max-width: 1500px; margin: 0 auto;
+}
+.case {
+  background: var(--container); color: var(--on);
+  border: var(--border-hair) solid var(--divider); border-radius: var(--r-card);
+  overflow: hidden;
+}
+.case > header {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  padding: 10px 14px; background: color-mix(in srgb, var(--on) 6%, transparent);
+  border-bottom: var(--border-hair) solid var(--divider);
+}
+.case > header b { font: 700 12px/16px var(--font); letter-spacing: .3px; }
+.case > header span { font: 400 11px/14px var(--font); color: var(--on-muted); }
+.case .inner { padding: 14px 16px 16px; }
+.case .verdict {
+  padding: 8px 14px 12px; border-top: var(--border-hair) solid var(--divider);
+  font: 400 11px/1.5 var(--font); color: var(--on-muted);
+}
+.case .verdict code {
+  background: color-mix(in srgb, var(--on) 10%, transparent);
+  padding: 1px 4px; border-radius: 4px; color: var(--on);
+}

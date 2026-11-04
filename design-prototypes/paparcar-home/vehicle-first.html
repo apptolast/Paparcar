@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paparcar · A · Vehicle-first</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/base.css">
+</head>
+<body>
+<script src="assets/proto.js"></script>
+<script src="assets/shell.js"></script>
+<script>
+/* ============================================================================
+   ALTERNATIVA A · VEHICLE-FIRST — v2
+
+   Idea: el coche es el sujeto permanente del primer vistazo. Lo que la app sabe
+   SIEMPRE —y nadie más sabe— es dónde está tu coche y si lo está vigilando.
+   Lo de alrededor vive un nivel por debajo, intacto.
+
+   Hereda del armazón las decisiones compartidas de la revisión: la gramática de
+   dos líneas del coche [P6], el peek de detalle de dos líneas [P7], la cabecera
+   dirigida por scroll [P2], las cabeceras de provincia [P3] y las pestañas
+   reponderadas. Lo que A NO tiene es «Aquí y ahora»: ésa es justo la diferencia
+   que se está comparando.
+   ============================================================================ */
+
+function peekMineA(s) {
+  return `
+    ${carTwoLines(s)}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;padding:14px 0 14px">${carActions(s)}</div>`;
+}
+
+function bodyBlocksA(s) {
+  let out = '';
+  if (s.onboarding) out += firstStepsBlock(1, 4);
+  out += systemHealthRow(s);
+  if (s.cars > 1) {
+    out += provinceHead('Tus vehículos', `${s.cars} registrados`);
+    out += vehiclesStrip(s);
+  }
+  out += `<div style="height:16px"></div>`;
+  return out;
+}
+
+bootPrototype({
+  id: 'A',
+  title: 'A · Vehicle-first',
+  idea: 'El coche ocupa el primer vistazo entero: estado, cuándo, dónde, a cuánto y la vigilancia, '
+      + 'más la acción del momento. Lo de alrededor queda un nivel por debajo.',
+  note: '<b>Qué comparar con B:</b> aquí el primer vistazo nunca depende de que haya datos '
+      + 'alrededor — así que nunca está vacío. El precio de eso es que con precios frescos a 300 m '
+      + 'la home no los menciona. Pon «Gasolineras: con precios» y compáralo con B en la otra '
+      + 'pestaña del navegador.',
+  peekHeight: 200,
+  peekMine: peekMineA,
+  bodyBlocks: bodyBlocksA,
+  why: (s) => {
+    const a = watchAlert(s);
+    const modeTxt = { mine: 'tu coche', lane: 'las pestañas del carril',
+                      detail: 'la hoja de detalle' }[ui.headerMode];
+    return `<b>Cabecera ahora:</b> ${modeTxt}.<br>
+      <b>Estado:</b> «${carStatus(s).eyebrow}» · vigilancia ${a
+        ? `<span style="color:var(--amber)">«${a.text}»</span>`
+        : 'sana → <b>sin badge</b>, lo dicen el glifo y el color'}.<br>
+      <b>Lo que A no hace:</b> ${notables(s).length
+        ? `hay ${notables(s).length} notable(s) alrededor y el primer vistazo no los nombra`
+        : 'no hay nada notable alrededor, así que hoy no pierde nada'}.`;
+  },
+});
+</script>
+</body>
+</html>
