@@ -500,7 +500,9 @@ private fun ParkedCarHeader(
 // The hint names the gesture that actually works, and one drag up is where the control lives.
 // [UI-SHEET-003]
 @Composable
-private fun UnmarkedCarHeader(vehicle: Vehicle) {
+private fun UnmarkedCarHeader(
+    vehicle: Vehicle,
+) {
     val vehicleName = vehicleSummary(vehicle) ?: stringResource(Res.string.home_vehicle_fallback_name)
     PapSheet(
         lead = PapSheetLead.Vehicle(

@@ -70,7 +70,7 @@ fun PapListItem(
      *  identity colour while the state words stay in [overlineColor]. [UI-COLOR-DOCTRINE-001] */
     overlineHighlight: String? = null,
     overlineHighlightColor: Color = overlineColor,
-    contentPadding: PaddingValues = PaddingValues(horizontal = ROW_H_PAD_DP.dp, vertical = ROW_V_PAD_DP.dp),
+    contentPadding: PaddingValues = PaddingValues(horizontal = PapNavChevronRailInset, vertical = ROW_V_PAD_DP.dp),
     gap: Dp = PapListItemGap,
 ) {
     Row(
@@ -138,7 +138,6 @@ internal fun annotatedWithHighlight(
     }
 }
 
-private const val ROW_H_PAD_DP = 16
 private const val ROW_V_PAD_DP = 14
 /** Gap between the leading slot and the text column. Public for the same reason [PapIconTileSize]
  *  is: content rendered UNDER a row (a CTA on its own line) has to land on the text, and copying

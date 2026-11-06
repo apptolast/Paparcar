@@ -17,6 +17,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
+import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 
 /**
@@ -117,11 +118,11 @@ fun PapInfoRow(
  *   coche: dice dónde está y lleva al mapa) necesita nombrar el destino.
  */
 @Composable
-fun PapNavChevron(contentDescription: String? = null) {
+fun PapNavChevron(contentDescription: String? = null, tint: Color? = null) {
     Icon(
         imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
         contentDescription = contentDescription,
-        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = PapAlpha.dim),
+        tint = tint ?: MaterialTheme.colorScheme.onSurface.copy(alpha = PapAlpha.dim),
         modifier = Modifier.size(PapNavChevronSize),
     )
 }
@@ -132,3 +133,9 @@ fun PapNavChevron(contentDescription: String? = null) {
  * (el lápiz de la ficha, con su caja de 40 dp). Copiar el número es cómo los dos se separan.
  */
 val PapNavChevronSize: Dp = 20.dp
+
+/**
+ * Standard inset for a card's trailing navigation chevron. Together with [PapNavChevronSize], it
+ * places the glyph center 26 dp from the card's interior edge.
+ */
+val PapNavChevronRailInset: Dp = PaparcarSpacing.lg

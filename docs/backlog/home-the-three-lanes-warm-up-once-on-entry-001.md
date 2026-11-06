@@ -2,41 +2,49 @@
 
 **Estado:** ✅ Done · en master (14-09-2026)
 
+## Regla vigente — HOME-ONE-TAB-ANSWERS-ONE-INTENTION-001
+
+La pestaña decide qué carril se muestra, pero no qué datos se cargan. Tras asentarse la cámara,
+`queueComplementRefresh` actualiza parkings y gasolineras en secuencia, priorizando el carril visible;
+al cambiar de pestaña también encola ambos. La precarga inicial sigue siendo de una vez, y las plazas
+comunitarias mantienen su suscripción de Firestore.
+
 ## Problema
 
 Pulsar Gasolineras o Parkings por primera vez enseñaba un spinner. La respuesta tardaba lo que
 tardase Overpass —medido entre 1,4 s y más de 8 s según el día— cuando ese tiempo se podía haber
 gastado mientras el usuario miraba el mapa.
 
-## Doctrina que se ESTRECHA (y por qué no se rompe)
+## Decisión original de este ticket
 
-La regla vigente era:
+La regla adoptada originalmente era:
 
 > *Un sujeto que no está a la vista no descarga NADA.*
 
-Pasa a ser:
+En aquella implementación se estrechó a:
 
 > *Un sujeto que no está a la vista no descarga nada **cuando la cámara se mueve**.*
 
-El matiz es todo. Lo que la regla protegía —que un usuario que solo arrastra el mapa no pague
-peticiones por listas que nunca abrirá— **sigue intacto**: el calentamiento es UNO, al entrar, y a
-partir de ahí panear le cuesta cero a un carril oculto. Lo que cambia es únicamente la primera carga.
+Esta fue la regla de la implementación original. La sección «Regla vigente» de arriba la sustituye:
+ambos complementos siguen ahora los asentamientos de cámara aunque su carril esté oculto.
 
-⛔ Su testigo (`should_notRefetch_when_theLaneIsElsewhere`) no se ha borrado: se ha reescrito para
-afirmar exactamente la regla estrecha, que es la que ahora rige. Un test que se borra al cambiar el
-comportamiento deja de proteger nada; uno que se reescribe sigue montando guardia sobre lo que queda.
+En el diseño original, ese matiz protegía el coste de los paneos al completar solo la carga
+inicial. La regla vigente se actualizó después: cada asentamiento refresca ambos complementos, con
+peticiones secuenciales e idempotentes para no repetir consultas dentro de la misma zona.
+
+⛔ El testigo de aquella regla se actualizó después con la decisión vigente: los tests
+`should_refreshAllComplementStores_whenCameraMovesWhileSpotsAreSelected` y
+`should_refreshFuelWhenItsLaneIsHidden_butIgnoreSmallCameraMoves` comprueban que ambos complementos
+siguen a la cámara aunque estén ocultos.
 
 ## Diseño
 
-- `NearbyTrigger.WARM_UP` — valor propio, con la semántica de `ENTER` (es una primera pregunta, no un
-  reintento). Existe separado porque es el único disparador que actúa sobre un carril que **no está
-  en pantalla**, y un log que no distingue «el usuario abrió gasolineras» de «calentamos
-  gasolineras» no puede explicar una petición que nadie pidió.
-- `warmUpHiddenLanes()` — guardado por `hasWarmedUpLanes`, así que es **una vez por Home**, nunca por
-  fix. Se dispara desde dos sitios, los dos idempotentes:
-  - el primer fix de GPS, que es cuando Home sabe DÓNDE calentar;
-  - el asentamiento de cámara, para el usuario que no concedió ubicación y cuya única señal de dónde
-    está mirando es el mapa.
+- `NearbyTrigger.WARM_UP` — mismas condiciones de refresco que `ENTER`, pero identifica una carga
+  previa en los registros. Si un intento anterior falló y dejó el ancla vacía, puede volver a pedir
+  ese dato pendiente.
+- `warmUpHiddenLanes()` — guardado por `hasWarmedUpLanes`, así que la precarga inicial es **una vez por
+  Home**, nunca por fix. Se dispara con el primer fix de GPS. Si no hay ubicación, el asentamiento de
+  cámara carga los dos complementos mediante `scheduleNearbyRefresh`, tanto si están visibles como si no.
 - **Secuencial, y no es cuestión de estilo.** El presupuesto de Overpass es UNA pregunta a la vez
   (`OverpassQuota`) porque el servidor concede 2 por IP y una IP es un operador entero de usuarios.
   Lanzar los dos carriles a la vez metería al segundo en una cola que abandona a los 10 s — y un
@@ -57,7 +65,7 @@ comportamiento deja de proteger nada; uno que se reescribe sigue montando guardi
 
 | Sitio | Qué asumía | Estado |
 |---|---|---|
-| `scheduleNearbyRefresh` | «solo pregunta el carril a la vista» | ✅ sigue siendo cierto para el paneo; su KDoc lo dice ahora completo |
+| `scheduleNearbyRefresh` | «solo pregunta el carril a la vista» | ✅ sustituido: refresca ambos complementos al asentarse la cámara |
 | `NearbyTrigger.FIX` | nunca reintenta un fallo | ✅ intacto — el calentamiento es primera pregunta, no reintento |
 | `refreshNearby` | tres disparadores | ✅ el cuarto reutiliza la ruta de `ENTER` sin ramas nuevas |
 | Ancla fijada en el INTENTO | evita preguntar dos veces por el mismo suelo | ✅ es justo lo que hace que abrir el carril tras calentar salga gratis |
@@ -70,8 +78,8 @@ es la del usuario abriéndolo, es la de la precarga**.
 
 | Test | Qué hizo falta |
 |---|---|
-| `should_notRefetch_when_theLaneIsElsewhere` | reescrito sobre la regla estrecha: cuenta 1 tras calentar y exige que panear **no** suba de ahí |
-| `should_stayQuiet_when_theCameraBarelyMoved_orTheLayerIsOff` | líneas base relativas en vez de absolutas |
+| `should_refreshAllComplementStores_whenCameraMovesWhileSpotsAreSelected` | actualizado: el paneo refresca ambos complementos aunque siga seleccionada la pestaña de plazas |
+| `should_refreshFuelWhenItsLaneIsHidden_butIgnoreSmallCameraMoves` | verifica que un paneo grande actualiza combustible aunque esté oculto, y que uno corto no duplica la petición |
 | `should_askAgainInTheSamePlace_when_theFirstAskFailed` | el fallo se arma ANTES del primer fix y se repite al abrir, para que el paneo siga siendo el reintento que el test mide |
 | `should_retryOnTheNextCameraMove_butNeverOnAFix_when_theAskFailed` | ídem, con una pregunta más por delante |
 | `should_answerForTheLatestPlace_when_theCameraSettlesWhileAnAskIsInFlight` | el gate se arma antes del primer fix: la petición que se queda en vuelo es ahora la de la precarga |

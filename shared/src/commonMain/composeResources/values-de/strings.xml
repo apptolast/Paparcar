@@ -1041,6 +1041,8 @@ Wenn die Frage nicht mehr erscheint, ändere es unter Einstellungen → Paparcar
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
     <string name="subject_fuel_stations">Tankstellen</string>
     <string name="subject_public_parkings">Parkhäuser</string>
+    <string name="home_intention_park">Parken</string>
+    <string name="home_intention_refuel">Tanken</string>
     <string name="subject_free_spots">Stellplätze</string>
     <string name="subject_free_spots_full">Community-Plätze</string>
     <string name="home_parkings_empty">Keine öffentlichen Parkhäuser im Umkreis von %1$s.</string>

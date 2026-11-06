@@ -37,7 +37,8 @@ import com.rndeveloper.paparcar.ui.theme.PapMotion
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
-import paparcar.composeapp.generated.resources.subject_free_spots
+import paparcar.composeapp.generated.resources.home_intention_park
+import paparcar.composeapp.generated.resources.home_intention_refuel
 import paparcar.composeapp.generated.resources.subject_fuel_stations
 import paparcar.composeapp.generated.resources.subject_public_parkings
 
@@ -92,37 +93,30 @@ internal fun HomeNearbyLensRow(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Bottom,
         ) {
+            // Home responde a dos intenciones, no a tres fuentes. Aparcar mantiene
+            // plazas y parkings como bloques separados dentro del mismo scroll.
             LensTab(
                 subject = HomeNearbyLens.SPOTS,
-                label = stringResource(Res.string.subject_free_spots),
-                icon = PaparcarIcons.CommunitySpot,
-                count = spotCount,
-                lens = lens,
-                onSelect = onSelect,
-                highlighted = highlighted,
-                // Las tres son pestañas del mismo nivel y deben conservar una celda
-                // horizontal idéntica. Dar más peso a plazas estrechaba las etiquetas largas de
-                // parkings y gasolineras y hacía que la última quedara elidida.
-                modifier = Modifier.weight(1f),
-            )
-            LensTab(
-                subject = HomeNearbyLens.PARKINGS,
-                label = stringResource(Res.string.subject_public_parkings),
+                label = stringResource(Res.string.home_intention_park),
                 icon = PaparcarIcons.CarParkMark,
-                count = parkingsCount,
+                count = null,
                 lens = lens,
                 onSelect = onSelect,
-                highlighted = highlighted,
+                highlighted = if (HomeNearbyLens.SPOTS in highlighted || HomeNearbyLens.PARKINGS in highlighted) {
+                    setOf(HomeNearbyLens.SPOTS)
+                } else {
+                    emptySet()
+                },
                 modifier = Modifier.weight(1f),
             )
             LensTab(
                 subject = HomeNearbyLens.FUEL,
-                label = stringResource(Res.string.subject_fuel_stations),
+                label = stringResource(Res.string.home_intention_refuel),
                 icon = PaparcarIcons.Fuel,
-                count = fuelCount,
+                count = fuelCount.takeIf { lens == HomeNearbyLens.FUEL },
                 lens = lens,
                 onSelect = onSelect,
-                highlighted = highlighted,
+                highlighted = if (HomeNearbyLens.FUEL in highlighted) setOf(HomeNearbyLens.FUEL) else emptySet(),
                 modifier = Modifier.weight(1f),
             )
         }
@@ -147,13 +141,15 @@ private fun LensTab(
     subject: HomeNearbyLens,
     label: String,
     icon: ImageVector,
-    count: Int,
+    count: Int?,
     lens: HomeNearbyLens,
     onSelect: (HomeNearbyLens) -> Unit,
     highlighted: Set<HomeNearbyLens>,
     modifier: Modifier = Modifier,
 ) {
-    val selected = lens == subject
+    // A public-parking direct route is still inside the Aparcar intention.
+    val selected = lens == subject ||
+        (subject == HomeNearbyLens.SPOTS && lens == HomeNearbyLens.PARKINGS)
     // ⛔ El verde NO pinta la pestaña activa: la pinta el INDICADOR, y la etiqueta sube a
     // `onSurface`. Se probó lo contrario (user, 10-09) y en device fue peor: con el glifo y la
     // etiqueta en verde, la pestaña competía con la única cosa verde que tiene que llamar. El
@@ -193,7 +189,7 @@ private fun LensTab(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
         ) {
-            if (count > 0) {
+            if (count != null && count > 0) {
                 Text(
                     text = count.toString(),
                     style = PaparcarType.current.badge,

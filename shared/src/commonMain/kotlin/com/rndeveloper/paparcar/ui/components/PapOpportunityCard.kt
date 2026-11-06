@@ -6,11 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -19,7 +15,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
@@ -175,8 +170,10 @@ fun PapOpportunityCard(
             ) {
                 Row(
                     modifier = Modifier.padding(
-                        horizontal = PaparcarSpacing.lg,
-                        vertical = PaparcarSpacing.md,
+                        start = PaparcarSpacing.lg,
+                        top = PaparcarSpacing.md,
+                        end = PapNavChevronRailInset,
+                        bottom = PaparcarSpacing.md,
                     ),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -186,15 +183,10 @@ fun PapOpportunityCard(
                         color = MaterialTheme.colorScheme.primary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false),
+                        modifier = Modifier.weight(1f),
                     )
                     Spacer(Modifier.width(PaparcarSpacing.xs))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(OPPORTUNITY_FOOTER_CHEVRON_DP),
-                    )
+                    PapNavChevron(tint = MaterialTheme.colorScheme.primary)
                 }
             }
         }
@@ -204,6 +196,3 @@ fun PapOpportunityCard(
 /** Dos líneas: un nombre de gasolinera con marca y calle no cabe en una, y elidirlo deja al usuario
  *  sin saber cuál es. ⛔ Tres ya es una lista dentro de una tarjeta. */
 private const val OPPORTUNITY_NAME_MAX_LINES = 2
-
-/** El chevron del pie, a la medida del rol `cta` al que acompaña. */
-private val OPPORTUNITY_FOOTER_CHEVRON_DP = 18.dp

@@ -29,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -37,6 +38,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.detection.DetectionPhase
 import com.rndeveloper.paparcar.domain.model.Spot
+import com.rndeveloper.paparcar.domain.nearby.NearbySubject
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.onboarding.FindSpotAsk
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
@@ -60,12 +62,15 @@ import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
 import com.rndeveloper.paparcar.presentation.home.model.resolveDetectionStory
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.HomeSheetAction
 import com.rndeveloper.paparcar.ui.components.PapSectionHeader
+import com.rndeveloper.paparcar.ui.components.PapSectionHeaderRow
 import com.rndeveloper.paparcar.ui.components.VehicleGlyphTile
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_vehicles_section_header
 import paparcar.composeapp.generated.resources.home_nearby_section_header
+import paparcar.composeapp.generated.resources.subject_free_spots_full
+import paparcar.composeapp.generated.resources.subject_public_parkings
 import paparcar.composeapp.generated.resources.home_size_filter_all
 import paparcar.composeapp.generated.resources.vehicle_size_large
 import paparcar.composeapp.generated.resources.vehicle_size_medium
@@ -102,6 +107,8 @@ fun LazyListScope.homeSheetItems(
     rowsScroll: HomeSheetRowsScroll? = null,
     /** The control a checklist step is pointing at — highlighted in place. [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001] */
     firstStepGuide: FirstStepGuide? = null,
+    focusedNearbyList: HomeNearbyLens? = null,
+    onNearbyHeaderHeightChanged: (Int) -> Unit = {},
 ) {
     val filteredSpots = slice.filteredSpots
     val vehicleCards = slice.vehicleCards
@@ -366,24 +373,20 @@ fun LazyListScope.homeSheetItems(
         }
     }
 
-    // ── 2. TU COCHE — la tira que sirve para NAVEGAR entre coches ──────────────────────────────
-    // Debajo de la vigilancia, no encima. Lo dibujó así la ficha de
-    // `HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001` y el código se mergeó al revés:
-    // la tarjeta de vigilancia responde «¿está pasando algo con mi coche AHORA?», que es la pregunta
-    // con la que se abre Home, y un aviso sobre el coche vigilado no puede llegar después del índice
-    // que lo lista. [HOME-THE-WATCH-COMES-FIRST-AND-THE-HEADER-FOLLOWS-THE-LANE-001]
-    //
-    // ⛔ CON cabecera de sección, y SIEMPRE — con uno o con cinco coches (user, 10-09, en device).
-    //
-    // Salía solo a partir de dos, se quitó del todo por repetir en mayúsculas lo que cada card ya
-    // dice, y se vuelve a poner porque en mano hace otro trabajo del que se le atribuía: no nombra
-    // los coches, SEPARA dos bloques que se estaban leyendo como uno. La superficie de vigilancia
-    // que va encima es una noticia; esto es un índice — y sin nada que lo diga, el ojo bajaba de una
-    // card a otra sin saber que había cambiado de tema.
-    // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
-    //
-    // Singular y plural por `plurals`, así que con un coche dice «Tu vehículo» y no la fórmula en
-    // plural que delata a una app traducida a medias.
+    // «Aquí y ahora» abre el contenido local antes de la sección del garaje.
+    // [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
+    nowSection(
+        slice = slice,
+        filteredSpots = filteredSpots,
+        onIntent = onIntent,
+        onAction = onAction,
+        onOpenNearbyList = { subject ->
+            onAction(HomeSheetAction.ScrollToNearbyList(subject))
+        },
+    )
+
+    // Una sección propia mantiene claro dónde termina el resumen local y dónde empieza el garaje.
+    // Se muestra también con un solo coche para conservar el acceso a su ficha.
     if (showPersonalBlocks) {
         item("vehicles_header") {
             PapSectionHeader(
@@ -397,29 +400,7 @@ fun LazyListScope.homeSheetItems(
         vehiclesSection(slice, vehicleCards, onIntent, onAction, rowsScroll, cardStatus, storySubjectVehicleId)
     }
 
-    // ── 3. The nearby LANE: the chip row that picks a subject, and that subject's list ───────
-    // ⛔ Ya NO se esconde sin CORE. La premisa era «"cerca" no significa nada sin ubicación», y el
-    // propio código la desmiente: el carril se ancla a la CÁMARA (`viewportCentreOrGps`),
-    // `isAPlace` no mira el fix y `NearbyOrdering` ya ordena sin `user`. Lo que la falta
-    // de fix quita no es la respuesta —qué hay donde miras— sino UNA línea de cada fila: a cuánto
-    // está DE TI. Eso es lo que se calla, y nada más.
-    // [HOME-WITHOUT-LOCATION-STILL-ANSWERS-001] [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
-    //
-    // ⛔ El corte entre LO MIO y LO DE AQUI. Sin el, la tira de coches y la fila de pestanas se
-    // tocaban y el sheet se leia como una sola lista larga: el bloque fijo dejaba de parecer un
-    // bloque. [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
-    // ── 2b. AQUÍ Y AHORA — lo que merece el primer vistazo ─────────────────────────
-    // Entre lo TUYO y lo DE AQUÍ, y ese sitio es la decisión: resume lo que hay debajo, así que va
-    // antes de la lista que resume. Se calla entera cuando no hay nada notable — no hay «hueco» que
-    // reservar, porque una sección vacía es la noticia de que no hay noticias.
-    // [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
-    nowSection(
-        slice = slice,
-        filteredSpots = filteredSpots,
-        onIntent = onIntent,
-        onAction = onAction,
-    )
-
+    // El carril empieza después de lo local y lo propio; sus dos respuestas de Aparcar siguen separadas.
     item("mine_lane_split") {
         PapSectionHeader(
             title = stringResource(Res.string.home_nearby_section_header),
@@ -434,6 +415,8 @@ fun LazyListScope.homeSheetItems(
         showFilterBar = showFilterBar,
         rowsScroll = rowsScroll,
         firstStepGuide = firstStepGuide,
+        focusedNearbyList = focusedNearbyList,
+        onNearbyHeaderHeightChanged = onNearbyHeaderHeightChanged,
     )
 }
 
@@ -603,23 +586,16 @@ private fun LazyListScope.nearbyLane(
     showFilterBar: Boolean,
     rowsScroll: HomeSheetRowsScroll?,
     firstStepGuide: FirstStepGuide?,
+    focusedNearbyList: HomeNearbyLens?,
+    onNearbyHeaderHeightChanged: (Int) -> Unit,
 ) {
     // STICKY, and that is the half of this design that makes switching back cheap: from the bottom of
     // a car-park list the way back to the spots is the row already pinned above, not a scroll to the
     // top. Its key is public because the checklist's GuideTo walks the list to it. [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
     stickyHeader(NEARBY_LENS_KEY) {
-        // ⛔ **Tabs y filtros son UN solo bloque fijado, y tenía que ser uno.**
+        // Tabs y filtros comparten un único encabezado sticky. En Aparcar, la barra sigue el foco
+        // entre plazas comunitarias y parkings, así una sola lista de filtros ocupa ese espacio.
         // [PARKINGS-THE-LANE-FILTERS-BY-WHAT-WE-KNOW-001]
-        //
-        // Los filtros también se quedan arriba al desplazar (petición del user), pero hacerlos un
-        // `stickyHeader` aparte los habría enfrentado con éste: en una `LazyColumn` sólo hay un
-        // sticky a la vez y el siguiente EXPULSA al anterior, así que la barra de filtros habría
-        // echado fuera los tabs — justo la fila cuya razón de ser es que volver a Plazas desde el
-        // fondo de una lista no cueste un scroll.
-        //
-        // Juntos en un bloque no hay pelea, y además dicen la verdad de lo que son: los filtros no
-        // son de la hoja, son DEL CARRIL, y el carril lo eligen los tabs de encima. Por eso el
-        // bloque cambia de contenido cuando cambia la pestaña.
         //
         // ⛔ **Y el bloque PINTA SU SUELO** [HOME-A-PINNED-HEADER-NEEDS-ITS-OWN-FLOOR-001]. Un
         // `stickyHeader` no trae fondo: flota sobre la lista, y la lista se desplaza POR DEBAJO.
@@ -631,7 +607,11 @@ private fun LazyListScope.nearbyLane(
         // El color es el de la hoja (`surfaceContainer`), el mismo que pinta el `Surface` del
         // bottom sheet, así que la cabecera no se lee como una tarjeta encima sino como la parte de
         // la hoja que no se va.
-        Column(modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
+        Column(
+            modifier = Modifier
+                .background(MaterialTheme.colorScheme.surfaceContainer)
+                .onSizeChanged { onNearbyHeaderHeightChanged(it.height) },
+        ) {
             HomeNearbyLensRow(
                 lens = slice.nearbyLens,
                 // Spots always know their count — the feed is a live subscription. The complements
@@ -647,17 +627,53 @@ private fun LazyListScope.nearbyLane(
                     else -> emptySet()
                 },
             )
-            LaneFilterBar(slice, onIntent, showFilterBar, rowsScroll)
+            val activeFilterLens = when (slice.nearbyLens) {
+                HomeNearbyLens.FUEL -> HomeNearbyLens.FUEL
+                HomeNearbyLens.PARKINGS -> HomeNearbyLens.PARKINGS
+                HomeNearbyLens.SPOTS -> when {
+                    !slice.hasAnySpots && !slice.isLoading && !slice.spotsUnasked -> HomeNearbyLens.PARKINGS
+                    focusedNearbyList == HomeNearbyLens.SPOTS -> HomeNearbyLens.SPOTS
+                    focusedNearbyList == HomeNearbyLens.PARKINGS -> HomeNearbyLens.PARKINGS
+                    else -> HomeNearbyLens.SPOTS
+                }
+            }
+            when (activeFilterLens) {
+                HomeNearbyLens.SPOTS -> if (showFilterBar) {
+                    LaneFilterBar(slice, onIntent, showFilterBar, rowsScroll)
+                }
+                HomeNearbyLens.PARKINGS -> if (slice.parkings.hasAnyBeforeFilter) {
+                    HomeParkingFilterBar(
+                        selected = slice.parkings.filter,
+                        onSelect = { filter -> onIntent(HomeIntent.SetParkingFilter(filter)) },
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    )
+                }
+                HomeNearbyLens.FUEL -> if (slice.fuel.stations.isNotEmpty()) {
+                    LaneFilterBar(slice, onIntent, showFilterBar, rowsScroll)
+                }
+            }
         }
     }
 
     when (slice.nearbyLens) {
-        HomeNearbyLens.SPOTS -> spotsLane(slice, onIntent, onAction, filteredSpots, showFilterBar, rowsScroll, firstStepGuide)
-
-        // Car parks before fuel in the chip row, and that order is a PRODUCT decision, not an
-        // accident: this app is about leaving the car somewhere, so "where do I park" sits closer to
-        // what the user came for than "where do I refuel". Both are complements to the free spots;
-        // neither is the product. [PARKINGS-ON-THE-MAP-001]
+        // Aparcar es una intención con dos respuestas no intercambiables. Se mantienen
+        // dos bloques y dos filtros, pero viven en el mismo scroll y se consultan desde las
+        // proyecciones únicas de Home. [HOME-ONE-TAB-ANSWERS-ONE-INTENTION-001]
+        HomeNearbyLens.SPOTS -> {
+            val parkingsGoFirst = slice.parkingsGoFirst()
+            if (parkingsGoFirst) publicParkingsBlock(slice, onAction)
+            item("community_spots_header") {
+                PapSectionHeaderRow(
+                    title = stringResource(Res.string.subject_free_spots_full),
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+                    trailing = { androidx.compose.material3.Text(filteredSpots.size.toString()) },
+                )
+            }
+            spotsLane(slice, onIntent, onAction, filteredSpots, showFilterBar, rowsScroll, firstStepGuide)
+            if (!parkingsGoFirst) publicParkingsBlock(slice, onAction)
+        }
+        // Compatibilidad con estados internos antiguos: si alguna restauración o test deja
+        // PARKINGS seleccionado, la respuesta sigue siendo únicamente ese bloque.
         HomeNearbyLens.PARKINGS -> item("parkings_lane") {
             HomeParkingsLane(
                 slice = slice.parkings,
@@ -688,6 +704,66 @@ private fun LazyListScope.nearbyLane(
                 followedStationKeys = slice.followedFuelStationKeys,
             )
         }
+    }
+}
+
+private const val PLACEHOLDER_SPOT_FEED_ITEM_COUNT = 1
+private const val REPORT_SPOT_CARD_ITEM_COUNT = 1
+private const val PUBLIC_PARKINGS_BLOCK_ITEM_COUNT = 2
+private const val COMMUNITY_SPOTS_HEADER_ITEM_COUNT = 1
+
+private fun HomeBrowseListSlice.parkingsGoFirst(): Boolean =
+    !hasAnySpots && !isLoading && !spotsUnasked
+
+/**
+ * Number of lazy items after the requested section's first item. Home uses this against the list's
+ * current total item count to find the exact destination, including when the sticky lane header is
+ * not visible yet.
+ */
+internal fun HomeBrowseListSlice.itemsAfterNearbySection(subject: NearbySubject): Int {
+    val spotLaneItems = when {
+        isLoading -> PLACEHOLDER_SPOT_FEED_ITEM_COUNT
+        filteredSpots.isEmpty() -> PLACEHOLDER_SPOT_FEED_ITEM_COUNT
+        else -> filteredSpots.size
+    } + REPORT_SPOT_CARD_ITEM_COUNT
+
+    return when (subject) {
+        NearbySubject.SPOT -> {
+            val parkingsAfterSpots = if (parkingsGoFirst()) 0 else PUBLIC_PARKINGS_BLOCK_ITEM_COUNT
+            spotLaneItems + parkingsAfterSpots
+        }
+        NearbySubject.CAR_PARK -> {
+            val spotsAfterParkings = if (parkingsGoFirst()) {
+                COMMUNITY_SPOTS_HEADER_ITEM_COUNT + spotLaneItems
+            } else {
+                0
+            }
+            PUBLIC_PARKINGS_BLOCK_ITEM_COUNT - COMMUNITY_SPOTS_HEADER_ITEM_COUNT + spotsAfterParkings
+        }
+        NearbySubject.FUEL -> 0
+    }
+}
+
+private fun LazyListScope.publicParkingsBlock(
+    slice: HomeBrowseListSlice,
+    onAction: (HomeSheetAction) -> Unit,
+) {
+    item("parkings_header") {
+        PapSectionHeaderRow(
+            title = stringResource(Res.string.subject_public_parkings),
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+            trailing = { androidx.compose.material3.Text(slice.parkings.parkings.size.toString()) },
+        )
+    }
+    item("parkings_lane") {
+        HomeParkingsLane(
+            slice = slice.parkings,
+            onParkingClick = { parkingId ->
+                onAction(HomeSheetAction.SelectPublicParking(parkingId))
+            },
+            isIntroducing = false,
+            hasFix = slice.userGpsPoint != null,
+        )
     }
 }
 
@@ -773,26 +849,6 @@ private fun LazyListScope.spotsLane(
             }
         filteredSpots.isEmpty() -> {
             item("empty") { HomeEmptySpots(unasked = slice.spotsUnasked) }
-            // [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001] El vacío de plazas es honesto pero no
-            // ofrecía salida, y con <20 usuarios es el estado que más veces se ve. UNA alternativa,
-            // nombrada por lo que es, y sólo si hay parkings que ofrecer — llevar a una lista que al
-            // abrirla está vacía cambia un vacío honesto por dos.
-            //
-            // ⛔ Va encima de la tarjeta de avisar y no debajo: avisar de una plaza es lo que el
-            // usuario puede HACER aquí, y eso cierra la sección. Esto es un atajo a otra respuesta.
-            val nearestCarPark = slice.parkings.parkings.minByOrNull { it.distanceMeters }
-            if (nearestCarPark != null) {
-                item("empty_try_parkings") {
-                    HomeTryCarParksCard(
-                        nearestMeters = nearestCarPark.distanceMeters
-                            .takeIf { slice.userGpsPoint != null }?.toFloat(),
-                        onOpenCarParks = {
-                            onIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
-                        },
-                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp),
-                    )
-                }
-            }
         }
         else -> itemsIndexed(filteredSpots, key = { _, spot -> spot.id }) { index, spot ->
             Column {
@@ -841,6 +897,13 @@ private fun LazyListScope.spotsLane(
  * [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
  */
 internal const val NEARBY_LENS_KEY = "nearby_lens"
+
+/**
+ * Initial direct-scroll offset while the sticky header has not reported its measured height yet.
+ * The lane tabs occupy 54dp (including their divider); filter chips reserve the 48dp touch target
+ * plus 8dp of vertical inset. Once composed, the measured height replaces this geometry fallback.
+ */
+internal const val NEARBY_STICKY_HEADER_FALLBACK_HEIGHT_DP = 110
 
 /**
  * Dónde está la cabecera del carril en la lista, o null si todavía no se ha compuesto.

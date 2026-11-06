@@ -1523,7 +1523,7 @@ fun FuelStationMarker(
     fuelLabel: String? = null,
 ) = NearbyCapsuleMarker(
     glyph = PaparcarIcons.Fuel,
-    accent = nearbyMarkerGreen(),
+    accent = fuelStationMarkerAccent(),
     selected = selected,
     modifier = modifier,
     primaryText = priceText,
@@ -1673,20 +1673,21 @@ private fun NearbyCapsuleMarker(
 // ─── Public-parkings layer ───────────────────────────────────────────────────
 
 /**
- * The brand green the car park and fuel markers wear — glyph, outline and ground dot.
+ * The brand-green accent used by fuel markers: glyph, outline and ground dot.
  * [MAP-NEARBY-MARKERS-GREEN-CONTRASTS-ON-LIGHT-MAP-001]
  *
  * It used to be `PapGreen` (#25F48C) in BOTH themes: the dark theme's neon, which reads well on dark
  * tiles and washes out on the light map, where a thin 55 % outline and a green glyph on paper nearly
- * vanished. [PapColor.actionText] is the SAME brand green resolved per theme — the neon on a dark
- * surface, the text leg `PapGreenTextLight` (#237A46, 5.3:1 on white) on a light one — and it is
- * exactly the tint the car park and fuel ROWS already use, so a pin and its row stay one colour.
+ * vanished. [PapColor.actionText] is the same brand accent resolved per theme — neon on dark
+ * surfaces and the text leg `PapGreenTextLight` (#237A46, 5.3:1 on white) on light ones. Fuel rows
+ * use that same accent, so each marker matches its row. Public car parks have their own blue role,
+ * [PapColor.carPark].
  *
- * Safe for the marker bitmap cache: both content ids already carry the theme key, so a theme change
- * re-renders them instead of reusing the other theme's green.
+ * Safe for the marker bitmap cache: the content id carries the theme key, so a theme change
+ * re-renders it instead of reusing the other theme's green.
  */
 @Composable
-private fun nearbyMarkerGreen(): Color = PapColor.actionText
+private fun fuelStationMarkerAccent(): Color = PapColor.actionText
 
 /**
  * A public car park on the map — **the nearby capsule, wearing the car park's blue and saying what

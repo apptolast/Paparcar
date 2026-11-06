@@ -58,6 +58,7 @@ import com.rndeveloper.paparcar.domain.detection.fence.VehicleFenceOwnershipPoli
 import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.model.SpotVoteOutcome
+import com.rndeveloper.paparcar.domain.nearby.NearbySubject
 import com.rndeveloper.paparcar.presentation.home.model.isDetectionStopped
 import com.rndeveloper.paparcar.domain.model.DrivingPuck
 import com.rndeveloper.paparcar.domain.model.GpsPoint
@@ -79,6 +80,8 @@ import com.rndeveloper.paparcar.presentation.home.sections.sheet.rememberSheetMo
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.rememberSheetPositioning
 import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.NEARBY_LENS_KEY
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.NEARBY_STICKY_HEADER_FALLBACK_HEIGHT_DP
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.itemsAfterNearbySection
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomeReleaseDialog
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.peek.LaneHeaderLatchInputs
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.peek.laneKeepsHeaderOnCollapse
@@ -1059,6 +1062,7 @@ private fun HomeContent(
                 )
 
                 // ── Bottom sheet ─────────────────────────────────────────────
+                var nearbyHeaderHeightPx by remember { mutableStateOf(0) }
                 val sheetFrame = HomeSheetFrame(
                     containerHeightPx = rawContainerHeightPx,
                     sheetOffsetPx = sheetOffsetPx,
@@ -1068,6 +1072,10 @@ private fun HomeContent(
                     nestedScroll = motion.nestedScrollConnection,
                     bottomContentPadding = stableBottomPadding,
                     coroutineScope = coroutineScope,
+                    nearbyHeaderHeightPx = nearbyHeaderHeightPx,
+                    onNearbyHeaderHeightChanged = { height ->
+                        if (nearbyHeaderHeightPx != height) nearbyHeaderHeightPx = height
+                    },
                     onPeekHeightChanged = { h ->
                         // EXACT per-state height (no hysteresis): peekOffset = container - peekHeight,
                         // so the peek header's bottom edge — and its divider — lands flush on the
@@ -1458,10 +1466,42 @@ private fun HomeSheetSection(
     onOpenStepExplainer: (FirstStep) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val latestBrowse = rememberUpdatedState(browse)
+    val latestNearbyHeaderHeightPx = rememberUpdatedState(frame.nearbyHeaderHeightPx)
+    val density = LocalDensity.current
+    val fallbackNearbyHeaderHeightPx = with(density) {
+        NEARBY_STICKY_HEADER_FALLBACK_HEIGHT_DP.dp.roundToPx()
+    }
     val onAction: (HomeSheetAction) -> Unit = { action ->
         if (firstStepGuide?.isUsedBy(action) == true) onGuidedControlUsed()
         when (action) {
             HomeSheetAction.ToggleSheet -> onToggle()
+            is HomeSheetAction.ScrollToNearbyList -> {
+                val lens = when (action.subject) {
+                    NearbySubject.SPOT -> HomeNearbyLens.SPOTS
+                    NearbySubject.CAR_PARK -> HomeNearbyLens.SPOTS
+                    NearbySubject.FUEL -> HomeNearbyLens.FUEL
+                }
+                onIntent(HomeIntent.SetNearbyLens(lens))
+                onExpandSheet()
+                frame.coroutineScope.launch {
+                    withFrameNanos { }
+                    withFrameNanos { }
+                    val list = frame.lazyListState
+                    val lastIndex = list.layoutInfo.totalItemsCount - 1
+                    if (lastIndex >= 0) {
+                        val itemsAfterTarget = latestBrowse.value.itemsAfterNearbySection(action.subject)
+                        val targetIndex = (lastIndex - itemsAfterTarget).coerceIn(0, lastIndex)
+                        val stickyHeaderHeight = list.layoutInfo.visibleItemsInfo
+                            .firstOrNull { it.key == NEARBY_LENS_KEY }
+                            ?.size
+                            ?: latestNearbyHeaderHeightPx.value.takeIf { it > 0 }
+                                ?.coerceAtLeast(fallbackNearbyHeaderHeightPx)
+                            ?: fallbackNearbyHeaderHeightPx
+                        list.animateScrollToItem(targetIndex, scrollOffset = -stickyHeaderHeight)
+                    }
+                }
+            }
             // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] Its own screen: no surface of
             // Home stays on screen competing with what is being explained.
             is HomeSheetAction.OpenFirstStepExplainer -> onOpenStepExplainer(action.step)

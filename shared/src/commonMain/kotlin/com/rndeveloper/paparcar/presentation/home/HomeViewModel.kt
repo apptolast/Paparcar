@@ -91,6 +91,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import com.rndeveloper.paparcar.domain.usecase.fuel.GetNearbyFuelStationsUseCase
@@ -98,6 +100,7 @@ import com.rndeveloper.paparcar.domain.usecase.fuel.ObserveFollowedFuelStationsU
 import com.rndeveloper.paparcar.domain.usecase.fuel.ToggleFollowFuelStationUseCase
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingsQuery
 import com.rndeveloper.paparcar.domain.usecase.parkings.GetNearbyPublicParkingsUseCase
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTime::class)
 class HomeViewModel(
@@ -620,8 +623,9 @@ class HomeViewModel(
         }
         geocodeCameraLocation(lat, lon)
         // Browse only: while a pin is being placed the map is the pin's canvas, not a browser.
-        // The lane on show travels with the camera — list and pins together, one store.
-        // [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001] [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
+        // The selected lane controls what the map shows; once settled, the camera refreshes both
+        // complement stores so every lane stays ready. [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001]
+        // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
         if (state.value.mode is HomeMode.Browse) {
             scheduleNearbyRefresh(lat, lon)
         }
@@ -685,16 +689,18 @@ class HomeViewModel(
     // ── Community spots ───────────────────────────────────────────────────────
 
     /**
-     * Points the sheet's nearby lane at a subject, and — the first time only — goes and asks it.
+     * Selects the sheet's nearby lane and schedules both complementary stores, prioritizing the newly
+     * visible one.
      * [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
      *
      * The single place where "which subject is on show" is decided, which is what the three separate
      * folds it replaces could not be: with a section per subject, the `y` of each one depended on how
      * many rows the one above it held, and the free-spots feed has no cap.
      *
-     * Nothing is fetched for a lane nobody enters: most sessions never ask for fuel or car parks, and
-     * Spain's fuel feed is downloaded a province at a time. Leaving a lane keeps its answer, so coming
-     * back costs nothing.
+     * The "Aquí y ahora" summary reads all three stores regardless of the selected tab. Both
+     * public parking and fuel data are loaded in sequence on a settled camera, with the selected lane
+     * first; switching lanes also refreshes both. The tab controls presentation, not data availability.
+     * Leaving a lane keeps its answer, so returning costs nothing.
      *
      * **The lane is also what the MAP paints of the two complements** — there is no layers menu any
      * more, and no persisted switch behind it. Two controls for one subject is what let the map show
@@ -729,21 +735,19 @@ class HomeViewModel(
                 },
             )
         }
-        when (lens) {
-            // The spots feed is already live — it is the app's standing subscription, not an ask.
-            HomeNearbyLens.SPOTS -> Unit
-            // ONE request per entry, into the ONE store every surface reads — and none at all when
-            // the store already answers for where the camera is. [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
-            HomeNearbyLens.FUEL, HomeNearbyLens.PARKINGS -> refreshNearby(lens, NearbyTrigger.ENTER)
-        }
+        queueComplementRefresh(
+            priorityLens = lens,
+            priorityTrigger = NearbyTrigger.ENTER,
+            otherTrigger = NearbyTrigger.WARM_UP,
+        )
     }
 
     // ── Fuel stations & public car parks ──────────────────────────────────────
     // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
     //
     // ONE store per subject and ONE way into it, the shape the free spots already had: a single
-    // answer about where the camera looks, which the lane lists, the map paints, the peek steps
-    // through and a tap resolves against.
+    // answer about where the camera looks, which the selected lane lists and paints. Both stores
+    // stay current; the selected lane only gets request priority and determines what's presented.
     //
     // ⛔ What this replaced, so nobody rebuilds it: a lane store plus a camera-anchored "layer" store,
     // each with its own anchor and its own requests, and every surface painting their UNION. The union
@@ -758,13 +762,11 @@ class HomeViewModel(
         ENTER,
 
         /**
-         * Home opened and we are warming a lane the user has **not** opened, once.
+         * Home opened or another lane is being preloaded before it is shown.
          * [HOME-THE-THREE-LANES-WARM-UP-ONCE-ON-ENTRY-001]
          *
-         * Same semantics as [ENTER] — it is a first ask, not a retry — and kept as its own value
-         * because it is the only trigger that fires for a lane that is not on screen. A log that
-         * cannot tell "the user opened fuel" from "we warmed fuel" cannot explain a request nobody
-         * asked for.
+         * Same refresh conditions as [ENTER]. Kept distinct so logs identify preloads; if an earlier
+         * attempt failed and left no anchor, this can retry that missing answer too.
          */
         WARM_UP,
 
@@ -794,24 +796,21 @@ class HomeViewModel(
     /** Lanes that were entered with no centre to ask around; the first fix asks for them. */
     private val nearbyAwaitingCentre = mutableSetOf<HomeNearbyLens>()
 
-    // Latest-wins, like the spots' `flatMapLatest`: a new ask CANCELS the one in flight instead of
-    // being dropped behind it. Overpass can take 20 s, and a pan inside that window used to leave the
-    // store on the previous area until the camera happened to move again.
+    // Latest-wins per lane. The coordinator below keeps complementary network asks sequential,
+    // and the mutex also covers independent triggers such as reconnects and the first GPS fix.
     private var fuelJob: Job? = null
     private var parkingsJob: Job? = null
-
-    /** ⛔ Once per Home, never per fix. [HOME-THE-THREE-LANES-WARM-UP-ONCE-ON-ENTRY-001] */
-    private var warmUpJob: Job? = null
+    private var nearbyLaneRefreshJob: Job? = null
+    private val nearbyRequestMutex = Mutex()
     private var hasWarmedUpLanes = false
 
     /**
-     * Fills the lanes the user has not opened, so that pressing Fuel or Car parks shows an answer
-     * instead of a spinner. [HOME-THE-THREE-LANES-WARM-UP-ONCE-ON-ENTRY-001]
+     * Loads the complementary lanes on Home entry and remembers their previous answers.
+     * [HOME-THE-THREE-LANES-WARM-UP-ONCE-ON-ENTRY-001]
      *
-     * ⛔ **Once, on entry — never on a pan.** The rule this narrows is real and stays in force for
-     * everything else: *a lane that is not on screen downloads nothing when the camera moves*. A user
-     * who only drags the map still pays no requests for a list they never opened. What changes is the
-     * single warm-up at the start, which is what makes the first lane switch instant.
+     * The one-time warm-up fills the lanes before the first camera settle. After that, every settled
+     * camera refreshes both complementary stores, regardless of which lane is visible. A lane switch
+     * also schedules both stores, with the selected lane first.
      *
      * ⛔ **Sequential, and that is not a style choice.** The Overpass budget is ONE ask at a time
      * ([com.rndeveloper.paparcar.data.overpass.OverpassQuota]) because the server grants 2 per IP and
@@ -826,32 +825,57 @@ class HomeViewModel(
         val centre = viewportCentreOrGps() ?: return
         hasWarmedUpLanes = true
 
-        warmUpJob = viewModelScope.launch {
-            // ⛔ **Primero lo que ya sabemos, y sin preguntar a nadie.**
-            // [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
-            //
-            // El calentamiento de abajo es SECUENCIAL por obligación —una ranura de Overpass—, así
-            // que el segundo carril llega entre 3 y 16 s después de abrir la app, y hasta 40 s en el
-            // peor caso medido. Durante todo ese rato «Aquí y ahora» sólo podía enseñar plazas,
-            // que vienen de Firestore.
-            //
-            // ⚠️ Y esto **corrige el plan**, que decía que sin este paso el carrusel «arranca sólo
-            // con la tarjeta de plazas». No es cierto: `warmUpHiddenLanes` ya existía y los trae.
-            // Lo que faltaba no era el contenido, era **cuándo**: el primer vistazo no puede ser lo
-            // último que se rellena.
-            paintRememberedComplements(centre)
+        queueComplementRefresh(
+            priorityLens = state.value.nearbyLens,
+            priorityTrigger = NearbyTrigger.WARM_UP,
+            otherTrigger = NearbyTrigger.WARM_UP,
+            centre = centre,
+            includePriority = false,
+            beforeRefresh = { paintRememberedComplements(centre) },
+        )
+    }
 
+    /**
+     * Serializes the public parking and fuel requests. The selected lane is asked first for quick
+     * feedback; the other store is always asked too. Camera settles use CAMERA for both so neither
+     * answer is tied to the currently selected tab.
+     */
+    private fun queueComplementRefresh(
+        priorityLens: HomeNearbyLens,
+        priorityTrigger: NearbyTrigger,
+        otherTrigger: NearbyTrigger,
+        centre: Pair<Double, Double>? = viewportCentreOrGps(),
+        includePriority: Boolean = true,
+        beforeRefresh: (suspend () -> Unit)? = null,
+    ) {
+        val prioritySubject = priorityLens.takeUnless { it == HomeNearbyLens.SPOTS }
+        val ordered = if (prioritySubject == null) {
             WARM_UP_ORDER
-                .filter { it != state.value.nearbyLens }
-                .forEach { lens ->
-                    refreshNearby(lens, NearbyTrigger.WARM_UP, centre)
-                    // Wait for the answer before asking the next question — see above.
-                    when (lens) {
-                        HomeNearbyLens.FUEL -> fuelJob?.join()
-                        HomeNearbyLens.PARKINGS -> parkingsJob?.join()
-                        HomeNearbyLens.SPOTS -> Unit
-                    }
+        } else {
+            listOf(prioritySubject) + WARM_UP_ORDER.filterNot { it == prioritySubject }
+        }
+        val requested = if (includePriority || prioritySubject == null) {
+            ordered
+        } else {
+            ordered.filterNot { it == prioritySubject }
+        }
+
+        nearbyLaneRefreshJob?.cancel()
+        nearbyLaneRefreshJob = viewModelScope.launch {
+            beforeRefresh?.invoke()
+            requested.forEach { subject ->
+                val trigger = if (includePriority && subject == prioritySubject) {
+                    priorityTrigger
+                } else {
+                    otherTrigger
                 }
+                refreshNearby(subject, trigger, centre)
+                when (subject) {
+                    HomeNearbyLens.FUEL -> fuelJob?.join()
+                    HomeNearbyLens.PARKINGS -> parkingsJob?.join()
+                    HomeNearbyLens.SPOTS -> Unit
+                }
+            }
         }
     }
 
@@ -1033,27 +1057,22 @@ class HomeViewModel(
 
 
     /**
-     * Debounced camera-settle trigger — a nervous pan is not a question. Only the lane on show asks:
-     * **a subject nobody is looking at downloads nothing when the camera moves.**
-     *
-     * ⛔ That sentence used to end at "downloads nothing", and the tail is the whole difference. The
-     * one-off warm-up below fills the hidden lanes ONCE, so the first switch to Fuel or Car parks is
-     * instant; every pan after that still costs a hidden lane exactly nothing.
+     * Debounced camera-settle trigger — a nervous pan is not a question. Once the camera settles,
+     * refresh both complementary stores in sequence, even when the visible lane is community spots.
      * [HOME-THE-THREE-LANES-WARM-UP-ONCE-ON-ENTRY-001]
      */
     private fun scheduleNearbyRefresh(lat: Double, lon: Double) {
-        // Without location permission there is no fix to warm from, and the camera is the only thing
-        // that ever says where the user is looking. Idempotent, so the pans that follow cost nothing.
-        warmUpHiddenLanes()
-        val lens = state.value.nearbyLens
-        if (lens == HomeNearbyLens.SPOTS) return
         nearbyCameraJob?.cancel()
         nearbyCameraJob = viewModelScope.launch {
             delay(NEARBY_CAMERA_SETTLE_MS)
-            // Re-read at fire time: the lane or the mode may have changed during the rest.
             val now = state.value
-            if (now.nearbyLens == lens && now.mode is HomeMode.Browse) {
-                refreshNearby(lens, NearbyTrigger.CAMERA, lat to lon)
+            if (now.mode is HomeMode.Browse) {
+                queueComplementRefresh(
+                    priorityLens = now.nearbyLens,
+                    priorityTrigger = NearbyTrigger.CAMERA,
+                    otherTrigger = NearbyTrigger.CAMERA,
+                    centre = lat to lon,
+                )
             }
         }
     }
@@ -1130,7 +1149,9 @@ class HomeViewModel(
         fuelJob = viewModelScope.launch {
             // Same measurement as the car-parks lane below, for the same reason.
             val askedAtMs = Clock.System.now().toEpochMilliseconds()
-            val result = getNearbyFuelStations(lat, lon, fuelType)
+            val result = nearbyRequestMutex.withLock {
+                getNearbyFuelStations(lat, lon, fuelType)
+            }
             // A superseded ask writes nothing, even when a source folded the cancellation into a
             // failed Result.
             ensureActive()
@@ -1245,7 +1266,9 @@ class HomeViewModel(
                     }
                 }
 
-            val result = getNearbyPublicParkings(lat, lon)
+            val result = nearbyRequestMutex.withLock {
+                getNearbyPublicParkings(lat, lon)
+            }
             ensureActive()
             result
                 .onSuccess { found ->
@@ -2031,7 +2054,11 @@ class HomeViewModel(
             .drop(1)
             .collectSafely("reconnect") {
                 PaparcarLogger.d(TAG, "network is back — re-asking what could not be answered")
-                HomeNearbyLens.entries.forEach { refreshNearby(it, NearbyTrigger.RECONNECT) }
+                queueComplementRefresh(
+                    priorityLens = state.value.nearbyLens,
+                    priorityTrigger = NearbyTrigger.RECONNECT,
+                    otherTrigger = NearbyTrigger.RECONNECT,
+                )
                 regeocodeUnnamedPoints()
             }
     }
@@ -2072,7 +2099,7 @@ class HomeViewModel(
                 // Bounded wait: on cold start the sessions have not landed yet, but "no sessions"
                 // can also be the TRUTH (released elsewhere since the widget rendered) — an
                 // unbounded first{isNotEmpty} would hang the collector on that truth forever.
-                val sessions = withTimeoutOrNull(RELEASE_ASK_SESSIONS_WAIT_MS) {
+                val sessions = withTimeoutOrNull(RELEASE_ASK_SESSIONS_WAIT_MS.milliseconds) {
                     state.map { it.activeSessions }.first { it.isNotEmpty() }
                 } ?: return@collectSafely
                 val session = sessions.firstOrNull { it.id == sessionId } ?: return@collectSafely

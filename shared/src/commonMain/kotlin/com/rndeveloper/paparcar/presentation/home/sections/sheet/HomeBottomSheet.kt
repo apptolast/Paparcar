@@ -22,8 +22,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -34,9 +37,11 @@ import com.rndeveloper.paparcar.presentation.home.HomeBrowseListSlice
 import com.rndeveloper.paparcar.presentation.home.HomeIntent
 import com.rndeveloper.paparcar.presentation.home.HomeMode
 import com.rndeveloper.paparcar.presentation.home.HomePeekSlice
+import com.rndeveloper.paparcar.domain.nearby.NearbySubject
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomePeekHandle
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomeSheetRowsScroll
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.homeSheetItems
+import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
 import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import kotlinx.coroutines.CoroutineScope
@@ -62,6 +67,8 @@ internal data class HomeSheetFrame(
     val bottomContentPadding: Dp,
     val coroutineScope: CoroutineScope,
     val onPeekHeightChanged: (Float) -> Unit,
+    val nearbyHeaderHeightPx: Int,
+    val onNearbyHeaderHeightChanged: (Int) -> Unit,
 )
 
 /**
@@ -91,6 +98,77 @@ internal fun HomeBottomSheet(
     onAction: (HomeSheetAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var focusedNearbyList by rememberSaveable { mutableStateOf<HomeNearbyLens?>(null) }
+    var hasScrolledBrowse by rememberSaveable { mutableStateOf(false) }
+    var skipNextLaneAutoScroll by remember { mutableStateOf(false) }
+    val onSheetAction: (HomeSheetAction) -> Unit = { action ->
+        if (action is HomeSheetAction.ScrollToNearbyList) {
+            val targetLens = when (action.subject) {
+                NearbySubject.SPOT, NearbySubject.CAR_PARK -> HomeNearbyLens.SPOTS
+                NearbySubject.FUEL -> HomeNearbyLens.FUEL
+            }
+            skipNextLaneAutoScroll = browse.nearbyLens != targetLens
+        }
+        onAction(action)
+    }
+    val latestSpotKeys = rememberUpdatedState(browse.filteredSpots.mapTo(mutableSetOf()) { it.id })
+    LaunchedEffect(frame.lazyListState, browse.nearbyLens) {
+        focusedNearbyList = null
+        hasScrolledBrowse = false
+        snapshotFlow {
+            val layoutInfo = frame.lazyListState.layoutInfo
+            val visibleArea = mutableMapOf(
+                HomeNearbyLens.SPOTS to 0,
+                HomeNearbyLens.PARKINGS to 0,
+                HomeNearbyLens.FUEL to 0,
+            )
+            layoutInfo.visibleItemsInfo.forEach { item ->
+                val pixels = (
+                    minOf(item.offset + item.size, layoutInfo.viewportEndOffset) -
+                        maxOf(item.offset, layoutInfo.viewportStartOffset)
+                    ).coerceAtLeast(0)
+                when {
+                    item.key in latestSpotKeys.value || item.key in SPOT_FOCUS_ITEM_KEYS ->
+                        visibleArea[HomeNearbyLens.SPOTS] = visibleArea.getValue(HomeNearbyLens.SPOTS) + pixels
+                    item.key in PARKING_FOCUS_ITEM_KEYS ->
+                        visibleArea[HomeNearbyLens.PARKINGS] = visibleArea.getValue(HomeNearbyLens.PARKINGS) + pixels
+                    item.key == "fuel_lane" ->
+                        visibleArea[HomeNearbyLens.FUEL] = visibleArea.getValue(HomeNearbyLens.FUEL) + pixels
+                }
+            }
+            NearbyFocusSnapshot(
+                visibleArea = visibleArea,
+                viewportPixels = (layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset).coerceAtLeast(1),
+                isScrollInProgress = frame.lazyListState.isScrollInProgress,
+            )
+        }.collect { snapshot ->
+            if (snapshot.isScrollInProgress || frame.lazyListState.firstVisibleItemIndex > 0) {
+                hasScrolledBrowse = true
+            }
+            if (!hasScrolledBrowse) return@collect
+
+            val minFocusPixels = (snapshot.viewportPixels * MIN_FOCUS_VIEWPORT_FRACTION).roundToInt()
+            val best = snapshot.visibleArea.maxByOrNull { it.value }
+            if (best == null || best.value < minFocusPixels) {
+                focusedNearbyList = null
+                return@collect
+            }
+            val switchMarginPixels = (snapshot.viewportPixels * FOCUS_SWITCH_MARGIN_FRACTION).roundToInt()
+            val currentFocus = focusedNearbyList
+            if (currentFocus == null) {
+                if (best.value >= minFocusPixels) focusedNearbyList = best.key
+            } else {
+                val currentPixels = snapshot.visibleArea[currentFocus] ?: 0
+                if (
+                    best.key != currentFocus &&
+                    best.value >= minFocusPixels &&
+                    best.value > currentPixels + switchMarginPixels
+                ) {
+                    focusedNearbyList = best.key
+                }
+            }
+        }
+    }
     val sheetOffsetPx = frame.sheetOffsetPx
     Surface(
         modifier = modifier
@@ -170,10 +248,19 @@ internal fun HomeBottomSheet(
                         },
                     ),
             ) {
+                val peekListLens = focusedNearbyList ?: peek.nearbyLens
+                val peekListCount = when (peekListLens) {
+                    HomeNearbyLens.SPOTS -> peek.freeCount
+                    HomeNearbyLens.PARKINGS -> peek.publicParkings.size
+                    HomeNearbyLens.FUEL -> peek.fuelStations.size
+                }
                 HomePeekHandle(
-                    slice = peek,
-                    browseShowsZoneHeader = browseShowsZoneHeader,
-                    browseLaneHeaderLatched = browseLaneHeaderLatched,
+                    slice = peek.copy(
+                        nearbyLens = peekListLens,
+                        laneCount = peekListCount,
+                    ),
+                    browseShowsZoneHeader = browseShowsZoneHeader && focusedNearbyList != null,
+                    browseLaneHeaderLatched = browseLaneHeaderLatched && focusedNearbyList != null,
                     onIntent = onIntent,
                     onAction = onAction,
                 )
@@ -189,6 +276,23 @@ internal fun HomeBottomSheet(
                 peek.selectedSpot == null &&
                 peek.selectedFuelStation == null &&
                 peek.selectedPublicParking == null
+            var hasPresentedBrowseList by remember { mutableStateOf(false) }
+            var preserveScrollOnReturn by remember { mutableStateOf(false) }
+            var wasBrowseExpanded by remember { mutableStateOf(false) }
+            LaunchedEffect(showList, browseShowsZoneHeader, frame.lazyListState) {
+                val expandedBrowse = showList && browseShowsZoneHeader
+                if (!showList && hasPresentedBrowseList) {
+                    preserveScrollOnReturn = true
+                }
+                if (expandedBrowse && !wasBrowseExpanded) {
+                    if (!preserveScrollOnReturn && frame.lazyListState.layoutInfo.totalItemsCount > 0) {
+                        frame.lazyListState.scrollToItem(0)
+                    }
+                    preserveScrollOnReturn = false
+                }
+                if (showList) hasPresentedBrowseList = true
+                wasBrowseExpanded = expandedBrowse
+            }
             // The peek→list divider sits at the bottom of the peek header. The header is now stretched
             // to the fixed peek slot, so this divider lands exactly on the bottom-nav top divider at
             // rest (one continuous hairline) and rides above the nav as the sheet is dragged up — no
@@ -224,12 +328,17 @@ internal fun HomeBottomSheet(
                     //
                     // Sin cabecera compuesta no se mueve nada: quien está mirando sus coches no ha
                     // pedido que le desplacen la hoja.
-                    frame.lazyListState.nearbyLensIndexOrNull()
-                        ?.let { frame.lazyListState.animateScrollToItem(it) }
+                    if (skipNextLaneAutoScroll) {
+                        skipNextLaneAutoScroll = false
+                        laneMotionArmed = true
+                        return@LaunchedEffect
+                    }
                     if (!laneMotionArmed) {
                         laneMotionArmed = true
                         return@LaunchedEffect
                     }
+                    frame.lazyListState.nearbyLensIndexOrNull()
+                        ?.let { frame.lazyListState.animateScrollToItem(it) }
                     val half = frame.dragSnap.halfOffsetPx
                     if (frame.sheetOffsetPx.value > half) {
                         frame.sheetOffsetPx.animateTo(half, frame.dragSnap.snapSpec)
@@ -252,9 +361,11 @@ internal fun HomeBottomSheet(
                     homeSheetItems(
                         slice = browse,
                         onIntent = onIntent,
-                        onAction = onAction,
+                        onAction = onSheetAction,
                         rowsScroll = frame.rowsScroll,
                         firstStepGuide = firstStepGuide,
+                        focusedNearbyList = focusedNearbyList,
+                        onNearbyHeaderHeightChanged = frame.onNearbyHeaderHeightChanged,
                     )
                 }
             }
@@ -266,5 +377,21 @@ internal fun HomeBottomSheet(
 // next to the geometry it is built from. [HOME-ATOMIZE-001 F2]
 
 private const val SHEET_SHADOW_ELEVATION_DP = 12
+private data class NearbyFocusSnapshot(
+    val visibleArea: Map<HomeNearbyLens, Int>,
+    val viewportPixels: Int,
+    val isScrollInProgress: Boolean,
+)
+
+private val SPOT_FOCUS_ITEM_KEYS = setOf(
+    "community_spots_header",
+    "skeleton",
+    "empty_filtered",
+    "empty",
+    "report_spot_cta",
+)
+private val PARKING_FOCUS_ITEM_KEYS = setOf("parkings_header", "parkings_lane")
+private const val MIN_FOCUS_VIEWPORT_FRACTION = 0.30f
+private const val FOCUS_SWITCH_MARGIN_FRACTION = 0.10f
 // Matches [AppBottomNavigation]'s top divider alpha so the two hairlines read
 // as a single visual boundary when the sheet's list section sits above the nav bar.

@@ -1040,6 +1040,8 @@ Se la richiesta non compare più, cambiala in Impostazioni → Paparcar → Posi
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
     <string name="subject_fuel_stations">Distributori</string>
     <string name="subject_public_parkings">Parcheggi</string>
+    <string name="home_intention_park">Parcheggiare</string>
+    <string name="home_intention_refuel">Fare rifornimento</string>
     <string name="subject_free_spots">Posti</string>
     <string name="subject_free_spots_full">Posti della comunità</string>
     <string name="home_parkings_empty">Nessun parcheggio pubblico entro %1$s.</string>

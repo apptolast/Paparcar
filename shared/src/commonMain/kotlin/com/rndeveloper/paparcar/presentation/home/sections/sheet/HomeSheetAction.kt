@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.presentation.home.sections.sheet
 
 import com.rndeveloper.paparcar.presentation.home.model.FirstStepGuide
+import com.rndeveloper.paparcar.domain.nearby.NearbySubject
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 
 /**
@@ -16,6 +17,9 @@ import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 sealed interface HomeSheetAction {
     /** Tap on the peek header — toggle between peek and the adjacent snap. */
     data object ToggleSheet : HomeSheetAction
+
+    /** Open the exact section named by a Here & Now "see all" action. */
+    data class ScrollToNearbyList(val subject: NearbySubject) : HomeSheetAction
 
     /**
      * Step the peek to another pin: open [spotId] exactly as tapping ITS MARKER on the map does —

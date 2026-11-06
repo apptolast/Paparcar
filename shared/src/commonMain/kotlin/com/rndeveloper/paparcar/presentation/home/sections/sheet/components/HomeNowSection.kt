@@ -76,6 +76,7 @@ internal fun LazyListScope.nowSection(
     filteredSpots: List<Spot>,
     onIntent: (HomeIntent) -> Unit,
     onAction: (HomeSheetAction) -> Unit,
+    onOpenNearbyList: (NearbySubject) -> Unit,
 ) {
     val notables = nearbyNotables(
         spots = filteredSpots,
@@ -105,6 +106,7 @@ internal fun LazyListScope.nowSection(
                 filteredSpots = filteredSpots,
                 onIntent = onIntent,
                 onAction = onAction,
+                onOpenNearbyList = onOpenNearbyList,
                 modifier = Modifier.padding(
                     start = NOW_SIDE_INSET_DP.dp,
                     end = NOW_SIDE_INSET_DP.dp,
@@ -129,23 +131,24 @@ private fun NowCard(
     filteredSpots: List<Spot>,
     onIntent: (HomeIntent) -> Unit,
     onAction: (HomeSheetAction) -> Unit,
+    onOpenNearbyList: (NearbySubject) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val far = notable.distanceMeters?.let { distanceString(it.toFloat()) }
     when (notable.subject) {
         NearbySubject.SPOT -> {
             val spot = filteredSpots.firstOrNull { it.id == notable.id } ?: return
-            SpotNowCard(spot, filteredSpots.size, far, onIntent, onAction, modifier)
+            SpotNowCard(spot, filteredSpots.size, far, onIntent, onAction, onOpenNearbyList, modifier)
         }
 
         NearbySubject.CAR_PARK -> {
             val nearby = slice.parkings.parkings.firstOrNull { it.parking.id == notable.id } ?: return
-            CarParkNowCard(nearby, slice.parkings.parkings.size, far, onIntent, onAction, modifier)
+            CarParkNowCard(nearby, slice.parkings.parkings.size, far, onIntent, onAction, onOpenNearbyList, modifier)
         }
 
         NearbySubject.FUEL -> {
             val nearby = slice.fuel.stations.firstOrNull { it.stationKey == notable.id } ?: return
-            FuelNowCard(nearby, slice.fuel.product, slice.fuel.stations.size, far, onIntent, onAction, modifier)
+            FuelNowCard(nearby, slice.fuel.product, slice.fuel.stations.size, far, onIntent, onAction, onOpenNearbyList, modifier)
         }
     }
 }
@@ -164,6 +167,7 @@ private fun SpotNowCard(
     far: String?,
     onIntent: (HomeIntent) -> Unit,
     onAction: (HomeSheetAction) -> Unit,
+    onOpenNearbyList: (NearbySubject) -> Unit,
     modifier: Modifier,
 ) {
     val name = locationDisplayText(placeInfo = spot.placeInfo, address = spot.address)
@@ -178,7 +182,7 @@ private fun SpotNowCard(
             onIntent(HomeIntent.SelectItem(HomeSelection.Spot(spot.id)))
         },
         footerLabel = pluralStringResource(Res.plurals.home_now_see_all_spots, laneCount, laneCount),
-        onOpenList = { onIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.SPOTS)) },
+        onOpenList = { onOpenNearbyList(NearbySubject.SPOT) },
         modifier = modifier,
         leading = { PapIconTile(icon = PaparcarIcons.CommunitySpot, tint = PapColor.action) },
         caption = subjectWhereLine(name = name, placeLine = null, secondaryLine = null, farText = far),
@@ -199,6 +203,7 @@ private fun CarParkNowCard(
     far: String?,
     onIntent: (HomeIntent) -> Unit,
     onAction: (HomeSheetAction) -> Unit,
+    onOpenNearbyList: (NearbySubject) -> Unit,
     modifier: Modifier,
 ) {
     val parking = nearby.parking
@@ -209,7 +214,7 @@ private fun CarParkNowCard(
         name = name,
         onOpen = { onAction(HomeSheetAction.SelectPublicParking(parking.id)) },
         footerLabel = pluralStringResource(Res.plurals.home_now_see_all_car_parks, laneCount, laneCount),
-        onOpenList = { onIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS)) },
+        onOpenList = { onOpenNearbyList(NearbySubject.CAR_PARK) },
         modifier = modifier,
         leading = { PapIconTile(icon = PaparcarIcons.CarParkMark, tint = PapColor.carPark) },
         // Su tipo es el calificador, así que baja a la línea de dónde está — salvo que el tipo ya
@@ -239,6 +244,7 @@ private fun FuelNowCard(
     far: String?,
     onIntent: (HomeIntent) -> Unit,
     onAction: (HomeSheetAction) -> Unit,
+    onOpenNearbyList: (NearbySubject) -> Unit,
     modifier: Modifier,
 ) {
     val station = nearby.station
@@ -257,7 +263,7 @@ private fun FuelNowCard(
         name = name,
         onOpen = { onAction(HomeSheetAction.SelectFuelStation(station.id)) },
         footerLabel = pluralStringResource(Res.plurals.home_now_see_all_fuel_stations, laneCount, laneCount),
-        onOpenList = { onIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.FUEL)) },
+        onOpenList = { onOpenNearbyList(NearbySubject.FUEL) },
         modifier = modifier,
         leading = { PapIconTile(icon = PaparcarIcons.Fuel, tint = PapColor.actionText) },
         figure = nearby.price?.perUnit?.pumpPriceLabel(),

@@ -1040,6 +1040,8 @@ Se a pergunta já não aparecer, muda em Definições → Paparcar → Localiza�
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
     <string name="subject_fuel_stations">Combustível</string>
     <string name="subject_public_parkings">Parques</string>
+    <string name="home_intention_park">Estacionar</string>
+    <string name="home_intention_refuel">Abastecer</string>
     <string name="subject_free_spots">Lugares</string>
     <string name="subject_free_spots_full">Lugares da comunidade</string>
     <string name="home_parkings_empty">Não há parques de estacionamento públicos a menos de %1$s.</string>

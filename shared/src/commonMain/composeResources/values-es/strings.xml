@@ -1036,6 +1036,8 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
     <string name="subject_fuel_stations">Gasolineras</string>
     <string name="subject_public_parkings">Parkings</string>
+    <string name="home_intention_park">Aparcar</string>
+    <string name="home_intention_refuel">Repostar</string>
     <string name="subject_free_spots">Plazas</string>
     <string name="subject_free_spots_full">Plazas comunitarias</string>
     <string name="home_parkings_empty">No hay parkings públicos a menos de %1$s.</string>

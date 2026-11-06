@@ -393,17 +393,9 @@ private fun papSheetHeaderChrome(
     return {
         Row(
             modifier = Modifier.fillMaxWidth().height(PapSheetChromeRowHeight),
-            // ⛔ **A los EXTREMOS, no apelotonados al final** (user, 03-11): *«redistribuir
-            // horizontalmente los botones ‹ › ×»*. Moverse ENTRE pines y CERRAR este son dos
-            // trabajos distintos, y ahora que el chrome tiene fila propia a todo el ancho se separan
-            // por la máxima distancia posible. Eso resuelve de raíz el mal toque que el KDoc de
-            // abajo describía y que el hueco de 10 dp sólo mitigaba — con él murió
-            // `STEPPER_TO_DISMISS_GAP_DP`, porque el reparto ya es el separador.
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // El par ES un solo control, así que sigue junto; la fila vacía cuando no hay pager deja
-            // que `SpaceBetween` empuje el × a su esquina de siempre.
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (pager != null) {
                     PapStepperSlot(
@@ -418,7 +410,9 @@ private fun papSheetHeaderChrome(
                     )
                 }
             }
-            if (onDismiss != null) PapSheetDismissButton(onDismiss = onDismiss)
+            if (onDismiss != null) {
+                PapSheetDismissButton(onDismiss = onDismiss)
+            }
         }
     }
 }

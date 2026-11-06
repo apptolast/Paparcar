@@ -636,9 +636,9 @@ data class HomeState(
     val showsFuelOnMap: Boolean
         get() = nearbyLens == HomeNearbyLens.FUEL
 
-    /** True while the lane is car parks — the only state in which "P" capsules exist. */
+    /** True while Aparcar is active — its second block is the public-parking source. */
     val showsParkingsOnMap: Boolean
-        get() = nearbyLens == HomeNearbyLens.PARKINGS
+        get() = nearbyLens == HomeNearbyLens.SPOTS || nearbyLens == HomeNearbyLens.PARKINGS
 
     /** Presentation projection of [detectionReadiness] for the Home detection surface. [DET-READY-001h] */
     val detectionUiState: DetectionUiState

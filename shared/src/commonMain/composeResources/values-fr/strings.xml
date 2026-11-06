@@ -1040,6 +1040,8 @@ Si la question n'apparaît plus, changez-le dans Réglages → Paparcar → Posi
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
     <string name="subject_fuel_stations">Stations</string>
     <string name="subject_public_parkings">Parkings</string>
+    <string name="home_intention_park">Se garer</string>
+    <string name="home_intention_refuel">Faire le plein</string>
     <string name="subject_free_spots">Places</string>
     <string name="subject_free_spots_full">Places communautaires</string>
     <string name="home_parkings_empty">Aucun parking public à moins de %1$s.</string>

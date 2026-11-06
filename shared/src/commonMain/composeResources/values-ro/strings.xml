@@ -1058,6 +1058,8 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
     <string name="subject_fuel_stations">Benzinării</string>
     <string name="subject_public_parkings">Parcări</string>
+    <string name="home_intention_park">Parkuj</string>
+    <string name="home_intention_refuel">Tankuj</string>
     <string name="subject_free_spots">Locuri</string>
     <string name="subject_free_spots_full">Locuri comunitare</string>
     <string name="home_parkings_empty">Nicio parcare publică pe o rază de %1$s.</string>

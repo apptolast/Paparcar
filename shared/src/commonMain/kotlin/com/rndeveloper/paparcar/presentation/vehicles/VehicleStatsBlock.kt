@@ -54,6 +54,7 @@ import com.rndeveloper.paparcar.ui.components.PapIconTileSize
 import com.rndeveloper.paparcar.ui.components.PapListItem
 import com.rndeveloper.paparcar.ui.components.PapListItemGap
 import com.rndeveloper.paparcar.ui.components.PapNavChevron
+import com.rndeveloper.paparcar.ui.components.PapNavChevronRailInset
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
 import com.rndeveloper.paparcar.ui.components.PapPrimaryButton
 import com.rndeveloper.paparcar.ui.components.PapPremiumEmphasis
@@ -450,7 +451,12 @@ private fun OpenPanelRow(onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = PANEL_ROW_H_PAD_DP.dp, vertical = PANEL_ROW_V_PAD_DP.dp),
+            .padding(
+                start = PANEL_ROW_H_PAD_DP.dp,
+                top = PANEL_ROW_V_PAD_DP.dp,
+                end = PapNavChevronRailInset,
+                bottom = PANEL_ROW_V_PAD_DP.dp,
+            ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
@@ -475,7 +481,12 @@ private fun PlusStatsRow(onClick: () -> Unit, modifier: Modifier = Modifier) {
         onClick = onClick,
     ) {
         Row(
-            modifier = Modifier.padding(PLUS_ROW_PAD_DP.dp),
+            modifier = Modifier.padding(
+                start = PLUS_ROW_PAD_DP.dp,
+                top = PLUS_ROW_PAD_DP.dp,
+                end = PapNavChevronRailInset,
+                bottom = PLUS_ROW_PAD_DP.dp,
+            ),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(PLUS_ROW_GAP_DP.dp),
         ) {

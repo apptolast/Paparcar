@@ -1001,6 +1001,8 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen â†’ Paparcar â
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
     <string name="subject_fuel_stations">Tankstations</string>
     <string name="subject_public_parkings">Parkeergarages</string>
+    <string name="home_intention_park">Parkeren</string>
+    <string name="home_intention_refuel">Tanken</string>
     <string name="subject_free_spots">Plekken</string>
     <string name="subject_free_spots_full">Community-plekken</string>
     <string name="home_parkings_empty">Geen openbare parkeergarages binnen %1$s.</string>

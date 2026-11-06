@@ -190,10 +190,10 @@ fun resolveDetectionStory(
         // después lo habrá. La card del coche sigue diciendo la verdad —aparcado, y dónde— sin
         // afirmar nada sobre el vigilante. [DET-A-SILENT-SERVICE-IS-NOT-A-DEAD-ONE-001]
         if (badge == ParkedWatchBadge.WATCH_UNKNOWN) return DetectionStory.Hidden
-        // ⛔ La fila calmada se calla si la card del coche ya la cuenta: coche aparcado y vigilancia
-        // SANA es exactamente lo que esa card enseña, con su nombre y su calle.
+        // La sección del vehículo ya representa su vigilancia; evita repetirla como una tarjeta
+        // independiente bajo el nombre del mismo coche.
         // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
-        if (carCardSaysTheWatch && isParked && badge == ParkedWatchBadge.WATCHING) {
+        if (carCardSaysTheWatch && badge == ParkedWatchBadge.WATCHING) {
             return DetectionStory.Hidden
         }
         // Watching names the ACTIVE vehicle ONLY — never a ranked or first-of-list fallback.

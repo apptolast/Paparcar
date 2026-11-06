@@ -41,6 +41,7 @@ import com.rndeveloper.paparcar.ui.theme.PapBorders
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import com.rndeveloper.paparcar.ui.components.PapNavChevron
+import com.rndeveloper.paparcar.ui.components.PapNavChevronRailInset
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.presentation.util.formatClockTime
@@ -220,7 +221,7 @@ private fun SessionCardContent(
                 start = CARD_PAD_DP.dp,
                 top = CARD_PAD_DP.dp,
                 bottom = CARD_PAD_DP.dp,
-                end = CARD_END_PAD_DP.dp,
+                end = PapNavChevronRailInset,
             ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -273,7 +274,6 @@ private const val ACTIVE_DOT_TOP_SPACER_DP = DOT_CENTER_Y_DP - ACTIVE_DOT_SIZE_D
 // ── Session card ─────────────────────────────────────────────────────────────
 private const val CARD_CORNER_DP = 12
 private const val CARD_PAD_DP = 12
-private const val CARD_END_PAD_DP = 4
 private const val CARD_BOTTOM_GAP_DP = 8
 private const val TITLE_META_GAP_DP = 2
 private val META_ALPHA = PapAlpha.muted

@@ -52,6 +52,7 @@ import com.rndeveloper.paparcar.presentation.vehicles.components.chartQualifierT
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
 import com.rndeveloper.paparcar.ui.components.PapPremiumEmphasis
 import com.rndeveloper.paparcar.ui.components.PapNavChevron
+import com.rndeveloper.paparcar.ui.components.PapNavChevronRailInset
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.components.PapPremiumSurface
 import com.rndeveloper.paparcar.ui.components.PapScrollToTopButton
@@ -563,7 +564,12 @@ private fun PlusHistoryFooter(
         onClick = onSeeAll,
     ) {
         Row(
-            modifier = Modifier.padding(FOOTER_PAD_DP.dp),
+            modifier = Modifier.padding(
+                start = FOOTER_PAD_DP.dp,
+                top = FOOTER_PAD_DP.dp,
+                end = PapNavChevronRailInset,
+                bottom = FOOTER_PAD_DP.dp,
+            ),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(FOOTER_GAP_DP.dp),
         ) {

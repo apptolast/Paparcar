@@ -2785,26 +2785,26 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `should_stayQuiet_when_theCameraBarelyMoved_orTheLayerIsOff`() = runTest(testDispatcher) {
+    fun `should_refreshFuelWhenItsLaneIsHidden_butIgnoreSmallCameraMoves`() = runTest(testDispatcher) {
         fuelSource.result = FuelStationsResult(listOf(spyStation()))
         saveActiveCar(fuelType = com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE)
         permissions.emit(FakePermissionManager.allGranted())
         locationDataSource.emitHighAccuracy(location)
         advanceUntilIdle()
 
-        // El calentamiento de entrada ya preguntó una vez por el carril oculto.
-        val trasCalentar = fuelSource.askCount
-        assertEquals(1, trasCalentar)
+        // La precarga carga los carriles aunque Gasolineras no esté seleccionado.
+        val beforeCameraMove = fuelSource.askCount
+        assertEquals(1, beforeCameraMove)
 
-        // Capa apagada: panear no pregunta a nadie.
         vm.handleIntent(HomeIntent.CameraPositionChanged(lat = OTRO_BARRIO_LAT, lon = OTRO_BARRIO_LON))
         advanceUntilIdle()
-        assertEquals(trasCalentar, fuelSource.askCount)
+        assertEquals(beforeCameraMove + 1, fuelSource.askCount, "el carril oculto sigue a la cámara")
+        assertEquals(OTRO_BARRIO_LAT, fuelSource.lastQuery?.latitude)
 
-        // Abrirla SÍ pregunta, porque la cámara se fue a otro barrio mientras estaba oculta.
+        // Seleccionar Gasolineras muestra la respuesta ya cargada, sin repetir la petición.
         vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.FUEL))
         advanceUntilIdle()
-        assertEquals(trasCalentar + 1, fuelSource.askCount)
+        assertEquals(beforeCameraMove + 1, fuelSource.askCount)
 
         // A nervous ~1 km pan is not a new question.
         val trasAbrir = fuelSource.askCount
@@ -2839,7 +2839,7 @@ class HomeViewModelTest {
         val anchor = vm.state.value.fuel.anchorLat to vm.state.value.fuel.anchorLon
         assertTrue(vm.state.value.fuel.didFallBack, "the lane is showing a substitute")
 
-        // The SAME ~1 km pan that `should_stayQuiet_when_theCameraBarelyMoved_orTheLayerIsOff`
+        // The SAME ~1 km pan that `should_refreshFuelWhenItsLaneIsHidden_butIgnoreSmallCameraMoves`
         // proves is not a new question. On a substitute it is a re-ask.
         vm.handleIntent(
             HomeIntent.CameraPositionChanged(lat = anchor.first!! + 0.01, lon = anchor.second!!),
@@ -3544,29 +3544,28 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `should_notRefetch_when_theLaneIsElsewhere`() = runTest(testDispatcher) {
-        // ⛔ La regla se ESTRECHA, no desaparece, y el matiz es todo:
-        // antes — «un sujeto que no está a la vista no descarga NADA»
-        // ahora — «…no descarga nada CUANDO LA CÁMARA SE MUEVE».
-        // El calentamiento de entrada llena el carril UNA vez para que el primer toque sea
-        // instantáneo [HOME-THE-THREE-LANES-WARM-UP-ONCE-ON-ENTRY-001]; a partir de ahí un usuario
-        // que solo arrastra el mapa sigue sin pagar peticiones por una lista que nunca abrió, que es
-        // lo que este test existe para proteger.
+    fun `should_refreshAllComplementStores_whenCameraMovesWhileSpotsAreSelected`() = runTest(testDispatcher) {
+        // La pestaña determina qué carril se muestra; los dos complementos siguen a la cámara.
         parkingsSource.result = Result.success(listOf(spyParking()))
         permissions.emit(FakePermissionManager.allGranted())
         locationDataSource.emitHighAccuracy(location)
         advanceUntilIdle()
-        val trasCalentar = parkingsSource.askCount
-        assertEquals(1, trasCalentar, "el calentamiento pregunta UNA vez, al entrar")
+        assertEquals(HomeNearbyLens.SPOTS, vm.state.value.nearbyLens)
+        val parkingsBefore = parkingsSource.askCount
+        val fuelBefore = fuelSource.askCount
+        assertEquals(1, parkingsBefore, "la precarga inicial carga parkings")
+        assertEquals(1, fuelBefore, "la precarga inicial carga gasolineras")
 
         vm.handleIntent(HomeIntent.CameraPositionChanged(LEJOS_LAT, LEJOS_LON))
         advanceUntilIdle()
 
+        assertEquals(parkingsBefore + 1, parkingsSource.askCount, "se refrescan los parkings")
+        assertEquals(fuelBefore + 1, fuelSource.askCount, "se refrescan las gasolineras")
         assertEquals(
-            trasCalentar,
-            parkingsSource.askCount,
-            "otro carril no pregunta ni aunque la cámara viaje",
+            ParkingZoneGrid.zoneOf(LEJOS_LAT, LEJOS_LON).centreLatitude,
+            parkingsSource.seen?.latitude,
         )
+        assertEquals(LEJOS_LAT, fuelSource.lastQuery?.latitude)
     }
 
     // ── Lo que se recuerda de Home es el sitio que ELEGISTE [HOME-WHAT-IS-REMEMBERED-IS-THE-PLACE-YOU-CHOSE-001] ──
