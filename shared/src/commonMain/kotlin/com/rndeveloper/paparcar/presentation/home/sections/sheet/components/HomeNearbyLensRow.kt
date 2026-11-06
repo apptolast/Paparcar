@@ -67,10 +67,8 @@ import paparcar.composeapp.generated.resources.subject_public_parkings
  * default y en el orden — y ninguno de los dos se ve al mirar la fila. La fila mantiene ahora
  * tres celdas iguales para que las etiquetas largas no pierdan espacio. [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001]
  *
- * The count is shown **only where it is known**: spots always (the feed is a live subscription), a
- * complement only after its lane has actually been asked. ⛔ A `0` on a subject nobody asked yet is a
- * verdict about the world no source ever gave — [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
- * applies to a tab as much as to a sentence.
+ * The selected intention shows the count of its current lists: Aparcar sums community spots and
+ * public car parks; Repostar counts fuel stations. Each block retains its own count inside the list.
  */
 @Composable
 internal fun HomeNearbyLensRow(
@@ -99,7 +97,7 @@ internal fun HomeNearbyLensRow(
                 subject = HomeNearbyLens.SPOTS,
                 label = stringResource(Res.string.home_intention_park),
                 icon = PaparcarIcons.CarParkMark,
-                count = null,
+                count = (spotCount + parkingsCount).takeIf { lens != HomeNearbyLens.FUEL },
                 lens = lens,
                 onSelect = onSelect,
                 highlighted = if (HomeNearbyLens.SPOTS in highlighted || HomeNearbyLens.PARKINGS in highlighted) {

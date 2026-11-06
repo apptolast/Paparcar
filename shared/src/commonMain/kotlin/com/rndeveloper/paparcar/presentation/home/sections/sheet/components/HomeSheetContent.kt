@@ -631,9 +631,11 @@ private fun LazyListScope.nearbyLane(
                 HomeNearbyLens.FUEL -> HomeNearbyLens.FUEL
                 HomeNearbyLens.PARKINGS -> HomeNearbyLens.PARKINGS
                 HomeNearbyLens.SPOTS -> when {
-                    !slice.hasAnySpots && !slice.isLoading && !slice.spotsUnasked -> HomeNearbyLens.PARKINGS
+                    // El foco manda incluso sobre una sección vacía: en ese caso sus filtros
+                    // se ocultan, sin conservar los del bloque de parkings que acabamos de dejar.
                     focusedNearbyList == HomeNearbyLens.SPOTS -> HomeNearbyLens.SPOTS
                     focusedNearbyList == HomeNearbyLens.PARKINGS -> HomeNearbyLens.PARKINGS
+                    slice.parkingsGoFirst() -> HomeNearbyLens.PARKINGS
                     else -> HomeNearbyLens.SPOTS
                 }
             }
