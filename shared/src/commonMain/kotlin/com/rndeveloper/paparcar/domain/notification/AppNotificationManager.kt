@@ -366,8 +366,12 @@ interface AppNotificationManager {
         /** ID for the OEM background-kill warning (channel: UPLOAD). [OEM-KILL-001] */
         const val BACKGROUND_RELIABILITY_NOTIFICATION_ID = 2007
 
-        /** ID for the "where did you leave your car?" nudge (channel: ACTION). [DET-AR-FIRST-001] */
-        const val MARK_PARKING_NUDGE_NOTIFICATION_ID = 2008
+        /**
+         * The manual-location question replaces the parking prompt in its single ACTION slot when
+         * GPS cannot place the car, so one trip cannot leave two competing questions in the tray.
+         * [NOTIF-A-FLOW-SPEAKS-THROUGH-ONE-SLOT-001]
+         */
+        const val MARK_PARKING_NUDGE_NOTIFICATION_ID = PARKING_CONFIRMATION_NOTIFICATION_ID
 
         /** ID for the Plus zone-alert "free spot in your zone" notification. [MONEY-001] */
         const val ZONE_SPOT_ALERT_NOTIFICATION_ID = 2009

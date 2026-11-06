@@ -93,8 +93,8 @@ class PromptWindowGuardrailTest {
     }
 
     private companion object {
-        /** `showParkingConfirmation` (opens) + `showParkingSavedConfirm` (morphs → closes). */
-        const val EXPECTED_CHANNEL_POSTS = 2
+        /** Prompt (opens), saved card and manual-location nudge (close/replace). */
+        const val EXPECTED_CHANNEL_POSTS = 3
         val CONFIRMATION_CHANNEL_POST = Regex("""notify\(\s*\n?\s*AppNotificationManager\.PARKING_CONFIRMATION_NOTIFICATION_ID""")
         val PROMPT_WINDOW_TOUCH = Regex("""(set|clear)PendingPromptWindow""")
         // A cancel on the platform NotificationManager, not the domain port's own dismiss().

@@ -26,6 +26,8 @@ class AppNotificationManagerImpl(
 
     init {
         createNotificationChannels()
+        // Clear the old separate nudge left in trays by versions before the single-slot flow.
+        notificationManager.cancel(LEGACY_MARK_PARKING_NUDGE_NOTIFICATION_ID)
     }
 
     // region ForegroundNotificationProvider
@@ -103,6 +105,8 @@ class AppNotificationManagerImpl(
             .setContentIntent(buildOpenAppIntent(RC_CONFIRMATION))
             .addAction(0, context.getString(R.string.notif_action_yes_parked), confirmedPi)
             .addAction(0, context.getString(R.string.notif_action_no_not_parked), deniedPi)
+            // Both wordings occupy one slot; updating that question must not buzz again.
+            .setOnlyAlertOnce(true)
             .setAutoCancel(true)
             .build()
         notificationManager.notify(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID, notification)
@@ -516,6 +520,8 @@ class AppNotificationManagerImpl(
     }
 
     override fun showMarkParkingNudge(source: String?, vehicleId: String?, persistPending: Boolean) {
+        // This manual-location question replaces an open "did you park?" prompt in the same slot.
+        runCatching { appPreferences.clearPendingPromptWindow() }
         // [DET-NUDGE-PERSIST-001] Persist FIRST: the durable copy is what the Home banner renders
         // when the notification below is slept through (field 2026-07-25). Never let a persist
         // failure suppress the proven notification ask.
@@ -546,9 +552,10 @@ class AppNotificationManagerImpl(
             .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
             .setContentIntent(addParkingIntent)
             .addAction(0, context.getString(R.string.notif_mark_parking_action), addParkingIntent)
+            .setOnlyAlertOnce(true)
             .setAutoCancel(true)
             .build()
-        notificationManager.notify(AppNotificationManager.MARK_PARKING_NUDGE_NOTIFICATION_ID, notification)
+        notificationManager.notify(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID, notification)
     }
 
     /**
@@ -784,6 +791,7 @@ class AppNotificationManagerImpl(
         const val ACTION_CHANNEL_ID = "action_channel"
         const val DEBUG_CHANNEL_ID = "debug_channel"
         const val SENTRY_CHANNEL_ID = "sentry_channel" // [DET-RESIDENT-FGS-001 · F3]
+        private const val LEGACY_MARK_PARKING_NUDGE_NOTIFICATION_ID = 2008
 
         // PendingIntent request codes — must be unique across the app
         private const val MS_PER_MINUTE = 60_000L

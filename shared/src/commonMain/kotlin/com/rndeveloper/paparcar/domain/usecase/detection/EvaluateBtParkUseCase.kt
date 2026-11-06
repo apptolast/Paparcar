@@ -77,8 +77,7 @@ sealed interface BtShortEngagementCall {
      *  viven los 235 enganches de un manos libres que se cae cada 17 s. */
     data object NothingHappened : BtShortEngagementCall
 
-    /** No se pudo medir. ⛔ NO es lo mismo que no haberse movido: sin testigo hay DUDA, y ante la
-     *  duda se pregunta — el fallo asimétrico manda. */
+    /** No se pudo medir por falta de GPS/testigo. La pregunta solo aparece en este caso de duda. */
     data object Ask : BtShortEngagementCall
 }
 
@@ -312,15 +311,13 @@ class EvaluateBtParkUseCase(private val config: ParkingDetectionConfig) {
     /**
      * El veredicto de un enganche corto, ya medido. [DET-BT-THE-EDGE-NOMINATES-THE-DISPLACEMENT-DECIDES-001]
      *
-     * Sólo se pregunta cuando [evaluateEngagement] NO dijo `Ride`: la duración ya ha fallado en
-     * llamarlo viaje y esto decide si el desplazamiento la desmiente. Un `Ride` no pasa por aquí —
-     * su rama sigue siendo la de [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001], que ante `DidNotMove`
-     * PREGUNTA en vez de abortar (un enganche largo sin movimiento sigue siendo un coche que estuvo
-     * ahí, y el sitio es del usuario decirlo).
+     * Solo pregunta si no hay testigo suficiente para medir GPS. Tanto un enganche corto como uno
+     * largo que se midieron sin desplazamiento terminan en silencio: no hay aparcamiento que pedir.
      *
      * @param proof medido con el testigo disponible en el instante del disconnect: la ruta grabada.
      *   Sin candidato todavía, la aritmética del connect-fix no tiene destino y se declara
-     *   `Unmeasurable` — que aquí significa exactamente «pregunta», no «aborta».
+     *   `Unmeasurable` — aquí se pregunta porque el GPS no pudo verificar el trayecto; un
+     *   desplazamiento medido a cero significa que no hay aparcamiento que preguntar.
      */
     fun evaluateShortEngagement(engagement: BtEngagement, proof: BtRideProof): BtShortEngagementCall = when {
         // Un `Ride` no es asunto de este veredicto; si llega, no se toca su camino.

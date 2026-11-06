@@ -152,13 +152,10 @@ class BluetoothParkingDetector(
                     return
                 }
                 BtShortEngagementCall.Ask -> {
-                    PaparcarLogger.w(TAG, "BT engagement was not a ride ($shape) — asking instead of placing [DET-BT-DISCONNECT-WITHOUT-RIDE-001]")
-                    logRemote(sessionId = vehicleId, verdict = VERDICT_NO_RIDE_ASK)
-                    // The car IS somewhere near — that is exactly what the engagement proves — but WHERE it
-                    // ended up is the user's to say: the fix we could sample sits at the phone, and the
-                    // phone was not in the car. The durable nudge survives being slept through and the
-                    // confirmed pin keeps detection provenance. [DET-NUDGE-PERSIST-001]
-                    notificationPort.showMarkParkingNudge(source = NUDGE_SOURCE_BT_NO_RIDE, vehicleId = vehicleId)
+                    val gap = (proof as BtRideProof.Unmeasurable).gap
+                    PaparcarLogger.w(TAG, "BT engagement could not be measured (${gap.label}) — asking only because GPS cannot verify it [DET-BT-GPS-ASK-001]")
+                    logRemote(sessionId = vehicleId, verdict = "${VERDICT_UNMEASURABLE_ASK}_${gap.label}")
+                    notificationPort.showMarkParkingNudge(source = NUDGE_SOURCE_BT_GPS_TIMEOUT, vehicleId = vehicleId)
                     return
                 }
                 // Corto en el reloj, viaje en el mapa: sigue como cualquier otro viaje.
@@ -227,21 +224,29 @@ class BluetoothParkingDetector(
                 candidate = null,
                 recordedRide = recordedRide,
             )
-            if (proof is BtRideProof.Moved) {
-                PaparcarLogger.w(
-                    TAG,
-                    "GPS fix timed out but the ride is measured (${proof.displacementMeters.toInt()}m via " +
-                        "${proof.evidence.label}) — asking instead of losing the park [DET-BT-A-PARK-IS-CONFIRMED-NOT-ASSUMED-001]",
-                )
-                logRemote(
-                    sessionId = vehicleId,
-                    verdict = VERDICT_GPS_TIMEOUT_RIDE_ASK,
-                    displacementMeters = proof.displacementMeters,
-                )
-                notificationPort.showMarkParkingNudge(source = NUDGE_SOURCE_BT_GPS_TIMEOUT, vehicleId = vehicleId)
-            } else {
-                PaparcarLogger.w(TAG, "GPS fix timed out — skipping BT parking confirmation")
-                logRemote(sessionId = vehicleId, verdict = "bt_gps_timeout")
+            when (proof) {
+                is BtRideProof.Moved -> {
+                    PaparcarLogger.w(
+                        TAG,
+                        "GPS fix timed out but the ride is measured (${proof.displacementMeters.toInt()}m via " +
+                            "${proof.evidence.label}) — asking because there is no parking fix [DET-BT-GPS-ASK-001]",
+                    )
+                    logRemote(
+                        sessionId = vehicleId,
+                        verdict = VERDICT_GPS_TIMEOUT_RIDE_ASK,
+                        displacementMeters = proof.displacementMeters,
+                    )
+                    notificationPort.showMarkParkingNudge(source = NUDGE_SOURCE_BT_GPS_TIMEOUT, vehicleId = vehicleId)
+                }
+                is BtRideProof.Unmeasurable -> {
+                    PaparcarLogger.w(TAG, "GPS fix timed out and the ride is unmeasurable (${proof.gap.label}) — asking [DET-BT-GPS-ASK-001]")
+                    logRemote(sessionId = vehicleId, verdict = "bt_gps_timeout_unmeasurable_${proof.gap.label}")
+                    notificationPort.showMarkParkingNudge(source = NUDGE_SOURCE_BT_GPS_TIMEOUT, vehicleId = vehicleId)
+                }
+                is BtRideProof.DidNotMove -> {
+                    PaparcarLogger.w(TAG, "GPS measured no meaningful displacement — no parking question [DET-BT-GPS-ASK-001]")
+                    logRemote(sessionId = vehicleId, verdict = "bt_gps_timeout_no_move")
+                }
             }
             return
         }
@@ -280,24 +285,21 @@ class BluetoothParkingDetector(
                 PaparcarLogger.w(
                     TAG,
                     "The car did not move: ${proof.displacementMeters.toInt()}m < ${proof.requiredMeters.toInt()}m required " +
-                        "(via ${proof.evidence.label}) — engagement without a ride, asking instead of placing [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001]",
+                        "(via ${proof.evidence.label}) — no park and no question [DET-BT-GPS-ASK-001]",
                 )
                 logRemote(
                     sessionId = vehicleId,
-                    verdict = VERDICT_NO_MOVE_ASK,
+                    verdict = "bt_no_move_abort",
                     fix = parkingFix,
                     ageMs = proof.originAgeMs,
                     displacementMeters = proof.displacementMeters,
                 )
-                // Same ask as the no-ride branch, and for the same reason: the car IS near, but
-                // WHERE is the user's to say. [DET-NUDGE-PERSIST-001]
-                notificationPort.showMarkParkingNudge(source = NUDGE_SOURCE_BT_NO_MOVE, vehicleId = vehicleId)
                 return
             }
             is BtRideProof.Unmeasurable -> {
                 PaparcarLogger.w(
                     TAG,
-                    "Ride not measurable (${proof.gap.label}) — asking instead of placing [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001]",
+                    "Ride not measurable (${proof.gap.label}) — asking because GPS could not verify it [DET-BT-GPS-ASK-001]",
                 )
                 logRemote(sessionId = vehicleId, verdict = "${VERDICT_UNMEASURABLE_ASK}_${proof.gap.label}", fix = parkingFix)
                 notificationPort.showMarkParkingNudge(source = NUDGE_SOURCE_BT_UNMEASURABLE, vehicleId = vehicleId)
@@ -468,23 +470,11 @@ class BluetoothParkingDetector(
          *  glance. [DET-BT-TIMEOUT-SAVE-001] */
         const val PATH_BLUETOOTH_TIMEOUT = "bt_timeout"
 
-        /** [DET-BT-DISCONNECT-WITHOUT-RIDE-001] Remote verdict for an engagement that proved
-         *  presence but not a ride: the lane asked instead of placing. */
-        const val VERDICT_NO_RIDE_ASK = "bt_no_ride_ask"
-
-        /** Nudge provenance so the diagnostics can tell this ask from the coordinator's. */
-        const val NUDGE_SOURCE_BT_NO_RIDE = "bt_no_ride"
-
         /** [DET-BT-THE-EDGE-NOMINATES-THE-DISPLACEMENT-DECIDES-001] Enganche corto Y desplazamiento medido a
          *  cero: no hay nada que aparcar, así que el carril calla en vez de preguntar. Veredicto
          *  propio —y no el `no_ride_ask` de siempre— porque la diferencia entre «no se movió» y «no
          *  pude medirlo» es justo lo que el campo tiene que poder contar. */
         const val VERDICT_SHORT_NO_MOVE_ABORT = "bt_short_no_move_abort"
-
-        /** [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001] The engagement was ride-SHAPED in time but the
-         *  car never left: measured, and it did not move. */
-        const val VERDICT_NO_MOVE_ASK = "bt_no_move_ask"
-        const val NUDGE_SOURCE_BT_NO_MOVE = "bt_no_move"
 
         /** [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001] The displacement could not be measured at all.
          *  The gap that prevented it is appended to the verdict, so the field can separate "we never
