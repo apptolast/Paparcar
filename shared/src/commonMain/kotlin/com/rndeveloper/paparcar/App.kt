@@ -12,12 +12,16 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.zIndex
@@ -43,7 +47,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.components.AppBottomNavItem
 import com.rndeveloper.paparcar.ui.components.AppBottomNavigation
@@ -311,7 +318,7 @@ fun App(
                             }
                         }
                         else -> AuthNavigation(
-                            hasAcceptedLegalConsent = appState.hasAcceptedLegalConsent,
+                            darkTheme = darkTheme,
                             onLegalConsentAccepted = { appViewModel.handleIntent(AppIntent.AcceptLegalConsent) },
                         )
                     }
@@ -390,29 +397,58 @@ private fun BootstrapFatalDialog(onDismiss: () -> Unit) {
 
 @Composable
 private fun AuthNavigation(
-    hasAcceptedLegalConsent: Boolean,
+    darkTheme: Boolean,
     onLegalConsentAccepted: () -> Unit,
 ) {
     val navController = rememberNavController()
     // Built here and not inside the NavHost builder: the builder lambda is not a composable
     // context, and the slots are since they remember the consent tick.
     val slots = paparcarAuthSlots(
-        hasAcceptedLegalConsent = hasAcceptedLegalConsent,
         onLegalConsentAccepted = onLegalConsentAccepted,
     )
-    NavHost(
-        navController = navController,
-        startDestination = AuthRoutesFlow,
-        enterTransition = { NavTransitions.enter },
-        exitTransition = { NavTransitions.exit },
-        popEnterTransition = { NavTransitions.popEnter },
-        popExitTransition = { NavTransitions.popExit },
+    // Stay in the same page palette, with a slightly deeper base on dark screens.
+    val authBaseColor = if (darkTheme) {
+        lerp(MaterialTheme.colorScheme.surfaceContainer, MaterialTheme.colorScheme.surfaceContainerLow, 0.5f)
+    } else {
+        MaterialTheme.colorScheme.surfaceContainer
+    }
+    val authTopColor = MaterialTheme.colorScheme.primary.copy(alpha = if (darkTheme) 0.06f else 0.08f)
+        .compositeOver(authBaseColor)
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        authTopColor,
+                        authBaseColor,
+                        authBaseColor,
+                    ),
+                ),
+            ),
     ) {
-        authRoutesFlow(
+        NavHost(
             navController = navController,
-            startDestination = LoginRoute,
-            slots = slots,
-            onNavigateToHome = { /* Handled by AuthState change */ },
+            startDestination = AuthRoutesFlow,
+            enterTransition = { NavTransitions.enter },
+            exitTransition = { NavTransitions.exit },
+            popEnterTransition = { NavTransitions.popEnter },
+            popExitTransition = { NavTransitions.popExit },
+        ) {
+            authRoutesFlow(
+                navController = navController,
+                startDestination = LoginRoute,
+                slots = slots,
+                onNavigateToHome = { /* Handled by AuthState change */ },
+            )
+        }
+        // The library scrolls its status-bar padding with the form. Keep an opaque, fixed
+        // protection layer so fields cannot become unreadable behind the system icons.
+        Spacer(
+            modifier = Modifier
+                .fillMaxWidth()
+                .windowInsetsTopHeight(WindowInsets.statusBars)
+                .background(authTopColor),
         )
     }
 }

@@ -509,7 +509,7 @@
     <!-- VehicleStatsRow inline cards -->
     <!-- Auth screens -->
     <string name="brand_name">Paparcar</string>
-    <string name="auth_header_tagline">Lembramo-nos de onde estacionaste. O lugar que deixas, alguém o encontra.</string>
+    <string name="auth_header_tagline">Estaciona. Lembra-te. Partilha.</string>
     <string name="auth_field_email">E-mail</string>
     <string name="auth_field_password">Senha</string>
     <string name="auth_field_name">Nome</string>
@@ -520,6 +520,11 @@
     <string name="auth_forgot_password_sent_body">Se essa conta tiver uma senha, o link está a caminho. Se não chegar nada, talvez tenhas criado a conta com o Google: volta e entra com o Google.</string>
     <string name="auth_consent_accept">Aceito a %1$s</string>
     <string name="auth_consent_privacy_policy">Política de Privacidade</string>
+    <string name="auth_login_title">Iniciar sessão</string>
+    <string name="auth_register_title">Criar conta</string>
+    <string name="auth_privacy_notice">O Paparcar usa os teus dados para gerir a tua conta. Consulta a %1$s.</string>
+    <string name="auth_continue_with_google">Continuar com Google</string>
+    <string name="auth_continue_with_apple">Continuar com Apple</string>
     <string name="home_zone_saved_message">Zona guardada</string>
     <string name="home_zone_action_edit">Editar zona</string>
     <string name="home_zone_action_delete">Eliminar zona</string>

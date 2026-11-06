@@ -515,7 +515,7 @@
     <!-- VehicleStatsRow inline cards -->
     <!-- Auth screens -->
     <string name="brand_name">Paparcar</string>
-    <string name="auth_header_tagline">Ținem minte unde ai parcat. Locul pe care îl lași îl găsește altcineva.</string>
+    <string name="auth_header_tagline">Parchează. Ține minte. Împarte.</string>
     <string name="auth_field_email">E-mail</string>
     <string name="auth_field_password">Parolă</string>
     <string name="auth_field_name">Nume</string>
@@ -526,6 +526,11 @@
     <string name="auth_forgot_password_sent_body">Dacă acel cont are o parolă, linkul este pe drum. Dacă nu ajunge nimic, poate ai creat contul cu Google: întoarce-te și conectează-te cu Google.</string>
     <string name="auth_consent_accept">Accept %1$s</string>
     <string name="auth_consent_privacy_policy">Politica de confidențialitate</string>
+    <string name="auth_login_title">Conectează-te</string>
+    <string name="auth_register_title">Creează un cont</string>
+    <string name="auth_privacy_notice">Paparcar folosește datele tale pentru a-ți gestiona contul. Citește %1$s.</string>
+    <string name="auth_continue_with_google">Continuă cu Google</string>
+    <string name="auth_continue_with_apple">Continuă cu Apple</string>
     <string name="home_zone_saved_message">Zonă salvată</string>
     <string name="home_zone_action_edit">Editează zona</string>
     <string name="home_zone_action_delete">Șterge zona</string>

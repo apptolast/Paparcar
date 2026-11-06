@@ -603,7 +603,12 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="vehicle_reg_cd_back">Back</string>
     <!-- Auth screens -->
     <string name="brand_name">Paparcar</string>
-    <string name="auth_header_tagline">We remember where you parked. The spot you leave, someone else finds.</string>
+    <string name="auth_header_tagline">Park. Remember. Share.</string>
+    <string name="auth_login_title">Sign in</string>
+    <string name="auth_register_title">Create your account</string>
+    <string name="auth_privacy_notice">Paparcar uses your data to manage your account. Read our %1$s.</string>
+    <string name="auth_continue_with_google">Continue with Google</string>
+    <string name="auth_continue_with_apple">Continue with Apple</string>
     <string name="auth_field_email">Email</string>
     <string name="auth_field_password">Password</string>
     <string name="auth_field_name">Name</string>

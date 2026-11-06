@@ -559,7 +559,7 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="vehicle_reg_cd_back">Atrás</string>
     <!-- Auth screens -->
     <string name="brand_name">Paparcar</string>
-    <string name="auth_header_tagline">Recordamos dónde aparcaste. La plaza que dejas, otro la encuentra.</string>
+    <string name="auth_header_tagline">Aparca. Recuerda. Comparte.</string>
     <string name="auth_field_email">Correo electrónico</string>
     <string name="auth_field_password">Contraseña</string>
     <string name="auth_field_name">Nombre</string>
@@ -570,6 +570,11 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="auth_forgot_password_sent_body">Si esa cuenta tiene contraseña, el enlace va de camino. Si no te llega nada, puede que crearas la cuenta con Google: vuelve y entra con Google.</string>
     <string name="auth_consent_accept">Acepto la %1$s</string>
     <string name="auth_consent_privacy_policy">Política de Privacidad</string>
+    <string name="auth_login_title">Inicia sesión</string>
+    <string name="auth_register_title">Crea tu cuenta</string>
+    <string name="auth_privacy_notice">Paparcar usa tus datos para gestionar tu cuenta. Consulta la %1$s.</string>
+    <string name="auth_continue_with_google">Continuar con Google</string>
+    <string name="auth_continue_with_apple">Continuar con Apple</string>
     <string name="home_zone_saved_message">Zona guardada</string>
     <string name="home_zone_action_edit">Editar zona</string>
     <string name="home_zone_action_delete">Eliminar zona</string>

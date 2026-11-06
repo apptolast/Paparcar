@@ -515,7 +515,7 @@
     <!-- VehicleStatsRow inline cards -->
     <!-- Auth screens -->
     <string name="brand_name">Paparcar</string>
-    <string name="auth_header_tagline">Pamiętamy, gdzie zaparkowałeś. Miejsce, które zwalniasz, znajdzie ktoś inny.</string>
+    <string name="auth_header_tagline">Zaparkuj. Zapamiętaj. Udostępnij.</string>
     <string name="auth_field_email">E-mail</string>
     <string name="auth_field_password">Hasło</string>
     <string name="auth_field_name">Imię</string>
@@ -526,6 +526,11 @@
     <string name="auth_forgot_password_sent_body">Jeśli to konto ma hasło, link jest w drodze. Jeśli nic nie przyjdzie, konto mogło zostać utworzone przez Google: wróć i zaloguj się przez Google.</string>
     <string name="auth_consent_accept">Akceptuję %1$s</string>
     <string name="auth_consent_privacy_policy">Politykę prywatności</string>
+    <string name="auth_login_title">Zaloguj się</string>
+    <string name="auth_register_title">Utwórz konto</string>
+    <string name="auth_privacy_notice">Paparcar używa Twoich danych do obsługi konta. Przeczytaj %1$s.</string>
+    <string name="auth_continue_with_google">Kontynuuj z Google</string>
+    <string name="auth_continue_with_apple">Kontynuuj z Apple</string>
     <string name="home_zone_saved_message">Strefa zapisana</string>
     <string name="home_zone_action_edit">Edytuj strefę</string>
     <string name="home_zone_action_delete">Usuń strefę</string>

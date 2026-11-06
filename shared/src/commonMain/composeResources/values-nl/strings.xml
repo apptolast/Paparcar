@@ -510,7 +510,7 @@
     <!-- VehicleStatsRow inline cards -->
     <!-- Auth screens -->
     <string name="brand_name">Paparcar</string>
-    <string name="auth_header_tagline">Wij onthouden waar je geparkeerd stond. De plek die je achterlaat, vindt iemand anders.</string>
+    <string name="auth_header_tagline">Parkeer. Onthoud. Deel.</string>
     <string name="auth_field_email">E-mail</string>
     <string name="auth_field_password">Wachtwoord</string>
     <string name="auth_field_name">Naam</string>
@@ -521,6 +521,11 @@
     <string name="auth_forgot_password_sent_body">Als dat account een wachtwoord heeft, is de link op weg. Komt er niets aan? Dan heb je het account misschien met Google gemaakt: ga terug en meld je aan met Google.</string>
     <string name="auth_consent_accept">Ik accepteer het %1$s</string>
     <string name="auth_consent_privacy_policy">Privacybeleid</string>
+    <string name="auth_login_title">Inloggen</string>
+    <string name="auth_register_title">Account aanmaken</string>
+    <string name="auth_privacy_notice">Paparcar gebruikt je gegevens om je account te beheren. Lees ons %1$s.</string>
+    <string name="auth_continue_with_google">Doorgaan met Google</string>
+    <string name="auth_continue_with_apple">Doorgaan met Apple</string>
     <string name="home_zone_saved_message">Zone opgeslagen</string>
     <string name="home_zone_action_edit">Zone bewerken</string>
     <string name="home_zone_action_delete">Zone verwijderen</string>

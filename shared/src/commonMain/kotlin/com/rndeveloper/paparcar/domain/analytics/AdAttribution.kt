@@ -23,10 +23,9 @@ package com.rndeveloper.paparcar.domain.analytics
  *
  * ## Y no manda nada sin consentimiento
  *
- * La implementación no se enciende hasta que el usuario ha aceptado términos + política
- * (`AppPreferences.hasAcceptedLegalConsent`, la puerta que ya bloquea el sign-in
- * [AUTH-A-SIGN-IN-ASKS-FOR-CONSENT-FIRST-001]). Sin esa aceptación el SDK no se inicializa, no
- * recoge el identificador de publicidad y no manda el evento de sesión.
+ * La implementación solo se enciende cuando existe la marca local de aceptación
+ * (`AppPreferences.hasAcceptedLegalConsent`). El login de una cuenta existente y el acceso con
+ * Google no crean esa marca: sin ella el SDK no se inicializa ni envía eventos.
  */
 interface AdAttributionTracker : AnalyticsTracker
 

@@ -28,21 +28,22 @@ import com.rndeveloper.paparcar.ui.components.PapPrimaryButton
 import com.rndeveloper.paparcar.ui.components.PapProviderButton
 import com.rndeveloper.paparcar.ui.components.PaparcarImagotipo
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.input.KeyboardType
@@ -62,10 +63,8 @@ import login.baselogin.generated.resources.apple_icon
 import login.baselogin.generated.resources.facebook_icon
 import login.baselogin.generated.resources.github_icon
 import login.baselogin.generated.resources.google_icon
-import login.baselogin.generated.resources.login_apple_button
 import login.baselogin.generated.resources.login_facebook_button
 import login.baselogin.generated.resources.login_github_button
-import login.baselogin.generated.resources.login_google_button
 import login.baselogin.generated.resources.login_magic_link_button
 import login.baselogin.generated.resources.login_microsoft_button
 import login.baselogin.generated.resources.login_phone_button
@@ -88,49 +87,34 @@ import paparcar.composeapp.generated.resources.auth_forgot_password_description
 import paparcar.composeapp.generated.resources.auth_forgot_password_sent_body
 import paparcar.composeapp.generated.resources.auth_forgot_password_sent_title
 import paparcar.composeapp.generated.resources.auth_header_tagline
+import paparcar.composeapp.generated.resources.auth_login_title
+import paparcar.composeapp.generated.resources.auth_register_title
+import paparcar.composeapp.generated.resources.auth_privacy_notice
+import paparcar.composeapp.generated.resources.auth_continue_with_google
+import paparcar.composeapp.generated.resources.auth_continue_with_apple
 
 /** Where the consent link points. Same document Settings links to; unify the constant when the
  *  domain sweep lands. [AUTH-A-SIGN-IN-ASKS-FOR-CONSENT-FIRST-001] */
 private const val LEGAL_PRIVACY_POLICY_URL = "https://paparcar.com/privacy-policy"
 
-private val HEADER_TOP_SPACING = 4.dp
-private val HEADER_TITLE_TAGLINE_GAP = 4.dp
-private val HEADER_BOTTOM_SPACING = 8.dp
+private val HEADER_MARK_TAGLINE_GAP = 8.dp
+private val HEADER_BRAND_FORM_GAP = 24.dp
 private val FIELD_ICON_SIZE = 20.dp
 private val FIELD_CORNER_RADIUS = 14.dp
 private val PROVIDER_BUTTON_GAP = 10.dp
-private val CONSENT_SUBMIT_GAP = 4.dp
 
 /**
- * The auth screens' Paparcar skin, plus the legal-consent gate.
- *
- * Consent must live HERE and not only on the register form because a first Google sign-in from the
- * LOGIN screen silently creates the account — so until the "I accept the Privacy Policy" box is
- * ticked, the login submit AND the social provider buttons stay disabled. Register reuses the same
- * row through the library's own `termsCheckbox` slot (whose ViewModel already gates its submit).
- *
- * [hasAcceptedLegalConsent] is the device-persisted flag: when it is already true the row is not
- * shown at all and nothing is gated — consent is asked once per install, not on every re-login.
- * Ticking the box fires [onLegalConsentAccepted] immediately so the acceptance survives even if
- * the user abandons the screen before signing in. Within the current composition the row stays
- * visible after the tick (hiding it under the user's finger would read as a glitch); it disappears
- * from the next visit on. [AUTH-A-SIGN-IN-ASKS-FOR-CONSENT-FIRST-001]
+ * Keep existing-account sign-in independent of registration. Firebase may create an Auth user
+ * during a first provider sign-in, so the provider section explains that before opening Google.
+ * The registration checkbox remains on the email creation path; it never blocks a returning user.
  */
 @Composable
 fun paparcarAuthSlots(
-    hasAcceptedLegalConsent: Boolean,
     onLegalConsentAccepted: () -> Unit,
-): AuthScreenSlots {
-    var consentGiven by remember { mutableStateOf(hasAcceptedLegalConsent) }
-    val showConsentRow = remember { !hasAcceptedLegalConsent }
-    val acceptConsent: (Boolean) -> Unit = { accepted ->
-        consentGiven = accepted
-        if (accepted) onLegalConsentAccepted()
-    }
-    return AuthScreenSlots(
+): AuthScreenSlots = AuthScreenSlots(
     login = LoginScreenSlots(
         layoutVerticalArrangement = Arrangement.Top,
-        header = { PaparcarAuthHeader() },
+        header = { PaparcarAuthHeader(isRegistration = false) },
         emailField = { value, onValueChange, error, enabled ->
             CompactEmailField(
                 value = value,
@@ -149,18 +133,7 @@ fun paparcarAuthSlots(
             )
         },
         submitButton = { onClick, isLoading, enabled, text ->
-            Column(modifier = Modifier.fillMaxWidth()) {
-                if (showConsentRow) {
-                    LegalConsentRow(checked = consentGiven, onCheckedChange = acceptConsent)
-                    Spacer(modifier = Modifier.height(CONSENT_SUBMIT_GAP))
-                }
-                CompactSubmitButton(
-                    onClick = onClick,
-                    isLoading = isLoading,
-                    enabled = enabled && consentGiven,
-                    text = text,
-                )
-            }
+            CompactSubmitButton(onClick = onClick, isLoading = isLoading, enabled = enabled, text = text)
         },
         forgotPasswordLink = { onClick ->
             CompactForgotPasswordLink(onClick = onClick)
@@ -170,13 +143,13 @@ fun paparcarAuthSlots(
                 providers = providers,
                 loadingProvider = loadingProvider,
                 onProviderClick = onProviderClick,
-                enabled = consentGiven,
+                showPrivacyNotice = true,
             )
         },
     ),
     register = RegisterScreenSlots(
         layoutVerticalArrangement = Arrangement.Top,
-        header = { PaparcarAuthHeader() },
+        header = { PaparcarAuthHeader(isRegistration = true) },
         nameField = { value, onValueChange, error, enabled ->
             CompactNameField(value = value, onValueChange = onValueChange, error = error, enabled = enabled)
         },
@@ -197,19 +170,13 @@ fun paparcarAuthSlots(
             )
         },
         termsCheckbox = { checked, onCheckedChange ->
-            if (showConsentRow) {
-                LegalConsentRow(
-                    checked = checked,
-                    onCheckedChange = { accepted ->
-                        onCheckedChange(accepted)
-                        acceptConsent(accepted)
-                    },
-                )
-            } else {
-                // Consent already given on this device — satisfy the library's own submit gate
-                // silently instead of asking a second time.
-                LaunchedEffect(Unit) { onCheckedChange(true) }
-            }
+            LegalConsentRow(
+                checked = checked,
+                onCheckedChange = { accepted ->
+                    onCheckedChange(accepted)
+                    if (accepted) onLegalConsentAccepted()
+                },
+            )
         },
         submitButton = { onClick, isLoading, enabled, text ->
             CompactSubmitButton(onClick = onClick, isLoading = isLoading, enabled = enabled, text = text)
@@ -219,7 +186,7 @@ fun paparcarAuthSlots(
                 providers = providers,
                 loadingProvider = loadingProvider,
                 onProviderClick = onProviderClick,
-                enabled = consentGiven,
+                showPrivacyNotice = false,
             )
         },
     ),
@@ -227,8 +194,7 @@ fun paparcarAuthSlots(
         description = { CompactForgotPasswordDescription() },
         successContent = { CompactForgotPasswordSent() },
     ),
-    )
-}
+)
 
 /**
  * The consent ask itself: checkbox + "I accept the Privacy Policy", with the policy name a live
@@ -241,14 +207,18 @@ private fun LegalConsentRow(
     onCheckedChange: (Boolean) -> Unit,
 ) {
     val linkColor = MaterialTheme.colorScheme.primary
+    val policyName = stringResource(Res.string.auth_consent_privacy_policy)
+    val sentence = stringResource(Res.string.auth_consent_accept, policyName)
+    val linkStart = sentence.indexOf(policyName)
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Checkbox(checked = checked, onCheckedChange = onCheckedChange)
-        val policyName = stringResource(Res.string.auth_consent_privacy_policy)
-        val sentence = stringResource(Res.string.auth_consent_accept, policyName)
-        val linkStart = sentence.indexOf(policyName)
+        Checkbox(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            modifier = Modifier.semantics { contentDescription = sentence },
+        )
         Text(
             text = buildAnnotatedString {
                 if (linkStart < 0) {
@@ -259,7 +229,9 @@ private fun LegalConsentRow(
                     withLink(
                         LinkAnnotation.Url(
                             url = LEGAL_PRIVACY_POLICY_URL,
-                            styles = TextLinkStyles(style = SpanStyle(color = linkColor)),
+                            styles = TextLinkStyles(
+                                style = SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline),
+                            ),
                         ),
                     ) { append(policyName) }
                     append(sentence.substring(linkStart + policyName.length))
@@ -272,49 +244,60 @@ private fun LegalConsentRow(
     }
 }
 
+/** Readable before a first provider sign-in, which may create a Firebase account. */
 @Composable
-private fun PaparcarAuthHeader() {
+private fun LegalPrivacyNotice() {
+    val policyName = stringResource(Res.string.auth_consent_privacy_policy)
+    val sentence = stringResource(Res.string.auth_privacy_notice, policyName)
+    val linkStart = sentence.indexOf(policyName)
+    Text(
+        text = buildAnnotatedString {
+            if (linkStart < 0) {
+                append(sentence)
+            } else {
+                append(sentence.substring(0, linkStart))
+                withLink(
+                    LinkAnnotation.Url(
+                        url = LEGAL_PRIVACY_POLICY_URL,
+                        styles = TextLinkStyles(
+                            style = SpanStyle(
+                                color = MaterialTheme.colorScheme.primary,
+                                textDecoration = TextDecoration.Underline,
+                            ),
+                        ),
+                    ),
+                ) { append(policyName) }
+                append(sentence.substring(linkStart + policyName.length))
+            }
+        },
+        style = PaparcarType.current.caption,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+@Composable
+private fun PaparcarAuthHeader(isRegistration: Boolean) {
     Column(
-        // Start, not centred: the container lays every child out full-width, so a centred header
-        // would float on its own axis while the fields, the CTA and the provider button all begin
-        // at the same left edge. The brand block belongs on that edge too.
-        // [UI-AUTH-HEADER-ALIGNS-WITH-ITS-FIELDS-001]
         horizontalAlignment = Alignment.Start,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Spacer(modifier = Modifier.height(HEADER_TOP_SPACING))
-
-        // La marca, SIN fondo: se sostiene sola sobre cualquier soporte.
-        // ⛔ Aquí había un `Modifier.shadow(6.dp, CircleShape)`, herencia de cuando
-        // el logo llevaba disco. Sin disco hacía DOS destrozos a la vez, los dos
-        // visibles en el Motorola: pintaba una baldosa redonda fantasma —la sombra
-        // de un disco que ya no existe— y, como el `clip` de `shadow` vale
-        // `elevation > 0.dp` POR DEFECTO, RECORTABA la marca contra ese círculo.
-        // Y la marca es full bleed: toca los cuatro bordes de su caja, así que
-        // perdía la rueda izquierda por abajo y el lóbulo derecho por la derecha.
-        //
-        // ⛔ Y aquí había un `Row` de marca + `Text` con el nombre: el imagotipo
-        // compuesto a mano, uno de los seis que cada superficie se inventaba por su
-        // cuenta. Ahora el nombre va DENTRO del dibujo, así que la fila se queda sin
-        // segundo hijo y la composición es sencillamente una columna: imagotipo y,
-        // debajo, la frase que lo explica. [BRAND-THE-MARK-GAINS-ITS-WORDMARK-001]
-        //
-        // El nombre deja de ser texto y con él se va su decisión tipográfica: no hay
-        // `screenTitle` que elegir porque no hay nada que componer. El tagline
-        // conserva el suyo, que sí es prosa.
-        PaparcarImagotipo()
-
-        Spacer(modifier = Modifier.height(HEADER_TITLE_TAGLINE_GAP))
-
+        // Brand first; the task heading belongs to the form below, not to the wordmark.
+        PaparcarImagotipo(width = 168.dp)
+        Spacer(modifier = Modifier.height(HEADER_MARK_TAGLINE_GAP))
         Text(
             text = stringResource(Res.string.auth_header_tagline),
-            // Tagline = prose → LECTURA (body) via PaparcarType. [TYPO-AUDIT-001]
             style = PaparcarType.current.body,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Start,
         )
-
-        Spacer(modifier = Modifier.height(HEADER_BOTTOM_SPACING))
+        Spacer(modifier = Modifier.height(HEADER_BRAND_FORM_GAP))
+        Text(
+            text = stringResource(
+                if (isRegistration) Res.string.auth_register_title else Res.string.auth_login_title,
+            ),
+            style = PaparcarType.current.sectionTitle,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
     }
 }
 
@@ -463,12 +446,15 @@ private fun PaparcarSocialProviders(
     providers: List<IdentityProvider>,
     loadingProvider: IdentityProvider?,
     onProviderClick: (IdentityProvider) -> Unit,
-    enabled: Boolean = true,
+    showPrivacyNotice: Boolean,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(PROVIDER_BUTTON_GAP),
     ) {
+        if (showPrivacyNotice && providers.isNotEmpty()) {
+            LegalPrivacyNotice()
+        }
         providers.forEach { provider ->
             val mark = providerMark(provider) ?: return@forEach
             PapProviderButton(
@@ -478,9 +464,7 @@ private fun PaparcarSocialProviders(
                 modifier = Modifier.fillMaxWidth(),
                 tint = mark.tint,
                 isLoading = loadingProvider == provider,
-                // A social sign-in is also an account CREATION the first time, so it waits for
-                // the same legal consent as the submit button. [AUTH-A-SIGN-IN-ASKS-FOR-CONSENT-FIRST-001]
-                enabled = enabled && loadingProvider == null,
+                enabled = loadingProvider == null,
             )
         }
     }
@@ -500,13 +484,13 @@ private fun providerMark(provider: IdentityProvider): ProviderMark? {
     val monochrome = MaterialTheme.colorScheme.onSurface
     return when (provider) {
         IdentityProvider.Google -> ProviderMark(
-            label = stringResource(LoginRes.string.login_google_button),
+            label = stringResource(Res.string.auth_continue_with_google),
             icon = painterResource(LoginRes.drawable.google_icon),
             tint = null,
         )
 
         IdentityProvider.Apple -> ProviderMark(
-            label = stringResource(LoginRes.string.login_apple_button),
+            label = stringResource(Res.string.auth_continue_with_apple),
             icon = painterResource(LoginRes.drawable.apple_icon),
             tint = monochrome,
         )

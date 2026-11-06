@@ -38,10 +38,8 @@ interface AppPreferences {
     val hasSeenGpsAccuracyDisclaimer: Boolean
     fun setGpsAccuracyDisclaimerSeen()
 
-    /** True once the user has ticked "I accept the Privacy Policy" on the auth flow. Device-local,
-     *  asked once per install: a first Google sign-in CREATES the account, so consent must gate the
-     *  login screen's CTAs too, not just the register form.
-     *  [AUTH-A-SIGN-IN-ASKS-FOR-CONSENT-FIRST-001] */
+    /** Device-local record of the registration checkbox. Existing-account sign-in and provider
+     *  access do not depend on it; ad attribution remains off until this is explicitly set. */
     val hasAcceptedLegalConsent: Boolean
     fun setLegalConsentAccepted()
 
