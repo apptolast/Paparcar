@@ -812,11 +812,14 @@ data class ParkingDetectionConfig(
      *  Paired with the pedestrian-rate check in `EvaluateBtParkUseCase` so the car's own
      *  displacement can no longer satisfy it (audit A2, phantom-spot class). */
     val btWalkAwayDistanceMeters: Float = 30f,
-    /** Hard ceiling on the BT walk-away watch. Without it, parking in a garage (no usable GPS,
-     *  never 30 m of measured walk) left the FGS + GPS pinned INDEFINITELY (audit A4,
-     *  BUG-FGS-1xx class). On expiry the detector aborts cleanly with telemetry — a missed BT
-     *  park degrades to the coordinator/safety-net lanes, never to a stuck service. */
-    val btWalkAwayTimeoutMs: Long = 15 * 60_000L,
+    /** Hard ceiling on the BT walk-away watch. A measured ride and a stationary, pin-grade
+     *  candidate are required before this starts. Walking confirms sooner; expiry saves that
+     *  candidate at reduced reliability, without another question (home/short-walk arrivals).
+     *  Reconnection cancels it and credible resumed driving hands off to location tracking. */
+    // A measured BT ride and a stationary pin are already established before this watch.
+    // Two minutes allow a reconnect or resumed driving to refute the stop without making a
+    // home arrival wait a quarter of an hour for a walk the user may never take.
+    val btWalkAwayTimeoutMs: Long = 2 * 60_000L,
     /**
      * BT-005 · **La ventana en la que un flanco BT todavía puede ser el mismo enlace rebotando.**
      * Una desconexión seguida de su reconexión dentro de este plazo fue una oscilación (un semáforo,

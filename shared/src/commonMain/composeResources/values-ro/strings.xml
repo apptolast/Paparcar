@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="home_trip_park_compact">Parchez aici</string>
+    <string name="home_trip_continue_compact">Continui</string>
+    <string name="home_trip_wrong_car_compact">Nu e a mea</string>
     <string name="home_trip_park_now">Am parcat aici</string>
-    <string name="home_trip_continue">Continui călătoria</string>
+    <string name="home_trip_continue">Încă conduc</string>
     <string name="home_parking_correct_title">Corectează detectarea</string>
-    <string name="home_parking_correct_body">Parcarea incorectă va fi eliminată fără a anunța un loc liber. Continuă călătoria cu această mașină sau oprește urmărirea dacă nu era a ta.</string>
+    <string name="home_parking_correct_body">Alege: continuă călătoria, elimină o călătorie cu altă mașină sau corectează doar locația.</string>
     <string name="home_parking_wrong_car">Nu era mașina mea</string>
     <string name="home_nearby_section_header">În această zonă</string>
     <string name="zone_alert_in_app">Tocmai s-a eliberat un loc în %1$s</string>
@@ -14,7 +17,7 @@
     <string name="home_search_placeholder">Caută o zonă, stradă…</string>
     <string name="home_search_no_results">Niciun rezultat pentru această căutare</string>
     <!-- PapSheet counter lead tile unit. [UI-SHEET-001] -->
-    <string name="home_vehicle_chip_status_candidate">Parcare…</string>
+    <string name="home_vehicle_chip_status_candidate">Se verifică oprirea…</string>
     <!-- PapSheet actions + browse header. [UI-SHEET-001] -->
     <string name="home_parking_leave_release">Plec</string>
     <string name="home_parking_view_vehicle">Vezi vehiculul</string>
@@ -870,19 +873,19 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="notif_confirmation_title_vehicle_street">Ai parcat %1$s pe %2$s?</string>
     <string name="notif_confirmation_text">Se pare că ai parcat. Vrei să confirmăm parcarea?</string>
     <string name="notif_action_yes_parked">Da, am parcat</string>
-    <string name="notif_action_no_not_parked">Nu, nu am parcat</string>
+    <string name="notif_action_no_not_parked">Încă conduc</string>
     <string name="notif_parking_saved_title">Parcare salvată</string>
     <string name="notif_parking_saved_text">Mașina ta a fost parcată. Apasă pentru a o vedea pe hartă.</string>
     <string name="notif_parking_saved_confirm_title">Vehicul parcat</string>
     <string name="notif_parking_saved_confirm_title_vehicle">%1$s parcat</string>
-    <string name="notif_parking_saved_confirm_text">Atinge pentru a deschide harta, sau anulează dacă nu era vehiculul tău.</string>
+    <string name="notif_parking_saved_confirm_text">Parcare salvată. O poți vedea sau corecta.</string>
     <string name="notif_action_confirm">Da, confirmă</string>
     <string name="notif_action_ack">Am înțeles</string>
     <string name="notif_action_cancel_save">Nu, anulează</string>
     <string name="notif_confirmation_failed_title">Parcare nesalvată</string>
     <string name="notif_confirmation_failed_text">Nu s-a putut salva parcarea. Deschide Paparcar pentru a încerca din nou.</string>
     <string name="notif_still_parked_title">Încă parcat aici?</string>
-    <string name="notif_still_parked_text">Pari să fii departe, dar această parcare este încă deschisă. Spune-ne dacă ai plecat deja sau marchează unde este mașina acum.</string>
+    <string name="notif_still_parked_text">Această parcare este încă deschisă. Mașina este tot aici, conduci sau ai parcat în altă parte?</string>
     <string name="notif_action_ive_left">Am plecat</string>
     <string name="notif_action_mark_parking">Marchează parcarea</string>
     <string name="notif_car_link_title">Călătoria aceasta a fost în %1$s?</string>
@@ -1222,4 +1225,8 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
          Vocabulario: es la PLAZA de la comunidad, en singular. [COPY-SPOT-IS-NOT-A-PARKING-001]
          [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001] -->
     <string name="home_peek_spot_subject">Loc comunitar</string>
+    <string name="notif_action_still_here">Este tot aici</string>
+    <string name="notif_action_driving_now">Conduc</string>
+    <string name="notif_action_parked_elsewhere">În alt loc</string>
+    <string name="home_parking_wrong_location">Locația este greșită</string>
 </resources>

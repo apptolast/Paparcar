@@ -1,13 +1,13 @@
 package com.rndeveloper.paparcar.domain.event
 
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 
 class MapFocusEventBus {
-    private val _events = MutableSharedFlow<Pair<Double, Double>>(extraBufferCapacity = 1)
-    val events = _events.asSharedFlow()
+    private val _events = Channel<Pair<Double, Double>>(Channel.CONFLATED)
+    val events = _events.receiveAsFlow()
 
     fun focusAt(lat: Double, lon: Double) {
-        _events.tryEmit(Pair(lat, lon))
+        _events.trySend(Pair(lat, lon))
     }
 }

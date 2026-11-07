@@ -137,7 +137,11 @@ sealed class HomeIntent {
      *
      * @param parked true = "yes, I parked"; false = "no, still driving".
      */
-    data class AnswerParkingPrompt(val parked: Boolean) : HomeIntent()
+    data class AnswerParkingPrompt(val parked: Boolean, val shownAtMs: Long? = null) : HomeIntent()
+    data class AnswerStillParked(
+        val question: com.rndeveloper.paparcar.domain.detection.StillParkedQuestion,
+        val answer: com.rndeveloper.paparcar.domain.detection.StillParkedAnswer,
+    ) : HomeIntent()
 
     /** "Activate detection" from the Home banner — flips the Settings auto-detect flag back on
      *  (independent of permissions). [DET-TOGGLE-001] */
@@ -178,6 +182,7 @@ sealed class HomeIntent {
 
     data class OpenParkingCorrection(val sessionId: String) : HomeIntent()
     data object DismissParkingCorrection : HomeIntent()
+    data class CorrectParkingLocation(val sessionId: String) : HomeIntent()
     data class CorrectParking(
         val sessionId: String,
         val correction: com.rndeveloper.paparcar.domain.usecase.parking.ParkingCorrection,

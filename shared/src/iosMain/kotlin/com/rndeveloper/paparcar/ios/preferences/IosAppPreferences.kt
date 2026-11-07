@@ -35,6 +35,7 @@ private const val KEY_FIRST_STEPS_DISMISSED = "first_steps_dismissed"
 private const val KEY_PENDING_NUDGE_CREATED_AT = "pending_park_nudge_created_at"
 private const val KEY_PENDING_NUDGE_SOURCE = "pending_park_nudge_source"
 private const val KEY_PENDING_NUDGE_VEHICLE_ID = "pending_park_nudge_vehicle_id"
+private const val KEY_STILL_PARKED_QUESTION = "still_parked_question"
 private const val KEY_PENDING_PROMPT_SHOWN_AT = "pending_prompt_window_shown_at"
 private const val KEY_PENDING_PROMPT_VEHICLE_NAME = "pending_prompt_window_vehicle_name"
 private const val KEY_PENDING_PROMPT_VEHICLE_ID = "pending_prompt_window_vehicle_id"
@@ -78,6 +79,7 @@ private val USER_SCOPED_KEYS = listOf(
     KEY_PENDING_NUDGE_CREATED_AT,
     KEY_PENDING_NUDGE_SOURCE,
     KEY_PENDING_NUDGE_VEHICLE_ID,
+    KEY_STILL_PARKED_QUESTION,
     KEY_PENDING_PROMPT_SHOWN_AT,
     KEY_PENDING_PROMPT_VEHICLE_NAME,
     KEY_PENDING_RELEASE_SPOT_ID,
@@ -107,6 +109,7 @@ class IosAppPreferences : AppPreferences {
      */
     override fun clearUserScopedState() {
         USER_SCOPED_KEYS.forEach { userDefaults.removeObjectForKey(it) }
+        stillParkedFlow.value = null
         firstStepsDoneFlow.value = emptySet()
         firstStepsDeferredFlow.value = emptySet()
         introducedComplementsFlow.value = emptySet()
@@ -317,6 +320,18 @@ class IosAppPreferences : AppPreferences {
     }
 
     private val pendingPromptWindowFlow = MutableStateFlow(storedPendingPromptWindow())
+
+    override fun pendingPromptWindow(): PendingPromptWindow? = pendingPromptWindowFlow.value
+    private val stillParkedFlow = MutableStateFlow(
+        com.rndeveloper.paparcar.domain.detection.StillParkedQuestion.decode(userDefaults.stringForKey(KEY_STILL_PARKED_QUESTION)),
+    )
+    override fun stillParkedQuestion() = stillParkedFlow.value
+    override fun observeStillParkedQuestion() = stillParkedFlow.asStateFlow()
+    override fun setStillParkedQuestion(question: com.rndeveloper.paparcar.domain.detection.StillParkedQuestion?) {
+        question?.let { userDefaults.setObject(it.encode(), forKey = KEY_STILL_PARKED_QUESTION) }
+            ?: userDefaults.removeObjectForKey(KEY_STILL_PARKED_QUESTION)
+        stillParkedFlow.value = question
+    }
 
     override fun observePendingPromptWindow(): Flow<PendingPromptWindow?> = pendingPromptWindowFlow.asStateFlow()
 

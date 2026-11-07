@@ -57,10 +57,11 @@ import com.rndeveloper.paparcar.ui.theme.PapIconSize
  * filled/outlined button accent.
  *
  *  - [Primary]: positive/informational (share, confirm, save). Accent = green.
+ *  - [Neutral]: quiet refusal/exit, neutral text and outline.
  *  - [Destructive]: irreversible actions (delete account, delete vehicle).
  *    Accent = error red so the user has a clear visual stop before tapping.
  */
-enum class PapDialogAccent { Primary, Destructive }
+enum class PapDialogAccent { Primary, Destructive, Neutral }
 
 /**
  * WHICH action of a [PapAlertDialog] is in flight.
@@ -123,6 +124,8 @@ fun PapAlertDialog(
     // [UI-BUTTON-ICONS-EARN-THEIR-PLACE-001]
     primaryLeadingIcon: ImageVector? = null,
     accent: PapDialogAccent = PapDialogAccent.Primary,
+    tertiaryLabel: String? = null,
+    onTertiary: (() -> Unit)? = null,
     secondaryLabel: String? = null,
     onSecondary: (() -> Unit)? = null,
     secondaryLeadingIcon: ImageVector? = null,
@@ -242,7 +245,21 @@ fun PapAlertDialog(
                         onClick = onSecondary,
                         leadingIcon = secondaryLeadingIcon,
                         accentColor = (secondaryAccent ?: accent).color(),
+                        borderColor = (secondaryAccent ?: accent).outlineColor(),
                         isLoading = loadingAction == PapDialogAction.Secondary,
+                        enabled = loadingAction == null,
+                    )
+                }
+
+                if (tertiaryLabel != null && onTertiary != null) {
+                    Spacer(Modifier.height(PaparcarSpacing.sm))
+                    SecondaryAction(
+                        label = tertiaryLabel,
+                        onClick = onTertiary,
+                        leadingIcon = null,
+                        accentColor = accentColor,
+                        borderColor = accent.outlineColor(),
+                        isLoading = false,
                         enabled = loadingAction == null,
                     )
                 }
@@ -321,6 +338,7 @@ private fun SecondaryAction(
     onClick: () -> Unit,
     leadingIcon: ImageVector?,
     accentColor: Color,
+    borderColor: Color,
     isLoading: Boolean,
     enabled: Boolean,
 ) {
@@ -332,7 +350,7 @@ private fun SecondaryAction(
             .height(PapControlHeight.button),
         shape = PapShapes.chip,
         colors = ButtonDefaults.outlinedButtonColors(contentColor = accentColor),
-        border = BorderStroke(PapBorders.medium, accentColor),
+        border = BorderStroke(PapBorders.medium, borderColor),
     ) {
         if (isLoading) {
             // The outline's own accent, not `onAccent`: this button has no fill to read against.
@@ -357,18 +375,28 @@ private fun SecondaryAction(
 private fun PapDialogAccent.color(): Color = when (this) {
     PapDialogAccent.Primary -> MaterialTheme.colorScheme.primary
     PapDialogAccent.Destructive -> MaterialTheme.colorScheme.error
+    PapDialogAccent.Neutral -> MaterialTheme.colorScheme.onSurface
 }
 
 @Composable
 private fun PapDialogAccent.container(): Color = when (this) {
     PapDialogAccent.Primary -> MaterialTheme.colorScheme.primaryContainer
     PapDialogAccent.Destructive -> MaterialTheme.colorScheme.errorContainer
+    PapDialogAccent.Neutral -> MaterialTheme.colorScheme.surfaceContainerHighest
 }
 
 @Composable
 private fun PapDialogAccent.onAccent(): Color = when (this) {
     PapDialogAccent.Primary -> MaterialTheme.colorScheme.onPrimary
     PapDialogAccent.Destructive -> MaterialTheme.colorScheme.onError
+    PapDialogAccent.Neutral -> MaterialTheme.colorScheme.onSurface
+}
+
+@Composable
+private fun PapDialogAccent.outlineColor(): Color = when (this) {
+    PapDialogAccent.Primary -> com.rndeveloper.paparcar.ui.theme.greenOutline
+    PapDialogAccent.Destructive -> MaterialTheme.colorScheme.error
+    PapDialogAccent.Neutral -> MaterialTheme.colorScheme.outlineVariant
 }
 
 private const val DIALOG_ENTER_SCALE = 0.92f

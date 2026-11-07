@@ -20,6 +20,12 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration.Companion.milliseconds
 
+sealed interface BtParkingOutcome {
+    data object Finished : BtParkingOutcome
+    /** The link dropped while this phone was still driving: keep following this vehicle. */
+    data class ContinueDriving(val fix: GpsPoint) : BtParkingOutcome
+}
+
 /**
  * Deterministic parking detector driven by Bluetooth connection events.
  *
@@ -55,13 +61,9 @@ import kotlin.time.Duration.Companion.milliseconds
  * promoted before this runs, so looking earlier costs no permission and no extra service — only the
  * seconds of GPS the event had already reserved. [DET-BT-PIN-IS-SAMPLED-AFTER-THE-WALK-001]
  *
- * **Why not the REVERT card?** BT detection is bound to the user's configured
- * `bluetoothDeviceId`, which uses a MAC address — not a model identifier. The
- * "neighbour's identical Toyota" case is impossible, and the remaining edge cases
- * (passenger in a paired vehicle, spurious BT drop while driving) are rare. The
- * REVERT card was overkill for a 0.95-reliability path; we use the simpler
- * tap-to-open-map notification instead. Users with a misfire can clean up from the
- * history screen. [BT-NOTIF-LEGACY-CLEANUP]
+ * A successful BT arrival is informational: it is already saved, with View and Correct
+ * actions rather than another acknowledgement. A moving disconnect returns its measured fix
+ * to the host, which transfers the trip to location tracking through its serialized intake.
  *
  * @param vehicleId  id of the vehicle whose paired BT device disconnected. The caller
  *   ([BluetoothConnectionReceiver]) resolves this from the device address before
@@ -79,6 +81,7 @@ class BluetoothParkingDetector(
     // witness for the displacement proof. Nullable like everywhere the store is optional; the
     // evaluator falls back to the connect-fix arithmetic without it.
     private val drivingRouteStore: com.rndeveloper.paparcar.domain.detection.ports.DrivingRouteStore? = null,
+    private val nowMs: () -> Long = System::currentTimeMillis,
 ) {
 
     suspend fun detectParking(
@@ -96,14 +99,14 @@ class BluetoothParkingDetector(
          * repositories.
          */
         vehicleName: String? = null,
-    ) {
+    ): BtParkingOutcome {
         PaparcarLogger.d(TAG, "BT disconnected ($deviceAddress, vehicle=$vehicleId) — debouncing for reconnect check")
 
         // [DET-BT-DISCONNECT-WITHOUT-RIDE-001] Was this the end of a RIDE, or just a car passing
         // within radio range? Asked before the debounce so a proximity blip costs nothing: no FGS
         // held for 15 minutes, no GPS stream, no pin. The engagement below could not confirm a
         // parking anyway — it can only nominate one.
-        val disconnectedAtMs = System.currentTimeMillis()
+        val disconnectedAtMs = nowMs()
         val engagement = evaluateBtPark.evaluateEngagement(connectedAtMs, disconnectedAtMs)
 
         // [DET-BT-A-PARK-IS-CONFIRMED-NOT-ASSUMED-001] The trip recorder's fixes for THIS ride —
@@ -113,7 +116,9 @@ class BluetoothParkingDetector(
         //
         // ⛔ Se lee ANTES de la puerta de duración, no después. Ese orden ERA el bug:
         // [DET-BT-THE-EDGE-NOMINATES-THE-DISPLACEMENT-DECIDES-001].
-        val recordedRide = runCatching { drivingRouteStore?.points() }.getOrNull().orEmpty()
+        val recordedRide = if (engagement is BtEngagement.Unknown) emptyList() else
+            runCatching { drivingRouteStore?.points() }.getOrNull().orEmpty()
+        val connectFix = connectFix.takeUnless { engagement is BtEngagement.Unknown }
 
         if (engagement !is BtEngagement.Ride) {
             val shape = when (engagement) {
@@ -142,21 +147,21 @@ class BluetoothParkingDetector(
                     PaparcarLogger.w(
                         TAG,
                         "BT engagement was not a ride ($shape) and the car did not move (${moved}m) — " +
-                            "nothing to park, aborting [DET-BT-THE-EDGE-NOMINATES-THE-DISPLACEMENT-DECIDES-001]",
+                            "observing the reconnect window before ending the trip",
                     )
                     logRemote(
                         sessionId = vehicleId,
-                        verdict = VERDICT_SHORT_NO_MOVE_ABORT,
+                        verdict = "bt_short_no_move_observing",
                         displacementMeters = (proof as? BtRideProof.DidNotMove)?.displacementMeters,
                     )
-                    return
+                    // It may be an early link failure on a trip that just started. Still observe
+                    // the grace window: a moving fix must hand off rather than lose the arrival.
                 }
                 BtShortEngagementCall.Ask -> {
                     val gap = (proof as BtRideProof.Unmeasurable).gap
-                    PaparcarLogger.w(TAG, "BT engagement could not be measured (${gap.label}) — asking only because GPS cannot verify it [DET-BT-GPS-ASK-001]")
-                    logRemote(sessionId = vehicleId, verdict = "${VERDICT_UNMEASURABLE_ASK}_${gap.label}")
-                    notificationPort.showMarkParkingNudge(source = NUDGE_SOURCE_BT_GPS_TIMEOUT, vehicleId = vehicleId)
-                    return
+                    PaparcarLogger.d(TAG, "Short BT engagement is unmeasurable (${gap.label}) — observing before deciding")
+                    // Keep sampling through the reconnect grace window. A short radio blip alone
+                    // earns no question; a real short ride can still be measured below.
                 }
                 // Corto en el reloj, viaje en el mapa: sigue como cualquier otro viaje.
                 BtShortEngagementCall.WasARide -> PaparcarLogger.w(
@@ -173,7 +178,7 @@ class BluetoothParkingDetector(
         // promovido por el desplazamiento trae su propio stamp (sin él no habría podido medirse).
         val connectedAtMs = (engagement as? BtEngagement.Ride)
             ?.let { disconnectedAtMs - it.durationMs }
-            ?: connectedAtMs
+            ?: connectedAtMs.takeUnless { engagement is BtEngagement.Unknown }
             ?: disconnectedAtMs
         // La duración REAL del enganche, se llamase viaje por el reloj o por el mapa. Va al
         // `armEvidence` del pin, así que un enganche corto promovido por desplazamiento se estampa
@@ -200,7 +205,7 @@ class BluetoothParkingDetector(
         var hunt = BtCandidateHunt(sinceMs = disconnectedAtMs)
         withTimeoutOrNull((config.btDisconnectDebounceMs + GPS_SAMPLE_TIMEOUT_MS).milliseconds) {
             observeLocation().first { fix ->
-                val atMs = System.currentTimeMillis()
+                val atMs = nowMs()
                 hunt = evaluateBtPark.foldCandidateFix(hunt, fix, atMs)
                 val debounced = atMs - disconnectedAtMs >= config.btDisconnectDebounceMs
                 hunt.aborted || (hunt.candidate != null && debounced)
@@ -209,7 +214,7 @@ class BluetoothParkingDetector(
         if (hunt.aborted) {
             PaparcarLogger.w(TAG, "Credible driving during fix sampling — BT drop was mid-drive, aborting [DET-AUDIT-002 T2]")
             logRemote(sessionId = vehicleId, verdict = "bt_driving_abort")
-            return
+            return BtParkingOutcome.ContinueDriving(requireNotNull(hunt.drivingFix))
         }
         val candidate = hunt.candidate ?: run {
             // [DET-BT-A-PARK-IS-CONFIRMED-NOT-ASSUMED-001] No candidate — but maybe a MEASURED
@@ -236,19 +241,24 @@ class BluetoothParkingDetector(
                         verdict = VERDICT_GPS_TIMEOUT_RIDE_ASK,
                         displacementMeters = proof.displacementMeters,
                     )
-                    notificationPort.showMarkParkingNudge(source = NUDGE_SOURCE_BT_GPS_TIMEOUT, vehicleId = vehicleId)
+                    if (evaluateBtPark.shouldAskForMissingParking(engagement, proof)) {
+                        notificationPort.showMarkParkingNudge(source = NUDGE_SOURCE_BT_GPS_TIMEOUT, vehicleId = vehicleId)
+                    }
                 }
                 is BtRideProof.Unmeasurable -> {
-                    PaparcarLogger.w(TAG, "GPS fix timed out and the ride is unmeasurable (${proof.gap.label}) — asking [DET-BT-GPS-ASK-001]")
-                    logRemote(sessionId = vehicleId, verdict = "bt_gps_timeout_unmeasurable_${proof.gap.label}")
-                    notificationPort.showMarkParkingNudge(source = NUDGE_SOURCE_BT_GPS_TIMEOUT, vehicleId = vehicleId)
+                    if (evaluateBtPark.shouldAskForMissingParking(engagement, proof)) {
+                        logRemote(sessionId = vehicleId, verdict = "bt_gps_timeout_unmeasurable_${proof.gap.label}")
+                        notificationPort.showMarkParkingNudge(source = NUDGE_SOURCE_BT_GPS_TIMEOUT, vehicleId = vehicleId)
+                    } else {
+                        logRemote(sessionId = vehicleId, verdict = "bt_brief_link_unmeasurable_ignored")
+                    }
                 }
                 is BtRideProof.DidNotMove -> {
                     PaparcarLogger.w(TAG, "GPS measured no meaningful displacement — no parking question [DET-BT-GPS-ASK-001]")
                     logRemote(sessionId = vehicleId, verdict = "bt_gps_timeout_no_move")
                 }
             }
-            return
+            return BtParkingOutcome.Finished
         }
         val parkingFix = candidate.fix
         // The number this lane is judged by in the field: how much of the user's walk is baked into
@@ -294,16 +304,20 @@ class BluetoothParkingDetector(
                     ageMs = proof.originAgeMs,
                     displacementMeters = proof.displacementMeters,
                 )
-                return
+                return BtParkingOutcome.Finished
             }
             is BtRideProof.Unmeasurable -> {
                 PaparcarLogger.w(
                     TAG,
-                    "Ride not measurable (${proof.gap.label}) — asking because GPS could not verify it [DET-BT-GPS-ASK-001]",
+                    "Ride not measurable (${proof.gap.label}) — checking whether this engagement warrants a question",
                 )
-                logRemote(sessionId = vehicleId, verdict = "${VERDICT_UNMEASURABLE_ASK}_${proof.gap.label}", fix = parkingFix)
-                notificationPort.showMarkParkingNudge(source = NUDGE_SOURCE_BT_UNMEASURABLE, vehicleId = vehicleId)
-                return
+                if (evaluateBtPark.shouldAskForMissingParking(engagement, proof)) {
+                    logRemote(sessionId = vehicleId, verdict = "${VERDICT_UNMEASURABLE_ASK}_${proof.gap.label}", fix = parkingFix)
+                    notificationPort.showMarkParkingNudge(source = NUDGE_SOURCE_BT_UNMEASURABLE, vehicleId = vehicleId)
+                } else {
+                    logRemote(sessionId = vehicleId, verdict = "bt_brief_link_unmeasurable_ignored", fix = parkingFix)
+                }
+                return BtParkingOutcome.Finished
             }
         }
 
@@ -318,11 +332,15 @@ class BluetoothParkingDetector(
         // now the candidate can be half a minute older, and the walk it covered in the meantime
         // would read as a teleport and abort a real park.
         var walkAborted = false
+        var drivingAfterStop: GpsPoint? = null
         val walkSettled = withTimeoutOrNull(config.btWalkAwayTimeoutMs.milliseconds) {
             observeLocation().first { current ->
-                when (evaluateBtPark.evaluateWalkAway(candidate, current, System.currentTimeMillis())) {
+                when (evaluateBtPark.evaluateWalkAway(candidate, current, nowMs())) {
                     BtParkVerdict.DrivingAbort -> {
                         walkAborted = true
+                        if (config.isCredibleDrivingSpeed(current.speed * KMH_PER_MPS, current.accuracy)) {
+                            drivingAfterStop = current
+                        }
                         true
                     }
                     BtParkVerdict.WalkAwayConfirmed -> true
@@ -362,24 +380,25 @@ class BluetoothParkingDetector(
                     ageMs = pinLagMs,
                     displacementMeters = rideProof.displacementMeters,
                 )
-                    notificationPort.showParkingSavedConfirm(
+                    notificationPort.showBluetoothParkingSaved(
                         parkingId = saved.id,
                         vehicleName = vehicleName,
                         latitude = saved.location.latitude,
                         longitude = saved.location.longitude,
-                        userAnswered = false,
                     )
                 }
                 .onFailure { e ->
                     PaparcarLogger.e(TAG, "Failed to confirm timeout-save parking", e)
                     logRemote(sessionId = vehicleId, verdict = "bt_timeout_save_refused")
+                    notificationPort.showConfirmationFailed()
                 }
-            return
+            return BtParkingOutcome.Finished
         }
         if (walkAborted) {
             PaparcarLogger.w(TAG, "Displacement at vehicle rate during walk-away — car still moving, aborting [DET-AUDIT-002 T2]")
             logRemote(sessionId = vehicleId, verdict = "bt_walkaway_driving_abort", fix = parkingFix)
-            return
+            return drivingAfterStop?.let { BtParkingOutcome.ContinueDriving(it) }
+                ?: BtParkingOutcome.Finished
         }
 
         PaparcarLogger.i(TAG, "User walked ≥${config.btWalkAwayDistanceMeters}m — confirming BT parking for vehicle=$vehicleId")
@@ -407,18 +426,19 @@ class BluetoothParkingDetector(
                 // MAC-address binding makes BT reliable enough" was written before field 2026-09-22
                 // (issue #131): an AFTERMARKET dongle bound to a MAC that is not the car's parks
                 // this lane at the wrong moment, so it is the lane that most needs a way out.
-                notificationPort.showParkingSavedConfirm(
+                notificationPort.showBluetoothParkingSaved(
                     parkingId = saved.id,
                     vehicleName = vehicleName,
                     latitude = saved.location.latitude,
                     longitude = saved.location.longitude,
-                    userAnswered = false,
                 )
             }
             .onFailure { e ->
                 PaparcarLogger.e(TAG, "Failed to confirm parking", e)
                 logRemote(sessionId = vehicleId, verdict = "bt_park_refused")
+                notificationPort.showConfirmationFailed()
             }
+        return BtParkingOutcome.Finished
     }
 
     /** Firestore-visible verdict trail — the BT path emitted ZERO remote telemetry before
@@ -434,7 +454,7 @@ class BluetoothParkingDetector(
             detectionEventLogger?.log(
                 DetectionEvent.DepartureVerdict(
                     sessionId = sessionId,
-                    timestampMs = System.currentTimeMillis(),
+                    timestampMs = nowMs(),
                     verdict = verdict,
                     source = "bt",
                     speedKmh = fix?.speed?.times(KMH_PER_MPS),
@@ -469,12 +489,6 @@ class BluetoothParkingDetector(
          *  walk — the home-park case). Distinct so field forensics can tell the two apart at a
          *  glance. [DET-BT-TIMEOUT-SAVE-001] */
         const val PATH_BLUETOOTH_TIMEOUT = "bt_timeout"
-
-        /** [DET-BT-THE-EDGE-NOMINATES-THE-DISPLACEMENT-DECIDES-001] Enganche corto Y desplazamiento medido a
-         *  cero: no hay nada que aparcar, así que el carril calla en vez de preguntar. Veredicto
-         *  propio —y no el `no_ride_ask` de siempre— porque la diferencia entre «no se movió» y «no
-         *  pude medirlo» es justo lo que el campo tiene que poder contar. */
-        const val VERDICT_SHORT_NO_MOVE_ABORT = "bt_short_no_move_abort"
 
         /** [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001] The displacement could not be measured at all.
          *  The gap that prevented it is appended to the verdict, so the field can separate "we never

@@ -15,7 +15,7 @@
     <string name="notif_action_yes_parked">Sí, he aparcado</string>
     <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->
     <string name="notif_action_stop_detection">No voy en mi coche</string>
-    <string name="notif_action_no_not_parked">No, no he aparcado</string>
+    <string name="notif_action_no_not_parked">Sigo conduciendo</string>
 
     <!-- Notificación: aparcamiento guardado -->
     <string name="notif_parking_saved_title">Aparcamiento guardado</string>
@@ -24,7 +24,7 @@
     <!-- Notificación: aparcamiento guardado + acción de cancelar (sustituye al prompt tras auto-confirm) -->
     <string name="notif_parking_saved_confirm_title">Vehículo aparcado</string>
     <string name="notif_parking_saved_confirm_title_vehicle">%1$s aparcado</string>
-    <string name="notif_parking_saved_confirm_text">Toca para abrir el mapa, o cancela si no era tu vehículo.</string>
+    <string name="notif_parking_saved_confirm_text">Aparcamiento guardado. Puedes verlo o corregirlo si hace falta.</string>
     <string name="notif_action_confirm">Sí, confirmar</string>
     <string name="notif_action_ack">Vale</string>
     <string name="notif_action_cancel_save">No, cancelar</string>
@@ -58,7 +58,7 @@
 
     <!-- Notificación: watchdog "¿sigues aparcado?" (posible salida de geocerca perdida) -->
     <string name="notif_still_parked_title">¿Sigues aparcado aquí?</string>
-    <string name="notif_still_parked_text">Parece que estás lejos, pero este aparcamiento sigue abierto. Dinos si ya te has ido, o marca dónde está ahora el coche.</string>
+    <string name="notif_still_parked_text">Este aparcamiento sigue abierto. Indica si el coche sigue aquí, si estás conduciendo o si has aparcado en otro lugar.</string>
     <!-- DET-TOGGLE-002: cold-start nudge -->
     <string name="notif_first_park_nudge_title">Aparca una vez para activar la detección</string>
     <string name="notif_first_park_nudge_text">Aparca con Paparcar una vez; después liberamos tu plaza automáticamente cada vez que salgas.</string>
@@ -130,4 +130,10 @@
     <string name="notif_shared_car_left_title">%1$s se ha llevado el coche</string>
     <string name="notif_shared_car_left_title_unknown">El coche compartido está en marcha</string>
     <string name="notif_shared_car_left_text">Ya no está donde estaba aparcado</string>
+    <string name="notif_bt_saved_text">Guardado automáticamente. Puedes verlo o corregirlo si hace falta.</string>
+    <string name="notif_action_view_parking">Ver</string>
+    <string name="notif_action_correct_parking">Corregir</string>
+    <string name="notif_action_still_here">Sigue aquí</string>
+    <string name="notif_action_driving_now">Conduciendo</string>
+    <string name="notif_action_parked_elsewhere">En otro sitio</string>
 </resources>

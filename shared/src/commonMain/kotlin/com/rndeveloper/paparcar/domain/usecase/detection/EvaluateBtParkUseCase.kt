@@ -1,5 +1,7 @@
 package com.rndeveloper.paparcar.domain.usecase.detection
 
+import com.rndeveloper.paparcar.domain.detection.physics.DriveProofBounds
+import com.rndeveloper.paparcar.domain.detection.physics.corroboratesDrive
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.util.haversineMeters
@@ -50,6 +52,7 @@ data class BtCandidateHunt(
     val sinceMs: Long,
     val candidate: BtCandidate? = null,
     val aborted: Boolean = false,
+    val drivingFix: GpsPoint? = null,
 )
 
 /**
@@ -268,7 +271,12 @@ class EvaluateBtParkUseCase(private val config: ParkingDetectionConfig) {
     ): BtRideProof {
         // Witness 1 — the recorded ride. Only fixes stamped after the connect testify: the store
         // self-segments and clears, but a leftover of the previous trip must never size this one.
-        val ridePoints = recordedRide.filter { it.timestamp >= connectedAtMs }
+        val endAtMs = candidate?.atMs ?: Long.MAX_VALUE
+        val ridePoints = recordedRide.filter {
+            it.timestamp in connectedAtMs..endAtMs && it.accuracy.isFinite() &&
+                it.accuracy in 0f..config.minGpsAccuracyForDriving &&
+                it.latitude.isFinite() && it.longitude.isFinite()
+        }.sortedBy { it.timestamp }
         if (ridePoints.size >= MIN_RECORDED_RIDE_POINTS) {
             val first = ridePoints.first()
             val end = candidate?.fix ?: ridePoints.last()
@@ -278,6 +286,32 @@ class EvaluateBtParkUseCase(private val config: ParkingDetectionConfig) {
             val requiredMeters = config.btMinRideDisplacementMeters.toDouble() +
                 first.accuracy + end.accuracy
             val originAgeMs = first.timestamp - connectedAtMs // how late the recorder's first fix came
+            // A round trip can end at its origin. A corroborated driving window during this
+            // engagement is still a ride; the final stopped candidate alone supplies its pin.
+            val bounds = DriveProofBounds(
+                windowMinMs = config.driveProofWindowMinMs,
+                windowMaxMs = config.driveProofWindowMaxMs,
+                hopMarginMeters = config.credibleDriveHopMarginMeters,
+                minDistanceMeters = config.btMinRideDisplacementMeters,
+                maxRateMps = config.sustainedDepartureMaxRateMps,
+                progressFraction = 0.5f,
+                retentionSlackMs = 0L,
+                maxRetainedFixes = 128,
+            )
+            for (index in ridePoints.indices) {
+                val point = ridePoints[index]
+                if (!config.isCredibleDrivingSpeed(point.speed * KMH_PER_MPS, point.accuracy)) continue
+                val history = ridePoints.subList(maxOf(0, index - bounds.maxRetainedFixes), index)
+                if (corroboratesDrive(history, point, bounds)) {
+                    val distance = history.maxOf {
+                        haversineMeters(it.latitude, it.longitude, point.latitude, point.longitude)
+                    }
+                    return BtRideProof.Moved(
+                        distance, config.btMinRideDisplacementMeters.toDouble(),
+                        originAgeMs, BtRideEvidence.RECORDED_ROUTE,
+                    )
+                }
+            }
             return if (displacementMeters >= requiredMeters) {
                 BtRideProof.Moved(displacementMeters, requiredMeters, originAgeMs, BtRideEvidence.RECORDED_ROUTE)
             } else {
@@ -327,6 +361,11 @@ class EvaluateBtParkUseCase(private val config: ParkingDetectionConfig) {
         else -> BtShortEngagementCall.Ask
     }
 
+    /** Only a plausible ride with missing measurements earns an interruption. Radio blips do not. */
+    fun shouldAskForMissingParking(engagement: BtEngagement, proof: BtRideProof): Boolean =
+        proof is BtRideProof.Moved ||
+            (engagement is BtEngagement.Ride && proof is BtRideProof.Unmeasurable)
+
     /** Classify one sampled fix while hunting for the parked-car candidate position. */
     fun evaluateCandidateFix(fix: GpsPoint): BtParkVerdict = when {
         config.isCredibleDrivingSpeed(fix.speed * KMH_PER_MPS, fix.accuracy) ->
@@ -366,7 +405,7 @@ class EvaluateBtParkUseCase(private val config: ParkingDetectionConfig) {
         if (state.aborted) return state
         if (fix.timestamp > 0L && fix.timestamp < state.sinceMs) return state
         return when (evaluateCandidateFix(fix)) {
-            BtParkVerdict.DrivingAbort -> state.copy(aborted = true)
+            BtParkVerdict.DrivingAbort -> state.copy(aborted = true, drivingFix = fix)
             BtParkVerdict.CandidateAccepted ->
                 if (state.candidate == null) state.copy(candidate = BtCandidate(fix, atMs)) else state
             else -> state

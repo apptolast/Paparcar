@@ -169,6 +169,7 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
         _lastFirstParkNudgeAt = 0L
         _pendingParkNudge.value = null
         pendingPromptWindow.value = null
+        stillParked.value = null
     }
 
     private val _isOnboardingCompleted = MutableStateFlow(true)
@@ -263,6 +264,13 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     // flips `promptOpen` and the real Home renders the question row. The window is stamped at read
     // time so it is always inside the response window (a fixed timestamp would age out mid-demo).
     private val pendingPromptWindow = MutableStateFlow<PendingPromptWindow?>(null)
+    override fun pendingPromptWindow() = pendingPromptWindow.value
+    private val stillParked = MutableStateFlow<com.rndeveloper.paparcar.domain.detection.StillParkedQuestion?>(null)
+    override fun stillParkedQuestion() = stillParked.value
+    override fun observeStillParkedQuestion() = stillParked
+    override fun setStillParkedQuestion(question: com.rndeveloper.paparcar.domain.detection.StillParkedQuestion?) {
+        stillParked.value = question
+    }
     override fun observePendingPromptWindow(): kotlinx.coroutines.flow.Flow<PendingPromptWindow?> =
         scenario?.promptOpen?.map { open ->
             if (open) {

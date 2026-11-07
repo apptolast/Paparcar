@@ -43,4 +43,7 @@ enum class DetectionTrigger {
      *  confirms. Its value is immediacy + independence: it needs neither Play Services (which OEMs
      *  starve) nor a WorkManager tick, and it lands on an already-live process. */
     SIGNIFICANT_MOTION,
+
+    /** A paired-car disconnect was followed by measured driving. Location follows the same car. */
+    BT_LINK_LOST,
 }

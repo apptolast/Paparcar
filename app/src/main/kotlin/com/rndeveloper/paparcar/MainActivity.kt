@@ -201,6 +201,15 @@ class MainActivity : ComponentActivity() {
         val lon = intent?.getDoubleExtra(EXTRA_FOCUS_LON, Double.NaN)?.takeIf { !it.isNaN() }
         if (lat != null && lon != null) mapFocusEventBus.focusAt(lat, lon)
 
+        intent?.getStringExtra(EXTRA_STILL_PARKED_ELSEWHERE)?.let { geofenceId ->
+            val question = appPreferences.stillParkedQuestion()
+            if (question?.geofenceId == geofenceId && question.confirmedHereAtMs == null &&
+                question.shownAtMs == intent.getLongExtra(
+                    com.rndeveloper.paparcar.detection.service.CoordinatorDetectionService.EXTRA_PROMPT_AT, -1L)
+            ) startAddParkingEventBus.request(fromDetectionNudge = true, geofenceId = geofenceId)
+            intent.removeExtra(EXTRA_STILL_PARKED_ELSEWHERE)
+        }
+
         // Cold-start nudge notification → drop straight into add-parking pin mode. The bus
         // (CONFLATED Channel) buffers this until Home subscribes, so it survives launch from a
         // killed process. [DET-TOGGLE-002] The origin travels along so a DETECTION nudge keeps
@@ -223,15 +232,22 @@ class MainActivity : ComponentActivity() {
         // conflated-bus shape as the nudge, so it survives a cold start.
         intent?.getStringExtra(EXTRA_SHOW_PARKING_SESSION_ID)?.let { sessionId ->
             showParkingAskEventBus.ask(sessionId)
+            intent.removeExtra(EXTRA_SHOW_PARKING_SESSION_ID)
+        }
+        intent?.getStringExtra(EXTRA_CORRECT_PARKING_SESSION_ID)?.let { sessionId ->
+            showParkingAskEventBus.ask(sessionId, correct = true)
+            intent.removeExtra(EXTRA_CORRECT_PARKING_SESSION_ID)
         }
     }
 
     companion object {
         const val EXTRA_FOCUS_LAT = "extra_focus_lat"
         const val EXTRA_FOCUS_LON = "extra_focus_lon"
+        const val EXTRA_STILL_PARKED_ELSEWHERE = "extra_still_parked_elsewhere"
         const val EXTRA_START_ADD_PARKING = "extra_start_add_parking"
         const val EXTRA_ADD_PARKING_FROM_DETECTION = "extra_add_parking_from_detection"
         /** The widget's "more" → show this parking (camera + selected card). [WIDGET-ACTIONS-002] */
         const val EXTRA_SHOW_PARKING_SESSION_ID = "extra_show_parking_session_id"
+        const val EXTRA_CORRECT_PARKING_SESSION_ID = "extra_correct_parking_session_id"
     }
 }

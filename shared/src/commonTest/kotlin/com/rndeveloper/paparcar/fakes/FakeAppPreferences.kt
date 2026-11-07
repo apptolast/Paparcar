@@ -42,6 +42,7 @@ class FakeAppPreferences(
         _lastFirstParkNudgeAt = 0L
         pendingParkNudge.value = null
         pendingPromptWindow.value = null
+        stillParked.value = null
     }
 
     private var _isOnboardingCompleted = initialCompleted
@@ -121,6 +122,13 @@ class FakeAppPreferences(
 
     // [DET-ASK-STATE-001]
     val pendingPromptWindow = MutableStateFlow<PendingPromptWindow?>(null)
+    override fun pendingPromptWindow() = pendingPromptWindow.value
+    val stillParked = MutableStateFlow<com.rndeveloper.paparcar.domain.detection.StillParkedQuestion?>(null)
+    override fun stillParkedQuestion() = stillParked.value
+    override fun observeStillParkedQuestion() = stillParked
+    override fun setStillParkedQuestion(question: com.rndeveloper.paparcar.domain.detection.StillParkedQuestion?) {
+        stillParked.value = question
+    }
     override fun observePendingPromptWindow(): Flow<PendingPromptWindow?> = pendingPromptWindow
     override fun setPendingPromptWindow(window: PendingPromptWindow) { pendingPromptWindow.value = window }
     override fun clearPendingPromptWindow() { pendingPromptWindow.value = null }

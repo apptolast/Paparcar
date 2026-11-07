@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="home_trip_park_compact">Aparcar aquí</string>
+    <string name="home_trip_continue_compact">Sigo en ruta</string>
+    <string name="home_trip_wrong_car_compact">No es mi coche</string>
     <string name="home_trip_park_now">He aparcado aquí</string>
-    <string name="home_trip_continue">Sigo de viaje</string>
+    <string name="home_trip_continue">Sigo conduciendo</string>
     <string name="home_parking_correct_title">Corregir detección</string>
-    <string name="home_parking_correct_body">Retiraremos este aparcamiento incorrecto sin publicar una plaza libre. Puedes continuar el viaje con este coche o detenerlo si no era el tuyo.</string>
+    <string name="home_parking_correct_body">Elige qué ha pasado: seguir conduciendo, retirar un viaje que no era en tu coche o corregir solo la ubicación.</string>
     <string name="home_parking_wrong_car">No era mi coche</string>
     <!-- HomeScreen -->
     <string name="home_search_placeholder">Busca una zona, calle…</string>
@@ -27,7 +30,7 @@
     <string name="home_vehicle_chip_mark_parking">Marcar aparcamiento</string>
     <string name="home_vehicle_chip_unmarked">Sin marcar</string>
     <string name="home_vehicle_card_parked_at">Aparcado en %1$s</string>
-    <string name="home_vehicle_chip_status_candidate">Aparcando…</string>
+    <string name="home_vehicle_chip_status_candidate">Comprobando parada…</string>
     <!-- ParkingPeekRow (hero card del coche seleccionado) — fallback. -->
     <string name="home_peek_parked_label">Aparcado</string>
     <!-- SpotPeekRow (hero card de plaza seleccionada) -->
@@ -852,19 +855,19 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="notif_confirmation_title_vehicle_street">¿Has aparcado el %1$s en %2$s?</string>
     <string name="notif_confirmation_text">Parece que has aparcado el coche. ¿Confirmamos el aparcamiento?</string>
     <string name="notif_action_yes_parked">Sí, he aparcado</string>
-    <string name="notif_action_no_not_parked">No, no he aparcado</string>
+    <string name="notif_action_no_not_parked">Sigo conduciendo</string>
     <string name="notif_parking_saved_title">Aparcamiento guardado</string>
     <string name="notif_parking_saved_text">Tu coche ha sido aparcado. Toca para verlo en el mapa.</string>
     <string name="notif_parking_saved_confirm_title">Vehículo aparcado</string>
     <string name="notif_parking_saved_confirm_title_vehicle">%1$s aparcado</string>
-    <string name="notif_parking_saved_confirm_text">Toca para abrir el mapa, o cancela si no era tu vehículo.</string>
+    <string name="notif_parking_saved_confirm_text">Aparcamiento guardado. Puedes verlo o corregirlo si hace falta.</string>
     <string name="notif_action_confirm">Sí, confirmar</string>
     <string name="notif_action_ack">Vale</string>
     <string name="notif_action_cancel_save">No, cancelar</string>
     <string name="notif_confirmation_failed_title">Aparcamiento no guardado</string>
     <string name="notif_confirmation_failed_text">No se pudo guardar tu aparcamiento. Abre Paparcar para intentarlo de nuevo.</string>
     <string name="notif_still_parked_title">¿Sigues aparcado aquí?</string>
-    <string name="notif_still_parked_text">Parece que estás lejos, pero este aparcamiento sigue abierto. Dinos si ya te has ido, o marca dónde está ahora el coche.</string>
+    <string name="notif_still_parked_text">Este aparcamiento sigue abierto. Indica si el coche sigue aquí, si estás conduciendo o si has aparcado en otro lugar.</string>
     <string name="notif_action_ive_left">Ya he salido</string>
     <string name="notif_action_mark_parking">Marcar aparcamiento</string>
     <string name="notif_car_link_title">¿Este viaje fue en %1$s?</string>
@@ -1196,4 +1199,8 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
          Vocabulario: es la PLAZA de la comunidad, en singular. [COPY-SPOT-IS-NOT-A-PARKING-001]
          [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001] -->
     <string name="home_peek_spot_subject">Plaza comunitaria</string>
+    <string name="notif_action_still_here">Sigue aquí</string>
+    <string name="notif_action_driving_now">Conduciendo</string>
+    <string name="notif_action_parked_elsewhere">En otro sitio</string>
+    <string name="home_parking_wrong_location">La ubicación está mal</string>
 </resources>

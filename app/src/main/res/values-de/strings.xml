@@ -15,7 +15,7 @@
     <string name="notif_action_yes_parked">Ja, ich habe geparkt</string>
     <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->
     <string name="notif_action_stop_detection">Nicht in meinem Auto</string>
-    <string name="notif_action_no_not_parked">Nein, ich habe nicht geparkt</string>
+    <string name="notif_action_no_not_parked">Fahre noch</string>
 
     <!-- Benachrichtigung: Parken gespeichert -->
     <string name="notif_parking_saved_title">Parken gespeichert</string>
@@ -24,7 +24,7 @@
     <!-- Benachrichtigung: Parken gespeichert + Abbrechen-Aktion (ersetzt die Eingabeaufforderung nach Auto-Bestätigung) -->
     <string name="notif_parking_saved_confirm_title">Fahrzeug geparkt</string>
     <string name="notif_parking_saved_confirm_title_vehicle">%1$s geparkt</string>
-    <string name="notif_parking_saved_confirm_text">Tippen, um die Karte zu öffnen, oder abbrechen, wenn es nicht Ihr Fahrzeug war.</string>
+    <string name="notif_parking_saved_confirm_text">Parkplatz gespeichert. Du kannst ihn ansehen oder korrigieren.</string>
     <string name="notif_action_confirm">Ja, bestätigen</string>
     <string name="notif_action_ack">Verstanden</string>
     <string name="notif_action_cancel_save">Nein, abbrechen</string>
@@ -54,7 +54,7 @@
 
     <!-- Notification: Watchdog „noch geparkt?" (vermutlich verpasster Geofence-Ausgang) -->
     <string name="notif_still_parked_title">Noch hier geparkt?</string>
-    <string name="notif_still_parked_text">Du scheinst weg zu sein, aber dieser Parkplatz ist noch offen. Sag uns, ob du schon losgefahren bist, oder markiere, wo das Auto jetzt steht.</string>
+    <string name="notif_still_parked_text">Dieser Parkvorgang ist noch offen. Steht dein Auto noch hier, fährst du oder hast du woanders geparkt?</string>
     <!-- DET-TOGGLE-002: cold-start nudge -->
     <string name="notif_first_park_nudge_title">Einmal parken, um die Erkennung zu starten</string>
     <string name="notif_first_park_nudge_text">Parke einmal mit Paparcar; danach geben wir deinen Platz bei jeder Abfahrt automatisch frei.</string>
@@ -128,4 +128,10 @@
     <string name="notif_shared_car_left_title">%1$s ist mit dem Auto losgefahren</string>
     <string name="notif_shared_car_left_title_unknown">Das geteilte Auto ist unterwegs</string>
     <string name="notif_shared_car_left_text">Es steht nicht mehr, wo es geparkt war</string>
+    <string name="notif_bt_saved_text">Automatisch gespeichert. Du kannst den Parkplatz ansehen oder korrigieren.</string>
+    <string name="notif_action_view_parking">Ansehen</string>
+    <string name="notif_action_correct_parking">Korrigieren</string>
+    <string name="notif_action_still_here">Noch hier</string>
+    <string name="notif_action_driving_now">Ich fahre</string>
+    <string name="notif_action_parked_elsewhere">Anderer Ort</string>
 </resources>

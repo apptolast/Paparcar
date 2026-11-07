@@ -15,7 +15,7 @@
     <string name="notif_action_yes_parked">Tak, zaparkowałem</string>
     <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->
     <string name="notif_action_stop_detection">Nie jadę swoim autem</string>
-    <string name="notif_action_no_not_parked">Nie, nie zaparkowałem</string>
+    <string name="notif_action_no_not_parked">Nadal jadę</string>
 
     <!-- Powiadomienie: parkowanie zapisane -->
     <string name="notif_parking_saved_title">Parkowanie zapisane</string>
@@ -24,7 +24,7 @@
     <!-- Powiadomienie: parkowanie zapisane + akcja anuluj (zastępuje monit po automatycznym potwierdzeniu) -->
     <string name="notif_parking_saved_confirm_title">Pojazd zaparkowany</string>
     <string name="notif_parking_saved_confirm_title_vehicle">%1$s zaparkowany</string>
-    <string name="notif_parking_saved_confirm_text">Dotknij, aby otworzyć mapę, lub anuluj, jeśli to nie był twój pojazd.</string>
+    <string name="notif_parking_saved_confirm_text">Zapisano miejsce parkowania. Możesz je zobaczyć lub poprawić.</string>
     <string name="notif_action_confirm">Tak, potwierdź</string>
     <string name="notif_action_ack">Rozumiem</string>
     <string name="notif_action_cancel_save">Nie, anuluj</string>
@@ -54,7 +54,7 @@
 
     <!-- Powiadomienie: watchdog „nadal zaparkowany?" (prawdopodobnie pominięte wyjście z geofence) -->
     <string name="notif_still_parked_title">Nadal tu zaparkowany?</string>
-    <string name="notif_still_parked_text">Wygląda na to, że jesteś daleko, ale to parkowanie jest wciąż otwarte. Powiedz nam, czy już odjechałeś, albo zaznacz, gdzie teraz stoi auto.</string>
+    <string name="notif_still_parked_text">Ten postój jest nadal otwarty. Czy samochód jest tutaj, jedziesz nim, czy zaparkowano go gdzie indziej?</string>
     <!-- DET-TOGGLE-002: cold-start nudge -->
     <string name="notif_first_park_nudge_title">Zaparkuj raz, aby uruchomić wykrywanie</string>
     <string name="notif_first_park_nudge_text">Zaparkuj raz z Paparcar; potem automatycznie zwalniamy Twoje miejsce przy każdym wyjeździe.</string>
@@ -128,4 +128,10 @@
     <string name="notif_shared_car_left_title">%1$s zabrał samochód</string>
     <string name="notif_shared_car_left_title_unknown">Wspólny samochód jest w drodze</string>
     <string name="notif_shared_car_left_text">Nie stoi już tam, gdzie był zaparkowany</string>
+    <string name="notif_bt_saved_text">Zapisano automatycznie. Możesz zobaczyć lub poprawić miejsce parkowania.</string>
+    <string name="notif_action_view_parking">Zobacz</string>
+    <string name="notif_action_correct_parking">Popraw</string>
+    <string name="notif_action_still_here">Nadal tutaj</string>
+    <string name="notif_action_driving_now">Jadę</string>
+    <string name="notif_action_parked_elsewhere">Gdzie indziej</string>
 </resources>

@@ -40,22 +40,10 @@ interface AppNotificationManager {
     )
 
     /**
-     * [REFACTOR-300] Unified post-save notification: replaces the "¿Has aparcado?"
-     * prompt at [PARKING_CONFIRMATION_NOTIFICATION_ID] with a "Vehículo aparcado +
-     * Confirmar / Cancelar" UI.
-     *
-     * Why merged with the prompt:
-     * - Avoids the previous "prompt → dismissed → saved notif appears" double-notification
-     *   the user flagged as redundant.
-     * - Gives the user a reversal window even when auto-confirm fired silently while
-     *   they were walking away — the visible card lets them say "no era yo".
-     *
-     * @param parkingId    Id of the saved [com.rndeveloper.paparcar.domain.model.UserParking].
-     *                     Travels in the "No, cancelar" PendingIntent extras and is read
-     *                     by [com.rndeveloper.paparcar.domain.usecase.parking.RevertParkingUseCase].
-     * @param vehicleName  Optional display name of the parked vehicle (e.g. "Toyota Corolla").
-     * @param latitude     Latitude — tap on the body opens the map focused here.
-     * @param longitude    Longitude.
+     * Replaces the arrival question with a saved-parking status on the same notification slot.
+     * View opens this parking; Correct offers continuing the trip, rejecting it, or moving its pin.
+     * [parkingId] binds both actions to the saved session, including after a cold app launch.
+     * [userAnswered] suppresses a second alert after an explicit arrival answer.
      */
     fun showParkingSavedConfirm(
         parkingId: String,
@@ -77,6 +65,16 @@ interface AppNotificationManager {
          */
         userAnswered: Boolean = false,
     ) {}
+
+    /** A BT arrival is already saved. Offer viewing and correction without asking for approval. */
+    fun showBluetoothParkingSaved(
+        parkingId: String,
+        vehicleName: String?,
+        latitude: Double,
+        longitude: Double,
+    ) {
+        showParkingSavedConfirm(parkingId, vehicleName, latitude, longitude)
+    }
 
     /**
      * Updates the text of the foreground detection notification to show the vehicle being monitored.

@@ -6,25 +6,9 @@ import android.content.Intent
 import com.rndeveloper.paparcar.detection.service.CoordinatorDetectionService
 
 /**
- * Handles user responses to the parking-confirmation notification.
- *
- * **Pre-save prompt (state A — "¿Has aparcado?"):**
- * - "Sí, he aparcado" → [CoordinatorDetectionService.ACTION_PARKING_CONFIRMED]
- * - "Sigo conduciendo" → [CoordinatorDetectionService.ACTION_PARKING_DENIED]
- *
- * **Post-save confirm (state B — "Toyota aparcado") [REFACTOR-300]:**
- * - "Sí, confirmar" → [CoordinatorDetectionService.ACTION_PARKING_ACK]
- * - "No, cancelar" → [CoordinatorDetectionService.ACTION_PARKING_REVERT] (+ parkingId extra)
- *
- * The receiver just forwards the decision to [CoordinatorDetectionService], which calls the
- * appropriate coordinator hook (states A) or use case (state B). State A and state B
- * share the same notification ID — the morph from prompt to "saved with revert" is
- * driven by the notification post itself, not by the receiver.
- *
- * [FIX BUG-SERVICE-107: ACTION_CONFIRMED / ACTION_DENIED used to be separately-defined
- *  string literals that *happened* to equal the Service constants. They are now compile-time
- *  aliases so the Service is the single source of truth — a rename on either side would
- *  silently break intent routing otherwise.]
+ * Forwards arrival and departure answers to the service's serialized intake, preserving their
+ * question timestamp and parking identity. Saved-parking View/Correct actions open MainActivity.
+ * Legacy acknowledgement/revert broadcasts remain routable for already-posted notifications.
  */
 class ParkingConfirmationReceiver : BroadcastReceiver() {
 
@@ -38,6 +22,10 @@ class ParkingConfirmationReceiver : BroadcastReceiver() {
             intent.getStringExtra(EXTRA_PARKING_ID)?.let { putExtra(EXTRA_PARKING_ID, it) }
             // Forward the geofenceId for the watchdog DEPARTURE_CONFIRMED action; harmless otherwise.
             intent.getStringExtra(EXTRA_GEOFENCE_ID)?.let { putExtra(EXTRA_GEOFENCE_ID, it) }
+            if (intent.hasExtra(CoordinatorDetectionService.EXTRA_PROMPT_AT)) {
+                putExtra(CoordinatorDetectionService.EXTRA_PROMPT_AT,
+                    intent.getLongExtra(CoordinatorDetectionService.EXTRA_PROMPT_AT, -1L))
+            }
         }
         context.startForegroundService(serviceIntent)
     }
@@ -58,6 +46,8 @@ class ParkingConfirmationReceiver : BroadcastReceiver() {
         private val ROUTABLE_ACTIONS = setOf(
             ACTION_CONFIRMED, ACTION_DENIED, ACTION_ACK, ACTION_REVERT, ACTION_DEPARTURE_CONFIRMED,
             ACTION_USER_STOP,
+            CoordinatorDetectionService.ACTION_STILL_PARKED_HERE,
+            CoordinatorDetectionService.ACTION_STILL_PARKED_DRIVING,
         )
     }
 }

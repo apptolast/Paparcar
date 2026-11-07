@@ -274,6 +274,16 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
 
     // ── Open "did you park?" question. [DET-ASK-STATE-001] ───────────────────
 
+    override fun pendingPromptWindow(): PendingPromptWindow? = snapshot.toPendingPromptWindow()
+    override fun stillParkedQuestion() =
+        com.rndeveloper.paparcar.domain.detection.StillParkedQuestion.decode(snapshot[Keys.STILL_PARKED_QUESTION])
+    override fun observeStillParkedQuestion() = store.data.map {
+        com.rndeveloper.paparcar.domain.detection.StillParkedQuestion.decode(it[Keys.STILL_PARKED_QUESTION])
+    }.distinctUntilChanged()
+    override fun setStillParkedQuestion(question: com.rndeveloper.paparcar.domain.detection.StillParkedQuestion?) {
+        set(Keys.STILL_PARKED_QUESTION, question?.encode().orEmpty())
+    }
+
     override fun observePendingPromptWindow(): Flow<PendingPromptWindow?> =
         store.data.map { it.toPendingPromptWindow() }.distinctUntilChanged()
 
@@ -473,6 +483,7 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         val PENDING_NUDGE_CREATED_AT = longPreferencesKey("pending_park_nudge_created_at")
         val PENDING_NUDGE_SOURCE     = stringPreferencesKey("pending_park_nudge_source")
         val PENDING_NUDGE_VEHICLE_ID = stringPreferencesKey("pending_park_nudge_vehicle_id")
+        val STILL_PARKED_QUESTION = stringPreferencesKey("still_parked_question")
         val PENDING_PROMPT_SHOWN_AT  = longPreferencesKey("pending_prompt_window_shown_at")
         val PENDING_PROMPT_VEHICLE_NAME = stringPreferencesKey("pending_prompt_window_vehicle_name")
         /** [HOME-A-CARS-NEWS-RIDES-ITS-OWN-CARD-001] De QUÉ coche es la pregunta. */
@@ -553,6 +564,7 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
             Keys.PENDING_NUDGE_CREATED_AT,
             Keys.PENDING_NUDGE_SOURCE,
             Keys.PENDING_NUDGE_VEHICLE_ID,
+            Keys.STILL_PARKED_QUESTION,
             Keys.PENDING_PROMPT_SHOWN_AT,
             Keys.PENDING_PROMPT_VEHICLE_NAME,
             Keys.PENDING_PROMPT_LAT,

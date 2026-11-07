@@ -63,7 +63,26 @@ class ManualParkingDetectionImpl(private val context: Context) : ManualParkingDe
     // notification's two buttons fire — one intake, one set of coordinator hooks, one dismissal.
     // A plain startService is enough: the question only exists while the service is already in the
     // foreground running the session being asked about.
-    override fun answerPrompt(parked: Boolean) {
+    override fun answerStillParked(
+        question: com.rndeveloper.paparcar.domain.detection.StillParkedQuestion,
+        answer: com.rndeveloper.paparcar.domain.detection.StillParkedAnswer,
+    ): Boolean {
+        val intent = Intent(context, CoordinatorDetectionService::class.java).apply {
+            action = when (answer) {
+                com.rndeveloper.paparcar.domain.detection.StillParkedAnswer.HERE -> CoordinatorDetectionService.ACTION_STILL_PARKED_HERE
+                com.rndeveloper.paparcar.domain.detection.StillParkedAnswer.DRIVING -> CoordinatorDetectionService.ACTION_STILL_PARKED_DRIVING
+                com.rndeveloper.paparcar.domain.detection.StillParkedAnswer.ELSEWHERE -> CoordinatorDetectionService.ACTION_STILL_PARKED_ELSEWHERE
+            }
+            putExtra(CoordinatorDetectionService.EXTRA_GEOFENCE_ID, question.geofenceId)
+            putExtra(CoordinatorDetectionService.EXTRA_PROMPT_AT, question.shownAtMs)
+        }
+        ContextCompat.startForegroundService(context, intent)
+        return true
+    }
+
+    override fun answerPrompt(parked: Boolean) = answerPrompt(parked, null)
+
+    override fun answerPrompt(parked: Boolean, shownAtMs: Long?) {
         val intent = Intent(context, CoordinatorDetectionService::class.java).apply {
             action = if (parked) {
                 CoordinatorDetectionService.ACTION_PARKING_CONFIRMED
@@ -71,6 +90,8 @@ class ManualParkingDetectionImpl(private val context: Context) : ManualParkingDe
                 CoordinatorDetectionService.ACTION_PARKING_DENIED
             }
         }
+        shownAtMs?.let { intent.putExtra(CoordinatorDetectionService.EXTRA_PROMPT_AT, it) }
+        if (!parked && shownAtMs == null) intent.putExtra(CoordinatorDetectionService.EXTRA_CANDIDATE_RESET, true)
         context.startService(intent)
     }
 }

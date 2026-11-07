@@ -70,6 +70,18 @@ class ObserveDetectionReadinessUseCaseTest {
     }
 
     @Test
+    fun `an explicitly running trip remains visible with automatic detection off`() = runTest {
+        val readiness = buildUseCase(
+            vehicle = vehicle(type = VehicleType.CAR),
+            permissions = allGranted(),
+            running = true,
+            autoDetect = false,
+        ).invoke().first()
+
+        assertIs<DetectionReadiness.Monitoring>(readiness)
+    }
+
+    @Test
     fun `should be Ready with coordinator strategy when armed idle and no session`() = runTest {
         val car = vehicle(type = VehicleType.CAR)
         val readiness = buildUseCase(vehicle = car, permissions = allGranted()).invoke().first()

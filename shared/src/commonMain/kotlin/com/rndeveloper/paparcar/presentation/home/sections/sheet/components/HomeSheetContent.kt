@@ -322,8 +322,8 @@ fun LazyListScope.homeSheetItems(
                 onResumeWatch = { onIntent(HomeIntent.ResumeWatch) },
                 allowDrivingDetection = true, // show both cold-start CTAs (mark spot + I'm driving)
                 // [DET-ASK-STATE-001] The same two commands the notification's buttons send.
-                onAnswerParked = { onIntent(HomeIntent.AnswerParkingPrompt(parked = true)) },
-                onAnswerStillDriving = { onIntent(HomeIntent.AnswerParkingPrompt(parked = false)) },
+                onAnswerParked = { onIntent(HomeIntent.AnswerParkingPrompt(parked = true, shownAtMs = slice.promptWindow?.shownAtMs)) },
+                onAnswerStillDriving = { onIntent(HomeIntent.AnswerParkingPrompt(parked = false, shownAtMs = slice.promptWindow?.shownAtMs)) },
                 // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Tapping the card frames the place
                 // the question is about. It is a CAMERA move and nothing else — the same action a
                 // row tap already uses — so consulting the map can never be mistaken for answering.
@@ -518,7 +518,7 @@ private fun LazyListScope.vehiclesSection(
                                 targetVehicleId = card.vehicle.id,
                             ))
                         },
-                        onKeepDriving = { onIntent(HomeIntent.AnswerParkingPrompt(false)) },
+                        onKeepDriving = { onIntent(HomeIntent.AnswerParkingPrompt(false, shownAtMs = slice.promptWindow?.shownAtMs)) },
                         onClick = onCardClick,
                     )
                 }
@@ -561,7 +561,7 @@ private fun LazyListScope.vehiclesSection(
                                 targetVehicleId = card.vehicle.id,
                             ))
                         },
-                        onKeepDriving = { onIntent(HomeIntent.AnswerParkingPrompt(false)) },
+                        onKeepDriving = { onIntent(HomeIntent.AnswerParkingPrompt(false, shownAtMs = slice.promptWindow?.shownAtMs)) },
                 // El estado de ESTE coche, dentro de su card: la MISMA fila que pintaría el badge,
                 // en modo `embedded`. Mismos textos y mismos intents — cambia el huésped, no lo que
                 // pasa al tocar. [HOME-AN-OPEN-QUESTION-IS-THE-CARS-NEWS-001]

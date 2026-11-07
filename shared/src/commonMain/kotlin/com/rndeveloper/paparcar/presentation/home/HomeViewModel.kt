@@ -420,6 +420,11 @@ class HomeViewModel(
      * tray.
      */
     private fun subscribePromptWindow() {
+        viewModelScope.launch {
+            appPreferences.observeStillParkedQuestion().collectSafely("stillParkedQuestion") { question ->
+                updateState { copy(stillParkedQuestion = question?.takeIf { it.confirmedHereAtMs == null }) }
+            }
+        }
         appPreferences.observePendingPromptWindow()
             .collectSafely("pendingPromptWindow") { window ->
                 val open = isPromptWindowOpen(
@@ -511,6 +516,7 @@ class HomeViewModel(
 
             // Own parking sessions
             is HomeIntent.OpenParkingCorrection,
+            is HomeIntent.CorrectParkingLocation,
             is HomeIntent.DismissParkingCorrection,
             is HomeIntent.CorrectParking,
             is HomeIntent.OpenReleaseDialog,
@@ -539,6 +545,7 @@ class HomeViewModel(
             is HomeIntent.StartDrivingDetection,
             is HomeIntent.SilenceDetectionNotice,
             is HomeIntent.AnswerParkingPrompt,
+            is HomeIntent.AnswerStillParked,
             is HomeIntent.StopDetection,
             is HomeIntent.EnableAutoDetection,
             is HomeIntent.RequestBatteryExemption,
@@ -1461,6 +1468,16 @@ class HomeViewModel(
             is HomeIntent.DismissParkingCorrection -> updateState {
                 if (correctingParking != null) this else copy(correctionDialogSessionId = null)
             }
+            is HomeIntent.CorrectParkingLocation -> {
+                val current = state.value
+                val target = current.activeSessions.firstOrNull { it.id == intent.sessionId } ?: return
+                if (current.correctingParking != null || current.isReleasingParking || current.isSavingParking) return
+                updateState { copy(correctionDialogSessionId = null) }
+                handleIntent(HomeIntent.EnterAddParkingMode(
+                    initialGps = target.location, editingParkingId = target.id, targetVehicleId = target.vehicleId,
+                ))
+                sendEffect(HomeEffect.MoveCameraTo(target.location.latitude, target.location.longitude))
+            }
             is HomeIntent.CorrectParking -> correctParking(intent)
             is HomeIntent.OpenReleaseDialog -> updateState { copy(releaseDialogSessionId = intent.sessionId) }
             // While a release runs, its outcome owns the dialog. [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001]
@@ -1790,7 +1807,27 @@ class HomeViewModel(
             // written here: the answer takes the same route as the notification's buttons, and the
             // coordinator hook behind it dismisses the notification — which is what clears the
             // durable window and makes the row disappear, through the same flow, for both surfaces.
-            is HomeIntent.AnswerParkingPrompt -> manualParkingDetection.answerPrompt(intent.parked)
+            is HomeIntent.AnswerParkingPrompt ->
+                manualParkingDetection.answerPrompt(intent.parked, intent.shownAtMs ?: state.value.promptWindow?.shownAtMs)
+
+            is HomeIntent.AnswerStillParked -> {
+                val current = appPreferences.stillParkedQuestion()
+                if (current != intent.question || current.confirmedHereAtMs != null) return
+                if (intent.answer == com.rndeveloper.paparcar.domain.detection.StillParkedAnswer.ELSEWHERE) {
+                    openElsewhereParking(current.geofenceId)
+                } else {
+                    try {
+                        if (!manualParkingDetection.answerStillParked(current, intent.answer)) {
+                            sendEffect(HomeEffect.ShowError(PaparcarError.Parking.ReleaseFailed))
+                        }
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        PaparcarLogger.w(TAG, "Still-parked answer failed", e)
+                        sendEffect(HomeEffect.ShowError(PaparcarError.Parking.ReleaseFailed))
+                    }
+                }
+            }
 
             // [DET-TOGGLE-001] Single "activate detection" action: flip the Settings flag on AND, if
             // the producer permissions are still missing, open the permissions screen — so one tap
@@ -1834,14 +1871,30 @@ class HomeViewModel(
      * Then arm manual tracking. Setting active is idempotent when it already is. [VEH-ACTIVE-FENCE-001]
      */
     private fun startDrivingDetection(vehicleId: String?) {
+        val permissions = permissionManager.permissionState.value
+        if (!permissions.hasCorePermissions || !permissions.hasProducerPermissions) {
+            sendEffect(HomeEffect.OpenDetectionPermissions(if (permissions.hasCorePermissions) "producer" else "all"))
+            return
+        }
+        if (!permissions.isLocationServicesEnabled) {
+            sendEffect(HomeEffect.ShowError(PaparcarError.Location.ProviderDisabled))
+            return
+        }
         viewModelScope.launch {
-            // Declare the car active (idempotent when it already is) so the parking attributes to it
-            // and its fence is registered; then arm. The swap lives in DeclareActiveVehicle. [VEH-ACTIVE-FENCE-001]
-            vehicleId?.let {
-                declareActiveVehicle(it)
-                    .onFailure { e -> PaparcarLogger.w(TAG, "startDriving: declareActiveVehicle($it) failed", e) }
+            try {
+                // Do not start against the previous car if declaring the selected car failed.
+                vehicleId?.let { declareActiveVehicle(it).getOrThrow() }
+                manualParkingDetection.start()
+                clearParkNudge()
+                // The button also lives inside AddingParking: leave the pin editor so the live
+                // trip can become visible, and a subsequent tap cannot accidentally save its pin.
+                updateState { clearedModeFields() }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                PaparcarLogger.w(TAG, "startDriving failed", e)
+                sendEffect(HomeEffect.ShowError(PaparcarError.Detection.WatchResumeFailed))
             }
-            manualParkingDetection.start()
         }
     }
 
@@ -2126,8 +2179,9 @@ class HomeViewModel(
      *  sessions to land (cold start), is validated against what is STILL active, and a stale ask
      *  (session already released) dies silently. */
     private fun subscribeShowParkingAsks() {
-        showParkingAskEventBus?.asks
-            ?.collectSafely("showParkingAsk") { sessionId ->
+        showParkingAskEventBus?.requests
+            ?.collectSafely("showParkingAsk") { request ->
+                val sessionId = request.sessionId
                 // Bounded wait: on cold start the sessions have not landed yet, but "no sessions"
                 // can also be the TRUTH (released elsewhere since the widget rendered) — an
                 // unbounded first{isNotEmpty} would hang the collector on that truth forever.
@@ -2136,13 +2190,34 @@ class HomeViewModel(
                 } ?: return@collectSafely
                 val session = sessions.firstOrNull { it.id == sessionId } ?: return@collectSafely
                 handleIntent(HomeIntent.SelectItem(HomeSelection.Parking(sessionId)))
+                if (request.correct) handleIntent(HomeIntent.OpenParkingCorrection(sessionId))
                 sendEffect(HomeEffect.MoveCameraTo(session.location.latitude, session.location.longitude))
             }
+    }
+
+    private fun openElsewhereParking(geofenceId: String) {
+        viewModelScope.launch {
+            val target = userParkingRepository.getActiveSessionByGeofence(geofenceId) ?: return@launch
+            // Preserve the old parking until the replacement is explicitly saved.
+            appPreferences.stillParkedQuestion()?.takeIf { it.geofenceId == geofenceId }?.let {
+                manualParkingDetection.answerStillParked(it,
+                    com.rndeveloper.paparcar.domain.detection.StillParkedAnswer.ELSEWHERE)
+            }
+            handleIntent(HomeIntent.EnterAddParkingMode(
+                initialGps = state.value.userGpsPoint,
+                targetVehicleId = target.vehicleId,
+                fromDetectionNudge = true,
+            ))
+        }
     }
 
     private fun subscribeStartAddParkingRequests() {
         startAddParkingEventBus.requests
             .collectSafely("startAddParking") { request ->
+                request.geofenceId?.let {
+                    openElsewhereParking(it)
+                    return@collectSafely
+                }
                 val vehicles = state.map { it.vehicles }.first { it.isNotEmpty() }
                 val markVehicleId = vehicles.firstOrNull { it.isActive }?.id
                     ?: vehicles.firstOrNull()?.id

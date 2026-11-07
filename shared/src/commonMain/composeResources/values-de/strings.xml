@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="home_trip_park_compact">Hier parken</string>
+    <string name="home_trip_continue_compact">Weiterfahren</string>
+    <string name="home_trip_wrong_car_compact">Fremdes Auto</string>
     <string name="home_trip_park_now">Ich habe hier geparkt</string>
-    <string name="home_trip_continue">Ich fahre weiter</string>
+    <string name="home_trip_continue">Fahre noch</string>
     <string name="home_parking_correct_title">Erkennung korrigieren</string>
-    <string name="home_parking_correct_body">Der falsche Parkeintrag wird entfernt, ohne einen freien Platz zu melden. Setze die Fahrt mit diesem Auto fort oder beende sie, wenn es nicht deins war.</string>
+    <string name="home_parking_correct_body">Wähle, was passiert ist: weiterfahren, eine Fahrt in einem anderen Auto entfernen oder nur den Standort korrigieren.</string>
     <string name="home_parking_wrong_car">Es war nicht mein Auto</string>
     <string name="home_nearby_section_header">In dieser Gegend</string>
     <string name="zone_alert_in_app">In %1$s ist gerade ein Platz frei geworden</string>
@@ -14,7 +17,7 @@
     <string name="home_search_placeholder">Zone, Straße suchen…</string>
     <string name="home_search_no_results">Keine Treffer für diese Suche</string>
     <!-- PapSheet counter lead tile unit. [UI-SHEET-001] -->
-    <string name="home_vehicle_chip_status_candidate">Parken…</string>
+    <string name="home_vehicle_chip_status_candidate">Halt wird geprüft…</string>
     <!-- PapSheet actions + browse header. [UI-SHEET-001] -->
     <string name="home_parking_leave_release">Ich fahre los</string>
     <string name="home_parking_view_vehicle">Fahrzeug ansehen</string>
@@ -857,19 +860,19 @@ Wenn die Frage nicht mehr erscheint, ändere es unter Einstellungen → Paparcar
     <string name="notif_confirmation_title_vehicle_street">Hast du deinen %1$s in %2$s geparkt?</string>
     <string name="notif_confirmation_text">Sieht aus, als hättest du geparkt. Bestätigen wir den Parkplatz?</string>
     <string name="notif_action_yes_parked">Ja, ich habe geparkt</string>
-    <string name="notif_action_no_not_parked">Nein, ich habe nicht geparkt</string>
+    <string name="notif_action_no_not_parked">Fahre noch</string>
     <string name="notif_parking_saved_title">Parken gespeichert</string>
     <string name="notif_parking_saved_text">Ihr Auto wurde geparkt. Tippen Sie, um es auf der Karte zu sehen.</string>
     <string name="notif_parking_saved_confirm_title">Fahrzeug geparkt</string>
     <string name="notif_parking_saved_confirm_title_vehicle">%1$s geparkt</string>
-    <string name="notif_parking_saved_confirm_text">Tippen, um die Karte zu öffnen, oder abbrechen, wenn es nicht Ihr Fahrzeug war.</string>
+    <string name="notif_parking_saved_confirm_text">Parkplatz gespeichert. Du kannst ihn ansehen oder korrigieren.</string>
     <string name="notif_action_confirm">Ja, bestätigen</string>
     <string name="notif_action_ack">Verstanden</string>
     <string name="notif_action_cancel_save">Nein, abbrechen</string>
     <string name="notif_confirmation_failed_title">Parken nicht gespeichert</string>
     <string name="notif_confirmation_failed_text">Parkplatz konnte nicht gespeichert werden. Öffne Paparcar, um es erneut zu versuchen.</string>
     <string name="notif_still_parked_title">Noch hier geparkt?</string>
-    <string name="notif_still_parked_text">Du scheinst weg zu sein, aber dieser Parkplatz ist noch offen. Sag uns, ob du schon losgefahren bist, oder markiere, wo das Auto jetzt steht.</string>
+    <string name="notif_still_parked_text">Dieser Parkvorgang ist noch offen. Steht dein Auto noch hier, fährst du oder hast du woanders geparkt?</string>
     <string name="notif_action_ive_left">Ich bin weg</string>
     <string name="notif_action_mark_parking">Parkplatz markieren</string>
     <string name="notif_car_link_title">War diese Fahrt in %1$s?</string>
@@ -1201,4 +1204,8 @@ Wenn die Frage nicht mehr erscheint, ändere es unter Einstellungen → Paparcar
          Vocabulario: es la PLAZA de la comunidad, en singular. [COPY-SPOT-IS-NOT-A-PARKING-001]
          [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001] -->
     <string name="home_peek_spot_subject">Community-Platz</string>
+    <string name="notif_action_still_here">Noch hier</string>
+    <string name="notif_action_driving_now">Ich fahre</string>
+    <string name="notif_action_parked_elsewhere">Anderer Ort</string>
+    <string name="home_parking_wrong_location">Der Standort ist falsch</string>
 </resources>

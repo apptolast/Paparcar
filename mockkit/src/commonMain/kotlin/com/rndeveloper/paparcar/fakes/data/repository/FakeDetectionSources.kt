@@ -49,6 +49,7 @@ class FakeManualParkingDetection(
     var stopByUserCallCount = 0
         private set
 
+    var startFailure: Exception? = null
     var finishTripResult: Result<Unit> = Result.success(Unit)
     var beforeFinishTrip: suspend () -> Unit = {}
     val resumedVehicles = mutableListOf<String>()
@@ -67,6 +68,7 @@ class FakeManualParkingDetection(
     }
 
     override fun start() {
+        startFailure?.let { throw it }
         startCallCount++
         runtime?.setRunning(true)
     }
@@ -81,6 +83,21 @@ class FakeManualParkingDetection(
     override fun stopByUser() {
         stopByUserCallCount++
         runtime?.setRunning(false)
+    }
+
+    val promptAnswerIds = mutableListOf<Long?>()
+    override fun answerPrompt(parked: Boolean, shownAtMs: Long?) {
+        promptAnswerIds += shownAtMs
+        answerPrompt(parked)
+    }
+    val stillParkedAnswers = mutableListOf<Pair<com.rndeveloper.paparcar.domain.detection.StillParkedQuestion,
+        com.rndeveloper.paparcar.domain.detection.StillParkedAnswer>>()
+    override fun answerStillParked(
+        question: com.rndeveloper.paparcar.domain.detection.StillParkedQuestion,
+        answer: com.rndeveloper.paparcar.domain.detection.StillParkedAnswer,
+    ): Boolean {
+        stillParkedAnswers += question to answer
+        return true
     }
 
     /** Mirrors the coordinator: declining a candidate keeps the trip running. */

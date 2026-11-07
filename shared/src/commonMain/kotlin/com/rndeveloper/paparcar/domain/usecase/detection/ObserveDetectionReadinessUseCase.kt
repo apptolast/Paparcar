@@ -103,9 +103,10 @@ class ObserveDetectionReadinessUseCase(
             return DetectionReadiness.Disabled(DisabledReason.NON_PARKING_VEHICLE)
         }
 
-        // User intent wins over permissions and parked state: if auto-detection is switched off,
-        // Home shows the "activate detection" nudge rather than asking for permissions. [DET-TOGGLE-001]
-        if (!autoDetectEnabled) {
+        // Automatic detection being off does not hide a trip explicitly started with
+        // "I'm driving". Show the live work and its stop action without changing that preference.
+        // Once the job ends, the ordinary "activate detection" state returns.
+        if (!autoDetectEnabled && !isRunning) {
             return DetectionReadiness.Disabled(DisabledReason.TURNED_OFF)
         }
 

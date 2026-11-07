@@ -97,6 +97,34 @@ class CtaPlacementGuardrailTest {
         )
     }
 
+    /**
+     * These labels share a narrow vehicle card or Android's three-action notification row.
+     * Keep a separate compact copy budget; this guards translations, not measured text width.
+     */
+    @Test
+    fun `trip chip and presence notification actions keep their compact labels in every locale`() {
+        val compactKeys = listOf(
+            "home_trip_park_compact",
+            "home_trip_continue_compact",
+            "home_trip_wrong_car_compact",
+            "notif_action_still_here",
+            "notif_action_driving_now",
+            "notif_action_parked_elsewhere",
+        )
+        val maxChars = 14
+        val violations = LOCALE_DIRS.flatMap { locale ->
+            compactKeys.mapNotNull { key ->
+                val label = labelOf(key, locale)
+                when {
+                    label.isNullOrBlank() -> "$locale · $key is missing"
+                    label.length > maxChars -> "$locale · $key = \"$label\" exceeds $maxChars chars"
+                    else -> null
+                }
+            }
+        }
+        assertTrue(violations.isEmpty(), violations.joinToString("\n"))
+    }
+
     private enum class Placement { INLINE, STACKED }
 
     private enum class PairLayout { SIDE_BY_SIDE, STACKED }

@@ -20,7 +20,7 @@
     <string name="notif_action_yes_parked">Yes, I parked</string>
     <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->
     <string name="notif_action_stop_detection">Not in my car</string>
-    <string name="notif_action_no_not_parked">No, I haven\'t parked</string>
+    <string name="notif_action_no_not_parked">I’m still driving</string>
 
     <!-- Notification: parking saved (user's own car) -->
     <string name="notif_parking_saved_title">Parking saved</string>
@@ -30,7 +30,7 @@
     <string name="notif_parking_saved_confirm_title">Vehicle parked</string>
     <!-- %1$s = vehicle name (e.g. "Ford Focus") -->
     <string name="notif_parking_saved_confirm_title_vehicle">%1$s parked</string>
-    <string name="notif_parking_saved_confirm_text">Tap to open the map, or cancel if it wasn\'t your vehicle.</string>
+    <string name="notif_parking_saved_confirm_text">Parking saved. View it or correct it if needed.</string>
     <string name="notif_action_confirm">Yes, confirm</string>
     <string name="notif_action_ack">Got it</string>
     <string name="notif_action_cancel_save">No, cancel</string>
@@ -49,7 +49,7 @@
 
     <!-- Notification: watchdog "still parked?" prompt (suspected missed geofence exit) -->
     <string name="notif_still_parked_title">Still parked here?</string>
-    <string name="notif_still_parked_text">You seem to be away, but this parking is still open. Tell us if you already left, or mark where the car is now.</string>
+    <string name="notif_still_parked_text">This parking is still open. Tell us whether your car is still here, you are driving, or you have parked elsewhere.</string>
     <!-- DET-TOGGLE-002: cold-start nudge -->
     <string name="notif_first_park_nudge_title">Park once to start auto-detection</string>
     <string name="notif_first_park_nudge_text">Park with Paparcar once — after that we free your spot automatically every time you leave.</string>
@@ -141,4 +141,10 @@
     <string name="notif_shared_car_left_title">%1$s took the car</string>
     <string name="notif_shared_car_left_title_unknown">The shared car is on the move</string>
     <string name="notif_shared_car_left_text">It is no longer where it was parked</string>
+    <string name="notif_bt_saved_text">Saved automatically. View your parking or correct it if needed.</string>
+    <string name="notif_action_view_parking">View</string>
+    <string name="notif_action_correct_parking">Correct</string>
+    <string name="notif_action_still_here">Still here</string>
+    <string name="notif_action_driving_now">Driving</string>
+    <string name="notif_action_parked_elsewhere">Elsewhere</string>
 </resources>

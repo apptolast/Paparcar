@@ -387,6 +387,7 @@ data class HomeState(
      */
     val releaseDialogSessionId: String? = null,
     val correctionDialogSessionId: String? = null,
+    val stillParkedQuestion: com.rndeveloper.paparcar.domain.detection.StillParkedQuestion? = null,
     val correctingParking: com.rndeveloper.paparcar.domain.usecase.parking.ParkingCorrection? = null,
     /**
      * Non-null when moving an existing session; null when creating a new one.

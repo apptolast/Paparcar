@@ -26,4 +26,5 @@ fun shouldNudgeForStalePending(trigger: String, sawDriving: Boolean): Boolean =
     trigger == DetectionTrigger.GEOFENCE_EXIT.name ||
         trigger == DetectionTrigger.MANUAL.name ||
         trigger == DetectionTrigger.ARRIVAL_HANDOFF.name ||
+        trigger == DetectionTrigger.BT_LINK_LOST.name ||
         sawDriving

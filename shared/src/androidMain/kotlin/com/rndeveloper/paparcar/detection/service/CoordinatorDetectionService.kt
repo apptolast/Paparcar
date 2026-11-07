@@ -111,6 +111,7 @@ class CoordinatorDetectionService : LifecycleService() {
     private val foregroundNotificationProvider: ForegroundNotificationProvider by inject()
     private val notificationPort: AppNotificationManager by inject()
     private val vehicleRepository: VehicleRepository by inject()
+    private val bluetoothScanner: com.rndeveloper.paparcar.domain.bluetooth.BluetoothScanner by inject()
     /** La regla de residencia, servida como stream — el servicio la LEE, no la re-deriva.
      *  [DET-A-PARKED-BT-CAR-NEEDS-NO-RESIDENT-WATCHER-001] */
     private val observeDepartureWatchGap: ObserveDepartureWatchGapUseCase by inject()
@@ -124,6 +125,7 @@ class CoordinatorDetectionService : LifecycleService() {
     private val strategyResolver: ParkingStrategyResolver by inject() // [DET-G-01]
     private val detectionRuntime: MutableDetectionRuntimeState by inject() // [DET-READY-001c]
     private val userParkingRepository: UserParkingRepository by inject()
+    private val spotRepository: com.rndeveloper.paparcar.domain.repository.SpotRepository by inject()
     private val departureEventBus: DepartureEventBus by inject()
     private val detectionEventLogger: DetectionEventLogger by inject()
     private val geofenceService: GeofenceManager by inject() // [orphan-geofence cleanup]
@@ -239,6 +241,7 @@ class CoordinatorDetectionService : LifecycleService() {
          *  if a newer intent lands before this is processed, `stopSelfResult` mismatches and the
          *  stop is vetoed — the newer command's own epilogue then decides. */
         data class DetectionEnded(val startId: Int) : Command
+        data class BtDrivingContinues(val vehicleId: String, val fix: GpsPoint) : Command
     }
 
     private val intake = Channel<Command>(Channel.UNLIMITED)
@@ -286,6 +289,16 @@ class CoordinatorDetectionService : LifecycleService() {
                     } catch (e: Exception) {
                         PaparcarLogger.e(DIAG, "  ✗ intake command failed (action=${command.intent.action})", e)
                         stopIfIdle("command-error", command.startId)
+                    }
+                    is Command.BtDrivingContinues -> try {
+                        continueAfterBtLoss(command.vehicleId, command.fix)
+                        resolveIdleEpilogue("bt-link-lost", lastStartId)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        PaparcarLogger.e(DIAG, "BT trip handoff failed", e)
+                        notificationPort.showMarkParkingNudge(source = "bt_handoff_failed", vehicleId = command.vehicleId)
+                        stopIfIdle("bt-handoff-error", lastStartId)
                     }
                     // Same guard as Deliver: a throw here would kill the consumer loop and leave
                     // a zombie FGS — the teardown must never be the thing that breaks teardown.
@@ -406,8 +419,19 @@ class CoordinatorDetectionService : LifecycleService() {
             )
             ACTION_GEOFENCE_EXIT -> handleGeofenceExit(intent)
             ACTION_AR_TRANSITION -> handleArTransition(intent) // [DET-AR-FIRST-001]
-            ACTION_PARKING_CONFIRMED -> handleUserConfirmed()
-            ACTION_PARKING_DENIED -> handleUserDenied()
+            ACTION_PARKING_CONFIRMED -> if (promptAnswerIsCurrent(intent)) handleUserConfirmed()
+            ACTION_PARKING_DENIED -> if (promptAnswerIsCurrent(intent) ||
+                (intent.getBooleanExtra(EXTRA_CANDIDATE_RESET, false) &&
+                    appPreferences.pendingPromptWindow() == null && detectionJob?.isActive == true)
+            ) handleUserDenied()
+            ACTION_STILL_PARKED_HERE -> handleStillParkedAnswer(intent, here = true)
+            ACTION_STILL_PARKED_DRIVING -> handleStillParkedAnswer(intent, here = false)
+            ACTION_STILL_PARKED_ELSEWHERE -> {
+                val current = appPreferences.stillParkedQuestion()
+                if (current?.geofenceId == intent.getStringExtra(EXTRA_GEOFENCE_ID) &&
+                    current?.shownAtMs == intent.getLongExtra(EXTRA_PROMPT_AT, -1L)
+                ) notificationPort.dismiss(AppNotificationManager.STILL_PARKED_NOTIFICATION_ID)
+            }
             ACTION_PARKING_ACK -> handlePostSaveAck() // [REFACTOR-300]
             ACTION_PARKING_REVERT -> handlePostSaveRevert(intent.getStringExtra(EXTRA_PARKING_ID)) // [REFACTOR-300]
             ACTION_DEPARTURE_CONFIRMED -> handleWatchdogDeparture(intent.getStringExtra(EXTRA_GEOFENCE_ID)) // [DET-AR-REARM-001]
@@ -714,6 +738,36 @@ class CoordinatorDetectionService : LifecycleService() {
         )
     }
 
+    private fun promptAnswerIsCurrent(intent: Intent): Boolean =
+        detectionJob?.isActive == true &&
+            com.rndeveloper.paparcar.domain.detection.promptAnswerIsCurrent(
+                appPreferences.pendingPromptWindow(),
+                intent.getLongExtra(EXTRA_PROMPT_AT, -1L).takeIf { it >= 0L },
+                System.currentTimeMillis(), detectionConfig.confirmationResponseTimeoutMs,
+            )
+
+    private suspend fun handleStillParkedAnswer(intent: Intent, here: Boolean) {
+        val question = appPreferences.stillParkedQuestion() ?: return
+        if (question.confirmedHereAtMs != null ||
+            question.geofenceId != intent.getStringExtra(EXTRA_GEOFENCE_ID) ||
+            question.shownAtMs != intent.getLongExtra(EXTRA_PROMPT_AT, -1L)
+        ) return
+        val session = userParkingRepository.getActiveSessionByGeofence(question.geofenceId) ?: return
+        if (here) {
+            appPreferences.setStillParkedQuestion(question.copy(confirmedHereAtMs = System.currentTimeMillis()))
+            parkingDetectionCoordinator.notifyDepartureDismissed(question.geofenceId)
+            notificationPort.dismiss(AppNotificationManager.STILL_PARKED_NOTIFICATION_ID)
+            // The assertion refutes this deduction; the car and its fence stay intact.
+            if (session.provisionalDepartureAtMs != null) {
+                spotRepository.retractSpot(session.id).onSuccess {
+                    userParkingRepository.markProvisionalDeparture(session.id, null)
+                }.onFailure { PaparcarLogger.w(DIAG, "Could not withdraw refuted provisional spot", it) }
+            }
+        } else {
+            handleWatchdogDeparture(question.geofenceId, declaredDriving = true)
+        }
+    }
+
     private fun handleUserConfirmed() {
         PaparcarLogger.d(DIAG, "  → PARKING_CONFIRMED delivered to coordinator")
         parkingDetectionCoordinator.onUserConfirmedParking()
@@ -796,8 +850,14 @@ class CoordinatorDetectionService : LifecycleService() {
         PaparcarLogger.d(DIAG, "  → PARKING_REVERT — running RevertParkingUseCase(parkingId=$parkingId)")
         // Whether revert succeeds or fails (best-effort), the intake epilogue tears down so the
         // FGS notif does not stay glued on. The user can retry from the history screen if needed.
-        runCatching { revertParking(parkingId) }
-            .onFailure { e -> PaparcarLogger.e(DIAG, "    ✗ revert failed", e) }
+        try {
+            revertParking(parkingId).getOrThrow()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            PaparcarLogger.e(DIAG, "    ✗ revert failed", e)
+            notificationPort.showConfirmationFailed()
+        }
     }
 
     /**
@@ -827,43 +887,56 @@ class CoordinatorDetectionService : LifecycleService() {
     /**
      * [DET-AR-REARM-001] Watchdog "I've left" tap: the user confirmed a departure the geofence EXIT
      * missed. Closes the session for the given geofence via [ProcessConfirmedDepartureUseCase]
-     * (clear session + remove geofence + unregister AR arming), dismisses the prompt, tears down.
+     * (clear session + remove geofence + unregister AR arming), then follows the next parking
+     * when detection is enabled. Existing live tracking is preserved.
      *
      * [DET-WATCHDOG-DEPARTURE-KNOWS-NO-HOUR-001] It does NOT publish the freed plaza. This prompt is
      * raised precisely because nobody observed the EXIT, so no instant exists to date the departure
      * by — and the ask can sit in the tray for hours before it is answered. See
      * [freedSpotIsStillThere] for why an unknown hour is not a recent one.
      */
-    private suspend fun handleWatchdogDeparture(geofenceId: String?) {
+    private suspend fun handleWatchdogDeparture(geofenceId: String?, declaredDriving: Boolean = false) {
         if (geofenceId.isNullOrBlank()) {
             PaparcarLogger.w(DIAG, "  ✗ DEPARTURE_CONFIRMED without geofenceId — dismiss")
             notificationPort.dismiss(AppNotificationManager.STILL_PARKED_NOTIFICATION_ID)
             return
         }
         PaparcarLogger.d(DIAG, "  → DEPARTURE_CONFIRMED (watchdog) geofenceId=$geofenceId")
-        // [DET-HANDOFF-NOT-MANUAL-001 §B] The user's own statement is the strongest evidence there
-        // is — stronger than any fix — so this commits the departure in full…
-        //
-        // [DET-WATCHDOG-DEPARTURE-KNOWS-NO-HOUR-001] …and that statement covers the FACT, not the
-        // HOUR. Closing the session and the geofence needs only the fact, and still runs. Announcing
-        // a plaza to strangers needs the hour, and nothing on this path has one: `exitAtMs = null`
-        // is the measurement, not a shortcut for false.
-        runCatching {
+        try {
+            // Capture the car before closing its session. A stale answer must not start a new
+            // trip or select whichever car happens to be active now.
+            val session = userParkingRepository.getActiveSessionByGeofence(geofenceId)
+            if (session == null) {
+                notificationPort.dismiss(AppNotificationManager.STILL_PARKED_NOTIFICATION_ID)
+                return
+            }
             processConfirmedDeparture(
                 geofenceId,
-                publishSpot = freedSpotIsStillThere(
-                    exitAtMs = null,
-                    nowMs = System.currentTimeMillis(),
-                    config = detectionConfig,
-                ),
+                // "I've left" attests the fact, not when: never advertise a spot of unknown age.
+                publishSpot = false,
                 proof = DepartureProof.Witnessed,
-                // The user attests the FACT, never the HOUR — the close falls back to the
-                // processing clock, the honest "no later than" bound.
                 departedAtMs = null,
-            )
+            ).getOrThrow()
+            notificationPort.dismiss(AppNotificationManager.STILL_PARKED_NOTIFICATION_ID)
+            // Closing the last fence removes the next automatic wake. Keep following this car
+            // when detection is enabled, without restarting a trip already being tracked.
+            // The answer may be hours late: require measured driving before saving a new pin.
+            if (appPreferences.autoDetectParking && detectionJob?.isActive != true &&
+                guardPermissions("WATCHDOG_DEPARTURE")
+            ) {
+                startParkingDetection(
+                    if (declaredDriving) DetectionTrigger.MANUAL else DetectionTrigger.ARRIVAL_HANDOFF,
+                    detail = "watchdog-answer(geof=${geofenceId.take(8)})",
+                    trip = TripContext(session.location, session.vehicleId),
+                    armEvidence = if (declaredDriving) ArmEvidence.Manual else ArmEvidence.ArrivalHandoff,
+                )
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            PaparcarLogger.e(DIAG, "    ✗ watchdog departure failed", e)
+            notificationPort.showConfirmationFailed()
         }
-            .onFailure { e -> PaparcarLogger.e(DIAG, "    ✗ watchdog departure failed", e) }
-        notificationPort.dismiss(AppNotificationManager.STILL_PARKED_NOTIFICATION_ID)
     }
 
     /**
@@ -1667,6 +1740,22 @@ class CoordinatorDetectionService : LifecycleService() {
         if (watchDeparture) launchBtDepartureWatch(vehicleId, boardingIsCredible)
     }
 
+    private suspend fun continueAfterBtLoss(vehicleId: String, fix: GpsPoint) {
+        if (!appPreferences.autoDetectParking || detectionJob?.isActive == true ||
+            com.rndeveloper.paparcar.bluetooth.BtConnectionStore.isTripFinished(applicationContext, vehicleId)
+        ) return
+        // A reconnect (including to another configured car) owns the trip again. The queued
+        // handoff must never supersede it, or restart the hunt that reconnect just cancelled.
+        if (bluetoothScanner.observeConnectedPairedCars().firstOrNull().orEmpty().isNotEmpty()) return
+        if (!guardPermissions("BT_LINK_LOST")) return
+        startParkingDetection(
+            trigger = DetectionTrigger.BT_LINK_LOST,
+            detail = "moving disconnect vehicle=$vehicleId",
+            trip = TripContext(fix, vehicleId),
+            armEvidence = ArmEvidence.VerifiedBySpeed(fix.speed * KMH_PER_MPS, fix.accuracy),
+        )
+    }
+
     /**
      * [DET-ONE-SERVICE-TWO-LANES-001] The paired car's ACL DISCONNECTED, whole and in order:
      * arbitration → the watch this trip's end supersedes → the recorder stops (its store is the
@@ -1731,9 +1820,13 @@ class CoordinatorDetectionService : LifecycleService() {
                 val connectFix = com.rndeveloper.paparcar.bluetooth.BtConnectionStore.lastConnectFix(
                     this@CoordinatorDetectionService, vehicleId,
                 )
-                btParkingDetector.detectParking(
+                when (val outcome = btParkingDetector.detectParking(
                     deviceAddress, vehicleId, connectedAtMs, connectFix, vehicleName,
-                )
+                )) {
+                    com.rndeveloper.paparcar.bluetooth.BtParkingOutcome.Finished -> Unit
+                    is com.rndeveloper.paparcar.bluetooth.BtParkingOutcome.ContinueDriving ->
+                        intake.trySend(Command.BtDrivingContinues(vehicleId, outcome.fix))
+                }
                 PaparcarLogger.d(DIAG, "  ✓ BT hunt returned normally")
                 // [DET-RETURN-ANCHOR-001] Seal the anchor for the just-confirmed session right away.
                 ParkingSafetyNetWorker.enqueueCheckNow(
@@ -2682,6 +2775,7 @@ class CoordinatorDetectionService : LifecycleService() {
                 // [DET-HANDOFF-NOT-MANUAL-001] Ni "pulsaste" ni "tu coche salió": lo que se midió es
                 // que el TELÉFONO se alejó de la plaza vigilada.
                 DetectionTrigger.ARRIVAL_HANDOFF -> "el móvil se alejó de la plaza vigilada y la red de seguridad dio la salida por buena"
+                DetectionTrigger.BT_LINK_LOST -> "se perdió el Bluetooth del coche mientras seguías conduciendo"
             }
             val msg = "Detección ARRANCADA (${trigger.name}): $cause" +
                 (detail?.let { " · $it" } ?: "") +
@@ -2892,6 +2986,11 @@ class CoordinatorDetectionService : LifecycleService() {
         // [DET-AR-REARM-001] Watchdog "still parked? → I've left" → release the spot for the geofence.
         const val ACTION_DEPARTURE_CONFIRMED = "com.rndeveloper.paparcar.ACTION_DEPARTURE_CONFIRMED"
         const val EXTRA_GEOFENCE_ID = "com.rndeveloper.paparcar.EXTRA_GEOFENCE_ID"
+        const val EXTRA_PROMPT_AT = "com.rndeveloper.paparcar.EXTRA_PROMPT_AT"
+        const val EXTRA_CANDIDATE_RESET = "com.rndeveloper.paparcar.EXTRA_CANDIDATE_RESET"
+        const val ACTION_STILL_PARKED_ELSEWHERE = "com.rndeveloper.paparcar.ACTION_STILL_PARKED_ELSEWHERE"
+        const val ACTION_STILL_PARKED_HERE = "com.rndeveloper.paparcar.ACTION_STILL_PARKED_HERE"
+        const val ACTION_STILL_PARKED_DRIVING = "com.rndeveloper.paparcar.ACTION_STILL_PARKED_DRIVING"
         private const val DIAG = "PARKDIAG/Service"
     }
 }

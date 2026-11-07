@@ -18,6 +18,7 @@ class UserStopQuietPeriodTest {
         DetectionTrigger.GEOFENCE_EXIT,
         DetectionTrigger.AR_VEHICLE_ENTER,
         DetectionTrigger.SIGNIFICANT_MOTION,
+        DetectionTrigger.BT_LINK_LOST,
         // [DET-HANDOFF-NOT-MANUAL-001] The safety net's handoff used to borrow MANUAL, so it walked
         // straight through this quiet period. It is a nominator like any other and sleeps with them.
         DetectionTrigger.ARRIVAL_HANDOFF,

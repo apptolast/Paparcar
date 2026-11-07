@@ -49,6 +49,7 @@ class AppNotificationManagerImpl(
         candidate: GpsPoint?,
         street: String?,
     ) {
+        val promptAt = maxOf(System.currentTimeMillis(), (appPreferences.pendingPromptWindow()?.shownAtMs ?: 0L) + 1L)
         // [DET-ASK-STATE-001] Persist FIRST: this is the ONLY place the question is opened, so the
         // in-app row is written from the same call that words the tray notification — they cannot
         // drift. Never let a persist failure suppress the proven notification ask (same rule as the
@@ -56,7 +57,7 @@ class AppNotificationManagerImpl(
         runCatching {
             appPreferences.setPendingPromptWindow(
                 PendingPromptWindow(
-                    shownAtMs = System.currentTimeMillis(),
+                    shownAtMs = promptAt,
                     vehicleName = vehicleName,
                     // [HOME-A-CARS-NEWS-RIDES-ITS-OWN-CARD-001] El id viaja por la MISMA escritura
                     // que el nombre, y por eso no puede contradecirlo: es quien permite que la
@@ -74,6 +75,8 @@ class AppNotificationManagerImpl(
             context, RC_CONFIRM_YES,
             Intent(ParkingConfirmationReceiver.ACTION_CONFIRMED).apply {
                 setClass(context, ParkingConfirmationReceiver::class.java)
+                data = android.net.Uri.parse("paparcar://arrival/$promptAt/yes")
+                putExtra(com.rndeveloper.paparcar.detection.service.CoordinatorDetectionService.EXTRA_PROMPT_AT, promptAt)
             },
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
@@ -81,6 +84,8 @@ class AppNotificationManagerImpl(
             context, RC_CONFIRM_NO,
             Intent(ParkingConfirmationReceiver.ACTION_DENIED).apply {
                 setClass(context, ParkingConfirmationReceiver::class.java)
+                data = android.net.Uri.parse("paparcar://arrival/$promptAt/no")
+                putExtra(com.rndeveloper.paparcar.detection.service.CoordinatorDetectionService.EXTRA_PROMPT_AT, promptAt)
             },
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
@@ -102,7 +107,8 @@ class AppNotificationManagerImpl(
             .setSmallIcon(R.drawable.ic_notification_logo)
             .setColor(COLOR_CONFIRMATION)
             .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
-            .setContentIntent(buildOpenAppIntent(RC_CONFIRMATION))
+            .setContentIntent(candidate?.let { buildFocusIntent(RC_CONFIRMATION, it.latitude, it.longitude) }
+                ?: buildOpenAppIntent(RC_CONFIRMATION))
             .addAction(0, context.getString(R.string.notif_action_yes_parked), confirmedPi)
             .addAction(0, context.getString(R.string.notif_action_no_not_parked), deniedPi)
             // Both wordings occupy one slot; updating that question must not buzz again.
@@ -340,63 +346,57 @@ class AppNotificationManagerImpl(
         latitude: Double,
         longitude: Double,
         userAnswered: Boolean,
+    ) = showSavedParking(parkingId, vehicleName, latitude, longitude, userAnswered, bluetooth = false)
+
+    override fun showBluetoothParkingSaved(
+        parkingId: String,
+        vehicleName: String?,
+        latitude: Double,
+        longitude: Double,
+    ) = showSavedParking(parkingId, vehicleName, latitude, longitude, userAnswered = false, bluetooth = true)
+
+    private fun showSavedParking(
+        parkingId: String,
+        vehicleName: String?,
+        latitude: Double,
+        longitude: Double,
+        userAnswered: Boolean,
+        bluetooth: Boolean,
     ) {
-        // [DET-ASK-STATE-001] This card MORPHS the prompt at the same notification id: whatever the
-        // question was, it is now answered ("parked — revert?"). Closing the window here is what
-        // makes "the last op on this channel decides" true for the morph path too.
-        runCatching { appPreferences.clearPendingPromptWindow() }
-        val ackPi = PendingIntent.getBroadcast(
-            context, RC_SAVED_ACK,
-            Intent(ParkingConfirmationReceiver.ACTION_ACK).apply {
-                setClass(context, ParkingConfirmationReceiver::class.java)
+        appPreferences.clearPendingPromptWindow()
+        val title = vehicleName?.let {
+            context.getString(R.string.notif_parking_saved_confirm_title_vehicle, it)
+        } ?: context.getString(R.string.notif_parking_saved_confirm_title)
+        fun parkingIntent(requestCode: Int, correct: Boolean) = PendingIntent.getActivity(
+            context, requestCode,
+            Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                data = android.net.Uri.parse("paparcar://saved/$parkingId/$correct")
+                putExtra(MainActivity.EXTRA_FOCUS_LAT, latitude)
+                putExtra(MainActivity.EXTRA_FOCUS_LON, longitude)
+                putExtra(
+                    if (correct) MainActivity.EXTRA_CORRECT_PARKING_SESSION_ID
+                    else MainActivity.EXTRA_SHOW_PARKING_SESSION_ID,
+                    parkingId,
+                )
             },
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
-        // FLAG_UPDATE_CURRENT replaces the EXTRA on each new save; we only ever have one
-        // post-save notification visible at a time so this is correct.
-        val revertPi = PendingIntent.getBroadcast(
-            context, RC_SAVED_REVERT,
-            Intent(ParkingConfirmationReceiver.ACTION_REVERT).apply {
-                setClass(context, ParkingConfirmationReceiver::class.java)
-                putExtra(ParkingConfirmationReceiver.EXTRA_PARKING_ID, parkingId)
-            },
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-        )
-        val title = if (vehicleName != null) {
-            context.getString(R.string.notif_parking_saved_confirm_title_vehicle, vehicleName)
-        } else {
-            context.getString(R.string.notif_parking_saved_confirm_title)
-        }
-        val builder = NotificationCompat.Builder(context, ACTION_CHANNEL_ID)
+        val view = parkingIntent(RC_BT_SAVED_VIEW, correct = false)
+        val correct = parkingIntent(RC_BT_SAVED_CORRECT, correct = true)
+        val builder = NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(context.getString(R.string.notif_parking_saved_confirm_text))
             .setSmallIcon(R.drawable.ic_notification_logo)
             .setColor(COLOR_SUCCESS)
-            .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
-            .setContentIntent(buildFocusIntent(RC_SAVED_FOCUS, latitude, longitude))
+            .setCategory(NotificationCompat.CATEGORY_STATUS)
+            .setContentIntent(view)
+            .addAction(0, context.getString(R.string.notif_action_view_parking), view)
+            .addAction(0, context.getString(R.string.notif_action_correct_parking), correct)
             .setOnlyAlertOnce(true)
             .setAutoCancel(true)
-        // [NOTIF-ONE-QUESTION-DESERVES-ONE-NOTIFICATION-001] The acknowledge exists for the SILENT
-        // path, where this card is the first the user hears of the parking. If they just tapped
-        // "Sí, confirmar" on the ask, re-offering it asks the same question twice — and the string
-        // it used was literally the ask's own button. Their answer was the acknowledgement.
-        if (!userAnswered) {
-            builder.addAction(0, context.getString(R.string.notif_action_ack), ackPi)
-        }
-        // The undo survives both paths: "yes, I parked" is not a statement about WHICH vehicle.
-        builder.addAction(0, context.getString(R.string.notif_action_cancel_save), revertPi)
-        // [NOTIF-A-FLOW-SPEAKS-THROUGH-ONE-SLOT-001] Settings → "Parking detected · Alert when your
-        // parking is saved" now governs THIS card, which is the one the user actually sees. It used
-        // to gate only the legacy action-less duplicate, so turning the alert off silenced nothing.
-        //
-        // ⛔ It gates the ALERT, not the card: posting it silently keeps "No, cancelar" reachable,
-        // and the undo is the anti-false-positive net that [SETTINGS-AUDIT-REMEDIATION-001] says is
-        // never gated from app prefs. "Do not interrupt me" is not "hide my way out".
-        //
-        // And it does not buzz again for an answer the user just gave.
-        if (userAnswered || !appPreferences.notifyParkingDetected) builder.setSilent(true)
-        val notification = builder.build()
-        notificationManager.notify(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID, notification)
+        if (bluetooth || userAnswered || !appPreferences.notifyParkingDetected) builder.setSilent(true)
+        notificationManager.notify(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID, builder.build())
     }
 
     override fun showPermissionRevoked() {
@@ -426,35 +426,49 @@ class AppNotificationManagerImpl(
     }
 
     override fun showStillParkedPrompt(geofenceId: String, latitude: Double, longitude: Double) {
-        val leftPi = PendingIntent.getBroadcast(
-            context, RC_STILL_PARKED_LEFT,
-            Intent(ParkingConfirmationReceiver.ACTION_DEPARTURE_CONFIRMED).apply {
+        val previous = appPreferences.stillParkedQuestion()
+        val question = previous?.takeIf { it.geofenceId == geofenceId && it.confirmedHereAtMs == null }
+            ?: com.rndeveloper.paparcar.domain.detection.StillParkedQuestion(
+                geofenceId, latitude, longitude, System.currentTimeMillis(),
+            )
+        appPreferences.setStillParkedQuestion(question)
+        fun answer(actionName: String, requestCode: Int) = PendingIntent.getBroadcast(
+            context, requestCode,
+            Intent(actionName).apply {
                 setClass(context, ParkingConfirmationReceiver::class.java)
+                data = android.net.Uri.parse("paparcar://departure/$geofenceId/${question.shownAtMs}/$actionName")
                 putExtra(ParkingConfirmationReceiver.EXTRA_GEOFENCE_ID, geofenceId)
+                putExtra(com.rndeveloper.paparcar.detection.service.CoordinatorDetectionService.EXTRA_PROMPT_AT, question.shownAtMs)
             },
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
-        // [DET-WATCHDOG-DEPARTURE-KNOWS-NO-HOUR-001] The second way out of the same question. "I've
-        // left" now only CLOSES the session — it cannot advertise a plaza it has no hour for — so
-        // the user who left three hours ago is left holding the useful half of the answer: their car
-        // is parked somewhere else by now, and that pin is what the app actually needs. Confirming
-        // it replaces the active session and drops the orphan fence, so both actions converge on a
-        // clean state. DETECTION raised this ask, so the pin keeps detection provenance, same as the
-        // mark-parking nudge. [DET-NUDGE-PIN-PROVENANCE-001]
-        val markParkingPi = buildAddParkingIntent(RC_STILL_PARKED_MARK, fromDetection = true)
+        val here = answer(
+            com.rndeveloper.paparcar.detection.service.CoordinatorDetectionService.ACTION_STILL_PARKED_HERE, RC_STILL_PARKED_HERE,
+        )
+        val driving = answer(
+            com.rndeveloper.paparcar.detection.service.CoordinatorDetectionService.ACTION_STILL_PARKED_DRIVING, RC_STILL_PARKED_LEFT,
+        )
+        val elsewhere = PendingIntent.getActivity(
+            context, RC_STILL_PARKED_MARK,
+            Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                data = android.net.Uri.parse("paparcar://departure/$geofenceId/${question.shownAtMs}/elsewhere")
+                putExtra(MainActivity.EXTRA_STILL_PARKED_ELSEWHERE, geofenceId)
+                putExtra(com.rndeveloper.paparcar.detection.service.CoordinatorDetectionService.EXTRA_PROMPT_AT, question.shownAtMs)
+            },
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
         val notification = NotificationCompat.Builder(context, ACTION_CHANNEL_ID)
             .setContentTitle(context.getString(R.string.notif_still_parked_title))
             .setContentText(context.getString(R.string.notif_still_parked_text))
-            .setStyle(
-                NotificationCompat.BigTextStyle()
-                    .bigText(context.getString(R.string.notif_still_parked_text)),
-            )
+            .setStyle(NotificationCompat.BigTextStyle().bigText(context.getString(R.string.notif_still_parked_text)))
             .setSmallIcon(R.drawable.ic_notification_logo)
             .setColor(COLOR_CONFIRMATION)
             .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
             .setContentIntent(buildFocusIntent(RC_STILL_PARKED_FOCUS, latitude, longitude))
-            .addAction(0, context.getString(R.string.notif_action_ive_left), leftPi)
-            .addAction(0, context.getString(R.string.notif_action_mark_parking), markParkingPi)
+            .addAction(0, context.getString(R.string.notif_action_still_here), here)
+            .addAction(0, context.getString(R.string.notif_action_driving_now), driving)
+            .addAction(0, context.getString(R.string.notif_action_parked_elsewhere), elsewhere)
             .setOnlyAlertOnce(true)
             .setAutoCancel(true)
             .build()
@@ -598,6 +612,9 @@ class AppNotificationManagerImpl(
         if (notificationId == AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID) {
             runCatching { appPreferences.clearPendingPromptWindow() }
         }
+        if (notificationId == AppNotificationManager.STILL_PARKED_NOTIFICATION_ID &&
+            appPreferences.stillParkedQuestion()?.confirmedHereAtMs == null
+        ) appPreferences.setStillParkedQuestion(null)
         notificationManager.cancel(notificationId)
     }
 
@@ -813,9 +830,12 @@ class AppNotificationManagerImpl(
         private const val RC_SAVED_FOCUS = 202
         private const val RC_SAVED_ACK = 203
         private const val RC_SAVED_REVERT = 204
+        private const val RC_BT_SAVED_VIEW = 218
+        private const val RC_BT_SAVED_CORRECT = 219
         // [DET-AR-REARM-001] watchdog "still parked?" prompt request codes
         private const val RC_STILL_PARKED_FOCUS = 205
         private const val RC_STILL_PARKED_LEFT = 206
+        private const val RC_STILL_PARKED_HERE = 220
         // [DET-WATCHDOG-DEPARTURE-KNOWS-NO-HOUR-001] "mark parking" action on the same prompt
         private const val RC_STILL_PARKED_MARK = 211
         // [DET-TOGGLE-002] cold-start nudge request code

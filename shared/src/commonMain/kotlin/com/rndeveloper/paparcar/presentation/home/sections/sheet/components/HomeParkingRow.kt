@@ -75,6 +75,7 @@ import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PapControlHeight
+import com.rndeveloper.paparcar.ui.theme.PapGap
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.home_trip_park_now
 import paparcar.composeapp.generated.resources.home_trip_continue
@@ -84,6 +85,9 @@ import paparcar.composeapp.generated.resources.home_vehicle_card_parked_at
 import paparcar.composeapp.generated.resources.home_vehicle_chip_mark_parking
 import paparcar.composeapp.generated.resources.home_det_awaiting_sub
 import paparcar.composeapp.generated.resources.home_det_driving_stop_cta
+import paparcar.composeapp.generated.resources.home_trip_park_compact
+import paparcar.composeapp.generated.resources.home_trip_continue_compact
+import paparcar.composeapp.generated.resources.home_trip_wrong_car_compact
 import paparcar.composeapp.generated.resources.home_det_monitoring
 import paparcar.composeapp.generated.resources.home_vehicle_chip_status_candidate
 import paparcar.composeapp.generated.resources.home_vehicle_chip_unmarked
@@ -251,7 +255,7 @@ internal fun HomeVehicleChip(
             // [HOME-A-DRIVE-IS-ONE-NEWS-AND-THE-CARD-CARRIES-THE-STOP-001] [UI-COLOR-DOCTRINE-001]
             if (isDriving) {
                 Spacer(Modifier.height(CHIP_FOOT_GAP_DP.dp))
-                TripActions(accent, onParkNow, onKeepDriving.takeIf { isCandidate }, onStopTrip)
+                TripActions(accent, onParkNow, onKeepDriving.takeIf { isCandidate }, onStopTrip, compact = true)
             }
         }
     }
@@ -585,11 +589,17 @@ private fun TripActions(
     onKeepDriving: (() -> Unit)?,
     onStopTrip: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(
+            PapGap.betweenControls(visible = PapGap.block, controlHeight = PapControlHeight.chip),
+        ),
+    ) {
         onParkNow?.let {
             PapCtaPill(
-                label = stringResource(Res.string.home_trip_park_now),
+                label = stringResource(if (compact) Res.string.home_trip_park_compact else Res.string.home_trip_park_now),
                 container = accent.copy(alpha = STOP_PILL_TINT_ALPHA),
                 content = accent,
                 onClick = it,
@@ -600,7 +610,7 @@ private fun TripActions(
         }
         onKeepDriving?.let {
             PapCtaPill(
-                label = stringResource(Res.string.home_trip_continue),
+                label = stringResource(if (compact) Res.string.home_trip_continue_compact else Res.string.home_trip_continue),
                 container = Color.Transparent,
                 content = MaterialTheme.colorScheme.onSurface,
                 onClick = it,
@@ -611,7 +621,7 @@ private fun TripActions(
         }
         onStopTrip?.let {
             PapCtaPill(
-                label = stringResource(Res.string.home_det_driving_stop_cta),
+                label = stringResource(if (compact) Res.string.home_trip_wrong_car_compact else Res.string.home_det_driving_stop_cta),
                 container = Color.Transparent,
                 content = MaterialTheme.colorScheme.onSurfaceVariant,
                 onClick = it,

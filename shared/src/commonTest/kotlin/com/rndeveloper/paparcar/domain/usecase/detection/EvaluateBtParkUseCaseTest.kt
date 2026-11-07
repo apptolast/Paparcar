@@ -112,6 +112,7 @@ class EvaluateBtParkUseCaseTest {
         // Abort is terminal: the next red light must not resurrect the hunt.
         val hunt = hunt(drivingAt(4_000L), stoppedAt(meters = 0.0, atMs = 20_000L))
         assertTrue(hunt.aborted)
+        assertNotNull(hunt.drivingFix, "the host needs the measured fix to continue the trip")
         assertNull(hunt.candidate)
     }
 
@@ -226,6 +227,49 @@ class EvaluateBtParkUseCaseTest {
             nowMs = 25_000L,
         )
         assertEquals(BtParkVerdict.KeepWaiting, verdict)
+    }
+
+    @Test
+    fun roundTripIsStillARideWhenRecordedDrivingWasCorroborated() {
+        val route = listOf(
+            ridePoint(0.0, 0L),
+            ridePoint(200.0, 20_000L).copy(speed = 10f),
+            ridePoint(400.0, 40_000L).copy(speed = 10f),
+            ridePoint(10.0, 100_000L),
+        )
+        assertIs<BtRideProof.Moved>(useCase.evaluateRideDisplacement(
+            origin(), CONNECTED_AT_MS, candidate(CONNECTED_AT_MS + 100_000L, 10.0), route,
+        ))
+    }
+
+    @Test
+    fun gpsExcursionWithoutDrivingDoesNotInventARoundTrip() {
+        val route = listOf(
+            ridePoint(0.0, 0L), ridePoint(400.0, 1_000L), ridePoint(10.0, 40_000L),
+        )
+        assertIs<BtRideProof.DidNotMove>(useCase.evaluateRideDisplacement(
+            origin(), CONNECTED_AT_MS, candidate(CONNECTED_AT_MS + 40_000L, 10.0), route,
+        ))
+    }
+
+    @Test
+    fun lateRecordedPointsCannotProveAnEarlierArrival() {
+        val route = listOf(
+            ridePoint(0.0, 0L),
+            ridePoint(200.0, 20_000L).copy(speed = 10f),
+            ridePoint(400.0, 40_000L).copy(speed = 10f),
+        )
+        assertIs<BtRideProof.DidNotMove>(useCase.evaluateRideDisplacement(
+            origin(), CONNECTED_AT_MS, candidate(CONNECTED_AT_MS + 10_000L, 6.0), route,
+        ))
+    }
+
+    @Test
+    fun onlyAPlausibleOrMeasuredRideEarnsAMissingParkingQuestion() {
+        val missing = BtRideProof.Unmeasurable(BtRideOriginGap.NO_FIX)
+        assertFalse(useCase.shouldAskForMissingParking(BtEngagement.ProximityOnly(12_000L), missing))
+        assertFalse(useCase.shouldAskForMissingParking(BtEngagement.Unknown, missing))
+        assertTrue(useCase.shouldAskForMissingParking(BtEngagement.Ride(600_000L), missing))
     }
 
     // ── Engagement sizing [DET-BT-DISCONNECT-WITHOUT-RIDE-001] ────────────────────────────────

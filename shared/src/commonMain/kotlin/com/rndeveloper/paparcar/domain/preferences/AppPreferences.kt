@@ -155,6 +155,11 @@ interface AppPreferences {
      *  that channel only ever holds one question. Written and cleared by the notification adapter at
      *  the same two verbs that post and close the notification, so the in-app row and the tray can
      *  never disagree about whether there is something to answer. */
+    fun pendingPromptWindow(): PendingPromptWindow?
+    fun stillParkedQuestion(): com.rndeveloper.paparcar.domain.detection.StillParkedQuestion?
+    fun observeStillParkedQuestion(): Flow<com.rndeveloper.paparcar.domain.detection.StillParkedQuestion?>
+    fun setStillParkedQuestion(question: com.rndeveloper.paparcar.domain.detection.StillParkedQuestion?)
+
     fun observePendingPromptWindow(): Flow<PendingPromptWindow?>
     fun setPendingPromptWindow(window: PendingPromptWindow)
     fun clearPendingPromptWindow()

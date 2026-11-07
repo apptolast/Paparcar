@@ -106,6 +106,7 @@ class ParkingSafetyNetWorker(
     private val foregroundNotificationProvider: ForegroundNotificationProvider by inject()
     private val getOneLocation: GetOneLocationUseCase by inject()
     private val notificationPort: AppNotificationManager by inject()
+    private val appPreferences: com.rndeveloper.paparcar.domain.preferences.AppPreferences by inject()
     private val detectionRuntime: DetectionRuntimeState by inject()
     private val departureEventBus: DepartureEventBus by inject()
     private val evaluateSafetyNetCheck: EvaluateSafetyNetCheckUseCase by inject()
@@ -325,6 +326,18 @@ class ParkingSafetyNetWorker(
                 session.vehicleId != null &&
                 vehicles.firstOrNull { it.id == session.vehicleId }?.bluetoothDeviceId != null
             val lastBtConnectedAtMs = session.vehicleId?.let { BtConnectionStore.lastConnectedAt(appContext, it) }
+            val latestDepartureEvidence = listOfNotNull(
+                departureEventBus.lastVehicleEnteredAt,
+                session.geofenceId?.let { readExitDeliveredAt(prefs, it) },
+                lastBtConnectedAtMs,
+            ).maxOrNull()
+            // An explicit "the car is still here" refutes this departure, including its automatic
+            // release path. Re-evaluating the old distant-phone evidence would undo the answer.
+            if (session.geofenceId != null &&
+                !com.rndeveloper.paparcar.domain.detection.stillParkedQuestionMayRepeat(
+                    appPreferences.stillParkedQuestion(), session.geofenceId, latestDepartureEvidence,
+                )
+            ) continue
             val action = evaluateSafetyNetCheck(
                 session = session,
                 fix = fix,
@@ -775,6 +788,15 @@ class ParkingSafetyNetWorker(
                 debugLines += "geof=${held.geofTag}: LEJOS del coche (d=${held.distanceM}m) pero la salida de otro coche en este mismo aviso ya explica el movimiento → no te pregunto"
                 continue
             }
+            val session = sessions.firstOrNull { it.geofenceId == action.geofenceId }
+            val latestEvidence = listOfNotNull(
+                departureEventBus.lastVehicleEnteredAt,
+                readExitDeliveredAt(prefs, action.geofenceId),
+                session?.vehicleId?.let { BtConnectionStore.lastConnectedAt(appContext, it) },
+            ).maxOrNull()
+            if (!com.rndeveloper.paparcar.domain.detection.stillParkedQuestionMayRepeat(
+                    appPreferences.stillParkedQuestion(), action.geofenceId, latestEvidence,
+                )) continue
             anyPromptActive = true
             val raised = raiseSafetyNetAsk(
                 prefs = prefs,

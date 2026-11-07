@@ -4,10 +4,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AddLocationAlt
 import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.DirectionsCar
-import androidx.compose.material.icons.rounded.EditLocationAlt
 import androidx.compose.material.icons.rounded.LocationOff
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -37,7 +34,6 @@ import com.rndeveloper.paparcar.ui.components.PapDialogAccent
 import com.rndeveloper.paparcar.ui.components.PapDialogAction
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
-import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_add_parking_cancel_cd
@@ -184,8 +180,6 @@ internal fun AddingParkingPeek(
             // Primary confirm. CREATE → parks the car; EDIT → corrects THIS session's pin in place.
             PapFooterButton(
                 label = ctaLabel,
-                leadingIcon = if (isEditing) Icons.Rounded.EditLocationAlt
-                              else PaparcarIcons.VehicleCar,
                 onClick = { onIntent(HomeIntent.ConfirmAddParking(asNewSession = false)) },
                 style = PapFooterButtonStyle.Filled,
                 enabled = !isSaving && !isCameraMoving && hasPlace,
@@ -208,7 +202,6 @@ internal fun AddingParkingPeek(
                 Spacer(Modifier.height(8.dp))
                 PapFooterButton(
                     label = stringResource(Res.string.home_det_awaiting_cta_secondary),
-                    leadingIcon = Icons.Rounded.DirectionsCar,
                     onClick = { onIntent(HomeIntent.StartDrivingDetection(vehicleId = targetVehicle?.id)) },
                     style = PapFooterButtonStyle.Outlined,
                     enabled = !isSaving,
@@ -222,7 +215,6 @@ internal fun AddingParkingPeek(
                 // Decided HERE, with the pin already placed, instead of guessing up front. [UX-PARKED-STATE-001]
                 PapFooterButton(
                     label = stringResource(Res.string.home_parking_menu_repark),
-                    leadingIcon = Icons.Rounded.AddLocationAlt,
                     onClick = { onIntent(HomeIntent.ConfirmAddParking(asNewSession = true)) },
                     style = PapFooterButtonStyle.Outlined,
                     enabled = !isSaving && !isCameraMoving && hasPlace,
