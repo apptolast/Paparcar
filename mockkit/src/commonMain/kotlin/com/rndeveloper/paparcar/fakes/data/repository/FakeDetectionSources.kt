@@ -49,6 +49,23 @@ class FakeManualParkingDetection(
     var stopByUserCallCount = 0
         private set
 
+    var finishTripResult: Result<Unit> = Result.success(Unit)
+    var beforeFinishTrip: suspend () -> Unit = {}
+    val resumedVehicles = mutableListOf<String>()
+    override suspend fun finishTrip(rejectTrip: Boolean): Result<Unit> {
+        beforeFinishTrip()
+        if (finishTripResult.isSuccess) {
+            if (rejectTrip) stopByUser() else stop()
+        }
+        return finishTripResult
+    }
+
+    override fun resumeTrip(vehicleId: String, location: com.rndeveloper.paparcar.domain.model.GpsPoint) {
+        resumedVehicles += vehicleId
+        start()
+        runtime?.setTrip(com.rndeveloper.paparcar.domain.detection.TripContext(location, vehicleId))
+    }
+
     override fun start() {
         startCallCount++
         runtime?.setRunning(true)
@@ -66,12 +83,11 @@ class FakeManualParkingDetection(
         runtime?.setRunning(false)
     }
 
-    /** [DET-ASK-STATE-001] Mock answer to the "did you park?" row. In the gallery both answers end
-     *  the trip (there is no coordinator to keep following it); the recorded answers let tests
-     *  assert WHICH one the row sent. */
+    /** Mirrors the coordinator: declining a candidate keeps the trip running. */
     override fun answerPrompt(parked: Boolean) {
         promptAnswers += parked
-        runtime?.setRunning(false)
+        if (parked) runtime?.setRunning(false)
+        else runtime?.setPhase(com.rndeveloper.paparcar.domain.detection.DetectionPhase.Driving)
     }
 
     /** Every answer the row has sent, in order — so a test can prove the two buttons are not wired

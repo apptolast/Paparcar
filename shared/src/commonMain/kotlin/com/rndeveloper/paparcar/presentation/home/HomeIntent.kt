@@ -176,6 +176,13 @@ sealed class HomeIntent {
      *  [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001] */
     data class OpenReleaseDialog(val sessionId: String) : HomeIntent()
 
+    data class OpenParkingCorrection(val sessionId: String) : HomeIntent()
+    data object DismissParkingCorrection : HomeIntent()
+    data class CorrectParking(
+        val sessionId: String,
+        val correction: com.rndeveloper.paparcar.domain.usecase.parking.ParkingCorrection,
+    ) : HomeIntent()
+
     /** Close the release dialog without releasing. Ignored while a release is in flight: its
      *  outcome is what closes it. [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001] */
     data object DismissReleaseDialog : HomeIntent()

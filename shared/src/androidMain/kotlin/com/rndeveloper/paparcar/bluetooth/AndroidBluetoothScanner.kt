@@ -48,7 +48,9 @@ class AndroidBluetoothScanner(private val context: Context) : BluetoothScanner {
      */
     override fun isConnectedToPairedCar(pairedVehicleIds: Set<String>): Boolean {
         if (pairedVehicleIds.isEmpty()) return false
-        return BtConnectionStore.connectedVehicleIds(context).any { it in pairedVehicleIds }
+        return BtConnectionStore.connectedVehicleIds(context).any {
+            it in pairedVehicleIds && !BtConnectionStore.isTripFinished(context, it)
+        }
     }
 
     /**

@@ -161,6 +161,7 @@ class IosDetectionController(
 
         /** Internal cancel — the user marked a park manually. No quiet period. [DET-MANUAL-CANCEL-001] */
         data object StopTracking : Command
+        data class FinishTrip(val reject: Boolean, val done: kotlinx.coroutines.CompletableDeferred<Result<Unit>>) : Command
 
         /** "Stop detection" on the live session — stamps the outcome AND opens the quiet period.
          *  [DET-STOP-BUTTON-001] */
@@ -266,8 +267,15 @@ class IosDetectionController(
 
     // ── The ports' single doors — one per meaning [DET-HANDOFF-NOT-MANUAL-001] ──────────────────
 
-    fun startTrackingManual() {
-        intake.trySend(Command.StartTracking(DetectionTrigger.MANUAL, ArmEvidence.Manual))
+    fun startTrackingManual(trip: TripContext? = null) {
+        intake.trySend(Command.StartTracking(DetectionTrigger.MANUAL, ArmEvidence.Manual, trip))
+    }
+
+    suspend fun finishTrip(reject: Boolean): Result<Unit> {
+        val done = kotlinx.coroutines.CompletableDeferred<Result<Unit>>()
+        intake.send(Command.FinishTrip(reject, done))
+        return kotlinx.coroutines.withTimeoutOrNull(15_000) { done.await() }
+            ?: Result.failure(IllegalStateException("Detection did not stop"))
     }
 
     fun startTrackingArrivalHandoff() {
@@ -303,6 +311,17 @@ class IosDetectionController(
     private suspend fun handle(command: Command) {
         when (command) {
             is Command.StartTracking -> handleStart(command)
+            is Command.FinishTrip -> {
+                val result = runCatching {
+                    coordinator.onUserStoppedDetection()
+                    if (command.reject) userStopStore.stamp(clock())
+                    val job = detectionJob
+                    job?.cancel()
+                    job?.join()
+                    detectionJob = null
+                }
+                command.done.complete(result)
+            }
             Command.StopTracking -> cancelDetectionJob()
             Command.UserStop -> handleUserStop()
             is Command.PromptAnswered ->

@@ -126,7 +126,7 @@ object BtConnectionStore {
         val prefs = prefs(context)
         trySend(connected(context))
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            if (key == KEY_CONNECTED_SET || key == null) trySend(connected(context))
+            if (key == KEY_CONNECTED_SET || key == KEY_MANUAL_FINISH || key?.startsWith(KEY_PREFIX) == true || key == null) trySend(connected(context))
         }
         prefs.registerOnSharedPreferenceChangeListener(listener)
         awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
@@ -136,9 +136,22 @@ object BtConnectionStore {
      *  keys are written together by the receiver, so reading them together costs nothing and is what
      *  lets a caller tell TWO connected cars apart. */
     private fun connected(context: Context): List<BtConnection> =
-        connectedVehicleIds(context).map { id ->
+        connectedVehicleIds(context).filterNot { isTripFinished(context, it) }.map { id ->
             BtConnection(vehicleId = id, connectedAtMs = lastConnectedAt(context, id) ?: 0L)
         }
+
+    /** A manual resolution consumes the current ride, including a disconnect delivered later. */
+    fun finishCurrentTrips(context: Context, atMs: Long) {
+        prefs(context).edit { putLong(KEY_MANUAL_FINISH, atMs) }
+    }
+
+    fun isTripFinished(context: Context, vehicleId: String): Boolean {
+        val finishedAt = prefs(context).getLong(KEY_MANUAL_FINISH, 0L)
+        val connectedAt = lastConnectedAt(context, vehicleId) ?: return false
+        return finishedAt > 0L && connectedAt <= finishedAt
+    }
+
+    private const val KEY_MANUAL_FINISH = "manual_trip_finished_at"
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)

@@ -12,6 +12,11 @@ class IosManualParkingDetectionImpl(
 ) : ManualParkingDetection {
     override fun start() = controller.startTrackingManual()
 
+    override suspend fun finishTrip(rejectTrip: Boolean) = controller.finishTrip(rejectTrip)
+
+    override fun resumeTrip(vehicleId: String, location: com.rndeveloper.paparcar.domain.model.GpsPoint) =
+        controller.startTrackingManual(com.rndeveloper.paparcar.domain.detection.TripContext(location, vehicleId))
+
     // [DET-MANUAL-CANCEL-001] Manual pin owns the trip's ending: cancel without a quiet period.
     override fun stop() = controller.stopTracking()
 

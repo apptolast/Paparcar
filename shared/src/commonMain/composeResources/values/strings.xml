@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="home_trip_park_now">I parked here</string>
+    <string name="home_trip_continue">Still travelling</string>
+    <string name="home_parking_correct_title">Correct detection</string>
+    <string name="home_parking_correct_body">This will remove the incorrect parking without sharing a free spot. Continue tracking this car, or stop this trip if it was not yours.</string>
+    <string name="home_parking_wrong_car">It was not my car</string>
     <!-- HomeScreen -->
     <string name="home_search_placeholder">Search an area, street…</string>
     <string name="zone_alert_in_app">A free spot just opened in %1$s</string>

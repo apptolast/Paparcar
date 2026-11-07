@@ -386,6 +386,8 @@ data class HomeState(
      * [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001]
      */
     val releaseDialogSessionId: String? = null,
+    val correctionDialogSessionId: String? = null,
+    val correctingParking: com.rndeveloper.paparcar.domain.usecase.parking.ParkingCorrection? = null,
     /**
      * Non-null when moving an existing session; null when creating a new one.
      * When set, [addingParkingVehicleId] is ignored. [MULTI-PARKING-001]

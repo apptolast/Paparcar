@@ -76,6 +76,8 @@ import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PapControlHeight
 import org.jetbrains.compose.resources.stringResource
+import paparcar.composeapp.generated.resources.home_trip_park_now
+import paparcar.composeapp.generated.resources.home_trip_continue
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_peek_parked_label
 import paparcar.composeapp.generated.resources.home_vehicle_card_parked_at
@@ -115,6 +117,8 @@ internal fun HomeVehicleChip(
      *  story stood down. Only read while [isDriving].
      *  [HOME-A-DRIVE-IS-ONE-NEWS-AND-THE-CARD-CARRIES-THE-STOP-001] */
     onStopTrip: (() -> Unit)? = null,
+    onParkNow: (() -> Unit)? = null,
+    onKeepDriving: (() -> Unit)? = null,
 ) {
     val vehicle = card.vehicle
     val session = card.session
@@ -245,17 +249,9 @@ internal fun HomeVehicleChip(
             // the chip that IS the trip. Tonal in the vehicle's identity colour: stopping is an act
             // on this car's watch, not a brand action and not an error. [DET-STOP-BUTTON-001]
             // [HOME-A-DRIVE-IS-ONE-NEWS-AND-THE-CARD-CARRIES-THE-STOP-001] [UI-COLOR-DOCTRINE-001]
-            if (isDriving && onStopTrip != null) {
+            if (isDriving) {
                 Spacer(Modifier.height(CHIP_FOOT_GAP_DP.dp))
-                PapCtaPill(
-                    label = stringResource(Res.string.home_det_driving_stop_cta),
-                    container = accent.copy(alpha = STOP_PILL_TINT_ALPHA),
-                    content = accent,
-                    onClick = onStopTrip,
-                    modifier = Modifier.fillMaxWidth(),
-                    fillWidth = true,
-                    height = PapControlHeight.chip,
-                )
+                TripActions(accent, onParkNow, onKeepDriving.takeIf { isCandidate }, onStopTrip)
             }
         }
     }
@@ -285,6 +281,8 @@ internal fun HomeVehicleCard(
      *  surface that claims to be following it. Only read while [isDriving].
      *  [HOME-A-DRIVE-IS-ONE-NEWS-AND-THE-CARD-CARRIES-THE-STOP-001] */
     onStopTrip: (() -> Unit)? = null,
+    onParkNow: (() -> Unit)? = null,
+    onKeepDriving: (() -> Unit)? = null,
     /**
      * El ESTADO de este coche, pintado dentro de la card. [HOME-AN-OPEN-QUESTION-IS-THE-CARS-NEWS-001]
      *
@@ -547,22 +545,18 @@ internal fun HomeVehicleCard(
                 // una fila, donde el vecino es copy acotado que PUEDE envolver a dos líneas. Aquí
                 // el vecino es una sola línea con el nombre de una calle, que no tiene tope; un
                 // botón al lado se lo come siempre, mida lo que mida.
-                if (isDriving && onStopTrip != null) {
+                if (isDriving) {
                     Spacer(Modifier.height(CHIP_FOOT_GAP_DP.dp))
-                    PapCtaPill(
-                        label = stringResource(Res.string.home_det_driving_stop_cta),
-                        container = accent.copy(alpha = STOP_PILL_TINT_ALPHA),
-                        content = accent,
-                        onClick = onStopTrip,
-                        modifier = Modifier
-                            .padding(
-                                start = CARD_PAD_START_DP.dp,
-                                end = CARD_PAD_END_DP.dp,
-                                bottom = CARD_V_PAD_DP.dp,
-                            )
-                            .fillMaxWidth(),
-                        fillWidth = true,
-                        height = PapControlHeight.chip,
+                    TripActions(
+                        accent = accent,
+                        onParkNow = onParkNow.takeIf { status == null },
+                        onKeepDriving = onKeepDriving.takeIf { isCandidate && status == null },
+                        onStopTrip = onStopTrip,
+                        modifier = Modifier.padding(
+                            start = CARD_PAD_START_DP.dp,
+                            end = CARD_PAD_END_DP.dp,
+                            bottom = CARD_V_PAD_DP.dp,
+                        ),
                     )
                 }
             }
@@ -583,6 +577,51 @@ internal fun HomeVehicleCard(
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun TripActions(
+    accent: Color,
+    onParkNow: (() -> Unit)?,
+    onKeepDriving: (() -> Unit)?,
+    onStopTrip: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        onParkNow?.let {
+            PapCtaPill(
+                label = stringResource(Res.string.home_trip_park_now),
+                container = accent.copy(alpha = STOP_PILL_TINT_ALPHA),
+                content = accent,
+                onClick = it,
+                modifier = Modifier.fillMaxWidth(),
+                fillWidth = true,
+                height = PapControlHeight.chip,
+            )
+        }
+        onKeepDriving?.let {
+            PapCtaPill(
+                label = stringResource(Res.string.home_trip_continue),
+                container = Color.Transparent,
+                content = MaterialTheme.colorScheme.onSurface,
+                onClick = it,
+                modifier = Modifier.fillMaxWidth(),
+                fillWidth = true,
+                height = PapControlHeight.chip,
+            )
+        }
+        onStopTrip?.let {
+            PapCtaPill(
+                label = stringResource(Res.string.home_det_driving_stop_cta),
+                container = Color.Transparent,
+                content = MaterialTheme.colorScheme.onSurfaceVariant,
+                onClick = it,
+                modifier = Modifier.fillMaxWidth(),
+                fillWidth = true,
+                height = PapControlHeight.chip,
+            )
+        }
+    }
+}
 
 /**
  * The parked footer of a vehicle card: **where** over **since when**, each fact with its own icon.

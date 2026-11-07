@@ -13,6 +13,24 @@ import com.rndeveloper.paparcar.domain.detection.ports.ManualParkingDetection
  * the foreground-service start is permitted on Android 12+. [DET-G-01b]
  */
 class ManualParkingDetectionImpl(private val context: Context) : ManualParkingDetection {
+    override suspend fun finishTrip(rejectTrip: Boolean): Result<Unit> =
+        ManualParkingCompletion.await { token ->
+            context.startService(Intent(context, CoordinatorDetectionService::class.java).apply {
+                action = CoordinatorDetectionService.ACTION_FINISH_TRIP
+                putExtra("manual_completion_token", token)
+                putExtra("reject_trip", rejectTrip)
+            })
+        }
+
+    override fun resumeTrip(vehicleId: String, location: com.rndeveloper.paparcar.domain.model.GpsPoint) {
+        ContextCompat.startForegroundService(context, Intent(context, CoordinatorDetectionService::class.java).apply {
+            action = CoordinatorDetectionService.ACTION_START_TRACKING
+            putExtra("manual_vehicle_id", vehicleId)
+            putExtra("manual_lat", location.latitude)
+            putExtra("manual_lon", location.longitude)
+        })
+    }
+
     override fun start() {
         val intent = Intent(context, CoordinatorDetectionService::class.java).apply {
             action = CoordinatorDetectionService.ACTION_START_TRACKING

@@ -16,6 +16,7 @@ import com.rndeveloper.paparcar.fakes.FakeUserParkingRepository
 import com.rndeveloper.paparcar.fakes.FakeVehicleRepository
 import com.rndeveloper.paparcar.fakes.FakeZoneRepository
 import com.rndeveloper.paparcar.fakes.data.repository.FakeManualParkingDetection
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -182,13 +183,45 @@ class SaveManualParkingUseCaseTest {
     }
 
     @Test
-    fun should_fail_without_side_effects_when_not_authenticated() = runTest {
+    fun should_fail_without_saving_when_not_authenticated() = runTest {
         val (useCase, notifications, detection) = build(authRepo = FakeAuthRepository(initialSession = null))
 
         val result = useCase(lat = 40.0, lon = -3.0, accuracy = 12f)
 
         assertTrue(result.isFailure)
         assertTrue(notifications.dismissedIds.isEmpty())
-        assertEquals(0, detection.stopCallCount)
+        assertEquals(1, detection.stopCallCount)
+    }
+
+    @Test
+    fun should_wait_for_detection_writers_before_saving() = runTest {
+        val repo = FakeUserParkingRepository()
+        val (useCase, _, detection) = build(repo)
+        val stopping = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val stopped = kotlinx.coroutines.CompletableDeferred<Unit>()
+        detection.beforeFinishTrip = {
+            stopping.complete(Unit)
+            stopped.await()
+        }
+        val save = async {
+            useCase(lat = 40.0, lon = -3.0, accuracy = 8f)
+        }
+        stopping.await()
+        assertTrue(repo.observeActiveSessions().first().isEmpty())
+        stopped.complete(Unit)
+        assertTrue(save.await().isSuccess)
+        assertEquals(1, repo.observeActiveSessions().first().size)
+    }
+
+    @Test
+    fun should_not_save_when_detection_cannot_be_stopped() = runTest {
+        val repo = FakeUserParkingRepository()
+        val (useCase, _, detection) = build(repo)
+        detection.finishTripResult = Result.failure(IllegalStateException("service timeout"))
+
+        val result = useCase(lat = 40.0, lon = -3.0, accuracy = 8f)
+
+        assertTrue(result.isFailure)
+        assertTrue(repo.observeActiveSessions().first().isEmpty())
     }
 }

@@ -106,6 +106,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import paparcar.composeapp.generated.resources.home_release_dialog_cancel
+import paparcar.composeapp.generated.resources.home_parking_correct_title
+import paparcar.composeapp.generated.resources.home_parking_correct_body
+import paparcar.composeapp.generated.resources.home_trip_continue
+import paparcar.composeapp.generated.resources.home_parking_wrong_car
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.error_gps_unavailable
 import paparcar.composeapp.generated.resources.error_load_session
@@ -552,6 +557,35 @@ private fun HomeContent(
                 onIntent = onIntent,
                 onDismiss = { onIntent(HomeIntent.DismissReleaseDialog) },
             )
+
+            state.correctionDialogSessionId?.let { sessionId ->
+                val correction = state.correctingParking
+                PapAlertDialog(
+                    onDismiss = { onIntent(HomeIntent.DismissParkingCorrection) },
+                    icon = Icons.Rounded.Sensors,
+                    title = stringResource(Res.string.home_parking_correct_title),
+                    body = stringResource(Res.string.home_parking_correct_body),
+                    primaryLabel = stringResource(Res.string.home_trip_continue),
+                    primaryEnabled = state.activeSessions.any { it.id == sessionId && it.vehicleId != null },
+                    onPrimary = {
+                        onIntent(HomeIntent.CorrectParking(sessionId,
+                            com.rndeveloper.paparcar.domain.usecase.parking.ParkingCorrection.CONTINUE_TRIP))
+                    },
+                    cancelLabel = stringResource(Res.string.home_release_dialog_cancel),
+                    secondaryLabel = stringResource(Res.string.home_parking_wrong_car),
+                    onSecondary = {
+                        onIntent(HomeIntent.CorrectParking(sessionId,
+                            com.rndeveloper.paparcar.domain.usecase.parking.ParkingCorrection.WRONG_CAR))
+                    },
+                    loadingAction = when (correction) {
+                        com.rndeveloper.paparcar.domain.usecase.parking.ParkingCorrection.CONTINUE_TRIP ->
+                            com.rndeveloper.paparcar.ui.components.PapDialogAction.Primary
+                        com.rndeveloper.paparcar.domain.usecase.parking.ParkingCorrection.WRONG_CAR ->
+                            com.rndeveloper.paparcar.ui.components.PapDialogAction.Secondary
+                        null -> null
+                    },
+                )
+            }
 
             // One-time pitch of the star feature, fired right after the first-entry location grant
             // on the map. Not the old guilt dialog: declining is one tap and never comes back — the

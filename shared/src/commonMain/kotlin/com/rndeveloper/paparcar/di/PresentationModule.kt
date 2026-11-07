@@ -69,6 +69,7 @@ val presentationModule = module {
             // 39th: HomeNearbyAlertController.
             // [ZONE-AN-ALERT-NEAR-YOU-IS-NOT-AN-ALERT-IN-YOUR-ZONE-001]
             get(),
+            correctDetectedParking = get(),
         )
     }
     viewModelOf(::ParkingHistoryViewModel)

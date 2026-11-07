@@ -184,6 +184,7 @@ class HomeViewModel(
      * posicionales. [ZONE-AN-ALERT-NEAR-YOU-IS-NOT-AN-ALERT-IN-YOUR-ZONE-001]
      */
     private val nearbyAlerts: HomeNearbyAlertController,
+    private val correctDetectedParking: com.rndeveloper.paparcar.domain.usecase.parking.CorrectDetectedParkingUseCase,
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
 
     /**
@@ -509,6 +510,9 @@ class HomeViewModel(
             is HomeIntent.OpenPaywall -> sendEffect(HomeEffect.NavigateToPaywall(intent.reason))
 
             // Own parking sessions
+            is HomeIntent.OpenParkingCorrection,
+            is HomeIntent.DismissParkingCorrection,
+            is HomeIntent.CorrectParking,
             is HomeIntent.OpenReleaseDialog,
             is HomeIntent.DismissReleaseDialog,
             is HomeIntent.ReleaseParking,
@@ -1450,6 +1454,14 @@ class HomeViewModel(
 
     private fun handleParkingIntent(intent: HomeIntent) {
         when (intent) {
+            is HomeIntent.OpenParkingCorrection -> updateState {
+                if (correctingParking != null || isReleasingParking || isSavingParking) this
+                else copy(correctionDialogSessionId = intent.sessionId)
+            }
+            is HomeIntent.DismissParkingCorrection -> updateState {
+                if (correctingParking != null) this else copy(correctionDialogSessionId = null)
+            }
+            is HomeIntent.CorrectParking -> correctParking(intent)
             is HomeIntent.OpenReleaseDialog -> updateState { copy(releaseDialogSessionId = intent.sessionId) }
             // While a release runs, its outcome owns the dialog. [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001]
             is HomeIntent.DismissReleaseDialog -> updateState {
@@ -1481,7 +1493,7 @@ class HomeViewModel(
 
     private fun confirmAddParking(asNewSession: Boolean) {
         val current = state.value
-        if (current.mode !is HomeMode.AddingParking || current.isSavingParking) return
+        if (current.mode !is HomeMode.AddingParking || current.isSavingParking || current.correctingParking != null || current.isReleasingParking) return
         val (lat, lon) = current.pinCoordinates() ?: return reportPinMissing()
         // Re-park ("I parked somewhere else") from edit mode: drop the edited session's id so a
         // NEW session is created for the SAME vehicle — the model supersedes the old one on save.
@@ -1518,13 +1530,33 @@ class HomeViewModel(
         }
     }
 
+    private fun correctParking(intent: HomeIntent.CorrectParking) {
+        val current = state.value
+        if (current.correctingParking != null || current.isReleasingParking || current.isSavingParking) return
+        updateState { copy(correctingParking = intent.correction) }
+        viewModelScope.launch {
+            try {
+                correctDetectedParking(intent.sessionId, intent.correction)
+                    .onSuccess { updateState { clearedModeFields() } }
+                    .onFailure { sendEffect(HomeEffect.ShowError(PaparcarError.Parking.ReleaseFailed)) }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                PaparcarLogger.w(TAG, "Parking correction failed", e)
+                sendEffect(HomeEffect.ShowError(PaparcarError.Parking.ReleaseFailed))
+            } finally {
+                updateState { copy(correctingParking = null, correctionDialogSessionId = null) }
+            }
+        }
+    }
+
     private fun releaseParking(sessionId: String, reason: ParkingReleaseReason) {
         // One release at a time. The dialog's buttons disable only once the UI recomposes with
         // `releasingReason`, so two taps inside one frame both reach here — and "publish" + "don't
         // publish" racing each other would publish the spot while Room records it as unpublished.
         // Intents run on the main thread and the flag is set synchronously below, so this check
         // cannot be overtaken. [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001]
-        if (state.value.isReleasingParking) {
+        if (state.value.isReleasingParking || state.value.correctingParking != null) {
             PaparcarLogger.d(TAG, "releaseParking: a release is already in flight — ignoring id=$sessionId")
             return
         }

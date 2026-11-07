@@ -226,6 +226,13 @@ class HomeViewModelTest {
             userParkingRepository = parkingRepo,
             releaseSession = releaseSession,
             saveManualParking = saveManualParking,
+            correctDetectedParking = com.rndeveloper.paparcar.domain.usecase.parking.CorrectDetectedParkingUseCase(
+                parkingRepo,
+                com.rndeveloper.paparcar.domain.usecase.parking.RevertParkingUseCase(
+                    parkingRepo, FakeGeofenceManager(), FakeAppNotificationManager(),
+                ),
+                manualParkingDetection,
+            ),
             observeParkedVehicles = observeParkedVehicles,
             declareActiveVehicle = declareActiveVehicle,
             appPreferences = prefs,

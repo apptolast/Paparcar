@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="home_trip_park_now">Ich habe hier geparkt</string>
+    <string name="home_trip_continue">Ich fahre weiter</string>
+    <string name="home_parking_correct_title">Erkennung korrigieren</string>
+    <string name="home_parking_correct_body">Der falsche Parkeintrag wird entfernt, ohne einen freien Platz zu melden. Setze die Fahrt mit diesem Auto fort oder beende sie, wenn es nicht deins war.</string>
+    <string name="home_parking_wrong_car">Es war nicht mein Auto</string>
     <string name="home_nearby_section_header">In dieser Gegend</string>
     <string name="zone_alert_in_app">In %1$s ist gerade ein Platz frei geworden</string>
     <string name="spot_alert_nearby_in_app">Ganz in deiner Nähe ist gerade ein Platz frei geworden</string>

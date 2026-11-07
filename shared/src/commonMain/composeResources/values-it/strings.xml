@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="home_trip_park_now">Ho parcheggiato qui</string>
+    <string name="home_trip_continue">Continuo il viaggio</string>
+    <string name="home_parking_correct_title">Correggi rilevamento</string>
+    <string name="home_parking_correct_body">Il parcheggio errato verrà rimosso senza segnalare un posto libero. Continua il viaggio con questa auto o interrompi il rilevamento se non era la tua.</string>
+    <string name="home_parking_wrong_car">Non era la mia auto</string>
     <string name="home_nearby_section_header">In questa zona</string>
     <string name="zone_alert_in_app">Si è appena liberato un posto in %1$s</string>
     <string name="spot_alert_nearby_in_app">Si è appena liberato un posto vicino a te</string>

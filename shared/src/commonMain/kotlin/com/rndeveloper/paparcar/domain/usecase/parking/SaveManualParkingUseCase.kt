@@ -14,9 +14,9 @@ import kotlin.time.Clock
  * "Sí, he aparcado" (detected). Extracted from HomeViewModel so the branching
  * and side-effects are testable without a VM harness. [HOME-ATOMIZE-001 F4]
  *
- * Side-effect on a successful CREATE (both entry points): detection teardown — the user
- * resolved the park by hand → the trip is over, so any in-progress coordinator session is
- * cancelled before it can overwrite this pin. [DET-MANUAL-CANCEL-001]
+ * Before CREATE, stop and await GPS and Bluetooth writers. If teardown fails, keep the pin
+ * editor open for retry instead of allowing an automatic confirmation to overwrite this pin.
+ * A failed save leaves detection stopped; the user can retry the retained pin. [DET-MANUAL-CANCEL-001]
  * A MOVE (editingParkingId != null) has none: the session already exists —
  * [UpdateParkingLocationUseCase] re-registers its geofence in place.
  *
@@ -79,30 +79,19 @@ class SaveManualParkingUseCase(
     ): Result<Unit> = if (editingParkingId != null) {
         updateParkingLocation(editingParkingId, gps).map { }
     } else {
-        confirmParking(
-            gps,
-            USER_CONFIRMED_RELIABILITY,
-            spotType,
-            vehicleId = targetVehicleId,
-            // [DET-PIN-PROVENANCE-001] Hand-placed pin ("manual") vs "Sí" on the detection prompt
-            // ("user") vs pin placed answering a detection nudge ("nudge") — all three are user
-            // ground truth; spotType + path record who nominated the park.
-            detectionPath = detectionPath,
-            // A hand-placed pin is marked with the user standing at/near it; the pin doubles as
-            // the body's position within map-drag noise. [DET-STEP-BUDGET-ORIGIN-001]
-            sealPoint = gps,
+        manualParkingDetection.finishTrip().fold(
+            onSuccess = {
+                confirmParking(
+                    gps,
+                    USER_CONFIRMED_RELIABILITY,
+                    spotType,
+                    vehicleId = targetVehicleId,
+                    detectionPath = detectionPath,
+                    sealPoint = gps,
+                ).map { }
+            },
+            onFailure = { Result.failure(it) },
         )
-            .onSuccess {
-                // [NOTIF-A-FLOW-SPEAKS-THROUGH-ONE-SLOT-001] No card. The user just dropped this
-                // pin looking at the map: announcing it narrates what they are watching, and the
-                // flow's card offers "Sí, confirmar" — asking them to confirm what they have this
-                // second asserted. `AssertedPinAuthority` already wrote the rule this obeys:
-                // *"Asking is not free… A second prompt cannot resolve uncertainty, it
-                // manufactures it."* The nudge that may have brought them here is cleared by
-                // `ConfirmParkingUseCase`, which every lane goes through.
-                manualParkingDetection.stop()
-            }
-            .map { }
     }
 
     private companion object {

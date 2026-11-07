@@ -21,6 +21,13 @@ interface ManualParkingDetection {
      */
     fun stop()
 
+    /** Stops and awaits all current GPS/BT writers before a user changes the parking.
+     * Rejection also suppresses automatic rearming; a manual park does not. */
+    suspend fun finishTrip(rejectTrip: Boolean = false): Result<Unit>
+
+    /** Resume the explicitly corrected vehicle, without changing the default vehicle. */
+    fun resumeTrip(vehicleId: String, location: com.rndeveloper.paparcar.domain.model.GpsPoint)
+
     /**
      * [DET-STOP-BUTTON-001] The user tapped "Stop detection" on the live session. Deliberately a
      * separate command from [stop]: that one means "I already parked, here" (the manual pin owns

@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="home_trip_park_now">Ik heb hier geparkeerd</string>
+    <string name="home_trip_continue">Ik reis verder</string>
+    <string name="home_parking_correct_title">Detectie corrigeren</string>
+    <string name="home_parking_correct_body">De onjuiste parkeerregistratie wordt verwijderd zonder een vrije plek te melden. Volg deze auto verder of stop de rit als het niet jouw auto was.</string>
+    <string name="home_parking_wrong_car">Het was niet mijn auto</string>
     <string name="home_nearby_section_header">In dit gebied</string>
     <string name="zone_alert_in_app">Er is net een plek vrijgekomen in %1$s</string>
     <string name="spot_alert_nearby_in_app">Er is net een plek vrijgekomen bij je in de buurt</string>

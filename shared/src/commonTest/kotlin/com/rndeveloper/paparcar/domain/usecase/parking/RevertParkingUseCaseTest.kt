@@ -113,8 +113,8 @@ class RevertParkingUseCaseTest {
     }
 
     @Test
-    fun should_still_succeed_and_dismiss_when_clear_fails() = runTest {
-        // Best-effort contract: each step logs and continues; the user can retry manually.
+    fun should_report_failure_and_allow_retry_when_clear_fails() = runTest {
+        // A failed close must not be reported as a successful correction.
         val repo = FakeUserParkingRepository(initialSession = activeSession()).apply {
             clearActiveParkingSessionResult = Result.failure(RuntimeException("db error"))
         }
@@ -123,8 +123,9 @@ class RevertParkingUseCaseTest {
 
         val result = useCase("parking-1")
 
-        assertTrue(result.isSuccess)
-        assertTrue(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID in notification.dismissedIds)
+        assertTrue(result.isFailure)
+        assertNotNull(repo.getActiveSession())
+        assertFalse(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID in notification.dismissedIds)
     }
 
     @Test
@@ -213,11 +214,9 @@ class RevertParkingUseCaseTest {
 
         val result = useCaseOf(repo = repo, logger = logger)("parking-1")
 
-        assertTrue(result.isSuccess)
+        assertTrue(result.isFailure)
         assertFalse(repo.getSessionById("parking-1")!!.isRetracted)
-        val decision = logger.events.filterIsInstance<DetectionEvent.Decision>()
-            .single { it.outcome == "REVERT_STALE" }
-        assertEquals("sessions_unreadable", decision.reason)
+        assertTrue(logger.events.filterIsInstance<DetectionEvent.Reverted>().isEmpty())
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="home_trip_park_now">He aparcado aquí</string>
+    <string name="home_trip_continue">Sigo de viaje</string>
+    <string name="home_parking_correct_title">Corregir detección</string>
+    <string name="home_parking_correct_body">Retiraremos este aparcamiento incorrecto sin publicar una plaza libre. Puedes continuar el viaje con este coche o detenerlo si no era el tuyo.</string>
+    <string name="home_parking_wrong_car">No era mi coche</string>
     <!-- HomeScreen -->
     <string name="home_search_placeholder">Busca una zona, calle…</string>
     <string name="zone_alert_in_app">Acaba de quedar libre una plaza en %1$s</string>

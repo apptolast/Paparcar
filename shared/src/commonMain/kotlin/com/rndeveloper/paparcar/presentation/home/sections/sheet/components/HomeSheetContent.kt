@@ -512,6 +512,13 @@ private fun LazyListScope.vehiclesSection(
                         drivingPlace = slice.drivingPlace,
                         // Same stop as the single-vehicle card's. [DET-STOP-BUTTON-001]
                         onStopTrip = { onIntent(HomeIntent.StopDetection) },
+                        onParkNow = {
+                            onIntent(HomeIntent.EnterAddParkingMode(
+                                initialGps = slice.userGpsPoint,
+                                targetVehicleId = card.vehicle.id,
+                            ))
+                        },
+                        onKeepDriving = { onIntent(HomeIntent.AnswerParkingPrompt(false)) },
                         onClick = onCardClick,
                     )
                 }
@@ -548,6 +555,13 @@ private fun LazyListScope.vehiclesSection(
                 // card is the one surface telling the trip. [DET-STOP-BUTTON-001]
                 // [HOME-A-DRIVE-IS-ONE-NEWS-AND-THE-CARD-CARRIES-THE-STOP-001]
                 onStopTrip = { onIntent(HomeIntent.StopDetection) },
+                        onParkNow = {
+                            onIntent(HomeIntent.EnterAddParkingMode(
+                                initialGps = slice.userGpsPoint,
+                                targetVehicleId = card.vehicle.id,
+                            ))
+                        },
+                        onKeepDriving = { onIntent(HomeIntent.AnswerParkingPrompt(false)) },
                 // El estado de ESTE coche, dentro de su card: la MISMA fila que pintaría el badge,
                 // en modo `embedded`. Mismos textos y mismos intents — cambia el huésped, no lo que
                 // pasa al tocar. [HOME-AN-OPEN-QUESTION-IS-THE-CARS-NEWS-001]

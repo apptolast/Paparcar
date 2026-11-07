@@ -227,6 +227,7 @@ val detectionModule = module {
             manualParkingDetection = get(),
         )
     }
+    single { com.rndeveloper.paparcar.domain.usecase.parking.CorrectDetectedParkingUseCase(get(), get(), get()) }
     factory { ObserveParkedVehiclesUseCase(userParkingRepository = get(), vehicleRepository = get()) }
     factory { ClearParkNudgeUseCase(appPreferences = get(), notificationPort = get()) } // [DET-NUDGE-PERSIST-001]
 

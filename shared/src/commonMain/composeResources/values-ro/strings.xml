@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="home_trip_park_now">Am parcat aici</string>
+    <string name="home_trip_continue">Continui călătoria</string>
+    <string name="home_parking_correct_title">Corectează detectarea</string>
+    <string name="home_parking_correct_body">Parcarea incorectă va fi eliminată fără a anunța un loc liber. Continuă călătoria cu această mașină sau oprește urmărirea dacă nu era a ta.</string>
+    <string name="home_parking_wrong_car">Nu era mașina mea</string>
     <string name="home_nearby_section_header">În această zonă</string>
     <string name="zone_alert_in_app">Tocmai s-a eliberat un loc în %1$s</string>
     <string name="spot_alert_nearby_in_app">Tocmai s-a eliberat un loc lângă tine</string>

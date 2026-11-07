@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="home_trip_park_now">Je me suis garé ici</string>
+    <string name="home_trip_continue">Je continue le trajet</string>
+    <string name="home_parking_correct_title">Corriger la détection</string>
+    <string name="home_parking_correct_body">Ce stationnement incorrect sera retiré sans signaler de place libre. Continuez le trajet avec cette voiture ou arrêtez le suivi si ce n’était pas la vôtre.</string>
+    <string name="home_parking_wrong_car">Ce n’était pas ma voiture</string>
     <string name="home_nearby_section_header">Dans cette zone</string>
     <string name="zone_alert_in_app">Une place vient de se libérer à %1$s</string>
     <string name="spot_alert_nearby_in_app">Une place vient de se libérer près de vous</string>

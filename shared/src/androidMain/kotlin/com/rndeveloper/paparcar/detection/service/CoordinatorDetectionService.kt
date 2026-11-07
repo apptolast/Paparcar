@@ -377,7 +377,7 @@ class CoordinatorDetectionService : LifecycleService() {
      */
     private suspend fun processIntent(intent: Intent, startId: Int) {
         when (val action = intent.action) {
-            ACTION_START_TRACKING -> handleStartTracking()
+            ACTION_START_TRACKING -> handleStartTracking(intent)
             ACTION_ARRIVAL_HANDOFF -> handleArrivalHandoff() // [DET-HANDOFF-NOT-MANUAL-001]
             ACTION_BOARDED_AWAY -> handleBoardedAway(intent.getStringExtra(EXTRA_GEOFENCE_ID))
             // [DET-A-JUST-DEPARTED-CAR-IS-NOT-NO-SESSION-001] A measured departure that cleared the
@@ -411,6 +411,12 @@ class CoordinatorDetectionService : LifecycleService() {
             ACTION_PARKING_ACK -> handlePostSaveAck() // [REFACTOR-300]
             ACTION_PARKING_REVERT -> handlePostSaveRevert(intent.getStringExtra(EXTRA_PARKING_ID)) // [REFACTOR-300]
             ACTION_DEPARTURE_CONFIRMED -> handleWatchdogDeparture(intent.getStringExtra(EXTRA_GEOFENCE_ID)) // [DET-AR-REARM-001]
+            ACTION_FINISH_TRIP -> {
+                val result = runCatching { finishActiveTrip(intent.getBooleanExtra("reject_trip", false)) }
+                com.rndeveloper.paparcar.detection.ManualParkingCompletion.complete(
+                    intent.getStringExtra("manual_completion_token"), result,
+                )
+            }
             ACTION_STOP_TRACKING -> {
                 PaparcarLogger.d(DIAG, "  → STOP_TRACKING — cancelling detection")
                 cancelDetectionJob()
@@ -591,7 +597,7 @@ class CoordinatorDetectionService : LifecycleService() {
         return verdict == CheapWakeVerdict.ESCALATE
     }
 
-    private suspend fun handleStartTracking() {
+    private suspend fun handleStartTracking(intent: Intent) {
         if (!guardPermissions("START_TRACKING")) return
         // [FIX BUG-SERVICE-109: stop relying on stale hasDetectedMovement across sessions]
         // Active-job check alone is the right idempotency guard — a session that has already
@@ -605,7 +611,18 @@ class CoordinatorDetectionService : LifecycleService() {
         // [DET-FAIL-CLOSED-BY-CONSTRUCTION-001] The one caller that relied on the old default — and
         // it is the button, which is what the default was documented to be for. Stated explicitly
         // now, so the next lane cannot inherit the user's word by forgetting to speak.
-        startParkingDetection(DetectionTrigger.MANUAL, armEvidence = ArmEvidence.Manual)
+        val vehicleId = intent.getStringExtra("manual_vehicle_id")
+        val trip = vehicleId?.let {
+            TripContext(
+                GpsPoint(
+                    latitude = intent.getDoubleExtra("manual_lat", 0.0),
+                    longitude = intent.getDoubleExtra("manual_lon", 0.0),
+                    accuracy = 0f, timestamp = System.currentTimeMillis(), speed = 0f,
+                ),
+                it,
+            )
+        }
+        startParkingDetection(DetectionTrigger.MANUAL, trip = trip, armEvidence = ArmEvidence.Manual)
     }
 
     /**
@@ -717,16 +734,30 @@ class CoordinatorDetectionService : LifecycleService() {
      * — opens no quiet period: muting the next real departure because of a leftover notification
      * would be a false negative the user never asked for.
      */
-    private fun handleUserStop() {
-        if (detectionJob?.isActive != true) {
+    private suspend fun finishActiveTrip(rejectTrip: Boolean) {
+        // Drop held confirmations before cancellation can enter a detector's finalizer.
+        parkingDetectionCoordinator.onUserStoppedDetection()
+        com.rndeveloper.paparcar.bluetooth.BtConnectionStore.finishCurrentTrips(applicationContext, System.currentTimeMillis())
+        if (rejectTrip) UserStopStore.stamp(applicationContext, System.currentTimeMillis())
+        val jobs = listOfNotNull(detectionJob, btHuntJob, btWatchJob, btTrackingJob)
+        detectionJob = null
+        btHuntJob = null
+        btWatchJob = null
+        btTrackingJob = null
+        btTrackingPendingVehicleId = null
+        jobs.forEach { it.cancel() }
+        jobs.forEach { it.join() }
+        notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
+    }
+
+    private suspend fun handleUserStop() {
+        if (listOfNotNull(detectionJob, btHuntJob, btWatchJob, btTrackingJob).none { it.isActive }) {
             PaparcarLogger.d(DIAG, "  ⊘ USER_STOP with no live session — stale tap, no quiet period [DET-STOP-BUTTON-001]")
             notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
             return
         }
         PaparcarLogger.d(DIAG, "  → USER_STOP — the user stopped the live session [DET-STOP-BUTTON-001]")
-        parkingDetectionCoordinator.onUserStoppedDetection()
-        UserStopStore.stamp(applicationContext, System.currentTimeMillis())
-        cancelDetectionJob()
+        finishActiveTrip(rejectTrip = true)
         if (isDebugBuild) {
             notificationPort.showDebug(
                 "Detección PARADA por ti: cierro el viaje sin guardar plaza y no haré caso a los " +
@@ -1590,6 +1621,10 @@ class CoordinatorDetectionService : LifecycleService() {
      * serialized handler — the two-service era coordinated these by racing intents.
      */
     private fun handleBtConnected(deviceAddress: String?, vehicleId: String?, watchDeparture: Boolean) {
+        if (userStopQuietPeriodRemainingMs(UserStopStore.read(applicationContext), System.currentTimeMillis(), detectionConfig) > 0L) {
+            com.rndeveloper.paparcar.bluetooth.BtConnectionStore.finishCurrentTrips(applicationContext, System.currentTimeMillis())
+            return
+        }
         if (vehicleId.isNullOrBlank()) {
             PaparcarLogger.w(DIAG, "  ✗ BT_CONNECTED without a vehicle id — ignored")
             return
@@ -1640,6 +1675,12 @@ class CoordinatorDetectionService : LifecycleService() {
     private fun handleBtDisconnected(deviceAddress: String?, vehicleId: String?) {
         if (deviceAddress.isNullOrBlank() || vehicleId.isNullOrBlank()) {
             PaparcarLogger.w(DIAG, "  ✗ BT_DISCONNECTED — missing extras (device=$deviceAddress, vehicle=$vehicleId)")
+            return
+        }
+        if (userStopQuietPeriodRemainingMs(UserStopStore.read(applicationContext), System.currentTimeMillis(), detectionConfig) > 0L ||
+            com.rndeveloper.paparcar.bluetooth.BtConnectionStore.isTripFinished(applicationContext, vehicleId)
+        ) {
+            PaparcarLogger.d(DIAG, "  ⊘ BT disconnect belongs to a manually resolved trip")
             return
         }
         PaparcarLogger.d(DIAG, "  → BT_DISCONNECTED device=$deviceAddress vehicle=$vehicleId — hunting the pin")
@@ -2736,7 +2777,8 @@ class CoordinatorDetectionService : LifecycleService() {
          *  the foreground-service notification). Never sent by the system — [ACTION_STOP_TRACKING]
          *  stays the internal cancel; only THIS one stamps `stopped_by_user` and opens the quiet
          *  period in which automatic nominators may not re-arm. */
-        const val ACTION_USER_STOP = "com.rndeveloper.paparcar.ACTION_USER_STOP"
+        const val ACTION_FINISH_TRIP = "com.rndeveloper.paparcar.ACTION_FINISH_TRIP"
+    const val ACTION_USER_STOP = "com.rndeveloper.paparcar.ACTION_USER_STOP"
         // [DET-HANDOFF-NOT-MANUAL-001] The safety net's arrival handoff [DET-ARRIVAL-HANDOFF-001].
         // It used to reuse ACTION_START_TRACKING, so an automatic arm was indistinguishable from the
         // user's "I'm driving" — same trigger, same evidence, same strategy-gate exemption. One
