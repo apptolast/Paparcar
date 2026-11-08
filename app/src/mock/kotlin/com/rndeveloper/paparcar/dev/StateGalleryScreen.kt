@@ -2052,6 +2052,39 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             // A live trip OUTRANKS a parked car as the peek subject: driving the Corolla while the
             // sedan sits parked → the peek says "EN RUTA", not the sedan's parked header.
             // [UI-BROWSE-DRIVING-OVER-PARKED-001]
+            Variant("Peek · en ruta: calle y contexto largo", Placement.Surface) {
+                peek(
+                    HomeState(
+                        vehicles = listOf(FakeData.vehicleSedan),
+                        userAddressAndPlace = FakeData.addressAndPlaceStreet.copy(
+                            address = FakeData.addrStreet.copy(
+                                street = "Calle de la Constitución 24",
+                                city = "El Puerto de Santa María",
+                                region = "Andalucía",
+                            ),
+                            placeInfo = null,
+                        ),
+                        drivingMeta = com.rndeveloper.paparcar.presentation.home.DrivingMeta(
+                            vehicleId = FakeData.vehicleSedan.id,
+                            phase = com.rndeveloper.paparcar.domain.detection.DetectionPhase.Driving,
+                        ),
+                    ),
+                )
+            },
+            Variant("Peek · en ruta: POI y calle larga", Placement.Surface) {
+                peek(
+                    HomeState(
+                        vehicles = listOf(FakeData.vehicleSedan),
+                        userAddressAndPlace = FakeData.addressAndPlaceFuel.copy(
+                            address = FakeData.addrFuel.copy(street = "Avenida de la Constitución 24"),
+                        ),
+                        drivingMeta = com.rndeveloper.paparcar.presentation.home.DrivingMeta(
+                            vehicleId = FakeData.vehicleSedan.id,
+                            phase = com.rndeveloper.paparcar.domain.detection.DetectionPhase.Driving,
+                        ),
+                    ),
+                )
+            },
             Variant("Peek · en ruta gana al aparcado", Placement.Surface) {
                 peek(
                     HomeState(

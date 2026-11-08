@@ -379,10 +379,12 @@ private fun DrivingCarHeader(
             },
         ),
         subtitleSlot = peekWhereLine(
-            place = title,
-            // ⛔ Aquí la línea 2 lleva la CALLE, no una distancia: un viaje vivo no se mide «desde
-            // ti» — tú vas dentro. Es el mismo hueco, con el dato que esta rama sí tiene.
-            far = secondaryLine,
+            // City/region (or the street under a POI) is address context, not a short distance.
+            // One ellipsis at the END lets the primary place use the whole line before that
+            // context; putting it in `far` reserved its full width and reduced the street to
+            // «Calle…». [HOME-LIVE-ADDRESS-READABLE-001]
+            place = listOfNotNull(title, secondaryLine).joinToString(PEEK_LINE_JOINER),
+            far = null,
         ),
         // No free-spots pill in the collapsed peek: the count already reads once the sheet is
         // expanded (spots section header), so a trailing pill here just duplicates it.

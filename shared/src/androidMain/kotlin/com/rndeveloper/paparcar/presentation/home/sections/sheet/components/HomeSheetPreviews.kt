@@ -196,17 +196,38 @@ private fun HomePeekHandleParkingSelectedLightPreview() {
 // El peek con un viaje EN CURSO: el tile lead respira el halo radar y las palabras de fase laten,
 // mientras el nombre del coche se queda quieto en su color de identidad. El movimiento sólo se ve
 // en preview interactiva o en device. [UI-PEEK-DRIVING-HAS-NO-MOTION-001]
-@Preview(name = "A — HomePeekHandle: en ruta (halo + pulso, oscuro)", showBackground = true,
-    uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(name = "A — HomePeekHandle: en ruta, dirección larga (320dp)", showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES, widthDp = 320)
+@Preview(name = "A — HomePeekHandle: en ruta, texto grande", showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES, widthDp = 360, fontScale = 1.3f)
 @Composable
 private fun HomePeekHandleDrivingDarkPreview() {
-    PaparcarTheme(darkTheme = true) {
+    DrivingAddressPreview(darkTheme = true, withPoi = false)
+}
+
+@Preview(name = "A — HomePeekHandle: en ruta, POI y calle (claro)", showBackground = true, widthDp = 320)
+@Composable
+private fun HomePeekHandleDrivingPoiLightPreview() {
+    DrivingAddressPreview(darkTheme = false, withPoi = true)
+}
+
+@Composable
+private fun DrivingAddressPreview(darkTheme: Boolean, withPoi: Boolean) {
+    PaparcarTheme(darkTheme = darkTheme) {
         HomePeekHandle(
             slice = HomeState(
                 vehicles = listOf(FakeData.vehicleSedan),
                 userGpsPoint = GpsPoint(40.4165, -3.7030, 12f, Clock.System.now().toEpochMilliseconds(), 0f),
                 nearbySpots = FakeData.nearbySpots,
-                cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                cameraAddressAndPlace = FakeData.addressAndPlaceFuel,
+                userAddressAndPlace = FakeData.addressAndPlaceStreet.copy(
+                    address = FakeData.addrStreet.copy(
+                        street = "Calle de la Constitución 24",
+                        city = "El Puerto de Santa María",
+                        region = "Andalucía",
+                    ),
+                    placeInfo = if (withPoi) FakeData.placeInfoFuel else null,
+                ),
                 drivingMeta = DrivingMeta(
                     vehicleId = FakeData.vehicleSedan.id,
                     phase = DetectionPhase.Driving,
