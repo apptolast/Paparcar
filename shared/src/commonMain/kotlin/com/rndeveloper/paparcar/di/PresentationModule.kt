@@ -70,6 +70,7 @@ val presentationModule = module {
             // [ZONE-AN-ALERT-NEAR-YOU-IS-NOT-AN-ALERT-IN-YOUR-ZONE-001]
             get(),
             correctDetectedParking = get(),
+            confirmStillParked = get(),
         )
     }
     viewModelOf(::ParkingHistoryViewModel)

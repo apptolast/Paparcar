@@ -135,12 +135,17 @@ sealed class HomeIntent {
      * commands the tray notification's two buttons send, so answering here and answering there are
      * the same event as far as detection is concerned.
      *
-     * @param parked true = "yes, I parked"; false = "no, still driving".
+     * @param parked true = "yes, I parked"; false = "I have not parked".
      */
     data class AnswerParkingPrompt(val parked: Boolean, val shownAtMs: Long? = null) : HomeIntent()
-    data class AnswerStillParked(
+    /** Ratifies the saved session, unlike AnswerParkingPrompt which confirms a new candidate. */
+    data class ConfirmStillParked(
         val question: com.rndeveloper.paparcar.domain.detection.StillParkedQuestion,
-        val answer: com.rndeveloper.paparcar.domain.detection.StillParkedAnswer,
+    ) : HomeIntent()
+
+    /** No to the permanence question opens the existing pin editor, without answering it yet. */
+    data class EditQuestionedParking(
+        val question: com.rndeveloper.paparcar.domain.detection.StillParkedQuestion,
     ) : HomeIntent()
 
     /** "Activate detection" from the Home banner — flips the Settings auto-detect flag back on

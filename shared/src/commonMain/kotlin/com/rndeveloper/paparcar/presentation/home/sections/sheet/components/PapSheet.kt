@@ -86,7 +86,7 @@ import paparcar.composeapp.generated.resources.home_peek_dismiss_cd
  *  │  meta    — icon+value rows       [metaAction: 38dp edit icon-button] │
  *  │  chips   — filter / size selector row                                │
  *  │  content — el DESGLOSE que respalda los hechos                       │
- *  │  actions — PapFooterButton stack (max 1 Filled = the loop action)    │
+ *  │  actions — detail: one Filled; question: equally filled answers      │
  *  └──────────────────────────────────────────────────────────────────────┘
  *
  * ⛔ **Gramatica de un MODAL de detalle — cinco bandas, siempre en este orden**

@@ -1,4 +1,4 @@
-@file:OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)
+@file:OptIn(kotlinx.cinterop.ExperimentalForeignApi::class, kotlin.time.ExperimentalTime::class)
 
 package com.rndeveloper.paparcar.notification
 
@@ -23,8 +23,6 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.notif_action_ack
 import paparcar.composeapp.generated.resources.notif_action_cancel_save
 import paparcar.composeapp.generated.resources.notif_action_confirm
-import paparcar.composeapp.generated.resources.notif_action_ive_left
-import paparcar.composeapp.generated.resources.notif_action_mark_parking
 import paparcar.composeapp.generated.resources.notif_action_link_no
 import paparcar.composeapp.generated.resources.notif_action_link_yes
 import paparcar.composeapp.generated.resources.notif_action_no_not_parked
@@ -53,6 +51,8 @@ import paparcar.composeapp.generated.resources.notif_shared_car_parked_title
 import paparcar.composeapp.generated.resources.notif_shared_car_parked_title_unknown
 import paparcar.composeapp.generated.resources.notif_still_parked_text
 import paparcar.composeapp.generated.resources.notif_still_parked_title
+import paparcar.composeapp.generated.resources.notif_action_still_here
+import paparcar.composeapp.generated.resources.notif_action_review_parking
 import paparcar.composeapp.generated.resources.notif_zone_spot_text
 import paparcar.composeapp.generated.resources.notif_zone_spot_text_provisional
 import paparcar.composeapp.generated.resources.notif_zone_spot_title
@@ -150,16 +150,27 @@ class IosAppNotificationManagerImpl(
         }
     }
 
-    /** [IOS-F2] The safety-net mesh's question. Same actions as Android's surface: "I've left"
-     *  routes to a WITNESSED departure; "Mark parking" opens the app (foreground). */
+    /** A saved parking remains in doubt until Yes ratifies it or the existing editor saves
+     * a correction/new parking. No opens the app and never asserts a departure. */
     override fun showStillParkedPrompt(geofenceId: String, latitude: Double, longitude: Double) {
-        postLocalized(STILL_PARKED_NOTIFICATION_ID) {
+        val previous = appPreferences.stillParkedQuestion()
+        val question = previous?.takeIf { it.geofenceId == geofenceId && it.confirmedHereAtMs == null }
+            ?: com.rndeveloper.paparcar.domain.detection.StillParkedQuestion(
+                geofenceId, latitude, longitude, kotlin.time.Clock.System.now().toEpochMilliseconds(),
+            )
+        appPreferences.setStillParkedQuestion(question)
+        postLocalized(
+            STILL_PARKED_NOTIFICATION_ID,
+            shouldPost = { appPreferences.stillParkedQuestion() == question },
+        ) {
             val title = getString(Res.string.notif_still_parked_title)
             val body = getString(Res.string.notif_still_parked_text)
             setTitle(title)
             setBody(body)
             setCategoryIdentifier(CATEGORY_STILL_PARKED)
-            setUserInfo(mapOf<Any?, Any?>(EXTRA_GEOFENCE_ID to geofenceId))
+            setUserInfo(mapOf<Any?, Any?>(
+                EXTRA_GEOFENCE_ID to geofenceId, EXTRA_QUESTION_AT to question.shownAtMs.toString(),
+            ))
             setSound(platform.UserNotifications.UNNotificationSound.defaultSound)
         }
     }
@@ -300,12 +311,15 @@ class IosAppNotificationManagerImpl(
 
     private fun postLocalized(
         notificationId: Int,
+        shouldPost: () -> Boolean = { true },
         build: suspend UNMutableNotificationContent.() -> Unit,
     ) {
         scope.launch {
             categoriesReady.await()
             val content = UNMutableNotificationContent()
             content.build()
+            // Resource loading may suspend while Home answers or replaces the durable question.
+            if (!shouldPost()) return@launch
             val request = UNNotificationRequest.requestWithIdentifier(
                 identifier = identifierFor(notificationId),
                 content = content,
@@ -330,8 +344,8 @@ class IosAppNotificationManagerImpl(
         // question. [NOTIF-ONE-QUESTION-DESERVES-ONE-NOTIFICATION-001]
         val ack = getString(Res.string.notif_action_ack)
         val cancelSave = getString(Res.string.notif_action_cancel_save)
-        val iveLeft = getString(Res.string.notif_action_ive_left)
-        val markParking = getString(Res.string.notif_action_mark_parking)
+        val stillHere = getString(Res.string.notif_action_still_here)
+        val reviewParking = getString(Res.string.notif_action_review_parking)
         val linkYes = getString(Res.string.notif_action_link_yes)
         val linkNo = getString(Res.string.notif_action_link_no)
 
@@ -387,13 +401,13 @@ class IosAppNotificationManagerImpl(
             identifier = CATEGORY_STILL_PARKED,
             actions = listOf(
                 UNNotificationAction.actionWithIdentifier(
-                    identifier = ACTION_DEPARTED,
-                    title = iveLeft,
+                    identifier = ACTION_STILL_HERE,
+                    title = stillHere,
                     options = UNNotificationActionOptionForeground,
                 ),
                 UNNotificationAction.actionWithIdentifier(
-                    identifier = ACTION_MARK_PARKING,
-                    title = markParking,
+                    identifier = ACTION_DEPARTED,
+                    title = reviewParking,
                     options = UNNotificationActionOptionForeground,
                 ),
             ),
@@ -440,7 +454,9 @@ class IosAppNotificationManagerImpl(
         const val ACTION_REVERT = "paparcar_action_revert"
         const val CATEGORY_STILL_PARKED = "paparcar_still_parked"
         const val ACTION_DEPARTED = "paparcar_action_departed"
-        // [IOS-NOTIF] Android's real second action — the invented "still parked" action is gone.
+        const val ACTION_STILL_HERE = "paparcar_action_still_here"
+        const val EXTRA_QUESTION_AT = "questionAt"
+        // Legacy identifier retained so an old negative action cannot take the former departure path.
         const val ACTION_MARK_PARKING = "paparcar_action_mark_parking"
         const val EXTRA_PARKING_ID = "parkingId"
         const val EXTRA_GEOFENCE_ID = "geofenceId"

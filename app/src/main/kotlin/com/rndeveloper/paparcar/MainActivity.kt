@@ -201,13 +201,15 @@ class MainActivity : ComponentActivity() {
         val lon = intent?.getDoubleExtra(EXTRA_FOCUS_LON, Double.NaN)?.takeIf { !it.isNaN() }
         if (lat != null && lon != null) mapFocusEventBus.focusAt(lat, lon)
 
-        intent?.getStringExtra(EXTRA_STILL_PARKED_ELSEWHERE)?.let { geofenceId ->
+        intent?.getStringExtra(EXTRA_REVIEW_PARKING)?.let { geofenceId ->
             val question = appPreferences.stillParkedQuestion()
             if (question?.geofenceId == geofenceId && question.confirmedHereAtMs == null &&
                 question.shownAtMs == intent.getLongExtra(
                     com.rndeveloper.paparcar.detection.service.CoordinatorDetectionService.EXTRA_PROMPT_AT, -1L)
-            ) startAddParkingEventBus.request(fromDetectionNudge = true, geofenceId = geofenceId)
-            intent.removeExtra(EXTRA_STILL_PARKED_ELSEWHERE)
+            ) startAddParkingEventBus.request(
+                fromDetectionNudge = false, geofenceId = geofenceId, questionShownAtMs = question.shownAtMs,
+            )
+            intent.removeExtra(EXTRA_REVIEW_PARKING)
         }
 
         // Cold-start nudge notification → drop straight into add-parking pin mode. The bus
@@ -218,13 +220,8 @@ class MainActivity : ComponentActivity() {
             startAddParkingEventBus.request(
                 fromDetectionNudge = intent.getBooleanExtra(EXTRA_ADD_PARKING_FROM_DETECTION, false),
             )
-            // [DET-A-STILL-PARKED-ASK-MUST-EARN-ITS-INTERRUPTION-001] The question has been ANSWERED
-            // — the user is about to drop the pin — so it leaves the shade now. `setAutoCancel` does
-            // not cover this: it only fires for the notification's content tap, and both asks are
-            // usually answered through their ACTION button, which leaves them sitting there looking
-            // unanswered until some later tick happens to clean up. Cancelling an id that is not
-            // showing is a no-op, so no guard is needed for the cold-start nudge path.
-            notificationPort.dismiss(AppNotificationManager.STILL_PARKED_NOTIFICATION_ID)
+            // Entering pin mode acknowledges this nudge's notification. Saving owns the durable
+            // resolution; another car's permanence question remains pending in the meantime.
             notificationPort.dismiss(AppNotificationManager.MARK_PARKING_NUDGE_NOTIFICATION_ID)
         }
 
@@ -243,7 +240,7 @@ class MainActivity : ComponentActivity() {
     companion object {
         const val EXTRA_FOCUS_LAT = "extra_focus_lat"
         const val EXTRA_FOCUS_LON = "extra_focus_lon"
-        const val EXTRA_STILL_PARKED_ELSEWHERE = "extra_still_parked_elsewhere"
+        const val EXTRA_REVIEW_PARKING = "extra_still_parked_elsewhere"
         const val EXTRA_START_ADD_PARKING = "extra_start_add_parking"
         const val EXTRA_ADD_PARKING_FROM_DETECTION = "extra_add_parking_from_detection"
         /** The widget's "more" → show this parking (camera + selected card). [WIDGET-ACTIONS-002] */

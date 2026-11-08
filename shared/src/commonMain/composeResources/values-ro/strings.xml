@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="home_trip_park_compact">Parchez aici</string>
-    <string name="home_trip_continue_compact">Continui</string>
+    <string name="home_trip_continue_compact">Nu am parcat</string>
     <string name="home_trip_wrong_car_compact">Nu e a mea</string>
     <string name="home_trip_park_now">Am parcat aici</string>
-    <string name="home_trip_continue">Încă conduc</string>
-    <string name="home_parking_correct_title">Corectează detectarea</string>
-    <string name="home_parking_correct_body">Alege: continuă călătoria, elimină o călătorie cu altă mașină sau corectează doar locația.</string>
-    <string name="home_parking_wrong_car">Nu era mașina mea</string>
+    <string name="home_trip_continue">Nu am parcat</string>
+    <string name="home_parking_correct_body">Indică ce s-a întâmplat. Nu se va partaja niciun loc liber.</string>
+    <string name="home_parking_wrong_car">Acea călătorie nu a fost cu mașina mea</string>
     <string name="home_nearby_section_header">În această zonă</string>
     <string name="zone_alert_in_app">Tocmai s-a eliberat un loc în %1$s</string>
     <string name="spot_alert_nearby_in_app">Tocmai s-a eliberat un loc lângă tine</string>
@@ -646,9 +645,9 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="home_det_watch_interrupted_cta">Reactivează</string>
     <!-- [DET-STOP-BUTTON-001] -->
     <string name="home_det_driving_stop_cta">Nu sunt în mașina mea</string>
-    <string name="home_det_trip_stopped_msg">Detectare oprită. Această călătorie nu va fi salvată ca parcare — apasă „Conduc acum” când vrei să reiei.</string>
+    <string name="home_det_trip_stopped_msg">Detectare oprită. Această călătorie nu va fi salvată ca parcare. Folosește „Începe călătoria” înainte de plecare pentru a relua.</string>
     <string name="home_det_awaiting_cta_primary">Marchează parcarea</string>
-    <string name="home_det_awaiting_cta_secondary">Conduc acum</string>
+    <string name="home_det_awaiting_cta_secondary">Începe călătoria</string>
     <!-- [DET-ASK-STATE-001] -->
     <string name="home_det_ask_title">Ai parcat?</string>
     <string name="home_det_ask_title_vehicle">Ai parcat %1$s?</string>
@@ -656,7 +655,7 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="home_det_ask_sub_at">Întrebat la %1$s</string>
     <string name="home_det_ask_sub_at_place">%1$s · întrebat la %2$s</string>
     <string name="home_det_ask_cta_yes">Da, am parcat</string>
-    <string name="home_det_ask_cta_no">Încă conduc</string>
+    <string name="home_det_ask_cta_no">Nu am parcat</string>
     <string name="home_det_ask_eyebrow">Ai parcat?</string>
     <!-- Pending "where did you leave your car?" nudge row. [DET-NUDGE-PERSIST-001] -->
     <string name="home_nudge_title">Unde ți-ai lăsat mașina?</string>
@@ -873,7 +872,7 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="notif_confirmation_title_vehicle_street">Ai parcat %1$s pe %2$s?</string>
     <string name="notif_confirmation_text">Se pare că ai parcat. Vrei să confirmăm parcarea?</string>
     <string name="notif_action_yes_parked">Da, am parcat</string>
-    <string name="notif_action_no_not_parked">Încă conduc</string>
+    <string name="notif_action_no_not_parked">Nu am parcat</string>
     <string name="notif_parking_saved_title">Parcare salvată</string>
     <string name="notif_parking_saved_text">Mașina ta a fost parcată. Apasă pentru a o vedea pe hartă.</string>
     <string name="notif_parking_saved_confirm_title">Vehicul parcat</string>
@@ -884,10 +883,8 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="notif_action_cancel_save">Nu, anulează</string>
     <string name="notif_confirmation_failed_title">Parcare nesalvată</string>
     <string name="notif_confirmation_failed_text">Nu s-a putut salva parcarea. Deschide Paparcar pentru a încerca din nou.</string>
-    <string name="notif_still_parked_title">Încă parcat aici?</string>
-    <string name="notif_still_parked_text">Această parcare este încă deschisă. Mașina este tot aici, conduci sau ai parcat în altă parte?</string>
-    <string name="notif_action_ive_left">Am plecat</string>
-    <string name="notif_action_mark_parking">Marchează parcarea</string>
+    <string name="notif_still_parked_title">Mașina este încă parcată aici?</string>
+    <string name="notif_still_parked_text">Confirmă dacă mașina este încă aici când poți face acest lucru.</string>
     <string name="notif_car_link_title">Călătoria aceasta a fost în %1$s?</string>
     <string name="notif_car_link_text">Dacă e mașina ta, asociaz-o și Paparcar îți va marca parcarea singur de acum înainte.</string>
     <string name="notif_car_link_device_fallback">această mașină</string>
@@ -1225,8 +1222,9 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
          Vocabulario: es la PLAZA de la comunidad, en singular. [COPY-SPOT-IS-NOT-A-PARKING-001]
          [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001] -->
     <string name="home_peek_spot_subject">Loc comunitar</string>
-    <string name="notif_action_still_here">Este tot aici</string>
-    <string name="notif_action_driving_now">Conduc</string>
-    <string name="notif_action_parked_elsewhere">În alt loc</string>
-    <string name="home_parking_wrong_location">Locația este greșită</string>
+    <string name="notif_action_still_here">Da</string>
+    <string name="notif_action_review_parking">Nu</string>
+    <string name="home_still_parked_title_vehicle">%1$s este încă parcată aici?</string>
+    <string name="home_parking_false_detection">Această parcare nu a avut loc</string>
+    <string name="home_parking_not_parked">Nu parcasem</string>
 </resources>

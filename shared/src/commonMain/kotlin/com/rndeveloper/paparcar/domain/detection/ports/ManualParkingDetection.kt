@@ -55,9 +55,4 @@ interface ManualParkingDetection {
     fun answerPrompt(parked: Boolean)
     fun answerPrompt(parked: Boolean, shownAtMs: Long?) = answerPrompt(parked)
 
-    /** Returns false on platforms without a departure-question handler. */
-    fun answerStillParked(
-        question: com.rndeveloper.paparcar.domain.detection.StillParkedQuestion,
-        answer: com.rndeveloper.paparcar.domain.detection.StillParkedAnswer,
-    ): Boolean = false
 }

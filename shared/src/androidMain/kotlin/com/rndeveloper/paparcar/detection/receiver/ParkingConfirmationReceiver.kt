@@ -47,7 +47,7 @@ class ParkingConfirmationReceiver : BroadcastReceiver() {
             ACTION_CONFIRMED, ACTION_DENIED, ACTION_ACK, ACTION_REVERT, ACTION_DEPARTURE_CONFIRMED,
             ACTION_USER_STOP,
             CoordinatorDetectionService.ACTION_STILL_PARKED_HERE,
-            CoordinatorDetectionService.ACTION_STILL_PARKED_DRIVING,
+            CoordinatorDetectionService.ACTION_STILL_PARKED_LEFT,
         )
     }
 }

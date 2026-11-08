@@ -65,6 +65,8 @@ internal fun HomeState.clearedModeFields(): HomeState = copy(
     addingZoneNotify = false,
     editingZoneId = null,
     editingParkingId = null,
+    editingStillParkedQuestion = null,
+    parkingCorrectionSessionId = null,
     addingParkingVehicleId = null,
     addingParkingNudgeSource = null,
 )
@@ -83,7 +85,10 @@ internal fun HomeState.withActiveSessions(sessions: List<UserParking>): HomeStat
     val dialogTargetGone = dialogSessionId != null &&
         !isReleasingParking &&
         sessions.none { it.id == dialogSessionId }
-    return copy(
+    val editingTargetGone = editingParkingId != null && sessions.none { it.id == editingParkingId } &&
+        correctingParking == null && !isSavingParking && !isReleasingParking
+    val next = if (editingTargetGone) clearedModeFields() else this
+    return next.copy(
         activeSessions = sessions,
         releaseDialogSessionId = if (dialogTargetGone) null else dialogSessionId,
     )

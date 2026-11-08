@@ -43,7 +43,6 @@ import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.onboarding.FindSpotAsk
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
-import com.rndeveloper.paparcar.domain.onboarding.FirstStepsOwnership
 import com.rndeveloper.paparcar.domain.onboarding.WatchAsk
 import com.rndeveloper.paparcar.domain.onboarding.WatchReinforcement
 import com.rndeveloper.paparcar.presentation.onboarding.FirstStepsCard
@@ -56,10 +55,8 @@ import com.rndeveloper.paparcar.presentation.home.vehiclesRowOrder
 import com.rndeveloper.paparcar.presentation.home.model.DetectionStory
 import com.rndeveloper.paparcar.presentation.home.model.isTheCarsQuestion
 import com.rndeveloper.paparcar.presentation.home.model.subjectVehicleId
-import com.rndeveloper.paparcar.presentation.home.model.silencedBy
 import com.rndeveloper.paparcar.presentation.home.model.notice
 import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
-import com.rndeveloper.paparcar.presentation.home.model.resolveDetectionStory
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.HomeSheetAction
 import com.rndeveloper.paparcar.ui.components.PapSectionHeader
 import com.rndeveloper.paparcar.ui.components.PapSectionHeaderRow
@@ -240,28 +237,7 @@ fun LazyListScope.homeSheetItems(
         }
     }
 
-    val detectionStory = resolveDetectionStory(
-        slice.detectionUiState, vehicleCards, slice.parkedWatchBadge,
-        promptWindow = slice.promptWindow,
-        showParkNudge = slice.showParkNudge,
-        // One voice: whichever of this surface's asks the checklist is currently making, THAT row
-        // stands down. Which one is derived by the projection (`owns`); all this line adds is that a
-        // checklist nobody can see owns nothing.
-        // [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
-        firstStepsOwns = if (showFirstSteps) firstSteps.owns else FirstStepsOwnership.NOTHING,
-        // Mismo trato que el checklist: si la tira de coches está en pantalla, ella cuenta la
-        // vigilancia sana y esta superficie no la repite.
-        // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
-        carCardSaysTheWatch = showPersonalBlocks,
-        // Y con el diálogo de permisos abierto encima, la fila ámbar se calla: la pregunta que
-        // contestaría está literalmente en pantalla. [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001]
-        locationAskPending = slice.locationAskPending,
-    )
-        // Y por último, lo que el usuario ya ha dicho que no quiere ver ahora. Va DESPUÉS de la
-        // proyección y no dentro: la precedencia decide QUÉ se cuenta, y esto sólo tapa un aviso que
-        // ya estaba decidido. Una pregunta nunca se calla aquí — no devuelve `notice()`.
-        // [UI-A-STATUS-BADGE-CAN-BE-DISMISSED-A-QUESTION-CANNOT-001]
-        .silencedBy(slice.silencedNotices)
+    val detectionStory = slice.detectionStory
     // ⛔ QUIÉN la pinta se decide UNA vez, aquí, y se lee en los dos sitios. Dos lugares evaluando
     // «¿la lleva la card?» es exactamente cómo se consigue que no la cuente NADIE: basta con que las
     // dos condiciones se desincronicen un día. [HOME-AN-OPEN-QUESTION-IS-THE-CARS-NEWS-001]
@@ -323,7 +299,9 @@ fun LazyListScope.homeSheetItems(
                 allowDrivingDetection = true, // show both cold-start CTAs (mark spot + I'm driving)
                 // [DET-ASK-STATE-001] The same two commands the notification's buttons send.
                 onAnswerParked = { onIntent(HomeIntent.AnswerParkingPrompt(parked = true, shownAtMs = slice.promptWindow?.shownAtMs)) },
-                onAnswerStillDriving = { onIntent(HomeIntent.AnswerParkingPrompt(parked = false, shownAtMs = slice.promptWindow?.shownAtMs)) },
+                onAnswerNotParked = { onIntent(HomeIntent.AnswerParkingPrompt(parked = false, shownAtMs = slice.promptWindow?.shownAtMs)) },
+                onConfirmStillParked = { question -> onIntent(HomeIntent.ConfirmStillParked(question)) },
+                onReviewStillParked = { question -> onIntent(HomeIntent.EditQuestionedParking(question)) },
                 // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Tapping the card frames the place
                 // the question is about. It is a CAMERA move and nothing else — the same action a
                 // row tap already uses — so consulting the map can never be mistaken for answering.

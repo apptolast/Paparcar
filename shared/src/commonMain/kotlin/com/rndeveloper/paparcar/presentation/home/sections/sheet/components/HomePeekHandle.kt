@@ -198,6 +198,8 @@ fun HomePeekHandle(
                         ?.let { id -> slice.activeSessions.firstOrNull { it.id == id } }
                         ?: slice.selectedSession ?: slice.userParking,
                     savingAsNewSession = slice.savingParkingAsNewSession,
+                    reviewingDetectionError = slice.parkingCorrectionSessionId != null && slice.parkingCorrectionSessionId == slice.editingParkingId,
+                    correctingParking = slice.correctingParking,
                     releasingReason = slice.releasingReason,
                     isCameraMoving = slice.isCameraMoving,
                     hasPlace = slice.pinHasPlace,

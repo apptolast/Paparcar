@@ -35,6 +35,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlin.time.Clock
 
@@ -267,9 +268,21 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     override fun pendingPromptWindow() = pendingPromptWindow.value
     private val stillParked = MutableStateFlow<com.rndeveloper.paparcar.domain.detection.StillParkedQuestion?>(null)
     override fun stillParkedQuestion() = stillParked.value
-    override fun observeStillParkedQuestion() = stillParked
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    override fun observeStillParkedQuestion(): Flow<com.rndeveloper.paparcar.domain.detection.StillParkedQuestion?> =
+        scenario?.stillParkedQuestionOpen?.flatMapLatest { open ->
+            stillParked.value = if (open) {
+                stillParked.value ?: com.rndeveloper.paparcar.domain.detection.StillParkedQuestion(
+                    geofenceId = "mock-own-parking-fence",
+                    latitude = 40.4236, longitude = -3.7007,
+                    shownAtMs = Clock.System.now().toEpochMilliseconds(),
+                )
+            } else null
+            stillParked
+        } ?: stillParked
     override fun setStillParkedQuestion(question: com.rndeveloper.paparcar.domain.detection.StillParkedQuestion?) {
         stillParked.value = question
+        if (question == null || question.confirmedHereAtMs != null) scenario?.stillParkedQuestionOpen?.value = false
     }
     override fun observePendingPromptWindow(): kotlinx.coroutines.flow.Flow<PendingPromptWindow?> =
         scenario?.promptOpen?.map { open ->

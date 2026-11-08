@@ -39,7 +39,6 @@ import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
 import com.rndeveloper.paparcar.ui.theme.watch
 import com.rndeveloper.paparcar.ui.theme.PapGap
 import org.jetbrains.compose.resources.stringResource
-import paparcar.composeapp.generated.resources.home_parking_correct_title
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_navigate_to_vehicle_cd
 import paparcar.composeapp.generated.resources.home_parking_edit_menu_cd
@@ -248,16 +247,6 @@ internal fun ParkingPeek(
                 style = PapFooterButtonStyle.Filled,
                 modifier = Modifier.fillMaxWidth(),
             )
-            if (parking.spotType == com.rndeveloper.paparcar.domain.model.SpotType.AUTO_DETECTED ||
-                parking.spotType == com.rndeveloper.paparcar.domain.model.SpotType.HOME_GEOFENCE) {
-                Spacer(Modifier.height(ACTIONS_GAP_DP.dp))
-                PapFooterButton(
-                    label = stringResource(Res.string.home_parking_correct_title),
-                    onClick = { onIntent(HomeIntent.OpenParkingCorrection(parking.id)) },
-                    style = PapFooterButtonStyle.Outlined,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
             // Ver el coche — su ficha, su historial, sus figuras. Hasta ahora había que cerrar el
             // modal, cambiar de pestaña y buscar el coche a mano; el modal SABE de qué coche habla.
             // `Outlined` es exactamente lo que `PapFooterButtonStyle` define como la hermana

@@ -67,6 +67,9 @@ class MockScenario {
      *  the response window and the row renders. */
     val promptOpen = MutableStateFlow(false)
 
+    /** Departure question on the real map, independent of the arrival confirmation. */
+    val stillParkedQuestionOpen = MutableStateFlow(false)
+
     /** [UI-APPROXIMATE-PARKING-DRAWS-ITS-DOUBT-001] Turns the seeded session into an AREA instead of
      *  an exact pin, as an honest close leaves it when the end of the trip could not be followed.
      *  Requires [ownParkedSession]. Home then draws the doubt ring around the car and the peek says
@@ -104,6 +107,7 @@ class MockScenario {
         activeVehicleBluetooth.value = false
         sentryAlive.value = true
         promptOpen.value = false
+        stillParkedQuestionOpen.value = false
         approximateParking.value = false
         firstStepsPending.value = false
         isPlus.value = false

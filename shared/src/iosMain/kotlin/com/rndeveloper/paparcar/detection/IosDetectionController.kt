@@ -49,6 +49,8 @@ import com.rndeveloper.paparcar.domain.detection.ExitDeliveryRecords
 import com.rndeveloper.paparcar.domain.detection.OpenDepartureAdjudication
 import com.rndeveloper.paparcar.domain.detection.adjudicateDeparture
 import com.rndeveloper.paparcar.domain.detection.stillParkedPromptsExplainedByDeparture
+import com.rndeveloper.paparcar.domain.detection.stillParkedQuestionMayRepeat
+import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 import com.rndeveloper.paparcar.domain.detection.DepartureProof
 import com.rndeveloper.paparcar.domain.detection.ports.DrivingRouteStore
@@ -131,6 +133,7 @@ class IosDetectionController(
     private val processConfirmedDeparture: ProcessConfirmedDepartureUseCase,
     private val exitDeliveryRecords: ExitDeliveryRecords,
     private val notificationPort: AppNotificationManager,
+    private val appPreferences: AppPreferences,
     private val drivingRouteStore: DrivingRouteStore,
     /** Las vallas del grupo, reconciliadas en la MISMA pasada que las propias.
      *  [DET-A-SHARED-FENCE-FOLLOWS-THE-CAR-001] */
@@ -181,9 +184,7 @@ class IosDetectionController(
          *  wakes all funnel here. [IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001] */
         data class SafetyNetCheck(val source: String) : Command
 
-        /** The user's answer to the still-parked prompt. `departed = true` is a WITNESSED
-         *  departure: the user attests the FACT, never the hour — nothing gets published. */
-        data class StillParkedAnswered(val geofenceId: String, val departed: Boolean) : Command
+
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -239,11 +240,6 @@ class IosDetectionController(
     }
 
     private val wakeMonitors = IosWakeMonitors()
-
-    /** The still-parked prompt's door (notification actions route here). */
-    fun answerStillParked(geofenceId: String, departed: Boolean) {
-        intake.trySend(Command.StillParkedAnswered(geofenceId, departed))
-    }
 
     /** One full mesh tick from an external wake (BGAppRefresh, background launch): reconstruct
      *  the past, then check the present. [IOS-SYNC-A-QUEUE-THAT-DIES-WITH-THE-PROCESS-001] */
@@ -331,7 +327,6 @@ class IosDetectionController(
             is Command.Reconcile -> reconcileRegions(command.source)
             is Command.ReconstructWake -> reconstructStaleArms(command.source)
             is Command.SafetyNetCheck -> runSafetyNetCheck(command.source)
-            is Command.StillParkedAnswered -> handleStillParkedAnswer(command)
         }
     }
 
@@ -751,6 +746,8 @@ class IosDetectionController(
 
         val actions = sessions.mapNotNull { session ->
             val fenceId = session.geofenceId ?: return@mapNotNull null
+            // A human answer also refutes automatic release from the SAME distant-phone evidence.
+            if (!mayReconsiderParking(fenceId)) return@mapNotNull null
             val anchorAt = safetyNetRecords.lastSeenNearCarAtMs(fenceId)
             evaluateSafetyNetCheck(
                 session = session,
@@ -781,7 +778,7 @@ class IosDetectionController(
         val explained = stillParkedPromptsExplainedByDeparture(actions)
         actions.filterIsInstance<SafetyNetAction.PromptStillParked>()
             .filter { it.geofenceId !in explained }
-            .forEach { prompt -> executePrompt(prompt, fix, now) }
+            .forEach { prompt -> executePrompt(prompt, now) }
     }
 
     private suspend fun executeCure(action: SafetyNetAction.CureGeofence, nowMs: Long) {
@@ -838,7 +835,18 @@ class IosDetectionController(
         startTrackingArrivalHandoff()
     }
 
-    private fun executePrompt(action: SafetyNetAction.PromptStillParked, fix: com.rndeveloper.paparcar.domain.model.GpsPoint, nowMs: Long) {
+    private fun mayReconsiderParking(geofenceId: String): Boolean = stillParkedQuestionMayRepeat(
+        appPreferences.stillParkedQuestion(),
+        geofenceId,
+        listOfNotNull(
+            departureEventBus.lastVehicleEnteredAt,
+            exitDeliveryRecords.deliveredAt(geofenceId),
+        ).maxOrNull(),
+    )
+
+    private suspend fun executePrompt(action: SafetyNetAction.PromptStillParked, nowMs: Long) {
+        val parking = userParkingRepository.getActiveSessionByGeofence(action.geofenceId) ?: return
+        if (!mayReconsiderParking(action.geofenceId)) return
         // [DET-A-STILL-PARKED-ASK-MUST-EARN-ITS-INTERRUPTION-001] Same budget, same function, one
         // definition: the window moved to the config and the comparison to `safetyNetAskIsDue`, so
         // the two platforms can no longer drift apart on what "asked recently" means. iOS never had
@@ -847,23 +855,7 @@ class IosDetectionController(
         val lastPromptAt = safetyNetRecords.lastPromptAtMs(action.geofenceId)
         if (!safetyNetAskIsDue(lastPromptAt, nowMs, config.safetyNetAskThrottleMs)) return
         safetyNetRecords.stampPrompt(action.geofenceId, nowMs)
-        notificationPort.showStillParkedPrompt(action.geofenceId, fix.latitude, fix.longitude)
-    }
-
-    private suspend fun handleStillParkedAnswer(command: Command.StillParkedAnswered) {
-        if (!command.departed) return // "still parked" — the dismissal already happened at the handler
-        // Mirror of Android's watchdog-departure handler: the user attests the FACT, never the
-        // HOUR — `publishSpot = false` because an unknown exit time is never a recent one
-        // (freedSpotIsStillThere(exitAtMs = null) is false by definition). Session + fence close.
-        processConfirmedDeparture(
-            geofenceId = command.geofenceId,
-            publishSpot = false,
-            proof = DepartureProof.Witnessed,
-            // The user attests the FACT, never the HOUR — mirror of Android's watchdog handler.
-            departedAtMs = null,
-        ).onFailure { e ->
-            Napier.e("still-parked departure processing failed for ${command.geofenceId.take(8)}", e, tag = TAG)
-        }
+        notificationPort.showStillParkedPrompt(action.geofenceId, parking.location.latitude, parking.location.longitude)
     }
 
     // ── Wake-and-query reconstruction [IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001] ───────────────────

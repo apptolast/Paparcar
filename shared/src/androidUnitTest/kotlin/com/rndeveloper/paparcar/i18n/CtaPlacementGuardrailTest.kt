@@ -103,17 +103,16 @@ class CtaPlacementGuardrailTest {
      */
     @Test
     fun `trip chip and presence notification actions keep their compact labels in every locale`() {
-        val compactKeys = listOf(
-            "home_trip_park_compact",
-            "home_trip_continue_compact",
-            "home_trip_wrong_car_compact",
-            "notif_action_still_here",
-            "notif_action_driving_now",
-            "notif_action_parked_elsewhere",
+        // The departure notification now has TWO answers, rather than three narrow actions.
+        val labelBudgets = mapOf(
+            "home_trip_park_compact" to 14,
+            "home_trip_continue_compact" to 14,
+            "home_trip_wrong_car_compact" to 14,
+            "notif_action_still_here" to 24,
+            "notif_action_review_parking" to 14,
         )
-        val maxChars = 14
         val violations = LOCALE_DIRS.flatMap { locale ->
-            compactKeys.mapNotNull { key ->
+            labelBudgets.mapNotNull { (key, maxChars) ->
                 val label = labelOf(key, locale)
                 when {
                     label.isNullOrBlank() -> "$locale · $key is missing"

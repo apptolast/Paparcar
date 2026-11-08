@@ -1745,6 +1745,65 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             // Two cars parked at once: from the first one's peek, › opens the second — the same
             // gesture as the spot peek, instead of closing this card to hunt for the other marker.
             // [MULTI-PARKING-001] [UI-PEEK-STEPS-BETWEEN-PINS-001]
+            Variant("Home · permanencia en la card (Sí / No)", Placement.Surface) {
+                val parking = FakeData.activeSession.copy(
+                    vehicleId = FakeData.vehicleSedan.id, geofenceId = "gallery-fence",
+                )
+                sheet(HomeState(
+                    vehicles = listOf(FakeData.vehicleSedan),
+                    activeSessions = listOf(parking),
+                    hasCorePermissions = true,
+                    stillParkedQuestion = com.rndeveloper.paparcar.domain.detection.StillParkedQuestion(
+                        requireNotNull(parking.geofenceId),
+                        parking.location.latitude, parking.location.longitude, 1_000L,
+                    ),
+                ))
+            },
+            Variant("Home · permanencia del segundo coche", Placement.Surface) {
+                val parking = FakeData.activeSession.copy(
+                    vehicleId = FakeData.vehicleVan.id, geofenceId = "gallery-second-fence",
+                )
+                sheet(HomeState(
+                    vehicles = listOf(FakeData.vehicleSedan, FakeData.vehicleVan),
+                    activeSessions = listOf(parking),
+                    hasCorePermissions = true,
+                    stillParkedQuestion = com.rndeveloper.paparcar.domain.detection.StillParkedQuestion(
+                        requireNotNull(parking.geofenceId),
+                        parking.location.latitude, parking.location.longitude, 1_000L,
+                    ),
+                ))
+            },
+            Variant("PapSheet · detección incorrecta (en el editor)", Placement.Surface) {
+                val parking = FakeData.activeSession.copy(
+                    vehicleId = FakeData.vehicleSedan.id, spotType = SpotType.AUTO_DETECTED,
+                )
+                peek(HomeState(
+                    mode = HomeMode.AddingParking,
+                    editingParkingId = parking.id,
+                    parkingCorrectionSessionId = parking.id,
+                    activeSessions = listOf(parking),
+                    vehicles = listOf(FakeData.vehicleSedan),
+                    pinCameraLat = sampleGps.latitude,
+                    pinCameraLon = sampleGps.longitude,
+                    cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                ))
+            },
+            Variant("PapSheet · detección incorrecta (procesando)", Placement.Surface) {
+                val parking = FakeData.activeSession.copy(
+                    vehicleId = FakeData.vehicleSedan.id, spotType = SpotType.AUTO_DETECTED,
+                )
+                peek(HomeState(
+                    mode = HomeMode.AddingParking,
+                    editingParkingId = parking.id,
+                    parkingCorrectionSessionId = parking.id,
+                    correctingParking = com.rndeveloper.paparcar.domain.usecase.parking.ParkingCorrection.WRONG_CAR,
+                    activeSessions = listOf(parking),
+                    vehicles = listOf(FakeData.vehicleSedan),
+                    pinCameraLat = sampleGps.latitude,
+                    pinCameraLon = sampleGps.longitude,
+                    cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                ))
+            },
             Variant("PapSheet · 2 coches aparcados, paso al otro (solo ›)", Placement.Surface) {
                 val first = FakeData.activeSession.copy(vehicleId = FakeData.vehicleSedan.id)
                 val second = FakeData.activeSession.copy(

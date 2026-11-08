@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="home_trip_park_compact">Hier parkeren</string>
-    <string name="home_trip_continue_compact">Ik rijd nog</string>
+    <string name="home_trip_continue_compact">Nog niet</string>
     <string name="home_trip_wrong_car_compact">Niet mijn auto</string>
     <string name="home_trip_park_now">Ik heb hier geparkeerd</string>
-    <string name="home_trip_continue">Ik rijd nog</string>
-    <string name="home_parking_correct_title">Detectie corrigeren</string>
-    <string name="home_parking_correct_body">Kies: de rit voortzetten, een rit in een andere auto verwijderen of alleen de locatie corrigeren.</string>
-    <string name="home_parking_wrong_car">Het was niet mijn auto</string>
+    <string name="home_trip_continue">Ik heb niet geparkeerd</string>
+    <string name="home_parking_correct_body">Geef aan wat er is gebeurd. Er wordt geen vrije plek gedeeld.</string>
+    <string name="home_parking_wrong_car">Die rit was niet in mijn auto</string>
     <string name="home_nearby_section_header">In dit gebied</string>
     <string name="zone_alert_in_app">Er is net een plek vrijgekomen in %1$s</string>
     <string name="spot_alert_nearby_in_app">Er is net een plek vrijgekomen bij je in de buurt</string>
@@ -637,9 +636,9 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen → Paparcar �
     <string name="home_det_watch_interrupted_cta">Heractiveren</string>
     <!-- [DET-STOP-BUTTON-001] -->
     <string name="home_det_driving_stop_cta">Niet in mijn auto</string>
-    <string name="home_det_trip_stopped_msg">Detectie gestopt. Deze rit wordt niet als parkeerplaats opgeslagen — tik op ‘Ik rij nu’ wanneer je weer wilt starten.</string>
+    <string name="home_det_trip_stopped_msg">Detectie gestopt. Deze rit wordt niet als parkeren opgeslagen. Gebruik vóór vertrek ‘Rit starten’ om te hervatten.</string>
     <string name="home_det_awaiting_cta_primary">Parkeerplaats markeren</string>
-    <string name="home_det_awaiting_cta_secondary">Ik rij nu</string>
+    <string name="home_det_awaiting_cta_secondary">Rit starten</string>
     <!-- [DET-ASK-STATE-001] -->
     <string name="home_det_ask_title">Heb je geparkeerd?</string>
     <string name="home_det_ask_title_vehicle">Heb je je %1$s geparkeerd?</string>
@@ -647,7 +646,7 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen → Paparcar �
     <string name="home_det_ask_sub_at">Gevraagd om %1$s</string>
     <string name="home_det_ask_sub_at_place">%1$s · gevraagd om %2$s</string>
     <string name="home_det_ask_cta_yes">Ja, geparkeerd</string>
-    <string name="home_det_ask_cta_no">Ik rijd nog</string>
+    <string name="home_det_ask_cta_no">Ik heb niet geparkeerd</string>
     <string name="home_det_ask_eyebrow">Heb je geparkeerd?</string>
     <!-- Pending "where did you leave your car?" nudge row. [DET-NUDGE-PERSIST-001] -->
     <string name="home_nudge_title">Waar heb je je auto achtergelaten?</string>
@@ -1066,7 +1065,7 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen → Paparcar �
     <string name="notif_confirmation_title_vehicle_street">Heb je jouw %1$s geparkeerd op %2$s?</string>
     <string name="notif_confirmation_text">Het lijkt erop dat je hebt geparkeerd. Zullen we de parkeerplaats bevestigen?</string>
     <string name="notif_action_yes_parked">Ja, ik heb geparkeerd</string>
-    <string name="notif_action_no_not_parked">Ik rijd nog</string>
+    <string name="notif_action_no_not_parked">Ik heb niet geparkeerd</string>
     <string name="notif_parking_saved_title">Parkeren opgeslagen</string>
     <string name="notif_parking_saved_text">Uw auto is geparkeerd. Tik om het op de kaart te zien.</string>
     <string name="notif_parking_saved_confirm_title">Voertuig geparkeerd</string>
@@ -1077,10 +1076,8 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen → Paparcar �
     <string name="notif_action_cancel_save">Nee, annuleren</string>
     <string name="notif_confirmation_failed_title">Parkeren niet opgeslagen</string>
     <string name="notif_confirmation_failed_text">Parkeerplaats kon niet worden opgeslagen. Open Paparcar om het opnieuw te proberen.</string>
-    <string name="notif_still_parked_title">Nog steeds hier geparkeerd?</string>
-    <string name="notif_still_parked_text">Deze parkeersessie is nog open. Staat de auto nog hier, ben je aan het rijden of heb je elders geparkeerd?</string>
-    <string name="notif_action_ive_left">Ik ben weg</string>
-    <string name="notif_action_mark_parking">Parkeerplaats markeren</string>
+    <string name="notif_still_parked_title">Staat de auto nog hier geparkeerd?</string>
+    <string name="notif_still_parked_text">Bevestig of je auto nog hier staat wanneer je daar tijd voor hebt.</string>
     <string name="notif_car_link_title">Was deze rit in %1$s?</string>
     <string name="notif_car_link_text">Als het jouw auto is, koppel hem en Paparcar markeert je parkeerplek voortaan vanzelf.</string>
     <string name="notif_car_link_device_fallback">deze auto</string>
@@ -1204,8 +1201,9 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen → Paparcar �
          Vocabulario: es la PLAZA de la comunidad, en singular. [COPY-SPOT-IS-NOT-A-PARKING-001]
          [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001] -->
     <string name="home_peek_spot_subject">Community-plek</string>
-    <string name="notif_action_still_here">Staat nog hier</string>
-    <string name="notif_action_driving_now">Ik rijd</string>
-    <string name="notif_action_parked_elsewhere">Elders</string>
-    <string name="home_parking_wrong_location">De locatie klopt niet</string>
+    <string name="notif_action_still_here">Ja</string>
+    <string name="notif_action_review_parking">Nee</string>
+    <string name="home_still_parked_title_vehicle">Staat %1$s nog hier geparkeerd?</string>
+    <string name="home_parking_false_detection">Dit parkeren heeft niet plaatsgevonden</string>
+    <string name="home_parking_not_parked">Ik had niet geparkeerd</string>
 </resources>

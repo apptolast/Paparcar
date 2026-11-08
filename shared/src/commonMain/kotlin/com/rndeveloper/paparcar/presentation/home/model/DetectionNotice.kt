@@ -7,9 +7,8 @@ package com.rndeveloper.paparcar.presentation.home.model
  * Esta lista es exactamente la de las historias que NO hospeda la card —lo que le pasa al sistema,
  * no a un coche— y eso no es casualidad: es la misma frontera de [DetectionStory.isTheCarsQuestion].
  * Lo que se puede callar es un AVISO; una PREGUNTA no, porque callar una pregunta sin contestarla es
- * perder la respuesta, y las tres preguntas ya traen su propia salida («Descartar», «Sigo
- * conduciendo», «No voy en mi coche»). Ponerle una × a la card del coche habría añadido una cuarta
- * forma de decir que no, indistinguible de las otras tres y sin mecánica detrás.
+ * perder la respuesta. Las preguntas del coche tienen sus propias respuestas; cerrar o mover el
+ * mapa no contesta ninguna de ellas.
  */
 enum class DetectionNotice {
     /** Falta el permiso de ubicación: rompe el mapa y las plazas, no sólo la detección. */
@@ -50,6 +49,7 @@ fun DetectionStory.notice(): DetectionNotice? = when (this) {
         -> null
     }
     is DetectionStory.AwaitingAnswer,
+    is DetectionStory.ReconfirmingParking,
     DetectionStory.PendingAsk,
     DetectionStory.AwaitingFirstPark,
     DetectionStory.Hidden,

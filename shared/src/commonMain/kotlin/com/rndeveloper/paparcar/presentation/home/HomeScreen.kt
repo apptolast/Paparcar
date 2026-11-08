@@ -106,17 +106,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
-import paparcar.composeapp.generated.resources.home_release_dialog_cancel
-import paparcar.composeapp.generated.resources.home_parking_correct_title
-import paparcar.composeapp.generated.resources.home_parking_correct_body
-import paparcar.composeapp.generated.resources.home_trip_continue
-import paparcar.composeapp.generated.resources.home_parking_wrong_car
-import paparcar.composeapp.generated.resources.home_parking_wrong_location
-import paparcar.composeapp.generated.resources.notif_still_parked_title
-import paparcar.composeapp.generated.resources.notif_still_parked_text
-import paparcar.composeapp.generated.resources.notif_action_still_here
-import paparcar.composeapp.generated.resources.notif_action_driving_now
-import paparcar.composeapp.generated.resources.notif_action_parked_elsewhere
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.error_gps_unavailable
 import paparcar.composeapp.generated.resources.error_load_session
@@ -564,62 +553,6 @@ private fun HomeContent(
                 onDismiss = { onIntent(HomeIntent.DismissReleaseDialog) },
             )
 
-            state.stillParkedQuestion?.takeIf { question ->
-                state.mode is HomeMode.Browse && state.promptWindow == null &&
-                    state.correctionDialogSessionId == null && state.releaseDialogSessionId == null &&
-                    state.activeSessions.any { it.geofenceId == question.geofenceId }
-            }?.let { question ->
-                var hidden by rememberSaveable(question.shownAtMs) { mutableStateOf(false) }
-                if (!hidden) PapAlertDialog(
-                    onDismiss = { hidden = true },
-                    icon = Icons.Rounded.Sensors,
-                    title = stringResource(Res.string.notif_still_parked_title),
-                    body = stringResource(Res.string.notif_still_parked_text),
-                    primaryLabel = stringResource(Res.string.notif_action_still_here),
-                    onPrimary = { onIntent(HomeIntent.AnswerStillParked(question,
-                        com.rndeveloper.paparcar.domain.detection.StillParkedAnswer.HERE)) },
-                    secondaryLabel = stringResource(Res.string.notif_action_driving_now),
-                    onSecondary = { onIntent(HomeIntent.AnswerStillParked(question,
-                        com.rndeveloper.paparcar.domain.detection.StillParkedAnswer.DRIVING)) },
-                    tertiaryLabel = stringResource(Res.string.notif_action_parked_elsewhere),
-                    onTertiary = { onIntent(HomeIntent.AnswerStillParked(question,
-                        com.rndeveloper.paparcar.domain.detection.StillParkedAnswer.ELSEWHERE)) },
-                    cancelLabel = stringResource(Res.string.home_release_dialog_cancel),
-                )
-            }
-
-            state.correctionDialogSessionId?.let { sessionId ->
-                val correction = state.correctingParking
-                PapAlertDialog(
-                    onDismiss = { onIntent(HomeIntent.DismissParkingCorrection) },
-                    icon = Icons.Rounded.Sensors,
-                    title = stringResource(Res.string.home_parking_correct_title),
-                    body = stringResource(Res.string.home_parking_correct_body),
-                    primaryLabel = stringResource(Res.string.home_trip_continue),
-                    primaryEnabled = state.activeSessions.any { it.id == sessionId && it.vehicleId != null },
-                    onPrimary = {
-                        onIntent(HomeIntent.CorrectParking(sessionId,
-                            com.rndeveloper.paparcar.domain.usecase.parking.ParkingCorrection.CONTINUE_TRIP))
-                    },
-                    cancelLabel = stringResource(Res.string.home_release_dialog_cancel),
-                    tertiaryLabel = stringResource(Res.string.home_parking_wrong_location),
-                    onTertiary = { onIntent(HomeIntent.CorrectParkingLocation(sessionId)) },
-                    secondaryLabel = stringResource(Res.string.home_parking_wrong_car),
-                    secondaryAccent = com.rndeveloper.paparcar.ui.components.PapDialogAccent.Neutral,
-                    onSecondary = {
-                        onIntent(HomeIntent.CorrectParking(sessionId,
-                            com.rndeveloper.paparcar.domain.usecase.parking.ParkingCorrection.WRONG_CAR))
-                    },
-                    loadingAction = when (correction) {
-                        com.rndeveloper.paparcar.domain.usecase.parking.ParkingCorrection.CONTINUE_TRIP ->
-                            com.rndeveloper.paparcar.ui.components.PapDialogAction.Primary
-                        com.rndeveloper.paparcar.domain.usecase.parking.ParkingCorrection.WRONG_CAR ->
-                            com.rndeveloper.paparcar.ui.components.PapDialogAction.Secondary
-                        null -> null
-                    },
-                )
-            }
-
             // One-time pitch of the star feature, fired right after the first-entry location grant
             // on the map. Not the old guilt dialog: declining is one tap and never comes back — the
             // banner and the checklist keep owning the ask. [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
@@ -758,7 +691,7 @@ private fun HomeContent(
                     // is at the top. [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001]
                     lazyListState = lazyListState,
                     // [DET-ASK-STATE-001] The open question opens the sheet on its own, once.
-                    promptShownAtMs = state.promptWindow?.shownAtMs,
+                    promptShownAtMs = browseSlice.questionShownAtMs,
                     // [ONBOARDING-FIRST-STEPS-MUST-BE-READABLE-AND-FOUND-001] So does the guided
                     // checklist — otherwise the tutorial only exists for a user who already knows
                     // to drag the sheet up. Same gate the card itself renders from, and it covers

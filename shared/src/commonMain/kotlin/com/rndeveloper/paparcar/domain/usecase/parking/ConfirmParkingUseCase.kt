@@ -36,6 +36,7 @@ import com.rndeveloper.paparcar.domain.service.GeofenceRegistrationException
 import com.rndeveloper.paparcar.domain.service.ParkingEnrichmentScheduler
 import com.rndeveloper.paparcar.domain.service.ParkingSyncScheduler
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
+import kotlinx.coroutines.CancellationException
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -486,22 +487,24 @@ class ConfirmParkingUseCase(
         // [DET-NUDGE-PERSIST-001]
         appPreferences?.clearPendingParkNudge()
 
-        // [NOTIF-A-FLOW-SPEAKS-THROUGH-ONE-SLOT-001] …and the TRAY, which the line above did not.
-        // The claim that used to sit here — *"the tray notification is dismissed by Home's reactive
-        // janitor / the nudge's own auto-cancel"* — was false in the only case that matters: the
-        // janitor is `HomeViewModel`, so it needs Home alive, and auto-cancel needs the user to TAP
-        // the card. A park confirmed in the background therefore left "¿dónde dejaste el coche?"
-        // sitting in the tray next to its own answer (field 2026-09-22, issue #132).
-        //
-        // ⛔ This does not break "notifications are the caller's responsibility" (see the KDoc):
-        // nothing is SHOWN here. What is switched off is the two questions this very success has
-        // just made untrue — the nudge asking where the car is, and "¿sigues aparcado aquí?" asking
-        // about a session that is now closed. A statement outliving its truth is the defect.
-        notificationPort?.let { port ->
-            runCatching {
-                port.dismiss(AppNotificationManager.MARK_PARKING_NUDGE_NOTIFICATION_ID)
-                port.dismiss(AppNotificationManager.STILL_PARKED_NOTIFICATION_ID)
-            }.onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ stale-card dismiss failed (continuing)", e) }
+        // Retire only the questions this save resolved. Another car's saved parking can still
+        // be in doubt; saving this one must not erase that question or its notification.
+        try {
+            notificationPort?.dismiss(AppNotificationManager.MARK_PARKING_NUDGE_NOTIFICATION_ID)
+            val question = appPreferences?.stillParkedQuestion()
+            val questionedParking = question?.let {
+                userParkingRepository.getActiveSessionByGeofence(it.geofenceId)
+            }
+            if (appPreferences?.stillParkedQuestion() == question &&
+                (question == null || questionedParking == null || questionedParking.vehicleId == resolvedVehicleId)
+            ) {
+                appPreferences?.setStillParkedQuestion(null)
+                notificationPort?.dismiss(AppNotificationManager.STILL_PARKED_NOTIFICATION_ID)
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            PaparcarLogger.w(DIAG, "  ⚠ stale-card dismiss failed (continuing)", e)
         }
 
         PaparcarLogger.d(DIAG, "■ ConfirmParking.invoke SUCCESS (notif is caller's responsibility)")

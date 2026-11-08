@@ -4,6 +4,9 @@ package com.rndeveloper.paparcar.domain.usecase.parking
 
 import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
 import com.rndeveloper.paparcar.domain.detection.ArmLabel
+import com.rndeveloper.paparcar.domain.detection.StillParkedQuestion
+import com.rndeveloper.paparcar.domain.model.UserParking
+import com.rndeveloper.paparcar.fakes.FakeAppPreferences
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 import com.rndeveloper.paparcar.domain.model.SpotType
@@ -687,6 +690,42 @@ class ConfirmParkingUseCaseTest {
         override fun enqueueDeleteVehicleRemote(vehicleId: String) {}
     }
 
+    @Test
+    fun should_keep_another_cars_question_when_a_different_car_parks() = runTest {
+        val other = UserParking(id = "other-parking", vehicleId = "v-2", location = location, geofenceId = "other-fence")
+        val repo = FakeUserParkingRepository(initialSession = other)
+        val question = StillParkedQuestion(other.geofenceId!!, location.latitude, location.longitude, 1_000L)
+        val preferences = FakeAppPreferences().apply { setStillParkedQuestion(question) }
+        val notification = FakeAppNotificationManager()
+
+        val result = buildUseCase(repo = repo, notification = notification, preferences = preferences)(
+            location, detectionReliability = 1f, spotType = SpotType.MANUAL_REPORT, sealPoint = null,
+        )
+
+        assertTrue(result.isSuccess)
+        assertEquals(question, preferences.stillParkedQuestion())
+        assertEquals(other, repo.getSessionById(other.id))
+        assertFalse(AppNotificationManager.STILL_PARKED_NOTIFICATION_ID in notification.dismissedIds)
+    }
+
+    @Test
+    fun should_retire_the_previous_parking_question_when_the_same_car_parks_again() = runTest {
+        val old = UserParking(id = "old", vehicleId = defaultVehicle.id, location = location, geofenceId = "old-fence")
+        val repo = FakeUserParkingRepository(initialSession = old)
+        val question = StillParkedQuestion(old.geofenceId!!, location.latitude, location.longitude, 1_000L)
+        val preferences = FakeAppPreferences().apply { setStillParkedQuestion(question) }
+        val notification = FakeAppNotificationManager()
+
+        val result = buildUseCase(repo = repo, notification = notification, preferences = preferences)(
+            location, detectionReliability = 1f, spotType = SpotType.MANUAL_REPORT, sealPoint = null,
+        )
+
+        assertTrue(result.isSuccess)
+        assertNull(preferences.stillParkedQuestion())
+        assertTrue(AppNotificationManager.STILL_PARKED_NOTIFICATION_ID in notification.dismissedIds)
+        assertFalse(assertNotNull(repo.getSessionById(old.id)).isActive)
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun buildUseCase(
@@ -702,6 +741,7 @@ class ConfirmParkingUseCaseTest {
         routeStore: DrivingRouteStore? = null,
         tracker: FakeAnalyticsTracker? = null,
         logger: FakeDetectionEventLogger? = null,
+        preferences: FakeAppPreferences? = null,
     ) = ConfirmParkingUseCase(
         userParkingRepository = repo,
         vehicleRepository = vehicles,
@@ -711,6 +751,7 @@ class ConfirmParkingUseCaseTest {
         authRepository = auth,
         config = config,
         departureEventBus = bus,
+        appPreferences = preferences,
         parkingSyncScheduler = scheduler,
         drivingRouteStore = routeStore,
         analyticsTracker = tracker,

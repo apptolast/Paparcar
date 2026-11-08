@@ -66,6 +66,7 @@ fun DevCatalogScreen(
     val sentryAlive by scenario.sentryAlive.collectAsStateWithLifecycle()
     val approximate by scenario.approximateParking.collectAsStateWithLifecycle()
     val firstStepsPending by scenario.firstStepsPending.collectAsStateWithLifecycle()
+    val stillParkedQuestionOpen by scenario.stillParkedQuestionOpen.collectAsStateWithLifecycle()
     val isPlus by scenario.isPlus.collectAsStateWithLifecycle()
     // Shared detection runtime — toggling it simulates an in-progress trip in the real Home (moving
     // driving puck + "Conduciendo" chip + camera follow), no real drive needed. [DRIVE-SIM-001]
@@ -143,6 +144,10 @@ fun DevCatalogScreen(
             // [DET-WATCH-HONEST-001] Kill the resident watcher (simulate the OEM) → badge flips to
             // "Vigilancia detenida" on a parked Coordinator car. Combine with OEM agresivo + tier≠All for
             // the "frágil" variant (alive but at risk).
+            SwitchRow("Pregunta: ¿sigue aparcado aquí?", stillParkedQuestionOpen) { on ->
+                if (on) scenario.ownParkedSession.value = true
+                scenario.stillParkedQuestionOpen.value = on
+            }
             SwitchRow("Centinela vivo (FGS activo)", sentryAlive) { on ->
                 scenario.sentryAlive.value = on
                 runtime.setPresence(if (on && scenario.ownParkedSession.value) ServicePresence.Sentry else ServicePresence.Dead)
@@ -260,6 +265,14 @@ fun DevCatalogScreen(
             // [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] Usuario recién llegado: coche
             // registrado, permisos concedidos, nada aparcado todavía. Es el estado exacto en el que
             // el checklist pide el paso 1 y el foco del pin aparece al entrar en "Marcar aparcamiento".
+            PresetButton("Aparcado · pregunta de permanencia sobre el mapa") {
+                scenario.reset()
+                runtime.setRunning(false)
+                scenario.ownParkedSession.value = true
+                scenario.stillParkedQuestionOpen.value = true
+                runtime.setPresence(ServicePresence.Sentry)
+                onEnter()
+            }
             PresetButton("Usuario nuevo · primeros pasos") {
                 scenario.reset(); scenario.firstStepsPending.value = true
                 runtime.setPresence(ServicePresence.Dead); onEnter()

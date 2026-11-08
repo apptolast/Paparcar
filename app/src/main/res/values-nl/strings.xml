@@ -15,7 +15,7 @@
     <string name="notif_action_yes_parked">Ja, ik heb geparkeerd</string>
     <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->
     <string name="notif_action_stop_detection">Niet in mijn auto</string>
-    <string name="notif_action_no_not_parked">Ik rijd nog</string>
+    <string name="notif_action_no_not_parked">Ik heb niet geparkeerd</string>
 
     <!-- Melding: parkeren opgeslagen -->
     <string name="notif_parking_saved_title">Parkeren opgeslagen</string>
@@ -53,8 +53,8 @@
     <string name="attribution_detection_label">Parkeerdetectie</string>
 
     <!-- Notificatie: watchdog "nog geparkeerd?" (mogelijk gemiste geofence-uitgang) -->
-    <string name="notif_still_parked_title">Nog steeds hier geparkeerd?</string>
-    <string name="notif_still_parked_text">Deze parkeersessie is nog open. Staat de auto nog hier, ben je aan het rijden of heb je elders geparkeerd?</string>
+    <string name="notif_still_parked_title">Staat de auto nog hier geparkeerd?</string>
+    <string name="notif_still_parked_text">Bevestig of je auto nog hier staat wanneer je daar tijd voor hebt.</string>
     <!-- DET-TOGGLE-002: cold-start nudge -->
     <string name="notif_first_park_nudge_title">Parkeer één keer om detectie te starten</string>
     <string name="notif_first_park_nudge_text">Parkeer één keer met Paparcar; daarna geven we je plek automatisch vrij bij elk vertrek.</string>
@@ -63,8 +63,6 @@
     <string name="notif_mark_parking_title">Waar heb je je auto achtergelaten?</string>
     <string name="notif_mark_parking_text">We hebben gemerkt dat je je hebt verplaatst, maar konden niet vaststellen waar je auto is gebleven. Markeer de parkeerplaats zodat je hem niet kwijtraakt.</string>
     <string name="notif_mark_parking_action">Parkeerplaats markeren</string>
-    <string name="notif_action_ive_left">Ik ben weg</string>
-    <string name="notif_action_mark_parking">Parkeerplaats markeren</string>
     <string name="notif_car_link_title">Was deze rit in %1$s?</string>
     <string name="notif_car_link_text">Als het jouw auto is, koppel hem en Paparcar markeert je parkeerplek voortaan vanzelf.</string>
     <string name="notif_car_link_device_fallback">deze auto</string>
@@ -131,7 +129,6 @@
     <string name="notif_bt_saved_text">Automatisch opgeslagen. Je kunt de parkeerplek bekijken of corrigeren.</string>
     <string name="notif_action_view_parking">Bekijken</string>
     <string name="notif_action_correct_parking">Corrigeren</string>
-    <string name="notif_action_still_here">Staat nog hier</string>
-    <string name="notif_action_driving_now">Ik rijd</string>
-    <string name="notif_action_parked_elsewhere">Elders</string>
+    <string name="notif_action_still_here">Ja</string>
+    <string name="notif_action_review_parking">Nee</string>
 </resources>

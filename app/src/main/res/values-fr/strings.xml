@@ -15,7 +15,7 @@
     <string name="notif_action_yes_parked">Oui, je me suis garé</string>
     <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->
     <string name="notif_action_stop_detection">Pas dans ma voiture</string>
-    <string name="notif_action_no_not_parked">Je conduis encore</string>
+    <string name="notif_action_no_not_parked">Je ne me suis pas garé</string>
 
     <!-- Notification : stationnement enregistré -->
     <string name="notif_parking_saved_title">Stationnement enregistré</string>
@@ -53,8 +53,8 @@
     <string name="attribution_detection_label">Détection de stationnement</string>
 
     <!-- Notification : watchdog « toujours garé ? » (sortie de géofence probablement manquée) -->
-    <string name="notif_still_parked_title">Toujours garé ici ?</string>
-    <string name="notif_still_parked_text">Ce stationnement est toujours ouvert. La voiture est-elle encore ici, conduisez-vous ou avez-vous stationné ailleurs ?</string>
+    <string name="notif_still_parked_title">La voiture est-elle toujours garée ici ?</string>
+    <string name="notif_still_parked_text">Confirmez si votre voiture est toujours ici quand vous pouvez le faire.</string>
     <!-- DET-TOGGLE-002: cold-start nudge -->
     <string name="notif_first_park_nudge_title">Garez-vous une fois pour activer la détection</string>
     <string name="notif_first_park_nudge_text">Garez-vous une fois avec Paparcar ; ensuite nous libérons votre place automatiquement à chaque départ.</string>
@@ -63,8 +63,6 @@
     <string name="notif_mark_parking_title">Où avez-vous laissé votre voiture ?</string>
     <string name="notif_mark_parking_text">Nous avons détecté un déplacement, mais nous n\'avons pas pu déterminer où est restée votre voiture. Marquez le stationnement pour ne pas le perdre.</string>
     <string name="notif_mark_parking_action">Marquer le stationnement</string>
-    <string name="notif_action_ive_left">Je suis parti</string>
-    <string name="notif_action_mark_parking">Marquer le stationnement</string>
     <string name="notif_car_link_title">Ce trajet était-il dans %1$s ?</string>
     <string name="notif_car_link_text">Si c\'est ta voiture, associe-la et Paparcar marquera ton stationnement tout seul désormais.</string>
     <string name="notif_car_link_device_fallback">cette voiture</string>
@@ -131,7 +129,6 @@
     <string name="notif_bt_saved_text">Enregistré automatiquement. Vous pouvez voir ou corriger le stationnement.</string>
     <string name="notif_action_view_parking">Voir</string>
     <string name="notif_action_correct_parking">Corriger</string>
-    <string name="notif_action_still_here">Toujours ici</string>
-    <string name="notif_action_driving_now">Je conduis</string>
-    <string name="notif_action_parked_elsewhere">Ailleurs</string>
+    <string name="notif_action_still_here">Oui</string>
+    <string name="notif_action_review_parking">Non</string>
 </resources>

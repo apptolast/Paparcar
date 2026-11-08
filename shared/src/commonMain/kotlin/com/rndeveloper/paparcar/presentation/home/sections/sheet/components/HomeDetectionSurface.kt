@@ -41,6 +41,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.presentation.home.model.DetectionStory
+import com.rndeveloper.paparcar.domain.detection.StillParkedQuestion
+import paparcar.composeapp.generated.resources.home_still_parked_title_vehicle
+import paparcar.composeapp.generated.resources.notif_still_parked_title
+import paparcar.composeapp.generated.resources.notif_action_still_here
+import paparcar.composeapp.generated.resources.notif_action_review_parking
+import paparcar.composeapp.generated.resources.location_fallback_parking
 import com.rndeveloper.paparcar.presentation.home.model.ParkedWatchBadge
 import com.rndeveloper.paparcar.presentation.util.formatClockTime
 import com.rndeveloper.paparcar.ui.theme.PapBorders
@@ -120,7 +126,9 @@ fun HomeDetectionSurface(
      *  the tray notification's buttons send. Default no-ops so previews/callers that don't wire them
      *  don't break. */
     onAnswerParked: () -> Unit = {},
-    onAnswerStillDriving: () -> Unit = {},
+    onAnswerNotParked: () -> Unit = {},
+    onConfirmStillParked: (StillParkedQuestion) -> Unit = {},
+    onReviewStillParked: (StillParkedQuestion) -> Unit = {},
     /** [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Frame the place the question is about. */
     onFocusAsk: (GpsPoint) -> Unit = {},
     /** Fire the battery-optimization exemption request from the FRAGILE watch row — the setup whose
@@ -217,8 +225,8 @@ fun HomeDetectionSurface(
             primaryLabel = stringResource(Res.string.home_det_ask_cta_yes),
             onPrimary = onAnswerParked,
             secondaryLabel = stringResource(Res.string.home_det_ask_cta_no),
-            onSecondary = onAnswerStillDriving,
-            secondaryIsDecline = true,
+            onSecondary = onAnswerNotParked,
+            equalAnswers = true,
             // Tapping the CARD frames the place on the map. Not a button: a third control in a
             // yes/no row would rank "ver" alongside two answers it is not equal to, and the badge
             // glyph is a ~24 dp target nobody finds. Looking is NOT answering — this must never
@@ -228,6 +236,26 @@ fun HomeDetectionSurface(
             embedded = embedded,
             embeddedLeading = embeddedLeading,
             )
+
+        is DetectionStory.ReconfirmingParking -> ActionRow(
+            tone = identityTone(story.watch),
+            icon = Icons.Rounded.DirectionsCar,
+            title = story.vehicleName.takeIf { it.isNotBlank() }?.let {
+                stringResource(Res.string.home_still_parked_title_vehicle, it)
+            } ?: stringResource(Res.string.notif_still_parked_title),
+            subtitle = story.parking.placeInfo?.name
+                ?: story.parking.address?.displayLine
+                ?: stringResource(Res.string.location_fallback_parking),
+            primaryLabel = stringResource(Res.string.notif_action_still_here),
+            onPrimary = { onConfirmStillParked(story.question) },
+            secondaryLabel = stringResource(Res.string.notif_action_review_parking),
+            onSecondary = { onReviewStillParked(story.question) },
+            equalAnswers = true,
+            onClick = { onFocusAsk(story.parking.location) },
+            modifier = modifier,
+            embedded = embedded,
+            embeddedLeading = embeddedLeading,
+        )
 
         // [DET-NUDGE-PERSIST-001] The older, deadline-less ask: a parking record we could not place.
         DetectionStory.PendingAsk -> ActionRow(
@@ -395,15 +423,8 @@ private fun ActionRow(
      *  de pasar nada — que es lo que falló cuando un copy corto se volvió una frase.
      *  [UI-A-PILL-IS-FOR-A-LABEL-NOT-A-SENTENCE-002] */
     primaryStacksBelow: Boolean = false,
-    /**
-     * The secondary CTA is the NEGATIVE ANSWER to the title's question, not a second action — so it
-     * drops the accent tint and reads as the quiet way out. [DET-ASK-STATE-001]
-     *
-     * Off by default because the other two-CTA row (the cold start: "mark my spot" / "I'm driving")
-     * offers two real actions, and there the shared tone is right — neither is a refusal of the
-     * other. This flag names the SEMANTICS, not the colour: only a yes/no answer sets it.
-     */
-    secondaryIsDecline: Boolean = false,
+    /** Equivalent answers share the primary treatment. Other rows retain their action hierarchy. */
+    equalAnswers: Boolean = false,
     /**
      * [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Optional whole-card tap, for rows whose content
      * is ABOUT a place the map can show. Null (the default) leaves the card inert, so no existing
@@ -596,18 +617,8 @@ private fun ActionRow(
                     val secondaryPill: @Composable (Modifier) -> Unit = { pillModifier ->
                         PapCtaPill(
                             label = secondaryLabel,
-                            // A refusal wears no brand colour: green is action, and declining is
-                            // not the action we are offering. [UI-COLOR-DOCTRINE-001]
-                            container = if (secondaryIsDecline) {
-                                MaterialTheme.colorScheme.surfaceContainerHighest
-                            } else {
-                                tone.container
-                            },
-                            content = if (secondaryIsDecline) {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            } else {
-                                tone.onContainer
-                            },
+                            container = if (equalAnswers) MaterialTheme.colorScheme.primary else tone.container,
+                            content = if (equalAnswers) MaterialTheme.colorScheme.onPrimary else tone.onContainer,
                             onClick = onSecondary,
                             modifier = pillModifier,
                             fillWidth = true,
@@ -616,8 +627,8 @@ private fun ActionRow(
                     val primaryPill: @Composable (Modifier) -> Unit = { pillModifier ->
                         PapCtaPill(
                             label = primaryLabel,
-                            container = tone.accent,
-                            content = tone.onAccent,
+                            container = if (equalAnswers) MaterialTheme.colorScheme.primary else tone.accent,
+                            content = if (equalAnswers) MaterialTheme.colorScheme.onPrimary else tone.onAccent,
                             onClick = onPrimary,
                             modifier = pillModifier,
                             fillWidth = true,

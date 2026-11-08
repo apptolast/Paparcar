@@ -24,6 +24,10 @@ import com.rndeveloper.paparcar.presentation.home.model.homeAwaitsLocationAnswer
 import com.rndeveloper.paparcar.presentation.home.model.homeHasNoLocation
 import com.rndeveloper.paparcar.presentation.home.model.DetectionNotice
 import com.rndeveloper.paparcar.presentation.home.model.DetectionUiState
+import com.rndeveloper.paparcar.presentation.home.model.DetectionStory
+import com.rndeveloper.paparcar.presentation.home.model.resolveDetectionStory
+import com.rndeveloper.paparcar.presentation.home.model.silencedBy
+import com.rndeveloper.paparcar.domain.onboarding.FirstStepsOwnership
 import com.rndeveloper.paparcar.presentation.home.model.ParkedWatchBadge
 import com.rndeveloper.paparcar.presentation.util.PlaceLine
 import com.rndeveloper.paparcar.presentation.util.secondaryPlaceLine
@@ -273,6 +277,8 @@ data class HomePeekSlice(
     val savingParkingAsNewSession: Boolean?,
     /** Non-null while a release runs — the edit peek's "delete record" confirm spins on it. */
     val releasingReason: ParkingReleaseReason?,
+    val parkingCorrectionSessionId: String?,
+    val correctingParking: com.rndeveloper.paparcar.domain.usecase.parking.ParkingCorrection?,
     val editingParkingId: String?,
     val addingParkingVehicleId: String?,
     /** [DET-NUDGE-PIN-PROVENANCE-001] True when the open AddingParking came from a detection
@@ -372,6 +378,7 @@ data class HomeBrowseListSlice(
     val showParkNudge: Boolean,
     /** [DET-ASK-STATE-001] The open, still-answerable "did you park?" question, or null. */
     val promptWindow: PendingPromptWindow?,
+    val stillParkedQuestion: com.rndeveloper.paparcar.domain.detection.StillParkedQuestion?,
     /** Vehicle the pending nudge asks about (pre-targets the mark-spot flow), or null. */
     val parkNudgeVehicleId: String?,
     val hasCorePermissions: Boolean,
@@ -456,6 +463,25 @@ data class HomeBrowseListSlice(
      */
     val showsFirstSteps: Boolean
         get() = firstSteps.isVisible && vehicleCards.isNotEmpty()
+
+    /** One projection owns the card content and the sheet-opening cue. */
+    val detectionStory: DetectionStory
+        get() = resolveDetectionStory(
+            detectionUiState, vehicleCards, parkedWatchBadge,
+            promptWindow = promptWindow,
+            stillParkedQuestion = stillParkedQuestion,
+            showParkNudge = showParkNudge,
+            firstStepsOwns = if (showsFirstSteps) firstSteps.owns else FirstStepsOwnership.NOTHING,
+            carCardSaysTheWatch = vehicleCards.isNotEmpty(),
+            locationAskPending = locationAskPending,
+        ).silencedBy(silencedNotices)
+
+    val questionShownAtMs: Long?
+        get() = when (val story = detectionStory) {
+            is DetectionStory.AwaitingAnswer -> story.window.shownAtMs
+            is DetectionStory.ReconfirmingParking -> story.question.shownAtMs
+            else -> null
+        }
 
     /**
      * WHAT the checklist has to show right now, as a key — or null when it is not on screen.
@@ -641,6 +667,8 @@ fun HomeState.toPeekSlice(): HomePeekSlice {
         editingZoneId = editingZoneId,
         savingParkingAsNewSession = savingParkingAsNewSession,
         releasingReason = releasingReason,
+        parkingCorrectionSessionId = parkingCorrectionSessionId,
+        correctingParking = correctingParking,
         editingParkingId = editingParkingId,
         addingParkingVehicleId = addingParkingVehicleId,
         addingParkingFromDetectionNudge = addingParkingNudgeSource != null,
@@ -678,6 +706,7 @@ fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
     showParkNudge = shouldShowParkNudgeBanner(pendingParkNudge, activeSessions),
     parkNudgeVehicleId = pendingParkNudge?.vehicleId,
     promptWindow = promptWindow,
+    stillParkedQuestion = stillParkedQuestion,
     hasCorePermissions = hasCorePermissions,
     locationAskPending = homeAwaitsLocationAnswer(
         hasCorePermissions, locationEverAsked, locationAnswerInFlight,

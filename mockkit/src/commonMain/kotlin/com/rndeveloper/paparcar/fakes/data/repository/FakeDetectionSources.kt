@@ -90,16 +90,6 @@ class FakeManualParkingDetection(
         promptAnswerIds += shownAtMs
         answerPrompt(parked)
     }
-    val stillParkedAnswers = mutableListOf<Pair<com.rndeveloper.paparcar.domain.detection.StillParkedQuestion,
-        com.rndeveloper.paparcar.domain.detection.StillParkedAnswer>>()
-    override fun answerStillParked(
-        question: com.rndeveloper.paparcar.domain.detection.StillParkedQuestion,
-        answer: com.rndeveloper.paparcar.domain.detection.StillParkedAnswer,
-    ): Boolean {
-        stillParkedAnswers += question to answer
-        return true
-    }
-
     /** Mirrors the coordinator: declining a candidate keeps the trip running. */
     override fun answerPrompt(parked: Boolean) {
         promptAnswers += parked

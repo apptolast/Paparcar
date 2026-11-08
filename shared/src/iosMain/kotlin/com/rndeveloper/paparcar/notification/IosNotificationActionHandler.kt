@@ -3,6 +3,7 @@
 package com.rndeveloper.paparcar.notification
 
 import com.rndeveloper.paparcar.domain.detection.CoordinatorParkingDetector
+import com.rndeveloper.paparcar.domain.detection.isCurrentFor
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 import com.rndeveloper.paparcar.domain.usecase.parking.RevertParkingUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
@@ -34,10 +35,10 @@ class IosNotificationActionHandler(
     private val coordinator: CoordinatorParkingDetector,
     private val revertParkingUseCase: RevertParkingUseCase,
     private val notificationPort: AppNotificationManager,
-    /** [IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001] The still-parked prompt's answers go to the
-     *  orchestrator: "I drove away" is a WITNESSED departure (the user attests the fact, never
-     *  the hour — nothing gets published), "Still parked" just dismisses. */
-    private val controller: com.rndeveloper.paparcar.detection.IosDetectionController,
+    /** Ratifying a saved parking shares the same guarded operation as Home and Android. */
+    private val confirmStillParked: com.rndeveloper.paparcar.domain.usecase.parking.ConfirmStillParkedUseCase,
+    private val preferences: com.rndeveloper.paparcar.domain.preferences.AppPreferences,
+    private val startAddParking: com.rndeveloper.paparcar.domain.event.StartAddParkingEventBus,
     /** [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] "Yes, this is my car" writes the observed MAC
      *  onto the vehicle, the same one-shot Settings uses on Android. */
     private val vehicleRepository: com.rndeveloper.paparcar.domain.repository.VehicleRepository,
@@ -69,19 +70,32 @@ class IosNotificationActionHandler(
                     scope.launch { revertParkingUseCase(parkingId) }
                 }
             }
-            IosAppNotificationManagerImpl.ACTION_DEPARTED -> {
-                val geofenceId = didReceiveNotificationResponse.notification.request.content
-                    .userInfo[IosAppNotificationManagerImpl.EXTRA_GEOFENCE_ID] as? String
-                if (geofenceId == null) {
-                    PaparcarLogger.w(TAG, "ACTION_DEPARTED missing geofenceId in userInfo")
-                } else {
-                    controller.answerStillParked(geofenceId, departed = true)
+            IosAppNotificationManagerImpl.ACTION_STILL_HERE,
+            IosAppNotificationManagerImpl.ACTION_DEPARTED,
+            IosAppNotificationManagerImpl.ACTION_MARK_PARKING,
+            -> {
+                val info = didReceiveNotificationResponse.notification.request.content.userInfo
+                val geofenceId = info[IosAppNotificationManagerImpl.EXTRA_GEOFENCE_ID] as? String
+                val shownAtMs = (info[IosAppNotificationManagerImpl.EXTRA_QUESTION_AT] as? String)?.toLongOrNull()
+                val question = preferences.stillParkedQuestion()?.takeIf {
+                    it.isCurrentFor(geofenceId, shownAtMs)
                 }
-                notificationPort.dismiss(AppNotificationManager.STILL_PARKED_NOTIFICATION_ID)
+                if (question != null) {
+                    if (actionId == IosAppNotificationManagerImpl.ACTION_STILL_HERE) {
+                        scope.launch {
+                            confirmStillParked(question).onFailure {
+                                PaparcarLogger.w(TAG, "Could not ratify the saved parking", it)
+                                notificationPort.showConfirmationFailed()
+                            }
+                        }
+                    } else {
+                        startAddParking.request(
+                            fromDetectionNudge = false, geofenceId = question.geofenceId,
+                            questionShownAtMs = question.shownAtMs,
+                        )
+                    }
+                }
             }
-            IosAppNotificationManagerImpl.ACTION_MARK_PARKING ->
-                // Foreground action: iOS opens the app; marking the park is the user's next tap.
-                notificationPort.dismiss(AppNotificationManager.STILL_PARKED_NOTIFICATION_ID)
             IosAppNotificationManagerImpl.ACTION_LINK_CAR -> {
                 // [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] Background write of the framed MAC.
                 val info = didReceiveNotificationResponse.notification.request.content.userInfo

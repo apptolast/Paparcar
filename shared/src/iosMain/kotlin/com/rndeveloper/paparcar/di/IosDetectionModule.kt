@@ -81,6 +81,7 @@ val iosDetectionModule = module {
             processConfirmedDeparture = get(),
             exitDeliveryRecords = get(),
             notificationPort = get(),
+            appPreferences = get(),
             drivingRouteStore = get(),
             sharedCarFenceReconciler = get(),
             authRepository = get(),

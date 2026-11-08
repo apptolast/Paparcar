@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="home_trip_park_compact">Parkuj tutaj</string>
-    <string name="home_trip_continue_compact">Jadę dalej</string>
+    <string name="home_trip_continue_compact">Nie</string>
     <string name="home_trip_wrong_car_compact">Nie moje auto</string>
     <string name="home_trip_park_now">Tu zaparkowano</string>
-    <string name="home_trip_continue">Nadal jadę</string>
-    <string name="home_parking_correct_title">Popraw wykrycie</string>
-    <string name="home_parking_correct_body">Wybierz: kontynuuj podróż, usuń podróż innym autem lub popraw tylko lokalizację.</string>
-    <string name="home_parking_wrong_car">To nie było moje auto</string>
+    <string name="home_trip_continue">Nie zaparkowano</string>
+    <string name="home_parking_correct_body">Wskaż, co się stało. Żadne wolne miejsce nie zostanie udostępnione.</string>
+    <string name="home_parking_wrong_car">Ta podróż nie była moim autem</string>
     <string name="home_nearby_section_header">W tej okolicy</string>
     <string name="zone_alert_in_app">W %1$s właśnie zwolniło się miejsce</string>
     <string name="spot_alert_nearby_in_app">Blisko Ciebie właśnie zwolniło się miejsce</string>
@@ -642,9 +641,9 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <string name="home_det_watch_interrupted_cta">Włącz ponownie</string>
     <!-- [DET-STOP-BUTTON-001] -->
     <string name="home_det_driving_stop_cta">Nie jadę swoim autem</string>
-    <string name="home_det_trip_stopped_msg">Wykrywanie zatrzymane. Ta podróż nie zostanie zapisana jako parkowanie — dotknij „Jadę”, gdy chcesz je wznowić.</string>
+    <string name="home_det_trip_stopped_msg">Wykrywanie zatrzymane. Ta podróż nie zostanie zapisana jako postój. Przed wyjazdem wybierz „Rozpocznij podróż”, aby wznowić.</string>
     <string name="home_det_awaiting_cta_primary">Zaznacz parkowanie</string>
-    <string name="home_det_awaiting_cta_secondary">Jadę</string>
+    <string name="home_det_awaiting_cta_secondary">Rozpocznij podróż</string>
     <!-- [DET-ASK-STATE-001] -->
     <string name="home_det_ask_title">Zaparkowałeś?</string>
     <string name="home_det_ask_title_vehicle">Zaparkowałeś swoje %1$s?</string>
@@ -652,7 +651,7 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <string name="home_det_ask_sub_at">Zapytano o %1$s</string>
     <string name="home_det_ask_sub_at_place">%1$s · zapytano o %2$s</string>
     <string name="home_det_ask_cta_yes">Tak, zaparkowałem</string>
-    <string name="home_det_ask_cta_no">Nadal jadę</string>
+    <string name="home_det_ask_cta_no">Nie zaparkowano</string>
     <string name="home_det_ask_eyebrow">Zaparkowałeś?</string>
     <!-- Pending "where did you leave your car?" nudge row. [DET-NUDGE-PERSIST-001] -->
     <string name="home_nudge_title">Gdzie zostawiłeś samochód?</string>
@@ -873,7 +872,7 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <string name="notif_confirmation_title_vehicle_street">Czy zaparkowałeś %1$s przy %2$s?</string>
     <string name="notif_confirmation_text">Wygląda na to, że zaparkowałeś. Czy potwierdzić parkowanie?</string>
     <string name="notif_action_yes_parked">Tak, zaparkowałem</string>
-    <string name="notif_action_no_not_parked">Nadal jadę</string>
+    <string name="notif_action_no_not_parked">Nie zaparkowano</string>
     <string name="notif_parking_saved_title">Parkowanie zapisane</string>
     <string name="notif_parking_saved_text">Twój samochód został zaparkowany. Dotknij, aby zobaczyć go na mapie.</string>
     <string name="notif_parking_saved_confirm_title">Pojazd zaparkowany</string>
@@ -884,10 +883,8 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <string name="notif_action_cancel_save">Nie, anuluj</string>
     <string name="notif_confirmation_failed_title">Parkowanie nie zostało zapisane</string>
     <string name="notif_confirmation_failed_text">Nie udało się zapisać parkowania. Otwórz Paparcar, aby spróbować ponownie.</string>
-    <string name="notif_still_parked_title">Nadal tu zaparkowany?</string>
-    <string name="notif_still_parked_text">Ten postój jest nadal otwarty. Czy samochód jest tutaj, jedziesz nim, czy zaparkowano go gdzie indziej?</string>
-    <string name="notif_action_ive_left">Już wyjechałem</string>
-    <string name="notif_action_mark_parking">Zaznacz parkowanie</string>
+    <string name="notif_still_parked_title">Czy samochód nadal tu stoi?</string>
+    <string name="notif_still_parked_text">Potwierdź, czy samochód nadal tu stoi, gdy możesz to zrobić.</string>
     <string name="notif_car_link_title">Czy ta podróż odbyła się w %1$s?</string>
     <string name="notif_car_link_text">Jeśli to Twój samochód, powiąż go, a Paparcar od teraz sam oznaczy Twoje parkowanie.</string>
     <string name="notif_car_link_device_fallback">tym samochodzie</string>
@@ -1233,8 +1230,9 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
          Vocabulario: es la PLAZA de la comunidad, en singular. [COPY-SPOT-IS-NOT-A-PARKING-001]
          [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001] -->
     <string name="home_peek_spot_subject">Miejsce społeczności</string>
-    <string name="notif_action_still_here">Nadal tutaj</string>
-    <string name="notif_action_driving_now">Jadę</string>
-    <string name="notif_action_parked_elsewhere">Gdzie indziej</string>
-    <string name="home_parking_wrong_location">Lokalizacja jest błędna</string>
+    <string name="notif_action_still_here">Tak</string>
+    <string name="notif_action_review_parking">Nie</string>
+    <string name="home_still_parked_title_vehicle">Czy %1$s nadal tu stoi?</string>
+    <string name="home_parking_false_detection">Ten postój nie miał miejsca</string>
+    <string name="home_parking_not_parked">Nie było postoju</string>
 </resources>

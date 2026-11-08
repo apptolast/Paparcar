@@ -15,7 +15,7 @@
     <string name="notif_action_yes_parked">Da, am parcat</string>
     <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->
     <string name="notif_action_stop_detection">Nu sunt în mașina mea</string>
-    <string name="notif_action_no_not_parked">Încă conduc</string>
+    <string name="notif_action_no_not_parked">Nu am parcat</string>
 
     <!-- Notificare: parcare salvată -->
     <string name="notif_parking_saved_title">Parcare salvată</string>
@@ -53,8 +53,8 @@
     <string name="attribution_detection_label">Detectare parcare</string>
 
     <!-- Notificare: watchdog „încă parcat?" (probabil ieșire din geofence ratată) -->
-    <string name="notif_still_parked_title">Încă parcat aici?</string>
-    <string name="notif_still_parked_text">Această parcare este încă deschisă. Mașina este tot aici, conduci sau ai parcat în altă parte?</string>
+    <string name="notif_still_parked_title">Mașina este încă parcată aici?</string>
+    <string name="notif_still_parked_text">Confirmă dacă mașina este încă aici când poți face acest lucru.</string>
     <!-- DET-TOGGLE-002: cold-start nudge -->
     <string name="notif_first_park_nudge_title">Parchează o dată pentru a porni detectarea</string>
     <string name="notif_first_park_nudge_text">Parchează o dată cu Paparcar; apoi eliberăm automat locul tău de fiecare dată când pleci.</string>
@@ -63,8 +63,6 @@
     <string name="notif_mark_parking_title">Unde ți-ai lăsat mașina?</string>
     <string name="notif_mark_parking_text">Am detectat că te-ai deplasat, dar nu am putut stabili unde a rămas mașina ta. Marchează parcarea ca să nu o pierzi.</string>
     <string name="notif_mark_parking_action">Marchează parcarea</string>
-    <string name="notif_action_ive_left">Am plecat</string>
-    <string name="notif_action_mark_parking">Marchează parcarea</string>
     <string name="notif_car_link_title">Călătoria aceasta a fost în %1$s?</string>
     <string name="notif_car_link_text">Dacă e mașina ta, asociaz-o și Paparcar îți va marca parcarea singur de acum înainte.</string>
     <string name="notif_car_link_device_fallback">această mașină</string>
@@ -131,7 +129,6 @@
     <string name="notif_bt_saved_text">Salvat automat. Poți vedea sau corecta locul de parcare.</string>
     <string name="notif_action_view_parking">Vezi</string>
     <string name="notif_action_correct_parking">Corectează</string>
-    <string name="notif_action_still_here">Este tot aici</string>
-    <string name="notif_action_driving_now">Conduc</string>
-    <string name="notif_action_parked_elsewhere">În alt loc</string>
+    <string name="notif_action_still_here">Da</string>
+    <string name="notif_action_review_parking">Nu</string>
 </resources>

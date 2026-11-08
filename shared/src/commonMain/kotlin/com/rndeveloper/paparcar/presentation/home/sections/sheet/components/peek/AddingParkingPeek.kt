@@ -55,6 +55,18 @@ import paparcar.composeapp.generated.resources.home_parking_menu_delete
 import paparcar.composeapp.generated.resources.home_parking_menu_repark
 import paparcar.composeapp.generated.resources.home_release_dialog_cancel
 import paparcar.composeapp.generated.resources.home_det_awaiting_cta_secondary
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import com.rndeveloper.paparcar.domain.model.SpotType
+import com.rndeveloper.paparcar.domain.usecase.parking.ParkingCorrection
+import com.rndeveloper.paparcar.ui.theme.PapGap
+import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import paparcar.composeapp.generated.resources.home_parking_correct_body
+import paparcar.composeapp.generated.resources.home_parking_false_detection
+import paparcar.composeapp.generated.resources.home_parking_not_parked
+import paparcar.composeapp.generated.resources.home_parking_wrong_car
 import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -91,11 +103,14 @@ internal fun AddingParkingPeek(
     step: PeekStep,
     onIntent: (HomeIntent) -> Unit,
     onAction: (HomeSheetAction) -> Unit,
+    reviewingDetectionError: Boolean = false,
+    correctingParking: ParkingCorrection? = null,
 ) {
     val isDeleting = releasingReason == ParkingReleaseReason.RECORD_DELETED
     // Everything that only needs to know that SOMETHING is running — the arrows, the disabled
     // states — reads this; only the two confirms look at which one.
     val isSaving = savingAsNewSession != null
+    val isBusy = isSaving || isDeleting || correctingParking != null
     val fallbackVehicleName = stringResource(Res.string.home_vehicle_fallback_name)
     val genericHeader = if (isEditing) {
         stringResource(Res.string.home_add_parking_header_label_edit)
@@ -146,7 +161,7 @@ internal fun AddingParkingPeek(
         // not the generic action green. [UI-COLOR-DOCTRINE-001]
         eyebrowColor = vehicleIdentityColor(targetVehicle?.monitoringStatus()?.watch() ?: VehicleWatch.Off),
         title = title,
-        onDismiss = { onIntent(HomeIntent.ExitAddParkingMode) },
+        onDismiss = { if (!isBusy) onIntent(HomeIntent.ExitAddParkingMode) },
         // Same ‹ / › as ParkingPeek: the car lane walks vehicles, and this modal is just the
         // unparked vehicle's page of it. Arrows go quiet while the save is in flight, like the
         // CTA below. [UI-PEEK-STEPS-WALK-VEHICLES-NOT-SESSIONS-001]
@@ -164,8 +179,8 @@ internal fun AddingParkingPeek(
             // [HOME-AN-UNSEEDED-CAMERA-IS-NOT-A-PLACE-001]
             if (hasPlace) {
                 PapSheetBanner(
-                    title = helperPrimary,
-                    subtitle = helperSecondary,
+                    title = if (reviewingDetectionError) stringResource(Res.string.home_parking_false_detection) else helperPrimary,
+                    subtitle = if (reviewingDetectionError) stringResource(Res.string.home_parking_correct_body) else helperSecondary,
                 )
             } else {
                 PapSheetBanner(
@@ -177,66 +192,100 @@ internal fun AddingParkingPeek(
             }
         },
         actions = {
-            // Primary confirm. CREATE → parks the car; EDIT → corrects THIS session's pin in place.
-            PapFooterButton(
-                label = ctaLabel,
-                onClick = { onIntent(HomeIntent.ConfirmAddParking(asNewSession = false)) },
-                style = PapFooterButtonStyle.Filled,
-                enabled = !isSaving && !isCameraMoving && hasPlace,
-                isLoading = savingAsNewSession == false,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            // ⛔ «Estoy conduciendo» vive AQUÍ desde
-            // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]. Estaba en la fila de
-            // arranque en frío de la superficie de detección, y esa fila se calla ahora que la card
-            // de cada coche hace la pregunta y trae su botón. La comprobación que decidió esto:
-            // `StartDrivingDetection` tenía **un solo** punto de entrada en toda la app, así que
-            // fusionar sin mudarlo habría borrado la palanca manual de armado en silencio.
-            //
-            // Y gana precisión al mudarse: aquí el coche es [targetVehicle], el que el usuario acaba
-            // de elegir. Allí se disparaba sobre «el activo, o el primero» — una suposición.
-            //
-            // ⛔ Solo al CREAR. Editando el pin de una sesión que ya existe, declarar que conduces no
-            // es una salida, es una contradicción.
-            if (!isEditing) {
-                Spacer(Modifier.height(8.dp))
+            if (reviewingDetectionError && deleteTarget != null) {
+                Column(verticalArrangement = Arrangement.spacedBy(PapGap.chipRow)) {
+                    PapFooterButton(
+                        label = stringResource(Res.string.home_parking_not_parked),
+                        onClick = { onIntent(HomeIntent.CorrectParking(deleteTarget.id, ParkingCorrection.CONTINUE_TRIP)) },
+                        style = PapFooterButtonStyle.Filled,
+                        enabled = !isBusy && deleteTarget.vehicleId != null,
+                        isLoading = correctingParking == ParkingCorrection.CONTINUE_TRIP,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    PapFooterButton(
+                        label = stringResource(Res.string.home_parking_wrong_car),
+                        onClick = { onIntent(HomeIntent.CorrectParking(deleteTarget.id, ParkingCorrection.WRONG_CAR)) },
+                        style = PapFooterButtonStyle.Filled,
+                        enabled = !isBusy,
+                        isLoading = correctingParking == ParkingCorrection.WRONG_CAR,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    TextButton(
+                        onClick = { onIntent(HomeIntent.DismissParkingCorrection) },
+                        enabled = !isBusy,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.home_release_dialog_cancel),
+                            style = PaparcarType.current.cta,
+                        )
+                    }
+                }
+            } else {
+                // Primary confirm. CREATE → parks the car; EDIT → corrects THIS session's pin in place.
                 PapFooterButton(
-                    label = stringResource(Res.string.home_det_awaiting_cta_secondary),
-                    onClick = { onIntent(HomeIntent.StartDrivingDetection(vehicleId = targetVehicle?.id)) },
-                    style = PapFooterButtonStyle.Outlined,
-                    enabled = !isSaving,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-            if (isEditing) {
-                Spacer(Modifier.height(8.dp))
-                // Same tool, different meaning: the pin was fine but the CAR actually moved → a
-                // NEW session for the same vehicle (the model supersedes the old one on save).
-                // Decided HERE, with the pin already placed, instead of guessing up front. [UX-PARKED-STATE-001]
-                PapFooterButton(
-                    label = stringResource(Res.string.home_parking_menu_repark),
-                    onClick = { onIntent(HomeIntent.ConfirmAddParking(asNewSession = true)) },
-                    style = PapFooterButtonStyle.Outlined,
+                    label = ctaLabel,
+                    onClick = { onIntent(HomeIntent.ConfirmAddParking(asNewSession = false)) },
+                    style = PapFooterButtonStyle.Filled,
                     enabled = !isSaving && !isCameraMoving && hasPlace,
-                    // This confirm reports its OWN progress. It used to have no spinner at all, so
-                    // re-parking lit the button ABOVE it — the one that means the opposite thing.
-                    // [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001]
-                    isLoading = savingAsNewSession == true,
+                    isLoading = savingAsNewSession == false,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Spacer(Modifier.height(8.dp))
-                // Delete parking — the one sanctioned destructive red, behind a confirm since it is
-                // one tap away and irreversible. Acts on the session being edited. [UI-SHEET-004]
-                PapFooterButton(
-                    label = stringResource(Res.string.home_parking_menu_delete),
-                    leadingIcon = Icons.Rounded.Delete,
-                    onClick = { confirmingDelete = true },
-                    style = PapFooterButtonStyle.Outlined,
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.error,
-                    enabled = !isSaving,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                // Voluntary bootstrap before departure, for the explicitly selected car.
+                // An existing parking uses the correction actions instead.
+                if (!isEditing) {
+                    Spacer(Modifier.height(8.dp))
+                    PapFooterButton(
+                        label = stringResource(Res.string.home_det_awaiting_cta_secondary),
+                        onClick = { onIntent(HomeIntent.StartDrivingDetection(vehicleId = targetVehicle?.id)) },
+                        style = PapFooterButtonStyle.Outlined,
+                        enabled = !isSaving,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                if (isEditing) {
+                    Spacer(Modifier.height(8.dp))
+                    // Same tool, different meaning: the pin was fine but the CAR actually moved → a
+                    // NEW session for the same vehicle (the model supersedes the old one on save).
+                    // Decided HERE, with the pin already placed, instead of guessing up front. [UX-PARKED-STATE-001]
+                    PapFooterButton(
+                        label = stringResource(Res.string.home_parking_menu_repark),
+                        onClick = { onIntent(HomeIntent.ConfirmAddParking(asNewSession = true)) },
+                        style = PapFooterButtonStyle.Outlined,
+                        enabled = !isSaving && !isCameraMoving && hasPlace,
+                        // This confirm reports its OWN progress. It used to have no spinner at all, so
+                        // re-parking lit the button ABOVE it — the one that means the opposite thing.
+                        // [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001]
+                        isLoading = savingAsNewSession == true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    // Delete parking — the one sanctioned destructive red, behind a confirm since it is
+                    // one tap away and irreversible. Acts on the session being edited. [UI-SHEET-004]
+                    PapFooterButton(
+                        label = stringResource(Res.string.home_parking_menu_delete),
+                        leadingIcon = Icons.Rounded.Delete,
+                        onClick = { confirmingDelete = true },
+                        style = PapFooterButtonStyle.Outlined,
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.error,
+                        enabled = !isSaving,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+
+                if (isEditing && deleteTarget?.spotType in setOf(SpotType.AUTO_DETECTED, SpotType.HOME_GEOFENCE)) {
+                    TextButton(
+                        onClick = { deleteTarget?.let { onIntent(HomeIntent.OpenParkingCorrection(it.id)) } },
+                        enabled = !isBusy,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.home_parking_false_detection),
+                            style = PaparcarType.current.cta,
+                        )
+                    }
+                }
             }
         },
     )

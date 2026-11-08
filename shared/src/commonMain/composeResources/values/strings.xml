@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="home_trip_park_compact">Park here</string>
-    <string name="home_trip_continue_compact">Keep driving</string>
+    <string name="home_trip_continue_compact">Not parked</string>
     <string name="home_trip_wrong_car_compact">Not my car</string>
     <string name="home_trip_park_now">I parked here</string>
-    <string name="home_trip_continue">I’m still driving</string>
-    <string name="home_parking_correct_title">Correct detection</string>
-    <string name="home_parking_correct_body">Choose what happened. You can continue the trip, remove a trip in another car, or correct only the location.</string>
-    <string name="home_parking_wrong_car">It was not my car</string>
+    <string name="home_trip_continue">I haven’t parked</string>
+    <string name="home_parking_correct_body">Choose what happened. No free space will be shared.</string>
+    <string name="home_parking_wrong_car">That trip wasn’t in my car</string>
     <!-- HomeScreen -->
     <string name="home_search_placeholder">Search an area, street…</string>
     <string name="zone_alert_in_app">A free spot just opened in %1$s</string>
@@ -728,9 +727,9 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="home_det_watch_interrupted_cta">Reactivate</string>
     <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->
     <string name="home_det_driving_stop_cta">Not in my car</string>
-    <string name="home_det_trip_stopped_msg">Detection stopped. This trip won’t be saved as a parking — tap “I am driving” whenever you want it back.</string>
+    <string name="home_det_trip_stopped_msg">Detection stopped. This trip won’t be saved as a parking. Use “Start trip” before your next journey to resume.</string>
     <string name="home_det_awaiting_cta_primary">Mark my parking</string>
-    <string name="home_det_awaiting_cta_secondary">I am driving</string>
+    <string name="home_det_awaiting_cta_secondary">Start trip</string>
     <!-- [DET-ASK-STATE-001] The "did you park?" question, asked in-app. Titles mirror the tray
          notification word for word (notif_confirmation_title*) so the two surfaces never diverge. -->
     <string name="home_det_ask_title">Did you park?</string>
@@ -739,7 +738,7 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="home_det_ask_sub_at">Asked at %1$s</string>
     <string name="home_det_ask_sub_at_place">%1$s · asked at %2$s</string>
     <string name="home_det_ask_cta_yes">Yes, I parked</string>
-    <string name="home_det_ask_cta_no">I’m still driving</string>
+    <string name="home_det_ask_cta_no">I haven’t parked</string>
     <string name="home_det_ask_eyebrow">Did you park?</string>
     <!-- Pending "where did you leave your car?" nudge row. [DET-NUDGE-PERSIST-001] -->
     <string name="home_nudge_title">Where did you leave your car?</string>
@@ -899,7 +898,7 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="notif_confirmation_title_vehicle_street">Did you park your %1$s at %2$s?</string>
     <string name="notif_confirmation_text">Looks like you parked. Shall we confirm your parking?</string>
     <string name="notif_action_yes_parked">Yes, I parked</string>
-    <string name="notif_action_no_not_parked">I’m still driving</string>
+    <string name="notif_action_no_not_parked">I haven’t parked</string>
     <string name="notif_parking_saved_title">Parking saved</string>
     <string name="notif_parking_saved_text">Your car has been parked. Tap to see it on the map.</string>
     <string name="notif_parking_saved_confirm_title">Vehicle parked</string>
@@ -910,10 +909,8 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="notif_action_cancel_save">No, cancel</string>
     <string name="notif_confirmation_failed_title">Parking not saved</string>
     <string name="notif_confirmation_failed_text">Could not save your parking. Open Paparcar to try again.</string>
-    <string name="notif_still_parked_title">Still parked here?</string>
-    <string name="notif_still_parked_text">This parking is still open. Tell us whether your car is still here, you are driving, or you have parked elsewhere.</string>
-    <string name="notif_action_ive_left">I've left</string>
-    <string name="notif_action_mark_parking">Mark parking</string>
+    <string name="notif_still_parked_title">Is the car still parked here?</string>
+    <string name="notif_still_parked_text">Confirm whether your car is still at this location when you can attend to it.</string>
     <!-- [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] Opportunistic "link your car" offer (iOS). -->
     <string name="notif_car_link_title">Was this trip in %1$s?</string>
     <string name="notif_car_link_text">If it's your car, link it and Paparcar will mark your parking on its own from now on.</string>
@@ -1249,8 +1246,9 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
          Vocabulario: es la PLAZA de la comunidad, en singular. [COPY-SPOT-IS-NOT-A-PARKING-001]
          [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001] -->
     <string name="home_peek_spot_subject">Community spot</string>
-    <string name="notif_action_still_here">Still here</string>
-    <string name="notif_action_driving_now">Driving</string>
-    <string name="notif_action_parked_elsewhere">Elsewhere</string>
-    <string name="home_parking_wrong_location">The location is wrong</string>
+    <string name="notif_action_still_here">Yes</string>
+    <string name="notif_action_review_parking">No</string>
+    <string name="home_still_parked_title_vehicle">Is %1$s still parked here?</string>
+    <string name="home_parking_false_detection">This parking did not happen</string>
+    <string name="home_parking_not_parked">I hadn’t parked</string>
 </resources>

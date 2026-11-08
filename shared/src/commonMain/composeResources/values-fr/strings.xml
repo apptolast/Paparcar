@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="home_trip_park_compact">Garé ici</string>
-    <string name="home_trip_continue_compact">Je roule</string>
+    <string name="home_trip_continue_compact">Pas garé</string>
     <string name="home_trip_wrong_car_compact">Pas ma voiture</string>
     <string name="home_trip_park_now">Je me suis garé ici</string>
-    <string name="home_trip_continue">Je conduis encore</string>
-    <string name="home_parking_correct_title">Corriger la détection</string>
-    <string name="home_parking_correct_body">Choisissez : poursuivre le trajet, retirer un trajet dans une autre voiture ou corriger uniquement la position.</string>
-    <string name="home_parking_wrong_car">Ce n’était pas ma voiture</string>
+    <string name="home_trip_continue">Je ne me suis pas garé</string>
+    <string name="home_parking_correct_body">Indiquez ce qui s’est passé. Aucune place libre ne sera partagée.</string>
+    <string name="home_parking_wrong_car">Ce trajet n’était pas dans ma voiture</string>
     <string name="home_nearby_section_header">Dans cette zone</string>
     <string name="zone_alert_in_app">Une place vient de se libérer à %1$s</string>
     <string name="spot_alert_nearby_in_app">Une place vient de se libérer près de vous</string>
@@ -636,9 +635,9 @@ Si la question n'apparaît plus, changez-le dans Réglages → Paparcar → Posi
     <string name="home_det_watch_interrupted_cta">Réactiver</string>
     <!-- [DET-STOP-BUTTON-001] -->
     <string name="home_det_driving_stop_cta">Pas dans ma voiture</string>
-    <string name="home_det_trip_stopped_msg">Détection arrêtée. Ce trajet ne sera pas enregistré comme stationnement ; appuie sur «Je conduis» quand tu veux la relancer.</string>
+    <string name="home_det_trip_stopped_msg">Détection arrêtée. Ce trajet ne sera pas enregistré comme stationnement. Utilisez « Démarrer un trajet » avant de partir pour reprendre.</string>
     <string name="home_det_awaiting_cta_primary">Marquer mon stationnement</string>
-    <string name="home_det_awaiting_cta_secondary">Je conduis</string>
+    <string name="home_det_awaiting_cta_secondary">Démarrer un trajet</string>
     <!-- [DET-ASK-STATE-001] -->
     <string name="home_det_ask_title">Tu t'es garé ?</string>
     <string name="home_det_ask_title_vehicle">Tu as garé ta %1$s ?</string>
@@ -646,7 +645,7 @@ Si la question n'apparaît plus, changez-le dans Réglages → Paparcar → Posi
     <string name="home_det_ask_sub_at">Demandé à %1$s</string>
     <string name="home_det_ask_sub_at_place">%1$s · demandé à %2$s</string>
     <string name="home_det_ask_cta_yes">Oui, je suis garé</string>
-    <string name="home_det_ask_cta_no">Je conduis encore</string>
+    <string name="home_det_ask_cta_no">Je ne me suis pas garé</string>
     <string name="home_det_ask_eyebrow">Tu t'es garé ?</string>
     <!-- Pending "where did you leave your car?" nudge row. [DET-NUDGE-PERSIST-001] -->
     <string name="home_nudge_title">Où avez-vous laissé votre voiture ?</string>
@@ -859,7 +858,7 @@ Si la question n'apparaît plus, changez-le dans Réglages → Paparcar → Posi
     <string name="notif_confirmation_title_vehicle_street">Tu as garé ta %1$s à %2$s ?</string>
     <string name="notif_confirmation_text">On dirait que tu t’es garé. On confirme le stationnement ?</string>
     <string name="notif_action_yes_parked">Oui, je me suis garé</string>
-    <string name="notif_action_no_not_parked">Je conduis encore</string>
+    <string name="notif_action_no_not_parked">Je ne me suis pas garé</string>
     <string name="notif_parking_saved_title">Stationnement enregistré</string>
     <string name="notif_parking_saved_text">Votre voiture a été garée. Appuyez pour la voir sur la carte.</string>
     <string name="notif_parking_saved_confirm_title">Véhicule garé</string>
@@ -870,10 +869,8 @@ Si la question n'apparaît plus, changez-le dans Réglages → Paparcar → Posi
     <string name="notif_action_cancel_save">Non, annuler</string>
     <string name="notif_confirmation_failed_title">Stationnement non sauvegardé</string>
     <string name="notif_confirmation_failed_text">Impossible de sauvegarder votre stationnement. Ouvrez Paparcar pour réessayer.</string>
-    <string name="notif_still_parked_title">Toujours garé ici ?</string>
-    <string name="notif_still_parked_text">Ce stationnement est toujours ouvert. La voiture est-elle encore ici, conduisez-vous ou avez-vous stationné ailleurs ?</string>
-    <string name="notif_action_ive_left">Je suis parti</string>
-    <string name="notif_action_mark_parking">Marquer le stationnement</string>
+    <string name="notif_still_parked_title">La voiture est-elle toujours garée ici ?</string>
+    <string name="notif_still_parked_text">Confirmez si votre voiture est toujours ici quand vous pouvez le faire.</string>
     <string name="notif_car_link_title">Ce trajet était-il dans %1$s ?</string>
     <string name="notif_car_link_text">Si c'est ta voiture, associe-la et Paparcar marquera ton stationnement tout seul désormais.</string>
     <string name="notif_car_link_device_fallback">cette voiture</string>
@@ -1203,8 +1200,9 @@ Si la question n'apparaît plus, changez-le dans Réglages → Paparcar → Posi
          Vocabulario: es la PLAZA de la comunidad, en singular. [COPY-SPOT-IS-NOT-A-PARKING-001]
          [HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001] -->
     <string name="home_peek_spot_subject">Place communautaire</string>
-    <string name="notif_action_still_here">Toujours ici</string>
-    <string name="notif_action_driving_now">Je conduis</string>
-    <string name="notif_action_parked_elsewhere">Ailleurs</string>
-    <string name="home_parking_wrong_location">La position est incorrecte</string>
+    <string name="notif_action_still_here">Oui</string>
+    <string name="notif_action_review_parking">Non</string>
+    <string name="home_still_parked_title_vehicle">%1$s est toujours garée ici ?</string>
+    <string name="home_parking_false_detection">Ce stationnement n’a pas eu lieu</string>
+    <string name="home_parking_not_parked">Je ne m’étais pas garé</string>
 </resources>

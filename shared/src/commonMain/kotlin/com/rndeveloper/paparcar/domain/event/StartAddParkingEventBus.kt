@@ -17,8 +17,8 @@ class StartAddParkingEventBus {
     private val _requests = Channel<StartAddParkingRequest>(Channel.CONFLATED)
     val requests = _requests.receiveAsFlow()
 
-    fun request(fromDetectionNudge: Boolean, geofenceId: String? = null) {
-        _requests.trySend(StartAddParkingRequest(fromDetectionNudge, geofenceId))
+    fun request(fromDetectionNudge: Boolean, geofenceId: String? = null, questionShownAtMs: Long? = null) {
+        _requests.trySend(StartAddParkingRequest(fromDetectionNudge, geofenceId, questionShownAtMs))
     }
 }
 
@@ -28,4 +28,8 @@ class StartAddParkingEventBus {
  *   detection provenance (`AUTO_DETECTED`, path `nudge`). False for user-initiated asks (first-park
  *   onboarding nudge) → plain manual pin. [DET-NUDGE-PIN-PROVENANCE-001]
  */
-data class StartAddParkingRequest(val fromDetectionNudge: Boolean, val geofenceId: String? = null)
+data class StartAddParkingRequest(
+    val fromDetectionNudge: Boolean,
+    val geofenceId: String? = null,
+    val questionShownAtMs: Long? = null,
+)

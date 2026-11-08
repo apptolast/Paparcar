@@ -497,6 +497,51 @@ See `diagnostics/README.md` at the repo root for the recommended layout when arc
 
 ## 2. Fix history
 
+### HOME-PARKING-QUESTIONS-KEEP-THE-MAP-001 — dos momentos distintos en la card del coche
+
+**Commit:** consultar el historial por HOME-PARKING-QUESTIONS-KEEP-THE-MAP-001. **Reporte:** los diálogos centrales ocultaban el mapa, duplicaban el editor
+de posición y pedían «Sigo conduciendo» durante un trayecto que debe funcionar sin tocar el móvil.
+
+La card de Home aloja dos estados y dos respuestas independientes:
+- **Llegada — «¿Has aparcado aquí?»**: pregunta por un candidato recién detectado. Sí confirma
+  ese candidato; No lo rechaza por el carril existente. Conserva su ventana de respuesta.
+- **Permanencia — «¿El coche sigue aparcado aquí?»**: pregunta por una sesión YA guardada cuando
+  el motor observa evidencia lejos del coche. Sí ratifica esa misma sesión, sin mover el pin,
+  cambiar su nacimiento, publicar ni iniciar un trayecto. Si había una salida provisional, retira
+  su plaza antes de resolver la duda. Se conserva el instante de respuesta para no repetir la
+  pregunta con la misma evidencia.
+- **No de permanencia** abre el editor espacial existente, centrado en el pin guardado y ligado
+  a ESA sesión/vehículo. Allí se corrige la ubicación manteniendo el tiempo o se guarda un nuevo
+  aparcamiento para ese coche. Abrir y cancelar conservan la sesión y la pregunta pendientes;
+  solo guardar resuelve la revisión. No es una declaración de salida.
+
+Se elimina la hoja adicional de pregunta y su acceso «Confirmar aparcamiento». Los dos botones
+de respuesta tienen el mismo fondo primary. La pregunta viaja con geofence y fecha; las acciones
+viejas no pueden contestar otra época ni abrir el editor del coche preferido. Con varios coches,
+el sujeto se eleva a la primera card mediante la ordenación ya existente. El mapa sigue utilizable
+y tocar la card encuadra el aparcamiento sin responder.
+
+Android e iOS convergen en ConfirmStillParkedUseCase para Sí y en StartAddParkingEventBus para No.
+Ambas safety nets respetan la respuesta humana hasta nueva evidencia de embarque/salida mediante
+stillParkedQuestionMayRepeat. iOS obtiene el pin de la sesión al preguntar y comprueba de nuevo la
+vigencia tras cargar los recursos de la notificación, para no publicar una duda ya respondida.
+«No» abre la actividad y el editor directamente, sin cerrar sesión, publicar plaza ni armar seguimiento.
+Las acciones Android antiguas de salida vuelven a mostrar la revisión vigente sin ejecutar su efecto
+destructivo anterior; iOS exige el sello de la pregunta. Guardar un aparcamiento de otro coche no
+borra una pregunta que todavía le pertenece al primero.
+
+La corrección espacial sigue en el lápiz de ubicación. Las recuperaciones «No había aparcado» y
+«Ese viaje no era en mi coche» viven en ese mismo editor y conservan sus consecuencias distintas:
+retirar la falsa detección y reanudar el coche corregido, o rechazar el viaje sin publicar plaza.
+El arranque voluntario se llama «Iniciar trayecto». Las negativas a un candidato describen el
+aparcamiento. El silencio nunca se convierte en confirmación HUMANA; scoring, nominación BT y
+guardas de evidencia medida permanecen en el motor.
+
+**Guardas:** pruebas de dominio para identidad/época, reintento, cancelación y retirada provisional;
+pruebas de Home para Sí, No, cancelar, corregir, nuevo aparcamiento y notificación en frío; proyección
+de ambas preguntas con varios coches. Recursos de los nueve idiomas, previews, galería y escenario
+mock representan la card real. La compilación klib no sustituye el enlace y las pruebas en un Mac.
+
 Each entry is one issue we shipped a fix for. Listed roughly in dependency order (mappers first, then pipeline, then algorithm). Every entry should explain *what was wrong*, *why it was wrong*, and *what guard exists today*. If you ever want to remove a guard, find its entry here first.
 
 ### DET-LONE-SAMPLE-IS-NOT-A-DRIVE-001 — el short-hop medía "¿conduce?" con la barra de "¿se está yendo?", y entre las dos cabía un receptor en frío

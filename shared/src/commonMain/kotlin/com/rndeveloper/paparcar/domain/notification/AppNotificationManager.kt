@@ -102,17 +102,16 @@ interface AppNotificationManager {
     fun showDebug(message: String)
 
     /**
-     * Shows a low-confidence "still parked?" prompt when the safety net
-     * ([com.rndeveloper.paparcar.detection.worker.ParkingSafetyNetWorker]) suspects a missed geofence
-     * EXIT (user is far from the parked car without departure evidence, detection idle). NEVER
-     * auto-releases — the single action lets the user release the spot if they actually drove away;
-     * ignoring/swiping it leaves the session untouched. Default no-op so non-Android impls and fakes
-     * need no change. [DET-SAFETY-NET-001]
+     * Asks whether an EXISTING saved car is still parked here when the safety net observes the
+     * phone away without enough departure evidence. The durable question also appears in Home.
+     * Yes ratifies this session; No opens its saved pin editor for a correction or new parking.
+     * Opening/cancelling that editor and ignoring/swiping the notification leave the session and
+     * question pending. No answer here declares a departure or publishes a spot.
+     * [DET-SAFETY-NET-001][HOME-PARKING-QUESTIONS-KEEP-THE-MAP-001]
      *
-     * @param geofenceId Id of the active session's geofence; travels in the "I've left" action so
-     *                   the departure can be processed for the right session.
-     * @param latitude   Latitude of the parked car — tap on the body opens the map focused here.
-     * @param longitude  Longitude of the parked car.
+     * @param geofenceId Owner of the question, paired with its persisted asking instant.
+     * @param latitude Latitude of the saved car, never a replacement phone fix.
+     * @param longitude Longitude of the saved car.
      */
     fun showStillParkedPrompt(geofenceId: String, latitude: Double, longitude: Double) {}
 

@@ -46,6 +46,7 @@ class FakeUserParkingRepository(
      *  vehicle, so the real Home reaches the watching/parked state. [UX-PARKED-STATE-001] */
     private val ownParkedSeed = UserParking(
         id = "parking_own_active",
+        geofenceId = "mock-own-parking-fence",
         userId = "mock_user_001",
         vehicleId = "mock_vehicle_001",
         // On Av. de la Concepción — matching the address below; the old point sat on the riverbank.

@@ -445,15 +445,12 @@ class AppNotificationManagerImpl(
         val here = answer(
             com.rndeveloper.paparcar.detection.service.CoordinatorDetectionService.ACTION_STILL_PARKED_HERE, RC_STILL_PARKED_HERE,
         )
-        val driving = answer(
-            com.rndeveloper.paparcar.detection.service.CoordinatorDetectionService.ACTION_STILL_PARKED_DRIVING, RC_STILL_PARKED_LEFT,
-        )
-        val elsewhere = PendingIntent.getActivity(
-            context, RC_STILL_PARKED_MARK,
+        val review = PendingIntent.getActivity(
+            context, RC_STILL_PARKED_LEFT,
             Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                data = android.net.Uri.parse("paparcar://departure/$geofenceId/${question.shownAtMs}/elsewhere")
-                putExtra(MainActivity.EXTRA_STILL_PARKED_ELSEWHERE, geofenceId)
+                data = android.net.Uri.parse("paparcar://parking-review/$geofenceId/${question.shownAtMs}")
+                putExtra(MainActivity.EXTRA_REVIEW_PARKING, geofenceId)
                 putExtra(com.rndeveloper.paparcar.detection.service.CoordinatorDetectionService.EXTRA_PROMPT_AT, question.shownAtMs)
             },
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
@@ -465,10 +462,9 @@ class AppNotificationManagerImpl(
             .setSmallIcon(R.drawable.ic_notification_logo)
             .setColor(COLOR_CONFIRMATION)
             .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
-            .setContentIntent(buildFocusIntent(RC_STILL_PARKED_FOCUS, latitude, longitude))
+            .setContentIntent(buildOpenAppIntent(RC_STILL_PARKED_FOCUS))
             .addAction(0, context.getString(R.string.notif_action_still_here), here)
-            .addAction(0, context.getString(R.string.notif_action_driving_now), driving)
-            .addAction(0, context.getString(R.string.notif_action_parked_elsewhere), elsewhere)
+            .addAction(0, context.getString(R.string.notif_action_review_parking), review)
             .setOnlyAlertOnce(true)
             .setAutoCancel(true)
             .build()

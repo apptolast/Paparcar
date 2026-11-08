@@ -81,7 +81,9 @@ object PaparcarIosBootstrap {
             coordinator = koin.get(),
             revertParkingUseCase = koin.get(),
             notificationPort = koin.get(),
-            controller = koin.get(),
+            confirmStillParked = koin.get(),
+            preferences = koin.get(),
+            startAddParking = koin.get(),
             vehicleRepository = koin.get(),
             carLinkDeclineStore = koin.get(),
         )

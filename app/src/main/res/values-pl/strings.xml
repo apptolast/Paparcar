@@ -15,7 +15,7 @@
     <string name="notif_action_yes_parked">Tak, zaparkowałem</string>
     <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->
     <string name="notif_action_stop_detection">Nie jadę swoim autem</string>
-    <string name="notif_action_no_not_parked">Nadal jadę</string>
+    <string name="notif_action_no_not_parked">Nie zaparkowano</string>
 
     <!-- Powiadomienie: parkowanie zapisane -->
     <string name="notif_parking_saved_title">Parkowanie zapisane</string>
@@ -53,8 +53,8 @@
     <string name="attribution_detection_label">Wykrywanie parkowania</string>
 
     <!-- Powiadomienie: watchdog „nadal zaparkowany?" (prawdopodobnie pominięte wyjście z geofence) -->
-    <string name="notif_still_parked_title">Nadal tu zaparkowany?</string>
-    <string name="notif_still_parked_text">Ten postój jest nadal otwarty. Czy samochód jest tutaj, jedziesz nim, czy zaparkowano go gdzie indziej?</string>
+    <string name="notif_still_parked_title">Czy samochód nadal tu stoi?</string>
+    <string name="notif_still_parked_text">Potwierdź, czy samochód nadal tu stoi, gdy możesz to zrobić.</string>
     <!-- DET-TOGGLE-002: cold-start nudge -->
     <string name="notif_first_park_nudge_title">Zaparkuj raz, aby uruchomić wykrywanie</string>
     <string name="notif_first_park_nudge_text">Zaparkuj raz z Paparcar; potem automatycznie zwalniamy Twoje miejsce przy każdym wyjeździe.</string>
@@ -63,8 +63,6 @@
     <string name="notif_mark_parking_title">Gdzie zostawiłeś samochód?</string>
     <string name="notif_mark_parking_text">Wykryliśmy, że się przemieściłeś, ale nie udało się ustalić, gdzie został Twój samochód. Oznacz parkowanie, aby go nie zgubić.</string>
     <string name="notif_mark_parking_action">Zaznacz parkowanie</string>
-    <string name="notif_action_ive_left">Już wyjechałem</string>
-    <string name="notif_action_mark_parking">Zaznacz parkowanie</string>
     <string name="notif_car_link_title">Czy ta podróż odbyła się w %1$s?</string>
     <string name="notif_car_link_text">Jeśli to Twój samochód, powiąż go, a Paparcar od teraz sam oznaczy Twoje parkowanie.</string>
     <string name="notif_car_link_device_fallback">tym samochodzie</string>
@@ -131,7 +129,6 @@
     <string name="notif_bt_saved_text">Zapisano automatycznie. Możesz zobaczyć lub poprawić miejsce parkowania.</string>
     <string name="notif_action_view_parking">Zobacz</string>
     <string name="notif_action_correct_parking">Popraw</string>
-    <string name="notif_action_still_here">Nadal tutaj</string>
-    <string name="notif_action_driving_now">Jadę</string>
-    <string name="notif_action_parked_elsewhere">Gdzie indziej</string>
+    <string name="notif_action_still_here">Tak</string>
+    <string name="notif_action_review_parking">Nie</string>
 </resources>

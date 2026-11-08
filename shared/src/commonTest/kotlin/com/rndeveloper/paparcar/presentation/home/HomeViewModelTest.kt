@@ -25,6 +25,9 @@ import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDetectionReliabi
 import com.rndeveloper.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import com.rndeveloper.paparcar.domain.usecase.location.SearchAddressUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.ConfirmParkingUseCase
+import com.rndeveloper.paparcar.domain.usecase.parking.ConfirmStillParkedUseCase
+import com.rndeveloper.paparcar.domain.detection.StillParkedQuestion
+import com.rndeveloper.paparcar.domain.detection.DepartureConfirmationListener
 import com.rndeveloper.paparcar.domain.usecase.parking.ObserveParkedVehiclesUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.ReleaseActiveParkingSessionUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.SaveManualParkingUseCase
@@ -139,8 +142,11 @@ class HomeViewModelTest {
         // stays quiet and effect tests see only what they trigger. The first-entry tests opt out.
         // [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
         locationAlreadyAsked: Boolean = true,
+        initialStillParkedQuestion: StillParkedQuestion? = null,
+        startAddParkingBus: StartAddParkingEventBus = StartAddParkingEventBus(),
     ): HomeViewModel {
         prefs = FakeAppPreferences(initialDefaultMapType = initialMapType)
+        prefs.setStillParkedQuestion(initialStillParkedQuestion)
         if (locationAlreadyAsked) prefs.setLocationPermissionRequested()
         manualParkingDetection = com.rndeveloper.paparcar.fakes.data.repository.FakeManualParkingDetection()
         departureWatchResumer = com.rndeveloper.paparcar.fakes.data.repository.FakeDepartureWatchResumer()
@@ -233,6 +239,15 @@ class HomeViewModelTest {
                 ),
                 manualParkingDetection,
             ),
+            confirmStillParked = ConfirmStillParkedUseCase(
+                prefs, parkingRepo, spotRepo,
+                object : DepartureConfirmationListener {
+                    override fun notifyDepartureConfirmed() = Unit
+                    override fun notifyDepartureDismissed(geofenceId: String) = Unit
+                },
+                FakeAppNotificationManager(),
+                nowMs = { 9_000L },
+            ),
             observeParkedVehicles = observeParkedVehicles,
             declareActiveVehicle = declareActiveVehicle,
             appPreferences = prefs,
@@ -260,7 +275,7 @@ class HomeViewModelTest {
             observeIsPlus = com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase(entitlementRepo),
             vehicleRepository = vehicleRepo,
             mapFocusEventBus = MapFocusEventBus(),
-            startAddParkingEventBus = StartAddParkingEventBus(),
+            startAddParkingEventBus = startAddParkingBus,
             manualParkingDetection = manualParkingDetection,
             departureWatchResumer = departureWatchResumer,
             uiLocationLogger = uiLocationLogger,
@@ -1696,7 +1711,7 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun bluetoothCorrectionOpensTheSavedCarsCorrectionDialog() = runTest {
+    fun should_open_the_saved_cars_editor_when_correcting_from_a_notification() = runTest {
         val session = UserParking(
             id = "bt-saved", userId = "user-123", vehicleId = "veh-1",
             location = location, isActive = true,
@@ -1708,8 +1723,51 @@ class HomeViewModelTest {
         vm = buildVm(showParkingAskBus = bus)
         advanceUntilIdle()
 
-        assertEquals(session.id, vm.state.value.correctionDialogSessionId)
+        assertEquals(session.id, vm.state.value.parkingCorrectionSessionId)
+        assertEquals(HomeMode.AddingParking, vm.state.value.mode)
+        assertEquals(session.id, vm.state.value.editingParkingId)
         assertEquals(0, parkingRepo.saveNewParkingSessionCallCount)
+    }
+
+    @Test
+    fun should_preserve_the_unsaved_pin_when_recovery_is_opened_and_cancelled_in_the_editor() = runTest {
+        val session = UserParking(id = "parking", vehicleId = "veh-1", location = location)
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
+        vm = buildVm()
+        val draft = location.copy(latitude = location.latitude + 0.001)
+        vm.handleIntent(HomeIntent.EnterAddParkingMode(initialGps = draft, editingParkingId = session.id))
+        vm.handleIntent(HomeIntent.OpenParkingCorrection(session.id))
+        vm.handleIntent(HomeIntent.DismissParkingCorrection)
+        advanceUntilIdle()
+
+        assertEquals(HomeMode.AddingParking, vm.state.value.mode)
+        assertEquals(draft.latitude, vm.state.value.pinCameraLat)
+        assertEquals(session.id, vm.state.value.editingParkingId)
+        assertNull(vm.state.value.parkingCorrectionSessionId)
+        assertEquals(0, parkingRepo.saveNewParkingSessionCallCount)
+    }
+
+    @Test
+    fun should_keep_the_editor_open_when_back_is_pressed_during_a_detection_correction() = runTest {
+        val session = UserParking(id = "incorrect", vehicleId = "veh-1", location = location)
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
+        vm = buildVm()
+        val finish = kotlinx.coroutines.CompletableDeferred<Unit>()
+        manualParkingDetection.beforeFinishTrip = { finish.await() }
+        vm.handleIntent(HomeIntent.OpenParkingCorrection(session.id))
+        vm.handleIntent(HomeIntent.CorrectParking(session.id,
+            com.rndeveloper.paparcar.domain.usecase.parking.ParkingCorrection.WRONG_CAR))
+        advanceUntilIdle()
+
+        vm.handleIntent(HomeIntent.ExitAddParkingMode)
+        assertEquals(HomeMode.AddingParking, vm.state.value.mode)
+        assertEquals(session.id, vm.state.value.parkingCorrectionSessionId)
+
+        finish.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(HomeMode.Browse, vm.state.value.mode)
+        assertNull(vm.state.value.parkingCorrectionSessionId)
+        assertEquals(0, reportScheduler.scheduleCallCount)
     }
 
     @Test
@@ -1723,7 +1781,7 @@ class HomeViewModelTest {
         bus.ask("old-parking", correct = true)
         advanceUntilIdle()
 
-        assertNull(vm.state.value.correctionDialogSessionId)
+        assertNull(vm.state.value.parkingCorrectionSessionId)
     }
 
     @Test
@@ -1741,41 +1799,215 @@ class HomeViewModelTest {
         assertEquals(HomeMode.AddingParking, vm.state.value.mode)
         assertEquals(session.id, vm.state.value.editingParkingId)
         assertEquals(location.latitude, vm.state.value.pinCameraLat)
-        assertNull(vm.state.value.correctionDialogSessionId)
+        assertNull(vm.state.value.parkingCorrectionSessionId)
         assertEquals(listOf(session.id), vm.state.value.activeSessions.map { it.id })
         assertEquals(0, manualParkingDetection.stopByUserCallCount)
     }
 
     @Test
-    fun parkingElsewhereSelectsTheQuestionedCarWithoutReleasingTheOldParking() = runTest {
-        val question = com.rndeveloper.paparcar.domain.detection.StillParkedQuestion(
-            "second-fence", location.latitude, location.longitude, 1_000L,
-        )
-        val session = UserParking(
-            id = "second-parking", vehicleId = "second-car", location = location, geofenceId = question.geofenceId,
-        )
-        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
-        vm = buildVm()
-        prefs.setStillParkedQuestion(question)
-        vm.handleIntent(HomeIntent.AnswerStillParked(
-            question, com.rndeveloper.paparcar.domain.detection.StillParkedAnswer.ELSEWHERE,
-        ))
+    fun should_show_the_saved_parking_question_in_the_owning_cars_card() = runTest {
+        val question = StillParkedQuestion("second-fence", 40.0, -3.0, 1_000L)
+        val first = Vehicle(id = "veh-1", userId = "user-123", brand = "Ford", model = "Focus", sizeCategory = com.rndeveloper.paparcar.domain.model.VehicleSize.MEDIUM_SUV, isActive = true)
+        val second = first.copy(id = "second-car", brand = "Skoda", model = "Kamiq", isActive = false)
+        vehicleRepo = FakeVehicleRepository(defaultVehicle = first, extraVehicles = listOf(second))
+        val target = UserParking(id = "questioned", vehicleId = second.id, location = location, geofenceId = question.geofenceId)
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(target))
+        vm = buildVm(initialStillParkedQuestion = question)
         advanceUntilIdle()
 
-        assertEquals(HomeMode.AddingParking, vm.state.value.mode)
-        assertEquals("second-car", vm.state.value.addingParkingVehicleId)
-        assertEquals(listOf(session.id), vm.state.value.activeSessions.map { it.id })
+        val story = assertIs<com.rndeveloper.paparcar.presentation.home.model.DetectionStory.ReconfirmingParking>(
+            vm.state.value.toBrowseListSlice().detectionStory,
+        )
+        assertEquals(target.id, story.parking.id)
+        assertEquals("Skoda Kamiq", story.vehicleName)
+        assertEquals(HomeMode.Browse, vm.state.value.mode)
+        assertNull(vm.state.value.selection)
+        assertEquals(question, prefs.stillParkedQuestion())
+    }
+
+    @Test
+    fun should_keep_the_saved_session_and_clock_when_answering_yes_to_still_parked() = runTest {
+        val question = StillParkedQuestion("fence", 40.0, -3.0, 1_000L)
+        val target = UserParking(id = "saved", vehicleId = "veh-1", location = location, geofenceId = question.geofenceId)
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(target))
+        vm = buildVm(initialStillParkedQuestion = question)
+
+        vm.handleIntent(HomeIntent.ConfirmStillParked(question))
+        advanceUntilIdle()
+
+        assertEquals(target, parkingRepo.getSessionById(target.id))
+        assertEquals(9_000L, prefs.stillParkedQuestion()?.confirmedHereAtMs)
+        assertEquals(0, parkingRepo.saveNewParkingSessionCallCount)
+        assertEquals(0, parkingRepo.clearActiveParkingSessionCallCount)
+        assertEquals(0, manualParkingDetection.startCallCount)
         assertEquals(0, reportScheduler.scheduleCallCount)
     }
 
     @Test
-    fun anOldDepartureAnswerIsNotSentToTheNewQuestion() = runTest {
-        val old = com.rndeveloper.paparcar.domain.detection.StillParkedQuestion("f", 40.4, -3.7, 100L)
-        prefs.setStillParkedQuestion(old.copy(shownAtMs = 200L))
-        vm.handleIntent(HomeIntent.AnswerStillParked(
-            old, com.rndeveloper.paparcar.domain.detection.StillParkedAnswer.HERE,
+    fun should_open_the_same_cars_saved_pin_without_answering_when_still_parked_is_no() = runTest {
+        val question = StillParkedQuestion("fence", 40.0, -3.0, 1_000L)
+        val target = UserParking(id = "saved", vehicleId = "second-car", location = location, geofenceId = question.geofenceId)
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(target))
+        vm = buildVm(initialStillParkedQuestion = question)
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location.copy(latitude = 41.0))
+        advanceUntilIdle()
+        assertEquals(41.0, vm.state.value.userGpsPoint?.latitude)
+
+        vm.handleIntent(HomeIntent.EditQuestionedParking(question))
+        advanceUntilIdle()
+
+        assertEquals(HomeMode.AddingParking, vm.state.value.mode)
+        assertEquals(target.id, vm.state.value.editingParkingId)
+        assertEquals(target.vehicleId, vm.state.value.addingParkingVehicleId)
+        assertEquals(target.location.latitude, vm.state.value.pinCameraLat)
+        assertEquals(target.location.longitude, vm.state.value.pinCameraLon)
+        assertEquals(target, parkingRepo.getSessionById(target.id))
+        assertEquals(question, prefs.stillParkedQuestion())
+        assertEquals(0, parkingRepo.clearActiveParkingSessionCallCount)
+        assertEquals(0, manualParkingDetection.startCallCount)
+        assertEquals(0, manualParkingDetection.stopByUserCallCount)
+        assertEquals(0, reportScheduler.scheduleCallCount)
+    }
+
+    @Test
+    fun should_keep_the_pending_question_and_parking_when_the_editor_is_cancelled() = runTest {
+        vehicleRepo = FakeVehicleRepository(defaultVehicle = Vehicle(
+            id = "veh-1", userId = "user-123", sizeCategory = com.rndeveloper.paparcar.domain.model.VehicleSize.MEDIUM_SUV,
         ))
-        assertTrue(manualParkingDetection.stillParkedAnswers.isEmpty())
+        val question = StillParkedQuestion("fence", 40.0, -3.0, 1_000L)
+        val target = UserParking(id = "saved", vehicleId = "veh-1", location = location, geofenceId = question.geofenceId)
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(target))
+        vm = buildVm(initialStillParkedQuestion = question)
+
+        vm.handleIntent(HomeIntent.EditQuestionedParking(question))
+        vm.handleIntent(HomeIntent.ExitAddParkingMode)
+        advanceUntilIdle()
+
+        assertEquals(HomeMode.Browse, vm.state.value.mode)
+        assertNull(vm.state.value.editingStillParkedQuestion)
+        assertEquals(question, prefs.stillParkedQuestion())
+        assertEquals(target, parkingRepo.getSessionById(target.id))
+        assertIs<com.rndeveloper.paparcar.presentation.home.model.DetectionStory.ReconfirmingParking>(
+            vm.state.value.toBrowseListSlice().detectionStory,
+        )
+        assertEquals(0, reportScheduler.scheduleCallCount)
+    }
+
+    @Test
+    fun should_move_the_same_parking_and_resolve_the_question_after_a_successful_correction() = runTest {
+        val question = StillParkedQuestion("fence", 40.0, -3.0, 1_000L)
+        val target = UserParking(id = "saved", vehicleId = "veh-1", location = location, geofenceId = question.geofenceId)
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(target))
+        vm = buildVm(initialStillParkedQuestion = question)
+        vm.handleIntent(HomeIntent.EditQuestionedParking(question))
+        vm.handleIntent(HomeIntent.CameraPositionChanged(location.latitude + 0.001, location.longitude))
+        vm.handleIntent(HomeIntent.ConfirmAddParking(asNewSession = false))
+        advanceUntilIdle()
+
+        val saved = assertNotNull(parkingRepo.getActiveSessionByVehicle(target.vehicleId!!))
+        assertEquals(target.id, saved.id)
+        assertEquals(target.location.timestamp, saved.location.timestamp)
+        assertEquals(location.latitude + 0.001, saved.location.latitude)
+        assertEquals(9_000L, prefs.stillParkedQuestion()?.confirmedHereAtMs)
+        assertEquals(HomeMode.Browse, vm.state.value.mode)
+        assertEquals(0, parkingRepo.saveNewParkingSessionCallCount)
+        assertEquals(0, reportScheduler.scheduleCallCount)
+    }
+
+    @Test
+    fun should_replace_only_the_questioned_cars_parking_when_saving_a_new_parking() = runTest {
+        val firstCar = Vehicle(id = "veh-1", userId = "user-123", sizeCategory = com.rndeveloper.paparcar.domain.model.VehicleSize.MEDIUM_SUV, isActive = true)
+        val secondCar = firstCar.copy(id = "second-car", isActive = false)
+        vehicleRepo = FakeVehicleRepository(defaultVehicle = firstCar, extraVehicles = listOf(secondCar))
+        val question = StillParkedQuestion("second-fence", 40.0, -3.0, 1_000L)
+        val first = UserParking(id = "preferred", vehicleId = firstCar.id, location = location, geofenceId = "first-fence")
+        val target = first.copy(id = "questioned", vehicleId = secondCar.id, geofenceId = question.geofenceId)
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(first, target))
+        vm = buildVm(initialStillParkedQuestion = question)
+        vm.handleIntent(HomeIntent.EditQuestionedParking(question))
+        vm.handleIntent(HomeIntent.CameraPositionChanged(location.latitude + 0.01, location.longitude))
+        vm.handleIntent(HomeIntent.ConfirmAddParking(asNewSession = true))
+        advanceUntilIdle()
+
+        val saved = assertNotNull(parkingRepo.getActiveSessionByVehicle(secondCar.id))
+        assertTrue(saved.id != target.id)
+        assertTrue(saved.location.timestamp > target.location.timestamp)
+        assertEquals(location.latitude + 0.01, saved.location.latitude)
+        assertEquals(first, parkingRepo.getSessionById(first.id))
+        assertFalse(assertNotNull(parkingRepo.getSessionById(target.id)).isActive)
+        assertNull(prefs.stillParkedQuestion())
+        assertEquals(HomeMode.Browse, vm.state.value.mode)
+        assertEquals(0, manualParkingDetection.startCallCount)
+        assertEquals(0, reportScheduler.scheduleCallCount)
+    }
+
+    @Test
+    fun should_keep_the_draft_and_question_when_correcting_the_pin_fails() = runTest {
+        val question = StillParkedQuestion("fence", 40.0, -3.0, 1_000L)
+        val target = UserParking(id = "saved", vehicleId = "veh-1", location = location, geofenceId = question.geofenceId)
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(target)).apply {
+            updateParkingSessionPositionResult = Result.failure(IllegalStateException("write failed"))
+        }
+        vm = buildVm(initialStillParkedQuestion = question)
+        vm.handleIntent(HomeIntent.EditQuestionedParking(question))
+        vm.handleIntent(HomeIntent.CameraPositionChanged(location.latitude + 0.001, location.longitude))
+        vm.handleIntent(HomeIntent.ConfirmAddParking(asNewSession = false))
+        advanceUntilIdle()
+
+        assertEquals(HomeMode.AddingParking, vm.state.value.mode)
+        assertFalse(vm.state.value.isSavingParking)
+        assertEquals(location.latitude + 0.001, vm.state.value.pinCameraLat)
+        assertEquals(target, parkingRepo.getSessionById(target.id))
+        assertEquals(question, prefs.stillParkedQuestion())
+    }
+
+    @Test
+    fun should_ignore_old_yes_and_no_answers_when_a_new_question_is_pending() = runTest {
+        val old = StillParkedQuestion("fence", 40.0, -3.0, 1_000L)
+        val current = old.copy(shownAtMs = 2_000L)
+        val target = UserParking(id = "saved", vehicleId = "veh-1", location = location, geofenceId = old.geofenceId)
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(target))
+        vm = buildVm(initialStillParkedQuestion = current)
+
+        vm.handleIntent(HomeIntent.EditQuestionedParking(old))
+        vm.handleIntent(HomeIntent.ConfirmStillParked(old))
+        advanceUntilIdle()
+
+        assertEquals(HomeMode.Browse, vm.state.value.mode)
+        assertEquals(current, prefs.stillParkedQuestion())
+        assertEquals(target, parkingRepo.getSessionById(target.id))
+    }
+
+    @Test
+    fun should_open_the_questioned_parking_from_a_buffered_notification_after_cold_start() = runTest {
+        val question = StillParkedQuestion("fence", 40.0, -3.0, 1_000L)
+        val target = UserParking(id = "saved", vehicleId = "veh-1", location = location, geofenceId = question.geofenceId)
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(target))
+        val bus = StartAddParkingEventBus()
+        bus.request(fromDetectionNudge = false, geofenceId = question.geofenceId, questionShownAtMs = question.shownAtMs)
+        vm = buildVm(initialStillParkedQuestion = question, startAddParkingBus = bus)
+        advanceUntilIdle()
+
+        assertEquals(target.id, vm.state.value.editingParkingId)
+        assertEquals(HomeMode.AddingParking, vm.state.value.mode)
+        assertEquals(target.location.latitude, vm.state.value.pinCameraLat)
+        assertEquals(question, prefs.stillParkedQuestion())
+    }
+
+    @Test
+    fun should_ignore_a_buffered_notification_for_a_replaced_question() = runTest {
+        val question = StillParkedQuestion("fence", 40.0, -3.0, 2_000L)
+        val target = UserParking(id = "saved", vehicleId = "veh-1", location = location, geofenceId = question.geofenceId)
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(target))
+        val bus = StartAddParkingEventBus()
+        bus.request(fromDetectionNudge = false, geofenceId = question.geofenceId, questionShownAtMs = 1_000L)
+        vm = buildVm(initialStillParkedQuestion = question, startAddParkingBus = bus)
+        advanceUntilIdle()
+
+        assertEquals(HomeMode.Browse, vm.state.value.mode)
+        assertEquals(question, prefs.stillParkedQuestion())
+        assertEquals(target, parkingRepo.getSessionById(target.id))
     }
 
     @Test

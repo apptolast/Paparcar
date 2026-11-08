@@ -185,6 +185,7 @@ class HomeViewModel(
      */
     private val nearbyAlerts: HomeNearbyAlertController,
     private val correctDetectedParking: com.rndeveloper.paparcar.domain.usecase.parking.CorrectDetectedParkingUseCase,
+    private val confirmStillParked: com.rndeveloper.paparcar.domain.usecase.parking.ConfirmStillParkedUseCase,
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
 
     /**
@@ -545,7 +546,8 @@ class HomeViewModel(
             is HomeIntent.StartDrivingDetection,
             is HomeIntent.SilenceDetectionNotice,
             is HomeIntent.AnswerParkingPrompt,
-            is HomeIntent.AnswerStillParked,
+            is HomeIntent.ConfirmStillParked,
+            is HomeIntent.EditQuestionedParking,
             is HomeIntent.StopDetection,
             is HomeIntent.EnableAutoDetection,
             is HomeIntent.RequestBatteryExemption,
@@ -1461,18 +1463,28 @@ class HomeViewModel(
 
     private fun handleParkingIntent(intent: HomeIntent) {
         when (intent) {
-            is HomeIntent.OpenParkingCorrection -> updateState {
-                if (correctingParking != null || isReleasingParking || isSavingParking) this
-                else copy(correctionDialogSessionId = intent.sessionId)
+            is HomeIntent.OpenParkingCorrection -> {
+                val current = state.value
+                val target = current.activeSessions.firstOrNull { it.id == intent.sessionId } ?: return
+                if (current.correctingParking != null || current.isReleasingParking || current.isSavingParking) return
+                val alreadyEditingTarget = current.mode is HomeMode.AddingParking && current.editingParkingId == target.id
+                if (!alreadyEditingTarget) {
+                    handleIntent(HomeIntent.EnterAddParkingMode(
+                        initialGps = target.location, editingParkingId = target.id, targetVehicleId = target.vehicleId,
+                    ))
+                    sendEffect(HomeEffect.MoveCameraTo(target.location.latitude, target.location.longitude))
+                }
+                // Opening an exceptional recovery must not discard a pin the user has already moved.
+                updateState { copy(parkingCorrectionSessionId = target.id) }
             }
             is HomeIntent.DismissParkingCorrection -> updateState {
-                if (correctingParking != null) this else copy(correctionDialogSessionId = null)
+                if (correctingParking != null) this else copy(parkingCorrectionSessionId = null)
             }
             is HomeIntent.CorrectParkingLocation -> {
                 val current = state.value
                 val target = current.activeSessions.firstOrNull { it.id == intent.sessionId } ?: return
                 if (current.correctingParking != null || current.isReleasingParking || current.isSavingParking) return
-                updateState { copy(correctionDialogSessionId = null) }
+                updateState { copy(parkingCorrectionSessionId = null) }
                 handleIntent(HomeIntent.EnterAddParkingMode(
                     initialGps = target.location, editingParkingId = target.id, targetVehicleId = target.vehicleId,
                 ))
@@ -1502,7 +1514,9 @@ class HomeViewModel(
                         if (intent.fromDetectionNudge) pendingParkNudge?.source.orEmpty() else null,
                 )
             }
-            is HomeIntent.ExitAddParkingMode -> updateState { clearedModeFields() }
+            is HomeIntent.ExitAddParkingMode -> updateState {
+                if (correctingParking != null || isSavingParking || isReleasingParking) this else clearedModeFields()
+            }
             is HomeIntent.ConfirmAddParking -> confirmAddParking(intent.asNewSession)
             else -> Unit
         }
@@ -1536,7 +1550,20 @@ class HomeViewModel(
                 // meaningful on CREATE — a move keeps the session's own type. [DET-NUDGE-PIN-PROVENANCE-001]
                 nudgeSource = current.addingParkingNudgeSource,
             )
-                .onSuccess { updateState { clearedModeFields().copy(savingParkingAsNewSession = null) } }
+                .onSuccess {
+                    // A correction of the saved pin resolves the permanence doubt only AFTER it
+                    // is stored. A new parking retires the old question through ConfirmParking.
+                    val question = current.editingStillParkedQuestion
+                    if (question != null) {
+                        val confirmation = confirmStillParked(question)
+                        if (confirmation.isFailure) {
+                            updateState { copy(savingParkingAsNewSession = null) }
+                            sendEffect(HomeEffect.ShowError(PaparcarError.Parking.SaveFailed))
+                            return@launch
+                        }
+                    }
+                    updateState { clearedModeFields().copy(savingParkingAsNewSession = null) }
+                }
                 .onFailure {
                     // [BUG-8] Keep the user in AddingParking with the pin intact so they
                     // can retry. Only flip the spinner off. Going back to Browse on failure
@@ -1562,7 +1589,7 @@ class HomeViewModel(
                 PaparcarLogger.w(TAG, "Parking correction failed", e)
                 sendEffect(HomeEffect.ShowError(PaparcarError.Parking.ReleaseFailed))
             } finally {
-                updateState { copy(correctingParking = null, correctionDialogSessionId = null) }
+                updateState { copy(correctingParking = null, parkingCorrectionSessionId = null) }
             }
         }
     }
@@ -1810,23 +1837,15 @@ class HomeViewModel(
             is HomeIntent.AnswerParkingPrompt ->
                 manualParkingDetection.answerPrompt(intent.parked, intent.shownAtMs ?: state.value.promptWindow?.shownAtMs)
 
-            is HomeIntent.AnswerStillParked -> {
-                val current = appPreferences.stillParkedQuestion()
-                if (current != intent.question || current.confirmedHereAtMs != null) return
-                if (intent.answer == com.rndeveloper.paparcar.domain.detection.StillParkedAnswer.ELSEWHERE) {
-                    openElsewhereParking(current.geofenceId)
-                } else {
-                    try {
-                        if (!manualParkingDetection.answerStillParked(current, intent.answer)) {
-                            sendEffect(HomeEffect.ShowError(PaparcarError.Parking.ReleaseFailed))
-                        }
-                    } catch (e: kotlinx.coroutines.CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        PaparcarLogger.w(TAG, "Still-parked answer failed", e)
-                        sendEffect(HomeEffect.ShowError(PaparcarError.Parking.ReleaseFailed))
-                    }
+            is HomeIntent.ConfirmStillParked -> viewModelScope.launch {
+                if (appPreferences.stillParkedQuestion() != intent.question) return@launch
+                confirmStillParked(intent.question).onFailure {
+                    sendEffect(HomeEffect.ShowError(PaparcarError.Parking.SaveFailed))
                 }
+            }
+
+            is HomeIntent.EditQuestionedParking -> viewModelScope.launch {
+                openQuestionedParkingEditor(intent.question.geofenceId, intent.question.shownAtMs)
             }
 
             // [DET-TOGGLE-001] Single "activate detection" action: flip the Settings flag on AND, if
@@ -2195,27 +2214,26 @@ class HomeViewModel(
             }
     }
 
-    private fun openElsewhereParking(geofenceId: String) {
-        viewModelScope.launch {
-            val target = userParkingRepository.getActiveSessionByGeofence(geofenceId) ?: return@launch
-            // Preserve the old parking until the replacement is explicitly saved.
-            appPreferences.stillParkedQuestion()?.takeIf { it.geofenceId == geofenceId }?.let {
-                manualParkingDetection.answerStillParked(it,
-                    com.rndeveloper.paparcar.domain.detection.StillParkedAnswer.ELSEWHERE)
-            }
-            handleIntent(HomeIntent.EnterAddParkingMode(
-                initialGps = state.value.userGpsPoint,
-                targetVehicleId = target.vehicleId,
-                fromDetectionNudge = true,
-            ))
-        }
+    private suspend fun openQuestionedParkingEditor(geofenceId: String, shownAtMs: Long?) {
+        val question = appPreferences.stillParkedQuestion()?.takeIf {
+            it.confirmedHereAtMs == null && it.geofenceId == geofenceId && it.shownAtMs == shownAtMs
+        } ?: return
+        val target = userParkingRepository.getActiveSessionByGeofence(geofenceId) ?: return
+        if (appPreferences.stillParkedQuestion() != question) return
+        val current = state.value
+        if (current.isSavingParking || current.isReleasingParking || current.correctingParking != null) return
+        handleIntent(HomeIntent.EnterAddParkingMode(
+            initialGps = target.location, editingParkingId = target.id, targetVehicleId = target.vehicleId,
+        ))
+        updateState { copy(editingStillParkedQuestion = question) }
+        sendEffect(HomeEffect.MoveCameraTo(target.location.latitude, target.location.longitude))
     }
 
     private fun subscribeStartAddParkingRequests() {
         startAddParkingEventBus.requests
             .collectSafely("startAddParking") { request ->
                 request.geofenceId?.let {
-                    openElsewhereParking(it)
+                    openQuestionedParkingEditor(it, request.questionShownAtMs)
                     return@collectSafely
                 }
                 val vehicles = state.map { it.vehicles }.first { it.isNotEmpty() }

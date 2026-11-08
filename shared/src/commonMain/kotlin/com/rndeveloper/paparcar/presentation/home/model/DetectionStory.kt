@@ -1,6 +1,8 @@
 package com.rndeveloper.paparcar.presentation.home.model
 
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
+import com.rndeveloper.paparcar.domain.detection.StillParkedQuestion
+import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.displayName
 import com.rndeveloper.paparcar.domain.model.monitoringStatus
 import com.rndeveloper.paparcar.domain.onboarding.FirstStepsOwnership
@@ -13,10 +15,9 @@ import com.rndeveloper.paparcar.ui.theme.watch
  * doing for me right now", instead of action pills that go mute in every happy state.
  * [UX-DETECTION-STORY-001, cures C6/H5 of UX-PARK-FLOW-001]
  *
- * Exactly one story at a time, resolved by [resolveDetectionStory] with a fixed precedence
- * (urgent → quiet): [BlockedCore] → [AwaitingAnswer] → [PendingAsk] → [NoVehicle] → [Inactive] →
- * [AwaitingFirstPark] → [Watching] → [Hidden]. The action stories keep the loud accent-bar row;
- * [Watching] renders a discreet one-line status so the happy path has a voice.
+ * Exactly one story at a time. An expiring [AwaitingAnswer] keeps its existing permission
+ * precedence. Otherwise [ReconfirmingParking] ratifies a saved pin without needing a phone fix;
+ * system health, pending nudges and calm watch states follow. [Watching] renders a discreet line.
  *
  * A LIVE TRIP has no story here any more: the vehicle card already tells it whole — radar halo,
  * identity border, route glyph, "En ruta · place" — and carries the stop CTA, and a trip can only
@@ -25,11 +26,8 @@ import com.rndeveloper.paparcar.ui.theme.watch
  * calm watch line stands down. [HOME-A-DRIVE-IS-ONE-NEWS-AND-THE-CARD-CARRIES-THE-STOP-001]
  * [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
  *
- * [DET-ASK-STATE-001] The two stories where the app is WAITING ON THE USER — [AwaitingAnswer] and
- * [PendingAsk] — sit at the top together, and both are resolved HERE. Until this ticket the nudge
- * was arbitrated by an `if` inside the composable, i.e. outside the very precedence this doc
- * declares: the chain said one thing and the surface did another, and only one of the two was
- * testable. One question, one place.
+ * Arrival, permanence and pending nudges are resolved HERE, so card content and the cue that
+ * opens the existing Home sheet cannot disagree about the question being asked.
  *
  * The collapsed peek keeps its own phase eyebrow ("EN RUTA"/"APARCANDO…"/"¿HAS APARCADO?") — that
  * is the voice of the CLOSED sheet; this story is the voice of the OPEN sheet. Same translated
@@ -52,6 +50,15 @@ sealed interface DetectionStory {
      * the row to describe a different question than the tray does.
      */
     data class AwaitingAnswer(val window: PendingPromptWindow) : DetectionStory
+
+    /** A different moment: this parking already exists; the phone being away is not proof
+     * that the car left. No opens the saved pin editor rather than releasing this session. */
+    data class ReconfirmingParking(
+        val question: StillParkedQuestion,
+        val parking: UserParking,
+        val vehicleName: String,
+        val watch: VehicleWatch,
+    ) : DetectionStory
 
     /**
      * [DET-NUDGE-PERSIST-001] An unanswered "where did you leave your car?" nudge. A lost parking
@@ -169,6 +176,7 @@ fun resolveDetectionStory(
      * [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001].
      */
     locationAskPending: Boolean = false,
+    stillParkedQuestion: StillParkedQuestion? = null,
 ): DetectionStory {
     val activeCard = vehicleCards.firstOrNull { it.vehicle.isActive }
 
@@ -222,6 +230,19 @@ fun resolveDetectionStory(
     // diálogo del sistema pidiendo la ubicación, esta fila estaría acusando de una falta que nadie
     // ha cometido todavía. No es que se esconda, es que aún no le toca.
     // [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001]
+    val savedCar = stillParkedQuestion?.takeIf { it.confirmedHereAtMs == null }?.let { question ->
+        vehicleCards.firstOrNull {
+            it.session?.geofenceId == question.geofenceId && it.session.isActive
+        }
+    }
+    // A saved location can be ratified/edited without a current phone fix. A new candidate
+    // retains its existing permission/window precedence and remains a different question.
+    if (promptWindow == null && savedCar?.session != null) {
+        return DetectionStory.ReconfirmingParking(
+            requireNotNull(stillParkedQuestion), savedCar.session, savedCar.vehicle.displayName(),
+            savedCar.vehicle.monitoringStatus().watch(),
+        )
+    }
     if (uiState == DetectionUiState.BlockedCore) {
         return if (locationAskPending) DetectionStory.Hidden else DetectionStory.BlockedCore
     }
@@ -329,6 +350,7 @@ fun DetectionStory.subjectVehicleId(
     activeVehicleId: String?,
 ): String? = when (this) {
     is DetectionStory.AwaitingAnswer -> window.vehicleId
+    is DetectionStory.ReconfirmingParking -> parking.vehicleId
     DetectionStory.PendingAsk -> parkNudgeVehicleId
     DetectionStory.AwaitingFirstPark -> activeVehicleId
     DetectionStory.BlockedCore,
@@ -340,8 +362,10 @@ fun DetectionStory.subjectVehicleId(
 }
 
 fun DetectionStory.isTheCarsQuestion(): Boolean = when (this) {
-    // Las tres preguntas de un coche: con plazo, sin plazo, y la del arranque en frío.
-    is DetectionStory.AwaitingAnswer -> true
+    // Llegada, permanencia, nudge sin plazo y arranque en frío pertenecen al coche.
+    is DetectionStory.AwaitingAnswer,
+    is DetectionStory.ReconfirmingParking,
+    -> true
     DetectionStory.PendingAsk, DetectionStory.AwaitingFirstPark -> true
     // Salud del sistema y nada-que-decir: del badge. `NoVehicle` es además el que justifica que el
     // badge exista — dice «no tienes coche», así que no hay card a la que mudarlo.

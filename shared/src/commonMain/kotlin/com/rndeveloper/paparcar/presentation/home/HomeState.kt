@@ -386,8 +386,10 @@ data class HomeState(
      * [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001]
      */
     val releaseDialogSessionId: String? = null,
-    val correctionDialogSessionId: String? = null,
+    val parkingCorrectionSessionId: String? = null,
     val stillParkedQuestion: com.rndeveloper.paparcar.domain.detection.StillParkedQuestion? = null,
+    /** The departure question whose saved location is being reviewed; cancelled edits keep it pending. */
+    val editingStillParkedQuestion: com.rndeveloper.paparcar.domain.detection.StillParkedQuestion? = null,
     val correctingParking: com.rndeveloper.paparcar.domain.usecase.parking.ParkingCorrection? = null,
     /**
      * Non-null when moving an existing session; null when creating a new one.
