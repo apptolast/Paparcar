@@ -77,6 +77,7 @@ import com.rndeveloper.paparcar.domain.connectivity.ConnectivityBannerPhase
 import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.domain.preferences.ThemeMode
 import com.rndeveloper.paparcar.presentation.app.AppIntent
+import com.rndeveloper.paparcar.presentation.app.AdMeasurementConsentDialog
 import com.rndeveloper.paparcar.presentation.app.SpotAlertCue
 import com.rndeveloper.paparcar.presentation.app.SpotAlertOrigin
 import com.rndeveloper.paparcar.presentation.app.AppViewModel
@@ -314,13 +315,14 @@ fun App(
                                     imperialUnits = appState.imperialUnits,
                                     onToggleImperialUnits = { appViewModel.handleIntent(AppIntent.SetDistanceUnit(it)) },
                                     onDismissGpsDisclaimer = { appViewModel.handleIntent(AppIntent.DismissGpsAccuracyDisclaimer) },
+                                    askAdMeasurementConsent = appState.askAdMeasurementConsent,
+                                    onAnswerAdMeasurementConsent = { granted ->
+                                        appViewModel.handleIntent(AppIntent.AnswerAdMeasurementConsent(granted))
+                                    },
                                 )
                             }
                         }
-                        else -> AuthNavigation(
-                            darkTheme = darkTheme,
-                            onLegalConsentAccepted = { appViewModel.handleIntent(AppIntent.AcceptLegalConsent) },
-                        )
+                        else -> AuthNavigation(darkTheme = darkTheme)
                     }
                 }
                 }
@@ -398,14 +400,11 @@ private fun BootstrapFatalDialog(onDismiss: () -> Unit) {
 @Composable
 private fun AuthNavigation(
     darkTheme: Boolean,
-    onLegalConsentAccepted: () -> Unit,
 ) {
     val navController = rememberNavController()
     // Built here and not inside the NavHost builder: the builder lambda is not a composable
-    // context, and the slots are since they remember the consent tick.
-    val slots = paparcarAuthSlots(
-        onLegalConsentAccepted = onLegalConsentAccepted,
-    )
+    // context, and the slots read string resources.
+    val slots = paparcarAuthSlots()
     // Stay in the same page palette, with a slightly deeper base on dark screens.
     val authBaseColor = if (darkTheme) {
         lerp(MaterialTheme.colorScheme.surfaceContainer, MaterialTheme.colorScheme.surfaceContainerLow, 0.5f)
@@ -465,6 +464,8 @@ private fun MainAppNavigation(
     imperialUnits: Boolean,
     onToggleImperialUnits: (Boolean) -> Unit,
     onDismissGpsDisclaimer: () -> Unit,
+    askAdMeasurementConsent: Boolean,
+    onAnswerAdMeasurementConsent: (Boolean) -> Unit,
 ) {
     val navController = rememberNavController()
     val currentBackStack by navController.currentBackStackEntryAsState()
@@ -492,6 +493,13 @@ private fun MainAppNavigation(
         ) {
             navController.navigate(Routes.GPS_DISCLAIMER)
         }
+    }
+
+    // [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001] The one-time ad-measurement question, asked
+    // only once the user is on a main tab: never over onboarding, permissions or vehicle setup,
+    // where it would compete with the questions that make the app work.
+    if (askAdMeasurementConsent && currentTabRoute != null && currentTabRoute in BOTTOM_NAV_ROUTES) {
+        AdMeasurementConsentDialog(onAnswer = onAnswerAdMeasurementConsent)
     }
 
     // Nav progress is a lifted state holder: HomeScreen writes the sheet-drag

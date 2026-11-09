@@ -62,6 +62,7 @@ class SettingsViewModelTest {
     private lateinit var reportUploader: FakeDiagnosticsReportUploader
     private lateinit var entitlementRepo: com.rndeveloper.paparcar.fakes.FakeEntitlementRepository
     private lateinit var vm: SettingsViewModel
+    private val adLane = com.rndeveloper.paparcar.fakes.FakeAdMeasurementLane()
 
     @BeforeTest
     fun setUp() {
@@ -121,11 +122,37 @@ class SettingsViewModelTest {
             observeReliability,
             sendDiagnostics,
             com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase(entitlementRepo),
+            adLane,
+            com.rndeveloper.paparcar.domain.usecase.analytics.SetAdMeasurementConsentUseCase(customPrefs, adLane),
             widgetPinRequester,
         )
     }
 
     // ── Init ──────────────────────────────────────────────────────────────────
+
+    // ── Medición de anuncios [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001] ─────────
+
+    @Test
+    fun `should_showTheAdRowOff_when_theLaneExistsAndTheUserNeverSaidYes`() {
+        assertTrue(vm.state.value.adMeasurementAvailable)
+        assertFalse(vm.state.value.adMeasurementAllowed)
+    }
+
+    @Test
+    fun `should_switchTheLaneOff_when_theUserWithdrawsInSettings`() {
+        vm.handleIntent(SettingsIntent.ToggleAdMeasurement(true))
+        vm.handleIntent(SettingsIntent.ToggleAdMeasurement(false))
+
+        assertFalse(vm.state.value.adMeasurementAllowed)
+        assertEquals(
+            com.rndeveloper.paparcar.domain.analytics.AdMeasurementConsent.DENIED,
+            prefs.adMeasurementConsent,
+        )
+        assertEquals(
+            com.rndeveloper.paparcar.domain.analytics.AdMeasurementConsent.DENIED,
+            adLane.received.last(),
+        )
+    }
 
     // ── Estado del correo [AUTH-AN-UNCONFIRMED-EMAIL-MUST-SAY-SO-001] ─────────
 

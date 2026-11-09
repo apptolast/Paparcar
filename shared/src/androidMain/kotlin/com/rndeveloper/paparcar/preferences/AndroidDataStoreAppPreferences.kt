@@ -13,6 +13,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.rndeveloper.paparcar.domain.analytics.AdMeasurementConsent
 import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
 import com.rndeveloper.paparcar.domain.detection.PendingSpotRelease
 import com.rndeveloper.paparcar.domain.detection.SpotReleaseLane
@@ -100,10 +101,15 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
 
     override fun setGpsAccuracyDisclaimerSeen() = set(Keys.GPS_ACCURACY_DISCLAIMER_SEEN, true)
 
-    override val hasAcceptedLegalConsent: Boolean
-        get() = get(Keys.LEGAL_CONSENT_ACCEPTED, false)
+    override val adMeasurementConsent: AdMeasurementConsent
+        get() {
+            val stored = get(Keys.AD_MEASUREMENT_CONSENT, AdMeasurementConsent.UNASKED.name)
+            return runCatching { AdMeasurementConsent.valueOf(stored) }
+                .getOrDefault(AdMeasurementConsent.UNASKED)
+        }
 
-    override fun setLegalConsentAccepted() = set(Keys.LEGAL_CONSENT_ACCEPTED, true)
+    override fun setAdMeasurementConsent(consent: AdMeasurementConsent) =
+        set(Keys.AD_MEASUREMENT_CONSENT, consent.name)
 
     override val hasRequestedLocationPermission: Boolean
         get() = get(Keys.LOCATION_PERMISSION_REQUESTED, false)
@@ -463,7 +469,11 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
     private object Keys {
         val ONBOARDING_COMPLETED            = booleanPreferencesKey("onboarding_completed")
         val GPS_ACCURACY_DISCLAIMER_SEEN    = booleanPreferencesKey("gps_accuracy_disclaimer_seen")
-        val LEGAL_CONSENT_ACCEPTED          = booleanPreferencesKey("legal_consent_accepted")
+        // "legal_consent_accepted" retired 2026-11-09: the registration tick it recorded was
+        // bundled with account creation, so it never was a valid yes to ad measurement and is NOT
+        // migrated. Stale values linger in the file; they are inert.
+        // [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001]
+        val AD_MEASUREMENT_CONSENT          = stringPreferencesKey("ad_measurement_consent")
         val LOCATION_PERMISSION_REQUESTED   = booleanPreferencesKey("location_permission_requested")
         val AUTO_DETECT_PARKING     = booleanPreferencesKey("auto_detect_parking")
         val PENDING_RELEASE_SPOT_ID = stringPreferencesKey("pending_spot_release_id")
@@ -530,8 +540,9 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
          *
          * Everything NOT here stays on purpose: `ONBOARDING_COMPLETED`,
          * `GPS_ACCURACY_DISCLAIMER_SEEN`, `LOCATION_PERMISSION_REQUESTED` and
-         * `LEGAL_CONSENT_ACCEPTED` describe this INSTALL (the consent is per-install by
-         * [AUTH-A-SIGN-IN-ASKS-FOR-CONSENT-FIRST-001]'s own decision, not by omission here), and
+         * `AD_MEASUREMENT_CONSENT` describe this INSTALL (the ad consent is per-install like the
+         * cookies it stands in for, by [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001]'s own
+         * decision, not by omission here), and
          * `AUTO_DETECT_PARKING` / `NOTIFY_PARKING_DETECTED` / `THEME_MODE` / `USE_IMPERIAL_UNITS` /
          * `DEFAULT_MAP_TYPE` describe this phone.
          */

@@ -103,6 +103,8 @@ val presentationModule = module {
             observeDetectionReliability = get(),
             sendDiagnosticsReport = get(),
             observeIsPlus = get(),
+            adMeasurementLane = get(),
+            setAdMeasurementConsent = get(),
             widgetPinRequester = getOrNull(),
         )
     }

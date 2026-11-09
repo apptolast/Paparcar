@@ -15,6 +15,7 @@ import com.revenuecat.purchases.kmp.LogLevel
 import com.revenuecat.purchases.kmp.Purchases
 import com.revenuecat.purchases.kmp.PurchasesConfiguration
 import com.rndeveloper.paparcar.data.analytics.MetaAdAttribution
+import com.rndeveloper.paparcar.domain.analytics.AdMeasurementConsent
 import com.rndeveloper.paparcar.di.paparcarLoginConfig
 import com.rndeveloper.paparcar.detection.worker.FirstParkNudgeWorker
 import com.rndeveloper.paparcar.detection.worker.GeofenceJanitorWorker
@@ -107,10 +108,10 @@ class PaparcarApp : Application() {
         // synchronously available via the blocking DataStore warmup at Koin construction.
         val appPreferences = get<AppPreferences>()
 
-        // El carril publicitario, en el arranque de quien ya aceptó: el primer `activateApp` es el
-        // que atribuye la instalación, y hacerlo aquí se la lleva a la sesión 1 en vez de a la 2.
-        // Quien aún no ha aceptado no enciende nada. [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001]
-        if (appPreferences.hasAcceptedLegalConsent) {
+        // El carril publicitario, en el arranque de quien ya dijo que SÍ a la medición: el primer
+        // `activateApp` es el que atribuye la instalación. Quien no ha contestado, o dijo que no,
+        // no enciende nada. [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001]
+        if (appPreferences.adMeasurementConsent == AdMeasurementConsent.GRANTED) {
             MetaAdAttribution.activate(this)
         }
 

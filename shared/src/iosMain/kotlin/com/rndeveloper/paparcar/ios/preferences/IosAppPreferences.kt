@@ -15,10 +15,13 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import platform.Foundation.NSUserDefaults
+import com.rndeveloper.paparcar.domain.analytics.AdMeasurementConsent
 
 private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
 private const val KEY_GPS_ACCURACY_DISCLAIMER_SEEN = "gps_accuracy_disclaimer_seen"
-private const val KEY_LEGAL_CONSENT_ACCEPTED = "legal_consent_accepted"
+// "legal_consent_accepted" retired with the Android key, same reason: not a valid ad consent.
+// [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001]
+private const val KEY_AD_MEASUREMENT_CONSENT = "ad_measurement_consent"
 private const val KEY_LOCATION_PERMISSION_REQUESTED = "location_permission_requested"
 private const val KEY_AUTO_DETECT_PARKING = "auto_detect_parking"
 private const val KEY_PENDING_RELEASE_SPOT_ID = "pending_spot_release_id"
@@ -63,7 +66,7 @@ private const val DEFAULT_MAP_TYPE = "NORMAL"
  * [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001]
  *
  * Everything else stays on purpose: onboarding, the GPS disclaimer, the location-permission flag
- * and the legal consent describe this INSTALL; theme, units, map type and the detection toggles
+ * and the ad-measurement consent describe this INSTALL; theme, units, map type and the detection toggles
  * describe this phone.
  */
 private val USER_SCOPED_KEYS = listOf(
@@ -132,11 +135,15 @@ class IosAppPreferences : AppPreferences {
         userDefaults.setBool(true, forKey = KEY_GPS_ACCURACY_DISCLAIMER_SEEN)
     }
 
-    override val hasAcceptedLegalConsent: Boolean
-        get() = userDefaults.boolForKey(KEY_LEGAL_CONSENT_ACCEPTED)
+    // iOS has no ad lane today (NoAdMeasurementLane), so nothing asks; the value is still stored
+    // like Android's so the contract is the same on both. When iOS gets one, ATT comes first.
+    override val adMeasurementConsent: AdMeasurementConsent
+        get() = userDefaults.stringForKey(KEY_AD_MEASUREMENT_CONSENT)
+            ?.let { stored -> AdMeasurementConsent.entries.firstOrNull { it.name == stored } }
+            ?: AdMeasurementConsent.UNASKED
 
-    override fun setLegalConsentAccepted() {
-        userDefaults.setBool(true, forKey = KEY_LEGAL_CONSENT_ACCEPTED)
+    override fun setAdMeasurementConsent(consent: AdMeasurementConsent) {
+        userDefaults.setObject(consent.name, forKey = KEY_AD_MEASUREMENT_CONSENT)
     }
 
     override val hasRequestedLocationPermission: Boolean

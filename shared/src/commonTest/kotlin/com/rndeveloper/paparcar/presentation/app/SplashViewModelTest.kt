@@ -4,6 +4,7 @@ import app.cash.turbine.test
 import com.apptolast.baselogin.domain.model.AuthState
 import com.rndeveloper.paparcar.Routes
 import com.rndeveloper.paparcar.presentation.app.BootstrapFailure
+import com.rndeveloper.paparcar.domain.analytics.AdMeasurementConsent
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityStatus
@@ -234,20 +235,26 @@ class SplashViewModelTest {
     /**
      * The other half of the same rule: what describes this INSTALL survives the sign-out. Without
      * this witness, "wipe the preferences" could quietly become `clear()` and send a user who
-     * merely signed out back through onboarding and the legal consent on their own phone.
+     * merely signed out back through onboarding and the ad-measurement question on their own phone.
      * [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001]
      */
     @Test
     fun `device-scoped preferences survive the sign-out wipe`() = runTest {
         fakePrefs = FakeAppPreferences(initialCompleted = true)
-        fakePrefs.setLegalConsentAccepted()
+        fakePrefs.setAdMeasurementConsent(AdMeasurementConsent.DENIED)
         buildViewModel()
         fakeAuth.emitState(AuthState.Authenticated(session))
 
         fakeAuth.emitState(AuthState.Unauthenticated)
 
         assertTrue(fakePrefs.isOnboardingCompleted, "onboarding is a fact about this install")
-        assertTrue(fakePrefs.hasAcceptedLegalConsent, "consent is per-install by AUTH-A-SIGN-IN-ASKS-FOR-CONSENT-FIRST-001")
+        // A "no" given on this phone must not turn back into "never asked" because someone signed
+        // out: that would re-ask, which is exactly the nagging the answer was meant to end.
+        assertEquals(
+            AdMeasurementConsent.DENIED,
+            fakePrefs.adMeasurementConsent,
+            "ad consent is per-install by MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001",
+        )
     }
 
     // ── The tutorial's memory lives on the ACCOUNT ────────────────────────────

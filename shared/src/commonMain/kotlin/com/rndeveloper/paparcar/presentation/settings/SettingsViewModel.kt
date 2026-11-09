@@ -2,6 +2,9 @@ package com.rndeveloper.paparcar.presentation.settings
 
 import com.apptolast.baselogin.domain.AuthRepository
 import com.rndeveloper.paparcar.domain.usecase.user.SignOutUseCase
+import com.rndeveloper.paparcar.domain.analytics.AdMeasurementConsent
+import com.rndeveloper.paparcar.domain.analytics.AdMeasurementLane
+import com.rndeveloper.paparcar.domain.usecase.analytics.SetAdMeasurementConsentUseCase
 import com.rndeveloper.paparcar.core.crash.CrashReporter
 import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.domain.error.PaparcarError
@@ -41,6 +44,10 @@ class SettingsViewModel(
     private val observeDetectionReliability: ObserveDetectionReliabilityUseCase,
     private val sendDiagnosticsReport: SendDiagnosticsReportUseCase,
     private val observeIsPlus: ObserveIsPlusUseCase,
+    // [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001] Where a yes to ad measurement is taken back
+    // (or given late). Same door as the one-time prompt, so both switch the lane the same way.
+    private val adMeasurementLane: AdMeasurementLane,
+    private val setAdMeasurementConsent: SetAdMeasurementConsentUseCase,
     // Android door for pinning the widget from here; null on platforms/launchers without it —
     // the row simply does not exist. [WIDGET-ACTIONS-002]
     private val widgetPinRequester: WidgetPinRequester? = null,
@@ -49,7 +56,12 @@ class SettingsViewModel(
     override fun initState(): SettingsState = SettingsState()
 
     init {
-        updateState { copy(canPinWidget = widgetPinRequester?.isPinSupported == true) }
+        updateState {
+            copy(
+                canPinWidget = widgetPinRequester?.isPinSupported == true,
+                adMeasurementAvailable = adMeasurementLane.isAvailable,
+            )
+        }
         loadFromPreferences()
         observePermissions()
         observeActiveVehicle()
@@ -181,6 +193,7 @@ class SettingsViewModel(
                 notifyFuelPrices = prefs.notifyFuelPrices,
                 notifyMonthRecap = prefs.notifyMonthRecap,
                 syncRouteGeometry = prefs.syncRouteGeometry,
+                adMeasurementAllowed = prefs.adMeasurementConsent == AdMeasurementConsent.GRANTED,
             )
         }
     }
@@ -264,6 +277,13 @@ class SettingsViewModel(
                     prefs.setSyncRouteGeometry(intent.enabled)
                     updateState { copy(syncRouteGeometry = intent.enabled) }
                 }
+            }
+            // [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001] Free, ungated, symmetric: withdrawing is
+            // exactly as easy as giving, and neither has anything to do with Plus.
+            is SettingsIntent.ToggleAdMeasurement -> {
+                setAdMeasurementConsent(intent.enabled)
+                    .onFailure { e -> PaparcarLogger.w(TAG, "ad-measurement switch not fully applied", e) }
+                updateState { copy(adMeasurementAllowed = intent.enabled) }
             }
             // The Plus row is an OFFER, not a gate — GENERAL keeps the funnel honest. [FREE-LIMITS-001]
             is SettingsIntent.OpenPlusPaywall -> sendEffect(SettingsEffect.NavigateToPaywall(PaywallReason.GENERAL))

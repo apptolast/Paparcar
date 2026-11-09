@@ -60,7 +60,7 @@
 <h1>Privacy Policy <span style="color:var(--muted)">·</span> <span lang="es">Política de Privacidad</span></h1>
 <!-- pap:shell-end -->
 
-<p class="meta">Last updated / Última actualización: 02-11-2026</p>
+<p class="meta">Last updated / Última actualización: 09-11-2026</p>
 
 <nav class="lang-nav">
   🇬🇧 <a href="#en">Privacy Policy (English)</a> &nbsp;·&nbsp; 🇪🇸 <a href="#es">Política de Privacidad (Español)</a>
@@ -156,11 +156,14 @@ Privacy contact: <a href="mailto:support@paparcar.com">support@paparcar.com</a><
 <h3>2.8 Map queries and Plus subscription</h3>
 <ul>
   <li><strong>Where you are looking</strong> — when you open the car parks or fuel lane, move the
-  map, or search for an address, we ask public data services about that area. Depending on the
-  service, that is <strong>a point on the map and a radius</strong> (OpenStreetMap, and the German,
-  French and Italian price feeds) or <strong>your province or country</strong> (the Spanish feed and
-  national averages). We send the area and nothing else: no account, no identifier, no history.
-  These services see a request from a phone, not from you.</li>
+  map, or search for an address, we ask about that area. Public car parks come from
+  <strong>our own server</strong> (paparcar.com), which receives only <strong>the square of about
+  3&nbsp;km</strong> the map is in — the same answer is served to everyone looking at that square.
+  Everything else, and car parks when our server does not answer, comes from public data services:
+  depending on the service, <strong>a point on the map and a radius</strong> (OpenStreetMap, and the
+  German, French and Italian price feeds) or <strong>your province or country</strong> (the Spanish
+  feed and national averages). We send the area and nothing else: no account, no identifier, no
+  history. These services see a request from a phone, not from you.</li>
   <li><strong>Plus subscription</strong> — if you subscribe, the purchase is processed by Google
   Play and managed through RevenueCat, which receives your <strong>account identifier</strong> and
   the state of your subscription. It never receives your location, your parkings or your vehicles.
@@ -200,9 +203,12 @@ Privacy contact: <a href="mailto:support@paparcar.com">support@paparcar.com</a><
   matched to the ad that was shown. You can reset it, or stop it from being shared at all, in
   <strong>Android Settings → Privacy → Ads</strong>; from that moment nothing we send can be tied
   back to you.</li>
-  <li><strong>Nothing of this happens until you accept this policy</strong> on the sign-in screen.
-  Before that, Meta's software inside the app is not even started: it collects no identifier and
-  sends no event, not even that the app was opened.</li>
+  <li><strong>Nothing of this happens unless you allow it.</strong> After you sign in, the app
+  asks you once, separately from your account, whether we may measure our ads this way; saying
+  no is just as easy as saying yes, and the app works exactly the same either way. You can change
+  your answer at any time in <strong>Settings → Ad measurement</strong>. Until you say yes, and
+  from the moment you say no, Meta's software inside the app sends nothing: it collects no
+  identifier and sends no event, not even that the app was opened.</li>
   <li>Meta acts as an independent controller for what it receives, under its own
   <a href="https://www.facebook.com/privacy/policy">privacy policy</a>. <strong>Paparcar shows no
   ads inside the app</strong>, and nothing you do in it is sold.</li>
@@ -229,7 +235,8 @@ Privacy contact: <a href="mailto:support@paparcar.com">support@paparcar.com</a><
   <tr><td>The other members of a car you share</td><td>Where that car is parked now and who left it there, the group's parking history and, unless you turn the switch off, the routes — with your profile name</td><td>Optional feature you join with an invitation code (§2.9)</td></tr>
   <tr><td>Google Firebase (Auth, Cloud Firestore, Crashlytics, Analytics)</td><td>Account data, parking sessions, vehicles, diagnostics, crash reports, anonymous usage events</td><td>Authentication, database, stability and usage statistics. <a href="https://firebase.google.com/support/privacy">Firebase privacy</a></td></tr>
   <tr><td>Google Maps Platform / Play Services</td><td>Map requests and location/activity signals processed by the SDK</td><td>Rendering the map and detecting driving. <a href="https://policies.google.com/privacy">Google privacy</a></td></tr>
-  <tr><td>OpenStreetMap (Overpass servers)</td><td>A point on the map and a radius — never your identity</td><td>Public car parks, fuel stations, place names and streets. <a href="https://osmfoundation.org/wiki/Privacy_Policy">OSMF privacy</a></td></tr>
+  <tr><td>Paparcar's own server (on Google Cloud)</td><td>The square of about 3&nbsp;km the map is showing — never your identity</td><td>Public car parks near you, built from OpenStreetMap and, in Madrid, the city's open occupancy data</td></tr>
+  <tr><td>OpenStreetMap (Overpass servers)</td><td>A point on the map and a radius — never your identity</td><td>Fuel stations, place names and streets, and public car parks when our server does not answer. <a href="https://osmfoundation.org/wiki/Privacy_Policy">OSMF privacy</a></td></tr>
   <tr><td>Photon (Komoot)</td><td>A point on the map, or the text you type when searching for a place</td><td>Turning a point into a street name, and searching addresses. <a href="https://photon.komoot.io">photon.komoot.io</a></td></tr>
   <tr><td>Ministerio para la Transición Ecológica (Spain)</td><td>The province or municipality you are looking at</td><td>Official pump prices in Spain</td></tr>
   <tr><td>data.economie.gouv.fr (France)</td><td>A point on the map and a radius</td><td>Official pump prices in France</td></tr>
@@ -237,7 +244,7 @@ Privacy contact: <a href="mailto:support@paparcar.com">support@paparcar.com</a><
   <tr><td>Tankerkönig (Germany)</td><td>A point on the map and a radius</td><td>Official pump prices in Germany</td></tr>
   <tr><td>OpenVan.camp</td><td>The country you are in</td><td>National average fuel prices</td></tr>
   <tr><td>RevenueCat</td><td>Your account identifier and the state of your Plus subscription</td><td>Managing the subscription. <a href="https://www.revenuecat.com/privacy">RevenueCat privacy</a></td></tr>
-  <tr><td>Meta Platforms (Facebook, Instagram)</td><td>Three event names and your device's advertising ID — only after you accept this policy (§2.10)</td><td>Measuring which of our ads bring people to the app. <a href="https://www.facebook.com/privacy/policy">Meta privacy</a></td></tr>
+  <tr><td>Meta Platforms (Facebook, Instagram)</td><td>Three event names and your device's advertising ID — only if you allow ad measurement (§2.10)</td><td>Measuring which of our ads bring people to the app. <a href="https://www.facebook.com/privacy/policy">Meta privacy</a></td></tr>
 </table>
 <p>Data is stored on Google Cloud (Firebase). Google acts as a data processor under its
 <a href="https://firebase.google.com/terms/data-processing-terms">data processing terms</a>, with
@@ -259,8 +266,9 @@ appropriate safeguards for international transfers (standard contractual clauses
   <li><strong>Advertising measurement events</strong>: kept by Meta under its own retention
   rules. We keep no copy of them: they are not stored on your phone or on our servers.</li>
   <li><strong>Subscription state</strong>: kept while the subscription is active and for as long as
-  the store and tax rules require afterwards. Map queries are not stored by us at all: the answers
-  are cached on your own device so the map is not empty without coverage.</li>
+  the store and tax rules require afterwards. Map queries are not tied to you: our server keeps
+  only a technical log of which 3&nbsp;km square it answered for, with no account or identifier,
+  and the answers are cached on your own device so the map is not empty without coverage.</li>
 </ul>
 
 <h2 id="delete-account">6. Deleting your account and data</h2>
@@ -282,7 +290,8 @@ email address.</p>
 restriction, portability and objection, and to withdraw consent at any time (e.g. by revoking the
 location permission in Android settings). You may also lodge a complaint with your supervisory
 authority. Legal bases: performance of the service you request (Art. 6(1)(b)), your consent for
-background location and physical activity (Art. 6(1)(a)), and our legitimate interest in app
+background location, physical activity and advertising measurement (Art. 6(1)(a); for reading the
+advertising ID, also the consent the ePrivacy rules require for accessing your device), and our legitimate interest in app
 stability and security (Art. 6(1)(f)).</p>
 
 <h2>8. Security</h2>
@@ -398,8 +407,11 @@ Contacto de privacidad: <a href="mailto:support@paparcar.com">support@paparcar.c
 <h3>2.8 Consultas al mapa y suscripción Plus</h3>
 <ul>
   <li><strong>Dónde estás mirando</strong> — al abrir el carril de parkings o el de gasolineras, al
-  mover el mapa o al buscar una dirección, preguntamos por esa zona a servicios de datos públicos.
-  Según el servicio, eso es <strong>un punto del mapa y un radio</strong> (OpenStreetMap y los
+  mover el mapa o al buscar una dirección, preguntamos por esa zona. Los parkings públicos salen de
+  <strong>nuestro propio servidor</strong> (paparcar.com), que solo recibe <strong>el cuadrado de
+  unos 3&nbsp;km</strong> en el que está el mapa — la misma respuesta sirve a todo el que mira ese
+  cuadrado. Lo demás, y los parkings cuando nuestro servidor no contesta, sale de servicios de datos
+  públicos: según el servicio, <strong>un punto del mapa y un radio</strong> (OpenStreetMap y los
   feeds de precios de Alemania, Francia e Italia) o <strong>tu provincia o tu país</strong> (el
   feed español y las medias nacionales). Se envía la zona y nada más: ni cuenta, ni identificador,
   ni historial. Esos servicios ven una petición de un móvil, no tuya.</li>
@@ -442,9 +454,13 @@ Contacto de privacidad: <a href="mailto:support@paparcar.com">support@paparcar.c
   casar una instalación con el anuncio que la trajo. Puedes reiniciarlo, o impedir que se comparta,
   en <strong>Ajustes de Android → Privacidad → Anuncios</strong>; desde ese momento nada de lo que
   enviamos se puede relacionar contigo.</li>
-  <li><strong>Nada de esto ocurre hasta que aceptas esta política</strong> en la pantalla de acceso.
-  Antes de eso, el software de Meta que lleva la app ni siquiera arranca: no recoge identificador
-  alguno ni envía evento alguno, ni siquiera que la app se haya abierto.</li>
+  <li><strong>Nada de esto ocurre si no lo permites.</strong> Tras iniciar sesión, la app te
+  pregunta una sola vez, aparte de tu cuenta, si podemos medir así nuestros anuncios; decir que no
+  es igual de fácil que decir que sí, y la app funciona exactamente igual en los dos casos. Puedes
+  cambiar tu respuesta cuando quieras en <strong>Ajustes → Medición de anuncios</strong>. Hasta
+  que digas que sí, y desde el momento en que digas que no, el software de Meta que lleva la app no
+  envía nada: no recoge identificador alguno ni envía evento alguno, ni siquiera que la app se haya
+  abierto.</li>
   <li>Meta actúa como responsable independiente de lo que recibe, bajo su propia
   <a href="https://www.facebook.com/privacy/policy">política de privacidad</a>. <strong>Paparcar no
   muestra publicidad dentro de la app</strong>, y nada de lo que haces en ella se vende.</li>
@@ -472,7 +488,8 @@ Contacto de privacidad: <a href="mailto:support@paparcar.com">support@paparcar.c
   <tr><td>Los demás miembros de un coche que compartes</td><td>Dónde está aparcado ese coche y quién lo dejó, el historial de aparcamientos del grupo y, salvo que apagues el interruptor, las rutas — con tu nombre de perfil</td><td>Función opcional a la que entras con un código de invitación (§2.9)</td></tr>
   <tr><td>Google Firebase (Auth, Cloud Firestore, Crashlytics, Analytics)</td><td>Datos de cuenta, aparcamientos, vehículos, diagnósticos, informes de fallo, eventos de uso anónimos</td><td>Autenticación, base de datos, estabilidad y estadísticas de uso. <a href="https://firebase.google.com/support/privacy">Privacidad de Firebase</a></td></tr>
   <tr><td>Google Maps Platform / Play Services</td><td>Peticiones de mapa y señales de ubicación/actividad procesadas por el SDK</td><td>Mostrar el mapa y detectar conducción. <a href="https://policies.google.com/privacy">Privacidad de Google</a></td></tr>
-  <tr><td>OpenStreetMap (servidores Overpass)</td><td>Un punto del mapa y un radio — nunca tu identidad</td><td>Parkings públicos, gasolineras, nombres de sitios y calles. <a href="https://osmfoundation.org/wiki/Privacy_Policy">Privacidad de la OSMF</a></td></tr>
+  <tr><td>Servidor propio de Paparcar (en Google Cloud)</td><td>El cuadrado de unos 3&nbsp;km que muestra el mapa — nunca tu identidad</td><td>Parkings públicos cercanos, a partir de OpenStreetMap y, en Madrid, de los datos abiertos de ocupación del Ayuntamiento</td></tr>
+  <tr><td>OpenStreetMap (servidores Overpass)</td><td>Un punto del mapa y un radio — nunca tu identidad</td><td>Gasolineras, nombres de sitios y calles, y parkings públicos cuando nuestro servidor no contesta. <a href="https://osmfoundation.org/wiki/Privacy_Policy">Privacidad de la OSMF</a></td></tr>
   <tr><td>Photon (Komoot)</td><td>Un punto del mapa, o el texto que escribes al buscar un sitio</td><td>Convertir un punto en el nombre de una calle, y buscar direcciones. <a href="https://photon.komoot.io">photon.komoot.io</a></td></tr>
   <tr><td>Ministerio para la Transición Ecológica (España)</td><td>La provincia o el municipio que estás mirando</td><td>Precios oficiales de surtidor en España</td></tr>
   <tr><td>data.economie.gouv.fr (Francia)</td><td>Un punto del mapa y un radio</td><td>Precios oficiales de surtidor en Francia</td></tr>
@@ -480,7 +497,7 @@ Contacto de privacidad: <a href="mailto:support@paparcar.com">support@paparcar.c
   <tr><td>Tankerkönig (Alemania)</td><td>Un punto del mapa y un radio</td><td>Precios oficiales de surtidor en Alemania</td></tr>
   <tr><td>OpenVan.camp</td><td>El país en el que estás</td><td>Media nacional de precios de combustible</td></tr>
   <tr><td>RevenueCat</td><td>Tu identificador de cuenta y el estado de tu suscripción Plus</td><td>Gestionar la suscripción. <a href="https://www.revenuecat.com/privacy">Privacidad de RevenueCat</a></td></tr>
-  <tr><td>Meta Platforms (Facebook, Instagram)</td><td>Tres nombres de evento y el identificador de publicidad de tu dispositivo — sólo después de que aceptes esta política (§2.10)</td><td>Medir qué anuncios nuestros traen gente a la app. <a href="https://www.facebook.com/privacy/policy">Privacidad de Meta</a></td></tr>
+  <tr><td>Meta Platforms (Facebook, Instagram)</td><td>Tres nombres de evento y el identificador de publicidad de tu dispositivo — sólo si permites la medición de anuncios (§2.10)</td><td>Medir qué anuncios nuestros traen gente a la app. <a href="https://www.facebook.com/privacy/policy">Privacidad de Meta</a></td></tr>
 </table>
 <p>Los datos se almacenan en Google Cloud (Firebase). Google actúa como encargado del tratamiento
 conforme a sus <a href="https://firebase.google.com/terms/data-processing-terms">términos de
@@ -505,9 +522,10 @@ procesamiento de datos</a>, con las garantías correspondientes para transferenc
   reglas de retención. Nosotros no guardamos copia: no se almacenan ni en tu móvil ni en nuestros
   servidores.</li>
   <li><strong>Estado de la suscripción</strong>: mientras la suscripción esté activa y después
-  durante el tiempo que exijan la tienda y las obligaciones fiscales. Las consultas al mapa no las
-  guardamos nosotros en absoluto: las respuestas se cachean en tu propio dispositivo para que el
-  mapa no salga vacío sin cobertura.</li>
+  durante el tiempo que exijan la tienda y las obligaciones fiscales. Las consultas al mapa no se
+  asocian a ti: nuestro servidor solo guarda un registro técnico de qué cuadrado de 3&nbsp;km
+  respondió, sin cuenta ni identificador, y las respuestas se cachean en tu propio dispositivo para
+  que el mapa no salga vacío sin cobertura.</li>
 </ul>
 
 <h2>6. Borrar tu cuenta y tus datos</h2>
@@ -529,8 +547,9 @@ cuenta.</p>
 limitación, portabilidad y oposición, y a retirar tu consentimiento en cualquier momento (p. ej.
 revocando el permiso de ubicación en los ajustes de Android). También puedes reclamar ante tu
 autoridad de control (en España, la AEPD). Bases jurídicas: ejecución del servicio que solicitas
-(art. 6.1.b), tu consentimiento para la ubicación en segundo plano y la actividad física
-(art. 6.1.a), e interés legítimo en la estabilidad y seguridad de la app (art. 6.1.f).</p>
+(art. 6.1.b), tu consentimiento para la ubicación en segundo plano, la actividad física
+y la medición de anuncios (art. 6.1.a; para leer el identificador de publicidad, además, el
+consentimiento que exige el art. 22.2 de la LSSI para acceder a tu dispositivo), e interés legítimo en la estabilidad y seguridad de la app (art. 6.1.f).</p>
 
 <h2>8. Seguridad</h2>
 <p>Los datos viajan cifrados (TLS) y se almacenan en la infraestructura de Google Cloud con reglas

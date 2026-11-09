@@ -244,7 +244,7 @@
       {
         "icon": "shield",
         "title": "Lo que no sale de tu móvil",
-        "body": "Tu matrícula se queda en el dispositivo. La marca y el modelo del coche solo aparecen en la plaza que liberas si tú lo activas. Tu ubicación no se vende ni se usa para publicidad, y la app no muestra anuncios dentro. Para medir qué anuncios nuestros funcionan, a Meta se le dice cuándo ocurren tres cosas —un aparcamiento confirmado, una plaza liberada, la pantalla de Plus abierta— y nada más, nunca antes de que aceptes la política de privacidad."
+        "body": "Tu matrícula se queda en el dispositivo. La marca y el modelo del coche solo aparecen en la plaza que liberas si tú lo activas. Tu ubicación no se vende ni se usa para publicidad, y la app no muestra anuncios dentro. Para medir qué anuncios nuestros funcionan, a Meta se le dice cuándo ocurren tres cosas —un aparcamiento confirmado, una plaza liberada, la pantalla de Plus abierta— y nada más, y solo si tú lo permites: la app te lo pregunta aparte, decir que no es igual de fácil, y puedes cambiarlo en Ajustes."
       },
       {
         "icon": "account",

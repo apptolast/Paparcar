@@ -7,6 +7,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import com.rndeveloper.paparcar.presentation.app.AdMeasurementConsentDialog
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -770,9 +771,7 @@ private fun loginScreen(
     passwordError: String? = null,
     isLoading: Boolean = false,
 ) {
-    val slots = paparcarAuthSlots(
-        onLegalConsentAccepted = {},
-    ).login
+    val slots = paparcarAuthSlots().login
     val isFormValid = email.isNotBlank() && password.isNotBlank()
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         DefaultAuthContainer(
@@ -1112,6 +1111,30 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             },
             Variant("Conexión restablecida (Restored · verde, ~2,5s)") {
                 Column(Modifier.fillMaxSize()) { ConnectivityBanner(ConnectivityBannerPhase.Restored) }
+            },
+        ),
+    ),
+    // [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001] La pregunta de una sola vez, tras el login. El
+    // grafo mock no tiene carril de anuncios, así que en el flujo vivo no sale nunca: ésta es su
+    // única cara en el Dev Catalog.
+    ScreenGroup(
+        "Medición de anuncios · pregunta",
+        listOf(
+            Variant("Pregunta tras el login (Permitir / No permitir)") {
+                // Como en la app real, responder CIERRA la pregunta: sin esto el diálogo (que no se
+                // descarta tocando fuera, a propósito) dejaba la galería sin salida.
+                var answer by remember { mutableStateOf<Boolean?>(null) }
+                Box(Modifier.fillMaxSize()) {
+                    if (answer == null) {
+                        AdMeasurementConsentDialog(onAnswer = { answer = it })
+                    } else {
+                        Text(
+                            text = if (answer == true) "Respuesta: Permitir" else "Respuesta: No permitir",
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.align(Alignment.Center),
+                        )
+                    }
+                }
             },
         ),
     ),
@@ -3180,6 +3203,23 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             // soporta el pin sheet — esta es su cara visible.
             Variant("Con fila de widget (launcher con pin)") {
                 SettingsContent(state = SettingsState(userProfile = sampleProfile, canPinWidget = true))
+            },
+            // [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001] La fila de medición de anuncios sólo
+            // existe donde hay carril (Android con claves de Meta). El grafo mock no lo tiene, así
+            // que su única cara visible en el Dev Catalog es ésta, en sus dos posiciones.
+            Variant("Medición de anuncios · sin permitir") {
+                SettingsContent(
+                    state = SettingsState(userProfile = sampleProfile, adMeasurementAvailable = true),
+                )
+            },
+            Variant("Medición de anuncios · permitida") {
+                SettingsContent(
+                    state = SettingsState(
+                        userProfile = sampleProfile,
+                        adMeasurementAvailable = true,
+                        adMeasurementAllowed = true,
+                    ),
+                )
             },
             // [MONEY-A-CARD-THAT-NEVER-APPEARS-IS-NEVER-SOLD-001] Las tres filas con gate blando
             // vistas desde una cuenta FREE: se pintan apagadas —la vista las fuerza con

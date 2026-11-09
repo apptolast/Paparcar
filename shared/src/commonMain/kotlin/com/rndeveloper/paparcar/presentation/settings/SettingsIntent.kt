@@ -17,6 +17,9 @@ sealed class SettingsIntent {
     /** [PRIV-A-TRACE-IS-NOT-A-STAT-001] Soft-gated like the zone alerts: enabling as free opens
      *  the paywall; disabling is always allowed. */
     data class ToggleRouteCloudSync(val enabled: Boolean) : SettingsIntent()
+    /** Give or take back the yes to advertising measurement. Never gated.
+     *  [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001] */
+    data class ToggleAdMeasurement(val enabled: Boolean) : SettingsIntent()
     /** The Plus entry at the top of Settings (free users only — Plus shows a badge). [MONEY-001] */
     data object OpenPlusPaywall : SettingsIntent()
     data object NavigateToVehicles : SettingsIntent()

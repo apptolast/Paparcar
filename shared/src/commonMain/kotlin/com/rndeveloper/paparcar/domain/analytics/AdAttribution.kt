@@ -23,9 +23,10 @@ package com.rndeveloper.paparcar.domain.analytics
  *
  * ## Y no manda nada sin consentimiento
  *
- * La implementación solo se enciende cuando existe la marca local de aceptación
- * (`AppPreferences.hasAcceptedLegalConsent`). El login de una cuenta existente y el acceso con
- * Google no crean esa marca: sin ella el SDK no se inicializa ni envía eventos.
+ * La implementación solo se enciende con un SÍ explícito a la medición de anuncios
+ * (`AppPreferences.adMeasurementConsent == GRANTED`): un consentimiento PROPIO, preguntado una vez
+ * tras el login —sea con correo o con Google— y revocable en Ajustes. Sin él el SDK no se
+ * inicializa ni envía eventos. [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001]
  */
 interface AdAttributionTracker : AnalyticsTracker
 

@@ -225,6 +225,10 @@ val iosMockModule = module {
     single<com.rndeveloper.paparcar.domain.analytics.AnalyticsTracker> {
         com.rndeveloper.paparcar.domain.analytics.NoOpAnalyticsTracker()
     }
+    // [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001] iOS has no ad lane: nothing to ask.
+    single<com.rndeveloper.paparcar.domain.analytics.AdMeasurementLane> {
+        com.rndeveloper.paparcar.domain.analytics.NoAdMeasurementLane
+    }
     single<com.rndeveloper.paparcar.domain.repository.SharedCarRepository> {
         com.rndeveloper.paparcar.fakes.data.repository.FakeSharedCarRepository(get())
     }

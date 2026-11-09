@@ -104,9 +104,7 @@ private data class MockLoginState(
 
 @Composable
 private fun MockLoginScreen(state: MockLoginState) {
-    val slots: LoginScreenSlots = paparcarAuthSlots(
-        onLegalConsentAccepted = {},
-    ).login
+    val slots: LoginScreenSlots = paparcarAuthSlots().login
     val isFormValid = state.email.isNotBlank() && state.password.isNotBlank()
 
     DefaultAuthContainer(
@@ -182,9 +180,7 @@ private fun PaparcarForgotPasswordSentLightPreview() {
  */
 @Composable
 private fun MockForgotPasswordScreen(sent: Boolean) {
-    val slots: ForgotPasswordScreenSlots = paparcarAuthSlots(
-        onLegalConsentAccepted = {},
-    ).forgotPassword
+    val slots: ForgotPasswordScreenSlots = paparcarAuthSlots().forgotPassword
 
     if (sent) {
         slots.successContent()

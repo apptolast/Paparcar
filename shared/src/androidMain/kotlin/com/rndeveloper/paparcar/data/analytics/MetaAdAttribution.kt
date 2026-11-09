@@ -17,9 +17,13 @@ import com.rndeveloper.paparcar.domain.util.PaparcarLogger
  *   (`AutoInitEnabled`, `AutoLogAppEventsEnabled`, `AdvertiserIDCollectionEnabled` a `false`); esto
  *   lo repite en código porque un `meta-data` perdido en una fusión de manifiestos no avisa, y el
  *   fallo sería silencioso y en la dirección mala.
- * - [activate] enciende el carril, y sólo se llama con el consentimiento legal ya aceptado.
- *   Idempotente: el primer `activateApp` es el que atribuye la instalación, los siguientes no
- *   duplican nada.
+ * - [activate] enciende el carril, y sólo se llama con el consentimiento de medición ya dado
+ *   (`AdMeasurementConsent.GRANTED`). Idempotente: el primer `activateApp` es el que atribuye la
+ *   instalación, los siguientes no duplican nada.
+ * - [deactivate] lo vuelve a callar cuando el usuario retira el sí en Ajustes. El SDK no se puede
+ *   des-inicializar, así que lo que se apaga es lo que manda: el registro automático y la recogida
+ *   del identificador de publicidad. Los eventos ya los corta `MetaAnalyticsTracker`, que lee el
+ *   consentimiento en cada llamada. [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001]
  *
  * ⛔ **El identificador de publicidad se recoge aquí y en ningún otro sitio.** El permiso
  * `com.google.android.gms.permission.AD_ID` vuelve al manifest por este carril, y por eso Firebase
@@ -90,6 +94,19 @@ object MetaAdAttribution {
             PaparcarLogger.w(TAG, "no se pudo encender el carril de atribución: ${e.message}")
             false
         }
+    }
+
+    /** Calla el carril tras un «no». Idempotente y nunca lanza. */
+    fun deactivate() {
+        if (!configured) return
+        runCatching {
+            FacebookSdk.setAutoLogAppEventsEnabled(false)
+            FacebookSdk.setAdvertiserIDCollectionEnabled(false)
+        }.onFailure { e ->
+            PaparcarLogger.w(TAG, "no se pudo apagar el carril de atribución: ${e.message}")
+        }
+        activated = false
+        PaparcarLogger.d(TAG, "carril de atribución apagado")
     }
 
     private const val TAG = "MetaAdAttribution"

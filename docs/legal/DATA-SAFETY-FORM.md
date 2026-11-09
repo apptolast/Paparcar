@@ -49,6 +49,13 @@ filas que lo tocan (App interactions · Device or other IDs), **No** en todas la
    aproximado sino `around:$radio,$lat,$lon` — **punto exacto y radio** (`OsmFuelStationParser.kt:40`,
    `OsmPublicParkingParser.kt:53`). No viaja cuenta, identificador ni historial. Es defendible como
    no-compartido, pero la política tiene que describirlo tal cual, sin suavizarlo.
+   ⚠️ **Desde la 1.6.0 los parkings ya no van a Overpass, van a NUESTRO servidor**
+   (`paparcar.com/api/parkings.json`, función `mergeCell`) con una celda de **3 km**, anónima y
+   cacheada por el CDN; Overpass queda de fallback [PARKINGS-ONE-CALL-MERGED-001]. Es el
+   desarrollador quien recibe la celda, así que no es «compartido»; sí es ubicación aproximada que
+   sale del móvil, ya cubierta por la fila de Location. `mergeCell` registra la celda servida, sin
+   identidad: la política §5 ya no dice «no guardamos las consultas en absoluto»
+   [PRIVACY-POLICY-MATCHES-DATA-FLOWS-001].
 
 | Tipo (Play) | Qué es en Paparcar | Obligatorio/Opcional | Finalidad a marcar |
 |---|---|---|---|
@@ -57,7 +64,7 @@ filas que lo tocan (App interactions · Device or other IDs), **No** en todas la
 | Personal info → **Name** | displayName del proveedor | Obligatorio | Account management |
 | Photos → **Photos** | photoUrl del perfil Google (solo URL, no subimos fotos) — declarar como Personal info/other o Photos según criterio; lo defendible: **Personal info → Other info** | Opcional | Account management |
 | Health & fitness → **Physical activity** | Activity Recognition + pasos (se procesa en device; el RESUMEN viaja en diagnósticos/armEvidence → se declara) | Obligatorio para el carril Coordinator | App functionality |
-| App activity → **App interactions** · ⚠️ **Compartido = Sí** | Eventos de producto (Firebase Analytics): aparcamiento confirmado/cerrado, plaza liberada/avisada. La ubicación viaja SOLO como celda geohash de ~150 m (nunca coordenada — invariante en `FirebaseAnalyticsTracker`, único traductor); sin uid en los params, identificados por el app-instance id de Firebase. Destino: Firebase Analytics (+ export a BigQuery cuando se active en consola); retención GA por defecto (14 meses). [ANALYTICS-EVENTS-001]<br><br>**Y, desde la 1.6.0, a Meta**: `parking_confirmed`, `spot_released` y `paywall_shown` — **sólo el nombre**, sin un solo parámetro (ni celda, ni `detectionPath`, ni `armEvidence`). La lista la decide un `when` exhaustivo en `domain/analytics/AdAttribution.kt`, no un `if` en el sink. Nada sale antes de `hasAcceptedLegalConsent` [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001] | Obligatorio | Analytics, **Advertising or marketing** |
+| App activity → **App interactions** · ⚠️ **Compartido = Sí** | Eventos de producto (Firebase Analytics): aparcamiento confirmado/cerrado, plaza liberada/avisada. La ubicación viaja SOLO como celda geohash de ~150 m (nunca coordenada — invariante en `FirebaseAnalyticsTracker`, único traductor); sin uid en los params, identificados por el app-instance id de Firebase. Destino: Firebase Analytics (+ export a BigQuery cuando se active en consola); retención GA por defecto (14 meses). [ANALYTICS-EVENTS-001]<br><br>**Y, desde la 1.6.0, a Meta**: `parking_confirmed`, `spot_released` y `paywall_shown` — **sólo el nombre**, sin un solo parámetro (ni celda, ni `detectionPath`, ni `armEvidence`). La lista la decide un `when` exhaustivo en `domain/analytics/AdAttribution.kt`, no un `if` en el sink. Nada sale antes de `hasAcceptedLegalConsent` [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001] — ⚠️ **desde la 1.6.0 la puerta es un consentimiento PROPIO** (`AdMeasurementConsent`): se pregunta una vez tras el login, sea con correo o con Google, con «No permitir» igual de visible que «Permitir», y se revoca en Ajustes → Medición de anuncios. La casilla de «acepto la política» del registro desapareció y su marca vieja no se migra. → En el Console esta fila es **opcional** (el usuario puede negarse) [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001] | Obligatorio | Analytics, **Advertising or marketing** |
 | App activity → **Other user-generated content** | Vehículos (marca/modelo/matrícula opcional), zonas privadas, plazas avisadas. **Coche compartido**: nombre visible del coche, tu nombre de perfil ante el grupo, código de invitación e historial del grupo (km, tiempo buscando plaza, plaza liberada) — `sharedCars/{carId}` + `members/{uid}` + `sessions/*`. ⛔ El espejo NO tiene campo para matrícula, `armEvidence` ni `detectionPath`: la lista blanca es el TIPO | Opcional (solo si compartes un coche) | App functionality |
 | Financial info → **Purchase history** | Estado de la suscripción Plus. La compra la procesa Google Play; RevenueCat recibe **tu uid** como `appUserID` (`RevenueCatEntitlementRepositoryImpl.kt:92`) y el estado del entitlement — nunca ubicación, aparcamientos ni vehículos. ⚠️ Ya declarado en el Console (la app vende en producción); esta fila existe para que la chuleta deje de omitirlo | Opcional | App functionality, Account management |
 | App info & performance → **Crash logs** | Crashlytics | Obligatorio | Analytics |
@@ -69,7 +76,10 @@ Hasta la 1.5.0 el manifest borraba los tres permisos con `tools:node="remove"` y
 lo contrario de lo que dice hoy [ANALYTICS-EVENTS-001]. Vuelven porque sin el GAID Meta no puede
 atribuir una instalación al anuncio que la pagó, que es para lo que entra el SDK.
 
-- Lo recoge **un solo carril**, y sólo tras el consentimiento legal: `MetaAdAttribution.activate`.
+- Lo recoge **un solo carril**, y sólo con el sí a la medición de anuncios: `MetaAdAttribution.activate`.
+  Un «no» en Ajustes lo apaga en el momento (`deactivate`), no en el próximo arranque.
+  → En el Data Safety, *Device or other IDs* pasa a **opcional** por la misma razón.
+  [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001]
 - **Firebase Analytics sigue sin tocarlo** (`google_analytics_adid_collection_enabled=false`).
 - ⛔ **Y entran TRES permisos, no cinco.** `facebook-core` fusiona sola, sin que nadie la pida, las
   dos APIs de Privacy Sandbox que sirven para **segmentar**: `ACCESS_ADSERVICES_TOPICS` (los

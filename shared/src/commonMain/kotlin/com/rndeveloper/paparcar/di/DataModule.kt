@@ -19,6 +19,8 @@ import com.rndeveloper.paparcar.data.datasource.remote.FirebaseDataSourceImpl
 import com.rndeveloper.paparcar.data.analytics.CompositeAnalyticsTracker
 import com.rndeveloper.paparcar.data.analytics.FirebaseAnalyticsTracker
 import com.rndeveloper.paparcar.domain.analytics.AdAttributionTracker
+import com.rndeveloper.paparcar.domain.analytics.AdMeasurementLane
+import com.rndeveloper.paparcar.domain.analytics.NoAdMeasurementLane
 import com.rndeveloper.paparcar.data.datasource.remote.FirestoreDetectionEventLogger
 import com.rndeveloper.paparcar.data.datasource.remote.FirestoreDiagnosticsReportUploader
 import com.rndeveloper.paparcar.data.datasource.remote.FirestoreUiLocationLogger
@@ -148,6 +150,14 @@ val dataModule = module {
                 getOrNull<AdAttributionTracker>(),
             ),
         )
+    }
+
+    // The consent side of that same lane. On Android the Meta tracker IS the lane, so the object
+    // that sends is the one that goes quiet after a "no"; everywhere else (iOS, the mock graph,
+    // which never loads androidPlatformModule) there is nothing to ask about.
+    // [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001]
+    single<AdMeasurementLane> {
+        getOrNull<AdAttributionTracker>() as? AdMeasurementLane ?: NoAdMeasurementLane
     }
 
     // Consumer map-location diagnostics — local logcat always + gated Firestore mirror at

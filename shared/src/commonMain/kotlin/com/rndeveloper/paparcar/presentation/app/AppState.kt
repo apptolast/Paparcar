@@ -17,8 +17,9 @@ data class AppState(
     /** Drives the root connectivity banner (Hidden/Offline/Restored). [CONN-BANNER-001] */
     val connectivityBanner: ConnectivityBannerPhase = ConnectivityBannerPhase.Hidden,
     val hasSeenGpsAccuracyDisclaimer: Boolean = false,
-    /** Device-local record of the registration privacy checkbox. */
-    val hasAcceptedLegalConsent: Boolean = false,
+    /** The one-time ad-measurement question is owed: there is an ad lane in this build and the
+     *  user has not answered yet. [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001] */
+    val askAdMeasurementConsent: Boolean = false,
     /**
      * La plaza nueva que acaba de aparecer en una zona vigilada, para contarla DENTRO de la app —
      * o null si no hay ninguna que contar. [ZONE-AN-ALERT-IS-DELIVERED-WHERE-YOU-CAN-SEE-IT-001]

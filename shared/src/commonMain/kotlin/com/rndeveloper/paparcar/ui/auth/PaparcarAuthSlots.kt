@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -17,7 +18,6 @@ import androidx.compose.material.icons.rounded.Email
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Phone
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -28,14 +28,14 @@ import com.rndeveloper.paparcar.ui.components.PapPrimaryButton
 import com.rndeveloper.paparcar.ui.components.PapProviderButton
 import com.rndeveloper.paparcar.ui.components.PaparcarImagotipo
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
@@ -75,7 +75,6 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.auth_cd_hide_password
-import paparcar.composeapp.generated.resources.auth_consent_accept
 import paparcar.composeapp.generated.resources.auth_consent_privacy_policy
 import paparcar.composeapp.generated.resources.auth_cd_show_password
 import paparcar.composeapp.generated.resources.auth_field_confirm_password
@@ -104,14 +103,33 @@ private val FIELD_CORNER_RADIUS = 14.dp
 private val PROVIDER_BUTTON_GAP = 10.dp
 
 /**
- * Keep existing-account sign-in independent of registration. Firebase may create an Auth user
- * during a first provider sign-in, so the provider section explains that before opening Google.
- * The registration checkbox remains on the email creation path; it never blocks a returning user.
+ * What an `OutlinedTextField` reserves above its visible border for the floating label. Measured on
+ * device: the field's bounds start at y=808 and its border at y=829 (21 px = 8 dp at 2.625).
+ * BaseLogin puts a fixed 16 dp between the header and the first field, so with this inset the title
+ * sat 24 dp from the form while fields sit 16 dp from each other — the header read as detached.
+ */
+private val FIELD_LABEL_TOP_INSET = 8.dp
+
+/**
+ * Extra room above the privacy notice on the register form. BaseLogin leaves only 8 dp between the
+ * last field and this slot, so the notice hugged "Confirm password" and read as that field's helper
+ * text — which Material insets 16 dp, so a flush notice looked like it stuck out. 8 + 8 = 16 dp, the
+ * same gap the fields keep, and the same as below it before the button.
+ */
+private val REGISTER_NOTICE_TOP_GAP = 8.dp
+
+/**
+ * The auth screens' Paparcar skin. Creating an account — by email or by a first Google sign-in —
+ * shows the SAME notice with a link to the privacy policy; nothing is ticked, because the policy is
+ * information the user must be able to read, not a contract to sign.
+ * [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001]
+ *
+ * ⛔ The only consent that needs a yes — advertising measurement — is asked separately, after
+ * sign-in, with its own refuse button. It used to hang off a "I accept the Privacy Policy" tick on
+ * the register form, which made it neither specific nor optional and left every Google user out.
  */
 @Composable
-fun paparcarAuthSlots(
-    onLegalConsentAccepted: () -> Unit,
-): AuthScreenSlots = AuthScreenSlots(
+fun paparcarAuthSlots(): AuthScreenSlots = AuthScreenSlots(
     login = LoginScreenSlots(
         layoutVerticalArrangement = Arrangement.Top,
         header = { PaparcarAuthHeader(isRegistration = false) },
@@ -169,14 +187,12 @@ fun paparcarAuthSlots(
                 imeAction = ImeAction.Done,
             )
         },
+        // BaseLogin gates its submit button on this slot's tick and offers no switch to turn that
+        // off (and BaseLogin is not edited from Paparcar). So the slot satisfies the gate itself and
+        // shows the notice instead — the same one the Google button carries on the login screen.
         termsCheckbox = { checked, onCheckedChange ->
-            LegalConsentRow(
-                checked = checked,
-                onCheckedChange = { accepted ->
-                    onCheckedChange(accepted)
-                    if (accepted) onLegalConsentAccepted()
-                },
-            )
+            LaunchedEffect(checked) { if (!checked) onCheckedChange(true) }
+            LegalPrivacyNotice(modifier = Modifier.padding(top = REGISTER_NOTICE_TOP_GAP))
         },
         submitButton = { onClick, isLoading, enabled, text ->
             CompactSubmitButton(onClick = onClick, isLoading = isLoading, enabled = enabled, text = text)
@@ -196,57 +212,10 @@ fun paparcarAuthSlots(
     ),
 )
 
-/**
- * The consent ask itself: checkbox + "I accept the Privacy Policy", with the policy name a live
- * link to the published document. The link must be reachable BEFORE ticking — that is the point
- * of the row — so it never sits behind the disabled state it controls.
- */
+/** Readable before creating an account — by email, or by a first provider sign-in, which may
+ *  create a Firebase account too. The same words on both doors. */
 @Composable
-private fun LegalConsentRow(
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-) {
-    val linkColor = MaterialTheme.colorScheme.primary
-    val policyName = stringResource(Res.string.auth_consent_privacy_policy)
-    val sentence = stringResource(Res.string.auth_consent_accept, policyName)
-    val linkStart = sentence.indexOf(policyName)
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Checkbox(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            modifier = Modifier.semantics { contentDescription = sentence },
-        )
-        Text(
-            text = buildAnnotatedString {
-                if (linkStart < 0) {
-                    // A translation lost the placeholder — degrade to plain text, never crash.
-                    append(sentence)
-                } else {
-                    append(sentence.substring(0, linkStart))
-                    withLink(
-                        LinkAnnotation.Url(
-                            url = LEGAL_PRIVACY_POLICY_URL,
-                            styles = TextLinkStyles(
-                                style = SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline),
-                            ),
-                        ),
-                    ) { append(policyName) }
-                    append(sentence.substring(linkStart + policyName.length))
-                }
-            },
-            // Legal micro-copy next to a control = LECTURA (label). [TYPO-AUDIT-001]
-            style = PaparcarType.current.label,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-/** Readable before a first provider sign-in, which may create a Firebase account. */
-@Composable
-private fun LegalPrivacyNotice() {
+private fun LegalPrivacyNotice(modifier: Modifier = Modifier) {
     val policyName = stringResource(Res.string.auth_consent_privacy_policy)
     val sentence = stringResource(Res.string.auth_privacy_notice, policyName)
     val linkStart = sentence.indexOf(policyName)
@@ -272,7 +241,9 @@ private fun LegalPrivacyNotice() {
         },
         style = PaparcarType.current.caption,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp),
     )
 }
 
@@ -280,7 +251,18 @@ private fun LegalPrivacyNotice() {
 private fun PaparcarAuthHeader(isRegistration: Boolean) {
     Column(
         horizontalAlignment = Alignment.Start,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            // Report the header 8 dp shorter so the first field's label inset overlaps it: the
+            // title then sits 16 dp above the form, the same rhythm the fields keep between them.
+            // Nothing is clipped — the Column does not clip, it only moves what follows up.
+            .layout { measurable, constraints ->
+                val placeable = measurable.measure(constraints)
+                val overlap = FIELD_LABEL_TOP_INSET.roundToPx()
+                layout(placeable.width, (placeable.height - overlap).coerceAtLeast(0)) {
+                    placeable.place(0, 0)
+                }
+            },
     ) {
         // Brand first; the task heading belongs to the form below, not to the wordmark.
         PaparcarImagotipo(width = 168.dp)

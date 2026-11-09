@@ -42,6 +42,7 @@ import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.CloudUpload
 import androidx.compose.material.icons.rounded.EventAvailable
 import androidx.compose.material.icons.rounded.NotificationsActive
@@ -203,6 +204,8 @@ import paparcar.composeapp.generated.resources.settings_notif_month_recap
 import paparcar.composeapp.generated.resources.settings_notif_month_recap_desc
 import paparcar.composeapp.generated.resources.settings_notif_zone_alerts
 import paparcar.composeapp.generated.resources.settings_sync_routes
+import paparcar.composeapp.generated.resources.settings_ads_measurement
+import paparcar.composeapp.generated.resources.settings_ads_measurement_desc
 import paparcar.composeapp.generated.resources.settings_sync_routes_desc
 import paparcar.composeapp.generated.resources.settings_sync_routes_paused
 import paparcar.composeapp.generated.resources.settings_notif_zone_alerts_desc
@@ -665,6 +668,20 @@ fun SettingsContent(
                                 onClick = { onIntent(SettingsIntent.OpenPrivacyPolicy) },
                             )
                             PapDivider()
+                            // [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001] Next to the policy that
+                            // describes it: withdrawing must be as easy to find as the yes was to
+                            // give. Only where the build has an ad lane — no lane, no row.
+                            if (state.adMeasurementAvailable) {
+                                PapSwitchRow(
+                                    icon = Icons.Rounded.Campaign,
+                                    label = stringResource(Res.string.settings_ads_measurement),
+                                    description = stringResource(Res.string.settings_ads_measurement_desc),
+                                    checked = state.adMeasurementAllowed,
+                                    onCheckedChange = { onIntent(SettingsIntent.ToggleAdMeasurement(it)) },
+                                    subtitleColor = settingsSubtitleColor(),
+                                )
+                                PapDivider()
+                            }
                             // [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] Above the legal rows:
                             // this is the only one in the section a user might actually want, and
                             // burying help under licences is how it never gets found.

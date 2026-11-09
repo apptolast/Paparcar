@@ -6,6 +6,7 @@ import com.rndeveloper.paparcar.domain.usecase.vehicle.DeleteVehicleUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.DeleteAccountUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.GetOrCreateUserProfileUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.SetFirstStepsDismissedUseCase
+import com.rndeveloper.paparcar.domain.usecase.analytics.SetAdMeasurementConsentUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.SignOutUseCase
 import com.rndeveloper.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import com.rndeveloper.paparcar.domain.usecase.location.GetOneLocationUseCase
@@ -62,6 +63,8 @@ val domainModule = module {
     // [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001] Device preference +
     // account fact behind one verb, so Home and Settings cannot drift.
     factory { SetFirstStepsDismissedUseCase(get(), get(), get()) }
+    // [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001] One door for the prompt and the Settings switch.
+    factory { SetAdMeasurementConsentUseCase(appPreferences = get(), lane = get()) }
     factory { BootstrapUserDataUseCase(get(), get(), get()) }
     // Salir retira antes los tokens de push, con la sesion todavia abierta.
     // [PRIV-A-SIGNED-OUT-PHONE-STILL-HEARS-THE-LAST-ACCOUNT-001]

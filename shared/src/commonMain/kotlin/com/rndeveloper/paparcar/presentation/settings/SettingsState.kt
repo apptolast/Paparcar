@@ -26,6 +26,11 @@ data class SettingsState(
     /** True when this platform + launcher can pin the parked-car widget from in-app — gates the
      *  "add the widget" row. [WIDGET-ACTIONS-002] */
     val canPinWidget: Boolean = false,
+    /** This build has an ad lane — gates the "Ad measurement" row; no lane, no row.
+     *  [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001] */
+    val adMeasurementAvailable: Boolean = false,
+    /** The user said yes to ad measurement on this install. Off until they do. */
+    val adMeasurementAllowed: Boolean = false,
     // Single source: the platform build version. The old "1.0.0" literal was a second,
     // lying default that never matched the APK. [SETTINGS-AUDIT-REMEDIATION-001]
     val appVersion: String = platformAppVersion,

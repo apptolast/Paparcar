@@ -1,6 +1,9 @@
 package com.rndeveloper.paparcar.presentation.app
 
+import com.rndeveloper.paparcar.domain.analytics.AdMeasurementLane
+import com.rndeveloper.paparcar.domain.analytics.shouldAskAdMeasurementConsent
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityBannerPhase
+import com.rndeveloper.paparcar.domain.usecase.analytics.SetAdMeasurementConsentUseCase
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityObserver
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityStatus
 import com.rndeveloper.paparcar.domain.permissions.PermissionManager
@@ -50,6 +53,10 @@ class AppViewModel(
     // per-screen collector would report a permission revocation only if the user happened to open
     // that screen afterwards.
     private val publishDetectionState: PublishDetectionStateUseCase,
+    // [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001] The one-time ad-measurement question lives at
+    // the root because it is asked once per install, whatever screen the user lands on.
+    private val adMeasurementLane: AdMeasurementLane,
+    private val setAdMeasurementConsent: SetAdMeasurementConsentUseCase,
 // `Nothing` as the effect type: the root ViewModel has no one-shot side effects to emit, and saying
 // so in the type stops one from being smuggled in. Its only effect used to be applying a language
 // the OS owns. [SETTINGS-LANGUAGE-LIVES-IN-THE-SYSTEM-001]
@@ -78,7 +85,10 @@ class AppViewModel(
                         ConnectivityBannerPhase.Hidden
                     },
                     hasSeenGpsAccuracyDisclaimer = appPreferences.hasSeenGpsAccuracyDisclaimer,
-                    hasAcceptedLegalConsent = appPreferences.hasAcceptedLegalConsent,
+                    askAdMeasurementConsent = shouldAskAdMeasurementConsent(
+                        adMeasurementLane,
+                        appPreferences.adMeasurementConsent,
+                    ),
                 )
             }
         }
@@ -264,9 +274,13 @@ class AppViewModel(
                 appPreferences.setGpsAccuracyDisclaimerSeen()
                 updateState { copy(hasSeenGpsAccuracyDisclaimer = true) }
             }
-            AppIntent.AcceptLegalConsent -> {
-                appPreferences.setLegalConsentAccepted()
-                updateState { copy(hasAcceptedLegalConsent = true) }
+            // Either answer closes the question: a "no" is an answer, not a postponement, and
+            // asking again after it is exactly the nagging the rules forbid. Settings is where it
+            // can be changed. Closed even if the write failed, so the dialog cannot trap the user.
+            is AppIntent.AnswerAdMeasurementConsent -> {
+                setAdMeasurementConsent(intent.granted)
+                    .onFailure { e -> PaparcarLogger.w(TAG, "ad-measurement answer not stored", e) }
+                updateState { copy(askAdMeasurementConsent = false) }
             }
             is AppIntent.SetThemeMode -> {
                 appPreferences.setThemeMode(intent.mode)

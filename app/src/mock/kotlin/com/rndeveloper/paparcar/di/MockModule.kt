@@ -137,6 +137,12 @@ val mockModule = module {
     single<com.rndeveloper.paparcar.domain.diagnostics.UiLocationLogger> { com.rndeveloper.paparcar.domain.diagnostics.NoOpUiLocationLogger() }
     // Product analytics never leaves the Dev Catalog. [ANALYTICS-EVENTS-001]
     single<com.rndeveloper.paparcar.domain.analytics.AnalyticsTracker> { com.rndeveloper.paparcar.domain.analytics.NoOpAnalyticsTracker() }
+    // No ad lane in the Dev Catalog: the live flow never asks, and nothing can reach the ad
+    // account by accident. The prompt and its Settings row live in the state gallery.
+    // [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001]
+    single<com.rndeveloper.paparcar.domain.analytics.AdMeasurementLane> {
+        com.rndeveloper.paparcar.domain.analytics.NoAdMeasurementLane
+    }
     // The REAL pinner: pinning the widget is launcher behaviour worth testing from the mock too.
     // [WIDGET-ACTIONS-002]
     single<com.rndeveloper.paparcar.domain.service.WidgetPinRequester> {

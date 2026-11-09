@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.fakes
 
+import com.rndeveloper.paparcar.domain.analytics.AdMeasurementConsent
 import com.rndeveloper.paparcar.domain.detection.PendingSpotRelease
 import com.rndeveloper.paparcar.domain.spot.VouchedSpot
 import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
@@ -60,9 +61,9 @@ class FakeAppPreferences(
     override val hasSeenGpsAccuracyDisclaimer: Boolean get() = _hasSeenGpsAccuracyDisclaimer
     override fun setGpsAccuracyDisclaimerSeen() { _hasSeenGpsAccuracyDisclaimer = true }
 
-    private var _hasAcceptedLegalConsent = false
-    override val hasAcceptedLegalConsent: Boolean get() = _hasAcceptedLegalConsent
-    override fun setLegalConsentAccepted() { _hasAcceptedLegalConsent = true }
+    var adMeasurementConsentValue: AdMeasurementConsent = AdMeasurementConsent.UNASKED
+    override val adMeasurementConsent: AdMeasurementConsent get() = adMeasurementConsentValue
+    override fun setAdMeasurementConsent(consent: AdMeasurementConsent) { adMeasurementConsentValue = consent }
 
     private var _hasRequestedLocationPermission = false
     override val hasRequestedLocationPermission: Boolean get() = _hasRequestedLocationPermission

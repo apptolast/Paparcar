@@ -3,6 +3,8 @@ package com.rndeveloper.paparcar.data.analytics
 import android.content.Context
 import com.facebook.appevents.AppEventsLogger
 import com.rndeveloper.paparcar.domain.analytics.AdAttributionTracker
+import com.rndeveloper.paparcar.domain.analytics.AdMeasurementConsent
+import com.rndeveloper.paparcar.domain.analytics.AdMeasurementLane
 import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
 import com.rndeveloper.paparcar.domain.analytics.AnalyticsUserProperty
 import com.rndeveloper.paparcar.domain.analytics.asAdAttributionEvent
@@ -17,18 +19,32 @@ import com.rndeveloper.paparcar.domain.util.PaparcarLogger
  * [asAdAttributionEvent] en `commonMain`, donde se puede testear sin SDK ni device, y no hay
  * `Bundle` que mantener en sync con nadie. Ni celda, ni `detectionPath`, ni `armEvidence`.
  *
- * **Consentimiento**: mientras `AppPreferences.hasAcceptedLegalConsent` sea `false`, el SDK no se
- * inicializa — así que no recoge el identificador de publicidad ni manda el evento de sesión. La
- * puerta es la que ya bloquea el sign-in [AUTH-A-SIGN-IN-ASKS-FOR-CONSENT-FIRST-001], y se lee en
- * CADA llamada a propósito: la aceptación llega a mitad de sesión (en la pantalla de auth), y un
- * flag cacheado al arrancar dejaría el carril apagado hasta el siguiente arranque.
+ * **Consentimiento**: mientras `AppPreferences.adMeasurementConsent` no sea `GRANTED`, el SDK no se
+ * inicializa — así que no recoge el identificador de publicidad ni manda el evento de sesión. Es un
+ * consentimiento PROPIO, pedido aparte del de la cuenta y revocable en Ajustes
+ * [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001], y se lee en CADA llamada a propósito: un «no» en
+ * Ajustes tiene que cortar el siguiente evento, no el del próximo arranque.
+ *
+ * Es también el [AdMeasurementLane] de Android: el mismo objeto que manda es el que se apaga, así
+ * que no hay dos sitios que puedan discrepar sobre si el carril está vivo.
  *
  * Mismo contrato fire-and-forget que el resto: nunca lanza, nunca bloquea.
  */
 class MetaAnalyticsTracker(
     private val context: Context,
     private val appPreferences: AppPreferences,
-) : AdAttributionTracker {
+) : AdAttributionTracker, AdMeasurementLane {
+
+    override val isAvailable: Boolean get() = MetaAdAttribution.isConfigured
+
+    override fun onConsentChanged(consent: AdMeasurementConsent) {
+        when (consent) {
+            // Encender YA, no al primer evento: el `activateApp` es lo que atribuye la instalación,
+            // y quien dice que sí y no aparca en esta sesión no debería esperar al arranque siguiente.
+            AdMeasurementConsent.GRANTED -> MetaAdAttribution.activate(context)
+            AdMeasurementConsent.DENIED, AdMeasurementConsent.UNASKED -> MetaAdAttribution.deactivate()
+        }
+    }
 
     override fun track(event: AnalyticsEvent) {
         val wire = event.asAdAttributionEvent()?.wire ?: return
@@ -40,10 +56,9 @@ class MetaAnalyticsTracker(
 
     /**
      * Meta App Events no tiene propiedades de usuario, así que esto no manda nada — pero **sí
-     * enciende el carril**, y eso no es un efecto colateral: es la señal más temprana y más
-     * frecuente que llega tras el consentimiento (`PublishDetectionStateUseCase` la emite durante
-     * toda la sesión [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001]). Sin esto, quien acepta y no
-     * aparca en esa sesión no atribuye su instalación hasta el arranque siguiente.
+     * enciende el carril** si hay consentimiento, y eso no es un efecto colateral: es la señal más
+     * temprana y más frecuente de la sesión (`PublishDetectionStateUseCase` la emite todo el rato
+     * [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001]).
      */
     override fun setUserProperty(property: AnalyticsUserProperty) {
         consentedLogger()
@@ -56,7 +71,8 @@ class MetaAnalyticsTracker(
     }
 
     private fun hasConsent(): Boolean =
-        runCatching { appPreferences.hasAcceptedLegalConsent }.getOrDefault(false)
+        runCatching { appPreferences.adMeasurementConsent == AdMeasurementConsent.GRANTED }
+            .getOrDefault(false)
 
     private companion object {
         const val TAG = "MetaAnalyticsTracker"

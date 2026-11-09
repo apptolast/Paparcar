@@ -10,6 +10,9 @@ import com.rndeveloper.paparcar.domain.model.Zone
 import com.rndeveloper.paparcar.domain.usecase.detection.EvaluateDetectionReliabilityUseCase
 import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
 import com.rndeveloper.paparcar.domain.usecase.detection.PublishDetectionStateUseCase
+import com.rndeveloper.paparcar.domain.analytics.AdMeasurementConsent
+import com.rndeveloper.paparcar.domain.usecase.analytics.SetAdMeasurementConsentUseCase
+import com.rndeveloper.paparcar.fakes.FakeAdMeasurementLane
 import com.rndeveloper.paparcar.fakes.FakeAnalyticsTracker
 import com.rndeveloper.paparcar.fakes.FakeBluetoothScanner
 import com.rndeveloper.paparcar.fakes.FakeOemBackgroundReliabilityManager
@@ -145,7 +148,12 @@ class AppViewModelTest {
         nearbySpotAlerts = nearbyAlerts,
         appNotificationManager = fakeNotifications,
         publishDetectionState = detectionPublisher,
+        adMeasurementLane = adLane,
+        setAdMeasurementConsent = SetAdMeasurementConsentUseCase(fakePrefs, adLane),
     )
+
+    /** Available by default: the question is owed unless a test says otherwise. */
+    private var adLane = FakeAdMeasurementLane()
 
     @AfterTest
     fun tearDown() {
@@ -353,42 +361,55 @@ class AppViewModelTest {
         assertTrue(fakePrefs.isOnboardingCompleted)
     }
 
-    // ── Legal consent [AUTH-A-SIGN-IN-ASKS-FOR-CONSENT-FIRST-001] ────────────────
+    // ── Ad-measurement consent [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001] ──────
 
     @Test
-    fun `should_startWithoutConsent_when_neverAccepted`() {
+    fun `should_askAdMeasurement_when_laneExistsAndNeverAnswered`() {
         val vm = viewModel()
 
-        // A fresh install must ASK: the auth screen reads this flag to decide whether to draw the
-        // checkbox and gate its CTAs.
-        assertFalse(vm.state.value.hasAcceptedLegalConsent)
+        // True at construction, not after an emission: the root decides on its first composition.
+        assertTrue(vm.state.value.askAdMeasurementConsent)
     }
 
     @Test
-    fun `should_persistConsent_when_accepted`() {
-        val vm = viewModel()
+    fun `should_notAskAdMeasurement_when_thisBuildHasNoAdLane`() {
+        // iOS and the mock flavor: nothing would be sent, so nothing is asked.
+        adLane = FakeAdMeasurementLane(isAvailable = false)
 
-        vm.handleIntent(AppIntent.AcceptLegalConsent)
-
-        // Both halves matter: the live state ungates the CTAs in THIS composition, and the
-        // preference is what survives the process.
-        assertTrue(vm.state.value.hasAcceptedLegalConsent)
-        assertTrue(fakePrefs.hasAcceptedLegalConsent)
+        assertFalse(viewModel().state.value.askAdMeasurementConsent)
     }
 
     @Test
-    fun `should_notAskAgain_when_consentWasAcceptedOnAPreviousRun`() {
-        // Accept it, then throw the ViewModel away — this is a relaunch, and the only thing that
-        // crosses over is the persisted preference.
-        viewModel()
-            .handleIntent(AppIntent.AcceptLegalConsent)
+    fun `should_grantAndSwitchTheLaneOn_when_userAllows`() {
+        val vm = viewModel()
+
+        vm.handleIntent(AppIntent.AnswerAdMeasurementConsent(granted = true))
+
+        assertFalse(vm.state.value.askAdMeasurementConsent)
+        assertEquals(AdMeasurementConsent.GRANTED, fakePrefs.adMeasurementConsent)
+        assertEquals(listOf(AdMeasurementConsent.GRANTED), adLane.received)
+    }
+
+    @Test
+    fun `should_neverAskAgain_when_userRefused`() {
+        // A no is an answer, not a postponement: asking again after it is nagging.
+        viewModel().handleIntent(AppIntent.AnswerAdMeasurementConsent(granted = false))
 
         val relaunched = viewModel()
 
-        // True at construction time (not after some later emission): the auth screen decides whether
-        // to draw the consent row on its FIRST composition, so a late value would flash the checkbox
-        // at someone who already accepted.
-        assertTrue(relaunched.state.value.hasAcceptedLegalConsent)
+        assertEquals(AdMeasurementConsent.DENIED, fakePrefs.adMeasurementConsent)
+        assertFalse(relaunched.state.value.askAdMeasurementConsent)
+    }
+
+    @Test
+    fun `should_closeTheQuestion_when_theLaneFailsToSwitch`() {
+        // The dialog has no outside-tap exit, so a failure must not trap the user in it.
+        adLane = FakeAdMeasurementLane().apply { throwOnChange = true }
+        val vm = viewModel()
+
+        vm.handleIntent(AppIntent.AnswerAdMeasurementConsent(granted = true))
+
+        assertFalse(vm.state.value.askAdMeasurementConsent)
     }
 
     // ── El carril de «cerca de ti» ────────────────────────────────────────────

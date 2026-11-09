@@ -61,8 +61,10 @@ Paparcar es una app KMP (Kotlin Multiplatform) de compartición de plazas de apa
   `facebook-android-sdk`, que arrastra login y share). ⛔ Tres reglas que no son opinión
   [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001]: (a) hacia una red publicitaria sale un
   **nombre de evento y nada más** — la lista blanca es un `when` exhaustivo en
-  `domain/analytics/AdAttribution.kt`, ni celda ni `detectionPath`; (b) **nada sale antes del
-  consentimiento legal** (`hasAcceptedLegalConsent`), y lo que lo sostiene son los tres `false` del
+  `domain/analytics/AdAttribution.kt`, ni celda ni `detectionPath`; (b) **nada sale sin el sí a la
+  medición de anuncios** (`adMeasurementConsent == GRANTED`, un consentimiento PROPIO, preguntado
+  una vez tras el login y revocable en Ajustes — nunca colgado de crear la cuenta
+  [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001]), y lo que lo sostiene son los tres `false` del
   manifest, no una buena intención; (c) el identificador de publicidad lo recoge **ese carril y
   sólo él** — Firebase Analytics lo sigue teniendo prohibido. La política, la web y el Data Safety
   son consumidores suyos y los vigila `AdvertisingDisclosureGuardrailTest`; la **ficha de Play no**,

@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.domain.preferences
 
+import com.rndeveloper.paparcar.domain.analytics.AdMeasurementConsent
 import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
 import com.rndeveloper.paparcar.domain.detection.PendingSpotRelease
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
@@ -23,7 +24,7 @@ interface AppPreferences {
      * The line it draws, and the one thing to think about before adding a key to either side: a
      * preference that describes the USER goes; one that describes this DEVICE or this INSTALL
      * stays. So `onboarding_completed`, the GPS disclaimer, the location-permission-asked flag and
-     * the legal consent are KEPT — they are facts about this phone, and wiping them would punish a
+     * the ad-measurement consent are KEPT — they are facts about this phone, and wiping them would punish a
      * user who merely signed out — while theme, units, map type and the detection toggles are kept
      * for the same reason.
      *
@@ -38,10 +39,13 @@ interface AppPreferences {
     val hasSeenGpsAccuracyDisclaimer: Boolean
     fun setGpsAccuracyDisclaimerSeen()
 
-    /** Device-local record of the registration checkbox. Existing-account sign-in and provider
-     *  access do not depend on it; ad attribution remains off until this is explicitly set. */
-    val hasAcceptedLegalConsent: Boolean
-    fun setLegalConsentAccepted()
+    /** The user's answer about advertising measurement on this install — its own consent, asked
+     *  once after sign-in and changeable in Settings. Per install, so NOT wiped on sign-out.
+     *  Replaces the old `legal_consent_accepted` tick, which is deliberately not migrated: it was
+     *  bundled with account creation, so it never was a valid yes to ad measurement.
+     *  [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001] */
+    val adMeasurementConsent: AdMeasurementConsent
+    fun setAdMeasurementConsent(consent: AdMeasurementConsent)
 
     /** True once we have ever fired the foreground-location request dialog. Lets the permissions
      *  screen tell a genuine first launch (offer the system dialog) apart from a permanently denied /

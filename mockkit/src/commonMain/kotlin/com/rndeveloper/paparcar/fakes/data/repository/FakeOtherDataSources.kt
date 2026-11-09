@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.fakes.data.repository
 
+import com.rndeveloper.paparcar.domain.analytics.AdMeasurementConsent
 import com.rndeveloper.paparcar.localePrefersImperialUnits
 import com.rndeveloper.paparcar.domain.geocoder.GeocoderDataSource
 import com.rndeveloper.paparcar.domain.model.AddressInfo
@@ -184,11 +185,11 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     override val hasSeenGpsAccuracyDisclaimer: Boolean get() = _hasSeenGpsAccuracyDisclaimer.value
     override fun setGpsAccuracyDisclaimerSeen() { _hasSeenGpsAccuracyDisclaimer.value = true }
 
-    // False so the Dev Catalog's live auth screens exercise the consent checkbox, the state
-    // this ticket exists for. [AUTH-A-SIGN-IN-ASKS-FOR-CONSENT-FIRST-001]
-    private val _hasAcceptedLegalConsent = MutableStateFlow(false)
-    override val hasAcceptedLegalConsent: Boolean get() = _hasAcceptedLegalConsent.value
-    override fun setLegalConsentAccepted() { _hasAcceptedLegalConsent.value = true }
+    // The mock graph has no ad lane (NoAdMeasurementLane), so the live flow never asks; the prompt
+    // and the Settings row are exercised in the state gallery. [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001]
+    private val _adMeasurementConsent = MutableStateFlow(AdMeasurementConsent.UNASKED)
+    override val adMeasurementConsent: AdMeasurementConsent get() = _adMeasurementConsent.value
+    override fun setAdMeasurementConsent(consent: AdMeasurementConsent) { _adMeasurementConsent.value = consent }
 
     private val _hasRequestedLocationPermission = MutableStateFlow(false)
     override val hasRequestedLocationPermission: Boolean get() = _hasRequestedLocationPermission.value
