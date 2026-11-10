@@ -1,8 +1,9 @@
 # Paparcar — Architecture
 
-> **Doc vivo.** Describe el proyecto **en presente**: si algo aquí no es verdad hoy, es un bug del doc.
-> Verificado contra master `46621e7f` el **2026-08-30** — versiones leídas de `gradle/libs.versions.toml`,
-> rutas y cifras contadas sobre el árbol.
+> **Revisión parcial 2026-11-07 contra `f84ade96a`.** Los módulos, el stack y el contrato de detección
+> de las secciones siguientes se contrastaron con Gradle y código. El resto conserva ejemplos y cifras
+> del corte `46621e7f` (2026-08-30): verificar cada ruta y cifra antes de usarla. Las versiones
+> exactas viven en `gradle/libs.versions.toml`.
 > Sustituye a `Paparcar_Arquitectura.md` (v4.0, abril 2026), **borrado** en este mismo barrido por
 > estar reemplazado por completo — recuperable con `git show <commit>^:docs/archive/Paparcar_Arquitectura.md`.
 > El análisis de modularización sigue vivo en [`archive/ARCH-002-modularization-review.md`](./archive/ARCH-002-modularization-review.md).
@@ -13,21 +14,21 @@
 
 | Capa | Tecnología |
 |------|------------|
-| Lenguaje | Kotlin 2.4.10 (KSP 2.3.11) · JVM 17 · Gradle 9.7.1 |
-| Build | AGP 9.3.2 · compileSdk 37 · targetSdk 37 · minSdk 26 |
-| UI | Compose Multiplatform 1.12.0 · Material3 (JB) 1.9.0 |
+| Lenguaje | Kotlin 2.4.21 (KSP 2.3.12) · JVM 17 · Gradle 9.7.1 |
+| Build | AGP 9.4.1 · compileSdk 37 · targetSdk 37 · minSdk 26 |
+| UI | Compose Multiplatform 1.12.2 · Material3 (JB) 1.9.0 |
 | Navegación | Navigation Compose KMP 2.9.2 |
 | Arquitectura | Clean Architecture + MVI (State + Intent + Effect) |
 | DI | Koin 4.2.2 (core + compose + viewmodel) |
-| DB local | Room KMP 2.8.4 + sqlite-bundled 2.7.0 |
-| Backend | Firebase vía GitLive 2.6.0 (Auth · Firestore · Crashlytics) · firebase-bom 34.18.0 |
-| Maps | `io.github.rndevelo.kmpmaps:core:0.9.1-puck4` — **fork propio** en Maven Central (Google Maps en Android, Apple Maps en iOS) |
-| Auth | BaseLogin 1.1.0 (librería propia, JitPack) — ⛔ no se toca desde este repo |
-| Async | Coroutines 1.11.0 + Flow · Serialization 1.11.0 · Datetime 0.8.0 |
-| Imágenes | Coil 3.6.0 + Ktor 3.5.2 (motor de red) |
+| DB local | Room KMP 2.8.5 + sqlite-bundled 2.7.1 |
+| Backend | Firebase vía GitLive 2.7.0 (Auth · Firestore · Analytics); Android: Crashlytics · Messaging · firebase-bom 35.0.2 |
+| Maps | `io.github.rndevelo.kmpmaps:core:0.9.1-puck6` — **fork propio** en Maven Central (Google Maps en Android, Apple Maps en iOS) |
+| Auth | BaseLogin 3.0.2 (librería propia, Maven Central) — ⛔ no se toca desde este repo |
+| Async | Coroutines 1.11.0 + Flow · Serialization 1.12.0 · Datetime 0.8.0 |
+| Imágenes | Coil 3.6.3 + Ktor 3.6.0 (motor de red) |
 | Logging | Napier 2.7.1 · Crashlytics |
-| Background | WorkManager 2.11.2 (Android) — BGTaskScheduler pendiente en iOS |
-| Tests | JUnit 4 · Turbine 1.2.1 · Robolectric 4.16.1 · **Konsist 0.17.3** (guardarraíles) |
+| Background | WorkManager 2.12.0 (Android); consultar implementación y plan iOS por separado |
+| Tests | JUnit 4 · Turbine 1.2.1 · Robolectric 4.17 · **Konsist 0.18.1** (guardarraíles) |
 
 **Targets:** Android `minSdk 26 / target 37 / compile 37` · iOS `arm64 + simulatorArm64`.
 
@@ -36,15 +37,16 @@
 
 ---
 
-## Los dos módulos Gradle
+## Tres módulos Gradle
 
-Desde `b949efa1` [ARCH-HEALTH-001 F7] el proyecto está partido en dos, con el paquete
+`settings.gradle.kts` declara `:shared`, `:app` y `:mockkit`, con el paquete
 `com.rndeveloper.paparcar`:
 
 ```
 :shared   KMP — TODA la lógica de producto (domain, data, presentation, ui, di, core)
 :app      Shell Android — MainActivity, PaparcarApp, AppNotificationManagerImpl, manifest,
           res/, flavors prod|mock, firma. Aquí vive BuildConfig.
+:mockkit  Fakes, escenarios y grafo mock; depende de :shared y no al revés.
 iosApp/   Shell SwiftUI (delega en Compose vía MainViewController)
 ```
 
@@ -87,8 +89,8 @@ iosApp/   Shell SwiftUI (delega en Compose vía MainViewController)
              │ expect/actual + bindings Koin
 ┌────────────▼─────────────────────────────────────────────────┐
 │  Platform (shared/androidMain | shared/iosMain)              │
-│  androidMain: CoordinatorDetectionService · BluetoothDetec-  │
-│    tionService · 11 workers · 6 receivers · FusedLocation ·  │
+│  androidMain: CoordinatorDetectionService (BT + Coordinator)│
+│    workers · receivers · FusedLocation · sensores            │
 │    ActivityRecognition · GeofencingClient · sensores         │
 │  iosMain: CLLocation · CMMotion · CBCentralManager ·         │
 │    UNUserNotificationCenter · NWPathMonitor                  │
@@ -147,13 +149,13 @@ com.rndeveloper.paparcar                          (shared/src/commonMain)
 │   │   ├── fence/ · sentry/         propiedad de geocerca · ciclo de vida del centinela
 │   │   ├── ports/                   TripTrail · ManualParkingDetection (puertos)
 │   │   └── CoordinatorParkingDetector.kt · ParkingStrategyResolver.kt · ArmEvidence.kt
-│   ├── usecase/                     47 use cases en 9 áreas — uno por VEREDICTO
+│   ├── usecase/                     áreas de negocio; uno por VEREDICTO
 │   ├── repository/ service/ ports   interfaces
 │   ├── permissions/ preferences/ session/ diagnostics/ …
 │   └── error/PaparcarError.kt
 │
 ├── data/
-│   ├── datasource/local/room/       AppDatabase v1, 6 entidades, DAOs
+│   ├── datasource/local/room/       AppDatabase v20, entidades y DAOs
 │   ├── datasource/remote/           FirebaseDataSource + DTOs + logger de diagnóstico
 │   ├── repository/                  *Impl offline-first + reconcile LWW (SyncReconcile.kt)
 │   ├── mapper/ geohash/ geocoder/ session/
@@ -166,12 +168,13 @@ com.rndeveloper.paparcar                          (shared/src/commonMain)
 │                                    icons/ · illustrations/ · auth/
 ├── core/crash/                      · di/ (DomainModule · DataModule · DetectionModule ·
 │                                       PresentationModule)
-└── fakes/                           fakes scenario-aware que comparten mock y tests
+
+(mockkit/src/commonMain)             fakes y escenarios para mock/tests
 
 (shared/src/androidMain)             detection/{service,worker,receiver,sensor} ·
                                      bluetooth/ · location/ · notification/ · permissions/ ·
                                      preferences/ · diagnostics/ · logging/ · di/
-(shared/src/iosMain)                 CL/CM/CB bridges · ios/stub/ · di/
+(shared/src/iosMain)                 detección, ubicación, notificaciones, auth · di/
 (app/src/main)                       MainActivity · PaparcarApp · AppNotificationManagerImpl ·
                                      di/AppModule
 (app/src/mock)                       Dev Catalog: DevMainActivity · DevRoot · DevCatalogScreen ·
@@ -204,8 +207,9 @@ Dos estrategias **independientes** que nunca se mezclan (regla vinculante en `CL
   `GEOFENCE_EXIT`; confirma vía `EvaluateParkingDecisionUseCase`, que **siempre exige conducción
   medida**. El scoring por sí solo no auto-confirma.
 
-`ParkingStrategyResolver` elige según `vehicle.bluetoothDeviceId != null && isBluetoothEnabled`.
-Ambas convergen en `ConfirmParkingUseCase`.
+`ParkingStrategyResolver` da el carril BT solo a un coche emparejado **y conectado ahora**;
+si no, Coordinator o NONE según el tipo del primario. Ambos convergen en `ConfirmParkingUseCase`.
+Un único `CoordinatorDetectionService` hospeda ambos carriles, con decisiones separadas.
 
 **Spec canónica:** [`docs/detection/PARKING-DETECTION.md`](./detection/PARKING-DETECTION.md).
 Antes de tocar nada: skill `det-change`.
@@ -220,7 +224,7 @@ Corolario de gobierno, enforced por `StagePurityGuardrailTest`: un caso de uso e
 funciones puras en `domain/detection/physics/`.
 
 ### 5. WorkManager para side-effects diferidos
-Nada que pueda tardar o fallar por red se ejecuta inline. **11 workers** (Android):
+Nada que pueda tardar o fallar por red se ejecuta inline. La lista siguiente es una muestra histórica de workers Android; consultar `androidMain/detection/worker/` para el inventario actual:
 
 | Worker | Rol |
 |---|---|
@@ -240,7 +244,7 @@ En iOS estos son coroutine+retry sin persistencia tras process death — ver [`I
 
 ### 6. MVI estricto
 Cada pantalla tiene `<Name>State` / `<Name>Intent` / `<Name>Effect`. `BaseViewModel<S,I,E>` centraliza
-`state: StateFlow`, `handleIntent(intent)` y `emitEffect(effect)`. Home, por tamaño, delega en
+`state: StateFlow`, `handleIntent(intent)` y `sendEffect(effect)`. Home, por tamaño, delega en
 *controllers* (`HomeTripController`, `HomeSpotsController`, `HomeSearchController`,
 `HomeGeocodingController`, `HomeUiController`), cada uno con su test.
 

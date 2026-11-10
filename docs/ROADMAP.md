@@ -9,6 +9,13 @@
 > ⛔ **Regla de este doc y de todos los vivos:** cabecera con **fecha + commit** contra el que se
 > verificó. Un doc sin eso no se distingue de uno que nadie ha mirado en tres meses.
 > [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]
+>
+> **Aviso de vigencia (2026-11-07, HEAD `f84ade96a`):** las fechas, versión en curso,
+> ocupación de parkings y lista de ramas de abajo son una fotografía histórica de 2026-09.
+> Desde el 2026-11-10 el build declara **1.6.0/17**, ya enviada a producción, y existen funciones
+> `ingestOccupancy`/`mergeCell`; ni el build ni los worktrees prueban qué está publicado — eso lo
+> dice `tools/release/cut.py --phases verify`, que lee la tienda. Consultar el backlog y
+> `git worktree list` antes de usar una fila como pendiente actual. Revisión integral pendiente.
 
 ---
 

@@ -1,0 +1,9 @@
+[mcp_servers.firebase]
+command = "npx"
+args = ["-y", "firebase-tools@latest", "mcp", "--only", "auth,firestore"]
+
+[mcp_servers.revenuecat]
+url = "https://mcp.revenuecat.ai/mcp"
+
+[mcp_servers.openaiDeveloperDocs]
+url = "https://developers.openai.com/mcp"

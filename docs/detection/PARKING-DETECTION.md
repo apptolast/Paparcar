@@ -59,11 +59,11 @@ The strategies never mix signals. BLUETOOTH and COORDINATOR converge on `Confirm
 the coordinator (geofence EXIT, AR ENTER, sentry significant-motion) funnels through
 `CoordinatorDetectionService.startParkingDetection()`, which consults the pure rule
 `coordinatorMayArm(strategy, trigger)` (`ParkingStrategyResolver.kt`). Under BLUETOOTH or NONE the
-automatic arm is refused with a PARKDIAG trace; `MANUAL` (explicit user intent, and the
-safety-net's arrival handoff which rides the same action) is always admitted — if the parked car
-turns out to be the BT one, the disconnect arbitration supersedes the session
-(`EvaluateBtArbitrationUseCase`). The geofence-EXIT lane additionally short-circuits early to skip
-its pre-arm work. Before this gate only the EXIT lane checked, and the sentry/AR lanes armed
+automatic arm is refused with a PARKDIAG trace. Only `MANUAL` (explicit user intent)
+is always admitted. The safety-net's arrival handoff uses `ARRIVAL_HANDOFF` and passes the
+same strategy gate as other automatic triggers [DET-HANDOFF-NOT-MANUAL-001]. A BT edge
+mid-session is arbitrated by `EvaluateBtArbitrationUseCase`.
+The geofence-EXIT lane additionally short-circuits early to skip its pre-arm work. Before this gate only the EXIT lane checked, and the sentry/AR lanes armed
 anyway: field 2026-08-01, the BT-paired Kamiq's trips were pinned on the primary (non-BT) Focus.
 
 **SENTRY residency is strategy-aware** [DET-STRATEGY-GATE-001]: `resolvePostDetectionLifecycle`

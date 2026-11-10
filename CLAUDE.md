@@ -16,6 +16,11 @@ Reglas transversales que ninguna skill sustituye: **nunca commitear ni mergear s
 explícito de este turno**; **worktree nuevo por tarea** (las ramas NO aíslan el árbol);
 **sistemas, no parches** — el invariante se arregla en UN sitio y se barren todos sus consumidores.
 
+**Codex convive en este repo** (`AGENTS.md`, `docs/agents/`, `.codex/`), con las mismas reglas de
+worktree, ticket y permiso. Son SUS instrucciones: no se editan sin autorización del user, igual que
+él no toca `CLAUDE.md` ni `.claude/`. No hay memoria compartida — lo que deba saber el otro agente
+va al repo (backlog, docs), nunca sólo a la memoria de uno. [AGENTS-CODEX-COEXISTS-WITH-CLAUDE-001]
+
 ## Proyecto
 Paparcar es una app KMP (Kotlin Multiplatform) de compartición de plazas de aparcamiento en tiempo real basada en comunidad. Android es la plataforma principal; iOS es target futuro. Cuando un usuario sale con el coche, la app detecta automáticamente el evento y publica la plaza recién liberada para que otros usuarios cercanos puedan encontrarla.
 
@@ -68,7 +73,10 @@ Paparcar es una app KMP (Kotlin Multiplatform) de compartición de plazas de apa
   manifest, no una buena intención; (c) el identificador de publicidad lo recoge **ese carril y
   sólo él** — Firebase Analytics lo sigue teniendo prohibido. La política, la web y el Data Safety
   son consumidores suyos y los vigila `AdvertisingDisclosureGuardrailTest`; la **ficha de Play no**,
-  que se mueve en el corte y la fuerza `cut.py`
+  que se mueve en el corte y la fuerza `cut.py`. ⛔ Y el BINARIO tampoco lo ve ese test: la fase
+  `bundle` de `cut.py` exige `AD_ID` dentro del AAB y rechaza Topics/Custom Audience — el 10-11 la
+  Console bloqueó la 1.6.0 por un artefacto sin `AD_ID` y hubo que desactivar ese error, así que la
+  Console ya no es testigo [RELEASE-THE-AAB-MUST-CARRY-AD-ID-001]
 - Logging: Napier 2.7.1 · Monitoring: Firebase Crashlytics
 - ⛔ **El stack no es sólo Gradle**: hay DOS raíces npm con su propio lockfile —`functions/` (Cloud
   Functions, se despliega) y `firestore-rules-tests/` (devDeps del harness de reglas)— y
