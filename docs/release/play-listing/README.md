@@ -1,5 +1,50 @@
 # Ficha de Play Store — qué hay aquí y qué falta
 
+> **Nueva tanda guardada en Google Play — 09-11-2026.** La [galería local](assets/review.html)
+> reúne ocho composiciones en cada uno de los nueve idiomas; los PNG están en
+> `assets/screenshots/<idioma>/`. Son derivados ignorados por Git, y sus raws y anclas están en
+> `build/store-raw/`, que puede borrarse al limpiar Gradle. El bloqueo de permisos 403 se resolvió.
+> Google aceptó la edición: 72 capturas y nueve descripciones completas. Una lectura posterior
+> confirmó huellas, orden y textos; los canales no cambiaron. La visibilidad pública depende de
+> la revisión y propagación de Google.
+> Las descripciones completas revisadas están en `LISTING-v1.5.0.md` y `paste/`.
+> El flujo actual usa el Pixel 8, el build
+> `:app:assembleMockDebug -PmockAsProd` y `tools/shoot.sh <idioma> <rawroot>/<idioma>`.
+> Home abre las listas desde acciones traducidas de «ver todas», no desde los badges sueltos
+> descritos en el registro histórico de abajo. `uiquery.py` lee esas etiquetas de los recursos de
+> la app y verifica la pantalla abierta. El inglés se captura con `en-IE` para usar km y euros.
+> Los detalles ampliados requieren los archivos `.anchor.txt` de esa misma captura; si faltan,
+> `render.sh` falla. El render usa los raws de cada idioma directamente y no sobrescribe `raw/`.
+> Ejecutar `scan.py raws <rawroot>` antes del render y `scan.py frames <assets>` después; revisar
+> visualmente todos los resultados. La tanda y sus validaciones se registran en
+> [PLAY-SHOTS-MOBILITY-CAROUSEL-001](../../backlog/play-shots-mobility-carousel-001.md).
+
+## Actualizar capturas y descripción mediante la API
+
+Con autorización del usuario para modificar la ficha, desde la raíz del worktree:
+
+```bash
+python docs/release/play-listing/tools/make_paste.py --check
+node tools/release/store_listing.mjs --inspect <ruta-a-la-credencial-local>
+node tools/release/store_listing.mjs --check-permissions <ruta-a-la-credencial-local>
+node tools/release/store_listing.mjs --apply <ruta-a-la-credencial-local>
+```
+
+La inspección guarda la ficha, los canales y las huellas de las capturas anteriores en
+`build/store-publish/before.json`, junto al plan local, y descarta su edición temporal.
+`--check-permissions` prepara una descripción en una edición temporal, valida y descarta;
+no guarda cambios. `--apply` repite esa comprobación antes de subir imágenes.
+La aplicación exige que el plan y la ficha remota sigan iguales; sustituye sólo las ocho capturas
+de teléfono y la descripción completa de cada idioma. Comprueba las huellas y el orden, valida
+la edición, hace un único commit de Play y vuelve a leer el resultado desde otra edición.
+Conserva los recibos locales; la siguiente inspección se detiene si ya existe un baseline para no
+sobrescribirlo. Estos archivos están bajo `build/` y se pueden perder al limpiar Gradle.
+El guardado en la API no acredita que Google haya terminado su revisión ni que los cambios sean
+ya visibles en la ficha pública. La credencial se consume mediante el cliente existente sin
+imprimirla ni guardar su token. El comando no cambia binarios ni canales.
+
+## Registro histórico
+
 Generado el 2026-08-29 para la **Ficha de Play Store predeterminada** (en-US).
 
 | Fichero | Qué es |
@@ -33,9 +78,11 @@ Re-renderizado el **29-09-2026** con la marca de 2026
 ⛔ **Los gráficos por idioma y las capturas son derivados gitignored**: en un clon limpio no están,
 y eso es a propósito (59 MB en un repo de 88). Antes de abrir el Console, correr el render.
 
-⏳ **Lo que sigue pendiente del user desde el 27-09**, y que este ticket no toca: pegar la
-descripción completa de los 9 idiomas. El paso 1 de «CÓMO FUNCIONA» vivo en Play todavía dice
-«también puedes marcarlo a mano», y lo correcto está en `paste/` desde `72e78f9bd`.
+**Resuelto el 09-11-2026:** las nuevas capturas y descripciones completas de los nueve idiomas
+se guardaron mediante la API, tras corregir el permiso de presencia en tienda. La lectura desde
+una edición nueva confirmó las 72 imágenes y su orden, los textos y los canales sin cambios.
+Recibos locales en `build/store-publish/commit.json` y `after.json`; su existencia no acredita
+que Google haya finalizado su revisión o propagación pública.
 
 ## Re-renderizar los gráficos
 

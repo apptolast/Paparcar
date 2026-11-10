@@ -1,5 +1,7 @@
 # Login y registro · issue #140
 
+**Estado:** ✅ Implementado en master (`b99e0536b`); la separación de consentimientos queda como decisión de producto y revisión legal, según la nota de verificación.
+
 ## Hallazgos
 
 - BaseLogin controla los formularios y la navegación entre Login, Registro y recuperación de contraseña. Paparcar aporta los slots visuales en `PaparcarAuthSlots.kt`.

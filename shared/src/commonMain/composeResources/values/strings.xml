@@ -1108,8 +1108,8 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
          chips de la lente del sheet Y por el menu de capas del mapa. Dos deletreos del mismo
          sujeto es como las dos superficies acaban llamandolo distinto.
          [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001] -->
-    <string name="home_intention_park">Aparcar</string>
-    <string name="home_intention_refuel">Repostar</string>
+    <string name="home_intention_park">Park</string>
+    <string name="home_intention_refuel">Refuel</string>
     <string name="subject_free_spots">Free spots</string>
     <string name="subject_free_spots_full">Community spots</string>
     <string name="home_parkings_empty">No public car parks within %1$s.</string>

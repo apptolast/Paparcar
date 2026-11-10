@@ -8,18 +8,18 @@ Paparcar: dónde aparcaste
 --- 2. DESCRIPCION BREVE (75/80) ---
 ¿Dónde aparcaste? Paparcar lo recuerda. Con precios de gasolina y parkings.
 
---- 3. DESCRIPCION COMPLETA (3930/4000) ---
+--- 3. DESCRIPCION COMPLETA (3918/4000) ---
 ¿Dónde aparcaste?
 
 Paparcar lo recuerda por ti.
 
-Aparca, bájate del coche y sigue con tu día. Paparcar guarda dónde has dejado el coche automáticamente: sin abrir la app, sin poner un pin y sin escribir una dirección. Cuando vuelvas, sabrás dónde está y cuánto tiempo lleva allí.
+Tu coche, la calle y cuándo aparcaste, juntos en el mapa. Paparcar ayuda a guardar tu aparcamiento automáticamente, y también puedes marcarlo o corregirlo tú.
 
 Cuando te vas, la plaza que dejas puede publicarse para los conductores que están cerca. Y tú puedes ver las plazas que otros acaban de liberar. Cuantos más conductores usen Paparcar en tu ciudad, más plazas aparecen en el mapa.
 
 CÓMO FUNCIONA
-1. Aparcas. Paparcar lo detecta y guarda el sitio. Sin Bluetooth, el primer aparcamiento lo marcas tú.
-2. Te vas. La app lo detecta.
+1. Aparcas. Paparcar puede detectarlo; también puedes marcar tu aparcamiento a mano.
+2. Te vas. La app comprueba si has salido.
 3. Tu plaza se publica para los conductores cercanos, cuando corresponde.
 
 TU APARCAMIENTO, SIN ESFUERZO
@@ -29,30 +29,29 @@ TU APARCAMIENTO, SIN ESFUERZO
 • ¿El sitio no es exacto? Mueve tu aparcamiento en el mapa y guárdalo de nuevo.
 • Cada coche con su tamaño, su color y su Bluetooth.
 
-PLAZAS EN TIEMPO REAL
-• Las plazas que otros conductores acaban de liberar, en el mapa.
+PLAZAS COMPARTIDAS POR LA COMUNIDAD
+• Plazas comunicadas por otros conductores, en el mapa. Su disponibilidad puede cambiar.
 • Cuándo se liberó cada una: no es lo mismo hace dos minutos que hace veinte.
 • Cuántos conductores van ya hacia allí.
 • Si tu coche cabe: Paparcar compara el hueco con el tuyo.
 • ¿Ves una plaza libre al pasar? Avísala en dos toques.
 
 GASOLINERAS Y PARKINGS, EN EL MISMO MAPA
-• Gasolineras con el precio que publican los registros oficiales y la hora a la que se midió. España, Francia, Alemania e Italia.
+• Gasolineras con precios oficiales y fecha de actualización donde estén disponibles. La cobertura depende de la fuente.
 • El precio del combustible que usa tu coche, no una media genérica.
 • Parkings públicos con su tarifa, su gálibo y sus plazas, cuando la fuente los da.
 • ¿Cabes por el gálibo? Sólo cuando estamos seguros: un alto desconocido nunca es un «cabes».
-• Todo gratis, avisos incluidos: lo que sube o baja a tu alrededor te llega con la app cerrada.
+• Ver plazas, parkings y gasolineras es gratis. Los avisos de precios cercanos también llegan con la app cerrada.
 
 TUS CIFRAS
-• Cuánto te gastas en combustible y cuánto consumes.
+• Gasto y consumo de combustible estimados a partir de tus viajes y los datos del coche.
 • Cuánto tiempo pasas buscando plaza.
-• Tu calle de siempre, tu día de siempre y la hora en que se pone más difícil.
-• Cuánto acierta la detección, en porcentaje, sobre los viajes que midió.
+• Estadísticas calculadas sobre tus trayectos registrados.
 
 UN COCHE, VARIOS CONDUCTORES
 • Comparte un coche hasta con cuatro personas. Quien lo conduce marca el aparcamiento y todo el grupo ve dónde está.
 • Distancia, tiempo y plazas liberadas cuentan para todos.
-• Tus rutas se comparten sólo si tú lo dices.
+• En un coche compartido, eliges si el grupo ve tus rutas. Los datos del trayecto se sincronizan aunque ocultes las rutas.
 
 DETECCIÓN AUTOMÁTICA
 Si tu coche se conecta al móvil por Bluetooth, la desconexión ayuda a detectar que has terminado de aparcar. Si no tiene Bluetooth, Paparcar usa el movimiento y la ubicación.

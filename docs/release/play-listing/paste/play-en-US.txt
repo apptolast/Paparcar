@@ -8,18 +8,18 @@ Paparcar: where did you park
 --- 2. DESCRIPCION BREVE (72/80) ---
 Where did you park? Paparcar remembers — plus fuel prices and car parks.
 
---- 3. DESCRIPCION COMPLETA (3820/4000) ---
+--- 3. DESCRIPCION COMPLETA (3744/4000) ---
 Where did you park?
 
 Paparcar remembers for you.
 
-Park, get out and get on with your day. Paparcar saves where you left the car automatically: without opening the app, dropping a pin or typing an address. When you come back, you know where it is and how long it has been there.
+Find your car, the street and when you parked, together on the map. Paparcar helps save your parking automatically, and you can also mark or correct it yourself.
 
 When you drive off, the spot you leave can be published for the drivers nearby. And you can see the spots others have just left. The more drivers using Paparcar in your city, the more spots appear on the map.
 
 HOW IT WORKS
-1. You park. Paparcar detects it and saves the place. With no Bluetooth, you mark the first parking by hand.
-2. You drive off. The app detects it.
+1. Park. Paparcar can detect it; you can also mark your parking by hand.
+2. Drive off. The app checks whether you have left.
 3. Your spot is published for the drivers nearby, when appropriate.
 
 YOUR PARKING, EFFORTLESS
@@ -29,30 +29,29 @@ YOUR PARKING, EFFORTLESS
 • Not the right place? Move your parking on the map and save it again.
 • Every car with its own size, colour and Bluetooth.
 
-PARKING SPOTS IN REAL TIME
-• The spots other drivers have just left, on the map.
+SPOTS SHARED BY THE COMMUNITY
+• Spots reported by other drivers, on the map. Availability can change.
 • When each one was freed: two minutes ago is not twenty.
 • How many drivers are already heading there.
 • Whether your car fits: Paparcar compares the space against yours.
 • See a free spot as you walk past? Report it in two taps.
 
 FUEL AND CAR PARKS, ON THE SAME MAP
-• Fuel stations with the price official registers publish, and the hour it was measured. Spain, France, Germany and Italy.
+• Fuel stations with official prices and update times where available. Coverage depends on the source.
 • The price of the fuel your car actually takes, not a generic average.
 • Public car parks with their rate, height limit and spaces, where the source gives them.
 • Does your car clear the barrier? Only when we are sure — an unknown height is never a yes.
-• All of it free, alerts included: prices moving around you reach you with the app closed.
+• Viewing spots, car parks and stations is free. Nearby fuel price alerts also work with the app closed.
 
 YOUR NUMBERS
-• What you spend on fuel, and how much you burn.
+• Estimated fuel cost and consumption, based on your trips and vehicle data.
 • How long you spend looking for a spot.
-• Your usual street, your usual day, and the hour it gets hardest.
-• How often detection got it right, in percent, over the trips it measured.
+• Statistics based on your recorded trips.
 
 ONE CAR, SEVERAL DRIVERS
 • Share a car with up to four people. Whoever drives it marks the parking, and the whole group sees where it is.
 • Distance, time and spots freed count for everyone.
-• Your routes are shared only if you say so.
+• In a shared car, you choose whether the group sees your routes. Trip data syncs even when route display is off.
 
 AUTOMATIC DETECTION
 If your car connects to your phone by Bluetooth, the disconnection helps detect that you have finished parking. If it has no Bluetooth, Paparcar uses motion and location instead.

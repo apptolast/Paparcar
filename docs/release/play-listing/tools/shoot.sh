@@ -16,8 +16,7 @@
 # a genuinely different height run to run (measured 16-09: sheet-top at 0, 642, 888 and fully
 # collapsed across identical repeats), so a fixed tap y is a coin flip that FAILS SILENTLY — it
 # opens another tab and the capture still looks plausible. `uiautomator dump` gives the real bounds:
-#   - the lane tabs are found by their COUNT BADGE ("6"/"4"/"5" in this fixture) — plain Arabic
-#     numerals, identical in all 9 locales, unlike "Fuel stations"/"Tankstellen"/…
+#   - Home's "see all" actions are resolved from the app's localized plural resources
 #   - the car-park row by "Parking Plaza Mayor", a fixture proper noun that no locale translates
 # ⛔ Esos literales son un CONTRATO con el mundo mock, y se rompio en silencio: la mudanza a Madrid
 # dejo dos de los tres apuntando a sitios que ya no existen. Lo vigila ahora
@@ -90,24 +89,26 @@ tap_text() {
   return 0
 }
 
-# Selects one of the "in this area" lanes by its COUNT BADGE and VERIFIES it took. Tapping alone is
-# not enough: the tab lives inside a sheet that settles at a genuinely different height run to run
-# (measured: the same swipe put this row at y=1202 and at y=1713), so a tap can miss — and the
-# capture still looks like a capture. That is how a first pass shipped three FREE-SPOT lists
-# labelled fuel, car parks and peek.
-#
-# ⛔ The check has to be STRUCTURAL, not "is that number on screen": an earlier version accepted any
-# node with the count above y=1300 and the tab badge itself sits there, so it passed while nothing
-# had been selected. What only exists once a lane is live is the sheet's own header badge, in the
-# LEFT column — hence the x window. The tab badges live at x=442 and x=777.
+# Open the appropriate Home card action and verify the resulting subject heading. The card can
+# move below the viewport when another locale wraps, so scroll to find it instead of tapping a fixed
+# coordinate. A missing action or heading fails the capture instead of saving the previous lane.
 select_lane() {
-  local n="$1"
-  for try in 1 2 3; do
-    # --max-x keeps the tap on the TAB badge even after the header badge (x<200) appears.
-    tap_text "$n" --min-x 300 || { sleep 2; continue; }
-    sleep 4
+  local kind="$1" point
+  case "$kind" in spots|fuel|carparks) ;; *) return 1 ;; esac
+  # Home now exposes localized "see all" actions inside vertically scrolling cards.
+  # Resolve each action from the app resources in uiquery, then verify the opened list.
+  for try in 1 2 3 4; do
     dump
-    if python "$TOOLS_WIN\uiquery.py" "$DUMP_WIN" "$n" --max-x 200 >/dev/null 2>&1; then return 0; fi
+    point=$(python "$TOOLS_WIN\uiquery.py" "$DUMP_WIN" "@$kind:$L" --clickable 2>/dev/null) || point=''
+    if [ -n "$point" ]; then
+      tap $point
+      sleep 5
+      dump
+      python "$TOOLS_WIN\uiquery.py" "$DUMP_WIN" "@heading-$kind:$L" >/dev/null 2>&1 && return 0
+      return 1
+    fi
+    swp 540 1990 540 1200 500
+    sleep 3
   done
   return 1
 }
@@ -116,8 +117,8 @@ select_lane() {
 # A crop measured once in English is wrong in the next language the moment the sheet settles at a
 # different height - the PL capture put the map exactly where the English rect expected the parked
 # card, and the window magnified a patch of road. So the rect is asked to the DEVICE, per locale,
-# anchored on a fixture proper noun that nothing translates. If the anchor is not on screen the
-# file is not written and the compositor falls back to its built-in rect.
+# anchored on a fixture name or a translated resource. A missing anchor fails the session, and
+# render.sh requires it rather than silently falling back to an unrelated rectangle.
 anchor() {
   local name="$1" rect; shift
   dump
@@ -126,7 +127,9 @@ anchor() {
   echo "$rect" > "$OUT/$name.anchor.txt"
 }
 
-adb -s "$D" shell cmd locale set-app-locales $P --locales "$L" >/dev/null 2>&1
+APP_LOCALE="$L"
+[ "$L" = en ] && APP_LOCALE=en-IE
+adb -s "$D" shell cmd locale set-app-locales $P --locales "$APP_LOCALE" >/dev/null 2>&1
 sleep 1
 
 for n in "${NAMES[@]}"; do
@@ -137,16 +140,17 @@ home)
   cap home
   ;;
 sheet)
-  # Frame 2 (detail) · The same, sheet up: every car of yours with where it is and since when.
+  # Frame 2 (detail) · The same, sheet up, with the parked vehicle's header in view.
   # The magnified window in frame 2 crops the parked row out of THIS capture.
   launch parked
   expand_sheet
   cap sheet
-  # The window in frame 2 magnifies the parked car's card; this is the fixture address, identical
+  # The window in frame 2 magnifies the parked car's header; this is the fixture address, identical
   # in all nine locales. It moved with the demo world [MOCK-THE-DEMO-WORLD-MOVES-TO-SPAIN-001] and
   # the anchor did not, which is how two of these three died unnoticed
   # [PLAY-SHOTS-THE-CAPTURE-ANCHORS-DIED-IN-THE-MOVE-001].
-  anchor sheet "Calle de Fuencarral, 21" --clickable --rect || echo "WARN: sheet anchor missing" >&2
+  rm -f "$OUT/sheet.anchor.txt"
+  anchor sheet "Calle de Fuencarral, 21" --clickable --rect --min-y 1000 || { echo "ERROR: sheet anchor missing" >&2; exit 1; }
   ;;
 spotmap)
   # Frame 3 (pair, back) · The map itself: what the community is offering right now, as markers.
@@ -157,35 +161,37 @@ spots)
   # Frame 3 (pair, front) · The same answer as a list, with how long ago each spot was left.
   launch map
   expand_sheet
+  select_lane spots || { echo "ERROR: spots list did not open" >&2; exit 1; }
   cap spots
   ;;
 fuel)
-  # Frame 4 (detail) · A price per forecourt. "5" is the fuel-stations badge in this fixture.
+  # Frame 4 (detail) · A price per forecourt; the fixture contains five stations.
   # A whole relaunch on failure, not just another dump: sustained runs of back-to-back relaunches
   # can leave the accessibility bridge degraded in a way that outlasts tap_text's own retries.
   ok=0
   for attempt in 1 2; do
     launch map; expand_sheet
-    if select_lane "5"; then ok=1; break; fi
+    if select_lane fuel; then ok=1; break; fi
   done
-  [ "$ok" = "1" ] || echo "ERROR: fuel gave up after 2 full attempts" >&2
+  [ "$ok" = "1" ] || { echo "ERROR: fuel gave up after 2 full attempts" >&2; exit 1; }
   sleep 5
   cap fuel
   # Frame 4 magnifies the price column; the anchor is a forecourt row with one below it.
   # ⛔ By PREFIX, and not for brevity: every Madrid forecourt name carries an accent
   # ("Estación", "Tetuán", "Área", "Chamartín") and `uiquery.py` compares by EXACT equality, so one
   # mis-encoded character between bash, Windows argv and the XML dump loses the anchor — and losing
-  # it only prints a WARN, so the frame ships wrong. "Carburantes" is accent-free and unique.
-  anchor fuel "Carburantes" --starts-with --clickable --rect || echo "WARN: fuel anchor missing" >&2
+  # it used to print only a WARN, so the frame could ship wrong. "Carburantes" is accent-free and unique.
+  rm -f "$OUT/fuel.anchor.txt"
+  anchor fuel "Carburantes" --starts-with --clickable --rect || { echo "ERROR: fuel anchor missing" >&2; exit 1; }
   ;;
 carparks)
-  # Frame 5 (pair, back) · The car-parks lane. "4" is its badge.
+  # Frame 5 (pair, back) · The car-parks lane; the fixture contains four car parks.
   ok=0
   for attempt in 1 2; do
     launch map; expand_sheet
-    if select_lane "4"; then ok=1; break; fi
+    if select_lane carparks; then ok=1; break; fi
   done
-  [ "$ok" = "1" ] || echo "ERROR: carparks gave up after 2 full attempts" >&2
+  [ "$ok" = "1" ] || { echo "ERROR: carparks gave up after 2 full attempts" >&2; exit 1; }
   sleep 5
   cap carparks
   ;;
@@ -194,9 +200,9 @@ carpeek)
   ok=0
   for attempt in 1 2; do
     launch map; expand_sheet
-    if select_lane "4" && tap_text "Parking Plaza Mayor"; then ok=1; break; fi
+    if select_lane carparks && tap_text "Parking Plaza Mayor"; then ok=1; break; fi
   done
-  [ "$ok" = "1" ] || echo "ERROR: carpeek gave up after 2 full attempts" >&2
+  [ "$ok" = "1" ] || { echo "ERROR: carpeek gave up after 2 full attempts" >&2; exit 1; }
   sleep 5
   cap carpeek
   ;;
@@ -208,9 +214,10 @@ numbers)
   tap $NAV_VEHICLES_X $NAV_Y; sleep 6
   swp 540 1900 540 1100 600; sleep 3
   cap numbers
-  # Frame 6 magnifies the "finding a spot" tile. Its label is translated and its unit may be too
-  # ("45 min" / "45 Min."), so the anchor is the VALUE by prefix - nothing else here starts with 45.
-  anchor numbers "45" --starts-with --rect || echo "WARN: numbers anchor missing" >&2
+  # The displayed duration changes as the fixture's rolling week advances. Anchor on the
+  # translated tile label rather than a value observed on one particular day.
+  rm -f "$OUT/numbers.anchor.txt"
+  anchor numbers "@stats-search:$L" --rect || { echo "ERROR: numbers anchor missing" >&2; exit 1; }
   ;;
 garage)
   # Frame 7 (pair, back) · The garage: your cars, each with its body, its fuel and its last parking.

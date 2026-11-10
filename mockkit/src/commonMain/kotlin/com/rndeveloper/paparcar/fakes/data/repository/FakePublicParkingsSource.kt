@@ -83,7 +83,7 @@ class FakePublicParkingsSource(
                     query = query,
                     id = "mock-p4",
                     name = null,
-                    operator = "City Hall Car Park",
+                    operator = "Aparcamiento Municipal",
                     kind = PublicParkingKind.SURFACE,
                     northMeters = -1_100.0,
                     eastMeters = -700.0,

@@ -7,7 +7,10 @@ import com.rndeveloper.paparcar.domain.fuel.FuelStationsSource
 import com.rndeveloper.paparcar.domain.fuel.StationPrice
 import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.Money
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
+import kotlin.time.Instant
 
 /**
  * Forecourts for the mock stack — no network, wherever the fake GPS says you are.
@@ -92,7 +95,7 @@ class FakeFuelStationsSource : FuelStationsSource {
                         cents = 4,
                     ),
                 ),
-                reportedAt = "09/09/2026 08:30:00",
+                reportedAt = mockReportedAt(),
             ),
         )
 
@@ -141,6 +144,17 @@ class FakeFuelStationsSource : FuelStationsSource {
      */
     private fun mockReportedAtMs(): Long =
         Clock.System.now().toEpochMilliseconds() - MOCK_PRICE_AGE_MS
+
+    /** The feed-wide timestamp follows the same relative age as the individual prices. */
+    private fun mockReportedAt(): String {
+        val local = Instant.fromEpochMilliseconds(mockReportedAtMs()).toLocalDateTime(TimeZone.currentSystemDefault())
+        val day = local.date.day.toString().padStart(2, '0')
+        val month = (local.date.month.ordinal + 1).toString().padStart(2, '0')
+        val hour = local.hour.toString().padStart(2, '0')
+        val minute = local.minute.toString().padStart(2, '0')
+        val second = local.second.toString().padStart(2, '0')
+        return "$day/$month/${local.year} $hour:$minute:$second"
+    }
 
     private companion object {
         const val EUR = "EUR"

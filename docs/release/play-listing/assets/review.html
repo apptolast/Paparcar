@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paparcar · revisión de capturas</title>
+<style>
+@font-face {font-family:Jakarta;src:url('fonts/plus_jakarta_sans_variable.ttf')}
+*{box-sizing:border-box} body{margin:0;background:#08090e;color:#ebf2ef;font-family:Jakarta,system-ui,sans-serif}
+main{max-width:1480px;margin:auto;padding:32px 28px 64px} h1{font-size:clamp(24px,4vw,40px);margin:0 0 8px}
+p{color:#8ea0b4;line-height:1.5;margin:0 0 24px} nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px}
+button{cursor:pointer;font:600 14px Jakarta,system-ui;background:#131a24;border:1px solid #222c3e;color:#ebf2ef;padding:10px 16px;border-radius:100px}
+button[aria-pressed=true]{color:#25f48c;border-color:#25f48c;background:#133d28} .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px}
+figure{margin:0} img{width:100%;display:block;border-radius:14px;border:1px solid #222c3e;background:#131a24} figcaption{font-size:13px;color:#8ea0b4;margin:8px 2px} a{color:inherit;text-decoration:none} a:hover{color:#25f48c}
+</style>
+</head>
+<body><main><h1>Capturas de Paparcar</h1><p>Vista de revisión local · selecciona un idioma y abre cualquier imagen a tamaño completo.</p><nav id="languages" aria-label="Idioma"></nav><section id="grid" class="grid" aria-live="polite"></section></main>
+<script>
+const langs = [['es','Español'],['en','English'],['it','Italiano'],['pt','Português'],['fr','Français'],['de','Deutsch'],['nl','Nederlands'],['pl','Polski'],['ro','Română']];
+const nav = document.querySelector('#languages'), grid = document.querySelector('#grid');
+function show(lang) {
+  nav.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed',String(b.dataset.lang === lang)));
+  grid.replaceChildren(...Array.from({length:8},(_,i) => {
+    const n=i+1, path=`screenshots/${lang}/${lang}-play-shot-${n}.png`;
+    const figure=document.createElement('figure'), link=document.createElement('a'), img=document.createElement('img'), caption=document.createElement('figcaption');
+    link.href=path; link.target='_blank'; link.rel='noopener'; img.src=path; img.alt=`${lang.toUpperCase()} · ${n} / 8`; img.loading='lazy';
+    caption.textContent=`${lang.toUpperCase()} · ${String(n).padStart(2,'0')} / 08`; link.append(img,caption); figure.append(link); return figure;
+  }));
+}
+langs.forEach(([code,label])=>{const b=document.createElement('button');b.type='button';b.dataset.lang=code;b.textContent=label;b.addEventListener('click',()=>show(code));nav.append(b)});
+const requested = new URLSearchParams(location.search).get('lang');
+show(langs.some(([code])=>code===requested) ? requested : 'es');
+</script></body></html>

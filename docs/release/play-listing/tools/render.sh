@@ -4,11 +4,10 @@
 #
 # usage: render.sh <rawroot> [locale ...]     — rawroot holds <locale>/<name>.png
 #
-# `screenshot-frame.html` resolves its captures as `screenshots/raw/<name>.png`, one fixed folder,
-# so each locale's raws are copied INTO it before its 8 frames are rendered. That single path is
-# also why the 01-09 set could only ever show the phone in English.
+# Each render points the template at the matching locale's raw files. A single-language preview
+# never overwrites the tracked English raw directory.
 set -eu
-RAWROOT="$1"; shift
+RAWROOT="$(cd "$1" && pwd)"; shift
 LOCALES=("$@")
 [ ${#LOCALES[@]} -eq 0 ] && LOCALES=(en es it pt fr de nl pl ro)
 
@@ -17,10 +16,10 @@ ASSETS="$HERE/assets"
 # Chrome needs a Windows path for both the page and the output.
 WINASSETS=$(cygpath -w "$ASSETS" 2>/dev/null | sed 's|\\|/|g') || WINASSETS="$ASSETS"
 HTML="file:///$WINASSETS/screenshot-frame.html"
+WINRAW=$(cygpath -w "$RAWROOT" 2>/dev/null | sed 's|\\|/|g') || WINRAW="$RAWROOT"
 CHROME="/c/Program Files/Google/Chrome/Application/chrome.exe"
 
 for L in "${LOCALES[@]}"; do
-  cp "$RAWROOT/$L/"*.png "$ASSETS/screenshots/raw/"
   mkdir -p "$ASSETS/screenshots/$L"
   # The locale goes in the FILE NAME, not just the folder: the 72 end up together in a download
   # tray and in the Console's picker, and nine files called `play-shot-1.png` overwrite each other
@@ -42,18 +41,16 @@ for L in "${LOCALES[@]}"; do
       if [ -f "$src" ]; then
         anchor="&anchor=$(tr ' ' ',' < "$src" | tr -d '\r\n')"
       else
-        echo "WARN: $L/$n sin ancla — se usaría el recorte por defecto, medido en EN" >&2
+        echo "ERROR: $L/$n sin ancla — no se puede generar un recorte fiable" >&2
+        exit 1
       fi
     fi
     "$CHROME" --headless=new --disable-gpu --hide-scrollbars --allow-file-access-from-files \
-      --force-device-scale-factor=1 --window-size=1080,1920 \
+      --force-device-scale-factor=1 --window-size=1080,1920 --virtual-time-budget=4000 \
       --screenshot="$WINASSETS/screenshots/$L/$L-play-shot-$n.png" \
-      "$HTML?n=$n&lang=$L$anchor" >/dev/null 2>&1
+      "$HTML?n=$n&lang=$L&rawbase=file:///$WINRAW/$L$anchor" >/dev/null 2>&1
   done
   echo "rendered $L"
 done
 
-# Leave EN's raws in place: they are the versioned SOURCE set (`.gitignore` keeps only `raw/` out of
-# the ignore), and the other eight locales' raws are re-shootable with one command.
-cp "$RAWROOT/en/"*.png "$ASSETS/screenshots/raw/"
 echo "done"

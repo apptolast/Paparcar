@@ -1,6 +1,6 @@
 # Backlog — índice de lo que sigue abierto
 
-> **832 ficheros: 741 cerrados, 82 abiertos, 9 que no son tickets.** Este índice lista **solo lo que**
+> **834 ficheros: 744 cerrados, 81 abiertos, 9 que no son tickets.** Este índice lista **solo lo que**
 > queda**, para que la pregunta *"¿qué falta?"* se conteste leyendo y no listando el directorio.
 > Verificado contra master `1339ea263` el **2026-10-07**
 > [DOCS-A-CLOSED-TICKET-MUST-NOT-SAY-IT-IS-IN-REVIEW-001]. El barrido anterior
@@ -154,7 +154,6 @@ No esperan a un viaje: esperan a que vuelva a fallar lo que los originó.
 | [`vehicles-multimarker-2026-05-19`](vehicles-multimarker-2026-05-19.md) | 🟡 sprint PARCIAL — los marcadores existen; el resto quedó diferido |
 | [`fuel-a-peek-does-not-mark-your-car-001`](fuel-a-peek-does-not-mark-your-car-001.md) | 📋 el peek de gasolinera lista todos los productos sin distinguir cuál compra el coche activo — para un híbrido, «Gasoline» y «Diesel» se leen igual de relevantes. Pide decisión de producto |
 
-<<<<<<< HEAD
 ## 🏠 Home — rediseño en curso
 
 | Ticket | Nota |
@@ -162,14 +161,13 @@ No esperan a un viaje: esperan a que vuelva a fallar lo que los originó.
 | [`home-one-tab-answers-one-intention-001`](home-one-tab-answers-one-intention-001.md) | 🔵 Los carriles agrupan por **fuente de datos** (Plazas·Parkings·Gasolineras) cuando el usuario llega con una **intención**: `Aparcar` / `Repostar`. ⛔ Agrupar sí, **fundir la lista no** — una plaza caduca y un parking no, así que un solo orden exigiría un solo modelo de confianza y hay dos; y los filtros (tamaño vs tarifa/gálibo) no componen |
 | [`home-the-first-glance-speaks-for-the-car-001`](home-the-first-glance-speaks-for-the-car-001.md) | 🔵 **fase 1** del rediseño (dirección B, elegida por el user). Presentación: peek de dos líneas + «Aquí y ahora», gramática única de dos líneas, pestañas reponderadas, checklist a una fila. ⛔ La 1.8 (standout en parkings) se **retiró al leer el código**: no hay importe que comparar, «más cercano» es redundante y «gratis» ya lo dice la fila |
 | [`det-a-silent-service-is-not-a-dead-one-001`](det-a-silent-service-is-not-a-dead-one-001.md) | 🟢 Salió de revisar los avisos de Home: `ServicePresence` valía **`Dead` por defecto**, así que la app acusaba al sistema de haber matado al vigilante en **cada arranque en frío** con coche aparcado. Gana `Unknown` — **no saber no es saber que no** — y cada consumidor declara qué pregunta hace: Home calla sin medir, el resumidor actúa igual que antes. ⚠️ Había un testigo falsificado **defendiendo el bug** |
-=======
+
 ## 🌐 Red y latencia — abiertos
 
 | Ticket | Nota |
 |---|---|
 | [`overpass-a-queue-of-one-must-let-the-user-go-first-001`](overpass-a-queue-of-one-must-let-the-user-go-first-001.md) | 🔵 la cola de Overpass es de UNO (`CONCURRENT_ASKS = 1`, medido: 4 a la vez → tres 504 a 14,1 s) y es un `Semaphore`, **sin prioridad**: el refresco de fondo se cuela delante del carril que el usuario mira. La colisión la nombra el propio KDoc (red de calles durante el viaje vs carril de parkings al llegar). ⛔ Hallazgo: en ES parkings y gasolineras **no comparten cola** — Minetur es feed propio |
 | [`parkings-the-query-pays-for-patience-nobody-measured-001`](parkings-the-query-pays-for-patience-nobody-measured-001.md) | 🔵 dos experimentos de 2 min contra el endpoint: el `[timeout:20]` declarado vs 7,72 s de la peor respuesta buena, y si la unión de dos sentencias puede ser una. ⚠️ El 2.º **borraría parkings del mapa en silencio** si `!~` no casa con etiqueta ausente — se mide antes de tocar |
->>>>>>> 0eb4d5e (docs(backlog): dos tickets de latencia de Overpass salidos del redisenio [UX-THE-HOME-MUST-EARN-ITS-FIRST-GLANCE-001])
 
 ## 🧪 Salud de build / KMP
 
@@ -213,12 +211,6 @@ No esperan a un viaje: esperan a que vuelva a fallar lo que los originó.
 | [`ux-park-flow-001`](ux-park-flow-001.md) | placeholder POR DEFINIR · análisis en [`ux-park-flow-001-analysis`](ux-park-flow-001-analysis.md) y [`home-flow-analysis`](home-flow-analysis.md) |
 | [`moving-car-native-marker-2026-07-01`](moving-car-native-marker-2026-07-01.md) | spike; el fork de kmp-maps que salió de aquí **ya está en Maven Central** |
 | *(sin ticket)* | **estilo de mapa**: el default sigue siendo `MapType.TERRAIN` y el JSON de marca solo rinde sobre `NORMAL`. Documentado en [`home-flow-analysis` §H2](home-flow-analysis.md) |
-
-## 🏪 Ficha de Play — abierto
-
-| Ticket | Nota |
-|---|---|
-| [`play-the-store-shots-still-live-in-dublin-001`](play-the-store-shots-still-live-in-dublin-001.md) | 🔵 las **72 capturas** (9 × 8) enseñan calles de **Dublín** y el titular con la marca en **mayúscula**. ⛔ **No vale re-renderizar**: `render.sh` pide raws POR IDIOMA y los del repo son planos y en inglés, así que un re-render arregla el titular y deja Dublín dentro. Necesita **sesión de emulador**, no una edición. Los 9 gráficos de funciones SÍ están listos |
 
 ## 🍎 iOS — en marcha
 

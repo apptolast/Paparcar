@@ -13,13 +13,13 @@ Gdzie zaparkowałeś?
 
 Paparcar pamięta za Ciebie.
 
-Zaparkuj, wysiądź i zajmij się swoimi sprawami. Paparcar automatycznie zapisuje, gdzie zostawiłeś auto: bez otwierania aplikacji, bez pinezki i bez wpisywania adresu. Gdy wrócisz, wiesz, gdzie stoi i jak długo.
+Twoje auto, ulica i czas parkowania razem na mapie. Paparcar pomaga automatycznie zapisać parkowanie. Możesz też oznaczyć je lub poprawić ręcznie.
 
 Gdy odjeżdżasz, zwolnione miejsce może zostać opublikowane dla kierowców w pobliżu. A Ty widzisz miejsca, które inni właśnie zwolnili. Im więcej kierowców korzysta z Paparcar w Twoim mieście, tym więcej miejsc się pojawia.
 
 JAK TO DZIAŁA
-1. Parkujesz. Paparcar to wykrywa i zapisuje miejsce. Bez Bluetootha pierwsze parkowanie oznaczasz ręcznie.
-2. Odjeżdżasz. Aplikacja to wykrywa.
+1. Parkujesz. Paparcar może to wykryć; możesz też oznaczyć parkowanie ręcznie.
+2. Odjeżdżasz. Aplikacja sprawdza, czy wyjechałeś.
 3. Twoje miejsce trafia do kierowców w pobliżu, gdy ma to sens.
 
 TWOJE PARKOWANIE, BEZ WYSIŁKU
@@ -29,30 +29,29 @@ TWOJE PARKOWANIE, BEZ WYSIŁKU
 • Miejsce nie jest dokładne? Przesuń swoje parkowanie na mapie i zapisz ponownie.
 • Każde auto z własnym rozmiarem, kolorem i Bluetooth.
 
-WOLNE MIEJSCA W CZASIE RZECZYWISTYM
-• Miejsca, które inni właśnie zwolnili, na mapie.
+MIEJSCA UDOSTĘPNIONE PRZEZ SPOŁECZNOŚĆ
+• Miejsca zgłoszone przez innych kierowców na mapie. Dostępność może się zmieniać.
 • Kiedy każde się zwolniło: dwie minuty temu to nie dwadzieścia.
 • Ilu kierowców już tam jedzie.
 • Czy Twoje auto się zmieści: Paparcar porównuje lukę z Twoim.
 • Widzisz wolne miejsce, przechodząc obok? Zgłoś je dwoma dotknięciami.
 
 STACJE PALIW I PARKINGI, NA TEJ SAMEJ MAPIE
-• Stacje paliw z ceną z oficjalnych rejestrów i godziną pomiaru. Hiszpania, Francja, Niemcy i Włochy.
+• Stacje z oficjalnymi cenami i datą aktualizacji, jeśli są dostępne. Zasięg zależy od źródła.
 • Cena paliwa, którego używa Twoje auto, a nie ogólna średnia.
 • Parkingi publiczne z opłatą, maksymalną wysokością i liczbą miejsc, gdy źródło je podaje.
 • Zmieścisz się pod wysokością? Tylko gdy jesteśmy pewni — nieznana nigdy nie znaczy tak.
-• Wszystko za darmo, także powiadomienia: ceny wokół Ciebie docierają przy zamkniętej aplikacji.
+• Przeglądanie miejsc, parkingów i stacji jest darmowe. Alerty cen w pobliżu docierają też przy zamkniętej aplikacji.
 
 TWOJE LICZBY
-• Ile wydajesz na paliwo i ile go zużywasz.
+• Szacowane koszty i zużycie paliwa na podstawie przejazdów i danych auta.
 • Ile czasu spędzasz na szukaniu miejsca.
-• Twoja zwykła ulica, Twój zwykły dzień i najtrudniejsza godzina.
-• Ile razy wykrywanie trafiło, w procentach, na zmierzonych przejazdach.
+• Statystyki obliczane na podstawie zapisanych przejazdów.
 
 JEDNO AUTO, KILKU KIEROWCÓW
 • Udostępnij auto nawet czterem osobom. Kto nim jedzie, oznacza parkowanie, a cała grupa widzi, gdzie stoi.
 • Dystans, czas i zwolnione miejsca liczą się dla wszystkich.
-• Twoje trasy są udostępniane tylko wtedy, gdy tak zdecydujesz.
+• We współdzielonym aucie wybierasz, czy grupa widzi Twoje trasy. Dane przejazdów są synchronizowane także przy wyłączonym wyświetlaniu tras.
 
 AUTOMATYCZNE WYKRYWANIE
 Jeśli Twoje auto łączy się z telefonem przez Bluetooth, rozłączenie pomaga wykryć koniec parkowania. Bez Bluetooth Paparcar używa ruchu i lokalizacji.

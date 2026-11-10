@@ -39,7 +39,7 @@ class FakeSpotRepository : SpotRepository {
             confidence = 0.65f, // MEDIA (Ámbar)
             enRouteCount = 1,
             address = AddressInfo(street = "Calle Mayor 2", city = "Madrid", region = "Comunidad de Madrid", country = "España"),
-            placeInfo = PlaceInfo("Riverside Supermarket", PlaceCategory.SUPERMARKET),
+            placeInfo = PlaceInfo("Supermercado Central", PlaceCategory.SUPERMARKET),
             sizeCategory = VehicleSize.MICRO_SMALL,
         ),
         Spot(
@@ -70,7 +70,7 @@ class FakeSpotRepository : SpotRepository {
             confidence = 1.0f, // FIABLE (Verde intenso)
             enRouteCount = 3,
             address = AddressInfo(street = "Calle de Toledo 12", city = "Madrid", region = "Comunidad de Madrid", country = "España"),
-            placeInfo = PlaceInfo("Quayside Fuel", PlaceCategory.FUEL),
+            placeInfo = PlaceInfo("Estación Centro", PlaceCategory.FUEL),
             sizeCategory = VehicleSize.VAN_HIGH,
         ),
         // [DET-HANDOFF-NOT-MANUAL-001 §B.3] A spot published on a DEDUCED departure: fresh and

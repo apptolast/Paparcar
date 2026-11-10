@@ -1,6 +1,6 @@
 # PLAY-THE-STORE-SHOTS-STILL-LIVE-IN-DUBLIN-001 · las 72 capturas de la ficha enseñan otra ciudad y la marca en mayúscula
 
-**Estado:** 🔵 Abierto · sin rama — necesita una **sesión de emulador**, no una edición
+**Estado:** ✅ Done · resuelto por [PLAY-SHOTS-MOBILITY-CAROUSEL-001](play-shots-mobility-carousel-001.md): 72 capturas nuevas en Madrid, guardadas en la ficha de Play el 09-11-2026
 
 ## Problema
 

@@ -17,9 +17,9 @@ import kotlin.test.fail
  * existed anywhere, and the only consequence was a `WARN` on a script nobody had run since. It was
  * found a month later, by reading the script while planning a re-shoot.
  *
- * ⛔ A missing anchor is NOT a loud failure, and that is the whole reason this test exists:
- * `anchor` prints `WARN: … missing` and the session carries on, so the frame ships with the
- * magnified window cut from the wrong place. The cost is paid at the very end, on the store.
+ * A missing anchor used to print a warning and let the session continue with a wrong crop.
+ * The capture and render scripts now fail on a missing anchor; this guard also catches a renamed
+ * fixture before a session is started.
  *
  * What this checks is the only half that is mechanically knowable: **every literal the script
  * searches for still exists in the fixtures**. It cannot check that the row is on screen, or that
@@ -54,8 +54,8 @@ class CaptureAnchorGuardrailTest {
                 appendLine("$SHOOT hunts for text that no fixture in :mockkit provides:")
                 dead.forEach { appendLine("  \"$it\"") }
                 appendLine()
-                appendLine("A missing anchor does not fail the session — it prints WARN and the")
-                appendLine("frame ships with its magnified window cut from the wrong place.")
+                appendLine("A missing anchor will stop the session instead of producing a wrong crop.")
+                appendLine("Update the fixture and the capture script together before shooting.")
                 appendLine("Either the fixture was renamed and the script was not, or the other")
                 appendLine("way round. [PLAY-SHOTS-THE-CAPTURE-ANCHORS-DIED-IN-THE-MOVE-001]")
             },
@@ -67,9 +67,8 @@ class CaptureAnchorGuardrailTest {
     /**
      * The quoted literals passed to `anchor` and `tap_text`.
      *
-     * Skips what is not fixture text: a `$variable`, and the bare numerals that select a lane by
-     * its count badge — those are digits on purpose, identical in all nine locales, and they do not
-     * live in the fixtures as text.
+     * Skips what is not fixture text: a `$variable`, bare numerals, and `@` selectors. The latter
+     * are resolved by uiquery from localized Compose resources rather than the mock fixtures.
      *
      * ⛔ NOT anchored to the start of a line, and that is not laziness: the car-park anchor is
      * written `select_lane "4" && tap_text "…"`, mid-line. The first draft of this parser required
@@ -80,7 +79,7 @@ class CaptureAnchorGuardrailTest {
         Regex("""(?:anchor\s+\w+|tap_text)\s+"([^"]+)"""")
             .findAll(script)
             .map { it.groupValues[1] }
-            .filterNot { it.startsWith("$") || it.all(Char::isDigit) }
+            .filterNot { it.startsWith("$") || it.startsWith("@") || it.all(Char::isDigit) }
             .distinct()
             .toList()
 

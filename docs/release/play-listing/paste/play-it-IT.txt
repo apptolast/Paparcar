@@ -8,18 +8,18 @@ Paparcar: dove ho parcheggiato
 --- 2. DESCRIPCION BREVE (70/80) ---
 Dove hai parcheggiato? Paparcar se lo ricorda. Con prezzi e parcheggi.
 
---- 3. DESCRIPCION COMPLETA (3952/4000) ---
+--- 3. DESCRIPCION COMPLETA (3938/4000) ---
 Dove hai parcheggiato?
 
 Paparcar se lo ricorda per te.
 
-Parcheggia, scendi e continua la tua giornata. Paparcar salva in automatico dove hai lasciato l'auto: senza aprire l'app, senza segnaposto e senza scrivere un indirizzo. Quando torni, sai dov'è e da quanto tempo è lì.
+La tua auto, la via e quando hai parcheggiato, insieme sulla mappa. Paparcar aiuta a salvare il parcheggio in automatico; puoi anche segnarlo o correggerlo tu.
 
 Quando riparti, il posto che lasci può essere pubblicato per chi guida lì vicino. E tu vedi i posti che altri hanno appena liberato. Più automobilisti usano Paparcar nella tua città, più posti compaiono sulla mappa.
 
 COME FUNZIONA
-1. Parcheggi. Paparcar lo rileva e salva il luogo. Senza Bluetooth, il primo parcheggio lo segni tu.
-2. Riparti. L'app lo rileva.
+1. Parcheggi. Paparcar può rilevarlo; puoi anche segnare il parcheggio a mano.
+2. Riparti. L'app verifica se sei andato via.
 3. Il tuo posto viene pubblicato per chi guida lì vicino, quando è il caso.
 
 IL TUO PARCHEGGIO, SENZA SFORZO
@@ -29,30 +29,29 @@ IL TUO PARCHEGGIO, SENZA SFORZO
 • Il punto non è esatto? Sposta il tuo parcheggio sulla mappa e salvalo di nuovo.
 • Ogni auto con la sua taglia, il suo colore e il suo Bluetooth.
 
-POSTI AUTO IN TEMPO REALE
-• I posti che altri hanno appena liberato, sulla mappa.
+POSTI CONDIVISI DALLA COMUNITÀ
+• Posti segnalati da altri automobilisti sulla mappa. La disponibilità può cambiare.
 • Quando si è liberato ciascuno: due minuti fa non è venti.
 • Quanti automobilisti stanno già andando lì.
 • Se la tua auto ci sta: Paparcar confronta lo spazio con la tua.
 • Vedi un posto libero mentre passi? Segnalalo in due tocchi.
 
 DISTRIBUTORI E PARCHEGGI PUBBLICI, SULLA STESSA MAPPA
-• Distributori con il prezzo pubblicato dai registri ufficiali e l'ora del rilevamento. Spagna, Francia, Germania e Italia.
+• Distributori con prezzi ufficiali e data di aggiornamento, dove disponibili. La copertura dipende dalla fonte.
 • Il prezzo del carburante che usa davvero la tua auto, non una media generica.
 • Parcheggi pubblici con tariffa, altezza massima e posti, quando la fonte li fornisce.
 • Passi sotto la barriera? Solo quando ne siamo certi: un'altezza ignota non è mai un sì.
-• Tutto gratis, avvisi compresi: quanto sale o scende intorno a te ti arriva ad app chiusa.
+• Vedere posti, parcheggi pubblici e distributori è gratis. Gli avvisi sui prezzi vicini arrivano anche ad app chiusa.
 
 I TUOI NUMERI
-• Quanto spendi di carburante e quanto ne consumi.
+• Spesa e consumo di carburante stimati dai viaggi e dai dati dell'auto.
 • Quanto tempo passi a cercare posto.
-• La tua via di sempre, il tuo giorno di sempre e l'ora in cui è più difficile.
-• Quanto ci prende il rilevamento, in percentuale, sui viaggi misurati.
+• Statistiche basate sui viaggi registrati.
 
 UN'AUTO, PIÙ CONDUCENTI
 • Condividi un'auto fino a quattro persone. Chi la guida segna il parcheggio e tutto il gruppo vede dov'è.
 • Distanza, tempo e posti liberati contano per tutti.
-• I tuoi percorsi si condividono solo se lo dici tu.
+• Nell'auto condivisa scegli se il gruppo vede i tuoi percorsi. I dati dei viaggi si sincronizzano anche quando i percorsi sono nascosti.
 
 RILEVAMENTO AUTOMATICO
 Se la tua auto si collega al telefono via Bluetooth, la disconnessione aiuta a rilevare che hai finito di parcheggiare. Se non ha il Bluetooth, Paparcar usa movimento e posizione.

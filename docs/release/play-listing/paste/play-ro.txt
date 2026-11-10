@@ -8,18 +8,18 @@ Paparcar: unde ai parcat
 --- 2. DESCRIPCION BREVE (67/80) ---
 Unde ai parcat? Paparcar ține minte. Cu prețuri și parcări publice.
 
---- 3. DESCRIPCION COMPLETA (3861/4000) ---
+--- 3. DESCRIPCION COMPLETA (3894/4000) ---
 Unde ai parcat?
 
 Paparcar ține minte pentru tine.
 
-Parchează, coboară și vezi-ți de ziua ta. Paparcar salvează automat unde ai lăsat mașina: fără să deschizi aplicația, fără indicator și fără să scrii o adresă. Când te întorci, știi unde este și de cât timp.
+Mașina, strada și ora parcării, împreună pe hartă. Paparcar te ajută să salvezi parcarea automat. O poți marca sau corecta și manual.
 
 Când pleci, locul pe care îl eliberezi poate fi publicat pentru șoferii din apropiere. Iar tu vezi locurile pe care alții tocmai le-au eliberat. Cu cât mai mulți șoferi folosesc Paparcar în orașul tău, cu atât mai multe locuri apar.
 
 CUM FUNCȚIONEAZĂ
-1. Parchezi. Paparcar detectează și salvează locul. Fără Bluetooth, prima parcare o marchezi tu.
-2. Pleci. Aplicația detectează.
+1. Parchezi. Paparcar poate detecta; poți marca parcarea și manual.
+2. Pleci. Aplicația verifică plecarea.
 3. Locul tău este publicat pentru șoferii din apropiere, când este cazul.
 
 PARCAREA TA, FĂRĂ EFORT
@@ -29,30 +29,29 @@ PARCAREA TA, FĂRĂ EFORT
 • Locul nu e exact? Mută-ți parcarea pe hartă și salveaz-o din nou.
 • Fiecare mașină cu dimensiunea, culoarea și Bluetooth-ul ei.
 
-LOCURI LIBERE ÎN TIMP REAL
-• Locurile pe care alții tocmai le-au eliberat, pe hartă.
+LOCURI PARTAJATE DE COMUNITATE
+• Locuri raportate de alți șoferi pe hartă. Disponibilitatea se poate schimba.
 • Când s-a eliberat fiecare: acum două minute nu e acum douăzeci.
 • Câți șoferi se îndreaptă deja într-acolo.
 • Dacă mașina ta încape: Paparcar compară spațiul cu a ta.
 • Vezi un loc liber când treci pe lângă? Raportează-l din două atingeri.
 
 BENZINĂRII ȘI PARCĂRI PUBLICE, PE ACEEAȘI HARTĂ
-• Benzinării cu prețul din registrele oficiale și ora măsurării. Spania, Franța, Germania și Italia.
+• Benzinării cu prețuri oficiale și data actualizării, când sunt disponibile. Acoperirea depinde de sursă.
 • Prețul combustibilului pe care îl folosește mașina ta, nu o medie generică.
 • Parcări publice cu tarif, înălțime maximă și locuri, când sursa le oferă.
 • Încapi la înălțime? Doar când suntem siguri — o înălțime necunoscută nu e niciodată un da.
-• Totul gratuit, alertele incluse: prețurile din jurul tău ajung cu aplicația închisă.
+• Consultarea locurilor, parcărilor publice și benzinăriilor este gratuită. Alertele de preț din apropiere ajung și cu aplicația închisă.
 
 CIFRELE TALE
-• Cât cheltui pe combustibil și cât consumi.
+• Costul și consumul de combustibil estimate din călătorii și datele mașinii.
 • Cât timp petreci căutând un loc.
-• Strada ta obișnuită, ziua ta obișnuită și ora cea mai grea.
-• Cât de des a nimerit detectarea, în procente, pe traseele măsurate.
+• Statistici calculate pe baza călătoriilor înregistrate.
 
 O MAȘINĂ, MAI MULȚI ȘOFERI
 • Împarte o mașină cu până la patru persoane. Cine o conduce marchează parcarea, iar tot grupul vede unde este.
 • Distanța, timpul și locurile eliberate contează pentru toți.
-• Traseele tale se partajează doar dacă spui tu.
+• La mașina partajată alegi dacă grupul vede traseele tale. Datele călătoriilor se sincronizează și când afișarea traseelor este oprită.
 
 DETECTARE AUTOMATĂ
 Dacă mașina ta se conectează la telefon prin Bluetooth, deconectarea ajută la detectarea sfârșitului parcării. Fără Bluetooth, Paparcar folosește mișcarea și locația.

@@ -13,13 +13,13 @@ Waar heb je geparkeerd?
 
 Paparcar onthoudt het voor je.
 
-Parkeer, stap uit en ga verder met je dag. Paparcar slaat automatisch op waar je de auto hebt achtergelaten: zonder de app te openen, zonder speld en zonder adres. Als je terugkomt, weet je waar hij staat en hoe lang al.
+Je auto, de straat en je parkeertijd op de kaart. Paparcar helpt je parkeerplaats automatisch op te slaan. Je kunt hem ook zelf markeren.
 
 Als je wegrijdt, kan de plek die je achterlaat worden gepubliceerd voor de bestuurders in de buurt. En jij ziet de plekken die anderen net hebben vrijgemaakt. Hoe meer bestuurders Paparcar in jouw stad gebruiken, hoe meer plekken verschijnen.
 
 ZO WERKT HET
-1. Je parkeert. Paparcar merkt het en slaat de plek op. Zonder Bluetooth markeer je de eerste met de hand.
-2. Je rijdt weg. De app merkt het.
+1. Je parkeert. Paparcar kan het detecteren; je kunt je parkeerplaats ook zelf markeren.
+2. Je rijdt weg. De app controleert of je vertrokken bent.
 3. Jouw plek wordt gepubliceerd voor de bestuurders in de buurt, waar het past.
 
 JOUW PARKEERPLAATS, ZONDER MOEITE
@@ -29,30 +29,29 @@ JOUW PARKEERPLAATS, ZONDER MOEITE
 • Klopt de plek niet? Verplaats je parkeerplaats op de kaart en sla opnieuw op.
 • Elke auto met zijn eigen maat, kleur en Bluetooth.
 
-VRIJE PLEKKEN IN REALTIME
-• De plekken die anderen net hebben vrijgemaakt, op de kaart.
+PLEKKEN GEDEELD DOOR DE COMMUNITY
+• Door andere bestuurders gemelde plekken op de kaart. De beschikbaarheid kan veranderen.
 • Wanneer elke plek vrijkwam: twee minuten geleden is niet twintig.
 • Hoeveel bestuurders er al heen rijden.
 • Of jouw auto past: Paparcar vergelijkt de ruimte met die van jou.
 • Zie je in het voorbijgaan een vrije plek? Meld hem in twee tikken.
 
 TANKSTATIONS EN PARKEERGARAGES, OP DEZELFDE KAART
-• Tankstations met de prijs uit officiële registers en het tijdstip van de meting. Spanje, Frankrijk, Duitsland en Italië.
+• Tankstations met officiële prijzen en meetmoment, waar beschikbaar. De dekking hangt af van de bron.
 • De prijs van de brandstof die jouw auto tankt, geen algemeen gemiddelde.
 • Parkeergarages met tarief, maximale hoogte en plaatsen, waar de bron die geeft.
 • Kom je onder de hoogte door? Alleen als we het zeker weten — onbekend is nooit een ja.
-• Allemaal gratis, meldingen ook: prijzen om je heen bereiken je met de app dicht.
+• Plekken, parkeergarages en tankstations bekijken is gratis. Prijsmeldingen uit de buurt komen ook met de app dicht.
 
 JOUW CIJFERS
-• Wat je aan brandstof uitgeeft en hoeveel je verbruikt.
+• Geschatte brandstofkosten en verbruik op basis van je ritten en autogegevens.
 • Hoe lang je zoekt naar een plek.
-• Je vaste straat, je vaste dag en het lastigste uur.
-• Hoe vaak de detectie het goed had, in procent, over de gemeten ritten.
+• Statistieken op basis van je vastgelegde ritten.
 
 ÉÉN AUTO, MEERDERE BESTUURDERS
 • Deel een auto met maximaal vier mensen. Wie erin rijdt, markeert de parkeerplaats, en de hele groep ziet waar hij staat.
 • Afstand, tijd en vrijgemaakte plekken tellen voor iedereen.
-• Je routes worden alleen gedeeld als jij dat zegt.
+• Bij een gedeelde auto kies je of de groep je routes ziet. Ritgegevens worden ook gesynchroniseerd als de routeweergave uitstaat.
 
 AUTOMATISCHE DETECTIE
 Maakt je auto via Bluetooth verbinding met je telefoon, dan helpt het verbreken te merken dat je klaar bent met parkeren. Zonder Bluetooth gebruikt Paparcar beweging en locatie.

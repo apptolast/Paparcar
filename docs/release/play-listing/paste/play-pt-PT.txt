@@ -8,18 +8,18 @@ Paparcar: onde estacionaste
 --- 2. DESCRIPCION BREVE (62/80) ---
 Onde estacionaste? O Paparcar lembra-se. Com preços e parques.
 
---- 3. DESCRIPCION COMPLETA (3930/4000) ---
+--- 3. DESCRIPCION COMPLETA (3898/4000) ---
 Onde estacionaste?
 
 O Paparcar lembra-se por ti.
 
-Estaciona, sai do carro e segue com o teu dia. O Paparcar guarda onde deixaste o carro automaticamente: sem abrir a aplicação, sem pino e sem escrever uma morada. Quando voltares, sabes onde está e há quanto tempo ali está.
+O teu carro, a rua e quando estacionaste, juntos no mapa. O Paparcar ajuda a guardar o estacionamento automaticamente; também podes marcá-lo ou corrigi-lo tu.
 
 Quando sais, o lugar que deixas pode ser publicado para quem conduz ali perto. E tu vês os lugares que outros acabaram de libertar. Quantos mais condutores usarem o Paparcar na tua cidade, mais lugares aparecem no mapa.
 
 COMO FUNCIONA
-1. Estacionas. O Paparcar deteta e guarda o sítio. Sem Bluetooth, marcas tu o primeiro estacionamento.
-2. Sais. A aplicação deteta.
+1. Estacionas. O Paparcar pode detetar; também podes marcar o estacionamento à mão.
+2. Sais. A aplicação verifica se partiste.
 3. O teu lugar é publicado para quem conduz ali perto, quando faz sentido.
 
 O TEU ESTACIONAMENTO, SEM ESFORÇO
@@ -29,30 +29,29 @@ O TEU ESTACIONAMENTO, SEM ESFORÇO
 • O sítio não está certo? Move o teu estacionamento no mapa e guarda outra vez.
 • Cada carro com o seu tamanho, a sua cor e o seu Bluetooth.
 
-LUGARES EM TEMPO REAL
-• Os lugares que outros condutores acabaram de libertar, no mapa.
+LUGARES PARTILHADOS PELA COMUNIDADE
+• Lugares comunicados por outros condutores no mapa. A disponibilidade pode mudar.
 • Quando cada um ficou livre: há dois minutos não é há vinte.
 • Quantos condutores já vão a caminho.
 • Se o teu carro cabe: o Paparcar compara o espaço com o teu.
 • Vês um lugar livre ao passar? Avisa em dois toques.
 
 BOMBAS E PARQUES, NO MESMO MAPA
-• Bombas de combustível com o preço que os registos oficiais publicam e a hora da medição. Espanha, França, Alemanha e Itália.
+• Postos com preços oficiais e data de atualização, quando disponíveis. A cobertura depende da fonte.
 • O preço do combustível que o teu carro usa, não uma média genérica.
 • Parques de estacionamento com tarifa, altura máxima e lugares, quando a fonte os dá.
 • Passas na altura? Só quando temos a certeza: uma altura desconhecida nunca é um sim.
-• Tudo grátis, avisos incluídos: o que sobe ou desce à tua volta chega-te com a aplicação fechada.
+• Ver lugares, parques e postos é grátis. Os avisos de preços próximos também chegam com a aplicação fechada.
 
 OS TEUS NÚMEROS
-• Quanto gastas em combustível e quanto consomes.
+• Gasto e consumo de combustível estimados a partir das viagens e dos dados do carro.
 • Quanto tempo passas à procura de lugar.
-• A tua rua do costume, o teu dia do costume e a hora em que fica mais difícil.
-• Quanto acerta a deteção, em percentagem, nas viagens que mediu.
+• Estatísticas calculadas sobre as viagens registadas.
 
 UM CARRO, VÁRIOS CONDUTORES
 • Partilha um carro até com quatro pessoas. Quem o conduz marca o estacionamento e todo o grupo vê onde está.
 • Distância, tempo e lugares libertados contam para todos.
-• Os teus percursos só são partilhados se tu quiseres.
+• Num carro partilhado, escolhes se o grupo vê os teus percursos. Os dados das viagens sincronizam mesmo com os percursos ocultos.
 
 DETEÇÃO AUTOMÁTICA
 Se o teu carro se liga ao telemóvel por Bluetooth, a desconexão ajuda a detetar que acabaste de estacionar. Se não tem Bluetooth, o Paparcar usa o movimento e a localização.
