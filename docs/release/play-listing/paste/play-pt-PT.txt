@@ -1,6 +1,6 @@
 FICHA DE PLAY STORE — pt-PT
 ============================================================
-GENERADO por tools/make_paste.py desde LISTING-v1.5.0.md — no editar a mano.
+GENERADO por tools/make_paste.py desde LISTING-v1.6.0.md — no editar a mano.
 
 --- 1. NOMBRE DE LA APLICACION (27/30) ---
 Paparcar: onde estacionaste
@@ -8,7 +8,7 @@ Paparcar: onde estacionaste
 --- 2. DESCRIPCION BREVE (62/80) ---
 Onde estacionaste? O Paparcar lembra-se. Com preços e parques.
 
---- 3. DESCRIPCION COMPLETA (3898/4000) ---
+--- 3. DESCRIPCION COMPLETA (3973/4000) ---
 Onde estacionaste?
 
 O Paparcar lembra-se por ti.
@@ -46,7 +46,6 @@ BOMBAS E PARQUES, NO MESMO MAPA
 OS TEUS NÚMEROS
 • Gasto e consumo de combustível estimados a partir das viagens e dos dados do carro.
 • Quanto tempo passas à procura de lugar.
-• Estatísticas calculadas sobre as viagens registadas.
 
 UM CARRO, VÁRIOS CONDUTORES
 • Partilha um carro até com quatro pessoas. Quem o conduz marca o estacionamento e todo o grupo vê onde está.
@@ -72,7 +71,7 @@ PRIVACIDADE
 • A marca e o modelo do teu carro só aparecem no lugar que libertas se tu o ativares.
 • A tua localização nunca é vendida nem usada para publicidade.
 • Podes apagar a tua conta e os seus dados nas Definições ou na web.
-• Sem anúncios.
+• Sem anúncios na aplicação. Só se o permitires, a Meta sabe quando estacionas, libertas um lugar ou abres o Plus, para medir os nossos anúncios.
 
 LOCALIZAÇÃO EM SEGUNDO PLANO
 

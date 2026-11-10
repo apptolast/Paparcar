@@ -1,6 +1,6 @@
 FICHA DE PLAY STORE — de-DE
 ============================================================
-GENERADO por tools/make_paste.py desde LISTING-v1.5.0.md — no editar a mano.
+GENERADO por tools/make_paste.py desde LISTING-v1.6.0.md — no editar a mano.
 
 --- 1. NOMBRE DE LA APLICACION (28/30) ---
 Paparcar: wo hast du geparkt
@@ -8,7 +8,7 @@ Paparcar: wo hast du geparkt
 --- 2. DESCRIPCION BREVE (78/80) ---
 Wo hast du geparkt? Paparcar merkt es sich — mit Spritpreisen und Parkhäusern.
 
---- 3. DESCRIPCION COMPLETA (3987/4000) ---
+--- 3. DESCRIPCION COMPLETA (3993/4000) ---
 Wo hast du geparkt?
 
 Paparcar merkt es sich für dich.
@@ -30,14 +30,14 @@ DEIN PARKPLATZ, OHNE AUFWAND
 • Jedes Auto mit seiner Größe, seiner Farbe und seinem Bluetooth.
 
 VON DER COMMUNITY GEMELDETE PLÄTZE
-• Von anderen Fahrern gemeldete Plätze auf der Karte. Die Verfügbarkeit kann sich ändern.
+• Von anderen Fahrern gemeldete Plätze auf der Karte. Verfügbarkeit kann sich ändern.
 • Wann jeder frei wurde: vor zwei Minuten ist nicht vor zwanzig.
 • Wie viele Fahrer schon unterwegs dorthin sind.
 • Ob dein Auto hineinpasst: Paparcar vergleicht die Lücke mit deinem.
 • Im Vorbeigehen einen freien Platz gesehen? Melde ihn mit zwei Tipps.
 
 TANKSTELLEN UND PARKHÄUSER, AUF DERSELBEN KARTE
-• Tankstellen mit amtlichen Preisen und Zeitstempel, soweit verfügbar. Die Abdeckung hängt von der Quelle ab.
+• Tankstellen mit amtlichen Preisen und Zeitstempel, wenn die Quelle sie liefert.
 • Der Preis des Kraftstoffs, den dein Auto tankt, kein Durchschnitt.
 • Parkhäuser mit Tarif, Durchfahrtshöhe und Stellplätzen, wenn die Quelle sie liefert.
 • Passt dein Auto unter die Höhe? Nur wenn wir sicher sind — unbekannt ist nie ein Ja.
@@ -46,7 +46,6 @@ TANKSTELLEN UND PARKHÄUSER, AUF DERSELBEN KARTE
 DEINE ZAHLEN
 • Geschätzte Kraftstoffkosten und Verbrauch anhand deiner Fahrten und Fahrzeugdaten.
 • Wie lange du nach einem Platz suchst.
-• Statistiken auf Basis deiner aufgezeichneten Fahrten.
 
 EIN AUTO, MEHRERE FAHRER
 • Teile ein Auto mit bis zu vier Personen: wer fährt, markiert, die Gruppe sieht, wo es steht.
@@ -56,7 +55,7 @@ EIN AUTO, MEHRERE FAHRER
 AUTOMATISCHE ERKENNUNG
 Verbindet sich dein Auto per Bluetooth, hilft das Trennen zu erkennen, dass du fertig eingeparkt hast. Ohne Bluetooth nutzt Paparcar Bewegung und Standort.
 
-Paparcar will nicht raten. Wenn nicht sicher ist, was passiert ist, fragt es dich, bevor ein Platz veröffentlicht wird.
+Paparcar will nicht raten. Im Zweifel fragt es dich, bevor ein Platz veröffentlicht wird.
 
 PAPARCAR PLUS
 Was dich umgibt, ist kostenlos. Plus bewacht, was du wählst, und merkt es sich:
@@ -69,10 +68,10 @@ Was dich umgibt, ist kostenlos. Plus bewacht, was du wählst, und merkt es sich:
 DATENSCHUTZ
 • Private Zonen: markiere dein Zuhause, dort wird kein Platz veröffentlicht.
 • Dein Kennzeichen verlässt niemals dein Handy.
-• Marke und Modell erscheinen nur auf dem Platz, den du frei machst, wenn du das einschaltest.
-• Dein Standort wird niemals verkauft oder für Werbung genutzt.
+• Marke und Modell erscheinen nur auf deinem freigegebenen Platz, wenn du das einschaltest.
+• Dein Standort wird nie verkauft oder für Werbung genutzt.
 • Konto und Daten löschst du in den Einstellungen oder im Web.
-• Keine Werbung.
+• Keine Werbung in der App. Nur mit deinem Ja erfährt Meta, wann du parkst, einen Platz freigibst oder Plus öffnest – zur Messung unserer Anzeigen.
 
 STANDORT IM HINTERGRUND
 

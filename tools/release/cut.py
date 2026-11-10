@@ -49,6 +49,10 @@ irreversible y de cara al publico, y sigue siendo humana.
   tag      etiqueta anotada `v<version>` sobre el commit del bump. Es la respuesta a "que hay en
            produccion": 1.4.0 se publico el 13-10 con el arbol del 30-09 y nada en el repo lo decia.
            Va aparte porque necesita que el commit EXISTA, y commitear es del user.
+  listing  sube a Play el TEXTO de la ficha vigente (`published-listing.txt` -> `paste/`) en los
+           nueve idiomas: titulo, descripcion corta y completa. No toca capturas. Solo escribe los
+           idiomas que difieren, y nunca cancela una revision en curso: si hay algo en revision,
+           Play rechaza el commit y no cambia nada. [PLAY-THE-LISTING-MOVES-TO-1-6-0-001]
 
 ## Limites declarados, para que nadie los descubra creyendo que estaban cubiertos
 
@@ -111,10 +115,10 @@ SUITE_LEAVES = [
 ]
 
 PHASES = ["bump", "web", "suite", "bundle", "sign", "measure", "notes", "doc", "tag",
-          "verify", "upload"]
+          "verify", "upload", "listing"]
 # ⛔ `tag` necesita que el commit del bump exista, y `verify`/`upload` hablan con la tienda: las
 # tres se piden a mano. Subir a Play no puede ser el efecto de teclear el comando del corte.
-DEFAULT_PHASES = [p for p in PHASES if p not in ("tag", "verify", "upload")]
+DEFAULT_PHASES = [p for p in PHASES if p not in ("tag", "verify", "upload", "listing")]
 
 DOC_OPEN = "<!-- cut:measured -->"
 DOC_CLOSE = "<!-- /cut:measured -->"
@@ -873,12 +877,30 @@ def check_against_store(version, code, tracks, listings, paste_dir):
             problems.append("%s: la tienda lo publica y el repo no tiene %s" % (locale, source.name))
             continue
         want = play_locales.paste_sections(source.read_text(encoding="utf-8"))
+        # ⛔ La descripcion COMPLETA tambien: es donde cambia casi todo. Comparar solo titulo y
+        # corta dio "cuadran" el 10-11 con la ficha 1.6.0 sin subir. [PLAY-THE-LISTING-MOVES-TO-1-6-0-001]
         for field, live_value in (("name", listing.get("title")),
-                                 ("short", listing.get("shortDescription"))):
-            if (live_value or "").strip() != want[field]:
-                problems.append("%s/%s: la ficha viva no es la del repo\n       tienda: %r\n"
-                                "       repo  : %r" % (locale, field, live_value, want[field]))
+                                 ("short", listing.get("shortDescription")),
+                                 ("full", listing.get("fullDescription"))):
+            live_text = (live_value or "").strip()
+            if live_text != want[field]:
+                shown_live, shown_repo = first_difference(live_text, want[field])
+                # ascii(): la salida va a una consola cp1252 y el polaco o el rumano la tumban.
+                problems.append("%s/%s: la ficha viva no es la del repo\n       tienda: %s\n"
+                                "       repo  : %s" % (locale, field, ascii(shown_live),
+                                                       ascii(shown_repo)))
     return lines, problems
+
+
+def first_difference(live, repo):
+    """La primera LINEA en que difieren: volcar 4000 caracteres no dice donde esta el cambio."""
+    live_lines, repo_lines = live.splitlines(), repo.splitlines()
+    for index in range(max(len(live_lines), len(repo_lines))):
+        a = live_lines[index] if index < len(live_lines) else "<fin>"
+        b = repo_lines[index] if index < len(repo_lines) else "<fin>"
+        if a != b:
+            return a, b
+    return live, repo
 
 
 def phase_verify():
@@ -952,6 +974,67 @@ def phase_upload():
     return {"uploaded_to": play_api.UPLOAD_TRACK}
 
 
+# ------------------------------------------------------------- fase listing
+
+LISTING_LIMITS = (("name", "title", 30), ("short", "shortDescription", 80),
+                  ("full", "fullDescription", 4000))
+
+
+def phase_listing():
+    """Sube el texto de la ficha vigente a Play, idioma a idioma, y lo relee para comprobarlo."""
+    play = play_api.Play(ROOT / play_api.CREDENTIAL)
+    say("   cuenta de servicio  %s" % play.account)
+    try:
+        edit = play.open_edit()
+    except play_api.PlayError as bad:
+        raise Fail(str(bad))
+    try:
+        live = {l["language"]: l for l in play.listings(edit)}
+        missing = play_locales.missing(sorted(live))
+        if missing:
+            raise Fail("la tienda no tiene ficha en %s: este script solo actualiza, no crea"
+                       % ", ".join(missing))
+        changed = []
+        for locale in play_locales.PLAY_LOCALES:
+            source = PASTE / ("play-%s.txt" % locale)
+            want = play_locales.paste_sections(source.read_text(encoding="utf-8"))
+            body = dict(live[locale])
+            for key, field, limit in LISTING_LIMITS:
+                if not want[key] or len(want[key]) > limit:
+                    raise Fail("%s/%s: %d caracteres, el tope es %d"
+                               % (locale, key, len(want[key]), limit))
+                body[field] = want[key]
+            if body == live[locale]:
+                say("   %-6s igual que la tienda" % locale)
+                continue
+            play.put_listing(edit, body)
+            changed.append(locale)
+            say("   %-6s preparado (completa %d/4000)" % (locale, len(want["full"])))
+        if not changed:
+            play.discard_edit(edit)
+            say("   nada que subir: la tienda ya publica este texto")
+            return {}
+        play.validate_edit(edit)
+        play.commit_edit(edit)
+    except play_api.PlayError as bad:
+        play.discard_edit(edit)
+        raise Fail("%s\n     La edicion se ha descartado: en Play no ha cambiado nada." % bad)
+    except Exception:
+        play.discard_edit(edit)
+        raise
+
+    # La prueba no es que Play aceptara el commit, es leer lo que publica ahora.
+    code, version = read_gradle_versions()
+    tracks, listings = live_state(play)
+    _, problems = check_against_store(version, code, tracks, listings, PASTE)
+    if problems:
+        raise Fail("Play acepto el commit pero lo publicado no es el repo:\n" +
+                   "\n".join("     %s" % p for p in problems))
+    say("   subido y releido: la ficha de la tienda es la del repo en %d idioma(s): %s"
+        % (len(changed), " ".join(changed)))
+    return {"listing_changed": changed}
+
+
 # ------------------------------------------------------------------------ main
 
 
@@ -991,6 +1074,7 @@ def main():
         "tag": lambda: phase_tag(args.version),
         "verify": phase_verify,
         "upload": phase_upload,
+        "listing": phase_listing,
     }
 
     say("corte de version -- repo %s" % ROOT)
@@ -1018,6 +1102,9 @@ def main():
     if state.get("uploaded_to"):
         say("   OJO: esta en BORRADOR en el canal %s. Publicar es del user, en el Console."
             % state["uploaded_to"])
+    elif state.get("listing_changed"):
+        say("   OJO: el texto de la ficha YA esta publicado en Play (%s)."
+            % " ".join(state["listing_changed"]))
     else:
         say("   OJO: subir a Play y publicar es del user. Este script no sube nada.")
     if "tag" not in wanted and "bump" in wanted:

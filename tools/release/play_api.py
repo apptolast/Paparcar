@@ -145,9 +145,38 @@ class Play:
         self.request("DELETE", "%s/edits/%s" % (BASE, edit_id))
 
     def commit_edit(self, edit_id):
-        status, payload = self.request("POST", "%s/edits/%s:commit" % (BASE, edit_id))
+        """Aplica la edicion. ⛔ NUNCA cancela una revision en curso.
+
+        Sin `changesInReviewBehavior`, Play hace `CANCEL_IN_REVIEW_AND_SUBMIT`: retira lo que este
+        en revision y lo reenvia junto con esta edicion. Subir una ficha con la 1.6.0 en revision de
+        produccion le habria reiniciado la revision sin que nadie lo pidiera. Con
+        `ERROR_IF_IN_REVIEW` Play rechaza el commit y no cambia nada: se reintenta cuando la revision
+        acabe. [PLAY-THE-LISTING-MOVES-TO-1-6-0-001]
+        """
+        url = "%s/edits/%s:commit?changesInReviewBehavior=ERROR_IF_IN_REVIEW" % (BASE, edit_id)
+        status, payload = self.request("POST", url)
         if status != 200:
             raise PlayError("el commit de la edicion fallo (%s): %s" % (status, _message(payload)))
+        return payload
+
+    def validate_edit(self, edit_id):
+        """Le pide a Play que valide la edicion sin aplicarla."""
+        status, payload = self.request("POST", "%s/edits/%s:validate" % (BASE, edit_id))
+        if status != 200:
+            raise PlayError("Play no valida la edicion (%s): %s" % (status, _message(payload)))
+        return payload
+
+    def put_listing(self, edit_id, listing):
+        """Sustituye la ficha de UN idioma (titulo y descripciones) dentro de la edicion.
+
+        No toca capturas ni graficos: esos viven en `/listings/<lang>/<imageType>`, otra ruta.
+        """
+        url = "%s/edits/%s/listings/%s" % (BASE, edit_id, urllib.parse.quote(listing["language"]))
+        status, payload = self.request("PUT", url, body=json.dumps(listing).encode("utf-8"),
+                                       content_type="application/json; charset=utf-8")
+        if status != 200:
+            raise PlayError("Play rechazo la ficha %s (%s): %s"
+                            % (listing["language"], status, _message(payload)))
         return payload
 
     def tracks(self, edit_id):

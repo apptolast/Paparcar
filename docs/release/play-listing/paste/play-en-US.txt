@@ -1,6 +1,6 @@
 FICHA DE PLAY STORE — en-US
 ============================================================
-GENERADO por tools/make_paste.py desde LISTING-v1.5.0.md — no editar a mano.
+GENERADO por tools/make_paste.py desde LISTING-v1.6.0.md — no editar a mano.
 
 --- 1. NOMBRE DE LA APLICACION (28/30) ---
 Paparcar: where did you park
@@ -8,7 +8,7 @@ Paparcar: where did you park
 --- 2. DESCRIPCION BREVE (72/80) ---
 Where did you park? Paparcar remembers — plus fuel prices and car parks.
 
---- 3. DESCRIPCION COMPLETA (3744/4000) ---
+--- 3. DESCRIPCION COMPLETA (3807/4000) ---
 Where did you park?
 
 Paparcar remembers for you.
@@ -46,7 +46,6 @@ FUEL AND CAR PARKS, ON THE SAME MAP
 YOUR NUMBERS
 • Estimated fuel cost and consumption, based on your trips and vehicle data.
 • How long you spend looking for a spot.
-• Statistics based on your recorded trips.
 
 ONE CAR, SEVERAL DRIVERS
 • Share a car with up to four people. Whoever drives it marks the parking, and the whole group sees where it is.
@@ -72,7 +71,7 @@ PRIVACY
 • Your car's brand and model only appear on the spot you free if you turn that on.
 • Your location is never sold or used for advertising.
 • You can delete your account and its data from Settings or the web.
-• No ads.
+• No ads in the app. Only if you allow it, Meta learns when you park, free a spot or open Plus, to measure our ads.
 
 LOCATION IN THE BACKGROUND
 

@@ -1,6 +1,6 @@
 FICHA DE PLAY STORE — es-ES
 ============================================================
-GENERADO por tools/make_paste.py desde LISTING-v1.5.0.md — no editar a mano.
+GENERADO por tools/make_paste.py desde LISTING-v1.6.0.md — no editar a mano.
 
 --- 1. NOMBRE DE LA APLICACION (25/30) ---
 Paparcar: dónde aparcaste
@@ -8,7 +8,7 @@ Paparcar: dónde aparcaste
 --- 2. DESCRIPCION BREVE (75/80) ---
 ¿Dónde aparcaste? Paparcar lo recuerda. Con precios de gasolina y parkings.
 
---- 3. DESCRIPCION COMPLETA (3918/4000) ---
+--- 3. DESCRIPCION COMPLETA (3978/4000) ---
 ¿Dónde aparcaste?
 
 Paparcar lo recuerda por ti.
@@ -46,7 +46,6 @@ GASOLINERAS Y PARKINGS, EN EL MISMO MAPA
 TUS CIFRAS
 • Gasto y consumo de combustible estimados a partir de tus viajes y los datos del coche.
 • Cuánto tiempo pasas buscando plaza.
-• Estadísticas calculadas sobre tus trayectos registrados.
 
 UN COCHE, VARIOS CONDUCTORES
 • Comparte un coche hasta con cuatro personas. Quien lo conduce marca el aparcamiento y todo el grupo ve dónde está.
@@ -72,7 +71,7 @@ PRIVACIDAD
 • La marca y el modelo de tu coche sólo aparecen en la plaza que liberas si tú lo activas.
 • Tu ubicación nunca se vende ni se usa para publicidad.
 • Puedes borrar tu cuenta y sus datos desde Ajustes o desde la web.
-• Sin anuncios.
+• Sin anuncios en la app. Sólo si lo permites, Meta sabe cuándo aparcas, liberas una plaza o abres Plus, para medir nuestros anuncios.
 
 UBICACIÓN EN SEGUNDO PLANO
 

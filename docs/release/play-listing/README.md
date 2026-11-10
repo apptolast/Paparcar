@@ -19,6 +19,23 @@
 > visualmente todos los resultados. La tanda y sus validaciones se registran en
 > [PLAY-SHOTS-MOBILITY-CAROUSEL-001](../../backlog/play-shots-mobility-carousel-001.md).
 
+## Subir sólo el TEXTO de la ficha (lo normal al publicar una versión)
+
+Cuando Play publica una versión nueva: mover `published-listing.txt`, regenerar `paste/` y, con
+autorización del user, subirlo. Sólo título y descripciones de los 9 idiomas; las capturas no se
+tocan.
+
+```bash
+python docs/release/play-listing/tools/make_paste.py
+python tools/release/cut.py --phases listing   # sube, valida y RELEE lo publicado
+python tools/release/cut.py --phases verify    # compara titulo, corta y COMPLETA
+```
+
+⛔ Nunca cancela una revisión en curso: el commit va con `ERROR_IF_IN_REVIEW`, así que si hay algo
+en revisión Play lo rechaza y no cambia nada. Sin ese parámetro la API cancela la revisión y la
+reenvía. ⛔ Hasta el 10-11 `verify` no comparaba la descripción completa y dio «cuadran» con la
+ficha 1.6.0 sin subir. [PLAY-THE-LISTING-MOVES-TO-1-6-0-001]
+
 ## Actualizar capturas y descripción mediante la API
 
 Con autorización del usuario para modificar la ficha, desde la raíz del worktree:

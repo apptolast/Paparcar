@@ -1,6 +1,6 @@
 FICHA DE PLAY STORE — fr-FR
 ============================================================
-GENERADO por tools/make_paste.py desde LISTING-v1.5.0.md — no editar a mano.
+GENERADO por tools/make_paste.py desde LISTING-v1.6.0.md — no editar a mano.
 
 --- 1. NOMBRE DE LA APLICACION (28/30) ---
 Paparcar: où me suis-je garé
@@ -8,14 +8,14 @@ Paparcar: où me suis-je garé
 --- 2. DESCRIPCION BREVE (73/80) ---
 Où vous êtes-vous garé ? Paparcar s'en souvient. Prix et parkings inclus.
 
---- 3. DESCRIPCION COMPLETA (3956/4000) ---
+--- 3. DESCRIPCION COMPLETA (3995/4000) ---
 Où vous êtes-vous garé ?
 
 Paparcar s'en souvient pour vous.
 
 Votre voiture, la rue et l'heure du stationnement sur la carte. Paparcar aide à enregistrer votre stationnement automatiquement. Vous pouvez aussi le marquer.
 
-Quand vous repartez, la place que vous libérez peut être publiée pour les conducteurs à proximité. Et vous voyez celles que d'autres viennent de libérer. Plus il y a de conducteurs dans votre ville, plus de places apparaissent.
+Quand vous repartez, la place que vous libérez peut être publiée pour les conducteurs proches. Et vous voyez celles que d'autres viennent de libérer. Plus il y a de conducteurs dans votre ville, plus de places apparaissent.
 
 COMMENT ÇA MARCHE
 1. Vous vous garez. Paparcar peut le détecter ; vous pouvez aussi marquer l'endroit.
@@ -30,7 +30,7 @@ VOTRE STATIONNEMENT, SANS EFFORT
 • Chaque voiture avec sa taille, sa couleur et son Bluetooth.
 
 DES PLACES PARTAGÉES PAR LA COMMUNAUTÉ
-• Des places signalées par d'autres conducteurs sur la carte. Leur disponibilité peut changer.
+• Places signalées par d'autres conducteurs sur la carte. Leur disponibilité peut changer.
 • Quand chacune s'est libérée : deux minutes, ce n'est pas vingt.
 • Combien de conducteurs s'y dirigent déjà.
 • Si votre voiture rentre : Paparcar compare l'espace à la vôtre.
@@ -39,14 +39,13 @@ DES PLACES PARTAGÉES PAR LA COMMUNAUTÉ
 STATIONS-SERVICE ET PARKINGS, SUR LA MÊME CARTE
 • Stations avec prix officiels et date de mise à jour, selon les données disponibles.
 • Le prix du carburant de votre voiture, pas une moyenne générique.
-• Parkings publics avec tarif, hauteur maximale et nombre de places, quand la source les donne.
+• Parkings publics avec tarif, hauteur maximale et places, quand la source les donne.
 • Vous passez sous la barrière ? Seulement si c'est sûr : une hauteur inconnue n'est pas un oui.
 • Consulter places, parkings et stations est gratuit. Les alertes de prix proches arrivent aussi app fermée.
 
 VOS CHIFFRES
 • Coût et consommation de carburant estimés selon vos trajets et votre voiture.
 • Le temps passé à chercher une place.
-• Statistiques calculées sur vos trajets enregistrés.
 
 UNE VOITURE, PLUSIEURS CONDUCTEURS
 • Partagez une voiture jusqu'à quatre : qui la conduit marque, tout le groupe voit où elle est.
@@ -68,11 +67,11 @@ Ce qui vous entoure est gratuit. Plus surveille ce que vous choisissez, et s'en 
 
 CONFIDENTIALITÉ
 • Zones privées : marquez votre domicile, Paparcar n'y publie aucune place.
-• Votre plaque d'immatriculation ne quitte jamais votre téléphone.
+• Votre plaque ne quitte jamais votre téléphone.
 • La marque et le modèle n'apparaissent sur la place libérée que si vous l'activez.
-• Votre localisation n'est jamais vendue ni utilisée à des fins publicitaires.
+• Votre localisation n'est jamais vendue ni utilisée pour la publicité.
 • Compte et données supprimables depuis les Paramètres ou le web.
-• Sans publicité.
+• Aucune publicité dans l'app. Avec votre accord seulement, Meta sait quand vous vous garez, libérez une place ou ouvrez Plus, pour mesurer nos annonces.
 
 LOCALISATION EN ARRIÈRE-PLAN
 

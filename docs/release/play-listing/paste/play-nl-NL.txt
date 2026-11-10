@@ -1,6 +1,6 @@
 FICHA DE PLAY STORE — nl-NL
 ============================================================
-GENERADO por tools/make_paste.py desde LISTING-v1.5.0.md — no editar a mano.
+GENERADO por tools/make_paste.py desde LISTING-v1.6.0.md — no editar a mano.
 
 --- 1. NOMBRE DE LA APLICACION (28/30) ---
 Paparcar: waar staat je auto
@@ -8,7 +8,7 @@ Paparcar: waar staat je auto
 --- 2. DESCRIPCION BREVE (68/80) ---
 Waar heb je geparkeerd? Paparcar onthoudt het. Met brandstofprijzen.
 
---- 3. DESCRIPCION COMPLETA (3982/4000) ---
+--- 3. DESCRIPCION COMPLETA (3978/4000) ---
 Waar heb je geparkeerd?
 
 Paparcar onthoudt het voor je.
@@ -37,7 +37,7 @@ PLEKKEN GEDEELD DOOR DE COMMUNITY
 • Zie je in het voorbijgaan een vrije plek? Meld hem in twee tikken.
 
 TANKSTATIONS EN PARKEERGARAGES, OP DEZELFDE KAART
-• Tankstations met officiële prijzen en meetmoment, waar beschikbaar. De dekking hangt af van de bron.
+• Tankstations met officiële prijzen en meetmoment, waar de bron die geeft.
 • De prijs van de brandstof die jouw auto tankt, geen algemeen gemiddelde.
 • Parkeergarages met tarief, maximale hoogte en plaatsen, waar de bron die geeft.
 • Kom je onder de hoogte door? Alleen als we het zeker weten — onbekend is nooit een ja.
@@ -46,7 +46,6 @@ TANKSTATIONS EN PARKEERGARAGES, OP DEZELFDE KAART
 JOUW CIJFERS
 • Geschatte brandstofkosten en verbruik op basis van je ritten en autogegevens.
 • Hoe lang je zoekt naar een plek.
-• Statistieken op basis van je vastgelegde ritten.
 
 ÉÉN AUTO, MEERDERE BESTUURDERS
 • Deel een auto met maximaal vier mensen. Wie erin rijdt, markeert de parkeerplaats, en de hele groep ziet waar hij staat.
@@ -56,7 +55,7 @@ JOUW CIJFERS
 AUTOMATISCHE DETECTIE
 Maakt je auto via Bluetooth verbinding met je telefoon, dan helpt het verbreken te merken dat je klaar bent met parkeren. Zonder Bluetooth gebruikt Paparcar beweging en locatie.
 
-Paparcar wil niet gokken. Als het niet zeker weet wat er is gebeurd, vraagt het het je voordat er een plek wordt gepubliceerd.
+Paparcar wil niet gokken. Bij twijfel vraagt het je voordat er een plek wordt gepubliceerd.
 
 PAPARCAR PLUS
 Wat om je heen is, is gratis. Plus waakt over wat jij kiest, en onthoudt het:
@@ -71,8 +70,8 @@ PRIVACY
 • Je kenteken verlaat nooit je telefoon.
 • Merk en model verschijnen alleen op de plek die je vrijmaakt als je dat aanzet.
 • Je locatie wordt nooit verkocht of voor advertenties gebruikt.
-• Je kunt je account en de gegevens verwijderen via Instellingen of via het web.
-• Geen advertenties.
+• Account en gegevens verwijder je via Instellingen of het web.
+• Geen advertenties in de app. Alleen met jouw ja hoort Meta wanneer je parkeert, een plek vrijmaakt of Plus opent, om onze advertenties te meten.
 
 LOCATIE OP DE ACHTERGROND
 

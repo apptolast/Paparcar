@@ -1,6 +1,6 @@
 FICHA DE PLAY STORE — ro
 ============================================================
-GENERADO por tools/make_paste.py desde LISTING-v1.5.0.md — no editar a mano.
+GENERADO por tools/make_paste.py desde LISTING-v1.6.0.md — no editar a mano.
 
 --- 1. NOMBRE DE LA APLICACION (24/30) ---
 Paparcar: unde ai parcat
@@ -8,7 +8,7 @@ Paparcar: unde ai parcat
 --- 2. DESCRIPCION BREVE (67/80) ---
 Unde ai parcat? Paparcar ține minte. Cu prețuri și parcări publice.
 
---- 3. DESCRIPCION COMPLETA (3894/4000) ---
+--- 3. DESCRIPCION COMPLETA (3957/4000) ---
 Unde ai parcat?
 
 Paparcar ține minte pentru tine.
@@ -46,7 +46,6 @@ BENZINĂRII ȘI PARCĂRI PUBLICE, PE ACEEAȘI HARTĂ
 CIFRELE TALE
 • Costul și consumul de combustibil estimate din călătorii și datele mașinii.
 • Cât timp petreci căutând un loc.
-• Statistici calculate pe baza călătoriilor înregistrate.
 
 O MAȘINĂ, MAI MULȚI ȘOFERI
 • Împarte o mașină cu până la patru persoane. Cine o conduce marchează parcarea, iar tot grupul vede unde este.
@@ -72,7 +71,7 @@ CONFIDENȚIALITATE
 • Marca și modelul apar pe locul pe care îl eliberezi doar dacă activezi asta.
 • Locația ta nu este niciodată vândută sau folosită pentru publicitate.
 • Îți poți șterge contul și datele din Setări sau de pe web.
-• Fără reclame.
+• Fără reclame în aplicație. Doar dacă permiți, Meta află când parchezi, eliberezi un loc sau deschizi Plus, ca să ne măsurăm reclamele.
 
 LOCAȚIA ÎN FUNDAL
 

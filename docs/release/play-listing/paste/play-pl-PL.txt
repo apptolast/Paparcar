@@ -1,6 +1,6 @@
 FICHA DE PLAY STORE — pl-PL
 ============================================================
-GENERADO por tools/make_paste.py desde LISTING-v1.5.0.md — no editar a mano.
+GENERADO por tools/make_paste.py desde LISTING-v1.6.0.md — no editar a mano.
 
 --- 1. NOMBRE DE LA APLICACION (28/30) ---
 Paparcar: gdzie zaparkowałeś
@@ -8,7 +8,7 @@ Paparcar: gdzie zaparkowałeś
 --- 2. DESCRIPCION BREVE (66/80) ---
 Gdzie zaparkowałeś? Paparcar pamięta. Z cenami paliw i parkingami.
 
---- 3. DESCRIPCION COMPLETA (3851/4000) ---
+--- 3. DESCRIPCION COMPLETA (3926/4000) ---
 Gdzie zaparkowałeś?
 
 Paparcar pamięta za Ciebie.
@@ -46,7 +46,6 @@ STACJE PALIW I PARKINGI, NA TEJ SAMEJ MAPIE
 TWOJE LICZBY
 • Szacowane koszty i zużycie paliwa na podstawie przejazdów i danych auta.
 • Ile czasu spędzasz na szukaniu miejsca.
-• Statystyki obliczane na podstawie zapisanych przejazdów.
 
 JEDNO AUTO, KILKU KIEROWCÓW
 • Udostępnij auto nawet czterem osobom. Kto nim jedzie, oznacza parkowanie, a cała grupa widzi, gdzie stoi.
@@ -72,7 +71,7 @@ PRYWATNOŚĆ
 • Marka i model pojawiają się przy zwalnianym miejscu tylko wtedy, gdy to włączysz.
 • Twoja lokalizacja nigdy nie jest sprzedawana ani używana do reklam.
 • Możesz usunąć konto i jego dane w Ustawieniach lub przez stronę.
-• Bez reklam.
+• Bez reklam w aplikacji. Tylko za Twoją zgodą Meta dowiaduje się, kiedy parkujesz, zwalniasz miejsce lub otwierasz Plus, by mierzyć nasze reklamy.
 
 LOKALIZACJA W TLE
 

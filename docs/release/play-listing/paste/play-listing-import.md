@@ -1,6 +1,6 @@
 # Paparcar — Google Play store listing (9 locales)
 
-<!-- GENERADO por tools/make_paste.py desde LISTING-v1.5.0.md — no editar a mano. -->
+<!-- GENERADO por tools/make_paste.py desde LISTING-v1.6.0.md — no editar a mano. -->
 
 Import these texts VERBATIM. Do not rewrite, rephrase, shorten or translate them:
 every locale below is already translated and character-counted.
@@ -54,7 +54,6 @@ FUEL AND CAR PARKS, ON THE SAME MAP
 YOUR NUMBERS
 • Estimated fuel cost and consumption, based on your trips and vehicle data.
 • How long you spend looking for a spot.
-• Statistics based on your recorded trips.
 
 ONE CAR, SEVERAL DRIVERS
 • Share a car with up to four people. Whoever drives it marks the parking, and the whole group sees where it is.
@@ -80,7 +79,7 @@ PRIVACY
 • Your car's brand and model only appear on the spot you free if you turn that on.
 • Your location is never sold or used for advertising.
 • You can delete your account and its data from Settings or the web.
-• No ads.
+• No ads in the app. Only if you allow it, Meta learns when you park, free a spot or open Plus, to measure our ads.
 
 LOCATION IN THE BACKGROUND
 
@@ -139,7 +138,6 @@ GASOLINERAS Y PARKINGS, EN EL MISMO MAPA
 TUS CIFRAS
 • Gasto y consumo de combustible estimados a partir de tus viajes y los datos del coche.
 • Cuánto tiempo pasas buscando plaza.
-• Estadísticas calculadas sobre tus trayectos registrados.
 
 UN COCHE, VARIOS CONDUCTORES
 • Comparte un coche hasta con cuatro personas. Quien lo conduce marca el aparcamiento y todo el grupo ve dónde está.
@@ -165,7 +163,7 @@ PRIVACIDAD
 • La marca y el modelo de tu coche sólo aparecen en la plaza que liberas si tú lo activas.
 • Tu ubicación nunca se vende ni se usa para publicidad.
 • Puedes borrar tu cuenta y sus datos desde Ajustes o desde la web.
-• Sin anuncios.
+• Sin anuncios en la app. Sólo si lo permites, Meta sabe cuándo aparcas, liberas una plaza o abres Plus, para medir nuestros anuncios.
 
 UBICACIÓN EN SEGUNDO PLANO
 
@@ -215,7 +213,7 @@ POSTI CONDIVISI DALLA COMUNITÀ
 • Vedi un posto libero mentre passi? Segnalalo in due tocchi.
 
 DISTRIBUTORI E PARCHEGGI PUBBLICI, SULLA STESSA MAPPA
-• Distributori con prezzi ufficiali e data di aggiornamento, dove disponibili. La copertura dipende dalla fonte.
+• Distributori con prezzi ufficiali e data di aggiornamento, quando la fonte li fornisce.
 • Il prezzo del carburante che usa davvero la tua auto, non una media generica.
 • Parcheggi pubblici con tariffa, altezza massima e posti, quando la fonte li fornisce.
 • Passi sotto la barriera? Solo quando ne siamo certi: un'altezza ignota non è mai un sì.
@@ -224,7 +222,6 @@ DISTRIBUTORI E PARCHEGGI PUBBLICI, SULLA STESSA MAPPA
 I TUOI NUMERI
 • Spesa e consumo di carburante stimati dai viaggi e dai dati dell'auto.
 • Quanto tempo passi a cercare posto.
-• Statistiche basate sui viaggi registrati.
 
 UN'AUTO, PIÙ CONDUCENTI
 • Condividi un'auto fino a quattro persone. Chi la guida segna il parcheggio e tutto il gruppo vede dov'è.
@@ -250,7 +247,7 @@ PRIVACY
 • Marca e modello della tua auto compaiono sul posto che liberi solo se lo attivi tu.
 • La tua posizione non viene mai venduta né usata per pubblicità.
 • Puoi eliminare il tuo account e i suoi dati dalle Impostazioni o dal web.
-• Nessuna pubblicità.
+• Nessuna pubblicità nell'app. Solo se lo permetti, Meta sa quando parcheggi, liberi un posto o apri Plus, per misurare i nostri annunci.
 
 POSIZIONE IN SECONDO PIANO
 
@@ -309,7 +306,6 @@ BOMBAS E PARQUES, NO MESMO MAPA
 OS TEUS NÚMEROS
 • Gasto e consumo de combustível estimados a partir das viagens e dos dados do carro.
 • Quanto tempo passas à procura de lugar.
-• Estatísticas calculadas sobre as viagens registadas.
 
 UM CARRO, VÁRIOS CONDUTORES
 • Partilha um carro até com quatro pessoas. Quem o conduz marca o estacionamento e todo o grupo vê onde está.
@@ -335,7 +331,7 @@ PRIVACIDADE
 • A marca e o modelo do teu carro só aparecem no lugar que libertas se tu o ativares.
 • A tua localização nunca é vendida nem usada para publicidade.
 • Podes apagar a tua conta e os seus dados nas Definições ou na web.
-• Sem anúncios.
+• Sem anúncios na aplicação. Só se o permitires, a Meta sabe quando estacionas, libertas um lugar ou abres o Plus, para medir os nossos anúncios.
 
 LOCALIZAÇÃO EM SEGUNDO PLANO
 
@@ -363,7 +359,7 @@ Paparcar s'en souvient pour vous.
 
 Votre voiture, la rue et l'heure du stationnement sur la carte. Paparcar aide à enregistrer votre stationnement automatiquement. Vous pouvez aussi le marquer.
 
-Quand vous repartez, la place que vous libérez peut être publiée pour les conducteurs à proximité. Et vous voyez celles que d'autres viennent de libérer. Plus il y a de conducteurs dans votre ville, plus de places apparaissent.
+Quand vous repartez, la place que vous libérez peut être publiée pour les conducteurs proches. Et vous voyez celles que d'autres viennent de libérer. Plus il y a de conducteurs dans votre ville, plus de places apparaissent.
 
 COMMENT ÇA MARCHE
 1. Vous vous garez. Paparcar peut le détecter ; vous pouvez aussi marquer l'endroit.
@@ -378,7 +374,7 @@ VOTRE STATIONNEMENT, SANS EFFORT
 • Chaque voiture avec sa taille, sa couleur et son Bluetooth.
 
 DES PLACES PARTAGÉES PAR LA COMMUNAUTÉ
-• Des places signalées par d'autres conducteurs sur la carte. Leur disponibilité peut changer.
+• Places signalées par d'autres conducteurs sur la carte. Leur disponibilité peut changer.
 • Quand chacune s'est libérée : deux minutes, ce n'est pas vingt.
 • Combien de conducteurs s'y dirigent déjà.
 • Si votre voiture rentre : Paparcar compare l'espace à la vôtre.
@@ -387,14 +383,13 @@ DES PLACES PARTAGÉES PAR LA COMMUNAUTÉ
 STATIONS-SERVICE ET PARKINGS, SUR LA MÊME CARTE
 • Stations avec prix officiels et date de mise à jour, selon les données disponibles.
 • Le prix du carburant de votre voiture, pas une moyenne générique.
-• Parkings publics avec tarif, hauteur maximale et nombre de places, quand la source les donne.
+• Parkings publics avec tarif, hauteur maximale et places, quand la source les donne.
 • Vous passez sous la barrière ? Seulement si c'est sûr : une hauteur inconnue n'est pas un oui.
 • Consulter places, parkings et stations est gratuit. Les alertes de prix proches arrivent aussi app fermée.
 
 VOS CHIFFRES
 • Coût et consommation de carburant estimés selon vos trajets et votre voiture.
 • Le temps passé à chercher une place.
-• Statistiques calculées sur vos trajets enregistrés.
 
 UNE VOITURE, PLUSIEURS CONDUCTEURS
 • Partagez une voiture jusqu'à quatre : qui la conduit marque, tout le groupe voit où elle est.
@@ -416,11 +411,11 @@ Ce qui vous entoure est gratuit. Plus surveille ce que vous choisissez, et s'en 
 
 CONFIDENTIALITÉ
 • Zones privées : marquez votre domicile, Paparcar n'y publie aucune place.
-• Votre plaque d'immatriculation ne quitte jamais votre téléphone.
+• Votre plaque ne quitte jamais votre téléphone.
 • La marque et le modèle n'apparaissent sur la place libérée que si vous l'activez.
-• Votre localisation n'est jamais vendue ni utilisée à des fins publicitaires.
+• Votre localisation n'est jamais vendue ni utilisée pour la publicité.
 • Compte et données supprimables depuis les Paramètres ou le web.
-• Sans publicité.
+• Aucune publicité dans l'app. Avec votre accord seulement, Meta sait quand vous vous garez, libérez une place ou ouvrez Plus, pour mesurer nos annonces.
 
 LOCALISATION EN ARRIÈRE-PLAN
 
@@ -463,14 +458,14 @@ DEIN PARKPLATZ, OHNE AUFWAND
 • Jedes Auto mit seiner Größe, seiner Farbe und seinem Bluetooth.
 
 VON DER COMMUNITY GEMELDETE PLÄTZE
-• Von anderen Fahrern gemeldete Plätze auf der Karte. Die Verfügbarkeit kann sich ändern.
+• Von anderen Fahrern gemeldete Plätze auf der Karte. Verfügbarkeit kann sich ändern.
 • Wann jeder frei wurde: vor zwei Minuten ist nicht vor zwanzig.
 • Wie viele Fahrer schon unterwegs dorthin sind.
 • Ob dein Auto hineinpasst: Paparcar vergleicht die Lücke mit deinem.
 • Im Vorbeigehen einen freien Platz gesehen? Melde ihn mit zwei Tipps.
 
 TANKSTELLEN UND PARKHÄUSER, AUF DERSELBEN KARTE
-• Tankstellen mit amtlichen Preisen und Zeitstempel, soweit verfügbar. Die Abdeckung hängt von der Quelle ab.
+• Tankstellen mit amtlichen Preisen und Zeitstempel, wenn die Quelle sie liefert.
 • Der Preis des Kraftstoffs, den dein Auto tankt, kein Durchschnitt.
 • Parkhäuser mit Tarif, Durchfahrtshöhe und Stellplätzen, wenn die Quelle sie liefert.
 • Passt dein Auto unter die Höhe? Nur wenn wir sicher sind — unbekannt ist nie ein Ja.
@@ -479,7 +474,6 @@ TANKSTELLEN UND PARKHÄUSER, AUF DERSELBEN KARTE
 DEINE ZAHLEN
 • Geschätzte Kraftstoffkosten und Verbrauch anhand deiner Fahrten und Fahrzeugdaten.
 • Wie lange du nach einem Platz suchst.
-• Statistiken auf Basis deiner aufgezeichneten Fahrten.
 
 EIN AUTO, MEHRERE FAHRER
 • Teile ein Auto mit bis zu vier Personen: wer fährt, markiert, die Gruppe sieht, wo es steht.
@@ -489,7 +483,7 @@ EIN AUTO, MEHRERE FAHRER
 AUTOMATISCHE ERKENNUNG
 Verbindet sich dein Auto per Bluetooth, hilft das Trennen zu erkennen, dass du fertig eingeparkt hast. Ohne Bluetooth nutzt Paparcar Bewegung und Standort.
 
-Paparcar will nicht raten. Wenn nicht sicher ist, was passiert ist, fragt es dich, bevor ein Platz veröffentlicht wird.
+Paparcar will nicht raten. Im Zweifel fragt es dich, bevor ein Platz veröffentlicht wird.
 
 PAPARCAR PLUS
 Was dich umgibt, ist kostenlos. Plus bewacht, was du wählst, und merkt es sich:
@@ -502,10 +496,10 @@ Was dich umgibt, ist kostenlos. Plus bewacht, was du wählst, und merkt es sich:
 DATENSCHUTZ
 • Private Zonen: markiere dein Zuhause, dort wird kein Platz veröffentlicht.
 • Dein Kennzeichen verlässt niemals dein Handy.
-• Marke und Modell erscheinen nur auf dem Platz, den du frei machst, wenn du das einschaltest.
-• Dein Standort wird niemals verkauft oder für Werbung genutzt.
+• Marke und Modell erscheinen nur auf deinem freigegebenen Platz, wenn du das einschaltest.
+• Dein Standort wird nie verkauft oder für Werbung genutzt.
 • Konto und Daten löschst du in den Einstellungen oder im Web.
-• Keine Werbung.
+• Keine Werbung in der App. Nur mit deinem Ja erfährt Meta, wann du parkst, einen Platz freigibst oder Plus öffnest – zur Messung unserer Anzeigen.
 
 STANDORT IM HINTERGRUND
 
@@ -555,7 +549,7 @@ PLEKKEN GEDEELD DOOR DE COMMUNITY
 • Zie je in het voorbijgaan een vrije plek? Meld hem in twee tikken.
 
 TANKSTATIONS EN PARKEERGARAGES, OP DEZELFDE KAART
-• Tankstations met officiële prijzen en meetmoment, waar beschikbaar. De dekking hangt af van de bron.
+• Tankstations met officiële prijzen en meetmoment, waar de bron die geeft.
 • De prijs van de brandstof die jouw auto tankt, geen algemeen gemiddelde.
 • Parkeergarages met tarief, maximale hoogte en plaatsen, waar de bron die geeft.
 • Kom je onder de hoogte door? Alleen als we het zeker weten — onbekend is nooit een ja.
@@ -564,7 +558,6 @@ TANKSTATIONS EN PARKEERGARAGES, OP DEZELFDE KAART
 JOUW CIJFERS
 • Geschatte brandstofkosten en verbruik op basis van je ritten en autogegevens.
 • Hoe lang je zoekt naar een plek.
-• Statistieken op basis van je vastgelegde ritten.
 
 ÉÉN AUTO, MEERDERE BESTUURDERS
 • Deel een auto met maximaal vier mensen. Wie erin rijdt, markeert de parkeerplaats, en de hele groep ziet waar hij staat.
@@ -574,7 +567,7 @@ JOUW CIJFERS
 AUTOMATISCHE DETECTIE
 Maakt je auto via Bluetooth verbinding met je telefoon, dan helpt het verbreken te merken dat je klaar bent met parkeren. Zonder Bluetooth gebruikt Paparcar beweging en locatie.
 
-Paparcar wil niet gokken. Als het niet zeker weet wat er is gebeurd, vraagt het het je voordat er een plek wordt gepubliceerd.
+Paparcar wil niet gokken. Bij twijfel vraagt het je voordat er een plek wordt gepubliceerd.
 
 PAPARCAR PLUS
 Wat om je heen is, is gratis. Plus waakt over wat jij kiest, en onthoudt het:
@@ -589,8 +582,8 @@ PRIVACY
 • Je kenteken verlaat nooit je telefoon.
 • Merk en model verschijnen alleen op de plek die je vrijmaakt als je dat aanzet.
 • Je locatie wordt nooit verkocht of voor advertenties gebruikt.
-• Je kunt je account en de gegevens verwijderen via Instellingen of via het web.
-• Geen advertenties.
+• Account en gegevens verwijder je via Instellingen of het web.
+• Geen advertenties in de app. Alleen met jouw ja hoort Meta wanneer je parkeert, een plek vrijmaakt of Plus opent, om onze advertenties te meten.
 
 LOCATIE OP DE ACHTERGROND
 
@@ -649,7 +642,6 @@ STACJE PALIW I PARKINGI, NA TEJ SAMEJ MAPIE
 TWOJE LICZBY
 • Szacowane koszty i zużycie paliwa na podstawie przejazdów i danych auta.
 • Ile czasu spędzasz na szukaniu miejsca.
-• Statystyki obliczane na podstawie zapisanych przejazdów.
 
 JEDNO AUTO, KILKU KIEROWCÓW
 • Udostępnij auto nawet czterem osobom. Kto nim jedzie, oznacza parkowanie, a cała grupa widzi, gdzie stoi.
@@ -675,7 +667,7 @@ PRYWATNOŚĆ
 • Marka i model pojawiają się przy zwalnianym miejscu tylko wtedy, gdy to włączysz.
 • Twoja lokalizacja nigdy nie jest sprzedawana ani używana do reklam.
 • Możesz usunąć konto i jego dane w Ustawieniach lub przez stronę.
-• Bez reklam.
+• Bez reklam w aplikacji. Tylko za Twoją zgodą Meta dowiaduje się, kiedy parkujesz, zwalniasz miejsce lub otwierasz Plus, by mierzyć nasze reklamy.
 
 LOKALIZACJA W TLE
 
@@ -734,7 +726,6 @@ BENZINĂRII ȘI PARCĂRI PUBLICE, PE ACEEAȘI HARTĂ
 CIFRELE TALE
 • Costul și consumul de combustibil estimate din călătorii și datele mașinii.
 • Cât timp petreci căutând un loc.
-• Statistici calculate pe baza călătoriilor înregistrate.
 
 O MAȘINĂ, MAI MULȚI ȘOFERI
 • Împarte o mașină cu până la patru persoane. Cine o conduce marchează parcarea, iar tot grupul vede unde este.
@@ -760,7 +751,7 @@ CONFIDENȚIALITATE
 • Marca și modelul apar pe locul pe care îl eliberezi doar dacă activezi asta.
 • Locația ta nu este niciodată vândută sau folosită pentru publicitate.
 • Îți poți șterge contul și datele din Setări sau de pe web.
-• Fără reclame.
+• Fără reclame în aplicație. Doar dacă permiți, Meta află când parchezi, eliberezi un loc sau deschizi Plus, ca să ne măsurăm reclamele.
 
 LOCAȚIA ÎN FUNDAL
 
