@@ -1,7 +1,12 @@
 # DET-A-SILENT-SERVICE-IS-NOT-A-DEAD-ONE-001 · «no ha hablado» no es «lo mataron»
 
-**Estado:** 🔵 Código escrito y falsificado, **sin commitear** · rama `feature/HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001-phase1` ·
-worktree `../Paparcar-glance`
+**Estado:** ✅ Done — entró en master **dentro del squash** de
+[`HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001`](home-the-first-glance-speaks-for-the-car-001.md)
+(`5acd1ead8`), no con commit propio. La rama `…-phase1` ya no existe (la retiene el tag
+`prerebase/cleanup-feature-HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001-phase1`). Verificado el
+10-11-2026 en master: `ServicePresence.Unknown` es el inicial en `ALWAYS_UNKNOWN` y en el holder,
+`isWatchingLive` lo usan `ObserveDepartureWatchGapUseCase` y `SentryLifecycleDecision`, los tests de
+«Tests» están y el que defendía el bug ya no.
 
 Sale de revisar los avisos de Home con el user, dentro de
 [`HOME-THE-FIRST-GLANCE-SPEAKS-FOR-THE-CAR-001`](home-the-first-glance-speaks-for-the-car-001.md).
