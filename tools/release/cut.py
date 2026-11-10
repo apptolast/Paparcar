@@ -130,6 +130,16 @@ AD_SDKS = {
         "names": ("Meta", "Facebook", "Instagram"),
         "prop": "FACEBOOK_APP_ID",
         "meta": "com.facebook.sdk.ApplicationId",
+        # Lo que Play cruza con la declaracion de ID de publicidad: sin `AD_ID` en el AAB, la
+        # Console da un ERROR que solo se ve al crear la version, y el identificador sale a ceros.
+        # [RELEASE-THE-AAB-MUST-CARRY-AD-ID-001]
+        "requires": ("com.google.android.gms.permission.AD_ID",),
+        # Las dos APIs de segmentacion que el SDK fusiona solo y el manifest retira: la politica
+        # dice tres nombres de evento y el GAID, "y nada mas".
+        "forbids": (
+            "android.permission.ACCESS_ADSERVICES_TOPICS",
+            "android.permission.ACCESS_ADSERVICES_CUSTOM_AUDIENCE",
+        ),
     },
 }
 
@@ -469,6 +479,7 @@ def phase_bundle():
     target.write_bytes(built[0].read_bytes())
     say("   %s -> %s" % (built[0].relative_to(ROOT), target))
     check_aab_carries_the_ad_key(target)
+    check_aab_permissions_match_the_declaration(target)
     return {"aab": str(target)}
 
 
@@ -511,6 +522,43 @@ def check_aab_carries_the_ad_key(aab):
                 % (spec["prop"], aab.name, spec["meta"]))
         say("   %s: clave presente en el AAB (%d chars, %s...)"
             % (spec["names"][0], len(value), value[:4]))
+
+
+def check_aab_permissions_match_the_declaration(aab):
+    """El AAB lleva los permisos que la Console declara, y no los que la politica niega.
+
+    ⛔ El manifest del CODIGO ya lo vigila `AdvertisingDisclosureGuardrailTest`; esto mira el
+    BINARIO, que es lo que Play lee. Entre uno y otro esta el merge de manifiestos: una dependencia
+    o un flavor con `tools:node="remove"` puede quitar `AD_ID` sin tocar una linea nuestra.
+    El 10-11-2026 la Console bloqueo la 1.6.0 por un artefacto activo sin `AD_ID` (era la vc16,
+    sin Meta) y la unica forma de seguir fue desactivar ese error -- que, desactivado, ya no
+    avisaria si un corte futuro saliera sin el permiso. Este chequeo es el que queda.
+    [RELEASE-THE-AAB-MUST-CARRY-AD-ID-001]
+    """
+    networks = declared_ad_networks()
+    if not networks:
+        return
+    manifest = aab_manifest_bytes(aab)
+    for key, spec in networks:
+        missing = [p for p in spec.get("requires", ()) if p.encode("utf-8") not in manifest]
+        if missing:
+            raise Fail(
+                "el build lleva %s y el AAB NO declara %s.\n"
+                "    Play lo cruza con la declaracion de ID de publicidad (\"la app lo usa\"): la\n"
+                "    version se bloquea en la Console, o sale con el identificador a ceros si alguien\n"
+                "    desactiva ese error. Busca quien lo retira en el manifest fusionado de prodRelease."
+                % (spec["names"][0], ", ".join(missing)))
+        present = [p for p in spec.get("forbids", ()) if p.encode("utf-8") in manifest]
+        if present:
+            raise Fail(
+                "el AAB declara %s.\n"
+                "    La politica promete el identificador de publicidad y tres eventos, nada mas: estas\n"
+                "    APIs de segmentacion las fusiona %s solo y el manifest tiene que retirarlas."
+                % (", ".join(present), spec["names"][0]))
+        say("   %s: permisos del AAB = declaracion (%s presente; %s ausentes)"
+            % (spec["names"][0],
+               ", ".join(p.rsplit(".", 1)[-1] for p in spec.get("requires", ())),
+               ", ".join(p.rsplit(".", 1)[-1] for p in spec.get("forbids", ()))))
 
 
 def aab_manifest_bytes(aab):
