@@ -386,7 +386,11 @@ class AppNotificationManagerImpl(
         val correct = parkingIntent(RC_BT_SAVED_CORRECT, correct = true)
         val builder = NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
             .setContentTitle(title)
-            .setContentText(context.getString(R.string.notif_parking_saved_confirm_text))
+            .setContentText(
+                context.getString(
+                    if (bluetooth) R.string.notif_bt_saved_text else R.string.notif_parking_saved_confirm_text,
+                ),
+            )
             .setSmallIcon(R.drawable.ic_notification_logo)
             .setColor(COLOR_SUCCESS)
             .setCategory(NotificationCompat.CATEGORY_STATUS)

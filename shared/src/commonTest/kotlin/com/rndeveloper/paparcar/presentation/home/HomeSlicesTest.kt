@@ -477,10 +477,13 @@ class HomeSlicesTest {
             onSpotsLane.toMapSlice().fuelStations,
             "el mapa no pinta la capa de gasolineras fuera de su carril — eso está bien",
         )
+        // Desde 25eb3ac1e el carril de plazas SÍ pinta parkings (son el segundo bloque de
+        // Aparcar), así que el testigo de parkings vive en el único carril que no los pinta.
+        val onFuelLane = onSpotsLane.copy(nearbyLens = HomeNearbyLens.FUEL)
         assertEquals(
             emptyList(),
-            onSpotsLane.toMapSlice().publicParkings,
-            "ni la de parkings",
+            onFuelLane.toMapSlice().publicParkings,
+            "ni la de parkings fuera de Aparcar",
         )
         assertEquals(
             1,
@@ -490,7 +493,7 @@ class HomeSlicesTest {
         )
         assertEquals(
             1,
-            onSpotsLane.publicParkingsShown.size,
+            onFuelLane.publicParkingsShown.size,
             "lo mismo para los parkings",
         )
     }
@@ -1242,14 +1245,16 @@ class HomeSlicesTest {
     // [FUEL-STATIONS-MAP-AND-PEEK-001]
 
     @Test
-    fun should_openOnSpots_andPaintNoComplementOnTheMap_when_nobodyHasChosenALens() {
+    fun should_openOnSpots_andPaintOnlyItsParkings_when_nobodyHasChosenALens() {
         // The lane a cold start opens on, whatever the data says. The rule that used to live here
         // folded the spots section on a true empty so the refuel section would sit one row below it —
         // a rule that only existed because the subjects were stacked. Nothing is stacked now.
+        // Since 25eb3ac1e the spots lane (Aparcar) paints public parkings as its second block —
+        // fuel stays off the map until its own lane is chosen.
         val fresh = HomeState(isLoading = false)
         assertEquals(HomeNearbyLens.SPOTS, fresh.nearbyLens)
         assertEquals(false, fresh.showsFuelOnMap)
-        assertEquals(false, fresh.showsParkingsOnMap)
+        assertEquals(true, fresh.showsParkingsOnMap)
     }
 
     @Test
