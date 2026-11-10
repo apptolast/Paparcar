@@ -1,0 +1,81 @@
+<en-US>
+• New home: your car first, then what is around you.
+• Park shows free spots and car parks together.
+• Car parks load in an instant; in Madrid, with live free spaces.
+• Fuel: a bell watches the price of the station you pick.
+• Mark parking by hand, or correct a stop that was not one.
+• Fewer Bluetooth prompts, and a new sign-in screen.
+• Privacy: ad measurement asks for its own yes; change it in Settings.
+</en-US>
+<es-ES>
+• Nueva pantalla de inicio: primero tu coche, luego lo de alrededor.
+• Aparcar junta plazas libres y parkings.
+• Los parkings cargan al momento; en Madrid, con plazas libres en vivo.
+• Gasolineras: una campana vigila el precio de la que elijas.
+• Marca el aparcamiento a mano, o corrige una parada que no lo era.
+• Menos avisos de Bluetooth y nueva pantalla de entrada.
+• Privacidad: la medición de anuncios pide su propio sí; cámbialo en Ajustes.
+</es-ES>
+<it-IT>
+• Nuova home: prima la tua auto, poi ciò che hai intorno.
+• Parcheggiare riunisce posti liberi e parcheggi pubblici.
+• I parcheggi pubblici caricano subito; a Madrid, con posti liberi dal vivo.
+• Carburante: una campanella sorveglia il prezzo del distributore scelto.
+• Segna il parcheggio a mano, o correggi una sosta che non lo era.
+• Meno avvisi Bluetooth e una nuova schermata di accesso.
+• Privacy: la misurazione degli annunci chiede il suo sì; cambialo in Impostazioni.
+</it-IT>
+<pt-PT>
+• Novo início: primeiro o teu carro, depois o que há à volta.
+• Estacionar junta lugares livres e parques de estacionamento.
+• Os parques carregam num instante; em Madrid, com lugares livres ao vivo.
+• Combustível: um sino vigia o preço da estação que escolheres.
+• Marca o estacionamento à mão, ou corrige uma paragem que não o era.
+• Menos avisos de Bluetooth e um novo ecrã de entrada.
+• Privacidade: a medição de anúncios pede o seu próprio sim; muda-o nas Definições.
+</pt-PT>
+<fr-FR>
+• Nouvel accueil : d'abord votre voiture, puis ce qui vous entoure.
+• Se garer réunit places libres et parkings.
+• Les parkings chargent aussitôt ; à Madrid, avec places libres en direct.
+• Carburant : une cloche surveille le prix de la station choisie.
+• Marquez le stationnement à la main, ou corrigez un faux arrêt.
+• Moins d'alertes Bluetooth et un nouvel écran de connexion.
+• Confidentialité : la mesure publicitaire demande son propre oui ; à changer dans Réglages.
+</fr-FR>
+<de-DE>
+• Neuer Startbildschirm: erst dein Auto, dann deine Umgebung.
+• Parken zeigt freie Plätze und Parkhäuser zusammen.
+• Parkhäuser laden sofort; in Madrid mit freien Plätzen live.
+• Sprit: Eine Glocke überwacht den Preis der gewählten Tankstelle.
+• Parkplatz von Hand markieren oder einen falschen Halt korrigieren.
+• Weniger Bluetooth-Hinweise und ein neuer Anmeldebildschirm.
+• Datenschutz: Die Werbemessung fragt eigens nach; änderbar in den Einstellungen.
+</de-DE>
+<nl-NL>
+• Nieuw startscherm: eerst je auto, dan wat er om je heen is.
+• Parkeren toont vrije plekken en parkeergarages samen.
+• Parkeergarages laden meteen; in Madrid met live vrije plaatsen.
+• Brandstof: een bel bewaakt de prijs van het station dat je kiest.
+• Markeer je parkeerplaats met de hand, of corrigeer een valse stop.
+• Minder Bluetooth-meldingen en een nieuw inlogscherm.
+• Privacy: advertentiemeting vraagt om een eigen ja; wijzig het in Instellingen.
+</nl-NL>
+<pl-PL>
+• Nowy ekran główny: najpierw twoje auto, potem to, co wokół.
+• Parkuj pokazuje razem wolne miejsca i parkingi.
+• Parkingi ładują się od razu; w Madrycie z wolnymi miejscami na żywo.
+• Paliwo: dzwonek pilnuje ceny wybranej przez ciebie stacji.
+• Zaznacz parkowanie ręcznie albo popraw postój, który nim nie był.
+• Mniej powiadomień Bluetooth i nowy ekran logowania.
+• Prywatność: pomiar reklam prosi o osobną zgodę; zmienisz ją w Ustawieniach.
+</pl-PL>
+<ro>
+• Ecran principal nou: întâi mașina ta, apoi ce e în jur.
+• Parchează arată împreună locuri libere și parcări publice.
+• Parcările publice se încarcă imediat; în Madrid, cu locuri libere live.
+• Combustibil: un clopoțel urmărește prețul stației alese.
+• Marchează parcarea manual sau corectează o oprire falsă.
+• Mai puține notificări Bluetooth și un nou ecran de conectare.
+• Confidențialitate: măsurarea reclamelor cere acordul ei; îl schimbi în Setări.
+</ro>
