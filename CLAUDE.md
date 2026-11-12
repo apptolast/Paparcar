@@ -11,6 +11,10 @@ Antes de improvisar un flujo, invocar la skill que lo cubre:
   desfasadas?", o ff-only fallido al cerrar). Inventario + elección + rebase desde SU worktree.
 - **`instalar-apk`** — es lo que significa **`/run`** aquí: `assembleProdDebug` + `install -r` en
   TODOS los móviles conectados + verificación de sha256 en device + arranque. Nunca desinstalar.
+- **`cortar-version`** — al sacar versión ("saca la 1.7.0", "sube a Play", "¿qué hay publicado?").
+  Orquesta `tools/release/cut.py` (la lógica vive ahí, no en la skill): preflight contra la tienda,
+  notas en 9 idiomas, el corte de una tanda en Git Bash, y un «sí» por cada paso irreversible.
+  Producción se promueve en el Console, a mano. [RELEASE-THE-CUT-HAS-A-SKILL-001]
 
 Reglas transversales que ninguna skill sustituye: **nunca commitear ni mergear sin permiso
 explícito de este turno**; **worktree nuevo por tarea** (las ramas NO aíslan el árbol);
