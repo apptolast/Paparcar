@@ -30,7 +30,7 @@ import androidx.compose.runtime.Stable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rndeveloper.paparcar.presentation.home.model.homeHasNoLocation
 import com.rndeveloper.paparcar.presentation.permissions.rememberRequestFineLocationAction
-import com.rndeveloper.paparcar.presentation.util.MapForegroundEffect
+import com.rndeveloper.paparcar.presentation.util.ForegroundEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -319,7 +319,7 @@ fun HomeScreen(
     // Declared AFTER the effect collector on purpose: SetMapForeground(true) can trigger the
     // first-run location ask, and a replay-less SharedFlow drops effects emitted before the
     // collector above subscribes. [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
-    MapForegroundEffect { active -> viewModel.handleIntent(HomeIntent.SetMapForeground(active)) }
+    ForegroundEffect { active -> viewModel.handleIntent(HomeIntent.SetMapForeground(active)) }
 
     // Stable function reference — viewModel instance never changes so this
     // is safe to remember once. Prevents HomeContent from getting a new

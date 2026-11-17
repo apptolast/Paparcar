@@ -14,4 +14,10 @@ sealed class AppIntent {
     data class AnswerAdMeasurementConsent(val granted: Boolean) : AppIntent()
     data class SetThemeMode(val mode: ThemeMode) : AppIntent()
     data class SetDistanceUnit(val imperial: Boolean) : AppIntent()
+
+    /** Whether ANY app UI is on screen right now, whatever tab — reported from the app's ROOT
+     *  composable, outside any NavHost back-stack entry. [BATT-002] A sentry-resident FGS can keep
+     *  this ViewModel alive for hours with no human looking; the zone-alert listener should not
+     *  outlive that. */
+    data class SetAppForeground(val visible: Boolean) : AppIntent()
 }

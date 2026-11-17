@@ -18,11 +18,11 @@ class ObserveAdaptiveLocationUseCaseTest {
     private val fakeDataSource = FakeLocationDataSource()
     private val useCase = ObserveAdaptiveLocationUseCase(fakeDataSource)
 
-    private fun point(speed: Float, latitude: Double = 40.0) = GpsPoint(
+    private fun point(speed: Float, latitude: Double = 40.0, timestamp: Long = 0L) = GpsPoint(
         latitude = latitude,
         longitude = -3.7,
         accuracy = 10f,
-        timestamp = 0L,
+        timestamp = timestamp,
         speed = speed,
     )
 
@@ -210,13 +210,80 @@ class ObserveAdaptiveLocationUseCaseTest {
             // Cruise source emits INSIDE the window → must be ignored (mode still HighAccuracy).
             ds.emitCruise(ts(3_000L, 6f, 99.0))
             ds.emitHighAccuracy(ts(5_000L, 6f, 2.0))
-            // Past the 10 s window, speed still 6 → now allowed to switch to Cruise.
+            // Past the 10 s window, speed still 6 → now ALLOWED to switch, but [BATT-003] still
+            // debounces the relax: this fix only starts sustaining the request.
             ds.emitHighAccuracy(ts(12_000L, 6f, 3.0))
-            ds.emitCruise(ts(14_000L, 6f, 4.0))
+            // 21 s later, same request sustained → the switch finally takes effect. Still delivered
+            // via HighAccuracy: the mode flips at the END of processing THIS fix.
+            ds.emitHighAccuracy(ts(33_000L, 6f, 4.0))
+            ds.emitCruise(ts(35_000L, 6f, 5.0))
 
             job.cancelAndJoin()
             val lats = collected.map { it.latitude }
             assertTrue(99.0 !in lats, "cruise emission inside the burst window must be ignored")
+            assertEquals(listOf(1.0, 2.0, 3.0, 4.0, 5.0), lats)
+        }
+
+    // ── [BATT-003] Relax-only debounce ────────────────────────────────────────────────────────
+    // Own useCase instance with initialHighAccuracyWindowMs = 0L: these tests exercise speed-
+    // based transitions seconds apart, well inside the real 3-minute [DET-BURST-001] burst that
+    // the DEFAULT `useCase` field (and real sessions) start with — without zeroing it here, the
+    // burst pins HighAccuracy for the whole test and no relax is ever actually requested.
+
+    @Test
+    fun `should_keepTheDenserTier_when_aRelaxRequestHasNotSustained20s`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val noBurst = ObserveAdaptiveLocationUseCase(fakeDataSource, initialHighAccuracyWindowMs = 0L)
+            val collected = mutableListOf<GpsPoint>()
+            val job = launch { noBurst().collect { collected.add(it) } }
+
+            // Relax requested (→ Cruise), pending from t=1000.
+            fakeDataSource.emitHighAccuracy(point(speed = 6f, timestamp = 1_000L, latitude = 1.0))
+            fakeDataSource.emitCruise(point(speed = 6f, timestamp = 5_000L, latitude = 99.0)) // must be ignored
+            // Only 14 s since the ask started → still HighAccuracy.
+            fakeDataSource.emitHighAccuracy(point(speed = 6f, timestamp = 15_000L, latitude = 2.0))
+
+            job.cancelAndJoin()
+            val lats = collected.map { it.latitude }
+            assertTrue(99.0 !in lats, "a relax must not apply before it sustains the debounce window")
+            assertEquals(listOf(1.0, 2.0), lats)
+        }
+
+    @Test
+    fun `should_relaxToTheLighterTier_when_theRequestSustainsPastTheDebounceWindow`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val noBurst = ObserveAdaptiveLocationUseCase(fakeDataSource, initialHighAccuracyWindowMs = 0L)
+            val collected = mutableListOf<GpsPoint>()
+            val job = launch { noBurst().collect { collected.add(it) } }
+
+            fakeDataSource.emitHighAccuracy(point(speed = 6f, timestamp = 1_000L, latitude = 1.0))
+            // 21 s later, same ask sustained → switches now (still delivered via HighAccuracy).
+            fakeDataSource.emitHighAccuracy(point(speed = 6f, timestamp = 22_000L, latitude = 2.0))
+            fakeDataSource.emitCruise(point(speed = 6f, timestamp = 24_000L, latitude = 3.0))
+
+            job.cancelAndJoin()
+            assertEquals(listOf(1.0, 2.0, 3.0), collected.map { it.latitude })
+        }
+
+    @Test
+    fun `should_restartThePendingWindow_when_speedReturnsToTheDenserBandBeforeItSustains`() =
+        runTest(UnconfinedTestDispatcher()) {
+            // A boundary oscillation cancels the pending relax outright — it is re-armed from
+            // zero on the NEXT ask, never resumed. This is what keeps the rule only-densify: the
+            // debounce can only leave the stream denser for longer, never sparser.
+            val noBurst = ObserveAdaptiveLocationUseCase(fakeDataSource, initialHighAccuracyWindowMs = 0L)
+            val collected = mutableListOf<GpsPoint>()
+            val job = launch { noBurst().collect { collected.add(it) } }
+
+            fakeDataSource.emitHighAccuracy(point(speed = 6f, timestamp = 1_000L, latitude = 1.0)) // relax pending
+            fakeDataSource.emitHighAccuracy(point(speed = 1f, timestamp = 5_000L, latitude = 2.0)) // back under threshold → cancelled
+            fakeDataSource.emitHighAccuracy(point(speed = 6f, timestamp = 30_000L, latitude = 3.0)) // NEW ask, pending from t=30000
+            fakeDataSource.emitCruise(point(speed = 6f, timestamp = 35_000L, latitude = 99.0)) // only 5s since restart → must be ignored
+            fakeDataSource.emitHighAccuracy(point(speed = 6f, timestamp = 51_000L, latitude = 4.0)) // 21s since restart → switches
+
+            job.cancelAndJoin()
+            val lats = collected.map { it.latitude }
+            assertTrue(99.0 !in lats, "the pending window must restart, not resume, after returning to the denser band")
             assertEquals(listOf(1.0, 2.0, 3.0, 4.0), lats)
         }
 

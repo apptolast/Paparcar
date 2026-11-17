@@ -1,8 +1,10 @@
 package com.rndeveloper.paparcar.detection.worker
 
 import android.content.Context
+import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequest
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
@@ -103,8 +105,17 @@ class FuelPriceWatchWorker(
         const val TAG = "FuelPriceWatchWorker"
         private const val INTERVAL_HOURS = 24L
 
+        // [BATT-006] GetNearbyFuelStationsUseCase hits the fuel-price feeds (Minetur/MTS-K/Italy/
+        // Germany/Overpass) — without this, Doze/OEM scheduling still fires the worker with no
+        // network, and the run is wasted CPU + wakeup for a result that was always going to be
+        // Unavailable.
         fun buildPeriodicRequest(): PeriodicWorkRequest =
             PeriodicWorkRequestBuilder<FuelPriceWatchWorker>(INTERVAL_HOURS, TimeUnit.HOURS)
+                .setConstraints(
+                    Constraints.Builder()
+                        .setRequiredNetworkType(NetworkType.CONNECTED)
+                        .build()
+                )
                 .addTag(TAG)
                 .build()
 

@@ -482,6 +482,9 @@ class AppViewModelTest {
         entitlementRepo.emitEntitlement(Entitlement.PLUS)
         val vm = viewModel()
         runCurrent()
+        // [BATT-002] "El mapa fuera" es OTRA pestaña, no la app en segundo plano — el listener
+        // sigue vivo, sólo cambia el canal.
+        vm.handleIntent(AppIntent.SetAppForeground(true))
 
         spotRepoForAlerts.spots = listOf(nearbySpot.copy(id = "s-deduced", status = SpotStatus.PROVISIONAL))
         runCurrent()
@@ -492,6 +495,56 @@ class AppViewModelTest {
             "la tarjeta del sistema tiene que saber que no está confirmada",
         )
         assertEquals(null, vm.state.value.spotAlert, "con el mapa fuera, el banner no habla")
+    }
+
+    // ── [BATT-002] El listener de zona no sobrevive a la app en segundo plano ──
+
+    @Test
+    fun `should_stayQuiet_when_theAppIsNeverReportedForeground`() = runTest(testDispatcher) {
+        // Sin SetAppForeground(true) — el estado por defecto, el mismo con el que arranca
+        // cualquier proceso antes de que la raíz componga su primer frame.
+        fakeZoneRepo.zones = listOf(zoneWithAlerts)
+        entitlementRepo.emitEntitlement(Entitlement.PLUS)
+        val vm = viewModel()
+        runCurrent()
+
+        spotRepoForAlerts.spots = listOf(nearbySpot.copy(id = "s-new"))
+        runCurrent()
+
+        assertTrue(fakeNotifications.zoneSpotAlerts.isEmpty(), "sin foreground, el listener no debe estar suscrito")
+        assertEquals(null, vm.state.value.spotAlert)
+    }
+
+    @Test
+    fun `should_deliverTheZoneAlert_when_theAppGoesBackgroundThenForegroundAgain`() = runTest(testDispatcher) {
+        // El listener se cae al fondo y resucita al volver. Nada se avisa MIENTRAS nadie mira — y
+        // nada se pierde para siempre: lo que llegó en el hueco se cuenta en cuanto el listener
+        // vuelve, porque el dedupe (`watchRepository.alertedSpotIds`) es durable, no de memoria de
+        // esta suscripción. [BATT-002]
+        fakeZoneRepo.zones = listOf(zoneWithAlerts)
+        entitlementRepo.emitEntitlement(Entitlement.PLUS)
+        val vm = viewModel()
+        runCurrent()
+
+        // Primer foreground, sin plazas todavía: toma el baseline de la zona (vacío).
+        vm.handleIntent(AppIntent.SetAppForeground(true))
+        runCurrent()
+        vm.handleIntent(AppIntent.SetAppForeground(false))
+        runCurrent()
+
+        // Llega mientras el proceso está vivo pero nadie lo mira — el listener está desuscrito.
+        spotRepoForAlerts.spots = listOf(nearbySpot.copy(id = "s-while-backgrounded"))
+        runCurrent()
+        assertTrue(fakeNotifications.zoneSpotAlerts.isEmpty(), "en segundo plano no debe sonar")
+
+        vm.handleIntent(AppIntent.SetAppForeground(true))
+        runCurrent()
+
+        assertEquals(
+            listOf("Casa"),
+            fakeNotifications.zoneSpotAlerts,
+            "al volver a foreground, lo que llegó en el hueco se cuenta — no se pierde",
+        )
     }
 
 }

@@ -4384,6 +4384,66 @@ una sin medir.
 
 Spec: `docs/backlog/det-a-silent-service-is-not-a-dead-one-001.md`.
 
+### BATT-SAFE-BATTERY-OPTIMIZATIONS-001 — un debounce que sólo densifica, y un batching que no superó su propia auditoría
+
+**Report.** Auditoría de batería (Oppo CPH2371 de Gonzalo, `batterystats --charged`, 16/17-11-2026):
+Paparcar #1 consumidor, 261 mAh. El 74% era un flag de diagnóstico ajeno a este ticket (apagado sin
+código). Del resto: `dumpsys location` mostró la request de ubicación re-registrándose 65 veces en
+menos de 12h, alternando `@+5s`/`@+10s` mientras la velocidad oscilaba unos km/h alrededor del
+umbral CRUISE; y `Sensor 138` (STEP_DETECTOR_WAKEUP) mostró 1h42m/41x registrado.
+
+**Fix (BATT-003).** El cambio de tier en `ObserveAdaptiveLocationUseCase` se debounea en UNA sola
+dirección: densificar (hacia HIGH_ACCURACY) sigue siendo instantáneo — la regla de sólo-densificar
+no deja otra opción —, relajar (hacia HIGHWAY) tiene que sostener la MISMA petición durante
+`RELAX_DEBOUNCE_MS` (20s) antes de que el stream cambie de verdad. Una oscilación en el umbral ya no
+cuesta nada extra: volver a la banda más densa CANCELA el relax pendiente en vez de pausarlo, así
+que esto sólo puede dejar el stream MÁS denso por más tiempo, nunca menos — compatible con
+sólo-densificar por construcción, no por promesa.
+
+**Barrido de consumidores** (`grep -rn "ObserveAdaptiveLocationUseCase"`): `CoordinatorDetectionService`,
+`BluetoothParkingDetector`/`BluetoothDepartureDetector` (velocidad fija 0 en sus tests, el debounce
+nunca se ejercita ahí) y `ParkingHistoryViewModel` (misma situación). Único riesgo real: el test de
+`[DET-BURST-001]` usaba timestamps reales para dos fixtures que ahora caen dentro del debounce —
+corregido, y documentado con tres tests nuevos del debounce mismo.
+
+**Fix (BATT-002).** El colector de alertas de zona en `AppViewModel` (un listener de Firestore ×
+vecindad geohash 3×3 por zona suscrita, vía `ObserveZoneSpotAlertsUseCase`) se cierra cuando no hay
+NINGUNA UI de la app visible — reportado por `ForegroundEffect` (ex-`MapForegroundEffect`, mismo
+mecanismo, generalizado para llamarse también desde la raíz de la app, fuera de cualquier NavHost,
+en vez de sólo desde Home). Nada se pierde en el hueco: el fanout del servidor ya cubre esa ventana,
+y el dedupe durable de la propia use case (`watchRepository.alertedSpotIds`) hace que una plaza que
+llegó mientras estaba en segundo plano avise en cuanto el listener vuelve a suscribirse.
+
+**Investigado y RECHAZADO: BATT-004 (batching del sensor de pasos).** La propuesta original —añadir
+`maxReportLatencyUs` (~10s) al `registerListener` WAKEUP del step detector— asumía que
+`Sensor 138: 1h42m/41x` en `batterystats` medía despertares de AP por paso. No es así: esa cifra es
+la DURACIÓN TOTAL DE REGISTRO a través de 41 sesiones de detección (la vida del listener está atada
+al `stepJob` de `CoordinatorParkingDetector`, que dura la sesión entera, no sólo el paseo de
+egress), así que el batching no movería esa cifra ni un segundo — la ganancia real, mucho más
+pequeña, serían menos despertares de CPU individuales DURANTE un paseo de egress activo (decenas de
+segundos por viaje).
+
+El barrido de consumidores (`grep -rn "StepDetectorSource" shared/src`, un único consumidor real:
+`CoordinatorParkingDetector.stepJob`) sacó a la luz un riesgo de corrección que la estimación
+original no vio: `stepAtMs = clock()` se lee en el momento de ENTREGA, no en el del evento del
+sensor. `EgressEvidence.cadenceQualifies` juzga si un paso es un «pedal stroke» comparando
+`stepAtMs` contra `lastFixSeenAtMs`/`cadenceFixFreshnessMs` — un `stepAtMs` retrasado por el
+batching se juzga contra un fix de GPS que puede ya no ser el que de verdad era concurrente con el
+paso real. Peor: `StopTracking.steplessQualifies` (→ `pinnedSteplessMovingFixes` → **DESANCLAR y
+re-anclar** en la siguiente parada) vigila específicamente `stepCount == 0` mientras un fix muestra
+movimiento, para cazar un coche que se movió SIN paseo de egress; una ventana de batching significa
+que un paseo de egress real y en curso podría seguir leyendo `stepCount == 0` durante hasta
+`maxReportLatencyUs` — exactamente la forma que este guard existe para cazar, un egress real leído
+como salida sin pasos, moviendo un pin ya confirmado al sitio equivocado.
+
+**Decisión: no implementado.** La ganancia estimada (basada en una métrica mal leída) era menor que
+la reportada al principio, y el riesgo (sobre `[DET-CADENCE-CANNOT-ACCUSE-AFTER-EGRESS-001]` y el
+camino de re-anclaje por salida-sin-pasos) es real y no se puede acotar del todo con sólo lectura
+estática — exactamente el caso que la REGLA CRÍTICA de `CLAUDE.md` pide marcar y no tocar en vez de
+parchear alrededor. BATT-004 queda abierto en el backlog como idea RECHAZADA, no como TODO.
+
+Spec: `docs/backlog/batt-safe-battery-optimizations-001.md`.
+
 ## 3. Open questions / future work
 
 - **GPS sampling boost during CANDIDATE (PARKING-001 Option B).** Switch the LocationDataSource to a 1 s `minUpdateIntervalMillis` request when entering the CANDIDATE phase, returning to 2 s on exit. Increases density of fixes that refine `bestStopLocation` within the new initial-stop window after a reposition burst. Adds the complexity of swapping the location source mid-session — hold off until A is validated in the field.

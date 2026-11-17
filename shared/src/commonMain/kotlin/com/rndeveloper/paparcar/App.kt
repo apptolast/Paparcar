@@ -98,6 +98,7 @@ import com.rndeveloper.paparcar.presentation.licenses.LicenseDetailScreen
 import com.rndeveloper.paparcar.presentation.licenses.LicensesScreen
 import com.rndeveloper.paparcar.presentation.settings.SettingsScreen
 import com.rndeveloper.paparcar.presentation.util.DistanceUnit
+import com.rndeveloper.paparcar.presentation.util.ForegroundEffect
 import com.rndeveloper.paparcar.presentation.util.LocalDistanceUnit
 import com.rndeveloper.paparcar.presentation.util.LocalPumpGallon
 import com.rndeveloper.paparcar.presentation.vehicleregistration.VehicleRegistrationScreen
@@ -216,6 +217,12 @@ fun App(
     val appState by appViewModel.state.collectAsStateWithLifecycle()
     val authState by splashViewModel.authState.collectAsStateWithLifecycle()
     val splashState by splashViewModel.state.collectAsStateWithLifecycle()
+
+    // [BATT-002] Outside any NavHost, so this tracks the WHOLE app's foreground state — not a
+    // single tab's back-stack entry the way HomeScreen's own ForegroundEffect does. Feeds the
+    // gate on the zone-alert Firestore listener, which this ViewModel otherwise keeps subscribed
+    // for as long as it is alive, and a sentry-resident FGS can keep that alive for hours.
+    ForegroundEffect { visible -> appViewModel.handleIntent(AppIntent.SetAppForeground(visible)) }
 
     val darkTheme = when (appState.themeMode) {
         ThemeMode.LIGHT -> false

@@ -21,14 +21,19 @@ import com.rndeveloper.paparcar.domain.notification.alertChannelFor
 import com.rndeveloper.paparcar.domain.usecase.zone.ObserveZoneSpotAlertsUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import com.rndeveloper.paparcar.presentation.base.BaseViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class AppViewModel(
     private val permissionManager: PermissionManager,
     private val appPreferences: AppPreferences,
@@ -61,6 +66,12 @@ class AppViewModel(
 // so in the type stops one from being smuggled in. Its only effect used to be applying a language
 // the OS owns. [SETTINGS-LANGUAGE-LIVES-IN-THE-SYSTEM-001]
 ) : BaseViewModel<AppState, AppIntent, Nothing>() {
+
+    // [BATT-002] Written only from AppIntent.SetAppForeground, which the app's ROOT composable
+    // sends via ForegroundEffect — true whenever ANY app UI is visible, false the moment it isn't
+    // (background, screen off, task-switched away). Starts false: nothing is on screen before the
+    // first composition reports in.
+    private val appForeground = MutableStateFlow(false)
 
     init {
         // Synchronously correct state before first composition.
@@ -154,7 +165,15 @@ class AppViewModel(
 
         // [MONEY-001] Plus zone alerts → local notification. The use case owns every rule (Plus
         // gate, per-zone opt-in, master switch, dedupe, baseline); this collector only delivers.
-        observeZoneSpotAlerts()
+        // [BATT-002] Gated on appForeground: each subscribed zone opens 3×3 geohash Firestore
+        // listeners (ObserveZoneSpotAlertsUseCase → observeNearbySpots), and this ViewModel is
+        // deliberately the one alive for the whole UI session — which a sentry-resident FGS can
+        // stretch to hours with nobody looking. The server's push fanout
+        // ([ZONE-A-SPOT-TELLS-THE-SERVER-AND-THE-SERVER-TELLS-YOU-001]) already covers exactly
+        // this gap; dropping the client listener while backgrounded loses nothing, it only moves
+        // delivery to the lane built for it.
+        appForeground
+            .flatMapLatest { visible -> if (visible) observeZoneSpotAlerts() else emptyFlow() }
             .onEach { alert ->
                 // ⛔ UN colector y UNA decisión. El stream apunta cada plaza en su registro durable
                 // ANTES de emitirla, así que dos consumidores harían que el segundo no viera nada:
@@ -290,6 +309,7 @@ class AppViewModel(
                 appPreferences.setUseImperialUnits(intent.imperial)
                 updateState { copy(imperialUnits = intent.imperial) }
             }
+            is AppIntent.SetAppForeground -> appForeground.value = intent.visible
         }
     }
 }
