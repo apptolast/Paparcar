@@ -421,10 +421,15 @@ object TrailMapMatcher {
         val out = ArrayList<GpsPoint>()
         addCandidate(out, layers[start][chosen[0]], opening)
         for (s in backs.indices) {
+            // Where this transition starts. Everything emitted from here to the next candidate is
+            // ONE inter-measurement step, which is the only window where a round trip can be
+            // called spurious: no measurement sits inside it to anchor the far end.
+            val anchor = out.lastIndex
             paths[s][chosen[s + 1]]?.forEach { node ->
                 addPoint(out, opening.copy(latitude = graph.latOf(node), longitude = graph.lonOf(node)))
             }
             addCandidate(out, layers[start + s + 1][chosen[s + 1]], opening)
+            dropReturnExcursion(out, anchor)
         }
         stretches.add(
             Stretch(
@@ -436,6 +441,18 @@ object TrailMapMatcher {
             )
         )
         return end
+    }
+
+    /**
+     * Drops the step just emitted when it came back to the exact point it left from — the matcher
+     * walking out to a node and straight back between two measurements that share a coordinate.
+     * The verdict lives in [RouteExcursions], which is where it is tested; this only applies it.
+     * [ROUTE-A-SNAPPED-LINE-MUST-NOT-INVENT-GROUND-001]
+     */
+    private fun dropReturnExcursion(out: ArrayList<GpsPoint>, anchor: Int) {
+        if (anchor < 0) return
+        if (!RouteExcursions.isReturnExcursion(out.subList(anchor, out.size))) return
+        while (out.lastIndex > anchor) out.removeAt(out.lastIndex)
     }
 
     private fun addPoint(out: ArrayList<GpsPoint>, p: GpsPoint) {

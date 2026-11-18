@@ -291,6 +291,26 @@ class TrailMapMatcherTest {
 
     // ── Data holes are never silently routed through [ROUTE-GAP-HONEST-001] ────────
 
+    @Test
+    fun `should keep an out-and-back the driver really made into a dead end`() {
+        // The guard above must never swallow ground actually covered. A cul-de-sac entered and
+        // left carries its OWN fix at the far end, so a measurement sits inside the excursion.
+        val main = RoadWay(listOf(gp(36.6000, -6.2400), gp(36.6000, -6.2300)))
+        val deadEnd = RoadWay(listOf(gp(36.6000, -6.2350), gp(36.6030, -6.2350)))
+        val trail = listOf(
+            gp(36.60002, -6.23900),   // on the main road
+            gp(36.60150, -6.23500),   // deep inside the dead end — this is the anchor that saves it
+            gp(36.60002, -6.23100),   // back on the main road, past the junction
+        )
+        val line = TrailMapMatcher.snap(trail, listOf(main, deadEnd))
+        // The line must still reach up the dead end: some vertex well north of the main road.
+        val northMost = line.maxOf { it.latitude }
+        assertTrue(
+            northMost > 36.6010,
+            "the dead-end leg was collapsed away; northernmost vertex was $northMost",
+        )
+    }
+
     private fun gpAt(lat: Double, lon: Double, ts: Long) = GpsPoint(lat, lon, 0f, ts, 0f)
 
     @Test

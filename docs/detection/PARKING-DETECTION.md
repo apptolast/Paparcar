@@ -497,6 +497,59 @@ See `diagnostics/README.md` at the repo root for the recommended layout when arc
 
 ## 2. Fix history
 
+### ROUTE-A-SNAPPED-LINE-MUST-NOT-INVENT-GROUND-001 — el matcher salía a un nodo y volvía, y eso se dibujaba y se medía
+
+**Commit:** pending · **Reporte:** «muchas rutas no se dibujan bien en el mapa».
+
+**Qué se midió antes de tocar nada.** 2.334 fixes crudos de 6 sesiones reales
+(`diagnostics/{uid}/sessions/*/events`, 9-15 nov) y los 47 trayectos con geometría almacenada de
+los dos móviles de campo. El GPS crudo está limpio: intervalo p50 **2,0-5,0 s** (máx absoluto
+14,1 s, **cero** huecos >60 s), accuracy p50 **1,9-4,3 m**, **cero** velocidades implícitas
+imposibles en 2.334 fixes (máx real 110,6 km/h), y ≤68 m de deriva acumulada con el coche parado.
+La captura adaptativa (`AndroidLocationDataSourceImpl`) ya entrega el escalón rápido conduciendo:
+**el defecto no estaba en la captura**.
+
+**Causa raíz.** Lo que se almacena no son los fixes admitidos sino la salida del matcher
+(`EnrichParkingSessionWorker.snapRoute` → `TrailMapMatcher.match`), que emite geometría de calle de
+OSM. En la emisión por transición —`[candidato_s] (nodos de la ruta) [candidato_s+1]`— cuando dos
+mediciones consecutivas proyectan sobre la **misma coordenada** (el coche parado en un semáforo, o
+dos vías que se tocan en un cruce que el grafo no unió), el camino emitido entre ellas sale a un
+nodo y vuelve. Resultado: un pico de hasta ~22 m dibujado sobre terreno que nadie pisó, y longitud
+sumada a un viaje que no se movió.
+
+Medido en el corpus: **206 excursiones** cuyos vecinos están en la coordenada **idéntica**, en 29
+de los 47 trayectos, que añaden **2,345 km de línea fantasma** sobre 295 km dibujados. (De esas,
+73 son además picos cerrados —ángulo ≥150° sobre tramo ≤25 m—, que es como se detectaron.) Los 36
+picos restantes del corpus **separan** a sus vecinos y **no se tocan**: no son demostrablemente
+inventados.
+
+**Fix.** `RouteExcursions.isReturnExcursion` (puro, `domain/matching/`) declara que un paso
+inter-medición que termina en la coordenada exacta de la que salió no cubrió terreno;
+`TrailMapMatcher.dropReturnExcursion` lo aplica **por transición**, sobre la lista local del propio
+stretch.
+
+⛔ Dos invariantes que sostienen el fix, y que son la razón de que esté donde está:
+1. **Por transición, nunca sobre el stretch entero.** Un ida-y-vuelta REAL —entrar en una calle sin
+   salida y volver— lleva su propio fix en el extremo, así que hay una medición DENTRO de la
+   excursión y el colapso nunca la alcanza. Borrarla restaría kilómetros de verdad.
+2. **Solo el retorno EXACTO.** Medio metro de diferencia es desplazamiento que alguien midió. El
+   corpus no tiene ningún caso intermedio (73 exactos, 0 a ≤0,5 m), así que la regla estrecha no
+   deja nada fuera.
+
+Y por eso el colapso vive dentro de `decodeSegment`: los índices de `inferredSpans`/`cuts` los
+calcula `decode()` **después**, sobre geometría ya colapsada, así que no hay remapeo que olvidar.
+
+**Riesgo del fix acompañante.** Ninguno sobre el retrodatado, que se midió aparte y ya estaba bien:
+±6-12 s y 0-18 m entre el instante real de parada y el pin en los carriles automáticos
+(`steps+egress`, `kinematic+egress`).
+
+**Testigo.** `RouteExcursionsTest`, 4 tests, **falsificado**: anulando el veredicto, *«should call
+it a return excursion when the step comes back to its own coordinate»* se pone rojo. Un primer
+intento de test de integración se descartó precisamente por lo contrario — pasaba con el guard
+desactivado, así que no era testigo de nada. Se conserva además el test de la calle sin salida como
+guardia contra un colapso demasiado agresivo.
+
+
 ### HOME-PARKING-QUESTIONS-KEEP-THE-MAP-001 — dos momentos distintos en la card del coche
 
 **Commit:** consultar el historial por HOME-PARKING-QUESTIONS-KEEP-THE-MAP-001. **Reporte:** los diálogos centrales ocultaban el mapa, duplicaban el editor
