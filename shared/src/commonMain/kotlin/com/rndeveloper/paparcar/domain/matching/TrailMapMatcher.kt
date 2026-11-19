@@ -450,9 +450,12 @@ object TrailMapMatcher {
      * [ROUTE-A-SNAPPED-LINE-MUST-NOT-INVENT-GROUND-001]
      */
     private fun dropReturnExcursion(out: ArrayList<GpsPoint>, anchor: Int) {
-        if (anchor < 0) return
-        if (!RouteExcursions.isReturnExcursion(out.subList(anchor, out.size))) return
+        if (anchor < 0 || out.lastIndex <= anchor + 1) return
+        val step = out.subList(anchor, out.size)
+        val collapsed = RouteExcursions.collapseExcursions(step.toList())
+        if (collapsed.size == step.size) return
         while (out.lastIndex > anchor) out.removeAt(out.lastIndex)
+        for (i in 1 until collapsed.size) out.add(collapsed[i])
     }
 
     private fun addPoint(out: ArrayList<GpsPoint>, p: GpsPoint) {

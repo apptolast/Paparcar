@@ -35,8 +35,37 @@ object RouteExcursions {
         return from.latitude == back.latitude && from.longitude == back.longitude
     }
 
-    /** [step] with its invented interior removed — just the point it left from — or [step] itself
-     *  when it actually went somewhere. */
-    fun collapseReturnExcursion(step: List<GpsPoint>): List<GpsPoint> =
-        if (isReturnExcursion(step)) listOf(step.first()) else step
+    /**
+     * [step] with every out-and-back excursion inside it collapsed away, however deeply nested.
+     *
+     * ⛔ The whole step returning to its origin is only ONE shape of the defect, and measured on
+     * field data it is the rarer one: the matcher's round trips usually sit INSIDE the emitted node
+     * chain (…X → Y → X…) while the step as a whole does go somewhere. A guard that only compared
+     * the two ends fired zero times on 6 real sessions that still carried 10 such spikes — which is
+     * why this walks the step instead of inspecting its extremes.
+     *
+     * The first element never moves: it is the measurement the step left from, and the caller
+     * applies this per step precisely so no OTHER measurement can be inside. A real out-and-back —
+     * into a cul-de-sac and out — carries its own fix at the far end, so it is never one step.
+     */
+    fun collapseExcursions(step: List<GpsPoint>): List<GpsPoint> {
+        if (step.size <= 2) return step
+        val out = ArrayList<GpsPoint>(step.size)
+        for (p in step) {
+            val n = out.size
+            when {
+                // Walking back onto the point before the last one: the pair between them is a
+                // round trip over ground nobody covered. Drop it, and keep checking — excursions
+                // nest.
+                n >= 2 && same(out[n - 2], p) -> out.removeAt(n - 1)
+                // addPoint already drops exact repeats; doing it here too keeps the rule total.
+                n >= 1 && same(out[n - 1], p) -> Unit
+                else -> out.add(p)
+            }
+        }
+        return out
+    }
+
+    private fun same(a: GpsPoint, b: GpsPoint): Boolean =
+        a.latitude == b.latitude && a.longitude == b.longitude
 }
