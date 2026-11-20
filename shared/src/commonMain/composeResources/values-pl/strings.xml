@@ -866,6 +866,20 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <string name="settings_plus_subtitle_free">Pełna historia i alerty stref</string>
     <string name="settings_plus_subtitle_active">Pełna historia i alerty stref, aktywne</string>
     <string name="settings_plus_badge_active">AKTYWNY</string>
+    <!-- El Plus que nadie pago: la bienvenida y el aviso de fin de promo. [MONEY-FOUNDERS-WELCOME-001] -->
+    <string name="plus_welcome_title">Jesteś jednym z pierwszych 2000</string>
+    <string name="plus_welcome_body">Paparcar Plus jest twój, na nasz koszt. Wszystko, bez płacenia i bez niczego do anulowania.</string>
+    <string name="plus_welcome_until">Bezpłatnie do %1$s</string>
+    <string name="plus_welcome_benefits">Co masz teraz</string>
+    <string name="plus_welcome_cta">Zaczynamy!</string>
+    <string name="plus_promo_ending_title">Twój Plus w prezencie się kończy</string>
+    <string name="plus_promo_ending_body">%1$s twoje konto wróci do planu bezpłatnego. Nic z tego, co zapisałeś, nie zniknie, a Plus możesz kontynuować, kiedy chcesz.</string>
+    <string name="plus_promo_ending_benefits">Co się zmienia</string>
+    <string name="plus_promo_ending_cta">Nie teraz</string>
+    <string name="plus_promo_ending_see_plans">Zobacz plany</string>
+    <string name="paywall_promo_ends">Twój Plus założyciela jest bezpłatny do %1$s. Jeśli przedłużysz, nic się nie zmieni.</string>
+    <string name="settings_plus_subtitle_promo">Bezpłatnie jako założyciel, do %1$s</string>
+    <string name="settings_plus_badge_promo">PREZENT</string>
     <string name="settings_notif_zone_alerts">Alerty stref</string>
     <string name="settings_notif_zone_alerts_desc">Powiadomienie, gdy w Twoich strefach pojawi się wolne miejsce</string>
     <string name="settings_notif_fuel_alerts">Alerty cen paliwa</string>

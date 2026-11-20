@@ -195,6 +195,15 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     override val hasRequestedLocationPermission: Boolean get() = _hasRequestedLocationPermission.value
     override fun setLocationPermissionRequested() { _hasRequestedLocationPermission.value = true }
 
+    // [MONEY-FOUNDERS-WELCOME-001] En memoria: el Dev Catalog vuelve a enseñar el momento en
+    // cuanto se reinicia la app, que es lo que se quiere de una palanca de demo.
+    private val _plusPromoWelcomedUids = MutableStateFlow<Set<String>>(emptySet())
+    override val plusPromoWelcomedUids: Set<String> get() = _plusPromoWelcomedUids.value
+    override fun addPlusPromoWelcomedUid(uid: String) { _plusPromoWelcomedUids.value += uid }
+    private val _plusPromoEndingNoticedUids = MutableStateFlow<Set<String>>(emptySet())
+    override val plusPromoEndingNoticedUids: Set<String> get() = _plusPromoEndingNoticedUids.value
+    override fun addPlusPromoEndingNoticedUid(uid: String) { _plusPromoEndingNoticedUids.value += uid }
+
     private val _autoDetectParking = MutableStateFlow(true)
     override val autoDetectParking: Boolean get() = _autoDetectParking.value
     override fun setAutoDetectParking(enabled: Boolean) { _autoDetectParking.value = enabled }

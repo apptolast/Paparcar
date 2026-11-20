@@ -77,7 +77,9 @@ import com.rndeveloper.paparcar.domain.connectivity.ConnectivityBannerPhase
 import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.domain.preferences.ThemeMode
 import com.rndeveloper.paparcar.presentation.app.AppIntent
+import com.rndeveloper.paparcar.domain.entitlement.PlusMoment
 import com.rndeveloper.paparcar.presentation.app.AdMeasurementConsentDialog
+import com.rndeveloper.paparcar.presentation.app.PlusMomentDialog
 import com.rndeveloper.paparcar.presentation.app.SpotAlertCue
 import com.rndeveloper.paparcar.presentation.app.SpotAlertOrigin
 import com.rndeveloper.paparcar.presentation.app.AppViewModel
@@ -326,6 +328,13 @@ fun App(
                                     onAnswerAdMeasurementConsent = { granted ->
                                         appViewModel.handleIntent(AppIntent.AnswerAdMeasurementConsent(granted))
                                     },
+                                    // [MONEY-FOUNDERS-WELCOME-001] `plusMomentToShow` y no
+                                    // `plusMoment`: el estado ya decidió que no va encima de la
+                                    // pregunta de anuncios.
+                                    plusMoment = appState.plusMomentToShow,
+                                    onDismissPlusMoment = { moment ->
+                                        appViewModel.handleIntent(AppIntent.DismissPlusMoment(moment))
+                                    },
                                 )
                             }
                         }
@@ -473,6 +482,8 @@ private fun MainAppNavigation(
     onDismissGpsDisclaimer: () -> Unit,
     askAdMeasurementConsent: Boolean,
     onAnswerAdMeasurementConsent: (Boolean) -> Unit,
+    plusMoment: PlusMoment?,
+    onDismissPlusMoment: (PlusMoment) -> Unit,
 ) {
     val navController = rememberNavController()
     val currentBackStack by navController.currentBackStackEntryAsState()
@@ -507,6 +518,25 @@ private fun MainAppNavigation(
     // where it would compete with the questions that make the app work.
     if (askAdMeasurementConsent && currentTabRoute != null && currentTabRoute in BOTTOM_NAV_ROUTES) {
         AdMeasurementConsentDialog(onAnswer = onAnswerAdMeasurementConsent)
+    }
+
+    // [MONEY-FOUNDERS-WELCOME-001] La bienvenida al Plus de regalo y el aviso de que se acaba.
+    //
+    // La MISMA condición de ruta que la pregunta de arriba, y por la misma razón: nunca sobre
+    // onboarding, permisos o alta de vehículo, donde competiría con las preguntas que hacen que la
+    // app funcione. Que no se solape con esa pregunta ya lo garantiza `AppState.plusMomentToShow`,
+    // que es quien ordena las dos.
+    if (plusMoment != null && currentTabRoute != null && currentTabRoute in BOTTOM_NAV_ROUTES) {
+        PlusMomentDialog(
+            moment = plusMoment,
+            onDismiss = { onDismissPlusMoment(plusMoment) },
+            // ⛔ Se cierra ANTES de navegar: si no, al volver del paywall el diálogo seguiría ahí
+            // sin apuntarse como leído, y el aviso volvería a salir en el arranque siguiente.
+            onSeePlans = {
+                onDismissPlusMoment(plusMoment)
+                navController.navigate("${Routes.PAYWALL}?reason=${PaywallReason.GENERAL.name}")
+            },
+        )
     }
 
     // Nav progress is a lifted state holder: HomeScreen writes the sheet-drag

@@ -121,7 +121,7 @@ class SettingsViewModelTest {
             customVehicles,
             observeReliability,
             sendDiagnostics,
-            com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase(entitlementRepo),
+            com.rndeveloper.paparcar.domain.usecase.entitlement.ObservePlusGrantUseCase(entitlementRepo),
             adLane,
             com.rndeveloper.paparcar.domain.usecase.analytics.SetAdMeasurementConsentUseCase(customPrefs, adLane),
             widgetPinRequester,

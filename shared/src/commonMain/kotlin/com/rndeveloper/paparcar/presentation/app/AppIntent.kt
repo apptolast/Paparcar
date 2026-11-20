@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.presentation.app
 
+import com.rndeveloper.paparcar.domain.entitlement.PlusMoment
 import com.rndeveloper.paparcar.domain.preferences.ThemeMode
 
 sealed class AppIntent {
@@ -12,6 +13,16 @@ sealed class AppIntent {
     /** The user answered the one-time ad-measurement question — either answer closes it for good.
      *  [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001] */
     data class AnswerAdMeasurementConsent(val granted: Boolean) : AppIntent()
+
+    /**
+     * El momento de Plus se ha leído: se cierra y se APUNTA, para que no vuelva.
+     * [MONEY-FOUNDERS-WELCOME-001]
+     *
+     * ⛔ Lleva el momento consigo en vez de que el handler lo lea del estado: es lo que decide
+     * CUÁL de las dos memorias se escribe, y leerlo del estado abriría la puerta a cerrar uno y
+     * apuntar el otro si el veredicto cambiase entre el toque y el handler.
+     */
+    data class DismissPlusMoment(val moment: PlusMoment) : AppIntent()
     data class SetThemeMode(val mode: ThemeMode) : AppIntent()
     data class SetDistanceUnit(val imperial: Boolean) : AppIntent()
 

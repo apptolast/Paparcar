@@ -53,6 +53,39 @@ interface AppPreferences {
     val hasRequestedLocationPermission: Boolean
     fun setLocationPermissionRequested()
 
+    // ── Lo que ya se le DIJO a cada cuenta sobre su Plus de regalo.
+    //    [MONEY-FOUNDERS-WELCOME-001] ──
+    /**
+     * Las cuentas a las que ya se felicitó por el Plus de la promo «Fundadores».
+     *
+     * ⛔ **Un conjunto de uids y no un booleano**, porque la pregunta es «¿se le dijo a ESTA
+     * cuenta?». Con un flag único, dos cuentas en el mismo móvil —que es literalmente el setup de
+     * field-test de este proyecto— compartirían la felicitación y la segunda no la vería nunca.
+     *
+     * ⛔ **NO entra en el barrido de [clearUserScopedState]**, y es la decisión fina de este
+     * bloque. La regla de ese barrido es «lo que describe al USUARIO se va», y esto describe al
+     * usuario… pero está INDEXADO por uid: quedarse no filtra nada a la cuenta siguiente (su uid
+     * no está en el conjunto) y borrarse sí rompe el invariante — cerrar sesión y volver a entrar
+     * re-felicitaría. Indexado por uid, es un hecho sobre lo que este INSTALL ya ha dicho.
+     *
+     * Reinstalar vuelve a felicitar. Asumido: la alternativa es un campo en el perfil de
+     * Firestore, y mover ahí la frontera de [MONEY-001] por un caso que no duele no se paga.
+     */
+    val plusPromoWelcomedUids: Set<String>
+    fun addPlusPromoWelcomedUid(uid: String)
+
+    /**
+     * Las cuentas a las que ya se avisó de que su Plus de regalo se acaba.
+     *
+     * ⛔ Un SEGUNDO conjunto, nunca fundido con [plusPromoWelcomedUids] — mismo patrón y misma
+     * razón que `firstStepsDone` / `firstStepsDeferred`: son dos preguntas distintas, y hay un
+     * caso real que marca una sin pasar por la otra (instalar con la promo a punto de acabarse se
+     * salta la felicitación y recibe sólo el aviso). Un mapa uid→fase obligaría a inventar un
+     * orden entre fases que no existe.
+     */
+    val plusPromoEndingNoticedUids: Set<String>
+    fun addPlusPromoEndingNoticedUid(uid: String)
+
     val autoDetectParking: Boolean
     fun setAutoDetectParking(enabled: Boolean)
     /** Reactive view of [autoDetectParking] so Home's detection banner and the Android arming

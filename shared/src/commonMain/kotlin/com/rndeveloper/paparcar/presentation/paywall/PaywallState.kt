@@ -37,9 +37,31 @@ data class PaywallState(
      * entitlement stream emits and the screen dismisses itself.
      */
     val restoreFoundNothing: Boolean = false,
+    /**
+     * When a Plus that NOBODY PAID FOR runs out — null unless this user is on the promo with an
+     * end date. [MONEY-FOUNDERS-WELCOME-001]
+     *
+     * It exists because [isPlus] alone was making this screen unreachable for the one user with a
+     * real decision to make: see [dismissesItself].
+     */
+    val plusPromoEndsAtMillis: Long? = null,
 ) {
     /** Nothing to sell → no plan cards, no buy button, and an honest line instead. */
     val canPurchase: Boolean get() = offers.isNotEmpty()
+
+    /**
+     * Whether this screen has nothing left to do and should leave. [MONEY-FOUNDERS-WELCOME-001]
+     *
+     * ⛔ **This used to be [isPlus] alone, and that was a hole.** "A paywall shown to a Plus user
+     * has nothing left to sell" is true of a subscription that RENEWS — and false of a Plus that
+     * was given away and expires. For that user what is left to sell is precisely the
+     * continuation, and with the old rule the screen slammed shut the instant it opened: the
+     * end-of-promo reminder would have been a door with a wall behind it.
+     *
+     * It still closes the moment the grant becomes a purchase, because the purchase arrives
+     * through the same stream and clears [plusPromoEndsAtMillis] with it.
+     */
+    val dismissesItself: Boolean get() = isPlus && plusPromoEndsAtMillis == null
 
     val selectedOffer: PlusOffer? get() = offers.firstOrNull { it.plan == selectedPlan }
 }

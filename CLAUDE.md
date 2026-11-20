@@ -232,14 +232,16 @@ Regla mental: *plumbing de UI → Material; concepto de Paparcar → vector prop
   ⛔ Las variantes **oscura y teñida de iOS 18 van SIN fondo**: el telón lo pone el sistema. Y no
   son opcionales — si falta el fichero, iOS usa la clara también ahí, y el icono se queda brillante
   en un home screen oscuro.
-  ⛔⛔ **El disco está MUERTO y ya no tiene excepciones** [BRAND-THE-MARK-GAINS-ITS-WORDMARK-001,
-  19-10]. Hubo dos, las dos del user —el banner de Play [PLAY-THE-BANNER-MARK-KEEPS-ITS-DISC-001] y
+  ⛔⛔ **No poner discos detrás de la marca** [BRAND-THE-MARK-GAINS-ITS-WORDMARK-001,
+  19-10]. La única excepción es la cresta metálica del paywall con el isotipo recortado
+  (`PapPremiumCrest`), decidida por el user el 20-11 [MONEY-FOUNDERS-WELCOME-001]. Antes hubo
+  otras dos excepciones del user —el banner de Play [PLAY-THE-BANNER-MARK-KEEPS-ITS-DISC-001] y
   la web [WEB-THE-MARK-WEARS-ITS-DISC-ON-THE-SITE-001]— y las dos se sostenían sobre **una sola
   razón medida**: la marca a `F_EMBLEM = 0.52896` se quedaba en ~46 px al lado de un wordmark de 82
   y **flotaba**. El disco era la muleta de una composición que nadie había diseñado. Ahora esa
   composición existe —el **imagotipo**, abajo— así que la razón desapareció y con ella el disco:
   `EMBLEM_*`, `disc_circles()`, `emblem_svg()` y `paparcar-emblem*` están **borrados**, no
-  desactivados. Un disco sin consumidores no es una excepción, es un agujero.
+  desactivados. Esa excepción del paywall no recupera los discos de otras superficies.
 
   ⛔ La antigua *Compensación Óptica* (trazo de rueda 6 sobre oscuro / 7 sobre claro) **murió, no se
   movió**: la marca nueva no tiene ni un trazo — sus ruedas son coronas rellenas—, así que no hay
@@ -265,9 +267,9 @@ tipográficos distintos [BRAND-THE-MARK-GAINS-ITS-WORDMARK-001].
   (`logoLockup()`), banner de Play, tarjeta social OG, README.
 - **Isotipo** → splash, icono adaptativo, small icon de notificación, las cuatro baldosas de Apple,
   favicon, Dev Catalog, onboarding, y el pie del README (marca sola sobre una línea de crédito).
-- **El paywall se queda en isotipo, y por dos razones independientes**: su marca está **fundida en
-  metal** (`PapPremiumMark` sobre `PapPremiumSurface`, que es el material de la pantalla) y un
-  imagotipo plano la apagaría; y su título no es el de la marca, es «Paparcar **Plus**».
+- **El paywall se queda en isotipo**: su cresta es un disco del metal de Plus con el isotipo
+  recortado (`PapPremiumCrest`), y su título es «Paparcar **Plus**». Es la única excepción a la
+  prohibición general de discos; los diálogos conservan `PapPremiumMark`.
 - ⛔ **La PALABRA son ocho contornos, no texto**, y por eso el imagotipo **no pasa por
   `PaparcarType`** ni es una excepción a la doctrina tipográfica: los tres roles gobiernan el TEXTO
   de la app, y esto es un dibujo. Que sean contornos es lo que hace que el logo se vea igual sin la

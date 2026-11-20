@@ -3,7 +3,9 @@ package com.rndeveloper.paparcar.presentation.paywall
 import app.cash.turbine.test
 import com.rndeveloper.paparcar.domain.model.Entitlement
 import com.rndeveloper.paparcar.domain.usecase.entitlement.GetPlusOffersUseCase
-import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
+import com.rndeveloper.paparcar.domain.model.PlusGrant
+import com.rndeveloper.paparcar.domain.model.PlusOrigin
+import com.rndeveloper.paparcar.domain.usecase.entitlement.ObservePlusGrantUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.PurchasePlusUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.RestorePurchasesUseCase
 import com.rndeveloper.paparcar.fakes.FakeEntitlementRepository
@@ -18,6 +20,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -42,7 +45,7 @@ class PaywallViewModelTest {
             com.rndeveloper.paparcar.domain.entitlement.PaywallReason.GENERAL,
         tracker: com.rndeveloper.paparcar.fakes.FakeAnalyticsTracker? = null,
     ) = PaywallViewModel(
-        ObserveIsPlusUseCase(entitlementRepo),
+        ObservePlusGrantUseCase(entitlementRepo),
         GetPlusOffersUseCase(entitlementRepo),
         PurchasePlusUseCase(entitlementRepo),
         RestorePurchasesUseCase(entitlementRepo),
@@ -124,5 +127,42 @@ class PaywallViewModelTest {
             assertEquals(PaywallEffect.Dismiss, awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    // ── Un Plus de REGALO que se acaba todavía tiene algo que vender ──────────
+    // [MONEY-FOUNDERS-WELCOME-001]
+
+    /**
+     * ⛔ El defecto que este ticket tuvo que arreglar para que el aviso de fin de promo no fuera
+     * una puerta tapiada: la pantalla se cerraba sola con sólo ver `isPlus`, así que el único
+     * usuario con una decisión real que tomar no podía ni leerla.
+     */
+    @Test
+    fun `should_stayOpen_when_thePlusWasGiftedAndExpires`() = runTest {
+        val endsAt = 1_800_000_000_000L
+        entitlementRepo.emitGrant(PlusGrant(PlusOrigin.PROMOTIONAL, endsAt))
+        val vm = buildVm()
+
+        assertTrue(vm.state.value.isPlus)
+        assertEquals(endsAt, vm.state.value.plusPromoEndsAtMillis, "y la pantalla puede decir hasta cuándo")
+        assertFalse(vm.state.value.dismissesItself, "queda la continuación por vender")
+    }
+
+    @Test
+    fun `should_dismissItself_when_thePlusWasBought`() = runTest {
+        entitlementRepo.emitGrant(PlusGrant(PlusOrigin.PURCHASED, null))
+        val vm = buildVm()
+
+        assertNull(vm.state.value.plusPromoEndsAtMillis)
+        assertTrue(vm.state.value.dismissesItself, "una suscripcion que renueva no tiene nada que vender aqui")
+    }
+
+    /** Un regalo VITALICIO tampoco se acaba, así que tampoco hay nada que vender. */
+    @Test
+    fun `should_dismissItself_when_theGiftedPlusHasNoEndDate`() = runTest {
+        entitlementRepo.emitGrant(PlusGrant(PlusOrigin.PROMOTIONAL, expiresAtMillis = null))
+        val vm = buildVm()
+
+        assertTrue(vm.state.value.dismissesItself)
     }
 }

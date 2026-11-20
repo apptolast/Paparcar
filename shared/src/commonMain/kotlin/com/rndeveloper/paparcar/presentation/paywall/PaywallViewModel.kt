@@ -4,7 +4,8 @@ import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
 import com.rndeveloper.paparcar.domain.analytics.AnalyticsTracker
 import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.domain.usecase.entitlement.GetPlusOffersUseCase
-import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
+import com.rndeveloper.paparcar.domain.model.PlusOrigin
+import com.rndeveloper.paparcar.domain.usecase.entitlement.ObservePlusGrantUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.PurchasePlusUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.RestorePurchasesUseCase
 import com.rndeveloper.paparcar.presentation.base.BaseViewModel
@@ -25,7 +26,10 @@ import kotlinx.coroutines.launch
  * as every other screen.
  */
 class PaywallViewModel(
-    observeIsPlus: ObserveIsPlusUseCase,
+    /** ⛔ El GRANT y no `ObserveIsPlusUseCase`, que es lo que había: esta pantalla necesita saber
+     *  además si ese Plus se TERMINA, porque es lo único que distingue «no hay nada que vender» de
+     *  «lo que queda por vender es seguir». [MONEY-FOUNDERS-WELCOME-001] */
+    observePlusGrant: ObservePlusGrantUseCase,
     private val getPlusOffers: GetPlusOffersUseCase,
     private val purchasePlus: PurchasePlusUseCase,
     private val restorePurchases: RestorePurchasesUseCase,
@@ -41,8 +45,19 @@ class PaywallViewModel(
     init {
         // One VM = one paywall open → exactly one funnel entry. [FREE-LIMITS-001]
         analyticsTracker?.track(AnalyticsEvent.PaywallShown(reason))
-        observeIsPlus()
-            .onEach { isPlus -> updateState { copy(isPlus = isPlus) } }
+        observePlusGrant()
+            .onEach { grant ->
+                updateState {
+                    copy(
+                        isPlus = grant != null,
+                        // Sólo un Plus REGALADO con fecha de fin tiene algo que decidir aquí. Una
+                        // compra renueva, y un regalo vitalicio no se acaba.
+                        plusPromoEndsAtMillis = grant
+                            ?.takeIf { it.origin == PlusOrigin.PROMOTIONAL }
+                            ?.expiresAtMillis,
+                    )
+                }
+            }
             .launchIn(viewModelScope)
         // Prices are fetched per screen open rather than cached: a stale price is the one thing
         // this screen must never show, and the store's own cache already makes the repeat cheap.

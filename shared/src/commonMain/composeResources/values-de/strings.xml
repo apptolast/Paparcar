@@ -853,6 +853,20 @@ Wenn die Frage nicht mehr erscheint, ändere es unter Einstellungen → Paparcar
     <string name="settings_plus_subtitle_free">Kompletter Verlauf und Zonen-Hinweise</string>
     <string name="settings_plus_subtitle_active">Kompletter Verlauf und Zonen-Hinweise, aktiv</string>
     <string name="settings_plus_badge_active">AKTIV</string>
+    <!-- El Plus que nadie pago: la bienvenida y el aviso de fin de promo. [MONEY-FOUNDERS-WELCOME-001] -->
+    <string name="plus_welcome_title">Du bist unter den ersten 2.000</string>
+    <string name="plus_welcome_body">Paparcar Plus geht auf uns. Alles davon, ohne zu zahlen und ohne etwas zu kündigen.</string>
+    <string name="plus_welcome_until">Kostenlos bis %1$s</string>
+    <string name="plus_welcome_benefits">Was du jetzt hast</string>
+    <string name="plus_welcome_cta">Los geht's</string>
+    <string name="plus_promo_ending_title">Dein geschenktes Plus endet bald</string>
+    <string name="plus_promo_ending_body">Am %1$s wechselt dein Konto zurück zum kostenlosen Plan. Nichts von dem, was du aufgezeichnet hast, geht verloren, und du kannst jederzeit mit Plus weitermachen.</string>
+    <string name="plus_promo_ending_benefits">Was sich ändert</string>
+    <string name="plus_promo_ending_cta">Jetzt nicht</string>
+    <string name="plus_promo_ending_see_plans">Pläne ansehen</string>
+    <string name="paywall_promo_ends">Dein Gründer-Plus ist bis %1$s kostenlos. Wenn du weitermachst, ändert sich nichts.</string>
+    <string name="settings_plus_subtitle_promo">Kostenlos als Gründer, bis %1$s</string>
+    <string name="settings_plus_badge_promo">GESCHENK</string>
     <string name="settings_notif_zone_alerts">Zonen-Hinweise</string>
     <string name="settings_notif_zone_alerts_desc">Hinweis, wenn in deinen Zonen ein Platz frei wird</string>
     <string name="settings_notif_fuel_alerts">Preisalarme für Kraftstoff</string>

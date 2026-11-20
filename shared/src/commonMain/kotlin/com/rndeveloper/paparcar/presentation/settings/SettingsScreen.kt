@@ -89,6 +89,7 @@ import com.rndeveloper.paparcar.isBatteryOptimizationRelevant
 import com.rndeveloper.paparcar.isBtStrategyRelevant
 import com.rndeveloper.paparcar.domain.diagnostics.DiagnosticsReport
 import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
+import com.rndeveloper.paparcar.presentation.util.shortDateText
 import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.permissions.RequiredPermission
 import com.rndeveloper.paparcar.domain.preferences.ThemeMode
@@ -210,8 +211,10 @@ import paparcar.composeapp.generated.resources.settings_sync_routes_desc
 import paparcar.composeapp.generated.resources.settings_sync_routes_paused
 import paparcar.composeapp.generated.resources.settings_notif_zone_alerts_desc
 import paparcar.composeapp.generated.resources.settings_plus_badge_active
+import paparcar.composeapp.generated.resources.settings_plus_badge_promo
 import paparcar.composeapp.generated.resources.settings_plus_subtitle_active
 import paparcar.composeapp.generated.resources.settings_plus_subtitle_free
+import paparcar.composeapp.generated.resources.settings_plus_subtitle_promo
 import paparcar.composeapp.generated.resources.settings_plus_title
 import paparcar.composeapp.generated.resources.settings_section_notifications
 import paparcar.composeapp.generated.resources.settings_theme_mode
@@ -461,7 +464,14 @@ fun SettingsContent(
                         modifier = Modifier.fillMaxWidth(),
                         emphasis = PapPremiumEmphasis.Subdued,
                         // Already Plus → nothing left to sell, so the row stops being a door.
-                        onClick = if (state.isPlus) null else {
+                        //
+                        // ⛔ Salvo si ese Plus es un REGALO que se acaba: ahí sí queda algo que
+                        // decidir, y la fila es el único sitio en frío donde se puede decidir. El
+                        // umbral de los 7 días NO se aplica aquí a propósito — es del aviso, que
+                        // INTERRUMPE; una fila de Ajustes a la que el usuario ha ido a propósito no
+                        // tiene por qué volverse pulsable de repente un martes.
+                        // [MONEY-FOUNDERS-WELCOME-001]
+                        onClick = if (state.isPlus && state.plusPromoEndsAtMillis == null) null else {
                             { onIntent(SettingsIntent.OpenPlusPaywall) }
                         },
                     ) {
@@ -479,20 +489,35 @@ fun SettingsContent(
                                 )
                             },
                             title = stringResource(Res.string.settings_plus_title),
-                            subtitle = if (state.isPlus) {
+                            // Tres estados y no dos: gratis, Plus comprado, y Plus de REGALO —
+                            // que es el único que trae una fecha, y por eso el único que la dice.
+                            // [MONEY-FOUNDERS-WELCOME-001]
+                            subtitle = state.plusPromoEndsAtMillis?.let { endsAt ->
+                                stringResource(Res.string.settings_plus_subtitle_promo, shortDateText(endsAt))
+                            } ?: if (state.isPlus) {
                                 stringResource(Res.string.settings_plus_subtitle_active)
                             } else {
                                 stringResource(Res.string.settings_plus_subtitle_free)
                             },
                             trailing = {
-                                if (state.isPlus) {
-                                    Text(
-                                        text = stringResource(Res.string.settings_plus_badge_active),
-                                        style = PaparcarType.current.badge,
-                                        color = MaterialTheme.colorScheme.primary,
-                                    )
-                                } else {
-                                    PapNavChevron()
+                                when {
+                                    // Sigue siendo puerta, así que lleva galón Y chevron: el badge
+                                    // dice QUÉ tiene y el chevron dice que se puede entrar.
+                                    state.plusPromoEndsAtMillis != null -> {
+                                        Text(
+                                            text = stringResource(Res.string.settings_plus_badge_promo),
+                                            style = PaparcarType.current.badge,
+                                            color = MaterialTheme.colorScheme.primary,
+                                        )
+                                    }
+                                    state.isPlus -> {
+                                        Text(
+                                            text = stringResource(Res.string.settings_plus_badge_active),
+                                            style = PaparcarType.current.badge,
+                                            color = MaterialTheme.colorScheme.primary,
+                                        )
+                                    }
+                                    else -> PapNavChevron()
                                 }
                             },
                         )

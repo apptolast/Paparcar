@@ -13,6 +13,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toLocalDateTime
+import com.rndeveloper.paparcar.presentation.vehicles.MONTH_SHORT_RES
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.stats_value_hours
@@ -205,6 +206,31 @@ fun formatClockTime(epochMs: Long): String {
  * strings.xml is how one of them drifts.
  */
 fun formatHourBucket(hourOfDay: Int): String = "${hourOfDay.toString().padStart(2, '0')}:00"
+
+/**
+ * An absolute calendar date — `15 Feb 2027` — in the device's own zone and the active locale.
+ * [MONEY-FOUNDERS-WELCOME-001]
+ *
+ * ⛔ **Not `DD/MM/YYYY`.** A numeric order is wrong in at least one of the nine locales whatever
+ * order is picked (en-US reads month first), and the repo already solved this: `MONTH_SHORT_RES`
+ * is twelve keys translated nine times, and it is how the history headers and a parking's detail
+ * row already write a date. A second format would be a second thing to translate and a second
+ * thing to get wrong.
+ *
+ * A composable because the month name is a string resource. It exists as ONE function because it
+ * had two call sites building `"$day $month $year"` by hand, which is exactly how two date formats
+ * are born in one app.
+ */
+@Composable
+fun shortDateText(epochMs: Long): String {
+    val date = remember(epochMs) {
+        kotlin.time.Instant.fromEpochMilliseconds(epochMs)
+            .toLocalDateTime(TimeZone.currentSystemDefault())
+            .date
+    }
+    val month = stringResource(MONTH_SHORT_RES[date.month.ordinal])
+    return "${date.day} $month ${date.year}"
+}
 
 /**
  * Epoch-ms de una fecha ISO `yyyy-MM-dd`, a medianoche UTC.

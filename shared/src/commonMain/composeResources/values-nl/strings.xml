@@ -853,6 +853,20 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen â†’ Paparcar â
     <string name="settings_plus_subtitle_free">Volledige geschiedenis en zonemeldingen</string>
     <string name="settings_plus_subtitle_active">Volledige geschiedenis en zonemeldingen, actief</string>
     <string name="settings_plus_badge_active">ACTIEF</string>
+    <!-- El Plus que nadie pago: la bienvenida y el aviso de fin de promo. [MONEY-FOUNDERS-WELCOME-001] -->
+    <string name="plus_welcome_title">Je bent een van de eerste 2.000</string>
+    <string name="plus_welcome_body">Paparcar Plus is van jou, van ons uit. Alles, zonder te betalen en zonder iets op te zeggen.</string>
+    <string name="plus_welcome_until">Gratis tot %1$s</string>
+    <string name="plus_welcome_benefits">Wat je nu hebt</string>
+    <string name="plus_welcome_cta">We gaan!</string>
+    <string name="plus_promo_ending_title">Je cadeau-Plus loopt bijna af</string>
+    <string name="plus_promo_ending_body">Op %1$s gaat je account terug naar het gratis plan. Niets van wat je hebt vastgelegd verdwijnt, en je kunt altijd met Plus doorgaan.</string>
+    <string name="plus_promo_ending_benefits">Wat er verandert</string>
+    <string name="plus_promo_ending_cta">Niet nu</string>
+    <string name="plus_promo_ending_see_plans">Plannen bekijken</string>
+    <string name="paywall_promo_ends">Je Plus als oprichter is gratis tot %1$s. Als je doorgaat, verandert er niets.</string>
+    <string name="settings_plus_subtitle_promo">Gratis als oprichter, tot %1$s</string>
+    <string name="settings_plus_badge_promo">CADEAU</string>
     <string name="settings_notif_zone_alerts">Zonemeldingen</string>
     <string name="settings_notif_zone_alerts_desc">Melding wanneer er een vrije plek in je zones verschijnt</string>
     <string name="settings_notif_fuel_alerts">Prijsmeldingen voor brandstof</string>

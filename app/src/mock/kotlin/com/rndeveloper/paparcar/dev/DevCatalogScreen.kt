@@ -68,6 +68,8 @@ fun DevCatalogScreen(
     val firstStepsPending by scenario.firstStepsPending.collectAsStateWithLifecycle()
     val stillParkedQuestionOpen by scenario.stillParkedQuestionOpen.collectAsStateWithLifecycle()
     val isPlus by scenario.isPlus.collectAsStateWithLifecycle()
+    val plusIsPromotional by scenario.plusIsPromotional.collectAsStateWithLifecycle()
+    val plusDaysLeft by scenario.plusDaysLeft.collectAsStateWithLifecycle()
     // Shared detection runtime — toggling it simulates an in-progress trip in the real Home (moving
     // driving puck + "Conduciendo" chip + camera follow), no real drive needed. [DRIVE-SIM-001]
     val runtime: MutableDetectionRuntimeState = koinInject()
@@ -132,6 +134,33 @@ fun DevCatalogScreen(
             // [MONEY-001] Entitlement de Paparcar Plus en el grafo real. Apagarlo con la app
             // abierta ensaya la degradación en vivo (historial a 30 días, alertas pausadas).
             SwitchRow("Plus activo (suscripción)", isPlus) { scenario.isPlus.value = it }
+            // [MONEY-FOUNDERS-WELCOME-001] Las dos palancas que convierten ese Plus en un REGALO
+            // con fecha. Encender la primera con el Plus activo dispara la bienvenida de fundador
+            // en la pestaña que esté delante; bajar los días por debajo de
+            // PLUS_PROMO_ENDING_WINDOW_DAYS cambia la bienvenida por el aviso de fin de promo.
+            //
+            // ⛔ Enciende el Plus de paso: un «es de regalo» sobre una cuenta sin Plus no es un
+            // estado que el producto pueda alcanzar, y dejar la palanca puesta sin efecto visible
+            // se lee como que no funciona.
+            SwitchRow("Plus de REGALO (promo Fundadores)", plusIsPromotional) { on ->
+                scenario.plusIsPromotional.value = on
+                if (on) {
+                    scenario.isPlus.value = true
+                    if (scenario.plusDaysLeft.value == null) {
+                        scenario.plusDaysLeft.value = PromoRemaining.ThreeMonths.days
+                    }
+                }
+            }
+            if (plusIsPromotional) {
+                // Tres posiciones y no un campo libre: lo único que decide QUÉ momento sale es a
+                // qué lado del umbral caen los días, así que la palanca ofrece los lados.
+                EnumChips(
+                    values = PromoRemaining.entries,
+                    selected = PromoRemaining.of(plusDaysLeft),
+                    label = { it.label },
+                    onSelect = { scenario.plusDaysLeft.value = it.days },
+                )
+            }
 
             SectionTitle("Simulación")
             // Own-parking loop in the REAL graph: watching line + parked card + ParkingPeek +
@@ -346,6 +375,24 @@ private fun SectionTitle(text: String) {
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.padding(top = 6.dp),
     )
+}
+
+/**
+ * Lo que le queda a la promo, en las tres posiciones que cambian de VEREDICTO.
+ * [MONEY-FOUNDERS-WELCOME-001]
+ *
+ * Los 90 días son la promo real; los 5 caen dentro de la ventana del aviso; «sin fecha» es el grant
+ * promocional sin caducidad, que RevenueCat permite conceder y que no tiene ningún día que decir.
+ */
+private enum class PromoRemaining(val label: String, val days: Int?) {
+    ThreeMonths("3 meses", 90),
+    FiveDays("5 días", 5),
+    NoEnd("sin fecha", null),
+    ;
+
+    companion object {
+        fun of(days: Int?): PromoRemaining = entries.firstOrNull { it.days == days } ?: ThreeMonths
+    }
 }
 
 @Composable

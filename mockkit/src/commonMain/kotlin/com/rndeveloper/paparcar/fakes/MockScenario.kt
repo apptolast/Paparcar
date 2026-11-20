@@ -95,6 +95,23 @@ class MockScenario {
      *  shrinks to 30 days, zone alerts pause) that a real store makes painful to reproduce. */
     val isPlus = MutableStateFlow(false)
 
+    /**
+     * [MONEY-FOUNDERS-WELCOME-001] El Plus de [isPlus] es un REGALO nuestro (la promo Fundadores),
+     * no una compra. Es lo único que distingue los dos, y lo que enciende la bienvenida y el aviso
+     * de fin de promo.
+     */
+    val plusIsPromotional = MutableStateFlow(false)
+
+    /**
+     * Días que le quedan al Plus de [isPlus], o null para «sin fecha de fin».
+     *
+     * ⛔ DÍAS y no una fecha: la palanca de demo tiene que poder colocarse a un lado y a otro del
+     * umbral del aviso ([com.rndeveloper.paparcar.domain.entitlement.PLUS_PROMO_ENDING_WINDOW_DAYS])
+     * sin que el operador haga aritmética de calendario, y una fecha fija caducaría sola con el
+     * tiempo y dejaría el preset enseñando otra cosa que la que se grabó.
+     */
+    val plusDaysLeft = MutableStateFlow<Int?>(null)
+
     fun reset() {
         session.value = Session.LoggedInWithVehicles
         onboardingCompleted.value = true
@@ -111,6 +128,8 @@ class MockScenario {
         approximateParking.value = false
         firstStepsPending.value = false
         isPlus.value = false
+        plusIsPromotional.value = false
+        plusDaysLeft.value = null
         sharedCarJoined.value = false
         sharedCarDissolved.value = false
     }

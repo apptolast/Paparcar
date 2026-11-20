@@ -2,6 +2,7 @@ package com.rndeveloper.paparcar.presentation.app
 
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityBannerPhase
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityStatus
+import com.rndeveloper.paparcar.domain.entitlement.PlusMoment
 import com.rndeveloper.paparcar.domain.preferences.ThemeMode
 
 data class AppState(
@@ -29,6 +30,14 @@ data class AppState(
      * mapa está delante. Que los dos suenen a la vez por la misma plaza es justo lo que esto evita.
      */
     val spotAlert: SpotAlertCue? = null,
+    /**
+     * What the app owes this account about its gifted Plus — the welcome, the end-of-promo
+     * reminder, or nothing. [MONEY-FOUNDERS-WELCOME-001]
+     *
+     * Not the same thing as [plusMomentToShow]: this is the VERDICT, that one is whether it may be
+     * on screen right now.
+     */
+    val plusMoment: PlusMoment? = null,
 ) {
     /** True only when runtime permissions AND GPS are both ready. */
     val isFullyOperational: Boolean
@@ -46,6 +55,21 @@ data class AppState(
     /** Show once when detection is ready and the disclaimer hasn't been dismissed yet. */
     val showGpsAccuracyDisclaimer: Boolean
         get() = isDetectionReady && !hasSeenGpsAccuracyDisclaimer
+
+    /**
+     * The Plus moment, but only when there is nothing else holding the screen.
+     * [MONEY-FOUNDERS-WELCOME-001]
+     *
+     * ⛔ **The order between this and [askAdMeasurementConsent] lives HERE, in the state, and not
+     * in whichever composable happens to be written first.** A brand-new account is exactly the
+     * one that owes BOTH — it is the case, not an edge case — and two dialogs at once is the one
+     * thing this project forbids outright (⛔ nunca modal sobre modal).
+     *
+     * The consent goes first because it is a QUESTION: it demands an answer and swallows taps
+     * outside itself, so it cannot queue behind anything. The celebration is NEWS, and news waits.
+     */
+    val plusMomentToShow: PlusMoment?
+        get() = plusMoment.takeIf { !askAdMeasurementConsent }
 }
 
 /**

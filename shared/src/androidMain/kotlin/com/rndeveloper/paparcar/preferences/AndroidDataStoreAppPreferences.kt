@@ -182,6 +182,29 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
     private fun Set<String>?.toComplements(): Set<NearbyComplement> =
         this.orEmpty().mapNotNull { name -> NearbyComplement.entries.firstOrNull { it.name == name } }.toSet()
 
+    // ── Lo que ya se dijo a cada cuenta sobre su Plus de regalo.
+    //    [MONEY-FOUNDERS-WELCOME-001] ──
+
+    override val plusPromoWelcomedUids: Set<String>
+        get() = get(Keys.PLUS_PROMO_WELCOMED_UIDS, emptySet())
+
+    override fun addPlusPromoWelcomedUid(uid: String) =
+        addToSet(Keys.PLUS_PROMO_WELCOMED_UIDS, uid)
+
+    override val plusPromoEndingNoticedUids: Set<String>
+        get() = get(Keys.PLUS_PROMO_ENDING_NOTICED_UIDS, emptySet())
+
+    override fun addPlusPromoEndingNoticedUid(uid: String) =
+        addToSet(Keys.PLUS_PROMO_ENDING_NOTICED_UIDS, uid)
+
+    /** Igual que [editDissolved], pero sin flujo que mantener: estos dos conjuntos se LEEN una vez
+     *  (al decidir el momento) y nunca se observan, así que basta el snapshot en memoria al día
+     *  para que la lectura síncrona de después del `add` no vaya un tick por detrás. */
+    private fun addToSet(key: Preferences.Key<Set<String>>, value: String) {
+        snapshot = snapshot.toMutablePreferences().apply { this[key] = this[key].orEmpty() + value }
+        scope.launch { store.edit { it[key] = it[key].orEmpty() + value } }
+    }
+
     // ── Coches cuyo grupo se disolvió. [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] ──
 
     override fun observeDissolvedSharedCars(): Flow<Set<String>> =
@@ -486,6 +509,10 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         /** Filas prestadas que dejaron de serlo sin que el usuario lo pidiera.
          *  [PRIV-A-DELETED-CAR-MUST-NOT-ORPHAN-ITS-GROUP-001] */
         val DISSOLVED_SHARED_CARS   = stringSetPreferencesKey("dissolved_shared_cars")
+        /** Cuentas ya felicitadas / ya avisadas del fin de la promo Fundadores. ⛔ Fuera del
+         *  barrido de sesión a propósito: están indexadas por uid. [MONEY-FOUNDERS-WELCOME-001] */
+        val PLUS_PROMO_WELCOMED_UIDS = stringSetPreferencesKey("plus_promo_welcomed_uids")
+        val PLUS_PROMO_ENDING_NOTICED_UIDS = stringSetPreferencesKey("plus_promo_ending_noticed_uids")
         val FIRST_STEPS_DONE        = stringSetPreferencesKey("first_steps_done")
         val FIRST_STEPS_DEFERRED    = stringSetPreferencesKey("first_steps_deferred")
         val FIRST_STEPS_DISMISSED   = booleanPreferencesKey("first_steps_dismissed")

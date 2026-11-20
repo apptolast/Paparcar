@@ -11,6 +11,15 @@ data class SettingsState(
     val notifyParkingDetected: Boolean = true,
     /** Live Plus entitlement — the Plus row shows ACTIVO instead of inviting. [MONEY-001] */
     val isPlus: Boolean = false,
+    /**
+     * When a Plus NOBODY PAID FOR runs out — null unless this account is on the «Fundadores» promo
+     * with an end date. [MONEY-FOUNDERS-WELCOME-001]
+     *
+     * The row needs it for two things the plain [isPlus] could not say: that this Plus is a gift
+     * (so it names it, instead of a bare ACTIVE that hides the whole fact), and that it ENDS — and
+     * therefore that the row still has a decision behind it and must stay a door.
+     */
+    val plusPromoEndsAtMillis: Long? = null,
     /** Master gate for the Plus zone-alert notifications. [MONEY-001] */
     val notifyZoneSpots: Boolean = true,
     /** Master gate for the Plus fuel-price alerts — a cheaper pump nearby, and what a followed

@@ -893,6 +893,20 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="settings_plus_subtitle_free">Full history and zone alerts</string>
     <string name="settings_plus_subtitle_active">Full history and zone alerts, active</string>
     <string name="settings_plus_badge_active">ACTIVE</string>
+    <!-- El Plus que nadie pago: la bienvenida y el aviso de fin de promo. [MONEY-FOUNDERS-WELCOME-001] -->
+    <string name="plus_welcome_title">You're one of the first 2,000</string>
+    <string name="plus_welcome_body">Paparcar Plus is yours, on us. All of it, with nothing to pay and nothing to cancel.</string>
+    <string name="plus_welcome_until">Free until %1$s</string>
+    <string name="plus_welcome_benefits">What you have now</string>
+    <string name="plus_welcome_cta">Let's go</string>
+    <string name="plus_promo_ending_title">Your free Plus ends soon</string>
+    <string name="plus_promo_ending_body">On %1$s your account goes back to the free plan. Nothing you have recorded goes away, and you can continue with Plus whenever you want.</string>
+    <string name="plus_promo_ending_benefits">What changes</string>
+    <string name="plus_promo_ending_cta">Not now</string>
+    <string name="plus_promo_ending_see_plans">See plans</string>
+    <string name="paywall_promo_ends">Your founder Plus is free until %1$s. Continue and nothing changes.</string>
+    <string name="settings_plus_subtitle_promo">Free as a founder, until %1$s</string>
+    <string name="settings_plus_badge_promo">GIFT</string>
     <string name="settings_notif_zone_alerts">Zone alerts</string>
     <string name="settings_notif_zone_alerts_desc">Get notified when a free spot appears in your zones</string>
     <string name="settings_notif_fuel_alerts">Fuel price alerts</string>

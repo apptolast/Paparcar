@@ -3,14 +3,18 @@ package com.rndeveloper.paparcar.data.repository
 import com.revenuecat.purchases.kmp.models.CustomerInfo
 import com.revenuecat.purchases.kmp.models.Offering
 import com.revenuecat.purchases.kmp.models.Package
+import com.revenuecat.purchases.kmp.models.Store
 import com.rndeveloper.paparcar.data.datasource.remote.RevenueCatDataSource
 import com.rndeveloper.paparcar.domain.model.Entitlement
+import com.rndeveloper.paparcar.domain.model.PlusGrant
 import com.rndeveloper.paparcar.domain.model.PlusOffer
+import com.rndeveloper.paparcar.domain.model.PlusOrigin
 import com.rndeveloper.paparcar.domain.model.PlusPlan
 import com.rndeveloper.paparcar.domain.repository.EntitlementRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -28,15 +32,23 @@ class RevenueCatEntitlementRepositoryImpl(
     refreshScope: CoroutineScope,
 ) : EntitlementRepository {
 
-    private val entitlement = MutableStateFlow(Entitlement.FREE)
+    /**
+     * ⛔ The ONE piece of state this class holds, and the reason it is the grant and not the enum:
+     * the enum is derivable from the grant and the grant is not derivable from the enum, so storing
+     * the enum would have meant a second field to keep in step. [MONEY-FOUNDERS-WELCOME-001]
+     */
+    private val grant = MutableStateFlow<PlusGrant?>(null)
 
     init {
         refreshScope.launch {
-            dataSource.observeCustomerInfo().collect { entitlement.value = it.toEntitlement() }
+            dataSource.observeCustomerInfo().collect { grant.value = it.toGrant() }
         }
     }
 
-    override fun observeEntitlement(): Flow<Entitlement> = entitlement
+    override fun observeEntitlement(): Flow<Entitlement> =
+        grant.map { if (it != null) Entitlement.PLUS else Entitlement.FREE }
+
+    override fun observePlusGrant(): Flow<PlusGrant?> = grant
 
     override suspend fun loadOffers(): Result<List<PlusOffer>> = runCatching {
         if (!dataSource.isConfigured) return@runCatching emptyList()
@@ -77,16 +89,16 @@ class RevenueCatEntitlementRepositoryImpl(
             PlusPlan.YEARLY -> offering.annual
         } ?: error("offering '${offering.identifier}' has no ${plan.name} package")
 
-        entitlement.value = dataSource.purchase(pkg).toEntitlement()
-        check(entitlement.value == Entitlement.PLUS) {
+        grant.value = dataSource.purchase(pkg).toGrant()
+        check(grant.value != null) {
             "purchase finished but the '$ENTITLEMENT_PLUS' entitlement is not active"
         }
     }
 
     override suspend fun restorePurchases(): Result<Boolean> = runCatching {
         check(dataSource.isConfigured) { "Purchases SDK not configured" }
-        entitlement.value = dataSource.restore().toEntitlement()
-        entitlement.value == Entitlement.PLUS
+        grant.value = dataSource.restore().toGrant()
+        grant.value != null
     }
 
     override suspend fun logIn(userId: String): Result<Unit> = runCatching {
@@ -94,7 +106,7 @@ class RevenueCatEntitlementRepositoryImpl(
         // Warm starts land here on every Authenticated emission; the same uid already bound
         // means there is nothing to do and no network to spend.
         if (dataSource.appUserID == userId) return@runCatching
-        entitlement.value = dataSource.logIn(userId).toEntitlement()
+        grant.value = dataSource.logIn(userId).toGrant()
     }
 
     override suspend fun logOut(): Result<Unit> = runCatching {
@@ -102,11 +114,32 @@ class RevenueCatEntitlementRepositoryImpl(
         // Already-anonymous is our steady state (every logged-out cold start passes through
         // the auth collector), and the SDK treats logOut-while-anonymous as an error.
         if (dataSource.isAnonymous) return@runCatching
-        entitlement.value = dataSource.logOut().toEntitlement()
+        grant.value = dataSource.logOut().toGrant()
     }
 
-    private fun CustomerInfo.toEntitlement(): Entitlement =
-        if (entitlements.active.containsKey(ENTITLEMENT_PLUS)) Entitlement.PLUS else Entitlement.FREE
+    /**
+     * The only place that reads the vendor's view of the subscription, and now it reads three
+     * fields instead of one. [MONEY-FOUNDERS-WELCOME-001]
+     *
+     * ⛔ Every store that is not [Store.PROMOTIONAL] maps to [PlusOrigin.PURCHASED], including
+     * `UNKNOWN_STORE` and any store RevenueCat adds after this build. That direction is deliberate:
+     * being wrong here means a gifted Plus is treated as bought — the user misses a celebration —
+     * while the other direction would congratulate a PAYING customer on their free Plus and then
+     * warn them it is about to end. Asymmetric failure, cheapest side.
+     */
+    private fun CustomerInfo.toGrant(): PlusGrant? =
+        entitlements.active[ENTITLEMENT_PLUS]?.let { info ->
+            PlusGrant(
+                origin = if (info.store == Store.PROMOTIONAL) {
+                    PlusOrigin.PROMOTIONAL
+                } else {
+                    PlusOrigin.PURCHASED
+                },
+                // Null for lifetime access, says the SDK — and for us that is "nothing to count
+                // down to", not "unknown". It is passed through rather than defaulted.
+                expiresAtMillis = info.expirationDateMillis,
+            )
+        }
 
     private companion object {
         // Fixed in the RevenueCat dashboard; the packages inside the offering are the

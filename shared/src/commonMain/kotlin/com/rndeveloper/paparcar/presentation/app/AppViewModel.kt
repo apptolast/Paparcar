@@ -6,6 +6,8 @@ import com.rndeveloper.paparcar.domain.connectivity.ConnectivityBannerPhase
 import com.rndeveloper.paparcar.domain.usecase.analytics.SetAdMeasurementConsentUseCase
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityObserver
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityStatus
+import com.rndeveloper.paparcar.domain.entitlement.PlusMoment
+import com.rndeveloper.paparcar.domain.entitlement.plusMomentFor
 import com.rndeveloper.paparcar.domain.permissions.PermissionManager
 import com.rndeveloper.paparcar.domain.permissions.missingProducerPermissions
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
@@ -14,6 +16,7 @@ import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.usecase.detection.PublishDetectionStateUseCase
+import com.rndeveloper.paparcar.domain.usecase.entitlement.ObservePlusGrantUseCase
 import com.rndeveloper.paparcar.domain.notification.AlertChannel
 import com.rndeveloper.paparcar.domain.notification.MapVisibility
 import com.rndeveloper.paparcar.domain.notification.NearbySpotAlerts
@@ -25,12 +28,18 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import com.apptolast.baselogin.domain.AuthRepository
+import com.apptolast.baselogin.domain.model.AuthState
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.launch
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -62,6 +71,16 @@ class AppViewModel(
     // the root because it is asked once per install, whatever screen the user lands on.
     private val adMeasurementLane: AdMeasurementLane,
     private val setAdMeasurementConsent: SetAdMeasurementConsentUseCase,
+    // [MONEY-FOUNDERS-WELCOME-001] El Plus de regalo se celebra y se despide desde la raíz, por
+    // las mismas tres razones que la pregunta de anuncios: el grant llega ASÍNCRONO tras el
+    // registro (segundos, o el arranque siguiente), este es el único ViewModel vivo toda la sesión
+    // de UI en cualquier pestaña, y la condición de «estar en una pestaña» es justo la que no
+    // interrumpe onboarding, permisos ni alta de vehículo.
+    private val observePlusGrant: ObservePlusGrantUseCase,
+    /** De quién es la cuenta: «una sola vez» se promete POR CUENTA, y una promesa así no se puede
+     *  cumplir sobre un usuario que no se sabe nombrar. Reactivo y no una lectura única — este
+     *  ViewModel sobrevive a un cierre de sesión y a la entrada del siguiente. */
+    private val authRepository: AuthRepository,
 // `Nothing` as the effect type: the root ViewModel has no one-shot side effects to emit, and saying
 // so in the type stops one from being smuggled in. Its only effect used to be applying a language
 // the OS owns. [SETTINGS-LANGUAGE-LIVES-IN-THE-SYSTEM-001]
@@ -233,7 +252,43 @@ class AppViewModel(
             .onEach { (snapshot, reliability) -> publishDetectionState.publish(snapshot, reliability) }
             .catch { e -> PaparcarLogger.w(TAG, "detection-state stream failed", e) }
             .launchIn(viewModelScope)
+
+        // [MONEY-FOUNDERS-WELCOME-001] WHAT the app owes this account about its gifted Plus.
+        //
+        // ⛔ The grant and the uid are COMBINED rather than chained: either one can land second.
+        // The grant is pushed by the store SDK whenever it feels like it (the Cloud Function that
+        // concedes the promo runs after sign-up, so on a brand-new account it is normal for the
+        // entitlement to arrive while the user is already looking at the map), and the uid arrives
+        // with the auth state. Waiting on a fixed order would mean the welcome depended on which
+        // of the two was slower that day.
+        //
+        // The two memories are READ here and not collected: they only ever change because of the
+        // intent below, which sets the state itself. A `combine` over them as flows would be a
+        // second path to the same transition.
+        combine(observePlusGrant(), signedInUid()) { grant, uid ->
+            currentUid = uid
+            plusMomentFor(
+                grant = grant,
+                uid = uid,
+                welcomedUids = appPreferences.plusPromoWelcomedUids,
+                endingNoticedUids = appPreferences.plusPromoEndingNoticedUids,
+                nowMs = Clock.System.now().toEpochMilliseconds(),
+            )
+        }
+            .distinctUntilChanged()
+            .onEach { moment -> updateState { copy(plusMoment = moment) } }
+            .catch { e -> PaparcarLogger.w(TAG, "plus-moment stream failed", e) }
+            .launchIn(viewModelScope)
     }
+
+    /** El uid de la sesión, o null mientras no haya ninguna. */
+    private fun signedInUid() = authRepository.observeAuthState()
+        .map { (it as? AuthState.Authenticated)?.session?.userId }
+        .distinctUntilChanged()
+
+    /** Lo último que dijo [signedInUid], para que el handler sepa a QUIÉN apuntar. Bookkeeping del
+     *  ViewModel y no estado de UI: ninguna pantalla pinta el uid. */
+    private var currentUid: String? = null
 
     /** El temporizador del aviso in-app de plaza. Uno solo: una plaza nueva REEMPLAZA a la
      *  anterior en vez de encolarse — nadie quiere leer una cola de avisos sobre un mapa que ya
@@ -300,6 +355,19 @@ class AppViewModel(
                 setAdMeasurementConsent(intent.granted)
                     .onFailure { e -> PaparcarLogger.w(TAG, "ad-measurement answer not stored", e) }
                 updateState { copy(askAdMeasurementConsent = false) }
+            }
+            // Se cierra y se apunta, y se apunta SÓLO la memoria del momento que se enseñó: la
+            // otra sigue abierta a propósito. Si la promo se extendiera, un aviso ya dado no debe
+            // enterrar para siempre una bienvenida que volvería a ser verdad.
+            // [MONEY-FOUNDERS-WELCOME-001]
+            is AppIntent.DismissPlusMoment -> {
+                currentUid?.let { uid ->
+                    when (intent.moment) {
+                        is PlusMoment.FoundersWelcome -> appPreferences.addPlusPromoWelcomedUid(uid)
+                        is PlusMoment.PromoEnding -> appPreferences.addPlusPromoEndingNoticedUid(uid)
+                    }
+                }
+                updateState { copy(plusMoment = null) }
             }
             is AppIntent.SetThemeMode -> {
                 appPreferences.setThemeMode(intent.mode)

@@ -848,6 +848,20 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="settings_plus_subtitle_free">Historial completo y alertas de zona</string>
     <string name="settings_plus_subtitle_active">Historial completo y alertas de zona, activo</string>
     <string name="settings_plus_badge_active">ACTIVO</string>
+    <!-- El Plus que nadie pago: la bienvenida y el aviso de fin de promo. [MONEY-FOUNDERS-WELCOME-001] -->
+    <string name="plus_welcome_title">Eres de los 2.000 primeros</string>
+    <string name="plus_welcome_body">Paparcar Plus es tuyo, invita la casa. Todo, sin pagar nada y sin nada que cancelar.</string>
+    <string name="plus_welcome_until">Gratis hasta el %1$s</string>
+    <string name="plus_welcome_benefits">Lo que ya tienes</string>
+    <string name="plus_welcome_cta">¡Vamos!</string>
+    <string name="plus_promo_ending_title">Tu Plus de regalo se acaba</string>
+    <string name="plus_promo_ending_body">El %1$s tu cuenta vuelve al plan gratis. No se borra nada de lo que has registrado, y puedes seguir con Plus cuando quieras.</string>
+    <string name="plus_promo_ending_benefits">Qué cambia</string>
+    <string name="plus_promo_ending_cta">Ahora no</string>
+    <string name="plus_promo_ending_see_plans">Ver planes</string>
+    <string name="paywall_promo_ends">Tu Plus de fundador es gratis hasta el %1$s. Si continúas, no cambia nada.</string>
+    <string name="settings_plus_subtitle_promo">Gratis como fundador, hasta el %1$s</string>
+    <string name="settings_plus_badge_promo">REGALO</string>
     <string name="settings_notif_zone_alerts">Alertas de zona</string>
     <string name="settings_notif_zone_alerts_desc">Aviso cuando aparezca una plaza libre en tus zonas</string>
     <string name="settings_notif_fuel_alerts">Alertas de precio de carburante</string>

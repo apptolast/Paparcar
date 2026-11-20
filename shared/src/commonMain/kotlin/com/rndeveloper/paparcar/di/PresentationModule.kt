@@ -78,7 +78,7 @@ val presentationModule = module {
     // parameter, and viewModelOf would resolve it with get(). The reason rides parametersOf.
     viewModel { params ->
         PaywallViewModel(
-            observeIsPlus = get(),
+            observePlusGrant = get(),
             getPlusOffers = get(),
             purchasePlus = get(),
             restorePurchases = get(),
@@ -102,7 +102,7 @@ val presentationModule = module {
             vehicleRepository = get(),
             observeDetectionReliability = get(),
             sendDiagnosticsReport = get(),
-            observeIsPlus = get(),
+            observePlusGrant = get(),
             adMeasurementLane = get(),
             setAdMeasurementConsent = get(),
             widgetPinRequester = getOrNull(),

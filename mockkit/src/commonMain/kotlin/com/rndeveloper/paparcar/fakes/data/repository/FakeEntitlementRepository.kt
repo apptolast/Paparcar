@@ -1,12 +1,16 @@
 package com.rndeveloper.paparcar.fakes.data.repository
 
 import com.rndeveloper.paparcar.domain.model.Entitlement
+import com.rndeveloper.paparcar.domain.model.PlusGrant
 import com.rndeveloper.paparcar.domain.model.PlusOffer
+import com.rndeveloper.paparcar.domain.model.PlusOrigin
 import com.rndeveloper.paparcar.domain.model.PlusPlan
 import com.rndeveloper.paparcar.domain.repository.EntitlementRepository
 import com.rndeveloper.paparcar.fakes.MockScenario
+import kotlin.time.Clock
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 
 /**
@@ -25,6 +29,37 @@ class FakeEntitlementRepository(
     override fun observeEntitlement(): Flow<Entitlement> =
         scenario?.isPlus?.map { if (it) Entitlement.PLUS else Entitlement.FREE }
             ?: _entitlement
+
+    /**
+     * [MONEY-FOUNDERS-WELCOME-001] Tres palancas del escenario en un grant: si hay Plus, si lo
+     * regalamos nosotros y cuánto le queda. Sin escenario el grant sale del entitlement en memoria
+     * y siempre es COMPRADO — las previews y los tests que sólo quieren «es Plus» no tienen que
+     * saber nada de esto.
+     *
+     * ⛔ La caducidad se calcula al emitir, desde los días del escenario: una fecha absoluta
+     * grabada en el preset se queda vieja sola y el momento dejaría de salir sin que nadie tocase
+     * la palanca.
+     */
+    override fun observePlusGrant(): Flow<PlusGrant?> = scenario?.let { sc ->
+        combine(sc.isPlus, sc.plusIsPromotional, sc.plusDaysLeft) { isPlus, promo, daysLeft ->
+            if (!isPlus) {
+                null
+            } else {
+                PlusGrant(
+                    origin = if (promo) PlusOrigin.PROMOTIONAL else PlusOrigin.PURCHASED,
+                    expiresAtMillis = daysLeft?.let {
+                        Clock.System.now().toEpochMilliseconds() + it * MS_PER_DAY
+                    },
+                )
+            }
+        }
+    } ?: _entitlement.map {
+        if (it == Entitlement.PLUS) {
+            PlusGrant(origin = PlusOrigin.PURCHASED, expiresAtMillis = null)
+        } else {
+            null
+        }
+    }
 
     /**
      * Stand-in plans so the paywall's price cards can be reviewed on a device without a store.
@@ -74,5 +109,9 @@ class FakeEntitlementRepository(
     override suspend fun logOut(): Result<Unit> {
         if (scenario == null) _entitlement.value = Entitlement.FREE
         return Result.success(Unit)
+    }
+
+    private companion object {
+        const val MS_PER_DAY = 24L * 60 * 60 * 1000
     }
 }

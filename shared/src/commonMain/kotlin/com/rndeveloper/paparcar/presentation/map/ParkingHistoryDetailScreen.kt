@@ -55,7 +55,6 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.rndeveloper.paparcar.presentation.vehicles.MONTH_SHORT_RES
 import com.rndeveloper.paparcar.domain.matching.InferredRoute
 import com.rndeveloper.paparcar.domain.detection.ParkingDetectionSource
 import com.rndeveloper.paparcar.domain.detection.detectionSource
@@ -75,6 +74,7 @@ import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapS
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.peek.PeekMetaRow
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.peek.vehicleSummary
 import com.rndeveloper.paparcar.presentation.util.locationDisplayText
+import com.rndeveloper.paparcar.presentation.util.shortDateText
 import com.rndeveloper.paparcar.presentation.util.rememberOpenExternalNavigation
 import com.rndeveloper.paparcar.ui.components.GlassSurface
 import com.rndeveloper.paparcar.ui.components.PapCollapsingTopBarScaffold
@@ -807,9 +807,9 @@ private fun DateTimeRow(timestampMs: Long, tint: Color) {
     val timeStr = "${dateTime.hour.toString().padStart(2, '0')}:" +
         dateTime.minute.toString().padStart(2, '0')
     // Localized month via the shared history resources — month.name is the English enum name and
-    // bypassed i18n. [UI-REGRESSION]
-    val monthStr = stringResource(MONTH_SHORT_RES[dateTime.month.ordinal])
-    val dateStr = "${dateTime.day} $monthStr ${dateTime.year}"
+    // bypassed i18n. [UI-REGRESSION] Built here by hand until a second surface needed the same
+    // date; it is `shortDateText` now, one format for the app. [MONEY-FOUNDERS-WELCOME-001]
+    val dateStr = shortDateText(timestampMs)
 
     PeekMetaRow(icon = Icons.Rounded.AccessTimeFilled, tint = tint, text = "$dateStr · $timeStr")
 }

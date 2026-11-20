@@ -27,6 +27,7 @@ import com.rndeveloper.paparcar.domain.event.MapFocusEventBus
 import com.rndeveloper.paparcar.domain.event.StartAddParkingEventBus
 import com.rndeveloper.paparcar.domain.usecase.entitlement.GetPlusOffersUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
+import com.rndeveloper.paparcar.domain.usecase.entitlement.ObservePlusGrantUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.PurchasePlusUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.RestorePurchasesUseCase
 import com.rndeveloper.paparcar.domain.notification.MapVisibility
@@ -133,6 +134,9 @@ val domainModule = module {
 
     // Entitlement UseCases — Paparcar Plus [MONEY-001]
     factory { ObserveIsPlusUseCase(entitlementRepository = get()) }
+    // [MONEY-FOUNDERS-WELCOME-001] Hermano del de arriba, no su sustituto: los seis gates siguen
+    // preguntando «¿puede?» y sólo dos sitios preguntan «¿de dónde salió?».
+    factory { ObservePlusGrantUseCase(entitlementRepository = get()) }
     factory { PurchasePlusUseCase(entitlementRepository = get()) }
     factory { GetPlusOffersUseCase(entitlementRepository = get()) }
     factory { RestorePurchasesUseCase(entitlementRepository = get()) }

@@ -46,12 +46,12 @@ import com.rndeveloper.paparcar.domain.model.PlusOffer
 import com.rndeveloper.paparcar.domain.model.PlusPlan
 import com.rndeveloper.paparcar.ui.components.PAPARCAR_LOGO_BESIDE_NAME_SIZE
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.rndeveloper.paparcar.presentation.util.shortDateText
 import com.rndeveloper.paparcar.presentation.util.storeRedeemCodeUrl
 import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
 import com.rndeveloper.paparcar.ui.components.PapPremiumButton
-import com.rndeveloper.paparcar.ui.components.PapPremiumMark
-import com.rndeveloper.paparcar.ui.components.PapPremiumSurface
+import com.rndeveloper.paparcar.ui.components.PapPremiumCrest
 import com.rndeveloper.paparcar.ui.components.PapSectionHeader
 import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.theme.PapBorders
@@ -65,18 +65,6 @@ import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import paparcar.composeapp.generated.resources.Res
-import paparcar.composeapp.generated.resources.paywall_benefit_alerts
-import paparcar.composeapp.generated.resources.paywall_benefit_alerts_note
-import paparcar.composeapp.generated.resources.paywall_benefit_history
-import paparcar.composeapp.generated.resources.paywall_benefit_history_note
-import paparcar.composeapp.generated.resources.paywall_benefit_routes
-import paparcar.composeapp.generated.resources.paywall_benefit_routes_note
-import paparcar.composeapp.generated.resources.paywall_benefit_shared_car
-import paparcar.composeapp.generated.resources.paywall_benefit_shared_car_note
-import paparcar.composeapp.generated.resources.paywall_benefit_vehicles
-import paparcar.composeapp.generated.resources.paywall_benefit_vehicles_note
-import paparcar.composeapp.generated.resources.paywall_benefit_zones
-import paparcar.composeapp.generated.resources.paywall_benefit_zones_note
 import paparcar.composeapp.generated.resources.paywall_benefits_title
 import paparcar.composeapp.generated.resources.paywall_billing_note
 import paparcar.composeapp.generated.resources.paywall_close_cd
@@ -87,6 +75,7 @@ import paparcar.composeapp.generated.resources.paywall_plan_monthly
 import paparcar.composeapp.generated.resources.paywall_plan_per_month
 import paparcar.composeapp.generated.resources.paywall_plan_savings_badge
 import paparcar.composeapp.generated.resources.paywall_plan_yearly
+import paparcar.composeapp.generated.resources.paywall_promo_ends
 import paparcar.composeapp.generated.resources.paywall_purchase_failed
 import paparcar.composeapp.generated.resources.paywall_redeem_code
 import paparcar.composeapp.generated.resources.paywall_restore
@@ -149,10 +138,12 @@ fun PaywallScreen(
             }
         }
     }
-    // However Plus arrived (this purchase, a restore, another device), a paywall shown to a
-    // Plus user has nothing left to sell — it leaves on its own.
-    LaunchedEffect(state.isPlus) {
-        if (state.isPlus) onClose()
+    // However Plus arrived (this purchase, a restore, another device), a paywall with nothing left
+    // to sell leaves on its own. ⛔ `dismissesItself` and not `isPlus`: a Plus that was GIVEN and
+    // expires still has the continuation to sell, and that user is the only one on this screen with
+    // a real decision to make. [MONEY-FOUNDERS-WELCOME-001]
+    LaunchedEffect(state.dismissesItself) {
+        if (state.dismissesItself) onClose()
     }
 
     PaywallContent(state = state, onIntent = viewModel::handleIntent, reason = reason)
@@ -315,10 +306,15 @@ private fun PaywallHeader() {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CREST_TEXT_GAP_DP.dp),
     ) {
-        // The BRAND cast in metal, not a medal in a box. A trophy glyph said "achievement" and
-        // nothing is unlocked by subscribing; and dropping the tile lets the mark itself be the
-        // metallic object, instead of a plain glyph sitting on one.
-        PapPremiumMark(size = PAPARCAR_LOGO_BESIDE_NAME_SIZE)
+        // The BRAND in metal, not a medal in a box: a trophy glyph said "achievement" and nothing
+        // is unlocked by subscribing.
+        //
+        // ⛔ A DISC of metal with the mark cut out of it, and not the mark cast in metal
+        // ([PapPremiumMark]) — decisión del user, 20-11, mirando la pantalla. Lo que gana es área:
+        // el barrido necesita superficie que cruzar, y a 72 dp el glifo suelto la tiene justa.
+        // Lo que cuesta está escrito en el KDoc de [PapPremiumCrest]: reinstala un disco bajo la
+        // marca, que la doctrina de iconos daba por muerto. [MONEY-FOUNDERS-WELCOME-001]
+        PapPremiumCrest(size = PAPARCAR_LOGO_BESIDE_NAME_SIZE)
         // `weight(1f)` and not intrinsic width: the tagline is a full sentence and it WILL wrap in
         // the longer locales. Wrapping is fine; being pushed off the edge is not.
         Column(modifier = Modifier.weight(1f)) {
@@ -454,159 +450,9 @@ private fun reasonLine(reason: PaywallReason): ReasonLine? = when (reason) {
 @Composable
 private fun PlusBenefits() {
     Column(modifier = Modifier.fillMaxWidth()) {
-        PLUS_BENEFITS.forEach { benefit -> BenefitRow(benefit) }
+        PLUS_BENEFITS.forEach { benefit -> PlusBenefitRow(benefit) }
     }
 }
-
-@Composable
-private fun BenefitRow(benefit: PlusBenefit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = BENEFIT_V_PAD_DP.dp),
-        horizontalArrangement = Arrangement.spacedBy(BENEFIT_GAP_DP.dp),
-        // Top, so the tile marks the first line of a title that wraps in the longer locales.
-        verticalAlignment = Alignment.Top,
-    ) {
-        // ⛔ Not `PapIconTile`: that one takes a flat container colour and the Plus finish is a
-        // brush, not a tone. `PapPremiumSurface` at row shape is the same recipe the crest and the
-        // buy button use — the metal has exactly one definition. It also supplies `premiumInk` as
-        // its content colour, so the glyph cannot be paired with the wrong ink by accident.
-        PapPremiumSurface(
-            modifier = Modifier.size(BENEFIT_TILE_DP.dp),
-            shape = PapShapes.row,
-        ) {
-            Icon(
-                imageVector = benefit.icon,
-                contentDescription = null,
-                modifier = Modifier.align(Alignment.Center).size(BENEFIT_ICON_DP.dp),
-            )
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            // `rowTitle` and not `rowName`: these are structural titles of a row, not the names of
-            // real things. The distinction is the type doctrine's, and it has one answer per call
-            // site. [UI-TYPE-TWO-VOICES-ONE-ROW-001]
-            Text(
-                text = stringResource(benefit.title),
-                style = PaparcarType.current.rowTitle,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = stringResource(benefit.note),
-                style = PaparcarType.current.caption,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-/**
- * One line of the pitch: what Plus adds, and the reference it is measured against.
- *
- * The [note] is what the free plan gives you where free gives you a smaller version of the same
- * thing ("Free: the last 7 days"), and what the feature IS where free does not have it at all.
- * ⛔ It is never "Not included": a benefit listed under *what Plus adds* already says that, and a
- * line whose content is the absence of content was the emptiest half of the old table.
- *
- * [sells] are the paywall entrances this row answers — every [PaywallReason] whose gate this line
- * is the pitch for. **Declared and not inferred**, and that is the whole point of the field: the
- * correspondence between *what we charge for* and *what we sell* used to live nowhere, so a gate
- * could be born with no line naming it and nothing would say a word. One was —
- * [PaywallReason.ROUTE_CLOUD], shipped by a ticket that never touched this file, sold on the
- * website and nowhere here for eleven days. `PaywallBenefitsCoverageTest` reads this field and
- * fails the build now. [PAYWALL-A-GATE-THAT-CHARGES-MUST-BE-SOLD-001]
- *
- * A row may sell several reasons when they are ONE promise to the reader; what it may not do is
- * leave one unsold.
- */
-internal class PlusBenefit(
-    val icon: ImageVector,
-    val title: StringResource,
-    val note: StringResource,
-    val sells: Set<PaywallReason>,
-)
-
-internal val PLUS_BENEFITS = listOf(
-    // Memory first, then watching, then capacity — the order of the doctrine's own axis: free is
-    // asking and being answered, Plus is being watched over and remembered for.
-    //
-    // 🔑 **History and figures are ONE row, because they are one gate.** They were two, and the
-    // two carried the SAME note a line apart — "Free: the last 7 days", twice — which is not a
-    // coincidence to tidy away but the fact itself: there is one window
-    // (`FREE_HISTORY_WINDOW_DAYS`) and the figures are computed over whatever it lets through.
-    // [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001] Two rows stating one limit read as a copy bug
-    // and spent a row saying it.
-    //
-    // ⛔ **The title LISTS what you get, because every shorter phrasing was a brochure.** The cell
-    // this replaces said "Any period", which describes a date picker and undersells eleven
-    // tickets. The first rewrite said "and what it learns from it" — and someone two days into
-    // the app does not know what that means. *Learns* is the kind of word that sounds like value
-    // and names none: it survives review because nobody can prove it wrong.
-    //
-    // So the row spends its width naming the actual outputs of the stats screen — spend, time
-    // looking, best places, best hours, forecasts. Still no mechanism words: no "insights", no
-    // "heatmap", no "clusters". Five nouns a first-week user can check against what they see.
-    //
-    // ⚠️ "places" here means the LOCATIONS you park in, not free community spots — so the
-    // translations must avoid each language's reserved word for a spot (posto, plek, miejsce,
-    // loc) and reach for its word for a place. [COPY-SPOT-IS-NOT-A-PARKING-001]
-    PlusBenefit(
-        PaparcarIcons.History,
-        Res.string.paywall_benefit_history,
-        Res.string.paywall_benefit_history_note,
-        // One row, two reasons, because there is ONE gate behind both — see above.
-        sells = setOf(PaywallReason.HISTORY, PaywallReason.STATS),
-    ),
-    // Memory's other half, and the reason it is a row of its own and not a clause of the one
-    // above: it is a DIFFERENT gate, with its own switch in Settings and its own entrance
-    // ([PaywallReason.ROUTE_CLOUD]). The history row sells a window in TIME; this one sells the
-    // trace surviving the phone that drew it. [PRIV-A-TRACE-IS-NOT-A-STAT-001]
-    //
-    // ⚠️ The note says where free keeps them, not that free lacks them: a free user's routes are
-    // recorded and drawn exactly the same — they just live on one phone and a reinstall is the
-    // end of them. Writing it as an absence would be the "Not included" cell this class forbids,
-    // and it would also be false.
-    PlusBenefit(
-        Icons.Rounded.Route,
-        Res.string.paywall_benefit_routes,
-        Res.string.paywall_benefit_routes_note,
-        sells = setOf(PaywallReason.ROUTE_CLOUD),
-    ),
-    // Both watches and the recap in one line — they are one promise to the reader ("the app tells
-    // me"), and splitting them would spend three rows on it.
-    //
-    // ⛔ "prices" alone does not say prices OF WHAT. The title carried it for one build and it was
-    // unreadable: parking prices? the subscription? It names the fuel station now. The recap is
-    // here and not with the history because this is the WATCHING row, and the month recap is the
-    // only thing in the whole app that knocks on the door by itself.
-    // [PLUS-A-PLAN-MUST-NAME-WHAT-IT-JUST-GAINED-001]
-    PlusBenefit(
-        Icons.Rounded.NotificationsActive,
-        Res.string.paywall_benefit_alerts,
-        Res.string.paywall_benefit_alerts_note,
-        sells = setOf(PaywallReason.ZONE_ALERTS, PaywallReason.FUEL_ALERTS, PaywallReason.MONTH_RECAP),
-    ),
-    PlusBenefit(
-        Icons.Rounded.Map,
-        Res.string.paywall_benefit_zones,
-        Res.string.paywall_benefit_zones_note,
-        sells = setOf(PaywallReason.ZONES),
-    ),
-    // The widget folded in here: it is FREE by doctrine — the present is never hidden
-    // [WIDGET-ACTIONS-002] — and what Plus adds to it is the other cars, which is this row.
-    // [WIDGET-A-TRIP-IS-NOT-AN-EMPTY-WIDGET-001]
-    PlusBenefit(
-        Icons.Rounded.DirectionsCar,
-        Res.string.paywall_benefit_vehicles,
-        Res.string.paywall_benefit_vehicles_note,
-        sells = setOf(PaywallReason.VEHICLES),
-    ),
-    // La feature estrella de Plus: el coche que conducen varios. [VEH-SHARED-001]
-    PlusBenefit(
-        PaparcarIcons.SharedCar,
-        Res.string.paywall_benefit_shared_car,
-        Res.string.paywall_benefit_shared_car_note,
-        sells = setOf(PaywallReason.SHARED_CAR),
-    ),
-)
 
 /**
  * The line that keeps the free plan honest, at the moment the app is asking for money.
@@ -658,6 +504,20 @@ private fun ColumnScope.PlanPicker(state: PaywallState, onIntent: (PaywallIntent
             selected = offer.plan == state.selectedPlan,
             savingsPercent = savings.takeIf { offer.plan == PlusPlan.YEARLY },
             onClick = { onIntent(PaywallIntent.SelectPlan(offer.plan)) },
+        )
+        Spacer(Modifier.height(PLAN_GAP_DP.dp))
+    }
+    // ⛔ Lo que esta pantalla NO puede hacer es gritar «Consigue Plus por 13,99 €» a quien ya lo
+    // tiene de regalo sin nombrar que se le acaba: una pantalla que ignora lo que el usuario ya
+    // tiene es la que enseña a desconfiar de la siguiente. Va con los PLANES porque es lo que
+    // cualifica la decisión de elegir uno. [MONEY-FOUNDERS-WELCOME-001]
+    state.plusPromoEndsAtMillis?.let { endsAt ->
+        Text(
+            text = stringResource(Res.string.paywall_promo_ends, shortDateText(endsAt)),
+            style = PaparcarType.current.caption,
+            color = MaterialTheme.colorScheme.primary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(PLAN_GAP_DP.dp))
     }
@@ -890,10 +750,6 @@ private const val REASON_V_PAD_DP = 10
 private const val REASON_ICON_GAP_DP = 10
 private const val REASON_ICON_DP = 16
 
-private const val BENEFIT_TILE_DP = 36
-private const val BENEFIT_ICON_DP = 18
-private const val BENEFIT_GAP_DP = 14
-private const val BENEFIT_V_PAD_DP = 7
 
 /** Sits under the list as its closing note, so it keeps the list's own rhythm rather than a
  *  section's. */

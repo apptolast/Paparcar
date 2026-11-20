@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -349,6 +350,53 @@ fun PapPremiumMark(
         )
     }
 }
+
+/**
+ * The crest of Paparcar Plus: a DISC of metal with the mark cut out of it.
+ * [MONEY-FOUNDERS-WELCOME-001] (decisión del user, 20-11)
+ *
+ * The inverse of [PapPremiumMark], and a different object rather than a variant of it: there the
+ * glyph IS the metal and the background shows through; here the metal is the disc and the glyph is
+ * the hole. Which one a surface wants is a composition decision, not a parameter.
+ *
+ * ⚠️ **It reads at small sizes, and that is its real advantage.** `PapPremiumMark` has its finish
+ * verified at 72 dp; below roughly half of that the bands have no area to cross and the mark comes
+ * out flat brand green (measured on a 30 dp dialog hero, 20-11). A disc gives the sweep its area
+ * back whatever the glyph measures, so the finish survives the shrink.
+ *
+ * ⛔ The mark is painted in `surface` — the page's own colour — so it reads as CUT OUT of the
+ * metal rather than drawn on top of it. That is also why it does not take a tint parameter: any
+ * other colour turns the hole into a sticker.
+ *
+ * ⛔ The paywall crest is the sole exception to the general no-disc brand rule in `CLAUDE.md`.
+ * The user chose this metallic disc with the mark cut out on 20-11; it does not revive the dark
+ * plates formerly used behind the mark on other surfaces.
+ */
+@Composable
+fun PapPremiumCrest(
+    modifier: Modifier = Modifier,
+    size: Dp = PAPARCAR_LOGO_SIZE,
+) {
+    PapPremiumSurface(
+        modifier = modifier.size(size),
+        shape = CircleShape,
+    ) {
+        PaparcarMark(
+            tint = MaterialTheme.colorScheme.surface,
+            size = size * MARK_FRACTION_OF_DISC,
+            modifier = Modifier.align(Alignment.Center),
+        )
+    }
+}
+
+/**
+ * How much of the disc the mark spans.
+ *
+ * ⛔ Not the geometric limit. The mark is FULL BLEED — its envelope touches all four edges of its
+ * box — so `1/√2` ≈ 0.707 is the conservative limit for fitting that square inside the circle.
+ * At 0.63 the mark is larger while its box still leaves metal around it and clear of the rim.
+ */
+private const val MARK_FRACTION_OF_DISC = 0.63f
 
 /**
  * The CTA that BUYS Plus — the brand's metal cast as a button.

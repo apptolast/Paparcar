@@ -69,6 +69,15 @@ class FakeAppPreferences(
     override val hasRequestedLocationPermission: Boolean get() = _hasRequestedLocationPermission
     override fun setLocationPermissionRequested() { _hasRequestedLocationPermission = true }
 
+    // [MONEY-FOUNDERS-WELCOME-001] Públicos para que un test pueda ARRANCAR con la cuenta ya
+    // felicitada, que es la mitad del invariante «una sola vez».
+    var plusPromoWelcomedUidsSet: Set<String> = emptySet()
+    override val plusPromoWelcomedUids: Set<String> get() = plusPromoWelcomedUidsSet
+    override fun addPlusPromoWelcomedUid(uid: String) { plusPromoWelcomedUidsSet += uid }
+    var plusPromoEndingNoticedUidsSet: Set<String> = emptySet()
+    override val plusPromoEndingNoticedUids: Set<String> get() = plusPromoEndingNoticedUidsSet
+    override fun addPlusPromoEndingNoticedUid(uid: String) { plusPromoEndingNoticedUidsSet += uid }
+
     private val _autoDetectParking = MutableStateFlow(initialAutoDetect)
     override val autoDetectParking: Boolean get() = _autoDetectParking.value
     override fun setAutoDetectParking(enabled: Boolean) { _autoDetectParking.value = enabled }

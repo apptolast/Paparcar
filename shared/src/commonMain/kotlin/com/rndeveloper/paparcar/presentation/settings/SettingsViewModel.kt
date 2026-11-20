@@ -16,7 +16,8 @@ import com.rndeveloper.paparcar.domain.service.WidgetPinRequester
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
 import com.rndeveloper.paparcar.domain.usecase.diagnostics.SendDiagnosticsReportUseCase
-import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
+import com.rndeveloper.paparcar.domain.model.PlusOrigin
+import com.rndeveloper.paparcar.domain.usecase.entitlement.ObservePlusGrantUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.DeleteAccountUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.SetFirstStepsDismissedUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
@@ -43,7 +44,7 @@ class SettingsViewModel(
     private val vehicleRepository: VehicleRepository,
     private val observeDetectionReliability: ObserveDetectionReliabilityUseCase,
     private val sendDiagnosticsReport: SendDiagnosticsReportUseCase,
-    private val observeIsPlus: ObserveIsPlusUseCase,
+    private val observePlusGrant: ObservePlusGrantUseCase,
     // [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001] Where a yes to ad measurement is taken back
     // (or given late). Same door as the one-time prompt, so both switch the lane the same way.
     private val adMeasurementLane: AdMeasurementLane,
@@ -162,8 +163,20 @@ class SettingsViewModel(
 
     /** Live Plus entitlement — the Plus row and the zone-alert gate react without re-entering. [MONEY-001] */
     private fun observeEntitlement() {
-        observeIsPlus()
-            .onEach { isPlus -> updateState { copy(isPlus = isPlus) } }
+        // ⛔ El GRANT y no sólo `isPlus`: la fila tiene que poder decir que este Plus es un REGALO
+        // y hasta cuándo, y seguir siendo puerta mientras haya algo que decidir.
+        // [MONEY-FOUNDERS-WELCOME-001]
+        observePlusGrant()
+            .onEach { grant ->
+                updateState {
+                    copy(
+                        isPlus = grant != null,
+                        plusPromoEndsAtMillis = grant
+                            ?.takeIf { it.origin == PlusOrigin.PROMOTIONAL }
+                            ?.expiresAtMillis,
+                    )
+                }
+            }
             .catch { e -> PaparcarLogger.w(TAG, "Failed to observe entitlement", e) }
             .launchIn(viewModelScope)
     }

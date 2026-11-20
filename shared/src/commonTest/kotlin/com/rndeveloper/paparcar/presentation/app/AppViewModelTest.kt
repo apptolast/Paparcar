@@ -20,9 +20,15 @@ import com.rndeveloper.paparcar.fakes.FakeUserProfileRepository
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityBannerPhase
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityStatus
 import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
+import com.rndeveloper.paparcar.domain.usecase.entitlement.ObservePlusGrantUseCase
 import com.rndeveloper.paparcar.domain.usecase.zone.ObserveZoneSpotAlertsUseCase
 import com.rndeveloper.paparcar.fakes.FakeAppNotificationManager
 import com.rndeveloper.paparcar.fakes.FakeAppPreferences
+import com.apptolast.baselogin.domain.model.UserSession
+import com.rndeveloper.paparcar.domain.entitlement.PLUS_PROMO_ENDING_WINDOW_DAYS
+import com.rndeveloper.paparcar.domain.entitlement.PlusMoment
+import com.rndeveloper.paparcar.domain.model.PlusGrant
+import com.rndeveloper.paparcar.domain.model.PlusOrigin
 import com.rndeveloper.paparcar.fakes.FakeAuthRepository
 import com.rndeveloper.paparcar.fakes.FakeConnectivityObserver
 import com.rndeveloper.paparcar.fakes.FakeEntitlementRepository
@@ -47,6 +53,7 @@ import com.rndeveloper.paparcar.domain.notification.NearbySpotAlerts
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -150,6 +157,14 @@ class AppViewModelTest {
         publishDetectionState = detectionPublisher,
         adMeasurementLane = adLane,
         setAdMeasurementConsent = SetAdMeasurementConsentUseCase(fakePrefs, adLane),
+        observePlusGrant = ObservePlusGrantUseCase(entitlementRepo),
+        authRepository = fakeAuth,
+    )
+
+    /** Firmado por defecto: el momento de Plus se promete POR CUENTA, así que un test que no
+     *  nombre al usuario no puede medir «una sola vez». [MONEY-FOUNDERS-WELCOME-001] */
+    private val fakeAuth = FakeAuthRepository(
+        initialSession = UserSession(userId = UID, email = null, displayName = null, photoUrl = null),
     )
 
     /** Available by default: the question is owed unless a test says otherwise. */
@@ -545,6 +560,131 @@ class AppViewModelTest {
             fakeNotifications.zoneSpotAlerts,
             "al volver a foreground, lo que llegó en el hueco se cuenta — no se pierde",
         )
+    }
+
+
+    // ── El Plus de regalo: la bienvenida, el aviso, y una sola vez ────────────
+    // [MONEY-FOUNDERS-WELCOME-001]
+
+    /**
+     * ⛔ El caso que hace que esto viva en la raíz y no en el arranque: el grant llega DESPUÉS.
+     * La promo se concede tras el registro, así que en una cuenta nueva lo normal es que el
+     * entitlement caiga con el usuario ya mirando el mapa. Un chequeo de primer arranque no lo
+     * vería nunca.
+     */
+    @Test
+    fun `should_celebrateTheGiftedPlus_when_theGrantLandsAfterStartup`() = runTest(testDispatcher) {
+        val vm = viewModel()
+        // Contestada de entrada: el orden entre las dos superficies tiene su propio test abajo, y
+        // dejarla abierta aquí mediría eso en vez de la llegada tardía del grant.
+        vm.handleIntent(AppIntent.AnswerAdMeasurementConsent(granted = false))
+        runCurrent()
+        assertNull(vm.state.value.plusMoment, "sin grant no hay nada que celebrar")
+
+        entitlementRepo.emitGrant(PlusGrant(PlusOrigin.PROMOTIONAL, inDays(90)))
+        runCurrent()
+
+        assertEquals(PlusMoment.FoundersWelcome(inDays(90)), vm.state.value.plusMoment)
+        assertEquals(
+            vm.state.value.plusMoment,
+            vm.state.value.plusMomentToShow,
+            "sin nada más en pantalla, el veredicto y lo que se enseña son lo mismo",
+        )
+    }
+
+    @Test
+    fun `should_sayNothing_when_thePlusWasBought`() = runTest(testDispatcher) {
+        val vm = viewModel()
+        entitlementRepo.emitGrant(PlusGrant(PlusOrigin.PURCHASED, null))
+        runCurrent()
+
+        assertNull(vm.state.value.plusMoment)
+    }
+
+    /** La mitad «una sola vez» del invariante: se apunta al cerrarlo, y el veredicto deja de
+     *  darlo en cuanto lo relee. */
+    @Test
+    fun `should_rememberTheWelcome_when_theUserClosesIt`() = runTest(testDispatcher) {
+        val vm = viewModel()
+        entitlementRepo.emitGrant(PlusGrant(PlusOrigin.PROMOTIONAL, inDays(90)))
+        runCurrent()
+        val moment = vm.state.value.plusMoment!!
+
+        vm.handleIntent(AppIntent.DismissPlusMoment(moment))
+        runCurrent()
+
+        assertNull(vm.state.value.plusMoment, "cerrado = fuera de pantalla")
+        assertEquals(setOf(UID), fakePrefs.plusPromoWelcomedUidsSet, "y apuntado, para que no vuelva")
+        assertTrue(
+            fakePrefs.plusPromoEndingNoticedUidsSet.isEmpty(),
+            "⛔ sólo se apunta la memoria del momento que se enseñó: el aviso de fin sigue debiéndose",
+        )
+    }
+
+    /** Y no vuelve en el arranque siguiente, que es donde un flag en memoria habría fallado. */
+    @Test
+    fun `should_notCelebrateAgain_when_theAccountWasAlreadyWelcomed`() = runTest(testDispatcher) {
+        fakePrefs.plusPromoWelcomedUidsSet = setOf(UID)
+        val vm = viewModel()
+        entitlementRepo.emitGrant(PlusGrant(PlusOrigin.PROMOTIONAL, inDays(90)))
+        runCurrent()
+
+        assertNull(vm.state.value.plusMoment)
+    }
+
+    @Test
+    fun `should_warnAboutTheEnding_when_theGiftedPlusEntersItsLastWeek`() = runTest(testDispatcher) {
+        fakePrefs.plusPromoWelcomedUidsSet = setOf(UID)
+        val vm = viewModel()
+        val endsAt = inDays(PLUS_PROMO_ENDING_WINDOW_DAYS - 1)
+        entitlementRepo.emitGrant(PlusGrant(PlusOrigin.PROMOTIONAL, endsAt))
+        runCurrent()
+
+        assertEquals(PlusMoment.PromoEnding(endsAt), vm.state.value.plusMoment)
+
+        vm.handleIntent(AppIntent.DismissPlusMoment(vm.state.value.plusMoment!!))
+        runCurrent()
+        assertEquals(setOf(UID), fakePrefs.plusPromoEndingNoticedUidsSet)
+    }
+
+    /**
+     * ⛔ Nunca modal sobre modal, y una cuenta NUEVA es exactamente la que debe las dos cosas: la
+     * pregunta de medición de anuncios y la bienvenida. El orden vive en el estado, no en la
+     * composición, y por eso tiene testigo aquí.
+     */
+    @Test
+    fun `should_holdTheCelebration_when_theAdMeasurementQuestionIsStillOpen`() = runTest(testDispatcher) {
+        val vm = viewModel()
+        entitlementRepo.emitGrant(PlusGrant(PlusOrigin.PROMOTIONAL, inDays(90)))
+        runCurrent()
+
+        assertTrue(vm.state.value.askAdMeasurementConsent, "la pregunta se debe en este grafo")
+        assertNull(vm.state.value.plusMomentToShow, "la noticia espera a que se conteste la pregunta")
+
+        vm.handleIntent(AppIntent.AnswerAdMeasurementConsent(granted = false))
+        runCurrent()
+
+        assertEquals(
+            PlusMoment.FoundersWelcome(inDays(90)),
+            vm.state.value.plusMomentToShow,
+            "contestada la pregunta, la celebración sale — no se ha perdido",
+        )
+    }
+
+    /**
+     * Una fecha a N días de AHORA, con el ahora leído UNA vez.
+     *
+     * ⛔ El ViewModel usa el reloj real (su veredicto es puro y ya tiene su propio test con un
+     * `nowMs` fijo), así que la fecha que se emite y la que se comprueba tienen que salir del
+     * mismo instante — si no, dos llamadas separadas por un milisegundo devolverían valores
+     * distintos y la comparación fallaría por ese milisegundo.
+     */
+    private val nowBase = kotlin.time.Clock.System.now().toEpochMilliseconds()
+
+    private fun inDays(days: Int): Long = nowBase + days * 24L * 60 * 60 * 1000
+
+    private companion object {
+        const val UID = "uid-founder"
     }
 
 }

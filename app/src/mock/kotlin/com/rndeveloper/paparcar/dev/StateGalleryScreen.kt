@@ -7,7 +7,11 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import com.rndeveloper.paparcar.domain.entitlement.PLUS_PROMO_ENDING_WINDOW_DAYS
+import com.rndeveloper.paparcar.domain.entitlement.PlusMoment
 import com.rndeveloper.paparcar.presentation.app.AdMeasurementConsentDialog
+import com.rndeveloper.paparcar.presentation.app.PlusMomentDialog
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -210,6 +214,27 @@ import com.rndeveloper.paparcar.presentation.home.model.FuelLaneSort
  *   Shown bottom-anchored like Home's sheet by default ("Completa"), with a "Solo" toggle to inspect
  *   the bare composable centered.
  */
+/** Una fecha a N días de hoy, para los momentos del Plus de regalo. ⛔ Relativa y no fija: una
+ *  fecha grabada caduca sola y la variante dejaría de enseñar lo que dice su nombre.
+ *  [MONEY-FOUNDERS-WELCOME-001] */
+/** Lo que le queda a la promo en la variante de bienvenida: tres meses, que es la promo real, y
+ *  muy por encima del umbral del aviso — así la variante enseña la bienvenida y no el aviso. */
+private const val PROMO_DEMO_DAYS = 90
+
+private fun inDays(days: Int): Long =
+    kotlin.time.Clock.System.now().toEpochMilliseconds() + days * 24L * 60 * 60 * 1000
+
+/** Lo que queda en pantalla cuando una variante de diálogo se cierra: sin esto la galería se queda
+ *  en blanco y parece roto. */
+@Composable
+private fun BoxScope.GalleryDismissedNote(text: String) {
+    Text(
+        text = text,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier.align(Alignment.Center),
+    )
+}
+
 private enum class Placement { FullScreen, Surface }
 
 /** One renderable screen state. [content] is the RAW composable — the viewer owns theme + host. */
@@ -1133,6 +1158,60 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                             color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.align(Alignment.Center),
                         )
+                    }
+                }
+            },
+        ),
+    ),
+    // [MONEY-FOUNDERS-WELCOME-001] Los dos momentos del Plus de regalo. Salen en el flujo vivo con
+    // las palancas «Plus de REGALO» + «Días que le quedan» del catálogo; aquí se ven los dos de
+    // seguido sin tocar nada, que es lo que hace falta para revisar el copy y el metal.
+    ScreenGroup(
+        "Plus de regalo · momentos",
+        listOf(
+            Variant("Bienvenida de fundador (con fecha de fin)") {
+                var dismissed by remember { mutableStateOf(false) }
+                Box(Modifier.fillMaxSize()) {
+                    if (!dismissed) {
+                        PlusMomentDialog(
+                            moment = PlusMoment.FoundersWelcome(expiresAtMillis = inDays(PROMO_DEMO_DAYS)),
+                            onDismiss = { dismissed = true },
+                            onSeePlans = {},
+                        )
+                    } else {
+                        GalleryDismissedNote("Cerrado · se apunta y no vuelve")
+                    }
+                }
+            },
+            // El grant promocional SIN fecha existe (RevenueCat admite conceder sin caducidad) y la
+            // frase no puede inventarse un día: la línea «Gratis hasta…» simplemente no se escribe.
+            Variant("Bienvenida de fundador (sin fecha de fin)") {
+                var dismissed by remember { mutableStateOf(false) }
+                Box(Modifier.fillMaxSize()) {
+                    if (!dismissed) {
+                        PlusMomentDialog(
+                            moment = PlusMoment.FoundersWelcome(expiresAtMillis = null),
+                            onDismiss = { dismissed = true },
+                            onSeePlans = {},
+                        )
+                    } else {
+                        GalleryDismissedNote("Cerrado · se apunta y no vuelve")
+                    }
+                }
+            },
+            Variant("Aviso de fin de promo (a $PLUS_PROMO_ENDING_WINDOW_DAYS días)") {
+                var dismissed by remember { mutableStateOf(false) }
+                Box(Modifier.fillMaxSize()) {
+                    if (!dismissed) {
+                        PlusMomentDialog(
+                            moment = PlusMoment.PromoEnding(
+                                expiresAtMillis = inDays(PLUS_PROMO_ENDING_WINDOW_DAYS),
+                            ),
+                            onDismiss = { dismissed = true },
+                            onSeePlans = {},
+                        )
+                    } else {
+                        GalleryDismissedNote("Cerrado · se apunta y no vuelve")
                     }
                 }
             },

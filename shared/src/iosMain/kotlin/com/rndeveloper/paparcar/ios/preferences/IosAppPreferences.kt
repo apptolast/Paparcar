@@ -23,6 +23,10 @@ private const val KEY_GPS_ACCURACY_DISCLAIMER_SEEN = "gps_accuracy_disclaimer_se
 // [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001]
 private const val KEY_AD_MEASUREMENT_CONSENT = "ad_measurement_consent"
 private const val KEY_LOCATION_PERMISSION_REQUESTED = "location_permission_requested"
+// Cuentas ya felicitadas / ya avisadas del fin de la promo Fundadores. ⛔ Fuera de
+// USER_SCOPED_KEYS a proposito: estan indexadas por uid. [MONEY-FOUNDERS-WELCOME-001]
+private const val KEY_PLUS_PROMO_WELCOMED_UIDS = "plus_promo_welcomed_uids"
+private const val KEY_PLUS_PROMO_ENDING_NOTICED_UIDS = "plus_promo_ending_noticed_uids"
 private const val KEY_AUTO_DETECT_PARKING = "auto_detect_parking"
 private const val KEY_PENDING_RELEASE_SPOT_ID = "pending_spot_release_id"
 private const val KEY_PENDING_RELEASE_VEHICLE_ID = "pending_spot_release_vehicle_id"
@@ -260,6 +264,32 @@ class IosAppPreferences : AppPreferences {
     }
 
     private val pendingParkNudgeFlow = MutableStateFlow(storedPendingParkNudge())
+
+    // ── Lo que ya se dijo a cada cuenta sobre su Plus de regalo.
+    //    [MONEY-FOUNDERS-WELCOME-001] ──
+    //
+    // ⛔ PERSISTIDO, no en memoria como el conjunto de abajo: una felicitacion que se olvida al
+    // cerrar el proceso vuelve a salir en cada arranque en frio, que es justo el defecto que la
+    // memoria existe para evitar.
+
+    override val plusPromoWelcomedUids: Set<String>
+        get() = storedUids(KEY_PLUS_PROMO_WELCOMED_UIDS)
+
+    override fun addPlusPromoWelcomedUid(uid: String) =
+        addUid(KEY_PLUS_PROMO_WELCOMED_UIDS, uid)
+
+    override val plusPromoEndingNoticedUids: Set<String>
+        get() = storedUids(KEY_PLUS_PROMO_ENDING_NOTICED_UIDS)
+
+    override fun addPlusPromoEndingNoticedUid(uid: String) =
+        addUid(KEY_PLUS_PROMO_ENDING_NOTICED_UIDS, uid)
+
+    private fun storedUids(key: String): Set<String> =
+        userDefaults.stringArrayForKey(key).orEmpty().mapNotNull { it as? String }.toSet()
+
+    private fun addUid(key: String, uid: String) {
+        userDefaults.setObject((storedUids(key) + uid).toList(), forKey = key)
+    }
 
     private val _dissolvedSharedCars = MutableStateFlow<Set<String>>(emptySet())
     override fun observeDissolvedSharedCars(): Flow<Set<String>> = _dissolvedSharedCars
