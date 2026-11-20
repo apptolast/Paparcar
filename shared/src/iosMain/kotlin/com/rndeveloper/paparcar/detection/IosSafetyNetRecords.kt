@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.detection
 
 import com.rndeveloper.paparcar.domain.detection.OpenDepartureAdjudication
+import com.rndeveloper.paparcar.domain.detection.ParkingAskBudget
 import platform.Foundation.NSUserDefaults
 
 /**
@@ -14,10 +15,15 @@ import platform.Foundation.NSUserDefaults
  *
  * The witness slot (`last_witnessed_*`) has NO iOS twin on purpose: it exists to vouch for a
  * cumulative counter's liveness, and iOS has no cumulative counter to vouch for.
+ *
+ * ⛔ The PROMPT slot is this platform's [ParkingAskBudget], so the interruption door in
+ * `commonMain` works here without a second store — and the honest close, which runs on both
+ * platforms, is rationed by the same clock on both.
+ * [DET-AN-HONEST-CLOSE-THAT-GOT-IT-RIGHT-MUST-NOT-APOLOGISE-001]
  */
 class IosSafetyNetRecords(
     private val defaults: NSUserDefaults = NSUserDefaults.standardUserDefaults,
-) {
+) : ParkingAskBudget {
     fun writeAnchor(geofenceId: String, atMs: Long) {
         defaults.setObject(atMs.toString(), forKey = KEY_NAMESPACE + ANCHOR_PREFIX + geofenceId)
     }
@@ -47,21 +53,34 @@ class IosSafetyNetRecords(
         return OpenDepartureAdjudication(atMs, parts.getOrNull(1)?.toBooleanStrictOrNull() ?: false)
     }
 
-    fun stampPrompt(geofenceId: String, atMs: Long) {
-        defaults.setObject(atMs.toString(), forKey = KEY_NAMESPACE + PROMPT_PREFIX + geofenceId)
+    /** ⛔ Keyed by VEHICLE since [DET-AN-HONEST-CLOSE-THAT-GOT-IT-RIGHT-MUST-NOT-APOLOGISE-001]:
+     *  a budget keyed by fence cannot throttle a door that mints a fence every time it fires.
+     *  Legacy fence stamps are not migrated; new stamps outlive session replacement. */
+    override fun stampAsk(vehicleId: String, atMs: Long) {
+        defaults.setObject(atMs.toString(), forKey = KEY_NAMESPACE + PROMPT_PREFIX + vehicleId)
     }
 
-    fun lastPromptAtMs(geofenceId: String): Long? =
-        (defaults.objectForKey(KEY_NAMESPACE + PROMPT_PREFIX + geofenceId) as? String)?.toLongOrNull()
+    override fun lastAskAtMs(vehicleId: String): Long? =
+        (defaults.objectForKey(KEY_NAMESPACE + PROMPT_PREFIX + vehicleId) as? String)?.toLongOrNull()
 
-    /** Drop every slot keyed by a fence no active session owns — the mesh's own hygiene. */
-    fun pruneAllExcept(activeGeofenceIds: Set<String>) {
-        val prefixes = listOf(ANCHOR_PREFIX, CURE_PREFIX, ADJUDICATION_PREFIX, PROMPT_PREFIX)
+    /** Drop every slot keyed by a fence no active session owns — the mesh's own hygiene.
+     *
+     *  ⛔ [PROMPT_PREFIX] is NOT in that sweep any more: it is keyed by vehicle and must outlive
+     *  the session it was spent in, or the next close mints a fresh budget.
+     *  [DET-AN-HONEST-CLOSE-THAT-GOT-IT-RIGHT-MUST-NOT-APOLOGISE-001] */
+    fun pruneAllExcept(activeGeofenceIds: Set<String>, activeVehicleIds: Set<String>?) {
+        val prefixes = listOf(ANCHOR_PREFIX, CURE_PREFIX, ADJUDICATION_PREFIX)
         defaults.dictionaryRepresentation().keys
             .filterIsInstance<String>()
             .filter { key -> key.startsWith(KEY_NAMESPACE) }
             .forEach { key ->
                 val local = key.removePrefix(KEY_NAMESPACE)
+                if (local.startsWith(PROMPT_PREFIX)) {
+                    if (activeVehicleIds != null && local.removePrefix(PROMPT_PREFIX) !in activeVehicleIds) {
+                        defaults.removeObjectForKey(key)
+                    }
+                    return@forEach
+                }
                 val prefix = prefixes.firstOrNull { local.startsWith(it) } ?: return@forEach
                 if (local.removePrefix(prefix) !in activeGeofenceIds) defaults.removeObjectForKey(key)
             }

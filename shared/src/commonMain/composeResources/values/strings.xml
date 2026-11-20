@@ -1263,4 +1263,10 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="home_still_parked_title_vehicle">Is %1$s still parked here?</string>
     <string name="home_parking_false_detection">This parking did not happen</string>
     <string name="home_parking_not_parked">I hadn’t parked</string>
+    <string name="notif_saved_approximate_title">Approximate parking saved</string>
+    <string name="notif_saved_approximate_text">We could not locate the car precisely. An approximate location was saved. Open the parking and adjust the pin on the map.</string>
+    <string name="notif_saved_approximate_action">Adjust</string>
+    <string name="notif_mark_parking_title">Where did you leave your car?</string>
+    <string name="notif_mark_parking_text">We noticed you moved, but we couldn't pin where your car ended up. Mark your parking so you don't lose it.</string>
+    <string name="notif_mark_parking_action">Mark parking</string>
 </resources>

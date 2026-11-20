@@ -1753,6 +1753,18 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
+            Variant("PapSheet · pin aproximado sin radio", Placement.Surface) {
+                val parking = FakeData.activeSession.copy(
+                    vehicleId = FakeData.vehicleSedan.id,
+                    detectionPath = "closed_approximate_pin",
+                    zoneRadiusMeters = null,
+                )
+                peek(HomeState(
+                    vehicles = listOf(FakeData.vehicleSedan),
+                    activeSessions = listOf(parking),
+                    selection = HomeSelection.Parking(parking.id),
+                ))
+            },
             // One parked car: the peek has no sibling to step to, so it ends at "Me voy".
             Variant("PapSheet · parking seleccionado (Me voy + Directions + editar)", Placement.Surface) {
                 peek(

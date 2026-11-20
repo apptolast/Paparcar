@@ -553,19 +553,22 @@ class AppNotificationManagerImpl(
         // their parking record if they ignore it. Tap and action both deep-link into
         // add-parking pin mode, same promise as the cold-start nudge. DETECTION nominated this
         // ask, so the confirmed pin keeps detection provenance. [DET-NUDGE-PIN-PROVENANCE-001]
+        val savedApproximate = !persistPending
+        val title = context.getString(if (savedApproximate) R.string.notif_saved_approximate_title else R.string.notif_mark_parking_title)
+        val text = context.getString(if (savedApproximate) R.string.notif_saved_approximate_text else R.string.notif_mark_parking_text)
         val addParkingIntent = buildAddParkingIntent(RC_MARK_PARKING_NUDGE, fromDetection = true)
         val notification = NotificationCompat.Builder(context, ACTION_CHANNEL_ID)
-            .setContentTitle(context.getString(R.string.notif_mark_parking_title))
-            .setContentText(context.getString(R.string.notif_mark_parking_text))
+            .setContentTitle(title)
+            .setContentText(text)
             .setStyle(
                 NotificationCompat.BigTextStyle()
-                    .bigText(context.getString(R.string.notif_mark_parking_text)),
+                    .bigText(text),
             )
             .setSmallIcon(R.drawable.ic_notification_logo)
             .setColor(COLOR_CONFIRMATION)
             .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
             .setContentIntent(addParkingIntent)
-            .addAction(0, context.getString(R.string.notif_mark_parking_action), addParkingIntent)
+            .addAction(0, context.getString(if (savedApproximate) R.string.notif_saved_approximate_action else R.string.notif_mark_parking_action), addParkingIntent)
             .setOnlyAlertOnce(true)
             .setAutoCancel(true)
             .build()

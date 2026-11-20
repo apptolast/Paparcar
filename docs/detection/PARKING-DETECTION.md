@@ -4497,6 +4497,30 @@ parchear alrededor. BATT-004 queda abierto en el backlog como idea RECHAZADA, no
 
 Spec: `docs/backlog/batt-safe-battery-optimizations-001.md`.
 
+### 2026-11-20 · El cierre honesto reserva el aviso para la duda que supera la valla [DET-AN-HONEST-CLOSE-THAT-GOT-IT-RIGHT-MUST-NOT-APOLOGISE-001]
+
+**Commit:** pending. **Reporte:** se preguntaba demasiado incluso después de guardar correctamente.
+**Causa raíz:** aviso incondicional tras guardar, presupuesto del safety net ligado a una geovalla
+efímera y aproximación visual confundida con geometría de área.
+
+**Fix:** el veredicto conserva la duda sin clamp y la compara con la valla del coche. Guarda sin
+interrumpir cuando cabe; cuando la supera, texto de ubicación aproximada guardada con remedio.
+Un singleton común serializa con Mutex los tres tipos de pregunta y estampa seis horas por vehículo
+antes de emitir. Android persiste con commit; iOS registra su almacén y el aviso con acción real.
+Sin guardado no hay aviso; tras guardar no se crea PendingParkNudge. Los avisos de recuperación
+sin artefacto siguen disponibles.
+
+**Consumidores:** UserParking distingue isArea de isApproximate; proyección, marcador, peek e
+historial expresan también el pin inferido sin radio. Nominación y publicación conservan geometría,
+fiabilidad y exclusión privada. DI prod/mock de ambas plataformas y textos de nueve idiomas en sync.
+
+**Riesgo acompañante:** limpiar por sesión borraría el límite con cada pin nuevo; ahora se limpia
+por vehículo y un fallo al consultar la flota no borra registros. Mantener el prefijo no migra las
+antiguas claves por valla: no se promete continuidad de ese histórico al actualizar. Una entrega
+fallida consume la ventana para evitar duplicados. Las pruebas cubren fronteras, concurrencia,
+reemplazo de valla, reinicio, fallo de guardado, proyección y política de publicación. El ticket
+registra resultados de validación y límites de hardware; sin evidencia de campo nueva.
+
 ## 3. Open questions / future work
 
 - **GPS sampling boost during CANDIDATE (PARKING-001 Option B).** Switch the LocationDataSource to a 1 s `minUpdateIntervalMillis` request when entering the CANDIDATE phase, returning to 2 s on exit. Increases density of fixes that refine `bestStopLocation` within the new initial-stop window after a reposition burst. Adds the complexity of swapping the location source mid-session — hold off until A is validated in the field.

@@ -73,6 +73,10 @@ val androidPlatformModule = module {
     // receiver (BT strategy) and ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS. [IOS-F0-03]
     single { DeviceCapabilities(supportsBtStrategy = true, supportsBatteryExemption = true) }
 
+    single<com.rndeveloper.paparcar.domain.detection.ParkingAskBudget> {
+        com.rndeveloper.paparcar.detection.AndroidParkingAskBudget(androidContext())
+    }
+
     // Preferences
     single<AppPreferences> { AndroidDataStoreAppPreferences(androidContext()) }
 

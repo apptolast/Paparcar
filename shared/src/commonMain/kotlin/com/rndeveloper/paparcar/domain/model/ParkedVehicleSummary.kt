@@ -44,7 +44,16 @@ data class ParkedVehicleSummary(
      * [UI-APPROXIMATE-PARKING-DRAWS-ITS-DOUBT-001]
      */
     val zoneRadiusMeters: Float? = null,
+    /**
+     * Carried, not derived: the projection has no `detectionPath`, and giving it one so the map
+     * could re-run the type lookup would put the same decision in two places.
+     * [UserParking.isApproximate] decides; this mirrors its answer for the path half.
+     * [DET-AN-HONEST-CLOSE-THAT-GOT-IT-RIGHT-MUST-NOT-APOLOGISE-001]
+     */
+    val placementIsApproximate: Boolean = false,
 ) {
-    /** True when this session is an AREA, not a point — same rule as [UserParking.isApproximate]. */
-    val isApproximate: Boolean get() = zoneRadiusMeters != null
+    /** True when the app does not claim to know exactly where this car stopped — an AREA, or a
+     *  point it inferred rather than measured. Same union, and the same meaning, as
+     *  [UserParking.isApproximate]. */
+    val isApproximate: Boolean get() = zoneRadiusMeters != null || placementIsApproximate
 }

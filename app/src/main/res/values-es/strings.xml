@@ -133,4 +133,7 @@
     <string name="notif_action_correct_parking">Corregir</string>
     <string name="notif_action_still_here">Sí</string>
     <string name="notif_action_review_parking">No</string>
+    <string name="notif_saved_approximate_title">Aparcamiento aproximado guardado</string>
+    <string name="notif_saved_approximate_text">No pudimos localizar el coche con precisión. Se guardó una ubicación aproximada. Abre el aparcamiento y ajusta el pin en el mapa.</string>
+    <string name="notif_saved_approximate_action">Ajustar</string>
 </resources>

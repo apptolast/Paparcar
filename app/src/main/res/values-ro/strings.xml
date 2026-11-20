@@ -131,4 +131,7 @@
     <string name="notif_action_correct_parking">Corectează</string>
     <string name="notif_action_still_here">Da</string>
     <string name="notif_action_review_parking">Nu</string>
+    <string name="notif_saved_approximate_title">Parcare aproximativă salvată</string>
+    <string name="notif_saved_approximate_text">Nu am putut localiza exact mașina. Am salvat o locație aproximativă. Deschide parcarea și ajustează marcajul pe hartă.</string>
+    <string name="notif_saved_approximate_action">Ajustează</string>
 </resources>

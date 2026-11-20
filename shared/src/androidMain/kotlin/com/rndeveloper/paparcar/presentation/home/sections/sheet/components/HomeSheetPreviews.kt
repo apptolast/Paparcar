@@ -193,6 +193,25 @@ private fun HomePeekHandleParkingSelectedLightPreview() {
     }
 }
 
+@Preview(name = "Parking aproximado sin radio", showBackground = true)
+@Composable
+private fun HomeApproximatePinPreview() {
+    val parking = FakeData.activeSession.copy(
+        vehicleId = FakeData.vehicleSedan.id,
+        detectionPath = "closed_approximate_pin",
+        zoneRadiusMeters = null,
+    )
+    PaparcarTheme(darkTheme = true) {
+        HomePeekHandle(
+            slice = HomeState(
+                vehicles = listOf(FakeData.vehicleSedan),
+                activeSessions = listOf(parking),
+                selection = HomeSelection.Parking(parking.id),
+            ).toPeekSlice(),
+        )
+    }
+}
+
 // El peek con un viaje EN CURSO: el tile lead respira el halo radar y las palabras de fase laten,
 // mientras el nombre del coche se queda quieto en su color de identidad. El movimiento sólo se ve
 // en preview interactiva o en device. [UI-PEEK-DRIVING-HAS-NO-MOTION-001]

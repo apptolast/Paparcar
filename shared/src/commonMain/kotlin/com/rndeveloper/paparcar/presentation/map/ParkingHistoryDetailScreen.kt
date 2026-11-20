@@ -274,6 +274,7 @@ fun ParkingHistoryDetailScreen(
             parkingIsActive = focusedSession?.isActive == true,
             // [DET-DOUBT-MUST-REACH-THE-SCREEN-001] La duda que la sesión midió y guardó.
             parkingZoneRadiusMeters = focusedSession?.zoneRadiusMeters,
+            parkingIsApproximate = focusedSession?.isApproximate == true,
             onSpotClick = {},
             cameraTarget = cameraTarget,
             modifier = Modifier
@@ -724,7 +725,7 @@ private fun HistoryParkingCard(
                 // Home — no se re-implementa una fila «icono + texto» [UI-LIST-ITEM-001]. Sin él,
                 // esta pantalla presentaba una zona de 250 m como un punto exacto, con un botón
                 // «Navegar a esta ubicación» debajo.
-                ApproximateZoneRow(zoneRadiusMeters = session.zoneRadiusMeters, accentColor = metaTint)
+                ApproximateZoneRow(zoneRadiusMeters = session.zoneRadiusMeters, accentColor = metaTint, isApproximate = session.isApproximate)
                 // ⛔ Un HECHO de esta sesión, no una cifra agregada: aquí siempre es verdad cuando
                 // se enseña, porque sólo aparece si TÚ diste fe de estar en esa plaza. Un total
                 // construido sobre votos voluntarios subcontaría siempre, y un total que subcuenta

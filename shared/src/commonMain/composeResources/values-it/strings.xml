@@ -1216,4 +1216,10 @@ Se la richiesta non compare più, cambiala in Impostazioni → Paparcar → Posi
     <string name="home_still_parked_title_vehicle">%1$s è ancora parcheggiata qui?</string>
     <string name="home_parking_false_detection">Questo parcheggio non è avvenuto</string>
     <string name="home_parking_not_parked">Non avevo parcheggiato</string>
+    <string name="notif_saved_approximate_title">Parcheggio approssimativo salvato</string>
+    <string name="notif_saved_approximate_text">Non abbiamo localizzato con precisione la tua auto. Abbiamo salvato una posizione approssimativa. Apri il parcheggio e regola il segnaposto sulla mappa.</string>
+    <string name="notif_saved_approximate_action">Regola</string>
+    <string name="notif_mark_parking_title">Dove hai lasciato l'auto?</string>
+    <string name="notif_mark_parking_text">Abbiamo rilevato che ti sei spostato, ma non siamo riusciti a fissare dove è rimasta la tua auto. Segna il parcheggio per non perderlo.</string>
+    <string name="notif_mark_parking_action">Segna parcheggio</string>
 </resources>

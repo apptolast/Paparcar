@@ -56,6 +56,16 @@ class IosNotificationActionHandler(
     ) {
         val actionId = didReceiveNotificationResponse.actionIdentifier
         PaparcarLogger.d(TAG, "didReceive action=$actionId")
+        val content = didReceiveNotificationResponse.notification.request.content
+        if (content.userInfo[IosAppNotificationManagerImpl.EXTRA_PARKING_NUDGE] == "true" &&
+            (actionId == IosAppNotificationManagerImpl.ACTION_ADJUST_PARKING ||
+                actionId == platform.UserNotifications.UNNotificationDefaultActionIdentifier)
+        ) {
+            startAddParking.request(fromDetectionNudge = true)
+            notificationPort.dismiss(AppNotificationManager.MARK_PARKING_NUDGE_NOTIFICATION_ID)
+            withCompletionHandler()
+            return
+        }
         when (actionId) {
             IosAppNotificationManagerImpl.ACTION_CONFIRMED -> coordinator.onUserConfirmedParking()
             IosAppNotificationManagerImpl.ACTION_DENIED -> coordinator.onUserDeniedParking()

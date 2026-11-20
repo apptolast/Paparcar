@@ -95,6 +95,9 @@ import org.koin.dsl.module
  * BY HAND in the same task that touches its twin.
  */
 val iosMockModule = module {
+    single<com.rndeveloper.paparcar.domain.detection.ParkingAskBudget> {
+        com.rndeveloper.paparcar.fakes.data.repository.FakeParkingAskBudget()
+    }
     // Dev scenario shared by the scenario-aware fakes below and by the Dev Catalog UI.
     single { MockScenario() }
 

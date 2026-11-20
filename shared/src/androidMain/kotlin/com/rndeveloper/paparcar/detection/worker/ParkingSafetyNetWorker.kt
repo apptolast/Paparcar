@@ -37,8 +37,7 @@ import com.rndeveloper.paparcar.domain.detection.DepartureAdjudicationVerdict
 import com.rndeveloper.paparcar.domain.detection.OpenDepartureAdjudication
 import com.rndeveloper.paparcar.domain.detection.adjudicateDeparture
 import com.rndeveloper.paparcar.domain.detection.cleanOrphanEnterFences
-import com.rndeveloper.paparcar.domain.detection.SafetyNetAskKind
-import com.rndeveloper.paparcar.domain.detection.safetyNetAskIsDue
+import com.rndeveloper.paparcar.domain.detection.ParkingAskKind
 import com.rndeveloper.paparcar.domain.detection.stillParkedPromptsExplainedByDeparture
 import com.rndeveloper.paparcar.domain.detection.sentry.SentryKillVerdict
 import com.rndeveloper.paparcar.domain.detection.sentry.resolveSentryKillVerdict
@@ -115,6 +114,9 @@ class ParkingSafetyNetWorker(
     private val detectionEventLogger: DetectionEventLogger by inject()
     private val stepCounterSource: StepCounterSource by inject()
     private val config: ParkingDetectionConfig by inject()
+    // [DET-AN-HONEST-CLOSE-THAT-GOT-IT-RIGHT-MUST-NOT-APOLOGISE-001] The interruption door and
+    // its per-car budget now live in commonMain, because the honest close knocks on the same one.
+    private val raiseParkingAsk: com.rndeveloper.paparcar.domain.usecase.parking.RaiseParkingAskUseCase by inject()
     // [DET-HANDOFF-NOT-MANUAL-001] The handoff has its own port; the "I'm driving" one belongs to the
     // user's button and to nobody else.
     private val arrivalHandoffDetection: com.rndeveloper.paparcar.domain.detection.ports.ArrivalHandoffDetection by inject()
@@ -302,7 +304,15 @@ class ParkingSafetyNetWorker(
             else remove(KEY_LAST_WITNESSED_STEPS)
         }
         // Drop anchors of geofences that no longer have an active session (departed / reverted).
-        pruneStaleAnchors(prefs, sessions.mapNotNullTo(mutableSetOf()) { it.geofenceId })
+        pruneStaleAnchors(
+            prefs,
+            sessions.mapNotNullTo(mutableSetOf()) { it.geofenceId },
+            // ⛔ Every vehicle the user HAS, not only the parked ones: the budget outlives the
+            // session it was spent in (that is its whole point), so it may only be dropped when the
+            // car itself is gone. Keyed off the session list it would be erased on every release.
+            runCatching { vehicleRepository.observeVehicles().firstOrNull() }
+                .getOrNull()?.mapTo(mutableSetOf()) { it.id },
+        )
 
         for (session in sessions) {
             val anchorSteps = session.geofenceId?.let { readAnchorSteps(prefs, it) }
@@ -713,9 +723,9 @@ class ParkingSafetyNetWorker(
                             // [DET-NUDGE-PIN-PROVENANCE-001]. It goes through the same door as the
                             // still-parked ask so it draws on the same per-fence budget.
                             arrivalAsked = raiseSafetyNetAsk(
-                                prefs = prefs,
+                                vehicleId = session.vehicleId,
                                 geofenceId = action.geofenceId,
-                                kind = SafetyNetAskKind.WhereDidYouPark,
+                                kind = ParkingAskKind.WhereDidYouPark,
                                 now = now,
                                 source = source,
                                 fixSpeedKmh = fix.speed * KMH_PER_MPS,
@@ -799,9 +809,9 @@ class ParkingSafetyNetWorker(
                 )) continue
             anyPromptActive = true
             val raised = raiseSafetyNetAsk(
-                prefs = prefs,
+                vehicleId = session?.vehicleId,
                 geofenceId = action.geofenceId,
-                kind = SafetyNetAskKind.StillParked,
+                kind = ParkingAskKind.StillParked,
                 now = now,
                 source = source,
                 fixSpeedKmh = fix.speed * KMH_PER_MPS,
@@ -1029,31 +1039,46 @@ class ParkingSafetyNetWorker(
      * @return whether the ask was actually raised (false = the budget is still spent).
      */
     private suspend fun raiseSafetyNetAsk(
-        prefs: android.content.SharedPreferences,
+        vehicleId: String?,
         geofenceId: String,
-        kind: SafetyNetAskKind,
+        kind: ParkingAskKind,
         now: Long,
         source: String,
         fixSpeedKmh: Float,
         show: () -> Unit,
     ): Boolean {
-        val lastAskAt = prefs.getLong(ASK_KEY_PREFIX + geofenceId, 0L)
-        if (!safetyNetAskIsDue(lastAskAt, now, config.safetyNetAskThrottleMs)) {
-            PaparcarLogger.d(
-                DIAG,
-                "⊘ ask suppressed geofence=$geofenceId kind=$kind — asked ${(now - lastAskAt) / 60_000}min ago, " +
-                    "budget refills every ${config.safetyNetAskThrottleMs / 3_600_000}h",
-            )
-            return false
+        // [DET-AN-HONEST-CLOSE-THAT-GOT-IT-RIGHT-MUST-NOT-APOLOGISE-001] The decision and the stamp
+        // moved to `RaiseParkingAskUseCase`; what stays here is this worker's TELEMETRY, which the
+        // honest close does not share (its trace is the abort's own line). The budget read/write
+        // that used to sit inline is now the same one the honest close uses — one door, one clock.
+        val outcome = raiseParkingAsk(
+            vehicleId = vehicleId,
+            kind = kind,
+            nowMs = now,
+        ) {
+            runCatching { show() }
+                .onFailure { e -> PaparcarLogger.w(DIAG, "  ✗ ask notification failed (${e.message})") }
         }
-        PaparcarLogger.d(DIAG, "▶ asking the user geofence=$geofenceId kind=$kind")
-        // Stamped BEFORE the notification: a crash between the two must cost one unasked question,
-        // never an unthrottled door. Same order, and the same reason, as the departure adjudication.
-        prefs.edit { putLong(ASK_KEY_PREFIX + geofenceId, now) }
-        runCatching { show() }
-            .onFailure { e -> PaparcarLogger.w(DIAG, "  ✗ ask notification failed (${e.message})") }
-        logVerdict(geofenceId, verdict = kind.verdictLabel, source = source, fixSpeedKmh = fixSpeedKmh, now = now)
-        return true
+        return when (outcome) {
+            is com.rndeveloper.paparcar.domain.usecase.parking.ParkingAskOutcome.Suppressed -> {
+                PaparcarLogger.d(
+                    DIAG,
+                    "⊘ ask suppressed vehicle=$vehicleId geofence=$geofenceId kind=$kind — " +
+                        "asked ${outcome.askedAgoMs / 60_000}min ago, " +
+                        "budget refills every ${config.safetyNetAskThrottleMs / 3_600_000}h",
+                )
+                false
+            }
+            is com.rndeveloper.paparcar.domain.usecase.parking.ParkingAskOutcome.Raised -> {
+                PaparcarLogger.d(
+                    DIAG,
+                    "▶ asking the user vehicle=$vehicleId geofence=$geofenceId kind=$kind" +
+                        if (outcome.budgeted) "" else " (no vehicle to budget — asked anyway)",
+                )
+                logVerdict(geofenceId, verdict = kind.verdictLabel, source = source, fixSpeedKmh = fixSpeedKmh, now = now)
+                true
+            }
+        }
     }
 
     private suspend fun logVerdict(geofenceId: String, verdict: String, source: String, fixSpeedKmh: Float, now: Long) {
@@ -1152,14 +1177,22 @@ class ParkingSafetyNetWorker(
 
     /** Removes per-geofence anchor + prompt-throttle + exit-evidence keys for geofences with no
      *  active session left (departed / reverted). */
-    private fun pruneStaleAnchors(prefs: android.content.SharedPreferences, liveGeofenceIds: Set<String>) {
+    private fun pruneStaleAnchors(
+        prefs: android.content.SharedPreferences,
+        liveGeofenceIds: Set<String>,
+        liveVehicleIds: Set<String>?,
+    ) {
         val stale = prefs.all.keys.filter { key ->
             when {
                 key.startsWith(ANCHOR_SEAL_POS_KEY_PREFIX) -> key.removePrefix(ANCHOR_SEAL_POS_KEY_PREFIX) !in liveGeofenceIds
                 key.startsWith(ANCHOR_SEAL_AT_KEY_PREFIX) -> key.removePrefix(ANCHOR_SEAL_AT_KEY_PREFIX) !in liveGeofenceIds
                 key.startsWith(ANCHOR_STEPS_KEY_PREFIX) -> key.removePrefix(ANCHOR_STEPS_KEY_PREFIX) !in liveGeofenceIds
                 key.startsWith(ANCHOR_KEY_PREFIX) -> key.removePrefix(ANCHOR_KEY_PREFIX) !in liveGeofenceIds
-                key.startsWith(ASK_KEY_PREFIX) -> key.removePrefix(ASK_KEY_PREFIX) !in liveGeofenceIds
+                // [DET-AN-HONEST-CLOSE-THAT-GOT-IT-RIGHT-MUST-NOT-APOLOGISE-001] This one key is
+                // no longer per-fence: it is the per-CAR interruption budget, so a fence ending
+                // must NOT wipe it — that is exactly how the honest close used to get a fresh
+                // budget with every pin it minted. It expires with the VEHICLE.
+                key.startsWith(ASK_KEY_PREFIX) -> liveVehicleIds != null && key.removePrefix(ASK_KEY_PREFIX) !in liveVehicleIds
                 // [DET-TWO-DISPATCHES-OF-ONE-DEPARTURE-READ-DIFFERENT-STATE-001] …and this is also
                 // how the adjudication CLOSES: the departure it adjudicated ends the session, so the
                 // next tick finds no live fence for it and drops the seal. That is why the watchdog
@@ -1247,13 +1280,10 @@ class ParkingSafetyNetWorker(
          *  events were never delivered to a dead process. [DET-EXACT-HEARTBEAT-001] */
         const val SOURCE_EXACT_ALARM = "exact-alarm"
 
-        /** Per-geofence ask-throttle timestamp keys, in the same prefs file as the anchor. The
-         *  interval itself lives in [ParkingDetectionConfig.safetyNetAskThrottleMs] — it is shared
-         *  with iOS and with the two questions, so it is no longer a private constant here.
-         *  ⛔ The KEY keeps its old `prompt_` spelling on purpose: renaming it would hand every
-         *  already-throttled fence in the field a fresh budget on update.
-         *  [DET-A-STILL-PARKED-ASK-MUST-EARN-ITS-INTERRUPTION-001] */
-        private const val ASK_KEY_PREFIX = "prompt_"
+        /** Per-vehicle budget shared by all three asks. Historical fence-keyed stamps are not
+         *  migrated; all new stamps outlive geofence replacement.
+         *  [DET-AN-HONEST-CLOSE-THAT-GOT-IT-RIGHT-MUST-NOT-APOLOGISE-001] */
+        internal const val ASK_KEY_PREFIX = "prompt_"
 
         /** Why the arrival nudge asked — travels into `DetectionPath.Nudge(source)`, so a pin the
          *  user drops from it says which lane could not place the car. [DET-A-NUDGE-MUST-SAY-WHO-ASKED-001] */

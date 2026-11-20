@@ -72,6 +72,9 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
 val mockModule = module {
+    single<com.rndeveloper.paparcar.domain.detection.ParkingAskBudget> {
+        com.rndeveloper.paparcar.fakes.data.repository.FakeParkingAskBudget()
+    }
     // Dev scenario shared by the scenario-aware fakes below and by the Dev Catalog UI.
     single { MockScenario() }
 

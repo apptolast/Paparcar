@@ -333,9 +333,9 @@ internal fun List<Zone>.zoneMarkKey(v: ParkedVehicleSummary): String =
 /** `apx` when the session is an area, `pt` when it is a point — one segment of the marker cache key. */
 private fun ParkedVehicleSummary.doubtKey(): String = if (isApproximate) "apx" else "pt"
 
-/** The doubt dress a saved parking wears: an area gets the target ⊙, a point gets nothing. */
-private fun parkingDoubt(zoneRadiusMeters: Float?): VehicleMarkerDoubt =
-    if (zoneRadiusMeters != null) VehicleMarkerDoubt.APPROXIMATE else VehicleMarkerDoubt.NONE
+/** Approximate placements wear the target ⊙, including inferred points without a radius. */
+private fun parkingDoubt(approximate: Boolean): VehicleMarkerDoubt =
+    if (approximate) VehicleMarkerDoubt.APPROXIMATE else VehicleMarkerDoubt.NONE
 
 /**
  * Content id of the fallback single-parking marker (the Historial surface, which has no
@@ -865,6 +865,7 @@ fun PaparcarMapView(
      * the badge does not move, the circle says "somewhere in here".
      */
     parkingZoneRadiusMeters: Float? = null,
+    parkingIsApproximate: Boolean = parkingZoneRadiusMeters != null,
     /** When true the add-parking centre pin reads as a Bluetooth-tracked car (blue border). */
     parkingIsBluetoothPaired: Boolean = false,
     cameraTarget: CameraTarget? = null,
@@ -1101,7 +1102,7 @@ fun PaparcarMapView(
         // cached raster) of the previously focused session. The [parkedVehicles] path needs no
         // equivalent: the radius travels inside the summaries, which are already a key.
         // [UI-A-SAVED-ZONE-WEARS-ITS-DOUBT-TOO-001]
-        parkingZoneRadiusMeters,
+        parkingZoneRadiusMeters, parkingIsApproximate,
     ) {
         buildList {
             // Zone markers — added FIRST (lowest zIndex) so spot/parking markers
@@ -1209,7 +1210,7 @@ fun PaparcarMapView(
                             dimSpots   -> MARKER_MY_CAR_DIM
                             else       -> MARKER_MY_CAR
                         },
-                        approximate = parkingZoneRadiusMeters != null,
+                        approximate = parkingIsApproximate,
                         themeKey = themeKey,
                     )
                     add(
@@ -1477,7 +1478,7 @@ fun PaparcarMapView(
                             color = v.color,
                             // Same field that draws the ring around it, so circle and badge cannot
                             // disagree. [UI-A-SAVED-ZONE-WEARS-ITS-DOUBT-TOO-001]
-                            doubt = parkingDoubt(v.zoneRadiusMeters),
+                            doubt = parkingDoubt(v.isApproximate),
                             zoneMark = zoneMark,
                         )
                     },
@@ -1490,7 +1491,7 @@ fun PaparcarMapView(
                                 stableRank = v.stableRank,
                                 isBluetoothPaired = v.isBluetoothPaired,
                                 color = v.color,
-                                doubt = parkingDoubt(v.zoneRadiusMeters),
+                                doubt = parkingDoubt(v.isApproximate),
                                 zoneMark = zoneMark,
                             )
                         }
@@ -1504,7 +1505,7 @@ fun PaparcarMapView(
                             stableRank = v.stableRank,
                             isBluetoothPaired = v.isBluetoothPaired,
                             color = v.color,
-                            doubt = parkingDoubt(v.zoneRadiusMeters),
+                            doubt = parkingDoubt(v.isApproximate),
                             zoneMark = zoneMark,
                         )
                     },

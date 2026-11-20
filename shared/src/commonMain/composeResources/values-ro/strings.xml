@@ -1238,4 +1238,10 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="home_still_parked_title_vehicle">%1$s este încă parcată aici?</string>
     <string name="home_parking_false_detection">Această parcare nu a avut loc</string>
     <string name="home_parking_not_parked">Nu parcasem</string>
+    <string name="notif_saved_approximate_title">Parcare aproximativă salvată</string>
+    <string name="notif_saved_approximate_text">Nu am putut localiza exact mașina. Am salvat o locație aproximativă. Deschide parcarea și ajustează marcajul pe hartă.</string>
+    <string name="notif_saved_approximate_action">Ajustează</string>
+    <string name="notif_mark_parking_title">Unde ți-ai lăsat mașina?</string>
+    <string name="notif_mark_parking_text">Am detectat că te-ai deplasat, dar nu am putut stabili unde a rămas mașina ta. Marchează parcarea ca să nu o pierzi.</string>
+    <string name="notif_mark_parking_action">Marchează parcarea</string>
 </resources>

@@ -86,7 +86,13 @@ class EvaluateSpotReleaseNominationUseCase {
         if (pending != null && pending.spotId == session.id) {
             return SpotReleaseNomination.Skip(REASON_ALREADY_NOMINATED)
         }
-        if (session.isApproximate) return SpotReleaseNomination.Skip(REASON_APPROXIMATE_PARK)
+        // ⛔ `isArea`, not `isApproximate`: THIS site is the one place that genuinely asks about the
+        // GEOMETRY. Handing a spot to the community means naming a kerb another driver can aim at,
+        // and an area names none — while a pin the app merely inferred still names one, with its
+        // reliability stamped on it for the policy below to weigh. The two questions shared one
+        // predicate until [DET-AN-HONEST-CLOSE-THAT-GOT-IT-RIGHT-MUST-NOT-APOLOGISE-001] split
+        // them; reading the user-facing one here would silently stop publishing every inferred pin.
+        if (session.isArea) return SpotReleaseNomination.Skip(REASON_APPROXIMATE_PARK)
 
         val shape = SpotReleasePolicy.shapeFor(
             location = session.location,

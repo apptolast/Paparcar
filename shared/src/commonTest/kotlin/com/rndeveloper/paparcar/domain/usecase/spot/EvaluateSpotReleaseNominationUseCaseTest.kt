@@ -14,6 +14,13 @@ import kotlin.test.assertIs
  */
 class EvaluateSpotReleaseNominationUseCaseTest {
 
+    @Test
+    fun should_preservePointPublicationPolicy_when_pinHasApproximateProvenance() {
+        val point = session().copy(detectionPath = "closed_approximate_pin")
+        assertIs<SpotReleaseNomination.Publish>(evaluate(session = point))
+        assertIs<SpotReleaseNomination.Skip>(evaluate(session = point.copy(zoneRadiusMeters = 60f)))
+    }
+
     private val useCase = EvaluateSpotReleaseNominationUseCase()
     private val carLocation = GpsPoint(40.0, -3.0, accuracy = 5f, timestamp = 1_000L, speed = 0f)
 

@@ -1216,4 +1216,10 @@ Si la question n'apparaît plus, changez-le dans Réglages → Paparcar → Posi
     <string name="home_still_parked_title_vehicle">%1$s est toujours garée ici ?</string>
     <string name="home_parking_false_detection">Ce stationnement n’a pas eu lieu</string>
     <string name="home_parking_not_parked">Je ne m’étais pas garé</string>
+    <string name="notif_saved_approximate_title">Stationnement approximatif enregistré</string>
+    <string name="notif_saved_approximate_text">Nous avons enregistré une position approximative, faute de pouvoir localiser précisément la voiture. Ouvrez le stationnement et ajustez le repère sur la carte.</string>
+    <string name="notif_saved_approximate_action">Ajuster</string>
+    <string name="notif_mark_parking_title">Où avez-vous laissé votre voiture ?</string>
+    <string name="notif_mark_parking_text">Nous avons détecté un déplacement, mais nous n'avons pas pu déterminer où est restée votre voiture. Marquez le stationnement pour ne pas le perdre.</string>
+    <string name="notif_mark_parking_action">Marquer le stationnement</string>
 </resources>

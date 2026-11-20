@@ -20,6 +20,12 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.notif_saved_approximate_title
+import paparcar.composeapp.generated.resources.notif_saved_approximate_text
+import paparcar.composeapp.generated.resources.notif_saved_approximate_action
+import paparcar.composeapp.generated.resources.notif_mark_parking_title
+import paparcar.composeapp.generated.resources.notif_mark_parking_text
+import paparcar.composeapp.generated.resources.notif_mark_parking_action
 import paparcar.composeapp.generated.resources.notif_action_ack
 import paparcar.composeapp.generated.resources.notif_action_cancel_save
 import paparcar.composeapp.generated.resources.notif_action_confirm
@@ -290,6 +296,28 @@ class IosAppNotificationManagerImpl(
         }
     }
 
+    override fun showMarkParkingNudge(source: String?, vehicleId: String?, persistPending: Boolean) {
+        appPreferences.clearPendingPromptWindow()
+        if (persistPending) {
+            appPreferences.setPendingParkNudge(
+                com.rndeveloper.paparcar.domain.detection.PendingParkNudge(
+                    createdAtMs = kotlin.time.Clock.System.now().toEpochMilliseconds(),
+                    source = source ?: "unknown",
+                    vehicleId = vehicleId,
+                ),
+            )
+        }
+        postLocalized(PARKING_CONFIRMATION_NOTIFICATION_ID) {
+            val title = getString(if (persistPending) Res.string.notif_mark_parking_title else Res.string.notif_saved_approximate_title)
+            val body = getString(if (persistPending) Res.string.notif_mark_parking_text else Res.string.notif_saved_approximate_text)
+            setTitle(title)
+            setBody(body)
+            setCategoryIdentifier(if (persistPending) CATEGORY_RECOVERY_NUDGE else CATEGORY_PARKING_NUDGE)
+            setUserInfo(mapOf(EXTRA_PARKING_NUDGE to "true"))
+            setSound(platform.UserNotifications.UNNotificationSound.defaultSound)
+        }
+    }
+
     override fun updateDetectionVehicle(vehicleName: String, notifId: Int) {
         // iOS foreground service notifications are not applicable — no-op.
     }
@@ -336,6 +364,22 @@ class IosAppNotificationManagerImpl(
         // pool drains while `getString` is suspended, and the resumed call hands a freed object to
         // `+[UNNotificationAction actionWithIdentifier:title:options:]` → EXC_BAD_ACCESS in
         // `objc_retain` at launch. Resolve the copy first, then build.
+        val adjust = getString(Res.string.notif_saved_approximate_action)
+        val nudgeCategory = UNNotificationCategory.categoryWithIdentifier(
+            identifier = CATEGORY_PARKING_NUDGE,
+            actions = listOf(UNNotificationAction.actionWithIdentifier(
+                identifier = ACTION_ADJUST_PARKING, title = adjust, options = UNNotificationActionOptionForeground,
+            )),
+            intentIdentifiers = emptyList<String>(), options = UNNotificationCategoryOptionNone,
+        )
+        val mark = getString(Res.string.notif_mark_parking_action)
+        val recoveryCategory = UNNotificationCategory.categoryWithIdentifier(
+            identifier = CATEGORY_RECOVERY_NUDGE,
+            actions = listOf(UNNotificationAction.actionWithIdentifier(
+                identifier = ACTION_ADJUST_PARKING, title = mark, options = UNNotificationActionOptionForeground,
+            )),
+            intentIdentifiers = emptyList<String>(), options = UNNotificationCategoryOptionNone,
+        )
         val yesParked = getString(Res.string.notif_action_yes_parked)
         val noNotParked = getString(Res.string.notif_action_no_not_parked)
         val confirm = getString(Res.string.notif_action_confirm)
@@ -436,7 +480,7 @@ class IosAppNotificationManagerImpl(
         center.setNotificationCategories(
             setOf(
                 parkingCategory, savedConfirmCategory, savedRevertOnlyCategory,
-                stillParkedCategory, carLinkCategory,
+                stillParkedCategory, carLinkCategory, nudgeCategory, recoveryCategory,
             ),
         )
     }
@@ -457,6 +501,10 @@ class IosAppNotificationManagerImpl(
         const val ACTION_STILL_HERE = "paparcar_action_still_here"
         const val EXTRA_QUESTION_AT = "questionAt"
         // Legacy identifier retained so an old negative action cannot take the former departure path.
+        const val CATEGORY_RECOVERY_NUDGE = "paparcar_recovery_nudge"
+        const val CATEGORY_PARKING_NUDGE = "paparcar_parking_nudge"
+        const val ACTION_ADJUST_PARKING = "paparcar_adjust_parking"
+        const val EXTRA_PARKING_NUDGE = "parkingNudge"
         const val ACTION_MARK_PARKING = "paparcar_action_mark_parking"
         const val EXTRA_PARKING_ID = "parkingId"
         const val EXTRA_GEOFENCE_ID = "geofenceId"

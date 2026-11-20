@@ -339,3 +339,51 @@ sealed interface DetectionPath {
         }
     }
 }
+
+/**
+ * **Did the app place this mark while admitting it does not know exactly where the car stopped?**
+ * [DET-AN-HONEST-CLOSE-THAT-GOT-IT-RIGHT-MUST-NOT-APOLOGISE-001]
+ *
+ * The question the map, the peek, the row and the history detail were all already asking — and
+ * answering with `zoneRadiusMeters != null`, which answers a DIFFERENT one: *is this an area?* The
+ * two agreed for as long as every approximate mark was an area. They stopped agreeing the moment
+ * the honest close was allowed to save a pin-grade guess SILENTLY (that same ticket): a
+ * `closed_approximate_pin` carries real doubt, has no radius, and would have been drawn exactly
+ * like a measured park — a fact the app never measured, wearing the dress of one.
+ *
+ * ⛔ An exhaustive `when` over the sealed type, not a flag and not an `if` at each surface: the
+ * compiler then refuses to build a new [DetectionPath] that has not answered this, which is the
+ * whole point of asking the TYPE. Same shape, and the same reason, as the ad-attribution whitelist.
+ *
+ * `true` is not a verdict on trustworthiness, only on PRECISION — [SafetyNetBackfill] is bounded
+ * and honest, it simply reconstructs instead of measuring. And the user-placed paths answer `false`
+ * for the one reason no measurement can beat: the user put it there.
+ */
+val DetectionPath.placementIsApproximate: Boolean
+    get() = when (this) {
+        // The app admitted the doubt when it saved: an area it drew, a point it inferred, or a
+        // reconstruction with no live session behind it.
+        DetectionPath.ClosedApproximatePin,
+        DetectionPath.ClosedApproximateZone,
+        DetectionPath.UnattendedTimeout,
+        DetectionPath.SafetyNetBackfill,
+        is DetectionPath.UnattendedZone,
+        -> true
+
+        // A session measured the stop: steps + egress, GPS kinematics, a vehicle-exit window, or
+        // the BT lane's own fix. BtTimeout lost its corroboration but still placed the point its
+        // own fix measured. [DET-DRIVE-PROOF-001]
+        DetectionPath.StepsEgress,
+        DetectionPath.KinematicEgress,
+        DetectionPath.VehicleExitWindow,
+        DetectionPath.Bt,
+        DetectionPath.BtTimeout,
+        -> false
+
+        // The user's own hand or the user's own answer. [DET-ASSERTION-OUTRANKS-INFERENCE-001]
+        DetectionPath.UserAnswered,
+        DetectionPath.ManualPin,
+        DetectionPath.UserMovedPin,
+        is DetectionPath.Nudge,
+        -> false
+    }

@@ -30,6 +30,30 @@ import kotlin.test.assertTrue
  */
 class EvaluateHonestCloseUseCaseTest {
 
+    @Test
+    fun should_askOnlyAboveFence_when_doubtReachesBoundary() {
+        val decision = HonestCloseDecision.ApproximatePin(fixAt(0.0, 0.0, 8f))
+        for ((doubt, expected) in listOf(79.0 to false, 80.0 to false, 80.01 to true)) {
+            val verdict = HonestCloseVerdict(decision, "test", doubtMeters = doubt, fenceRadiusMeters = 80f)
+            assertEquals(expected, verdict.asksTheUser)
+        }
+    }
+
+    @Test
+    fun should_compareRawDoubt_when_zoneRadiusIsCapped() {
+        val config = ParkingDetectionConfig()
+        val verdict = EvaluateHonestCloseUseCase(config)(
+            stalePin = pinAt(0.0, 0.0),
+            abortFix = fixAt(0.02, 0.0, 8f),
+            stepsSinceStalePin = 800L, stepSealPoint = null, sealAgeMs = null,
+            lastWitnessedFix = null, witnessAgeMs = null, sessionMaxSpeedMps = 20f,
+        )
+        assertEquals(600.0, verdict.doubtMeters)
+        assertEquals(config.geofenceRadiusFor(null, 8f), verdict.fenceRadiusMeters)
+        assertEquals(config.unattendedZoneMaxRadiusMeters, assertIs<HonestCloseDecision.ApproximateZone>(verdict.decision).radiusMeters)
+        assertTrue(verdict.asksTheUser)
+    }
+
     private val useCase = EvaluateHonestCloseUseCase(ParkingDetectionConfig())
 
     private companion object {

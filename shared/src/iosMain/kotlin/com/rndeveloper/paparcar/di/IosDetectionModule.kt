@@ -20,6 +20,10 @@ import com.rndeveloper.paparcar.domain.service.ReportSpotScheduler
 import org.koin.dsl.module
 
 val iosDetectionModule = module {
+    single { com.rndeveloper.paparcar.detection.IosSafetyNetRecords() }
+    single<com.rndeveloper.paparcar.domain.detection.ParkingAskBudget> {
+        get<com.rndeveloper.paparcar.detection.IosSafetyNetRecords>()
+    }
     single<ActivityRecognitionManager> { IosActivityRecognitionManagerImpl(get(), get()) }
     single<StepDetectorSource> { IosStepDetectorSource() }
     single<GeofenceEventBus> { SharedFlowGeofenceEventBus() }
@@ -73,6 +77,8 @@ val iosDetectionModule = module {
             // F2 lanes [IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001]
             runDepartureCheck = get(),
             runHonestClose = get(),
+            raiseParkingAsk = get(),
+            safetyNetRecords = get(),
             detectionStepAnchors = get(),
             vehicleRepository = get(),
             activityRecognitionManager = get(),

@@ -131,4 +131,7 @@
     <string name="notif_action_correct_parking">Corrigir</string>
     <string name="notif_action_still_here">Sim</string>
     <string name="notif_action_review_parking">Não</string>
+    <string name="notif_saved_approximate_title">Estacionamento aproximado guardado</string>
+    <string name="notif_saved_approximate_text">Não foi possível localizar o carro com precisão. Foi guardada uma localização aproximada. Abre o estacionamento e ajusta o marcador no mapa.</string>
+    <string name="notif_saved_approximate_action">Ajustar</string>
 </resources>

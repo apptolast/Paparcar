@@ -131,4 +131,7 @@
     <string name="notif_action_correct_parking">Correggi</string>
     <string name="notif_action_still_here">Sì</string>
     <string name="notif_action_review_parking">No</string>
+    <string name="notif_saved_approximate_title">Parcheggio approssimativo salvato</string>
+    <string name="notif_saved_approximate_text">Non abbiamo localizzato con precisione la tua auto. Abbiamo salvato una posizione approssimativa. Apri il parcheggio e regola il segnaposto sulla mappa.</string>
+    <string name="notif_saved_approximate_action">Regola</string>
 </resources>

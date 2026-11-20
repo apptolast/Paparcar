@@ -145,6 +145,20 @@ class ObserveParkedVehiclesUseCaseTest {
         assertFalse(result.isApproximate, "an exact pin must never be drawn as a doubt ring")
     }
 
+    @Test
+    fun should_projectApproximatePinWithoutRadius_when_honestClosePlacedIt() = runTest {
+        val session = activeSession("approximate", vehicleA.id).copy(detectionPath = "closed_approximate_pin")
+        val useCase = buildUseCase(
+            parking = FakeUserParkingRepository(initialSession = session),
+            vehicles = FakeVehicleRepository(vehicleA),
+        )
+        val result = useCase().first().first()
+        assertTrue(result.isApproximate)
+        assertNull(result.zoneRadiusMeters)
+        assertFalse(session.isArea)
+        assertFalse(session.copy(detectionPath = "user_moved").isApproximate)
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun buildUseCase(

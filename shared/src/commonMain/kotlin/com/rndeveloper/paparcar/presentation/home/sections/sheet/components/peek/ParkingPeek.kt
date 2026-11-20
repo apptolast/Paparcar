@@ -164,6 +164,7 @@ internal fun ParkingPeek(
             // into a user-placed exact pin. [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001]
             ApproximateZoneRow(
                 zoneRadiusMeters = parking.zoneRadiusMeters,
+                isApproximate = parking.isApproximate,
                 accentColor = accentColor,
                 onAdjust = {
                     onIntent(

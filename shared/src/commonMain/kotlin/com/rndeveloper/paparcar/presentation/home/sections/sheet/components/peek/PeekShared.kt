@@ -47,6 +47,7 @@ import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.stateColors
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.home_spot_releasing_eyebrow
+import paparcar.composeapp.generated.resources.notif_saved_approximate_text
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_address_unknown
 import paparcar.composeapp.generated.resources.home_peek_parking_approximate
@@ -158,7 +159,7 @@ internal fun PeekMetaRow(
 
 /**
  * The doubt row of an approximate session: the map draws the circle, this says what it means and
- * what to do about it. Only shown when the session really is an area. Copy is cause + consequence
+ * what to do about it. Also shown for inferred points without a radius. Copy is cause + consequence
  * + remedy with no internal mechanics — never "steps", "anchor" or "honest close".
  * [UI-APPROXIMATE-PARKING-DRAWS-ITS-DOUBT-001]
  */
@@ -166,16 +167,19 @@ internal fun PeekMetaRow(
 internal fun ApproximateZoneRow(
     zoneRadiusMeters: Float?,
     accentColor: Color,
+    isApproximate: Boolean = zoneRadiusMeters != null,
     /** Non-null → the row honours its own copy ("Edit to place it exactly"): one tap opens the
      *  pin-positioning flow, instead of making the user hunt for the round edit button. Validating
      *  WHERE the car really is turns the zone back into an exact pin — which is also what lets the
      *  eventual freed spot publish exactly. [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] */
     onAdjust: (() -> Unit)? = null,
 ) {
-    val radius = zoneRadiusMeters ?: return
+    if (!isApproximate) return
+    val radius = zoneRadiusMeters
     PeekMetaRow(
         icon = Icons.Rounded.Adjust,
-        text = stringResource(Res.string.home_peek_parking_approximate, radiusString(radius)),
+        text = if (radius != null) stringResource(Res.string.home_peek_parking_approximate, radiusString(radius))
+            else stringResource(Res.string.notif_saved_approximate_text),
         tint = accentColor,
         maxLines = APPROXIMATE_ROW_MAX_LINES,
         onClick = onAdjust,

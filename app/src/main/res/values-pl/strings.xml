@@ -131,4 +131,7 @@
     <string name="notif_action_correct_parking">Popraw</string>
     <string name="notif_action_still_here">Tak</string>
     <string name="notif_action_review_parking">Nie</string>
+    <string name="notif_saved_approximate_title">Zapisano przybliżone miejsce parkowania</string>
+    <string name="notif_saved_approximate_text">Nie udało się dokładnie zlokalizować auta. Zapisano przybliżoną lokalizację. Otwórz miejsce parkowania i popraw znacznik na mapie.</string>
+    <string name="notif_saved_approximate_action">Popraw</string>
 </resources>

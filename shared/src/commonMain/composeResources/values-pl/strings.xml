@@ -1246,4 +1246,10 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <string name="home_still_parked_title_vehicle">Czy %1$s nadal tu stoi?</string>
     <string name="home_parking_false_detection">Ten postój nie miał miejsca</string>
     <string name="home_parking_not_parked">Nie było postoju</string>
+    <string name="notif_saved_approximate_title">Zapisano przybliżone miejsce parkowania</string>
+    <string name="notif_saved_approximate_text">Nie udało się dokładnie zlokalizować auta. Zapisano przybliżoną lokalizację. Otwórz miejsce parkowania i popraw znacznik na mapie.</string>
+    <string name="notif_saved_approximate_action">Popraw</string>
+    <string name="notif_mark_parking_title">Gdzie zostawiłeś samochód?</string>
+    <string name="notif_mark_parking_text">Wykryliśmy, że się przemieściłeś, ale nie udało się ustalić, gdzie został Twój samochód. Oznacz parkowanie, aby go nie zgubić.</string>
+    <string name="notif_mark_parking_action">Zaznacz parkowanie</string>
 </resources>

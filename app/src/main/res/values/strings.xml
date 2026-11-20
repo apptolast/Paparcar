@@ -144,4 +144,7 @@
     <string name="notif_action_correct_parking">Correct</string>
     <string name="notif_action_still_here">Yes</string>
     <string name="notif_action_review_parking">No</string>
+    <string name="notif_saved_approximate_title">Approximate parking saved</string>
+    <string name="notif_saved_approximate_text">We could not locate the car precisely. An approximate location was saved. Open the parking and adjust the pin on the map.</string>
+    <string name="notif_saved_approximate_action">Adjust</string>
 </resources>

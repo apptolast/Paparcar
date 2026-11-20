@@ -1217,4 +1217,10 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen â†’ Paparcar â
     <string name="home_still_parked_title_vehicle">Staat %1$s nog hier geparkeerd?</string>
     <string name="home_parking_false_detection">Dit parkeren heeft niet plaatsgevonden</string>
     <string name="home_parking_not_parked">Ik had niet geparkeerd</string>
+    <string name="notif_saved_approximate_title">Geschatte parkeerlocatie opgeslagen</string>
+    <string name="notif_saved_approximate_text">We konden de auto niet precies vinden. Er is een geschatte locatie opgeslagen. Open de parkeerplek en pas de pin op de kaart aan.</string>
+    <string name="notif_saved_approximate_action">Aanpassen</string>
+    <string name="notif_mark_parking_title">Waar heb je je auto achtergelaten?</string>
+    <string name="notif_mark_parking_text">We hebben gemerkt dat je je hebt verplaatst, maar konden niet vaststellen waar je auto is gebleven. Markeer de parkeerplaats zodat je hem niet kwijtraakt.</string>
+    <string name="notif_mark_parking_action">Parkeerplaats markeren</string>
 </resources>

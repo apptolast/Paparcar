@@ -76,7 +76,62 @@ data class HonestCloseVerdict(
     val witnessDistanceMeters: Double? = null,
     /** Age (ms) of that witness at the abort moment. Null when no witness was available. */
     val witnessAgeMs: Long? = null,
+    /** How wide the doubt about the CAR's position is, in meters, for the artifact this verdict
+     *  saves — `max(fix accuracy, the walk the step budget allows since the car)`, the very number
+     *  [EvaluateHonestCloseUseCase.artifactFor] already used to choose a point over an area. Null
+     *  for silence (nothing was saved, so there is no doubt to size).
+     *
+     *  ⛔ NOT the saved zone's radius: that one is clamped to
+     *  [com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig.honestCloseMinZoneRadiusMeters]
+     *  and capped at `unattendedZoneMaxRadiusMeters`, so a 600 m doubt and a 250 m doubt draw the
+     *  same circle. Rationing interruptions on a clamped number would let the worst closes read as
+     *  mild. [DET-AN-HONEST-CLOSE-THAT-GOT-IT-RIGHT-MUST-NOT-APOLOGISE-001] */
+    val doubtMeters: Double? = null,
+    /** The radius inside which this car's own geofence considers the user to be AT it
+     *  ([com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig.geofenceRadiusFor]). Null for
+     *  silence. */
+    val fenceRadiusMeters: Float? = null,
 ) {
+
+    /**
+     * ⛔ **Whether this close has earned an interruption** — the one rule, in the one place.
+     * [DET-AN-HONEST-CLOSE-THAT-GOT-IT-RIGHT-MUST-NOT-APOLOGISE-001]
+     *
+     * The honest close used to ask ALWAYS, on the principle that a session which placed something
+     * approximate owes the user the chance to refine it. Measured on the live corpus 19/20-11-2026,
+     * that principle cost 33 interruptions across the only three accounts with detection activity —
+     * and of the four most recent on the field device, **three were never touched again**: the mark
+     * was already right, and the notification said *«no hemos podido fijar dónde quedó tu coche»*
+     * while the pin sat on the car. An ask that is wrong three times out of four does not train the
+     * user to answer it; it trains them to ignore the only channel detection has.
+     *
+     * So the interruption is rationed by the DOUBT the artifact carries, against the distance at
+     * which this very system already says "you are at your car" — the car's own fence radius:
+     *
+     *  - doubt ≤ fence → the mark drops the user inside the fence of their own car; they will see
+     *    it when they arrive. Save it, wear the doubt on the map ([com.rndeveloper.paparcar.domain.model.UserParking.isApproximate]),
+     *    say nothing. With `minGpsAccuracyForDriving` (50 m) below `geofenceRadiusMeters` (80 m),
+     *    this covers EVERY pin-grade close by construction, and the narrowest zones too.
+     *  - doubt > fence → the mark cannot lead the user to the car on its own. The question is
+     *    earned, and its copy is finally true.
+     *
+     * ⛔ No new threshold was invented: both numbers are already in
+     * [com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig], and the comparison is the
+     * same one the geofence makes every day. A magic number here would have been a third opinion
+     * about how far away a car is.
+     *
+     * Missing inputs ask. A verdict that saved an artifact without sizing its doubt cannot justify
+     * silence — and the doctrine's asymmetry is about never planting a ghost spot, never about
+     * sparing the user a question we cannot defend.
+     */
+    val asksTheUser: Boolean
+        get() {
+            if (decision is HonestCloseDecision.KeepSilent) return false
+            val doubt = doubtMeters ?: return true
+            val fence = fenceRadiusMeters ?: return true
+            return doubt > fence
+        }
+
     companion object {
         const val REASON_TRIP_PROVEN = "trip_proven"
         /** [DET-A-RIDE-THE-WITNESS-SAW-NEEDS-NO-PEDOMETER-001] Ride proven by witness physics:
@@ -238,6 +293,12 @@ class EvaluateHonestCloseUseCase(
             abortFix.latitude, abortFix.longitude,
         )
 
+        // The yardstick every artifact below is measured against: the fence the replacement mark
+        // will itself register, which is this system's own answer to "how close is AT the car".
+        // Accuracy-padded from the ABORT fix, not the stale pin's, because the doubt being sized is
+        // about where the new mark lands. [DET-AN-HONEST-CLOSE-THAT-GOT-IT-RIGHT-MUST-NOT-APOLOGISE-001]
+        val fenceRadiusMeters = config.geofenceRadiusFor(pin.sizeCategory, abortFix.accuracy)
+
         // Too close to be a trip: within both accuracy envelopes plus the floor, this is a re-arm
         // jitter beside the parked car, not a drive-away. Keep the pin, stay silent. (Pin-based on
         // purpose — this guard asks about the CAR's position, not the walker's.)
@@ -252,9 +313,11 @@ class EvaluateHonestCloseUseCase(
         // inference needed — the strongest evidence this evaluator can receive. Unreachable from
         // today's two abort outcomes (see class KDoc); decisive for any future caller.
         if (sessionMaxSpeedMps >= config.minimumTripSpeedMps) {
+            val artifact = artifactFor(abortFix, stepsSinceStalePin)
             return HonestCloseVerdict(
-                artifactFor(abortFix, stepsSinceStalePin), HonestCloseVerdict.REASON_SESSION_MEASURED_DRIVING,
+                artifact.decision, HonestCloseVerdict.REASON_SESSION_MEASURED_DRIVING,
                 pinDistanceMeters = distanceMeters, stepsDelta = stepsSinceStalePin,
+                doubtMeters = artifact.doubtMeters, fenceRadiusMeters = fenceRadiusMeters,
             )
         }
 
@@ -368,6 +431,10 @@ class EvaluateHonestCloseUseCase(
                 stepsDelta = stepsSinceStalePin,
                 witnessDistanceMeters = witnessDistanceMeters,
                 witnessAgeMs = witnessAgeMs,
+                // This rung's doubt is the walk pedestrian reach allows inside the witness window —
+                // the same quantity it just put in the radius, before the clamp.
+                doubtMeters = walkDoubtMeters,
+                fenceRadiusMeters = fenceRadiusMeters,
             )
         }
 
@@ -455,8 +522,10 @@ class EvaluateHonestCloseUseCase(
         }
 
         // Trip proven. How precisely we may draw it is [artifactFor]'s question, not the fix's.
+        val artifact = artifactFor(abortFix, steps)
         return HonestCloseVerdict(
-            artifactFor(abortFix, steps), HonestCloseVerdict.REASON_TRIP_PROVEN,
+            artifact.decision, HonestCloseVerdict.REASON_TRIP_PROVEN,
+            doubtMeters = artifact.doubtMeters, fenceRadiusMeters = fenceRadiusMeters,
             pinDistanceMeters = distanceMeters, walkDistanceMeters = walkDistanceMeters,
             stepsDelta = steps, requiredSteps = requiredSteps,
             // How close this legit trip came to the coherence ceiling — the field data that
@@ -496,10 +565,10 @@ class EvaluateHonestCloseUseCase(
      *   accuracy decides exactly as before. The only rung that can arrive here with null steps is
      *   the measured-driving one, which never depended on the counter.
      */
-    private fun artifactFor(abortFix: GpsPoint, stepsSinceStalePin: Long?): HonestCloseDecision {
+    private fun artifactFor(abortFix: GpsPoint, stepsSinceStalePin: Long?): Artifact {
         val walkedSinceCarMeters = (stepsSinceStalePin ?: 0L) * config.strideMeters
         val doubtMeters = maxOf(abortFix.accuracy, walkedSinceCarMeters)
-        return if (doubtMeters <= config.minGpsAccuracyForDriving) {
+        val decision = if (doubtMeters <= config.minGpsAccuracyForDriving) {
             HonestCloseDecision.ApproximatePin(abortFix)
         } else {
             HonestCloseDecision.ApproximateZone(
@@ -514,5 +583,17 @@ class EvaluateHonestCloseUseCase(
                 ),
             )
         }
+        return Artifact(decision, doubtMeters.toDouble())
     }
+
+    /**
+     * The artifact AND the doubt that produced it, together.
+     * [DET-AN-HONEST-CLOSE-THAT-GOT-IT-RIGHT-MUST-NOT-APOLOGISE-001]
+     *
+     * They travel as one value because the doubt is not recoverable from the decision afterwards: a
+     * pin discards it, and a zone keeps only its clamped form. The verdict needs the raw number to
+     * ration the interruption, so the only place that ever holds it must hand it over rather than
+     * let each caller guess it back from the radius.
+     */
+    private data class Artifact(val decision: HonestCloseDecision, val doubtMeters: Double)
 }

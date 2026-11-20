@@ -46,6 +46,7 @@ import com.rndeveloper.paparcar.domain.usecase.parking.RestoreRefutedDepartureUs
 import com.rndeveloper.paparcar.domain.usecase.parking.RetractDeducedDepartureUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.RevertParkingUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.RunDepartureCheckUseCase
+import com.rndeveloper.paparcar.domain.usecase.parking.RaiseParkingAskUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.RunHonestCloseUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.SaveManualParkingUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.UpdateParkingLocationUseCase
@@ -109,6 +110,11 @@ val detectionModule = module {
     // coordinator built it by hand in a constructor default, so it was invisible in the graph and
     // no second consumer could have shared it.
     factory { EvaluateUnattendedParkingSaveUseCase(config = get()) }
+    // [DET-AN-HONEST-CLOSE-THAT-GOT-IT-RIGHT-MUST-NOT-APOLOGISE-001] The ONE door through which
+    // anything may interrupt the user about a parked car. Registered here, next to the verdicts it
+    // rations, so a future caller finds it instead of writing a fourth private throttle. The budget
+    // it reads is a platform port (`parking_safety_net`/`prompt_` on Android, NSUserDefaults on iOS).
+    single { RaiseParkingAskUseCase(budget = get(), config = get()) }
     // [DET-HONEST-CLOSE-001] Honest-close ladder: pure evaluator + orchestration.
     factory { EvaluateHonestCloseUseCase(config = get()) }
     factory {
@@ -118,6 +124,7 @@ val detectionModule = module {
             notificationPort = get(),
             evaluateHonestClose = get(),
             config = get(),
+            raiseParkingAsk = get(),
         )
     }
 

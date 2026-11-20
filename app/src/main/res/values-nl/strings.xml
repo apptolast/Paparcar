@@ -131,4 +131,7 @@
     <string name="notif_action_correct_parking">Corrigeren</string>
     <string name="notif_action_still_here">Ja</string>
     <string name="notif_action_review_parking">Nee</string>
+    <string name="notif_saved_approximate_title">Geschatte parkeerlocatie opgeslagen</string>
+    <string name="notif_saved_approximate_text">We konden de auto niet precies vinden. Er is een geschatte locatie opgeslagen. Open de parkeerplek en pas de pin op de kaart aan.</string>
+    <string name="notif_saved_approximate_action">Aanpassen</string>
 </resources>

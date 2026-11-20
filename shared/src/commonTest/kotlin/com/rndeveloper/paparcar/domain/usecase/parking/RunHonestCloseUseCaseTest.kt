@@ -3,6 +3,8 @@
 package com.rndeveloper.paparcar.domain.usecase.parking
 
 import com.rndeveloper.paparcar.domain.model.GpsPoint
+import com.rndeveloper.paparcar.domain.detection.ParkingAskBudget
+import com.rndeveloper.paparcar.domain.detection.ParkingAskKind
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
@@ -69,11 +71,19 @@ class RunHonestCloseUseCaseTest {
             config = config,
             departureEventBus = FakeDepartureEventBus(),
         )
+        val budget = object : ParkingAskBudget {
+            val stamps = mutableMapOf<String, Long>()
+            override fun lastAskAtMs(vehicleId: String) = stamps[vehicleId]
+            override fun stampAsk(vehicleId: String, atMs: Long) { stamps[vehicleId] = atMs }
+        }
+        val ask = RaiseParkingAskUseCase(budget, config)
         val useCase = RunHonestCloseUseCase(
             userParkingRepository = parkingRepo,
             confirmParking = confirmParking,
             notificationPort = notification,
             evaluateHonestClose = EvaluateHonestCloseUseCase(config),
+            raiseParkingAsk = ask,
+            clock = { 1_000_000L },
             config = config,
         )
     }
@@ -99,7 +109,7 @@ class RunHonestCloseUseCaseTest {
             f.parkingRepo.getActiveSessionByGeofence("melgarejo-fence"),
             "the stale pin the car drove away from must be released",
         )
-        assertEquals(1, f.notification.markParkingNudgeCallCount, "honest close nudges — never silent")
+        assertEquals(0, f.notification.markParkingNudgeCallCount, "uncertainty fits the fence")
         val saved = f.parkingRepo.getActiveSession()
         assertNotNull(saved, "the approximate session must be the new active one")
         assertTrue(saved.isApproximate, "the new session must be an AREA, not an exact point")
@@ -207,11 +217,58 @@ class RunHonestCloseUseCaseTest {
         )
 
         assertEquals(RunHonestCloseUseCase.OUTCOME_APPROXIMATE_PIN, outcome.outcomeLabel)
-        assertEquals(1, f.notification.markParkingNudgeCallCount)
+        assertEquals(0, f.notification.markParkingNudgeCallCount)
         val saved = f.parkingRepo.getActiveSession()
         assertNotNull(saved)
-        assertTrue(!saved.isApproximate, "a pin-grade honest close is an exact point, not an area")
+        assertTrue(saved.isApproximate, "an inferred point must wear its uncertainty")
+        assertTrue(!saved.isArea)
         assertNull(saved.zoneRadiusMeters)
+    }
+
+    private suspend fun close(f: Fixture, latitude: Double = 36.62): HonestCloseResult =
+        f.useCase(
+            vehicleId = "v-1",
+            abortFix = GpsPoint(latitude, -6.2512, accuracy = 8f, timestamp = 1_000L, speed = 0f),
+            stepsSinceStalePin = 200L, stepSealPoint = null, sealAgeMs = null,
+            lastWitnessedFix = null, witnessAgeMs = null, sessionMaxSpeedMps = 20f,
+        )
+
+    @Test
+    fun should_notifyWithoutPending_when_savedDoubtExceedsFence() = runTest {
+        val f = Fixture()
+        val outcome = close(f)
+        assertNotNull(outcome.outcomeLabel)
+        assertTrue(outcome.verdict.asksTheUser)
+        assertEquals(1, f.notification.markParkingNudgeCallCount)
+        assertEquals(false, f.notification.lastMarkParkingNudgePersistPending)
+        assertNotNull(f.budget.lastAskAtMs("v-1"))
+    }
+
+    @Test
+    fun should_keepBudget_when_closeReplacesGeofence() = runTest {
+        val f = Fixture()
+        close(f)
+        val firstFence = f.parkingRepo.getActiveSession()!!.geofenceId
+        close(f, latitude = 36.64)
+        assertTrue(firstFence != f.parkingRepo.getActiveSession()!!.geofenceId)
+        assertEquals(1, f.notification.markParkingNudgeCallCount)
+    }
+
+    @Test
+    fun should_notNotifyOrSpendBudget_when_saveFails() = runTest {
+        val f = Fixture()
+        f.parkingRepo.saveNewParkingSessionResult = Result.failure(IllegalStateException("save failed"))
+        assertNull(close(f).outcomeLabel)
+        assertEquals(0, f.notification.markParkingNudgeCallCount)
+        assertNull(f.budget.lastAskAtMs("v-1"))
+    }
+
+    @Test
+    fun should_saveWithoutNotifying_when_safetyNetAlreadySpentBudget() = runTest {
+        val f = Fixture()
+        f.ask("v-1", ParkingAskKind.WhereDidYouPark, 999_999L) {}
+        assertNotNull(close(f).outcomeLabel)
+        assertEquals(0, f.notification.markParkingNudgeCallCount)
     }
 
     @Test

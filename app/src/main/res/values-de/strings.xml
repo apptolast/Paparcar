@@ -131,4 +131,7 @@
     <string name="notif_action_correct_parking">Korrigieren</string>
     <string name="notif_action_still_here">Ja</string>
     <string name="notif_action_review_parking">Nein</string>
+    <string name="notif_saved_approximate_title">Ungefährer Parkplatz gespeichert</string>
+    <string name="notif_saved_approximate_text">Wir konnten das Auto nicht genau orten. Ein ungefährer Standort wurde gespeichert. Öffne den Parkplatz und passe die Markierung auf der Karte an.</string>
+    <string name="notif_saved_approximate_action">Anpassen</string>
 </resources>

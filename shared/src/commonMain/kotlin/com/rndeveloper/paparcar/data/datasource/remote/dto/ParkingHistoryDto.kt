@@ -33,7 +33,7 @@ data class ParkingHistoryDto(
     val detectionPath: String? = null,
     /**
      * [DET-DOUBT-REACHES-REMOTE-001] Radius of the AREA this pin really is, or null when it is a
-     * point. Derived `isApproximate` comes from it (`zoneRadiusMeters != null`).
+     * point. Derived `isArea` comes from it; visual approximation also considers detectionPath.
      *
      * It used to be local-only. The reason was written down — an unrefined zone stays on the device
      * that drew it [DET-HONEST-CLOSE-001] — and the cost was not: in remote a 250 m circle was

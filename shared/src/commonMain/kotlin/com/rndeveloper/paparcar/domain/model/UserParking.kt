@@ -1,5 +1,8 @@
 package com.rndeveloper.paparcar.domain.model
 
+import com.rndeveloper.paparcar.domain.detection.DetectionPath
+import com.rndeveloper.paparcar.domain.detection.placementIsApproximate
+
 /**
  * Represents the user's own active or past parking session.
  *
@@ -168,10 +171,32 @@ data class UserParking(
     val hasPendingInferredRoute: Boolean
         get() = routeSnapped && !routeInferredSpans.isNullOrBlank() && routeInferredResolution == null
 
-    /** True when this session is an approximate AREA rather than an exact point — the single
-     *  source of truth is [zoneRadiusMeters] (an area intrinsically has a radius; a boolean
-     *  alongside it could contradict it). [DET-HONEST-CLOSE-001] */
-    val isApproximate: Boolean get() = zoneRadiusMeters != null
+    /** True when this session is an AREA rather than a point. The single source of truth is
+     *  [zoneRadiusMeters] (an area intrinsically has a radius; a boolean alongside it could
+     *  contradict it). [DET-HONEST-CLOSE-001]
+     *
+     *  ⛔ Ask this ONLY when the geometry itself is the question — handing a spot over to the
+     *  community needs a kerb, and an area cannot name one. For "is this placement a guess?", which
+     *  is what every USER-FACING surface is really asking, use [isApproximate].
+     *  [DET-AN-HONEST-CLOSE-THAT-GOT-IT-RIGHT-MUST-NOT-APOLOGISE-001] */
+    val isArea: Boolean get() = zoneRadiusMeters != null
+
+    /**
+     * True when the app does not claim to know exactly where the car stopped — so every surface
+     * that renders this session says so (⊙ instead of 📍, «ubicación aproximada cerca de…», and
+     * «Ajustar» within reach). [DET-AN-HONEST-CLOSE-THAT-GOT-IT-RIGHT-MUST-NOT-APOLOGISE-001]
+     *
+     * ⛔ This used to BE [isArea], and that was the hole the ticket above had to close before it
+     * could stop interrupting: a silent `closed_approximate_pin` has no radius, so under the old
+     * rule it rendered as a measured park. Taking away the notification without this would not have
+     * made the app quieter, it would have made it quieter AND less honest.
+     *
+     * Two sources, union: the geometry (an area is approximate by construction) and the TYPE of the
+     * path that placed it ([placementIsApproximate]) — a pin the app inferred rather than measured.
+     * An unrecognised path claims nothing, same as [DetectionPath.ofLabel] itself.
+     */
+    val isApproximate: Boolean
+        get() = isArea || DetectionPath.ofLabel(detectionPath)?.placementIsApproximate == true
 
     /** True when this parking has been withdrawn — it is kept for diagnostics and must not appear
      *  in the user's history, stats or chart. [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] */

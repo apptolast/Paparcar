@@ -19,7 +19,6 @@ import com.rndeveloper.paparcar.domain.detection.coordinatorMayArm
 import com.rndeveloper.paparcar.domain.detection.measuredDepartureAtMs
 import com.rndeveloper.paparcar.domain.detection.ParkingStrategyResolver
 import com.rndeveloper.paparcar.domain.detection.reconcileFences
-import com.rndeveloper.paparcar.domain.detection.safetyNetAskIsDue
 import com.rndeveloper.paparcar.domain.detection.sentry.isArmSuppressedByUserStop
 import com.rndeveloper.paparcar.domain.detection.sentry.shouldSupersedeRunningSession
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
@@ -58,6 +57,8 @@ import com.rndeveloper.paparcar.domain.usecase.parking.DepartureCheckOutcome
 import com.rndeveloper.paparcar.domain.usecase.parking.EvaluateSafetyNetCheckUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.ProcessConfirmedDepartureUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.RunDepartureCheckUseCase
+import com.rndeveloper.paparcar.domain.detection.ParkingAskKind
+import com.rndeveloper.paparcar.domain.usecase.parking.RaiseParkingAskUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.RunHonestCloseUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.SafetyNetAction
 import com.rndeveloper.paparcar.domain.usecase.parking.VerifyDepartureEvidenceUseCase
@@ -125,6 +126,9 @@ class IosDetectionController(
     // ── F2 lanes [IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001] ────────────────────────────────────────
     private val runDepartureCheck: RunDepartureCheckUseCase,
     private val runHonestClose: RunHonestCloseUseCase,
+    /** The one interruption door, shared with the honest close and with Android.
+     *  [DET-AN-HONEST-CLOSE-THAT-GOT-IT-RIGHT-MUST-NOT-APOLOGISE-001] */
+    private val raiseParkingAsk: RaiseParkingAskUseCase,
     private val detectionStepAnchors: DetectionStepAnchors,
     private val vehicleRepository: VehicleRepository,
     private val activityRecognitionManager: ActivityRecognitionManager,
@@ -736,7 +740,13 @@ class IosDetectionController(
         if (detectionRuntime.isRunning.value) return // a live session owns the situation
         val sessions = runCatching { userParkingRepository.observeActiveSessions().first() }
             .getOrDefault(emptyList())
-        safetyNetRecords.pruneAllExcept(sessions.mapNotNull { it.geofenceId }.toSet())
+        safetyNetRecords.pruneAllExcept(
+            activeGeofenceIds = sessions.mapNotNull { it.geofenceId }.toSet(),
+            // The interruption budget expires with the CAR, never with the session it was spent
+            // in. [DET-AN-HONEST-CLOSE-THAT-GOT-IT-RIGHT-MUST-NOT-APOLOGISE-001]
+            activeVehicleIds = runCatching { vehicleRepository.observeVehicles().first() }
+                .getOrNull()?.map { it.id }?.toSet(),
+        )
         if (sessions.isEmpty()) {
             notificationPort.dismiss(AppNotificationManager.STILL_PARKED_NOTIFICATION_ID)
             return
@@ -847,15 +857,22 @@ class IosDetectionController(
     private suspend fun executePrompt(action: SafetyNetAction.PromptStillParked, nowMs: Long) {
         val parking = userParkingRepository.getActiveSessionByGeofence(action.geofenceId) ?: return
         if (!mayReconsiderParking(action.geofenceId)) return
-        // [DET-A-STILL-PARKED-ASK-MUST-EARN-ITS-INTERRUPTION-001] Same budget, same function, one
-        // definition: the window moved to the config and the comparison to `safetyNetAskIsDue`, so
-        // the two platforms can no longer drift apart on what "asked recently" means. iOS never had
+        // [DET-A-STILL-PARKED-ASK-MUST-EARN-ITS-INTERRUPTION-001] Same budget, same door, one
+        // definition — and since
+        // [DET-AN-HONEST-CLOSE-THAT-GOT-IT-RIGHT-MUST-NOT-APOLOGISE-001] that door is a use case in
+        // `commonMain` rather than a comparison each platform writes out, so the two sides cannot
+        // drift on what "asked recently" means NOR on what the budget is keyed by. iOS never had
         // Android's unthrottled second door — `executeDispatch` always hands the arrival to live
-        // detection here — so this side only loses its private copy of the number.
-        val lastPromptAt = safetyNetRecords.lastPromptAtMs(action.geofenceId)
-        if (!safetyNetAskIsDue(lastPromptAt, nowMs, config.safetyNetAskThrottleMs)) return
-        safetyNetRecords.stampPrompt(action.geofenceId, nowMs)
-        notificationPort.showStillParkedPrompt(action.geofenceId, parking.location.latitude, parking.location.longitude)
+        // detection here — but it DOES run the honest close, which knocks on this same budget.
+        raiseParkingAsk(
+            vehicleId = parking.vehicleId,
+            kind = ParkingAskKind.StillParked,
+            nowMs = nowMs,
+        ) {
+            notificationPort.showStillParkedPrompt(
+                action.geofenceId, parking.location.latitude, parking.location.longitude,
+            )
+        }
     }
 
     // ── Wake-and-query reconstruction [IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001] ───────────────────

@@ -45,6 +45,10 @@ class ObserveParkedVehiclesUseCase(
                     // draw its doubt instead of posing as an exact pin.
                     // [UI-APPROXIMATE-PARKING-DRAWS-ITS-DOUBT-001]
                     zoneRadiusMeters = session.zoneRadiusMeters,
+                    // …and so does a pin the app INFERRED rather than measured, which carries the
+                    // same doubt with no radius to show it.
+                    // [DET-AN-HONEST-CLOSE-THAT-GOT-IT-RIGHT-MUST-NOT-APOLOGISE-001]
+                    placementIsApproximate = session.isApproximate,
                 )
             }
         }

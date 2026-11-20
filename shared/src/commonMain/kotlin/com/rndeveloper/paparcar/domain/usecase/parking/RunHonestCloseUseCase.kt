@@ -1,6 +1,9 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package com.rndeveloper.paparcar.domain.usecase.parking
 
 import com.rndeveloper.paparcar.domain.detection.DetectionPath
+import com.rndeveloper.paparcar.domain.detection.ParkingAskKind
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
@@ -18,6 +21,10 @@ data class HonestCloseResult(
     val verdict: HonestCloseVerdict,
     /** Radius of the saved approximate zone, null for a pin / silence. */
     val zoneRadiusMeters: Float? = null,
+    /** What the interruption door did, or null when the verdict never knocked on it (nothing saved,
+     *  or the doubt fit inside the car's own fence). The caller traces it; it is the half of this
+     *  outcome the user actually experiences. [DET-AN-HONEST-CLOSE-THAT-GOT-IT-RIGHT-MUST-NOT-APOLOGISE-001] */
+    val askOutcome: ParkingAskOutcome? = null,
 )
 
 /**
@@ -47,6 +54,8 @@ class RunHonestCloseUseCase(
     private val notificationPort: AppNotificationManager,
     private val evaluateHonestClose: EvaluateHonestCloseUseCase,
     private val config: ParkingDetectionConfig,
+    private val raiseParkingAsk: RaiseParkingAskUseCase,
+    private val clock: () -> Long = { kotlin.time.Clock.System.now().toEpochMilliseconds() },
 ) {
     /**
      * @param vehicleId          The vehicle whose session just aborted (owns the stale pin).
@@ -125,12 +134,44 @@ class RunHonestCloseUseCase(
         // rather than nudge about a mark that does not exist.
         if (saved.isFailure) return HonestCloseResult(outcomeLabel = null, verdict = verdict)
 
-        // Never silent: ask the user to confirm or refine the approximate mark, from the live
-        // service — the honest half of the contract. No pending record: the approximate pin/zone
-        // saved above IS the durable trace of this ask; a pending record would resurface as a
-        // ghost "car lost" banner after that session's normal release. [DET-NUDGE-PERSIST-001]
-        notificationPort.showMarkParkingNudge(source = outcome, vehicleId = vehicleId, persistPending = false)
-        return HonestCloseResult(outcomeLabel = outcome, verdict = verdict, zoneRadiusMeters = radiusMeters)
+        // ⛔ **Not silent — but no longer always loud either.**
+        // [DET-AN-HONEST-CLOSE-THAT-GOT-IT-RIGHT-MUST-NOT-APOLOGISE-001]
+        //
+        // This line used to run unconditionally, and the comment above it said "Never silent: the
+        // honest half of the contract". The contract it was honouring is real — a session that
+        // moved the car owes the user a say in where it ended up — but it was being paid in the
+        // wrong currency: a HIGH-importance notification, every time, whose copy announces that we
+        // could NOT pin the car while a pin sits on the map. Measured 19/20-11-2026 across the live
+        // corpus: 33 of these, three of every four landing on a mark nobody ever corrected.
+        //
+        // The say is still owed, and the artifact still pays it: the mark wears
+        // `placementIsApproximate` on the map and in the peek, with «Ajustar» one tap away, which
+        // is the same remedy the notification offered — on the surface the user is already looking
+        // at, at the moment they look at it. What the notification adds is urgency, and urgency has
+        // to be earned: [HonestCloseVerdict.asksTheUser] grants it only when the doubt is wider
+        // than the car's own fence, and [RaiseParkingAskUseCase] then rations it per CAR, through
+        // the same door and the same budget as the parked-session net's two questions.
+        //
+        // No pending record either way: the approximate pin/zone saved above IS the durable trace;
+        // a pending record would resurface as a ghost "car lost" banner after that session's
+        // normal release. [DET-NUDGE-PERSIST-001]
+        val askOutcome = if (verdict.asksTheUser) {
+            raiseParkingAsk(
+                vehicleId = vehicleId,
+                kind = ParkingAskKind.RefineApproximateMark,
+                nowMs = clock(),
+            ) {
+                notificationPort.showMarkParkingNudge(
+                    source = outcome, vehicleId = vehicleId, persistPending = false,
+                )
+            }
+        } else {
+            null
+        }
+        return HonestCloseResult(
+            outcomeLabel = outcome, verdict = verdict, zoneRadiusMeters = radiusMeters,
+            askOutcome = askOutcome,
+        )
     }
 
     companion object {

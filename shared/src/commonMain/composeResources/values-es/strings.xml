@@ -1212,4 +1212,10 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="home_still_parked_title_vehicle">¿%1$s sigue aparcado aquí?</string>
     <string name="home_parking_false_detection">Este aparcamiento no ocurrió</string>
     <string name="home_parking_not_parked">No había aparcado</string>
+    <string name="notif_saved_approximate_title">Aparcamiento aproximado guardado</string>
+    <string name="notif_saved_approximate_text">No pudimos localizar el coche con precisión. Se guardó una ubicación aproximada. Abre el aparcamiento y ajusta el pin en el mapa.</string>
+    <string name="notif_saved_approximate_action">Ajustar</string>
+    <string name="notif_mark_parking_title">¿Dónde has dejado el coche?</string>
+    <string name="notif_mark_parking_text">Hemos detectado que te has movido, pero no hemos podido fijar dónde quedó tu coche. Marca el aparcamiento para no perderlo.</string>
+    <string name="notif_mark_parking_action">Marcar aparcamiento</string>
 </resources>
