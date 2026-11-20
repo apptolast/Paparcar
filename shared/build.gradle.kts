@@ -110,14 +110,13 @@ kotlin {
             // Compose Multiplatform
             api(libs.runtime)
             api(libs.foundation)
-            api(libs.material)
             api(libs.material3)
             api(libs.ui)
             api(libs.components.resources)
             api(libs.ui.tooling.preview)
             api(libs.material.icons.extended)
 
-            // Login Library (JitPack)
+            // Login Library (Maven Central)
             api(libs.baselogin)
 
             // Monetización — RevenueCat KMP. `api` porque :app llama a Purchases.configure()
@@ -179,7 +178,6 @@ kotlin {
             // AndroidX base
             api(libs.androidx.core.ktx)
             api(libs.androidx.appcompat)
-            api(libs.androidx.material)
             api(libs.androidx.lifecycle.service)
 
             // Coroutines Android dispatcher
@@ -410,7 +408,7 @@ tasks.withType<Test>().configureEach {
 // dos de iOS—, asi que el unico classpath disponible es el **runtime de los tests de Android**, que
 // ya es esa JVM y no se empaqueta en nada. El `main()` vive en `androidUnitTest` por esa razon; el
 // porque esta escrito en `SnapshotToolMain`.
-val parkingSnapshotTool by tasks.registering(JavaExec::class) {
+val parkingSnapshotTool = tasks.register<JavaExec>("parkingSnapshotTool") {
     group = "paparcar"
     description = "Genera el snapshot pre-cocinado de parkings ejecutando el filtro de la app."
     // El classpath se toma del task de test YA RESUELTO, no de `runtimeDependencyFiles` a mano:

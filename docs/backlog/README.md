@@ -1,6 +1,6 @@
 # Backlog — índice de lo que sigue abierto
 
-> **845 ficheros: 754 cerrados, 82 abiertos, 9 que no son tickets.** Este índice lista **solo lo que**
+> **847 ficheros: 755 cerrados, 83 abiertos, 9 que no son tickets.** Este índice lista **solo lo que**
 > queda**, para que la pregunta *"¿qué falta?"* se conteste leyendo y no listando el directorio.
 > Verificado contra master `1339ea263` el **2026-10-07**
 > [DOCS-A-CLOSED-TICKET-MUST-NOT-SAY-IT-IS-IN-REVIEW-001]. El barrido anterior
@@ -175,6 +175,8 @@ No esperan a un viaje: esperan a que vuelva a fallar lo que los originó.
 | [`db-a-room-expect-object-breaks-the-metadata-compilation-001`](db-a-room-expect-object-breaks-the-metadata-compilation-001.md) | `:shared:compileCommonMainKotlinMetadata` no compila por el `expect object AppDatabaseConstructor`. ✔ sigue vivo: `AppDatabase.kt:58-59` sin cambios. **No rompe APK, framework ni tests** — rompe el análisis de `commonMain` en el IDE |
 | [`map-a-marker-bitmap-is-measured-before-it-exists-001`](map-a-marker-bitmap-is-measured-before-it-exists-001.md) | ✅ arreglado en el fork de `kmp-maps` (`0.9.1-puck5`, ya en Maven Central) |
 | [`deps-revenuecat-3-10-and-a-full-sweep-001`](deps-revenuecat-3-10-and-a-full-sweep-001.md) | ✅ Play avisó del bug de logout de `purchases-kmp-core` 3.8.0/3.9.0 → subido a 3.14.0 + barrido de 18 claves del catálogo (AGP, Kotlin, Compose Multiplatform, `firebase-bom` 34→35…) |
+| [`build-the-catalog-says-only-what-the-build-uses-001`](build-the-catalog-says-only-what-the-build-uses-001.md) | ✅ el catálogo declaraba 5 alias que ningún script nombra, 2 dependencias que nadie importa (Material 2 + el MDC de Google) y 7 claves duplicadas · barrido de 14 claves + wrapper a Gradle 9.9.2 · `VersionCatalogGuardrailTest` lo vigila |
+| [`build-the-last-warnings-all-come-from-one-plugin-pair-001`](build-the-last-warnings-all-come-from-one-plugin-pair-001.md) | 📋 los 5 avisos de configuración que quedan son UNA decisión (`com.android.library` + `androidTarget()` y el Kotlin de KGP en `:app`) · **bloqueado y medido**: bajo `com.android.kotlin.multiplatform.library`, Compose MP borra todos los `composeResources` del APK |
 
 ## 🧱 Arquitectura y limpieza
 
