@@ -220,6 +220,42 @@ conceder Plus a un usuario real.
    poner `active: true` para abrir la promo. Publicar las condiciones y el enlace de campaña en su
    tarea de lanzamiento.
 
+## 🟢 Desplegado el 21-11 (23:08 UTC) — y la trampa que deja para probarlo
+
+```
+grantFoundersPlus    v2/GEN_2  europe-west1  nodejs22  document.v1.created  foundersClaims/{uid}
+                     secret REVENUECAT_SECRET_KEY v4 · SA 431876996213-compute · RETRY · 30 s
+                     trigger_region eur3 · event_filters: database = "(default)"
+releaseFoundersSlot  v1/GEN_1  europe-west1  nodejs22  providers/firebase.auth/.../user.delete
+                     secret v4 · SA pap-26@appspot · RETRY
+reglas               released a las DOS bases ((default) + debug); `foundersClaims` verificado
+                     en el ruleset VIVO, y el resto byte a byte igual que antes
+```
+
+Leído del audit log, no de la salida del deploy. El CLI concedió solo
+`roles/secretmanager.secretAccessor` a las dos cuentas; el `firebaseauth.users.get` que necesita
+`accountExists` ya lo cubría el `Editor` heredado de la cuenta de Compute.
+⛔ El deploy se hizo **acotado** (`--only functions:grantFoundersPlus,functions:releaseFoundersSlot`):
+un `--only functions` a secas habría recompilado las otras cuatro de producción contra
+`firebase-functions` 7.4.0 sin que nadie lo pidiera. Y `--force` lo exige el reintento de las dos.
+
+### ⛔⛔ Un `prodDebug` NO puede probar esto, y lo parecerá roto
+
+`FirestoreDatabase.idFor(isDebugBuild)` manda los builds debug a la base **`debug`**
+[FIRESTORE-DEBUG-BUILDS-USE-DEBUG-DATABASE-001], y el trigger escucha **sólo en `(default)`**. Así
+que el APK de `/run` escribe el claim donde no hay nadie oyendo: el cliente agota su timeout de
+20 s, reintenta en cada entrada a Home, nadie recibe Plus, y los logs de la función están **vacíos**
+— que es el síntoma de «no está desplegada», no el de «la base es otra».
+
+Para la E2E en mano hace falta el build del **canal interno** (release, firmado), no el debug.
+
+⭐ Y la mitad SERVIDOR se puede probar hoy, sin esperar al build: crear a mano (Admin, saltándose
+las reglas) un `foundersClaims/{uid}` en `(default)` para un uid REAL de Auth dispara la cadena
+entera — transacción del cupo, llamada a RevenueCat con la clave v4, sellado de `grants/{uid}` y
+los tres meses de calendario. Es además la **única prueba decisiva de si la clave es v1**. Cuesta
+una plaza de las 2.000, y se devuelve: revocar en RevenueCat, borrar `grants/{uid}` y bajar
+`granted`.
+
 ## Revisión del 21-11 — cuatro defectos de la primera pasada
 
 La primera pasada quedó a medias (se agotó el crédito a mitad de la verificación). Al medirla
