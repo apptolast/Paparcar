@@ -23,6 +23,8 @@ sealed class AppIntent {
      * apuntar el otro si el veredicto cambiase entre el toque y el handler.
      */
     data class DismissPlusMoment(val moment: PlusMoment) : AppIntent()
+    /** The authenticated account reached Home. [MONEY-FOUNDERS-PLUS-PROMO-001] */
+    data class ReachedHome(val uid: String) : AppIntent()
     data class SetThemeMode(val mode: ThemeMode) : AppIntent()
     data class SetDistanceUnit(val imperial: Boolean) : AppIntent()
 

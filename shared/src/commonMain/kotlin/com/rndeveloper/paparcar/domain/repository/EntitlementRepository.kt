@@ -6,6 +6,9 @@ import com.rndeveloper.paparcar.domain.model.PlusOffer
 import com.rndeveloper.paparcar.domain.model.PlusPlan
 import kotlinx.coroutines.flow.Flow
 
+/** Access and response time reported by a fresh store request. */
+data class EntitlementRefresh(val entitlement: Entitlement, val observedAtMillis: Long)
+
 /**
  * Single door to the subscription state. Every consumer (history gate, zone alerts,
  * settings, paywall) asks HERE — never the store SDK directly, and never a mirrored
@@ -61,6 +64,9 @@ interface EntitlementRepository {
      * is a normal answer that deserves a plain sentence, not an error.
      */
     suspend fun restorePurchases(): Result<Boolean>
+
+    /** Fetches and publishes current store access for the bound [userId]. */
+    suspend fun refreshEntitlement(userId: String): Result<EntitlementRefresh>
 
     /**
      * Binds the store identity to the signed-in account's uid, so the subscription follows

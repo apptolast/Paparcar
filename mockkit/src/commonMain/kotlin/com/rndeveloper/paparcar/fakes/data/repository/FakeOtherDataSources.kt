@@ -203,6 +203,13 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     private val _plusPromoEndingNoticedUids = MutableStateFlow<Set<String>>(emptySet())
     override val plusPromoEndingNoticedUids: Set<String> get() = _plusPromoEndingNoticedUids.value
     override fun addPlusPromoEndingNoticedUid(uid: String) { _plusPromoEndingNoticedUids.value += uid }
+    // [MONEY-FOUNDERS-PLUS-PROMO-001]
+    private val _foundersPromoClaimedUids = MutableStateFlow<Set<String>>(emptySet())
+    override val foundersPromoClaimedUids: Set<String> get() = _foundersPromoClaimedUids.value
+    override fun addFoundersPromoClaimedUid(uid: String) { _foundersPromoClaimedUids.value += uid }
+    private val _foundersPromoGrantedUids = MutableStateFlow<Set<String>>(emptySet())
+    override val foundersPromoGrantedUids: Set<String> get() = _foundersPromoGrantedUids.value
+    override fun addFoundersPromoGrantedUid(uid: String) { _foundersPromoGrantedUids.value += uid }
 
     private val _autoDetectParking = MutableStateFlow(true)
     override val autoDetectParking: Boolean get() = _autoDetectParking.value

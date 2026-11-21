@@ -86,6 +86,32 @@ interface AppPreferences {
     val plusPromoEndingNoticedUids: Set<String>
     fun addPlusPromoEndingNoticedUid(uid: String)
 
+    /** Accounts whose founders receipt has been processed on this device.
+     *  [MONEY-FOUNDERS-PLUS-PROMO-001] A grant receipt is processed after refreshing RevenueCat. */
+    val foundersPromoClaimedUids: Set<String>
+    fun addFoundersPromoClaimedUid(uid: String)
+
+    /**
+     * Las cuentas a las que **la campaña** concedió el regalo — las que de verdad son una de las
+     * 2.000. [MONEY-FOUNDERS-PLUS-PROMO-001]
+     *
+     * ⛔ Es un CUARTO conjunto y no un `Boolean` dentro de los otros tres, porque contesta una
+     * pregunta que ninguno contesta: «¿esta cuenta pasó por la promo?». [foundersPromoClaimedUids]
+     * dice que se preguntó, no que se concediera — se marca igual cuando la respuesta es *no*.
+     *
+     * ⛔ Y existe porque sin él la bienvenida miente. `plusMomentFor` enseñaba «eres uno de los
+     * 2.000 primeros» ante **cualquier** grant `PROMOTIONAL`, y un Plus concedido a mano en el
+     * panel de RevenueCat —compensación de soporte, un amigo, un tester— es promocional y NO es un
+     * fundador. La vía de los conocidos ya estaba resuelta con códigos de Play (`PLAY_STORE` →
+     * `PURCHASED` → mudo); la del panel era la que quedaba abierta, y no caducaba con la campaña.
+     *
+     * Se escribe desde el recibo del servidor (`outcome == granted`), que es la única prueba que
+     * el cliente puede tener. Reinstalar vuelve a leerlo del propio recibo, así que la felicitación
+     * vuelve — mismo comportamiento asumido que [plusPromoWelcomedUids].
+     */
+    val foundersPromoGrantedUids: Set<String>
+    fun addFoundersPromoGrantedUid(uid: String)
+
     val autoDetectParking: Boolean
     fun setAutoDetectParking(enabled: Boolean)
     /** Reactive view of [autoDetectParking] so Home's detection banner and the Android arming

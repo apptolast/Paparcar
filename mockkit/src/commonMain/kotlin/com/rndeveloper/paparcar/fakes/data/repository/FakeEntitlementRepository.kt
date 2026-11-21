@@ -5,12 +5,14 @@ import com.rndeveloper.paparcar.domain.model.PlusGrant
 import com.rndeveloper.paparcar.domain.model.PlusOffer
 import com.rndeveloper.paparcar.domain.model.PlusOrigin
 import com.rndeveloper.paparcar.domain.model.PlusPlan
+import com.rndeveloper.paparcar.domain.repository.EntitlementRefresh
 import com.rndeveloper.paparcar.domain.repository.EntitlementRepository
 import com.rndeveloper.paparcar.fakes.MockScenario
 import kotlin.time.Clock
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 /**
@@ -100,6 +102,9 @@ class FakeEntitlementRepository(
     /** The mock has no store account to query, so "restore" can only honestly say it found
      *  nothing. The Dev Catalog's own Plus lever is how you turn Plus on here. */
     override suspend fun restorePurchases(): Result<Boolean> = Result.success(false)
+
+    override suspend fun refreshEntitlement(userId: String): Result<EntitlementRefresh> =
+        Result.success(EntitlementRefresh(observeEntitlement().first(), Clock.System.now().toEpochMilliseconds()))
 
     // Identity is meaningless without a store: with a scenario the Dev Catalog lever stays
     // the single authority (logging in/out of the mock session must not knock Plus off),

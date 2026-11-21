@@ -1,11 +1,14 @@
-import { onDocumentWritten } from 'firebase-functions/v2/firestore';
+import { onDocumentCreated, onDocumentWritten } from 'firebase-functions/v2/firestore';
+import { defineSecret } from 'firebase-functions/params';
+import * as functionsV1 from 'firebase-functions/v1';
 import { onRequest, type Response } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { gzipSync } from 'node:zlib';
 import { setGlobalOptions } from 'firebase-functions/v2';
 import * as logger from 'firebase-functions/logger';
 import { initializeApp } from 'firebase-admin/app';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
+import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 import { isDeadToken, targetsFor, verdictFor, type PublishedSpot, type ZoneAlertSub } from './fanout';
 import { blockAround, cellId, zoneOf } from './parkingsGrid';
@@ -29,6 +32,22 @@ import {
   type SharedCarMember,
   type SharedCarState,
 } from './sharedCarFanout';
+import {
+  CLAIMS_COLLECTION,
+  GRANTS_COLLECTION,
+  grantUrl,
+  NETWORK_OUTCOME,
+  outcomeFor,
+  processFoundersClaim,
+  processFoundersDeletion,
+  PROMO_DOC_PATH,
+  revokeUrl,
+  type ClaimOutcome,
+  type FoundersLedger,
+  type GrantRecord,
+  type PromoConfig,
+  type StoreOutcome,
+} from './foundersPromo';
 
 initializeApp();
 
@@ -619,3 +638,178 @@ export const mergeCell = onRequest(
     }
   },
 );
+
+// ── La promo «Fundadores» ────────────────────────────────────────────────────
+// [MONEY-FOUNDERS-PLUS-PROMO-001]
+
+/** The same Secret Manager value is bound to both generations and read at invocation time. */
+const REVENUECAT_SECRET_KEY = defineSecret('REVENUECAT_SECRET_KEY');
+
+function readPromo(data: Record<string, unknown> | undefined): PromoConfig | null {
+  if (!data) return null;
+  return {
+    active: data.active === true,
+    cap: typeof data.cap === 'number' ? data.cap : NaN,
+    granted: typeof data.granted === 'number' ? data.granted : NaN,
+    durationMonths: typeof data.durationMonths === 'number' ? data.durationMonths : NaN,
+    endsAtMillis: data.endsAt instanceof Timestamp ? data.endsAt.toMillis() : null,
+  };
+}
+
+function readGrant(data: Record<string, unknown> | undefined): GrantRecord | null {
+  if (!data) return null;
+  const { status, attempts, expiresAtMillis, leaseUntilMillis, possiblyGranted } = data;
+  if (
+    (status !== 'reserved' && status !== 'granted' && status !== 'failed' &&
+      status !== 'uncertain' && status !== 'releasing') ||
+    typeof attempts !== 'number' ||
+    !Number.isSafeInteger(attempts) ||
+    attempts < 1 ||
+    typeof expiresAtMillis !== 'number' ||
+    !Number.isSafeInteger(expiresAtMillis)
+  ) {
+    throw new Error('Invalid founders grant record');
+  }
+  return {
+    status,
+    attempts,
+    expiresAtMillis,
+    leaseUntilMillis: typeof leaseUntilMillis === 'number' ? leaseUntilMillis : 0,
+    // A reservation created by an older handler may already have reached RevenueCat.
+    possiblyGranted: typeof possiblyGranted === 'boolean' ? possiblyGranted : status === 'reserved',
+  };
+}
+
+function claimId(timestamp: Timestamp): string {
+  return `${timestamp.seconds}:${timestamp.nanoseconds}`;
+}
+
+const foundersLedger: FoundersLedger = {
+  async transact(uid, decide) {
+    const db = getFirestore();
+    const promoRef = db.doc(PROMO_DOC_PATH);
+    const grantRef = db.collection(GRANTS_COLLECTION).doc(uid);
+    const claimRef = db.collection(CLAIMS_COLLECTION).doc(uid);
+
+    return db.runTransaction(async (tx) => {
+      const [promoSnap, grantSnap, claimSnap] = await Promise.all([
+        tx.get(promoRef), tx.get(grantRef), tx.get(claimRef),
+      ]);
+      const promo = readPromo(promoSnap.data());
+      const grant = readGrant(grantSnap.data());
+      const createdAt = claimSnap.createTime;
+      const outcome = claimSnap.get('outcome') as ClaimOutcome | undefined;
+      const claim = createdAt && {
+        id: claimId(createdAt),
+        claimedAtMillis: createdAt.toMillis(),
+        outcome,
+      };
+      const change = decide({ promo, grant, claim: claim ?? null });
+
+      if (change.counter === 1 || (change.counter === -1 && promo && promo.granted > 0)) {
+        tx.update(promoRef, { granted: FieldValue.increment(change.counter) });
+      }
+      if (change.grant === null) {
+        tx.delete(grantRef);
+      } else if (change.grant) {
+        tx.set(grantRef, {
+          ...change.grant,
+          ...(grant ? {} : { reservedAt: FieldValue.serverTimestamp() }),
+          ...(change.grant.status === 'granted' ? { grantedAt: FieldValue.serverTimestamp() } : {}),
+          ...(change.grant.status === 'failed' ? { failedAt: FieldValue.serverTimestamp() } : {}),
+        }, { merge: true });
+      }
+      if (change.claim === null) {
+        tx.delete(claimRef);
+      } else if (change.claim === 'granted') {
+        const granted = change.grant ?? grant;
+        if (granted?.status !== 'granted') throw new Error('Missing grant for founders receipt');
+        tx.update(claimRef, { outcome: change.claim, expiresAtMillis: granted.expiresAtMillis });
+      } else if (change.claim) {
+        tx.update(claimRef, { outcome: change.claim });
+      }
+      return change.result;
+    });
+  },
+};
+
+async function foundersAccountExists(uid: string): Promise<boolean> {
+  try {
+    await getAuth().getUser(uid);
+    return true;
+  } catch (error) {
+    if ((error as { code?: string }).code === 'auth/user-not-found') return false;
+    throw error;
+  }
+}
+
+function foundersStoreKey(): string {
+  const key = REVENUECAT_SECRET_KEY.value();
+  if (!key.trim()) throw new Error('RevenueCat secret is unavailable');
+  return key;
+}
+
+async function callFoundersStore(url: string, key: string, body?: object): Promise<StoreOutcome> {
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${key}`,
+        'Content-Type': 'application/json',
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: AbortSignal.timeout(10_000),
+    });
+    await response.body?.cancel().catch(() => {
+      logger.warn('founders promo: could not close RevenueCat response');
+    });
+    return outcomeFor(response.status);
+  } catch {
+    // Errors from fetch may contain request details. Keep credentials out of logs.
+    return NETWORK_OUTCOME;
+  }
+}
+
+export const grantFoundersPlus = onDocumentCreated(
+  {
+    document: `${CLAIMS_COLLECTION}/{uid}`,
+    secrets: [REVENUECAT_SECRET_KEY],
+    timeoutSeconds: 30,
+    retry: true,
+  },
+  async (event) => {
+    const createdAt = event.data?.createTime;
+    if (!createdAt) return;
+    const { uid } = event.params;
+    const key = foundersStoreKey();
+    const result = await processFoundersClaim(uid, claimId(createdAt), {
+      ledger: foundersLedger,
+      now: Date.now,
+      accountExists: foundersAccountExists,
+      grant: (uid, expiresAtMillis) =>
+        callFoundersStore(grantUrl(uid), key, { end_time_ms: expiresAtMillis }),
+    });
+    if (result === 'uncertain') {
+      logger.error('founders promo: grant pending reconciliation', { uid });
+    } else if (result === 'failed') {
+      logger.error('founders promo: store rejected grant, slot returned', { uid });
+    } else if (result !== 'skipped') {
+      logger.info('founders promo claim settled', { uid, outcome: result });
+    }
+  },
+);
+
+// Firebase Auth account deletion is a Gen1 event. The Firestore trigger above is Gen2.
+export const releaseFoundersSlot = functionsV1
+  .region('europe-west1')
+  .runWith({ secrets: ['REVENUECAT_SECRET_KEY'], failurePolicy: true })
+  .auth.user()
+  .onDelete(async ({ uid }) => {
+    const released = await processFoundersDeletion(uid, {
+      ledger: foundersLedger,
+      now: Date.now,
+      revoke: (uid) => callFoundersStore(revokeUrl(uid), foundersStoreKey()),
+    });
+    if (released) logger.info('founders promo slot returned', { uid });
+  });

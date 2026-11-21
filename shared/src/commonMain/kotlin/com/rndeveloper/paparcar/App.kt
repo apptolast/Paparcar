@@ -335,6 +335,10 @@ fun App(
                                     onDismissPlusMoment = { moment ->
                                         appViewModel.handleIntent(AppIntent.DismissPlusMoment(moment))
                                     },
+                                    // [MONEY-FOUNDERS-PLUS-PROMO-001]
+                                    onReachedHome = {
+                                        appViewModel.handleIntent(AppIntent.ReachedHome(state.session.userId))
+                                    },
                                 )
                             }
                         }
@@ -484,6 +488,10 @@ private fun MainAppNavigation(
     onAnswerAdMeasurementConsent: (Boolean) -> Unit,
     plusMoment: PlusMoment?,
     onDismissPlusMoment: (PlusMoment) -> Unit,
+    /** Se ha pisado Home. [MONEY-FOUNDERS-PLUS-PROMO-001] Lambda como sus hermanos: esta funcion
+     *  no conoce al AppViewModel, y el unico sitio del arbol que sabe que Home esta en pantalla es
+     *  su propio destino. */
+    onReachedHome: () -> Unit,
 ) {
     val navController = rememberNavController()
     val currentBackStack by navController.currentBackStackEntryAsState()
@@ -719,6 +727,12 @@ private fun MainAppNavigation(
                 )
             }
             composable(Routes.HOME) { backStack ->
+                // [MONEY-FOUNDERS-PLUS-PROMO-001] Llegar AQUI es la condicion para entrar en la
+                // promo de fundadores: quien abandona el alta del coche no gasta una de las 2.000.
+                // `LaunchedEffect(Unit)` por entrada de back-stack, no una sola vez en la vida del
+                // NavHost: volver a Home desde otra pestaña tiene que valer igual, y el caso de uso
+                // corta por la memoria local antes de tocar la red.
+                LaunchedEffect(Unit) { onReachedHome() }
                 // La ficha pidio ver AQUI un aparcamiento vivo. Viaja por el savedStateHandle de la
                 // propia entrada de Home y no por un argumento de ruta, porque a Home no se NAVEGA
                 // desde una pestana hermana: se vuelve a el (esta debajo en la pila), y una ruta con

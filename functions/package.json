@@ -10,7 +10,9 @@
     "build": "tsc && node -e \"const fs=require('fs');fs.mkdirSync('lib/fixtures',{recursive:true});for(const f of fs.readdirSync('src/fixtures'))fs.copyFileSync(`src/fixtures/${f}`,`lib/fixtures/${f}`)\"",
     "build:watch": "tsc --watch",
     "lint": "tsc --noEmit",
-    "test": "npm run build && node --test lib/*.test.js",
+    "test": "npm run build && node --test lib/*.test.js && npm run test:emulated",
+    "//test:emulated": "El smoke de la promo NECESITA Auth + Firestore emulados. Lanzado a pelo falla siempre (`GCLOUD_PROJECT` vacio), y el glob de `test` no alcanza `lib/test/`, asi que durante un dia entero fue un testigo que nadie ejecutaba. [MONEY-FOUNDERS-PLUS-PROMO-001]",
+    "test:emulated": "firebase emulators:exec --only auth,firestore --project demo-paparcar --config ../firebase.rules-tests.json \"node --test lib/test/*.test.js\"",
     "serve": "npm run build && firebase emulators:start --only functions",
     "deploy": "npm run build && firebase deploy --only functions",
     "verify:queries": "tsc && node lib/scripts/verify-prod-queries.js"

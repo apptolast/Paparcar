@@ -28,13 +28,53 @@ class PlusMomentTest {
         uid: String? = this.uid,
         welcomed: Set<String> = emptySet(),
         noticed: Set<String> = emptySet(),
+        // Por defecto ES fundador: así cada caso mide lo que dice su nombre, y los dos que miden
+        // justo lo contrario pasan `founders = emptySet()` a la vista. [MONEY-FOUNDERS-PLUS-PROMO-001]
+        founders: Set<String> = setOfNotNull(uid),
     ) = plusMomentFor(
         grant = grant,
         uid = uid,
         welcomedUids = welcomed,
         endingNoticedUids = noticed,
+        foundersUids = founders,
         nowMs = now,
     )
+
+    // ── La bienvenida afirma un HECHO, y el hecho necesita prueba ─────────────
+
+    /**
+     * ⛔ El agujero del panel. [MONEY-FOUNDERS-PLUS-PROMO-001]
+     *
+     * Un Plus concedido a mano en RevenueCat —compensación de soporte, un amigo, un tester— llega
+     * como `PROMOTIONAL` igual que el de la campaña, y hasta aquí leía «eres uno de los 2.000
+     * primeros». No es un caso raro: es el botón fácil del panel, y no caducaba con la promo.
+     */
+    @Test
+    fun should_say_nothing_when_the_promotional_plus_did_not_come_from_the_campaign() {
+        assertNull(moment(promo(daysLeft = 90), founders = emptySet()))
+    }
+
+    /** Y la prueba es POR CUENTA: la del vecino no vale. */
+    @Test
+    fun should_say_nothing_when_another_account_was_the_founder() {
+        assertNull(moment(promo(daysLeft = 90), founders = setOf("someone-else")))
+    }
+
+    /**
+     * ⚠️ La asimetría deliberada: el AVISO DE FIN no exige ser fundador.
+     *
+     * «Tu Plus de regalo se acaba el 15» es verdad para cualquier regalo con fecha, venga de donde
+     * venga. Callárselo a quien recibió uno del panel sería dejarle sin aviso justo antes de que
+     * se le recorte el historial, que es el defecto que el aviso vino a arreglar.
+     */
+    @Test
+    fun should_still_warn_about_the_ending_when_the_gift_did_not_come_from_the_campaign() {
+        val endsAt = now + 3 * DAY_MS
+        assertEquals(
+            PlusMoment.PromoEnding(endsAt),
+            moment(PlusGrant(PlusOrigin.PROMOTIONAL, endsAt), founders = emptySet()),
+        )
+    }
 
     // ── The welcome ──────────────────────────────────────────────────────────
 
@@ -118,6 +158,7 @@ class PlusMomentTest {
                 uid = uid,
                 welcomedUids = setOf(uid),
                 endingNoticedUids = emptySet(),
+                foundersUids = setOf(uid),
                 nowMs = now,
             ),
         )

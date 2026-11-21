@@ -59,6 +59,19 @@ private const val MS_PER_DAY = 24L * 60 * 60 * 1000
  *   that can be kept about an account we cannot name.
  * @param welcomedUids accounts already congratulated.
  * @param endingNoticedUids accounts already warned.
+ * @param foundersUids accounts the CAMPAIGN granted — the only ones that can be told they are one
+ *   of the first 2,000.
+ *
+ * ⛔ **`PROMOTIONAL` no es prueba de ser fundador**, y tratarlo como tal hacía mentir a la
+ * bienvenida: un Plus concedido a mano en el panel de RevenueCat (compensación de soporte, un
+ * amigo, un tester) es promocional, no es una de las 2.000, y leía «eres uno de los 2.000
+ * primeros» — para siempre, porque eso no caducaba con la campaña.
+ * [MONEY-FOUNDERS-PLUS-PROMO-001]
+ *
+ * ⚠️ El aviso de fin **NO** lleva esa condición, y la asimetría es deliberada: «tu Plus de regalo
+ * se acaba el 15» es verdad para cualquier regalo con fecha, venga de donde venga, y callárselo a
+ * quien recibió uno del panel sería dejarle sin aviso antes de que se le apague el historial. Lo
+ * que exige prueba es la FRASE que afirma un hecho sobre la campaña, no el recordatorio.
  *
  * ⚠️ Inside the ending window the welcome is **skipped, not queued**: an install that happens five
  * days before the promo expires would otherwise be congratulated with "three months free", which
@@ -70,6 +83,7 @@ fun plusMomentFor(
     uid: String?,
     welcomedUids: Set<String>,
     endingNoticedUids: Set<String>,
+    foundersUids: Set<String>,
     nowMs: Long,
 ): PlusMoment? {
     if (uid == null) return null
@@ -87,6 +101,7 @@ fun plusMomentFor(
             return if (uid in endingNoticedUids) null else PlusMoment.PromoEnding(expiresAt)
         }
     }
+    if (uid !in foundersUids) return null
     return if (uid in welcomedUids) null else PlusMoment.FoundersWelcome(expiresAt)
 }
 

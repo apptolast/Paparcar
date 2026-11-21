@@ -5,6 +5,7 @@ import com.rndeveloper.paparcar.domain.model.PlusGrant
 import com.rndeveloper.paparcar.domain.model.PlusOffer
 import com.rndeveloper.paparcar.domain.model.PlusOrigin
 import com.rndeveloper.paparcar.domain.model.PlusPlan
+import com.rndeveloper.paparcar.domain.repository.EntitlementRefresh
 import com.rndeveloper.paparcar.domain.repository.EntitlementRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -72,6 +73,14 @@ class FakeEntitlementRepository(
         // emit PLUS on its own, without any extra call from the caller.
         purchasePlusResult.onSuccess { _grant.value = PURCHASED_FOREVER }
         return purchasePlusResult
+    }
+
+    val refreshedUserIds = mutableListOf<String>()
+    var refreshResult: Result<EntitlementRefresh> = Result.success(EntitlementRefresh(Entitlement.PLUS, 0L))
+
+    override suspend fun refreshEntitlement(userId: String): Result<EntitlementRefresh> {
+        refreshedUserIds += userId
+        return refreshResult
     }
 
     override suspend fun logIn(userId: String): Result<Unit> {

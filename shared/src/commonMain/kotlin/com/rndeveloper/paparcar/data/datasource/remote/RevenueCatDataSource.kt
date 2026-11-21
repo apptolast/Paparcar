@@ -29,6 +29,8 @@ interface RevenueCatDataSource {
      *  update — purchase, renewal, expiration, restore, including from another device. */
     fun observeCustomerInfo(): Flow<CustomerInfo>
 
+    suspend fun fetchCurrentCustomerInfo(): CustomerInfo
+
     suspend fun getOfferings(): Offerings
 
     /** Asks the store which purchases the signed-in Google account already owns, and re-grants

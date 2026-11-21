@@ -27,6 +27,8 @@ private const val KEY_LOCATION_PERMISSION_REQUESTED = "location_permission_reque
 // USER_SCOPED_KEYS a proposito: estan indexadas por uid. [MONEY-FOUNDERS-WELCOME-001]
 private const val KEY_PLUS_PROMO_WELCOMED_UIDS = "plus_promo_welcomed_uids"
 private const val KEY_PLUS_PROMO_ENDING_NOTICED_UIDS = "plus_promo_ending_noticed_uids"
+private const val KEY_FOUNDERS_PROMO_CLAIMED_UIDS = "founders_promo_claimed_uids"
+private const val KEY_FOUNDERS_PROMO_GRANTED_UIDS = "founders_promo_granted_uids"
 private const val KEY_AUTO_DETECT_PARKING = "auto_detect_parking"
 private const val KEY_PENDING_RELEASE_SPOT_ID = "pending_spot_release_id"
 private const val KEY_PENDING_RELEASE_VEHICLE_ID = "pending_spot_release_vehicle_id"
@@ -283,6 +285,19 @@ class IosAppPreferences : AppPreferences {
 
     override fun addPlusPromoEndingNoticedUid(uid: String) =
         addUid(KEY_PLUS_PROMO_ENDING_NOTICED_UIDS, uid)
+
+    // [MONEY-FOUNDERS-PLUS-PROMO-001]
+    override val foundersPromoClaimedUids: Set<String>
+        get() = storedUids(KEY_FOUNDERS_PROMO_CLAIMED_UIDS)
+
+    override fun addFoundersPromoClaimedUid(uid: String) =
+        addUid(KEY_FOUNDERS_PROMO_CLAIMED_UIDS, uid)
+
+    override val foundersPromoGrantedUids: Set<String>
+        get() = storedUids(KEY_FOUNDERS_PROMO_GRANTED_UIDS)
+
+    override fun addFoundersPromoGrantedUid(uid: String) =
+        addUid(KEY_FOUNDERS_PROMO_GRANTED_UIDS, uid)
 
     private fun storedUids(key: String): Set<String> =
         userDefaults.stringArrayForKey(key).orEmpty().mapNotNull { it as? String }.toSet()

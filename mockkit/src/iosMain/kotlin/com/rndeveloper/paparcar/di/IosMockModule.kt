@@ -222,6 +222,12 @@ val iosMockModule = module {
     single<com.rndeveloper.paparcar.domain.repository.ZoneAlertSubscriptionRepository> {
         com.rndeveloper.paparcar.fakes.data.repository.FakeZoneAlertSubscriptionRepository()
     }
+    // [MONEY-FOUNDERS-PLUS-PROMO-001] Mismo motivo que el de arriba, y esta vez SIN guardarrail
+    // que lo cace: este grafo no tiene `MockKoinModuleVerifyTest`. Camino que lo necesita:
+    // App.kt → AppViewModel → ClaimFoundersPromoUseCase → este repositorio.
+    single<com.rndeveloper.paparcar.domain.repository.FoundersPromoRepository> {
+        com.rndeveloper.paparcar.fakes.data.repository.FakeFoundersPromoRepository()
+    }
     single<com.rndeveloper.paparcar.domain.push.PushTokenProvider> {
         com.rndeveloper.paparcar.fakes.data.repository.FakeNoopPushTokenProvider()
     }

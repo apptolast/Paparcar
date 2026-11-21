@@ -77,6 +77,14 @@ class FakeAppPreferences(
     var plusPromoEndingNoticedUidsSet: Set<String> = emptySet()
     override val plusPromoEndingNoticedUids: Set<String> get() = plusPromoEndingNoticedUidsSet
     override fun addPlusPromoEndingNoticedUid(uid: String) { plusPromoEndingNoticedUidsSet += uid }
+    // [MONEY-FOUNDERS-PLUS-PROMO-001] Público por la misma razón: un test tiene que poder arrancar
+    // con el timbre YA tocado, que es la mitad del invariante «una sola vez».
+    var foundersPromoClaimedUidsSet: Set<String> = emptySet()
+    override val foundersPromoClaimedUids: Set<String> get() = foundersPromoClaimedUidsSet
+    override fun addFoundersPromoClaimedUid(uid: String) { foundersPromoClaimedUidsSet += uid }
+    var foundersPromoGrantedUidsSet: Set<String> = emptySet()
+    override val foundersPromoGrantedUids: Set<String> get() = foundersPromoGrantedUidsSet
+    override fun addFoundersPromoGrantedUid(uid: String) { foundersPromoGrantedUidsSet += uid }
 
     private val _autoDetectParking = MutableStateFlow(initialAutoDetect)
     override val autoDetectParking: Boolean get() = _autoDetectParking.value

@@ -40,6 +40,7 @@ import com.rndeveloper.paparcar.data.datasource.remote.RevenueCatDataSourceImpl
 import com.rndeveloper.paparcar.data.repository.RevenueCatEntitlementRepositoryImpl
 import com.rndeveloper.paparcar.data.repository.SpotRepositoryImpl
 import com.rndeveloper.paparcar.data.repository.UserParkingRepositoryImpl
+import com.rndeveloper.paparcar.data.repository.FirestoreFoundersPromoRepository
 import com.rndeveloper.paparcar.data.repository.UserProfileRepositoryImpl
 import com.rndeveloper.paparcar.data.repository.VehicleRepositoryImpl
 import com.rndeveloper.paparcar.data.repository.ZoneRepositoryImpl
@@ -51,6 +52,7 @@ import com.rndeveloper.paparcar.domain.repository.EntitlementRepository
 import com.rndeveloper.paparcar.domain.repository.OpenSourceLicenseRepository
 import com.rndeveloper.paparcar.domain.repository.SpotRepository
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
+import com.rndeveloper.paparcar.domain.repository.FoundersPromoRepository
 import com.rndeveloper.paparcar.domain.repository.UserProfileRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneRepository
@@ -119,6 +121,11 @@ val dataModule = module {
         )
     }
     single<RemoteSharedCarDataSource> { RemoteSharedCarDataSourceImpl(get()) }
+
+    // [MONEY-FOUNDERS-PLUS-PROMO-001] El timbre de la promo de fundadores. Habla con Firestore
+    // directamente, como `FirestoreZoneAlertSubscriptionRepository`: un documento de un campo que
+    // se escribe una vez por cuenta no tiene nada que mapear ni que cachear.
+    single<FoundersPromoRepository> { FirestoreFoundersPromoRepository(firestore = get()) }
 
     // Detection diagnostics — Firestore-backed remote event log, gated by a Firestore flag
     // (diagnostics_config/{userId}.enabled). [DET-LOG-02]

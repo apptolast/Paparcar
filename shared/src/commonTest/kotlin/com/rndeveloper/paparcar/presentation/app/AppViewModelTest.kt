@@ -7,6 +7,9 @@ import com.rndeveloper.paparcar.domain.model.Spot
 import com.rndeveloper.paparcar.domain.model.Entitlement
 import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.domain.model.Zone
+import com.rndeveloper.paparcar.domain.repository.EntitlementRepository
+import com.rndeveloper.paparcar.domain.repository.FoundersClaimOutcome
+import com.rndeveloper.paparcar.domain.repository.FoundersPromoRepository
 import com.rndeveloper.paparcar.domain.usecase.detection.EvaluateDetectionReliabilityUseCase
 import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
 import com.rndeveloper.paparcar.domain.usecase.detection.PublishDetectionStateUseCase
@@ -20,10 +23,13 @@ import com.rndeveloper.paparcar.fakes.FakeUserProfileRepository
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityBannerPhase
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityStatus
 import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
+import com.rndeveloper.paparcar.domain.usecase.entitlement.ClaimFoundersPromoUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.ObservePlusGrantUseCase
+import com.rndeveloper.paparcar.fakes.data.repository.FakeFoundersPromoRepository
 import com.rndeveloper.paparcar.domain.usecase.zone.ObserveZoneSpotAlertsUseCase
 import com.rndeveloper.paparcar.fakes.FakeAppNotificationManager
 import com.rndeveloper.paparcar.fakes.FakeAppPreferences
+import com.apptolast.baselogin.domain.model.AuthState
 import com.apptolast.baselogin.domain.model.UserSession
 import com.rndeveloper.paparcar.domain.entitlement.PLUS_PROMO_ENDING_WINDOW_DAYS
 import com.rndeveloper.paparcar.domain.entitlement.PlusMoment
@@ -38,6 +44,7 @@ import com.rndeveloper.paparcar.fakes.FakeUserParkingRepository
 import com.rndeveloper.paparcar.fakes.FakeVehicleRepository
 import com.rndeveloper.paparcar.fakes.FakeZoneRepository
 import com.rndeveloper.paparcar.fakes.FakeZoneWatchRepository
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -143,7 +150,11 @@ class AppViewModelTest {
      * — que es la misma leccion que el registro de Koin ya llevaba escrita para `HomeViewModel`.
      * [ZONE-AN-ALERT-NEAR-YOU-IS-NOT-AN-ALERT-IN-YOUR-ZONE-001]
      */
-    private fun viewModel(connectivity: FakeConnectivityObserver = fakeConnectivity) = AppViewModel(
+    private fun viewModel(
+        connectivity: FakeConnectivityObserver = fakeConnectivity,
+        foundersPromo: FoundersPromoRepository = foundersPromoRepo,
+        entitlement: EntitlementRepository = entitlementRepo,
+    ) = AppViewModel(
         permissionManager = fakePermissions,
         appPreferences = fakePrefs,
         connectivityObserver = connectivity,
@@ -157,9 +168,25 @@ class AppViewModelTest {
         publishDetectionState = detectionPublisher,
         adMeasurementLane = adLane,
         setAdMeasurementConsent = SetAdMeasurementConsentUseCase(fakePrefs, adLane),
-        observePlusGrant = ObservePlusGrantUseCase(entitlementRepo),
+        observePlusGrant = ObservePlusGrantUseCase(entitlement),
+        claimFoundersPromo = ClaimFoundersPromoUseCase(foundersPromo, fakePrefs, entitlement),
         authRepository = fakeAuth,
     )
+
+    /** [MONEY-FOUNDERS-PLUS-PROMO-001] El timbre de la promo, sin red. */
+    private val foundersPromoRepo = FakeFoundersPromoRepository()
+
+    /**
+     * Esta cuenta pasó por la CAMPAÑA. [MONEY-FOUNDERS-PLUS-PROMO-001]
+     *
+     * ⛔ Sin esta prueba la bienvenida no sale, y es justo lo que debe pasar: un grant
+     * `PROMOTIONAL` concedido a mano en el panel de RevenueCat no es una de las 2.000, y leía
+     * «eres uno de los 2.000 primeros». Los tests que SÍ esperan la felicitación la piden
+     * explícitamente, para que el gate se vea en cada uno en vez de vivir en el `setUp`.
+     */
+    private fun markAsFounder(uid: String = UID) {
+        fakePrefs.foundersPromoGrantedUidsSet += uid
+    }
 
     /** Firmado por defecto: el momento de Plus se promete POR CUENTA, así que un test que no
      *  nombre al usuario no puede medir «una sola vez». [MONEY-FOUNDERS-WELCOME-001] */
@@ -173,6 +200,84 @@ class AppViewModelTest {
     @AfterTest
     fun tearDown() {
         Dispatchers.resetMain()
+    }
+
+    @Test
+    fun should_waitForMatchingSession_when_homeArrivesBeforeAuthObservation() = runTest(testDispatcher) {
+        fakeAuth.emitState(AuthState.Unauthenticated)
+        val vm = viewModel()
+
+        vm.handleIntent(AppIntent.ReachedHome(UID))
+        runCurrent()
+        assertTrue(foundersPromoRepo.claimedUids.isEmpty())
+
+        val session = UserSession(userId = UID, email = null, displayName = null, photoUrl = null)
+        fakeAuth.emitState(AuthState.Authenticated(session))
+        runCurrent()
+        assertEquals(listOf(UID), foundersPromoRepo.claimedUids)
+    }
+
+    @Test
+    fun should_retryClaim_when_homeWasReachedOfflineAndConnectivityReturns() = runTest(testDispatcher) {
+        fakeConnectivity.emit(ConnectivityStatus.Offline)
+        val vm = viewModel()
+        vm.handleIntent(AppIntent.ReachedHome(UID))
+        runCurrent()
+        assertTrue(foundersPromoRepo.claimedUids.isEmpty())
+
+        fakeConnectivity.emit(ConnectivityStatus.Online)
+        runCurrent()
+        assertEquals(listOf(UID), foundersPromoRepo.claimedUids)
+    }
+
+    @Test
+    fun should_welcomeOnce_when_homeClaimIsConfirmedByRevenueCat() = runTest(testDispatcher) {
+        val receipt = CompletableDeferred<FoundersClaimOutcome>()
+        val claims = mutableListOf<String>()
+        val foundersPromo = object : FoundersPromoRepository {
+            override suspend fun claim(uid: String): Result<FoundersClaimOutcome> {
+                claims += uid
+                return Result.success(receipt.await())
+            }
+        }
+        val vm = viewModel(foundersPromo = foundersPromo)
+        runCurrent()
+
+        assertTrue(claims.isEmpty())
+        assertTrue(entitlementRepo.refreshedUserIds.isEmpty())
+        assertNull(vm.state.value.plusMoment)
+
+        vm.handleIntent(AppIntent.ReachedHome(UID))
+        vm.handleIntent(AppIntent.ReachedHome(UID))
+        runCurrent()
+
+        // Dos entradas a Home mientras el recibo no llega son UNA sola solicitud, y todavia no se
+        // le pregunta nada a la tienda: no hay nada que refrescar hasta que el servidor contesta.
+        assertEquals(listOf(UID), claims)
+        assertTrue(entitlementRepo.refreshedUserIds.isEmpty())
+        assertNull(vm.state.value.plusMoment)
+
+        val expiry = inDays(90)
+        receipt.complete(FoundersClaimOutcome.Granted(expiry))
+        runCurrent()
+
+        // El recibo dispara UNA lectura fresca. Que esa lectura devuelva de verdad un grant
+        // PROMOTIONAL lo prueba `RevenueCatEntitlementRepositoryImplTest`, en SU capa: aqui el
+        // sujeto es el cableado -- pedir, refrescar, felicitar una sola vez.
+        assertEquals(listOf(UID), entitlementRepo.refreshedUserIds)
+        entitlementRepo.emitGrant(PlusGrant(PlusOrigin.PROMOTIONAL, expiry))
+        runCurrent()
+
+        val welcome = PlusMoment.FoundersWelcome(expiry)
+        assertEquals(welcome, vm.state.value.plusMoment)
+
+        vm.handleIntent(AppIntent.DismissPlusMoment(welcome))
+        vm.handleIntent(AppIntent.ReachedHome(UID))
+        runCurrent()
+
+        assertNull(vm.state.value.plusMoment)
+        assertEquals(listOf(UID), claims)
+        assertEquals(listOf(UID), entitlementRepo.refreshedUserIds)
     }
 
     // ── Init ─────────────────────────────────────────────────────────────────
@@ -574,6 +679,7 @@ class AppViewModelTest {
      */
     @Test
     fun `should_celebrateTheGiftedPlus_when_theGrantLandsAfterStartup`() = runTest(testDispatcher) {
+        markAsFounder()
         val vm = viewModel()
         // Contestada de entrada: el orden entre las dos superficies tiene su propio test abajo, y
         // dejarla abierta aquí mediría eso en vez de la llegada tardía del grant.
@@ -605,6 +711,7 @@ class AppViewModelTest {
      *  darlo en cuanto lo relee. */
     @Test
     fun `should_rememberTheWelcome_when_theUserClosesIt`() = runTest(testDispatcher) {
+        markAsFounder()
         val vm = viewModel()
         entitlementRepo.emitGrant(PlusGrant(PlusOrigin.PROMOTIONAL, inDays(90)))
         runCurrent()
@@ -624,6 +731,7 @@ class AppViewModelTest {
     /** Y no vuelve en el arranque siguiente, que es donde un flag en memoria habría fallado. */
     @Test
     fun `should_notCelebrateAgain_when_theAccountWasAlreadyWelcomed`() = runTest(testDispatcher) {
+        markAsFounder()
         fakePrefs.plusPromoWelcomedUidsSet = setOf(UID)
         val vm = viewModel()
         entitlementRepo.emitGrant(PlusGrant(PlusOrigin.PROMOTIONAL, inDays(90)))
@@ -654,6 +762,7 @@ class AppViewModelTest {
      */
     @Test
     fun `should_holdTheCelebration_when_theAdMeasurementQuestionIsStillOpen`() = runTest(testDispatcher) {
+        markAsFounder()
         val vm = viewModel()
         entitlementRepo.emitGrant(PlusGrant(PlusOrigin.PROMOTIONAL, inDays(90)))
         runCurrent()

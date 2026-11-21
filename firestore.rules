@@ -365,6 +365,28 @@ service cloud.firestore {
       allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
     }
 
+    // La solicitud de Fundadores se crea desde Home. El servidor escribe `outcome` y la fecha
+    // de caducidad si concedió el regalo. El cliente sólo puede consultar su propio resultado.
+    match /foundersClaims/{uid} {
+      function isPromoOpen() {
+        let promo = get(/databases/$(database)/documents/promos/founders).data;
+        return promo.active == true
+            && promo.endsAt is timestamp
+            && request.time < promo.endsAt
+            && promo.cap is int && promo.cap > 0 && promo.cap <= 2000
+            && promo.granted is int && promo.granted >= 0
+            && promo.durationMonths == 3;
+      }
+
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null
+                    && request.auth.uid == uid
+                    && request.resource.data.keys().hasOnly(['claimedAt'])
+                    && request.resource.data.claimedAt == request.time
+                    && isPromoOpen();
+      allow list, update, delete: if false;
+    }
+
     // Denegar cualquier otra colección no listada explícitamente.
     match /{document=**} {
       allow read, write: if false;

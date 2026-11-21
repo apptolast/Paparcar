@@ -16,6 +16,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * The ONE place that reads the vendor's view of the subscription.
@@ -165,6 +166,31 @@ class RevenueCatEntitlementRepositoryImplTest {
         runCurrent()
 
         repo.observePlusGrant().test { assertNull(awaitItem()) }
+    }
+
+    @Test
+    fun should_publishFreshGrant_when_theBoundAccountRefreshes() = runTest {
+        val source = FakeRevenueCatDataSource(appUserID = "uid-1")
+        val repo = repository(source)
+        runCurrent()
+        source.currentPlus = plusEntitlement(Store.PROMOTIONAL, expiresAtMillis = ENDS_AT)
+
+        assertTrue(repo.refreshEntitlement("uid-1").isSuccess)
+
+        assertEquals(1, source.fetchCurrentCalls)
+        repo.observePlusGrant().test {
+            assertEquals(PlusGrant(PlusOrigin.PROMOTIONAL, ENDS_AT), awaitItem())
+        }
+    }
+
+    @Test
+    fun should_skipRefresh_when_anotherStoreAccountIsBound() = runTest {
+        val source = FakeRevenueCatDataSource(appUserID = "other")
+        val repo = repository(source)
+
+        assertTrue(repo.refreshEntitlement("uid-1").isFailure)
+
+        assertEquals(0, source.fetchCurrentCalls)
     }
 
     private companion object {

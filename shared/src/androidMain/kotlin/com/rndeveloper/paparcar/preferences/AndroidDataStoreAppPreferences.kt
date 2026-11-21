@@ -197,6 +197,19 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
     override fun addPlusPromoEndingNoticedUid(uid: String) =
         addToSet(Keys.PLUS_PROMO_ENDING_NOTICED_UIDS, uid)
 
+    // [MONEY-FOUNDERS-PLUS-PROMO-001]
+    override val foundersPromoClaimedUids: Set<String>
+        get() = get(Keys.FOUNDERS_PROMO_CLAIMED_UIDS, emptySet())
+
+    override fun addFoundersPromoClaimedUid(uid: String) =
+        addToSet(Keys.FOUNDERS_PROMO_CLAIMED_UIDS, uid)
+
+    override val foundersPromoGrantedUids: Set<String>
+        get() = get(Keys.FOUNDERS_PROMO_GRANTED_UIDS, emptySet())
+
+    override fun addFoundersPromoGrantedUid(uid: String) =
+        addToSet(Keys.FOUNDERS_PROMO_GRANTED_UIDS, uid)
+
     /** Igual que [editDissolved], pero sin flujo que mantener: estos dos conjuntos se LEEN una vez
      *  (al decidir el momento) y nunca se observan, así que basta el snapshot en memoria al día
      *  para que la lectura síncrona de después del `add` no vaya un tick por detrás. */
@@ -513,6 +526,8 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
          *  barrido de sesión a propósito: están indexadas por uid. [MONEY-FOUNDERS-WELCOME-001] */
         val PLUS_PROMO_WELCOMED_UIDS = stringSetPreferencesKey("plus_promo_welcomed_uids")
         val PLUS_PROMO_ENDING_NOTICED_UIDS = stringSetPreferencesKey("plus_promo_ending_noticed_uids")
+        val FOUNDERS_PROMO_CLAIMED_UIDS = stringSetPreferencesKey("founders_promo_claimed_uids")
+        val FOUNDERS_PROMO_GRANTED_UIDS = stringSetPreferencesKey("founders_promo_granted_uids")
         val FIRST_STEPS_DONE        = stringSetPreferencesKey("first_steps_done")
         val FIRST_STEPS_DEFERRED    = stringSetPreferencesKey("first_steps_deferred")
         val FIRST_STEPS_DISMISSED   = booleanPreferencesKey("first_steps_dismissed")

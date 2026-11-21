@@ -67,13 +67,32 @@ grupos y tratarlos distinto según el papel. La app hace exactamente esto, y aqu
 5. Dejar constancia en la respuesta si se disolvió algún grupo: los demás miembros verán
    desaparecer el coche compartido de su garaje (su fila queda desvinculada, no borrada).
 
+### 2.2 · Conservar los documentos de la promo «Fundadores»
+[MONEY-FOUNDERS-PLUS-PROMO-001]
+
+Dejar intactos `grants/<uid>` y `foundersClaims/<uid>`. El trigger `releaseFoundersSlot` los
+gestiona al borrar la cuenta de Auth. `grants/<uid>` permite saber si hay una plaza que devolver
+y si queda pendiente revocar el regalo en RevenueCat.
+
+Si alguien ya borró un documento del apartado, tratarlo como una incidencia de la promoción.
+Conciliar la concesión en RevenueCat y el cupo con la evidencia del servidor antes de corregir el
+contador.
+
 ## 3 · Borrar la cuenta de Auth
 Firebase Console → Authentication → Users → ⋮ en el uid → **Delete account**.
 (Va después de Firestore: mientras exista la cuenta, las rules permiten re-escrituras del dueño.)
 
+Este borrado individual dispara `releaseFoundersSlot`. Si la concesión estaba en curso o RevenueCat
+falla, comprobar el resultado del reintento antes de dar por terminado el borrado.
+
 ## 4 · Verificar y confirmar
 - Re-consultar las rutas del paso 2 (Console o MCP): **0 documentos**. Incluida la consulta `zoneAlertSubs` con `uid == <uid>`
   y, por cada grupo del paso 2.1, que no quede ni su ficha de miembro ni ninguna sesión suya.
+- Comprobar que `grants/<uid>` y `foundersClaims/<uid>` están ausentes. Si la cuenta ocupaba una
+  plaza, verificar que quedó devuelta en `firebase functions:log --only releaseFoundersSlot --project pap-26`
+  y que el regalo está revocado en RevenueCat. Una cuenta sin plaza no cambia el cupo. El total
+  agregado puede variar por otras altas o bajas simultáneas. Si queda una revocación pendiente,
+  seguir el reintento hasta confirmar su resolución.
 - Responder al email confirmando el borrado. Sin plantilla legal: hecho + fecha.
 - ⚠️ Si el usuario tenía sesión en otro dispositivo, su token puede escribir hasta ~1 h después
   del delete de Auth — re-verificar al día siguiente si el caso lo merece.

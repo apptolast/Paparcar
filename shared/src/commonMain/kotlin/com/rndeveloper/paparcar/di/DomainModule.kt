@@ -26,6 +26,7 @@ import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.event.MapFocusEventBus
 import com.rndeveloper.paparcar.domain.event.StartAddParkingEventBus
 import com.rndeveloper.paparcar.domain.usecase.entitlement.GetPlusOffersUseCase
+import com.rndeveloper.paparcar.domain.usecase.entitlement.ClaimFoundersPromoUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.ObservePlusGrantUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.PurchasePlusUseCase
@@ -137,6 +138,8 @@ val domainModule = module {
     // [MONEY-FOUNDERS-WELCOME-001] Hermano del de arriba, no su sustituto: los seis gates siguen
     // preguntando «¿puede?» y sólo dos sitios preguntan «¿de dónde salió?».
     factory { ObservePlusGrantUseCase(entitlementRepository = get()) }
+    // [MONEY-FOUNDERS-PLUS-PROMO-001]
+    factory { ClaimFoundersPromoUseCase(repository = get(), appPreferences = get(), entitlementRepository = get()) }
     factory { PurchasePlusUseCase(entitlementRepository = get()) }
     factory { GetPlusOffersUseCase(entitlementRepository = get()) }
     factory { RestorePurchasesUseCase(entitlementRepository = get()) }

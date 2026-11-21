@@ -10,8 +10,12 @@ import com.rndeveloper.paparcar.domain.model.PlusGrant
 import com.rndeveloper.paparcar.domain.model.PlusOffer
 import com.rndeveloper.paparcar.domain.model.PlusOrigin
 import com.rndeveloper.paparcar.domain.model.PlusPlan
+import com.rndeveloper.paparcar.domain.repository.EntitlementRefresh
 import com.rndeveloper.paparcar.domain.repository.EntitlementRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
@@ -99,6 +103,23 @@ class RevenueCatEntitlementRepositoryImpl(
         check(dataSource.isConfigured) { "Purchases SDK not configured" }
         grant.value = dataSource.restore().toGrant()
         grant.value != null
+    }
+
+    override suspend fun refreshEntitlement(userId: String): Result<EntitlementRefresh> = try {
+        check(dataSource.isConfigured && dataSource.appUserID == userId) {
+            "RevenueCat identity does not match the account"
+        }
+        val info = dataSource.fetchCurrentCustomerInfo()
+        currentCoroutineContext().ensureActive()
+        check(dataSource.appUserID == userId) { "RevenueCat identity changed during refresh" }
+        val activeGrant = info.toGrant()
+        grant.value = activeGrant
+        val entitlement = if (activeGrant != null) Entitlement.PLUS else Entitlement.FREE
+        Result.success(EntitlementRefresh(entitlement, info.requestDateMillis))
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (error: Exception) {
+        Result.failure(error)
     }
 
     override suspend fun logIn(userId: String): Result<Unit> = runCatching {

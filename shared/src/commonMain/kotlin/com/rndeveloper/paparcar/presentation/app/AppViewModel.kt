@@ -16,6 +16,7 @@ import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.usecase.detection.PublishDetectionStateUseCase
+import com.rndeveloper.paparcar.domain.usecase.entitlement.ClaimFoundersPromoUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.ObservePlusGrantUseCase
 import com.rndeveloper.paparcar.domain.notification.AlertChannel
 import com.rndeveloper.paparcar.domain.notification.MapVisibility
@@ -77,6 +78,10 @@ class AppViewModel(
     // de UI en cualquier pestaña, y la condición de «estar en una pestaña» es justo la que no
     // interrumpe onboarding, permisos ni alta de vehículo.
     private val observePlusGrant: ObservePlusGrantUseCase,
+    /** Entrar en la promo «Fundadores» al pisar Home. [MONEY-FOUNDERS-PLUS-PROMO-001]
+     *  Vive aquí y no en `HomeViewModel` porque el carril del regalo entero —pedirlo, celebrarlo,
+     *  despedirlo— es de este ViewModel, y Home sólo aporta el instante. */
+    private val claimFoundersPromo: ClaimFoundersPromoUseCase,
     /** De quién es la cuenta: «una sola vez» se promete POR CUENTA, y una promesa así no se puede
      *  cumplir sobre un usuario que no se sabe nombrar. Reactivo y no una lectura única — este
      *  ViewModel sobrevive a un cierre de sesión y a la entrada del siguiente. */
@@ -91,6 +96,9 @@ class AppViewModel(
     // (background, screen off, task-switched away). Starts false: nothing is on screen before the
     // first composition reports in.
     private val appForeground = MutableStateFlow(false)
+    private var currentUid: String? = null
+    private var foundersHomeUid: String? = null
+    private var foundersClaimJob: Job? = null
 
     init {
         // Synchronously correct state before first composition.
@@ -150,6 +158,7 @@ class AppViewModel(
                             // Real reconnect → push any edits made while offline to the cloud, then
                             // show the green banner briefly, then settle to Hidden. [SYNC-RECONCILE-001]
                             drainPendingSync()
+                            claimFoundersPromoIfReady()
                             updateState { copy(connectivity = current, connectivityBanner = ConnectivityBannerPhase.Restored) }
                             restoredHideJob?.cancel()
                             restoredHideJob = viewModelScope.launch {
@@ -255,23 +264,26 @@ class AppViewModel(
 
         // [MONEY-FOUNDERS-WELCOME-001] WHAT the app owes this account about its gifted Plus.
         //
-        // ⛔ The grant and the uid are COMBINED rather than chained: either one can land second.
-        // The grant is pushed by the store SDK whenever it feels like it (the Cloud Function that
-        // concedes the promo runs after sign-up, so on a brand-new account it is normal for the
-        // entitlement to arrive while the user is already looking at the map), and the uid arrives
-        // with the auth state. Waiting on a fixed order would mean the welcome depended on which
-        // of the two was slower that day.
+        // The grant and uid can arrive in either order. A founders receipt triggers a fresh
+        // RevenueCat fetch after Home, and the welcome reacts to the resulting entitlement.
         //
         // The two memories are READ here and not collected: they only ever change because of the
         // intent below, which sets the state itself. A `combine` over them as flows would be a
         // second path to the same transition.
-        combine(observePlusGrant(), signedInUid()) { grant, uid ->
+        val signedInUid = signedInUid().onEach { uid ->
+            if (foundersHomeUid == currentUid) foundersHomeUid = null
             currentUid = uid
+            foundersClaimJob?.cancel()
+            foundersClaimJob = null
+            claimFoundersPromoIfReady()
+        }
+        combine(observePlusGrant(), signedInUid) { grant, uid ->
             plusMomentFor(
                 grant = grant,
                 uid = uid,
                 welcomedUids = appPreferences.plusPromoWelcomedUids,
                 endingNoticedUids = appPreferences.plusPromoEndingNoticedUids,
+                foundersUids = appPreferences.foundersPromoGrantedUids,
                 nowMs = Clock.System.now().toEpochMilliseconds(),
             )
         }
@@ -286,9 +298,12 @@ class AppViewModel(
         .map { (it as? AuthState.Authenticated)?.session?.userId }
         .distinctUntilChanged()
 
-    /** Lo último que dijo [signedInUid], para que el handler sepa a QUIÉN apuntar. Bookkeeping del
-     *  ViewModel y no estado de UI: ninguna pantalla pinta el uid. */
-    private var currentUid: String? = null
+    private fun claimFoundersPromoIfReady() {
+        val uid = foundersHomeUid ?: return
+        if (uid != currentUid || connectivityObserver.status.value != ConnectivityStatus.Online) return
+        if (foundersClaimJob?.isActive == true) return
+        foundersClaimJob = viewModelScope.launch { claimFoundersPromo(uid) }
+    }
 
     /** El temporizador del aviso in-app de plaza. Uno solo: una plaza nueva REEMPLAZA a la
      *  anterior en vez de encolarse — nadie quiere leer una cola de avisos sobre un mapa que ya
@@ -368,6 +383,10 @@ class AppViewModel(
                     }
                 }
                 updateState { copy(plusMoment = null) }
+            }
+            is AppIntent.ReachedHome -> {
+                foundersHomeUid = intent.uid
+                claimFoundersPromoIfReady()
             }
             is AppIntent.SetThemeMode -> {
                 appPreferences.setThemeMode(intent.mode)

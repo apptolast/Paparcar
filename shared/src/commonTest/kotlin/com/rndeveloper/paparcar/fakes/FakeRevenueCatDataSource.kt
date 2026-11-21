@@ -35,6 +35,15 @@ class FakeRevenueCatDataSource(
 
     override fun observeCustomerInfo(): Flow<CustomerInfo> = customerInfo
 
+    var currentPlus: EntitlementInfo? = null
+    var fetchCurrentCalls = 0
+        private set
+
+    override suspend fun fetchCurrentCustomerInfo(): CustomerInfo {
+        fetchCurrentCalls++
+        return customerInfo(plus = currentPlus)
+    }
+
     /** Push what the store now says about the `plus` entitlement — null for "not active". */
     fun emit(plus: EntitlementInfo?) {
         customerInfo.value = customerInfo(plus = plus)

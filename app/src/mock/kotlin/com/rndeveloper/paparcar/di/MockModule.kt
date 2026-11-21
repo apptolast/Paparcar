@@ -212,6 +212,14 @@ val mockModule = module {
         FakeUserParkingRepository(get<com.rndeveloper.paparcar.domain.detection.DetectionRuntimeState>(), get<MockScenario>())
     }
     single<UserProfileRepository> { FakeUserProfileRepository() }
+    // [MONEY-FOUNDERS-PLUS-PROMO-001] Sin el, AppViewModel no se construye en el flavor mock y
+    // `MockKoinModuleVerifyTest` se pone rojo — que es justo su trabajo.
+    // Scenario-aware: la palanca "Plus de REGALO" decide el recibo, y el resto del camino es el de
+    // produccion. Sin esto la palanca quedaria encendida y sin efecto visible, porque la bienvenida
+    // ya exige prueba de ser fundador. [MONEY-FOUNDERS-PLUS-PROMO-001]
+    single<com.rndeveloper.paparcar.domain.repository.FoundersPromoRepository> {
+        com.rndeveloper.paparcar.fakes.data.repository.FakeFoundersPromoRepository(get<MockScenario>())
+    }
     single<ZoneRepository> { FakeZoneRepository(get()) }
     // Scenario-aware: la palanca "Plus activo" del Dev Catalog mueve todos los gates de Plus
     // en vivo, incluida la degradación Plus → free que la tienda real no deja ensayar. [MONEY-001]

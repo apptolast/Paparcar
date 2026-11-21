@@ -8,6 +8,7 @@ import com.revenuecat.purchases.kmp.ktx.awaitLogOut
 import com.revenuecat.purchases.kmp.ktx.awaitOfferings
 import com.revenuecat.purchases.kmp.ktx.awaitPurchase
 import com.revenuecat.purchases.kmp.ktx.awaitRestore
+import com.revenuecat.purchases.kmp.models.CacheFetchPolicy
 import com.revenuecat.purchases.kmp.models.CustomerInfo
 import com.revenuecat.purchases.kmp.models.Offerings
 import com.revenuecat.purchases.kmp.models.Package
@@ -63,6 +64,9 @@ class RevenueCatDataSourceImpl : RevenueCatDataSource {
         }
         emitAll(updates)
     }
+
+    override suspend fun fetchCurrentCustomerInfo(): CustomerInfo =
+        Purchases.sharedInstance.awaitCustomerInfo(CacheFetchPolicy.FETCH_CURRENT)
 
     override suspend fun getOfferings(): Offerings = Purchases.sharedInstance.awaitOfferings()
 
