@@ -1056,6 +1056,12 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen â†’ Paparcar â
     <string name="parking_kind_garage_boxes">Afgesloten garageboxen</string>
     <string name="parking_kind_unknown">Parkeergarage</string>
     <string name="parking_fee_paid">Betaald</string>
+    <string name="parking_occupancy_free">%1$d vrije plaatsen</string>
+    <string name="parking_occupancy_full">Vol</string>
+    <plurals name="parking_marker_spaces_left">
+        <item quantity="one">%1$d plek vrij</item>
+        <item quantity="other">%1$d plekken vrij</item>
+    </plurals>
     <string name="parking_fee_free">Gratis</string>
     <string name="parking_capacity">Capaciteit: %1$s</string>
     <string name="parking_max_height">Max. hoogte %1$s m</string>

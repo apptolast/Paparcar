@@ -1115,6 +1115,14 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <string name="parking_kind_garage_boxes">Garaże zamknięte</string>
     <string name="parking_kind_unknown">Parking</string>
     <string name="parking_fee_paid">Płatny</string>
+    <string name="parking_occupancy_free">Wolne miejsca: %1$d</string>
+    <string name="parking_occupancy_full">Brak wolnych miejsc</string>
+    <plurals name="parking_marker_spaces_left">
+        <item quantity="one">%1$d wolne miejsce</item>
+        <item quantity="few">%1$d wolne miejsca</item>
+        <item quantity="many">%1$d wolnych miejsc</item>
+        <item quantity="other">%1$d wolnego miejsca</item>
+    </plurals>
     <string name="parking_fee_free">Bezpłatny</string>
     <string name="parking_capacity">Pojemność: %1$s</string>
     <string name="parking_max_height">Maks. wysokość %1$s m</string>

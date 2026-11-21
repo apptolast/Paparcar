@@ -1,6 +1,6 @@
 package com.rndeveloper.paparcar.presentation.home.sections.sheet.components.peek
 
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -9,18 +9,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Navigation
 import androidx.compose.material.icons.rounded.AccessTimeFilled
 import androidx.compose.material.icons.rounded.Height
-import androidx.compose.material.icons.rounded.LocalParking
-import androidx.compose.material.icons.rounded.Payments
+import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.rndeveloper.paparcar.domain.parkings.FeeInfo
 import com.rndeveloper.paparcar.domain.usecase.parkings.NearbyPublicParking
 import com.rndeveloper.paparcar.presentation.home.HomeIntent
 import com.rndeveloper.paparcar.presentation.home.PeekStep
+import com.rndeveloper.paparcar.presentation.home.model.occupancyLabel
+import com.rndeveloper.paparcar.presentation.home.model.publicParkingFeeLabel
 import com.rndeveloper.paparcar.presentation.home.model.publicParkingKindLabel
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.HomeSheetAction
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheet
@@ -34,13 +34,11 @@ import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
 import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
-import com.rndeveloper.paparcar.ui.theme.PapGap
+import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.common_directions
 import paparcar.composeapp.generated.resources.parking_capacity
-import paparcar.composeapp.generated.resources.parking_fee_free
-import paparcar.composeapp.generated.resources.parking_fee_paid
 import paparcar.composeapp.generated.resources.parking_max_height
 import paparcar.composeapp.generated.resources.parking_peek_eyebrow
 import paparcar.composeapp.generated.resources.parking_peek_step_next
@@ -71,6 +69,9 @@ internal fun PublicParkingPeek(
     onAction: (HomeSheetAction) -> Unit,
 ) {
     val parking = nearby.parking
+    val occupancy = if (parking.availability != null) parking.occupancyLabel(rememberNowMinuteTick()) else null
+    val fee = publicParkingFeeLabel(parking.fee)
+    val mainFact = occupancy ?: fee
     val distM = userLocation?.let { (uLat, uLon) ->
         distanceMeters(uLat, uLon, parking.latitude, parking.longitude)
     }
@@ -132,6 +133,25 @@ internal fun PublicParkingPeek(
             onPrev = step.prevId?.let { id -> { onAction(HomeSheetAction.SelectPublicParking(id)) } },
             onNext = step.nextId?.let { id -> { onAction(HomeSheetAction.SelectPublicParking(id)) } },
         ),
+        banner = mainFact?.let { fact ->
+            {
+                Column {
+                    Text(
+                        text = fact,
+                        style = PaparcarType.current.cardTitle,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    if (occupancy != null && fee != null) {
+                        Spacer(Modifier.height(PaparcarSpacing.xs))
+                        Text(
+                            text = fee,
+                            style = PaparcarType.current.rowName,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        },
         meta = {
             DistanceAndTimeRow(
                 distanceM = distM,
@@ -147,21 +167,9 @@ internal fun PublicParkingPeek(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            // Los tres hechos del parking son HECHOS, no un desglose: viven en la misma banda que
-            // la distancia y el horario, colgando del mismo canal. Venían del difunto
-            // `ParkingFactRow`, que los pintaba 28 dp a la izquierda de sus vecinos.
-            // ⛔ UNKNOWN says nothing at all. It is not "free", and it is not "unknown" written out
-            // either — a row that exists only to say we do not know is noise in a peek this small.
-            when (parking.fee) {
-                FeeInfo.PAID -> ParkingFactRow(Icons.Rounded.Payments, stringResource(Res.string.parking_fee_paid))
-                FeeInfo.FREE -> ParkingFactRow(Icons.Rounded.Payments, stringResource(Res.string.parking_fee_free))
-                FeeInfo.UNKNOWN -> Unit
-            }
             parking.capacity?.let { spaces ->
-                // The TOTAL, and it is never dressed as availability: how many are free right now is
-                // what `PARKINGS-LIVE-OCCUPANCY-001` will answer, and until then nobody claims it.
                 ParkingFactRow(
-                    Icons.Rounded.LocalParking,
+                    Icons.Rounded.GridView,
                     stringResource(Res.string.parking_capacity, spaces.toString()),
                 )
             }

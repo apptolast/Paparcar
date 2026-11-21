@@ -1093,6 +1093,12 @@ Se la richiesta non compare più, cambiala in Impostazioni → Paparcar → Posi
     <string name="parking_kind_garage_boxes">Box auto</string>
     <string name="parking_kind_unknown">Parcheggio pubblico</string>
     <string name="parking_fee_paid">A pagamento</string>
+    <string name="parking_occupancy_free">%1$d posti liberi</string>
+    <string name="parking_occupancy_full">Al completo</string>
+    <plurals name="parking_marker_spaces_left">
+        <item quantity="one">%1$d posto libero</item>
+        <item quantity="other">%1$d posti liberi</item>
+    </plurals>
     <string name="parking_fee_free">Gratuito</string>
     <string name="parking_capacity">Capienza: %1$s</string>
     <string name="parking_max_height">Altezza max %1$s m</string>

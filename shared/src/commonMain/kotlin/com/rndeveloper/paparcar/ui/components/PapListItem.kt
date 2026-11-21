@@ -105,7 +105,7 @@ fun PapListItem(
                 )
             }
             if (subtitleSlot != null || subtitle != null) {
-                Spacer(Modifier.height(TITLE_SUBTITLE_GAP_DP.dp))
+                Spacer(Modifier.height(PapListItemLineGap))
             }
             when {
                 subtitleSlot != null -> subtitleSlot()
@@ -145,4 +145,4 @@ private const val ROW_V_PAD_DP = 14
 val PapListItemGap: Dp = 14.dp
 private const val OVERLINE_GAP_DP = 2
 /** One breathing gap between title and its subtitle/meta row, uniform for every consumer. */
-private const val TITLE_SUBTITLE_GAP_DP = 4
+internal val PapListItemLineGap = 4.dp

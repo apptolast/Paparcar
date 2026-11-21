@@ -1093,6 +1093,12 @@ Se a pergunta já não aparecer, muda em Definições → Paparcar → Localiza�
     <string name="parking_kind_garage_boxes">Garagens fechadas</string>
     <string name="parking_kind_unknown">Parque de estacionamento</string>
     <string name="parking_fee_paid">Pago</string>
+    <string name="parking_occupancy_free">%1$d lugares livres</string>
+    <string name="parking_occupancy_full">Lotado</string>
+    <plurals name="parking_marker_spaces_left">
+        <item quantity="one">%1$d lugar livre</item>
+        <item quantity="other">%1$d lugares livres</item>
+    </plurals>
     <string name="parking_fee_free">Gratuito</string>
     <string name="parking_capacity">Capacidade: %1$s</string>
     <string name="parking_max_height">Altura máx. %1$s m</string>

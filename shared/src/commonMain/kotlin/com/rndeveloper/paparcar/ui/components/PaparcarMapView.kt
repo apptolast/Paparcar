@@ -912,6 +912,7 @@ fun PaparcarMapView(
      *  y mismo sitio que [fuelPricesLabel]. [MAP-A-CAR-PARK-MARKER-SAYS-WHAT-IT-COSTS-001] */
     carParkPaidLabel: String? = null,
     carParkFreeLabel: String? = null,
+    carParkOccupancyLabels: Map<String, String> = emptyMap(),
     /**
      * Localised word for an attended pump, appended to [fuelPricesLabel] on the capsules whose
      * price is one. [FUEL-ITALY-A-PRICE-DEPENDS-ON-WHO-PUMPS-IT-001]
@@ -1089,7 +1090,7 @@ fun PaparcarMapView(
         // rehacerse. [UI-A-ZONE-IS-AN-AREA-NOT-A-PIN-001]
         zoneNamed,
         fuelStations, selectedFuelStationId, fuelPricesLabel, fuelAttendedLabel,
-        publicParkings, selectedPublicParkingId, carParkPaidLabel, carParkFreeLabel,
+        publicParkings, selectedPublicParkingId, carParkPaidLabel, carParkFreeLabel, carParkOccupancyLabels,
         departure, arrival, freshnessMinute, themeKey,
         // The trip dots' ids carry the watch, so a change of watch has to rebuild this list — same
         // reason `themeKey` is here. [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001]
@@ -1170,6 +1171,7 @@ fun PaparcarMapView(
                             themeKey = themeKey,
                             dim = dimSpots && nearby.parking.id != selectedPublicParkingId,
                             feeLabel = carParkFeeLabel(nearby, carParkPaidLabel, carParkFreeLabel),
+                            occupancyLabel = carParkOccupancyLabels[nearby.parking.id],
                         ),
                         androidMarkerOptions = NORMAL_MARKER_OPTIONS,
                     ),
@@ -1316,7 +1318,7 @@ fun PaparcarMapView(
     val customMarkerContent = remember(
         clusterCountByCoords, enRouteBuckets, parkedVehicles, zones,
         fuelStations, selectedFuelStationId, fuelPricesLabel, fuelAttendedLabel,
-        publicParkings, selectedPublicParkingId, carParkPaidLabel, carParkFreeLabel,
+        publicParkings, selectedPublicParkingId, carParkPaidLabel, carParkFreeLabel, carParkOccupancyLabels,
         dimSpots,
         parkingVehicleSize, parkingVehicleCarbody, parkingVehicleColor, parkingIsActive,
         askVehicleCarbody, askVehicleSize, askVehicleColor, themeKey,
@@ -1563,7 +1565,7 @@ fun PaparcarMapView(
                 )
             }.toMap()
 
-        // ── Per-car-park "P" capsules — the id bakes selection × theme, and nothing else is drawn.
+        // ── Per-car-park "P" capsules — the id includes the rendered labels.
         // [PARKINGS-ON-THE-MAP-001]
         val parkingHandlers: Map<String, @Composable (Marker) -> Unit> =
             publicParkings.flatMap { nearby ->
@@ -1571,17 +1573,18 @@ fun PaparcarMapView(
                 // bitmap: dos lecturas separadas es como se registra un handler para un id que el
                 // marcador no pide. [MAP-A-PARKED-CAR-INSIDE-A-ZONE-WEARS-THE-ZONE-001]
                 val fee = carParkFeeLabel(nearby, carParkPaidLabel, carParkFreeLabel)
+                val occupancy = carParkOccupancyLabels[nearby.parking.id]
                 listOf<Pair<String, @Composable (Marker) -> Unit>>(
-                    publicParkingContentId(nearby.parking.id, selected = false, themeKey = themeKey, feeLabel = fee) to { _: Marker ->
-                        PublicParkingMarker(selected = false, feeLabel = fee)
+                    publicParkingContentId(nearby.parking.id, selected = false, themeKey = themeKey, feeLabel = fee, occupancyLabel = occupancy) to { _: Marker ->
+                        PublicParkingMarker(selected = false, feeLabel = fee, occupancyLabel = occupancy)
                     },
-                    publicParkingContentId(nearby.parking.id, selected = false, themeKey = themeKey, dim = true, feeLabel = fee) to { _: Marker ->
+                    publicParkingContentId(nearby.parking.id, selected = false, themeKey = themeKey, dim = true, feeLabel = fee, occupancyLabel = occupancy) to { _: Marker ->
                         DimWrapper {
-                            PublicParkingMarker(selected = false, feeLabel = fee)
+                            PublicParkingMarker(selected = false, feeLabel = fee, occupancyLabel = occupancy)
                         }
                     },
-                    publicParkingContentId(nearby.parking.id, selected = true, themeKey = themeKey, feeLabel = fee) to { _: Marker ->
-                        PublicParkingMarker(selected = true, feeLabel = fee)
+                    publicParkingContentId(nearby.parking.id, selected = true, themeKey = themeKey, feeLabel = fee, occupancyLabel = occupancy) to { _: Marker ->
+                        PublicParkingMarker(selected = true, feeLabel = fee, occupancyLabel = occupancy)
                     },
                 )
             }.toMap()

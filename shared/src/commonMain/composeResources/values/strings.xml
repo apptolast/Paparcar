@@ -1140,6 +1140,12 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="parking_kind_garage_boxes">Lock-up garages</string>
     <string name="parking_kind_unknown">Car park</string>
     <string name="parking_fee_paid">Paid</string>
+    <string name="parking_occupancy_free">%1$d spaces available</string>
+    <string name="parking_occupancy_full">Full</string>
+    <plurals name="parking_marker_spaces_left">
+        <item quantity="one">%1$d space left</item>
+        <item quantity="other">%1$d spaces left</item>
+    </plurals>
     <string name="parking_fee_free">Free</string>
     <string name="parking_capacity">Capacity: %1$s</string>
     <string name="parking_max_height">Max height %1$s m</string>

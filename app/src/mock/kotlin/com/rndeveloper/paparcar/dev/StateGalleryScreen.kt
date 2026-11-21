@@ -197,6 +197,7 @@ import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.Home
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomeParkingFilterBar
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomeParkingsLane
 import com.rndeveloper.paparcar.domain.parkings.FeeInfo
+import com.rndeveloper.paparcar.domain.parkings.ParkingAvailability
 import com.rndeveloper.paparcar.domain.parkings.PublicParking
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingKind
 import com.rndeveloper.paparcar.domain.usecase.parkings.NearbyPublicParking
@@ -4679,12 +4680,23 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
-            // Todo declarado: tarifa, aforo, galibo y horario.
-            Variant("Peek de parking (todo declarado)", Placement.Surface) {
+            Variant("Carril · libres, completo, caducado y sin datos", Placement.Surface) {
+                val entries = remember {
+                    listOf(
+                        galleryParkingWithOccupancy(42),
+                        galleryParkingWithOccupancy(0).let { it.copy(parking = it.parking.copy(id = "full")) },
+                        galleryParkingWithOccupancy(17, THREE_DAYS_MS).let { it.copy(parking = it.parking.copy(id = "stale")) },
+                        galleryParkings[1],
+                    )
+                }
+                HomeParkingsLane(slice = HomeParkingsSlice(parkings = entries))
+            },
+            Variant("Peek de parking (ocupación y tarifa)", Placement.Surface) {
+                val entry = remember { galleryParkingWithOccupancy(42) }
                 peek(
                     HomeState(
-                        parkings = HomeParkingsSlice(parkings = galleryParkings),
-                        selection = HomeSelection.PublicParking("osm/node/26341193"),
+                        parkings = HomeParkingsSlice(parkings = listOf(entry)),
+                        selection = HomeSelection.PublicParking(entry.parking.id),
                         userGpsPoint = sampleGps,
                     ),
                 )
@@ -4756,17 +4768,16 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
-            // La capsula del parking: glifo + tarifa, la misma gramatica que la gasolinera.
-            // ⛔ Las TRES tarifas, y la desconocida es la que importa: es el 71% de los parkings y
-            // la unica que no puede inventarse una palabra. Sin cifra, porque la unica que ofrece
-            // OSM es el aforo TOTAL y esa ranura es donde ira el numero de plazas LIBRES en F6b.
-            // [MAP-A-CAR-PARK-MARKER-SAYS-WHAT-IT-COSTS-001]
-            Variant("Marcadores de la capa (las tres tarifas)", Placement.Surface) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    PublicParkingMarker(selected = false, feeLabel = null)
-                    PublicParkingMarker(selected = false, feeLabel = "Gratuito")
-                    PublicParkingMarker(selected = false, feeLabel = "De pago")
-                    PublicParkingMarker(selected = true, feeLabel = "De pago")
+            Variant("Marcadores de parking · disponibilidad y tarifa", Placement.Surface) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        PublicParkingMarker(selected = false, feeLabel = "De pago", occupancyLabel = "42 plazas libres")
+                        PublicParkingMarker(selected = true, occupancyLabel = "Completo")
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        PublicParkingMarker(selected = false, feeLabel = "Gratuito")
+                        PublicParkingMarker(selected = false)
+                    }
                 }
             },
             // Uno al lado del otro: la misma forma, dos acentos y dos frases. Si algun dia se
@@ -4893,6 +4904,19 @@ private val galleryParkings: List<NearbyPublicParking> = listOf(
         distanceMeters = 910.0,
     ),
 )
+
+private fun galleryParkingWithOccupancy(free: Int, ageMs: Long = 0L): NearbyPublicParking {
+    val entry = galleryParkings.first()
+    return entry.copy(
+        parking = entry.parking.copy(
+            availability = ParkingAvailability(
+                free = free,
+                updatedAtMs = Clock.System.now().toEpochMilliseconds() - ageMs,
+                source = "mock",
+            ),
+        ),
+    )
+}
 
 /** Una gasolinera del suelo mundial: nombre sí, precios no, y ninguna afirmación de surtidor. */
 private val galleryOsmStation = NearbyFuelStation(

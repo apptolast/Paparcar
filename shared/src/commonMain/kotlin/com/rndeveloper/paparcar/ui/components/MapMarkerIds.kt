@@ -96,16 +96,7 @@ internal fun fuelStationContentId(
     "${if (selected) "sel" else if (dim) "dim" else "nrm"}_$themeKey"
 
 /**
- * One bitmap per car park × **fee word** × selection × theme. La tarifa entra en la clave por la
- * misma razón que el precio entra en la de la gasolinera: está DIBUJADA dentro del bitmap, y kmpmaps
- * cachea por `contentId`. [MAP-A-CAR-PARK-MARKER-SAYS-WHAT-IT-COSTS-001]
- *
- * ⛔ **Sigue sin ir ninguna CIFRA**, y eso es una decisión. El único número que ofrece OSM es
- * `capacity`, presente en 2 de los 22 parkings medidos alrededor de Sol, y es el TOTAL;
- * `PARKINGS-LIVE-OCCUPANCY-001` dibujará las plazas LIBRES exactamente en ese hueco. Escribir hoy un
- * total ahí sería que el mismo sitio dice dos cosas distintas en dos versiones, que es como un
- * lector aprende a desconfiar. Y `charge` (lo que cuesta) es texto libre —«1.50 EUR/hour», «first
- * 30 min free»— con cobertura residual: no hay precio que escribir, sólo si se paga o no.
+ * Include the rendered labels in the bitmap cache key so an updated or expired count redraws.
  */
 internal fun publicParkingContentId(
     parkingId: String,
@@ -113,7 +104,8 @@ internal fun publicParkingContentId(
     themeKey: String,
     dim: Boolean = false,
     feeLabel: String? = null,
-): String = "$MARKER_PUBLIC_PARKING_PREFIX${parkingId}_${feeLabel.orEmpty()}_" +
+    occupancyLabel: String? = null,
+): String = "$MARKER_PUBLIC_PARKING_PREFIX${parkingId}_${feeLabel.orEmpty()}_${occupancyLabel.orEmpty()}_" +
     "${if (selected) "sel" else if (dim) "dim" else "nrm"}_$themeKey"
 
 // ── What a tap on a marker means ────────────────────────────────────────────

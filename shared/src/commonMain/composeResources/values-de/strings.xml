@@ -1094,6 +1094,12 @@ Wenn die Frage nicht mehr erscheint, ändere es unter Einstellungen → Paparcar
     <string name="parking_kind_garage_boxes">Einzelgaragen</string>
     <string name="parking_kind_unknown">Parkhaus</string>
     <string name="parking_fee_paid">Kostenpflichtig</string>
+    <string name="parking_occupancy_free">%1$d freie Stellplätze</string>
+    <string name="parking_occupancy_full">Belegt</string>
+    <plurals name="parking_marker_spaces_left">
+        <item quantity="one">%1$d Stellplatz frei</item>
+        <item quantity="other">%1$d Stellplätze frei</item>
+    </plurals>
     <string name="parking_fee_free">Kostenlos</string>
     <string name="parking_capacity">Kapazität: %1$s</string>
     <string name="parking_max_height">Max. Höhe %1$s m</string>

@@ -174,8 +174,10 @@ class MapMarkerIdsTest {
     private val publicParkingIds: List<EmittedId> =
         listOf("osm/node/26341193", "osm/way/908575097", "osm/relation/17").flatMap { parkingId ->
             themes.flatMap { theme ->
-                listOf(true, false).map { selected ->
-                    publicParkingContentId(parkingId, selected, theme)
+                listOf(true, false).flatMap { selected ->
+                    listOf(null to null, "Paid" to null, "Paid" to "42 free", "Paid" to "Full").map { (fee, occupancy) ->
+                        publicParkingContentId(parkingId, selected, theme, feeLabel = fee, occupancyLabel = occupancy)
+                    }
                 }
             }
         }.map { EmittedId(it, MarkerTapTarget.PublicParking) }

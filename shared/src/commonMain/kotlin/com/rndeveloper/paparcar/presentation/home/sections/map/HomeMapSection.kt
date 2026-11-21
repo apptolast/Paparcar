@@ -22,6 +22,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.presentation.home.HomeFabsSlice
 import com.rndeveloper.paparcar.presentation.home.HomeMapSlice
+import com.rndeveloper.paparcar.presentation.home.model.occupancyLabel
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.peek.rememberNowMinuteTick
 import com.rndeveloper.paparcar.presentation.map.CameraTarget
 import com.rndeveloper.paparcar.presentation.util.MAP_FLOATING_SIDE_INSET_DP
 import com.rndeveloper.paparcar.presentation.util.fuelTypeLabel
@@ -73,6 +75,14 @@ internal fun HomeMapSection(
     // The vehicle being positioned (its center pin matches its real map marker: icon, paint color
     // AND state border) arrives pre-resolved in [HomeMapSlice.addParkingVehicle]. [MOTION-POLISH-001]
     val addParkingVehicle = slice.addParkingVehicle
+    val carParkOccupancyLabels = if (slice.publicParkings.any { it.parking.availability != null }) {
+        val nowMs = rememberNowMinuteTick()
+        slice.publicParkings.mapNotNull { nearby ->
+            nearby.parking.occupancyLabel(nowMs, compact = true)?.let { nearby.parking.id to it }
+        }.toMap()
+    } else {
+        emptyMap()
+    }
 
     PaparcarMapView(
         config = PaparcarMapConfig(
@@ -124,6 +134,7 @@ internal fun HomeMapSection(
         // [MAP-A-CAR-PARK-MARKER-SAYS-WHAT-IT-COSTS-001]
         carParkPaidLabel = stringResource(Res.string.parking_fee_paid),
         carParkFreeLabel = stringResource(Res.string.parking_fee_free),
+        carParkOccupancyLabels = carParkOccupancyLabels,
         onFuelStationClick = onFuelStationClick,
         publicParkings = slice.publicParkings,
         selectedPublicParkingId = slice.selectedPublicParkingId,

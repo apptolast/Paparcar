@@ -1111,6 +1111,13 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="parking_kind_garage_boxes">Garaje închise</string>
     <string name="parking_kind_unknown">Parcare publică</string>
     <string name="parking_fee_paid">Cu plată</string>
+    <string name="parking_occupancy_free">%1$d locuri libere</string>
+    <string name="parking_occupancy_full">Ocupat complet</string>
+    <plurals name="parking_marker_spaces_left">
+        <item quantity="one">%1$d loc liber</item>
+        <item quantity="few">%1$d locuri libere</item>
+        <item quantity="other">%1$d de locuri libere</item>
+    </plurals>
     <string name="parking_fee_free">Gratuită</string>
     <string name="parking_capacity">Capacitate: %1$s</string>
     <string name="parking_max_height">Înălțime max. %1$s m</string>

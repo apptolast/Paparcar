@@ -1712,10 +1712,9 @@ private fun fuelStationMarkerAccent(): Color = PapColor.actionText
 fun PublicParkingMarker(
     selected: Boolean,
     modifier: Modifier = Modifier,
-    /** «De pago» / «Gratuito», ya traducido por quien sí puede leer recursos. Null cuando la tarifa
-     *  es desconocida — y entonces no hay cápsula que dibujar, sólo el disco. */
     feeLabel: String? = null,
-) = if (feeLabel != null) {
+    occupancyLabel: String? = null,
+) = if (occupancyLabel != null || feeLabel != null) {
     NearbyCapsuleMarker(
         glyph = PaparcarIcons.CarParkMark,
         accent = PapColor.carPark,
@@ -1723,14 +1722,11 @@ fun PublicParkingMarker(
         modifier = modifier,
         glyphOnDisc = true,
         onAccent = PapColor.onCarPark,
-        primaryText = feeLabel,
+        primaryText = occupancyLabel ?: feeLabel,
+        secondaryText = feeLabel.takeIf { occupancyLabel != null },
     )
 } else {
-    // ⛔ **Sin tarifa NO hay cápsula** (user, review de #59). Una cápsula es un papel con contorno
-    // que existe para SOSTENER una frase; sin tarifa no hay frase, así que lo que quedaba era un
-    // disco azul metido dentro de una caja blanca vacía — dos cuerpos, dos bordes y dos colores
-    // para decir una sola letra. El marcador ES el disco: azul macizo, P blanca dentro, sin papel y
-    // sin contorno. Y es el 71 % de los parkings, o sea el caso NORMAL, no el raro.
+    // Sin disponibilidad fresca ni tarifa, el disco identifica el parking por sí solo.
     // [MAP-A-CAR-PARK-MARKER-SAYS-WHAT-IT-COSTS-001] [MAP-A-CAR-PARK-MARKER-WEARS-ITS-OWN-BLUE-001]
     NearbyDiscMarker(
         glyph = PaparcarIcons.CarParkMark,

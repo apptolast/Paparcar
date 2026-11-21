@@ -1089,6 +1089,12 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="parking_kind_garage_boxes">Garajes cerrados</string>
     <string name="parking_kind_unknown">Parking</string>
     <string name="parking_fee_paid">De pago</string>
+    <string name="parking_occupancy_free">%1$d plazas libres</string>
+    <string name="parking_occupancy_full">Completo</string>
+    <plurals name="parking_marker_spaces_left">
+        <item quantity="one">%1$d plaza libre</item>
+        <item quantity="other">%1$d plazas libres</item>
+    </plurals>
     <string name="parking_fee_free">Gratuito</string>
     <string name="parking_capacity">Capacidad: %1$s</string>
     <string name="parking_max_height">Altura máx. %1$s m</string>

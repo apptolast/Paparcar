@@ -1,11 +1,13 @@
 package com.rndeveloper.paparcar.fakes.data.repository
 
 import com.rndeveloper.paparcar.domain.parkings.FeeInfo
+import com.rndeveloper.paparcar.domain.parkings.ParkingAvailability
 import com.rndeveloper.paparcar.domain.parkings.PublicParking
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingKind
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingsQuery
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingsResult
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingsSource
+import kotlin.time.Clock
 
 /**
  * Car parks for the mock stack — no network, wherever the fake GPS says you are.
@@ -50,6 +52,12 @@ class FakePublicParkingsSource(
                     fee = FeeInfo.PAID,
                     maxHeightMeters = 2.1,
                     openingHours = "24/7",
+                ).copy(
+                    availability = ParkingAvailability(
+                        free = 42,
+                        updatedAtMs = Clock.System.now().toEpochMilliseconds(),
+                        source = "mock",
+                    ),
                 ),
                 parking(
                     query = query,

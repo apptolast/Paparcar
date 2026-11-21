@@ -1093,6 +1093,12 @@ Si la question n'apparaît plus, changez-le dans Réglages → Paparcar → Posi
     <string name="parking_kind_garage_boxes">Garages fermés</string>
     <string name="parking_kind_unknown">Parking</string>
     <string name="parking_fee_paid">Payant</string>
+    <string name="parking_occupancy_free">%1$d places libres</string>
+    <string name="parking_occupancy_full">Complet</string>
+    <plurals name="parking_marker_spaces_left">
+        <item quantity="one">%1$d place libre</item>
+        <item quantity="other">%1$d places libres</item>
+    </plurals>
     <string name="parking_fee_free">Gratuit</string>
     <string name="parking_capacity">Capacité : %1$s</string>
     <string name="parking_max_height">Hauteur max %1$s m</string>

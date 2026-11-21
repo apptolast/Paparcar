@@ -749,10 +749,10 @@ distancia no puede decir** — y eso decide B (§F.2), no A.
 
 ### F.1 · A) Escalera de un solo hecho — **ACEPTADA**, con el orden matizado y dos invariantes nuevos
 
-**Decisión: un solo hecho por superficie, el de mejor evidencia, y el MISMO en la fila, el marcador y
-el eyebrow del peek.** La escalera es una **función pura compartida**, no tres `when` copiados: hoy la
-fila y el marcador ya coinciden por color *«porque el pin del mapa y su fila son la MISMA cosa»*, y a
-partir de aquí tienen que coincidir también en el HECHO.
+**Decisión:** disponibilidad fresca como dato principal y tarifa conocida como secundaria. La fila,
+la cápsula del mapa y la ficha aplican la misma frescura. Si falta ocupación, se conserva la tarifa.
+La ficha reserva espacio para el aforo, con su propia etiqueta. Véase
+[PARKINGS-PUT-LIVE-AVAILABILITY-FIRST-001](parkings-put-live-availability-first-001.md).
 
 | # | Condición | Primaria | Cualificador (2.ª línea / meta del peek) |
 |---|---|---|---|
