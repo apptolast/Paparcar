@@ -49,11 +49,49 @@ export const PLUS_FIGURES = {
   fuelHistoryDays: 30,
 };
 
+/**
+ * The Black Friday "Founders" gift — 3 months of Plus for the first 2,000 new accounts.
+ *
+ * Mirrors the three literals `functions/src/foundersPromo.ts` enforces server-side, so they are
+ * not invented for the page: `decideReservation()` there rejects any config where
+ * `promo.durationMonths !== 3` or `promo.cap > 2_000`, and `FOUNDERS_CLOSE_MILLIS =
+ * Date.UTC(2026, 10, 30, 23)` is the same instant as `ENDS_AT_UTC` below. [MONEY-FOUNDERS-PLUS-PROMO-001]
+ * [MONEY-FOUNDERS-PROMO-REQUIRES-A-NEW-ACCOUNT-001]
+ *
+ * ⛔ The deadline is stated in Europe/Madrid local time, not UTC: `23:00 UTC` is `00:00 CET` on the
+ * 1st of December, and that is the instant a reader actually cares about. Formatting it with `Intl`
+ * from the one UTC instant — instead of writing "1 de diciembre" by hand — is what keeps the two
+ * locale strings from drifting from each other or from the real cutoff.
+ */
+const FOUNDERS_ENDS_AT_UTC = new Date(Date.UTC(2026, 10, 30, 23));
+const foundersDeadline = (locale) =>
+  new Intl.DateTimeFormat(locale, {
+    timeZone: 'Europe/Madrid',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  }).format(FOUNDERS_ENDS_AT_UTC);
+
+export const FOUNDERS_PROMO = {
+  cap: 2000,
+  durationMonths: 3,
+  endsAtUtc: FOUNDERS_ENDS_AT_UTC.toISOString(),
+};
+
 /** The tokens the copy may use, and what each resolves to. */
 export const COPY_TOKENS = {
   ...Object.fromEntries(Object.entries(FREE_LIMITS).map(([k, v]) => [k, String(v)])),
   ...Object.fromEntries(Object.entries(PLUS_FIGURES).map(([k, v]) => [k, String(v)])),
   minAndroid: MIN_ANDROID,
+  foundersCap: String(FOUNDERS_PROMO.cap),
+  foundersMonths: String(FOUNDERS_PROMO.durationMonths),
+  // Two tokens, not one: the deadline reads differently per language, and COPY_TOKENS is not
+  // keyed by locale — each content file picks the one that matches it.
+  foundersDeadlineEs: foundersDeadline('es-ES'),
+  foundersDeadlineEn: foundersDeadline('en-GB'),
 };
 
 /**
@@ -86,6 +124,7 @@ export function routes(base) {
     home: `${base}/`,
     support: `${base}/support`,
     terms: `${base}/terms`,
+    blackfriday: `${base}/blackfriday`,
     privacy: PRIVACY_PATH,
     delete: DELETE_PATH,
     // Hosting serves this for every miss, whatever the path, so there is exactly one of it and it

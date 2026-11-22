@@ -22,6 +22,13 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://paparcar.com/blackfriday</loc>
+    <xhtml:link rel="alternate" hreflang="es" href="https://paparcar.com/blackfriday"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://paparcar.com/en/blackfriday"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://paparcar.com/blackfriday"/>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://paparcar.com/en/</loc>
     <xhtml:link rel="alternate" hreflang="es" href="https://paparcar.com/"/>
     <xhtml:link rel="alternate" hreflang="en" href="https://paparcar.com/en/"/>
@@ -40,6 +47,13 @@
     <xhtml:link rel="alternate" hreflang="es" href="https://paparcar.com/terms"/>
     <xhtml:link rel="alternate" hreflang="en" href="https://paparcar.com/en/terms"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://paparcar.com/terms"/>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://paparcar.com/en/blackfriday</loc>
+    <xhtml:link rel="alternate" hreflang="es" href="https://paparcar.com/blackfriday"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://paparcar.com/en/blackfriday"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://paparcar.com/blackfriday"/>
     <priority>0.6</priority>
   </url>
   <url><loc>https://paparcar.com/privacy-policy</loc><priority>0.4</priority></url>

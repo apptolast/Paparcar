@@ -500,5 +500,91 @@
     "delete": "Eliminar mi cuenta",
     "support": "Soporte",
     "back": "Volver a paparcar.com"
+  },
+  "blackfriday": {
+    "title": "Paparcar — {{foundersMonths}} meses de Plus gratis por Black Friday",
+    "description": "Las primeras {{foundersCap}} cuentas nuevas que abran Paparcar durante esta campaña consiguen Paparcar Plus gratis durante {{foundersMonths}} meses. Sin tarjeta, sin código, sin renovación automática.",
+    "hero": {
+      "eyebrow": "Black Friday · Regalo de Fundadores",
+      "title": ["{{foundersMonths}} meses de Plus", "de regalo"],
+      "lead": "Las primeras {{foundersCap}} cuentas NUEVAS que abran Paparcar durante esta campaña reciben Paparcar Plus gratis durante {{foundersMonths}} meses. Sin tarjeta, sin código, sin renovación automática.",
+      "cta": "Instalar Paparcar",
+      "ctaSecondary": "Cómo funciona",
+      "meta": "Oferta para cuentas nuevas. Termina el {{foundersDeadlineEs}}."
+    },
+    "proof": [
+      { "value": "{{foundersCap}}", "label": "cuentas nuevas" },
+      { "value": "{{foundersMonths}} meses", "label": "de Plus de regalo" },
+      { "value": "0 €", "label": "sin tarjeta, sin renovación" }
+    ],
+    "how": {
+      "eyebrow": "Cómo funciona",
+      "title": "No hay código que teclear",
+      "lead": "El regalo no se reclama con un formulario ni un cupón: se concede solo, la primera vez que tu cuenta llega a la pantalla principal.",
+      "steps": [
+        {
+          "n": "01",
+          "title": "Instala Paparcar",
+          "body": "Descárgala desde Google Play y crea tu cuenta."
+        },
+        {
+          "n": "02",
+          "title": "Abre la app",
+          "body": "La primera vez que tu cuenta nueva llega a la pantalla principal, si todavía quedan cuentas del cupo, el regalo se activa solo."
+        },
+        {
+          "n": "03",
+          "title": "Usa Plus {{foundersMonths}} meses",
+          "body": "Sin pagar nada: historial sin el límite de días, alertas de zona y el resto de Plus, durante {{foundersMonths}} meses."
+        }
+      ]
+    },
+    "includes": {
+      "eyebrow": "Qué incluye el regalo",
+      "title": "Esto es lo que se enciende",
+      "lead": "El mismo Plus que se paga, de regalo mientras dura la campaña.",
+      "tier": {
+        "name": "Paparcar Plus",
+        "tagline": "Gratis durante {{foundersMonths}} meses, sin tarjeta",
+        "items": [
+          "Historial y estadísticas de cualquier periodo",
+          "Coches y zonas sin límite",
+          "Aviso cuando aparece una plaza libre en tus zonas",
+          "Aviso cuando cambia el precio de una gasolinera que sigues, esté donde esté, con {{fuelHistoryDays}} días de histórico",
+          "Resumen del mes: lo que gastaste y lo que tardaste en aparcar",
+          "Tus rutas guardadas en tu cuenta, no solo en este móvil",
+          "Compartir un coche con hasta cuatro personas"
+        ]
+      }
+    },
+    "faq": {
+      "eyebrow": "Antes de instalar",
+      "title": "Preguntas sobre el regalo",
+      "items": [
+        {
+          "q": "¿Quién puede conseguirlo?",
+          "a": "Solo las cuentas NUEVAS: las que se crean durante esta campaña y abren la app por primera vez después de empezar. Si ya tenías Paparcar instalado antes de la campaña, esta promoción no es para tu cuenta."
+        },
+        {
+          "q": "¿Tengo que introducir un código?",
+          "a": "No. El regalo se concede automáticamente la primera vez que tu cuenta nueva llega a la pantalla principal de la app. No hay código que teclear ni formulario que rellenar."
+        },
+        {
+          "q": "¿Qué pasa cuando terminen los {{foundersMonths}} meses?",
+          "a": "La app te avisa antes de que se acabe. Si no haces nada, vuelves al plan gratuito: no se borra nada, las alertas y el historial ampliado simplemente se pausan."
+        },
+        {
+          "q": "¿Hasta cuándo puedo conseguirlo?",
+          "a": "Hasta el {{foundersDeadlineEs}}, o hasta que se agoten las {{foundersCap}} cuentas del cupo, lo que ocurra primero."
+        }
+      ]
+    },
+    "finalCta": {
+      "title": ["Instálala antes", "de que se agote"],
+      "lead": "El regalo es automático para las primeras {{foundersCap}} cuentas nuevas.",
+      "cta": "Instalar Paparcar",
+      "meta": "Termina el {{foundersDeadlineEs}}."
+    },
+    "legal": "Oferta limitada a las primeras {{foundersCap}} cuentas nuevas. Termina el {{foundersDeadlineEs}}. Paparcar Plus de regalo durante {{foundersMonths}} meses, sin renovación automática. Un regalo por cuenta. Google no participa en esta promoción ni la patrocina."
   }
 }

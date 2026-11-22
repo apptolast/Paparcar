@@ -26,13 +26,14 @@ import home from './pages/home.mjs';
 import support from './pages/support.mjs';
 import terms from './pages/terms.mjs';
 import notFound from './pages/notfound.mjs';
+import blackfriday from './pages/blackfriday.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, '..');
 const OUT = join(ROOT, 'hosting', 'public');
 const ASSETS_OUT = join(OUT, 'assets');
 
-const PAGES = { home, support, terms };
+const PAGES = { home, support, terms, blackfriday };
 
 /**
  * Text that this build writes goes out with LF, whatever the checkout has on disk.

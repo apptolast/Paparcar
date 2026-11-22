@@ -500,5 +500,91 @@
     "delete": "Delete my account",
     "support": "Support",
     "back": "Back to paparcar.com"
+  },
+  "blackfriday": {
+    "title": "Paparcar — {{foundersMonths}} months of Plus free for Black Friday",
+    "description": "The first {{foundersCap}} new accounts that open Paparcar during this campaign get Paparcar Plus free for {{foundersMonths}} months. No card, no code, no auto-renewal.",
+    "hero": {
+      "eyebrow": "Black Friday · Founders gift",
+      "title": ["{{foundersMonths}} months of Plus", "on us"],
+      "lead": "The first {{foundersCap}} NEW accounts that open Paparcar during this campaign get Paparcar Plus free for {{foundersMonths}} months. No card, no code, no auto-renewal.",
+      "cta": "Install Paparcar",
+      "ctaSecondary": "How it works",
+      "meta": "Offer for new accounts. Ends {{foundersDeadlineEn}}."
+    },
+    "proof": [
+      { "value": "{{foundersCap}}", "label": "new accounts" },
+      { "value": "{{foundersMonths}} months", "label": "of Plus, on us" },
+      { "value": "€0", "label": "no card, no auto-renewal" }
+    ],
+    "how": {
+      "eyebrow": "How it works",
+      "title": "No code to type in",
+      "lead": "There is no form or coupon to claim: the gift grants itself, the first time your account reaches the home screen.",
+      "steps": [
+        {
+          "n": "01",
+          "title": "Install Paparcar",
+          "body": "Download it from Google Play and create your account."
+        },
+        {
+          "n": "02",
+          "title": "Open the app",
+          "body": "The first time your new account reaches the home screen, if accounts are still left in the pool, the gift switches on by itself."
+        },
+        {
+          "n": "03",
+          "title": "Use Plus for {{foundersMonths}} months",
+          "body": "At no cost: history with no day limit, zone alerts and the rest of Plus, for {{foundersMonths}} months."
+        }
+      ]
+    },
+    "includes": {
+      "eyebrow": "What the gift includes",
+      "title": "This is what switches on",
+      "lead": "The same Plus you'd pay for, free while the campaign lasts.",
+      "tier": {
+        "name": "Paparcar Plus",
+        "tagline": "Free for {{foundersMonths}} months, no card needed",
+        "items": [
+          "History and stats for any period",
+          "Unlimited cars and zones",
+          "An alert when a spot frees up in your zones",
+          "An alert when a station you follow changes its price, wherever it is, with {{fuelHistoryDays}} days of history",
+          "A month recap: what you spent and how long you spent parking",
+          "Your routes kept in your account, not only on this phone",
+          "Share a car with up to four people"
+        ]
+      }
+    },
+    "faq": {
+      "eyebrow": "Before you install",
+      "title": "Questions about the gift",
+      "items": [
+        {
+          "q": "Who can get it?",
+          "a": "Only NEW accounts: ones created during this campaign that open the app for the first time after it started. If you already had Paparcar installed before the campaign, this offer is not for your account."
+        },
+        {
+          "q": "Do I need to enter a code?",
+          "a": "No. The gift is granted automatically the first time your new account reaches the app's home screen. There is no code to type and no form to fill in."
+        },
+        {
+          "q": "What happens when the {{foundersMonths}} months are over?",
+          "a": "The app warns you before it ends. If you do nothing, you go back to the free plan: nothing is deleted, alerts and the extended history simply pause."
+        },
+        {
+          "q": "How long do I have to get it?",
+          "a": "Until {{foundersDeadlineEn}}, or until all {{foundersCap}} accounts in the pool are claimed, whichever comes first."
+        }
+      ]
+    },
+    "finalCta": {
+      "title": ["Install it before", "it runs out"],
+      "lead": "The gift is automatic for the first {{foundersCap}} new accounts.",
+      "cta": "Install Paparcar",
+      "meta": "Ends {{foundersDeadlineEn}}."
+    },
+    "legal": "Offer limited to the first {{foundersCap}} new accounts. Ends {{foundersDeadlineEn}}. Paparcar Plus gifted for {{foundersMonths}} months, no auto-renewal. One gift per account. Google does not sponsor or endorse this promotion."
   }
 }
