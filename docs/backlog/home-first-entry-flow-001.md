@@ -1,6 +1,10 @@
 # HOME-FIRST-ENTRY-FLOW-001 · Dar un primer uso guiado a Home sin encadenar diálogos
 
-**Estado:** 🔵 En progreso · rama `feature/HOME-FIRST-ENTRY-FLOW-001-coordinated-home` · worktree `.worktrees/home-first-entry-flow-integrated`.
+**Estado:** ✅ Done · en master (22-11-2026) · rama y worktree borrados.
+
+> ⏳ Residual: **sin pushear** y **sin verse en un móvil real** — la cadena completa sólo es
+> alcanzable hoy en el flavor mock, porque un `prodDebug` no puede enseñar el regalo
+> (el trigger escucha la base `(default)` y los builds debug hablan con `debug`).
 
 ## Problema
 
