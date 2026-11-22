@@ -43,6 +43,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -246,6 +247,14 @@ private class Variant(
     val content: @Composable () -> Unit,
 )
 private class ScreenGroup(val title: String, val variants: List<Variant>)
+
+/** The saveable ADDRESS of a variant: group + name, since the variant itself carries a composable. */
+private fun variantKey(group: ScreenGroup, variant: Variant) = "${group.title}§${variant.name}"
+
+/** Null when a restored key no longer names anything — the gallery then just shows its list. */
+private fun variantForKey(key: String): Variant? = galleryGroups.firstNotNullOfOrNull { group ->
+    group.variants.firstOrNull { variantKey(group, it) == key }
+}
 
 private val licensesLoaded = LicensesState(
     isLoading = false,
@@ -5202,7 +5211,12 @@ private val SPAIN_FEED_MS: Long
  */
 @Composable
 fun StateGalleryScreen(onBack: () -> Unit) {
-    var selected by remember { mutableStateOf<Variant?>(null) }
+    // ⛔ `rememberSaveable`, because a rotation used to throw the reader back to the list — and
+    // comparing a state across themes or orientations is exactly what this gallery is for. A
+    // [Variant] is not saveable (it holds a composable), so what survives is its ADDRESS, resolved
+    // back against the groups. [MOCK-A-DEV-HOST-MUST-ROTATE-LIKE-PROD-001]
+    var selectedKey by rememberSaveable { mutableStateOf<String?>(null) }
+    val selected = remember(selectedKey) { selectedKey?.let(::variantForKey) }
     // Hoisted OUT of the `if (selected == null)` branch so the list's scroll offset survives
     // entering a variant and coming back — otherwise the LazyColumn leaves composition and
     // restarts at the top.
@@ -5233,7 +5247,7 @@ fun StateGalleryScreen(onBack: () -> Unit) {
                         }
                         items(group.variants) { variant ->
                             Surface(
-                                onClick = { selected = variant },
+                                onClick = { selectedKey = variantKey(group, variant) },
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
                                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                                 shape = MaterialTheme.shapes.medium,
@@ -5256,12 +5270,12 @@ fun StateGalleryScreen(onBack: () -> Unit) {
             }
         }
     } else {
-        val current = selected!!
+        val current = selected
         // Light/dark is driven by the global toggle (DevRoot) via the shadowed configuration.
         val dark = isSystemInDarkTheme()
         // Surface variants default to the contextual (bottom-sheet) presentation; "Solo" isolates.
-        var isolated by remember(current) { mutableStateOf(false) }
-        BackHandler { selected = null }
+        var isolated by rememberSaveable(selectedKey) { mutableStateOf(false) }
+        BackHandler { selectedKey = null }
         PaparcarTheme(darkTheme = dark) {
             Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
                 when (current.placement) {
@@ -5298,7 +5312,7 @@ fun StateGalleryScreen(onBack: () -> Unit) {
                     modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().padding(8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    ElevatedButton(onClick = { selected = null }) { Text("← Lista") }
+                    ElevatedButton(onClick = { selectedKey = null }) { Text("← Lista") }
                     if (current.placement == Placement.Surface) {
                         ElevatedButton(onClick = { isolated = !isolated }) {
                             Text(if (isolated) "Completa" else "Solo")

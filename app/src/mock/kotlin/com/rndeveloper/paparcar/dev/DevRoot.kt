@@ -12,7 +12,7 @@ import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
@@ -25,9 +25,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rndeveloper.paparcar.App
 import com.rndeveloper.paparcar.fakes.MockScenario
 import com.rndeveloper.paparcar.ui.theme.PaparcarTheme
@@ -35,7 +37,9 @@ import com.rndeveloper.paparcar.ui.theme.PaparcarTheme
 /**
  * Root of the mock launcher. Shows the [DevCatalogScreen] first; entering mounts the **real**
  * [App] inside a fresh [ViewModelStoreOwner] (keyed by a session counter) so every entry gets a
- * brand-new `SplashViewModel` that re-resolves routing from the current [MockScenario].
+ * brand-new `SplashViewModel` that re-resolves routing from the current [MockScenario]. That store
+ * lives in [DevSessionStores], outside the composition, so *fresh per entry* does not also mean
+ * *wiped on every rotation* — see there. [MOCK-A-DEV-HOST-MUST-ROTATE-LIKE-PROD-001]
  *
  * Two persistent dev controls, clustered on the left edge at mid-height (none of this exists in
  * prod) — see the note at the cluster for why not top-end:
@@ -56,6 +60,8 @@ fun DevRoot(scenario: MockScenario, shotSession: Boolean = false) {
     var showGallery by rememberSaveable { mutableStateOf(false) }
     // Bumped on each entry so the ViewModelStoreOwner (and thus all app ViewModels) is recreated.
     var session by rememberSaveable { mutableIntStateOf(0) }
+    // Survives the Activity's recreation, so a rotation keeps the mounted graph. See the class.
+    val sessionStores: DevSessionStores = viewModel()
     // Global mock light/dark override: null = follow system.
     var darkOverride by rememberSaveable { mutableStateOf<Boolean?>(null) }
     val effectiveDark = darkOverride ?: isSystemInDarkTheme()
@@ -85,12 +91,18 @@ fun DevRoot(scenario: MockScenario, shotSession: Boolean = false) {
                 }
 
                 else -> key(session) {
-                    val owner = remember(session) {
+                    // The store comes from [DevSessionStores], which is a ViewModel of the Activity
+                    // and therefore OUTLIVES a recreation — the graph survives a rotation the way
+                    // it does in prod. Retiring the previous session is what keeps a preset from
+                    // inheriting a live graph, and it is now tied to ENTERING a new session rather
+                    // than to the composition leaving, which is also what a rotation does.
+                    // [MOCK-A-DEV-HOST-MUST-ROTATE-LIKE-PROD-001]
+                    val owner = remember(session, sessionStores) {
                         object : ViewModelStoreOwner {
-                            override val viewModelStore = ViewModelStore()
+                            override val viewModelStore = sessionStores.storeFor(session)
                         }
                     }
-                    DisposableEffect(session) { onDispose { owner.viewModelStore.clear() } }
+                    LaunchedEffect(session) { sessionStores.retireAllBut(session) }
                     CompositionLocalProvider(LocalViewModelStoreOwner provides owner) {
                         App()
                     }
@@ -115,7 +127,12 @@ fun DevRoot(scenario: MockScenario, shotSession: Boolean = false) {
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     if (inApp || showGallery) {
-                        ElevatedButton(onClick = { inApp = false; showGallery = false }) {
+                        // Leaving for the catalog is what stops the graph now — an explicit act,
+                        // not a side effect of the composition going away (which a rotation also
+                        // does). [MOCK-A-DEV-HOST-MUST-ROTATE-LIKE-PROD-001]
+                        ElevatedButton(onClick = {
+                            inApp = false; showGallery = false; sessionStores.retireAll()
+                        }) {
                             Text("DEV", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                         }
                     }
@@ -126,4 +143,39 @@ fun DevRoot(scenario: MockScenario, shotSession: Boolean = false) {
             }
         }
     }
+}
+
+/**
+ * Holds the mounted App's [ViewModelStore] for each catalog session, **outside the composition**.
+ * [MOCK-A-DEV-HOST-MUST-ROTATE-LIKE-PROD-001]
+ *
+ * ⛔ A store kept by `remember` cannot survive an Activity recreation, and a [ViewModelStore] is not
+ * serialisable, so `rememberSaveable` cannot hold one either. Rotating therefore handed the app a
+ * brand-new empty store and rebuilt every ViewModel — making the bench HARSHER than production,
+ * where `MainActivity` keeps its own store across configuration changes. Measured on 22-11: rotating
+ * mid-chain lost the detection invitation of the first-entry flow, a loss no phone would show.
+ * A bench that is harsher than the product reports failures the user will never meet, which is the
+ * same defect as one that hides real ones.
+ *
+ * Being a ViewModel **of the Activity** is what buys the survival. The session key is what keeps the
+ * other half of the contract that [DevRoot] always had: entering from the catalog gets a brand-new
+ * graph, with no state inherited from the preset before it.
+ */
+internal class DevSessionStores : ViewModel() {
+    private val stores = mutableMapOf<Int, ViewModelStore>()
+
+    fun storeFor(session: Int): ViewModelStore = stores.getOrPut(session) { ViewModelStore() }
+
+    /** Entering a session retires every older one, so a preset never inherits a live graph. */
+    fun retireAllBut(session: Int) {
+        stores.keys.filterNot { it == session }.toList().forEach { stores.remove(it)?.clear() }
+    }
+
+    /** Leaving the app for the catalog stops the graph, exactly as closing it always did. */
+    fun retireAll() {
+        stores.values.forEach { it.clear() }
+        stores.clear()
+    }
+
+    override fun onCleared() = retireAll()
 }
