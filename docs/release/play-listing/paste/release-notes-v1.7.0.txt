@@ -1,0 +1,72 @@
+<en-US>
+• Confirm before you report a free spot or mark/correct your parking.
+• Car parks now say when live occupancy was measured, apart from no data at all.
+• A clearer first-run screen for new users.
+• Fewer unnecessary detection notices.
+• Battery and route-drawing improvements.
+• Black Friday: 3 months of Plus free for the first 2,000 who join.
+</en-US>
+<es-ES>
+• Te confirmamos antes de avisar de una plaza o de marcar/corregir tu aparcamiento.
+• Los parkings ya dicen cuándo se midió la ocupación en vivo, separándola de cuando no hay dato.
+• Pantalla de inicio más clara para quien empieza.
+• Menos avisos innecesarios de la detección.
+• Mejoras de batería y de precisión al dibujar tu ruta.
+• Por Black Friday: 3 meses de Plus gratis para los primeros 2.000 que se unan.
+</es-ES>
+<it-IT>
+• Ti chiediamo conferma prima di segnalare un posto libero o registrare/correggere il parcheggio.
+• I parcheggi pubblici dicono ora quando è stata misurata l'occupazione dal vivo, distinta da quando non ci sono dati.
+• Schermata iniziale più chiara per chi inizia.
+• Meno avvisi superflui dal rilevamento.
+• Miglioramenti di batteria e di precisione nel disegno del percorso.
+• Per il Black Friday: 3 mesi di Plus gratis per i primi 2.000 che si uniscono.
+</it-IT>
+<pt-PT>
+• Confirmamos antes de avisar sobre um lugar livre ou de marcar/corrigir o teu estacionamento.
+• Os parques de estacionamento já dizem quando a ocupação em tempo real foi medida, separando-a de quando não há dados.
+• Ecrã inicial mais claro para quem está a começar.
+• Menos avisos desnecessários da deteção.
+• Melhorias de bateria e de precisão ao desenhar o teu percurso.
+• Pela Black Friday: 3 meses de Plus grátis para os primeiros 2.000 que se juntarem.
+</pt-PT>
+<fr-FR>
+• On te le confirme avant de signaler une place libre ou de marquer/corriger ton stationnement.
+• Les parkings indiquent désormais quand l'occupation en direct a été mesurée, à part l'absence de données.
+• Écran de démarrage plus clair pour les nouveaux utilisateurs.
+• Moins d'alertes inutiles de la détection.
+• Améliorations de la batterie et de la précision du tracé de trajet.
+• Pour le Black Friday : 3 mois de Plus gratuits pour les 2 000 premiers inscrits.
+</fr-FR>
+<de-DE>
+• Wir fragen erst nach Bestätigung, bevor ein freier Platz gemeldet oder dein Parkplatz markiert/korrigiert wird.
+• Parkhäuser zeigen jetzt an, wann die Live-Belegung gemessen wurde, getrennt von fehlenden Daten.
+• Klarerer Startbildschirm für Neueinsteiger.
+• Weniger unnötige Erkennungshinweise.
+• Verbesserungen bei Akku und bei der Genauigkeit der Routenzeichnung.
+• Zum Black Friday: 3 Monate Plus gratis für die ersten 2.000, die beitreten.
+</de-DE>
+<nl-NL>
+• We vragen eerst om bevestiging voordat we een vrije plek melden of je parkeerplaats markeren/corrigeren.
+• Parkeergarages laten nu zien wanneer de live bezetting is gemeten, apart van wanneer er geen gegevens zijn.
+• Duidelijker startscherm voor nieuwe gebruikers.
+• Minder onnodige detectiemeldingen.
+• Verbeteringen aan de batterij en aan de nauwkeurigheid bij het tekenen van je route.
+• Voor Black Friday: 3 maanden gratis Plus voor de eerste 2.000 die zich aansluiten.
+</nl-NL>
+<pl-PL>
+• Pytamy o potwierdzenie, zanim zgłosimy wolne miejsce albo oznaczymy/poprawimy parkowanie.
+• Parkingi publiczne pokazują teraz, kiedy zmierzono zajętość na żywo, odróżniając to od braku danych.
+• Jaśniejszy ekran startowy dla nowych użytkowników.
+• Mniej niepotrzebnych powiadomień wykrywania.
+• Usprawnienia baterii i dokładności rysowania trasy.
+• Z okazji Black Friday: 3 miesiące Plus gratis dla pierwszych 2000 osób, które się dołączą.
+</pl-PL>
+<ro>
+• Te întrebăm întâi pentru confirmare înainte de a semnala un loc liber sau de a marca/corecta parcarea ta.
+• Parcările publice arată acum când a fost măsurată ocuparea live, separat de cazurile fără date.
+• Ecran de pornire mai clar pentru utilizatorii noi.
+• Mai puține notificări inutile de detectare.
+• Îmbunătățiri la baterie și la precizia desenării traseului.
+• De Black Friday: 3 luni de Plus gratuit pentru primii 2.000 care se alătură.
+</ro>
