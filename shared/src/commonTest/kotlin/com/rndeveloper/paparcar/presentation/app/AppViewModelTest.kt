@@ -280,6 +280,26 @@ class AppViewModelTest {
         assertEquals(listOf(UID), entitlementRepo.refreshedUserIds)
     }
 
+    @Test
+    fun should_welcomeFounder_when_claimArrivesAfterAnAlreadyConfirmedUnchangedGrant() = runTest(testDispatcher) {
+        val expiry = inDays(90)
+        entitlementRepo.emitGrant(PlusGrant(PlusOrigin.PROMOTIONAL, expiry))
+        foundersPromoRepo.result = Result.success(FoundersClaimOutcome.Granted(expiry))
+        val vm = viewModel()
+        runCurrent()
+        assertNull(vm.state.value.plusMoment)
+
+        vm.handleIntent(AppIntent.ReachedHome(UID))
+        runCurrent()
+
+        assertEquals(PlusMoment.FoundersWelcome(expiry), vm.state.value.plusMoment)
+        vm.handleIntent(AppIntent.DismissPlusMoment(vm.state.value.plusMoment!!))
+        vm.handleIntent(AppIntent.ReachedHome(UID))
+        runCurrent()
+        assertNull(vm.state.value.plusMoment)
+        assertEquals(listOf(UID), foundersPromoRepo.claimedUids)
+    }
+
     // ── Init ─────────────────────────────────────────────────────────────────
 
     @Test
@@ -681,9 +701,6 @@ class AppViewModelTest {
     fun `should_celebrateTheGiftedPlus_when_theGrantLandsAfterStartup`() = runTest(testDispatcher) {
         markAsFounder()
         val vm = viewModel()
-        // Contestada de entrada: el orden entre las dos superficies tiene su propio test abajo, y
-        // dejarla abierta aquí mediría eso en vez de la llegada tardía del grant.
-        vm.handleIntent(AppIntent.AnswerAdMeasurementConsent(granted = false))
         runCurrent()
         assertNull(vm.state.value.plusMoment, "sin grant no hay nada que celebrar")
 
@@ -691,11 +708,6 @@ class AppViewModelTest {
         runCurrent()
 
         assertEquals(PlusMoment.FoundersWelcome(inDays(90)), vm.state.value.plusMoment)
-        assertEquals(
-            vm.state.value.plusMoment,
-            vm.state.value.plusMomentToShow,
-            "sin nada más en pantalla, el veredicto y lo que se enseña son lo mismo",
-        )
     }
 
     @Test
@@ -755,27 +767,23 @@ class AppViewModelTest {
         assertEquals(setOf(UID), fakePrefs.plusPromoEndingNoticedUidsSet)
     }
 
-    /**
-     * ⛔ Nunca modal sobre modal, y una cuenta NUEVA es exactamente la que debe las dos cosas: la
-     * pregunta de medición de anuncios y la bienvenida. El orden vive en el estado, no en la
-     * composición, y por eso tiene testigo aquí.
-     */
+    /** Consent eligibility and the confirmed gift remain independent inputs to Home. */
     @Test
-    fun `should_holdTheCelebration_when_theAdMeasurementQuestionIsStillOpen`() = runTest(testDispatcher) {
+    fun `should_preserveTheGift_when_adMeasurementConsentIsUnanswered`() = runTest(testDispatcher) {
         markAsFounder()
         val vm = viewModel()
         entitlementRepo.emitGrant(PlusGrant(PlusOrigin.PROMOTIONAL, inDays(90)))
         runCurrent()
 
         assertTrue(vm.state.value.askAdMeasurementConsent, "la pregunta se debe en este grafo")
-        assertNull(vm.state.value.plusMomentToShow, "la noticia espera a que se conteste la pregunta")
+        assertEquals(PlusMoment.FoundersWelcome(inDays(90)), vm.state.value.plusMoment)
 
         vm.handleIntent(AppIntent.AnswerAdMeasurementConsent(granted = false))
         runCurrent()
 
         assertEquals(
             PlusMoment.FoundersWelcome(inDays(90)),
-            vm.state.value.plusMomentToShow,
+            vm.state.value.plusMoment,
             "contestada la pregunta, la celebración sale — no se ha perdido",
         )
     }

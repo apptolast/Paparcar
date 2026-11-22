@@ -61,7 +61,25 @@ import com.rndeveloper.paparcar.ui.theme.PapIconSize
  *  - [Destructive]: irreversible actions (delete account, delete vehicle).
  *    Accent = error red so the user has a clear visual stop before tapping.
  */
-enum class PapDialogAccent { Primary, Destructive, Neutral }
+enum class PapDialogAccent {
+    Primary,
+    Destructive,
+    Neutral,
+
+    /**
+     * El acento de PLUS: la acción primaria se dibuja con el metal, no con el verde plano.
+     * [HOME-FIRST-ENTRY-FLOW-001, 22-11]
+     *
+     * ⛔ Es un acento y no un parámetro suelto porque el metal **no es un color**: es una
+     * superficie con barrida, así que no cabe en `color()`/`container()` como las otras tres. Lo
+     * que cambia es QUÉ componente dibuja el botón ([PapPremiumButton]), y eso tiene que poder
+     * decirse desde fuera con una palabra en vez de abriendo el molde.
+     *
+     * Sus acciones secundarias siguen siendo las de [Primary]: el metal es para LA acción, y dos
+     * superficies metálicas en un diálogo compiten entre ellas en vez de guiar.
+     */
+    Premium,
+}
 
 /**
  * WHICH action of a [PapAlertDialog] is in flight.
@@ -140,6 +158,12 @@ fun PapAlertDialog(
      *  When set, the hero circle uses a neutral container so a multi-colour glyph reads. [icon] is
      *  still required as the semantic fallback but is not drawn while this is non-null. */
     heroContent: (@Composable () -> Unit)? = null,
+    /** Replaces the hero CIRCLE ENTIRELY with a Nivel-3 illustration. Different from
+     *  [heroContent], which puts a glyph INSIDE the circular plate: an illustration brings its own
+     *  composition — ground, scene, its own breathing room — so a plate behind it is a second
+     *  frame around something already framed. Takes precedence over [heroContent] and [icon].
+     *  [HOME-FIRST-ENTRY-FLOW-001] */
+    heroIllustration: (@Composable () -> Unit)? = null,
 ) {
     val accentColor = accent.color()
     val accentContainer = accent.container()
@@ -181,25 +205,29 @@ fun PapAlertDialog(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 // ── Icon hero ─────────────────────────────────────────────
-                Box(
-                    modifier = Modifier
-                        .size(ICON_CIRCLE_DP.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (heroContent != null) MaterialTheme.colorScheme.surfaceContainerHighest
-                            else accentContainer,
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    if (heroContent != null) {
-                        heroContent()
-                    } else {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            tint = accentColor,
-                            modifier = Modifier.size(HERO_ICON_DP),
-                        )
+                if (heroIllustration != null) {
+                    heroIllustration()
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(ICON_CIRCLE_DP.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (heroContent != null) MaterialTheme.colorScheme.surfaceContainerHighest
+                                else accentContainer,
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (heroContent != null) {
+                            heroContent()
+                        } else {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                tint = accentColor,
+                                modifier = Modifier.size(HERO_ICON_DP),
+                            )
+                        }
                     }
                 }
 
@@ -227,16 +255,29 @@ fun PapAlertDialog(
 
                 // ── Actions ───────────────────────────────────────────────
                 Spacer(Modifier.height(PaparcarSpacing.xl))
-                PrimaryAction(
-                    label = primaryLabel,
-                    onClick = onPrimary,
-                    leadingIcon = primaryLeadingIcon,
-                    accentColor = accentColor,
-                    onAccent = onAccent,
-                    isLoading = loadingAction == PapDialogAction.Primary,
-                    // Any action in flight freezes the others: the dialog is resolving ONE choice.
-                    enabled = primaryEnabled && loadingAction == null,
-                )
+                // El acento Premium cambia el COMPONENTE, no el color: el metal es una superficie
+                // con barrida y no cabe en un `Color`. Ver [PapDialogAccent.Premium].
+                if (accent == PapDialogAccent.Premium) {
+                    PapPremiumButton(
+                        label = primaryLabel,
+                        onClick = onPrimary,
+                        modifier = Modifier.fillMaxWidth(),
+                        isLoading = loadingAction == PapDialogAction.Primary,
+                        // Any action in flight freezes the others: the dialog is resolving ONE choice.
+                        enabled = primaryEnabled && loadingAction == null,
+                    )
+                } else {
+                    PrimaryAction(
+                        label = primaryLabel,
+                        onClick = onPrimary,
+                        leadingIcon = primaryLeadingIcon,
+                        accentColor = accentColor,
+                        onAccent = onAccent,
+                        isLoading = loadingAction == PapDialogAction.Primary,
+                        // Any action in flight freezes the others: the dialog is resolving ONE choice.
+                        enabled = primaryEnabled && loadingAction == null,
+                    )
+                }
 
                 if (secondaryLabel != null && onSecondary != null) {
                     Spacer(Modifier.height(PaparcarSpacing.sm))
@@ -376,6 +417,8 @@ private fun PapDialogAccent.color(): Color = when (this) {
     PapDialogAccent.Primary -> MaterialTheme.colorScheme.primary
     PapDialogAccent.Destructive -> MaterialTheme.colorScheme.error
     PapDialogAccent.Neutral -> MaterialTheme.colorScheme.onSurface
+    // El metal lo dibuja el BOTON; todo lo demas de un dialogo Premium es marca.
+    PapDialogAccent.Premium -> MaterialTheme.colorScheme.primary
 }
 
 @Composable
@@ -383,6 +426,7 @@ private fun PapDialogAccent.container(): Color = when (this) {
     PapDialogAccent.Primary -> MaterialTheme.colorScheme.primaryContainer
     PapDialogAccent.Destructive -> MaterialTheme.colorScheme.errorContainer
     PapDialogAccent.Neutral -> MaterialTheme.colorScheme.surfaceContainerHighest
+    PapDialogAccent.Premium -> MaterialTheme.colorScheme.primaryContainer
 }
 
 @Composable
@@ -390,6 +434,7 @@ private fun PapDialogAccent.onAccent(): Color = when (this) {
     PapDialogAccent.Primary -> MaterialTheme.colorScheme.onPrimary
     PapDialogAccent.Destructive -> MaterialTheme.colorScheme.onError
     PapDialogAccent.Neutral -> MaterialTheme.colorScheme.onSurface
+    PapDialogAccent.Premium -> MaterialTheme.colorScheme.onPrimary
 }
 
 @Composable
@@ -397,6 +442,7 @@ private fun PapDialogAccent.outlineColor(): Color = when (this) {
     PapDialogAccent.Primary -> com.rndeveloper.paparcar.ui.theme.greenOutline
     PapDialogAccent.Destructive -> MaterialTheme.colorScheme.error
     PapDialogAccent.Neutral -> MaterialTheme.colorScheme.outlineVariant
+    PapDialogAccent.Premium -> com.rndeveloper.paparcar.ui.theme.greenOutline
 }
 
 private const val DIALOG_ENTER_SCALE = 0.92f

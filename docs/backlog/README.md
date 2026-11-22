@@ -1,6 +1,6 @@
 # Backlog — índice de lo que sigue abierto
 
-> **851 ficheros: 759 cerrados, 83 abiertos, 9 que no son tickets.** Este índice lista **solo lo que**
+> **852 ficheros: 759 cerrados, 84 abiertos, 9 que no son tickets.** Este índice lista **solo lo que**
 > queda**, para que la pregunta *"¿qué falta?"* se conteste leyendo y no listando el directorio.
 > Verificado contra master `1339ea263` el **2026-10-07**
 > [DOCS-A-CLOSED-TICKET-MUST-NOT-SAY-IT-IS-IN-REVIEW-001]. El barrido anterior
@@ -158,6 +158,7 @@ No esperan a un viaje: esperan a que vuelva a fallar lo que los originó.
 
 | Ticket | Nota |
 |---|---|
+| [`home-first-entry-flow-001`](home-first-entry-flow-001.md) | 🔵 Inicio secuencial de Home: ubicación, regalo confirmado, detección y editor de primer aparcamiento. Meta en una visita posterior. |
 | [`home-one-tab-answers-one-intention-001`](home-one-tab-answers-one-intention-001.md) | 🔵 Los carriles agrupan por **fuente de datos** (Plazas·Parkings·Gasolineras) cuando el usuario llega con una **intención**: `Aparcar` / `Repostar`. ⛔ Agrupar sí, **fundir la lista no** — una plaza caduca y un parking no, así que un solo orden exigiría un solo modelo de confianza y hay dos; y los filtros (tamaño vs tarifa/gálibo) no componen |
 | [`home-the-first-glance-speaks-for-the-car-001`](home-the-first-glance-speaks-for-the-car-001.md) | 🔵 **fase 1** del rediseño (dirección B, elegida por el user). Presentación: peek de dos líneas + «Aquí y ahora», gramática única de dos líneas, pestañas reponderadas, checklist a una fila. ⛔ La 1.8 (standout en parkings) se **retiró al leer el código**: no hay importe que comparar, «más cercano» es redundante y «gratis» ya lo dice la fila |
 

@@ -451,7 +451,7 @@
     <!-- AddingParking mode -->
     <string name="home_add_parking_header_label_create">Oznacz parking</string>
     <string name="home_add_parking_header_label_edit">Przesuń parking</string>
-    <string name="home_add_parking_helper_primary_create">Wycentruj pinezkę tam, gdzie zostawiłeś auto</string>
+    <string name="home_add_parking_helper_primary_create">Przeciągnij mapę, aby wyśrodkować pinezkę na swoim aucie</string>
     <string name="home_add_parking_helper_primary_edit">Przeciągnij mapę w odpowiednie miejsce</string>
     <string name="home_add_parking_helper_secondary_create">Geofence powiadomi Cię, gdy odjedziesz</string>
     <string name="home_add_parking_helper_secondary_edit">Poprawienie zachowuje czas parkowania; oznaczenie nowego zeruje go</string>
@@ -787,7 +787,6 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <string name="first_steps_spot_cta">Zobacz miejsca</string>
     <string name="first_steps_spot_report_title">Widzisz wolne miejsce? Zgłoś je</string>
     <string name="first_steps_spot_report_sub">Miejsce, które zostawił ktoś inny, nie twoje parkowanie. Zaznacz je, a kierowcy w pobliżu je zobaczą.</string>
-    <string name="first_steps_spotlight_caption">Pinezka stoi w miejscu: przeciągaj MAPĘ, aż znajdzie się na twoim samochodzie, i potwierdź poniżej.</string>
     <string name="settings_replay_first_steps">Powtórz pierwsze kroki</string>
     <string name="settings_replay_first_steps_done">Pierwsze kroki znów są na ekranie głównym</string>
     <!-- First-step explainers: the two ways a spot is born [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] -->

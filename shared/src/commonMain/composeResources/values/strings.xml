@@ -323,7 +323,7 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <!-- AddingParking mode — drop a pin to mark / move where the car is parked -->
     <string name="home_add_parking_header_label_create">Mark your parking</string>
     <string name="home_add_parking_header_label_edit">Move your parking</string>
-    <string name="home_add_parking_helper_primary_create">Center the pin where you left the car</string>
+    <string name="home_add_parking_helper_primary_create">Drag the map to centre the pin on your car</string>
     <string name="home_add_parking_helper_primary_edit">Drag the map to the right location</string>
     <string name="home_add_parking_helper_secondary_create">A geofence will alert you when you drive away</string>
     <!-- In EDIT the geofence already exists; what the user needs is the one axis that separates the
@@ -813,7 +813,6 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="first_steps_spot_cta">See spots</string>
     <string name="first_steps_spot_report_title">Seen a free spot? Report it</string>
     <string name="first_steps_spot_report_sub">A space someone else left — not your own parking. Mark it and nearby drivers see it.</string>
-    <string name="first_steps_spotlight_caption">The pin stays put — drag the MAP until it sits on your car, then confirm below.</string>
     <string name="settings_replay_first_steps">Replay the first steps</string>
     <string name="settings_replay_first_steps_done">First steps are back on Home</string>
     <!-- First-step explainers: the two ways a spot is born [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] -->

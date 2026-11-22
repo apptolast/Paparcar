@@ -238,6 +238,98 @@ fun EmptyParkingsIllustration(
     }
 }
 
+/**
+ * "Eres de los 2.000 primeros" — el regalo de Fundadores, la promo de Black Friday.
+ * [MONEY-FOUNDERS-WELCOME-001]
+ *
+ * Tres cosas tenían que leerse de un vistazo y ninguna podía escribirse, porque una ilustración
+ * que necesita texto no viaja a nueve idiomas:
+ *  · **Es un regalo** — la caja con su lazo, la única forma universal de decirlo.
+ *  · **Es Black Friday** — la caja es NEGRA. Sin etiqueta de descuento ni porcentaje: un número
+ *    dentro del dibujo envejece el día que cambie la promo, y chocaría con el "2.000" del título.
+ *  · **Es de Paparcar** — el regalo está DENTRO DE UNA PLAZA, con sus dos líneas pintadas en el
+ *    suelo. El lazo lleva el verde de marca, el mismo que el coche de [miniCar].
+ *
+ * ⛔ No lleva el isotipo. La marca se GENERA, no se dibuja a mano (regla de iconos de CLAUDE.md),
+ * y aquí tampoco hace falta: el diálogo ya se titula con el producto y su botón es el metal de
+ * Plus. Lo que esta pieza aporta es la OCASIÓN, que es justo lo que a un emblema le falta.
+ *
+ * ⚠️ Dos cosas se vieron mal en el Pixel 8 antes de quedar así, y las dos eran de GEOMETRÍA, no de
+ * color: las líneas de la plaza puestas de pie a los lados se leían como las patas de un
+ * caballete, y un lazo alto y estrecho se leía como un brote de planta saliendo de una maceta. La
+ * plaza va en el SUELO con la caja dentro, y el lazo va ANCHO Y BAJO.
+ */
+@Composable
+fun FoundersGiftIllustration(
+    modifier: Modifier = Modifier,
+    dark: Boolean = isAppDark(),
+) {
+    Canvas(modifier.size(140.dp, 120.dp)) {
+        viewBox {
+            // La PLAZA va en el SUELO, y el suelo se PINTA. Dibujar sólo las dos líneas dejaba
+            // la del fondo tapada por la caja, así que de ellas sólo asomaban las diagonales: dos
+            // palos saliendo de detrás del regalo, leídos como las patas de un caballete. Con el
+            // asfalto relleno debajo, las mismas líneas son pintura sobre el suelo.
+            val asphalt = if (dark) Color(0xFF0E161B) else Color(0xFFEDF1F5)
+            val bay = if (dark) Color(0xFF4D5F6A) else Color(0xFFBFCCD6)
+            val floor = Path().apply {
+                moveTo(36f, 82f)
+                lineTo(104f, 82f)
+                lineTo(126f, 108f)
+                lineTo(14f, 108f)
+                close()
+            }
+            drawPath(floor, asphalt)
+            drawLine(bay, Offset(36f, 82f), Offset(104f, 82f), 2.6f, StrokeCap.Round)
+            drawLine(bay, Offset(36f, 82f), Offset(14f, 108f), 4f, StrokeCap.Round)
+            drawLine(bay, Offset(104f, 82f), Offset(126f, 108f), 4f, StrokeCap.Round)
+            drawShadowEllipse(70f, 96f, 28f, 5f, dark)
+
+            val boxBody = if (dark) Color(0xFF11181E) else Color(0xFF1B242C)
+            val boxLid = if (dark) Color(0xFF27333C) else Color(0xFF32404B)
+            val boxEdge = if (dark) Color(0xFF3E4E59) else Color(0xFF46555F)
+            val ribbon = if (dark) Color(0xFF2DF58E) else Color(0xFF009F5E)
+
+            // Cuerpo y tapa. La tapa es más clara: la luz cae de arriba, igual que en el bisel del
+            // metal de Plus. La caja es NEGRA, y por eso lleva filo claro — sin él, sobre una
+            // superficie oscura, no tendría silueta.
+            val body = Path().apply { addRoundRect(RoundRect(52f, 58f, 90f, 94f, 4f, 4f)) }
+            drawPath(body, boxBody)
+            drawPath(body, boxEdge, style = Stroke(2.2f, join = StrokeJoin.Round))
+            val lid = Path().apply { addRoundRect(RoundRect(47f, 48f, 95f, 61f, 3.5f, 3.5f)) }
+            drawPath(lid, boxLid)
+            drawPath(lid, boxEdge, style = Stroke(2.2f, join = StrokeJoin.Round))
+
+            // La cinta baja entera, tapa incluida: una cinta cortada en el borde de la tapa se lee
+            // como dos pegatinas.
+            drawPath(Path().apply { addRoundRect(RoundRect(66f, 61f, 76f, 94f, 1.5f, 1.5f)) }, ribbon)
+            drawPath(Path().apply { addRoundRect(RoundRect(66f, 48f, 76f, 61f, 1.5f, 1.5f)) }, ribbon)
+
+            val bowLeft = Path().apply {
+                moveTo(71f, 47f)
+                cubicTo(62f, 35f, 46f, 35f, 49f, 43f)
+                cubicTo(51f, 50f, 63f, 50f, 71f, 47f)
+                close()
+            }
+            val bowRight = Path().apply {
+                moveTo(71f, 47f)
+                cubicTo(80f, 35f, 96f, 35f, 93f, 43f)
+                cubicTo(91f, 50f, 79f, 50f, 71f, 47f)
+                close()
+            }
+            drawPath(bowLeft, ribbon)
+            drawPath(bowRight, ribbon)
+            drawCircle(ribbon, 4.2f, Offset(71f, 47f))
+
+            // Destellos: la nota de "esto es un momento", no relleno. Tres tamaños, fuera de la
+            // caja para no ensuciar su silueta.
+            drawPath(sparkle(114f, 32f, 6.5f), ribbon)
+            drawPath(sparkle(24f, 60f, 5f), ribbon)
+            drawPath(sparkle(107f, 55f, 3.4f), ribbon.copy(alpha = 0.7f))
+        }
+    }
+}
+
 // region — helpers de dibujo
 
 /** Aplica el transform viewBox→canvas (escala con aspecto + centrado) y ejecuta [block]. */
@@ -301,6 +393,17 @@ private fun DrawScope.miniCar(translateX: Float, translateY: Float, scale: Float
         drawCircle(Color.White, 2.4f, Offset(9f, 49f))
         drawCircle(Color.White, 2.4f, Offset(47f, 49f))
     }
+}
+
+/** Destello de cuatro puntas: el brillo de "esto es un momento". */
+private fun sparkle(cx: Float, cy: Float, r: Float): Path = Path().apply {
+    val w = r * 0.26f
+    moveTo(cx, cy - r)
+    quadraticTo(cx + w, cy - w, cx + r, cy)
+    quadraticTo(cx + w, cy + w, cx, cy + r)
+    quadraticTo(cx - w, cy + w, cx - r, cy)
+    quadraticTo(cx - w, cy - w, cx, cy - r)
+    close()
 }
 
 private fun locationPin(): Path = Path().apply {

@@ -126,6 +126,8 @@ data class HomeState(
      *  ViewModel's latch, not a copy of it, so the two cannot disagree — the answer is read off the
      *  map's own foreground bracket. [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001] */
     val locationAnswerInFlight: Boolean = false,
+    /** The first-run location ask must own the first Home surface before it is launched. */
+    val firstLocationRequestPending: Boolean = false,
 
     // ── User location ─────────────────────────────────────────────────────────
 
@@ -145,6 +147,8 @@ data class HomeState(
     /** Enriched display projection of active sessions (one row per vehicle). [MULTI-PARKING-001] */
     val parkedVehicles: List<ParkedVehicleSummary> = emptyList(),
     val vehicles: List<Vehicle> = emptyList(),
+    val vehiclesLoaded: Boolean = false,
+    val parkingSessionsLoaded: Boolean = false,
     val zones: List<Zone> = emptyList(),
 
     // ── Nearby spots ──────────────────────────────────────────────────────────
@@ -276,6 +280,18 @@ data class HomeState(
      *  live in the state; which step is current is a projection ([firstSteps]), so the rule sits in
      *  one testable function instead of in whoever last touched the ViewModel. */
     val firstStepsDone: Set<FirstStep> = emptySet(),
+    /** Preference snapshot has arrived, so defaults below no longer masquerade as account state. */
+    val firstStepsLoaded: Boolean = false,
+    /** First Home flow is initialized from the authenticated account's persisted state. */
+    val firstHomeParkingFlowReady: Boolean = false,
+    val firstHomeParkingFlowStarted: Boolean = false,
+    val firstHomeParkingFlowCompleted: Boolean = false,
+    /** Snapshot for this ViewModel lifetime: rotation keeps it; a new process reloads the memory. */
+    val firstHomeParkingFlowCompletedOnArrival: Boolean = false,
+    /** The editor is waiting for the user to save or close it. */
+    val initialHomeParkingEditorActive: Boolean = false,
+    /** Pauses the parking editor while the user completes or leaves the Producer permissions route. */
+    val firstHomeWaitingForPermissionRoute: Boolean = false,
     /**
      * Whether the checklist has been skipped or closed. Defaults to **true**: before preferences
      * resolve, the honest answer is "show nothing". Defaulting to false would flash a first-run
@@ -693,6 +709,18 @@ data class HomeState(
             // from the same list the header chips render.
             hasPrivateZone = zones.any { it.isPrivate },
         )
+
+    /** The first parking step is offered through the real editor before the checklist takes over. */
+    val shouldOfferInitialParkingEditor: Boolean
+        get() = firstHomeParkingFlowReady &&
+            firstStepsLoaded && vehiclesLoaded && parkingSessionsLoaded &&
+            !firstHomeParkingFlowCompleted &&
+            !firstStepsDismissed &&
+            FirstStep.MARK_PARKING !in firstSteps.done &&
+            FirstStep.MARK_PARKING !in firstStepsDeferred &&
+            firstSteps.current == FirstStep.MARK_PARKING &&
+            activeSessions.isEmpty() &&
+            vehicles.isNotEmpty()
 
     /** The vehicle the watch works for: the flagged active one, else the only sensible fallback —
      *  the same resolution the cold-start CTAs use. [VEH-ACTIVE-FENCE-001] */

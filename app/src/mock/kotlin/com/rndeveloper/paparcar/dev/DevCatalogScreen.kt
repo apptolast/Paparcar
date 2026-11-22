@@ -302,8 +302,32 @@ fun DevCatalogScreen(
                 runtime.setPresence(ServicePresence.Sentry)
                 onEnter()
             }
-            PresetButton("Usuario nuevo · primeros pasos") {
+            PresetButton("Usuario nuevo · primer aparcamiento") {
                 scenario.reset(); scenario.firstStepsPending.value = true
+                scenario.firstHomeEntry.value = true
+                runtime.setPresence(ServicePresence.Dead); onEnter()
+            }
+            // [HOME-FIRST-ENTRY-FLOW-001] La cadena ENTERA, que es lo que este ticket coordina y
+            // lo único que no se podía mirar: empieza SIN permiso para que el «sí» del diálogo del
+            // sistema produzca la transición que arma la invitación a detección.
+            PresetButton("Primer Home · cadena completa (ubicación → regalo → detección → coche)") {
+                scenario.reset()
+                scenario.firstStepsPending.value = true
+                scenario.firstHomeEntry.value = true
+                scenario.permissionTier.value = MockScenario.PermissionTier.None
+                scenario.grantsLocationWhenAsked.value = true
+                scenario.isPlus.value = true
+                scenario.plusIsPromotional.value = true
+                scenario.plusDaysLeft.value = 90
+                runtime.setPresence(ServicePresence.Dead); onEnter()
+            }
+            PresetButton("Primer Home · regalo + primer aparcamiento") {
+                scenario.reset()
+                scenario.firstStepsPending.value = true
+                scenario.firstHomeEntry.value = true
+                scenario.isPlus.value = true
+                scenario.plusIsPromotional.value = true
+                scenario.plusDaysLeft.value = 90
                 runtime.setPresence(ServicePresence.Dead); onEnter()
             }
             // [UI-APPROXIMATE-PARKING-DRAWS-ITS-DOUBT-001] Cierre honesto: la sesión es un ÁREA de

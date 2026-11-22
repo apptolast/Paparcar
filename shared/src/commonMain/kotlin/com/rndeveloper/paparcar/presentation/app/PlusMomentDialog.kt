@@ -11,12 +11,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.domain.entitlement.PlusMoment
 import com.rndeveloper.paparcar.presentation.paywall.PLUS_BENEFITS
 import com.rndeveloper.paparcar.presentation.paywall.PlusBenefitRow
 import com.rndeveloper.paparcar.presentation.util.shortDateText
 import com.rndeveloper.paparcar.ui.components.PapAlertDialog
+import com.rndeveloper.paparcar.ui.components.PapDialogAccent
 import com.rndeveloper.paparcar.ui.components.PapPremiumMark
+import com.rndeveloper.paparcar.ui.illustrations.FoundersGiftIllustration
 import com.rndeveloper.paparcar.ui.components.PapSectionHeader
 import com.rndeveloper.paparcar.ui.theme.PapGap
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
@@ -41,18 +44,26 @@ import paparcar.composeapp.generated.resources.plus_welcome_until
  * what, and the layer underneath goes inert. A dialog floats over whichever tab the user is on and
  * owns the screen alone.
  *
- * **It wears the metal — in the TILES.** The six benefit tiles are `PapPremiumSurface` at row size,
- * the same material as the paywall's, and on device that is where the finish actually reads. The
- * hero is [PapPremiumMark] because the brand mark beats a trophy (nothing was *achieved* here, the
- * same argument that removed the trophy from the paywall), but ⚠️ at the molde's 56 dp hero circle
- * the mark reads as FLAT BRAND GREEN: `PapPremiumMark` had its finish verified at 72 dp, and this
- * is less than half of that. Measured on the Pixel 8 emulator, 20-11. Enlarging it would mean
- * giving one dialog its own hero circle, which is a worse trade than a crest that reads as the
- * plain mark — so the claim is written down rather than quietly assumed.
+ * **Los dos abren distinto, y es la diferencia entre una NOTICIA y un AVISO**
+ * [HOME-FIRST-ENTRY-FLOW-001, 22-11]:
+ *  · la bienvenida abre con [FoundersGiftIllustration] — una escena, no un emblema. Es lo primero
+ *    que ve una cuenta recién creada y lo que tiene que contar es la OCASIÓN: un regalo, negro de
+ *    Black Friday, aparcado en una plaza. Un emblema dice «esto es Plus», que es justo lo que el
+ *    título ya dice con palabras; la escena dice lo que no cabe en el título.
+ *  · el aviso de fin conserva [PapPremiumMark]: ahí no hay ocasión que celebrar sino una decisión
+ *    que tomar, y una ilustración alegre encima de «se te acaba» es un mensaje cruzado. Su metal
+ *    ya lo ponen las filas de debajo.
  *
- * ⛔ The benefit list comes from `PLUS_BENEFITS`, the paywall's own. See `PlusBenefits.kt`: the two
- * readings of ONE list are the whole design — titles for the celebration, titles plus the free-plan
- * note for the warning.
+ * ⛔ **Las dos listas salen de `PLUS_BENEFITS`, pero no son la misma lista**, y ahí está el diseño:
+ *  · el AVISO DE FIN las lleva las **seis**, con su nota del plan free. Su pregunta es «¿qué cambia
+ *    el día 15?», y eso sólo se contesta entero.
+ *  · la BIENVENIDA lleva **tres**, elegidas por el gate que venden ([WELCOME_HIGHLIGHTS]). No hay
+ *    nada que decidir —ya se lo han regalado—, y con las seis ocupaba casi toda la pantalla siendo
+ *    lo primero que ve una cuenta nueva, medido en el Pixel 8. Que son todas las demás ya lo dice
+ *    su cuerpo: «Todo, sin pagar nada».
+ *
+ * Ver `PlusBenefits.kt`: dos lecturas de UNA lista siguen siendo el mecanismo; ahora también en
+ * cuántas filas.
  */
 @Composable
 fun PlusMomentDialog(
@@ -96,20 +107,52 @@ private fun FoundersWelcomeDialog(expiresAtMillis: Long?, onDismiss: () -> Unit)
         body = stringResource(Res.string.plus_welcome_body),
         primaryLabel = stringResource(Res.string.plus_welcome_cta),
         onPrimary = onDismiss,
-        heroContent = { PapPremiumMark(size = HERO_MARK_DP) },
+        // El botón lleva el MISMO metal que la cresta (decisión del user, 22-11): el diálogo
+        // entero dice «esto es Plus», y su única acción no puede ser el verde plano de cualquier
+        // otro confirmar. Ver [PapDialogAccent.Premium].
+        accent = PapDialogAccent.Premium,
+        // ⛔ **Una ESCENA, no un emblema** [HOME-FIRST-ENTRY-FLOW-001, 22-11, petición del user].
+        // Este héroe pasó por la marca suelta a 30 dp (el metal no llegaba a dibujarse a ese
+        // tamaño) y por la cresta metálica (que sí se dibujaba, pero decía lo mismo que el título).
+        // Lo que faltaba no era material: era la OCASIÓN. La ilustración la cuenta sin una sola
+        // palabra, que es lo que la deja viajar a los nueve idiomas.
+        //
+        // Va en `heroIllustration` y no en `heroContent` a propósito: trae su propio suelo y su
+        // propio aire, así que el plato circular del molde sería un segundo marco alrededor de
+        // algo ya enmarcado.
+        heroIllustration = { FoundersGiftIllustration() },
         content = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(PapGap.block),
             ) {
-                expiresAtMillis?.let { UntilLine(stringResource(Res.string.plus_welcome_until, shortDateText(it))) }
                 PapSectionHeader(stringResource(Res.string.plus_welcome_benefits))
-                // Titles only: there is nothing to compare against when you have all of it, and
-                // "Free: the last 7 days" under a celebration would be answering a question
-                // nobody asked yet.
+                // ⛔ **TRES filas, no las seis del paywall** [HOME-FIRST-ENTRY-FLOW-001]. Con las
+                // seis, medido en el Pixel 8, el diálogo ocupaba casi toda la pantalla siendo lo
+                // primero que ve una cuenta nueva — encima de un mapa que aún no ha mirado.
+                //
+                // Y la lista completa es el ARGUMENTARIO del paywall: existe para que alguien
+                // DECIDA si paga. Aquí no hay nada que decidir, ya se lo han regalado. Lo que sí
+                // hace falta es que el regalo se entienda, y para eso bastan las tres que
+                // significan algo el PRIMER día: la app vigilando por ti, la app recordando por ti,
+                // y la única que se cuenta sola. Las otras tres —zonas, coches, rutas— son topes
+                // que se levantan, y un tope no dice nada a quien todavía no lo ha tocado.
+                //
+                // Que son TODAS las demás ya lo dice el cuerpo: «Todo, sin pagar nada».
+                //
+                // ⛔ Se eligen por el GATE que venden, no por su posición en la lista: reordenar
+                // `PLUS_BENEFITS` no puede cambiar en silencio qué se celebra aquí.
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    PLUS_BENEFITS.forEach { PlusBenefitRow(it) }
+                    PLUS_BENEFITS
+                        .filter { benefit -> benefit.sells.any { it in WELCOME_HIGHLIGHTS } }
+                        .forEach { PlusBenefitRow(it) }
                 }
+                // La fecha, ABAJO DEL TODO y en neutro (decisión del user, 22-11). Estaba encima
+                // de la lista y en verde de marca, y ahí competía con el titular por la mirada:
+                // el verde es el color de la ACCIÓN en esta app, y aquí la acción es «¡Vamos!».
+                // Cerrando el diálogo, la fecha es el último dato que queda — que es justo su
+                // papel: no es la noticia, es la letra pequeña de la noticia.
+                expiresAtMillis?.let { UntilLine(stringResource(Res.string.plus_welcome_until, shortDateText(it))) }
             }
         },
     )
@@ -174,16 +217,44 @@ private fun PromoEndingDialog(
  * ⚠️ And at this size the premium FINISH does not read — see the class KDoc. The size is chosen for
  * the optical match with every other dialog in the app, not for the metal.
  */
+/**
+ * Las tres que significan algo el PRIMER día. [HOME-FIRST-ENTRY-FLOW-001]
+ *
+ * Se nombran por el GATE que venden y no por su posición en `PLUS_BENEFITS`, para que reordenar esa
+ * lista no cambie en silencio qué se celebra aquí.
+ *
+ *  · `ZONE_ALERTS` — la app VIGILANDO por ti: plazas, precio de gasolineras y el resumen del mes.
+ *    Es la mitad «quién trabaja» del eje de Plus, y la única que se nota sin haber usado la app.
+ *  · `HISTORY` — la app RECORDANDO por ti. La otra mitad del eje.
+ *  · `SHARED_CAR` — la única que se cuenta sola: un coche, hasta cinco conductores.
+ *
+ * Fuera quedan zonas, coches y rutas: son TOPES que se levantan, y un tope no le dice nada a quien
+ * todavía no lo ha tocado.
+ */
+private val WELCOME_HIGHLIGHTS = setOf(
+    PaywallReason.ZONE_ALERTS,
+    PaywallReason.HISTORY,
+    PaywallReason.SHARED_CAR,
+)
+
+/** Llena el círculo de héroe del molde (56 dp), así que el disco ES el héroe. */
+
 private val HERO_MARK_DP = 30.dp
 
-/** The date, centred under the body it belongs to — one line, the brand's own colour, because it
- *  is the fact the reader came for. */
+/**
+ * La fecha de fin, una línea centrada al PIE del diálogo. [HOME-FIRST-ENTRY-FLOW-001, 22-11]
+ *
+ * ⛔ **Neutra, no verde de marca.** El verde es el color de la ACCIÓN en esta app
+ * [UI-COLOR-DOCTRINE-001], y en este diálogo la acción es «¡Vamos!». Una fecha en verde le disputa
+ * la mirada al botón y al titular sin ser pulsable — y además no es la noticia: es la letra
+ * pequeña de la noticia, y por eso cierra en vez de abrir.
+ */
 @Composable
 private fun UntilLine(text: String) {
     Text(
         text = text,
         style = PaparcarType.current.label,
-        color = MaterialTheme.colorScheme.primary,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         textAlign = TextAlign.Center,
         modifier = Modifier.fillMaxWidth(),
     )

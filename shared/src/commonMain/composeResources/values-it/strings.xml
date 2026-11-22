@@ -447,7 +447,7 @@
     <!-- AddingParking mode -->
     <string name="home_add_parking_header_label_create">Segna il tuo parcheggio</string>
     <string name="home_add_parking_header_label_edit">Sposta il tuo parcheggio</string>
-    <string name="home_add_parking_helper_primary_create">Centra il pin dove hai lasciato l'auto</string>
+    <string name="home_add_parking_helper_primary_create">Trascina la mappa per centrare il pin sulla tua auto</string>
     <string name="home_add_parking_helper_primary_edit">Trascina la mappa nel punto giusto</string>
     <string name="home_add_parking_helper_secondary_create">Un geofence ti avviserà quando te ne vai</string>
     <string name="home_add_parking_helper_secondary_edit">Correggere mantiene il tempo di sosta; segnarne uno nuovo lo azzera</string>
@@ -775,7 +775,6 @@ Se la richiesta non compare più, cambiala in Impostazioni → Paparcar → Posi
     <string name="first_steps_spot_cta">Vedi posti</string>
     <string name="first_steps_spot_report_title">Vedi un posto libero? Segnalalo</string>
     <string name="first_steps_spot_report_sub">Uno spazio lasciato da un altro, non il tuo parcheggio. Segnalo e gli automobilisti vicini lo vedranno.</string>
-    <string name="first_steps_spotlight_caption">Il segnaposto resta fermo: trascina la MAPPA finché non è sulla tua auto, poi conferma sotto.</string>
     <string name="settings_replay_first_steps">Rivedi i primi passi</string>
     <string name="settings_replay_first_steps_done">I primi passi sono di nuovo nella Home</string>
     <!-- First-step explainers: the two ways a spot is born [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] -->

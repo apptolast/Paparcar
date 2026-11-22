@@ -112,6 +112,12 @@ interface AppPreferences {
     val foundersPromoGrantedUids: Set<String>
     fun addFoundersPromoGrantedUid(uid: String)
 
+    /** First Home editor offer, remembered per account across sign-out. */
+    val firstHomeParkingFlowStartedUids: Set<String>
+    fun startFirstHomeParkingFlow(uid: String)
+    val firstHomeParkingFlowCompletedUids: Set<String>
+    fun completeFirstHomeParkingFlow(uid: String)
+
     val autoDetectParking: Boolean
     fun setAutoDetectParking(enabled: Boolean)
     /** Reactive view of [autoDetectParking] so Home's detection banner and the Android arming

@@ -278,8 +278,11 @@ class FakeUserParkingRepository(
         val baseWithSeed = if (scenario == null) {
             _sessionsFlow.map { it }
         } else {
-            combine(_sessionsFlow, scenario.ownParkedSession, scenario.approximateParking) { list, own, approx ->
-                if (own) list + seedFor(approx) else list
+            combine(
+                _sessionsFlow, scenario.ownParkedSession, scenario.approximateParking, scenario.firstHomeEntry,
+            ) { list, own, approx, firstEntry ->
+                val base = if (firstEntry) emptyList() else list
+                if (own) base + seedFor(approx) else base
             }
         }
         return combine(baseWithSeed, savedSessions, releasedIds, retractedIds) { base, saved, released, retracted ->
@@ -297,7 +300,8 @@ class FakeUserParkingRepository(
         } else {
             emptyList()
         }
-        return (mockSessions + seed + savedSessions.value)
+        val base = if (scenario?.firstHomeEntry?.value == true) emptyList() else mockSessions
+        return (base + seed + savedSessions.value)
             .map { s -> if (s.id in releasedIds.value) s.copy(isActive = false) else s }
             // The by-id and active lookups are DIAGNOSTIC reads: they still see a withdrawn row,
             // stamped, like production. [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001]

@@ -204,6 +204,8 @@ class HomeViewModel(
         trip.updates.resilient("tripRender").stateIn(viewModelScope, SharingStarted.Eagerly, TripUpdate.IDLE)
 
     private var cameraSettledJob: Job? = null
+    private var firstHomeFlowUid: String? = null
+    private var firstHomePermissionRouteWasBackgrounded = false
 
     // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001] Debounce of the nearby ask, and the last camera centre
     // (for the moments a lane needs a centre before any settle — entering it, the first fix).
@@ -251,21 +253,30 @@ class HomeViewModel(
         // Whether the first-entry ask has EVER been made — read here so a returning user who already
         // refused gets the warning immediately, with nothing to wait for, while a first-timer stays
         // quiet until they have answered. [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001]
-        updateState { copy(locationEverAsked = appPreferences.hasRequestedLocationPermission) }
+        val locationState = permissionManager.permissionState.value
+        updateState {
+            copy(
+                locationEverAsked = appPreferences.hasRequestedLocationPermission,
+                firstLocationRequestPending = !locationState.hasLocationPermission &&
+                    !appPreferences.hasRequestedLocationPermission,
+            )
+        }
         geocoder.attach(viewModelScope)
         subscribeControllerUpdates()
         // Repo streams → state slices, one line each ([collectInto] isolates stream errors so the UI
         // keeps serving the cache). Sessions escalate to a snackbar; the rest log. [HOMEVM-CTRL-003]
         userParkingRepository.observeActiveSessions()
             .collectInto("activeSessions", notify = { e -> PaparcarError.Database.Unknown(e.message ?: "") }) {
-                withActiveSessions(it)
+                withActiveSessions(it).copy(parkingSessionsLoaded = true)
             }
         observeParkedVehicles().collectInto("parkedVehicles") { copy(parkedVehicles = it) }
         zoneRepository.observeZones().collectInto("zones") { copy(zones = it) }
         // ⛔ `withDrivingMeta()` también aquí: sin nominado, el coche del viaje lo elige la flota, así
         // que una flota que llega DESPUÉS del arme dejaría el viaje sin coche al que atribuirlo —
         // que es el mismo silencio, una vuelta más tarde. [HOME-A-TAP-THAT-ARMS-MUST-LOOK-ARMED-001]
-        vehicleRepository.observeVehicles().collectInto("vehicles") { copy(vehicles = it).withDrivingMeta() }
+        vehicleRepository.observeVehicles().collectInto("vehicles") {
+            copy(vehicles = it, vehiclesLoaded = true).withDrivingMeta()
+        }
         observeIsPlus().collectInto("isPlus") { copy(isPlus = it) }
         // A standing subscription, not a lane answer: the star must be right the moment a peek
         // opens, whether or not the fuel lane was ever entered.
@@ -288,6 +299,67 @@ class HomeViewModel(
         subscribeFirstSteps()
     }
 
+    private fun initializeFirstHomeFlow(uid: String) {
+        if (uid.isBlank()) return
+        if (firstHomeFlowUid == uid && state.value.firstHomeParkingFlowReady) return
+
+        firstHomeFlowUid = uid
+        val started = uid in appPreferences.firstHomeParkingFlowStartedUids
+        val completed = uid in appPreferences.firstHomeParkingFlowCompletedUids
+        updateState {
+            copy(
+                firstHomeParkingFlowReady = true,
+                firstHomeParkingFlowStarted = started,
+                firstHomeParkingFlowCompleted = completed,
+                firstHomeParkingFlowCompletedOnArrival = completed,
+                initialHomeParkingEditorActive = false,
+                firstHomeWaitingForPermissionRoute = false,
+            )
+        }
+    }
+
+    private fun startFirstHomeParkingOffer() {
+        val uid = firstHomeFlowUid ?: return
+        if (!state.value.shouldOfferInitialParkingEditor) return
+        if (uid in appPreferences.firstHomeParkingFlowCompletedUids) {
+            updateState {
+                copy(
+                    firstHomeParkingFlowStarted = true,
+                    firstHomeParkingFlowCompleted = true,
+                    initialHomeParkingEditorActive = false,
+                )
+            }
+            return
+        }
+
+        appPreferences.startFirstHomeParkingFlow(uid)
+        updateState {
+            copy(
+                firstHomeParkingFlowStarted = true,
+                initialHomeParkingEditorActive = true,
+            )
+        }
+        val current = state.value
+        val vehicle = current.vehicles.firstOrNull { it.isActive } ?: current.vehicles.firstOrNull()
+        handleIntent(HomeIntent.EnterAddParkingMode(
+            initialGps = current.userGpsPoint,
+            targetVehicleId = vehicle?.id,
+        ))
+    }
+
+    private fun completeFirstHomeParkingFlow() {
+        val uid = firstHomeFlowUid ?: return
+        appPreferences.completeFirstHomeParkingFlow(uid)
+        updateState {
+            copy(
+                firstHomeParkingFlowStarted = true,
+                firstHomeParkingFlowCompleted = true,
+                initialHomeParkingEditorActive = false,
+                firstHomeWaitingForPermissionRoute = false,
+            )
+        }
+    }
+
     /**
      * First-run location ask, ON the map — the map behind the dialog is its own context, so there
      * is no permissions screen in the cold-start chain any more. Fired from the first
@@ -298,11 +370,20 @@ class HomeViewModel(
      */
     private fun askFineLocationOnFirstEntry() {
         val hasLocation = permissionManager.permissionState.value.hasLocationPermission
-        if (hasLocation || appPreferences.hasRequestedLocationPermission) return
+        if (hasLocation || appPreferences.hasRequestedLocationPermission) {
+            updateState { copy(firstLocationRequestPending = false) }
+            return
+        }
         appPreferences.setLocationPermissionRequested()
         // Mirrored the moment it is stamped: from here on Home knows it has asked, and the warning
         // surfaces stay quiet until the answer is read. [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001]
-        updateState { copy(locationEverAsked = true, locationAnswerInFlight = true) }
+        updateState {
+            copy(
+                locationEverAsked = true,
+                locationAnswerInFlight = true,
+                firstLocationRequestPending = false,
+            )
+        }
         // If this very ask is granted, pitch auto-detection right after (see subscribePermissions):
         // the user just granted location and is looking at the map — peak engagement for the app's
         // star feature, which no longer has a first-run screen to introduce it.
@@ -370,6 +451,7 @@ class HomeViewModel(
             .collectSafely("firstSteps") { (done, dismissed, deferred) ->
                 updateState {
                     copy(
+                        firstStepsLoaded = true,
                         firstStepsDone = done,
                         firstStepsDismissed = dismissed,
                         firstStepsDeferred = deferred,
@@ -467,6 +549,10 @@ class HomeViewModel(
 
     override fun handleIntent(intent: HomeIntent) {
         when (intent) {
+            is HomeIntent.InitializeFirstHomeFlow -> initializeFirstHomeFlow(intent.uid)
+            HomeIntent.StartFirstHomeParkingOffer -> startFirstHomeParkingOffer()
+            HomeIntent.CompleteFirstHomeParkingFlow -> completeFirstHomeParkingFlow()
+
             // Map & camera
             is HomeIntent.CameraPositionChanged,
             is HomeIntent.UserMovedCameraByHand,
@@ -558,7 +644,14 @@ class HomeViewModel(
             // One-time detection pitch (post first-entry location grant).
             // [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
             is HomeIntent.AcceptDetectionPitch -> {
-                updateState { copy(showDetectionPitch = false) }
+                firstHomePermissionRouteWasBackgrounded = false
+                updateState {
+                    copy(
+                        showDetectionPitch = false,
+                        firstHomeWaitingForPermissionRoute =
+                            !permissionManager.permissionState.value.hasProducerPermissions,
+                    )
+                }
                 handleIntent(HomeIntent.EnableAutoDetection)
             }
             is HomeIntent.DismissDetectionPitch ->
@@ -606,6 +699,12 @@ class HomeViewModel(
             is HomeIntent.RecenterSpots -> onRecenterSpots()
             is HomeIntent.SetMapType -> setMapType(intent.type)
             is HomeIntent.SetMapForeground -> {
+                if (!intent.active && state.value.firstHomeWaitingForPermissionRoute) {
+                    firstHomePermissionRouteWasBackgrounded = true
+                } else if (intent.active && firstHomePermissionRouteWasBackgrounded) {
+                    firstHomePermissionRouteWasBackgrounded = false
+                    updateState { copy(firstHomeWaitingForPermissionRoute = false) }
+                }
                 // ⛔ La MISMA señal que lee el reparto de avisos para elegir canal: un
                 // `mapForeground` propio aquí eran dos verdades sobre una pregunta.
                 // [ZONE-AN-ALERT-IS-DELIVERED-WHERE-YOU-CAN-SEE-IT-001]
@@ -1514,8 +1613,11 @@ class HomeViewModel(
                         if (intent.fromDetectionNudge) pendingParkNudge?.source.orEmpty() else null,
                 )
             }
-            is HomeIntent.ExitAddParkingMode -> updateState {
-                if (correctingParking != null || isSavingParking || isReleasingParking) this else clearedModeFields()
+            is HomeIntent.ExitAddParkingMode -> {
+                val current = state.value
+                val canExit = current.correctingParking == null && !current.isSavingParking && !current.isReleasingParking
+                if (canExit && current.initialHomeParkingEditorActive) completeFirstHomeParkingFlow()
+                updateState { if (canExit) clearedModeFields() else this }
             }
             is HomeIntent.ConfirmAddParking -> confirmAddParking(intent.asNewSession)
             else -> Unit
@@ -1562,6 +1664,7 @@ class HomeViewModel(
                             return@launch
                         }
                     }
+                    if (state.value.initialHomeParkingEditorActive) completeFirstHomeParkingFlow()
                     updateState { clearedModeFields().copy(savingParkingAsNewSession = null) }
                 }
                 .onFailure {

@@ -24,7 +24,7 @@ Los documentos de investigación, auditoría y archive conservan contexto histó
 ## Entradas y dependencias
 `PaparcarApp/MainActivity` alojan Android; `MainViewController/PaparcarIosBootstrap` alojan iOS.
 `AppViewModel/SplashViewModel` gobiernan bootstrap y acceso; `App.kt` compone navegación.
-La secuencia documentada es Splash → Auth → VehicleRegistration → Onboarding → Permissions → Home.
+La entrada resuelta por Splash pasa por Auth, alta de vehículo y onboarding cuando corresponda; Home pide ubicación sobre el mapa. El coordinador de inicio de Home ordena regalo Plus confirmado, invitación de detección y editor de primer aparcamiento. El flujo Producer se abre al aceptar; Meta se reserva para una visita posterior. Contrato: [HOME-FIRST-ENTRY-FLOW-001](../backlog/home-first-entry-flow-001.md).
 La navegación principal es Home/Vehículos/Ajustes; confirmar condiciones de routing en AppState/AppViewModel antes de alterarla.
 
 Gradle declara tres módulos: app, shared y mockkit. Android usa JVM 17; shared declara Android, iosArm64 e iosSimulatorArm64 con framework ComposeApp. El plugin Android clásico de shared es deliberado por el problema documentado de empaquetado de composeResources. No migrarlo por modernización cosmética.

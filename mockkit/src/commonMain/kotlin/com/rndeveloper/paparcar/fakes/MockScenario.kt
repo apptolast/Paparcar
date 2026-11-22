@@ -82,6 +82,27 @@ class MockScenario {
      *  and [sentryAlive] to walk the checklist forward without leaving the emulator. */
     val firstStepsPending = MutableStateFlow(false)
 
+    /** A new account has no seeded parking sessions or history on any of its vehicles. */
+    val firstHomeEntry = MutableStateFlow(false)
+
+    /**
+     * El usuario CONCEDE la ubicación cuando la app se la pide. [HOME-FIRST-ENTRY-FLOW-001]
+     *
+     * ⛔ Sin esto la secuencia de primera entrada era **irreproducible en mock**, y justo la que
+     * este ticket existe para coordinar: la invitación a detección sólo dispara en la TRANSICIÓN
+     * de conceder ubicación (`pitchDetectionAfterGrant`), y aquí el tier sólo lo escribía la
+     * palanca del catálogo, antes de entrar. Es decir: se podía elegir «sin permiso» o «con
+     * permiso», pero nunca el instante en que se pasa de uno a otro — que es el único en que la
+     * cadena ocurre.
+     *
+     * Opt-in y no comportamiento por defecto: el tier `None` tiene que seguir sirviendo para
+     * probar los estados de permiso DENEGADO, que es para lo que lo usa el resto del catálogo.
+     */
+    val grantsLocationWhenAsked = MutableStateFlow(false)
+
+    /** Resets account-scoped entry memories when a catalog preset is replayed. */
+    val homeEntryGeneration = MutableStateFlow(0)
+
     /** [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] Draws a PRIVATE zone over the
      *  seeded own parking, so leaving it frees no plaza. Requires [ownParkedSession]. With it on,
      *  the release dialog says so instead of promising a spot, and the history detail names the
@@ -113,6 +134,7 @@ class MockScenario {
     val plusDaysLeft = MutableStateFlow<Int?>(null)
 
     fun reset() {
+        homeEntryGeneration.value += 1
         session.value = Session.LoggedInWithVehicles
         onboardingCompleted.value = true
         permissionTier.value = PermissionTier.All
@@ -127,6 +149,8 @@ class MockScenario {
         stillParkedQuestionOpen.value = false
         approximateParking.value = false
         firstStepsPending.value = false
+        firstHomeEntry.value = false
+        grantsLocationWhenAsked.value = false
         isPlus.value = false
         plusIsPromotional.value = false
         plusDaysLeft.value = null

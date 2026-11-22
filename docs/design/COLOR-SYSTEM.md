@@ -356,6 +356,7 @@ no se puede razonar, ni cambiar para un trabajo sin cambiarlo para los otros och
 | `attention` / `onAttention` | algo PENDIENTE que puedes arreglar: permiso sin dar, GPS pobre |
 | `danger` / `onDanger` | bloqueado, destructivo o fallido — **nunca** un CTA |
 | `live` | MOVIMIENTO sobre teselas: traza, origen, pin en-route, FAB sigue-coche |
+| `carPark` / `onCarPark` | un PARKING PÚBLICO: el puck azul con la P blanca |
 
 Varios roles resuelven hoy al mismo valor. **No es redundancia**: un rol con nombre puede divergir
 luego sin arqueología, y nombrarlo obliga a que compartir sea una decisión escrita en vez de un

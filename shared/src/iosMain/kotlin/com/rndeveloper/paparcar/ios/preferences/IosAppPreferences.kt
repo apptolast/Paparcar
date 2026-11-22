@@ -27,6 +27,8 @@ private const val KEY_LOCATION_PERMISSION_REQUESTED = "location_permission_reque
 // USER_SCOPED_KEYS a proposito: estan indexadas por uid. [MONEY-FOUNDERS-WELCOME-001]
 private const val KEY_PLUS_PROMO_WELCOMED_UIDS = "plus_promo_welcomed_uids"
 private const val KEY_PLUS_PROMO_ENDING_NOTICED_UIDS = "plus_promo_ending_noticed_uids"
+private const val KEY_FIRST_HOME_PARKING_FLOW_STARTED_UIDS = "first_home_parking_flow_started_uids"
+private const val KEY_FIRST_HOME_PARKING_FLOW_COMPLETED_UIDS = "first_home_parking_flow_completed_uids"
 private const val KEY_FOUNDERS_PROMO_CLAIMED_UIDS = "founders_promo_claimed_uids"
 private const val KEY_FOUNDERS_PROMO_GRANTED_UIDS = "founders_promo_granted_uids"
 private const val KEY_AUTO_DETECT_PARKING = "auto_detect_parking"
@@ -158,6 +160,16 @@ class IosAppPreferences : AppPreferences {
     override fun setLocationPermissionRequested() {
         userDefaults.setBool(true, forKey = KEY_LOCATION_PERMISSION_REQUESTED)
     }
+
+
+    override val firstHomeParkingFlowStartedUids: Set<String>
+        get() = storedUids(KEY_FIRST_HOME_PARKING_FLOW_STARTED_UIDS)
+    override fun startFirstHomeParkingFlow(uid: String) =
+        addUid(KEY_FIRST_HOME_PARKING_FLOW_STARTED_UIDS, uid)
+    override val firstHomeParkingFlowCompletedUids: Set<String>
+        get() = storedUids(KEY_FIRST_HOME_PARKING_FLOW_COMPLETED_UIDS)
+    override fun completeFirstHomeParkingFlow(uid: String) =
+        addUid(KEY_FIRST_HOME_PARKING_FLOW_COMPLETED_UIDS, uid)
 
     override val autoDetectParking: Boolean
         get() = if (userDefaults.objectForKey(KEY_AUTO_DETECT_PARKING) == null) true

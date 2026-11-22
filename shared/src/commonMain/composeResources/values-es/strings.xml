@@ -374,7 +374,7 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <!-- Modo AddingParking — colocar / mover el pin del coche aparcado -->
     <string name="home_add_parking_header_label_create">Marca tu aparcamiento</string>
     <string name="home_add_parking_header_label_edit">Mueve tu aparcamiento</string>
-    <string name="home_add_parking_helper_primary_create">Centra el pin donde dejaste el coche</string>
+    <string name="home_add_parking_helper_primary_create">Arrastra el mapa para centrar el pin en tu coche</string>
     <string name="home_add_parking_helper_primary_edit">Arrastra el mapa al punto correcto</string>
     <string name="home_add_parking_helper_secondary_create">Una geocerca te avisará cuando te vayas</string>
     <string name="home_add_parking_helper_secondary_edit">Corregir mantiene el tiempo aparcado; marcar uno nuevo lo pone a cero</string>
@@ -771,7 +771,6 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="first_steps_spot_cta">Ver plazas</string>
     <string name="first_steps_spot_report_title">¿Ves una plaza libre? Avísala</string>
     <string name="first_steps_spot_report_sub">Un sitio que ha dejado otro, no tu aparcamiento. Márcalo y los conductores cercanos lo verán.</string>
-    <string name="first_steps_spotlight_caption">El pin no se mueve: arrastra el MAPA hasta que quede sobre tu coche y confirma abajo.</string>
     <string name="settings_replay_first_steps">Repetir los primeros pasos</string>
     <string name="settings_replay_first_steps_done">Los primeros pasos vuelven a estar en Inicio</string>
     <!-- First-step explainers: the two ways a spot is born [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] -->

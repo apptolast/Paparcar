@@ -447,7 +447,7 @@
     <!-- AddingParking mode -->
     <string name="home_add_parking_header_label_create">Marca o teu estacionamento</string>
     <string name="home_add_parking_header_label_edit">Move o teu estacionamento</string>
-    <string name="home_add_parking_helper_primary_create">Centra o pin onde deixaste o carro</string>
+    <string name="home_add_parking_helper_primary_create">Arrasta o mapa para centrar o pin no teu carro</string>
     <string name="home_add_parking_helper_primary_edit">Arrasta o mapa para o local correto</string>
     <string name="home_add_parking_helper_secondary_create">Uma geocerca avisa-te quando saíres</string>
     <string name="home_add_parking_helper_secondary_edit">Corrigir mantém o tempo estacionado; marcar um novo põe-no a zero</string>
@@ -775,7 +775,6 @@ Se a pergunta já não aparecer, muda em Definições → Paparcar → Localiza�
     <string name="first_steps_spot_cta">Ver lugares</string>
     <string name="first_steps_spot_report_title">Vês um lugar livre? Avisa</string>
     <string name="first_steps_spot_report_sub">Um espaço que outro deixou, não o teu estacionamento. Marca-o e os condutores próximos vêem-no.</string>
-    <string name="first_steps_spotlight_caption">O pin fica fixo: arrasta o MAPA até ficar sobre o teu carro e confirma em baixo.</string>
     <string name="settings_replay_first_steps">Rever os primeiros passos</string>
     <string name="settings_replay_first_steps_done">Os primeiros passos voltaram ao Início</string>
     <!-- First-step explainers: the two ways a spot is born [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] -->

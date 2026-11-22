@@ -11,6 +11,8 @@ import com.rndeveloper.paparcar.domain.entitlement.PLUS_PROMO_ENDING_WINDOW_DAYS
 import com.rndeveloper.paparcar.domain.entitlement.PlusMoment
 import com.rndeveloper.paparcar.presentation.app.AdMeasurementConsentDialog
 import com.rndeveloper.paparcar.presentation.app.PlusMomentDialog
+import com.rndeveloper.paparcar.presentation.home.HomeEntryPromptHost
+import com.rndeveloper.paparcar.presentation.home.HomeIntent
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -101,7 +103,6 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_now_see_all_car_parks
 import paparcar.composeapp.generated.resources.home_now_see_all_fuel_stations
 import paparcar.composeapp.generated.resources.home_now_see_all_spots
-import paparcar.composeapp.generated.resources.first_steps_spotlight_caption
 import paparcar.composeapp.generated.resources.spot_alert_nearby_in_app
 import paparcar.composeapp.generated.resources.zone_alert_in_app_unconfirmed
 import paparcar.composeapp.generated.resources.spot_alert_nearby_in_app_unconfirmed
@@ -316,7 +317,6 @@ private fun firstStepsSpotlight() {
     Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant)) {
         PapSpotlight(
             visible = true,
-            caption = stringResource(Res.string.first_steps_spotlight_caption),
             onDismiss = {},
             modifier = Modifier.fillMaxSize(),
         )
@@ -1090,7 +1090,53 @@ private fun MarkerSectionLabel(text: String) {
 }
 
 // Recipes mirror the existing *Previews.kt so the gallery shows the same curated states on-device.
+@Composable
+private fun entryPromptDemo(gift: Boolean = false, returning: Boolean = false) {
+    var showGift by remember { mutableStateOf(gift) }
+    var state by remember { mutableStateOf(HomeState(
+        firstHomeParkingFlowReady = true,
+        firstHomeParkingFlowCompleted = returning,
+        firstHomeParkingFlowCompletedOnArrival = returning,
+        showDetectionPitch = !returning,
+    )) }
+    var askConsent by remember { mutableStateOf(returning) }
+    HomeEntryPromptHost(
+        accountId = "catalog-account",
+        state = state,
+        isHomeActive = true,
+        plusMoment = if (showGift) PlusMoment.FoundersWelcome(null) else null,
+        askAdMeasurementConsent = askConsent,
+        onIntent = { intent ->
+            if (intent == HomeIntent.DismissDetectionPitch || intent == HomeIntent.AcceptDetectionPitch) {
+                state = state.copy(showDetectionPitch = false)
+            }
+        },
+        onDismissPlusMoment = { showGift = false },
+        onSeePlusPlans = {},
+        onAnswerAdMeasurementConsent = { askConsent = false },
+    )
+}
+
 private val galleryGroups: List<ScreenGroup> = listOf(
+    ScreenGroup(
+        "Home · inicio secuencial",
+        listOf(
+            Variant("Regalo confirmado → detección") { entryPromptDemo(gift = true) },
+            Variant("Sin regalo → detección") { entryPromptDemo() },
+            Variant("Visita posterior → consentimiento Meta") { entryPromptDemo(returning = true) },
+            Variant("Último paso · editor de aparcamiento", Placement.Surface) {
+                peek(HomeState(
+                    mode = HomeMode.AddingParking,
+                    initialHomeParkingEditorActive = true,
+                    vehicles = listOf(FakeData.vehicleSedan),
+                    addingParkingVehicleId = FakeData.vehicleSedan.id,
+                    userGpsPoint = sampleGps,
+                    pinCameraLat = sampleGps.latitude,
+                    pinCameraLon = sampleGps.longitude,
+                ))
+            },
+        ),
+    ),
     ScreenGroup(
         "Home · detección",
         listOf(
@@ -1146,7 +1192,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
     ScreenGroup(
         "Medición de anuncios · pregunta",
         listOf(
-            Variant("Pregunta tras el login (Permitir / No permitir)") {
+            Variant("Pregunta en visita posterior (Permitir / No permitir)") {
                 // Como en la app real, responder CIERRA la pregunta: sin esto el diálogo (que no se
                 // descarta tocando fuera, a propósito) dejaba la galería sin salida.
                 var answer by remember { mutableStateOf<Boolean?>(null) }

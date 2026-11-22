@@ -135,6 +135,7 @@ class HomeViewModelTest {
     private lateinit var vm: HomeViewModel
 
     private fun buildVm(
+        initialPreferences: FakeAppPreferences? = null,
         initialMapType: String = "NORMAL",
         foreground: Boolean = true,
         showParkingAskBus: com.rndeveloper.paparcar.domain.event.ShowParkingAskEventBus? = null,
@@ -145,7 +146,7 @@ class HomeViewModelTest {
         initialStillParkedQuestion: StillParkedQuestion? = null,
         startAddParkingBus: StartAddParkingEventBus = StartAddParkingEventBus(),
     ): HomeViewModel {
-        prefs = FakeAppPreferences(initialDefaultMapType = initialMapType)
+        prefs = initialPreferences ?: FakeAppPreferences(initialDefaultMapType = initialMapType)
         prefs.setStillParkedQuestion(initialStillParkedQuestion)
         if (locationAlreadyAsked) prefs.setLocationPermissionRequested()
         manualParkingDetection = com.rndeveloper.paparcar.fakes.data.repository.FakeManualParkingDetection()
@@ -340,6 +341,133 @@ class HomeViewModelTest {
     @AfterTest
     fun tearDown() {
         Dispatchers.resetMain()
+    }
+
+    private suspend fun prepareInitialParkingOffer() {
+        vehicleRepo.saveVehicle(Vehicle(
+            id = "initial-car", userId = "user-123", isActive = true,
+            sizeCategory = com.rndeveloper.paparcar.domain.model.VehicleSize.MEDIUM_SUV,
+        ))
+        vm.handleIntent(HomeIntent.InitializeFirstHomeFlow("new-account"))
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+    }
+
+    @Test
+    fun should_keepMarkParkingPending_when_initialEditorIsClosed() = runTest(testDispatcher) {
+        prepareInitialParkingOffer()
+        assertTrue(vm.state.value.shouldOfferInitialParkingEditor)
+        vm.handleIntent(HomeIntent.StartFirstHomeParkingOffer)
+        assertIs<HomeMode.AddingParking>(vm.state.value.mode)
+
+        vm.handleIntent(HomeIntent.ExitAddParkingMode)
+
+        assertIs<HomeMode.Browse>(vm.state.value.mode)
+        assertFalse(vm.state.value.shouldOfferInitialParkingEditor)
+        assertEquals(FirstStep.MARK_PARKING, vm.state.value.firstSteps.current)
+        assertTrue("new-account" in prefs.firstHomeParkingFlowCompletedUids)
+        vm.handleIntent(HomeIntent.StartFirstHomeParkingOffer)
+        assertIs<HomeMode.Browse>(vm.state.value.mode)
+    }
+
+    @Test
+    fun should_completeMarkParkingFromSession_when_initialPinIsSaved() = runTest(testDispatcher) {
+        prepareInitialParkingOffer()
+        vm.handleIntent(HomeIntent.StartFirstHomeParkingOffer)
+        vm.handleIntent(HomeIntent.CameraPositionChanged(location.latitude, location.longitude))
+        vm.handleIntent(HomeIntent.ConfirmAddParking())
+        advanceUntilIdle()
+
+        assertTrue(vm.state.value.activeSessions.isNotEmpty())
+        assertTrue(FirstStep.MARK_PARKING in vm.state.value.firstSteps.done)
+        assertTrue(vm.state.value.firstHomeParkingFlowCompleted)
+        assertIs<HomeMode.Browse>(vm.state.value.mode)
+    }
+
+    @Test
+    fun should_keepEditorAndOfferUnfinished_when_initialSaveFails() = runTest(testDispatcher) {
+        prepareInitialParkingOffer()
+        parkingRepo.saveNewParkingSessionResult = Result.failure(IllegalStateException("local write failed"))
+        vm.handleIntent(HomeIntent.StartFirstHomeParkingOffer)
+        vm.handleIntent(HomeIntent.CameraPositionChanged(location.latitude, location.longitude))
+        vm.handleIntent(HomeIntent.ConfirmAddParking())
+
+        assertIs<HomeMode.AddingParking>(vm.state.value.mode)
+        assertTrue(vm.state.value.initialHomeParkingEditorActive)
+        assertFalse(vm.state.value.firstHomeParkingFlowCompleted)
+        assertEquals(FirstStep.MARK_PARKING, vm.state.value.firstSteps.current)
+    }
+
+    @Test
+    fun should_allowLaterConsentAndNotReopenEditor_when_processRestartsAfterClosingOffer() = runTest(testDispatcher) {
+        prepareInitialParkingOffer()
+        vm.handleIntent(HomeIntent.StartFirstHomeParkingOffer)
+        vm.handleIntent(HomeIntent.ExitAddParkingMode)
+        assertFalse(vm.state.value.firstHomeParkingFlowCompletedOnArrival)
+
+        val restarted = buildVm(initialPreferences = prefs)
+        restarted.handleIntent(HomeIntent.InitializeFirstHomeFlow("new-account"))
+        assertTrue(restarted.state.value.firstHomeParkingFlowCompletedOnArrival)
+        assertFalse(restarted.state.value.shouldOfferInitialParkingEditor)
+        assertEquals(FirstStep.MARK_PARKING, restarted.state.value.firstSteps.current)
+    }
+
+    @Test
+    fun should_resumeUnfinishedOffer_when_accountReturnsAfterInterruption() = runTest(testDispatcher) {
+        prepareInitialParkingOffer()
+        prefs.startFirstHomeParkingFlow("new-account")
+        vm.handleIntent(HomeIntent.InitializeFirstHomeFlow("other-account"))
+        vm.handleIntent(HomeIntent.InitializeFirstHomeFlow("new-account"))
+        assertTrue(vm.state.value.firstHomeParkingFlowStarted)
+        assertTrue(vm.state.value.shouldOfferInitialParkingEditor)
+        vm.handleIntent(HomeIntent.StartFirstHomeParkingOffer)
+        assertIs<HomeMode.AddingParking>(vm.state.value.mode)
+    }
+
+    @Test
+    fun should_isolateOfferCompletion_when_anotherAccountUsesTheInstall() = runTest(testDispatcher) {
+        prepareInitialParkingOffer()
+        vm.handleIntent(HomeIntent.StartFirstHomeParkingOffer)
+        vm.handleIntent(HomeIntent.ExitAddParkingMode)
+        vm.handleIntent(HomeIntent.InitializeFirstHomeFlow("second-account"))
+
+        assertTrue(vm.state.value.shouldOfferInitialParkingEditor)
+        assertFalse(vm.state.value.firstHomeParkingFlowCompleted)
+        assertTrue("new-account" in prefs.firstHomeParkingFlowCompletedUids)
+    }
+
+    @Test
+    fun should_notOfferInitialEditor_when_parkingOrChecklistIsAlreadyHandled() = runTest(testDispatcher) {
+        prepareInitialParkingOffer()
+        val ready = vm.state.value
+        assertFalse(ready.copy(firstStepsDismissed = true).shouldOfferInitialParkingEditor)
+        assertFalse(ready.copy(firstStepsDone = setOf(FirstStep.MARK_PARKING)).shouldOfferInitialParkingEditor)
+        assertFalse(ready.copy(activeSessions = listOf(UserParking(
+            id = "existing-parking", vehicleId = "initial-car", location = location, isActive = true,
+        ))).shouldOfferInitialParkingEditor)
+        assertFalse(ready.copy(vehicles = emptyList()).shouldOfferInitialParkingEditor)
+    }
+
+    @Test
+    fun should_waitForAllInitialSnapshots_when_offeringTheParkingEditor() = runTest(testDispatcher) {
+        prepareInitialParkingOffer()
+        val ready = vm.state.value
+        assertFalse(ready.copy(firstStepsLoaded = false).shouldOfferInitialParkingEditor)
+        assertFalse(ready.copy(vehiclesLoaded = false).shouldOfferInitialParkingEditor)
+        assertFalse(ready.copy(parkingSessionsLoaded = false).shouldOfferInitialParkingEditor)
+    }
+
+    @Test
+    fun should_waitForPermissionRouteReturn_when_detectionPitchIsAccepted() = runTest(testDispatcher) {
+        permissions.emit(FakePermissionManager.allGranted().copy(
+            hasBackgroundLocationPermission = false,
+            hasActivityRecognitionPermission = false,
+        ))
+        vm.handleIntent(HomeIntent.AcceptDetectionPitch)
+        assertTrue(vm.state.value.firstHomeWaitingForPermissionRoute)
+        vm.handleIntent(HomeIntent.SetMapForeground(false))
+        vm.handleIntent(HomeIntent.SetMapForeground(true))
+        assertFalse(vm.state.value.firstHomeWaitingForPermissionRoute)
     }
 
     // ── Init — map type from preferences ─────────────────────────────────────

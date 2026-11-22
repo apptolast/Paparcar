@@ -417,6 +417,8 @@ data class HomeBrowseListSlice(
      *  checklist. Already resolved by the pure projection — the sheet renders it, it does not decide
      *  it, and it is also what tells the detection surface to stand down on the cold start. */
     val firstSteps: FirstStepsProgress,
+    /** The initial parking editor temporarily owns the first checklist step. */
+    val initialParkingOfferOwnsColdStart: Boolean = false,
     /** "Where to refuel" — the answer only; whether it is ON SHOW is [nearbyLens].
      *  [FUEL-STATIONS-LIST-001] */
     val fuel: HomeFuelSlice,
@@ -462,7 +464,7 @@ data class HomeBrowseListSlice(
      * is not there. [ONBOARDING-FIRST-STEPS-MUST-BE-READABLE-AND-FOUND-001]
      */
     val showsFirstSteps: Boolean
-        get() = firstSteps.isVisible && vehicleCards.isNotEmpty()
+        get() = firstSteps.isVisible && vehicleCards.isNotEmpty() && !initialParkingOfferOwnsColdStart
 
     /** One projection owns the card content and the sheet-opening cue. */
     val detectionStory: DetectionStory
@@ -727,6 +729,7 @@ fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
     // Same subject, same resolver as the peek's — one trip, one street. [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001]
     drivingPlace = drivingMeta?.let { userAddressAndPlace.toPlaceLine() },
     firstSteps = firstSteps,
+    initialParkingOfferOwnsColdStart = shouldOfferInitialParkingEditor,
 )
 
 /**

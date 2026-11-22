@@ -31,6 +31,10 @@ sealed class HomeIntent {
     /** Map foreground (RESUMED) state — gates the high-accuracy user-location request so it only
      *  runs while the map is on screen (battery bound). [UI-LOC-FOREGROUND-001] */
     data class SetMapForeground(val active: Boolean) : HomeIntent()
+    /** Load and resume the account-scoped first Home flow. */
+    data class InitializeFirstHomeFlow(val uid: String) : HomeIntent()
+    data object StartFirstHomeParkingOffer : HomeIntent()
+    data object CompleteFirstHomeParkingFlow : HomeIntent()
 
     // ── Spot interactions ─────────────────────────────────────────────────────
 

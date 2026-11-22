@@ -112,7 +112,20 @@ class FakePermissionManager(private val scenario: MockScenario? = null) : Permis
             ).asStateFlow()
         }
 
-    override fun refreshPermissions() {}
+    /**
+     * Lo llama la app JUSTO después de que el diálogo del sistema conteste, para releer el estado.
+     * En mock ese diálogo es real pero su respuesta no llega a ningún sitio, así que aquí es donde
+     * se simula el «sí»: con [MockScenario.grantsLocationWhenAsked], un tier `None` sube a `Core`.
+     *
+     * Es la única forma de reproducir la TRANSICIÓN que arma la invitación a detección — ver la
+     * palanca. Sin la palanca, no-op, como antes. [HOME-FIRST-ENTRY-FLOW-001]
+     */
+    override fun refreshPermissions() {
+        val sc = scenario ?: return
+        if (sc.grantsLocationWhenAsked.value && sc.permissionTier.value == MockScenario.PermissionTier.None) {
+            sc.permissionTier.value = MockScenario.PermissionTier.Core
+        }
+    }
 
     private fun MockScenario.PermissionTier.toState(gps: Boolean): AppPermissionState = when (this) {
         MockScenario.PermissionTier.None -> AppPermissionState(isLocationServicesEnabled = gps)
@@ -212,6 +225,31 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     override fun addFoundersPromoGrantedUid(uid: String) { _foundersPromoGrantedUids.value += uid }
 
     private val _autoDetectParking = MutableStateFlow(true)
+
+    private var homeEntryGeneration = scenario?.homeEntryGeneration?.value
+    private var firstHomeStartedUids: Set<String> = emptySet()
+    private var firstHomeCompletedUids: Set<String> = emptySet()
+    private fun syncHomeEntryGeneration() {
+        val generation = scenario?.homeEntryGeneration?.value
+        if (generation != homeEntryGeneration) {
+            homeEntryGeneration = generation
+            firstHomeStartedUids = emptySet()
+            firstHomeCompletedUids = emptySet()
+        }
+    }
+    override val firstHomeParkingFlowStartedUids: Set<String>
+        get() { syncHomeEntryGeneration(); return firstHomeStartedUids }
+    override fun startFirstHomeParkingFlow(uid: String) {
+        syncHomeEntryGeneration()
+        firstHomeStartedUids += uid
+    }
+    override val firstHomeParkingFlowCompletedUids: Set<String>
+        get() { syncHomeEntryGeneration(); return firstHomeCompletedUids }
+    override fun completeFirstHomeParkingFlow(uid: String) {
+        syncHomeEntryGeneration()
+        firstHomeCompletedUids += uid
+    }
+
     override val autoDetectParking: Boolean get() = _autoDetectParking.value
     override fun setAutoDetectParking(enabled: Boolean) { _autoDetectParking.value = enabled }
     override fun observeAutoDetectParking(): kotlinx.coroutines.flow.Flow<Boolean> = _autoDetectParking

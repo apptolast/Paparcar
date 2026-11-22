@@ -34,8 +34,7 @@ data class AppState(
      * What the app owes this account about its gifted Plus — the welcome, the end-of-promo
      * reminder, or nothing. [MONEY-FOUNDERS-WELCOME-001]
      *
-     * Not the same thing as [plusMomentToShow]: this is the VERDICT, that one is whether it may be
-     * on screen right now.
+     * Home's entry coordinator decides when the moment may occupy the screen.
      */
     val plusMoment: PlusMoment? = null,
 ) {
@@ -56,20 +55,7 @@ data class AppState(
     val showGpsAccuracyDisclaimer: Boolean
         get() = isDetectionReady && !hasSeenGpsAccuracyDisclaimer
 
-    /**
-     * The Plus moment, but only when there is nothing else holding the screen.
-     * [MONEY-FOUNDERS-WELCOME-001]
-     *
-     * ⛔ **The order between this and [askAdMeasurementConsent] lives HERE, in the state, and not
-     * in whichever composable happens to be written first.** A brand-new account is exactly the
-     * one that owes BOTH — it is the case, not an edge case — and two dialogs at once is the one
-     * thing this project forbids outright (⛔ nunca modal sobre modal).
-     *
-     * The consent goes first because it is a QUESTION: it demands an answer and swallows taps
-     * outside itself, so it cannot queue behind anything. The celebration is NEWS, and news waits.
-     */
-    val plusMomentToShow: PlusMoment?
-        get() = plusMoment.takeIf { !askAdMeasurementConsent }
+
 }
 
 /**

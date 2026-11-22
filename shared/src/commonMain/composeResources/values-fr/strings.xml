@@ -447,7 +447,7 @@
     <!-- AddingParking mode -->
     <string name="home_add_parking_header_label_create">Marquer le stationnement</string>
     <string name="home_add_parking_header_label_edit">Déplacer le stationnement</string>
-    <string name="home_add_parking_helper_primary_create">Centre l'épingle où tu as laissé la voiture</string>
+    <string name="home_add_parking_helper_primary_create">Fais glisser la carte pour centrer l'épingle sur ta voiture</string>
     <string name="home_add_parking_helper_primary_edit">Fais glisser la carte au bon endroit</string>
     <string name="home_add_parking_helper_secondary_create">Un geofence t'avertit quand tu pars</string>
     <string name="home_add_parking_helper_secondary_edit">Corriger conserve le temps de stationnement ; en marquer un nouveau le remet à zéro</string>
@@ -775,7 +775,6 @@ Si la question n'apparaît plus, changez-le dans Réglages → Paparcar → Posi
     <string name="first_steps_spot_cta">Voir les places</string>
     <string name="first_steps_spot_report_title">Vous voyez une place libre ? Signalez-la</string>
     <string name="first_steps_spot_report_sub">Un espace laissé par quelqu'un d'autre, pas votre stationnement. Marquez-la et les conducteurs proches la voient.</string>
-    <string name="first_steps_spotlight_caption">Le repère ne bouge pas : faites glisser la CARTE jusqu'à ce qu'il soit sur votre voiture, puis confirmez en dessous.</string>
     <string name="settings_replay_first_steps">Revoir les premiers pas</string>
     <string name="settings_replay_first_steps_done">Les premiers pas sont de retour sur l'accueil</string>
     <!-- First-step explainers: the two ways a spot is born [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] -->

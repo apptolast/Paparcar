@@ -452,7 +452,7 @@
     <!-- AddingParking mode -->
     <string name="home_add_parking_header_label_create">Marchează parcarea</string>
     <string name="home_add_parking_header_label_edit">Mută parcarea</string>
-    <string name="home_add_parking_helper_primary_create">Centrează pinul unde ai lăsat mașina</string>
+    <string name="home_add_parking_helper_primary_create">Trage harta ca să centrezi pinul pe mașina ta</string>
     <string name="home_add_parking_helper_primary_edit">Trage harta la locul corect</string>
     <string name="home_add_parking_helper_secondary_create">Un geofence te avertizează când pleci</string>
     <string name="home_add_parking_helper_secondary_edit">Corectarea păstrează timpul parcat; marcarea uneia noi îl resetează</string>
@@ -788,7 +788,6 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="first_steps_spot_cta">Vezi locuri</string>
     <string name="first_steps_spot_report_title">Vezi un loc liber? Anunță-l</string>
     <string name="first_steps_spot_report_sub">Un spațiu lăsat de altcineva, nu parcarea ta. Marchează-l și șoferii din apropiere îl văd.</string>
-    <string name="first_steps_spotlight_caption">Pinul rămâne pe loc: trage HARTA până ajunge peste mașina ta, apoi confirmă mai jos.</string>
     <string name="settings_replay_first_steps">Reia primii pași</string>
     <string name="settings_replay_first_steps_done">Primii pași sunt din nou pe pagina principală</string>
     <!-- First-step explainers: the two ways a spot is born [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] -->

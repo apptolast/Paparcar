@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import com.rndeveloper.paparcar.domain.detection.fence.VehicleFenceOwnershipPolicy
 import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
+import com.rndeveloper.paparcar.domain.entitlement.PlusMoment
 import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.model.SpotVoteOutcome
 import com.rndeveloper.paparcar.domain.nearby.NearbySubject
@@ -92,9 +93,6 @@ import com.rndeveloper.paparcar.presentation.map.ZoomIntent
 import com.rndeveloper.paparcar.presentation.map.zoomForZoneRadius
 import com.rndeveloper.paparcar.ui.components.CenterPinKind
 import com.rndeveloper.paparcar.ui.components.LocalMapInteracting
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Sensors
-import com.rndeveloper.paparcar.ui.components.PapAlertDialog
 import com.rndeveloper.paparcar.ui.components.PapSpotlight
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.ui.theme.PapMotion
@@ -114,18 +112,13 @@ import paparcar.composeapp.generated.resources.error_parking_save_failed
 import paparcar.composeapp.generated.resources.error_release_parking
 import paparcar.composeapp.generated.resources.error_report_too_far
 import paparcar.composeapp.generated.resources.error_search_failed
-import paparcar.composeapp.generated.resources.first_steps_spotlight_caption
 import paparcar.composeapp.generated.resources.location_approximate_near
 import paparcar.composeapp.generated.resources.error_unknown
 import paparcar.composeapp.generated.resources.error_watch_resume_failed
 import paparcar.composeapp.generated.resources.home_det_enabled_confirm
-import paparcar.composeapp.generated.resources.home_det_pitch_body
-import paparcar.composeapp.generated.resources.home_det_pitch_title
-import paparcar.composeapp.generated.resources.home_det_producer_cta
 import paparcar.composeapp.generated.resources.home_det_stopped_action
 import paparcar.composeapp.generated.resources.home_det_stopped_msg
 import paparcar.composeapp.generated.resources.home_det_trip_stopped_msg
-import paparcar.composeapp.generated.resources.permissions_btn_not_now
 import paparcar.composeapp.generated.resources.home_release_dialog_detection_active
 import paparcar.composeapp.generated.resources.home_release_dialog_detection_inactive
 import paparcar.composeapp.generated.resources.home_release_dialog_detection_unavailable
@@ -190,6 +183,13 @@ private val FAB_ABOVE_SHEET_GAP = 12.dp
 
 @Composable
 fun HomeScreen(
+    firstEntryUserId: String,
+    isHomeTabActive: Boolean,
+    plusMoment: PlusMoment?,
+    askAdMeasurementConsent: Boolean,
+    onDismissPlusMoment: (PlusMoment) -> Unit,
+    onSeePlusPlans: (PlusMoment) -> Unit,
+    onAnswerAdMeasurementConsent: (Boolean) -> Unit,
     navProgressState: MutableFloatState = remember { mutableFloatStateOf(1f) },
     bottomPadding: Dp = 0.dp,
     // [DET-READY-001f] Detection-banner CTAs. Navigate to the existing permission flow
@@ -319,12 +319,31 @@ fun HomeScreen(
     // Declared AFTER the effect collector on purpose: SetMapForeground(true) can trigger the
     // first-run location ask, and a replay-less SharedFlow drops effects emitted before the
     // collector above subscribes. [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
-    ForegroundEffect { active -> viewModel.handleIntent(HomeIntent.SetMapForeground(active)) }
+    var isMapResumed by remember { mutableStateOf(false) }
+    ForegroundEffect { active ->
+        isMapResumed = active
+        viewModel.handleIntent(HomeIntent.SetMapForeground(active))
+    }
 
     // Stable function reference — viewModel instance never changes so this
     // is safe to remember once. Prevents HomeContent from getting a new
     // lambda on every state emission, which would defeat skipping in children.
     val onIntent: (HomeIntent) -> Unit = remember(viewModel) { viewModel::handleIntent }
+
+    LaunchedEffect(firstEntryUserId) {
+        onIntent(HomeIntent.InitializeFirstHomeFlow(firstEntryUserId))
+    }
+    HomeEntryPromptHost(
+        accountId = firstEntryUserId,
+        state = state,
+        isHomeActive = isHomeTabActive && isMapResumed,
+        plusMoment = plusMoment,
+        askAdMeasurementConsent = askAdMeasurementConsent,
+        onIntent = onIntent,
+        onDismissPlusMoment = onDismissPlusMoment,
+        onSeePlusPlans = onSeePlusPlans,
+        onAnswerAdMeasurementConsent = onAnswerAdMeasurementConsent,
+    )
 
     HomeContent(
         state = state,
@@ -552,21 +571,6 @@ private fun HomeContent(
                 onIntent = onIntent,
                 onDismiss = { onIntent(HomeIntent.DismissReleaseDialog) },
             )
-
-            // One-time pitch of the star feature, fired right after the first-entry location grant
-            // on the map. Not the old guilt dialog: declining is one tap and never comes back — the
-            // banner and the checklist keep owning the ask. [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
-            if (state.showDetectionPitch) {
-                PapAlertDialog(
-                    onDismiss = { onIntent(HomeIntent.DismissDetectionPitch) },
-                    icon = Icons.Rounded.Sensors,
-                    title = stringResource(Res.string.home_det_pitch_title),
-                    body = stringResource(Res.string.home_det_pitch_body),
-                    primaryLabel = stringResource(Res.string.home_det_producer_cta),
-                    onPrimary = { onIntent(HomeIntent.AcceptDetectionPitch) },
-                    cancelLabel = stringResource(Res.string.permissions_btn_not_now),
-                )
-            }
 
             BoxWithConstraints(
                 modifier = Modifier
@@ -992,7 +996,6 @@ private fun HomeContent(
                         state.firstSteps.isVisible &&
                         state.firstSteps.current == FirstStep.MARK_PARKING &&
                         !spotlightSeen,
-                    caption = stringResource(Res.string.first_steps_spotlight_caption),
                     onDismiss = { spotlightSeen = true },
                     modifier = Modifier
                         .align(Alignment.TopCenter)

@@ -42,6 +42,8 @@ Hay tests npm de funciones y harness de reglas con emulador. No se ejecutaron aq
 Storage, App Check, Remote Config SDK y OneSignal no quedaron acreditados en la búsqueda de shared/src; eso no demuestra ausencia en toda la infraestructura. El gate diagnóstico encontrado es Firestore, no evidencia de Remote Config.
 
 **Espejo compartido:** la decisión documentada envía geometría y cifras del viaje; sharesRoutes controla su visualización al leer. No afirmar que es un control de subida. No añadir matrícula, armEvidence, detectionPath o tripMaxSpeedMps al espejo: la lista blanca pertenece al tipo.
+**Inicio de Home:** `HomeEntryPromptHost` y `resolveHomeEntryPrompt` ordenan una sola superficie propia. Ubicación nativa primero; Plus confirmado ocupa el próximo espacio libre sin interrumpir un diálogo ni una edición; después detección y editor real de primer aparcamiento. El cierre del editor se recuerda por cuenta sin completar `MARK_PARKING`; la sesión guardada sigue siendo la señal de cumplimiento. Meta espera una visita posterior a Home y la medición sigue desactivada hasta consentimiento explícito. Ver [ticket](../backlog/home-first-entry-flow-001.md).
+
 **Analytics/Meta:** consultar analytics-data-contract y AdAttribution antes de ampliar eventos. CLAUDE exige consentimiento legal, whitelist exhaustiva de nombres hacia publicidad y separación del identificador publicitario respecto a Firebase Analytics.
 
 Los archivos de firma, local.properties y credenciales Play encontrados no se leyeron; se verificaron no rastreados e ignorados. Su presencia local no concede autorización para usarlos ni prueba restricciones correctas en consola.

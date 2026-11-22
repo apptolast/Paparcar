@@ -118,6 +118,16 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
 
     // ── Parking detection ────────────────────────────────────────────────────
 
+
+    override val firstHomeParkingFlowStartedUids: Set<String>
+        get() = get(Keys.FIRST_HOME_PARKING_FLOW_STARTED_UIDS, emptySet())
+    override fun startFirstHomeParkingFlow(uid: String) =
+        addToSet(Keys.FIRST_HOME_PARKING_FLOW_STARTED_UIDS, uid)
+    override val firstHomeParkingFlowCompletedUids: Set<String>
+        get() = get(Keys.FIRST_HOME_PARKING_FLOW_COMPLETED_UIDS, emptySet())
+    override fun completeFirstHomeParkingFlow(uid: String) =
+        addToSet(Keys.FIRST_HOME_PARKING_FLOW_COMPLETED_UIDS, uid)
+
     override val autoDetectParking: Boolean
         get() = get(Keys.AUTO_DETECT_PARKING, true)
 
@@ -526,6 +536,8 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
          *  barrido de sesión a propósito: están indexadas por uid. [MONEY-FOUNDERS-WELCOME-001] */
         val PLUS_PROMO_WELCOMED_UIDS = stringSetPreferencesKey("plus_promo_welcomed_uids")
         val PLUS_PROMO_ENDING_NOTICED_UIDS = stringSetPreferencesKey("plus_promo_ending_noticed_uids")
+        val FIRST_HOME_PARKING_FLOW_STARTED_UIDS = stringSetPreferencesKey("first_home_parking_flow_started_uids")
+        val FIRST_HOME_PARKING_FLOW_COMPLETED_UIDS = stringSetPreferencesKey("first_home_parking_flow_completed_uids")
         val FOUNDERS_PROMO_CLAIMED_UIDS = stringSetPreferencesKey("founders_promo_claimed_uids")
         val FOUNDERS_PROMO_GRANTED_UIDS = stringSetPreferencesKey("founders_promo_granted_uids")
         val FIRST_STEPS_DONE        = stringSetPreferencesKey("first_steps_done")

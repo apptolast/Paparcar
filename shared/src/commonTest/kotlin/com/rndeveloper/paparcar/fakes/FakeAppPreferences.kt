@@ -87,6 +87,14 @@ class FakeAppPreferences(
     override fun addFoundersPromoGrantedUid(uid: String) { foundersPromoGrantedUidsSet += uid }
 
     private val _autoDetectParking = MutableStateFlow(initialAutoDetect)
+
+    var firstHomeParkingFlowStartedUidsSet: Set<String> = emptySet()
+    override val firstHomeParkingFlowStartedUids: Set<String> get() = firstHomeParkingFlowStartedUidsSet
+    override fun startFirstHomeParkingFlow(uid: String) { firstHomeParkingFlowStartedUidsSet += uid }
+    var firstHomeParkingFlowCompletedUidsSet: Set<String> = emptySet()
+    override val firstHomeParkingFlowCompletedUids: Set<String> get() = firstHomeParkingFlowCompletedUidsSet
+    override fun completeFirstHomeParkingFlow(uid: String) { firstHomeParkingFlowCompletedUidsSet += uid }
+
     override val autoDetectParking: Boolean get() = _autoDetectParking.value
     override fun setAutoDetectParking(enabled: Boolean) { _autoDetectParking.value = enabled }
     override fun observeAutoDetectParking(): Flow<Boolean> = _autoDetectParking

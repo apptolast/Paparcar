@@ -99,6 +99,7 @@ class AppViewModel(
     private var currentUid: String? = null
     private var foundersHomeUid: String? = null
     private var foundersClaimJob: Job? = null
+    private val foundersClaimRevision = MutableStateFlow(0)
 
     init {
         // Synchronously correct state before first composition.
@@ -277,7 +278,9 @@ class AppViewModel(
             foundersClaimJob = null
             claimFoundersPromoIfReady()
         }
-        combine(observePlusGrant(), signedInUid) { grant, uid ->
+        // The receipt can arrive after an already-confirmed, unchanged SDK grant.
+        // Re-evaluate the same eligibility rule when reconciliation finishes as well.
+        combine(observePlusGrant(), signedInUid, foundersClaimRevision) { grant, uid, _ ->
             plusMomentFor(
                 grant = grant,
                 uid = uid,
@@ -302,7 +305,10 @@ class AppViewModel(
         val uid = foundersHomeUid ?: return
         if (uid != currentUid || connectivityObserver.status.value != ConnectivityStatus.Online) return
         if (foundersClaimJob?.isActive == true) return
-        foundersClaimJob = viewModelScope.launch { claimFoundersPromo(uid) }
+        foundersClaimJob = viewModelScope.launch {
+            claimFoundersPromo(uid)
+            if (uid == currentUid) foundersClaimRevision.value += 1
+        }
     }
 
     /** El temporizador del aviso in-app de plaza. Uno solo: una plaza nueva REEMPLAZA a la

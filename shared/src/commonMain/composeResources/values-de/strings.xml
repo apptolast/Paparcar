@@ -448,7 +448,7 @@
     <!-- AddingParking mode -->
     <string name="home_add_parking_header_label_create">Parkplatz markieren</string>
     <string name="home_add_parking_header_label_edit">Parkplatz verschieben</string>
-    <string name="home_add_parking_helper_primary_create">Zentriere die Markierung, wo du das Auto gelassen hast</string>
+    <string name="home_add_parking_helper_primary_create">Zieh die Karte, um die Markierung auf deinem Auto zu zentrieren</string>
     <string name="home_add_parking_helper_primary_edit">Ziehe die Karte an die richtige Stelle</string>
     <string name="home_add_parking_helper_secondary_create">Ein Geofence warnt dich, wenn du wegfährst</string>
     <string name="home_add_parking_helper_secondary_edit">Korrigieren behält die Parkdauer; einen neuen markieren setzt sie zurück</string>
@@ -776,7 +776,6 @@ Wenn die Frage nicht mehr erscheint, ändere es unter Einstellungen → Paparcar
     <string name="first_steps_spot_cta">Plätze ansehen</string>
     <string name="first_steps_spot_report_title">Einen freien Platz gesehen? Melde ihn</string>
     <string name="first_steps_spot_report_sub">Ein Platz, den jemand anderes verlassen hat, nicht dein Parkplatz. Markiere ihn und Fahrer in der Nähe sehen ihn.</string>
-    <string name="first_steps_spotlight_caption">Die Nadel bleibt stehen: Zieh die KARTE, bis sie auf deinem Auto liegt, und bestätige unten.</string>
     <string name="settings_replay_first_steps">Erste Schritte erneut ansehen</string>
     <string name="settings_replay_first_steps_done">Die ersten Schritte sind wieder auf der Startseite</string>
     <!-- First-step explainers: the two ways a spot is born [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] -->
