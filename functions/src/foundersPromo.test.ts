@@ -30,6 +30,8 @@ const OPEN: PromoConfig = {
   cap: 2000,
   granted: 0,
   durationMonths: 3,
+  // 20-11-2026, el día que se configuró `promos/founders` en producción.
+  startsAtMillis: Date.UTC(2026, 10, 20, 0, 0, 0),
   // 30-11-2026, final del día en Madrid (UTC+1 en noviembre) → 30-11 23:00Z.
   endsAtMillis: Date.UTC(2026, 10, 30, 23, 0, 0),
 };
@@ -38,6 +40,12 @@ const BEFORE_CLOSE = Date.UTC(2026, 10, 25, 12, 0, 0);
 const AFTER_CLOSE = Date.UTC(2026, 11, 1, 10, 0, 0);
 const EXPIRY = Date.UTC(2027, 1, 25, 12);
 
+// Una cuenta creada DESPUÉS de que la campaña empezara a contar — el caso común en los tests
+// de cupo y ventana, que no son los que ejercitan la edad de la cuenta.
+const ACCOUNT_NEW = OPEN.startsAtMillis! + 24 * 60 * 60 * 1000;
+// Una cuenta de antes de la campaña: ya existía, no llegó POR el regalo.
+const ACCOUNT_OLD = Date.UTC(2026, 9, 1, 0, 0, 0);
+
 function grantRecord(status: GrantRecord['status'], attempts = 1): GrantRecord {
   return { status, attempts, expiresAtMillis: EXPIRY, leaseUntilMillis: 0, possiblyGranted: false };
 }
@@ -45,65 +53,93 @@ function grantRecord(status: GrantRecord['status'], attempts = 1): GrantRecord {
 // ── El veredicto ────────────────────────────────────────────────────────────
 
 test('reserva cuando la promo está viva, en fecha y con hueco', () => {
-  assert.equal(decideReservation(OPEN, null, BEFORE_CLOSE), 'reserve');
+  assert.equal(decideReservation(OPEN, null, BEFORE_CLOSE, ACCOUNT_NEW), 'reserve');
 });
 
 test('no reserva sin documento de cupo — una promo sin configurar está apagada, no rota', () => {
-  assert.equal(decideReservation(null, null, BEFORE_CLOSE), 'inactive');
+  assert.equal(decideReservation(null, null, BEFORE_CLOSE, ACCOUNT_NEW), 'inactive');
 });
 
 test('no reserva con active false', () => {
-  assert.equal(decideReservation({ ...OPEN, active: false }, null, BEFORE_CLOSE), 'inactive');
+  assert.equal(decideReservation({ ...OPEN, active: false }, null, BEFORE_CLOSE, ACCOUNT_NEW), 'inactive');
 });
 
 test('cierra el 30/11: un instante antes entra, un instante después no', () => {
   const lastMoment = OPEN.endsAtMillis! - 1;
-  assert.equal(decideReservation(OPEN, null, lastMoment), 'reserve');
-  assert.equal(decideReservation(OPEN, null, OPEN.endsAtMillis!), 'closed');
-  assert.equal(decideReservation(OPEN, null, AFTER_CLOSE), 'closed');
+  assert.equal(decideReservation(OPEN, null, lastMoment, ACCOUNT_NEW), 'reserve');
+  assert.equal(decideReservation(OPEN, null, OPEN.endsAtMillis!, ACCOUNT_NEW), 'closed');
+  assert.equal(decideReservation(OPEN, null, AFTER_CLOSE, ACCOUNT_NEW), 'closed');
 });
 
 test('la configuración incompleta o fuera de los límites de campaña falla cerrada', () => {
   for (const invalid of [
     { endsAtMillis: null },
     { endsAtMillis: Date.UTC(2026, 11, 1) },
+    { startsAtMillis: null },
+    // Empezar en o después del cierre no es una campaña, es una contradicción.
+    { startsAtMillis: OPEN.endsAtMillis },
     { cap: 2001 },
     { granted: -1 },
     { granted: NaN },
     { durationMonths: 4 },
   ]) {
-    assert.equal(decideReservation({ ...OPEN, ...invalid }, null, BEFORE_CLOSE), 'inactive');
+    assert.equal(decideReservation({ ...OPEN, ...invalid }, null, BEFORE_CLOSE, ACCOUNT_NEW), 'inactive');
   }
 });
 
+// ── Sólo cuenta quien llegó POR la campaña ──────────────────────────────────
+
+test('una cuenta anterior a la campaña no reserva plaza', () => {
+  assert.equal(decideReservation(OPEN, null, BEFORE_CLOSE, ACCOUNT_OLD), 'notNew');
+});
+
+test('una cuenta creada justo cuando empieza la campaña cuenta como nueva', () => {
+  assert.equal(decideReservation(OPEN, null, BEFORE_CLOSE, OPEN.startsAtMillis!), 'reserve');
+  assert.equal(decideReservation(OPEN, null, BEFORE_CLOSE, OPEN.startsAtMillis! - 1), 'notNew');
+});
+
+test('una cuenta vieja no se cuela ni con el cupo lleno ni con la campaña cerrada', () => {
+  // El motivo que se lee primero es el que de verdad bloqueaba — aquí la campaña está bien
+  // y con hueco, así que lo único que puede negarla es la edad de la cuenta.
+  assert.equal(decideReservation({ ...OPEN, granted: 2000 }, null, BEFORE_CLOSE, ACCOUNT_OLD), 'full');
+  assert.equal(decideReservation(OPEN, null, AFTER_CLOSE, ACCOUNT_OLD), 'closed');
+});
+
+test('un grant ya reservado o concedido no vuelve a mirar la edad de la cuenta', () => {
+  // La edad de la cuenta sólo decide en el intento de reserva: una vez hay grant, el veredicto
+  // es el del grant, igual que con `active` o el cupo.
+  const grant: GrantRecord = grantRecord('granted');
+  assert.equal(decideReservation(OPEN, grant, BEFORE_CLOSE, ACCOUNT_OLD), 'granted');
+});
+
 test('la plaza 2000 entra y la 2001 no', () => {
-  assert.equal(decideReservation({ ...OPEN, granted: 1999 }, null, BEFORE_CLOSE), 'reserve');
-  assert.equal(decideReservation({ ...OPEN, granted: 2000 }, null, BEFORE_CLOSE), 'full');
-  assert.equal(decideReservation({ ...OPEN, granted: 2001 }, null, BEFORE_CLOSE), 'full');
+  assert.equal(decideReservation({ ...OPEN, granted: 1999 }, null, BEFORE_CLOSE, ACCOUNT_NEW), 'reserve');
+  assert.equal(decideReservation({ ...OPEN, granted: 2000 }, null, BEFORE_CLOSE, ACCOUNT_NEW), 'full');
+  assert.equal(decideReservation({ ...OPEN, granted: 2001 }, null, BEFORE_CLOSE, ACCOUNT_NEW), 'full');
 });
 
 test('un grant concedido no se vuelve a conceder', () => {
   const grant: GrantRecord = grantRecord('granted');
-  assert.equal(decideReservation(OPEN, grant, BEFORE_CLOSE), 'granted');
+  assert.equal(decideReservation(OPEN, grant, BEFORE_CLOSE, ACCOUNT_NEW), 'granted');
 });
 
 test('un grant reservado se REANUDA, no se lee como concedido', () => {
   const grant: GrantRecord = grantRecord('reserved');
-  assert.equal(decideReservation(OPEN, grant, BEFORE_CLOSE), 'resume');
+  assert.equal(decideReservation(OPEN, grant, BEFORE_CLOSE, ACCOUNT_NEW), 'resume');
 });
 
 test('un grant reservado se reanuda aunque la captación ya haya cerrado', () => {
   // La plaza ya está contada: si el reintento se denegara, el contador se quedaría con una plaza
   // gastada y sin dueño.
   const grant: GrantRecord = grantRecord('reserved', 2);
-  assert.equal(decideReservation(OPEN, grant, AFTER_CLOSE), 'resume');
-  assert.equal(decideReservation({ ...OPEN, active: false }, grant, AFTER_CLOSE), 'resume');
-  assert.equal(decideReservation({ ...OPEN, granted: 2000 }, grant, BEFORE_CLOSE), 'resume');
+  assert.equal(decideReservation(OPEN, grant, AFTER_CLOSE, ACCOUNT_NEW), 'resume');
+  assert.equal(decideReservation({ ...OPEN, active: false }, grant, AFTER_CLOSE, ACCOUNT_NEW), 'resume');
+  assert.equal(decideReservation({ ...OPEN, granted: 2000 }, grant, BEFORE_CLOSE, ACCOUNT_NEW), 'resume');
 });
 
 test('un grant fallido es terminal y no se reintenta solo', () => {
   const grant: GrantRecord = grantRecord('failed');
-  assert.equal(decideReservation(OPEN, grant, BEFORE_CLOSE), 'failed');
+  assert.equal(decideReservation(OPEN, grant, BEFORE_CLOSE, ACCOUNT_NEW), 'failed');
 });
 
 // ── Los tres meses de calendario ────────────────────────────────────────────
@@ -217,7 +253,7 @@ function foundersFixture() {
   const ledger = new MemoryLedger();
   const clock = { now: BEFORE_CLOSE };
   const expires: number[] = [];
-  const user = { exists: true };
+  const user: { createdAtMillis: number | null } = { createdAtMillis: ACCOUNT_NEW };
   let revokes = 0;
   return {
     ledger,
@@ -231,7 +267,7 @@ function foundersFixture() {
     ) => processFoundersClaim('founder', claimId, {
       ledger,
       now: () => clock.now,
-      accountExists: async () => user.exists,
+      accountCreatedAtMillis: async () => user.createdAtMillis,
       grant: async (_uid, expiresAtMillis) => {
         expires.push(expiresAtMillis);
         return store();
@@ -344,11 +380,22 @@ test('deleted accounts and stale claim events cannot reserve a seat', async () =
   const f = foundersFixture();
   assert.equal(await f.claim(undefined, 'stale-claim-event'), 'skipped');
   assert.ok(f.ledger.state.claim);
-  f.user.exists = false;
+  f.user.createdAtMillis = null;
   assert.equal(await f.claim(), 'skipped');
   assert.equal(f.ledger.state.claim, null);
   assert.equal(f.ledger.state.promo?.granted, 0);
   assert.deepEqual(f.expires, []);
+});
+
+test('una cuenta anterior a la campaña no llama a la tienda ni gasta plaza', () => {
+  const f = foundersFixture();
+  f.user.createdAtMillis = ACCOUNT_OLD;
+  return f.claim().then((outcome) => {
+    assert.equal(outcome, 'notNew');
+    assert.equal(f.ledger.state.claim?.outcome, 'notNew');
+    assert.equal(f.ledger.state.promo?.granted, 0);
+    assert.deepEqual(f.expires, []);
+  });
 });
 
 test('delete during the grant waits to revoke before returning the seat', async () => {

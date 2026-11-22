@@ -45,7 +45,7 @@ class FirestoreFoundersPromoRepository(
                     "granted" -> FoundersClaimOutcome.Granted(
                         expiresAtMillis = snapshot.takeIf { it.contains(EXPIRY_FIELD) }?.get<Long>(EXPIRY_FIELD),
                     )
-                    "closed", "full", "inactive", "failed" -> FoundersClaimOutcome.NotGranted
+                    "closed", "full", "inactive", "failed", "notNew" -> FoundersClaimOutcome.NotGranted
                     else -> error("Unrecognized founders claim outcome")
                 }
             }.first()

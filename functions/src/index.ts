@@ -653,6 +653,7 @@ function readPromo(data: Record<string, unknown> | undefined): PromoConfig | nul
     granted: typeof data.granted === 'number' ? data.granted : NaN,
     durationMonths: typeof data.durationMonths === 'number' ? data.durationMonths : NaN,
     endsAtMillis: data.endsAt instanceof Timestamp ? data.endsAt.toMillis() : null,
+    startsAtMillis: data.startsAt instanceof Timestamp ? data.startsAt.toMillis() : null,
   };
 }
 
@@ -733,12 +734,12 @@ const foundersLedger: FoundersLedger = {
   },
 };
 
-async function foundersAccountExists(uid: string): Promise<boolean> {
+async function foundersAccountCreatedAtMillis(uid: string): Promise<number | null> {
   try {
-    await getAuth().getUser(uid);
-    return true;
+    const user = await getAuth().getUser(uid);
+    return new Date(user.metadata.creationTime).getTime();
   } catch (error) {
-    if ((error as { code?: string }).code === 'auth/user-not-found') return false;
+    if ((error as { code?: string }).code === 'auth/user-not-found') return null;
     throw error;
   }
 }
@@ -786,7 +787,7 @@ export const grantFoundersPlus = onDocumentCreated(
     const result = await processFoundersClaim(uid, claimId(createdAt), {
       ledger: foundersLedger,
       now: Date.now,
-      accountExists: foundersAccountExists,
+      accountCreatedAtMillis: foundersAccountCreatedAtMillis,
       grant: (uid, expiresAtMillis) =>
         callFoundersStore(grantUrl(uid), key, { end_time_ms: expiresAtMillis }),
     });

@@ -80,6 +80,8 @@ test('Founders smoke with local Auth, client rules, the Admin ledger and exporte
     cap: 2_000,
     granted: 0,
     durationMonths: 3,
+    // In the past: the Auth account this smoke creates below is new relative to it.
+    startsAt: Timestamp.fromMillis(Date.now() - 60_000),
     endsAt: Timestamp.fromMillis(FOUNDERS_CLOSE_MILLIS),
   });
 

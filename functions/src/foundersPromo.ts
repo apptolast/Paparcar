@@ -18,9 +18,10 @@ export interface PromoConfig {
   readonly granted: number;
   readonly durationMonths: number;
   readonly endsAtMillis: number | null;
+  readonly startsAtMillis: number | null;
 }
 
-export type ClaimOutcome = 'granted' | 'failed' | 'closed' | 'full' | 'inactive';
+export type ClaimOutcome = 'granted' | 'failed' | 'closed' | 'full' | 'inactive' | 'notNew';
 
 export interface GrantRecord {
   readonly status: 'reserved' | 'granted' | 'failed' | 'uncertain' | 'releasing';
@@ -36,6 +37,7 @@ export function decideReservation(
   promo: PromoConfig | null,
   grant: GrantRecord | null,
   claimedAtMillis: number,
+  accountCreatedAtMillis: number,
 ): Reservation {
   if (grant?.status === 'reserved') return 'resume';
   if (grant) return grant.status;
@@ -50,12 +52,19 @@ export function decideReservation(
     promo.durationMonths !== 3 ||
     !Number.isSafeInteger(promo.endsAtMillis) ||
     promo.endsAtMillis === null ||
-    promo.endsAtMillis > FOUNDERS_CLOSE_MILLIS
+    promo.endsAtMillis > FOUNDERS_CLOSE_MILLIS ||
+    !Number.isSafeInteger(promo.startsAtMillis) ||
+    promo.startsAtMillis === null ||
+    promo.startsAtMillis >= promo.endsAtMillis
   ) {
     return 'inactive';
   }
   if (claimedAtMillis >= promo.endsAtMillis) return 'closed';
   if (promo.granted >= promo.cap) return 'full';
+  // A founders seat rewards someone arriving BECAUSE of the campaign, not a pre-existing
+  // account that happens to update and reopen the app. The cutoff is the campaign's own
+  // start, not "today": an account created the day the campaign launched still counts.
+  if (accountCreatedAtMillis < promo.startsAtMillis) return 'notNew';
   return 'reserve';
 }
 
@@ -131,7 +140,8 @@ export interface FoundersLedger {
 interface GrantDependencies {
   readonly ledger: FoundersLedger;
   readonly now: () => number;
-  readonly accountExists: (uid: string) => Promise<boolean>;
+  /** null when the account does not exist. */
+  readonly accountCreatedAtMillis: (uid: string) => Promise<number | null>;
   readonly grant: (uid: string, expiresAtMillis: number) => Promise<StoreOutcome>;
 }
 
@@ -147,14 +157,14 @@ export async function processFoundersClaim(
   claimId: string,
   deps: GrantDependencies,
 ): Promise<GrantResult> {
-  const accountExists = await deps.accountExists(uid);
+  const accountCreatedAtMillis = await deps.accountCreatedAtMillis(uid);
   const action = await deps.ledger.transact<ClaimAction>(uid, ({ claim, grant, promo }) => {
     const skip: ClaimAction = { kind: 'stop', result: 'skipped' };
     if (!claim || claim.id !== claimId) return { result: skip };
-    if (!accountExists) return { result: skip, claim: null };
+    if (accountCreatedAtMillis === null) return { result: skip, claim: null };
     if (claim.outcome) return { result: skip };
 
-    const decision = decideReservation(promo, grant, claim.claimedAtMillis);
+    const decision = decideReservation(promo, grant, claim.claimedAtMillis, accountCreatedAtMillis);
     const now = deps.now();
     if (decision === 'reserve') {
       const attempt: GrantRecord = {
@@ -189,6 +199,7 @@ export async function processFoundersClaim(
       case 'closed':
       case 'full':
       case 'inactive':
+      case 'notNew':
         return { result: { kind: 'stop', result: decision }, claim: decision };
       default:
         return { result: skip };
