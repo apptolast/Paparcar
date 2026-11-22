@@ -12,6 +12,10 @@ import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.LocationOff
 import androidx.compose.material.icons.rounded.WrongLocation
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.rndeveloper.paparcar.ui.components.papHorizontalFadingEdges
 import androidx.compose.ui.unit.dp
@@ -23,6 +27,9 @@ import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapS
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetBanner
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetEyebrowTone
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetLead
+import com.rndeveloper.paparcar.ui.components.PapAlertDialog
+import com.rndeveloper.paparcar.ui.components.PapDialogAccent
+import com.rndeveloper.paparcar.ui.components.PapDialogAction
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
 import com.rndeveloper.paparcar.ui.components.PapSectionHeader
@@ -31,6 +38,9 @@ import com.rndeveloper.paparcar.presentation.util.formatDistance
 import com.rndeveloper.paparcar.ui.components.chips.PaparcarFilterChip
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.home_release_dialog_cancel
+import paparcar.composeapp.generated.resources.home_report_confirm_dialog_body
+import paparcar.composeapp.generated.resources.home_report_confirm_dialog_title
 import paparcar.composeapp.generated.resources.home_report_confirm_here
 import paparcar.composeapp.generated.resources.home_report_header_label
 import paparcar.composeapp.generated.resources.home_report_helper_primary
@@ -70,6 +80,11 @@ internal fun ReportPeek(
         meters = SpotReportPolicy.MAX_REPORT_DISTANCE_METERS.toFloat(),
         unit = LocalDistanceUnit.current,
     )
+
+    // Un toque publica una plaza para todo el vecindario — el molde de confirmación, con la
+    // dirección ya resuelta ([title]) en el cuerpo, antes de disparar el intent real.
+    // [UI-A-PLACED-PIN-ASKS-BEFORE-IT-STICKS-001]
+    var confirmingReport by remember { mutableStateOf(false) }
 
     PapSheet(
         lead = PapSheetLead.Announce,
@@ -114,7 +129,7 @@ internal fun ReportPeek(
             PapFooterButton(
                 label = stringResource(Res.string.home_report_confirm_here),
                 leadingIcon = Icons.Rounded.Campaign,
-                onClick = { onIntent(HomeIntent.ConfirmReportSpot) },
+                onClick = { confirmingReport = true },
                 style = PapFooterButtonStyle.Filled,
                 enabled = !blocked && !isCameraMoving && !isReporting,
                 isLoading = isReporting,
@@ -122,6 +137,20 @@ internal fun ReportPeek(
             )
         },
     )
+
+    if (confirmingReport) {
+        PapAlertDialog(
+            onDismiss = { if (!isReporting) confirmingReport = false },
+            accent = PapDialogAccent.Primary,
+            icon = Icons.Rounded.Campaign,
+            title = stringResource(Res.string.home_report_confirm_dialog_title),
+            body = stringResource(Res.string.home_report_confirm_dialog_body, title),
+            primaryLabel = stringResource(Res.string.home_report_confirm_here),
+            onPrimary = { onIntent(HomeIntent.ConfirmReportSpot) },
+            loadingAction = PapDialogAction.Primary.takeIf { isReporting },
+            cancelLabel = stringResource(Res.string.home_release_dialog_cancel),
+        )
+    }
 }
 
 @Composable

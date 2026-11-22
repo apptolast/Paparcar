@@ -320,6 +320,9 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="home_report_helper_primary">Center the pin where you're leaving the spot</string>
     <string name="home_report_helper_secondary">Nearby drivers get notified instantly</string>
     <string name="home_report_confirm_here">Confirm spot here</string>
+    <!-- Confirmation dialog before the report actually publishes. [UI-A-PLACED-PIN-ASKS-BEFORE-IT-STICKS-001] -->
+    <string name="home_report_confirm_dialog_title">Report this spot?</string>
+    <string name="home_report_confirm_dialog_body">Nearby drivers will see %1$s as a free spot.</string>
 
     <!-- AddingParking mode — drop a pin to mark / move where the car is parked -->
     <string name="home_add_parking_header_label_create">Mark your parking</string>
@@ -332,6 +335,15 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="home_add_parking_helper_secondary_edit">Correcting keeps the parked time; marking a new one resets it</string>
     <string name="home_add_parking_confirm_create">Park here</string>
     <string name="home_add_parking_cancel_cd">Cancel parking edit</string>
+    <!-- Confirmation dialog before each write — create / correct in place / repark as a new
+         session. %1$s is the resolved address/place already shown as the peek's title.
+         [UI-A-PLACED-PIN-ASKS-BEFORE-IT-STICKS-001] -->
+    <string name="home_add_parking_confirm_dialog_title_create">Park here?</string>
+    <string name="home_add_parking_confirm_dialog_body_create">This sets %1$s as where you parked.</string>
+    <string name="home_add_parking_confirm_dialog_title_correct">Correct the location?</string>
+    <string name="home_add_parking_confirm_dialog_body_correct">This moves your parking to %1$s.</string>
+    <string name="home_add_parking_confirm_dialog_title_repark">Mark a new parking?</string>
+    <string name="home_add_parking_confirm_dialog_body_repark">This starts a new parking at %1$s.</string>
 
     <!-- Home Zones — habitual places -->
     <string name="home_zone_name_placeholder">e.g. Home, Work</string>

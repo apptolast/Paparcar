@@ -445,6 +445,8 @@
     <string name="home_report_helper_primary">Centreer de pin waar je de plek verlaat</string>
     <string name="home_report_helper_secondary">Bestuurders in de buurt krijgen direct een melding</string>
     <string name="home_report_confirm_here">Plek hier bevestigen</string>
+    <string name="home_report_confirm_dialog_title">Deze plek melden?</string>
+    <string name="home_report_confirm_dialog_body">Bestuurders in de buurt zien %1$s als vrije plek.</string>
 
     <!-- AddingParking mode -->
     <string name="home_add_parking_header_label_create">Markeer je parkeerplek</string>
@@ -455,6 +457,12 @@
     <string name="home_add_parking_helper_secondary_edit">Corrigeren behoudt de parkeertijd; een nieuwe markeren zet hem op nul</string>
     <string name="home_add_parking_confirm_create">Hier parkeren</string>
     <string name="home_add_parking_cancel_cd">Parkeerbewerking annuleren</string>
+    <string name="home_add_parking_confirm_dialog_title_create">Hier parkeren?</string>
+    <string name="home_add_parking_confirm_dialog_body_create">Dit stelt %1$s in als waar je geparkeerd hebt.</string>
+    <string name="home_add_parking_confirm_dialog_title_correct">Locatie corrigeren?</string>
+    <string name="home_add_parking_confirm_dialog_body_correct">Dit verplaatst je parkeerplek naar %1$s.</string>
+    <string name="home_add_parking_confirm_dialog_title_repark">Nieuwe parkeerplek markeren?</string>
+    <string name="home_add_parking_confirm_dialog_body_repark">Dit start een nieuwe parkeerplek bij %1$s.</string>
 
     <!-- HomeSpotRow reliability tier label -->
 

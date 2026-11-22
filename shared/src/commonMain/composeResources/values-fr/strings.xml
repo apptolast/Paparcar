@@ -444,6 +444,8 @@
     <string name="home_report_helper_primary">Centre l'épingle où tu laisses la place</string>
     <string name="home_report_helper_secondary">Les conducteurs proches reçoivent la notification instantanément</string>
     <string name="home_report_confirm_here">Confirmer la place ici</string>
+    <string name="home_report_confirm_dialog_title">Signaler cette place ?</string>
+    <string name="home_report_confirm_dialog_body">Les conducteurs à proximité verront %1$s comme une place libre.</string>
 
     <!-- AddingParking mode -->
     <string name="home_add_parking_header_label_create">Marquer le stationnement</string>
@@ -454,6 +456,12 @@
     <string name="home_add_parking_helper_secondary_edit">Corriger conserve le temps de stationnement ; en marquer un nouveau le remet à zéro</string>
     <string name="home_add_parking_confirm_create">Se garer ici</string>
     <string name="home_add_parking_cancel_cd">Annuler la modification du stationnement</string>
+    <string name="home_add_parking_confirm_dialog_title_create">Se garer ici ?</string>
+    <string name="home_add_parking_confirm_dialog_body_create">Ceci définit %1$s comme l'endroit où tu es garé.</string>
+    <string name="home_add_parking_confirm_dialog_title_correct">Corriger l'emplacement ?</string>
+    <string name="home_add_parking_confirm_dialog_body_correct">Ceci déplace ton stationnement vers %1$s.</string>
+    <string name="home_add_parking_confirm_dialog_title_repark">Marquer un nouveau stationnement ?</string>
+    <string name="home_add_parking_confirm_dialog_body_repark">Ceci démarre un nouveau stationnement à %1$s.</string>
 
     <!-- HomeSpotRow reliability tier label -->
 

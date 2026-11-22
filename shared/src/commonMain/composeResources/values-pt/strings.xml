@@ -444,6 +444,8 @@
     <string name="home_report_helper_primary">Centra o pin onde deixas o lugar</string>
     <string name="home_report_helper_secondary">Outros condutores recebem a notificação ao instante</string>
     <string name="home_report_confirm_here">Confirmar lugar aqui</string>
+    <string name="home_report_confirm_dialog_title">Avisar deste lugar?</string>
+    <string name="home_report_confirm_dialog_body">Os condutores próximos vão ver %1$s como um lugar livre.</string>
 
     <!-- AddingParking mode -->
     <string name="home_add_parking_header_label_create">Marca o teu estacionamento</string>
@@ -454,6 +456,12 @@
     <string name="home_add_parking_helper_secondary_edit">Corrigir mantém o tempo estacionado; marcar um novo põe-no a zero</string>
     <string name="home_add_parking_confirm_create">Estacionar aqui</string>
     <string name="home_add_parking_cancel_cd">Cancelar edição de estacionamento</string>
+    <string name="home_add_parking_confirm_dialog_title_create">Estacionar aqui?</string>
+    <string name="home_add_parking_confirm_dialog_body_create">Isto marca %1$s como onde estacionaste.</string>
+    <string name="home_add_parking_confirm_dialog_title_correct">Corrigir a localização?</string>
+    <string name="home_add_parking_confirm_dialog_body_correct">Isto move o teu estacionamento para %1$s.</string>
+    <string name="home_add_parking_confirm_dialog_title_repark">Marcar um novo estacionamento?</string>
+    <string name="home_add_parking_confirm_dialog_body_repark">Isto inicia um novo estacionamento em %1$s.</string>
 
     <!-- HomeSpotRow reliability tier label -->
 

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.LocationOff
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -38,6 +39,12 @@ import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_add_parking_cancel_cd
 import paparcar.composeapp.generated.resources.home_add_parking_confirm_create
+import paparcar.composeapp.generated.resources.home_add_parking_confirm_dialog_body_correct
+import paparcar.composeapp.generated.resources.home_add_parking_confirm_dialog_body_create
+import paparcar.composeapp.generated.resources.home_add_parking_confirm_dialog_body_repark
+import paparcar.composeapp.generated.resources.home_add_parking_confirm_dialog_title_correct
+import paparcar.composeapp.generated.resources.home_add_parking_confirm_dialog_title_create
+import paparcar.composeapp.generated.resources.home_add_parking_confirm_dialog_title_repark
 import paparcar.composeapp.generated.resources.home_add_parking_header_label_create
 import paparcar.composeapp.generated.resources.home_add_parking_header_label_edit
 import paparcar.composeapp.generated.resources.home_add_parking_helper_primary_create
@@ -145,6 +152,11 @@ internal fun AddingParkingPeek(
     @Suppress("UnusedExpression") stringResource(Res.string.home_add_parking_cancel_cd)
 
     var confirmingDelete by remember { mutableStateOf(false) }
+    // Confirmar ubicación ANTES de escribirla: un toque fija dónde está el coche para la
+    // detección y, en create, publica el hueco que deja. Separados porque create/correct y
+    // repark son botones distintos que pueden convivir en pantalla (EDIT). [UI-A-PLACED-PIN-ASKS-BEFORE-IT-STICKS-001]
+    var confirmingPrimary by remember { mutableStateOf(false) }
+    var confirmingRepark by remember { mutableStateOf(false) }
 
     // Show the actual car (carbody glyph) being parked, not a generic DirectionsCar so the user
     // recognises the vehicle. The car stays full-colour/opaque regardless of monitoring state — that
@@ -225,7 +237,7 @@ internal fun AddingParkingPeek(
                 // Primary confirm. CREATE → parks the car; EDIT → corrects THIS session's pin in place.
                 PapFooterButton(
                     label = ctaLabel,
-                    onClick = { onIntent(HomeIntent.ConfirmAddParking(asNewSession = false)) },
+                    onClick = { confirmingPrimary = true },
                     style = PapFooterButtonStyle.Filled,
                     enabled = !isSaving && !isCameraMoving && hasPlace,
                     isLoading = savingAsNewSession == false,
@@ -250,7 +262,7 @@ internal fun AddingParkingPeek(
                     // Decided HERE, with the pin already placed, instead of guessing up front. [UX-PARKED-STATE-001]
                     PapFooterButton(
                         label = stringResource(Res.string.home_parking_menu_repark),
-                        onClick = { onIntent(HomeIntent.ConfirmAddParking(asNewSession = true)) },
+                        onClick = { confirmingRepark = true },
                         style = PapFooterButtonStyle.Outlined,
                         enabled = !isSaving && !isCameraMoving && hasPlace,
                         // This confirm reports its OWN progress. It used to have no spinner at all, so
@@ -289,6 +301,41 @@ internal fun AddingParkingPeek(
             }
         },
     )
+
+    if (confirmingPrimary) {
+        PapAlertDialog(
+            onDismiss = { if (!isSaving) confirmingPrimary = false },
+            accent = PapDialogAccent.Primary,
+            icon = Icons.Rounded.DirectionsCar,
+            title = stringResource(
+                if (isEditing) Res.string.home_add_parking_confirm_dialog_title_correct
+                else Res.string.home_add_parking_confirm_dialog_title_create,
+            ),
+            body = stringResource(
+                if (isEditing) Res.string.home_add_parking_confirm_dialog_body_correct
+                else Res.string.home_add_parking_confirm_dialog_body_create,
+                title,
+            ),
+            primaryLabel = ctaLabel,
+            onPrimary = { onIntent(HomeIntent.ConfirmAddParking(asNewSession = false)) },
+            loadingAction = PapDialogAction.Primary.takeIf { savingAsNewSession == false },
+            cancelLabel = stringResource(Res.string.home_release_dialog_cancel),
+        )
+    }
+
+    if (confirmingRepark) {
+        PapAlertDialog(
+            onDismiss = { if (!isSaving) confirmingRepark = false },
+            accent = PapDialogAccent.Primary,
+            icon = Icons.Rounded.DirectionsCar,
+            title = stringResource(Res.string.home_add_parking_confirm_dialog_title_repark),
+            body = stringResource(Res.string.home_add_parking_confirm_dialog_body_repark, title),
+            primaryLabel = stringResource(Res.string.home_parking_menu_repark),
+            onPrimary = { onIntent(HomeIntent.ConfirmAddParking(asNewSession = true)) },
+            loadingAction = PapDialogAction.Primary.takeIf { savingAsNewSession == true },
+            cancelLabel = stringResource(Res.string.home_release_dialog_cancel),
+        )
+    }
 
     if (confirmingDelete) {
         PapAlertDialog(

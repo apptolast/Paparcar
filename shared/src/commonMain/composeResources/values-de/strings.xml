@@ -445,6 +445,8 @@
     <string name="home_report_helper_primary">Zentriere die Markierung, wo du den Stellplatz verlässt</string>
     <string name="home_report_helper_secondary">Fahrer in der Nähe werden sofort benachrichtigt</string>
     <string name="home_report_confirm_here">Stellplatz hier bestätigen</string>
+    <string name="home_report_confirm_dialog_title">Diesen Stellplatz melden?</string>
+    <string name="home_report_confirm_dialog_body">In der Nähe sehen andere Fahrer %1$s als freien Stellplatz.</string>
 
     <!-- AddingParking mode -->
     <string name="home_add_parking_header_label_create">Parkplatz markieren</string>
@@ -455,6 +457,12 @@
     <string name="home_add_parking_helper_secondary_edit">Korrigieren behält die Parkdauer; einen neuen markieren setzt sie zurück</string>
     <string name="home_add_parking_confirm_create">Hier parken</string>
     <string name="home_add_parking_cancel_cd">Parkbearbeitung abbrechen</string>
+    <string name="home_add_parking_confirm_dialog_title_create">Hier parken?</string>
+    <string name="home_add_parking_confirm_dialog_body_create">Damit wird %1$s als dein Parkplatz festgelegt.</string>
+    <string name="home_add_parking_confirm_dialog_title_correct">Standort korrigieren?</string>
+    <string name="home_add_parking_confirm_dialog_body_correct">Damit wird dein Parkplatz nach %1$s verschoben.</string>
+    <string name="home_add_parking_confirm_dialog_title_repark">Neuen Parkplatz markieren?</string>
+    <string name="home_add_parking_confirm_dialog_body_repark">Damit beginnt ein neuer Parkplatz bei %1$s.</string>
 
     <!-- HomeSpotRow reliability tier label -->
 

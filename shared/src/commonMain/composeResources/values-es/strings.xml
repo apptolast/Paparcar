@@ -371,6 +371,8 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="home_report_helper_primary">Centra el pin donde dejas la plaza</string>
     <string name="home_report_helper_secondary">Otros conductores recibirán la notificación al instante</string>
     <string name="home_report_confirm_here">Confirmar plaza aquí</string>
+    <string name="home_report_confirm_dialog_title">¿Avisar de esta plaza?</string>
+    <string name="home_report_confirm_dialog_body">Los conductores cercanos verán %1$s como una plaza libre.</string>
 
     <!-- Modo AddingParking — colocar / mover el pin del coche aparcado -->
     <string name="home_add_parking_header_label_create">Marca tu aparcamiento</string>
@@ -381,6 +383,12 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="home_add_parking_helper_secondary_edit">Corregir mantiene el tiempo aparcado; marcar uno nuevo lo pone a cero</string>
     <string name="home_add_parking_confirm_create">Aparcar aquí</string>
     <string name="home_add_parking_cancel_cd">Cancelar edición de aparcamiento</string>
+    <string name="home_add_parking_confirm_dialog_title_create">¿Aparcar aquí?</string>
+    <string name="home_add_parking_confirm_dialog_body_create">Esto marca %1$s como donde has aparcado.</string>
+    <string name="home_add_parking_confirm_dialog_title_correct">¿Corregir la ubicación?</string>
+    <string name="home_add_parking_confirm_dialog_body_correct">Esto traslada tu aparcamiento a %1$s.</string>
+    <string name="home_add_parking_confirm_dialog_title_repark">¿Marcar un nuevo aparcamiento?</string>
+    <string name="home_add_parking_confirm_dialog_body_repark">Esto inicia un nuevo aparcamiento en %1$s.</string>
 
     <!-- Zonas en Home — lugares habituales -->
     <string name="home_zone_name_placeholder">Ej. Casa, Trabajo</string>

@@ -449,6 +449,8 @@
     <string name="home_report_helper_primary">Centrează pinul unde lași locul</string>
     <string name="home_report_helper_secondary">Șoferii din apropiere primesc notificarea instant</string>
     <string name="home_report_confirm_here">Confirmă locul aici</string>
+    <string name="home_report_confirm_dialog_title">Semnalezi acest loc?</string>
+    <string name="home_report_confirm_dialog_body">Șoferii din apropiere vor vedea %1$s ca loc liber.</string>
 
     <!-- AddingParking mode -->
     <string name="home_add_parking_header_label_create">Marchează parcarea</string>
@@ -459,6 +461,12 @@
     <string name="home_add_parking_helper_secondary_edit">Corectarea păstrează timpul parcat; marcarea uneia noi îl resetează</string>
     <string name="home_add_parking_confirm_create">Parchează aici</string>
     <string name="home_add_parking_cancel_cd">Anulează editarea parcării</string>
+    <string name="home_add_parking_confirm_dialog_title_create">Parchezi aici?</string>
+    <string name="home_add_parking_confirm_dialog_body_create">Aceasta setează %1$s ca locul în care ai parcat.</string>
+    <string name="home_add_parking_confirm_dialog_title_correct">Corectezi locația?</string>
+    <string name="home_add_parking_confirm_dialog_body_correct">Aceasta mută parcarea ta la %1$s.</string>
+    <string name="home_add_parking_confirm_dialog_title_repark">Marchezi o parcare nouă?</string>
+    <string name="home_add_parking_confirm_dialog_body_repark">Aceasta începe o parcare nouă la %1$s.</string>
 
     <!-- HomeSpotRow reliability tier label -->
 

@@ -448,6 +448,8 @@
     <string name="home_report_helper_primary">Wycentruj pinezkę w miejscu, które opuszczasz</string>
     <string name="home_report_helper_secondary">Pobliscy kierowcy otrzymają powiadomienie natychmiast</string>
     <string name="home_report_confirm_here">Potwierdź miejsce tutaj</string>
+    <string name="home_report_confirm_dialog_title">Zgłosić to miejsce?</string>
+    <string name="home_report_confirm_dialog_body">Kierowcy w pobliżu zobaczą %1$s jako wolne miejsce.</string>
 
     <!-- AddingParking mode -->
     <string name="home_add_parking_header_label_create">Oznacz parking</string>
@@ -458,6 +460,12 @@
     <string name="home_add_parking_helper_secondary_edit">Poprawienie zachowuje czas parkowania; oznaczenie nowego zeruje go</string>
     <string name="home_add_parking_confirm_create">Zaparkuj tutaj</string>
     <string name="home_add_parking_cancel_cd">Anuluj edycję parkingu</string>
+    <string name="home_add_parking_confirm_dialog_title_create">Zaparkować tutaj?</string>
+    <string name="home_add_parking_confirm_dialog_body_create">To ustawia %1$s jako miejsce, w którym zaparkowałeś.</string>
+    <string name="home_add_parking_confirm_dialog_title_correct">Poprawić lokalizację?</string>
+    <string name="home_add_parking_confirm_dialog_body_correct">To przenosi twój parking do %1$s.</string>
+    <string name="home_add_parking_confirm_dialog_title_repark">Oznaczyć nowy parking?</string>
+    <string name="home_add_parking_confirm_dialog_body_repark">To zaczyna nowy parking w %1$s.</string>
 
     <!-- HomeSpotRow reliability tier label -->
 
