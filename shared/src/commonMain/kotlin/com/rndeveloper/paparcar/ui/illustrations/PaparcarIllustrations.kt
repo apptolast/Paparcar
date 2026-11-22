@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.ui.illustrations
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -18,8 +19,12 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import kotlin.math.min
+import org.jetbrains.compose.resources.painterResource
+import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.illus_detection_3d
 
 /**
  * Dark detection from the **app theme** (not the system). The app's theme is not driven by
@@ -44,6 +49,22 @@ private const val VIEW_H = 120f
 private const val SHADOW_LIGHT_ALPHA = 0.06f
 private const val SHADOW_DARK_ALPHA = 0.24f
 private const val WHEEL_RIM = 1.4f
+
+/**
+ * Las dos ilustraciones que hacen de HÉROE de un diálogo ([FoundersGiftIllustration] y
+ * [AutoDetectionIllustration]) se dibujan más grandes que las de estado vacío.
+ *
+ * No es gusto: en un diálogo la ilustración comparte ancho con un título, un cuerpo de texto y un
+ * botón que ocupan TODO el ancho útil, y a 140 dp quedaba flotando en el centro — se leía como una
+ * viñeta pegada encima, no como la cabecera del bloque. En un estado vacío no pasa, porque allí la
+ * ilustración no compite con nada. ⛔ Se agranda el LIENZO, nunca los márgenes del diálogo.
+ *
+ * La proporción es la del render de [AutoDetectionIllustration] (880×747). El regalo se dibuja en
+ * un viewBox 140×120 y su transform escala preservando aspecto, así que comparte caja sin
+ * deformarse.
+ */
+private val HERO_ILLUSTRATION_W = 184.dp
+private val HERO_ILLUSTRATION_H = 156.dp
 
 /**
  * "Activa la ubicación" — pin de marca + badge de alerta + coche. Gate bloqueante (rojo
@@ -278,7 +299,7 @@ fun FoundersGiftIllustration(
     modifier: Modifier = Modifier,
     dark: Boolean = isAppDark(),
 ) {
-    Canvas(modifier.size(140.dp, 120.dp)) {
+    Canvas(modifier.size(HERO_ILLUSTRATION_W, HERO_ILLUSTRATION_H)) {
         viewBox {
             // ── La plaza ────────────────────────────────────────────────────
             // Un rectángulo en el suelo, en la MISMA proyección que la caja, así que se dibuja
@@ -399,6 +420,35 @@ fun FoundersGiftIllustration(
             drawPath(sparkle(110f, 64f, 3.4f), ribbon.knot.copy(alpha = 0.7f))
         }
     }
+}
+
+/**
+ * "Lo mejor de Paparcar" — la detección automática, dicha como ESCENA: tu coche aparcado en su
+ * plaza, la zona que la app vigila marcada en el suelo, y el marcador emitiendo sobre el techo.
+ *
+ * ⛔ **Es la ÚNICA ilustración rasterizada del set, y es deliberado.** Sus cinco hermanas se
+ * dibujan en Canvas porque son planas y usan trazos discontinuos que un VectorDrawable no soporta.
+ * Ésta es un render 3D con luz propia, reflejos y degradados de superficie: eso no se dibuja con
+ * paths, y los dos intentos de hacerlo lo demostraron — extruido como poliedro sobre los ejes de
+ * [FoundersGiftIllustration] leyó primero TARTA DE PISOS y después MÁQUINA INDUSTRIAL, porque a
+ * este tamaño un coche se reconoce por su PERFIL y eso es curvatura. Una caja de regalo sí es una
+ * caja; un coche no.
+ *
+ * ⛔ **Un solo asset para los dos temas, y no es un olvido.** Sus hermanas llevan variante `_dark`
+ * porque son dibujos de línea que se apagan contra el fondo. Ésta trae su propio suelo —la losa de
+ * asfalto— y su propia luz, así que es un OBJETO sobre la superficie del diálogo, no un dibujo
+ * sobre ella: el mismo render se sostiene en claro y en oscuro. Nivel 3, nunca se tiñe.
+ *
+ * WebP y no PNG: 56 KB frente a 272 KB del maestro, sin pérdida visible a este tamaño.
+ */
+@Composable
+fun AutoDetectionIllustration(modifier: Modifier = Modifier) {
+    Image(
+        painter = painterResource(Res.drawable.illus_detection_3d),
+        contentDescription = null,
+        modifier = modifier.size(HERO_ILLUSTRATION_W, HERO_ILLUSTRATION_H),
+        contentScale = ContentScale.Fit,
+    )
 }
 
 // region — helpers de dibujo

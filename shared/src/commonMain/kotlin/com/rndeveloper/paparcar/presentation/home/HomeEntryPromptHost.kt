@@ -14,6 +14,7 @@ import com.rndeveloper.paparcar.domain.entitlement.PlusMoment
 import com.rndeveloper.paparcar.presentation.app.AdMeasurementConsentDialog
 import com.rndeveloper.paparcar.presentation.app.PlusMomentDialog
 import com.rndeveloper.paparcar.ui.components.PapAlertDialog
+import com.rndeveloper.paparcar.ui.illustrations.AutoDetectionIllustration
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_det_pitch_body
@@ -84,7 +85,13 @@ fun HomeEntryPromptHost(
         }
         HomeEntryPrompt.DETECTION -> PapAlertDialog(
             onDismiss = { onIntent(HomeIntent.DismissDetectionPitch) },
+            // La invitación a la estrella del producto abre con la ESCENA que describe —tu coche
+            // en su plaza, vigilado—, no con el glifo de un sensor. Misma decisión y misma
+            // proyección que la bienvenida de Fundadores, que sale justo antes en esta cadena.
+            // `icon` se queda como respaldo SEMÁNTICO, igual que en la bienvenida del regalo:
+            // la ilustración es lo que se dibuja, el glifo es lo que la superficie significa.
             icon = Icons.Rounded.Sensors,
+            heroIllustration = { AutoDetectionIllustration() },
             title = stringResource(Res.string.home_det_pitch_title),
             body = stringResource(Res.string.home_det_pitch_body),
             primaryLabel = stringResource(Res.string.home_det_producer_cta),
