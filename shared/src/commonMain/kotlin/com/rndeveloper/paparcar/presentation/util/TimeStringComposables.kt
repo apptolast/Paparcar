@@ -19,6 +19,7 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.stats_value_hours
 import paparcar.composeapp.generated.resources.stats_value_hours_minutes
 import paparcar.composeapp.generated.resources.stats_value_minutes
+import paparcar.composeapp.generated.resources.common_date_at_time
 import paparcar.composeapp.generated.resources.drive_time_span
 import paparcar.composeapp.generated.resources.relative_time_compact_day
 import paparcar.composeapp.generated.resources.relative_time_compact_hour
@@ -245,3 +246,37 @@ fun shortDateText(epochMs: Long): String {
 fun isoDateToEpochMs(isoDate: String): Long = runCatching {
     LocalDate.parse(isoDate).atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()
 }.getOrDefault(0L)
+
+/**
+ * **Un instante escrito como lo escribiría un reloj** — `12:40`, y `21 nov 2026 a las 12:40` cuando
+ * no es de hoy. [PARKINGS-SHOW-FEE-AND-OCCUPANCY-001]
+ *
+ * Es la pareja de [formatClockTime] para un sello que PUEDE no ser de hoy, y existe como UNA función
+ * por lo mismo que [shortDateText]: sus dos mitades ya estaban escritas y lo único que faltaba era
+ * el sitio donde se juntan. Juntarlas en el call site es como nacen dos formatos de fecha en una app.
+ *
+ * ⛔ **El día se compara en la zona del dispositivo, no por un umbral de horas.** «Hoy» es una fecha
+ * de calendario: a las 00:05 un sello de las 23:50 es de AYER aunque hayan pasado 15 minutos, y
+ * decir «23:50» a secas ahí deja al lector sumando días. Al revés también: 18 horas antes puede
+ * seguir siendo hoy.
+ *
+ * ⛔ **Y no es [relativeTimeText].** Lo relativo es para lo que cuenta contra un TTL nuestro (una
+ * plaza que caduca) o para una fuente con grano de DÍA (el precio de un carburante, que se mide una
+ * vez al día). Un sello que la fuente pone al minuto y que caduca en minutos se escribe absoluto:
+ * es la única forma que sigue siendo verdad una hora después, que es el argumento ya escrito en
+ * [formatClockTime].
+ */
+@Composable
+fun clockTimeWithDate(epochMs: Long, nowMs: Long): String {
+    val zone = TimeZone.currentSystemDefault()
+    val sameDay = remember(epochMs, nowMs) {
+        kotlin.time.Instant.fromEpochMilliseconds(epochMs).toLocalDateTime(zone).date ==
+            kotlin.time.Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(zone).date
+    }
+    val clock = formatClockTime(epochMs)
+    return if (sameDay) {
+        clock
+    } else {
+        stringResource(Res.string.common_date_at_time, shortDateText(epochMs), clock)
+    }
+}

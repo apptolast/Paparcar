@@ -45,6 +45,7 @@
     <string name="home_browse_hint_swipe_report">Wische ↑, um einen Platz zu melden</string>
     <string name="home_browse_hint_swipe_mark_parking">Wische ↑, um zu markieren, wo du geparkt hast</string>
     <string name="common_directions">Route</string>
+    <string name="common_date_at_time">%1$s um %2$s</string>
     <string name="home_navigate_to_vehicle_cd">Route zum Auto</string>
     <string name="home_empty_title">Noch keine Plätze gemeldet</string>
     <string name="home_spots_unasked">Suche eine Straße oder aktiviere den Standort, um die freien Plätze dort zu sehen.</string>
@@ -1096,6 +1097,8 @@ Wenn die Frage nicht mehr erscheint, ändere es unter Einstellungen → Paparcar
     <string name="parking_fee_paid">Kostenpflichtig</string>
     <string name="parking_occupancy_free">%1$d freie Stellplätze</string>
     <string name="parking_occupancy_full">Belegt</string>
+    <string name="parking_occupancy_updated_at">Aktualisiert: %1$s</string>
+    <string name="parking_occupancy_updated_last">Zuletzt aktualisiert: %1$s</string>
     <plurals name="parking_marker_spaces_left">
         <item quantity="one">%1$d Stellplatz frei</item>
         <item quantity="other">%1$d Stellplätze frei</item>

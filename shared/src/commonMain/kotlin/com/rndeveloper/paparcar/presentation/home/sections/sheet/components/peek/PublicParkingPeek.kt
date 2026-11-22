@@ -20,6 +20,7 @@ import com.rndeveloper.paparcar.domain.usecase.parkings.NearbyPublicParking
 import com.rndeveloper.paparcar.presentation.home.HomeIntent
 import com.rndeveloper.paparcar.presentation.home.PeekStep
 import com.rndeveloper.paparcar.presentation.home.model.occupancyLabel
+import com.rndeveloper.paparcar.presentation.home.model.occupancyUpdatedLabel
 import com.rndeveloper.paparcar.presentation.home.model.publicParkingFeeLabel
 import com.rndeveloper.paparcar.presentation.home.model.publicParkingKindLabel
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.HomeSheetAction
@@ -69,9 +70,22 @@ internal fun PublicParkingPeek(
     onAction: (HomeSheetAction) -> Unit,
 ) {
     val parking = nearby.parking
-    val occupancy = if (parking.availability != null) parking.occupancyLabel(rememberNowMinuteTick()) else null
+    // ⛔ UN solo `now` para las dos lecturas. Pedir el tick dos veces es pedir dos instantes: la
+    // cifra se podría resolver fresca y su sello caducado en el mismo fotograma, que es justo la
+    // contradicción que esta fila existe para no tener.
+    val nowMs = rememberNowMinuteTick()
+    val occupancy = parking.occupancyLabel(nowMs)
     val fee = publicParkingFeeLabel(parking.fee)
     val mainFact = occupancy ?: fee
+    // Cuándo se midió lo de arriba. Es lo que pedía el user, y es lo que separa los TRES estados de
+    // la ocupación: con cifra, caducada y sin medir. [PARKINGS-SHOW-FEE-AND-OCCUPANCY-001]
+    val updated = parking.occupancyUpdatedLabel(nowMs)
+    // Los dos CUALIFICAN la misma afirmación —la tarifa, el parking; el sello, la cifra— así que
+    // comparten línea con el · de siempre en vez de apilar una tercera: el peek no tiene scroll
+    // interno y cada línea que se añade la paga el estado más alto a `fontScale` 1,3.
+    val qualifier = listOfNotNull(fee.takeIf { occupancy != null }, updated)
+        .takeIf { it.isNotEmpty() }
+        ?.joinToString(QUALIFIER_SEPARATOR)
     val distM = userLocation?.let { (uLat, uLon) ->
         distanceMeters(uLat, uLon, parking.latitude, parking.longitude)
     }
@@ -133,19 +147,28 @@ internal fun PublicParkingPeek(
             onPrev = step.prevId?.let { id -> { onAction(HomeSheetAction.SelectPublicParking(id)) } },
             onNext = step.nextId?.let { id -> { onAction(HomeSheetAction.SelectPublicParking(id)) } },
         ),
-        banner = mainFact?.let { fact ->
+        // ⛔ Se dibuja en cuanto haya CUALQUIERA de las dos cosas, no sólo el hecho principal. Con
+        // `mainFact` como única condición, un parking que mide pero tiene la cifra caducada y no
+        // declara tarifa se quedaba sin banda — o sea, idéntico a uno que no mide: el defecto que
+        // `OccupancyStamp` existe para cerrar.
+        banner = (mainFact ?: qualifier)?.let {
             {
                 Column {
-                    Text(
-                        text = fact,
-                        style = PaparcarType.current.cardTitle,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    if (occupancy != null && fee != null) {
-                        Spacer(Modifier.height(PaparcarSpacing.xs))
+                    mainFact?.let { fact ->
                         Text(
-                            text = fee,
+                            text = fact,
+                            style = PaparcarType.current.cardTitle,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                    qualifier?.let { line ->
+                        if (mainFact != null) Spacer(Modifier.height(PaparcarSpacing.xs))
+                        Text(
+                            text = line,
                             style = PaparcarType.current.rowName,
+                            // ⛔ Sin teñir, tampoco cuando la cifra ha caducado: la rampa 🟢🟡🔴 es
+                            // EXCLUSIVA de la caducidad de plazas, y un parking medido hace 47 min
+                            // no es una alerta, es un dato viejo. [UI-COLOR-DOCTRINE-001]
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -200,6 +223,9 @@ internal fun PublicParkingPeek(
         },
     )
 }
+
+/** El · con el que esta ficha une dos cualificadores, como el resto de la app. */
+private const val QUALIFIER_SEPARATOR = " · "
 
 /** One stated fact, in the reading voice. */
 @Composable

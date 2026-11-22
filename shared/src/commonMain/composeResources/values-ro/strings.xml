@@ -44,6 +44,7 @@
     <string name="home_browse_hint_swipe_report">Glisează ↑ pentru a anunța un loc</string>
     <string name="home_browse_hint_swipe_mark_parking">Glisează ↑ pentru a marca unde ai parcat</string>
     <string name="common_directions">Indicații</string>
+    <string name="common_date_at_time">%1$s la %2$s</string>
     <string name="home_navigate_to_vehicle_cd">Indicații către mașină</string>
     <!-- Romanian takes "de" from 20 up (20 de locuri), not below it (3 locuri). What used to sit in
          `other` was the few form, so counts of 20+ read wrong. [I18N-PLURAL-CATEGORIES-FOLLOW-THE-LANGUAGE-NOT-ENGLISH-001] -->
@@ -1113,6 +1114,8 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="parking_fee_paid">Cu plată</string>
     <string name="parking_occupancy_free">%1$d locuri libere</string>
     <string name="parking_occupancy_full">Ocupat complet</string>
+    <string name="parking_occupancy_updated_at">Actualizat: %1$s</string>
+    <string name="parking_occupancy_updated_last">Ultima actualizare: %1$s</string>
     <plurals name="parking_marker_spaces_left">
         <item quantity="one">%1$d loc liber</item>
         <item quantity="few">%1$d locuri libere</item>

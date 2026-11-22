@@ -108,3 +108,48 @@ fun PublicParking.headline(nowMs: Long): ParkingHeadline {
         FeeInfo.UNKNOWN -> ParkingHeadline.Silent
     }
 }
+
+/**
+ * **Qué puede decir una superficie del SELLO de la ocupación**, que son TRES estados y no dos.
+ * [PARKINGS-SHOW-FEE-AND-OCCUPANCY-001]
+ *
+ * [headline] contesta *qué* se afirma, y al caducar una cifra baja la escalera y desaparece. Eso
+ * deja **dos situaciones distintas contándose como la misma**: un parking que nunca tuvo cuenta y
+ * uno de Madrid cuya cuenta se quedó rancia se leían igual —ranura vacía— porque las dos dan `null`.
+ *
+ * ⛔ **Y fundirlas es lo que le quita valor a la ranura.** «No lo sabemos» y «lo supimos y ya no
+ * vale» le piden al conductor cosas distintas: en el primero no hay nada que esperar, en el segundo
+ * la cifra vuelve en minutos. El invariante 1 de `data-providers-001.md` §F.1 ya lo había decidido
+ * —*«el peek sigue diciendo «hace X min», que es lo único honesto cuando el dato ya no manda»*— y
+ * nadie lo implementó: `agedMinutes` viajaba dentro de [ParkingHeadline.FreeSpaces] sin un lector.
+ *
+ * ⛔ **No es un segundo criterio de frescura**: el umbral no se vuelve a escribir aquí, se LEE de
+ * [headline]. Si algún día cambia, cambia en un sitio y este tipo le sigue.
+ */
+sealed interface OccupancyStamp {
+
+    /** La fuente no publica ocupación de este parking. No hay sello que enseñar. */
+    data object None : OccupancyStamp
+
+    /** La cifra manda, y [updatedAtMs] es de cuándo es. */
+    data class Current(val updatedAtMs: Long) : OccupancyStamp
+
+    /**
+     * Hubo cifra y ya no manda — [headline] la ha retirado.
+     *
+     * ⛔ El sello **sigue saliendo**: es lo único que separa este estado de [None], y lo que dice es
+     * que aquí SÍ se mide, sólo que la última medida es vieja.
+     */
+    data class Expired(val updatedAtMs: Long) : OccupancyStamp
+}
+
+/** El sello de este parking, ahora. Ver [OccupancyStamp]. */
+fun PublicParking.occupancyStamp(nowMs: Long): OccupancyStamp {
+    val measuredAtMs = availability?.updatedAtMs ?: return OccupancyStamp.None
+    return when (headline(nowMs)) {
+        // Los dos escalones que SÍ son una cuenta viva. Que exista `availability` y la escalera no
+        // haya devuelto ninguno de ellos significa exactamente una cosa: caducó.
+        is ParkingHeadline.FreeSpaces, is ParkingHeadline.Full -> OccupancyStamp.Current(measuredAtMs)
+        else -> OccupancyStamp.Expired(measuredAtMs)
+    }
+}

@@ -44,6 +44,7 @@
     <string name="home_browse_hint_swipe_report">Scorri ↑ per segnalare un posto</string>
     <string name="home_browse_hint_swipe_mark_parking">Scorri ↑ per segnare dove hai parcheggiato</string>
     <string name="common_directions">Indicazioni</string>
+    <string name="common_date_at_time">%1$s alle %2$s</string>
     <string name="home_navigate_to_vehicle_cd">Indicazioni per l&#8217;auto</string>
     <string name="home_empty_title">Ancora nessun posto segnalato</string>
     <string name="home_spots_unasked">Cerca una via o attiva la posizione per vedere i posti liberi lì.</string>
@@ -1095,6 +1096,8 @@ Se la richiesta non compare più, cambiala in Impostazioni → Paparcar → Posi
     <string name="parking_fee_paid">A pagamento</string>
     <string name="parking_occupancy_free">%1$d posti liberi</string>
     <string name="parking_occupancy_full">Al completo</string>
+    <string name="parking_occupancy_updated_at">Aggiornato: %1$s</string>
+    <string name="parking_occupancy_updated_last">Ultimo aggiornamento: %1$s</string>
     <plurals name="parking_marker_spaces_left">
         <item quantity="one">%1$d posto libero</item>
         <item quantity="other">%1$d posti liberi</item>

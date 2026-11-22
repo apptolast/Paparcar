@@ -45,6 +45,7 @@
     <string name="home_browse_hint_swipe_report">Veeg ↑ om een plek te melden</string>
     <string name="home_browse_hint_swipe_mark_parking">Veeg ↑ om te markeren waar je geparkeerd hebt</string>
     <string name="common_directions">Route</string>
+    <string name="common_date_at_time">%1$s om %2$s</string>
     <string name="home_navigate_to_vehicle_cd">Route naar je auto</string>
     <string name="home_empty_title">Nog geen plekken gemeld</string>
     <string name="home_spots_unasked">Zoek een straat of zet locatie aan om de vrije plekken daar te zien.</string>
@@ -1058,6 +1059,8 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen → Paparcar �
     <string name="parking_fee_paid">Betaald</string>
     <string name="parking_occupancy_free">%1$d vrije plaatsen</string>
     <string name="parking_occupancy_full">Vol</string>
+    <string name="parking_occupancy_updated_at">Bijgewerkt: %1$s</string>
+    <string name="parking_occupancy_updated_last">Laatst bijgewerkt: %1$s</string>
     <plurals name="parking_marker_spaces_left">
         <item quantity="one">%1$d plek vrij</item>
         <item quantity="other">%1$d plekken vrij</item>

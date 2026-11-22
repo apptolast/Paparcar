@@ -77,6 +77,7 @@
          fallback shows the point without navigating, so "Navigate" would be a lie there.
          [COPY-PARKING-EDIT-THREE-ANSWERS-ONE-QUESTION-001] -->
     <string name="common_directions">Directions</string>
+    <string name="common_date_at_time">%1$s at %2$s</string>
     <!-- The icon-only twin on the parking peek: a screen reader needs the destination too. -->
     <string name="home_navigate_to_vehicle_cd">Directions to your car</string>
     <string name="home_empty_title">No spots reported yet</string>
@@ -1142,6 +1143,8 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="parking_fee_paid">Paid</string>
     <string name="parking_occupancy_free">%1$d spaces available</string>
     <string name="parking_occupancy_full">Full</string>
+    <string name="parking_occupancy_updated_at">Updated: %1$s</string>
+    <string name="parking_occupancy_updated_last">Last updated: %1$s</string>
     <plurals name="parking_marker_spaces_left">
         <item quantity="one">%1$d space left</item>
         <item quantity="other">%1$d spaces left</item>

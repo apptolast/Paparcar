@@ -62,6 +62,7 @@
     <!-- UNA etiqueta para el traspaso a la app de mapas, esté donde esté.
          [COPY-PARKING-EDIT-THREE-ANSWERS-ONE-QUESTION-001] -->
     <string name="common_directions">Cómo llegar</string>
+    <string name="common_date_at_time">%1$s a las %2$s</string>
     <string name="home_navigate_to_vehicle_cd">Cómo llegar al coche</string>
     <string name="home_empty_title">Aún no hay plazas reportadas</string>
     <string name="home_spots_unasked">Busca una calle o activa la ubicación para ver las plazas libres de ahí.</string>
@@ -1091,6 +1092,8 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="parking_fee_paid">De pago</string>
     <string name="parking_occupancy_free">%1$d plazas libres</string>
     <string name="parking_occupancy_full">Completo</string>
+    <string name="parking_occupancy_updated_at">Actualizado: %1$s</string>
+    <string name="parking_occupancy_updated_last">Última actualización: %1$s</string>
     <plurals name="parking_marker_spaces_left">
         <item quantity="one">%1$d plaza libre</item>
         <item quantity="other">%1$d plazas libres</item>

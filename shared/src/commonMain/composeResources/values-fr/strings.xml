@@ -44,6 +44,7 @@
     <string name="home_browse_hint_swipe_report">Glissez ↑ pour signaler une place</string>
     <string name="home_browse_hint_swipe_mark_parking">Balayez ↑ pour indiquer où vous avez stationné</string>
     <string name="common_directions">Itinéraire</string>
+    <string name="common_date_at_time">%1$s à %2$s</string>
     <string name="home_navigate_to_vehicle_cd">Itinéraire jusqu&#8217;à la voiture</string>
     <string name="home_empty_title">Aucune place signalée pour le moment</string>
     <string name="home_spots_unasked">Cherchez une rue ou activez la localisation pour voir les places libres là-bas.</string>
@@ -1095,6 +1096,8 @@ Si la question n'apparaît plus, changez-le dans Réglages → Paparcar → Posi
     <string name="parking_fee_paid">Payant</string>
     <string name="parking_occupancy_free">%1$d places libres</string>
     <string name="parking_occupancy_full">Complet</string>
+    <string name="parking_occupancy_updated_at">Mis à jour : %1$s</string>
+    <string name="parking_occupancy_updated_last">Dernière mise à jour : %1$s</string>
     <plurals name="parking_marker_spaces_left">
         <item quantity="one">%1$d place libre</item>
         <item quantity="other">%1$d places libres</item>

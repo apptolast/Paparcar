@@ -281,7 +281,7 @@ Reglas que el roadmap ya fijó y que este documento **no rediscute**:
   dato* (dos parkings donde hay uno) en vez de parecer un bug. Esa trampa ya se pagó una vez cruzando
   catálogos de gasolineras.
 - ⛔ La rampa 🟢🟡🔴 es **exclusiva** de la caducidad de plazas [UI-COLOR-DOCTRINE-001]: la ocupación
-  lleva cifra de libres en el glifo y «hace X min» en el peek.
+  lleva cifra de libres en el glifo y cuándo se actualizó en el peek.
 
 **El modelo en `commonMain`, los adaptadores en el backend** — de acuerdo con el encargo, con un
 matiz: **los adaptadores de PRECIO de combustible se quedan en el cliente** (§C.1), porque centralizar
@@ -772,7 +772,22 @@ fuentes está mal emparejada — que es el fallo de fusión de §C.3 asomando po
 Es el hecho más perecedero de la app (la fuente se mueve cada 1-3 min) y viaja por dos cachés: el CDN
 y el disco. ⛔ **Un número viejo no se enseña viejo: se deja de enseñar.** Pasada su frescura, la
 superficie cae al escalón 3 (la tarifa) en vez de mostrar una cifra rancia — y el peek sigue diciendo
-«hace X min», que es lo único honesto cuando el dato ya no manda.
+**cuándo se midió**, que es lo único honesto cuando el dato ya no manda.
+
+⛔ **Y lo dice de DOS formas, con el umbral de la propia escalera** — precisado al implementarlo
+[PARKINGS-SHOW-FEE-AND-OCCUPANCY-001]. Mientras la cifra manda, «hace 3 min»: es un lapso corto, se
+lee de un vistazo y no obliga a mirar el reloj. Pasado el umbral, **la hora** (con su fecha si no es
+de hoy), que es la única forma que sigue siendo verdad una hora después
+[DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] — un «hace 3 días» obliga a restar.
+
+⛔ **No son dos umbrales, es uno**: el salto de forma ocurre en el MISMO instante en que la cifra
+desaparece, porque las dos cosas dicen lo mismo — este dato ha dejado de mandar. Darle al sello un
+umbral propio inventaría un estado intermedio que no significa nada.
+
+⛔ **Y son TRES estados, no dos.** Al retirar la cifra, «aquí no se mide» y «se mide y la última
+medida es vieja» se contaban como lo mismo — ranura vacía en los dos —, que es justo lo que le quita
+valor a la ranura. Los separa `OccupancyStamp` (`None` · `Current` · `Expired`), que **no reescribe
+el umbral**: lo lee de la escalera.
 
 - La frescura se mide contra el **`updatedAt` de la FUENTE**, no contra cuándo lo pedimos nosotros:
   entre los dos hay el TTL del CDN, y medir por el nuestro haría «fresco» un dato de 10 minutos.

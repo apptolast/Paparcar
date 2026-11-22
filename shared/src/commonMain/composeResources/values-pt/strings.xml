@@ -44,6 +44,7 @@
     <string name="home_browse_hint_swipe_report">Desliza ↑ para reportar um lugar</string>
     <string name="home_browse_hint_swipe_mark_parking">Deslize ↑ para marcar onde estacionou</string>
     <string name="common_directions">Como chegar</string>
+    <string name="common_date_at_time">%1$s às %2$s</string>
     <string name="home_navigate_to_vehicle_cd">Como chegar ao carro</string>
     <string name="home_empty_title">Ainda não há lugares reportados</string>
     <string name="home_spots_unasked">Procura uma rua ou ativa a localização para veres os lugares livres aí.</string>
@@ -1095,6 +1096,8 @@ Se a pergunta já não aparecer, muda em Definições → Paparcar → Localiza�
     <string name="parking_fee_paid">Pago</string>
     <string name="parking_occupancy_free">%1$d lugares livres</string>
     <string name="parking_occupancy_full">Lotado</string>
+    <string name="parking_occupancy_updated_at">Atualizado: %1$s</string>
+    <string name="parking_occupancy_updated_last">Última atualização: %1$s</string>
     <plurals name="parking_marker_spaces_left">
         <item quantity="one">%1$d lugar livre</item>
         <item quantity="other">%1$d lugares livres</item>

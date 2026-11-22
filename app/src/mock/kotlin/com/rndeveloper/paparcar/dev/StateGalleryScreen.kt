@@ -4738,11 +4738,56 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                 HomeParkingsLane(slice = HomeParkingsSlice(parkings = entries))
             },
             Variant("Peek de parking (ocupación y tarifa)", Placement.Surface) {
-                val entry = remember { galleryParkingWithOccupancy(42) }
+                val entry = remember { galleryParkingWithOccupancy(42, THREE_MINUTES_MS) }
                 peek(
                     HomeState(
                         parkings = HomeParkingsSlice(parkings = listOf(entry)),
                         selection = HomeSelection.PublicParking(entry.parking.id),
+                        userGpsPoint = sampleGps,
+                    ),
+                )
+            },
+            // ⛔ Los CUATRO estados del sello, uno por variante, porque es lo único que los
+            // distingue en pantalla y dos de ellos se leían igual.
+            // [PARKINGS-SHOW-FEE-AND-OCCUPANCY-001]
+            //
+            // Un cero: «Completo» manda y lleva su sello como cualquier otra cifra. Que un parking
+            // lleno perdiese el sello diría que no sabemos nada de uno del que sabemos que no cabe.
+            // Se queda a edad CERO a propósito: es el otro extremo de la forma relativa («ahora
+            // mismo»), y entre esta variante y la de arriba están las dos que el usuario puede leer
+            // mientras la cifra manda.
+            Variant("Peek de parking (completo)", Placement.Surface) {
+                val entry = remember { galleryParkingWithOccupancy(0) }
+                peek(
+                    HomeState(
+                        parkings = HomeParkingsSlice(parkings = listOf(entry)),
+                        selection = HomeSelection.PublicParking(entry.parking.id),
+                        userGpsPoint = sampleGps,
+                    ),
+                )
+            },
+            // Caducado: la CIFRA desaparece —la escalera baja al escalón de la tarifa— y lo que se
+            // queda es «Última actualización: …». Tres días es a propósito: así se ve también la
+            // fecha delante de la hora, que es la rama que sólo sale cuando el sello no es de hoy.
+            Variant("Peek de parking (ocupación caducada)", Placement.Surface) {
+                val entry = remember { galleryParkingWithOccupancy(17, THREE_DAYS_MS) }
+                peek(
+                    HomeState(
+                        parkings = HomeParkingsSlice(parkings = listOf(entry)),
+                        selection = HomeSelection.PublicParking(entry.parking.id),
+                        userGpsPoint = sampleGps,
+                    ),
+                )
+            },
+            // ⛔ Y el caso de las OTRAS CUATRO CIUDADES, que es el 100 % de los parkings fuera de los
+            // 24 de Madrid: nombre, tarifa, aforo, horario y gálibo, y ni una palabra de ocupación.
+            // Es la variante que prueba que no queda un hueco donde los demás ven una fila — sin
+            // sello no se escribe línea, y la banda se queda en la tarifa.
+            Variant("Peek de parking (sin ocupación en su ciudad)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        parkings = HomeParkingsSlice(parkings = galleryParkings),
+                        selection = HomeSelection.PublicParking(galleryParkings.first().parking.id),
                         userGpsPoint = sampleGps,
                     ),
                 )
@@ -5139,6 +5184,9 @@ private fun italianStation(
 
 private const val SIXTEEN_HOURS_MS = 16 * 60 * 60 * 1000L
 private const val TWO_HOURS_MS = 2 * 60 * 60 * 1000L
+// Dentro del techo de frescura (10 min sellado por la fuente), para que el sello se lea con su
+// forma RELATIVA de verdad — a edad 0 saldría «ahora mismo» y no se vería el «hace N min».
+private const val THREE_MINUTES_MS = 3 * 60 * 1000L
 private const val THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000L
 private const val FOUR_DAYS_MS = 4 * 24 * 60 * 60 * 1000L
 private const val THIRTEEN_MONTHS_MS = 395 * 24 * 60 * 60 * 1000L

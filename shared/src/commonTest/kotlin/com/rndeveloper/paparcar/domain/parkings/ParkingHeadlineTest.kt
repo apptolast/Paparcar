@@ -120,4 +120,57 @@ class ParkingHeadlineTest {
         val headline = parking(availability = live(free = 67, agedMinutes = 3)).headline(now)
         assertEquals(3, (headline as ParkingHeadline.FreeSpaces).agedMinutes)
     }
+
+    // ── El SELLO: tres estados, no dos ──────────────────────────────────────
+    // [PARKINGS-SHOW-FEE-AND-OCCUPANCY-001] La escalera retira una cifra rancia, y al retirarla deja
+    // «no medimos aquí» y «medimos y la última medida es vieja» indistinguibles. Estos cuatro tests
+    // son la negativa a volver a fundirlos.
+
+    @Test
+    fun should_haveNoStamp_when_theSourceDoesNotPublishOccupancy() {
+        // ⛔ Y no es `Expired` con la fecha a cero: no hay nada que fechar. La ficha calla.
+        assertEquals(OccupancyStamp.None, parking(fee = FeeInfo.PAID).occupancyStamp(now))
+    }
+
+    @Test
+    fun should_stampTheMeasurement_when_theCountStillRules() {
+        val measured = live(free = 42, agedMinutes = 3)
+        assertEquals(
+            OccupancyStamp.Current(measured.updatedAtMs),
+            parking(availability = measured).occupancyStamp(now),
+        )
+    }
+
+    @Test
+    fun should_keepTheStamp_when_theCountHasExpired() {
+        // La cifra ya no se enseña; el sello SÍ, porque es lo único que dice que aquí se mide.
+        val stale = live(free = 42, agedMinutes = AVAILABILITY_FRESH_MINUTES + 1)
+        assertEquals(
+            OccupancyStamp.Expired(stale.updatedAtMs),
+            parking(fee = FeeInfo.PAID, availability = stale).occupancyStamp(now),
+        )
+    }
+
+    @Test
+    fun should_expireTheStampOnTheSameThresholdAsTheCount_when_weStampedItOurselves() {
+        // ⛔ El criterio NO se vuelve a escribir en `occupancyStamp`: se lee de `headline`. Este test
+        // es el testigo de eso — un dato sellado por nosotros caduca a los 4 min y no a los 10, y si
+        // alguien copiase el umbral en el sello, los dos se separarían justo aquí.
+        val ours = live(free = 9, agedMinutes = 6, stampedByUs = true)
+        val theirs = live(free = 9, agedMinutes = 6, stampedByUs = false)
+
+        assertEquals(OccupancyStamp.Expired(ours.updatedAtMs), parking(availability = ours).occupancyStamp(now))
+        assertEquals(OccupancyStamp.Current(theirs.updatedAtMs), parking(availability = theirs).occupancyStamp(now))
+    }
+
+    @Test
+    fun should_stampAFullCarPark_when_thereIsNoRoomLeft() {
+        // ⛔ Un cero es un DATO: «Completo» manda, así que su sello es `Current`. Que un cero cayese
+        // a `Expired` diría que no sabemos nada de un parking del que sabemos que está lleno.
+        val none = live(free = 0, agedMinutes = 1)
+        assertEquals(
+            OccupancyStamp.Current(none.updatedAtMs),
+            parking(availability = none).occupancyStamp(now),
+        )
+    }
 }
