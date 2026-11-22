@@ -856,6 +856,7 @@ Se la richiesta non compare più, cambiala in Impostazioni → Paparcar → Posi
     <string name="plus_welcome_body">Paparcar Plus è tuo, offre la casa. Tutto, senza pagare niente e senza niente da disdire.</string>
     <string name="plus_welcome_until">Gratis fino al %1$s</string>
     <string name="plus_welcome_benefits">Quello che hai adesso</string>
+    <string name="plus_welcome_more">E molto altro</string>
     <string name="plus_welcome_cta">Andiamo!</string>
     <string name="plus_promo_ending_title">Il tuo Plus in regalo sta per finire</string>
     <string name="plus_promo_ending_body">Il %1$s il tuo account torna al piano gratuito. Non si cancella niente di quello che hai registrato, e puoi continuare con Plus quando vuoi.</string>

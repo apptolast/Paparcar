@@ -15,6 +15,7 @@ import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.domain.entitlement.PlusMoment
 import com.rndeveloper.paparcar.presentation.paywall.PLUS_BENEFITS
 import com.rndeveloper.paparcar.presentation.paywall.PlusBenefitRow
+import com.rndeveloper.paparcar.presentation.paywall.PlusBenefitsMoreRow
 import com.rndeveloper.paparcar.presentation.util.shortDateText
 import com.rndeveloper.paparcar.ui.components.PapAlertDialog
 import com.rndeveloper.paparcar.ui.components.PapDialogAccent
@@ -31,6 +32,7 @@ import paparcar.composeapp.generated.resources.plus_promo_ending_cta
 import paparcar.composeapp.generated.resources.plus_promo_ending_see_plans
 import paparcar.composeapp.generated.resources.plus_promo_ending_title
 import paparcar.composeapp.generated.resources.plus_welcome_benefits
+import paparcar.composeapp.generated.resources.plus_welcome_more
 import paparcar.composeapp.generated.resources.plus_welcome_body
 import paparcar.composeapp.generated.resources.plus_welcome_cta
 import paparcar.composeapp.generated.resources.plus_welcome_title
@@ -59,8 +61,8 @@ import paparcar.composeapp.generated.resources.plus_welcome_until
  *    el día 15?», y eso sólo se contesta entero.
  *  · la BIENVENIDA lleva **tres**, elegidas por el gate que venden ([WELCOME_HIGHLIGHTS]). No hay
  *    nada que decidir —ya se lo han regalado—, y con las seis ocupaba casi toda la pantalla siendo
- *    lo primero que ve una cuenta nueva, medido en el Pixel 8. Que son todas las demás ya lo dice
- *    su cuerpo: «Todo, sin pagar nada».
+ *    lo primero que ve una cuenta nueva, medido en el Pixel 8. Que la lista está recortada lo dice
+ *    ella misma, al final: `PlusBenefitsMoreRow`.
  *
  * Ver `PlusBenefits.kt`: dos lecturas de UNA lista siguen siendo el mecanismo; ahora también en
  * cuántas filas.
@@ -138,7 +140,10 @@ private fun FoundersWelcomeDialog(expiresAtMillis: Long?, onDismiss: () -> Unit)
                 // y la única que se cuenta sola. Las otras tres —zonas, coches, rutas— son topes
                 // que se levantan, y un tope no dice nada a quien todavía no lo ha tocado.
                 //
-                // Que son TODAS las demás ya lo dice el cuerpo: «Todo, sin pagar nada».
+                // ⛔ Y que la lista está RECORTADA se dice AQUÍ, al final de ella. Se razonaba que
+                // ya lo decía el cuerpo —«Todo, sin pagar nada»—, y el user lo falsificó leyendo la
+                // pantalla: ese cuerpo va arriba, antes de la cabecera, y al terminar las tres
+                // filas ya no se recuerda. Las tres se leían como el regalo entero.
                 //
                 // ⛔ Se eligen por el GATE que venden, no por su posición en la lista: reordenar
                 // `PLUS_BENEFITS` no puede cambiar en silencio qué se celebra aquí.
@@ -146,6 +151,9 @@ private fun FoundersWelcomeDialog(expiresAtMillis: Long?, onDismiss: () -> Unit)
                     PLUS_BENEFITS
                         .filter { benefit -> benefit.sells.any { it in WELCOME_HIGHLIGHTS } }
                         .forEach { PlusBenefitRow(it) }
+                    // Y la lista dice que está RECORTADA, con su propia fila. Ver
+                    // [PlusBenefitsMoreRow].
+                    PlusBenefitsMoreRow(stringResource(Res.string.plus_welcome_more))
                 }
                 // La fecha, ABAJO DEL TODO y en neutro (decisión del user, 22-11). Estaba encima
                 // de la lista y en verde de marca, y ahí competía con el titular por la mirada:

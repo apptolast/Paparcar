@@ -870,6 +870,7 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="plus_welcome_body">Paparcar Plus e al tău, din partea noastră. Tot, fără să plătești nimic și fără nimic de anulat.</string>
     <string name="plus_welcome_until">Gratuit până la %1$s</string>
     <string name="plus_welcome_benefits">Ce ai acum</string>
+    <string name="plus_welcome_more">Și multe altele</string>
     <string name="plus_welcome_cta">Să mergem!</string>
     <string name="plus_promo_ending_title">Plus-ul primit cadou se termină</string>
     <string name="plus_promo_ending_body">Pe %1$s contul tău revine la planul gratuit. Nu se șterge nimic din ce ai înregistrat și poți continua cu Plus când vrei.</string>

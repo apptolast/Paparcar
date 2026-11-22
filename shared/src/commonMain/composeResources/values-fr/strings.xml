@@ -856,6 +856,7 @@ Si la question n'apparaît plus, changez-le dans Réglages → Paparcar → Posi
     <string name="plus_welcome_body">Paparcar Plus est à toi, c'est cadeau. Tout, sans rien payer et sans rien à annuler.</string>
     <string name="plus_welcome_until">Gratuit jusqu'au %1$s</string>
     <string name="plus_welcome_benefits">Ce que tu as maintenant</string>
+    <string name="plus_welcome_more">Et bien plus</string>
     <string name="plus_welcome_cta">C'est parti !</string>
     <string name="plus_promo_ending_title">Ton Plus offert va se terminer</string>
     <string name="plus_promo_ending_body">Le %1$s ton compte revient à l'offre gratuite. Rien de ce que tu as enregistré ne disparaît, et tu peux continuer avec Plus quand tu veux.</string>

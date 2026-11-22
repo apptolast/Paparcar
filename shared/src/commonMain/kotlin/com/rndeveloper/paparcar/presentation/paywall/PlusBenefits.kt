@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.Map
+import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Route
 import androidx.compose.material3.Icon
@@ -212,6 +213,60 @@ internal fun PlusBenefitRow(benefit: PlusBenefit, showNote: Boolean = false) {
                 )
             }
         }
+    }
+}
+
+/**
+ * El CIERRE de una lista recortada de beneficios: la última fila, con los puntos suspensivos
+ * dibujados en el mismo tile de metal que las demás.
+ *
+ * Es una FILA y no un pie de lista, y esa es toda la decisión. Como texto suelto sangrado hasta
+ * la columna de los títulos se quedaba flotando entre la lista y la línea de la fecha, sin
+ * pertenecer a ninguna de las dos. Con su tile ocupa el hueco que le faltaba: la lista termina
+ * donde el ojo ya esperaba otra fila.
+ *
+ * Vive aquí, y no en el diálogo que la usa, porque su geometría es la de [PlusBenefitRow] — mismo
+ * tile, mismo hueco, mismo rol tipográfico. Escrita en el call site, cambiar el tamaño del tile la
+ * descolocaría sin que nadie se enterara.
+ *
+ * ⛔ Existe porque el argumento contrario se falsificó mirando la pantalla. La bienvenida enseña
+ * tres de las seis filas y se razonaba que «son todas las demás» ya lo decía su cuerpo —«Todo, sin
+ * pagar nada»—; pero ese cuerpo va ARRIBA, antes de la cabecera, y al llegar al final de la lista
+ * ya no se recuerda. El user leyó las tres filas como el regalo entero. Un recorte tiene que
+ * decirse donde termina. [UI-THE-FOUNDERS-GIFT-EARNS-ITS-VOLUME-001]
+ */
+@Composable
+internal fun PlusBenefitsMoreRow(text: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = BENEFIT_V_PAD_DP.dp),
+        horizontalArrangement = Arrangement.spacedBy(BENEFIT_GAP_DP.dp),
+        // CENTRADA, al reves que [PlusBenefitRow]. Alli el tile se alinea arriba a proposito,
+        // para marcar la PRIMERA linea de un titulo que envuelve a dos o tres. Aqui el texto es
+        // una frase corta de una sola linea en los nueve idiomas, asi que alinearlo arriba deja
+        // el tile colgando por debajo y la fila entera descuadrada respecto a las de encima.
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        PapPremiumSurface(
+            modifier = Modifier.size(BENEFIT_TILE_DP.dp),
+            shape = PapShapes.row,
+        ) {
+            // Los puntos suspensivos, que es literalmente lo que dice la fila. Nivel 1: plumbing
+            // de UI, no un concepto de Paparcar, así que Material Symbols Rounded.
+            Icon(
+                imageVector = Icons.Rounded.MoreHoriz,
+                contentDescription = null,
+                modifier = Modifier.align(Alignment.Center).size(BENEFIT_ICON_DP.dp),
+            )
+        }
+        // Mismo rol y mismo color que el título de una fila: esta línea ES un elemento de la lista.
+        // En `label` y `onSurfaceVariant` rimaba con la línea de la fecha de debajo —otra voz, otro
+        // trabajo— y las dos se leían como un pie suelto.
+        Text(
+            text = text,
+            style = PaparcarType.current.rowTitle,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 

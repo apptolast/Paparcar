@@ -1,6 +1,6 @@
 # Backlog — índice de lo que sigue abierto
 
-> **852 ficheros: 760 cerrados, 83 abiertos, 9 que no son tickets.** Este índice lista **solo lo que**
+> **853 ficheros: 761 cerrados, 83 abiertos, 9 que no son tickets.** Este índice lista **solo lo que**
 > queda**, para que la pregunta *"¿qué falta?"* se conteste leyendo y no listando el directorio.
 > Verificado contra master `1339ea263` el **2026-10-07**
 > [DOCS-A-CLOSED-TICKET-MUST-NOT-SAY-IT-IS-IN-REVIEW-001]. El barrido anterior
@@ -255,6 +255,7 @@ No son trabajo pendiente: son confirmaciones que faltan. Se listan para que nadi
 |---|---|
 | [`det-bt-pin-is-sampled-after-the-walk-001`](det-bt-pin-is-sampled-after-the-walk-001.md) · [`det-bt-a-park-is-confirmed-not-assumed-001`](det-bt-a-park-is-confirmed-not-assumed-001.md) · [`trip-the-tracker-rides-the-sentinel-001`](trip-the-tracker-rides-the-sentinel-001.md) · [`det-one-service-two-lanes-001`](det-one-service-two-lanes-001.md) | el **viaje del Kamiq**: valida de una tacada las fases 3 y 4 del pivote, el hosting único del carril BT (`d7880ac7`) y los tickets BT viejos |
 | [`home-first-entry-flow-001`](home-first-entry-flow-001.md) | ⏳ **sin pushear** y sin verse en un móvil real: la cadena completa sólo es alcanzable en el flavor **mock** — un `prodDebug` no puede enseñar el regalo (trigger en `(default)`, los debug hablan con `debug`) |
+| [`ui-the-founders-gift-earns-its-volume-001`](ui-the-founders-gift-earns-its-volume-001.md) | ⏳ sin verla en un **móvil real** (mide 56 dp; todo se corrigió ampliando a 3×) · 🔵 si en mano canta el salto respecto a sus cuatro hermanas **planas**, la salida es abrirles ticket a ellas, no aplanar ésta |
 | [`fuel-germany-the-feed-answers-whole-001`](fuel-germany-the-feed-answers-whole-001.md) | ⏳ verlo en mano con GPS en Alemania (`9afbc5e5`) |
 | [`batt-a-cost-is-measured-not-declared-001`](batt-a-cost-is-measured-not-declared-001.md) | primera pasada del **rig A/B** de batería + la línea de Ajustes cuando haya corpus limpio |
 | [`det-reliability-001`](det-reliability-001.md) | F1–F3 en master (`7350f358`); **F4 sigue diferida** a propósito |

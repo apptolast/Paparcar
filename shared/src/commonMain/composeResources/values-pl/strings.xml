@@ -870,6 +870,7 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <string name="plus_welcome_body">Paparcar Plus jest twój, na nasz koszt. Wszystko, bez płacenia i bez niczego do anulowania.</string>
     <string name="plus_welcome_until">Bezpłatnie do %1$s</string>
     <string name="plus_welcome_benefits">Co masz teraz</string>
+    <string name="plus_welcome_more">I wiele więcej</string>
     <string name="plus_welcome_cta">Zaczynamy!</string>
     <string name="plus_promo_ending_title">Twój Plus w prezencie się kończy</string>
     <string name="plus_promo_ending_body">%1$s twoje konto wróci do planu bezpłatnego. Nic z tego, co zapisałeś, nie zniknie, a Plus możesz kontynuować, kiedy chcesz.</string>

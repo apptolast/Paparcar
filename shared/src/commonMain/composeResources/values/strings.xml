@@ -897,6 +897,7 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="plus_welcome_body">Paparcar Plus is yours, on us. All of it, with nothing to pay and nothing to cancel.</string>
     <string name="plus_welcome_until">Free until %1$s</string>
     <string name="plus_welcome_benefits">What you have now</string>
+    <string name="plus_welcome_more">And much more</string>
     <string name="plus_welcome_cta">Let's go</string>
     <string name="plus_promo_ending_title">Your free Plus ends soon</string>
     <string name="plus_promo_ending_body">On %1$s your account goes back to the free plan. Nothing you have recorded goes away, and you can continue with Plus whenever you want.</string>

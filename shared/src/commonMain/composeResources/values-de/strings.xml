@@ -857,6 +857,7 @@ Wenn die Frage nicht mehr erscheint, ändere es unter Einstellungen → Paparcar
     <string name="plus_welcome_body">Paparcar Plus geht auf uns. Alles davon, ohne zu zahlen und ohne etwas zu kündigen.</string>
     <string name="plus_welcome_until">Kostenlos bis %1$s</string>
     <string name="plus_welcome_benefits">Was du jetzt hast</string>
+    <string name="plus_welcome_more">Und vieles mehr</string>
     <string name="plus_welcome_cta">Los geht's</string>
     <string name="plus_promo_ending_title">Dein geschenktes Plus endet bald</string>
     <string name="plus_promo_ending_body">Am %1$s wechselt dein Konto zurück zum kostenlosen Plan. Nichts von dem, was du aufgezeichnet hast, geht verloren, und du kannst jederzeit mit Plus weitermachen.</string>

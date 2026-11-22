@@ -852,6 +852,7 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="plus_welcome_body">Paparcar Plus es tuyo, invita la casa. Todo, sin pagar nada y sin nada que cancelar.</string>
     <string name="plus_welcome_until">Gratis hasta el %1$s</string>
     <string name="plus_welcome_benefits">Lo que ya tienes</string>
+    <string name="plus_welcome_more">Y mucho más</string>
     <string name="plus_welcome_cta">¡Vamos!</string>
     <string name="plus_promo_ending_title">Tu Plus de regalo se acaba</string>
     <string name="plus_promo_ending_body">El %1$s tu cuenta vuelve al plan gratis. No se borra nada de lo que has registrado, y puedes seguir con Plus cuando quieras.</string>
