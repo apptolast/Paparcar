@@ -44,6 +44,14 @@ import kotlin.test.fail
  *     the favicon was the one asset outside that rule, and tabs kept the 2022 mark because of it.
  *  6. That each published asset is named after the hash of its OWN bytes, which stopped being true
  *     whenever the build ran from a checkout with different line endings.
+ *  7. That the `/descargar*` redirects carry a well-formed install referrer AND say what the site's
+ *     own `DOWNLOAD_SHORTCUTS` table says they say — `firebase.json` cannot import that table, so
+ *     the two copies need something holding them together.
+ *  8. That **every store link on the BUILT site** carries a referrer naming its page and its
+ *     placement, with one exemption by name: the JSON-LD canonical. Checks 7 and 8 are two
+ *     producers of the same thing, and for the site's whole life only the first was vigilado —
+ *     42 links to Play across 11 pages, zero with a referrer
+ *     [MKT-A-SITE-CTA-MUST-SAY-WHERE-ITS-INSTALL-CAME-FROM-001].
  *
  * ## What it deliberately does not do
  *
@@ -191,12 +199,7 @@ class WebSiteParityGuardrailTest {
                     return@forEach
                 }
 
-                val utm = encoded.replace("%3D", "=").replace("%26", "&")
-                    .split("&")
-                    .mapNotNull { pair ->
-                        pair.split("=", limit = 2).takeIf { it.size == 2 }?.let { it[0] to it[1] }
-                    }
-                    .toMap()
+                val utm = parseReferrer(encoded)
 
                 REQUIRED_UTM.filterNot(utm::containsKey).forEach {
                     add("$source · referrer has no `$it`")
@@ -237,6 +240,177 @@ class WebSiteParityGuardrailTest {
                     "  …details?id=<applicationId>&referrer=utm_source%3D$UTM_SOURCE" +
                         "%26utm_medium%3Dsocial%26utm_campaign%3D<the path's own slug>",
                 )
+            },
+        )
+    }
+
+    // ── 1c · the shortcuts say what the site's own table says they say ────────
+
+    /**
+     * `firebase.json` cannot import `web/lib/config.mjs`, which is why there have always been two
+     * copies of the store URL and a guard tying them together. With
+     * [MKT-A-SITE-CTA-MUST-SAY-WHERE-ITS-INSTALL-CAME-FROM-001] the campaign vocabulary moved into
+     * that config as `DOWNLOAD_SHORTCUTS`, so the same arrangement now covers the referrer too:
+     * the test above checks each redirect's SHAPE, and this one checks it says what the table says.
+     *
+     * The difference matters. A redirect whose `utm_campaign` is a perfectly well-formed slug that
+     * no longer matches its row is invisible to a shape check, deploys clean, and files a month of
+     * installs under a campaign nobody is running.
+     */
+    @Test
+    fun `every download shortcut matches its row in the site's install table`() {
+        val declared = installShortcutTable()
+        val deployed = downloadShortcuts()
+
+        assertTrue(
+            declared.isNotEmpty(),
+            "[empty population] parsed no rows out of DOWNLOAD_SHORTCUTS in $SITE_CONFIG — the " +
+                "`'/path': { source: …, medium: …, campaign: … }` shape changed and this guard is " +
+                "comparing nothing.",
+        )
+
+        val problems = buildList {
+            (declared.keys - deployed.keys).forEach {
+                add("$it · in DOWNLOAD_SHORTCUTS but no such redirect in firebase.json")
+            }
+            (deployed.keys - declared.keys).forEach {
+                add("$it · redirect in firebase.json with no row in DOWNLOAD_SHORTCUTS of $SITE_CONFIG")
+            }
+            declared.forEach { (path, row) ->
+                val encoded = deployed[path]?.substringAfter("&referrer=", "") ?: return@forEach
+                val utm = parseReferrer(encoded)
+                listOf(
+                    "utm_source" to row["source"],
+                    "utm_medium" to row["medium"],
+                    "utm_campaign" to row["campaign"],
+                ).forEach { (key, expected) ->
+                    utm[key]?.takeIf { it != expected }?.let {
+                        add("$path · $key is '$it' in firebase.json but '$expected' in $SITE_CONFIG")
+                    }
+                }
+            }
+        }
+
+        assertTrue(
+            problems.isEmpty(),
+            buildString {
+                appendLine("The download shortcuts and the site's install table disagree:")
+                problems.forEach { appendLine("  $it") }
+                appendLine()
+                appendLine("One table, two producers: fix the row in $SITE_CONFIG or the redirect in")
+                appendLine("firebase.json so they say the same thing.")
+            },
+        )
+    }
+
+    // ── 1d · and so does every store link of the site itself ──────────────────
+
+    /**
+     * The shortcuts were never the only producer of store links, and for the site's whole life the
+     * other one carried nothing at all.
+     *
+     * Measured on **23-11-2026** over `hosting/public`: **42 links to Play across 11 built pages,
+     * zero with a `referrer`** — the home hero and its Plus call, the header, nav and footer of
+     * every page, both calls of `/blackfriday`, the 404, the two legal pages. So Play filed every
+     * install the site brought as **organic** and GA4 as `(direct)`, which is how a Black Friday
+     * landing spends its first day sending traffic that cannot be told apart from the traffic that
+     * would have arrived anyway. It surfaced the day nobody could say where four new accounts had
+     * come from.
+     *
+     * ⛔ And the reason the guard next door never saw it: it reads `firebase.json`, filtered to
+     * `/descargar*`. **One producer was vigilado and there were two.**
+     *
+     * ⛔ This reads the BUILT pages, not `web/`, for the same reason check 3 does — a tagged source
+     * over a stale `hosting/public` deploys the old bare links, and that is precisely the state a
+     * guard has to be able to see. The `&` arrives as `&amp;` because `esc()` escapes attribute
+     * values, which is correct HTML; both spellings are accepted and neither is optional.
+     *
+     * ⛔ One exemption, by NAME and never by file: the `installUrl` of the JSON-LD block, which is
+     * the CANONICAL that search engines read. Tagging it would put UTMs into a search result and
+     * into anything that reuses the datum.
+     *
+     * [MKT-A-SITE-CTA-MUST-SAY-WHERE-ITS-INSTALL-CAME-FROM-001]
+     */
+    @Test
+    fun `every store link on the built site says which page and placement it came from`() {
+        val pages = builtPages()
+        val campaigns = jsObjectValues("SITE_CAMPAIGNS").toSet()
+        val placements = jsArrayValues("SITE_PLACEMENTS").toSet()
+
+        // Three populations, three ways this test could pass while looking at nothing.
+        assertTrue(
+            pages.isNotEmpty(),
+            "[empty population] no .html under $PUBLISHED_SITE — run `node web/build.mjs`. " +
+                "A guard over built output cannot be allowed to pass on an empty directory.",
+        )
+        assertTrue(
+            campaigns.isNotEmpty() && placements.isNotEmpty(),
+            "[empty population] parsed ${campaigns.size} campaigns and ${placements.size} " +
+                "placements out of $SITE_CONFIG — SITE_CAMPAIGNS/SITE_PLACEMENTS were reorganised.",
+        )
+
+        var links = 0
+        val problems = buildList {
+            pages.forEach { (name, html) ->
+                PLAY_LINK.findAll(html).forEach { hit ->
+                    val url = hit.value
+                    // The canonical of the structured data, recognised by what precedes it — not by
+                    // which file it is in, so a second page gaining a JSON-LD block is covered and a
+                    // bare CTA in this one is not excused.
+                    if (html.take(hit.range.first).endsWith(JSON_LD_INSTALL_URL)) return@forEach
+                    links++
+
+                    val encoded = url.substringAfter("referrer=", "")
+                    if (encoded.isEmpty()) {
+                        add("$name · a store link with no referrer → this install is filed as organic")
+                        return@forEach
+                    }
+                    if (encoded.any { it == '&' || it == '=' }) {
+                        add(
+                            "$name · referrer is NOT percent-encoded ('$encoded'). Play splits a " +
+                                "literal & into parameters of its own and the referrer arrives truncated.",
+                        )
+                        return@forEach
+                    }
+                    val utm = parseReferrer(encoded)
+                    (REQUIRED_UTM + "utm_content").filterNot(utm::containsKey).forEach {
+                        add("$name · referrer has no `$it`")
+                    }
+                    utm["utm_source"]?.takeIf { it != UTM_SOURCE_SITE }?.let {
+                        add("$name · utm_source is '$it', expected '$UTM_SOURCE_SITE' for the site's own buttons")
+                    }
+                    utm["utm_medium"]?.takeIf { it != OWNED_MEDIUM }?.let {
+                        add(
+                            "$name · utm_medium is '$it'. The site's own traffic is '$OWNED_MEDIUM': " +
+                                "filing it as '${UTM_MEDIUMS.first()}' merges paparcar.com into Instagram.",
+                        )
+                    }
+                    utm["utm_campaign"]?.takeIf { it !in campaigns }?.let {
+                        add("$name · utm_campaign '$it' is not in SITE_CAMPAIGNS of $SITE_CONFIG")
+                    }
+                    utm["utm_content"]?.takeIf { it !in placements }?.let {
+                        add("$name · utm_content '$it' is not in SITE_PLACEMENTS of $SITE_CONFIG")
+                    }
+                }
+            }
+        }
+
+        assertTrue(
+            links >= SITE_STORE_LINK_FLOOR,
+            "[empty population] only $links non-exempt store links found across ${pages.size} " +
+                "built pages, expected at least $SITE_STORE_LINK_FLOOR. Either the pages stopped " +
+                "linking to the store or $PLAY_LINK no longer matches how they do it.",
+        )
+
+        assertTrue(
+            problems.isEmpty(),
+            buildString {
+                appendLine("A store link on the built site cannot say where its install came from:")
+                problems.distinct().forEach { appendLine("  $it") }
+                appendLine()
+                appendLine("Every link to Play in `web/` comes from `playUrl(pageKey, placement)`;")
+                appendLine("nothing writes PLAY_URL by hand. Then rebuild:")
+                appendLine("  node web/build.mjs")
             },
         )
     }
@@ -780,6 +954,62 @@ class WebSiteParityGuardrailTest {
             ?.toMap()
             .orEmpty()
 
+    /**
+     * `path → {source, medium, campaign}` as `DOWNLOAD_SHORTCUTS` declares it in the site's config —
+     * the table `firebase.json` mirrors because it cannot import it.
+     * [MKT-A-SITE-CTA-MUST-SAY-WHERE-ITS-INSTALL-CAME-FROM-001]
+     */
+    private fun installShortcutTable(): Map<String, Map<String, String>> {
+        val block = read(SITE_CONFIG)
+            .substringAfter("export const DOWNLOAD_SHORTCUTS", "")
+            .substringBefore("\n};")
+        return Regex("""'(/[^']+)':\s*\{([^}]*)}""").findAll(block).associate { row ->
+            val fields = Regex("""(\w+):\s*'([^']*)'""").findAll(row.groupValues[2])
+                .associate { it.groupValues[1] to it.groupValues[2] }
+            row.groupValues[1] to fields
+        }
+    }
+
+    /** The values of an `export const NAME = { k: 'v', … }` object in the site's config. */
+    private fun jsObjectValues(name: String): List<String> =
+        Regex("""\w+:\s*'([^']*)'""")
+            .findAll(
+                read(SITE_CONFIG).substringAfter("export const $name", "").substringBefore("\n};"),
+            )
+            .map { it.groupValues[1] }
+            .toList()
+
+    /** The items of an `export const NAME = ['a', 'b', …]` array in the site's config. */
+    private fun jsArrayValues(name: String): List<String> =
+        Regex("""'([^']*)'""")
+            .findAll(
+                read(SITE_CONFIG).substringAfter("export const $name", "").substringBefore("];"),
+            )
+            .map { it.groupValues[1] }
+            .toList()
+
+    /**
+     * A referrer's UTMs, decoded. One reader for the three tests that need them, so the
+     * percent-decoding cannot be right in one and wrong in another.
+     */
+    private fun parseReferrer(encoded: String): Map<String, String> =
+        encoded.replace("%3D", "=").replace("%26", "&")
+            .split("&")
+            .mapNotNull { pair -> pair.split("=", limit = 2).takeIf { it.size == 2 }?.let { it[0] to it[1] } }
+            .toMap()
+
+    /**
+     * `relative name → contents` for every built page, walked rather than listed: a page added to
+     * `PAGES` in `web/build.mjs` is then covered the day it exists, instead of the day somebody
+     * remembers to add it here.
+     */
+    private fun builtPages(): List<Pair<String, String>> =
+        repoFile(PUBLISHED_SITE).walkTopDown()
+            .filter { it.isFile && it.extension == "html" }
+            .sortedBy { it.path }
+            .map { it.relativeTo(repoFile(PUBLISHED_SITE)).path.replace('\\', '/') to it.readText() }
+            .toList()
+
     private fun read(relative: String): String =
         repoFile(relative).takeIf { it.isFile }?.readText()
             ?: fail("not found from ${repoRoot.path}: $relative")
@@ -841,8 +1071,37 @@ class WebSiteParityGuardrailTest {
 
         const val PAID_MEDIUM = "paid"
 
-        /** Earned vs bought. Nothing else is a medium: the ledger only has those two columns. */
+        /**
+         * Earned vs bought, for traffic that arrives through somebody else's surface. The ledger
+         * grew a THIRD column with [OWNED_MEDIUM] — the site's own buttons are neither — and these
+         * two stay the vocabulary of the `/descargar*` shortcuts, which is all they ever described.
+         */
         val UTM_MEDIUMS = listOf("social", PAID_MEDIUM)
+
+        /**
+         * The site's own traffic. Filing it as `social` would merge paparcar.com into Instagram and
+         * make the only question worth asking — did the post bring them, or did they already know
+         * us? — unanswerable. [MKT-A-SITE-CTA-MUST-SAY-WHERE-ITS-INSTALL-CAME-FROM-001]
+         */
+        const val OWNED_MEDIUM = "owned"
+
+        /** What the site calls itself as a source; `INSTALL_SOURCE_SITE` in the config. */
+        const val UTM_SOURCE_SITE = "web"
+
+        const val PUBLISHED_SITE = "hosting/public"
+
+        /** Any link to the listing, however it is spelled, so a bare one cannot hide from this. */
+        val PLAY_LINK = Regex("""https://play\.google\.com/store/apps/details\?id=[^"'\s]*""")
+
+        /** What precedes the one store link that is allowed to be bare: the JSON-LD canonical. */
+        const val JSON_LD_INSTALL_URL = "\"installUrl\":\""
+
+        /**
+         * Floor for the non-exempt store links on the built site. Measured at **40** the day this
+         * guard landed (42 links, minus the `installUrl` of each locale's home). A number well under
+         * it, so a page gained or dropped does not fail the build, but zero cannot pass.
+         */
+        const val SITE_STORE_LINK_FLOOR = 30
 
         val REQUIRED_UTM = listOf("utm_source", "utm_medium", "utm_campaign")
 

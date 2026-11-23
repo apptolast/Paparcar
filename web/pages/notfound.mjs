@@ -7,7 +7,7 @@
  */
 import { esc, reveal, button } from '../lib/components.mjs';
 import { page } from '../lib/layout.mjs';
-import { PLAY_URL } from '../lib/config.mjs';
+import { playUrl } from '../lib/config.mjs';
 
 export default function notFound({ t, lang, base }) {
   const body = `<section class="notfound">
@@ -22,7 +22,7 @@ export default function notFound({ t, lang, base }) {
     </p>
     <div class="notfound__actions">
       ${button({ href: '/', label: 'Ir al inicio · Go home', icon: 'arrowRight' })}
-      ${button({ href: PLAY_URL, label: 'Google Play', variant: 'ghost', external: true })}
+      ${button({ href: playUrl('notFound', 'body'), label: 'Google Play', variant: 'ghost', external: true })}
     </div>
     <p class="notfound__links">
       <a class="link link--quiet" href="/support">Soporte · Support</a>

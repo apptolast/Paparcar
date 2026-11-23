@@ -23,7 +23,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { ORIGIN, SUPPORT_EMAIL, PLAY_URL } from '../lib/config.mjs';
+import { ORIGIN, SUPPORT_EMAIL, playUrl } from '../lib/config.mjs';
 import { logoLockup } from '../lib/icons.mjs';
 import { asset, setAssetManifest } from '../lib/assets.mjs';
 import { iconLinks } from '../lib/layout.mjs';
@@ -113,7 +113,7 @@ function foot(page) {
     }</a> ·
     <a href="/support">Support</a> ·
     <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a> ·
-    <a href="${PLAY_URL}" rel="noopener">Google Play</a>
+    <a href="${playUrl('legal', 'footer')}" rel="noopener">Google Play</a>
   </p>
 </footer>
 </main>

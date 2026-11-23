@@ -33,6 +33,8 @@ cambio, no después.
 | un color, un rol de tipografía | tokens de `assets/css/site.css` | ❌ a ojo |
 | la UI que sale en las capturas | `tools/prepare-assets.py` con los raws de la sesión de Play | ❌ a ojo |
 | un idioma nuevo | `content/<code>.json` + una línea en `LOCALES` | ⚠️ paridad de claves |
+| **un botón o enlace que lleve a Google Play** | ⛔ **`playUrl(pageKey, placement)`**, nunca `PLAY_URL` a pelo — y si la página o la posición son nuevas, su entrada en `SITE_CAMPAIGNS` / `SITE_PLACEMENTS` de `lib/config.mjs` | ✅ test, sobre el HTML **construido** |
+| **un atajo `/descargar…` nuevo** | la fila en `DOWNLOAD_SHORTCUTS` de `lib/config.mjs` **y** el redirect en `firebase.json` (no puede importar la tabla) | ✅ test, compara las dos |
 
 **Y siempre, al final:** `node web/build.mjs --check` y desplegar. Editar el copy y no reconstruir
 es desplegar lo anterior — hay un test que lo caza, pero solo si alguien lo ejecuta.

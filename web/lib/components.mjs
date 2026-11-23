@@ -3,7 +3,7 @@
  * something another page also draws.
  */
 import { icon, playGlyph, appleGlyph } from './icons.mjs';
-import { PLAY_URL, SUPPORT_EMAIL } from './config.mjs';
+import { SUPPORT_EMAIL } from './config.mjs';
 import { asset } from './assets.mjs';
 
 /** Escape for text nodes and attribute values. Content is authored in JSON, so nothing is trusted. */
@@ -45,8 +45,13 @@ export function button({ href, label, variant = 'primary', icon: iconName, exter
 }
 
 /** Google Play button. The App Store twin is rendered disabled until there is a real listing:
- *  an inert button that says "coming soon" is honest; a live-looking one that 404s is not. */
-export function storeButtons(t, { appleSoon = true } = {}) {
+ *  an inert button that says "coming soon" is honest; a live-looking one that 404s is not.
+ *
+ *  ⛔ `href` has no default on purpose: it comes from `playUrl(pageKey, placement)`, and a default
+ *  here would be the bare store URL again — a link that opens the store and loses where the reader
+ *  came from, with nothing going red. [MKT-A-SITE-CTA-MUST-SAY-WHERE-ITS-INSTALL-CAME-FROM-001] */
+export function storeButtons(t, { href, appleSoon = true } = {}) {
+  if (!href) throw new Error('storeButtons: needs an href from playUrl(pageKey, placement)');
   const apple = appleSoon
     ? `<span class="store-btn store-btn--soon" aria-disabled="true">
         ${appleGlyph()}
@@ -54,7 +59,7 @@ export function storeButtons(t, { appleSoon = true } = {}) {
       </span>`
     : '';
   return `<div class="store-row">
-    <a class="store-btn" href="${PLAY_URL}" target="_blank" rel="noopener">
+    <a class="store-btn" href="${esc(href)}" target="_blank" rel="noopener">
       ${playGlyph()}
       <span class="store-btn__text"><small>${esc(t.store.google)}</small><strong>${esc(t.store.googleName)}</strong></span>
     </a>

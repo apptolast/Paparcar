@@ -1,7 +1,7 @@
 /** The document shell: head, header, footer. Every page goes through `page()`. */
 import { esc, cx, button, storeButtons, icon } from './components.mjs';
 import { logoLockup, playGlyph, appleGlyph } from './icons.mjs';
-import { ORIGIN, PLAY_URL, SUPPORT_EMAIL, LOCALES, SECTIONS, routes } from './config.mjs';
+import { ORIGIN, playUrl, SUPPORT_EMAIL, LOCALES, SECTIONS, routes } from './config.mjs';
 import { asset } from './assets.mjs';
 
 const YEAR = 2026;
@@ -168,7 +168,7 @@ function header(t, pageKey, lang, base) {
 
     <div class="site-header__actions">
       ${languageSwitch(t, pageKey, lang)}
-      ${button({ href: PLAY_URL, label: t.nav.cta, variant: 'primary', external: true, className: 'btn--sm site-header__cta' })}
+      ${button({ href: playUrl(pageKey, 'header'), label: t.nav.cta, variant: 'primary', external: true, className: 'btn--sm site-header__cta' })}
       <button class="burger" type="button" data-menu-toggle aria-expanded="false" aria-controls="site-menu"
               aria-label="${esc(t.nav.menuOpen)}" data-label-open="${esc(t.nav.menuOpen)}" data-label-close="${esc(t.nav.menuClose)}">
         <span class="burger__bars" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -182,7 +182,7 @@ function header(t, pageKey, lang, base) {
         .map((item) => `<li><a class="menu__link" href="${prefix}#${SECTIONS[item.key]}">${esc(item.label)}</a></li>`)
         .join('')}</ul>
       <div class="menu__actions">
-        ${button({ href: PLAY_URL, label: t.nav.cta, variant: 'primary', external: true })}
+        ${button({ href: playUrl(pageKey, 'nav'), label: t.nav.cta, variant: 'primary', external: true })}
         ${languageSwitch(t, pageKey, lang, { compact: true })}
       </div>
     </nav>
@@ -225,7 +225,7 @@ function footer(t, lang, base, pageKey) {
       ${columns}
       <div class="footer__col footer__col--store">
         <h2 class="footer__title">${esc(t.footer.downloadTitle)}</h2>
-        <a class="store-btn store-btn--sm" href="${PLAY_URL}" target="_blank" rel="noopener">
+        <a class="store-btn store-btn--sm" href="${esc(playUrl(pageKey, 'footer'))}" target="_blank" rel="noopener">
           ${playGlyph(20)}
           <span class="store-btn__text"><small>${esc(t.store.google)}</small><strong>${esc(t.store.googleName)}</strong></span>
         </a>

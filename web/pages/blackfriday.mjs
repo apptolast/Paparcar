@@ -16,7 +16,7 @@ import {
   esc, reveal, sectionHead, button, icon, faqItem, tierColumn,
 } from '../lib/components.mjs';
 import { page } from '../lib/layout.mjs';
-import { PLAY_URL } from '../lib/config.mjs';
+import { playUrl } from '../lib/config.mjs';
 
 function hero(t) {
   const h = t.blackfriday.hero;
@@ -31,7 +31,7 @@ function hero(t) {
       </h1>
       <p class="hero__lead" ${reveal(120)}>${esc(h.lead)}</p>
       <div class="hero__actions" ${reveal(180)}>
-        ${button({ href: PLAY_URL, label: h.cta, external: true, icon: 'arrowRight' })}
+        ${button({ href: playUrl('blackfriday', 'hero'), label: h.cta, external: true, icon: 'arrowRight' })}
         ${button({ href: '#how', label: h.ctaSecondary, variant: 'ghost' })}
       </div>
       <p class="hero__meta" ${reveal(220)}>${esc(h.meta)}</p>
@@ -110,7 +110,7 @@ function finalCta(t) {
       </h2>
       <p class="cta__lead" ${reveal(80)}>${esc(c.lead)}</p>
       <div class="hero__actions hero__actions--center" ${reveal(140)}>
-        ${button({ href: PLAY_URL, label: c.cta, external: true, icon: 'arrowRight' })}
+        ${button({ href: playUrl('blackfriday', 'close'), label: c.cta, external: true, icon: 'arrowRight' })}
       </div>
       <p class="cta__meta" ${reveal(180)}>${esc(c.meta)}</p>
     </div>

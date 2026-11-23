@@ -429,13 +429,24 @@ ahí deja la web prometiendo lo de antes, en dos idiomas, para siempre.
 | una feature que la web nombra (plazas, parkings, gasolineras, Plus, coche compartido, detección) | `web/content/{es,en}.json` — **los dos**, en la misma tarea |
 | la política de privacidad o el borrado de cuenta | `hosting/public/{privacy-policy,delete-account}.html` **a mano** (⛔ no son salida del build) |
 | el logo, un color o un rol de tipografía | `web/lib/icons.mjs` · los tokens de `web/assets/css/site.css` |
+| **un botón o enlace que lleve a Google Play** | `playUrl(pageKey, placement)` de `web/lib/config.mjs` — ⛔ **nunca `PLAY_URL` a pelo** |
 | la UI que sale en las capturas | regenerar con `web/tools/prepare-assets.py` desde los raws de la sesión de Play |
 
 - ⛔ **Editar el copy y no reconstruir es desplegar lo anterior.** `node web/build.mjs --check`
   antes de dar nada por hecho.
-- ⛔ **Lo mecánicamente comprobable lo vigila `WebSiteParityGuardrailTest`** (5 chequeos, los cinco
-  falsificados): hechos vs. su fuente, paridad de claves ES/EN, plan free vs. los gates, los tokens
-  en uso, y la salida construida vs. el copy. Como no toca bytecode, sale **UP-TO-DATE** →
+- ⛔ **Un enlace a la tienda dice de dónde sale, y hay DOS productores**
+  [MKT-A-SITE-CTA-MUST-SAY-WHERE-ITS-INSTALL-CAME-FROM-001]: los atajos `/descargar*` de
+  `firebase.json` y los CTA del propio sitio. El segundo no lo miró nadie hasta el 23-11 — **42
+  enlaces a Play en las 11 páginas, cero con `referrer`**— así que Play archivó como **orgánico**
+  todo lo que trajo la web, campaña de Black Friday incluida. Ahora la tabla de campañas vive UNA
+  vez (`SITE_CAMPAIGNS` · `SITE_PLACEMENTS` · `DOWNLOAD_SHORTCUTS` en `web/lib/config.mjs`),
+  `playUrl()` es el único camino a la tienda, y `WebSiteParityGuardrailTest` mide el **HTML
+  construido** (un único exento, el `installUrl` del JSON-LD, por NOMBRE). ⛔ Y lo de siempre: la
+  atribución por USUARIO no existe — la app no lee el install referrer, sólo hay agregado en Play
+  Console y GA4.
+- ⛔ **Lo mecánicamente comprobable lo vigila `WebSiteParityGuardrailTest`** (**7** chequeos, los
+  siete falsificados): hechos vs. su fuente, paridad de claves ES/EN, plan free vs. los gates, los
+  tokens en uso, la salida construida vs. el copy, y los **dos** productores de enlaces a la tienda. Como no toca bytecode, sale **UP-TO-DATE** →
   `--rerun-tasks`. Lo que NO vigila —que el copy sea bueno, que una feature nueva tenga sección—
   es esta tabla.
 

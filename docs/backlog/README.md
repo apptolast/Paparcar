@@ -1,6 +1,6 @@
 # Backlog — índice de lo que sigue abierto
 
-> **861 ficheros: 769 cerrados, 83 abiertos, 9 que no son tickets.** Este índice lista **solo lo que**
+> **862 ficheros: 770 cerrados, 83 abiertos, 9 que no son tickets.** Este índice lista **solo lo que**
 > queda**, para que la pregunta *"¿qué falta?"* se conteste leyendo y no listando el directorio.
 > Verificado contra master `1339ea263` el **2026-10-07**
 > [DOCS-A-CLOSED-TICKET-MUST-NOT-SAY-IT-IS-IN-REVIEW-001]. El barrido anterior
@@ -275,6 +275,7 @@ No son trabajo pendiente: son confirmaciones que faltan. Se listan para que nadi
 | [`release-the-cut-reaches-the-store-001`](release-the-cut-reaches-the-store-001.md) | `cut.py --phases verify` lee la tienda (y destapo que 1.5.0 llevaba 13 dias publicada mientras el repo la daba por pendiente) y `--phases upload` sube al canal interno en borrador. ⏳ El `:commit` de la edicion no se ha ejercitado: hace falta un versionCode nuevo, o sea el proximo corte |
 | [`release-the-cut-must-be-one-command-001`](release-the-cut-must-be-one-command-001.md) | el corte son **un comando** (`tools/release/cut.py`, 9 fases, 45 tests que las falsifican) y `RELEASE-PROCESS.md` ya no lo deletrea. ⏳ El primer corte completo se vera en el **proximo release** --el disparador es el user, no un merge-- y el workflow que lo invoque espera a que Actions arranque |
 | [`mkt-add-facebook-attribution-route-001`](mkt-add-facebook-attribution-route-001.md) | segunda fuente de atribución (`/descargar/fb`), análoga a las seis de Instagram; guard generalizado a `UTM_SOURCE_OF_PATH`. ⏳ desplegar y verlo UNA vez en device |
+| [`mkt-a-site-cta-must-say-where-its-install-came-from-001`](mkt-a-site-cta-must-say-where-its-install-came-from-001.md) | los CTA del sitio enlazaban a Play **pelados**: 42 enlaces en 11 páginas, cero con `referrer` — todo lo que trajo la web, campaña de Black Friday incluida, lo archivó Play como **orgánico**. ⛔ El guard vigilaba UN productor de enlaces y había **dos**: ahora `playUrl()` es el único camino, la tabla de campañas vive una vez y el test mide el HTML **construido** (40/42; exento el `installUrl` del JSON-LD). ⏳ que Play Console enseñe `utm_source=web` |
 
 ## 🚧 Ojo: tickets cuyo doc **no está aquí**
 

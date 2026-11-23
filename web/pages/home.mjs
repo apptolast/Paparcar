@@ -4,7 +4,7 @@ import {
 } from '../lib/components.mjs';
 import { asset } from '../lib/assets.mjs';
 import { page } from '../lib/layout.mjs';
-import { PLAY_URL, SECTIONS, routes, ORIGIN } from '../lib/config.mjs';
+import { PLAY_URL, playUrl, SECTIONS, routes, ORIGIN } from '../lib/config.mjs';
 
 // ── the map panel ─────────────────────────────────────────────────────────────
 // Drawn, not screenshotted: a screenshot of the map would be a picture of Google's tiles, and what
@@ -108,7 +108,7 @@ function hero(t, lang) {
       </h1>
       <p class="hero__lead" ${reveal(120)}>${esc(t.hero.lead)}</p>
       <div class="hero__actions" ${reveal(180)}>
-        ${button({ href: PLAY_URL, label: t.hero.cta, external: true, icon: 'arrowRight' })}
+        ${button({ href: playUrl('home', 'hero'), label: t.hero.cta, external: true, icon: 'arrowRight' })}
         ${button({ href: `#${SECTIONS.how}`, label: t.hero.ctaSecondary, variant: 'ghost' })}
       </div>
       <p class="hero__meta" ${reveal(220)}>${esc(t.hero.meta)}</p>
@@ -232,7 +232,7 @@ function plus(t) {
     </div>
     <div class="plus__foot" ${reveal()}>
       <p class="plus__note">${esc(t.plus.footnote)}</p>
-      ${button({ href: PLAY_URL, label: t.plus.cta, external: true, icon: 'arrowRight' })}
+      ${button({ href: playUrl('home', 'plus'), label: t.plus.cta, external: true, icon: 'arrowRight' })}
     </div>
   </div>
 </section>`;
@@ -286,7 +286,7 @@ function finalCta(t, lang) {
         <span class="cta__title--accent">${esc(t.finalCta.title[1])}</span>
       </h2>
       <p class="cta__lead" ${reveal(80)}>${esc(t.finalCta.lead)}</p>
-      <div ${reveal(140)}>${storeButtons(t)}</div>
+      <div ${reveal(140)}>${storeButtons(t, { href: playUrl('home', 'store') })}</div>
       <p class="cta__meta" ${reveal(180)}>${esc(t.finalCta.meta)}</p>
     </div>
     <div class="cta__visual" ${reveal(120)}>
@@ -309,6 +309,10 @@ function jsonLd(t, base) {
       operatingSystem: 'Android 8.0+',
       url: `${ORIGIN}${r.home}`,
       description: t.site.description,
+      // ⛔ El ÚNICO enlace a Play del sitio sin `referrer`, y a propósito: esto no es un botón,
+      // es el CANÓNICO que leen los buscadores. Etiquetarlo mete UTMs en un resultado de búsqueda
+      // y en cualquier sitio que reutilice el dato. El guard lo exime por NOMBRE, nunca por fichero.
+      // [MKT-A-SITE-CTA-MUST-SAY-WHERE-ITS-INSTALL-CAME-FROM-001]
       installUrl: PLAY_URL,
       image: `${ORIGIN}${asset('/assets/img/og-card.jpg')}`,
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },

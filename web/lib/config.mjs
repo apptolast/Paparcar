@@ -118,6 +118,104 @@ export const SECTIONS = {
   faq: 'faq',
 };
 
+/**
+ * Where an install came from — the ONE table, for the two producers of store links.
+ * [MKT-A-SITE-CTA-MUST-SAY-WHERE-ITS-INSTALL-CAME-FROM-001]
+ *
+ * The `referrer` parameter is the only thing that survives the hop into Play, and until this ticket
+ * only ONE producer carried it: the `/descargar*` redirects in `firebase.json`, for the Instagram
+ * bio, the QR codes and Facebook. The site's own buttons — 42 links across the 11 built pages —
+ * linked to the bare [PLAY_URL], so Play filed every install the site brought as **organic** and
+ * GA4 as `(direct)`. The Black Friday landing shipped on 22-11 and spent its first day doing exactly
+ * that. Nothing was red: the links opened the store, which is the whole problem with this class of
+ * defect [MKT-AN-INSTALL-MUST-SAY-WHERE-IT-CAME-FROM-001].
+ *
+ * ⛔ So the campaign vocabulary lives HERE, once, and `WebSiteParityGuardrailTest` holds both
+ * producers against it — `firebase.json` cannot import this file, which is why the two copies of
+ * the URL needed a guard tying them together in the first place.
+ *
+ * ⛔ And the site links DIRECT to Play rather than bouncing through `/descargar`: going through the
+ * shortcut would need a redirect per surface of the site, which multiplies the places a campaign is
+ * declared at the exact moment we are reducing them to one.
+ */
+export const INSTALL_SOURCE_SITE = 'web';
+
+/**
+ * The third column of the ledger. `social` and `paid` are earned vs bought reach, and the site's own
+ * traffic is neither: filing it as `social` would merge paparcar.com into Instagram and make the
+ * only question worth asking — did the post bring them, or did they already know us? —
+ * unanswerable. A bought radius keeps its `z-` slug; owned traffic never has one.
+ */
+export const INSTALL_MEDIUM_OWNED = 'owned';
+
+/**
+ * `utm_campaign` per page, NOT per button. The campaign census stays bounded on purpose (the note in
+ * `firebase.json` says as much); which button converted is [SITE_PLACEMENTS], in `utm_content`.
+ *
+ * Keyed by the `pageKey` that `page()` already threads through the layout, so the header, the nav
+ * and the footer name their own page without being told twice. `legal` is the pair of hand-kept
+ * pages `web/tools/restyle-legal.mjs` writes.
+ */
+export const SITE_CAMPAIGNS = {
+  home: 'home',
+  support: 'support',
+  terms: 'terms',
+  blackfriday: 'blackfriday',
+  notFound: '404',
+  legal: 'legal',
+};
+
+/** `utm_content`: WHERE on the page the reader pressed. */
+export const SITE_PLACEMENTS = ['header', 'nav', 'footer', 'hero', 'plus', 'store', 'close', 'body'];
+
+/**
+ * The `/descargar*` shortcuts, mirrored from `firebase.json → hosting.redirects`, which cannot
+ * import this file. The guard compares the two, so a redirect that stops matching its row here is a
+ * red build rather than a month of attribution quietly filed under the wrong campaign.
+ */
+export const DOWNLOAD_SHORTCUTS = {
+  '/descargar': { source: 'instagram', medium: 'social', campaign: 'bio' },
+  '/descargar/parte': { source: 'instagram', medium: 'social', campaign: 'parte' },
+  '/descargar/vuelta': { source: 'instagram', medium: 'social', campaign: 'vuelta' },
+  '/descargar/galibo': { source: 'instagram', medium: 'social', campaign: 'galibo' },
+  '/descargar/compartido': { source: 'instagram', medium: 'social', campaign: 'compartido' },
+  '/descargar/z-mostoles': { source: 'instagram', medium: 'paid', campaign: 'z-mostoles' },
+  '/descargar/fb': { source: 'facebook', medium: 'social', campaign: 'fb' },
+};
+
+/**
+ * The store link for a button on this site, carrying where the click came from.
+ *
+ * ⛔ **This is the only way `web/` is allowed to link to Play**, and the reason it throws instead of
+ * defaulting: a default would be a bare link again, deployed clean, losing the attribution without
+ * one error anywhere. The exception is the `installUrl` of the structured data, which is the
+ * CANONICAL the search engines read — tagging that would put UTMs in a search result and in
+ * anything that reuses the datum — and it is exempted by name in the guard, never by file.
+ *
+ * ⛔ The value is percent-encoded with `encodeURIComponent`, not assembled by hand: a literal `&`
+ * inside `referrer` is split by Play into parameters of its own and the referrer arrives truncated.
+ */
+export function playUrl(pageKey, placement) {
+  const campaign = SITE_CAMPAIGNS[pageKey];
+  if (!campaign) {
+    throw new Error(
+      `playUrl: page '${pageKey}' has no campaign. Add it to SITE_CAMPAIGNS in web/lib/config.mjs — ` +
+        'a store link with nothing to say about where it came from is filed as organic.',
+    );
+  }
+  if (!SITE_PLACEMENTS.includes(placement)) {
+    throw new Error(
+      `playUrl: '${placement}' is not a placement. One of ${SITE_PLACEMENTS.join(', ')}, or add it.`,
+    );
+  }
+  const referrer =
+    `utm_source=${INSTALL_SOURCE_SITE}` +
+    `&utm_medium=${INSTALL_MEDIUM_OWNED}` +
+    `&utm_campaign=${campaign}` +
+    `&utm_content=${placement}`;
+  return `${PLAY_URL}&referrer=${encodeURIComponent(referrer)}`;
+}
+
 /** Page routes per locale. `key` matches the page module. */
 export function routes(base) {
   return {
