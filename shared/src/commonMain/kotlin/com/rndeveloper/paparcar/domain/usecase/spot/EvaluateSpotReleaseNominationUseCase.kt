@@ -99,6 +99,12 @@ class EvaluateSpotReleaseNominationUseCase {
             zoneRadiusMeters = session.zoneRadiusMeters,
             detectionReliability = session.detectionReliability,
             privateZones = privateZones,
+            // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] The session is still open here, so the
+            // dwell is measured to the boarding itself — which is the honest span: a driver getting
+            // back in three minutes after stopping at a pump has refuelled, not vacated a plaza,
+            // and that is precisely the boarding this gate must not announce.
+            placeInfo = session.placeInfo,
+            dwellMs = session.dwellMs(nowMs),
         )
         if (shape is SpotReleasePolicy.Shape.Withheld) {
             return SpotReleaseNomination.Skip(shape.reason.name.lowercase())

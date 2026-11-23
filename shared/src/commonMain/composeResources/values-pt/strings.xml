@@ -1253,4 +1253,11 @@ Se a pergunta já não aparecer, muda em Definições → Paparcar → Localiza�
     <string name="notif_mark_parking_title">Onde deixou o carro?</string>
     <string name="notif_mark_parking_text">Detetámos que se deslocou, mas não conseguimos fixar onde ficou o seu carro. Marque o estacionamento para não o perder.</string>
     <string name="notif_mark_parking_action">Marcar estacionamento</string>
+    <string name="refuel_ask_title">Abasteceu aqui?</string>
+    <string name="refuel_ask_body_at">O seu carro parou em %1$s, por isso não foi publicado nenhum lugar livre aí. Se abasteceu, somamos aos números deste carro.</string>
+    <string name="refuel_ask_body">O seu carro parou numa estação de serviço, por isso não foi publicado nenhum lugar livre aí. Se abasteceu, somamos aos números deste carro.</string>
+    <string name="refuel_answer_yes">Sim, abasteci</string>
+    <string name="refuel_answer_no">Não</string>
+    <string name="refuel_confirmed_fact">Abasteceu aqui</string>
+    <string name="refuel_possible_label">Possível abastecimento</string>
 </resources>

@@ -3,6 +3,7 @@
 package com.rndeveloper.paparcar.presentation.map
 
 import com.rndeveloper.paparcar.domain.model.GpsPoint
+import com.rndeveloper.paparcar.domain.model.RefuelStopAnswer
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleSize
@@ -22,6 +23,7 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import app.cash.turbine.test
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
@@ -70,6 +72,9 @@ class ParkingHistoryViewModelTest {
                     com.rndeveloper.paparcar.domain.model.Entitlement.PLUS,
                 ),
             ),
+            // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] Sobre el MISMO repositorio falso, para
+            // que contestar desde la ficha se pueda comprobar leyendo la sesión de vuelta.
+            answerRefuelStop = com.rndeveloper.paparcar.domain.usecase.parking.AnswerRefuelStopUseCase(repo),
         )
     }
 
@@ -362,5 +367,36 @@ class ParkingHistoryViewModelTest {
         )
         vm.handleIntent(ParkingHistoryIntent.SetFocusedSession("s1"))
         assertEquals("v1", vm.state.value.focusedVehicle?.id)
+    }
+
+    // ── La tercera puerta a «¿Repostaste aquí?» ──────────────────────────────
+    // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001]
+
+    @Test
+    fun `should_answer_the_refuel_question_from_the_detail_sheet`() = runTest {
+        val vm = buildVm(
+            sessions = listOf(
+                sessionAt("pump", 1_000L).copy(refuelStop = RefuelStopAnswer.PENDING),
+            ),
+        )
+        vm.handleIntent(ParkingHistoryIntent.SetFocusedSession("pump"))
+
+        vm.handleIntent(ParkingHistoryIntent.AnswerRefuelStop("pump", refuelled = true))
+        advanceUntilIdle()
+
+        assertEquals(RefuelStopAnswer.CONFIRMED, parkingRepo.getSessionById("pump")?.refuelStop)
+    }
+
+    @Test
+    fun `should_not_invent_a_refuel_when_the_session_was_never_asked_about`() = runTest {
+        // El mismo guard que protege a las otras dos puertas: una ficha abierta sobre un
+        // aparcamiento corriente no puede convertirlo en un repostaje.
+        val vm = buildVm(sessions = listOf(sessionAt("plain", 1_000L)))
+        vm.handleIntent(ParkingHistoryIntent.SetFocusedSession("plain"))
+
+        vm.handleIntent(ParkingHistoryIntent.AnswerRefuelStop("plain", refuelled = true))
+        advanceUntilIdle()
+
+        assertNull(parkingRepo.getSessionById("plain")?.refuelStop)
     }
 }

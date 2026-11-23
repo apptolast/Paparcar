@@ -75,6 +75,12 @@ fun reconcileParkingSessions(
             // was real), which is the asymmetric-failure direction we never take. The withdrawal
             // only ever travels one way: once withdrawn, withdrawn.
             retractedAtMs = r.retractedAtMs ?: l?.retractedAtMs,
+            // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] Misma forma que las dos de arriba, por la
+            // misma razón: un doc remoto escrito antes de que el campo viajara trae null, y tomarlo
+            // borraría la pregunta —o peor, la RESPUESTA— que este móvil ya tiene. Lo que no hace
+            // falta resolver aquí es qué respuesta gana si dos móviles contestan distinto: el
+            // documento entero ya lo arbitra el Last-Write-Wins de `updatedAt` antes de llegar.
+            refuelStop = r.refuelStop ?: l?.refuelStop,
         )
     },
 )

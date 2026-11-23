@@ -60,7 +60,13 @@ class RevertParkingUseCase(
         userParkingRepository.retractParkingSession(parkingId, now)
             .onFailure { return Result.failure(it) }
         userParkingRepository.clearActiveParkingSession(
-            parkingId, endedAtMs = now, publishedSpot = false,
+            parkingId,
+            endedAtMs = now,
+            publishedSpot = false,
+            // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] A park the user has just said never
+            // happened leaves no question behind: the stop it would ask about is the one being
+            // withdrawn. The row is retracted in the line above, so nothing will read it anyway.
+            refuelStop = null,
         ).onFailure { return Result.failure(it) }
 
         geofenceService.removeGeofence(parkingId).onFailure {

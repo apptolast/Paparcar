@@ -54,6 +54,7 @@ class VehicleStatsBlockTest {
                 ),
             )
         }.orEmpty(),
+        refuelsConfirmed = 0,
         spotsReleased = spotsReleased,
         autoDetectedCount = autoCount,
         detectionKnownCount = knownCount,

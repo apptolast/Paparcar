@@ -5,7 +5,9 @@ package com.rndeveloper.paparcar.fakes.data.repository
 import com.rndeveloper.paparcar.domain.detection.DetectionRuntimeState
 import com.rndeveloper.paparcar.domain.model.AddressInfo
 import com.rndeveloper.paparcar.domain.model.GpsPoint
+import com.rndeveloper.paparcar.domain.model.PlaceCategory
 import com.rndeveloper.paparcar.domain.model.PlaceInfo
+import com.rndeveloper.paparcar.domain.model.RefuelStopAnswer
 import com.rndeveloper.paparcar.domain.model.RouteInferenceResolution
 import com.rndeveloper.paparcar.domain.model.SpotType
 import com.rndeveloper.paparcar.domain.model.UserParking
@@ -82,6 +84,29 @@ class FakeUserParkingRepository(
      *  parking, a withdrawal says it never happened. */
     private val retractedIds = MutableStateFlow<Map<String, Long>>(emptyMap())
 
+    /**
+     * [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] Qué paradas están preguntando «¿Repostaste
+     * aquí?» y qué se ha contestado.
+     *
+     * Arranca con la parada sembrada abajo ya PENDIENTE: el aviso de Home y la fila del historial
+     * son estados NUEVOS, y un catálogo que exigiera salir a repostar para verlos no los enseñaría
+     * nunca.
+     */
+    private val refuelAnswers = MutableStateFlow<Map<String, RefuelStopAnswer>>(emptyMap())
+
+    /** La pregunta de la parada sembrada: PENDIENTE mientras el escenario la pida y nadie la haya
+     *  contestado, y lo que se contestó en cuanto hay respuesta. */
+    private fun seededRefuelAnswers(): Flow<Map<String, RefuelStopAnswer>> {
+        val lever = scenario?.refuelStopPending ?: MutableStateFlow(false)
+        return combine(lever, refuelAnswers) { pending, answers ->
+            when {
+                answers.containsKey(REFUEL_STOP_SESSION_ID) -> answers
+                pending -> answers + (REFUEL_STOP_SESSION_ID to RefuelStopAnswer.PENDING)
+                else -> answers
+            }
+        }
+    }
+
     private val mockSessions: List<UserParking> = buildList {
         // ── Active session ────────────────────────────────────────────────────
         add(UserParking(
@@ -94,6 +119,27 @@ class FakeUserParkingRepository(
             spotType = SpotType.AUTO_DETECTED,
             detectionReliability = 0.92f,
             address = AddressInfo("Calle de Génova, 12", "Madrid", "Madrid", "España", "ES"),
+        ))
+
+        // ── Parada en el surtidor, sin contestar ──────────────────────────────
+        // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] Cerrada hace dos horas tras cuatro minutos
+        // en una gasolinera, con `publishedSpot = false` porque el gate retuvo la plaza. Es la fila
+        // de la que viven el aviso de Home y el badge «Posible repostaje» del historial.
+        add(UserParking(
+            id = REFUEL_STOP_SESSION_ID,
+            userId = "mock_user_001",
+            vehicleId = "mock_vehicle_001",
+            location = GpsPoint(
+                40.4301, -3.7038, 7f,
+                now - REFUEL_STOP_ENDED_AGO_MS - REFUEL_STOP_DWELL_MS, 0f,
+            ),
+            isActive = false,
+            endedAtMs = now - REFUEL_STOP_ENDED_AGO_MS,
+            publishedSpot = false,
+            spotType = SpotType.AUTO_DETECTED,
+            detectionReliability = 0.9f,
+            address = AddressInfo("Calle de Bravo Murillo, 190", "Madrid", "Madrid", "España", "ES"),
+            placeInfo = PlaceInfo("Repsol Bravo Murillo", PlaceCategory.FUEL),
         ))
 
         // ── Seat León (vehicle_001) — 65 sessions over 2 years ───────────────
@@ -285,9 +331,15 @@ class FakeUserParkingRepository(
                 if (own) base + seedFor(approx) else base
             }
         }
-        return combine(baseWithSeed, savedSessions, releasedIds, retractedIds) { base, saved, released, retracted ->
+        return combine(
+            baseWithSeed, savedSessions, releasedIds, retractedIds, seededRefuelAnswers(),
+        ) { base, saved, released, retracted, refuels ->
             (base + saved)
                 .map { s -> if (s.id in released) s.copy(isActive = false) else s }
+                // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] La respuesta se aplica SOBRE la lista,
+                // igual que la liberación: así contestar en el Dev Catalog hace desaparecer la
+                // pregunta de la fila, que es justo el bucle que hay que poder probar en device.
+                .map { s -> refuels[s.id]?.let { answer -> s.copy(refuelStop = answer) } ?: s }
                 // [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] The mock hides a withdrawn row from
                 // the history exactly as the Room queries do, so the Dev Catalog plays the real loop.
                 .filterNot { it.id in retracted }
@@ -306,6 +358,15 @@ class FakeUserParkingRepository(
             // The by-id and active lookups are DIAGNOSTIC reads: they still see a withdrawn row,
             // stamped, like production. [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001]
             .map { s -> retractedIds.value[s.id]?.let { at -> s.copy(retractedAtMs = at) } ?: s }
+            // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] La lectura por id ve lo mismo que el
+            // stream; sin esto, contestar desde Home no cambiaría lo que el peek vuelve a leer.
+            .map { s ->
+                val answered = refuelAnswers.value[s.id]
+                    ?: RefuelStopAnswer.PENDING.takeIf {
+                        s.id == REFUEL_STOP_SESSION_ID && scenario?.refuelStopPending?.value == true
+                    }
+                answered?.let { s.copy(refuelStop = it) } ?: s
+            }
     }
 
     override suspend fun saveNewParkingSession(session: UserParking): Result<String?> {
@@ -384,12 +445,36 @@ class FakeUserParkingRepository(
         sessionId: String,
         endedAtMs: Long,
         publishedSpot: Boolean,
+        refuelStop: RefuelStopAnswer?,
     ): Result<Unit> {
         // Releasing really frees the session so the mock plays the whole loop: the parked card
         // and the watching line drop, and the story returns to its cold-start row. [UX-PARKED-STATE-001]
         releasedIds.value = releasedIds.value + sessionId
+        // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] El cierre que marca una parada en el surtidor
+        // la deja preguntando, igual que en producción, para que el Dev Catalog pueda enseñar el
+        // aviso de Home y la fila del historial sin inventarse un estado.
+        refuelStop?.let { refuelAnswers.value = refuelAnswers.value + (sessionId to it) }
         return Result.success(Unit)
     }
+
+    override suspend fun answerRefuelStop(
+        sessionId: String,
+        answer: RefuelStopAnswer,
+    ): Result<Unit> {
+        // Como el `WHERE refuelStop IS NOT NULL` de producción: sólo alcanza a la parada por la que
+        // la app preguntó. [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001]
+        if (sessionId == REFUEL_STOP_SESSION_ID) {
+            refuelAnswers.value = refuelAnswers.value + (sessionId to answer)
+        }
+        return Result.success(Unit)
+    }
+
+    override fun observePendingRefuelStop(): Flow<UserParking?> =
+        allSessionsFlow().map { sessions ->
+            // `allSessionsFlow` ya aplica las respuestas, así que esto pregunta lo mismo que la
+            // consulta de Room: la parada cerrada cuya pregunta sigue abierta.
+            sessions.firstOrNull { it.hasPendingRefuelQuestion && !it.isActive }
+        }
 
     /** [DET-A-TRAIN-IS-NOT-A-CAR-001] The inverse of the release above: the car comes back. */
     override suspend fun restoreParkingSession(sessionId: String): Result<Unit> {
@@ -451,5 +536,15 @@ class FakeUserParkingRepository(
 
     private companion object {
         const val APPROXIMATE_SEED_RADIUS_M = 154f
+
+        /** [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] La parada en el surtidor sembrada: la
+         *  pregunta de Home y el badge del historial cuelgan de esta fila. */
+        const val REFUEL_STOP_SESSION_ID = "parking_refuel_pending"
+
+        /** Hace dos horas: dentro de la ventana en la que Home todavía pregunta. */
+        const val REFUEL_STOP_ENDED_AGO_MS = 2L * 60L * 60L * 1000L
+
+        /** Cuatro minutos en el surtidor — un depósito, no un aparcamiento. */
+        const val REFUEL_STOP_DWELL_MS = 4L * 60L * 1000L
     }
 }

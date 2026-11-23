@@ -165,6 +165,15 @@ sealed class HomeIntent {
      *  checklist keep owning the ask. */
     data object DismissDetectionPitch : HomeIntent()
 
+    /** «Sí» / «No» on «¿Repostaste aquí?» — the user's verdict on a stop the detection read as a
+     *  visit to a pump. [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] */
+    data class AnswerRefuelStop(val sessionId: String, val refuelled: Boolean) : HomeIntent()
+
+    /** Waving the refuel question away without answering it. Writes nothing: the stop keeps its
+     *  pending question in the vehicle's history, which is where it belongs once Home has had its
+     *  one chance to ask. [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] */
+    data class DismissRefuelStopAsk(val sessionId: String) : HomeIntent()
+
     /** "Activate now" on the battery nudge — request the OS battery-optimization exemption (and the
      *  OEM foreground/autostart page) so the detection service survives on aggressive OEMs.
      *  [DET-BATTERY-EXEMPTION-NUDGE-001] */

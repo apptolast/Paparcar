@@ -71,6 +71,7 @@ val presentationModule = module {
             get(),
             correctDetectedParking = get(),
             confirmStillParked = get(),
+            answerRefuelStop = get(),
         )
     }
     viewModelOf(::ParkingHistoryViewModel)

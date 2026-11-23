@@ -11,6 +11,7 @@ import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.PlaceCategory
 import com.rndeveloper.paparcar.domain.model.PlaceInfo
+import com.rndeveloper.paparcar.domain.model.RefuelStopAnswer
 import com.rndeveloper.paparcar.domain.model.RouteInferenceResolution
 import com.rndeveloper.paparcar.domain.model.Spot
 import com.rndeveloper.paparcar.domain.model.SpotType
@@ -57,6 +58,7 @@ fun UserParkingEntity.toDomain(): UserParking = UserParking(
     endedAtMs = endedAtMs,
     publishedSpot = publishedSpot,
     retractedAtMs = retractedAtMs,
+    refuelStop = refuelStop.toEnumOrNull<RefuelStopAnswer>(),
 )
 
 /**
@@ -141,6 +143,7 @@ fun UserParking.toEntity(updatedAt: Long = 0, pendingSync: Boolean = false): Use
     endedAtMs = endedAtMs,
     publishedSpot = publishedSpot,
     retractedAtMs = retractedAtMs,
+    refuelStop = refuelStop?.name,
     updatedAt = updatedAt,
     pendingSync = pendingSync,
 )
@@ -197,6 +200,9 @@ fun UserParking.toParkingHistoryDto(updatedAt: Long = 0L) = ParkingHistoryDto(
     endedAtMs = endedAtMs,
     publishedSpot = publishedSpot,
     retractedAtMs = retractedAtMs,
+    // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] Viaja porque la PREGUNTA es del usuario, no del
+    // dispositivo: contestarla en el móvil la tiene que cerrar en la tablet.
+    refuelStop = refuelStop?.name,
     // Quién está escribiendo ESTE documento, estampado donde se construye — que es siempre en el
     // dispositivo que sube. [DIAG-A-ROW-MUST-SAY-WHICH-PLATFORM-WROTE-IT-001]
     platform = platformName,
@@ -250,6 +256,7 @@ fun ParkingHistoryDto.toEntity() = UserParkingEntity(
     endedAtMs = endedAtMs,
     publishedSpot = publishedSpot,
     retractedAtMs = retractedAtMs,
+    refuelStop = refuelStop,
     // A row coming FROM Firestore is by definition already synced → pendingSync=false. Its
     // updatedAt carries the remote edit time for the LWW merge. [SYNC-RECONCILE-USERPARKING-001]
     updatedAt = updatedAt,

@@ -1254,4 +1254,11 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen â†’ Paparcar â
     <string name="notif_mark_parking_title">Waar heb je je auto achtergelaten?</string>
     <string name="notif_mark_parking_text">We hebben gemerkt dat je je hebt verplaatst, maar konden niet vaststellen waar je auto is gebleven. Markeer de parkeerplaats zodat je hem niet kwijtraakt.</string>
     <string name="notif_mark_parking_action">Parkeerplaats markeren</string>
+    <string name="refuel_ask_title">Heb je hier getankt?</string>
+    <string name="refuel_ask_body_at">Je auto stopte bij %1$s, dus er is daar geen vrije plek gepubliceerd. Als je getankt hebt, tellen we het mee bij de cijfers van deze auto.</string>
+    <string name="refuel_ask_body">Je auto stopte bij een tankstation, dus er is daar geen vrije plek gepubliceerd. Als je getankt hebt, tellen we het mee bij de cijfers van deze auto.</string>
+    <string name="refuel_answer_yes">Ja, ik heb getankt</string>
+    <string name="refuel_answer_no">Nee</string>
+    <string name="refuel_confirmed_fact">Hier getankt</string>
+    <string name="refuel_possible_label">Mogelijk getankt</string>
 </resources>

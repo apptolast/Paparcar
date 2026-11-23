@@ -5,6 +5,7 @@ package com.rndeveloper.paparcar.domain.usecase.stats
 import com.rndeveloper.paparcar.domain.detection.ParkingDetectionSource
 import com.rndeveloper.paparcar.domain.detection.detectionSource
 import com.rndeveloper.paparcar.domain.model.Money
+import com.rndeveloper.paparcar.domain.model.RefuelStopAnswer
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.Zone
@@ -156,6 +157,10 @@ class ComputePeriodStatsUseCase {
             mostActiveDayOfWeek = mostActiveDayOfWeek,
             places = places,
             spotsReleased = ended.count { it.publishedSpot },
+            // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] Dated like every other habit figure here
+            // — by the session's own clock — so answering an old stop from the history credits the
+            // period the stop belongs to, not the period the user happened to answer in.
+            refuelsConfirmed = ended.count { it.refuelStop == RefuelStopAnswer.CONFIRMED },
             // ⛔ DOS cajones excluidos, y el segundo se añadió para que esta cifra NO cambie.
             // [DET-A-YES-IS-NOT-A-HAND-001]
             //

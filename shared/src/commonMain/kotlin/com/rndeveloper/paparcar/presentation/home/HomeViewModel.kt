@@ -186,6 +186,9 @@ class HomeViewModel(
     private val nearbyAlerts: HomeNearbyAlertController,
     private val correctDetectedParking: com.rndeveloper.paparcar.domain.usecase.parking.CorrectDetectedParkingUseCase,
     private val confirmStillParked: com.rndeveloper.paparcar.domain.usecase.parking.ConfirmStillParkedUseCase,
+    /** [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] Al final del constructor, por lo mismo que los
+     *  dos de arriba: Koin lo construye con `get()` posicionales. */
+    private val answerRefuelStop: com.rndeveloper.paparcar.domain.usecase.parking.AnswerRefuelStopUseCase,
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
 
     /**
@@ -270,6 +273,18 @@ class HomeViewModel(
                 withActiveSessions(it).copy(parkingSessionsLoaded = true)
             }
         observeParkedVehicles().collectInto("parkedVehicles") { copy(parkedVehicles = it) }
+        // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] La parada en el surtidor que aún no ha
+        // contestado nadie. La frescura se decide AQUÍ y no en una propiedad derivada del estado:
+        // el estado no tiene reloj, y una pregunta cuya vigencia dependiera del momento de pintar
+        // reaparecería y desaparecería entre recomposiciones. Se reevalúa con cada emisión de Room,
+        // que es exactamente cuando la respuesta puede cambiar.
+        userParkingRepository.observePendingRefuelStop().collectInto("pendingRefuelStop") { stop ->
+            copy(
+                pendingRefuelStop = stop?.takeIf {
+                    refuelAskIsFresh(it.endedAtMs, Clock.System.now().toEpochMilliseconds())
+                },
+            )
+        }
         zoneRepository.observeZones().collectInto("zones") { copy(zones = it) }
         // ⛔ `withDrivingMeta()` también aquí: sin nominado, el coche del viaje lo elige la flota, así
         // que una flota que llega DESPUÉS del arme dejaría el viaje sin coche al que atribuirlo —
@@ -656,6 +671,19 @@ class HomeViewModel(
             }
             is HomeIntent.DismissDetectionPitch ->
                 updateState { copy(showDetectionPitch = false) }
+
+            // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] «¿Repostaste aquí?». The dismissal is
+            // in-memory and the answer is durable — the asymmetry IS the design: saying nothing
+            // must not become an answer, so the question survives in the history either way.
+            is HomeIntent.AnswerRefuelStop -> viewModelScope.launch {
+                answerRefuelStop(intent.sessionId, intent.refuelled)
+                    .onFailure { e ->
+                        PaparcarLogger.e(TAG, "answerRefuelStop failed session=${intent.sessionId}", e)
+                        sendEffect(HomeEffect.ShowError(PaparcarError.Database.Unknown(e.message.orEmpty())))
+                    }
+            }
+            is HomeIntent.DismissRefuelStopAsk ->
+                updateState { copy(refuelAsksDismissed = refuelAsksDismissed + intent.sessionId) }
 
             // Guided first steps [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001]
             is HomeIntent.DismissFirstSteps,

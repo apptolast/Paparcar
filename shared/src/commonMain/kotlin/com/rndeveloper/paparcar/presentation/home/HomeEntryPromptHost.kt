@@ -14,6 +14,7 @@ import com.rndeveloper.paparcar.domain.entitlement.PlusMoment
 import com.rndeveloper.paparcar.presentation.app.AdMeasurementConsentDialog
 import com.rndeveloper.paparcar.presentation.app.PlusMomentDialog
 import com.rndeveloper.paparcar.ui.components.PapAlertDialog
+import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.illustrations.AutoDetectionIllustration
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -21,6 +22,11 @@ import paparcar.composeapp.generated.resources.home_det_pitch_body
 import paparcar.composeapp.generated.resources.home_det_pitch_title
 import paparcar.composeapp.generated.resources.home_det_producer_cta
 import paparcar.composeapp.generated.resources.permissions_btn_not_now
+import paparcar.composeapp.generated.resources.refuel_answer_no
+import paparcar.composeapp.generated.resources.refuel_answer_yes
+import paparcar.composeapp.generated.resources.refuel_ask_body
+import paparcar.composeapp.generated.resources.refuel_ask_body_at
+import paparcar.composeapp.generated.resources.refuel_ask_title
 
 /** One owner for the Home entry surfaces. Eligibility stays with each feature's existing owner. */
 @Composable
@@ -65,6 +71,10 @@ fun HomeEntryPromptHost(
         plusMomentAvailable = plusMoment != null,
         detectionPitchPending = state.showDetectionPitch,
         firstParkingOfferPending = state.shouldOfferInitialParkingEditor,
+        // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] Freshness was already applied upstream; what
+        // is left here is whether the user has waved this one away during this run.
+        refuelAskPending = state.pendingRefuelStop
+            ?.let { it.id !in state.refuelAsksDismissed } == true,
         canAskAdMeasurementConsent = state.canAskHomeAdConsent(
             askAdMeasurementConsent, leftHomeAfterCompletion,
         ),
@@ -100,6 +110,23 @@ fun HomeEntryPromptHost(
         )
         HomeEntryPrompt.AD_MEASUREMENT ->
             AdMeasurementConsentDialog(onAnswer = onAnswerAdMeasurementConsent)
+        // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] Two answers and no third button: the question
+        // is one the user always knows the answer to, so an «ahora no» would only be a way of
+        // asking it again tomorrow. Backing out still works and writes nothing.
+        HomeEntryPrompt.REFUEL -> state.pendingRefuelStop?.let { stop ->
+            PapAlertDialog(
+                onDismiss = { onIntent(HomeIntent.DismissRefuelStopAsk(stop.id)) },
+                icon = PaparcarIcons.Fuel,
+                title = stringResource(Res.string.refuel_ask_title),
+                body = stop.placeInfo?.name
+                    ?.let { stringResource(Res.string.refuel_ask_body_at, it) }
+                    ?: stringResource(Res.string.refuel_ask_body),
+                primaryLabel = stringResource(Res.string.refuel_answer_yes),
+                onPrimary = { onIntent(HomeIntent.AnswerRefuelStop(stop.id, refuelled = true)) },
+                secondaryLabel = stringResource(Res.string.refuel_answer_no),
+                onSecondary = { onIntent(HomeIntent.AnswerRefuelStop(stop.id, refuelled = false)) },
+            )
+        }
         HomeEntryPrompt.FIRST_PARKING, HomeEntryPrompt.NONE -> Unit
     }
 }

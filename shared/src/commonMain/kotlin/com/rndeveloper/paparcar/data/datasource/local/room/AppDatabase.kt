@@ -7,7 +7,7 @@ import androidx.room.RoomDatabaseConstructor
 
 /** The declared schema version — single source for the annotation and the tests that pin what an
  *  opened file must end up at. [DB-A-NEW-COLUMN-NEEDS-ITS-MIGRATION-001] */
-const val PAPARCAR_DB_VERSION = 20  // v20: searchTimeMs v1 invalidado — la fórmula retirada contaba latencia como búsqueda [STATS-EVERY-NUMBER-CITES-ITS-EVIDENCE-001] — MIGRATION_19_20 in ALL_MIGRATIONS
+const val PAPARCAR_DB_VERSION = 21  // v21: refuelStop — la parada en el surtidor ni publica plaza ni se cuenta como aparcar [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] — MIGRATION_20_21 in ALL_MIGRATIONS
 
 @Database(
     entities = [

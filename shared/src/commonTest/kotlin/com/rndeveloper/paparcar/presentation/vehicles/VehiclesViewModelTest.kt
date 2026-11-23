@@ -99,6 +99,9 @@ class VehiclesViewModelTest {
             // [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] Empty audio route — these tests are not
             // about vía A; the row does not paint on this (non-iOS) graph anyway.
             com.rndeveloper.paparcar.fakes.data.repository.FakeCarAudioRouteSource(),
+            // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] La respuesta a la parada en el surtidor,
+            // sobre el mismo repositorio falso que ya sirve el historial.
+            com.rndeveloper.paparcar.domain.usecase.parking.AnswerRefuelStopUseCase(parkingRepo),
         )
     }
 

@@ -24,4 +24,12 @@ sealed class ParkingHistoryIntent {
         val sessionId: String,
         val confirmed: Boolean,
     ) : ParkingHistoryIntent()
+
+    /** «Sí» / «No» a «¿Repostaste aquí?» desde la FICHA. La tercera superficie que ofrece la misma
+     *  pregunta sobre el mismo registro, y la que faltaba: entrar al detalle desde el historial la
+     *  hacía desaparecer. [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] */
+    data class AnswerRefuelStop(
+        val sessionId: String,
+        val refuelled: Boolean,
+    ) : ParkingHistoryIntent()
 }

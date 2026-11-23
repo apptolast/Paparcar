@@ -1276,4 +1276,11 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="notif_mark_parking_title">Unde ți-ai lăsat mașina?</string>
     <string name="notif_mark_parking_text">Am detectat că te-ai deplasat, dar nu am putut stabili unde a rămas mașina ta. Marchează parcarea ca să nu o pierzi.</string>
     <string name="notif_mark_parking_action">Marchează parcarea</string>
+    <string name="refuel_ask_title">Ai alimentat aici?</string>
+    <string name="refuel_ask_body_at">Mașina ta a oprit la %1$s, așa că nu a fost publicat niciun loc liber acolo. Dacă ai alimentat, îl adăugăm la cifrele acestei mașini.</string>
+    <string name="refuel_ask_body">Mașina ta a oprit la o benzinărie, așa că nu a fost publicat niciun loc liber acolo. Dacă ai alimentat, îl adăugăm la cifrele acestei mașini.</string>
+    <string name="refuel_answer_yes">Da, am alimentat</string>
+    <string name="refuel_answer_no">Nu</string>
+    <string name="refuel_confirmed_fact">Ai alimentat aici</string>
+    <string name="refuel_possible_label">Posibilă alimentare</string>
 </resources>

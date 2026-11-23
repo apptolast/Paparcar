@@ -53,19 +53,43 @@ class FakeUserParkingDao : UserParkingDao {
 
     // `COALESCE(endedAtMs, :endedAtMs)`: el PRIMER cierre es el momento real de la salida, así que
     // un segundo cierre no lo reescribe. Reproducido porque es justo lo que el testigo mira.
-    override suspend fun clearActiveById(sessionId: String, endedAtMs: Long, publishedSpot: Boolean, now: Long) {
+    override suspend fun clearActiveById(
+        sessionId: String,
+        endedAtMs: Long,
+        publishedSpot: Boolean,
+        refuelStop: String?,
+        now: Long,
+    ) {
         rows.value[sessionId]?.let {
             put(
                 it.copy(
                     isActive = false,
                     endedAtMs = it.endedAtMs ?: endedAtMs,
                     publishedSpot = publishedSpot,
+                    // `COALESCE(refuelStop, :refuelStop)` — la respuesta ya dada no se reescribe.
+                    // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001]
+                    refuelStop = it.refuelStop ?: refuelStop,
                     updatedAt = now,
                     pendingSync = true,
                 ),
             )
         }
     }
+
+    // `WHERE … AND refuelStop IS NOT NULL`: una respuesta sólo alcanza a una parada por la que la
+    // app preguntó. [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001]
+    override suspend fun answerRefuelStopById(sessionId: String, answer: String, now: Long) {
+        rows.value[sessionId]
+            ?.takeIf { it.refuelStop != null }
+            ?.let { put(it.copy(refuelStop = answer, updatedAt = now, pendingSync = true)) }
+    }
+
+    override fun observeLatestPendingRefuelStop(): Flow<UserParkingEntity?> =
+        rows.map { all ->
+            all.values
+                .filter { it.refuelStop == "PENDING" && !it.isActive && it.retractedAtMs == null }
+                .maxByOrNull { it.endedAtMs ?: 0L }
+        }
 
     override suspend fun retractById(sessionId: String, retractedAtMs: Long, now: Long) {
         rows.value[sessionId]?.let {

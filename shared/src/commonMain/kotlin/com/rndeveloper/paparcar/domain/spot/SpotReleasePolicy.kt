@@ -1,6 +1,9 @@
 package com.rndeveloper.paparcar.domain.spot
 
 import com.rndeveloper.paparcar.domain.model.GpsPoint
+import com.rndeveloper.paparcar.domain.model.PlaceCategory
+import com.rndeveloper.paparcar.domain.model.PlaceInfo
+import com.rndeveloper.paparcar.domain.model.RefuelStopAnswer
 import com.rndeveloper.paparcar.domain.model.Zone
 import com.rndeveloper.paparcar.domain.util.haversineMeters
 
@@ -56,6 +59,21 @@ import com.rndeveloper.paparcar.domain.util.haversineMeters
  * ⚠️ Private zone is checked BEFORE the area ceiling: both withhold, but the reason is read by the
  * log, by the release dialog's copy and by the history detail, and the user's explicit will is the
  * truer account of why nothing went out.
+ *
+ * ## …and the ground that is not a plaza to begin with
+ *
+ * [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] A three-minute stop at a petrol pump used to confirm
+ * like any other park and free a "plaza" on departure — a space nobody can park in, on a forecourt
+ * somebody owns, with a stranger sent across town for it. That is the asymmetric-failure doctrine's
+ * worst case: a false positive whose cost lands on a third party.
+ *
+ * The third reason lives here and not in a guard of its own because it is the SAME question the
+ * other two answer — *may this ground be handed to the community* — and the KDoc above is the record
+ * of what happens when that question is asked in four places instead of one.
+ *
+ * ⛔ **It is also the only producer of the history's question.** The verdict that withholds the spot
+ * is the verdict that marks the session [com.rndeveloper.paparcar.domain.model.RefuelStopAnswer.PENDING],
+ * so «no publicamos» and «¿repostaste aquí?» can never disagree about the same stop.
  */
 object SpotReleasePolicy {
 
@@ -73,13 +91,36 @@ object SpotReleasePolicy {
      *  not the spot. */
     const val ZONE_MAX_CONFIDENCE = 0.5f
 
-    /** Why nothing is published. Two very different accounts that used to collapse into one silent
-     *  `Withheld`: one is the app declining to send a stranger across a neighbourhood, the other is
-     *  the user having said this place is theirs.
-     *  [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] */
+    /**
+     * How long a stop at a petrol station may last and still read as REFUELLING.
+     * [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001]
+     *
+     * The place alone cannot carry this verdict. [com.rndeveloper.paparcar.domain.places.NearbyPlacePolicy]
+     * names a POI whose EDGE is within 40 m — which is the honest radius for naming where you are,
+     * and far too generous for deciding that a kerbside bay across the road belongs to the
+     * forecourt. Time is what separates the two readings: filling a tank is minutes, and a car left
+     * by a station for hours is parked near it, not at its pump.
+     *
+     * ⚠️ **Provisional, and deliberately on the generous side.** The field sample the ticket asks
+     * for is not in yet, so this is reasoned, not measured: a tank plus a queue plus paying inside
+     * fits well under half an hour. Being generous errs toward withholding a spot and asking a
+     * question — the cheap failure — rather than publishing a forecourt. Recalibrate with the
+     * labelled sample (`tools/refuel-stops/compare_candidates.mjs`), not by feel.
+     */
+    const val REFUEL_STOP_MAX_DWELL_MS: Long = 30L * 60L * 1000L
+
+    /** Why nothing is published. Three very different accounts that used to collapse into one silent
+     *  `Withheld`: one is the app declining to send a stranger across a neighbourhood, another is
+     *  the user having said this place is theirs, and the third is ground that was never a plaza.
+     *  [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001]
+     *  [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] */
     enum class WithholdReason {
         /** The park falls inside one of the user's private zones. */
         PRIVATE_ZONE,
+
+        /** The stop reads as a visit to a petrol pump: a fuel POI at the pin, and a dwell short
+         *  enough to be a tankful. Nobody can be handed a space on a forecourt. */
+        REFUEL_STOP,
 
         /** The session's doubt circle is wider than [ZONE_PUBLISH_MAX_RADIUS_METERS]. */
         AREA_TOO_WIDE,
@@ -123,6 +164,28 @@ object SpotReleasePolicy {
         }
 
     /**
+     * Whether this stop reads as a visit to a pump rather than a park.
+     * [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001]
+     *
+     * Both terms are evidence the session already carries, so this costs no lookup at the one
+     * moment it is asked — a departure, often in a background service with no network:
+     *
+     * - [placeInfo] is the POI the enrichment named at park time, measured to the place's OSM
+     *   FOOTPRINT by [com.rndeveloper.paparcar.domain.places.NearbyPlacePolicy] — zero metres while
+     *   the car stands inside the forecourt. An absent POI (enrichment never ran, or Overpass had
+     *   nothing) claims nothing and the stop reads as an ordinary park: a false negative, the safe
+     *   side, and the same silence that policy already chooses when it cannot name a place.
+     * - [dwellMs] is how long the car stayed. Null = unmeasurable, which again claims nothing.
+     *
+     * A pure predicate behind the verdict, exposed because the surfaces that EXPLAIN a withheld
+     * spot ask the same question — not a use case: it decides nothing on its own.
+     * [DET-VERDICT-NOT-PREDICATE-001]
+     */
+    fun isRefuelStop(placeInfo: PlaceInfo?, dwellMs: Long?): Boolean =
+        placeInfo?.category == PlaceCategory.FUEL &&
+            dwellMs != null && dwellMs <= REFUEL_STOP_MAX_DWELL_MS
+
+    /**
      * The shape for a session at [location] with the given doubt radius and reliability.
      *
      * @param zoneRadiusMeters [com.rndeveloper.paparcar.domain.model.UserParking.zoneRadiusMeters]
@@ -132,15 +195,30 @@ object SpotReleasePolicy {
      * @param privateZones the user's private zones **as they are now**, not as they were when the
      *   car arrived — see the class KDoc. Empty is a legitimate answer ("no zones, nothing to
      *   withhold for"), which is also the safe reading when a repository read fails.
+     * @param placeInfo the POI named at the pin, for [isRefuelStop].
+     * @param dwellMs how long the car stayed, for [isRefuelStop] — `endedAtMs - timestamp` at a
+     *   departure, `now - timestamp` where the question is asked before the session closes.
+     *
+     * ⛔ The last two have **no defaults**, like every other term here: the bug this class was
+     * written to close was a gate silently missing from one of four doors, and a default is how a
+     * fifth door would come to be missing it without anybody typing anything.
      */
     fun shapeFor(
         location: GpsPoint,
         zoneRadiusMeters: Float?,
         detectionReliability: Float?,
         privateZones: List<Zone>,
+        placeInfo: PlaceInfo?,
+        dwellMs: Long?,
     ): Shape {
         if (privateZoneAt(location, privateZones) != null) {
             return Shape.Withheld(WithholdReason.PRIVATE_ZONE)
+        }
+        // Before the area ceiling, for the same reason the private zone is: both withhold, and this
+        // is the truer account. A forecourt read as an over-wide zone would otherwise be filed as
+        // "we were not sure where you were" when we were sure it was not a plaza.
+        if (isRefuelStop(placeInfo, dwellMs)) {
+            return Shape.Withheld(WithholdReason.REFUEL_STOP)
         }
         val confidence = detectionReliability ?: 1f
         return when {
@@ -165,4 +243,17 @@ object SpotReleasePolicy {
 
     /** Whether [this] lets a community spot out at all. */
     fun Shape.publishes(): Boolean = this !is Shape.Withheld
+
+    /**
+     * The state a closing session should be stamped with — [RefuelStopAnswer.PENDING] when this
+     * verdict is the one that withheld the spot for a pump, null otherwise.
+     * [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001]
+     *
+     * ⛔ The bridge exists so a door cannot withhold for a forecourt and then forget to leave the
+     * question behind — the two are one verdict and this is the only way to spell it.
+     */
+    fun Shape.refuelStopAnswer(): RefuelStopAnswer? =
+        RefuelStopAnswer.PENDING.takeIf {
+            (this as? Shape.Withheld)?.reason == WithholdReason.REFUEL_STOP
+        }
 }

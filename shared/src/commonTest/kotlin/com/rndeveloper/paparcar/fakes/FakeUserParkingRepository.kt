@@ -3,6 +3,7 @@ package com.rndeveloper.paparcar.fakes
 import com.rndeveloper.paparcar.domain.model.AddressInfo
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.PlaceInfo
+import com.rndeveloper.paparcar.domain.model.RefuelStopAnswer
 import com.rndeveloper.paparcar.domain.model.RouteInferenceResolution
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
@@ -177,6 +178,7 @@ class FakeUserParkingRepository(
         sessionId: String,
         endedAtMs: Long,
         publishedSpot: Boolean,
+        refuelStop: RefuelStopAnswer?,
     ): Result<Unit> {
         clearActiveParkingSessionCallCount++
         clearActiveParkingSessionResult?.let { override ->
@@ -189,11 +191,34 @@ class FakeUserParkingRepository(
                 isActive = false,
                 endedAtMs = it.endedAtMs ?: endedAtMs,
                 publishedSpot = it.publishedSpot || publishedSpot,
+                // COALESCE, like the query: a re-clear must not re-ask an answered question.
+                // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001]
+                refuelStop = it.refuelStop ?: refuelStop,
             ) else it
         }
         _sessionsFlow.value = sessions.toList()
         return Result.success(Unit)
     }
+
+    /** [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] Mirrors `answerRefuelStopById`, guard included:
+     *  an answer only reaches a stop the app asked about. A fake that wrote it anyway would let a
+     *  screen invent a refuel on an ordinary park and still pass. */
+    override suspend fun answerRefuelStop(
+        sessionId: String,
+        answer: RefuelStopAnswer,
+    ): Result<Unit> {
+        sessions.mapInPlace {
+            if (it.id == sessionId && it.refuelStop != null) it.copy(refuelStop = answer) else it
+        }
+        _sessionsFlow.value = sessions.toList()
+        return Result.success(Unit)
+    }
+
+    override fun observePendingRefuelStop(): Flow<UserParking?> =
+        _sessionsFlow.map { all ->
+            all.filter { it.hasPendingRefuelQuestion && !it.isActive }
+                .maxByOrNull { it.endedAtMs ?: 0L }
+        }
 
     /** [DET-A-TRAIN-IS-NOT-A-CAR-001] Mirrors `UserParkingDao.reopenById` column for column —
      *  including the two undos the close's own COALESCE/MAX would otherwise forbid, because a fake

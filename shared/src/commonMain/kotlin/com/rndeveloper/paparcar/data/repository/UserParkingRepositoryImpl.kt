@@ -10,6 +10,7 @@ import com.rndeveloper.paparcar.data.mapper.toParkingHistoryDto
 import com.rndeveloper.paparcar.domain.model.AddressInfo
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.PlaceInfo
+import com.rndeveloper.paparcar.domain.model.RefuelStopAnswer
 import com.rndeveloper.paparcar.domain.model.RouteInferenceResolution
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
@@ -97,10 +98,17 @@ class UserParkingRepositoryImpl(
         sessionId: String,
         endedAtMs: Long,
         publishedSpot: Boolean,
+        refuelStop: RefuelStopAnswer?,
     ): Result<Unit> = runCatching {
         // Stamp updatedAt=now + pendingSync so the deactivation wins the reconcile over a stale
         // remote isActive=true. [SYNC-RECONCILE-USERPARKING-001] [VEH-STATS-SAY-SOMETHING-USEFUL-001]
-        dao.clearActiveById(sessionId, endedAtMs, publishedSpot, Clock.System.now().toEpochMilliseconds())
+        dao.clearActiveById(
+            sessionId,
+            endedAtMs,
+            publishedSpot,
+            refuelStop?.name,
+            Clock.System.now().toEpochMilliseconds(),
+        )
         // Camino RÁPIDO: parchea `isActive` remoto y avisa al espejo del grupo.
         parkingSyncScheduler.enqueueClearActiveParkingSession(sessionId)
         // Y la red durable detrás. [SYNC-A-CLOSED-SESSION-MUST-REACH-FIRESTORE-WHOLE-001]
@@ -115,6 +123,25 @@ class UserParkingRepositoryImpl(
         // días después.
         pushSessionSnapshot(sessionId)
     }
+
+    /**
+     * [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] The user's answer to «¿Repostaste aquí?».
+     *
+     * Sube por el push de documento ENTERO y no por el parche de un campo: no hay op del drainer
+     * para esta columna, y un parche inventado para ella sería el cuarto carril de escritura de
+     * esta misma fila. El `pendingSync` que estampa el DAO es lo que la hace sobrevivir a quedarse
+     * sin red — la respuesta se da muchas veces con la app recién abierta.
+     */
+    override suspend fun answerRefuelStop(
+        sessionId: String,
+        answer: RefuelStopAnswer,
+    ): Result<Unit> = runCatching {
+        dao.answerRefuelStopById(sessionId, answer.name, Clock.System.now().toEpochMilliseconds())
+        pushSessionSnapshot(sessionId)
+    }
+
+    override fun observePendingRefuelStop(): Flow<UserParking?> =
+        dao.observeLatestPendingRefuelStop().map { it?.toDomain() }
 
     /**
      * [DET-A-TRAIN-IS-NOT-A-CAR-001] Re-opens a refuted departure's session.

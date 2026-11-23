@@ -185,6 +185,10 @@ fun HistoryContent(
     /** Cómo se firma cada fila cuando el historial es de un coche compartido; null = es el tuyo.
      *  [VEH-SHARED-001] */
     sharedNote: ((UserParking) -> SharedRowNote?)? = null,
+    /** «¿Repostaste aquí?» en una parada que Home no llegó a preguntar o que el usuario dejó
+     *  pasar. Null = la superficie no contesta (previews, galería de estados).
+     *  [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] */
+    onAnswerRefuelStop: ((sessionId: String, refuelled: Boolean) -> Unit)? = null,
     modifier: Modifier = Modifier,
     header: (@Composable () -> Unit)? = null,
     onScrolledToTop: () -> Unit = {},
@@ -453,6 +457,7 @@ fun HistoryContent(
                                 isActive = false,
                                 onViewOnMap = onViewOnMap,
                                 sharedNote = sharedNote?.invoke(timelineItem.parking),
+                                onAnswerRefuelStop = onAnswerRefuelStop,
                             )
                         }
                     }

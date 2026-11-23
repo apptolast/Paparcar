@@ -6,6 +6,7 @@ import com.rndeveloper.paparcar.domain.model.AddressInfo
 import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.Money
+import com.rndeveloper.paparcar.domain.model.RefuelStopAnswer
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleSize
@@ -285,5 +286,38 @@ class ComputePeriodStatsUseCaseTest {
             ),
         )
         assertEquals(true, stats?.searchTime?.isComplete, "the whole period is a plain figure")
+    }
+
+    // ── Repostajes [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] ───────────────
+
+    @Test
+    fun `should_countOnlyConfirmedRefuels_when_thePeriodHasStopsInEveryState`() {
+        val stats = compute(
+            sessions = listOf(
+                session(1).copy(id = "yes-1", refuelStop = RefuelStopAnswer.CONFIRMED),
+                session(2).copy(id = "yes-2", refuelStop = RefuelStopAnswer.CONFIRMED),
+                // Una pregunta no es un depósito: contarla haría que la cifra se moviera sola cada
+                // vez que la app sospecha algo.
+                session(3).copy(id = "pending", refuelStop = RefuelStopAnswer.PENDING),
+                session(4).copy(id = "no", refuelStop = RefuelStopAnswer.DISMISSED),
+                session(5).copy(id = "plain"),
+            ),
+        )
+        assertEquals(2, stats?.refuelsConfirmed)
+    }
+
+    @Test
+    fun `should_reportZeroRefuels_when_nothingWasConfirmed`() {
+        // 0 es información: significa «no se confirmó ninguno», nunca «no se preguntó».
+        assertEquals(0, compute(sessions = listOf(session(1)))?.refuelsConfirmed)
+    }
+
+    @Test
+    fun `should_ignoreAnOpenSession_when_itSomehowCarriesAnAnswer`() {
+        // Como todas las cifras de hábito de aquí: sobre sesiones CERRADAS.
+        val stats = compute(
+            sessions = listOf(session(1, active = true).copy(refuelStop = RefuelStopAnswer.CONFIRMED)),
+        )
+        assertEquals(0, stats?.refuelsConfirmed)
     }
 }

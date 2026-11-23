@@ -236,6 +236,9 @@ val detectionModule = module {
     }
     single { com.rndeveloper.paparcar.domain.usecase.parking.CorrectDetectedParkingUseCase(get(), get(), get()) }
     single { com.rndeveloper.paparcar.domain.usecase.parking.ConfirmStillParkedUseCase(get(), get(), get(), get(), get()) }
+    // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] La respuesta a «¿Repostaste aquí?», que piden
+    // tanto Home como el historial del vehículo.
+    factory { com.rndeveloper.paparcar.domain.usecase.parking.AnswerRefuelStopUseCase(get()) }
     factory { ObserveParkedVehiclesUseCase(userParkingRepository = get(), vehicleRepository = get()) }
     factory { ClearParkNudgeUseCase(appPreferences = get(), notificationPort = get()) } // [DET-NUDGE-PERSIST-001]
 

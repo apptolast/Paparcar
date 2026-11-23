@@ -6,6 +6,7 @@ import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.model.RouteInferenceResolution
 import com.rndeveloper.paparcar.domain.entitlement.gateHistoryToEntitlement
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
+import com.rndeveloper.paparcar.domain.usecase.parking.AnswerRefuelStopUseCase
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
@@ -25,6 +26,9 @@ class ParkingHistoryViewModel(
     private val vehicleRepository: VehicleRepository,
     zoneRepository: ZoneRepository,
     observeIsPlus: ObserveIsPlusUseCase,
+    /** [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] El mismo caso de uso que contestan Home y la
+     *  lista del historial — una pregunta, un sitio donde se escribe. */
+    private val answerRefuelStop: AnswerRefuelStopUseCase,
 ) : BaseViewModel<ParkingHistoryState, ParkingHistoryIntent, ParkingHistoryEffect>() {
 
     init {
@@ -126,6 +130,16 @@ class ParkingHistoryViewModel(
                             RouteInferenceResolution.REJECTED
                         },
                     )
+                    .onFailure { e ->
+                        sendEffect(ParkingHistoryEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
+                    }
+            }
+
+            // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] Misma forma que la de arriba, y al MISMO
+            // caso de uso al que llegan Home y la lista: nada que decidir aquí, y el flujo de
+            // sesiones observadas repinta la ficha con la respuesta ya aplicada.
+            is ParkingHistoryIntent.AnswerRefuelStop -> viewModelScope.launch {
+                answerRefuelStop(intent.sessionId, intent.refuelled)
                     .onFailure { e ->
                         sendEffect(ParkingHistoryEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
                     }

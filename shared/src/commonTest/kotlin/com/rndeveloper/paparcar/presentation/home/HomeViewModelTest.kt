@@ -249,6 +249,8 @@ class HomeViewModelTest {
                 FakeAppNotificationManager(),
                 nowMs = { 9_000L },
             ),
+            // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001]
+            answerRefuelStop = com.rndeveloper.paparcar.domain.usecase.parking.AnswerRefuelStopUseCase(parkingRepo),
             observeParkedVehicles = observeParkedVehicles,
             declareActiveVehicle = declareActiveVehicle,
             appPreferences = prefs,
@@ -1208,7 +1210,7 @@ class HomeViewModelTest {
         vm = buildVm()
         vm.handleIntent(HomeIntent.OpenReleaseDialog(session.id))
 
-        parkingRepo.clearActiveParkingSession(session.id, endedAtMs = 1L, publishedSpot = true)
+        parkingRepo.clearActiveParkingSession(session.id, endedAtMs = 1L, publishedSpot = true, refuelStop = null)
 
         assertNull(vm.state.value.releaseDialogSessionId)
     }
@@ -1221,7 +1223,7 @@ class HomeViewModelTest {
         vm = buildVm()
         vm.handleIntent(HomeIntent.OpenReleaseDialog(mine.id))
 
-        parkingRepo.clearActiveParkingSession(other.id, endedAtMs = 1L, publishedSpot = false)
+        parkingRepo.clearActiveParkingSession(other.id, endedAtMs = 1L, publishedSpot = false, refuelStop = null)
 
         assertEquals(mine.id, vm.state.value.releaseDialogSessionId)
     }

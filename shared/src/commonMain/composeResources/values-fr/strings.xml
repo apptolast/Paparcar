@@ -1253,4 +1253,11 @@ Si la question n'apparaît plus, changez-le dans Réglages → Paparcar → Posi
     <string name="notif_mark_parking_title">Où avez-vous laissé votre voiture ?</string>
     <string name="notif_mark_parking_text">Nous avons détecté un déplacement, mais nous n'avons pas pu déterminer où est restée votre voiture. Marquez le stationnement pour ne pas le perdre.</string>
     <string name="notif_mark_parking_action">Marquer le stationnement</string>
+    <string name="refuel_ask_title">Avez-vous fait le plein ici ?</string>
+    <string name="refuel_ask_body_at">Votre voiture s'est arrêtée à %1$s, donc aucune place libre n'a été publiée là-bas. Si vous avez fait le plein, nous l'ajoutons aux chiffres de cette voiture.</string>
+    <string name="refuel_ask_body">Votre voiture s'est arrêtée dans une station-service, donc aucune place libre n'a été publiée là-bas. Si vous avez fait le plein, nous l'ajoutons aux chiffres de cette voiture.</string>
+    <string name="refuel_answer_yes">Oui, j'ai fait le plein</string>
+    <string name="refuel_answer_no">Non</string>
+    <string name="refuel_confirmed_fact">Vous avez fait le plein ici</string>
+    <string name="refuel_possible_label">Plein possible</string>
 </resources>

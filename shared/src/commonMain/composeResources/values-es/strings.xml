@@ -1249,4 +1249,11 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="notif_mark_parking_title">¿Dónde has dejado el coche?</string>
     <string name="notif_mark_parking_text">Hemos detectado que te has movido, pero no hemos podido fijar dónde quedó tu coche. Marca el aparcamiento para no perderlo.</string>
     <string name="notif_mark_parking_action">Marcar aparcamiento</string>
+    <string name="refuel_ask_title">¿Repostaste aquí?</string>
+    <string name="refuel_ask_body_at">Tu coche paró en %1$s, así que no se publicó ninguna plaza libre ahí. Si repostaste, lo sumamos a las cifras de este coche.</string>
+    <string name="refuel_ask_body">Tu coche paró en una gasolinera, así que no se publicó ninguna plaza libre ahí. Si repostaste, lo sumamos a las cifras de este coche.</string>
+    <string name="refuel_answer_yes">Sí, reposté</string>
+    <string name="refuel_answer_no">No</string>
+    <string name="refuel_confirmed_fact">Repostaste aquí</string>
+    <string name="refuel_possible_label">Posible repostaje</string>
 </resources>

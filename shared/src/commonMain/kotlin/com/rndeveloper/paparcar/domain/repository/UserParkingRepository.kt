@@ -3,6 +3,7 @@ package com.rndeveloper.paparcar.domain.repository
 import com.rndeveloper.paparcar.domain.model.AddressInfo
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.PlaceInfo
+import com.rndeveloper.paparcar.domain.model.RefuelStopAnswer
 import com.rndeveloper.paparcar.domain.model.RouteInferenceResolution
 import com.rndeveloper.paparcar.domain.model.UserParking
 import kotlinx.coroutines.flow.Flow
@@ -38,12 +39,32 @@ interface UserParkingRepository : UserScopedRepository, RemoteSyncable {
      *   (idempotent re-clears never move it).
      * @param publishedSpot whether this close published a community spot (tu aparcamiento liberó
      *   una plaza). Confirmable later, never retractable. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+     * @param refuelStop [com.rndeveloper.paparcar.domain.model.RefuelStopAnswer.PENDING] when the
+     *   publication gate withheld the spot because this stop reads as a visit to a pump — the same
+     *   verdict, stamped so the history can ask about it; null for every ordinary close. The first
+     *   stamp wins, so a promotion cannot re-ask a question the user has already answered.
+     *   **Deliberately has no default**, like [publishedSpot]: a closing path that does not answer
+     *   it is a path that silently stops asking. [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001]
      */
     suspend fun clearActiveParkingSession(
         sessionId: String,
         endedAtMs: Long,
         publishedSpot: Boolean,
+        refuelStop: RefuelStopAnswer?,
     ): Result<Unit>
+
+    /**
+     * [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] Records the user's answer to «¿Repostaste aquí?».
+     *
+     * Reaches only a session the app actually flagged — an answer cannot invent a refuel on an
+     * ordinary park — and both surfaces that ask (Home and the vehicle's history) land here, so one
+     * answer closes the question everywhere, including on the user's other devices.
+     */
+    suspend fun answerRefuelStop(sessionId: String, answer: RefuelStopAnswer): Result<Unit>
+
+    /** [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] The most recent closed stop whose refuel
+     *  question is still unanswered, or null. One at a time — see the DAO query for why. */
+    fun observePendingRefuelStop(): Flow<UserParking?>
 
     /**
      * [DET-HANDOFF-NOT-MANUAL-001 §B] Records (or clears, with [atMs] = null) that a DEDUCED

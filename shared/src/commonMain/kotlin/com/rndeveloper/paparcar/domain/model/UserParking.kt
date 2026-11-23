@@ -165,6 +165,21 @@ data class UserParking(
      * truth.
      */
     val retractedAtMs: Long? = null,
+    /**
+     * Non-null when this stop was read as a visit to a petrol pump, and what the user has said
+     * about it since. [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001]
+     *
+     * Stamped at the close by the SAME verdict that withheld the community spot
+     * ([com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy.WithholdReason.REFUEL_STOP]), then
+     * updated by the user's answer — which may arrive days later from the history, which is why it
+     * is a column and not something re-derived on read: the POI layer that justified the question
+     * is not guaranteed to still answer when it is finally asked. Synced, so answering on one
+     * device closes the question on the others.
+     *
+     * ⛔ **Not mirrored to a shared car.** The group sees the trip; whether its driver filled the
+     * tank is their own record, and the mirror's whitelist is the TYPE, not an `if`.
+     */
+    val refuelStop: RefuelStopAnswer? = null,
 ) {
     /** True when this route carries road-inferred stretches the user has not judged yet — the
      *  detail screen asks. [ROUTE-GAP-HONEST-001] */
@@ -201,4 +216,18 @@ data class UserParking(
     /** True when this parking has been withdrawn — it is kept for diagnostics and must not appear
      *  in the user's history, stats or chart. [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] */
     val isRetracted: Boolean get() = retractedAtMs != null
+
+    /** True while «¿Repostaste aquí?» is still unanswered for this stop — the one condition both
+     *  surfaces that ask it (Home and the vehicle's history) read.
+     *  [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] */
+    val hasPendingRefuelQuestion: Boolean
+        get() = refuelStop == RefuelStopAnswer.PENDING && !isRetracted
+
+    /**
+     * How long the car stood here — to its close if it has one, otherwise to [nowMs]. Null when
+     * the span is not positive, which is a clock having moved rather than a measurement.
+     * [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001]
+     */
+    fun dwellMs(nowMs: Long): Long? =
+        ((endedAtMs ?: nowMs) - location.timestamp).takeIf { it > 0 }
 }

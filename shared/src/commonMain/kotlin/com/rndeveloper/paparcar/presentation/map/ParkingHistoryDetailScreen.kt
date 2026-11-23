@@ -72,6 +72,7 @@ import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapS
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetLead
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetStepper
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.peek.PeekMetaRow
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.peek.RefuelStopRow
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.peek.vehicleSummary
 import com.rndeveloper.paparcar.presentation.util.locationDisplayText
 import com.rndeveloper.paparcar.presentation.util.shortDateText
@@ -362,6 +363,14 @@ fun ParkingHistoryDetailScreen(
                 null
             },
             isWithdrawing = state.isWithdrawingFocused,
+            // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] La tercera puerta a la misma pregunta.
+            onAnswerRefuelStop = focusedSession?.let { session ->
+                { refuelled ->
+                    viewModel.handleIntent(
+                        ParkingHistoryIntent.AnswerRefuelStop(session.id, refuelled),
+                    )
+                }
+            },
         )
 
         // Los mandos del mapa, los mismos de Home: centrar en mí · centrar en ESTE aparcamiento ·
@@ -506,6 +515,9 @@ fun HistoryDetailSheet(
     /** True while THIS parking's retraction is in flight — the confirm dialog holds its spinner
      *  instead of dismissing on tap. [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001] */
     isWithdrawing: Boolean = false,
+    /** «¿Repostaste aquí?» — null donde la superficie no contesta (previews, galería de estados).
+     *  [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] */
+    onAnswerRefuelStop: ((refuelled: Boolean) -> Unit)? = null,
 ) {
     Surface(
         modifier = modifier,
@@ -557,6 +569,7 @@ fun HistoryDetailSheet(
                         onNavigate = onNavigate,
                         onWithdraw = onWithdraw,
                         isWithdrawing = isWithdrawing,
+                        onAnswerRefuelStop = onAnswerRefuelStop,
                     )
                 }
             }
@@ -658,6 +671,9 @@ private fun HistoryParkingCard(
     onNavigate: (lat: Double, lon: Double) -> Unit,
     onWithdraw: (() -> Unit)?,
     isWithdrawing: Boolean,
+    /** «¿Repostaste aquí?» desde la ficha. Null donde la superficie no contesta (previews).
+     *  [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] */
+    onAnswerRefuelStop: ((refuelled: Boolean) -> Unit)? = null,
 ) {
     val cs = MaterialTheme.colorScheme
     var confirmingWithdraw by remember { mutableStateOf(false) }
@@ -726,6 +742,15 @@ private fun HistoryParkingCard(
                 // esta pantalla presentaba una zona de 250 m como un punto exacto, con un botón
                 // «Navegar a esta ubicación» debajo.
                 ApproximateZoneRow(zoneRadiusMeters = session.zoneRadiusMeters, accentColor = metaTint, isApproximate = session.isApproximate)
+                // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] La parada en el surtidor y, si sigue
+                // sin contestar, la pregunta — el MISMO componente que pinta la fila del historial.
+                // Esta ficha no decía nada, así que entrar en ella desde la lista hacía desaparecer
+                // la pregunta: un hueco por el que la respuesta se perdía sin que nadie lo notara.
+                RefuelStopRow(
+                    refuelStop = session.refuelStop,
+                    tint = metaTint,
+                    onAnswer = onAnswerRefuelStop,
+                )
                 // ⛔ Un HECHO de esta sesión, no una cifra agregada: aquí siempre es verdad cuando
                 // se enseña, porque sólo aparece si TÚ diste fe de estar en esa plaza. Un total
                 // construido sobre votos voluntarios subcontaría siempre, y un total que subcuenta

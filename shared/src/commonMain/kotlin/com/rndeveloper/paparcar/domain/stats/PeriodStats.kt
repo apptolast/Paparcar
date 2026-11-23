@@ -51,6 +51,15 @@ data class PeriodStats(
     val places: List<ParkingCluster>,
     /** Closes that gave the community a spot — 0 IS information. */
     val spotsReleased: Int,
+    /**
+     * Refuels the user CONFIRMED in this period. [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001]
+     *
+     * ⛔ Counts only [com.rndeveloper.paparcar.domain.model.RefuelStopAnswer.CONFIRMED]: a stop
+     * still waiting for its answer is a question, not a tankful, and counting it would make the
+     * figure move on its own every time the app guessed. 0 is information here too — it means
+     * nothing was confirmed, never "we did not ask".
+     */
+    val refuelsConfirmed: Int,
     /** Auto-detected among provenance-KNOWN ended sessions; both 0 below the share threshold. */
     val autoDetectedCount: Int,
     val detectionKnownCount: Int,

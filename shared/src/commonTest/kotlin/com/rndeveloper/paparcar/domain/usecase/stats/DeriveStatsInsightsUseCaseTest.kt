@@ -82,6 +82,7 @@ class DeriveStatsInsightsUseCaseTest {
         peakHourBucket = null,
         mostActiveDayOfWeek = null,
         places = places,
+        refuelsConfirmed = 0,
         spotsReleased = 0,
         autoDetectedCount = 0,
         detectionKnownCount = 0,
@@ -91,7 +92,7 @@ class DeriveStatsInsightsUseCaseTest {
                 parkings = 10, endedParkings = 10, distance = null, fuelLiters = null,
                 energyKwh = null, costEstimate = null, co2Kg = null, avgParkedDurationMs = null,
                 peakHourBucket = null, mostActiveDayOfWeek = null, places = emptyList(),
-                spotsReleased = 0, autoDetectedCount = 0, detectionKnownCount = 0, searchTime = it,
+                refuelsConfirmed = 0, spotsReleased = 0, autoDetectedCount = 0, detectionKnownCount = 0, searchTime = it,
             )
         },
     )

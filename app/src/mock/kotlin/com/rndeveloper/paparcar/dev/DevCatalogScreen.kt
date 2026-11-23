@@ -65,6 +65,7 @@ fun DevCatalogScreen(
     val activeBt by scenario.activeVehicleBluetooth.collectAsStateWithLifecycle()
     val sentryAlive by scenario.sentryAlive.collectAsStateWithLifecycle()
     val approximate by scenario.approximateParking.collectAsStateWithLifecycle()
+    val refuelStopPending by scenario.refuelStopPending.collectAsStateWithLifecycle()
     val firstStepsPending by scenario.firstStepsPending.collectAsStateWithLifecycle()
     val stillParkedQuestionOpen by scenario.stillParkedQuestionOpen.collectAsStateWithLifecycle()
     val isPlus by scenario.isPlus.collectAsStateWithLifecycle()
@@ -197,6 +198,14 @@ fun DevCatalogScreen(
             // Necesita "Sesión propia aparcada" activado.
             SwitchRow("Aparcamiento aproximado (zona, no pin)", approximate) {
                 scenario.approximateParking.value = it
+            }
+            // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] Deja una parada de 4 min en una
+            // gasolinera, cerrada hace 2 h y SIN plaza publicada, esperando respuesta: al entrar en
+            // Home salta «¿Repostaste aquí?», y en el historial del Seat León esa fila lleva el
+            // badge «Posible repostaje» con los mismos dos botones. Contestar en cualquiera de las
+            // dos cierra la pregunta en la otra, que es justo lo que hay que poder ver en device.
+            SwitchRow("Parada en el surtidor sin contestar", refuelStopPending) {
+                scenario.refuelStopPending.value = it
             }
             // [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] Dibuja una zona
             // PRIVADA sobre la sesión sembrada. El diálogo de «Me voy» pasa a decir que no se

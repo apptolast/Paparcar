@@ -370,6 +370,10 @@ class RemoteUserProfileDataSourceImpl(
                     ?: runCatching { get<Double?>(FIELD_ENDED_AT_MS)?.toLong() }.getOrNull(),
                 publishedSpot = runCatching { get<Boolean?>(FIELD_PUBLISHED_SPOT) }.getOrNull() ?: false,
                 retractedAtMs = runCatching { get<Long?>(FIELD_RETRACTED_AT_MS) }.getOrNull(),
+                // La parada en el surtidor y la respuesta del usuario. Ausente en todo documento
+                // anterior al ticket → null → una parada corriente, que es lo que eran.
+                // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001]
+                refuelStop = runCatching { get<String?>(FIELD_REFUEL_STOP) }.getOrNull(),
                 updatedAt = getLongCompat(FIELD_UPDATED_AT),
                 platform = runCatching { get<String?>(FIELD_PLATFORM) }.getOrNull(),
             )
@@ -469,5 +473,6 @@ class RemoteUserProfileDataSourceImpl(
         const val FIELD_ENDED_AT_MS = "endedAtMs"
         const val FIELD_PUBLISHED_SPOT = "publishedSpot"
         const val FIELD_RETRACTED_AT_MS = "retractedAtMs"
+        const val FIELD_REFUEL_STOP = "refuelStop"
     }
 }

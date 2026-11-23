@@ -1253,4 +1253,11 @@ Se la richiesta non compare più, cambiala in Impostazioni → Paparcar → Posi
     <string name="notif_mark_parking_title">Dove hai lasciato l'auto?</string>
     <string name="notif_mark_parking_text">Abbiamo rilevato che ti sei spostato, ma non siamo riusciti a fissare dove è rimasta la tua auto. Segna il parcheggio per non perderlo.</string>
     <string name="notif_mark_parking_action">Segna parcheggio</string>
+    <string name="refuel_ask_title">Hai fatto rifornimento qui?</string>
+    <string name="refuel_ask_body_at">La tua auto si è fermata a %1$s, quindi non è stato pubblicato nessun posto libero lì. Se hai fatto rifornimento, lo aggiungiamo ai dati di questa auto.</string>
+    <string name="refuel_ask_body">La tua auto si è fermata a un distributore, quindi non è stato pubblicato nessun posto libero lì. Se hai fatto rifornimento, lo aggiungiamo ai dati di questa auto.</string>
+    <string name="refuel_answer_yes">Sì, ho fatto rifornimento</string>
+    <string name="refuel_answer_no">No</string>
+    <string name="refuel_confirmed_fact">Hai fatto rifornimento qui</string>
+    <string name="refuel_possible_label">Possibile rifornimento</string>
 </resources>

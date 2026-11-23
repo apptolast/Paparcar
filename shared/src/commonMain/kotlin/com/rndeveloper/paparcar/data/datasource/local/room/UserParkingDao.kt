@@ -54,6 +54,25 @@ interface UserParkingDao {
     @Query("SELECT * FROM parking_sessions WHERE isActive = 1 ORDER BY timestamp DESC")
     fun observeActive(): Flow<List<UserParkingEntity>>
 
+    /**
+     * [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] The most recent closed stop still waiting for
+     * «¿Repostaste aquí?».
+     *
+     * ⛔ ONE row, not a list, and that is the product decision rather than a query optimisation:
+     * Home asks about one thing at a time, and a queue of pump questions would be the interruption
+     * this app's doctrine spends most of its guards avoiding. The rest stay in the vehicle's
+     * history, where the user goes looking rather than being found.
+     *
+     * Ordered by `endedAtMs` and not by `timestamp`: the question is about a DEPARTURE.
+     */
+    @Query("""
+        SELECT * FROM parking_sessions
+        WHERE refuelStop = 'PENDING' AND isActive = 0 AND retractedAtMs IS NULL
+        ORDER BY endedAtMs DESC
+        LIMIT 1
+    """)
+    fun observeLatestPendingRefuelStop(): Flow<UserParkingEntity?>
+
     @Query("SELECT * FROM parking_sessions WHERE isActive = 1 ORDER BY timestamp DESC")
     suspend fun getAllActive(): List<UserParkingEntity>
 
@@ -67,16 +86,44 @@ interface UserParkingDao {
     // Close provenance: endedAtMs via COALESCE (the FIRST close is the real departure moment — an
     // idempotent re-clear must not move it) and publishedSpot via MAX (a later promotion may
     // confirm a publication, never retract one). [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+    // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] `refuelStop` via COALESCE, like the instant above
+    // and for a sharper reason: the user's answer is written into this same column, so a re-clear
+    // that overwrote it would re-ask a question already answered — and the promotion of a deduced
+    // departure IS such a re-clear, minutes or hours later.
     @Query("""
         UPDATE parking_sessions SET
             isActive = 0,
             endedAtMs = COALESCE(endedAtMs, :endedAtMs),
             publishedSpot = MAX(publishedSpot, :publishedSpot),
+            refuelStop = COALESCE(refuelStop, :refuelStop),
             updatedAt = :now,
             pendingSync = 1
         WHERE id = :sessionId
     """)
-    suspend fun clearActiveById(sessionId: String, endedAtMs: Long, publishedSpot: Boolean, now: Long)
+    suspend fun clearActiveById(
+        sessionId: String,
+        endedAtMs: Long,
+        publishedSpot: Boolean,
+        refuelStop: String?,
+        now: Long,
+    )
+
+    /**
+     * [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] The user's answer to «¿Repostaste aquí?».
+     *
+     * No COALESCE: this is the one write that is ALLOWED to move the column, and it is the whole
+     * reason the column exists. Guarded on `refuelStop IS NOT NULL` instead — an answer may only
+     * reach a stop the app actually asked about, so a stale screen cannot invent a refuel on an
+     * ordinary park.
+     */
+    @Query("""
+        UPDATE parking_sessions SET
+            refuelStop = :answer,
+            updatedAt = :now,
+            pendingSync = 1
+        WHERE id = :sessionId AND refuelStop IS NOT NULL
+    """)
+    suspend fun answerRefuelStopById(sessionId: String, answer: String, now: Long)
 
     /**
      * [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] Withdraws a parking the app concluded never
@@ -111,6 +158,9 @@ interface UserParkingDao {
      *    a session that still claimed to have freed a plaza would be counting a plaza that no
      *    longer exists in anyone's map. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
      *  - `provisionalDepartureAtMs` cleared: no deduction is pending on a car that never went.
+     *  - `refuelStop` back to NULL, same logic as the two above: the question «¿repostaste aquí?»
+     *    was asked ABOUT a departure, and this one did not happen. Leaving it would keep a prompt
+     *    alive on a car that is still parked. [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001]
      *
      * `updatedAt`/`pendingSync` like every other write here, so the re-opening wins the inbound
      * reconcile against the stale remote `isActive = false` it is undoing.
@@ -122,6 +172,7 @@ interface UserParkingDao {
             endedAtMs = NULL,
             publishedSpot = 0,
             provisionalDepartureAtMs = NULL,
+            refuelStop = NULL,
             updatedAt = :now,
             pendingSync = 1
         WHERE id = :sessionId AND retractedAtMs IS NULL

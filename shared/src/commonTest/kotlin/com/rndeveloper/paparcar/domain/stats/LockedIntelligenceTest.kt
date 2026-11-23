@@ -27,6 +27,7 @@ class LockedIntelligenceTest {
         peakHourBucket = null,
         mostActiveDayOfWeek = null,
         places = places,
+        refuelsConfirmed = 0,
         spotsReleased = 0,
         autoDetectedCount = 0,
         detectionKnownCount = 0,

@@ -1285,4 +1285,11 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <string name="notif_mark_parking_title">Gdzie zostawiłeś samochód?</string>
     <string name="notif_mark_parking_text">Wykryliśmy, że się przemieściłeś, ale nie udało się ustalić, gdzie został Twój samochód. Oznacz parkowanie, aby go nie zgubić.</string>
     <string name="notif_mark_parking_action">Zaznacz parkowanie</string>
+    <string name="refuel_ask_title">Tankowałeś tutaj?</string>
+    <string name="refuel_ask_body_at">Twój samochód zatrzymał się na %1$s, więc nie opublikowaliśmy tam wolnego miejsca. Jeśli tankowałeś, dodamy to do statystyk tego samochodu.</string>
+    <string name="refuel_ask_body">Twój samochód zatrzymał się na stacji paliw, więc nie opublikowaliśmy tam wolnego miejsca. Jeśli tankowałeś, dodamy to do statystyk tego samochodu.</string>
+    <string name="refuel_answer_yes">Tak, tankowałem</string>
+    <string name="refuel_answer_no">Nie</string>
+    <string name="refuel_confirmed_fact">Tankowałeś tutaj</string>
+    <string name="refuel_possible_label">Możliwe tankowanie</string>
 </resources>

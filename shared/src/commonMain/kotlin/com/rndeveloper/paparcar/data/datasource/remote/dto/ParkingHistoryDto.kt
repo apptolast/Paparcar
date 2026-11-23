@@ -72,6 +72,10 @@ data class ParkingHistoryDto(
     val publishedSpot: Boolean = false,
     /** [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] Epoch-ms of the withdrawal, or null. */
     val retractedAtMs: Long? = null,
+    /** `RefuelStopAnswer` name on a stop the app read as a visit to a pump; null on every ordinary
+     *  park and on legacy docs. Travels because the question belongs to the USER: answering it on
+     *  one device has to close it on the others. [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] */
+    val refuelStop: String? = null,
     /** Epoch-ms of the local edit this document mirrors. Stamped on every write so the inbound-sync
      *  Last-Write-Wins merge can tell when the server has caught up with a pending local edit.
      *  Legacy docs read 0 → always lose to a real local timestamp. [SYNC-RECONCILE-USERPARKING-001] */

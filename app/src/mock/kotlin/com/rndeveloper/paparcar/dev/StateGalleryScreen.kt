@@ -84,6 +84,9 @@ import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.home
 import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.domain.model.SpotType
 import com.rndeveloper.paparcar.domain.detection.DetectionPause
+import com.rndeveloper.paparcar.domain.model.PlaceCategory
+import com.rndeveloper.paparcar.domain.model.PlaceInfo
+import com.rndeveloper.paparcar.domain.model.RefuelStopAnswer
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Zone
 import com.rndeveloper.paparcar.domain.stats.HeatMeasure
@@ -477,6 +480,29 @@ private fun resolvedHistory(
 ) = HistoryTimeline.resolve(sessions, filter, isPlus, vehicle, zones)
 
 /**
+ * El historial de siempre, con su sesión cerrada más reciente convertida en una parada de surtidor
+ * sin contestar. [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001]
+ *
+ * Se DERIVA de `FakeData.allSessions` en vez de inventarse una fila: así la variante enseña la
+ * pregunta sobre una tarjeta idéntica al resto —misma fecha, mismo raíl, mismo chevron— y lo único
+ * que cambia en pantalla es lo que el ticket añade.
+ */
+private fun sessionsWithPendingRefuelStop(): List<UserParking> {
+    val target = FakeData.allSessions.firstOrNull { !it.isActive } ?: return FakeData.allSessions
+    return FakeData.allSessions.map { session ->
+        if (session.id == target.id) {
+            session.copy(
+                refuelStop = RefuelStopAnswer.PENDING,
+                publishedSpot = false,
+                placeInfo = PlaceInfo("Repsol Bravo Murillo", PlaceCategory.FUEL),
+            )
+        } else {
+            session
+        }
+    }
+}
+
+/**
  * Las sesiones de FakeData, apiladas en DOS sitios reales — y con el reloj de la búsqueda puesto en
  * el mismo par de celdas, para que la rejilla de "buscando plaza" tenga su media.
  * [STATS-A-USUAL-PLACE-IS-A-CLUSTER-NOT-A-STREET-001] [STATS-THE-EXPENSIVE-HOUR-IS-MEASURED-001]
@@ -673,12 +699,17 @@ private fun history(
     state: HistoryState,
     isPlus: Boolean = true,
     detectionPause: DetectionPause? = null,
+    /** [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] Se PASA en la variante de la parada en el
+     *  surtidor, por la misma razón que `onOpenStatsPanel` más abajo: sin él la fila compone el
+     *  badge y NO los dos botones, que son la mitad del estado que la variante existe para enseñar. */
+    onAnswerRefuelStop: ((sessionId: String, refuelled: Boolean) -> Unit)? = null,
 ) {
     HistoryContent(
         state = state,
         contentPadding = PaddingValues(0.dp),
         onViewOnMap = { _, _, _ -> },
         onFilterSelected = {},
+        onAnswerRefuelStop = onAnswerRefuelStop,
         // ⛔ Se PASA, aunque no navegue: sin él `onOpenPanel` es null y la fila «Ver todas tus
         // cifras» no se componía en NINGUNA variante, ni Plus ni free — justo la fila cuya regla de
         // visibilidad acaba de cambiar. Un no-op es lo correcto en un catálogo de estados; omitirlo
@@ -743,10 +774,14 @@ private fun parkingDetailSheet(
     /** [SPOT-A-PRIVATE-ZONE-DECIDES-THE-PUBLICATION-NOT-A-BUTTON-001] Empty = the park freed a
      *  plaza. Non-empty and covering the session = the private-zone row appears. */
     privateZones: List<Zone> = emptyList(),
+    /** [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] Se pasa en la variante del surtidor: sin él la
+     *  ficha compone el hecho y NO la pregunta, que es la mitad del estado que hay que enseñar. */
+    answersRefuelStop: Boolean = false,
 ) {
     Box(Modifier.fillMaxSize()) {
         HistoryDetailSheet(
             focused = FocusedParking.Resolved(session),
+            onAnswerRefuelStop = if (answersRefuelStop) ({ _ -> }) else null,
             vehicle = vehicle,
             privateZones = privateZones,
             hasOlder = hasOlder,
@@ -1355,6 +1390,33 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                     vehicle = FakeData.vehicleVan,
                     privateZones = listOf(privateZoneOver(FakeData.endedSessions[2])),
+                )
+            },
+            // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] La ficha de una parada en el surtidor:
+            // el hecho y, mientras nadie conteste, la pregunta. Este hueco existía —la ficha no
+            // decía nada— y entrar en ella desde la lista hacía desaparecer la pregunta.
+            Variant("Parada en el surtidor · sin contestar") {
+                parkingDetailSheet(
+                    session = FakeData.endedSessions[0].copy(
+                        refuelStop = RefuelStopAnswer.PENDING,
+                        publishedSpot = false,
+                        placeInfo = PlaceInfo("Repsol Bravo Murillo", PlaceCategory.FUEL),
+                    ),
+                    vehicle = FakeData.vehicleVan,
+                    answersRefuelStop = true,
+                )
+            },
+            // Contestado que SÍ: el hecho se queda, en pasado, y la pregunta desaparece. Es un dato
+            // de la sesión como la plaza que te cedió la comunidad, y la cifra del periodo lo cuenta.
+            Variant("Parada en el surtidor · confirmada") {
+                parkingDetailSheet(
+                    session = FakeData.endedSessions[0].copy(
+                        refuelStop = RefuelStopAnswer.CONFIRMED,
+                        publishedSpot = false,
+                        placeInfo = PlaceInfo("Repsol Bravo Murillo", PlaceCategory.FUEL),
+                    ),
+                    vehicle = FakeData.vehicleVan,
+                    answersRefuelStop = true,
                 )
             },
             // El caso que NO se veía: un pin puesto a mano dentro de la zona conserva
@@ -3116,6 +3178,16 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             // de esa página del pager — no un verde fijo. [UI-HISTORY-IDENTITY-AND-SOURCE-001]
             Variant("Lista · coche asistido (verde)") {
                 history(HistoryState(timeline = resolvedHistory(FakeData.allSessions)))
+            },
+            // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] La parada que Home no llegó a preguntar
+            // —o que el usuario dejó pasar— sigue preguntando aquí: badge «Posible repostaje» y los
+            // dos botones. Es el estado NUEVO de esta fila, y sin variante sólo se vería saliendo a
+            // repostar de verdad.
+            Variant("Lista · parada en el surtidor sin contestar") {
+                history(
+                    HistoryState(timeline = resolvedHistory(sessionsWithPendingRefuelStop())),
+                    onAnswerRefuelStop = { _, _ -> },
+                )
             },
             Variant("Lista · coche Bluetooth (azul)") {
                 history(

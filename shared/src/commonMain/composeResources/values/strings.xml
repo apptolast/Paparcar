@@ -1304,4 +1304,11 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="notif_mark_parking_title">Where did you leave your car?</string>
     <string name="notif_mark_parking_text">We noticed you moved, but we couldn't pin where your car ended up. Mark your parking so you don't lose it.</string>
     <string name="notif_mark_parking_action">Mark parking</string>
+    <string name="refuel_ask_title">Did you refuel here?</string>
+    <string name="refuel_ask_body_at">Your car stopped at %1$s, so no free spot was published there. If you filled up, we add it to this car's figures.</string>
+    <string name="refuel_ask_body">Your car stopped at a service station, so no free spot was published there. If you filled up, we add it to this car's figures.</string>
+    <string name="refuel_answer_yes">Yes, I refuelled</string>
+    <string name="refuel_answer_no">No</string>
+    <string name="refuel_confirmed_fact">You refuelled here</string>
+    <string name="refuel_possible_label">Possible refuel</string>
 </resources>

@@ -42,7 +42,9 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import com.rndeveloper.paparcar.ui.components.PapNavChevron
 import com.rndeveloper.paparcar.ui.components.PapNavChevronRailInset
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.peek.RefuelStopRow
 import com.rndeveloper.paparcar.ui.theme.PapColor
+import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.presentation.util.formatClockTime
 import kotlinx.datetime.TimeZone
@@ -101,6 +103,10 @@ internal fun EndedSessionTimelineNode(
     onViewOnMap: (lat: Double, lon: Double, sessionId: String) -> Unit,
     /** Quién condujo, y si su ruta se puede dibujar. Null en un coche que solo es tuyo. */
     sharedNote: SharedRowNote? = null,
+    /** «¿Repostaste aquí?» — null donde la fila no se puede contestar (previews, galería).
+     *  Una fila de coche compartido nunca trae la pregunta: el espejo no lleva ese campo.
+     *  [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] */
+    onAnswerRefuelStop: ((sessionId: String, refuelled: Boolean) -> Unit)? = null,
 ) {
     // "Live" is the only thing this list has to tell apart, so that is what wears the brand.
     val liveAccent = PapColor.brandData
@@ -144,6 +150,7 @@ internal fun EndedSessionTimelineNode(
             isActive = isActive,
             onViewOnMap = onViewOnMap,
             sharedNote = sharedNote,
+            onAnswerRefuelStop = onAnswerRefuelStop,
             modifier = Modifier
                 .weight(1f)
                 .padding(bottom = CARD_BOTTOM_GAP_DP.dp),
@@ -158,6 +165,7 @@ private fun SessionCardContent(
     onViewOnMap: (lat: Double, lon: Double, sessionId: String) -> Unit,
     modifier: Modifier = Modifier,
     sharedNote: SharedRowNote? = null,
+    onAnswerRefuelStop: ((sessionId: String, refuelled: Boolean) -> Unit)? = null,
 ) {
     val cs = MaterialTheme.colorScheme
     val dateTime = remember(session.location.timestamp) {
@@ -246,6 +254,26 @@ private fun SessionCardContent(
                 )
             }
             PapNavChevron()
+        }
+        // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] La pregunta que Home dejó sin contestar. Vive
+        // DENTRO de la tarjeta y debajo del chevron, no en su fila: la fila entera sigue abriendo
+        // el aparcamiento en el mapa, y dos botones ahí dentro competirían con ese gesto.
+        if (session.refuelStop != null && !session.isRetracted) {
+            Column(
+                modifier = Modifier.padding(
+                    start = CARD_PAD_DP.dp,
+                    end = PaparcarSpacing.sm,
+                    bottom = PaparcarSpacing.xs,
+                ),
+            ) {
+                RefuelStopRow(
+                    refuelStop = session.refuelStop,
+                    tint = textPrimary.copy(alpha = META_ALPHA),
+                    onAnswer = onAnswerRefuelStop?.let { answer ->
+                        { refuelled -> answer(session.id, refuelled) }
+                    },
+                )
+            }
         }
     }
 }

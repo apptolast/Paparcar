@@ -116,6 +116,11 @@ internal fun VehiclePageContent(
         onOpenStatsPanel = { onIntent(VehiclesIntent.OpenStatsPanel(vehicleId)) },
         onScrolledToTop = onScrolledToTop,
         sharedNote = sharedNote,
+        // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] La MISMA pregunta que ofrece Home, resuelta
+        // sobre el MISMO registro: el intent acaba en el único caso de uso que la contesta.
+        onAnswerRefuelStop = { sessionId, refuelled ->
+            onIntent(VehiclesIntent.AnswerRefuelStop(sessionId, refuelled))
+        },
         modifier = Modifier.fillMaxSize(),
         header = {
           // El mismo aire que Ajustes pone entre dos de sus cards: la hero y la sección del grupo

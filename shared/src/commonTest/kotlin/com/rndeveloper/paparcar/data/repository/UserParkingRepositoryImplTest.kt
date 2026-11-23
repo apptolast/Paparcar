@@ -50,7 +50,7 @@ class UserParkingRepositoryImplTest {
     fun should_pushTheWholeSession_when_aSessionIsClosed() = runTest {
         dao.seed(parked)
 
-        repository.clearActiveParkingSession(sessionId = "s-1", endedAtMs = 9_000L, publishedSpot = true)
+        repository.clearActiveParkingSession(sessionId = "s-1", endedAtMs = 9_000L, publishedSpot = true, refuelStop = null)
 
         val pushed = scheduler.snapshots.single()
         assertEquals("s-1", pushed.id)
@@ -65,7 +65,7 @@ class UserParkingRepositoryImplTest {
         // en la mano, subiría la sesión ABIERTA y el espejo se quedaría peor que antes.
         dao.seed(parked)
 
-        repository.clearActiveParkingSession(sessionId = "s-1", endedAtMs = 9_000L, publishedSpot = false)
+        repository.clearActiveParkingSession(sessionId = "s-1", endedAtMs = 9_000L, publishedSpot = false, refuelStop = null)
 
         assertEquals(dao.row("s-1")?.endedAtMs, scheduler.snapshots.single().endedAtMs)
         assertEquals(dao.row("s-1")?.isActive, scheduler.snapshots.single().isActive)
@@ -96,7 +96,7 @@ class UserParkingRepositoryImplTest {
     @Test
     fun should_pushNothing_when_theRowIsAlreadyGone() = runTest {
         // Una fila que ya no existe no es un error: no hay nada que espejar.
-        repository.clearActiveParkingSession(sessionId = "desaparecida", endedAtMs = 1L, publishedSpot = false)
+        repository.clearActiveParkingSession(sessionId = "desaparecida", endedAtMs = 1L, publishedSpot = false, refuelStop = null)
 
         assertTrue(scheduler.snapshots.isEmpty())
     }

@@ -497,6 +497,97 @@ See `diagnostics/README.md` at the repo root for the recommended layout when arc
 
 ## 2. Fix history
 
+### DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001 — una parada de tres minutos en el surtidor liberaba una plaza que no existe
+
+**Commit:** pending · **Reporte:** idea del user (03-11-2026): *«cuando detectemos que el usuario ha
+parado en una gasolinera, la detección debería preguntar si ha repostado y entender ese aparcamiento
+como una parada a posible repostaje … no un aparcamiento que se deba publicar»*.
+
+**Causa raíz.** La detección sólo sabía decir **aparcamiento**. Paras a repostar, el coordinador
+mide conducción, confirma y planta un pin; al irte, ese pin **libera una plaza** en el mapa de la
+comunidad. Nadie puede aparcar en un surtidor, así que el desplazado hace el viaje en balde: es el
+falso positivo **con coste para un tercero**, la clase que la doctrina de fallo asimétrico prohíbe
+explícitamente. Y de paso metía una sesión de tres minutos en el historial y en las cifras.
+
+**La señal ya existía y nadie la había cruzado con esto.** `NearbyPlacePolicy` —que nombra el POI de
+un pin— mide la distancia al **contorno OSM** del sitio (`distanceToBoundingBoxMeters`), no a su
+centro: estando dentro del recinto de una gasolinera, la distancia es **0 m**, y el POI que estampa
+en `UserParking.placeInfo` es `PlaceCategory.FUEL`. O sea que la pregunta «¿está el coche en una
+gasolinera?» ya estaba contestada, enriquecida al aparcar, sincronizada, y **sin red en el momento
+de la salida** — que es cuando hay que decidir. La fase de medición del ticket estaba construyendo
+por fuera (`tools/refuel-stops/osm_footprint.mjs`) lo que producción ya hacía.
+
+⛔ **El POI solo no basta, y por eso el veredicto tiene DOS términos.** El radio de nombrado son
+40 m al borde, que es honesto para *decir dónde estás* y demasiado generoso para *decidir que la
+acera de enfrente es del surtidor*. Lo que separa las dos lecturas es el **tiempo**: llenar un
+depósito son minutos, y un coche que pasa horas junto a una estación está aparcado al lado, no en
+el surtidor. De ahí `SpotReleasePolicy.REFUEL_STOP_MAX_DWELL_MS = 30 min`, **razonado y no medido**
+— la muestra etiquetada que pide el ticket no está —, puesto deliberadamente del lado generoso:
+errar hacia retener una plaza y preguntar es el fallo barato; publicar un recinto privado es el caro.
+
+**Fix.** Tercer motivo en el gate **que ya decidía la publicación**, no un guard nuevo:
+`SpotReleasePolicy.WithholdReason.REFUEL_STOP`, con `isRefuelStop(placeInfo, dwellMs)` como
+predicado puro al lado. Las **cinco** puertas que cierran una sesión pasan ahora los dos términos
+—`ProcessConfirmedDepartureUseCase`, `FinalizeDeducedDepartureUseCase`,
+`ReleaseActiveParkingSessionUseCase`, `EvaluateSpotReleaseNominationUseCase` y `RevertParkingUseCase`—
+porque los parámetros **no tienen defecto**: la lección de `SPOT-A-PRIVATE-ZONE-…-001` es que un
+término ausente de una puerta es cómo se publica un garaje.
+
+Se mete ANTES del techo de área y DESPUÉS de la zona privada: los tres retienen, y el orden es por
+cuál es el relato más cierto. «No estábamos seguros de dónde estabas» sería mentira sobre un sitio
+del que sí estamos seguros.
+
+⛔ **El mismo veredicto que retiene la plaza es el que deja la pregunta.** `Shape.refuelStopAnswer()`
+estampa `UserParking.refuelStop = PENDING` en el cierre, en la **misma** llamada
+(`clearActiveParkingSession`) que escribe `endedAtMs` y `publishedSpot`. Así «no publicamos» y
+«¿repostaste aquí?» no pueden discrepar sobre la misma parada, y un cierre idempotente no reabre una
+pregunta ya contestada: la columna es `COALESCE`, y la ÚNICA escritura que puede moverla es la
+respuesta del usuario (`answerRefuelStopById`, con `WHERE refuelStop IS NOT NULL` para que una
+respuesta no invente un repostaje sobre un aparcamiento corriente).
+
+**Dónde se pregunta — TRES superficies, un componente.** Home al entrar (`HomeEntryPrompt.REFUEL`,
+por detrás del onboarding y por delante del trámite del consentimiento), la fila del historial del
+vehículo, y la **ficha del detalle**. Las tres acaban en `AnswerRefuelStopUseCase`, o sea en el
+**mismo registro**.
+
+⛔ **La ficha faltaba, y el hueco se vio en el emulador, no leyendo el código**: la lista preguntaba
+y la ficha no decía nada, así que entrar en ella desde la lista hacía **desaparecer la pregunta**.
+Al cerrarlo se unificó lo que ya había: `RefuelStopRow` (en `PeekShared.kt`, junto a `PeekMetaRow` y
+`ApproximateZoneRow`) pinta el HECHO y, si sigue abierta, la pregunta — y lo usan la lista y la
+ficha. La primera versión tenía su propio `PapBadge` dentro de `HistoryTimeline`, que era una segunda
+forma de decir lo mismo; dos copias de una pregunta son dos sitios donde puede acabar diciendo cosas
+distintas. Tres estados y sólo tres: **pendiente** → hecho + pregunta; **confirmado** → el hecho en
+pasado («Repostaste aquí»), que es un dato de la sesión como la plaza que te cedió la comunidad;
+**descartado o nunca preguntado** → nada.
+Home sólo pregunta mientras la parada es fresca (`REFUEL_ASK_MAX_AGE_MS = 24 h`,
+[DET-A-STILL-PARKED-ASK-MUST-EARN-ITS-INTERRUPTION-001]: una interrupción se gana, y un diálogo
+sobre un depósito de hace tres semanas no se puede contestar con honestidad); pasado eso la pregunta
+**no desaparece**, espera en el historial, donde se llega por voluntad propia. Cerrar el aviso no
+escribe nada.
+
+**Riesgo del fix acompañante.** Dos, nombrados y aceptados:
+1. **Falso negativo mudo** si el enriquecimiento no llegó a nombrar el POI (Overpass caído, sesión
+   sin enriquecer): la parada publica como antes. Es el lado seguro y es la misma respuesta que
+   `NearbyPlacePolicy` ya da cuando no puede nombrar nada.
+2. **El umbral no está calibrado.** Recalibrarlo con la muestra etiquetada
+   (`tools/refuel-stops/compare_candidates.mjs`), no a ojo.
+
+⛔ No se hizo backfill en la migración v21: la evidencia se mide **en el cierre**, y una sesión ya
+cerrada no se puede volver a cerrar. `NULL` en las filas viejas dice exactamente lo que pasó —«de
+éstas no se preguntó»—, mientras que deducirlas ahora inventaría preguntas sobre viajes que el
+usuario ya no recuerda.
+
+**Testigo.** `SpotReleasePolicyTest` +7 (retención corta en surtidor, publicación normal con parada
+larga, publicación normal en otro POI, los dos «no afirma nada» sin POI y sin reloj, zona privada
+ganando el relato, repostaje ganando al área ancha, y el puente veredicto→pregunta),
+`AnswerRefuelStopUseCaseTest` (4, incluida la que prueba que una respuesta **no** alcanza a un
+aparcamiento corriente), `ComputePeriodStatsUseCaseTest` +3 (sólo cuenta `CONFIRMED`; cero es
+información; una sesión viva no cuenta), `HomeFirstEntryFlowTest` +3 (orden del aviso),
+`ParkingHistoryViewModelTest` +2 (la tercera puerta contesta, y no inventa un repostaje sobre una
+sesión que nunca se preguntó) y `Migration20To21Test` (la fila vieja sobrevive intacta y a NULL; el `COALESCE` protege la respuesta
+dada; el `WHERE` rechaza la respuesta sobre una parada no preguntada), con el driver de Android.
+
+
 ### ROUTE-A-SNAPPED-LINE-MUST-NOT-INVENT-GROUND-001 — el matcher salía a un nodo y volvía, y eso se dibujaba y se medía
 
 **Commit:** pending · **Reporte:** «muchas rutas no se dibujan bien en el mapa».

@@ -82,7 +82,16 @@ class GeofenceJanitorWorker(
                     // A dedup close is a supersede: it ends the stale row now and published
                     // nothing. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
                     runCatching {
-                        db.parkingSessionDao().clearActiveById(stale.id, endedAtMs = now, publishedSpot = false, now = now)
+                        // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] `refuelStop = null`: a
+                        // supersede measured nothing about where the stale row stood, and the
+                        // COALESCE in the query means this never erases an answer already given.
+                        db.parkingSessionDao().clearActiveById(
+                            stale.id,
+                            endedAtMs = now,
+                            publishedSpot = false,
+                            refuelStop = null,
+                            now = now,
+                        )
                     }
                 }
             }

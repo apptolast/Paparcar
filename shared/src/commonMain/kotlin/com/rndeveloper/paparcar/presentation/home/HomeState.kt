@@ -149,6 +149,23 @@ data class HomeState(
     val vehicles: List<Vehicle> = emptyList(),
     val vehiclesLoaded: Boolean = false,
     val parkingSessionsLoaded: Boolean = false,
+    /**
+     * The closed stop still waiting for «¿Repostaste aquí?», or null — which is the normal state.
+     * [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001]
+     *
+     * One, never a list: see the DAO query. Home is where the question is OFFERED; the vehicle's
+     * history is where it keeps waiting, which is why dismissing here writes nothing.
+     */
+    val pendingRefuelStop: UserParking? = null,
+    /**
+     * Stops whose refuel question the user waved away in THIS run of the app.
+     *
+     * ⛔ In memory on purpose, and it is the lighter half of a deliberate split: closing the dialog
+     * must not write an answer (the user said nothing), and it must not re-open on the next
+     * recomposition either. The question itself survives in the history, where the user can reach
+     * it when they want to — which is the whole of what the ticket asks dismissal to preserve.
+     */
+    val refuelAsksDismissed: Set<String> = emptySet(),
     val zones: List<Zone> = emptyList(),
 
     // ── Nearby spots ──────────────────────────────────────────────────────────

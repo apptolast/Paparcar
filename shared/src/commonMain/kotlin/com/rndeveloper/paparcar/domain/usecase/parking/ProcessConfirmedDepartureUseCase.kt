@@ -23,6 +23,7 @@ import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy
 import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy.publishConfidence
+import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy.refuelStopAnswer
 import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy.publishRadiusMeters
 import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy.publishes
 import com.rndeveloper.paparcar.domain.service.DepartureEventBus
@@ -131,6 +132,18 @@ class ProcessConfirmedDepartureUseCase(
         val lat = session?.location?.latitude
         val lon = session?.location?.longitude
 
+        // [STATS-EVERY-NUMBER-CITES-ITS-EVIDENCE-001] The session ends when the car MEASURABLY
+        // left, not when this code finally ran. An instant at or before the park is an anomaly, not
+        // a figure → the processing clock is then the honest "no later than" bound. Mirrors
+        // [FinalizeDeducedDepartureUseCase], until now the only path that dated the end right.
+        //
+        // ⛔ Hoisted above the publish gate because [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] made
+        // the DWELL part of the publication verdict: the gate and the close have to date the same
+        // departure, and two `Clock.System.now()` calls a few statements apart are two instants.
+        val endedAtMs = session?.let {
+            departedAtMs?.takeIf { departed -> departed > it.location.timestamp }
+        } ?: Clock.System.now().toEpochMilliseconds()
+
         // [DET-HANDOFF-NOT-MANUAL-001 §B] A pending deduction publishes ONCE. The session now
         // survives a deduced departure, so the safety net will keep re-deducing one every 15 min
         // while the user stays away from the car — and each pass would re-publish the same spot,
@@ -188,6 +201,10 @@ class ProcessConfirmedDepartureUseCase(
             zoneRadiusMeters = session?.zoneRadiusMeters,
             detectionReliability = session?.detectionReliability,
             privateZones = privateZones,
+            // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] A forecourt is not a plaza: the POI the
+            // enrichment named at the pin plus how long the car actually stood there.
+            placeInfo = session?.placeInfo,
+            dwellMs = session?.dwellMs(endedAtMs),
         )
 
         // Public spots are published to the community; private zones are not reported.
@@ -312,17 +329,11 @@ class ProcessConfirmedDepartureUseCase(
             // [VEH-STATS-SAY-SOMETHING-USEFUL-001]
             val gaveSpot = publishesNow ||
                 (session.provisionalDepartureAtMs != null && shape.publishes())
-            // [STATS-EVERY-NUMBER-CITES-ITS-EVIDENCE-001] The session ends when the car MEASURABLY
-            // left, not when this code finally ran — the same instant the publish gate above was
-            // asked about. An instant at or before the park is an anomaly, not a figure → the
-            // processing clock is then the honest "no later than" bound. Mirrors
-            // [FinalizeDeducedDepartureUseCase], until now the only path that dated the end right.
-            val endedAtMs = departedAtMs?.takeIf { it > session.location.timestamp }
-                ?: Clock.System.now().toEpochMilliseconds()
             userParkingRepository.clearActiveParkingSession(
                 session.id,
                 endedAtMs = endedAtMs,
                 publishedSpot = gaveSpot,
+                refuelStop = shape.refuelStopAnswer(),
             )
                 .onFailure { e ->
                     PaparcarLogger.e(TAG, "clearActiveParkingSession failed for session=${session.id}", e)

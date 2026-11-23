@@ -86,6 +86,17 @@ class MockScenario {
     val firstHomeEntry = MutableStateFlow(false)
 
     /**
+     * [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] Deja una parada en el surtidor esperando su
+     * «¿Repostaste aquí?»: el aviso de Home al entrar y el badge «Posible repostaje» con sus dos
+     * botones en el historial del Seat León.
+     *
+     * ⛔ Apagado por defecto, y eso es una decisión, no una omisión: la parada vive en la lista de
+     * sesiones del fake, así que encenderla siempre pondría ese diálogo delante de CUALQUIER otra
+     * cosa que se vaya a probar en Home.
+     */
+    val refuelStopPending = MutableStateFlow(false)
+
+    /**
      * El usuario CONCEDE la ubicación cuando la app se la pide. [HOME-FIRST-ENTRY-FLOW-001]
      *
      * ⛔ Sin esto la secuencia de primera entrada era **irreproducible en mock**, y justo la que

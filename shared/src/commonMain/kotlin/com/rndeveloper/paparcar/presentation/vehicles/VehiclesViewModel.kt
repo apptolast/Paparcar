@@ -153,6 +153,9 @@ class VehiclesViewModel(
     /** [IOS-DET-AUDIO-ROUTE-PROVES-WHOSE-CAR-001] Vía A reads the live audio route here. Empty stub
      *  on every non-iOS graph — the "link this car" row only appears where `isAudioRouteLinkRelevant`. */
     private val carAudioRouteSource: com.rndeveloper.paparcar.domain.detection.ports.CarAudioRouteSource,
+    /** [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] La respuesta a «¿Repostaste aquí?» desde el
+     *  historial — el mismo caso de uso al que llega Home. */
+    private val answerRefuelStop: com.rndeveloper.paparcar.domain.usecase.parking.AnswerRefuelStopUseCase,
 ) : BaseViewModel<VehiclesState, VehiclesIntent, VehiclesEffect>() {
 
     override fun initState(): VehiclesState = VehiclesState()
@@ -428,6 +431,11 @@ class VehiclesViewModel(
                     )
                     copy(historyCache = historyCache + (vehicleId to updated))
                 }
+            }
+            // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] La fila no re-resuelve nada: Room emite el
+            // cambio y el historial se recompone por el mismo camino que cualquier otra escritura.
+            is VehiclesIntent.AnswerRefuelStop -> viewModelScope.launch {
+                answerRefuelStop(intent.sessionId, intent.refuelled)
             }
             is VehiclesIntent.ViewLiveParkingOnMap ->
                 sendEffect(VehiclesEffect.NavigateToLiveParking(intent.sessionId))

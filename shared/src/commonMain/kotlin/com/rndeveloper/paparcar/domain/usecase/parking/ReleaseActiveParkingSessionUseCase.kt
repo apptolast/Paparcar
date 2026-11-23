@@ -20,6 +20,7 @@ import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.service.GeofenceManager
 import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy
 import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy.publishConfidence
+import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy.refuelStopAnswer
 import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy.publishRadiusMeters
 import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy.publishes
 import com.rndeveloper.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
@@ -81,11 +82,19 @@ class ReleaseActiveParkingSessionUseCase(
         val privateZones = runCatching { zoneRepository.getPrivateZonesSnapshot() }
             .onFailure { PaparcarLogger.w(TAG, "private zones unreadable — release proceeds as if there were none", it) }
             .getOrDefault(emptyList())
+        // One clock for the whole release: the publish gate reads the dwell and the close stamps the
+        // end, and two `now()` calls a few statements apart are two different departures.
+        // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001]
+        val nowMs = Clock.System.now().toEpochMilliseconds()
         val shape = SpotReleasePolicy.shapeFor(
             location = GpsPoint(latitude = lat, longitude = lon, accuracy = 0f, timestamp = 0L, speed = 0f),
             zoneRadiusMeters = currentSession?.zoneRadiusMeters,
             detectionReliability = currentSession?.detectionReliability,
             privateZones = privateZones,
+            // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] «Me voy» witnesses the departure, not the
+            // ground: a forecourt is no more a plaza because the user pressed the button themselves.
+            placeInfo = currentSession?.placeInfo,
+            dwellMs = currentSession?.dwellMs(nowMs),
         )
         val publishes = reason.offersSpot && shape.publishes()
         if (reason.offersSpot && !publishes) {
@@ -160,7 +169,6 @@ class ReleaseActiveParkingSessionUseCase(
         // session, from where — and WHY, so a replay can tell a departure from a deleted record
         // instead of guessing from `published`. Fire-and-forget — never blocks or fails the
         // release. [VEH-ACTIVE-FENCE-001] [PARK-DELETE-NO-DECLARE-001]
-        val nowMs = Clock.System.now().toEpochMilliseconds()
         detectionEventLogger.log(
             DetectionEvent.Released(
                 sessionId = sessionId,
@@ -174,7 +182,10 @@ class ReleaseActiveParkingSessionUseCase(
         // Close provenance: the release moment + whether this close gave the community a spot.
         // [VEH-STATS-SAY-SOMETHING-USEFUL-001]
         val cleared = userParkingRepository.clearActiveParkingSession(
-            sessionId, endedAtMs = nowMs, publishedSpot = publishes,
+            sessionId,
+            endedAtMs = nowMs,
+            publishedSpot = publishes,
+            refuelStop = shape.refuelStopAnswer(),
         )
 
         // [ANALYTICS-EVENTS-001] The close is durable → the fact is countable (cell-only). All

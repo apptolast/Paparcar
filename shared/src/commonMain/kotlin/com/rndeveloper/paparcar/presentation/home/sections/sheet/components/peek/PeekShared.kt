@@ -18,6 +18,7 @@ import androidx.compose.material.icons.rounded.Navigation
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
@@ -43,12 +44,20 @@ import com.rndeveloper.paparcar.presentation.util.toPlaceLine
 import com.rndeveloper.paparcar.presentation.util.walkTimeString
 import com.rndeveloper.paparcar.ui.components.PapSectionHeader
 import com.rndeveloper.paparcar.ui.components.ReliabilityMeter
+import com.rndeveloper.paparcar.domain.model.RefuelStopAnswer
+import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
+import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.stateColors
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.home_spot_releasing_eyebrow
 import paparcar.composeapp.generated.resources.notif_saved_approximate_text
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.refuel_answer_no
+import paparcar.composeapp.generated.resources.refuel_answer_yes
+import paparcar.composeapp.generated.resources.refuel_ask_title
+import paparcar.composeapp.generated.resources.refuel_confirmed_fact
+import paparcar.composeapp.generated.resources.refuel_possible_label
 import paparcar.composeapp.generated.resources.home_address_unknown
 import paparcar.composeapp.generated.resources.home_peek_parking_approximate
 import paparcar.composeapp.generated.resources.home_peek_spot_fresh
@@ -187,6 +196,72 @@ internal fun ApproximateZoneRow(
 }
 
 private const val APPROXIMATE_ROW_MAX_LINES = 3
+
+/**
+ * Lo que esta sesión dice sobre el surtidor: el hecho, y la pregunta si sigue abierta.
+ * [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001]
+ *
+ * ⛔ **Un solo componente para las DOS superficies** que la ofrecen —la fila del historial del
+ * vehículo y la ficha del detalle—, por lo mismo que [PeekMetaRow] existe: dos copias de la misma
+ * pregunta son dos sitios donde puede decir cosas distintas, y aquí la segunda llegó precisamente
+ * por quedarse un hueco (la ficha no decía nada y perdías la pregunta al entrar en ella).
+ *
+ * Tres estados y sólo tres:
+ * - **pendiente** → el hecho («Posible repostaje») y, si [onAnswer] existe, la pregunta con sus dos
+ *   respuestas. Sin [onAnswer] la superficie no contesta (previews, galería) y se queda en el hecho.
+ * - **confirmado** → el hecho, en pasado. Es un dato de la sesión igual que la plaza que te cedió
+ *   la comunidad, y la cifra del periodo lo cuenta.
+ * - **descartado o nunca preguntado** → **nada**. Un «no» no deja rastro que enseñar, y no haber
+ *   preguntado todavía menos.
+ */
+@Composable
+internal fun RefuelStopRow(
+    refuelStop: RefuelStopAnswer?,
+    tint: Color,
+    onAnswer: ((refuelled: Boolean) -> Unit)? = null,
+) {
+    if (refuelStop != RefuelStopAnswer.PENDING && refuelStop != RefuelStopAnswer.CONFIRMED) return
+    PeekMetaRow(
+        icon = PaparcarIcons.Fuel,
+        text = stringResource(
+            if (refuelStop == RefuelStopAnswer.CONFIRMED) {
+                Res.string.refuel_confirmed_fact
+            } else {
+                Res.string.refuel_possible_label
+            },
+        ),
+        tint = tint,
+    )
+    if (refuelStop != RefuelStopAnswer.PENDING || onAnswer == null) return
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stringResource(Res.string.refuel_ask_title),
+            style = PaparcarType.current.caption,
+            color = tint,
+            modifier = Modifier.weight(1f),
+        )
+        // Mismo reparto que la pregunta por la ruta inferida: el «no» en tono neutro y el «sí» en el
+        // verde de acción, porque sólo una de las dos añade algo. [ROUTE-GAP-HONEST-001]
+        TextButton(onClick = { onAnswer(false) }) {
+            Text(
+                text = stringResource(Res.string.refuel_answer_no),
+                style = PaparcarType.current.cta,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        TextButton(onClick = { onAnswer(true) }) {
+            Text(
+                text = stringResource(Res.string.refuel_answer_yes),
+                style = PaparcarType.current.cta,
+                color = PapColor.actionText,
+            )
+        }
+    }
+}
 
 // `DistanceRow` vivió aquí y **murió con su caso**: desde que los cuatro peeks ponen la distancia en
 // su línea 2, ninguno la renderiza. Un componente que nadie pinta no es un componente. Lo que

@@ -13,6 +13,7 @@ import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy
 import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy.publishConfidence
+import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy.refuelStopAnswer
 import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy.publishRadiusMeters
 import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy.publishes
 import com.rndeveloper.paparcar.domain.detection.parkedSessionIsContradictedByBtConnect
@@ -111,6 +112,11 @@ class FinalizeDeducedDepartureUseCase(
             zoneRadiusMeters = session.zoneRadiusMeters,
             detectionReliability = session.detectionReliability,
             privateZones = privateZones,
+            // [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] Dated by the DEDUCED departure, the same
+            // instant this close is stamped with — not by the promotion's own clock, which runs
+            // whenever the drive happened to be measured and would stretch a tankful into a park.
+            placeInfo = session.placeInfo,
+            dwellMs = session.dwellMs(deducedAtMs),
         )
         // [DET-A-BT-CONNECT-KNOWS-WHERE-THE-CAR-IS-001] The pin may have gone stale between the
         // deduction and this promotion: the paired car connecting somewhere else is the only signal
@@ -158,6 +164,7 @@ class FinalizeDeducedDepartureUseCase(
             session.id,
             endedAtMs = deducedAtMs,
             publishedSpot = publishes,
+            refuelStop = shape.refuelStopAnswer(),
         )
             .onFailure { e ->
                 // The marker stays, so a later proof (or the safety net's next pass) retries. The
