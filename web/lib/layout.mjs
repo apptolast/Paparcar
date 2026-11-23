@@ -122,6 +122,25 @@ function languageSwitch(t, pageKey, current, { compact = false } = {}) {
   </div>`;
 }
 
+/**
+ * Site-wide campaign banner, above the header, on every page EXCEPT the campaign's own: a banner
+ * linking to the page you are already on is noise, not help.
+ *
+ * ⛔ No automatic end date. A rebuild here is manual (`node web/build.mjs`), so gating the markup
+ * by today's date would not remove itself from what is already deployed anyway — the one line
+ * that calls this function is the single place to delete when the campaign (30-11-2026) ends.
+ * [WEB-BLACKFRIDAY-PROMO-BAR-001]
+ */
+function promoBar(t, pageKey, base) {
+  if (pageKey === 'blackfriday') return '';
+  return `<a class="promo-bar" href="${routes(base).blackfriday}">
+  <span class="shell promo-bar__inner">
+    <span class="promo-bar__text">${esc(t.promoBar.text)}</span>
+    ${icon('chevronRight', { size: 16, className: 'promo-bar__chevron' })}
+  </span>
+</a>`;
+}
+
 function header(t, pageKey, lang, base) {
   const home = routes(base).home;
   const navItems = [
@@ -234,6 +253,7 @@ ${head({ t, pageKey, title, description, canonical, jsonLd, ogImage, noindex })}
 </head>
 <body class="${cx('page', bodyClass)}">
 <a class="skip-link" href="#main">${esc(t.site.skipToContent)}</a>
+${promoBar(t, pageKey, base)}
 ${header(t, pageKey, lang, base)}
 <main id="main">
 ${body}

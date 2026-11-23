@@ -8,6 +8,9 @@
     "ogAlt": "Paparcar en un móvil: el mapa con el coche aparcado y la calle donde está.",
     "skipToContent": "Saltar al contenido"
   },
+  "promoBar": {
+    "text": "Black Friday: {{foundersMonths}} meses de Plus gratis para las primeras {{foundersCap}} cuentas nuevas"
+  },
   "nav": {
     "home": "Inicio",
     "how": "Cómo funciona",

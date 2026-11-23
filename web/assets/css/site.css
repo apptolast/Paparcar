@@ -226,6 +226,25 @@ button { font: inherit; color: inherit; }
 .store-btn__text small { font-size: 0.6875rem; color: var(--muted); letter-spacing: 0.02em; }
 .store-btn__text strong { font-size: var(--t-row-name); font-weight: 700; }
 
+/* ── promo bar ─────────────────────────────────────────────────────────────── */
+
+/* Site-wide campaign banner, above the header. Not sticky — it scrolls away with the rest of the
+   page and the sticky header takes over at the top, same as if the banner were never there. */
+.promo-bar {
+  display: block;
+  background: var(--brand-muted);
+  border-bottom: 1px solid var(--brand-outline);
+}
+.promo-bar__inner {
+  display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+  flex-wrap: wrap;
+  padding-block: 0.6rem;
+  font-size: var(--t-caption); font-weight: 700; letter-spacing: -0.005em;
+  color: var(--on-dark); text-align: center;
+}
+.promo-bar__chevron { flex: none; color: var(--brand); transition: transform 0.2s var(--ease); }
+.promo-bar:hover .promo-bar__chevron { transform: translateX(3px); }
+
 /* ── header ────────────────────────────────────────────────────────────────── */
 
 .site-header {

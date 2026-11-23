@@ -8,6 +8,9 @@
     "ogAlt": "Paparcar on a phone: the map with the parked car and the street it is on.",
     "skipToContent": "Skip to content"
   },
+  "promoBar": {
+    "text": "Black Friday: {{foundersMonths}} months of Plus free for the first {{foundersCap}} new accounts"
+  },
   "nav": {
     "home": "Home",
     "how": "How it works",
