@@ -34,6 +34,7 @@ import com.rndeveloper.paparcar.presentation.util.shortDateText
 import com.rndeveloper.paparcar.ui.components.PAPARCAR_LOGO_BESIDE_NAME_SIZE
 import com.rndeveloper.paparcar.ui.components.PapPremiumCrest
 import com.rndeveloper.paparcar.ui.components.PapSectionHeader
+import com.rndeveloper.paparcar.ui.theme.PapPageRhythm
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -85,7 +86,7 @@ fun PlusStatusContent(
             Column(
                 modifier = Modifier
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = SCREEN_H_PADDING_DP.dp),
+                    .padding(horizontal = PapPageRhythm.sideInset),
             ) {
                 Spacer(Modifier.height(CLOSE_ROW_HEIGHT_DP.dp))
                 Row(
@@ -103,12 +104,15 @@ fun PlusStatusContent(
                         PlusStatusLine(state)
                     }
                 }
-                Spacer(Modifier.height(SECTION_GAP_DP.dp))
+                // Cabecera + el crest de arriba: el hueco antes de una sección.
+                Spacer(Modifier.height(PapPageRhythm.beforeSection))
                 PapSectionHeader(stringResource(Res.string.plus_status_benefits_title))
-                Spacer(Modifier.height(BENEFITS_TITLE_GAP_DP.dp))
+                // La cabecera de sección y su primer bloque (la lista de ventajas).
+                Spacer(Modifier.height(PapPageRhythm.afterSection))
                 PlusBenefits()
                 if (state.canManageSubscription) {
-                    Spacer(Modifier.height(SECTION_GAP_DP.dp))
+                    // Dos bloques hermanos de la página: la lista y el botón de gestión.
+                    Spacer(Modifier.height(PapPageRhythm.block))
                     TextButton(onClick = { onIntent(PlusStatusIntent.ManageSubscription) }) {
                         Text(
                             text = stringResource(Res.string.plus_status_manage_subscription),
@@ -116,7 +120,7 @@ fun PlusStatusContent(
                         )
                     }
                 }
-                Spacer(Modifier.height(SECTION_GAP_DP.dp))
+                Spacer(Modifier.height(PapPageRhythm.edgeInset))
             }
             IconButton(
                 onClick = onClose,
@@ -156,9 +160,6 @@ private fun PlusStatusLine(state: PlusStatusState) {
     )
 }
 
-private const val SCREEN_H_PADDING_DP = 20
 private const val CLOSE_ROW_HEIGHT_DP = 48
 private const val CLOSE_PADDING_DP = 4
 private const val CREST_TEXT_GAP_DP = 16
-private const val SECTION_GAP_DP = 24
-private const val BENEFITS_TITLE_GAP_DP = 4
