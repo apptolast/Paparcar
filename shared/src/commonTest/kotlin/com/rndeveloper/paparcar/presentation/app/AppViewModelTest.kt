@@ -14,6 +14,8 @@ import com.rndeveloper.paparcar.domain.usecase.detection.EvaluateDetectionReliab
 import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
 import com.rndeveloper.paparcar.domain.usecase.detection.PublishDetectionStateUseCase
 import com.rndeveloper.paparcar.domain.analytics.AdMeasurementConsent
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
+import com.rndeveloper.paparcar.domain.notification.AlertChannel
 import com.rndeveloper.paparcar.domain.usecase.analytics.SetAdMeasurementConsentUseCase
 import com.rndeveloper.paparcar.fakes.FakeAdMeasurementLane
 import com.rndeveloper.paparcar.fakes.FakeAnalyticsTracker
@@ -84,6 +86,9 @@ class AppViewModelTest {
      *  [ZONE-AN-ALERT-NEAR-YOU-IS-NOT-AN-ALERT-IN-YOUR-ZONE-001] */
     private lateinit var nearbyAlerts: NearbySpotAlerts
     private lateinit var fakeNotifications: FakeAppNotificationManager
+    /** [ANALYTICS-FUEL-HISTORY-ALERTS-COVERAGE-001] Compartido, no reasignado por test: el helper
+     *  `viewModel()` lo cablea siempre, así que cualquier test puede leer `fakeAnalyticsTracker.events`. */
+    private val fakeAnalyticsTracker = FakeAnalyticsTracker()
     // [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001] Signed out and with nothing granted, so the
     // publisher is inert here: its own contract is covered by PublishDetectionStateUseCaseTest.
     private lateinit var detectionPublisher: PublishDetectionStateUseCase
@@ -171,6 +176,7 @@ class AppViewModelTest {
         observePlusGrant = ObservePlusGrantUseCase(entitlement),
         claimFoundersPromo = ClaimFoundersPromoUseCase(foundersPromo, fakePrefs, entitlement),
         authRepository = fakeAuth,
+        analyticsTracker = fakeAnalyticsTracker,
     )
 
     /** [MONEY-FOUNDERS-PLUS-PROMO-001] El timbre de la promo, sin red. */
@@ -635,6 +641,44 @@ class AppViewModelTest {
             "la tarjeta del sistema tiene que saber que no está confirmada",
         )
         assertEquals(null, vm.state.value.spotAlert, "con el mapa fuera, el banner no habla")
+    }
+
+    // ── [ANALYTICS-FUEL-HISTORY-ALERTS-COVERAGE-001] Alertas de zona entregadas ───────────────
+
+    @Test
+    fun `should report the zone alert on the system-notification channel when the map is away`() = runTest(testDispatcher) {
+        mapVisibility.set(false)
+        fakeZoneRepo.zones = listOf(zoneWithAlerts)
+        entitlementRepo.emitEntitlement(Entitlement.PLUS)
+        val vm = viewModel()
+        runCurrent()
+        vm.handleIntent(AppIntent.SetAppForeground(true))
+
+        spotRepoForAlerts.spots = listOf(nearbySpot.copy(id = "s-system"))
+        runCurrent()
+
+        val event = fakeAnalyticsTracker.events.filterIsInstance<AnalyticsEvent.ZoneSpotAlertShown>().single()
+        assertEquals(nearbySpot.location, event.location)
+        assertEquals(AlertChannel.SYSTEM_NOTIFICATION, event.channel)
+        assertEquals(1, fakeAnalyticsTracker.events.size)
+    }
+
+    @Test
+    fun `should report the zone alert on the in-app channel when the map is visible`() = runTest(testDispatcher) {
+        mapVisibility.set(true)
+        fakeZoneRepo.zones = listOf(zoneWithAlerts)
+        entitlementRepo.emitEntitlement(Entitlement.PLUS)
+        val vm = viewModel()
+        runCurrent()
+        vm.handleIntent(AppIntent.SetAppForeground(true))
+
+        spotRepoForAlerts.spots = listOf(nearbySpot.copy(id = "s-in-app"))
+        runCurrent()
+
+        val event = fakeAnalyticsTracker.events.filterIsInstance<AnalyticsEvent.ZoneSpotAlertShown>().single()
+        assertEquals(nearbySpot.location, event.location)
+        assertEquals(AlertChannel.IN_APP, event.channel)
+        assertEquals(1, fakeAnalyticsTracker.events.size)
     }
 
     // ── [BATT-002] El listener de zona no sobrevive a la app en segundo plano ──

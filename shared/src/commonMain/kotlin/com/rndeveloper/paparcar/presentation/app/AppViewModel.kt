@@ -1,6 +1,8 @@
 package com.rndeveloper.paparcar.presentation.app
 
 import com.rndeveloper.paparcar.domain.analytics.AdMeasurementLane
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsTracker
 import com.rndeveloper.paparcar.domain.analytics.shouldAskAdMeasurementConsent
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityBannerPhase
 import com.rndeveloper.paparcar.domain.usecase.analytics.SetAdMeasurementConsentUseCase
@@ -86,6 +88,7 @@ class AppViewModel(
      *  cumplir sobre un usuario que no se sabe nombrar. Reactivo y no una lectura única — este
      *  ViewModel sobrevive a un cierre de sesión y a la entrada del siguiente. */
     private val authRepository: AuthRepository,
+    private val analyticsTracker: AnalyticsTracker? = null,
 // `Nothing` as the effect type: the root ViewModel has no one-shot side effects to emit, and saying
 // so in the type stops one from being smuggled in. Its only effect used to be applying a language
 // the OS owns. [SETTINGS-LANGUAGE-LIVES-IN-THE-SYSTEM-001]
@@ -208,7 +211,11 @@ class AppViewModel(
                 // ANTES de emitirla, así que dos consumidores harían que el segundo no viera nada:
                 // el primero ya la marcó como contada. El canal se elige aquí.
                 // [ZONE-AN-ALERT-IS-DELIVERED-WHERE-YOU-CAN-SEE-IT-001]
-                when (alertChannelFor(mapVisibility.onScreen.value)) {
+                val channel = alertChannelFor(mapVisibility.onScreen.value)
+                analyticsTracker?.track(
+                    AnalyticsEvent.ZoneSpotAlertShown(location = alert.spot.location, channel = channel),
+                )
+                when (channel) {
                     AlertChannel.IN_APP -> showSpotAlertInApp(
                         SpotAlertCue(
                             spotId = alert.spot.id,

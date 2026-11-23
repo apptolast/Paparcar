@@ -58,6 +58,10 @@ enum class AdAttributionEvent(val wire: String) {
  *   cuenta como [SPOT_RELEASED] cuando publica plaza.
  * - [AnalyticsEvent.SpotReported] es un aviso manual sin coche de por medio. Se puede repetir sin
  *   límite, así que como señal de valor es ruido.
+ *
+ * [ANALYTICS-FUEL-HISTORY-ALERTS-COVERAGE-001] Los seis eventos nuevos de gasolineras, historial
+ * y alertas tampoco salen: ninguno es activación ni ingreso, y una red publicitaria no puede
+ * optimizar por «vio un aviso de precio» o «siguió una gasolinera».
  */
 fun AnalyticsEvent.asAdAttributionEvent(): AdAttributionEvent? = when (this) {
     is AnalyticsEvent.ParkingSessionStarted -> AdAttributionEvent.PARKING_CONFIRMED
@@ -66,4 +70,11 @@ fun AnalyticsEvent.asAdAttributionEvent(): AdAttributionEvent? = when (this) {
     is AnalyticsEvent.TriggerFired -> null
     is AnalyticsEvent.ParkingSessionEnded -> null
     is AnalyticsEvent.SpotReported -> null
+    is AnalyticsEvent.FuelPriceMoveShown -> null
+    is AnalyticsEvent.CheaperFuelNearbyShown -> null
+    is AnalyticsEvent.FuelStationFollowToggled -> null
+    is AnalyticsEvent.ZoneSpotAlertShown -> null
+    is AnalyticsEvent.MonthRecapShown -> null
+    is AnalyticsEvent.RefuelStopAnswered -> null
+    is AnalyticsEvent.NotificationChannelToggled -> null
 }

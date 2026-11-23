@@ -2,6 +2,8 @@
 
 package com.rndeveloper.paparcar.domain.usecase.fuel
 
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsTracker
 import com.rndeveloper.paparcar.domain.fuel.FollowedFuelStation
 import com.rndeveloper.paparcar.domain.repository.FuelWatchRepository
 import kotlin.time.Clock
@@ -20,6 +22,7 @@ enum class FollowToggleOutcome { FOLLOWED, UNFOLLOWED }
 class ToggleFollowFuelStationUseCase(
     private val repository: FuelWatchRepository,
     private val clock: () -> Long = { Clock.System.now().toEpochMilliseconds() },
+    private val analyticsTracker: AnalyticsTracker? = null,
 ) {
 
     suspend operator fun invoke(
@@ -48,5 +51,9 @@ class ToggleFollowFuelStationUseCase(
             )
             FollowToggleOutcome.FOLLOWED
         }
+    }.onSuccess { outcome ->
+        analyticsTracker?.track(
+            AnalyticsEvent.FuelStationFollowToggled(followed = outcome == FollowToggleOutcome.FOLLOWED),
+        )
     }
 }

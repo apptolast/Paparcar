@@ -17,6 +17,8 @@ import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
 import com.rndeveloper.paparcar.domain.usecase.user.DeleteAccountUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.SetFirstStepsDismissedUseCase
 import com.apptolast.baselogin.domain.model.AuthState
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
+import com.rndeveloper.paparcar.fakes.FakeAnalyticsTracker
 import com.rndeveloper.paparcar.fakes.FakeAppPreferences
 import com.rndeveloper.paparcar.fakes.FakeAuthRepository
 import com.rndeveloper.paparcar.fakes.testSignOutUseCase
@@ -63,6 +65,7 @@ class SettingsViewModelTest {
     private lateinit var entitlementRepo: com.rndeveloper.paparcar.fakes.FakeEntitlementRepository
     private lateinit var vm: SettingsViewModel
     private val adLane = com.rndeveloper.paparcar.fakes.FakeAdMeasurementLane()
+    private val analyticsTracker = FakeAnalyticsTracker()
 
     @BeforeTest
     fun setUp() {
@@ -125,6 +128,7 @@ class SettingsViewModelTest {
             adLane,
             com.rndeveloper.paparcar.domain.usecase.analytics.SetAdMeasurementConsentUseCase(customPrefs, adLane),
             widgetPinRequester,
+            analyticsTracker,
         )
     }
 
@@ -802,6 +806,61 @@ class SettingsViewModelTest {
         // Silencing a channel needs no entitlement — only ENABLING is the gated attempt.
         vm.handleIntent(SettingsIntent.ToggleZoneAlertsNotif(enabled = false))
         assertFalse(prefs.notifyZoneSpots)
+    }
+
+    // ── [ANALYTICS-FUEL-HISTORY-ALERTS-COVERAGE-001] Los tres interruptores, ÉXITO real ──
+    // Nunca el intento gratis que abre el paywall — PaywallShown ya lo cuenta en otro sitio.
+
+    @Test
+    fun `should_reportTheSwitch_when_plusEnablesZoneAlerts`() = runTest {
+        entitlementRepo.emitEntitlement(com.rndeveloper.paparcar.domain.model.Entitlement.PLUS)
+
+        vm.handleIntent(SettingsIntent.ToggleZoneAlertsNotif(enabled = true))
+
+        val event = analyticsTracker.events.filterIsInstance<AnalyticsEvent.NotificationChannelToggled>().single()
+        assertEquals(com.rndeveloper.paparcar.domain.entitlement.PaywallReason.ZONE_ALERTS, event.channel)
+        assertTrue(event.enabled)
+        assertEquals(1, analyticsTracker.events.size)
+    }
+
+    @Test
+    fun `should_notReport_when_theFreeAttemptOpensThePaywallInstead`() = runTest {
+        vm.handleIntent(SettingsIntent.ToggleZoneAlertsNotif(enabled = true))
+
+        assertTrue(analyticsTracker.events.isEmpty())
+    }
+
+    @Test
+    fun `should_reportTheSwitch_when_silencingZoneAlerts`() = runTest {
+        vm.handleIntent(SettingsIntent.ToggleZoneAlertsNotif(enabled = false))
+
+        val event = analyticsTracker.events.filterIsInstance<AnalyticsEvent.NotificationChannelToggled>().single()
+        assertEquals(com.rndeveloper.paparcar.domain.entitlement.PaywallReason.ZONE_ALERTS, event.channel)
+        assertFalse(event.enabled)
+        assertEquals(1, analyticsTracker.events.size)
+    }
+
+    @Test
+    fun `should_reportTheSwitch_when_plusTogglesTheMonthRecap`() = runTest {
+        entitlementRepo.emitEntitlement(com.rndeveloper.paparcar.domain.model.Entitlement.PLUS)
+
+        vm.handleIntent(SettingsIntent.ToggleMonthRecapNotif(enabled = false))
+
+        val event = analyticsTracker.events.filterIsInstance<AnalyticsEvent.NotificationChannelToggled>().single()
+        assertEquals(com.rndeveloper.paparcar.domain.entitlement.PaywallReason.MONTH_RECAP, event.channel)
+        assertFalse(event.enabled)
+        assertEquals(1, analyticsTracker.events.size)
+    }
+
+    @Test
+    fun `should_reportTheSwitch_when_theFreeFuelAlertsToggleIsFlipped`() = runTest {
+        // [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001] Free desde el 13-10, sin paywall que lo capture.
+        vm.handleIntent(SettingsIntent.ToggleFuelAlertsNotif(enabled = true))
+
+        val event = analyticsTracker.events.filterIsInstance<AnalyticsEvent.NotificationChannelToggled>().single()
+        assertEquals(com.rndeveloper.paparcar.domain.entitlement.PaywallReason.FUEL_ALERTS, event.channel)
+        assertTrue(event.enabled)
+        assertEquals(1, analyticsTracker.events.size)
     }
 
     @Test

@@ -1,8 +1,13 @@
 package com.rndeveloper.paparcar.domain.analytics
 
 import com.rndeveloper.paparcar.domain.detection.sentry.TriggerDisposition
+import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.SpotType
+import com.rndeveloper.paparcar.domain.notification.AlertChannel
+import com.rndeveloper.paparcar.domain.notification.FuelMoveLane
+import com.rndeveloper.paparcar.domain.usecase.fuel.CheaperReference
+import com.rndeveloper.paparcar.domain.usecase.fuel.PriceMoveDirection
 
 /**
  * Product-analytics sink for the facts that already happen in the app — parks confirmed, sessions
@@ -131,6 +136,50 @@ sealed class AnalyticsEvent {
      *  column. No location: a paywall is not a place. [FREE-LIMITS-001] */
     data class PaywallShown(
         val reason: com.rndeveloper.paparcar.domain.entitlement.PaywallReason,
+    ) : AnalyticsEvent()
+
+    /** A daily price-move notification was shown — which lane and which direction.
+     *  [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001] */
+    data class FuelPriceMoveShown(
+        val lane: FuelMoveLane,
+        val direction: PriceMoveDirection,
+    ) : AnalyticsEvent()
+
+    /** The "cheaper station nearby" notification was shown, against whichever reference it used. */
+    data class CheaperFuelNearbyShown(
+        val reference: CheaperReference,
+    ) : AnalyticsEvent()
+
+    /** The user followed or unfollowed a fuel station — a free gesture.
+     *  [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001] */
+    data class FuelStationFollowToggled(
+        val followed: Boolean,
+    ) : AnalyticsEvent()
+
+    /** A zone spot alert reached the user, on whichever channel the moment picked.
+     *  [ZONE-AN-ALERT-IS-DELIVERED-WHERE-YOU-CAN-SEE-IT-001] */
+    data class ZoneSpotAlertShown(
+        val location: GpsPoint,
+        val channel: AlertChannel,
+    ) : AnalyticsEvent()
+
+    /** The month recap notification was shown. No location — a recap is not a place, same as
+     *  [PaywallShown]. [STATS-PLUS-THE-RECAP-KNOCKS-001] */
+    data object MonthRecapShown : AnalyticsEvent()
+
+    /** The user answered "did you refuel here?", from whichever of the three surfaces asked.
+     *  [DET-A-STOP-AT-A-PUMP-IS-NOT-A-PARKING-001] */
+    data class RefuelStopAnswered(
+        val refuelled: Boolean,
+    ) : AnalyticsEvent()
+
+    /** One of the three notification-channel switches in Settings was actually applied — never
+     *  the free attempt that opens the paywall, [PaywallShown] already counts that. Reuses
+     *  [PaywallReason]'s closed vocabulary rather than a second enum naming the same three
+     *  channels, which would be free to drift. */
+    data class NotificationChannelToggled(
+        val channel: PaywallReason,
+        val enabled: Boolean,
     ) : AnalyticsEvent()
 }
 

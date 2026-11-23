@@ -65,6 +65,40 @@ class FirebaseAnalyticsTracker : AnalyticsTracker {
                     EVENT_PAYWALL_SHOWN,
                     mapOf(PARAM_REASON to event.reason.name.lowercase()),
                 )
+                is AnalyticsEvent.FuelPriceMoveShown -> log(
+                    EVENT_FUEL_PRICE_MOVE_SHOWN,
+                    mapOf(
+                        PARAM_FUEL_LANE to event.lane.name.lowercase(),
+                        PARAM_DIRECTION to event.direction.name.lowercase(),
+                    ),
+                )
+                is AnalyticsEvent.CheaperFuelNearbyShown -> log(
+                    EVENT_CHEAPER_FUEL_NEARBY_SHOWN,
+                    mapOf(PARAM_REFERENCE to event.reference.name.lowercase()),
+                )
+                is AnalyticsEvent.FuelStationFollowToggled -> log(
+                    EVENT_FUEL_STATION_FOLLOW_TOGGLED,
+                    mapOf(PARAM_FOLLOWED to event.followed.toString()),
+                )
+                is AnalyticsEvent.ZoneSpotAlertShown -> log(
+                    EVENT_ZONE_SPOT_ALERT_SHOWN,
+                    mapOf(
+                        PARAM_CELL to event.location.cell(),
+                        PARAM_CHANNEL to event.channel.name.lowercase(),
+                    ),
+                )
+                is AnalyticsEvent.MonthRecapShown -> log(EVENT_MONTH_RECAP_SHOWN, emptyMap())
+                is AnalyticsEvent.RefuelStopAnswered -> log(
+                    EVENT_REFUEL_STOP_ANSWERED,
+                    mapOf(PARAM_REFUELLED to event.refuelled.toString()),
+                )
+                is AnalyticsEvent.NotificationChannelToggled -> log(
+                    EVENT_NOTIFICATION_CHANNEL_TOGGLED,
+                    mapOf(
+                        PARAM_CHANNEL to event.channel.name.lowercase(),
+                        PARAM_ENABLED to event.enabled.toString(),
+                    ),
+                )
             }
         }.onFailure { e ->
             PaparcarLogger.w(TAG, "analytics event dropped (${event::class.simpleName}): ${e.message}")
@@ -109,6 +143,16 @@ class FirebaseAnalyticsTracker : AnalyticsTracker {
         const val EVENT_SPOT_REPORTED = "spot_reported"
         const val EVENT_PAYWALL_SHOWN = "paywall_shown"
 
+        /** [ANALYTICS-FUEL-HISTORY-ALERTS-COVERAGE-001] Gasolineras, historial y alertas: los tres
+         *  sitios que no emitían nada. */
+        const val EVENT_FUEL_PRICE_MOVE_SHOWN = "fuel_price_move_shown"
+        const val EVENT_CHEAPER_FUEL_NEARBY_SHOWN = "fuel_cheaper_nearby_shown"
+        const val EVENT_FUEL_STATION_FOLLOW_TOGGLED = "fuel_station_follow_toggled"
+        const val EVENT_ZONE_SPOT_ALERT_SHOWN = "zone_spot_alert_shown"
+        const val EVENT_MONTH_RECAP_SHOWN = "month_recap_shown"
+        const val EVENT_REFUEL_STOP_ANSWERED = "refuel_stop_answered"
+        const val EVENT_NOTIFICATION_CHANNEL_TOGGLED = "notification_channel_toggled"
+
         /** [DET-EVERY-TRIGGER-REPORTS-WHAT-IT-PRODUCED-001] The attempts, so the successes above
          *  finally have something to be divided by. */
         const val EVENT_TRIGGER_FIRED = "det_trigger_fired"
@@ -125,6 +169,14 @@ class FirebaseAnalyticsTracker : AnalyticsTracker {
         const val PARAM_ARM_EVIDENCE = "arm_evidence"
         const val PARAM_TRIGGER = "trigger"
         const val PARAM_DISPOSITION = "disposition"
+
+        const val PARAM_FUEL_LANE = "fuel_lane"
+        const val PARAM_DIRECTION = "direction"
+        const val PARAM_REFERENCE = "reference"
+        const val PARAM_FOLLOWED = "followed"
+        const val PARAM_CHANNEL = "channel"
+        const val PARAM_REFUELLED = "refuelled"
+        const val PARAM_ENABLED = "enabled"
 
         /** [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001] The two durable dimensions. Their VALUES
          *  are closed vocabularies owned by the domain (`DetectionStateLabel.wire`) or by the two

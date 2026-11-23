@@ -1,8 +1,10 @@
 package com.rndeveloper.paparcar.domain.usecase.parking
 
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.RefuelStopAnswer
 import com.rndeveloper.paparcar.domain.model.UserParking
+import com.rndeveloper.paparcar.fakes.FakeAnalyticsTracker
 import com.rndeveloper.paparcar.fakes.FakeUserParkingRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -68,5 +70,29 @@ class AnswerRefuelStopUseCaseTest {
         AnswerRefuelStopUseCase(repo)(sessionId = "s-pump", refuelled = true)
 
         assertNull(repo.observePendingRefuelStop().first())
+    }
+
+    @Test
+    fun should_reportTheAnswer_when_itIsSaved() = runTest {
+        val repo = FakeUserParkingRepository(initialSessions = listOf(stop()))
+        val tracker = FakeAnalyticsTracker()
+
+        AnswerRefuelStopUseCase(repo, tracker)(sessionId = "s-pump", refuelled = true)
+
+        val event = tracker.events.filterIsInstance<AnalyticsEvent.RefuelStopAnswered>().single()
+        assertEquals(true, event.refuelled)
+        assertEquals(1, tracker.events.size)
+    }
+
+    @Test
+    fun should_reportANegativeAnswer_when_theUserSaysNo() = runTest {
+        val repo = FakeUserParkingRepository(initialSessions = listOf(stop()))
+        val tracker = FakeAnalyticsTracker()
+
+        AnswerRefuelStopUseCase(repo, tracker)(sessionId = "s-pump", refuelled = false)
+
+        val event = tracker.events.filterIsInstance<AnalyticsEvent.RefuelStopAnswered>().single()
+        assertEquals(false, event.refuelled)
+        assertEquals(1, tracker.events.size)
     }
 }

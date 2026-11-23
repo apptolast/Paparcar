@@ -191,7 +191,7 @@ val domainModule = module {
     // veredictos son puros y sin dependencias: se instancian solos y se testean sin reloj ni radio.
     factory { EvaluateDailyPriceMoveUseCase() }
     factory { EvaluateCheaperStationNearbyUseCase() }
-    factory { ToggleFollowFuelStationUseCase(repository = get()) }
+    factory { ToggleFollowFuelStationUseCase(repository = get(), analyticsTracker = get()) }
     factory { ObserveFollowedFuelStationsUseCase(repository = get()) }
     factory {
         RunFuelPriceWatchUseCase(

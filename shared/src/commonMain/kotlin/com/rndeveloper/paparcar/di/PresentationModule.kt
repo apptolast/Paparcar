@@ -25,7 +25,31 @@ import org.koin.dsl.module
 
 val presentationModule = module {
     viewModelOf(::SplashViewModel)
-    viewModelOf(::AppViewModel)
+    // Explicit, not viewModelOf: `analyticsTracker` is a nullable constructor parameter, and the
+    // reflection DSL resolves every parameter with get() — crashing where nothing binds it, same
+    // trap `KoinOptionalDependencyGuardrailTest` caught for SettingsViewModel's widgetPinRequester.
+    // AnalyticsTracker IS always bound (every flavour/platform), so get() stays correct here.
+    viewModel {
+        AppViewModel(
+            permissionManager = get(),
+            appPreferences = get(),
+            connectivityObserver = get(),
+            vehicleRepository = get(),
+            zoneRepository = get(),
+            userParkingRepository = get(),
+            observeZoneSpotAlerts = get(),
+            mapVisibility = get(),
+            nearbySpotAlerts = get(),
+            appNotificationManager = get(),
+            publishDetectionState = get(),
+            adMeasurementLane = get(),
+            setAdMeasurementConsent = get(),
+            observePlusGrant = get(),
+            claimFoundersPromo = get(),
+            authRepository = get(),
+            analyticsTracker = get(),
+        )
+    }
     // Home feature controllers — self-contained pipeline owners the VM collects. Each carries its own
     // use cases so the VM constructor holds no pass-through deps. Trip takes the readiness use case
     // through a functional seam (it combines six collaborators — not cheaply fakeable in unit tests),
@@ -109,6 +133,7 @@ val presentationModule = module {
             adMeasurementLane = get(),
             setAdMeasurementConsent = get(),
             widgetPinRequester = getOrNull(),
+            analyticsTracker = get(),
         )
     }
     viewModelOf(::LicensesViewModel)

@@ -32,6 +32,18 @@ class AdAttributionEventTest {
         assertNull(SPOT_REPORTED.asAdAttributionEvent())
     }
 
+    /** [ANALYTICS-FUEL-HISTORY-ALERTS-COVERAGE-001] Ninguno de los seis es activación ni ingreso. */
+    @Test
+    fun should_stayOnTheDevice_when_theEventIsFuelHistoryOrAlerts() {
+        assertNull(FUEL_MOVE.asAdAttributionEvent())
+        assertNull(CHEAPER_FUEL.asAdAttributionEvent())
+        assertNull(FUEL_FOLLOW.asAdAttributionEvent())
+        assertNull(ZONE_ALERT.asAdAttributionEvent())
+        assertNull(MONTH_RECAP.asAdAttributionEvent())
+        assertNull(REFUEL_ANSWERED.asAdAttributionEvent())
+        assertNull(CHANNEL_TOGGLED.asAdAttributionEvent())
+    }
+
     /**
      * El testigo. Si alguien añade un `AnalyticsEvent`, el `when` del mapeo no compila y hay que
      * decidir — pero si lo añade a [AdAttributionEvent], nada obliga a volver aquí. Este suelo es
@@ -57,7 +69,10 @@ class AdAttributionEventTest {
      */
     @Test
     fun should_coverEveryAnalyticsEvent_when_listingTheOnesUnderTest() {
-        val underTest = listOf(PARKED, RELEASED, PAYWALL, TRIGGER_FIRED, SESSION_ENDED, SPOT_REPORTED)
+        val underTest = listOf(
+            PARKED, RELEASED, PAYWALL, TRIGGER_FIRED, SESSION_ENDED, SPOT_REPORTED,
+            FUEL_MOVE, CHEAPER_FUEL, FUEL_FOLLOW, ZONE_ALERT, MONTH_RECAP, REFUEL_ANSWERED, CHANNEL_TOGGLED,
+        )
         assertEquals(
             ALL_CASES.sorted(),
             underTest.map { it.caseName() }.sorted(),
@@ -75,6 +90,13 @@ class AdAttributionEventTest {
         is AnalyticsEvent.TriggerFired -> "TriggerFired"
         is AnalyticsEvent.ParkingSessionEnded -> "ParkingSessionEnded"
         is AnalyticsEvent.SpotReported -> "SpotReported"
+        is AnalyticsEvent.FuelPriceMoveShown -> "FuelPriceMoveShown"
+        is AnalyticsEvent.CheaperFuelNearbyShown -> "CheaperFuelNearbyShown"
+        is AnalyticsEvent.FuelStationFollowToggled -> "FuelStationFollowToggled"
+        is AnalyticsEvent.ZoneSpotAlertShown -> "ZoneSpotAlertShown"
+        is AnalyticsEvent.MonthRecapShown -> "MonthRecapShown"
+        is AnalyticsEvent.RefuelStopAnswered -> "RefuelStopAnswered"
+        is AnalyticsEvent.NotificationChannelToggled -> "NotificationChannelToggled"
     }
 
     private companion object {
@@ -85,6 +107,13 @@ class AdAttributionEventTest {
             "TriggerFired",
             "ParkingSessionEnded",
             "SpotReported",
+            "FuelPriceMoveShown",
+            "CheaperFuelNearbyShown",
+            "FuelStationFollowToggled",
+            "ZoneSpotAlertShown",
+            "MonthRecapShown",
+            "RefuelStopAnswered",
+            "NotificationChannelToggled",
         )
 
         val POINT = GpsPoint(40.4168, -3.7038, 10f, 1_000L, 0f)
@@ -106,5 +135,24 @@ class AdAttributionEventTest {
             reason = SessionEndReason.DEPARTURE_CONFIRMED,
         )
         val SPOT_REPORTED = AnalyticsEvent.SpotReported(location = POINT)
+
+        val FUEL_MOVE = AnalyticsEvent.FuelPriceMoveShown(
+            lane = com.rndeveloper.paparcar.domain.notification.FuelMoveLane.FOLLOWED,
+            direction = com.rndeveloper.paparcar.domain.usecase.fuel.PriceMoveDirection.UP,
+        )
+        val CHEAPER_FUEL = AnalyticsEvent.CheaperFuelNearbyShown(
+            reference = com.rndeveloper.paparcar.domain.usecase.fuel.CheaperReference.AREA_MEDIAN,
+        )
+        val FUEL_FOLLOW = AnalyticsEvent.FuelStationFollowToggled(followed = true)
+        val ZONE_ALERT = AnalyticsEvent.ZoneSpotAlertShown(
+            location = POINT,
+            channel = com.rndeveloper.paparcar.domain.notification.AlertChannel.IN_APP,
+        )
+        val MONTH_RECAP = AnalyticsEvent.MonthRecapShown
+        val REFUEL_ANSWERED = AnalyticsEvent.RefuelStopAnswered(refuelled = true)
+        val CHANNEL_TOGGLED = AnalyticsEvent.NotificationChannelToggled(
+            channel = PaywallReason.ZONE_ALERTS,
+            enabled = true,
+        )
     }
 }

@@ -6,6 +6,8 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsTracker
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 import com.rndeveloper.paparcar.domain.usecase.stats.MonthRecapOutcome
 import com.rndeveloper.paparcar.domain.usecase.stats.RunMonthRecapUseCase
@@ -36,6 +38,7 @@ class MonthRecapWorker(
 
     private val runRecap: RunMonthRecapUseCase by inject()
     private val notificationPort: AppNotificationManager by inject()
+    private val analyticsTracker: AnalyticsTracker by inject()
 
     override suspend fun doWork(): Result = when (val outcome = runRecap()) {
         is MonthRecapOutcome.Skipped -> {
@@ -52,6 +55,7 @@ class MonthRecapWorker(
                 spendText = stats.costEstimate?.let { "${formatMoney(it.amount)} ${it.currency}" },
                 searchTimeMs = stats.searchTime?.value,
             )
+            analyticsTracker.track(AnalyticsEvent.MonthRecapShown)
             PaparcarLogger.d(TAG) { "▶ told the closed month (${stats.parkings} parkings)" }
             Result.success()
         }

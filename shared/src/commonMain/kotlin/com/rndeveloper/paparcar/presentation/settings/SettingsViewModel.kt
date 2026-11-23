@@ -4,6 +4,8 @@ import com.apptolast.baselogin.domain.AuthRepository
 import com.rndeveloper.paparcar.domain.usecase.user.SignOutUseCase
 import com.rndeveloper.paparcar.domain.analytics.AdMeasurementConsent
 import com.rndeveloper.paparcar.domain.analytics.AdMeasurementLane
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsTracker
 import com.rndeveloper.paparcar.domain.usecase.analytics.SetAdMeasurementConsentUseCase
 import com.rndeveloper.paparcar.core.crash.CrashReporter
 import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
@@ -52,6 +54,7 @@ class SettingsViewModel(
     // Android door for pinning the widget from here; null on platforms/launchers without it —
     // the row simply does not exist. [WIDGET-ACTIONS-002]
     private val widgetPinRequester: WidgetPinRequester? = null,
+    private val analyticsTracker: AnalyticsTracker? = null,
 ) : BaseViewModel<SettingsState, SettingsIntent, SettingsEffect>() {
 
     override fun initState(): SettingsState = SettingsState()
@@ -251,6 +254,9 @@ class SettingsViewModel(
                 } else {
                     prefs.setNotifyZoneSpots(intent.enabled)
                     updateState { copy(notifyZoneSpots = intent.enabled) }
+                    analyticsTracker?.track(
+                        AnalyticsEvent.NotificationChannelToggled(PaywallReason.ZONE_ALERTS, intent.enabled),
+                    )
                 }
             }
             // [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001] The same soft gate, the same
@@ -268,6 +274,9 @@ class SettingsViewModel(
                 } else {
                     prefs.setNotifyMonthRecap(intent.enabled)
                     updateState { copy(notifyMonthRecap = intent.enabled) }
+                    analyticsTracker?.track(
+                        AnalyticsEvent.NotificationChannelToggled(PaywallReason.MONTH_RECAP, intent.enabled),
+                    )
                 }
             }
             // ⛔ **Sin paywall, y es el cambio de plan hecho interruptor.**
@@ -279,6 +288,9 @@ class SettingsViewModel(
             is SettingsIntent.ToggleFuelAlertsNotif -> {
                 prefs.setNotifyFuelPrices(intent.enabled)
                 updateState { copy(notifyFuelPrices = intent.enabled) }
+                analyticsTracker?.track(
+                    AnalyticsEvent.NotificationChannelToggled(PaywallReason.FUEL_ALERTS, intent.enabled),
+                )
             }
             // [PRIV-A-TRACE-IS-NOT-A-STAT-001] Same soft gate as the zone alerts: the trace only
             // leaves the phone under a Plus consent, and a free user's attempt IS the paywall

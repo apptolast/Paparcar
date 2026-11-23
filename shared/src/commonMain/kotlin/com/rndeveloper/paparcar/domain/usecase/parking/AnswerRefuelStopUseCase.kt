@@ -1,5 +1,7 @@
 package com.rndeveloper.paparcar.domain.usecase.parking
 
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsTracker
 import com.rndeveloper.paparcar.domain.model.RefuelStopAnswer
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 
@@ -22,6 +24,7 @@ import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
  */
 class AnswerRefuelStopUseCase(
     private val userParkingRepository: UserParkingRepository,
+    private val analyticsTracker: AnalyticsTracker? = null,
 ) {
 
     /**
@@ -33,5 +36,7 @@ class AnswerRefuelStopUseCase(
         userParkingRepository.answerRefuelStop(
             sessionId = sessionId,
             answer = if (refuelled) RefuelStopAnswer.CONFIRMED else RefuelStopAnswer.DISMISSED,
-        )
+        ).onSuccess {
+            analyticsTracker?.track(AnalyticsEvent.RefuelStopAnswered(refuelled))
+        }
 }

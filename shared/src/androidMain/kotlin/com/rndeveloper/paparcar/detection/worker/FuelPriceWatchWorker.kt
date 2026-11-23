@@ -9,6 +9,8 @@ import androidx.work.PeriodicWorkRequest
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsTracker
 import com.rndeveloper.paparcar.domain.model.Money
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 import com.rndeveloper.paparcar.domain.notification.FuelMoveLane
@@ -45,6 +47,7 @@ class FuelPriceWatchWorker(
 
     private val runWatch: RunFuelPriceWatchUseCase by inject()
     private val notificationPort: AppNotificationManager by inject()
+    private val analyticsTracker: AnalyticsTracker by inject()
 
     override suspend fun doWork(): Result = when (val outcome = runWatch()) {
         is FuelWatchOutcome.Skipped -> {
@@ -84,6 +87,7 @@ class FuelPriceWatchWorker(
             quotesPerGallon = pumpGallonForCurrency(lead.current.perUnit.currency) != null,
             lane = lane,
         )
+        analyticsTracker.track(AnalyticsEvent.FuelPriceMoveShown(lane = lane, direction = lead.direction))
     }
 
     private fun notifyCheaper(outcome: FuelWatchOutcome.Looked) {
@@ -99,6 +103,7 @@ class FuelPriceWatchWorker(
             longitude = cheaper.station.longitude,
             quotesPerGallon = pumpGallonForCurrency(cheaper.price.currency) != null,
         )
+        analyticsTracker.track(AnalyticsEvent.CheaperFuelNearbyShown(reference = cheaper.reference))
     }
 
     companion object {
