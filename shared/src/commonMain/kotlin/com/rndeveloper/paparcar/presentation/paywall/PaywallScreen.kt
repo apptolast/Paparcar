@@ -448,7 +448,7 @@ private fun reasonLine(reason: PaywallReason): ReasonLine? = when (reason) {
  * parallel lists re-pair themselves in silence the first time a row is added to one of them.
  */
 @Composable
-private fun PlusBenefits() {
+internal fun PlusBenefits() {
     Column(modifier = Modifier.fillMaxWidth()) {
         PLUS_BENEFITS.forEach { benefit -> PlusBenefitRow(benefit) }
     }

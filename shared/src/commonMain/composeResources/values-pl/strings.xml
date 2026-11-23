@@ -889,6 +889,12 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <string name="paywall_promo_ends">Twój Plus założyciela jest bezpłatny do %1$s. Jeśli przedłużysz, nic się nie zmieni.</string>
     <string name="settings_plus_subtitle_promo">Bezpłatnie jako założyciel, do %1$s</string>
     <string name="settings_plus_badge_promo">PREZENT</string>
+    <string name="plus_status_benefits_title">Wszystko w cenie</string>
+    <string name="plus_status_renews">Odnawia się %1$s</string>
+    <string name="plus_status_active">Aktywny</string>
+    <string name="plus_status_gift_lifetime">Prezent od nas, bez daty końcowej</string>
+    <string name="plus_status_gift_ends">Twój prezent kończy się %1$s</string>
+    <string name="plus_status_manage_subscription">Zarządzaj subskrypcją</string>
     <string name="settings_notif_zone_alerts">Alerty stref</string>
     <string name="settings_notif_zone_alerts_desc">Powiadomienie, gdy w Twoich strefach pojawi się wolne miejsce</string>
     <string name="settings_notif_fuel_alerts">Alerty cen paliwa</string>

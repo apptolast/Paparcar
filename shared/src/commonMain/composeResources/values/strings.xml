@@ -920,6 +920,14 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="paywall_promo_ends">Your founder Plus is free until %1$s. Continue and nothing changes.</string>
     <string name="settings_plus_subtitle_promo">Free as a founder, until %1$s</string>
     <string name="settings_plus_badge_promo">GIFT</string>
+    <!-- Read-only Plus recap for someone who already has it — the Settings row's other
+         destination once there is nothing left to sell. [MONEY-PLUS-CAN-SEE-ITS-OWN-BENEFITS-001] -->
+    <string name="plus_status_benefits_title">Everything included</string>
+    <string name="plus_status_renews">Renews on %1$s</string>
+    <string name="plus_status_active">Active</string>
+    <string name="plus_status_gift_lifetime">A gift from us, with no end date</string>
+    <string name="plus_status_gift_ends">Your gift ends on %1$s</string>
+    <string name="plus_status_manage_subscription">Manage subscription</string>
     <string name="settings_notif_zone_alerts">Zone alerts</string>
     <string name="settings_notif_zone_alerts_desc">Get notified when a free spot appears in your zones</string>
     <string name="settings_notif_fuel_alerts">Fuel price alerts</string>

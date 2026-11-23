@@ -87,6 +87,7 @@ import com.rndeveloper.paparcar.presentation.app.SplashViewModel
 import com.rndeveloper.paparcar.presentation.home.HomeScreen
 import com.rndeveloper.paparcar.presentation.map.ParkingHistoryDetailScreen
 import com.rndeveloper.paparcar.presentation.paywall.PaywallScreen
+import com.rndeveloper.paparcar.presentation.paywall.PlusStatusScreen
 import com.rndeveloper.paparcar.presentation.stats.StatsScreen
 import com.rndeveloper.paparcar.presentation.vehicles.VehiclesScreen
 import com.rndeveloper.paparcar.presentation.onboarding.OnboardingScreen
@@ -153,6 +154,9 @@ object Routes {
     /** The full figures panel, opened from a vehicle's figures card. Carries which car was on
      *  screen so the panel opens on the same one. [STATS-PANEL-001] */
     const val STATS = "stats"
+    /** The read-only Plus benefits recap — where the Settings row lands once there is nothing
+     *  left to SELL but still something to show. [MONEY-PLUS-CAN-SEE-ITS-OWN-BENEFITS-001] */
+    const val PLUS_STATUS = "plus_status"
 }
 /**
  * La frase del aviso de plaza: cuatro, y las cuatro obligadas por el tipo.
@@ -870,6 +874,7 @@ private fun MainAppNavigation(
                         onNavigateToBluetoothConfig = { vehicleId -> navController.navigate("${Routes.BT_CONFIG}/$vehicleId") },
                         onNavigateToLicenses = { navController.navigate(Routes.LICENSES) },
                         onOpenPaywall = { reason -> navController.navigate("${Routes.PAYWALL}?reason=${reason.name}") },
+                        onOpenPlusStatus = { navController.navigate(Routes.PLUS_STATUS) },
                         themeMode = themeMode,
                         onSetThemeMode = onSetThemeMode,
                         imperialUnits = imperialUnits,
@@ -920,6 +925,9 @@ private fun MainAppNavigation(
                     reason = reason,
                     onClose = { navController.popBackStack() },
                 )
+            }
+            composable(Routes.PLUS_STATUS) {
+                PlusStatusScreen(onNavigateBack = { navController.popBackStack() })
             }
         }
     }

@@ -875,6 +875,12 @@ Si la question n'apparaît plus, changez-le dans Réglages → Paparcar → Posi
     <string name="paywall_promo_ends">Ton Plus de fondateur est gratuit jusqu'au %1$s. Si tu continues, rien ne change.</string>
     <string name="settings_plus_subtitle_promo">Gratuit en tant que fondateur, jusqu'au %1$s</string>
     <string name="settings_plus_badge_promo">CADEAU</string>
+    <string name="plus_status_benefits_title">Tout est inclus</string>
+    <string name="plus_status_renews">Se renouvelle le %1$s</string>
+    <string name="plus_status_active">Actif</string>
+    <string name="plus_status_gift_lifetime">Un cadeau de notre part, sans date de fin</string>
+    <string name="plus_status_gift_ends">Votre cadeau se termine le %1$s</string>
+    <string name="plus_status_manage_subscription">Gérer l'abonnement</string>
     <string name="settings_notif_zone_alerts">Alertes de zone</string>
     <string name="settings_notif_zone_alerts_desc">Alerte quand une place se libère dans tes zones</string>
     <string name="settings_notif_fuel_alerts">Alertes de prix du carburant</string>

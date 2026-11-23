@@ -875,6 +875,12 @@ Se a pergunta já não aparecer, muda em Definições → Paparcar → Localiza�
     <string name="paywall_promo_ends">O teu Plus de fundador é grátis até %1$s. Se continuares, não muda nada.</string>
     <string name="settings_plus_subtitle_promo">Grátis como fundador, até %1$s</string>
     <string name="settings_plus_badge_promo">PRESENTE</string>
+    <string name="plus_status_benefits_title">Tudo incluído</string>
+    <string name="plus_status_renews">Renova a %1$s</string>
+    <string name="plus_status_active">Ativo</string>
+    <string name="plus_status_gift_lifetime">Um presente nosso, sem data de fim</string>
+    <string name="plus_status_gift_ends">O seu presente termina a %1$s</string>
+    <string name="plus_status_manage_subscription">Gerir subscrição</string>
     <string name="settings_notif_zone_alerts">Alertas de zona</string>
     <string name="settings_notif_zone_alerts_desc">Aviso quando aparecer um lugar livre nas tuas zonas</string>
     <string name="settings_notif_fuel_alerts">Alertas de preço de combustível</string>

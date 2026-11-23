@@ -242,6 +242,7 @@ fun SettingsScreen(
     onNavigateToBluetoothConfig: (String) -> Unit = {},
     onNavigateToLicenses: () -> Unit = {},
     onOpenPaywall: (PaywallReason) -> Unit = {},
+    onOpenPlusStatus: () -> Unit = {},
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     onSetThemeMode: (ThemeMode) -> Unit = {},
     imperialUnits: Boolean = false,
@@ -274,6 +275,7 @@ fun SettingsScreen(
                 is SettingsEffect.NavigateToBluetoothConfig -> onNavigateToBluetoothConfig(effect.vehicleId)
                 is SettingsEffect.NavigateToLicenses -> onNavigateToLicenses()
                 is SettingsEffect.NavigateToPaywall -> onOpenPaywall(effect.reason)
+                is SettingsEffect.NavigateToPlusStatus -> onOpenPlusStatus()
                 is SettingsEffect.OpenUrl -> uriHandler.openUri(effect.url)
                 // Cada error con SU mensaje, y lo nuevo cae en el genérico antes que
                 // desaparecer. [SETTINGS-AUDIT-REMEDIATION-001]
@@ -463,17 +465,17 @@ fun SettingsContent(
                     PapPremiumSurface(
                         modifier = Modifier.fillMaxWidth(),
                         emphasis = PapPremiumEmphasis.Subdued,
-                        // Already Plus → nothing left to sell, so the row stops being a door.
+                        // Already Plus → nothing left to SELL, but the row stays a door: it opens
+                        // the read-only benefits recap instead of the paywall (the ViewModel
+                        // decides which, from the same state this composable already reads).
+                        // [MONEY-PLUS-CAN-SEE-ITS-OWN-BENEFITS-001]
                         //
-                        // ⛔ Salvo si ese Plus es un REGALO que se acaba: ahí sí queda algo que
-                        // decidir, y la fila es el único sitio en frío donde se puede decidir. El
-                        // umbral de los 7 días NO se aplica aquí a propósito — es del aviso, que
-                        // INTERRUMPE; una fila de Ajustes a la que el usuario ha ido a propósito no
-                        // tiene por qué volverse pulsable de repente un martes.
-                        // [MONEY-FOUNDERS-WELCOME-001]
-                        onClick = if (state.isPlus && state.plusPromoEndsAtMillis == null) null else {
-                            { onIntent(SettingsIntent.OpenPlusPaywall) }
-                        },
+                        // A Plus-promo con fecha de fin sigue teniendo algo que decidir, y la fila
+                        // es el único sitio en frío donde se puede decidir. El umbral de los 7 días
+                        // NO se aplica aquí a propósito — es del aviso, que INTERRUMPE; una fila de
+                        // Ajustes a la que el usuario ha ido a propósito no tiene por qué volverse
+                        // pulsable de repente un martes. [MONEY-FOUNDERS-WELCOME-001]
+                        onClick = { onIntent(SettingsIntent.OpenPlusPaywall) },
                     ) {
                         // On a tint the medal wears the brand green: there is no filled bed for
                         // it to disappear against, and the row's text goes back to the page's own
@@ -503,19 +505,35 @@ fun SettingsContent(
                                 when {
                                     // Sigue siendo puerta, así que lleva galón Y chevron: el badge
                                     // dice QUÉ tiene y el chevron dice que se puede entrar.
+                                    // [MONEY-PLUS-CAN-SEE-ITS-OWN-BENEFITS-001]
                                     state.plusPromoEndsAtMillis != null -> {
-                                        Text(
-                                            text = stringResource(Res.string.settings_plus_badge_promo),
-                                            style = PaparcarType.current.badge,
-                                            color = MaterialTheme.colorScheme.primary,
-                                        )
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(PLUS_BADGE_CHEVRON_GAP_DP.dp),
+                                        ) {
+                                            Text(
+                                                text = stringResource(Res.string.settings_plus_badge_promo),
+                                                style = PaparcarType.current.badge,
+                                                color = MaterialTheme.colorScheme.primary,
+                                            )
+                                            PapNavChevron()
+                                        }
                                     }
+                                    // Ya Plus, sin promo: nada que VENDER, pero sigue habiendo algo
+                                    // que ENSEÑAR — el chevron vuelve porque la fila vuelve a abrir
+                                    // algo (el recap de solo lectura). [MONEY-PLUS-CAN-SEE-ITS-OWN-BENEFITS-001]
                                     state.isPlus -> {
-                                        Text(
-                                            text = stringResource(Res.string.settings_plus_badge_active),
-                                            style = PaparcarType.current.badge,
-                                            color = MaterialTheme.colorScheme.primary,
-                                        )
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(PLUS_BADGE_CHEVRON_GAP_DP.dp),
+                                        ) {
+                                            Text(
+                                                text = stringResource(Res.string.settings_plus_badge_active),
+                                                style = PaparcarType.current.badge,
+                                                color = MaterialTheme.colorScheme.primary,
+                                            )
+                                            PapNavChevron()
+                                        }
                                     }
                                     else -> PapNavChevron()
                                 }
@@ -1424,6 +1442,9 @@ private fun settingsSubtitleColor(): Color =
 
 /** The bare Plus mark, matched to the leading tile it replaced so the row keeps its rhythm. */
 private const val PLUS_MARK_DP = 32
+
+/** Badge-to-chevron gap on the Plus row's trailing slot. [MONEY-PLUS-CAN-SEE-ITS-OWN-BENEFITS-001] */
+private const val PLUS_BADGE_CHEVRON_GAP_DP = 4
 
 private const val AVATAR_DP = 56
 

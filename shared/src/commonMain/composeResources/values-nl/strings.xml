@@ -876,6 +876,12 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen â†’ Paparcar â
     <string name="paywall_promo_ends">Je Plus als oprichter is gratis tot %1$s. Als je doorgaat, verandert er niets.</string>
     <string name="settings_plus_subtitle_promo">Gratis als oprichter, tot %1$s</string>
     <string name="settings_plus_badge_promo">CADEAU</string>
+    <string name="plus_status_benefits_title">Alles inbegrepen</string>
+    <string name="plus_status_renews">Wordt verlengd op %1$s</string>
+    <string name="plus_status_active">Actief</string>
+    <string name="plus_status_gift_lifetime">Een cadeau van ons, zonder einddatum</string>
+    <string name="plus_status_gift_ends">Je cadeau eindigt op %1$s</string>
+    <string name="plus_status_manage_subscription">Abonnement beheren</string>
     <string name="settings_notif_zone_alerts">Zonemeldingen</string>
     <string name="settings_notif_zone_alerts_desc">Melding wanneer er een vrije plek in je zones verschijnt</string>
     <string name="settings_notif_fuel_alerts">Prijsmeldingen voor brandstof</string>

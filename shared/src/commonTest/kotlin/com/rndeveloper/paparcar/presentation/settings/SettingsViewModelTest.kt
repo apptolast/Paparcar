@@ -817,6 +817,60 @@ class SettingsViewModelTest {
         }
     }
 
+    // ── El recap de solo lectura [MONEY-PLUS-CAN-SEE-ITS-OWN-BENEFITS-001] ─────
+
+    @Test
+    fun `should_openThePlusStatusRecap_when_thePlusRowIsTapped_and_alreadyPurchased`() = runTest {
+        entitlementRepo.emitGrant(
+            com.rndeveloper.paparcar.domain.model.PlusGrant(
+                origin = com.rndeveloper.paparcar.domain.model.PlusOrigin.PURCHASED,
+                expiresAtMillis = null,
+            ),
+        )
+        vm.effect.test {
+            vm.handleIntent(SettingsIntent.OpenPlusPaywall)
+            // Nothing left to SELL — the row opens the read-only recap instead of the paywall.
+            assertEquals(SettingsEffect.NavigateToPlusStatus, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `should_openThePlusStatusRecap_when_thePlusRowIsTapped_and_onALifetimeFoundersGift`() = runTest {
+        // Un regalo de Fundadores SIN fecha de fin: tampoco hay nada que decidir.
+        entitlementRepo.emitGrant(
+            com.rndeveloper.paparcar.domain.model.PlusGrant(
+                origin = com.rndeveloper.paparcar.domain.model.PlusOrigin.PROMOTIONAL,
+                expiresAtMillis = null,
+            ),
+        )
+        vm.effect.test {
+            vm.handleIntent(SettingsIntent.OpenPlusPaywall)
+            assertEquals(SettingsEffect.NavigateToPlusStatus, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `should_stillOpenThePaywall_when_thePlusRowIsTapped_and_onAPromoWithAnEndDate`() = runTest {
+        // [MONEY-FOUNDERS-WELCOME-001] Un regalo que SE ACABA sigue teniendo algo que decidir —
+        // ese caso no cambia con este ticket.
+        entitlementRepo.emitGrant(
+            com.rndeveloper.paparcar.domain.model.PlusGrant(
+                origin = com.rndeveloper.paparcar.domain.model.PlusOrigin.PROMOTIONAL,
+                expiresAtMillis = 1_000_000L,
+            ),
+        )
+        vm.effect.test {
+            vm.handleIntent(SettingsIntent.OpenPlusPaywall)
+            assertEquals(
+                SettingsEffect.NavigateToPaywall(com.rndeveloper.paparcar.domain.entitlement.PaywallReason.GENERAL),
+                awaitItem(),
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
     // ── Replaying the guided tutorial ─────────────────────────────────────────
     // [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001]
 

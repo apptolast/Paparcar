@@ -298,8 +298,18 @@ class SettingsViewModel(
                     .onFailure { e -> PaparcarLogger.w(TAG, "ad-measurement switch not fully applied", e) }
                 updateState { copy(adMeasurementAllowed = intent.enabled) }
             }
-            // The Plus row is an OFFER, not a gate — GENERAL keeps the funnel honest. [FREE-LIMITS-001]
-            is SettingsIntent.OpenPlusPaywall -> sendEffect(SettingsEffect.NavigateToPaywall(PaywallReason.GENERAL))
+            // The Plus row is an OFFER, not a gate — GENERAL keeps the funnel honest.
+            // [FREE-LIMITS-001] Already Plus with nothing left to sell (bought, or a lifetime
+            // gift) → the read-only recap instead; a Plus-promo with an end date still has a real
+            // decision to make, so it keeps going to the paywall. [MONEY-PLUS-CAN-SEE-ITS-OWN-BENEFITS-001]
+            is SettingsIntent.OpenPlusPaywall -> {
+                val s = state.value
+                if (s.isPlus && s.plusPromoEndsAtMillis == null) {
+                    sendEffect(SettingsEffect.NavigateToPlusStatus)
+                } else {
+                    sendEffect(SettingsEffect.NavigateToPaywall(PaywallReason.GENERAL))
+                }
+            }
             // Hands off to the system pin sheet — the launcher owns the rest. [WIDGET-ACTIONS-002]
             is SettingsIntent.PinWidget -> widgetPinRequester?.requestPin()
             is SettingsIntent.NavigateToVehicles ->

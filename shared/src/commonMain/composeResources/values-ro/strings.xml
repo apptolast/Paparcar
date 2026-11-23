@@ -889,6 +889,12 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="paywall_promo_ends">Plus-ul tău de fondator e gratuit până la %1$s. Dacă continui, nu se schimbă nimic.</string>
     <string name="settings_plus_subtitle_promo">Gratuit ca fondator, până la %1$s</string>
     <string name="settings_plus_badge_promo">CADOU</string>
+    <string name="plus_status_benefits_title">Totul inclus</string>
+    <string name="plus_status_renews">Se reînnoiește pe %1$s</string>
+    <string name="plus_status_active">Activ</string>
+    <string name="plus_status_gift_lifetime">Un cadou din partea noastră, fără dată de final</string>
+    <string name="plus_status_gift_ends">Cadoul tău se încheie pe %1$s</string>
+    <string name="plus_status_manage_subscription">Gestionează abonamentul</string>
     <string name="settings_notif_zone_alerts">Alerte de zonă</string>
     <string name="settings_notif_zone_alerts_desc">Notificare când apare un loc liber în zonele tale</string>
     <string name="settings_notif_fuel_alerts">Alerte de preț la carburant</string>

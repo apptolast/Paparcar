@@ -12,6 +12,7 @@ import com.rndeveloper.paparcar.presentation.home.HomeViewModel
 import com.rndeveloper.paparcar.presentation.licenses.LicensesViewModel
 import com.rndeveloper.paparcar.presentation.map.ParkingHistoryViewModel
 import com.rndeveloper.paparcar.presentation.paywall.PaywallViewModel
+import com.rndeveloper.paparcar.presentation.paywall.PlusStatusViewModel
 import com.rndeveloper.paparcar.presentation.permissions.PermissionsViewModel
 import com.rndeveloper.paparcar.presentation.bluetooth.BluetoothConfigViewModel
 import com.rndeveloper.paparcar.presentation.stats.StatsViewModel
@@ -87,6 +88,7 @@ val presentationModule = module {
             analyticsTracker = getOrNull(),
         )
     }
+    viewModelOf(::PlusStatusViewModel)
     // Explicit, not viewModelOf: `viewModelOf` resolves EVERY constructor parameter with get(), a
     // nullable one included, so the widget door — bound only by :app on Android — crashed Settings on
     // iOS with NoDefinitionFoundException. getOrNull() is what makes the parameter optional.

@@ -876,6 +876,12 @@ Wenn die Frage nicht mehr erscheint, ändere es unter Einstellungen → Paparcar
     <string name="paywall_promo_ends">Dein Gründer-Plus ist bis %1$s kostenlos. Wenn du weitermachst, ändert sich nichts.</string>
     <string name="settings_plus_subtitle_promo">Kostenlos als Gründer, bis %1$s</string>
     <string name="settings_plus_badge_promo">GESCHENK</string>
+    <string name="plus_status_benefits_title">Alles enthalten</string>
+    <string name="plus_status_renews">Verlängert sich am %1$s</string>
+    <string name="plus_status_active">Aktiv</string>
+    <string name="plus_status_gift_lifetime">Ein Geschenk von uns, ohne Enddatum</string>
+    <string name="plus_status_gift_ends">Dein Geschenk endet am %1$s</string>
+    <string name="plus_status_manage_subscription">Abo verwalten</string>
     <string name="settings_notif_zone_alerts">Zonen-Hinweise</string>
     <string name="settings_notif_zone_alerts_desc">Hinweis, wenn in deinen Zonen ein Platz frei wird</string>
     <string name="settings_notif_fuel_alerts">Preisalarme für Kraftstoff</string>

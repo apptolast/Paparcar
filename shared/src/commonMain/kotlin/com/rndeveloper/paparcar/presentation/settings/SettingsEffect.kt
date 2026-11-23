@@ -30,4 +30,8 @@ sealed class SettingsEffect {
 
     /** Open the Paparcar Plus paywall. [MONEY-001] */
     data class NavigateToPaywall(val reason: PaywallReason) : SettingsEffect()
+
+    /** Already Plus, nothing left to sell — open the read-only benefits recap instead of the
+     *  paywall. [MONEY-PLUS-CAN-SEE-ITS-OWN-BENEFITS-001] */
+    data object NavigateToPlusStatus : SettingsEffect()
 }

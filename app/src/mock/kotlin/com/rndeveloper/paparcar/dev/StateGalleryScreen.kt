@@ -162,6 +162,9 @@ import com.rndeveloper.paparcar.di.paparcarSocialProviders
 import com.rndeveloper.paparcar.domain.model.ZoneIcon
 import com.rndeveloper.paparcar.presentation.paywall.PaywallContent
 import com.rndeveloper.paparcar.presentation.paywall.PaywallState
+import com.rndeveloper.paparcar.presentation.paywall.PlusStatusContent
+import com.rndeveloper.paparcar.presentation.paywall.PlusStatusState
+import com.rndeveloper.paparcar.domain.model.PlusOrigin
 import com.rndeveloper.paparcar.domain.model.SpotFreshness
 import com.rndeveloper.paparcar.presentation.util.zoneIconFor
 import com.rndeveloper.paparcar.ui.auth.paparcarAuthSlots
@@ -3659,9 +3662,48 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     HistoryState(timeline = resolvedHistory(agedAllBeyondFreeWindow(), isPlus = false)),
                 )
             },
-            Variant("Ajustes · Plus ACTIVO (badge, sin chevron)") {
+            // [MONEY-PLUS-CAN-SEE-ITS-OWN-BENEFITS-001] Ya no bloquea: el badge ACTIVO lleva
+            // chevron porque la fila abre el recap de solo lectura de abajo, no el paywall.
+            Variant("Ajustes · Plus ACTIVO (badge + chevron → recap)") {
                 SettingsContent(
                     state = SettingsState(userProfile = sampleProfile, isPlus = true),
+                )
+            },
+            // El recap que esa fila abre — tres cuentas, tres líneas de estado distintas.
+            // [MONEY-PLUS-CAN-SEE-ITS-OWN-BENEFITS-001]
+            Variant("Plus · recap de solo lectura (comprado, se renueva)") {
+                PlusStatusContent(
+                    state = PlusStatusState(
+                        origin = PlusOrigin.PURCHASED,
+                        expiresAtMillis = inDays(30),
+                        canManageSubscription = true,
+                    ),
+                    onIntent = {},
+                    onClose = {},
+                )
+            },
+            Variant("Plus · recap (regalo de Fundadores, de por vida)") {
+                PlusStatusContent(
+                    state = PlusStatusState(
+                        origin = PlusOrigin.PROMOTIONAL,
+                        expiresAtMillis = null,
+                        canManageSubscription = true,
+                    ),
+                    onIntent = {},
+                    onClose = {},
+                )
+            },
+            // Sin tienda de gestión en esta plataforma (iOS hoy): la fila de "Gestionar
+            // suscripción" no se enseña, nada más.
+            Variant("Plus · recap (sin puerta de gestión, p.ej. iOS)") {
+                PlusStatusContent(
+                    state = PlusStatusState(
+                        origin = PlusOrigin.PURCHASED,
+                        expiresAtMillis = inDays(30),
+                        canManageSubscription = false,
+                    ),
+                    onIntent = {},
+                    onClose = {},
                 )
             },
             Variant("PapSheet · form de zona con alerta ON", Placement.Surface) {

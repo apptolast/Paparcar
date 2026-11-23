@@ -875,6 +875,12 @@ Se la richiesta non compare più, cambiala in Impostazioni → Paparcar → Posi
     <string name="paywall_promo_ends">Il tuo Plus da fondatore è gratis fino al %1$s. Se continui, non cambia niente.</string>
     <string name="settings_plus_subtitle_promo">Gratis come fondatore, fino al %1$s</string>
     <string name="settings_plus_badge_promo">REGALO</string>
+    <string name="plus_status_benefits_title">Tutto incluso</string>
+    <string name="plus_status_renews">Si rinnova il %1$s</string>
+    <string name="plus_status_active">Attivo</string>
+    <string name="plus_status_gift_lifetime">Un nostro regalo, senza scadenza</string>
+    <string name="plus_status_gift_ends">Il tuo regalo termina il %1$s</string>
+    <string name="plus_status_manage_subscription">Gestisci abbonamento</string>
     <string name="settings_notif_zone_alerts">Avvisi di zona</string>
     <string name="settings_notif_zone_alerts_desc">Avviso quando appare un posto libero nelle tue zone</string>
     <string name="settings_notif_fuel_alerts">Avvisi sul prezzo del carburante</string>

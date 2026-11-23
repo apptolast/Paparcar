@@ -20,7 +20,9 @@ sealed class SettingsIntent {
     /** Give or take back the yes to advertising measurement. Never gated.
      *  [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001] */
     data class ToggleAdMeasurement(val enabled: Boolean) : SettingsIntent()
-    /** The Plus entry at the top of Settings (free users only — Plus shows a badge). [MONEY-001] */
+    /** The Plus entry at the top of Settings. Free → the paywall (an offer, not a gate); Plus
+     *  already bought → the read-only benefits recap, since there is nothing left to sell but
+     *  still something to show. [MONEY-001] [MONEY-PLUS-CAN-SEE-ITS-OWN-BENEFITS-001] */
     data object OpenPlusPaywall : SettingsIntent()
     data object NavigateToVehicles : SettingsIntent()
     /** "Fix" on the detection health row — jump to the permissions flow focused on what's missing. */
