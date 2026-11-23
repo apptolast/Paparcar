@@ -677,7 +677,7 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="home_det_producer_sub">Recuerda dónde aparcas y libera la plaza</string>
     <string name="home_det_producer_cta">Activar</string>
     <string name="home_det_pitch_title">Lo mejor de Paparcar</string>
-    <string name="home_det_pitch_body">La detección automática recuerda dónde aparcas para que tú no tengas que hacerlo — y al irte, la plaza que dejas queda libre para otra persona. Actívala ahora y olvídate.</string>
+    <string name="home_det_pitch_body">Acabas de marcar dónde está tu coche. Activa la detección automática y Paparcar se dará cuenta cuando te vayas — liberando la plaza para otra persona, sin que tengas que hacer nada.</string>
     <string name="home_det_enabled_confirm">Detección automática activada</string>
     <!-- DET-TOGGLE-002: in-app snackbar when detection drops to a stopped state -->
     <string name="home_det_stopped_msg">Detección automática detenida</string>

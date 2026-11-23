@@ -90,10 +90,11 @@ data class HomeState(
      */
     val hasCorePermissions: Boolean = false,
 
-    /** One-time pitch dialog for auto-detection, shown right after the first-entry location grant
-     *  on the map — the app's star feature no longer has a first-run screen to introduce it, so
-     *  this is its introduction. Declining is one tap and never returns; the banner and checklist
-     *  keep the ask. [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001] */
+    /** One-time pitch dialog for auto-detection, shown right after CONFIRMING the first-entry
+     *  parking offer — never before, so it always has a real pin to point at. The app's star
+     *  feature no longer has a first-run screen to introduce it, so this is its introduction.
+     *  Declining is one tap and never returns; the banner and checklist keep the ask.
+     *  [ONB-A-WATCH-NEEDS-A-CAR-PARKED-FIRST-001] */
     val showDetectionPitch: Boolean = false,
     /**
      * The KEY of the sheet's auto-open onto the WARNING that leads the detection stories. A counter,

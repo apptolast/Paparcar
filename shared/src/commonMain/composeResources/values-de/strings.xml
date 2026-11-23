@@ -639,7 +639,7 @@ Wenn die Frage nicht mehr erscheint, ändere es unter Einstellungen → Paparcar
     <string name="home_det_producer_sub">Merkt sich dein Parken, gibt den Platz frei</string>
     <string name="home_det_producer_cta">Aktivieren</string>
     <string name="home_det_pitch_title">Das Beste an Paparcar</string>
-    <string name="home_det_pitch_body">Die automatische Erkennung merkt sich für dich, wo du geparkt hast — und wenn du losfährst, wird der Platz für jemand anderen frei. Schalte sie jetzt ein und vergiss sie.</string>
+    <string name="home_det_pitch_body">Du hast gerade markiert, wo dein Auto steht. Schalte die automatische Erkennung ein, und Paparcar merkt es, wenn du losfährst — der Platz wird für jemand anderen frei, ohne dass du etwas tun musst.</string>
     <string name="home_det_enabled_confirm">Automatische Erkennung aktiviert</string>
     <!-- DET-TOGGLE-002: in-app snackbar when detection drops to a stopped state -->
     <string name="home_det_stopped_msg">Automatische Erkennung gestoppt</string>

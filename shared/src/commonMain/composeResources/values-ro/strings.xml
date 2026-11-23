@@ -648,7 +648,7 @@ Dacă întrebarea nu mai apare, schimbă din Setări → Paparcar → Locație �
     <string name="home_det_producer_sub">Ține minte unde parchezi și eliberează locul</string>
     <string name="home_det_producer_cta">Activează</string>
     <string name="home_det_pitch_title">Ce are Paparcar mai bun</string>
-    <string name="home_det_pitch_body">Detectarea automată ține minte pentru tine unde ai parcat — iar când pleci, locul se eliberează pentru altcineva. Activeaz-o acum și uită de griji.</string>
+    <string name="home_det_pitch_body">Tocmai ai marcat unde este parcată mașina ta. Activează detectarea automată, iar Paparcar va observa când pleci — eliberând locul pentru altcineva, fără niciun efort din partea ta.</string>
     <string name="home_det_enabled_confirm">Detectare automată activată</string>
     <!-- DET-TOGGLE-002: in-app snackbar when detection drops to a stopped state -->
     <string name="home_det_stopped_msg">Detectarea automată oprită</string>

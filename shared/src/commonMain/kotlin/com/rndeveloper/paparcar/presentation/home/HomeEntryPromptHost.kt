@@ -96,10 +96,11 @@ fun HomeEntryPromptHost(
         HomeEntryPrompt.DETECTION -> PapAlertDialog(
             onDismiss = { onIntent(HomeIntent.DismissDetectionPitch) },
             // La invitación a la estrella del producto abre con la ESCENA que describe —tu coche
-            // en su plaza, vigilado—, no con el glifo de un sensor. Misma decisión y misma
-            // proyección que la bienvenida de Fundadores, que sale justo antes en esta cadena.
-            // `icon` se queda como respaldo SEMÁNTICO, igual que en la bienvenida del regalo:
-            // la ilustración es lo que se dibuja, el glifo es lo que la superficie significa.
+            // en su plaza, vigilado—, no con el glifo de un sensor. Misma decisión que la
+            // bienvenida de Fundadores: `icon` se queda como respaldo SEMÁNTICO, igual que en la
+            // bienvenida del regalo — la ilustración es lo que se dibuja, el glifo es lo que la
+            // superficie significa. [ONB-A-WATCH-NEEDS-A-CAR-PARKED-FIRST-001] Este diálogo solo
+            // llega tras confirmar el aparcamiento inicial (FIRST_PARKING), nunca antes.
             icon = Icons.Rounded.Sensors,
             heroIllustration = { AutoDetectionIllustration() },
             title = stringResource(Res.string.home_det_pitch_title),

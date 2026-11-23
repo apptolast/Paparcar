@@ -644,7 +644,7 @@ Jeśli pytanie już się nie pojawia, zmień to w Ustawieniach → Paparcar → 
     <string name="home_det_producer_sub">Pamięta, gdzie parkujesz, i zwalnia miejsce</string>
     <string name="home_det_producer_cta">Włącz</string>
     <string name="home_det_pitch_title">To, co najlepsze w Paparcar</string>
-    <string name="home_det_pitch_body">Automatyczne wykrywanie pamięta za Ciebie, gdzie zaparkowałeś — a gdy odjeżdżasz, miejsce zwalnia się dla kogoś innego. Włącz je teraz i zapomnij o sprawie.</string>
+    <string name="home_det_pitch_body">Właśnie oznaczyłeś, gdzie stoi Twój samochód. Włącz automatyczne wykrywanie, a Paparcar zauważy, kiedy odjedziesz — miejsce zwolni się dla kogoś innego, bez żadnego wysiłku z Twojej strony.</string>
     <string name="home_det_enabled_confirm">Automatyczne wykrywanie włączone</string>
     <!-- DET-TOGGLE-002: in-app snackbar when detection drops to a stopped state -->
     <string name="home_det_stopped_msg">Automatyczne wykrywanie zatrzymane</string>

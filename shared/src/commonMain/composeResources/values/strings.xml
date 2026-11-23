@@ -735,7 +735,7 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="home_det_producer_sub">Remembers where you park, frees the spot</string>
     <string name="home_det_producer_cta">Turn on</string>
     <string name="home_det_pitch_title">Paparcar's best feature</string>
-    <string name="home_det_pitch_body">Automatic detection remembers where you parked so you don't have to — and when you drive off, the spot you leave is freed for someone else. Turn it on now and forget about it.</string>
+    <string name="home_det_pitch_body">You've just marked where your car is. Turn on automatic detection and Paparcar will notice when you drive off — freeing the spot for someone else, without lifting a finger.</string>
     <string name="home_det_enabled_confirm">Auto-detection activated</string>
     <!-- DET-TOGGLE-002: in-app snackbar when detection drops to a stopped state -->
     <string name="home_det_stopped_msg">Auto-detection stopped</string>

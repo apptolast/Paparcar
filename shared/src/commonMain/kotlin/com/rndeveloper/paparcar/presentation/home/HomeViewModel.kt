@@ -399,10 +399,8 @@ class HomeViewModel(
                 firstLocationRequestPending = false,
             )
         }
-        // If this very ask is granted, pitch auto-detection right after (see subscribePermissions):
-        // the user just granted location and is looking at the map — peak engagement for the app's
-        // star feature, which no longer has a first-run screen to introduce it.
-        pitchDetectionAfterGrant = true
+        // The detection pitch no longer arms off this grant: it waits for the car to actually be
+        // marked (see confirmAddParking). [ONB-A-WATCH-NEEDS-A-CAR-PARKED-FIRST-001]
         sendEffect(HomeEffect.RequestLocationPermission)
     }
 
@@ -442,10 +440,6 @@ class HomeViewModel(
      *  and a second private copy here is how the two would drift apart.
      *  [HOME-A-PENDING-ASK-IS-NOT-A-REFUSAL-001] */
     private var firstEntryDialogShown = false
-
-    /** Armed by [askFineLocationOnFirstEntry]; consumed on the grant. Session-scoped on purpose:
-     *  losing the pitch to process death costs nothing — the banner and checklist keep the ask. */
-    private var pitchDetectionAfterGrant = false
 
     /**
      * [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] The guided checklist's persisted half → state,
@@ -656,8 +650,8 @@ class HomeViewModel(
             is HomeIntent.DismissParkNudge,
             -> handleDetectionIntent(intent)
 
-            // One-time detection pitch (post first-entry location grant).
-            // [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
+            // One-time detection pitch (post first-entry parking confirm).
+            // [ONB-A-WATCH-NEEDS-A-CAR-PARKED-FIRST-001]
             is HomeIntent.AcceptDetectionPitch -> {
                 firstHomePermissionRouteWasBackgrounded = false
                 updateState {
@@ -1692,8 +1686,21 @@ class HomeViewModel(
                             return@launch
                         }
                     }
-                    if (state.value.initialHomeParkingEditorActive) completeFirstHomeParkingFlow()
-                    updateState { clearedModeFields().copy(savingParkingAsNewSession = null) }
+                    // [ONB-A-WATCH-NEEDS-A-CAR-PARKED-FIRST-001] The pitch only ever arms off a
+                    // CONFIRMED pin from the first-entry offer — never off closing the editor
+                    // unsaved (see ExitAddParkingMode), so its copy can safely name the car it is
+                    // about to watch. Declining is one tap and never comes back here — the banner
+                    // and the checklist keep owning the ask afterwards.
+                    val wasFirstParkingOffer = state.value.initialHomeParkingEditorActive
+                    if (wasFirstParkingOffer) completeFirstHomeParkingFlow()
+                    val armDetectionPitch = wasFirstParkingOffer &&
+                        !permissionManager.permissionState.value.hasProducerPermissions
+                    updateState {
+                        clearedModeFields().copy(
+                            savingParkingAsNewSession = null,
+                            showDetectionPitch = showDetectionPitch || armDetectionPitch,
+                        )
+                    }
                 }
                 .onFailure {
                     // [BUG-8] Keep the user in AddingParking with the pin intact so they
@@ -2143,16 +2150,9 @@ class HomeViewModel(
             .collectSafely("permissions") { perm ->
                 // Consumer UI (map, spots) is driven by CORE. [DET-READY-001d]
                 updateState { copy(hasCorePermissions = perm.hasCorePermissions) }
-                // The first-entry ask was just granted → offer the star feature ONCE, at the
-                // moment of maximum engagement. Declining is one tap and never comes back — the
-                // banner and the checklist keep owning the ask.
-                // [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
-                if (pitchDetectionAfterGrant && perm.hasLocationPermission) {
-                    pitchDetectionAfterGrant = false
-                    if (!perm.hasProducerPermissions) {
-                        updateState { copy(showDetectionPitch = true) }
-                    }
-                }
+                // The star-feature pitch no longer arms off a permission grant — it arms once the
+                // car is actually marked (see confirmAddParking).
+                // [ONB-A-WATCH-NEEDS-A-CAR-PARKED-FIRST-001]
                 // AR registration needs the PRODUCER tier (activity recognition); register only
                 // when it is granted. Best-effort: AR failure degrades gracefully to GPS-only.
                 if (perm.hasProducerPermissions) {

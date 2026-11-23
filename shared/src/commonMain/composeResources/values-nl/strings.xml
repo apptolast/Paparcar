@@ -639,7 +639,7 @@ Als de vraag niet meer verschijnt, wijzig je het via Instellingen → Paparcar �
     <string name="home_det_producer_sub">Onthoudt waar je parkeert, geeft de plek vrij</string>
     <string name="home_det_producer_cta">Inschakelen</string>
     <string name="home_det_pitch_title">Het beste van Paparcar</string>
-    <string name="home_det_pitch_body">Automatische detectie onthoudt voor jou waar je geparkeerd staat — en als je wegrijdt, komt de plek vrij voor iemand anders. Zet het nu aan en kijk er niet meer naar om.</string>
+    <string name="home_det_pitch_body">Je hebt net gemarkeerd waar je auto staat. Zet automatische detectie aan en Paparcar merkt het wanneer je wegrijdt — de plek komt vrij voor iemand anders, zonder dat je iets hoeft te doen.</string>
     <string name="home_det_enabled_confirm">Automatische detectie geactiveerd</string>
     <!-- DET-TOGGLE-002: in-app snackbar when detection drops to a stopped state -->
     <string name="home_det_stopped_msg">Automatische detectie gestopt</string>

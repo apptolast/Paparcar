@@ -32,8 +32,8 @@ fun refuelAskIsFresh(endedAtMs: Long?, nowMs: Long): Boolean =
 enum class HomeEntryPrompt {
     NONE,
     PLUS,
-    DETECTION,
     FIRST_PARKING,
+    DETECTION,
     REFUEL,
     AD_MEASUREMENT,
 }
@@ -59,6 +59,14 @@ data class HomeEntryPromptInputs(
  * answer is in flight. Plus is news and gets the first app-owned slot. The consent question stays
  * last because it is not needed to use Home.
  *
+ * [ONB-A-WATCH-NEEDS-A-CAR-PARKED-FIRST-001] The parking editor outranks the detection pitch: the
+ * pitch invites the user to watch their car automatically, and until a car is actually marked there
+ * is nothing for that watch to point at. Asking first inverts the story — it sells a feature with no
+ * subject yet, which is the same mistake [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001] already
+ * fixed one layer up (permissions before value). The pitch itself only arms once the parking is
+ * actually confirmed (see [HomeViewModel.confirmAddParking]), never on a closed-without-saving
+ * editor, so it is never offered without a real pin behind it.
+ *
  * The refuel question sits between the onboarding prompts and the consent one: it is about
  * something the user just did — so it outranks housekeeping — but it must never cut in front of a
  * first visit that is still explaining what the app is.
@@ -78,8 +86,8 @@ fun resolveHomeEntryPrompt(
     val currentStillPending = when (current) {
         HomeEntryPrompt.NONE -> false
         HomeEntryPrompt.PLUS -> inputs.plusMomentAvailable
-        HomeEntryPrompt.DETECTION -> inputs.detectionPitchPending
         HomeEntryPrompt.FIRST_PARKING -> inputs.firstParkingOfferPending
+        HomeEntryPrompt.DETECTION -> inputs.detectionPitchPending
         HomeEntryPrompt.REFUEL -> inputs.refuelAskPending
         HomeEntryPrompt.AD_MEASUREMENT -> inputs.canAskAdMeasurementConsent
     }
@@ -87,8 +95,8 @@ fun resolveHomeEntryPrompt(
 
     return when {
         inputs.plusMomentAvailable -> HomeEntryPrompt.PLUS
-        inputs.detectionPitchPending -> HomeEntryPrompt.DETECTION
         inputs.firstParkingOfferPending -> HomeEntryPrompt.FIRST_PARKING
+        inputs.detectionPitchPending -> HomeEntryPrompt.DETECTION
         inputs.refuelAskPending -> HomeEntryPrompt.REFUEL
         inputs.canAskAdMeasurementConsent -> HomeEntryPrompt.AD_MEASUREMENT
         else -> HomeEntryPrompt.NONE

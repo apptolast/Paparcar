@@ -638,7 +638,7 @@ Se a pergunta já não aparecer, muda em Definições → Paparcar → Localiza�
     <string name="home_det_producer_sub">Lembra onde estacionas e liberta o lugar</string>
     <string name="home_det_producer_cta">Ativar</string>
     <string name="home_det_pitch_title">O melhor do Paparcar</string>
-    <string name="home_det_pitch_body">A deteção automática lembra-se de onde estacionas para que não tenhas de o fazer — e quando sais, o lugar que deixas fica livre para outra pessoa. Ativa-a agora e esquece.</string>
+    <string name="home_det_pitch_body">Acabaste de marcar onde está o teu carro. Ativa a deteção automática e o Paparcar vai notar quando saíres — libertando o lugar para outra pessoa, sem teres de fazer nada.</string>
     <string name="home_det_enabled_confirm">Deteção automática ativada</string>
     <!-- DET-TOGGLE-002: in-app snackbar when detection drops to a stopped state -->
     <string name="home_det_stopped_msg">Deteção automática parada</string>

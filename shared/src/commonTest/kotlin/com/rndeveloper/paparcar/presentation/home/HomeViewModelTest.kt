@@ -644,30 +644,60 @@ class HomeViewModelTest {
         }
     }
 
+    // [ONB-A-WATCH-NEEDS-A-CAR-PARKED-FIRST-001] The pitch no longer arms off the location grant —
+    // it would be selling a watch with nothing to watch yet. It now arms once the car from the
+    // FIRST-entry offer is actually confirmed, so the invasive PRODUCER ask always has a real pin
+    // behind it and the copy can safely say "your car".
+
     @Test
-    fun `should_show_detection_pitch_after_first_entry_grant`() = runTest {
-        // Location granted right after the first-entry ask → the one-time star-feature pitch.
-        // [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
-        val freshVm = buildVm(foreground = false, locationAlreadyAsked = false)
-        freshVm.handleIntent(HomeIntent.SetMapForeground(true))
-        permissions.emit(
-            com.rndeveloper.paparcar.domain.permissions.AppPermissionState(
-                hasLocationPermission = true,
-                isLocationServicesEnabled = true,
-            ),
-        )
-        assertTrue(freshVm.state.value.showDetectionPitch)
+    fun `should_show_detection_pitch_after_confirming_the_first_parking_offer`() = runTest(testDispatcher) {
+        vehicleRepo.saveVehicle(Vehicle(
+            id = "initial-car", userId = "user-123", isActive = true,
+            sizeCategory = com.rndeveloper.paparcar.domain.model.VehicleSize.MEDIUM_SUV,
+        ))
+        vm.handleIntent(HomeIntent.InitializeFirstHomeFlow("new-account"))
+        permissions.emit(FakePermissionManager.allGranted().copy(
+            hasBackgroundLocationPermission = false,
+            hasActivityRecognitionPermission = false,
+        ))
+        locationDataSource.emitHighAccuracy(location)
+        assertTrue(vm.state.value.shouldOfferInitialParkingEditor)
+
+        vm.handleIntent(HomeIntent.StartFirstHomeParkingOffer)
+        assertFalse(vm.state.value.showDetectionPitch)
+        vm.handleIntent(HomeIntent.ConfirmAddParking())
+
+        assertTrue(vm.state.value.showDetectionPitch)
 
         // "Ahora no" is one tap out and it never comes back on later grants.
-        freshVm.handleIntent(HomeIntent.DismissDetectionPitch)
-        assertFalse(freshVm.state.value.showDetectionPitch)
+        vm.handleIntent(HomeIntent.DismissDetectionPitch)
+        assertFalse(vm.state.value.showDetectionPitch)
     }
 
     @Test
-    fun `should_not_show_detection_pitch_when_grant_was_not_the_first_entry_ask`() = runTest {
-        // Default fixture never armed the ask — a grant from anywhere else stays silent.
-        vm.handleIntent(HomeIntent.SetMapForeground(true))
-        permissions.emit(FakePermissionManager.allGranted())
+    fun `should_not_show_detection_pitch_when_closing_the_first_parking_offer_unsaved`() = runTest(testDispatcher) {
+        vehicleRepo.saveVehicle(Vehicle(
+            id = "initial-car", userId = "user-123", isActive = true,
+            sizeCategory = com.rndeveloper.paparcar.domain.model.VehicleSize.MEDIUM_SUV,
+        ))
+        vm.handleIntent(HomeIntent.InitializeFirstHomeFlow("new-account"))
+        permissions.emit(FakePermissionManager.allGranted().copy(
+            hasBackgroundLocationPermission = false,
+            hasActivityRecognitionPermission = false,
+        ))
+        locationDataSource.emitHighAccuracy(location)
+
+        vm.handleIntent(HomeIntent.StartFirstHomeParkingOffer)
+        vm.handleIntent(HomeIntent.ExitAddParkingMode)
+
+        assertFalse(vm.state.value.showDetectionPitch)
+    }
+
+    @Test
+    fun `should_not_show_detection_pitch_when_producer_permissions_already_granted`() = runTest(testDispatcher) {
+        prepareInitialParkingOffer() // grants ALL permissions, producer included
+        vm.handleIntent(HomeIntent.StartFirstHomeParkingOffer)
+        vm.handleIntent(HomeIntent.ConfirmAddParking())
         assertFalse(vm.state.value.showDetectionPitch)
     }
 

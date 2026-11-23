@@ -34,7 +34,19 @@ class HomeFirstEntryFlowTest {
 
     @Test
     fun should_continueWithoutWaitingForRevenueCat_when_giftIsUnavailable() {
-        assertEquals(HomeEntryPrompt.DETECTION, resolveHomeEntryPrompt(pending.copy(plusMomentAvailable = false)))
+        assertEquals(HomeEntryPrompt.FIRST_PARKING, resolveHomeEntryPrompt(pending.copy(plusMomentAvailable = false)))
+    }
+
+    /** [ONB-A-WATCH-NEEDS-A-CAR-PARKED-FIRST-001] The detection pitch sells watching a car that is
+     *  not marked yet unless a pin exists first — so the parking editor always outranks it. */
+    @Test
+    fun should_offerParkingBeforeDetection_when_bothAreEligible() {
+        val inputs = pending.copy(plusMomentAvailable = false)
+        assertEquals(HomeEntryPrompt.FIRST_PARKING, resolveHomeEntryPrompt(inputs))
+        assertEquals(
+            HomeEntryPrompt.DETECTION,
+            resolveHomeEntryPrompt(inputs.copy(firstParkingOfferPending = false)),
+        )
     }
 
     @Test
@@ -74,11 +86,11 @@ class HomeFirstEntryFlowTest {
     /** La invitación de la primera visita no se adelanta por una parada en el surtidor. */
     @Test
     fun should_notCutInFrontOfOnboarding_when_aRefuelIsWaiting() {
-        val inputs = pending.copy(plusMomentAvailable = false)
-        assertEquals(HomeEntryPrompt.DETECTION, resolveHomeEntryPrompt(inputs))
+        val inputs = pending.copy(plusMomentAvailable = false, detectionPitchPending = false)
+        assertEquals(HomeEntryPrompt.FIRST_PARKING, resolveHomeEntryPrompt(inputs))
         assertEquals(
-            HomeEntryPrompt.FIRST_PARKING,
-            resolveHomeEntryPrompt(inputs.copy(detectionPitchPending = false)),
+            HomeEntryPrompt.REFUEL,
+            resolveHomeEntryPrompt(inputs.copy(firstParkingOfferPending = false)),
         )
     }
 

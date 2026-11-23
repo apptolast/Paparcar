@@ -638,7 +638,7 @@ Si la question n'apparaît plus, changez-le dans Réglages → Paparcar → Posi
     <string name="home_det_producer_sub">Retient où vous êtes garé, libère la place</string>
     <string name="home_det_producer_cta">Activer</string>
     <string name="home_det_pitch_title">Le meilleur de Paparcar</string>
-    <string name="home_det_pitch_body">La détection automatique retient où vous êtes garé pour que vous n'ayez pas à le faire — et quand vous partez, la place que vous laissez se libère pour quelqu'un d'autre. Activez-la et n'y pensez plus.</string>
+    <string name="home_det_pitch_body">Vous venez d'indiquer où se trouve votre voiture. Activez la détection automatique et Paparcar le remarquera quand vous partirez — libérant la place pour quelqu'un d'autre, sans que vous ayez à faire quoi que ce soit.</string>
     <string name="home_det_enabled_confirm">Détection automatique activée</string>
     <!-- DET-TOGGLE-002: in-app snackbar when detection drops to a stopped state -->
     <string name="home_det_stopped_msg">Détection automatique arrêtée</string>
