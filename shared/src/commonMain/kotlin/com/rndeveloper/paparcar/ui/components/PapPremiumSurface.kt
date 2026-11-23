@@ -364,9 +364,12 @@ fun PapPremiumMark(
  * out flat brand green (measured on a 30 dp dialog hero, 20-11). A disc gives the sweep its area
  * back whatever the glyph measures, so the finish survives the shrink.
  *
- * ⛔ The mark is painted in `surface` — the page's own colour — so it reads as CUT OUT of the
- * metal rather than drawn on top of it. That is also why it does not take a tint parameter: any
- * other colour turns the hole into a sticker.
+ * ⛔ The mark is painted in [premiumInk] — a fixed dark, not `colorScheme.surface`
+ * [UI-PAYWALL-CREST-HOLE-STAYS-DARK-001]. The bed is the same brand green in both themes
+ * (`PremiumSweep` does not theme-invert — see its KDoc), so the cut-out has to match: it reads as
+ * a hole punched through dark metal, not as a window onto whatever the page happens to be. Tying
+ * it to `colorScheme.surface` made the hole flip to near-white in the light theme — a light glyph
+ * floating on a green disc, which is not a cut-out, it is a sticker in the wrong colour.
  *
  * ⛔ The paywall crest is the sole exception to the general no-disc brand rule in `CLAUDE.md`.
  * The user chose this metallic disc with the mark cut out on 20-11; it does not revive the dark
@@ -382,7 +385,7 @@ fun PapPremiumCrest(
         shape = CircleShape,
     ) {
         PaparcarMark(
-            tint = MaterialTheme.colorScheme.surface,
+            tint = premiumInk,
             size = size * MARK_FRACTION_OF_DISC,
             modifier = Modifier.align(Alignment.Center),
         )
