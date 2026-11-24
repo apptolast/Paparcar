@@ -1066,8 +1066,15 @@ class WebSiteParityGuardrailTest {
         /** The second source got its own constant, as planned above. [MKT-ADD-FACEBOOK-ATTRIBUTION-ROUTE-001] */
         const val UTM_SOURCE_FACEBOOK = "facebook"
 
+        /** The third source. [MKT-TIKTOK-INSTALL-ATTRIBUTION-001] */
+        const val UTM_SOURCE_TIKTOK = "tiktok"
+
         /** Which `/descargar…` path is reached from which account; everything else is [UTM_SOURCE]'s. */
-        val UTM_SOURCE_OF_PATH = mapOf("$DOWNLOAD_PATH/fb" to UTM_SOURCE_FACEBOOK)
+        val UTM_SOURCE_OF_PATH = mapOf(
+            "$DOWNLOAD_PATH/fb" to UTM_SOURCE_FACEBOOK,
+            "$DOWNLOAD_PATH/tiktok" to UTM_SOURCE_TIKTOK,
+            "$DOWNLOAD_PATH/z-tiktok" to UTM_SOURCE_TIKTOK,
+        )
 
         const val PAID_MEDIUM = "paid"
 

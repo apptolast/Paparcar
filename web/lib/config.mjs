@@ -181,6 +181,15 @@ export const DOWNLOAD_SHORTCUTS = {
   '/descargar/compartido': { source: 'instagram', medium: 'social', campaign: 'compartido' },
   '/descargar/z-mostoles': { source: 'instagram', medium: 'paid', campaign: 'z-mostoles' },
   '/descargar/fb': { source: 'facebook', medium: 'social', campaign: 'fb' },
+  /**
+   * TikTok: a diferencia de Instagram/Facebook, su navegador in-app NO etiqueta nada por su
+   * cuenta — sin pasar por uno de estos dos enlaces propios, Play no sabe que la instalación vino
+   * de TikTok. El bio/vídeo orgánico va al de abajo; el CTA del anuncio va SIEMPRE a este, nunca
+   * al flujo nativo "direct to store" de TikTok Ads, que exigiría un MMP que no tenemos. Decisión
+   * del user, 24-11-2026. [MKT-TIKTOK-INSTALL-ATTRIBUTION-001]
+   */
+  '/descargar/z-tiktok': { source: 'tiktok', medium: 'paid', campaign: 'z-tiktok' },
+  '/descargar/tiktok': { source: 'tiktok', medium: 'social', campaign: 'tiktok' },
 };
 
 /**

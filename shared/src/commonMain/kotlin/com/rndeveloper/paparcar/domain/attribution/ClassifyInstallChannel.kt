@@ -59,6 +59,12 @@ fun classifyInstallChannel(
     val medium = params[UTM_MEDIUM]?.lowercase()
     return when {
         source == SOURCE_WEB && medium == MEDIUM_OWNED -> InstallChannel.OWNED_LINK
+        // TikTok no etiqueta nada por su cuenta (a diferencia de Instagram/Facebook abajo): este
+        // source/medium sólo puede venir de nuestro propio enlace, así que el medium decide solo
+        // entre anuncio y publicación — no hace falta distinguir por campaign.
+        // [MKT-TIKTOK-INSTALL-ATTRIBUTION-001]
+        source == SOURCE_TIKTOK && medium == MEDIUM_PAID -> InstallChannel.TIKTOK_PAID
+        source == SOURCE_TIKTOK -> InstallChannel.TIKTOK_ORGANIC
         source == SOURCE_INSTAGRAM || source == SOURCE_APPS_INSTAGRAM -> InstallChannel.META_ORGANIC_IG
         source == SOURCE_FACEBOOK || source == SOURCE_APPS_FACEBOOK -> InstallChannel.META_ORGANIC_FB
         source == SOURCE_GOOGLE_PLAY && medium == MEDIUM_ORGANIC -> InstallChannel.PLAY_ORGANIC
@@ -67,9 +73,10 @@ fun classifyInstallChannel(
     }
 }
 
-// ⛔ Mismo vocabulario que `web/lib/config.mjs` (INSTALL_SOURCE_SITE/INSTALL_MEDIUM_OWNED) y el que
-// GA4 asigna solo al abrir Play desde dentro de la app de IG/FB (`apps.instagram.com`/
-// `apps.facebook.com`). Sistemas distintos, mismas palabras — si uno cambia, el otro se queda ciego.
+// ⛔ Mismo vocabulario que `web/lib/config.mjs` (INSTALL_SOURCE_SITE/INSTALL_MEDIUM_OWNED,
+// DOWNLOAD_SHORTCUTS) y el que GA4 asigna solo al abrir Play desde dentro de la app de IG/FB
+// (`apps.instagram.com`/`apps.facebook.com`). Sistemas distintos, mismas palabras — si uno cambia,
+// el otro se queda ciego.
 private const val UTM_SOURCE = "utm_source"
 private const val UTM_MEDIUM = "utm_medium"
 private const val SOURCE_WEB = "web"
@@ -79,4 +86,6 @@ private const val SOURCE_FACEBOOK = "facebook"
 private const val SOURCE_APPS_INSTAGRAM = "apps.instagram.com"
 private const val SOURCE_APPS_FACEBOOK = "apps.facebook.com"
 private const val SOURCE_GOOGLE_PLAY = "google-play"
+private const val SOURCE_TIKTOK = "tiktok"
 private const val MEDIUM_ORGANIC = "organic"
+private const val MEDIUM_PAID = "paid"

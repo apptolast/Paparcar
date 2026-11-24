@@ -71,6 +71,18 @@
         "source": "/descargar/fb",
         "destination": "https://play.google.com/store/apps/details?id=com.rndeveloper.paparcar&referrer=utm_source%3Dfacebook%26utm_medium%3Dsocial%26utm_campaign%3Dfb",
         "type": 301
+      },
+      {
+        "//": "Third source, TikTok's own account: bio link and any organic video/post description. TikTok's in-app browser does NOT auto-tag outbound Play links the way Instagram/Facebook's do, so without this baked into the URL itself every TikTok-driven install files as organic. [MKT-TIKTOK-INSTALL-ATTRIBUTION-001]",
+        "source": "/descargar/tiktok",
+        "destination": "https://play.google.com/store/apps/details?id=com.rndeveloper.paparcar&referrer=utm_source%3Dtiktok%26utm_medium%3Dsocial%26utm_campaign%3Dtiktok",
+        "type": 301
+      },
+      {
+        "//": "TikTok Ads: the ad's own CTA is configured to point HERE instead of TikTok's native 'direct to store' flow, which would need an MMP (AppsFlyer/Adjust/…) TikTok does not attribute its own app-install ads without. Decided with the user, 24-11-2026.",
+        "source": "/descargar/z-tiktok",
+        "destination": "https://play.google.com/store/apps/details?id=com.rndeveloper.paparcar&referrer=utm_source%3Dtiktok%26utm_medium%3Dpaid%26utm_campaign%3Dz-tiktok",
+        "type": 301
       }
     ],
     "headers": [

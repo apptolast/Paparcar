@@ -4,7 +4,7 @@ package com.rndeveloper.paparcar.domain.attribution
  * De qué canal vino esta instalación. [MKT-INSTALL-ATTRIBUTION-CHANNEL-001]
  *
  * Vocabulario cerrado a propósito, igual que [com.rndeveloper.paparcar.domain.analytics.AdAttributionEvent]:
- * lo que no está aquí no se escribe. Cinco respuestas, nunca un `if` libre repartido por el código.
+ * lo que no está aquí no se escribe.
  */
 enum class InstallChannel(val wire: String) {
     /** El referrer de Play llevaba el bloque cifrado de Meta y se descifró con éxito: hay
@@ -18,6 +18,17 @@ enum class InstallChannel(val wire: String) {
     /** Un enlace NUESTRO (web, QR, redirect de `/descargar`) con sus propios UTM —
      *  `utm_source=web&utm_medium=owned`. [MKT-AN-INSTALL-MUST-SAY-WHERE-IT-CAME-FROM-001] */
     OWNED_LINK("owned_link"),
+    /** El CTA de un anuncio de TikTok — SIEMPRE a través de nuestro propio enlace
+     *  (`/descargar/z-tiktok`), nunca del flujo nativo "direct to store" de TikTok Ads: ese exige
+     *  conectar un MMP (AppsFlyer/Adjust/…) que hoy no tenemos, y sin él TikTok ni siquiera se
+     *  atribuye sus propios anuncios. Decisión del user, 24-11-2026.
+     *  `utm_source=tiktok&utm_medium=paid`. [MKT-TIKTOK-INSTALL-ATTRIBUTION-001] */
+    TIKTOK_PAID("tiktok_paid"),
+    /** Bio o descripción de un vídeo/post de TikTok, también a través de nuestro enlace propio
+     *  (`/descargar/tiktok`) — a diferencia de Instagram/Facebook, el navegador in-app de TikTok NO
+     *  etiqueta nada por su cuenta: sin un enlace nuestro ya tageado, Play no sabe que vino de ahí.
+     *  `utm_source=tiktok&utm_medium=social`. [MKT-TIKTOK-INSTALL-ATTRIBUTION-001] */
+    TIKTOK_ORGANIC("tiktok_organic"),
     /** Búsqueda o navegación directa en Google Play, sin referrer de campaña. */
     PLAY_ORGANIC("play_organic"),
     /** Referrer vacío, ilegible, o una combinación que el vocabulario de arriba no cubre. */

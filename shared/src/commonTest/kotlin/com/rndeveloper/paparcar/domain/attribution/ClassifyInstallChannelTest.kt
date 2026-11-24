@@ -57,6 +57,31 @@ class ClassifyInstallChannelTest {
     }
 
     @Test
+    fun should_classifyAsTiktokPaid_when_sourceIsTiktokAndMediumIsPaid() {
+        // El CTA del anuncio, apuntando a nuestro /descargar/z-tiktok — nunca al flujo nativo de
+        // TikTok Ads. [MKT-TIKTOK-INSTALL-ATTRIBUTION-001]
+        assertEquals(
+            InstallChannel.TIKTOK_PAID,
+            classifyInstallChannel(mapOf("utm_source" to "tiktok", "utm_medium" to "paid"), null),
+        )
+    }
+
+    @Test
+    fun should_classifyAsTiktokOrganic_when_sourceIsTiktokAndMediumIsNotPaid() {
+        // Bio o descripción de un vídeo/post, siempre vía nuestro /descargar/tiktok.
+        assertEquals(
+            InstallChannel.TIKTOK_ORGANIC,
+            classifyInstallChannel(mapOf("utm_source" to "tiktok", "utm_medium" to "social"), null),
+        )
+        // Sin medium reconocible, sigue siendo TikTok antes que UNKNOWN: el source ya lo dice todo
+        // porque sólo nuestro propio enlace produce este valor.
+        assertEquals(
+            InstallChannel.TIKTOK_ORGANIC,
+            classifyInstallChannel(mapOf("utm_source" to "tiktok"), null),
+        )
+    }
+
+    @Test
     fun should_classifyAsMetaOrganicIg_when_sourceIsInstagram() {
         // Our own bio-link redirect: source=instagram&medium=social&campaign=bio
         assertEquals(
