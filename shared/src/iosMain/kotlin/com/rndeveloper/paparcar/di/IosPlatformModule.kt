@@ -88,6 +88,11 @@ val iosPlatformModule = module {
     // Connectivity — real iOS implementation (nw_path_monitor)
     single<ConnectivityObserver> { IosConnectivityObserver() }
 
+    // No hay Google Play en iOS — ningún referrer que leer. [MKT-INSTALL-ATTRIBUTION-CHANNEL-001]
+    single<com.rndeveloper.paparcar.domain.attribution.InstallReferrerPort> {
+        com.rndeveloper.paparcar.domain.attribution.NoOpInstallReferrerPort()
+    }
+
     // Bluetooth — honest full stub: the BT lane cannot exist on iOS, and touching CoreBluetooth
     // just to answer adapter state would trigger a permission dialog that unlocks nothing.
     // [IOS-A-BT-LANE-NEEDS-A-REAL-SIGNAL-001]

@@ -114,6 +114,32 @@ class UserProfileRepositoryImpl(
         )
     }
 
+    override suspend fun publishInstallAttribution(
+        userId: String,
+        channel: String,
+        source: String?,
+        medium: String?,
+        campaign: String?,
+        metaCampaignId: String?,
+        metaAdsetId: String?,
+        metaAdId: String?,
+        rawReferrer: String?,
+        resolvedAtMs: Long,
+    ): Result<Unit> = runCatching {
+        remoteDataSource.updateInstallAttribution(
+            userId = userId,
+            channel = channel,
+            source = source,
+            medium = medium,
+            campaign = campaign,
+            metaCampaignId = metaCampaignId,
+            metaAdsetId = metaAdsetId,
+            metaAdId = metaAdId,
+            rawReferrer = rawReferrer,
+            resolvedAtMs = resolvedAtMs,
+        )
+    }
+
     override suspend fun deleteAllData(userId: String): Result<Unit> = runCatching {
         remoteDataSource.deleteUserData(userId)
         profileDao.deleteByUser(userId)

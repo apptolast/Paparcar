@@ -42,6 +42,26 @@ interface UserProfileRepository : UserScopedRepository {
         updatedAtMs: Long,
     ): Result<Unit>
 
+    /**
+     * Publishes where this installation came from. [MKT-INSTALL-ATTRIBUTION-CHANNEL-001]
+     *
+     * Remote-only, like [publishDetectionState] and for the same reason: this is a report ABOUT
+     * the install, never read back by the domain. Whether it has already run once lives in
+     * `AppPreferences`, not here — the Play referrer can only be read once per installation.
+     */
+    suspend fun publishInstallAttribution(
+        userId: String,
+        channel: String,
+        source: String?,
+        medium: String?,
+        campaign: String?,
+        metaCampaignId: String?,
+        metaAdsetId: String?,
+        metaAdId: String?,
+        rawReferrer: String?,
+        resolvedAtMs: Long,
+    ): Result<Unit>
+
     /** Deletes all Firestore and local data for [userId]. Called during account deletion. */
     override suspend fun deleteAllData(userId: String): Result<Unit>
 }

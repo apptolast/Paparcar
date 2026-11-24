@@ -56,6 +56,7 @@ class SyncOutboxDrainerTest {
         override suspend fun updateDefaultVehicleId(userId: String, vehicleId: String?) = gate()
         override suspend fun updateFirstStepsDismissedAt(userId: String, dismissedAtMs: Long?) = gate()
         override suspend fun updateDetectionState(userId: String, autoDetectParking: Boolean, detectionBlockers: List<String>, batteryOptimizationExempt: Boolean, platform: String, appVersion: String, updatedAtMs: Long) = gate()
+        override suspend fun updateInstallAttribution(userId: String, channel: String, source: String?, medium: String?, campaign: String?, metaCampaignId: String?, metaAdsetId: String?, metaAdId: String?, rawReferrer: String?, resolvedAtMs: Long) = gate()
         override suspend fun saveParkingSession(userId: String, session: ParkingHistoryDto) { gate(); savedSessions += session }
         override suspend fun clearParkingSessionActiveFlag(userId: String, sessionId: String) { gate(); clearedSessions += sessionId }
         override suspend fun updateParkingSessionAddressAndPlace(

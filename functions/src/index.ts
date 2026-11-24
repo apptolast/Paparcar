@@ -32,6 +32,7 @@ import {
   type SharedCarMember,
   type SharedCarState,
 } from './sharedCarFanout';
+import { decryptMetaReferrerBlock, parseMetaReferrerBlock } from './installReferrer';
 import {
   CLAIMS_COLLECTION,
   GRANTS_COLLECTION,
@@ -636,6 +637,77 @@ export const mergeCell = onRequest(
       );
       response.status(503).json({ error: 'upstream unavailable' });
     }
+  },
+);
+
+// ── Atribución de instalación [MKT-INSTALL-ATTRIBUTION-CHANNEL-001] ─────────
+
+/** La "Install Referrer Decryption Key" de Meta for Developers — 64 caracteres hex, 32 bytes,
+ *  AES-256. Nunca viaja al APK: sólo este backend la conoce. */
+const META_INSTALL_REFERRER_DECRYPTION_KEY = defineSecret('META_INSTALL_REFERRER_DECRYPTION_KEY');
+
+/**
+ * Descifra el bloque de Meta de un `utm_content` — la app nunca ve la clave.
+ * [MKT-INSTALL-ATTRIBUTION-CHANNEL-001]
+ *
+ * ⛔ **Autenticado** con un ID token de Firebase Auth: no es información sensible por sí misma,
+ * pero una llamada de criptografía sin coste de autenticación es una invitación a que un cliente
+ * ajeno la use como oráculo de fuerza bruta contra la clave. Exigir sesión no cambia el dato que
+ * se guarda (sigue yendo a `users/{uid}` de quien instaló, nunca a un tercero).
+ *
+ * ⚠️ El formato de descifrado en sí (`installReferrer.ts`) está SIN VERIFICAR contra un payload
+ * real — ver el aviso en `docs/backlog/mkt-install-attribution-channel-001.md`. Esta función sólo
+ * hace de I/O: la decisión criptográfica vive en `installReferrer.ts`, con sus tests.
+ */
+export const decryptMetaInstallReferrer = onRequest(
+  {
+    region: 'europe-west1',
+    maxInstances: 5,
+    cors: false,
+    secrets: [META_INSTALL_REFERRER_DECRYPTION_KEY],
+  },
+  async (request, response) => {
+    if (request.method !== 'POST') {
+      response.status(405).json({ error: 'POST only' });
+      return;
+    }
+
+    const authHeader = request.headers.authorization ?? '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice('Bearer '.length) : null;
+    if (!token) {
+      response.status(401).json({ error: 'missing bearer token' });
+      return;
+    }
+    try {
+      await getAuth().verifyIdToken(token);
+    } catch {
+      response.status(401).json({ error: 'invalid token' });
+      return;
+    }
+
+    const content = (request.body as Record<string, unknown> | undefined)?.content;
+    if (typeof content !== 'string') {
+      response.status(400).json({ error: 'content must be a string' });
+      return;
+    }
+
+    const block = parseMetaReferrerBlock(content);
+    if (!block) {
+      response.json({ decrypted: false });
+      return;
+    }
+
+    const ids = decryptMetaReferrerBlock(block, META_INSTALL_REFERRER_DECRYPTION_KEY.value());
+    if (!ids) {
+      // Looked like Meta's block but did not decrypt — exactly the unverified-format risk the
+      // backlog doc flags. Worth knowing about without failing the request: the client falls
+      // back to an organic classification either way.
+      logger.info('meta install referrer block present but did not decrypt');
+      response.json({ decrypted: false });
+      return;
+    }
+
+    response.json({ decrypted: true, campaignId: ids.campaignId, adsetId: ids.adsetId, adId: ids.adId });
   },
 );
 

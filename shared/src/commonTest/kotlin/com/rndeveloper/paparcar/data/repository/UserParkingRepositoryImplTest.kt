@@ -115,6 +115,7 @@ class UserParkingRepositoryImplTest {
             userId: String, autoDetectParking: Boolean, detectionBlockers: List<String>,
             batteryOptimizationExempt: Boolean, platform: String, appVersion: String, updatedAtMs: Long,
         ) = unexpected()
+        override suspend fun updateInstallAttribution(userId: String, channel: String, source: String?, medium: String?, campaign: String?, metaCampaignId: String?, metaAdsetId: String?, metaAdId: String?, rawReferrer: String?, resolvedAtMs: Long) = unexpected()
         override suspend fun saveParkingSession(userId: String, session: ParkingHistoryDto) = unexpected()
         override suspend fun clearParkingSessionActiveFlag(userId: String, sessionId: String) = unexpected()
         override suspend fun updateParkingSessionAddressAndPlace(

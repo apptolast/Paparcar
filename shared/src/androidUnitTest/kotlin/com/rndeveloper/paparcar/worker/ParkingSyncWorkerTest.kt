@@ -357,6 +357,7 @@ private class FakeUserProfileDataSource : RemoteUserProfileDataSource {
     override suspend fun updateFirstStepsDismissedAt(userId: String, dismissedAtMs: Long?) = Unit
     override suspend fun updateIdentityFields(userId: String, email: String?, displayName: String?, photoUrl: String?, updatedAt: Long) = Unit
     override suspend fun updateDetectionState(userId: String, autoDetectParking: Boolean, detectionBlockers: List<String>, batteryOptimizationExempt: Boolean, platform: String, appVersion: String, updatedAtMs: Long) = Unit
+    override suspend fun updateInstallAttribution(userId: String, channel: String, source: String?, medium: String?, campaign: String?, metaCampaignId: String?, metaAdsetId: String?, metaAdId: String?, rawReferrer: String?, resolvedAtMs: Long) = Unit
     override suspend fun getParkingHistory(userId: String): List<ParkingHistoryDto> = emptyList()
     override suspend fun deleteParkingSessionsForVehicle(userId: String, vehicleId: String) = Unit
     override suspend fun deleteUserData(userId: String) = Unit

@@ -39,6 +39,19 @@ interface AppPreferences {
     val hasSeenGpsAccuracyDisclaimer: Boolean
     fun setGpsAccuracyDisclaimerSeen()
 
+    /** Whether the Google Play Install Referrer has already been read and resolved to a channel
+     *  for THIS install. [MKT-INSTALL-ATTRIBUTION-CHANNEL-001]
+     *
+     *  Per-install, not per-account (two accounts on the same phone share the same referrer — it
+     *  describes how the APK got here, not who is signed in), so it is NOT wiped on sign-out. The
+     *  referrer can only be read successfully once per installation; this is what stops
+     *  [com.rndeveloper.paparcar.domain.usecase.attribution.ResolveInstallAttributionUseCase] from
+     *  re-reading it (and re-writing Firestore) on every cold start. A failed CONNECTION to the
+     *  Play service does not set this — only a resolved answer (including "no referrer available")
+     *  does, so the use case keeps retrying across app launches until it gets one. */
+    val hasResolvedInstallAttribution: Boolean
+    fun setInstallAttributionResolved()
+
     /** The user's answer about advertising measurement on this install — its own consent, asked
      *  once after sign-in and changeable in Settings. Per install, so NOT wiped on sign-out.
      *  Replaces the old `legal_consent_accepted` tick, which is deliberately not migrated: it was

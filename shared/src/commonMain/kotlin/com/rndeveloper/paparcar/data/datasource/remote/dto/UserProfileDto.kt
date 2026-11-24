@@ -54,4 +54,25 @@ data class UserProfileDto(
     /** Con qué versión de app se tomó la foto. La otra pregunta que siempre se acaba haciendo
      *  delante de un dato raro, y viaja en la misma escritura. */
     val appVersion: String? = null,
+
+    // ── Procedencia de la instalación [MKT-INSTALL-ATTRIBUTION-CHANNEL-001] ──────────────────────
+    //
+    // Mismo patrón WRITE-ONLY que el bloque de detección de arriba: se leen de vuelta sólo para que
+    // un `set(profile)` no los borre; el dominio nunca los consume. Null = instalación anterior a
+    // este ticket, o el referrer de Play nunca se pudo leer (sin Play Store en el dispositivo).
+
+    /** [com.rndeveloper.paparcar.domain.attribution.InstallChannel.wire] — "meta_paid",
+     *  "meta_organic_ig", "owned_link", "play_organic", "unknown", o null si no se ha resuelto. */
+    val installChannel: String? = null,
+    val installSource: String? = null,
+    val installMedium: String? = null,
+    val installCampaign: String? = null,
+    /** Sólo no-null cuando el referrer llevaba el bloque de Meta y se descifró con éxito. */
+    val installMetaCampaignId: String? = null,
+    val installMetaAdsetId: String? = null,
+    val installMetaAdId: String? = null,
+    /** La query cruda del referrer de Play, sin parsear — para poder re-clasificar en el futuro
+     *  sin volver a leer Play (sólo se puede leer una vez por instalación). */
+    val installRawReferrer: String? = null,
+    val installAttributionResolvedAt: Long? = null,
 )

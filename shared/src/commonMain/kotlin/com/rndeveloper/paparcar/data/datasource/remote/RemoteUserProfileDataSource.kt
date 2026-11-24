@@ -46,6 +46,27 @@ interface RemoteUserProfileDataSource {
         updatedAtMs: Long,
     )
 
+    /**
+     * Field-targeted update of where this installation came from.
+     * [MKT-INSTALL-ATTRIBUTION-CHANNEL-001]
+     *
+     * Remote-only like [updateDetectionState]: a report ABOUT the install, never read back by the
+     * domain. The local half that matters (whether it has already been resolved once) lives in
+     * `AppPreferences`, not here.
+     */
+    suspend fun updateInstallAttribution(
+        userId: String,
+        channel: String,
+        source: String?,
+        medium: String?,
+        campaign: String?,
+        metaCampaignId: String?,
+        metaAdsetId: String?,
+        metaAdId: String?,
+        rawReferrer: String?,
+        resolvedAtMs: Long,
+    )
+
     // ─── Parking History ──────────────────────────────────────────────────────
 
     suspend fun saveParkingSession(userId: String, session: ParkingHistoryDto)

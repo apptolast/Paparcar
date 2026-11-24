@@ -44,6 +44,12 @@ class AdAttributionEventTest {
         assertNull(CHANNEL_TOGGLED.asAdAttributionEvent())
     }
 
+    /** [MKT-INSTALL-ATTRIBUTION-CHANNEL-001] Describe por dónde entró el usuario, no un logro. */
+    @Test
+    fun should_stayOnTheDevice_when_theEventIsInstallAttribution() {
+        assertNull(INSTALL_ATTRIBUTION.asAdAttributionEvent())
+    }
+
     /**
      * El testigo. Si alguien añade un `AnalyticsEvent`, el `when` del mapeo no compila y hay que
      * decidir — pero si lo añade a [AdAttributionEvent], nada obliga a volver aquí. Este suelo es
@@ -72,6 +78,7 @@ class AdAttributionEventTest {
         val underTest = listOf(
             PARKED, RELEASED, PAYWALL, TRIGGER_FIRED, SESSION_ENDED, SPOT_REPORTED,
             FUEL_MOVE, CHEAPER_FUEL, FUEL_FOLLOW, ZONE_ALERT, MONTH_RECAP, REFUEL_ANSWERED, CHANNEL_TOGGLED,
+            INSTALL_ATTRIBUTION,
         )
         assertEquals(
             ALL_CASES.sorted(),
@@ -97,6 +104,7 @@ class AdAttributionEventTest {
         is AnalyticsEvent.MonthRecapShown -> "MonthRecapShown"
         is AnalyticsEvent.RefuelStopAnswered -> "RefuelStopAnswered"
         is AnalyticsEvent.NotificationChannelToggled -> "NotificationChannelToggled"
+        is AnalyticsEvent.InstallAttributionResolved -> "InstallAttributionResolved"
     }
 
     private companion object {
@@ -114,6 +122,7 @@ class AdAttributionEventTest {
             "MonthRecapShown",
             "RefuelStopAnswered",
             "NotificationChannelToggled",
+            "InstallAttributionResolved",
         )
 
         val POINT = GpsPoint(40.4168, -3.7038, 10f, 1_000L, 0f)
@@ -153,6 +162,9 @@ class AdAttributionEventTest {
         val CHANNEL_TOGGLED = AnalyticsEvent.NotificationChannelToggled(
             channel = PaywallReason.ZONE_ALERTS,
             enabled = true,
+        )
+        val INSTALL_ATTRIBUTION = AnalyticsEvent.InstallAttributionResolved(
+            channel = com.rndeveloper.paparcar.domain.attribution.InstallChannel.OWNED_LINK,
         )
     }
 }

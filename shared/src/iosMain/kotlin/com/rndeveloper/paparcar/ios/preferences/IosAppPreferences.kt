@@ -19,6 +19,7 @@ import com.rndeveloper.paparcar.domain.analytics.AdMeasurementConsent
 
 private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
 private const val KEY_GPS_ACCURACY_DISCLAIMER_SEEN = "gps_accuracy_disclaimer_seen"
+private const val KEY_INSTALL_ATTRIBUTION_RESOLVED = "install_attribution_resolved"
 // "legal_consent_accepted" retired with the Android key, same reason: not a valid ad consent.
 // [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001]
 private const val KEY_AD_MEASUREMENT_CONSENT = "ad_measurement_consent"
@@ -141,6 +142,16 @@ class IosAppPreferences : AppPreferences {
 
     override fun setGpsAccuracyDisclaimerSeen() {
         userDefaults.setBool(true, forKey = KEY_GPS_ACCURACY_DISCLAIMER_SEEN)
+    }
+
+    // There is no Google Play Install Referrer on iOS — [NoOpInstallReferrerPort] always answers
+    // "nothing to resolve", so this latches true on the very first check and the use case never
+    // retries. [MKT-INSTALL-ATTRIBUTION-CHANNEL-001]
+    override val hasResolvedInstallAttribution: Boolean
+        get() = userDefaults.boolForKey(KEY_INSTALL_ATTRIBUTION_RESOLVED)
+
+    override fun setInstallAttributionResolved() {
+        userDefaults.setBool(true, forKey = KEY_INSTALL_ATTRIBUTION_RESOLVED)
     }
 
     // iOS has no ad lane today (NoAdMeasurementLane), so nothing asks; the value is still stored

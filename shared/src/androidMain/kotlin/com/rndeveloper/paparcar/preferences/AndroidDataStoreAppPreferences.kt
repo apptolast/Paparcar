@@ -101,6 +101,11 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
 
     override fun setGpsAccuracyDisclaimerSeen() = set(Keys.GPS_ACCURACY_DISCLAIMER_SEEN, true)
 
+    override val hasResolvedInstallAttribution: Boolean
+        get() = get(Keys.INSTALL_ATTRIBUTION_RESOLVED, false)
+
+    override fun setInstallAttributionResolved() = set(Keys.INSTALL_ATTRIBUTION_RESOLVED, true)
+
     override val adMeasurementConsent: AdMeasurementConsent
         get() {
             val stored = get(Keys.AD_MEASUREMENT_CONSENT, AdMeasurementConsent.UNASKED.name)
@@ -515,6 +520,7 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
     private object Keys {
         val ONBOARDING_COMPLETED            = booleanPreferencesKey("onboarding_completed")
         val GPS_ACCURACY_DISCLAIMER_SEEN    = booleanPreferencesKey("gps_accuracy_disclaimer_seen")
+        val INSTALL_ATTRIBUTION_RESOLVED    = booleanPreferencesKey("install_attribution_resolved")
         // "legal_consent_accepted" retired 2026-11-09: the registration tick it recorded was
         // bundled with account creation, so it never was a valid yes to ad measurement and is NOT
         // migrated. Stale values linger in the file; they are inert.

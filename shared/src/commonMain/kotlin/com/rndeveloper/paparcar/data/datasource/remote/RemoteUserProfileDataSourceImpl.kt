@@ -118,6 +118,36 @@ class RemoteUserProfileDataSourceImpl(
         )
     }
 
+    // Field-targeted like updateDetectionState, and for the same reason: a set(profile) would push
+    // the whole doc from whatever DTO the caller happens to hold.
+    // [MKT-INSTALL-ATTRIBUTION-CHANNEL-001]
+    override suspend fun updateInstallAttribution(
+        userId: String,
+        channel: String,
+        source: String?,
+        medium: String?,
+        campaign: String?,
+        metaCampaignId: String?,
+        metaAdsetId: String?,
+        metaAdId: String?,
+        rawReferrer: String?,
+        resolvedAtMs: Long,
+    ) {
+        usersCollection().document(userId).update(
+            mapOf(
+                FIELD_INSTALL_CHANNEL to channel,
+                FIELD_INSTALL_SOURCE to source,
+                FIELD_INSTALL_MEDIUM to medium,
+                FIELD_INSTALL_CAMPAIGN to campaign,
+                FIELD_INSTALL_META_CAMPAIGN_ID to metaCampaignId,
+                FIELD_INSTALL_META_ADSET_ID to metaAdsetId,
+                FIELD_INSTALL_META_AD_ID to metaAdId,
+                FIELD_INSTALL_RAW_REFERRER to rawReferrer,
+                FIELD_INSTALL_ATTRIBUTION_RESOLVED_AT to resolvedAtMs,
+            ),
+        )
+    }
+
     override suspend fun saveParkingSession(userId: String, session: ParkingHistoryDto) {
         // [PRIV-A-TRACE-IS-NOT-A-STAT-001] A trace is not a stat: without the user's cloud-routes
         // consent the FIGURES travel (distance, search time) and the GEOMETRY stays home. Applied
@@ -274,6 +304,17 @@ class RemoteUserProfileDataSourceImpl(
                 // borre, y nadie en la app los consume. [DIAG-A-ROW-MUST-SAY-WHICH-PLATFORM-WROTE-IT-001]
                 platform = runCatching { get<String?>(FIELD_PLATFORM) }.getOrNull(),
                 appVersion = runCatching { get<String?>(FIELD_APP_VERSION) }.getOrNull(),
+                // Install attribution — write-only, read back so set(profile) never wipes it.
+                // [MKT-INSTALL-ATTRIBUTION-CHANNEL-001]
+                installChannel = runCatching { get<String?>(FIELD_INSTALL_CHANNEL) }.getOrNull(),
+                installSource = runCatching { get<String?>(FIELD_INSTALL_SOURCE) }.getOrNull(),
+                installMedium = runCatching { get<String?>(FIELD_INSTALL_MEDIUM) }.getOrNull(),
+                installCampaign = runCatching { get<String?>(FIELD_INSTALL_CAMPAIGN) }.getOrNull(),
+                installMetaCampaignId = runCatching { get<String?>(FIELD_INSTALL_META_CAMPAIGN_ID) }.getOrNull(),
+                installMetaAdsetId = runCatching { get<String?>(FIELD_INSTALL_META_ADSET_ID) }.getOrNull(),
+                installMetaAdId = runCatching { get<String?>(FIELD_INSTALL_META_AD_ID) }.getOrNull(),
+                installRawReferrer = runCatching { get<String?>(FIELD_INSTALL_RAW_REFERRER) }.getOrNull(),
+                installAttributionResolvedAt = getLongOrNullCompat(FIELD_INSTALL_ATTRIBUTION_RESOLVED_AT),
             )
         }.getOrElse { e ->
             PaparcarLogger.e(TAG, "toUserProfileDto failed — doc=$id", e)
@@ -419,6 +460,17 @@ class RemoteUserProfileDataSourceImpl(
         const val FIELD_APP_VERSION = "appVersion"
         const val FIELD_BATTERY_OPTIMIZATION_EXEMPT = "batteryOptimizationExempt"
         const val FIELD_DETECTION_STATE_UPDATED_AT = "detectionStateUpdatedAt"
+
+        // Install attribution. [MKT-INSTALL-ATTRIBUTION-CHANNEL-001]
+        const val FIELD_INSTALL_CHANNEL = "installChannel"
+        const val FIELD_INSTALL_SOURCE = "installSource"
+        const val FIELD_INSTALL_MEDIUM = "installMedium"
+        const val FIELD_INSTALL_CAMPAIGN = "installCampaign"
+        const val FIELD_INSTALL_META_CAMPAIGN_ID = "installMetaCampaignId"
+        const val FIELD_INSTALL_META_ADSET_ID = "installMetaAdsetId"
+        const val FIELD_INSTALL_META_AD_ID = "installMetaAdId"
+        const val FIELD_INSTALL_RAW_REFERRER = "installRawReferrer"
+        const val FIELD_INSTALL_ATTRIBUTION_RESOLVED_AT = "installAttributionResolvedAt"
 
         const val FIELD_VEHICLE_ID = "vehicleId"
         const val FIELD_NAME = "name"

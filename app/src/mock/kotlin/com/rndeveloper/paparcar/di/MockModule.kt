@@ -140,6 +140,11 @@ val mockModule = module {
     single<com.rndeveloper.paparcar.domain.diagnostics.UiLocationLogger> { com.rndeveloper.paparcar.domain.diagnostics.NoOpUiLocationLogger() }
     // Product analytics never leaves the Dev Catalog. [ANALYTICS-EVENTS-001]
     single<com.rndeveloper.paparcar.domain.analytics.AnalyticsTracker> { com.rndeveloper.paparcar.domain.analytics.NoOpAnalyticsTracker() }
+    // No hay Play Store ni backend reales en el Dev Catalog — mismo motivo que los dos de arriba.
+    // domainModule resuelve ResolveInstallAttributionUseCase con get(); sin esto crashearía igual
+    // que sin los dos NoOp de diagnóstico. [MKT-INSTALL-ATTRIBUTION-CHANNEL-001]
+    single<com.rndeveloper.paparcar.domain.attribution.InstallReferrerPort> { com.rndeveloper.paparcar.domain.attribution.NoOpInstallReferrerPort() }
+    single<com.rndeveloper.paparcar.domain.attribution.MetaReferrerDecryptPort> { com.rndeveloper.paparcar.domain.attribution.NoOpMetaReferrerDecryptPort() }
     // No ad lane in the Dev Catalog: the live flow never asks, and nothing can reach the ad
     // account by accident. The prompt and its Settings row live in the state gallery.
     // [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001]

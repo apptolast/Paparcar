@@ -425,5 +425,12 @@ val dataModule = module {
     // lo tenía porque el fichero vivía en androidMain, no porque se hubiera decidido que no.
     single<RoadNetworkDataSource> { OverpassRoadNetworkDataSource(fuelHttpClient()) }
 
-    // NOTA: LocationDataSource se provee en los módulos de plataforma.
+    // Descifrado del bloque de Meta en el referrer de Play — el MISMO fuelHttpClient() que
+    // gasolineras/parkings/Overpass: un timeout es un timeout, y aquí también hace falta uno para
+    // no dejar `ResolveInstallAttributionUseCase` colgado. [MKT-INSTALL-ATTRIBUTION-CHANNEL-001]
+    single<com.rndeveloper.paparcar.domain.attribution.MetaReferrerDecryptPort> {
+        com.rndeveloper.paparcar.data.attribution.HttpMetaReferrerDecryptDataSource(fuelHttpClient(), get())
+    }
+
+    // NOTA: LocationDataSource e InstallReferrerPort se proveen en los módulos de plataforma.
 }

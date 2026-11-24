@@ -122,6 +122,18 @@ private class RecordingRemoteUserProfileDataSource : RemoteUserProfileDataSource
         detectionStateWrites++
         lastDetectionState = listOf(userId, autoDetectParking, detectionBlockers, batteryOptimizationExempt, updatedAtMs)
     }
+    override suspend fun updateInstallAttribution(
+        userId: String,
+        channel: String,
+        source: String?,
+        medium: String?,
+        campaign: String?,
+        metaCampaignId: String?,
+        metaAdsetId: String?,
+        metaAdId: String?,
+        rawReferrer: String?,
+        resolvedAtMs: Long,
+    ) = Unit
     override suspend fun updateIdentityFields(
         userId: String,
         email: String?,

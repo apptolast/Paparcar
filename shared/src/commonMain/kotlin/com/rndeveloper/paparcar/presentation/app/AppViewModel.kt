@@ -70,6 +70,9 @@ class AppViewModel(
     // per-screen collector would report a permission revocation only if the user happened to open
     // that screen afterwards.
     private val publishDetectionState: PublishDetectionStateUseCase,
+    // [MKT-INSTALL-ATTRIBUTION-CHANNEL-001] Mismo sitio que la línea de arriba y por la misma
+    // razón: se resuelve una vez por instalación, en el único ViewModel vivo toda la sesión.
+    private val resolveInstallAttribution: com.rndeveloper.paparcar.domain.usecase.attribution.ResolveInstallAttributionUseCase,
     // [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001] The one-time ad-measurement question lives at
     // the root because it is asked once per install, whatever screen the user lands on.
     private val adMeasurementLane: AdMeasurementLane,
@@ -269,6 +272,13 @@ class AppViewModel(
             .onEach { (snapshot, reliability) -> publishDetectionState.publish(snapshot, reliability) }
             .catch { e -> PaparcarLogger.w(TAG, "detection-state stream failed", e) }
             .launchIn(viewModelScope)
+
+        // [MKT-INSTALL-ATTRIBUTION-CHANNEL-001] Fire-and-forget: nunca bloquea la ruta de entrada,
+        // y el propio use case decide en un instante si hay algo que hacer (gate en AppPreferences).
+        viewModelScope.launch {
+            runCatching { resolveInstallAttribution.resolve() }
+                .onFailure { e -> PaparcarLogger.w(TAG, "install attribution resolve failed", e) }
+        }
 
         // [MONEY-FOUNDERS-WELCOME-001] WHAT the app owes this account about its gifted Plus.
         //

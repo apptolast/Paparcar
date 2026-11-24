@@ -90,6 +90,42 @@ class FakeUserProfileRepository : UserProfileRepository {
         return detectionStateResult
     }
 
+    /** Every install-attribution report, newest last. [MKT-INSTALL-ATTRIBUTION-CHANNEL-001] */
+    val installAttributionWrites = mutableListOf<InstallAttributionWrite>()
+    var installAttributionResult: Result<Unit> = Result.success(Unit)
+
+    data class InstallAttributionWrite(
+        val userId: String,
+        val channel: String,
+        val source: String?,
+        val medium: String?,
+        val campaign: String?,
+        val metaCampaignId: String?,
+        val metaAdsetId: String?,
+        val metaAdId: String?,
+        val rawReferrer: String?,
+        val resolvedAtMs: Long,
+    )
+
+    override suspend fun publishInstallAttribution(
+        userId: String,
+        channel: String,
+        source: String?,
+        medium: String?,
+        campaign: String?,
+        metaCampaignId: String?,
+        metaAdsetId: String?,
+        metaAdId: String?,
+        rawReferrer: String?,
+        resolvedAtMs: Long,
+    ): Result<Unit> {
+        installAttributionWrites += InstallAttributionWrite(
+            userId, channel, source, medium, campaign, metaCampaignId, metaAdsetId, metaAdId,
+            rawReferrer, resolvedAtMs,
+        )
+        return installAttributionResult
+    }
+
     var deleteAllDataCallCount = 0
         private set
     var deleteAllDataResult: Result<Unit> = Result.success(Unit)

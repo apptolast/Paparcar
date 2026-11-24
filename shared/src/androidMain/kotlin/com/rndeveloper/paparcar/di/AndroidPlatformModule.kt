@@ -107,6 +107,11 @@ val androidPlatformModule = module {
     // [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001]
     single<AdAttributionTracker> { MetaAnalyticsTracker(androidContext(), get()) }
 
+    // El Google Play Install Referrer sólo existe en Android. [MKT-INSTALL-ATTRIBUTION-CHANNEL-001]
+    single<com.rndeveloper.paparcar.domain.attribution.InstallReferrerPort> {
+        com.rndeveloper.paparcar.data.attribution.PlayInstallReferrerDataSource(androidContext())
+    }
+
     // ── Push ─────────────────────────────────────────────────────────────────────────────────────
     // Las dos vigilancias y el reparto viven en `commonMain` desde
     // [IOS-THE-GROUP-CANNOT-REACH-AN-IPHONE-001]; lo que se registra aquí es lo que cambia por

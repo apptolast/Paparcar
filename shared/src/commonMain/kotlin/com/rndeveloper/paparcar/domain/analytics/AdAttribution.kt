@@ -77,4 +77,8 @@ fun AnalyticsEvent.asAdAttributionEvent(): AdAttributionEvent? = when (this) {
     is AnalyticsEvent.MonthRecapShown -> null
     is AnalyticsEvent.RefuelStopAnswered -> null
     is AnalyticsEvent.NotificationChannelToggled -> null
+    // [MKT-INSTALL-ATTRIBUTION-CHANNEL-001] Esto describe por dónde entró el USUARIO, no un logro
+    // de la app — y mandárselo a Meta sería decirle a un anunciante si su propio anuncio funcionó
+    // por la puerta de atrás, en vez de por el carril de campañas pensado para eso.
+    is AnalyticsEvent.InstallAttributionResolved -> null
 }

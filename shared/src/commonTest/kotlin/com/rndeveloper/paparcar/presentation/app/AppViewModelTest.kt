@@ -92,6 +92,7 @@ class AppViewModelTest {
     // [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001] Signed out and with nothing granted, so the
     // publisher is inert here: its own contract is covered by PublishDetectionStateUseCaseTest.
     private lateinit var detectionPublisher: PublishDetectionStateUseCase
+    private lateinit var resolveInstallAttribution: com.rndeveloper.paparcar.domain.usecase.attribution.ResolveInstallAttributionUseCase
 
     @BeforeTest
     fun setUp() {
@@ -143,6 +144,14 @@ class AppViewModelTest {
             platform = "android",
             appVersionName = "1.2.0",
         )
+        resolveInstallAttribution = com.rndeveloper.paparcar.domain.usecase.attribution.ResolveInstallAttributionUseCase(
+            referrerPort = com.rndeveloper.paparcar.fakes.FakeInstallReferrerPort(),
+            metaDecrypt = com.rndeveloper.paparcar.fakes.FakeMetaReferrerDecryptPort(),
+            appPreferences = fakePrefs,
+            userProfileRepository = FakeUserProfileRepository(),
+            authRepository = FakeAuthRepository(),
+            analyticsTracker = FakeAnalyticsTracker(),
+        )
     }
 
 
@@ -171,6 +180,7 @@ class AppViewModelTest {
         nearbySpotAlerts = nearbyAlerts,
         appNotificationManager = fakeNotifications,
         publishDetectionState = detectionPublisher,
+        resolveInstallAttribution = resolveInstallAttribution,
         adMeasurementLane = adLane,
         setAdMeasurementConsent = SetAdMeasurementConsentUseCase(fakePrefs, adLane),
         observePlusGrant = ObservePlusGrantUseCase(entitlement),

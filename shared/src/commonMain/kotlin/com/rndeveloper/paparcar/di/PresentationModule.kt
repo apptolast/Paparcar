@@ -42,6 +42,7 @@ val presentationModule = module {
             nearbySpotAlerts = get(),
             appNotificationManager = get(),
             publishDetectionState = get(),
+            resolveInstallAttribution = get(),
             adMeasurementLane = get(),
             setAdMeasurementConsent = get(),
             observePlusGrant = get(),

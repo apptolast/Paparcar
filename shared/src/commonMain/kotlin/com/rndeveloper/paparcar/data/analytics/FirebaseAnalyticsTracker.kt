@@ -99,6 +99,10 @@ class FirebaseAnalyticsTracker : AnalyticsTracker {
                         PARAM_ENABLED to event.enabled.toString(),
                     ),
                 )
+                is AnalyticsEvent.InstallAttributionResolved -> log(
+                    EVENT_INSTALL_ATTRIBUTION_RESOLVED,
+                    mapOf(PARAM_INSTALL_CHANNEL to event.channel.wire),
+                )
             }
         }.onFailure { e ->
             PaparcarLogger.w(TAG, "analytics event dropped (${event::class.simpleName}): ${e.message}")
@@ -115,6 +119,8 @@ class FirebaseAnalyticsTracker : AnalyticsTracker {
                         PROPERTY_DETECTION_TIER,
                         property.tier.name.lowercase(),
                     )
+                is AnalyticsUserProperty.InstallChannelProperty ->
+                    Firebase.analytics.setUserProperty(PROPERTY_INSTALL_CHANNEL, property.channel.wire)
             }
         }.onFailure { e ->
             PaparcarLogger.w(TAG, "analytics property dropped (${property::class.simpleName}): ${e.message}")
@@ -153,6 +159,9 @@ class FirebaseAnalyticsTracker : AnalyticsTracker {
         const val EVENT_REFUEL_STOP_ANSWERED = "refuel_stop_answered"
         const val EVENT_NOTIFICATION_CHANNEL_TOGGLED = "notification_channel_toggled"
 
+        /** [MKT-INSTALL-ATTRIBUTION-CHANNEL-001] Fired once per install. */
+        const val EVENT_INSTALL_ATTRIBUTION_RESOLVED = "install_attribution_resolved"
+
         /** [DET-EVERY-TRIGGER-REPORTS-WHAT-IT-PRODUCED-001] The attempts, so the successes above
          *  finally have something to be divided by. */
         const val EVENT_TRIGGER_FIRED = "det_trigger_fired"
@@ -177,11 +186,13 @@ class FirebaseAnalyticsTracker : AnalyticsTracker {
         const val PARAM_CHANNEL = "channel"
         const val PARAM_REFUELLED = "refuelled"
         const val PARAM_ENABLED = "enabled"
+        const val PARAM_INSTALL_CHANNEL = "install_channel"
 
         /** [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001] The two durable dimensions. Their VALUES
          *  are closed vocabularies owned by the domain (`DetectionStateLabel.wire`) or by the two
          *  constants below — a free-form string here would make the property un-aggregatable. */
         const val PROPERTY_DETECTION_STATE = "detection_state"
         const val PROPERTY_DETECTION_TIER = "detection_tier"
+        const val PROPERTY_INSTALL_CHANNEL = "install_channel"
     }
 }

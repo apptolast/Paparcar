@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.domain.analytics
 
+import com.rndeveloper.paparcar.domain.attribution.InstallChannel
 import com.rndeveloper.paparcar.domain.detection.sentry.TriggerDisposition
 import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.domain.model.GpsPoint
@@ -65,6 +66,13 @@ sealed class AnalyticsUserProperty {
      *  UI promises. [DET-TIERS-001] */
     data class DetectionTier(
         val tier: com.rndeveloper.paparcar.domain.model.DetectionTier,
+    ) : AnalyticsUserProperty()
+
+    /** Which channel this install's referrer resolved to.
+     *  [MKT-INSTALL-ATTRIBUTION-CHANNEL-001] Set once, same lifetime as the other two: it
+     *  describes the INSTALL, not a session. */
+    data class InstallChannelProperty(
+        val channel: InstallChannel,
     ) : AnalyticsUserProperty()
 }
 
@@ -180,6 +188,13 @@ sealed class AnalyticsEvent {
     data class NotificationChannelToggled(
         val channel: PaywallReason,
         val enabled: Boolean,
+    ) : AnalyticsEvent()
+
+    /** The install referrer finished resolving to a channel — fired once per install, the moment
+     *  [com.rndeveloper.paparcar.domain.usecase.attribution.ResolveInstallAttributionUseCase]
+     *  settles. [MKT-INSTALL-ATTRIBUTION-CHANNEL-001] */
+    data class InstallAttributionResolved(
+        val channel: InstallChannel,
     ) : AnalyticsEvent()
 }
 

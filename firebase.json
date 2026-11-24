@@ -25,6 +25,11 @@
         "//": "UNA sola llamada para el movil: la base de parkings ya fusionada [PARKINGS-ONE-CALL-MERGED-001]. ⛔ El `.json` del path NO es cosmetico y no se quita: la regla de cabeceras `**/!(*.*)` de abajo casa CUALQUIER ruta cuyo ultimo segmento no tenga punto, asi que con `/api/parkings` el Hosting pisaba el `Cache-Control` de la funcion con `max-age=0, must-revalidate` --- MEDIDO en la URL viva, `X-Cache: MISS` --- y el CDN no cacheaba nada: la funcion habria corrido una vez POR USUARIO, que es justo el coste que todo este diseno evita. Con extension, la unica regla que casa es `**`, que no pone cache, y sobrevive el `Cache-Control` por RESPUESTA (120 s con ocupacion viva, 3600 s sin ella). La funcion esta en `europe-west1` como las otras dos, porque Firestore vive en `eur3` y la ocupacion del ticket 3 la va a leer de ahi. ⛔ Y su respuesta la cachea el CDN: sin eso la funcion correria una vez POR USUARIO en vez de una vez por celda y TTL.",
         "source": "/api/parkings.json",
         "function": { "functionId": "mergeCell", "region": "europe-west1" }
+      },
+      {
+        "//": "POST autenticado, por instalación, nunca cacheado — no necesita la extensión `.json` que mergeCell sí necesita para esquivar el Cache-Control de las rutas sin extensión. [MKT-INSTALL-ATTRIBUTION-CHANNEL-001]",
+        "source": "/api/decryptMetaInstallReferrer",
+        "function": { "functionId": "decryptMetaInstallReferrer", "region": "europe-west1" }
       }
     ],
     "redirects": [

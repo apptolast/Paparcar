@@ -207,6 +207,11 @@ kotlin {
             // tocar el SDK ni por descuido. [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001]
             implementation(libs.facebook.core)
 
+            // Google Play Install Referrer — lee el canal de instalación UNA vez. `implementation`:
+            // sólo lo nombra `data/attribution/PlayInstallReferrerDataSource.kt`.
+            // [MKT-INSTALL-ATTRIBUTION-CHANNEL-001]
+            implementation(libs.install.referrer)
+
             // DataStore Preferences
             api(libs.androidx.datastore.preferences)
 

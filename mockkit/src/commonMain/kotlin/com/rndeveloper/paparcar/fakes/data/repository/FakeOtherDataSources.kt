@@ -198,6 +198,10 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     override val hasSeenGpsAccuracyDisclaimer: Boolean get() = _hasSeenGpsAccuracyDisclaimer.value
     override fun setGpsAccuracyDisclaimerSeen() { _hasSeenGpsAccuracyDisclaimer.value = true }
 
+    private val _hasResolvedInstallAttribution = MutableStateFlow(true)
+    override val hasResolvedInstallAttribution: Boolean get() = _hasResolvedInstallAttribution.value
+    override fun setInstallAttributionResolved() { _hasResolvedInstallAttribution.value = true }
+
     // The mock graph has no ad lane (NoAdMeasurementLane), so the live flow never asks; the prompt
     // and the Settings row are exercised in the state gallery. [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001]
     private val _adMeasurementConsent = MutableStateFlow(AdMeasurementConsent.UNASKED)

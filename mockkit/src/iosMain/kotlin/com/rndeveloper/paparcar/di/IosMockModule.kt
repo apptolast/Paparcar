@@ -238,6 +238,14 @@ val iosMockModule = module {
     single<com.rndeveloper.paparcar.domain.analytics.AdMeasurementLane> {
         com.rndeveloper.paparcar.domain.analytics.NoAdMeasurementLane
     }
+    // domainModule resolves ResolveInstallAttributionUseCase with get(); no Play Store and no
+    // backend call ever belongs in a screenshot build. [MKT-INSTALL-ATTRIBUTION-CHANNEL-001]
+    single<com.rndeveloper.paparcar.domain.attribution.InstallReferrerPort> {
+        com.rndeveloper.paparcar.domain.attribution.NoOpInstallReferrerPort()
+    }
+    single<com.rndeveloper.paparcar.domain.attribution.MetaReferrerDecryptPort> {
+        com.rndeveloper.paparcar.domain.attribution.NoOpMetaReferrerDecryptPort()
+    }
     single<com.rndeveloper.paparcar.domain.repository.SharedCarRepository> {
         com.rndeveloper.paparcar.fakes.data.repository.FakeSharedCarRepository(get())
     }

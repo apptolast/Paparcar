@@ -7,6 +7,7 @@ import com.rndeveloper.paparcar.domain.usecase.user.DeleteAccountUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.GetOrCreateUserProfileUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.SetFirstStepsDismissedUseCase
 import com.rndeveloper.paparcar.domain.usecase.analytics.SetAdMeasurementConsentUseCase
+import com.rndeveloper.paparcar.domain.usecase.attribution.ResolveInstallAttributionUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.SignOutUseCase
 import com.rndeveloper.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import com.rndeveloper.paparcar.domain.usecase.location.GetOneLocationUseCase
@@ -67,6 +68,18 @@ val domainModule = module {
     factory { SetFirstStepsDismissedUseCase(get(), get(), get()) }
     // [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001] One door for the prompt and the Settings switch.
     factory { SetAdMeasurementConsentUseCase(appPreferences = get(), lane = get()) }
+    // [MKT-INSTALL-ATTRIBUTION-CHANNEL-001] Lee el referrer de Play UNA vez. Collected once, by
+    // SplashViewModel — mismo sitio y mismo patrón que PublishDetectionStateUseCase.
+    factory {
+        ResolveInstallAttributionUseCase(
+            referrerPort = get(),
+            metaDecrypt = get(),
+            appPreferences = get(),
+            userProfileRepository = get(),
+            authRepository = get(),
+            analyticsTracker = get(),
+        )
+    }
     factory { BootstrapUserDataUseCase(get(), get(), get()) }
     // Salir retira antes los tokens de push, con la sesion todavia abierta.
     // [PRIV-A-SIGNED-OUT-PHONE-STILL-HEARS-THE-LAST-ACCOUNT-001]

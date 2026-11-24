@@ -144,6 +144,9 @@ navigation-compose = "2.10.0"
 # login, share y gráfico social: Paparcar no usa ninguno y cada uno es superficie publicada.
 # [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001]
 facebook-sdk = "19.0.1"
+# Google Play Install Referrer API — lee el referrer UNA vez por instalación, nunca se vuelve a
+# publicar desde Dic-2020: 2.2 sigue siendo la última. [MKT-INSTALL-ATTRIBUTION-CHANNEL-001]
+install-referrer = "2.2"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -263,6 +266,8 @@ navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-co
 
 # Meta SDK — App Events
 facebook-core = { module = "com.facebook.android:facebook-core", version.ref = "facebook-sdk" }
+# Google Play Install Referrer — lectura del canal de instalación. [MKT-INSTALL-ATTRIBUTION-CHANNEL-001]
+install-referrer = { module = "com.android.installreferrer:installreferrer", version.ref = "install-referrer" }
 
 
 # ─────────────────────────────────────────────────────────────────────────────

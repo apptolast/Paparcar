@@ -42,5 +42,18 @@ class FakeUserProfileRepository : UserProfileRepository {
         updatedAtMs: Long,
     ): Result<Unit> = Result.success(Unit)
 
+    override suspend fun publishInstallAttribution(
+        userId: String,
+        channel: String,
+        source: String?,
+        medium: String?,
+        campaign: String?,
+        metaCampaignId: String?,
+        metaAdsetId: String?,
+        metaAdId: String?,
+        rawReferrer: String?,
+        resolvedAtMs: Long,
+    ): Result<Unit> = Result.success(Unit)
+
     override suspend fun deleteAllData(userId: String): Result<Unit> = Result.success(Unit)
 }
