@@ -1,7 +1,9 @@
 # RELEASE-1-8-0-001 · el AAB de 1.8.0 (versionCode 19)
 
-**Estado:** 🔵 En progreso · cortado con `python tools/release/cut.py 1.8.0` · ⏳ del user: subir,
-publicar
+**Estado:** ✅ Done — cortado, commiteado+etiquetado (`96bddba2b`/`v1.8.0`), subido a `internal` en
+borrador (vc19, notas en 9 idiomas) y pusheado. ⏳ **Del user**: promover a producción en el
+Console cuando toque (vc18 sigue siendo producción). No hace falta tocar Data Safety — ningún dato
+nuevo: la cobertura de analíticas usa el mismo bucket de Analytics ya declarado.
 
 ## Problema
 
@@ -40,4 +42,6 @@ que `hosting/public/` no necesita desplegarse de nuevo.
 
 - [x] bump en los **dos** sitios · suite verde con `--rerun-tasks` · firma verificada
       con `-printcert` · notas en los 9 locales bajo 500
-- [ ] **Del user**: subir el AAB a Play, pegar las notas y publicar
+- [x] subido a `internal` en borrador, notas pegadas (`--phases upload`) · `verify` confirma
+      `internal draft [19]` y `production completed [18]`
+- [ ] **Del user**: promover a producción en el Console
