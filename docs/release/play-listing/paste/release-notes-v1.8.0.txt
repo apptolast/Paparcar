@@ -1,0 +1,54 @@
+<en-US>
+• Stopping to refuel is no longer mistaken for parking: it won't publish your spot or count as a parked session.
+• If you already have Plus, that Settings row now opens a recap of your benefits instead of asking you to buy again.
+• On your first visit, you mark where you left your car before we offer automatic detection.
+• Small visual fix to the Plus badge in light theme.
+</en-US>
+<es-ES>
+• Parar a repostar ya no se confunde con aparcar: no publica tu plaza ni cuenta como una sesión aparcada.
+• Si ya tienes Plus, esa fila de Ajustes abre ahora un resumen de tus ventajas en vez de pedirte comprar otra vez.
+• En tu primera visita, marcas dónde has dejado el coche antes de que te propongamos activar la detección automática.
+• Pequeño ajuste visual en la insignia de Plus en tema claro.
+</es-ES>
+<it-IT>
+• Una sosta per il rifornimento non viene più confusa con un parcheggio: non pubblica il tuo posto né conta come sessione di parcheggio.
+• Se hai già Plus, quella riga nelle Impostazioni apre ora un riepilogo dei tuoi vantaggi invece di chiederti di acquistare di nuovo.
+• Alla prima visita, segni dove hai lasciato l'auto prima che ti proponiamo di attivare il rilevamento automatico.
+• Piccola correzione visiva al distintivo Plus nel tema chiaro.
+</it-IT>
+<pt-PT>
+• Parar para abastecer já não é confundido com estacionar: não publica o teu lugar nem conta como uma sessão de estacionamento.
+• Se já tens Plus, essa linha nas Definições abre agora um resumo das tuas vantagens em vez de pedir para comprares outra vez.
+• Na tua primeira visita, marcas onde deixaste o carro antes de te propormos ativar a deteção automática.
+• Pequeno ajuste visual no distintivo Plus no tema claro.
+</pt-PT>
+<fr-FR>
+• S'arrêter pour faire le plein n'est plus confondu avec se garer : cela ne publie pas ta place et ne compte pas comme une session de stationnement.
+• Si tu as déjà Plus, cette ligne des Réglages ouvre maintenant un récapitulatif de tes avantages au lieu de te demander d'acheter à nouveau.
+• Lors de ta première visite, tu indiques où tu as laissé ta voiture avant qu'on te propose d'activer la détection automatique.
+• Petite retouche visuelle du badge Plus en thème clair.
+</fr-FR>
+<de-DE>
+• Ein Tankstopp wird nicht mehr mit Parken verwechselt: Er veröffentlicht deinen Platz nicht und zählt nicht als Parksitzung.
+• Hast du bereits Plus, öffnet diese Zeile in den Einstellungen jetzt eine Übersicht deiner Vorteile, statt dich erneut zum Kauf aufzufordern.
+• Bei deinem ersten Besuch markierst du zuerst, wo du dein Auto abgestellt hast, bevor wir dir die automatische Erkennung anbieten.
+• Kleine visuelle Korrektur am Plus-Abzeichen im hellen Design.
+</de-DE>
+<nl-NL>
+• Stoppen om te tanken wordt niet langer verward met parkeren: het publiceert je plek niet en telt niet als een parkeersessie.
+• Heb je al Plus, dan opent die rij in Instellingen nu een overzicht van je voordelen in plaats van je te vragen opnieuw te kopen.
+• Bij je eerste bezoek markeer je eerst waar je de auto hebt achtergelaten voordat we automatische detectie voorstellen.
+• Kleine visuele correctie aan het Plus-kenteken in het lichte thema.
+</nl-NL>
+<pl-PL>
+• Zatrzymanie się na stacji benzynowej nie jest już mylone z parkowaniem: nie publikuje twojego miejsca i nie liczy się jako sesja parkowania.
+• Jeśli masz już Plus, ten wiersz w Ustawieniach otwiera teraz podsumowanie twoich korzyści, a nie prosi o ponowny zakup.
+• Podczas pierwszej wizyty najpierw oznaczasz, gdzie zostawiłeś samochód, zanim zaproponujemy włączenie automatycznego wykrywania.
+• Mała poprawka wizualna odznaki Plus w jasnym motywie.
+</pl-PL>
+<ro>
+• O oprire pentru alimentare nu mai este confundată cu parcarea: nu îți publică locul și nu se contorizează ca sesiune de parcare.
+• Dacă ai deja Plus, acel rând din Setări deschide acum un rezumat al avantajelor tale, în loc să îți ceară să cumperi din nou.
+• La prima vizită, marchezi mai întâi unde ai lăsat mașina înainte să-ți propunem activarea detectării automate.
+• Mică corecție vizuală a insignei Plus în tema luminoasă.
+</ro>
