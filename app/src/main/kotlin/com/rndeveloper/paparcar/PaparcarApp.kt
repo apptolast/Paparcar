@@ -195,7 +195,7 @@ class PaparcarApp : Application() {
         // decided live in ONE place each.
         // [FUEL-A-PRICE-REMEMBERED-IS-A-PRICE-THAT-CAN-MOVE-001]
         // [ZONE-A-SPOT-TELLS-THE-SERVER-AND-THE-SERVER-TELLS-YOU-001]
-        FuelWatchScheduler(workManager, get(), get()).start()
+        FuelWatchScheduler(workManager, get(), get(), get()).start()
         // [STATS-PLUS-THE-RECAP-KNOCKS-001] Un tic diario y barato; quién decide si toca contar el
         // mes es el use case, no este encolado. KEEP para que abrir la app no reinicie su reloj.
         MonthRecapWorker.schedule(workManager)

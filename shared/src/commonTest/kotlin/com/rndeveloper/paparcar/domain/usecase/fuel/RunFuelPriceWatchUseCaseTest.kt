@@ -20,7 +20,6 @@ import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.Money
 import com.rndeveloper.paparcar.domain.model.SearchResult
-import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
@@ -106,7 +105,13 @@ class RunFuelPriceWatchUseCaseTest {
 
     // ── Fixtures ─────────────────────────────────────────────────────────────
 
-    private fun station(id: String, lat: Double, lon: Double, perLitre: Double?) = FuelStation(
+    private fun station(
+        id: String,
+        lat: Double,
+        lon: Double,
+        perLitre: Double?,
+        fuelType: FuelType = FuelType.DIESEL,
+    ) = FuelStation(
         id = id,
         name = "Gasolinera $id",
         address = null,
@@ -115,7 +120,7 @@ class RunFuelPriceWatchUseCaseTest {
         longitude = lon,
         prices = perLitre?.let {
             mapOf(
-                FuelType.DIESEL to StationPrice(
+                fuelType to StationPrice(
                     perUnit = Money(amount = it, currency = "EUR"),
                     reportedAtMs = NOW_MS - 3_600_000,
                 ),
@@ -147,9 +152,9 @@ class RunFuelPriceWatchUseCaseTest {
     private class Harness(
         world: List<FuelStation>,
         plus: Boolean = true,
-        /** El sello de [NearbyComplement.FUEL]: «este usuario ha abierto el carril alguna vez», que
-         *  es lo que arma el carril free. [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001] */
-        askedAboutFuel: Boolean = true,
+        /** El carril free ya no exige haber abierto el complemento — lo arma tener un coche que
+         *  compra en un surtidor. [FUEL-A-NEARBY-ALERT-ARMS-WITH-THE-CAR-NOT-THE-TAB-001] */
+        fuelType: FuelType = FuelType.DIESEL,
         fix: GpsPoint? = GpsPoint(
             latitude = USER_LAT, longitude = USER_LON, accuracy = 8f, timestamp = NOW_MS,
             speed = 0f,
@@ -157,9 +162,7 @@ class RunFuelPriceWatchUseCaseTest {
     ) {
         val source = FakeStationsSource(world)
         val watchRepository = FakeFuelWatchRepository()
-        val preferences = FakeAppPreferences().apply {
-            setIntroducedComplements(if (askedAboutFuel) setOf(NearbyComplement.FUEL) else emptySet())
-        }
+        val preferences = FakeAppPreferences()
         val useCase = RunFuelPriceWatchUseCase(
             watchRepository = watchRepository,
             vehicleRepository = FakeVehicleRepository(
@@ -167,7 +170,7 @@ class RunFuelPriceWatchUseCaseTest {
                     id = "v-1",
                     userId = "u-1",
                     sizeCategory = VehicleSize.MEDIUM_SUV,
-                    fuelType = FuelType.DIESEL,
+                    fuelType = fuelType,
                     isActive = true,
                 ),
             ),
@@ -433,30 +436,48 @@ class RunFuelPriceWatchUseCaseTest {
     }
 
     /**
-     * ⛔ **El freno del carril free**: solo avisa a quien ha preguntado por gasolineras alguna vez.
-     * Sin él la app notifica precios a quien nunca los ha mirado — y baja un feed de provincia al
-     * dia para todo el mundo.
+     * ⛔ **El dato que arma el carril free es el COCHE, no la pestaña.**
+     * [FUEL-A-NEARBY-ALERT-ARMS-WITH-THE-CAR-NOT-THE-TAB-001] Hasta este ticket el gatillo era
+     * `NearbyComplement.FUEL` introducido; ahora un coche que compra en un surtidor basta por sí
+     * solo — nunca se abrió el complemento y el aviso sale igual.
      */
     @Test
-    fun should_skip_when_nobodyEverAskedAboutFuel() = runTest {
-        val harness = Harness(world = AROUND_THE_USER, plus = false, askedAboutFuel = false)
+    fun should_tellAFreeDriverAboutACheaperPumpNearby_when_theyNeverOpenedTheFuelTab() = runTest {
+        val harness = Harness(world = AROUND_THE_USER, plus = false)
+
+        val looked = assertIs<FuelWatchOutcome.Looked>(harness.useCase())
+
+        assertNotNull(looked.cheaper, "el free se queda sin su aviso por no haber abierto la pestaña")
+        assertEquals(AROUND_THE_USER.size, looked.samplesRecorded)
+    }
+
+    /**
+     * ⛔ **El freno que queda**: un eléctrico no compra en un surtidor
+     * ([FuelType.pumpProduct]), así que sin ninguna seguida no hay nada que "tu alrededor" pueda
+     * decirle — y sin el freno la app bajaría un feed de provincia al día para nadie que lo pueda
+     * usar.
+     */
+    @Test
+    fun should_skip_when_theCarIsElectricAndNothingIsFollowed() = runTest {
+        val harness = Harness(world = AROUND_THE_USER, plus = false, fuelType = FuelType.ELECTRIC)
 
         assertEquals(
-            FuelWatchOutcome.Skipped("never-asked-about-fuel"),
+            FuelWatchOutcome.Skipped("electric-no-pump"),
             harness.useCase(),
         )
         assertEquals(0, harness.source.queries.size)
     }
 
     /**
-     * Pero el freno es del carril FREE, no de la puerta: haber estrellado una gasolinera es una
-     * intención más fuerte que haber abierto una pestaña, así que el carril Plus corre igual.
+     * Pero el freno es del carril FREE, no de la puerta: una seguida es una intención más fuerte
+     * que el propio coche, así que el carril Plus corre igual aunque el coche del conductor sea
+     * eléctrico.
      */
     @Test
-    fun should_stillWatchTheFollowedLane_when_aPlusDriverCarriesNoFuelStamp() = runTest {
+    fun should_stillWatchTheFollowedLane_when_theDriverOwnsAnElectricCar() = runTest {
         val harness = Harness(
-            world = listOf(station("far", FAR_LAT, FAR_LON, 1.579)),
-            askedAboutFuel = false,
+            world = listOf(station("far", FAR_LAT, FAR_LON, 1.579, fuelType = FuelType.ELECTRIC)),
+            fuelType = FuelType.ELECTRIC,
         )
         harness.watchRepository.follow(followed("far", FAR_LAT, FAR_LON))
 

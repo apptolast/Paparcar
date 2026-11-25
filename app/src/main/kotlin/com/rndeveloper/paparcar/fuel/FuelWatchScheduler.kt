@@ -2,8 +2,10 @@ package com.rndeveloper.paparcar.fuel
 
 import androidx.work.WorkManager
 import com.rndeveloper.paparcar.detection.worker.FuelPriceWatchWorker
+import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
+import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.usecase.fuel.ObserveFollowedFuelStationsUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.CoroutineScope
@@ -19,9 +21,14 @@ import kotlinx.coroutines.launch
  *
  * ⛔ **«Algo que vigilar» ya no es «algo seguido».** [FUEL-A-NEARBY-PRICE-IS-FREE-NEWS-001] Desde que
  * el aviso de lo que pasa a tu ALREDEDOR es free, un usuario que no sigue nada también tiene algo
- * que mirar. Lo que lo arma entonces es **haber preguntado por gasolineras alguna vez**
- * (`NearbyComplement.FUEL` introducido): sin ese freno la app notificaría precios a quien nunca los
- * ha mirado, y bajaría un feed de provincia al día para todo el mundo.
+ * que mirar. Lo que lo arma es **tener un coche que compra en un surtidor** (`fuelType` del
+ * vehículo activo, distinto de `ELECTRIC`) — el dato ya existe del alta del coche, antes de llegar
+ * a Home. [FUEL-A-NEARBY-ALERT-ARMS-WITH-THE-CAR-NOT-THE-TAB-001] Hasta este ticket el gatillo era
+ * **haber preguntado por gasolineras alguna vez** (`NearbyComplement.FUEL` introducido); se
+ * mantiene como alternativa — sigue armando el reloj, por si alguna vez hay algo que decir sin
+ * tener coche de combustión delante — pero ya no es la ÚNICA puerta. Decisión del user (25-11):
+ * el coste de bajar un feed de provincia al día sube a toda cuenta con coche de combustión, y es
+ * el tradeoff que compra avisar sin pasar por la pestaña.
  *
  * ⛔ **A stream, not a read at app start.** Reading the followed set once on launch is exactly the
  * shape [DET-WATCH-REACTIVATE-001] had to undo: on a clean install Room is still empty while the
@@ -37,6 +44,7 @@ class FuelWatchScheduler(
     private val workManager: WorkManager,
     private val observeFollowedFuelStations: ObserveFollowedFuelStationsUseCase,
     private val appPreferences: AppPreferences,
+    private val vehicleRepository: VehicleRepository,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -45,8 +53,10 @@ class FuelWatchScheduler(
             combine(
                 observeFollowedFuelStations(),
                 appPreferences.observeIntroducedComplements(),
-            ) { followed, introduced ->
-                followed.isNotEmpty() || NearbyComplement.FUEL in introduced
+                vehicleRepository.observeActiveVehicle(),
+            ) { followed, introduced, activeVehicle ->
+                val carBurnsAtAPump = activeVehicle?.fuelType?.let { it != FuelType.ELECTRIC } ?: false
+                followed.isNotEmpty() || NearbyComplement.FUEL in introduced || carBurnsAtAPump
             }
                 // The COUNT is not the question — whether there is anything to watch is. Following a
                 // fourth station must not re-enqueue the periodic and reset its clock.

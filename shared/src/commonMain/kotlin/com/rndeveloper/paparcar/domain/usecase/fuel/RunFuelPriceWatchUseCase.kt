@@ -7,7 +7,7 @@ import com.rndeveloper.paparcar.domain.fuel.FuelPriceSample
 import com.rndeveloper.paparcar.domain.fuel.WatchedForecourt
 import com.rndeveloper.paparcar.domain.fuel.asWatched
 import com.rndeveloper.paparcar.domain.fuel.localDayOf
-import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
+import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.repository.FuelWatchRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
@@ -91,18 +91,18 @@ class RunFuelPriceWatchUseCase(
         // **y** algo seguido — sin sujeto no hay nada que vigilar.
         val watchesFollowed = isPlus && followed.isNotEmpty()
 
-        // ⛔ **El freno del carril free, y es deliberado**: solo avisa a quien ha preguntado por
-        // gasolineras alguna vez. Sin él la app notifica precios a quien nunca los ha mirado y baja
-        // un feed de provincia al día para todo el mundo — es lo que el carril free de PLAZAS
-        // consigue exigiendo el mapa delante [ZONE-AN-ALERT-NEAR-YOU-IS-NOT-AN-ALERT-IN-YOUR-ZONE-001],
-        // y aquí no se puede exigir eso porque el aviso llega con la app cerrada.
-        // El sello ya existía: es el mismo que decide si el carril debe decir de dónde salen sus
-        // precios la primera vez. [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001]
-        val hasAskedAboutFuel = NearbyComplement.FUEL in appPreferences.observeIntroducedComplements().first()
-        if (!hasAskedAboutFuel && !watchesFollowed) return FuelWatchOutcome.Skipped("never-asked-about-fuel")
-
         val fuel = vehicleRepository.observeActiveVehicle().first()?.fuelType
             ?: return FuelWatchOutcome.Skipped("no-fuel-type")
+
+        // ⛔ **El freno del carril free ya no es haber preguntado, es tener con qué preguntar.**
+        // [FUEL-A-NEARBY-ALERT-ARMS-WITH-THE-CAR-NOT-THE-TAB-001] Hasta este ticket el gatillo era
+        // `NearbyComplement.FUEL` introducido — el usuario tenía que haber abierto el complemento de
+        // gasolineras alguna vez. Decisión del user (25-11): el coche ya lo dice todo — un `fuelType`
+        // que compra en un surtidor es, por sí solo, interés en su precio. Sigue sin ser gratis en
+        // sentido estricto: un ELÉCTRICO no compra en un surtidor ([FuelType.pumpProduct] ya lo dice),
+        // así que sin ninguna seguida (carril Plus) no hay nada que "tu alrededor" pueda contarle.
+        val carBurnsAtAPump = fuel != FuelType.ELECTRIC
+        if (!carBurnsAtAPump && !watchesFollowed) return FuelWatchOutcome.Skipped("electric-no-pump")
 
         // The anchor is where the driver IS, not where a followed station sits: «cheaper nearby» is
         // a sentence about a detour from here, and a fix we do not have is not one we may invent.
