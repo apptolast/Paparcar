@@ -14,6 +14,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.rndeveloper.paparcar.domain.analytics.AdMeasurementConsent
+import com.rndeveloper.paparcar.domain.attribution.PendingInstallAttribution
 import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
 import com.rndeveloper.paparcar.domain.detection.PendingSpotRelease
 import com.rndeveloper.paparcar.domain.detection.SpotReleaseLane
@@ -105,6 +106,58 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         get() = get(Keys.INSTALL_ATTRIBUTION_RESOLVED, false)
 
     override fun setInstallAttributionResolved() = set(Keys.INSTALL_ATTRIBUTION_RESOLVED, true)
+
+    // [MKT-A-REFERRER-READ-BEFORE-LOGIN-MUST-SURVIVE-001] Presence of the channel key is what
+    // decides "is there one waiting" — same shape as pendingSpotRelease() below.
+    override val pendingInstallAttribution: PendingInstallAttribution?
+        get() {
+            val channel = snapshot[Keys.PENDING_INSTALL_ATTR_CHANNEL] ?: return null
+            return PendingInstallAttribution(
+                channel = channel,
+                source = snapshot[Keys.PENDING_INSTALL_ATTR_SOURCE],
+                medium = snapshot[Keys.PENDING_INSTALL_ATTR_MEDIUM],
+                campaign = snapshot[Keys.PENDING_INSTALL_ATTR_CAMPAIGN],
+                metaCampaignId = snapshot[Keys.PENDING_INSTALL_ATTR_META_CAMPAIGN_ID],
+                metaAdsetId = snapshot[Keys.PENDING_INSTALL_ATTR_META_ADSET_ID],
+                metaAdId = snapshot[Keys.PENDING_INSTALL_ATTR_META_AD_ID],
+                rawReferrer = snapshot[Keys.PENDING_INSTALL_ATTR_RAW_REFERRER],
+                resolvedAtMs = snapshot[Keys.PENDING_INSTALL_ATTR_RESOLVED_AT] ?: 0L,
+            )
+        }
+
+    override fun setPendingInstallAttribution(pending: PendingInstallAttribution) {
+        snapshot = snapshot.toMutablePreferences().apply { writePendingInstallAttribution(pending) }
+        scope.launch { store.edit { it.writePendingInstallAttribution(pending) } }
+    }
+
+    override fun clearPendingInstallAttribution() {
+        snapshot = snapshot.toMutablePreferences().apply { writePendingInstallAttribution(null) }
+        scope.launch { store.edit { it.writePendingInstallAttribution(null) } }
+    }
+
+    private fun MutablePreferences.writePendingInstallAttribution(pending: PendingInstallAttribution?) {
+        if (pending == null) {
+            remove(Keys.PENDING_INSTALL_ATTR_CHANNEL)
+            remove(Keys.PENDING_INSTALL_ATTR_SOURCE)
+            remove(Keys.PENDING_INSTALL_ATTR_MEDIUM)
+            remove(Keys.PENDING_INSTALL_ATTR_CAMPAIGN)
+            remove(Keys.PENDING_INSTALL_ATTR_META_CAMPAIGN_ID)
+            remove(Keys.PENDING_INSTALL_ATTR_META_ADSET_ID)
+            remove(Keys.PENDING_INSTALL_ATTR_META_AD_ID)
+            remove(Keys.PENDING_INSTALL_ATTR_RAW_REFERRER)
+            remove(Keys.PENDING_INSTALL_ATTR_RESOLVED_AT)
+        } else {
+            this[Keys.PENDING_INSTALL_ATTR_CHANNEL] = pending.channel
+            pending.source?.let { this[Keys.PENDING_INSTALL_ATTR_SOURCE] = it } ?: remove(Keys.PENDING_INSTALL_ATTR_SOURCE)
+            pending.medium?.let { this[Keys.PENDING_INSTALL_ATTR_MEDIUM] = it } ?: remove(Keys.PENDING_INSTALL_ATTR_MEDIUM)
+            pending.campaign?.let { this[Keys.PENDING_INSTALL_ATTR_CAMPAIGN] = it } ?: remove(Keys.PENDING_INSTALL_ATTR_CAMPAIGN)
+            pending.metaCampaignId?.let { this[Keys.PENDING_INSTALL_ATTR_META_CAMPAIGN_ID] = it } ?: remove(Keys.PENDING_INSTALL_ATTR_META_CAMPAIGN_ID)
+            pending.metaAdsetId?.let { this[Keys.PENDING_INSTALL_ATTR_META_ADSET_ID] = it } ?: remove(Keys.PENDING_INSTALL_ATTR_META_ADSET_ID)
+            pending.metaAdId?.let { this[Keys.PENDING_INSTALL_ATTR_META_AD_ID] = it } ?: remove(Keys.PENDING_INSTALL_ATTR_META_AD_ID)
+            pending.rawReferrer?.let { this[Keys.PENDING_INSTALL_ATTR_RAW_REFERRER] = it } ?: remove(Keys.PENDING_INSTALL_ATTR_RAW_REFERRER)
+            this[Keys.PENDING_INSTALL_ATTR_RESOLVED_AT] = pending.resolvedAtMs
+        }
+    }
 
     override val adMeasurementConsent: AdMeasurementConsent
         get() {
@@ -521,6 +574,17 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         val ONBOARDING_COMPLETED            = booleanPreferencesKey("onboarding_completed")
         val GPS_ACCURACY_DISCLAIMER_SEEN    = booleanPreferencesKey("gps_accuracy_disclaimer_seen")
         val INSTALL_ATTRIBUTION_RESOLVED    = booleanPreferencesKey("install_attribution_resolved")
+        // [MKT-A-REFERRER-READ-BEFORE-LOGIN-MUST-SURVIVE-001] Classified result awaiting a
+        // session to publish it to Firestore.
+        val PENDING_INSTALL_ATTR_CHANNEL = stringPreferencesKey("pending_install_attr_channel")
+        val PENDING_INSTALL_ATTR_SOURCE = stringPreferencesKey("pending_install_attr_source")
+        val PENDING_INSTALL_ATTR_MEDIUM = stringPreferencesKey("pending_install_attr_medium")
+        val PENDING_INSTALL_ATTR_CAMPAIGN = stringPreferencesKey("pending_install_attr_campaign")
+        val PENDING_INSTALL_ATTR_META_CAMPAIGN_ID = stringPreferencesKey("pending_install_attr_meta_campaign_id")
+        val PENDING_INSTALL_ATTR_META_ADSET_ID = stringPreferencesKey("pending_install_attr_meta_adset_id")
+        val PENDING_INSTALL_ATTR_META_AD_ID = stringPreferencesKey("pending_install_attr_meta_ad_id")
+        val PENDING_INSTALL_ATTR_RAW_REFERRER = stringPreferencesKey("pending_install_attr_raw_referrer")
+        val PENDING_INSTALL_ATTR_RESOLVED_AT = longPreferencesKey("pending_install_attr_resolved_at")
         // "legal_consent_accepted" retired 2026-11-09: the registration tick it recorded was
         // bundled with account creation, so it never was a valid yes to ad measurement and is NOT
         // migrated. Stale values linger in the file; they are inert.

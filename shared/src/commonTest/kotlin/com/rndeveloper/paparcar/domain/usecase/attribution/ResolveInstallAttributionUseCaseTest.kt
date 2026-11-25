@@ -197,6 +197,92 @@ class ResolveInstallAttributionUseCaseTest {
         // The analytics property/event describe the INSTALL, not the account — they still fire.
         assertEquals(1, analyticsTracker.properties.size)
         assertEquals(1, analyticsTracker.events.size)
+        // [MKT-A-REFERRER-READ-BEFORE-LOGIN-MUST-SURVIVE-001] The classified result is NOT lost —
+        // it waits here for a session, since Play will never answer a second time.
+        val pending = appPreferences.pendingInstallAttribution
+        assertEquals(InstallChannel.OWNED_LINK.wire, pending?.channel)
+        assertEquals("web", pending?.source)
+    }
+
+    /** [MKT-A-REFERRER-READ-BEFORE-LOGIN-MUST-SURVIVE-001] The bug this whole class of test
+     *  guards against: a real install, on every real cold start before this fix, that never
+     *  published to Firestore because `resolve()` always ran before login. */
+    @Test
+    fun should_publishThePendingResult_when_aSessionAppearsOnALaterCall() = runTest {
+        val referrerPort = FakeInstallReferrerPort(
+            result = Result.success(
+                InstallReferrerRaw(
+                    installReferrer = "utm_source=tiktok&utm_medium=paid&utm_campaign=z-tiktok",
+                    referrerClickTimestampSeconds = 1L,
+                    installBeginTimestampSeconds = 2L,
+                    googlePlayInstantParam = false,
+                ),
+            ),
+        )
+        val appPreferences = FakeAppPreferences()
+        val userProfileRepository = FakeUserProfileRepository()
+
+        // First launch: no session yet, same as every real cold start before login.
+        useCase(
+            referrerPort = referrerPort,
+            appPreferences = appPreferences,
+            userProfileRepository = userProfileRepository,
+            authRepository = FakeAuthRepository(initialSession = null),
+        ).resolve()
+
+        assertEquals(0, userProfileRepository.installAttributionWrites.size)
+        assertEquals(1, referrerPort.readCallCount)
+
+        // A later launch (or the same process, once AppViewModel observes the session): Play is
+        // NEVER asked again — the gate is already closed — but the pending result now publishes.
+        useCase(
+            referrerPort = referrerPort,
+            appPreferences = appPreferences,
+            userProfileRepository = userProfileRepository,
+            authRepository = FakeAuthRepository(initialSession = session),
+        ).resolve()
+
+        assertEquals(1, referrerPort.readCallCount, "Play must never be asked twice")
+        val write = userProfileRepository.installAttributionWrites.single()
+        assertEquals(UID, write.userId)
+        assertEquals(InstallChannel.TIKTOK_PAID.wire, write.channel)
+        assertEquals("z-tiktok", write.campaign)
+        assertEquals(null, appPreferences.pendingInstallAttribution, "published, so nothing left waiting")
+    }
+
+    @Test
+    fun should_doNothing_when_flushingWithNothingPending() = runTest {
+        val userProfileRepository = FakeUserProfileRepository()
+
+        useCase(userProfileRepository = userProfileRepository).flushPending()
+
+        assertEquals(0, userProfileRepository.installAttributionWrites.size)
+    }
+
+    @Test
+    fun should_keepThePending_when_firestorePublishFails() = runTest {
+        val appPreferences = FakeAppPreferences()
+        appPreferences.setPendingInstallAttribution(
+            com.rndeveloper.paparcar.domain.attribution.PendingInstallAttribution(
+                channel = InstallChannel.TIKTOK_ORGANIC.wire,
+                source = "tiktok",
+                medium = "social",
+                campaign = "tiktok",
+                metaCampaignId = null,
+                metaAdsetId = null,
+                metaAdId = null,
+                rawReferrer = "utm_source=tiktok&utm_medium=social&utm_campaign=tiktok",
+                resolvedAtMs = 123L,
+            ),
+        )
+        val userProfileRepository = FakeUserProfileRepository().apply {
+            installAttributionResult = Result.failure(IllegalStateException("offline"))
+        }
+
+        useCase(appPreferences = appPreferences, userProfileRepository = userProfileRepository).flushPending()
+
+        assertEquals(1, userProfileRepository.installAttributionWrites.size)
+        assertEquals(InstallChannel.TIKTOK_ORGANIC.wire, appPreferences.pendingInstallAttribution?.channel, "a failed publish must be retried, not dropped")
     }
 
     private companion object {

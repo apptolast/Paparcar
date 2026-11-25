@@ -294,6 +294,17 @@ class AppViewModel(
             foundersClaimJob?.cancel()
             foundersClaimJob = null
             claimFoundersPromoIfReady()
+
+            // [MKT-A-REFERRER-READ-BEFORE-LOGIN-MUST-SURVIVE-001] `resolve()` above almost always
+            // ran before this session existed, so a classified install attribution may still be
+            // waiting on AppPreferences — flush it the moment a uid shows up, instead of waiting
+            // for the next cold start.
+            if (uid != null) {
+                viewModelScope.launch {
+                    runCatching { resolveInstallAttribution.flushPending() }
+                        .onFailure { e -> PaparcarLogger.w(TAG, "pending install attribution flush failed", e) }
+                }
+            }
         }
         // The receipt can arrive after an already-confirmed, unchanged SDK grant.
         // Re-evaluate the same eligibility rule when reconciliation finishes as well.

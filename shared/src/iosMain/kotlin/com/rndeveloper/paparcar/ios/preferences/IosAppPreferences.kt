@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.ios.preferences
 
 import com.rndeveloper.paparcar.domain.spot.VouchedSpot
+import com.rndeveloper.paparcar.domain.attribution.PendingInstallAttribution
 import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
 import com.rndeveloper.paparcar.domain.detection.PendingSpotRelease
 import com.rndeveloper.paparcar.domain.detection.SpotReleaseLane
@@ -20,6 +21,17 @@ import com.rndeveloper.paparcar.domain.analytics.AdMeasurementConsent
 private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
 private const val KEY_GPS_ACCURACY_DISCLAIMER_SEEN = "gps_accuracy_disclaimer_seen"
 private const val KEY_INSTALL_ATTRIBUTION_RESOLVED = "install_attribution_resolved"
+// [MKT-A-REFERRER-READ-BEFORE-LOGIN-MUST-SURVIVE-001] Never actually populated on iOS — there is
+// no Play Install Referrer there — but the contract is the same on both platforms.
+private const val KEY_PENDING_INSTALL_ATTR_CHANNEL = "pending_install_attr_channel"
+private const val KEY_PENDING_INSTALL_ATTR_SOURCE = "pending_install_attr_source"
+private const val KEY_PENDING_INSTALL_ATTR_MEDIUM = "pending_install_attr_medium"
+private const val KEY_PENDING_INSTALL_ATTR_CAMPAIGN = "pending_install_attr_campaign"
+private const val KEY_PENDING_INSTALL_ATTR_META_CAMPAIGN_ID = "pending_install_attr_meta_campaign_id"
+private const val KEY_PENDING_INSTALL_ATTR_META_ADSET_ID = "pending_install_attr_meta_adset_id"
+private const val KEY_PENDING_INSTALL_ATTR_META_AD_ID = "pending_install_attr_meta_ad_id"
+private const val KEY_PENDING_INSTALL_ATTR_RAW_REFERRER = "pending_install_attr_raw_referrer"
+private const val KEY_PENDING_INSTALL_ATTR_RESOLVED_AT = "pending_install_attr_resolved_at"
 // "legal_consent_accepted" retired with the Android key, same reason: not a valid ad consent.
 // [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001]
 private const val KEY_AD_MEASUREMENT_CONSENT = "ad_measurement_consent"
@@ -152,6 +164,54 @@ class IosAppPreferences : AppPreferences {
 
     override fun setInstallAttributionResolved() {
         userDefaults.setBool(true, forKey = KEY_INSTALL_ATTRIBUTION_RESOLVED)
+    }
+
+    // [MKT-A-REFERRER-READ-BEFORE-LOGIN-MUST-SURVIVE-001]
+    override val pendingInstallAttribution: PendingInstallAttribution?
+        get() {
+            val channel = userDefaults.stringForKey(KEY_PENDING_INSTALL_ATTR_CHANNEL) ?: return null
+            return PendingInstallAttribution(
+                channel = channel,
+                source = userDefaults.stringForKey(KEY_PENDING_INSTALL_ATTR_SOURCE),
+                medium = userDefaults.stringForKey(KEY_PENDING_INSTALL_ATTR_MEDIUM),
+                campaign = userDefaults.stringForKey(KEY_PENDING_INSTALL_ATTR_CAMPAIGN),
+                metaCampaignId = userDefaults.stringForKey(KEY_PENDING_INSTALL_ATTR_META_CAMPAIGN_ID),
+                metaAdsetId = userDefaults.stringForKey(KEY_PENDING_INSTALL_ATTR_META_ADSET_ID),
+                metaAdId = userDefaults.stringForKey(KEY_PENDING_INSTALL_ATTR_META_AD_ID),
+                rawReferrer = userDefaults.stringForKey(KEY_PENDING_INSTALL_ATTR_RAW_REFERRER),
+                resolvedAtMs = userDefaults.stringForKey(KEY_PENDING_INSTALL_ATTR_RESOLVED_AT)?.toLongOrNull() ?: 0L,
+            )
+        }
+
+    override fun setPendingInstallAttribution(pending: PendingInstallAttribution) {
+        userDefaults.setObject(pending.channel, forKey = KEY_PENDING_INSTALL_ATTR_CHANNEL)
+        pending.source?.let { userDefaults.setObject(it, forKey = KEY_PENDING_INSTALL_ATTR_SOURCE) }
+            ?: userDefaults.removeObjectForKey(KEY_PENDING_INSTALL_ATTR_SOURCE)
+        pending.medium?.let { userDefaults.setObject(it, forKey = KEY_PENDING_INSTALL_ATTR_MEDIUM) }
+            ?: userDefaults.removeObjectForKey(KEY_PENDING_INSTALL_ATTR_MEDIUM)
+        pending.campaign?.let { userDefaults.setObject(it, forKey = KEY_PENDING_INSTALL_ATTR_CAMPAIGN) }
+            ?: userDefaults.removeObjectForKey(KEY_PENDING_INSTALL_ATTR_CAMPAIGN)
+        pending.metaCampaignId?.let { userDefaults.setObject(it, forKey = KEY_PENDING_INSTALL_ATTR_META_CAMPAIGN_ID) }
+            ?: userDefaults.removeObjectForKey(KEY_PENDING_INSTALL_ATTR_META_CAMPAIGN_ID)
+        pending.metaAdsetId?.let { userDefaults.setObject(it, forKey = KEY_PENDING_INSTALL_ATTR_META_ADSET_ID) }
+            ?: userDefaults.removeObjectForKey(KEY_PENDING_INSTALL_ATTR_META_ADSET_ID)
+        pending.metaAdId?.let { userDefaults.setObject(it, forKey = KEY_PENDING_INSTALL_ATTR_META_AD_ID) }
+            ?: userDefaults.removeObjectForKey(KEY_PENDING_INSTALL_ATTR_META_AD_ID)
+        pending.rawReferrer?.let { userDefaults.setObject(it, forKey = KEY_PENDING_INSTALL_ATTR_RAW_REFERRER) }
+            ?: userDefaults.removeObjectForKey(KEY_PENDING_INSTALL_ATTR_RAW_REFERRER)
+        userDefaults.setObject(pending.resolvedAtMs.toString(), forKey = KEY_PENDING_INSTALL_ATTR_RESOLVED_AT)
+    }
+
+    override fun clearPendingInstallAttribution() {
+        userDefaults.removeObjectForKey(KEY_PENDING_INSTALL_ATTR_CHANNEL)
+        userDefaults.removeObjectForKey(KEY_PENDING_INSTALL_ATTR_SOURCE)
+        userDefaults.removeObjectForKey(KEY_PENDING_INSTALL_ATTR_MEDIUM)
+        userDefaults.removeObjectForKey(KEY_PENDING_INSTALL_ATTR_CAMPAIGN)
+        userDefaults.removeObjectForKey(KEY_PENDING_INSTALL_ATTR_META_CAMPAIGN_ID)
+        userDefaults.removeObjectForKey(KEY_PENDING_INSTALL_ATTR_META_ADSET_ID)
+        userDefaults.removeObjectForKey(KEY_PENDING_INSTALL_ATTR_META_AD_ID)
+        userDefaults.removeObjectForKey(KEY_PENDING_INSTALL_ATTR_RAW_REFERRER)
+        userDefaults.removeObjectForKey(KEY_PENDING_INSTALL_ATTR_RESOLVED_AT)
     }
 
     // iOS has no ad lane today (NoAdMeasurementLane), so nothing asks; the value is still stored

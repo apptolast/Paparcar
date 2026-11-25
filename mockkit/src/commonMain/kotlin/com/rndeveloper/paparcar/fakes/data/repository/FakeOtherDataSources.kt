@@ -202,6 +202,13 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     override val hasResolvedInstallAttribution: Boolean get() = _hasResolvedInstallAttribution.value
     override fun setInstallAttributionResolved() { _hasResolvedInstallAttribution.value = true }
 
+    // [MKT-A-REFERRER-READ-BEFORE-LOGIN-MUST-SURVIVE-001] The Dev Catalog never reads a real Play
+    // referrer, so there is never anything pending.
+    private var _pendingInstallAttribution: com.rndeveloper.paparcar.domain.attribution.PendingInstallAttribution? = null
+    override val pendingInstallAttribution get() = _pendingInstallAttribution
+    override fun setPendingInstallAttribution(pending: com.rndeveloper.paparcar.domain.attribution.PendingInstallAttribution) { _pendingInstallAttribution = pending }
+    override fun clearPendingInstallAttribution() { _pendingInstallAttribution = null }
+
     // The mock graph has no ad lane (NoAdMeasurementLane), so the live flow never asks; the prompt
     // and the Settings row are exercised in the state gallery. [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001]
     private val _adMeasurementConsent = MutableStateFlow(AdMeasurementConsent.UNASKED)

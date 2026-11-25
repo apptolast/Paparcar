@@ -69,3 +69,24 @@ data class InstallAttribution(
     val referrerClickTimestampSeconds: Long?,
     val installBeginTimestampSeconds: Long?,
 )
+
+/** What [com.rndeveloper.paparcar.domain.usecase.attribution.ResolveInstallAttributionUseCase]
+ *  read and classified from Play but could not publish to Firestore yet, because there was no
+ *  signed-in session at that instant. [MKT-A-REFERRER-READ-BEFORE-LOGIN-MUST-SURVIVE-001]
+ *
+ *  The Install Referrer only answers usefully ONCE per installation, and `AppViewModel` — where
+ *  the use case is triggered — is created above the Splash/Auth nav graph, so that one chance
+ *  almost always lands before login. This record is what lets the already-classified answer wait
+ *  for a session instead of being lost: it is cleared the moment the use case manages to publish
+ *  it, which can happen on a later cold start or the instant a session appears in this same one. */
+data class PendingInstallAttribution(
+    val channel: String,
+    val source: String?,
+    val medium: String?,
+    val campaign: String?,
+    val metaCampaignId: String?,
+    val metaAdsetId: String?,
+    val metaAdId: String?,
+    val rawReferrer: String?,
+    val resolvedAtMs: Long,
+)

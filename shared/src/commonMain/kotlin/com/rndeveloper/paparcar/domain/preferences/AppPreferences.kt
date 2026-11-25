@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.domain.preferences
 
 import com.rndeveloper.paparcar.domain.analytics.AdMeasurementConsent
+import com.rndeveloper.paparcar.domain.attribution.PendingInstallAttribution
 import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
 import com.rndeveloper.paparcar.domain.detection.PendingSpotRelease
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
@@ -51,6 +52,17 @@ interface AppPreferences {
      *  does, so the use case keeps retrying across app launches until it gets one. */
     val hasResolvedInstallAttribution: Boolean
     fun setInstallAttributionResolved()
+
+    /** The classified install attribution awaiting a session to publish it to Firestore — Play
+     *  answered successfully but there was no signed-in user at that instant.
+     *  [MKT-A-REFERRER-READ-BEFORE-LOGIN-MUST-SURVIVE-001]
+     *
+     *  Per-install like [hasResolvedInstallAttribution], not user-scoped — so NOT wiped on
+     *  sign-out: it describes how the APK got here, from before we even knew who signed in.
+     *  Cleared the moment `ResolveInstallAttributionUseCase` manages to publish it. */
+    val pendingInstallAttribution: PendingInstallAttribution?
+    fun setPendingInstallAttribution(pending: PendingInstallAttribution)
+    fun clearPendingInstallAttribution()
 
     /** The user's answer about advertising measurement on this install — its own consent, asked
      *  once after sign-in and changeable in Settings. Per install, so NOT wiped on sign-out.

@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.fakes
 
 import com.rndeveloper.paparcar.domain.analytics.AdMeasurementConsent
+import com.rndeveloper.paparcar.domain.attribution.PendingInstallAttribution
 import com.rndeveloper.paparcar.domain.detection.PendingSpotRelease
 import com.rndeveloper.paparcar.domain.spot.VouchedSpot
 import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
@@ -64,6 +65,12 @@ class FakeAppPreferences(
     private var _hasResolvedInstallAttribution = false
     override val hasResolvedInstallAttribution: Boolean get() = _hasResolvedInstallAttribution
     override fun setInstallAttributionResolved() { _hasResolvedInstallAttribution = true }
+
+    // [MKT-A-REFERRER-READ-BEFORE-LOGIN-MUST-SURVIVE-001]
+    private var _pendingInstallAttribution: PendingInstallAttribution? = null
+    override val pendingInstallAttribution: PendingInstallAttribution? get() = _pendingInstallAttribution
+    override fun setPendingInstallAttribution(pending: PendingInstallAttribution) { _pendingInstallAttribution = pending }
+    override fun clearPendingInstallAttribution() { _pendingInstallAttribution = null }
 
     var adMeasurementConsentValue: AdMeasurementConsent = AdMeasurementConsent.UNASKED
     override val adMeasurementConsent: AdMeasurementConsent get() = adMeasurementConsentValue

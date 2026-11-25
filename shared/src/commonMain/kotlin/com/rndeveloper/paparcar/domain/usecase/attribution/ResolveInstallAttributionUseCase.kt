@@ -9,6 +9,7 @@ import com.rndeveloper.paparcar.domain.analytics.AnalyticsUserProperty
 import com.rndeveloper.paparcar.domain.attribution.InstallChannel
 import com.rndeveloper.paparcar.domain.attribution.InstallReferrerPort
 import com.rndeveloper.paparcar.domain.attribution.MetaReferrerDecryptPort
+import com.rndeveloper.paparcar.domain.attribution.PendingInstallAttribution
 import com.rndeveloper.paparcar.domain.attribution.classifyInstallChannel
 import com.rndeveloper.paparcar.domain.attribution.parseReferrerParams
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
@@ -28,6 +29,16 @@ import kotlin.time.Clock
  * exactamente el caso que el punto 1 del encargo pide ("reintentando si falla la conexión con el
  * servicio"). Un referrer vacío o ilegible, en cambio, SÍ es una respuesta final — Play contestó,
  * simplemente no hay campaña que contar, y seguir reintentando no cambiaría eso.
+ *
+ * ⛔ **Leer el referrer y publicarlo en Firestore son dos relojes distintos.**
+ * [MKT-A-REFERRER-READ-BEFORE-LOGIN-MUST-SURVIVE-001] `AppViewModel` dispara [resolve] en su
+ * `init`, por encima del nav graph de Splash/Auth — es decir, casi siempre ANTES de que haya
+ * sesión. Como el referrer sólo se puede leer una vez, [resolve] clasifica y cierra el gate de
+ * LECTURA incondicionalmente, pero NUNCA publica directo: guarda el resultado en
+ * [AppPreferences.pendingInstallAttribution] y delega en [flushPending], que sí puede esperar
+ * todo lo que haga falta a que exista un `userId` — reintentándolo en cada llamada a [resolve]
+ * (próximos arranques) y también desde `AppViewModel` en cuanto la sesión aparece en el mismo
+ * proceso.
  */
 class ResolveInstallAttributionUseCase(
     private val referrerPort: InstallReferrerPort,
@@ -39,7 +50,10 @@ class ResolveInstallAttributionUseCase(
 ) {
 
     suspend fun resolve() {
-        if (appPreferences.hasResolvedInstallAttribution) return
+        if (appPreferences.hasResolvedInstallAttribution) {
+            flushPending()
+            return
+        }
 
         val result = referrerPort.read()
         if (result.isFailure) {
@@ -63,10 +77,17 @@ class ResolveInstallAttributionUseCase(
             ?.let { metaDecrypt.decrypt(it).getOrNull() }
         val channel = classifyInstallChannel(params, metaIds)
 
-        val userId = authRepository.getCurrentSession()?.userId
-        if (userId != null) {
-            userProfileRepository.publishInstallAttribution(
-                userId = userId,
+        // Fires unconditionally, even signed out: the property/event describe the INSTALL, not
+        // the account. [MKT-INSTALL-ATTRIBUTION-CHANNEL-001]
+        analyticsTracker.setUserProperty(AnalyticsUserProperty.InstallChannelProperty(channel))
+        analyticsTracker.track(AnalyticsEvent.InstallAttributionResolved(channel))
+        // The gate closes here: the referrer was read, successfully, for the only time it ever
+        // will be. Whether it reaches Firestore now or later is flushPending's problem, not this
+        // gate's. [MKT-A-REFERRER-READ-BEFORE-LOGIN-MUST-SURVIVE-001]
+        appPreferences.setInstallAttributionResolved()
+
+        appPreferences.setPendingInstallAttribution(
+            PendingInstallAttribution(
                 channel = channel.wire,
                 source = params[UTM_SOURCE],
                 medium = params[UTM_MEDIUM],
@@ -76,14 +97,39 @@ class ResolveInstallAttributionUseCase(
                 metaAdId = metaIds?.adId,
                 rawReferrer = raw.installReferrer,
                 resolvedAtMs = Clock.System.now().toEpochMilliseconds(),
-            ).onFailure { e -> PaparcarLogger.w(TAG, "install attribution not published: ${e.message}") }
+            ),
+        )
+        flushPending()
+    }
+
+    /**
+     * Publishes the pending classified result to Firestore, if there is one AND a session exists
+     * right now. [MKT-A-REFERRER-READ-BEFORE-LOGIN-MUST-SURVIVE-001]
+     *
+     * Safe to call any number of times, from any number of places: with nothing pending, or no
+     * session yet, it is a no-op. A successful publish clears the pending record so it is never
+     * resent; a failure (network, Firestore rules) leaves it for the next call to retry — unlike
+     * the Play read, Firestore can be asked again.
+     */
+    suspend fun flushPending() {
+        val pending = appPreferences.pendingInstallAttribution ?: return
+        val userId = authRepository.getCurrentSession()?.userId ?: return
+        userProfileRepository.publishInstallAttribution(
+            userId = userId,
+            channel = pending.channel,
+            source = pending.source,
+            medium = pending.medium,
+            campaign = pending.campaign,
+            metaCampaignId = pending.metaCampaignId,
+            metaAdsetId = pending.metaAdsetId,
+            metaAdId = pending.metaAdId,
+            rawReferrer = pending.rawReferrer,
+            resolvedAtMs = pending.resolvedAtMs,
+        ).onSuccess {
+            appPreferences.clearPendingInstallAttribution()
+        }.onFailure { e ->
+            PaparcarLogger.w(TAG, "pending install attribution not published, will retry: ${e.message}")
         }
-        // Set unconditionally, even signed out: the referrer itself was read successfully, and a
-        // signed-out resolve can never happen again (the next launch is either the same anonymous
-        // state — nothing changed — or a login, which still has no second chance at reading Play).
-        analyticsTracker.setUserProperty(AnalyticsUserProperty.InstallChannelProperty(channel))
-        analyticsTracker.track(AnalyticsEvent.InstallAttributionResolved(channel))
-        appPreferences.setInstallAttributionResolved()
     }
 
     private companion object {

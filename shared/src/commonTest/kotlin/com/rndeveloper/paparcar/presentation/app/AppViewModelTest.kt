@@ -233,6 +233,51 @@ class AppViewModelTest {
         assertEquals(listOf(UID), foundersPromoRepo.claimedUids)
     }
 
+    /**
+     * [MKT-A-REFERRER-READ-BEFORE-LOGIN-MUST-SURVIVE-001] This is the real-world shape of the bug:
+     * `AppViewModel` lives above Splash/Auth, so `resolve()` fires in its `init` with no session
+     * yet. Without the flush hook on [AppViewModel.signedInUid], the classified channel would sit
+     * in `AppPreferences` forever once this same process signs in — nobody asks again.
+     */
+    @Test
+    fun should_flushPendingInstallAttribution_when_aSessionAppearsAfterReferrerWasRead() = runTest(testDispatcher) {
+        fakeAuth.emitState(AuthState.Unauthenticated)
+        val userProfileRepository = FakeUserProfileRepository()
+        resolveInstallAttribution = com.rndeveloper.paparcar.domain.usecase.attribution.ResolveInstallAttributionUseCase(
+            referrerPort = com.rndeveloper.paparcar.fakes.FakeInstallReferrerPort(
+                result = Result.success(
+                    com.rndeveloper.paparcar.domain.attribution.InstallReferrerRaw(
+                        installReferrer = "utm_source=tiktok&utm_medium=paid&utm_campaign=z-tiktok",
+                        referrerClickTimestampSeconds = 1L,
+                        installBeginTimestampSeconds = 2L,
+                        googlePlayInstantParam = false,
+                    ),
+                ),
+            ),
+            metaDecrypt = com.rndeveloper.paparcar.fakes.FakeMetaReferrerDecryptPort(),
+            appPreferences = fakePrefs,
+            userProfileRepository = userProfileRepository,
+            authRepository = fakeAuth,
+            analyticsTracker = fakeAnalyticsTracker,
+        )
+
+        viewModel() // init fires resolve(): read + classify, but no session to publish to yet.
+        runCurrent()
+
+        assertTrue(fakePrefs.hasResolvedInstallAttribution)
+        assertTrue(userProfileRepository.installAttributionWrites.isEmpty())
+        assertEquals("tiktok_paid", fakePrefs.pendingInstallAttribution?.channel)
+
+        val session = UserSession(userId = UID, email = null, displayName = null, photoUrl = null)
+        fakeAuth.emitState(AuthState.Authenticated(session))
+        runCurrent()
+
+        val write = userProfileRepository.installAttributionWrites.single()
+        assertEquals(UID, write.userId)
+        assertEquals("tiktok_paid", write.channel)
+        assertNull(fakePrefs.pendingInstallAttribution)
+    }
+
     @Test
     fun should_retryClaim_when_homeWasReachedOfflineAndConnectivityReturns() = runTest(testDispatcher) {
         fakeConnectivity.emit(ConnectivityStatus.Offline)
