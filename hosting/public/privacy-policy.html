@@ -136,7 +136,8 @@ Privacy contact: <a href="mailto:support@paparcar.com">support@paparcar.com</a><
   <li>When you free a spot (automatically or by reporting it), its <strong>location, time and
   approximate size/type</strong> are published to nearby users. The spot is linked to your account
   via an <strong>internal identifier</strong>; other users <strong>never see your name, email or
-  photo</strong>. Spots expire and are deleted automatically after a short time.</li>
+  photo</strong>. Spots disappear from the map when they expire. The underlying record can remain
+  until it is cleaned up.</li>
 </ul>
 
 <h3>2.7 Diagnostics and crashes</h3>
@@ -228,9 +229,10 @@ Privacy contact: <a href="mailto:support@paparcar.com">support@paparcar.com</a><
   <li>If someone invites you using a Paparcar link, the link includes a pseudonymous invitation
   code. Google Play returns that code when you install from the link. We keep it with the
   installation attribution to count installs from invitations. The code is not sent to ad networks.</li>
-  <li>We store the result (which channel it came from, and the ad identifier when there is one)
-  alongside your account, to measure what works — never to decide what you see in the app, and
-  never to share it with anyone outside Paparcar.</li>
+  <li>After sign-in, we store the referrer from Google Play, the installation channel and any available
+  campaign or ad identifiers in your Paparcar profile on Google Cloud. We use these fields to
+  measure which links and campaigns lead to installs. Firebase Analytics receives the channel
+  without your Paparcar account identifier or Meta campaign identifiers.</li>
 </ul>
 
 <h2>3. How we use the data</h2>
@@ -271,7 +273,9 @@ appropriate safeguards for international transfers (standard contractual clauses
 
 <h2>5. How long we keep it</h2>
 <ul>
-  <li><strong>Published spots</strong>: expire and disappear automatically within minutes to hours.</li>
+  <li><strong>Published spots</strong>: disappear from the map when they expire. A spot record and
+  its internal account identifier may remain stored after account deletion until the record is
+  cleaned up.</li>
   <li><strong>Parking history, vehicles and zones</strong>: for as long as you keep your account,
   or until you delete them in the app.</li>
   <li><strong>The shared copy of a car you share</strong>: for as long as the group exists. Leaving
@@ -316,8 +320,9 @@ stability and security (Art. 6(1)(f)).</p>
 <h2>8. Security</h2>
 <p>Data travels encrypted (TLS) and is stored on Google Cloud infrastructure with access rules
 that restrict each record to its owner. Only two kinds of data are visible to anyone else:
-<strong>community spots</strong>, which carry no identity, and the <strong>shared copy of a car you
-chose to share</strong>, readable only by the members of that group (§2.9).</p>
+<strong>community spot records</strong>, which signed-in users can read and which include the
+publisher’s internal account identifier (§2.6), and the <strong>shared copy of a car you chose to
+share</strong>, readable only by the members of that group (§2.9).</p>
 
 <h2>9. Children</h2>
 <p>Paparcar is intended for drivers and is not directed at children under 16. We do not knowingly
@@ -405,8 +410,8 @@ Contacto de privacidad: <a href="mailto:support@paparcar.com">support@paparcar.c
   <li>Cuando liberas una plaza (automáticamente o avisando tú), se publica su <strong>ubicación,
   hora, y tamaño/tipo aproximado del hueco</strong> para los usuarios cercanos. La plaza está
   vinculada a tu cuenta mediante un <strong>identificador interno</strong>; los demás usuarios
-  <strong>nunca ven tu nombre, correo ni foto</strong>. Las plazas caducan y se eliminan
-  automáticamente al poco tiempo.</li>
+  <strong>nunca ven tu nombre, correo ni foto</strong>. Las plazas desaparecen del mapa al
+  caducar. El registro puede conservarse hasta que se limpie.</li>
 </ul>
 
 <h3>2.7 Diagnósticos y errores</h3>
@@ -501,9 +506,10 @@ Contacto de privacidad: <a href="mailto:support@paparcar.com">support@paparcar.c
   seudónimo. Google Play devuelve ese código si instalas desde el enlace. Lo guardamos junto con
   la atribución de la instalación para contar las instalaciones por invitación. El código no se
   envía a redes publicitarias.</li>
-  <li>Guardamos el resultado (de qué canal vino, y el identificador del anuncio cuando lo hay)
-  junto a tu cuenta, para medir qué funciona — nunca para decidir qué ves en la app ni para
-  compartirlo con nadie fuera de Paparcar.</li>
+  <li>Al iniciar sesión, guardamos en tu perfil de Paparcar en Google Cloud el referrer de Google
+  Play, el canal de instalación y los identificadores de campaña o anuncio disponibles. Usamos esos
+  datos para medir qué enlaces y campañas generan instalaciones. Firebase Analytics recibe el canal
+  sin el identificador de tu cuenta de Paparcar ni los identificadores de campaña de Meta.</li>
 </ul>
 
 <h2>3. Para qué usamos los datos</h2>
@@ -546,7 +552,9 @@ procesamiento de datos</a>, con las garantías correspondientes para transferenc
 
 <h2>5. Cuánto tiempo los conservamos</h2>
 <ul>
-  <li><strong>Plazas publicadas</strong>: caducan y desaparecen automáticamente en minutos u horas.</li>
+  <li><strong>Plazas publicadas</strong>: desaparecen del mapa al caducar. El registro y el
+  identificador interno de cuenta pueden permanecer después de eliminar la cuenta hasta que
+  se limpie el registro.</li>
   <li><strong>Historial de aparcamientos, vehículos y zonas</strong>: mientras mantengas tu cuenta,
   o hasta que los borres desde la app.</li>
   <li><strong>La copia compartida de un coche que compartes</strong>: mientras exista el grupo. Al
@@ -594,8 +602,9 @@ consentimiento que exige el art. 22.2 de la LSSI para acceder a tu dispositivo),
 <h2>8. Seguridad</h2>
 <p>Los datos viajan cifrados (TLS) y se almacenan en la infraestructura de Google Cloud con reglas
 de acceso que limitan cada dato a su propietario. Solo hay dos datos visibles para alguien más: las
-<strong>plazas comunitarias</strong>, que van sin identidad, y la <strong>copia compartida de un
-coche que tú decidiste compartir</strong>, legible solo por los miembros de ese grupo (§2.9).</p>
+<strong>registros de plazas comunitarias</strong>, que los usuarios con sesión pueden leer y que
+incluyen el identificador interno de la cuenta que las publicó (§2.6), y la <strong>copia compartida
+de un coche que decidiste compartir</strong>, legible solo por los miembros de ese grupo (§2.9).</p>
 
 <h2>9. Menores</h2>
 <p>Paparcar está pensada para conductores y no está dirigida a menores de 16 años. No recogemos

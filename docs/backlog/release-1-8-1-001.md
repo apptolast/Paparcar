@@ -37,8 +37,40 @@ conserva los cambios posteriores de invitaciones y se validó aparte con
 
 `docs/release/play-listing/paste/release-notes-v1.8.1.txt` contiene las notas para los nueve locales.
 
+## Estado en Play · 26-11-2026
+
+Google Play aceptó el vc20 y se releyó como `internal draft`, con notas en nueve idiomas.
+`production` seguía en vc19. La ficha de los nueve idiomas coincidía con el repositorio.
+La etiqueta pública de Seguridad de los datos mostraba solo el historial de compras como
+compartido y solo Analítica para las interacciones. El SDK de Meta comparte interacciones
+y el identificador publicitario cuando el usuario consiente. Para corregir el formulario,
+hace falta el CSV actual de Play Console o acceso de edición al formulario; el CSV de
+importación sobrescribe las respuestas. La cuenta de servicio usada publica en canales de
+prueba y la promoción a producción necesita una cuenta de Play Console con ese permiso.
+
+## Política pública y revisión
+
+El 26-11-2026 Firebase Hosting publicó la versión `fad42e16aea896c7`. Se verificó que
+solo cambiaron las páginas de privacidad y borrado entre los 25.242 archivos. Ambas
+se releyeron desde el dominio público. La versión publicada describe el referrer almacenado,
+lo que recibe Analytics y la posible retención del identificador interno en una plaza
+comunitaria. La cláusula de invitaciones del siguiente build se conserva en el repositorio
+para cuando se publique ese flujo.
+
+La revisión encontró tres comprobaciones de producción pendientes.
+
+- Revisar la declaración de ubicación en segundo plano y su vídeo. El diálogo previo al
+  permiso explica los pasos de Android, mientras que la finalidad de la recogida está en
+  el texto de la pantalla anterior.
+- Confirmar las cuentas habilitadas para diagnóstico de campo y su consentimiento. El
+  logger puede conservar en memoria el indicador de la cuenta anterior al cambiar de sesión.
+- Verificar la limpieza o desvinculación de `reportedBy` en las plazas al eliminar una
+  cuenta. La aclaración pública refleja la retención actual del registro.
+
 ## Criterio de éxito
 
 - [x] Generar el AAB firmado y validar la suite agregada y las notas.
-- [ ] Publicar el AAB en Google Play y comprobar el código de versión servido.
+- [x] Subir el AAB a Internal y comprobar el borrador con las notas en nueve idiomas.
+- [ ] Actualizar Seguridad de los datos y comprobar el acceso de revisión en Play Console.
+- [ ] Publicar el AAB en producción y comprobar el código de versión servido.
 - [ ] Instalar desde un enlace etiquetado en un dispositivo, retrasar el inicio de sesión y verificar que se registra el canal.

@@ -28,8 +28,11 @@ Firestore, `zoneAlertSubs` → filtrar `uid == <uid>` y borrar los documentos qu
 Cubre: perfil (`users/{uid}`) +
 `parkingHistory` + `vehicles` + `zones` (subcolecciones) + telemetría (`sessions/*/events`,
 `uiLocation`) + config de diagnósticos.
-Los **spots** publicados (`spots`, campo `reportedBy = uid`) NO se tocan: caducan solos por TTL
-y no llevan identidad — es lo que declara la política (§2.6, §5).
+El flujo actual no elimina los registros remotos de **plazas comunitarias** (`spots`). Cada
+registro conserva `reportedBy` con el identificador interno de la cuenta. La plaza deja de
+mostrarse al caducar, pero puede seguir en Firestore hasta que se limpie. El campo
+`expiresAt` es un entero y la caducidad en el mapa no equivale a un TTL nativo de Firestore.
+La política describe esta retención en §2.6 y §5.
 
 ### 2.1 · Coches compartidos — el paso que no se puede scriptear a ciegas
 [PRIV-A-DELETED-ACCOUNT-LEAVES-TWO-TOKENS-BEHIND-001]

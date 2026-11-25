@@ -30,6 +30,13 @@ sigue reflejada en la declaración de datos compartidos. Revisar asimismo el uso
 de cuenta para vincular la atribución al perfil. La política pública cubre la finalidad y el
 vínculo con la cuenta en §2.11.
 
+La etiqueta pública, consultada el 26-11-2026, mostraba **Purchase history** como único dato
+compartido. Mostraba **App interactions** e **identificadores de dispositivo** como recogidos,
+sin **Advertising or marketing**. Actualizar las dos categorías para declarar la compartición
+opcional con Meta con finalidad publicitaria. Conservar las demás respuestas del formulario
+actual al aplicar el cambio. La etiqueta pública no permite reconstruir todas las respuestas
+de Play Console.
+
 ## Preguntas generales
 
 | Pregunta | Respuesta |
@@ -43,8 +50,9 @@ vínculo con la cuenta en §2.11.
 
 Para cada uno: **Recogido = Sí**. «Compartido» en el sentido de Play = transferido a terceros
 — Firebase/Crashlytics son *service providers* del desarrollador, eso **no** cuenta como
-"compartido"; las plazas visibles para otros usuarios son funcionalidad iniciada por el usuario,
-tampoco.
+"compartido". Los registros de plazas comunitarias incluyen un identificador interno de cuenta.
+Antes de confirmar la excepción de compartición iniciada por el usuario, revisar que cubra tanto
+los avisos manuales como la publicación automática y la lectura del identificador por otros usuarios con sesión.
 
 ⛔⛔ **Ese «Compartido = No en todo» se acabó el 02-11-2026.** Meta Platforms recibe tres nombres
 de evento y el identificador de publicidad del dispositivo, con fin publicitario, y eso es
