@@ -204,6 +204,7 @@ class IosAppPreferences : AppPreferences {
     }
 
     override suspend fun clearPendingInstallAttribution() {
+        setInstallAttributionResolved()
         userDefaults.removeObjectForKey(KEY_PENDING_INSTALL_ATTR_CHANNEL)
         userDefaults.removeObjectForKey(KEY_PENDING_INSTALL_ATTR_SOURCE)
         userDefaults.removeObjectForKey(KEY_PENDING_INSTALL_ATTR_MEDIUM)

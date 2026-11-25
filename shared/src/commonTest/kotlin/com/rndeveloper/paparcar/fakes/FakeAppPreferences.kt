@@ -74,7 +74,10 @@ class FakeAppPreferences(
         setInstallAttributionResolved()
     }
 
-    override suspend fun clearPendingInstallAttribution() { _pendingInstallAttribution = null }
+    override suspend fun clearPendingInstallAttribution() {
+        _pendingInstallAttribution = null
+        setInstallAttributionResolved()
+    }
 
     var adMeasurementConsentValue: AdMeasurementConsent = AdMeasurementConsent.UNASKED
     override val adMeasurementConsent: AdMeasurementConsent get() = adMeasurementConsentValue

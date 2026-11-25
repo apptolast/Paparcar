@@ -17,11 +17,13 @@ import com.rndeveloper.paparcar.domain.repository.EntitlementRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.service.GeofenceManager
 import com.rndeveloper.paparcar.domain.session.LocalSessionCache
+import com.rndeveloper.paparcar.domain.usecase.attribution.ResolveInstallAttributionUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.BootstrapUserDataUseCase
 import com.rndeveloper.paparcar.domain.model.UserProfile
 import com.rndeveloper.paparcar.domain.usecase.user.GetOrCreateUserProfileUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.SetFirstStepsDismissedUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -88,6 +90,7 @@ class SplashViewModel(
     // direction of [reconcileFirstStepsMemory] — a dismissal this device knows and the account does
     // not, because the write happened offline.
     private val setFirstStepsDismissed: SetFirstStepsDismissedUseCase,
+    private val resolveInstallAttribution: ResolveInstallAttributionUseCase,
 ) : ViewModel() {
 
     /** Kept so [retry] can re-enter the bootstrap chain without waiting for a new auth emission. */
@@ -255,6 +258,16 @@ class SplashViewModel(
                     return
                 }
 
+            // Firestore updates require the profile document to exist.
+            viewModelScope.launch {
+                try {
+                    resolveInstallAttribution.flushPending()
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    PaparcarLogger.w(TAG, "pending install attribution flush failed", e)
+                }
+            }
             reconcileFirstStepsMemory(profile)
 
             PaparcarLogger.i(TAG, "[step 3a/3] starting user-data bootstrap (parallel)")

@@ -3,6 +3,7 @@ package com.rndeveloper.paparcar.data.attribution
 import com.apptolast.baselogin.domain.AuthRepository
 import com.rndeveloper.paparcar.domain.attribution.MetaInstallIds
 import com.rndeveloper.paparcar.domain.attribution.MetaReferrerDecryptPort
+import com.rndeveloper.paparcar.domain.attribution.looksLikeMetaReferrerBlock
 import io.ktor.client.HttpClient
 import io.ktor.client.request.header
 import io.ktor.client.request.post
@@ -14,7 +15,6 @@ import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonObject
 
 /**
  * Llama a la Cloud Function `decryptMetaInstallReferrer` para descifrar el bloque de Meta.
@@ -36,12 +36,9 @@ class HttpMetaReferrerDecryptDataSource(
 ) : MetaReferrerDecryptPort {
 
     override suspend fun decrypt(rawUtmContent: String): Result<MetaInstallIds?> = runCatching {
-        if (!looksLikeMetaBlock(rawUtmContent)) return@runCatching null
+        if (!looksLikeMetaReferrerBlock(rawUtmContent)) return@runCatching null
 
-        // Sin sesión no hay a quién atribuir el referrer en Firestore de todos modos — el
-        // clasificador ya cae a META_ORGANIC_* sin esto. Ahorra la llamada en vez de pedirla y
-        // que el backend la rechace con 401.
-        val token = authRepository.getIdToken() ?: return@runCatching null
+        val token = checkNotNull(authRepository.getIdToken()) { "Meta referrer requires an authenticated session" }
 
         val http = client.post("$baseUrl$PATH") {
             header(HttpHeaders.Authorization, "Bearer $token")
@@ -60,16 +57,6 @@ class HttpMetaReferrerDecryptDataSource(
         )
     }
 
-    private fun looksLikeMetaBlock(content: String): Boolean {
-        val trimmed = content.trim()
-        if (!trimmed.startsWith("{")) return false
-        return runCatching {
-            val source = json.parseToJsonElement(trimmed).jsonObject[FIELD_SOURCE]?.jsonObject
-                ?: return@runCatching false
-            source.containsKey(FIELD_DATA) && source.containsKey(FIELD_NONCE)
-        }.getOrDefault(false)
-    }
-
     @Serializable
     private data class DecryptRequestDto(val content: String)
 
@@ -86,9 +73,6 @@ class HttpMetaReferrerDecryptDataSource(
          *  también, así que la app nunca nombra el dominio `cloudfunctions.net`. */
         const val DEFAULT_BASE_URL = "https://paparcar.com"
         const val PATH = "/api/decryptMetaInstallReferrer"
-        const val FIELD_SOURCE = "source"
-        const val FIELD_DATA = "data"
-        const val FIELD_NONCE = "nonce"
         val json = Json { ignoreUnknownKeys = true }
     }
 }

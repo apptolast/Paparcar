@@ -133,7 +133,10 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
     }
 
     override suspend fun clearPendingInstallAttribution() {
-        snapshot = store.edit { it.writePendingInstallAttribution(null) }
+        snapshot = store.edit {
+            it.writePendingInstallAttribution(null)
+            it[Keys.INSTALL_ATTRIBUTION_RESOLVED] = true
+        }
     }
 
     private fun MutablePreferences.writePendingInstallAttribution(pending: PendingInstallAttribution?) {

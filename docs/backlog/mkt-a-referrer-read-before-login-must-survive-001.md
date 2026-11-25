@@ -81,7 +81,7 @@ jamás la lectura de Play.
 perder el referrer si el usuario demora el login (Play puede dejar de contestar con el dato útil
 tras la ventana inicial) — la lectura en sí no puede esperar, solo la publicación.
 
-## Criterio de éxito
+## Validación del arreglo original
 
 - ✅ Test unitario nuevo en `ResolveInstallAttributionUseCaseTest`
   (`should_publishThePendingResult_when_aSessionAppearsOnALaterCall`,
@@ -99,7 +99,7 @@ tras la ventana inicial) — la lectura en sí no puede esperar, solo la publica
   móvil real, borrar datos de la app (o usar uno nuevo), abrir SIN loguear de inmediato, loguear
   después, y confirmar que `users/{uid}` recibe `installChannel` aun con ese retraso.
 
-## Qué cambió
+## Qué cambió en el arreglo original
 
 - `domain/attribution/InstallAttribution.kt` — nuevo `PendingInstallAttribution`.
 - `domain/preferences/AppPreferences.kt` — `pendingInstallAttribution` / `setPendingInstallAttribution`
@@ -127,3 +127,20 @@ tras la ventana inicial) — la lectura en sí no puede esperar, solo la publica
   estar afectado; pendiente confirmar con el export de mañana (`events_20261126`).
 - No hay otros consumidores de `InstallChannel`/`InstallAttribution` fuera de este use case y el
   tracker de analítica.
+
+## Validación para 1.8.1 · 25-11-2026
+
+Play Console confirma 1.8.0 (vc19) en producción. Su AAB precede a los commits de atribución.
+En producción se contaron 22 perfiles nuevos hasta las 22:55 (Europe/Madrid), todos sin canal.
+
+La revisión del corte 1.8.1 detectó dos condiciones del cliente. La sesión puede aparecer antes
+de que Firestore tenga el documento de perfil, y el endpoint de Meta necesita un token. La app
+conserva el referrer antes del login, reintenta la escritura cuando termina la carga del perfil
+y resuelve el bloque de Meta con sesión. Android guarda el resultado pendiente y el marcador de
+lectura juntos. Si falla el descifrado por un error transitorio, el resultado se conserva para
+reintentar. Queda pendiente probar una instalación desde Play con inicio de sesión demorado y
+verificar que aparece el canal. Para Meta pagado también queda pendiente un payload real.
+
+`testAll --rerun-tasks` pasó con las pruebas de captura sin sesión, espera a la creación del
+perfil y reintento del descifrado. El AAB firmado está registrado en
+[RELEASE-1-8-1-001](release-1-8-1-001.md).

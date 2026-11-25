@@ -1,0 +1,27 @@
+<en-US>
+Maintenance update with fixes for links that lead to the app.
+</en-US>
+<es-ES>
+Actualización de mantenimiento con correcciones en los enlaces de descarga de la app.
+</es-ES>
+<it-IT>
+Aggiornamento di manutenzione con correzioni ai link per scaricare l'app.
+</it-IT>
+<pt-PT>
+Atualização de manutenção com correções nas ligações para descarregar a app.
+</pt-PT>
+<fr-FR>
+Mise à jour de maintenance avec des corrections des liens de téléchargement de l’application.
+</fr-FR>
+<de-DE>
+Wartungsupdate mit Korrekturen für Links zum Herunterladen der App.
+</de-DE>
+<nl-NL>
+Onderhoudsupdate met correcties voor links om de app te downloaden.
+</nl-NL>
+<pl-PL>
+Aktualizacja techniczna z poprawkami linków do pobrania aplikacji.
+</pl-PL>
+<ro>
+Actualizare de întreținere cu remedieri pentru linkurile de descărcare a aplicației.
+</ro>

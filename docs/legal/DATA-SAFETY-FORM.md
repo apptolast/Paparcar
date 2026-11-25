@@ -15,6 +15,21 @@
 > como fallback). Fuente: `hosting/public/privacy-policy.html`, se despliega con
 > `firebase deploy --only hosting` (config en `firebase.json`).
 
+## Atribución de instalaciones · 1.8.1
+
+La app lee el referrer de Google Play y registra el canal y los datos de campaña disponibles en
+el perfil de Firebase. El backend de Paparcar descifra el bloque de Meta cuando corresponde.
+GA4 recibe el canal como evento y propiedad de instalación, sin el identificador de cuenta ni
+los identificadores de campaña de Meta. La atribución de instalación y el envío de eventos de
+medición a Meta son flujos distintos; el segundo sigue sujeto a su consentimiento específico.
+
+Para revisar en Play Console, contrastar **App activity → App interactions** con los propósitos
+**Analytics** y **Advertising or marketing**. La recogida de atribución procede de Google Play
+y se registra en la infraestructura del desarrollador. La transferencia separada al SDK de Meta
+sigue reflejada en la declaración de datos compartidos. Revisar asimismo el uso del identificador
+de cuenta para vincular la atribución al perfil. La política pública cubre la finalidad y el
+vínculo con la cuenta en §2.11.
+
 ## Preguntas generales
 
 | Pregunta | Respuesta |

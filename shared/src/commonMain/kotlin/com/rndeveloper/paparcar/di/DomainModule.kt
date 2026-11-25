@@ -68,9 +68,8 @@ val domainModule = module {
     factory { SetFirstStepsDismissedUseCase(get(), get(), get()) }
     // [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001] One door for the prompt and the Settings switch.
     factory { SetAdMeasurementConsentUseCase(appPreferences = get(), lane = get()) }
-    // [MKT-INSTALL-ATTRIBUTION-CHANNEL-001] Lee el referrer de Play UNA vez. Collected once, by
-    // SplashViewModel — mismo sitio y mismo patrón que PublishDetectionStateUseCase.
-    factory {
+    // App startup captures the referrer. Splash retries after the user's profile exists.
+    single {
         ResolveInstallAttributionUseCase(
             referrerPort = get(),
             metaDecrypt = get(),

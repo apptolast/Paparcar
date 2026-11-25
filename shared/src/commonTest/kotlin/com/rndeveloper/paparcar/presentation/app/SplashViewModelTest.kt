@@ -5,10 +5,15 @@ import com.apptolast.baselogin.domain.model.AuthState
 import com.rndeveloper.paparcar.Routes
 import com.rndeveloper.paparcar.presentation.app.BootstrapFailure
 import com.rndeveloper.paparcar.domain.analytics.AdMeasurementConsent
+import com.rndeveloper.paparcar.domain.attribution.InstallChannel
+import com.rndeveloper.paparcar.domain.attribution.PendingInstallAttribution
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityStatus
+import com.rndeveloper.paparcar.fakes.FakeAnalyticsTracker
 import com.rndeveloper.paparcar.fakes.FakeAppPreferences
+import com.rndeveloper.paparcar.fakes.FakeInstallReferrerPort
+import com.rndeveloper.paparcar.fakes.FakeMetaReferrerDecryptPort
 import com.rndeveloper.paparcar.fakes.testSignOutUseCase
 import com.rndeveloper.paparcar.fakes.FakeAuthRepository
 import com.rndeveloper.paparcar.fakes.FakeConnectivityObserver
@@ -20,6 +25,7 @@ import com.rndeveloper.paparcar.fakes.FakeUserParkingRepository
 import com.rndeveloper.paparcar.fakes.FakeUserProfileRepository
 import com.rndeveloper.paparcar.fakes.FakeVehicleRepository
 import com.rndeveloper.paparcar.fakes.FakeZoneRepository
+import com.rndeveloper.paparcar.domain.usecase.attribution.ResolveInstallAttributionUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.BootstrapUserDataUseCase
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.domain.usecase.user.GetOrCreateUserProfileUseCase
@@ -102,12 +108,51 @@ class SplashViewModelTest {
             connectivityObserver = fakeConnectivity,
             geofenceManager = fakeGeofenceManager,
             entitlementRepository = fakeEntitlementRepo,
+            resolveInstallAttribution = ResolveInstallAttributionUseCase(
+                referrerPort = FakeInstallReferrerPort(),
+                metaDecrypt = FakeMetaReferrerDecryptPort(),
+                appPreferences = fakePrefs,
+                userProfileRepository = fakeProfileRepo,
+                authRepository = fakeAuth,
+                analyticsTracker = FakeAnalyticsTracker(),
+            ),
             setFirstStepsDismissed = SetFirstStepsDismissedUseCase(
                 appPreferences = fakePrefs,
                 authRepository = fakeAuth,
                 userProfileRepository = fakeProfileRepo,
             ),
         )
+    }
+
+    @Test
+    fun should_publishPendingInstallAttribution_when_profileCreationCompletes() = runTest {
+        val profileGate = CompletableDeferred<Unit>()
+        fakeProfileRepo.profileGate = profileGate
+        fakePrefs.saveResolvedInstallAttribution(
+            PendingInstallAttribution(
+                channel = InstallChannel.TIKTOK_PAID.wire,
+                source = "tiktok",
+                medium = "paid",
+                campaign = "z-tiktok",
+                metaCampaignId = null,
+                metaAdsetId = null,
+                metaAdId = null,
+                rawReferrer = "utm_source=tiktok&utm_medium=paid&utm_campaign=z-tiktok",
+                resolvedAtMs = 123L,
+            ),
+        )
+        buildViewModel()
+
+        fakeAuth.emitState(AuthState.Authenticated(session))
+
+        assertTrue(fakeProfileRepo.installAttributionWrites.isEmpty())
+        profileGate.complete(Unit)
+        testScheduler.runCurrent()
+
+        val write = fakeProfileRepo.installAttributionWrites.single()
+        assertEquals(session.userId, write.userId)
+        assertEquals(InstallChannel.TIKTOK_PAID.wire, write.channel)
+        assertNull(fakePrefs.pendingInstallAttribution)
     }
 
     private fun vehicle() = Vehicle(

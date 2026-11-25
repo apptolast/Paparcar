@@ -213,7 +213,10 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
         setInstallAttributionResolved()
     }
 
-    override suspend fun clearPendingInstallAttribution() { _pendingInstallAttribution = null }
+    override suspend fun clearPendingInstallAttribution() {
+        _pendingInstallAttribution = null
+        setInstallAttributionResolved()
+    }
 
     // The mock graph has no ad lane (NoAdMeasurementLane), so the live flow never asks; the prompt
     // and the Settings row are exercised in the state gallery. [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001]

@@ -1,5 +1,8 @@
 package com.rndeveloper.paparcar.domain.attribution
 
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+
 /**
  * Descifra el bloque de Meta del `utm_content` del referrer de Play, llamando al backend — la
  * clave de descifrado NUNCA viaja al APK. [MKT-INSTALL-ATTRIBUTION-CHANNEL-001]
@@ -16,4 +19,13 @@ interface MetaReferrerDecryptPort {
 /** El Dev Catalog nunca llama a un backend real. [MKT-INSTALL-ATTRIBUTION-CHANNEL-001] */
 class NoOpMetaReferrerDecryptPort : MetaReferrerDecryptPort {
     override suspend fun decrypt(rawUtmContent: String): Result<MetaInstallIds?> = Result.success(null)
+}
+
+internal fun looksLikeMetaReferrerBlock(content: String): Boolean {
+    if (!content.trimStart().startsWith("{")) return false
+    return runCatching {
+        val source = Json.parseToJsonElement(content).jsonObject["source"]?.jsonObject
+            ?: return@runCatching false
+        source.containsKey("data") && source.containsKey("nonce")
+    }.getOrDefault(false)
 }

@@ -113,10 +113,12 @@ class ResolveInstallAttributionUseCaseTest {
     @Test
     fun should_decryptAndPublishMetaPaid_when_theUtmContentCarriesTheMetaBlock() = runTest {
         val metaBlock = """{"app":"123","source":{"data":"abcd","nonce":"ef01"}}"""
+        val authRepository = FakeAuthRepository(initialSession = null)
+        val analyticsTracker = FakeAnalyticsTracker()
         val referrerPort = FakeInstallReferrerPort(
             result = Result.success(
                 InstallReferrerRaw(
-                    installReferrer = "utm_content=$metaBlock",
+                    installReferrer = "utm_source=apps.instagram.com&utm_content=$metaBlock",
                     referrerClickTimestampSeconds = 1L,
                     installBeginTimestampSeconds = 2L,
                     googlePlayInstantParam = false,
@@ -128,12 +130,32 @@ class ResolveInstallAttributionUseCaseTest {
         )
         val userProfileRepository = FakeUserProfileRepository()
 
-        useCase(
+        val useCase = useCase(
             referrerPort = referrerPort,
             decryptPort = decryptPort,
             userProfileRepository = userProfileRepository,
-        ).resolve()
+            authRepository = authRepository,
+            analyticsTracker = analyticsTracker,
+        )
+        useCase.resolve()
 
+        assertEquals(null, decryptPort.lastContent)
+        assertTrue(analyticsTracker.events.isEmpty())
+        authRepository.emitState(com.apptolast.baselogin.domain.model.AuthState.Authenticated(session))
+        val successfulResult = decryptPort.result
+        decryptPort.result = Result.failure(IllegalStateException("offline"))
+        useCase.flushPending()
+        assertTrue(userProfileRepository.installAttributionWrites.isEmpty())
+        assertTrue(analyticsTracker.events.isEmpty())
+
+        decryptPort.result = successfulResult
+        useCase.flushPending()
+
+        assertEquals(1, referrerPort.readCallCount)
+        assertEquals(
+            listOf<AnalyticsEvent>(AnalyticsEvent.InstallAttributionResolved(InstallChannel.META_PAID)),
+            analyticsTracker.events,
+        )
         assertEquals(metaBlock, decryptPort.lastContent)
         val write = userProfileRepository.installAttributionWrites.single()
         assertEquals(InstallChannel.META_PAID.wire, write.channel)
@@ -143,7 +165,7 @@ class ResolveInstallAttributionUseCaseTest {
     }
 
     @Test
-    fun should_fallBackToOrganicClassification_when_decryptFails() = runTest {
+    fun should_classifyInstagramAsOrganic_when_thereIsNoMetaBlock() = runTest {
         val referrerPort = FakeInstallReferrerPort(
             result = Result.success(
                 InstallReferrerRaw(

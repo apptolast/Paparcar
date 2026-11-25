@@ -233,14 +233,8 @@ class AppViewModelTest {
         assertEquals(listOf(UID), foundersPromoRepo.claimedUids)
     }
 
-    /**
-     * [MKT-A-REFERRER-READ-BEFORE-LOGIN-MUST-SURVIVE-001] This is the real-world shape of the bug:
-     * `AppViewModel` lives above Splash/Auth, so `resolve()` fires in its `init` with no session
-     * yet. Without the flush hook on [AppViewModel.signedInUid], the classified channel would sit
-     * in `AppPreferences` forever once this same process signs in — nobody asks again.
-     */
     @Test
-    fun should_flushPendingInstallAttribution_when_aSessionAppearsAfterReferrerWasRead() = runTest(testDispatcher) {
+    fun should_captureInstallAttribution_when_appStartsSignedOut() = runTest(testDispatcher) {
         fakeAuth.emitState(AuthState.Unauthenticated)
         val userProfileRepository = FakeUserProfileRepository()
         resolveInstallAttribution = com.rndeveloper.paparcar.domain.usecase.attribution.ResolveInstallAttributionUseCase(
@@ -268,14 +262,6 @@ class AppViewModelTest {
         assertTrue(userProfileRepository.installAttributionWrites.isEmpty())
         assertEquals("tiktok_paid", fakePrefs.pendingInstallAttribution?.channel)
 
-        val session = UserSession(userId = UID, email = null, displayName = null, photoUrl = null)
-        fakeAuth.emitState(AuthState.Authenticated(session))
-        runCurrent()
-
-        val write = userProfileRepository.installAttributionWrites.single()
-        assertEquals(UID, write.userId)
-        assertEquals("tiktok_paid", write.channel)
-        assertNull(fakePrefs.pendingInstallAttribution)
     }
 
     @Test
