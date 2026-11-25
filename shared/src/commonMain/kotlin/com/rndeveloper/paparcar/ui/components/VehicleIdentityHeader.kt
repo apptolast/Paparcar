@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.displayName
 import com.rndeveloper.paparcar.domain.model.monitoringStatus
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import com.rndeveloper.paparcar.ui.theme.outlineSubtle
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
 import com.rndeveloper.paparcar.ui.theme.watch
 import org.jetbrains.compose.resources.stringResource
@@ -251,28 +253,44 @@ fun VehicleGlyphTile(
     isDriving: Boolean = false,
     haloColor: Color = Color.Unspecified,
 ) {
-    Box(
-        modifier = modifier
-            .size(TILE_DP.dp)
-            .clip(RoundedCornerShape(TILE_CORNER_DP.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
-        contentAlignment = Alignment.Center,
-    ) {
+    VehicleGlyphTileFrame(modifier = modifier) {
         if (isDriving && haloColor != Color.Unspecified) {
-            DrivingRadarHalo(diameter = GLYPH_DP.dp, color = haloColor)
+            DrivingRadarHalo(diameter = VehicleTileGlyphSize, color = haloColor)
         }
         VehicleGlyph(
             carbody = vehicle.carbodyType,
             size = vehicle.sizeCategory,
-            glyphSize = GLYPH_DP.dp,
+            glyphSize = VehicleTileGlyphSize,
             color = vehicle.color,
         )
     }
 }
 
+@Composable
+internal fun VehicleGlyphTileFrame(
+    modifier: Modifier = Modifier,
+    container: Color = MaterialTheme.colorScheme.surfaceContainerHighest,
+    content: @Composable () -> Unit,
+) {
+    val shape = RoundedCornerShape(TILE_CORNER_DP.dp)
+    Box(
+        modifier = modifier
+            .size(TILE_DP.dp)
+            .border(outlineSubtle, shape)
+            .clip(shape)
+            .background(container)
+            .padding(TILE_INSET_DP.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        content()
+    }
+}
+
+internal val VehicleTileGlyphSize = 44.dp
+
 private const val TILE_DP = 56
 private const val TILE_CORNER_DP = 14
-private const val GLYPH_DP = 44
+private const val TILE_INSET_DP = 4
 private const val TILE_TEXT_GAP_DP = 12
 private const val NAME_META_GAP_DP = 6
 /** A touch more air than between the two attribute lines: the state is a different KIND of fact. */

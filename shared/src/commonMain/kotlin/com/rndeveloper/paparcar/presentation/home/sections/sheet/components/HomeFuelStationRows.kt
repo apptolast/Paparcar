@@ -26,6 +26,7 @@ import com.rndeveloper.paparcar.presentation.util.subjectWhereLine
 import com.rndeveloper.paparcar.ui.components.PapBadge
 import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.ui.components.PapIconTile
+import com.rndeveloper.paparcar.ui.theme.outlineSubtle
 import com.rndeveloper.paparcar.ui.components.PapListItem
 import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.theme.PapColor
@@ -109,7 +110,7 @@ fun HomeFuelStationRow(
             // glifos grises no se lee como «esto es una etiqueta», se lee como una lista apagada.
             // El verde aquí no compite con ninguna acción — en estas filas no hay ninguna.
             // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
-            PapIconTile(icon = PaparcarIcons.Fuel, tint = PapColor.actionText)
+            PapIconTile(icon = PaparcarIcons.Fuel, tint = PapColor.actionText, border = outlineSubtle)
         },
         // ⛔ **El badge va al FINAL de la fila, alineado con el de las plazas** (user, review de #33).
         // Las dos listas viven bajo las mismas pestañas y se recorren con el mismo gesto, así que su

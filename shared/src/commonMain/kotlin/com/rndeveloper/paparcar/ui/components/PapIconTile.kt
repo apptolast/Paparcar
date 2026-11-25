@@ -1,6 +1,8 @@
 package com.rndeveloper.paparcar.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
@@ -37,9 +39,11 @@ fun PapIconTile(
     container: Color = MaterialTheme.colorScheme.surfaceContainerHighest,
     tint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     iconSize: Dp = size * GLYPH_RATIO,
+    border: BorderStroke? = null,
 ) {
+    val outline = if (border == null) Modifier else Modifier.border(border, shape)
     Box(
-        modifier = modifier.size(size).clip(shape).background(container),
+        modifier = modifier.size(size).then(outline).clip(shape).background(container),
         contentAlignment = Alignment.Center,
     ) {
         Icon(

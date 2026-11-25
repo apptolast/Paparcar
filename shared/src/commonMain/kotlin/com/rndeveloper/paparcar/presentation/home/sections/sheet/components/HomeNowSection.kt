@@ -26,6 +26,7 @@ import com.rndeveloper.paparcar.presentation.util.locationDisplayText
 import com.rndeveloper.paparcar.presentation.home.model.pumpPriceLabel
 import com.rndeveloper.paparcar.presentation.util.subjectWhereLine
 import com.rndeveloper.paparcar.ui.components.PapIconTile
+import com.rndeveloper.paparcar.ui.theme.outlineSubtle
 import com.rndeveloper.paparcar.ui.components.PapOpportunityCard
 import com.rndeveloper.paparcar.ui.components.PapSectionHeader
 import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
@@ -184,7 +185,7 @@ private fun SpotNowCard(
         footerLabel = pluralStringResource(Res.plurals.home_now_see_all_spots, laneCount, laneCount),
         onOpenList = { onOpenNearbyList(NearbySubject.SPOT) },
         modifier = modifier,
-        leading = { PapIconTile(icon = PaparcarIcons.CommunitySpot, tint = PapColor.action) },
+        leading = { PapIconTile(icon = PaparcarIcons.CommunitySpot, tint = PapColor.action, border = outlineSubtle) },
         caption = subjectWhereLine(name = name, placeLine = null, secondaryLine = null, farText = far),
     )
 }
@@ -216,7 +217,7 @@ private fun CarParkNowCard(
         footerLabel = pluralStringResource(Res.plurals.home_now_see_all_car_parks, laneCount, laneCount),
         onOpenList = { onOpenNearbyList(NearbySubject.CAR_PARK) },
         modifier = modifier,
-        leading = { PapIconTile(icon = PaparcarIcons.CarParkMark, tint = PapColor.carPark) },
+        leading = { PapIconTile(icon = PaparcarIcons.CarParkMark, tint = PapColor.carPark, border = outlineSubtle) },
         // Su tipo es el calificador, así que baja a la línea de dónde está — salvo que el tipo ya
         // SEA el nombre, y entonces la regla de la gramática lo deja fuera.
         caption = subjectWhereLine(name = name, placeLine = kindLabel, secondaryLine = null, farText = far),
@@ -265,7 +266,7 @@ private fun FuelNowCard(
         footerLabel = pluralStringResource(Res.plurals.home_now_see_all_fuel_stations, laneCount, laneCount),
         onOpenList = { onOpenNearbyList(NearbySubject.FUEL) },
         modifier = modifier,
-        leading = { PapIconTile(icon = PaparcarIcons.Fuel, tint = PapColor.actionText) },
+        leading = { PapIconTile(icon = PaparcarIcons.Fuel, tint = PapColor.actionText, border = outlineSubtle) },
         figure = nearby.price?.perUnit?.pumpPriceLabel(),
         figureColor = MaterialTheme.colorScheme.onSurface,
         caption = subjectWhereLine(

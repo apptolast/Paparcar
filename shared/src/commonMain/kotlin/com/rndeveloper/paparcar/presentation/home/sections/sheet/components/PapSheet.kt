@@ -63,6 +63,8 @@ import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PapFonts
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.greenOutline
+import com.rndeveloper.paparcar.ui.components.VehicleGlyphTileFrame
+import com.rndeveloper.paparcar.ui.components.VehicleTileGlyphSize
 import com.rndeveloper.paparcar.ui.components.PapShimmerBlockScale
 import com.rndeveloper.paparcar.ui.components.PapStepperButtonSize
 import com.rndeveloper.paparcar.ui.theme.PapColor
@@ -571,23 +573,23 @@ private fun PapSheetEyebrowTone.color(): Color = when (this) {
 private fun PapSheetLeadTile(lead: PapSheetLead) {
     val cs = MaterialTheme.colorScheme
     when (lead) {
-        is PapSheetLead.Vehicle -> LeadTileBox(container = cs.surfaceContainerHigh) {
+        is PapSheetLead.Vehicle -> VehicleGlyphTileFrame(container = cs.surfaceContainerHigh) {
             if (lead.loading) {
                 // Vehicle not resolved yet: breathe a placeholder instead of flashing the generic
                 // fallback car (the tile would otherwise show a wrong default for one frame). [UI-VEHICLE-ICON-SKELETON-001]
-                PapShimmerBox(modifier = Modifier.size(LEAD_GLYPH_DP.dp), shape = CircleShape)
+                PapShimmerBox(modifier = Modifier.size(VehicleTileGlyphSize), shape = CircleShape)
             } else {
                 Box(contentAlignment = Alignment.Center) {
                     // A running trip breathes the SAME halo as the vehicle chip's identity row, at
                     // the same glyph-to-halo proportion — one motion vocabulary across both
                     // surfaces. Contained in the glyph box, so the tile never resizes.
                     // [UI-PEEK-DRIVING-HAS-NO-MOTION-001] [UI-COLOR-DOCTRINE-001]
-                    lead.drivingHaloColor?.let { DrivingRadarHalo(diameter = LEAD_GLYPH_DP.dp, color = it) }
+                    lead.drivingHaloColor?.let { DrivingRadarHalo(diameter = VehicleTileGlyphSize, color = it) }
                     // Full-colour brand illustration (level-3) — never tinted. [INACTIVE-OPAQUE-001]
                     VehicleGlyph(
                         carbody = lead.carbody,
                         size = lead.size,
-                        glyphSize = LEAD_GLYPH_DP.dp,
+                        glyphSize = VehicleTileGlyphSize,
                         color = lead.color,
                     )
                 }
@@ -894,7 +896,6 @@ private const val SWIPE_TRIGGER_DP = 64
 
 // Component dimensions (not spacing tokens — they belong to this molde).
 private const val LEAD_TILE_DP = 46
-private const val LEAD_GLYPH_DP = 38
 private const val LEAD_ICON_DP = 24
 private const val DISMISS_BUTTON_DP = 34
 private const val DISMISS_ICON_DP = 18
