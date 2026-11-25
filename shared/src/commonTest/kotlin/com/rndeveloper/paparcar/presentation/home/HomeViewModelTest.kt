@@ -879,7 +879,11 @@ class HomeViewModelTest {
         locationDataSource.emitHighAccuracy(location)
 
         vm.handleIntent(HomeIntent.EnterAddParkingMode(initialGps = location))
-        vm.handleIntent(HomeIntent.ConfirmAddParking())
+        vm.effect.test {
+            vm.handleIntent(HomeIntent.ConfirmAddParking())
+            assertEquals(HomeEffect.ManualParkingSaved, awaitItem())
+            expectNoEvents()
+        }
 
         assertEquals(1, parkingRepo.saveNewParkingSessionCallCount)
         assertIs<HomeMode.Browse>(vm.state.value.mode)
@@ -901,8 +905,11 @@ class HomeViewModelTest {
         locationDataSource.emitHighAccuracy(location)
 
         vm.handleIntent(HomeIntent.EnterAddParkingMode(initialGps = location, fromDetectionNudge = true))
-        vm.handleIntent(HomeIntent.ConfirmAddParking())
-        advanceUntilIdle()
+        vm.effect.test {
+            vm.handleIntent(HomeIntent.ConfirmAddParking())
+            advanceUntilIdle()
+            expectNoEvents()
+        }
 
         val saved = parkingRepo.observeActiveSessions().first().single()
         assertEquals(SpotType.AUTO_DETECTED, saved.spotType)

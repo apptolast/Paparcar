@@ -1701,6 +1701,11 @@ class HomeViewModel(
                             showDetectionPitch = showDetectionPitch || armDetectionPitch,
                         )
                     }
+                    if (editingParkingId == null && !asNewSession && question == null &&
+                        current.addingParkingNudgeSource == null && !wasFirstParkingOffer
+                    ) {
+                        sendEffect(HomeEffect.ManualParkingSaved)
+                    }
                 }
                 .onFailure {
                     // [BUG-8] Keep the user in AddingParking with the pin intact so they

@@ -41,6 +41,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -166,6 +167,8 @@ private const val GUIDE_ANNOUNCE_MS = 900L
  *  [UI-NO-LOCATION-WEARS-THE-ACCURACY-PILL-001] [DET-TOGGLE-001] */
 private const val CORE_PERMISSIONS_FOCUS = "core"
 
+val LocalOnManualParkingSaved = staticCompositionLocalOf<() -> Unit> { {} }
+
 // Sheet snap geometry, transition effects and the snap spec live in
 // sections/sheet/HomeSheetPositioning.kt. [HOME-ATOMIZE-001 F2]
 
@@ -247,6 +250,10 @@ fun HomeScreen(
     val msgDetectionStopped = stringResource(Res.string.home_det_stopped_msg)
     val msgTripDetectionStopped = stringResource(Res.string.home_det_trip_stopped_msg)
     val msgDetectionStoppedAction = stringResource(Res.string.home_det_stopped_action)
+    val onManualParkingSaved by rememberUpdatedState(LocalOnManualParkingSaved.current)
+    val canRequestReview by rememberUpdatedState(
+        isHomeTabActive && plusMoment == null && !askAdMeasurementConsent,
+    )
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
@@ -282,6 +289,7 @@ fun HomeScreen(
                     SpotVoteOutcome.IGNORED_TOO_FAR -> Unit
                 }
                 HomeEffect.ZoneSaved -> snackbarHostState.showSnackbar(msgZoneSaved)
+                HomeEffect.ManualParkingSaved -> if (canRequestReview) onManualParkingSaved()
                 is HomeEffect.NavigateToPaywall -> onOpenPaywall(effect.reason)
                 HomeEffect.DetectionEnabled -> snackbarHostState.showSnackbar(msgDetectionEnabled)
                 // [DET-STOP-BUTTON-001] The user stopped THIS trip — plain confirmation, no action:

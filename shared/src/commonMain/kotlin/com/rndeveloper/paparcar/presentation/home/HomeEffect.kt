@@ -24,6 +24,7 @@ sealed class HomeEffect {
         val frame: CameraFrame = CameraFrame.Navigate,
     ) : HomeEffect()
     data object ZoneSaved : HomeEffect()
+    data object ManualParkingSaved : HomeEffect()
 
     /** A Plus gate was tapped by a free user — open the Paparcar Plus paywall, stamped with WHY.
      *  [MONEY-001][FREE-LIMITS-001] */

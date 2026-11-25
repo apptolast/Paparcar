@@ -36,10 +36,13 @@ import com.rndeveloper.paparcar.detection.worker.MonthRecapWorker
 import com.rndeveloper.paparcar.fuel.FuelWatchScheduler
 import com.rndeveloper.paparcar.push.ZoneAlertSubscriptionSync
 import com.rndeveloper.paparcar.widget.ParkedWidgetRefresher
+import com.rndeveloper.paparcar.review.ParkingReviewMilestone
 import org.koin.android.ext.android.get
 import org.koin.android.ext.koin.androidContext
 
 class PaparcarApp : Application() {
+    internal val parkingReviewMilestone by lazy { ParkingReviewMilestone.fromPreferences(this) }
+
     override fun onCreate() {
         super.onCreate()
 

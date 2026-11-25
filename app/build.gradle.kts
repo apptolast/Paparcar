@@ -245,6 +245,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.splashscreen)
+    implementation(libs.play.review.ktx)
     implementation(libs.work.runtime.ktx)
 
     // Koin Android (startKoin from the Application classes)

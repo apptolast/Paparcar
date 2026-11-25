@@ -10,6 +10,7 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -26,6 +27,8 @@ import com.rndeveloper.paparcar.domain.event.StartAddParkingEventBus
 import com.rndeveloper.paparcar.domain.permissions.PermissionManager
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.presentation.app.SplashViewModel
+import com.rndeveloper.paparcar.presentation.home.LocalOnManualParkingSaved
+import com.rndeveloper.paparcar.review.PlayParkingReview
 import androidx.work.WorkManager
 import com.rndeveloper.paparcar.detection.worker.ParkingSafetyNetWorker
 import com.rndeveloper.paparcar.detection.worker.RegisterActivityTransitionsWorker
@@ -43,6 +46,9 @@ import org.koin.androidx.viewmodel.ext.android.viewModel
 import kotlin.getValue
 
 class MainActivity : ComponentActivity() {
+    private val parkingReview by lazy {
+        (application as? PaparcarApp)?.let { PlayParkingReview(this, it.parkingReviewMilestone) }
+    }
     private val splashViewModel: SplashViewModel by viewModel()
     private val permissionManager: PermissionManager by inject()
     private val activityRecognitionManager: ActivityRecognitionManager by inject()
@@ -93,9 +99,9 @@ class MainActivity : ComponentActivity() {
         closeDepartureWatchGapWhileVisible()
 
         setContent {
-            App(
-                splashViewModel = splashViewModel,
-            )
+            CompositionLocalProvider(LocalOnManualParkingSaved provides { parkingReview?.onParkingSaved() }) {
+                App(splashViewModel = splashViewModel)
+            }
 
             // Arm/disarm detection from the combination of the PRODUCER permission tier (background
             // location + activity recognition) AND the user's Settings auto-detect flag. Both must be
