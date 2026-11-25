@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.isAudioRouteLinkRelevant
+import com.rndeveloper.paparcar.ui.components.PapIconTextRow
 import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.ui.components.PapNavChevron
 import com.rndeveloper.paparcar.ui.components.PapNavChevronSize
@@ -302,16 +303,17 @@ private fun VehicleStateRow(
     tint: Color,
     maxLines: Int = 1,
 ) {
-    Row(
-        verticalAlignment = if (maxLines == 1) Alignment.CenterVertically else Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(STATE_ICON_GAP.dp),
+    PapIconTextRow(
+        gap = STATE_ICON_GAP.dp,
+        icon = {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(STATE_ICON_DP.dp),
+            )
+        },
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = tint,
-            modifier = Modifier.size(STATE_ICON_DP.dp),
-        )
         Text(
             text = text,
             // `meta` (LECTURA) rather than `caption`: this is not more quiet metadata about the car,

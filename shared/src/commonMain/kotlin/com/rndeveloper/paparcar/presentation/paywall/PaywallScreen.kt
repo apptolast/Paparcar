@@ -49,6 +49,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rndeveloper.paparcar.presentation.util.shortDateText
 import com.rndeveloper.paparcar.presentation.util.storeRedeemCodeUrl
 import com.rndeveloper.paparcar.ui.components.PapDivider
+import com.rndeveloper.paparcar.ui.components.PapIconTextRow
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
 import com.rndeveloper.paparcar.ui.components.PapPremiumButton
 import com.rndeveloper.paparcar.ui.components.PapPremiumCrest
@@ -366,21 +367,21 @@ private fun ReasonStrip(reason: PaywallReason) {
     val line = reasonLine(reason) ?: return
     Spacer(Modifier.height(REASON_GAP_DP.dp))
     PapOutlinedCard(modifier = Modifier.fillMaxWidth(), shape = PapShapes.row) {
-        Row(
+        PapIconTextRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = REASON_H_PAD_DP.dp, vertical = REASON_V_PAD_DP.dp),
-            horizontalArrangement = Arrangement.spacedBy(REASON_ICON_GAP_DP.dp),
-            verticalAlignment = Alignment.Top,
+            gap = REASON_ICON_GAP_DP.dp,
+            multilineIconTopPadding = ICON_NUDGE_DP.dp,
+            icon = {
+                Icon(
+                    imageVector = line.icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(REASON_ICON_DP.dp),
+                )
+            },
         ) {
-            Icon(
-                imageVector = line.icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .padding(top = ICON_NUDGE_DP.dp)
-                    .size(REASON_ICON_DP.dp),
-            )
             Text(
                 text = stringResource(line.text),
                 style = PaparcarType.current.caption,
@@ -467,19 +468,19 @@ internal fun PlusBenefits() {
  */
 @Composable
 private fun FreeIsFreeLine() {
-    Row(
+    PapIconTextRow(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(REASON_ICON_GAP_DP.dp),
-        verticalAlignment = Alignment.Top,
+        gap = REASON_ICON_GAP_DP.dp,
+        multilineIconTopPadding = ICON_NUDGE_DP.dp,
+        icon = {
+            Icon(
+                imageVector = Icons.Rounded.Check,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(REASON_ICON_DP.dp),
+            )
+        },
     ) {
-        Icon(
-            imageVector = Icons.Rounded.Check,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier
-                .padding(top = ICON_NUDGE_DP.dp)
-                .size(REASON_ICON_DP.dp),
-        )
         Text(
             text = stringResource(Res.string.paywall_free_is_free),
             style = PaparcarType.current.caption,
@@ -755,7 +756,7 @@ private const val REASON_ICON_DP = 16
  *  section's. */
 private const val FREE_LINE_GAP_DP = 16
 
-/** Drops a leading glyph onto the first text line's optical centre instead of its top edge. */
+/** Optical inset for the leading glyph when the caption wraps. */
 private const val ICON_NUDGE_DP = 2
 
 private const val PLAN_PADDING_DP = 16

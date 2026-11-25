@@ -47,6 +47,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.rndeveloper.paparcar.ui.components.PapIconTextRow
 import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.ui.components.PapNavChevron
 import com.rndeveloper.paparcar.domain.model.UserParking
@@ -708,19 +709,32 @@ private fun VehicleMetaLine(
     /** Un dato corto que cierra la línea y NO se elide: hoy, los metros hasta el coche. */
     suffix: String? = null,
 ) {
-    Row(
+    PapIconTextRow(
         modifier = Modifier.fillMaxWidth(),
-        // Same rule as `PeekMetaRow`: a one-liner centres against its icon, a wrapping address has
-        // to hang from the top or the icon floats in the middle of the paragraph.
-        verticalAlignment = if (maxLines == 1) Alignment.CenterVertically else Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(gap),
+        gap = gap,
+        trailing = suffix?.let { value ->
+            {
+                Text(
+                    // El separador va aquí y no en el recurso: el punto medio es pegamento entre dos
+                    // piezas, igual que en la línea del viaje («En ruta · calle»), y meterlo en un
+                    // string obligaría a componer la frase entera para poder partirla luego.
+                    text = "· $value",
+                    style = PaparcarType.current.caption,
+                    // Más callado que la calle: la dirección es lo que se busca, los metros la califican.
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            }
+        },
+        icon = {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(iconSize),
+            )
+        },
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = tint,
-            modifier = Modifier.size(iconSize),
-        )
         Text(
             text = text,
             // An address is a phrase you read → LECTURA (caption). Unchanged by the split: a line
@@ -729,21 +743,7 @@ private fun VehicleMetaLine(
             color = textColor,
             maxLines = maxLines,
             overflow = TextOverflow.Ellipsis,
-            // Con sufijo, la calle se queda el hueco que sobre; sin él, la línea entera.
-            modifier = if (suffix != null) Modifier.weight(1f, fill = false) else Modifier,
         )
-        if (suffix != null) {
-            Text(
-                // El separador va aquí y no en el recurso: el punto medio es pegamento entre dos
-                // piezas, igual que en la línea del viaje («En ruta · calle»), y meterlo en un
-                // string obligaría a componer la frase entera para poder partirla luego.
-                text = "· $suffix",
-                style = PaparcarType.current.caption,
-                // Más callado que la calle: la dirección es lo que se busca, los metros la califican.
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-            )
-        }
     }
 }
 

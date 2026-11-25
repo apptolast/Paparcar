@@ -51,6 +51,7 @@ import com.rndeveloper.paparcar.domain.model.SpotTone
 import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.domain.model.VehicleColor
 import com.rndeveloper.paparcar.domain.model.VehicleSize
+import com.rndeveloper.paparcar.ui.components.PapIconTextRow
 import com.rndeveloper.paparcar.ui.components.DrivingRadarHalo
 import com.rndeveloper.paparcar.ui.components.PapListItem
 import com.rndeveloper.paparcar.ui.components.PapShimmerBox
@@ -734,30 +735,31 @@ internal fun PapSheetBanner(
     icon: ImageVector = Icons.Rounded.Info,
     iconTint: Color = PapColor.attention,
 ) {
-    Row(
+    PapIconTextRow(
         modifier = modifier
             .fillMaxWidth()
             .clip(PapShapes.card)
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        gap = 10.dp,
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(BANNER_BADGE_DP.dp)
+                    .clip(CircleShape)
+                    .background(iconTint.copy(alpha = BANNER_BADGE_BG_ALPHA)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(BANNER_ICON_DP.dp),
+                )
+            }
+        },
     ) {
-        Box(
-            modifier = Modifier
-                .size(BANNER_BADGE_DP.dp)
-                .clip(CircleShape)
-                .background(iconTint.copy(alpha = BANNER_BADGE_BG_ALPHA)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = iconTint,
-                modifier = Modifier.size(BANNER_ICON_DP.dp),
-            )
-        }
-        Column(modifier = Modifier.weight(1f)) {
+        Column {
             Text(
                 text = title,
                 style = PaparcarType.current.rowTitle,

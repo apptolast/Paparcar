@@ -42,6 +42,7 @@ import com.rndeveloper.paparcar.presentation.util.driveTimeString
 import com.rndeveloper.paparcar.presentation.util.placeLineText
 import com.rndeveloper.paparcar.presentation.util.toPlaceLine
 import com.rndeveloper.paparcar.presentation.util.walkTimeString
+import com.rndeveloper.paparcar.ui.components.PapIconTextRow
 import com.rndeveloper.paparcar.ui.components.PapSectionHeader
 import com.rndeveloper.paparcar.ui.components.ReliabilityMeter
 import com.rndeveloper.paparcar.domain.model.RefuelStopAnswer
@@ -114,24 +115,36 @@ internal fun PeekMetaRow(
      *  [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] */
     onClick: (() -> Unit)? = null,
 ) {
-    Row(
+    PapIconTextRow(
         modifier = Modifier.fillMaxWidth()
             .let { if (onClick != null) it.clickable(onClick = onClick) else it },
-        // A one-liner centres against its icon; a wrapped explanation (the approximate-zone row)
-        // has to hang from the top or the icon floats in the middle of the paragraph.
-        verticalAlignment = if (maxLines == 1) Alignment.CenterVertically else Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        if (icon != null) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = tint,
-                modifier = Modifier.size(PapIconSize.withLabel),
-            )
+        gap = 8.dp,
+        fillText = onClick != null,
+        trailing = if (onClick != null) {
+            {
+                Icon(
+                    imageVector = Icons.Rounded.ChevronRight,
+                    contentDescription = null,
+                    tint = tint,
+                    modifier = Modifier.size(PapIconSize.withLabel),
+                )
+            }
         } else {
-            Spacer(Modifier.size(PapIconSize.withLabel))
-        }
+            null
+        },
+        icon = {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = tint,
+                    modifier = Modifier.size(PapIconSize.withLabel),
+                )
+            } else {
+                Spacer(Modifier.size(PapIconSize.withLabel))
+            }
+        },
+    ) {
         Text(
             text = text,
             // LECTURA, no CIFRA: estas filas van solas a todo el ancho, así que la precondición del
@@ -153,16 +166,7 @@ internal fun PeekMetaRow(
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = SheetTokens.META_VALUE_ALPHA),
             maxLines = maxLines,
             overflow = TextOverflow.Ellipsis,
-            modifier = if (onClick != null) Modifier.weight(1f) else Modifier,
         )
-        if (onClick != null) {
-            Icon(
-                imageVector = Icons.Rounded.ChevronRight,
-                contentDescription = null,
-                tint = tint,
-                modifier = Modifier.size(PapIconSize.withLabel),
-            )
-        }
     }
 }
 

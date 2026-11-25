@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
+import com.rndeveloper.paparcar.ui.components.PapIconTextRow
 import com.rndeveloper.paparcar.ui.components.PapPremiumSurface
 import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.theme.PapShapes
@@ -176,27 +177,27 @@ internal val PLUS_BENEFITS = listOf(
  */
 @Composable
 internal fun PlusBenefitRow(benefit: PlusBenefit, showNote: Boolean = false) {
-    Row(
+    PapIconTextRow(
         modifier = Modifier.fillMaxWidth().padding(vertical = BENEFIT_V_PAD_DP.dp),
-        horizontalArrangement = Arrangement.spacedBy(BENEFIT_GAP_DP.dp),
-        // Top, so the tile marks the first line of a title that wraps in the longer locales.
-        verticalAlignment = Alignment.Top,
+        gap = BENEFIT_GAP_DP.dp,
+        icon = {
+            // ⛔ Not `PapIconTile`: that one takes a flat container colour and the Plus finish is a
+            // brush, not a tone. `PapPremiumSurface` at row shape is the same recipe the crest and the
+            // buy button use — the metal has exactly one definition. It also supplies `premiumInk` as
+            // its content colour, so the glyph cannot be paired with the wrong ink by accident.
+            PapPremiumSurface(
+                modifier = Modifier.size(BENEFIT_TILE_DP.dp),
+                shape = PapShapes.row,
+            ) {
+                Icon(
+                    imageVector = benefit.icon,
+                    contentDescription = null,
+                    modifier = Modifier.align(Alignment.Center).size(BENEFIT_ICON_DP.dp),
+                )
+            }
+        },
     ) {
-        // ⛔ Not `PapIconTile`: that one takes a flat container colour and the Plus finish is a
-        // brush, not a tone. `PapPremiumSurface` at row shape is the same recipe the crest and the
-        // buy button use — the metal has exactly one definition. It also supplies `premiumInk` as
-        // its content colour, so the glyph cannot be paired with the wrong ink by accident.
-        PapPremiumSurface(
-            modifier = Modifier.size(BENEFIT_TILE_DP.dp),
-            shape = PapShapes.row,
-        ) {
-            Icon(
-                imageVector = benefit.icon,
-                contentDescription = null,
-                modifier = Modifier.align(Alignment.Center).size(BENEFIT_ICON_DP.dp),
-            )
-        }
-        Column(modifier = Modifier.weight(1f)) {
+        Column {
             // `rowTitle` and not `rowName`: these are structural titles of a row, not the names of
             // real things. The distinction is the type doctrine's, and it has one answer per call
             // site. [UI-TYPE-TWO-VOICES-ONE-ROW-001]
@@ -240,10 +241,7 @@ internal fun PlusBenefitsMoreRow(text: String) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = BENEFIT_V_PAD_DP.dp),
         horizontalArrangement = Arrangement.spacedBy(BENEFIT_GAP_DP.dp),
-        // CENTRADA, al reves que [PlusBenefitRow]. Alli el tile se alinea arriba a proposito,
-        // para marcar la PRIMERA linea de un titulo que envuelve a dos o tres. Aqui el texto es
-        // una frase corta de una sola linea en los nueve idiomas, asi que alinearlo arriba deja
-        // el tile colgando por debajo y la fila entera descuadrada respecto a las de encima.
+        // La etiqueta corta de cierre queda centrada con su tile.
         verticalAlignment = Alignment.CenterVertically,
     ) {
         PapPremiumSurface(

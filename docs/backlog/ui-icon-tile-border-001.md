@@ -1,6 +1,6 @@
 # UI-ICON-TILE-BORDER-001 · Contorno de los iconos sobre fondo neutro
 
-**Estado:** Implementado · rama `bugfix/UI-ICON-TILE-BORDER-001-theme-outline` · worktree `.artifacts/Paparcar-icon-tile-border`
+**Estado:** ✅ Implementado en master
 
 ## Problema
 En las capturas de Home, el fondo del recuadro de los iconos se confunde con la superficie de la tarjeta.
