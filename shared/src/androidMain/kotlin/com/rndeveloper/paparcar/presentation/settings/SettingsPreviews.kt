@@ -39,6 +39,14 @@ private fun SettingsDarkPreview() {
     }
 }
 
+@Preview(name = "Settings — invitar a un amigo", showBackground = true)
+@Composable
+private fun SettingsInviteFriendPreview() {
+    PaparcarTheme(darkTheme = false) {
+        SettingsContent(state = SettingsState(userProfile = loggedInProfile), onInviteFriend = {})
+    }
+}
+
 @Preview(name = "Settings — sin perfil", showBackground = true)
 @Composable
 private fun SettingsNoProfilePreview() {

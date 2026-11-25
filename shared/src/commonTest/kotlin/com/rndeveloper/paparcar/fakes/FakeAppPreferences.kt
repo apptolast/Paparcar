@@ -69,8 +69,12 @@ class FakeAppPreferences(
     // [MKT-A-REFERRER-READ-BEFORE-LOGIN-MUST-SURVIVE-001]
     private var _pendingInstallAttribution: PendingInstallAttribution? = null
     override val pendingInstallAttribution: PendingInstallAttribution? get() = _pendingInstallAttribution
-    override fun setPendingInstallAttribution(pending: PendingInstallAttribution) { _pendingInstallAttribution = pending }
-    override fun clearPendingInstallAttribution() { _pendingInstallAttribution = null }
+    override suspend fun saveResolvedInstallAttribution(pending: PendingInstallAttribution) {
+        _pendingInstallAttribution = pending
+        setInstallAttributionResolved()
+    }
+
+    override suspend fun clearPendingInstallAttribution() { _pendingInstallAttribution = null }
 
     var adMeasurementConsentValue: AdMeasurementConsent = AdMeasurementConsent.UNASKED
     override val adMeasurementConsent: AdMeasurementConsent get() = adMeasurementConsentValue

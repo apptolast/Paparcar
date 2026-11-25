@@ -58,6 +58,8 @@ fun classifyInstallChannel(
     val source = params[UTM_SOURCE]?.lowercase()
     val medium = params[UTM_MEDIUM]?.lowercase()
     return when {
+        FriendReferral.isTagged(params) &&
+            FriendReferral.codeFrom(params) != null -> InstallChannel.FRIEND_REFERRAL
         source == SOURCE_WEB && medium == MEDIUM_OWNED -> InstallChannel.OWNED_LINK
         // TikTok no etiqueta nada por su cuenta (a diferencia de Instagram/Facebook abajo): este
         // source/medium sólo puede venir de nuestro propio enlace, así que el medium decide solo
@@ -77,8 +79,8 @@ fun classifyInstallChannel(
 // DOWNLOAD_SHORTCUTS) y el que GA4 asigna solo al abrir Play desde dentro de la app de IG/FB
 // (`apps.instagram.com`/`apps.facebook.com`). Sistemas distintos, mismas palabras — si uno cambia,
 // el otro se queda ciego.
-private const val UTM_SOURCE = "utm_source"
-private const val UTM_MEDIUM = "utm_medium"
+internal const val UTM_SOURCE = "utm_source"
+internal const val UTM_MEDIUM = "utm_medium"
 private const val SOURCE_WEB = "web"
 private const val MEDIUM_OWNED = "owned"
 private const val SOURCE_INSTAGRAM = "instagram"

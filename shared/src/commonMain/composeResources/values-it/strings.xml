@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="settings_invite_friend">Invita un amico</string>
+    <string name="settings_invite_message">Prova Paparcar per ricordare dove hai parcheggiato: %1$s</string>
     <string name="home_trip_park_compact">Parcheggio qui</string>
     <string name="home_trip_continue_compact">Non ancora</string>
     <string name="home_trip_wrong_car_compact">Non è la mia</string>

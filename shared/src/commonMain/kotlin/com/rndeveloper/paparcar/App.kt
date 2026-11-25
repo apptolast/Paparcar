@@ -866,6 +866,7 @@ private fun MainAppNavigation(
                         .consumeWindowInsets(scaffoldPadding),
                 ) {
                     SettingsScreen(
+                        inviteUserId = firstEntryUserId,
                         onNavigateToVehicles = { navController.navigateToTab(Routes.VEHICLES) },
                         onNavigateToAuth = { /* AuthState change triggers auth nav automatically */ },
                         // Reuse the permission flow focused on the failing tier (as Home's banner does).

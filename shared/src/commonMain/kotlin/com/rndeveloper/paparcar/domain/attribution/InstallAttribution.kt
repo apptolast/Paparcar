@@ -18,6 +18,8 @@ enum class InstallChannel(val wire: String) {
     /** Un enlace NUESTRO (web, QR, redirect de `/descargar`) con sus propios UTM —
      *  `utm_source=web&utm_medium=owned`. [MKT-AN-INSTALL-MUST-SAY-WHERE-IT-CAME-FROM-001] */
     OWNED_LINK("owned_link"),
+    /** An installation with the source, medium and code from a Paparcar invitation link. */
+    FRIEND_REFERRAL("friend_referral"),
     /** El CTA de un anuncio de TikTok — SIEMPRE a través de nuestro propio enlace
      *  (`/descargar/z-tiktok`), nunca del flujo nativo "direct to store" de TikTok Ads: ese exige
      *  conectar un MMP (AppsFlyer/Adjust/…) que hoy no tenemos, y sin él TikTok ni siquiera se

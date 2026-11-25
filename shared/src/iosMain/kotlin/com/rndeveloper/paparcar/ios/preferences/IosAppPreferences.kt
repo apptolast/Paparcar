@@ -183,7 +183,7 @@ class IosAppPreferences : AppPreferences {
             )
         }
 
-    override fun setPendingInstallAttribution(pending: PendingInstallAttribution) {
+    override suspend fun saveResolvedInstallAttribution(pending: PendingInstallAttribution) {
         userDefaults.setObject(pending.channel, forKey = KEY_PENDING_INSTALL_ATTR_CHANNEL)
         pending.source?.let { userDefaults.setObject(it, forKey = KEY_PENDING_INSTALL_ATTR_SOURCE) }
             ?: userDefaults.removeObjectForKey(KEY_PENDING_INSTALL_ATTR_SOURCE)
@@ -200,9 +200,10 @@ class IosAppPreferences : AppPreferences {
         pending.rawReferrer?.let { userDefaults.setObject(it, forKey = KEY_PENDING_INSTALL_ATTR_RAW_REFERRER) }
             ?: userDefaults.removeObjectForKey(KEY_PENDING_INSTALL_ATTR_RAW_REFERRER)
         userDefaults.setObject(pending.resolvedAtMs.toString(), forKey = KEY_PENDING_INSTALL_ATTR_RESOLVED_AT)
+        setInstallAttributionResolved()
     }
 
-    override fun clearPendingInstallAttribution() {
+    override suspend fun clearPendingInstallAttribution() {
         userDefaults.removeObjectForKey(KEY_PENDING_INSTALL_ATTR_CHANNEL)
         userDefaults.removeObjectForKey(KEY_PENDING_INSTALL_ATTR_SOURCE)
         userDefaults.removeObjectForKey(KEY_PENDING_INSTALL_ATTR_MEDIUM)

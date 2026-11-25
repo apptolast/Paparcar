@@ -125,14 +125,15 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
             )
         }
 
-    override fun setPendingInstallAttribution(pending: PendingInstallAttribution) {
-        snapshot = snapshot.toMutablePreferences().apply { writePendingInstallAttribution(pending) }
-        scope.launch { store.edit { it.writePendingInstallAttribution(pending) } }
+    override suspend fun saveResolvedInstallAttribution(pending: PendingInstallAttribution) {
+        snapshot = store.edit {
+            it.writePendingInstallAttribution(pending)
+            it[Keys.INSTALL_ATTRIBUTION_RESOLVED] = true
+        }
     }
 
-    override fun clearPendingInstallAttribution() {
-        snapshot = snapshot.toMutablePreferences().apply { writePendingInstallAttribution(null) }
-        scope.launch { store.edit { it.writePendingInstallAttribution(null) } }
+    override suspend fun clearPendingInstallAttribution() {
+        snapshot = store.edit { it.writePendingInstallAttribution(null) }
     }
 
     private fun MutablePreferences.writePendingInstallAttribution(pending: PendingInstallAttribution?) {

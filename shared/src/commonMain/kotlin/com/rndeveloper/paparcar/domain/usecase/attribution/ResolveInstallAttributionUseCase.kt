@@ -6,15 +6,20 @@ import com.apptolast.baselogin.domain.AuthRepository
 import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
 import com.rndeveloper.paparcar.domain.analytics.AnalyticsTracker
 import com.rndeveloper.paparcar.domain.analytics.AnalyticsUserProperty
+import com.rndeveloper.paparcar.domain.attribution.FriendReferral
 import com.rndeveloper.paparcar.domain.attribution.InstallChannel
 import com.rndeveloper.paparcar.domain.attribution.InstallReferrerPort
 import com.rndeveloper.paparcar.domain.attribution.MetaReferrerDecryptPort
 import com.rndeveloper.paparcar.domain.attribution.PendingInstallAttribution
+import com.rndeveloper.paparcar.domain.attribution.UTM_MEDIUM
+import com.rndeveloper.paparcar.domain.attribution.UTM_SOURCE
 import com.rndeveloper.paparcar.domain.attribution.classifyInstallChannel
 import com.rndeveloper.paparcar.domain.attribution.parseReferrerParams
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.repository.UserProfileRepository
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlin.time.Clock
 
 /**
@@ -49,10 +54,12 @@ class ResolveInstallAttributionUseCase(
     private val analyticsTracker: AnalyticsTracker,
 ) {
 
-    suspend fun resolve() {
+    private val attributionLock = Mutex()
+
+    suspend fun resolve() = attributionLock.withLock {
         if (appPreferences.hasResolvedInstallAttribution) {
-            flushPending()
-            return
+            publishPending()
+            return@withLock
         }
 
         val result = referrerPort.read()
@@ -60,7 +67,7 @@ class ResolveInstallAttributionUseCase(
             // A transient failure to CONNECT to the Play service — the gate stays open so the
             // next cold start tries again. [MKT-INSTALL-ATTRIBUTION-CHANNEL-001]
             PaparcarLogger.w(TAG, "install referrer unavailable, will retry: ${result.exceptionOrNull()?.message}")
-            return
+            return@withLock
         }
         val raw = result.getOrNull()
         if (raw == null) {
@@ -69,7 +76,7 @@ class ResolveInstallAttributionUseCase(
             // repeat the same null forever, and there is nothing honest to write, so the gate
             // closes to stop asking every cold start.
             appPreferences.setInstallAttributionResolved()
-            return
+            return@withLock
         }
 
         val params = parseReferrerParams(raw.installReferrer)
@@ -77,29 +84,26 @@ class ResolveInstallAttributionUseCase(
             ?.let { metaDecrypt.decrypt(it).getOrNull() }
         val channel = classifyInstallChannel(params, metaIds)
 
-        // Fires unconditionally, even signed out: the property/event describe the INSTALL, not
-        // the account. [MKT-INSTALL-ATTRIBUTION-CHANNEL-001]
-        analyticsTracker.setUserProperty(AnalyticsUserProperty.InstallChannelProperty(channel))
-        analyticsTracker.track(AnalyticsEvent.InstallAttributionResolved(channel))
-        // The gate closes here: the referrer was read, successfully, for the only time it ever
-        // will be. Whether it reaches Firestore now or later is flushPending's problem, not this
-        // gate's. [MKT-A-REFERRER-READ-BEFORE-LOGIN-MUST-SURVIVE-001]
-        appPreferences.setInstallAttributionResolved()
+        val taggedReferral = FriendReferral.isTagged(params)
+        val referralCode = FriendReferral.codeFrom(params).takeIf { channel == InstallChannel.FRIEND_REFERRAL }
 
-        appPreferences.setPendingInstallAttribution(
+        appPreferences.saveResolvedInstallAttribution(
             PendingInstallAttribution(
                 channel = channel.wire,
                 source = params[UTM_SOURCE],
                 medium = params[UTM_MEDIUM],
-                campaign = params[UTM_CAMPAIGN],
+                campaign = if (taggedReferral) null else params[UTM_CAMPAIGN],
                 metaCampaignId = metaIds?.campaignId,
                 metaAdsetId = metaIds?.adsetId,
                 metaAdId = metaIds?.adId,
-                rawReferrer = raw.installReferrer,
+                rawReferrer = if (taggedReferral) referralCode?.let(FriendReferral::referrer) else raw.installReferrer,
                 resolvedAtMs = Clock.System.now().toEpochMilliseconds(),
             ),
         )
-        flushPending()
+        // These report the install channel even before a user has signed in.
+        analyticsTracker.setUserProperty(AnalyticsUserProperty.InstallChannelProperty(channel))
+        analyticsTracker.track(AnalyticsEvent.InstallAttributionResolved(channel))
+        publishPending()
     }
 
     /**
@@ -111,7 +115,9 @@ class ResolveInstallAttributionUseCase(
      * resent; a failure (network, Firestore rules) leaves it for the next call to retry — unlike
      * the Play read, Firestore can be asked again.
      */
-    suspend fun flushPending() {
+    suspend fun flushPending() = attributionLock.withLock { publishPending() }
+
+    private suspend fun publishPending() {
         val pending = appPreferences.pendingInstallAttribution ?: return
         val userId = authRepository.getCurrentSession()?.userId ?: return
         userProfileRepository.publishInstallAttribution(
@@ -134,8 +140,6 @@ class ResolveInstallAttributionUseCase(
 
     private companion object {
         const val TAG = "ResolveInstallAttribution"
-        const val UTM_SOURCE = "utm_source"
-        const val UTM_MEDIUM = "utm_medium"
         const val UTM_CAMPAIGN = "utm_campaign"
         const val UTM_CONTENT = "utm_content"
     }

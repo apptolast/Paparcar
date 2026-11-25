@@ -49,6 +49,7 @@ import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Sensors
 import androidx.compose.material.icons.rounded.SensorsOff
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material.icons.rounded.Widgets
 import androidx.compose.material.icons.rounded.WorkspacePremium
@@ -180,6 +181,7 @@ import paparcar.composeapp.generated.resources.settings_distance_unit
 import paparcar.composeapp.generated.resources.settings_distance_unit_desc
 import paparcar.composeapp.generated.resources.settings_distance_unit_imperial
 import paparcar.composeapp.generated.resources.settings_distance_unit_metric
+import paparcar.composeapp.generated.resources.settings_invite_friend
 import paparcar.composeapp.generated.resources.settings_licenses
 import paparcar.composeapp.generated.resources.settings_replay_first_steps
 import paparcar.composeapp.generated.resources.settings_replay_first_steps_done
@@ -247,6 +249,7 @@ fun SettingsScreen(
     onSetThemeMode: (ThemeMode) -> Unit = {},
     imperialUnits: Boolean = false,
     onToggleImperialUnits: (Boolean) -> Unit = {},
+    inviteUserId: String? = null,
 ) {
     val viewModel: SettingsViewModel = koinViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -326,6 +329,7 @@ fun SettingsScreen(
         onSetThemeMode = onSetThemeMode,
         imperialUnits = imperialUnits,
         onToggleImperialUnits = onToggleImperialUnits,
+        onInviteFriend = rememberInviteFriendAction(inviteUserId),
     )
 }
 
@@ -339,6 +343,7 @@ fun SettingsContent(
     onSetThemeMode: (ThemeMode) -> Unit = {},
     imperialUnits: Boolean = false,
     onToggleImperialUnits: (Boolean) -> Unit = {},
+    onInviteFriend: (() -> Unit)? = null,
 ) {
     if (state.showSendDiagnosticsConfirmation) {
         // Consent before anything leaves the device: the body says WHAT is shipped (recent
@@ -735,6 +740,14 @@ fun SettingsContent(
                                     icon = Icons.Rounded.Widgets,
                                     label = stringResource(Res.string.settings_add_widget),
                                     onClick = { onIntent(SettingsIntent.PinWidget) },
+                                )
+                                PapDivider()
+                            }
+                            if (onInviteFriend != null) {
+                                PapNavRow(
+                                    icon = Icons.Rounded.Share,
+                                    label = stringResource(Res.string.settings_invite_friend),
+                                    onClick = onInviteFriend,
                                 )
                                 PapDivider()
                             }

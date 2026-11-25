@@ -61,8 +61,9 @@ interface AppPreferences {
      *  sign-out: it describes how the APK got here, from before we even knew who signed in.
      *  Cleared the moment `ResolveInstallAttributionUseCase` manages to publish it. */
     val pendingInstallAttribution: PendingInstallAttribution?
-    fun setPendingInstallAttribution(pending: PendingInstallAttribution)
-    fun clearPendingInstallAttribution()
+    /** Persists the pending result and closes the reading gate in the same operation. */
+    suspend fun saveResolvedInstallAttribution(pending: PendingInstallAttribution)
+    suspend fun clearPendingInstallAttribution()
 
     /** The user's answer about advertising measurement on this install — its own consent, asked
      *  once after sign-in and changeable in Settings. Per install, so NOT wiped on sign-out.

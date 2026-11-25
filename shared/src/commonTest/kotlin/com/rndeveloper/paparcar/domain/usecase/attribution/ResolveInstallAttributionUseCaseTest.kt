@@ -251,6 +251,59 @@ class ResolveInstallAttributionUseCaseTest {
     }
 
     @Test
+    fun should_publishTheCanonicalInvitation_when_loginFollowsTheInstall() = runTest {
+        val invitation = "utm_source=friend&utm_medium=referral&invite_code=$INVITATION_CODE"
+        val referrerPort = FakeInstallReferrerPort(
+            result = Result.success(InstallReferrerRaw("$invitation&utm_campaign=untrusted", null, null, null)),
+        )
+        val preferences = FakeAppPreferences()
+        val profiles = FakeUserProfileRepository()
+        val analytics = FakeAnalyticsTracker()
+
+        useCase(
+            referrerPort = referrerPort,
+            appPreferences = preferences,
+            userProfileRepository = profiles,
+            authRepository = FakeAuthRepository(),
+            analyticsTracker = analytics,
+        ).resolve()
+
+        assertTrue(preferences.hasResolvedInstallAttribution)
+        assertEquals(invitation, preferences.pendingInstallAttribution?.rawReferrer)
+        assertTrue(profiles.installAttributionWrites.isEmpty())
+        val event = AnalyticsEvent.InstallAttributionResolved(InstallChannel.FRIEND_REFERRAL)
+        assertEquals(listOf<AnalyticsEvent>(event), analytics.events)
+
+        useCase(
+            referrerPort = referrerPort,
+            appPreferences = preferences,
+            userProfileRepository = profiles,
+        ).resolve()
+
+        val write = profiles.installAttributionWrites.single()
+        assertEquals(InstallChannel.FRIEND_REFERRAL.wire, write.channel)
+        assertEquals(invitation, write.rawReferrer)
+        assertEquals(null, write.campaign)
+        assertEquals(1, referrerPort.readCallCount)
+        assertEquals(null, preferences.pendingInstallAttribution)
+    }
+
+    @Test
+    fun should_discardInvitationData_when_theReferralCodeIsInvalid() = runTest {
+        val referrer = "utm_source=friend&utm_medium=referral&invite_code=invalid"
+        val referrerPort = FakeInstallReferrerPort(
+            result = Result.success(InstallReferrerRaw(referrer, null, null, null)),
+        )
+        val profiles = FakeUserProfileRepository()
+
+        useCase(referrerPort = referrerPort, userProfileRepository = profiles).resolve()
+
+        val write = profiles.installAttributionWrites.single()
+        assertEquals(InstallChannel.UNKNOWN.wire, write.channel)
+        assertEquals(null, write.rawReferrer)
+    }
+
+    @Test
     fun should_doNothing_when_flushingWithNothingPending() = runTest {
         val userProfileRepository = FakeUserProfileRepository()
 
@@ -262,7 +315,7 @@ class ResolveInstallAttributionUseCaseTest {
     @Test
     fun should_keepThePending_when_firestorePublishFails() = runTest {
         val appPreferences = FakeAppPreferences()
-        appPreferences.setPendingInstallAttribution(
+        appPreferences.saveResolvedInstallAttribution(
             com.rndeveloper.paparcar.domain.attribution.PendingInstallAttribution(
                 channel = InstallChannel.TIKTOK_ORGANIC.wire,
                 source = "tiktok",
@@ -287,5 +340,6 @@ class ResolveInstallAttributionUseCaseTest {
 
     private companion object {
         const val UID = "uid-1"
+        const val INVITATION_CODE = "0123456789abcdef0123456789abcdef"
     }
 }

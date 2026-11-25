@@ -3404,6 +3404,9 @@ private val galleryGroups: List<ScreenGroup> = listOf(
         listOf(
             Variant("Con perfil") { SettingsContent(state = SettingsState(userProfile = sampleProfile)) },
             Variant("Sin perfil") { SettingsContent(state = SettingsState(userProfile = null)) },
+            Variant("Invitar a un amigo") {
+                SettingsContent(state = SettingsState(userProfile = sampleProfile), onInviteFriend = {})
+            },
             // [AUTH-AN-UNCONFIRMED-EMAIL-MUST-SAY-SO-001] El estado del correo se ve SIEMPRE, por transparencia:
             // los tres estados que puede tomar la fila, incluido el `null` que no pinta nada.
             Variant("Correo verificado") {

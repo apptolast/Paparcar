@@ -206,8 +206,14 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     // referrer, so there is never anything pending.
     private var _pendingInstallAttribution: com.rndeveloper.paparcar.domain.attribution.PendingInstallAttribution? = null
     override val pendingInstallAttribution get() = _pendingInstallAttribution
-    override fun setPendingInstallAttribution(pending: com.rndeveloper.paparcar.domain.attribution.PendingInstallAttribution) { _pendingInstallAttribution = pending }
-    override fun clearPendingInstallAttribution() { _pendingInstallAttribution = null }
+    override suspend fun saveResolvedInstallAttribution(
+        pending: com.rndeveloper.paparcar.domain.attribution.PendingInstallAttribution,
+    ) {
+        _pendingInstallAttribution = pending
+        setInstallAttributionResolved()
+    }
+
+    override suspend fun clearPendingInstallAttribution() { _pendingInstallAttribution = null }
 
     // The mock graph has no ad lane (NoAdMeasurementLane), so the live flow never asks; the prompt
     // and the Settings row are exercised in the state gallery. [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001]
