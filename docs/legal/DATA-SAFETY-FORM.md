@@ -54,12 +54,11 @@ Para cada uno: **Recogido = Sí**. «Compartido» en el sentido de Play = transf
 Antes de confirmar la excepción de compartición iniciada por el usuario, revisar que cubra tanto
 los avisos manuales como la publicación automática y la lectura del identificador por otros usuarios con sesión.
 
-⛔⛔ **Ese «Compartido = No en todo» se acabó el 02-11-2026.** Meta Platforms recibe tres nombres
-de evento y el identificador de publicidad del dispositivo, con fin publicitario, y eso es
-exactamente lo que Play llama *shared*: ni es un *service provider* nuestro (Meta decide qué hace
-con lo que recibe) ni es funcionalidad que inicie el usuario. → **Compartido = Sí** en las dos
-filas que lo tocan (App interactions · Device or other IDs), **No** en todas las demás.
-[MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001]
+**Compartido = Sí** en *App interactions* y *Device or other IDs*. Meta Platforms y TikTok
+reciben eventos y el identificador de publicidad del dispositivo para atribuir instalaciones y
+medir campañas, sólo con consentimiento. En ambas filas, el envío para medición de anuncios se
+declara como *Advertising or marketing*. **Compartido = No** en las demás filas.
+[MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001] [MKT-TIKTOK-APP-EVENTS-SDK-001]
 
 ⚠️ Los dos argumentos de abajo siguen en pie para el resto, y siguen siendo dos, no uno (16-09):
 1. **Entre usuarios** — plazas y coche compartido. Unirse a un grupo es un acto explícito y
@@ -87,30 +86,36 @@ filas que lo tocan (App interactions · Device or other IDs), **No** en todas la
 | Personal info → **Name** | displayName del proveedor | Obligatorio | Account management |
 | Photos → **Photos** | photoUrl del perfil Google (solo URL, no subimos fotos) — declarar como Personal info/other o Photos según criterio; lo defendible: **Personal info → Other info** | Opcional | Account management |
 | Health & fitness → **Physical activity** | Activity Recognition + pasos (se procesa en device; el RESUMEN viaja en diagnósticos/armEvidence → se declara) | Obligatorio para el carril Coordinator | App functionality |
-| App activity → **App interactions** · ⚠️ **Compartido = Sí** | Eventos de producto (Firebase Analytics): aparcamiento confirmado/cerrado, plaza liberada/avisada. La ubicación viaja SOLO como celda geohash de ~150 m (nunca coordenada — invariante en `FirebaseAnalyticsTracker`, único traductor); sin uid en los params, identificados por el app-instance id de Firebase. Destino: Firebase Analytics (+ export a BigQuery cuando se active en consola); retención GA por defecto (14 meses). [ANALYTICS-EVENTS-001]<br><br>**Y, desde la 1.6.0, a Meta**: `parking_confirmed`, `spot_released` y `paywall_shown` — **sólo el nombre**, sin un solo parámetro (ni celda, ni `detectionPath`, ni `armEvidence`). La lista la decide un `when` exhaustivo en `domain/analytics/AdAttribution.kt`, no un `if` en el sink. Nada sale antes de `hasAcceptedLegalConsent` [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001] — ⚠️ **desde la 1.6.0 la puerta es un consentimiento PROPIO** (`AdMeasurementConsent`): se pregunta una vez tras el login, sea con correo o con Google, con «No permitir» igual de visible que «Permitir», y se revoca en Ajustes → Medición de anuncios. La casilla de «acepto la política» del registro desapareció y su marca vieja no se migra. → En el Console esta fila es **opcional** (el usuario puede negarse) [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001] | Obligatorio | Analytics, **Advertising or marketing** |
+| App activity → **App interactions** · ⚠️ **Compartido = Sí** | Eventos de producto (Firebase Analytics): aparcamiento confirmado/cerrado, plaza liberada/avisada. La ubicación viaja SOLO como celda geohash de ~150 m (nunca coordenada — invariante en `FirebaseAnalyticsTracker`, único traductor); sin uid en los params, identificados por el app-instance id de Firebase. Destino: Firebase Analytics (+ export a BigQuery cuando se active en consola); retención GA por defecto (14 meses). [ANALYTICS-EVENTS-001]<br><br>**Y, desde la 1.6.0, a Meta**: `parking_confirmed`, `spot_released` y `paywall_shown` — **sólo el nombre**, sin un solo parámetro (ni celda, ni `detectionPath`, ni `armEvidence`). La lista la decide un `when` exhaustivo en `domain/analytics/AdAttribution.kt`, no un `if` en el sink. [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001]<br><br>**Y, en el build con el SDK de TikTok**, los mismos tres nombres de evento sin parámetros añadidos por Paparcar. El SDK puede registrar automáticamente la instalación y la apertura, y añadir datos técnicos de la app y del dispositivo, como la versión de Android, la dirección IP y la referencia de instalación de Google Play [MKT-TIKTOK-APP-EVENTS-SDK-001].<br><br>**Meta y TikTok sólo se activan con el mismo consentimiento de medición de anuncios** (`AdMeasurementConsent`): se pregunta una vez tras el login, sea con correo o con Google, con «No permitir» igual de visible que «Permitir», y se revoca en Ajustes → Medición de anuncios. La casilla de «acepto la política» del registro desapareció y su marca vieja no se migra. La compartición publicitaria requiere consentimiento [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001] | Opcional para la medición de anuncios | Analytics, **Advertising or marketing** |
 | App activity → **Other user-generated content** | Vehículos (marca/modelo/matrícula opcional), zonas privadas, plazas avisadas. **Coche compartido**: nombre visible del coche, tu nombre de perfil ante el grupo, código de invitación e historial del grupo (km, tiempo buscando plaza, plaza liberada) — `sharedCars/{carId}` + `members/{uid}` + `sessions/*`. ⛔ El espejo NO tiene campo para matrícula, `armEvidence` ni `detectionPath`: la lista blanca es el TIPO | Opcional (solo si compartes un coche) | App functionality |
 | Financial info → **Purchase history** | Estado de la suscripción Plus. La compra la procesa Google Play; RevenueCat recibe **tu uid** como `appUserID` (`RevenueCatEntitlementRepositoryImpl.kt:92`) y el estado del entitlement — nunca ubicación, aparcamientos ni vehículos. ⚠️ Ya declarado en el Console (la app vende en producción); esta fila existe para que la chuleta deje de omitirlo | Opcional | App functionality, Account management |
 | App info & performance → **Crash logs** | Crashlytics | Obligatorio | Analytics |
 | App info & performance → **Diagnostics** | Telemetría de detección (Firestore `diagnostics/`) + parkdiag | Obligatorio | Analytics |
-| Device or other IDs → **Device or other IDs** · ⚠️ **Compartido = Sí** | **Identificador de publicidad (GAID)** — lo recoge el SDK de Meta y SOLO él: el permiso `com.google.android.gms.permission.AD_ID` vuelve al manifest por ese carril, y Firebase Analytics lo sigue teniendo prohibido con `google_analytics_adid_collection_enabled=false`, así que sus eventos siguen anclados al app-instance id [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001]. Además: MAC/nombre del BT del coche del usuario; ids de instalación de Firebase (incluye el app-instance id de Analytics); **token de registro FCM/APNs** del dispositivo, guardado en **DOS** sitios: `zoneAlertSubs/{uid}_{zoneId}` —**una fila por zona**, no una por usuario— mientras las alertas de zona estén activas [ZONE-A-SPOT-TELLS-THE-SERVER-AND-THE-SERVER-TELLS-YOU-001] **y `sharedCars/{carId}/members/{uid}.tokens` mientras compartas un coche** (`functions/src/index.ts:205`) [VEH-SHARED-001] | Opcional (BT, y token: solo con alertas de zona o coche compartido) | App functionality, Analytics |
+| Device or other IDs → **Device or other IDs** · ⚠️ **Compartido = Sí** | **Identificador de publicidad (GAID)** — lo recogen los SDK de Meta y TikTok sólo si el usuario permite la medición de anuncios. TikTok también puede adjuntar un identificador seudónimo que genera su SDK. Ambos usan el permiso `com.google.android.gms.permission.AD_ID`. Firebase Analytics sigue usando su app-instance id con `google_analytics_adid_collection_enabled=false` [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001] [MKT-TIKTOK-APP-EVENTS-SDK-001]. Además: MAC/nombre del BT del coche del usuario; ids de instalación de Firebase (incluye el app-instance id de Analytics); **token de registro FCM/APNs** del dispositivo, guardado en **DOS** sitios: `zoneAlertSubs/{uid}_{zoneId}` —**una fila por zona**, no una por usuario— mientras las alertas de zona estén activas [ZONE-A-SPOT-TELLS-THE-SERVER-AND-THE-SERVER-TELLS-YOU-001] **y `sharedCars/{carId}/members/{uid}.tokens` mientras compartas un coche** (`functions/src/index.ts:205`) [VEH-SHARED-001] | Depende del flujo: Firebase recoge IDs de instalación. GAID, BT y tokens tienen condiciones propias. | App functionality, Analytics, **Advertising or marketing** |
 
 ⛔ **Advertising ID: SÍ se declara desde la 1.6.0, y conviene saber qué NO cambia con ello.**
 Hasta la 1.5.0 el manifest borraba los tres permisos con `tools:node="remove"` y esta chuleta decía
 lo contrario de lo que dice hoy [ANALYTICS-EVENTS-001]. Vuelven porque sin el GAID Meta no puede
 atribuir una instalación al anuncio que la pagó, que es para lo que entra el SDK.
 
-- Lo recoge **un solo carril**, y sólo con el sí a la medición de anuncios: `MetaAdAttribution.activate`.
-  Un «no» en Ajustes lo apaga en el momento (`deactivate`), no en el próximo arranque.
-  → En el Data Safety, *Device or other IDs* pasa a **opcional** por la misma razón.
+- Lo recogen los SDK de Meta y TikTok sólo con el sí a la medición de anuncios, al activar
+  `MetaAdAttribution.activate` y `TikTokAdAttribution.activate`. El usuario puede revocar el
+  consentimiento en Ajustes → Medición de anuncios. Esta compartición depende del consentimiento.
+  En Data Safety, la opcionalidad de la recogida se evalúa por tipo de dato y para todos sus flujos.
+  No marcar *Device or other IDs* ni *App interactions* como opcionales basándose solo en el
+  consentimiento publicitario si Firebase sigue recogiendo esa categoría al rechazarlo.
+  TikTok tiene desactivadas las compras automáticas en este build. Para Meta, verificar su ajuste
+  de compras automáticas y la recepción de eventos antes de añadir una finalidad publicitaria a
+  *Purchase history*.
   [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001]
 - **Firebase Analytics sigue sin tocarlo** (`google_analytics_adid_collection_enabled=false`).
 - ⛔ **Y entran TRES permisos, no cinco.** `facebook-core` fusiona sola, sin que nadie la pida, las
   dos APIs de Privacy Sandbox que sirven para **segmentar**: `ACCESS_ADSERVICES_TOPICS` (los
   intereses que el sistema infiere) y `ACCESS_ADSERVICES_CUSTOM_AUDIENCE` (remarketing). Medido en
   el manifiesto fusionado de prodDebug el 02-11-2026. Las dos se **retiran** con
-  `tools:node="remove"`: la política declara tres nombres de evento y el identificador de
-  publicidad «y nada más», y un binario que puede más de lo que dice el documento es justo el
-  defecto que esto viene a cerrar. Lo vigila `AdvertisingDisclosureGuardrailTest`.
+  `tools:node="remove"`. `AdvertisingDisclosureGuardrailTest` comprueba que los permisos de
+  segmentación queden fuera y que cada red publicitaria esté declarada en la política, la web y
+  Data Safety.
 - La pregunta **«¿tu app contiene anuncios?» del Play Console sigue siendo NO**, y no es un matiz:
   Paparcar no muestra ni un anuncio dentro. Lo que hay es medición de los anuncios que ponemos
   FUERA. Las dos cosas se declaran en sitios distintos del Console y confundirlas es lo que

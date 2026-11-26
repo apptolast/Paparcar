@@ -212,6 +212,13 @@ kotlin {
             // [MKT-INSTALL-ATTRIBUTION-CHANNEL-001]
             implementation(libs.install.referrer)
 
+            // TikTok SDK — App Events (Android). Mismo patrón que Meta arriba: `implementation`,
+            // no `api` — el único sitio del repo que nombra a TikTok es `data/analytics/TikTok*.kt`.
+            // [MKT-TIKTOK-APP-EVENTS-SDK-001]
+            implementation(libs.tiktok.business.sdk)
+            // El SDK escucha ProcessLifecycleOwner para su auto-tracking de Install/Launch.
+            implementation(libs.androidx.lifecycle.process)
+
             // DataStore Preferences
             api(libs.androidx.datastore.preferences)
 

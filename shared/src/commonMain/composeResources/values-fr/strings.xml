@@ -541,13 +541,13 @@
     <string name="ads_consent_point_privacy_title">Tes données privées sont protégées</string>
     <string name="ads_consent_point_privacy_desc">Ta position, tes trajets et ton compte ne sont jamais partagés.</string>
     <string name="ads_consent_point_measurement_title">Seule la performance est mesurée</string>
-    <string name="ads_consent_point_measurement_desc">Indique à Meta quelle publicité t'a amené ici et si tu confirmes un stationnement ou ouvres Plus.</string>
+    <string name="ads_consent_point_measurement_desc">Partage ton identifiant publicitaire et des événements de l'application avec Meta et TikTok pour mesurer l'efficacité de nos publicités.</string>
     <string name="ads_consent_point_control_title">Tu gardes le contrôle</string>
     <string name="ads_consent_point_control_desc">L'application fonctionne exactement de la même manière si tu refuses, et tu peux modifier ce choix à tout moment dans les Paramètres.</string>
     <string name="ads_consent_allow">Autoriser</string>
     <string name="ads_consent_deny">Ne pas autoriser</string>
     <string name="settings_ads_measurement">Mesure des publicités</string>
-    <string name="settings_ads_measurement_desc">Indique à Meta laquelle de nos publicités t'a amené ici. Ni position ni trajets.</string>
+    <string name="settings_ads_measurement_desc">Partager ton identifiant publicitaire et des événements de l'application avec Meta et TikTok pour mesurer l'efficacité de nos publicités.</string>
     <string name="auth_consent_privacy_policy">Politique de confidentialité</string>
     <string name="auth_login_title">Se connecter</string>
     <string name="auth_register_title">Créer un compte</string>

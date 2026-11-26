@@ -1,6 +1,8 @@
 package com.rndeveloper.paparcar.di
 
+import com.rndeveloper.paparcar.data.analytics.CompositeAdAttributionTracker
 import com.rndeveloper.paparcar.data.analytics.MetaAnalyticsTracker
+import com.rndeveloper.paparcar.data.analytics.TikTokAnalyticsTracker
 import com.rndeveloper.paparcar.domain.analytics.AdAttributionTracker
 import com.rndeveloper.paparcar.domain.push.PushTokenProvider
 import com.rndeveloper.paparcar.domain.push.SharedCarFenceRefresher
@@ -103,9 +105,17 @@ val androidPlatformModule = module {
 
     // El carril de atribución publicitaria. Sólo existe en Android y sólo lo ata ESTE módulo: el
     // mock arranca con `MockPaparcarApp`, que no lo carga, así que el Dev Catalog no puede mandar
-    // un evento a la cuenta de anuncios ni por descuido.
-    // [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001]
-    single<AdAttributionTracker> { MetaAnalyticsTracker(androidContext(), get()) }
+    // un evento a la cuenta de anuncios ni por descuido. Dos redes hoy (Meta, TikTok), fanned out
+    // por `CompositeAdAttributionTracker` — añadir una tercera es añadir una línea a esta lista.
+    // [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001] [MKT-TIKTOK-APP-EVENTS-SDK-001]
+    single<AdAttributionTracker> {
+        CompositeAdAttributionTracker(
+            listOf(
+                MetaAnalyticsTracker(androidContext(), get()),
+                TikTokAnalyticsTracker(androidContext(), get()),
+            ),
+        )
+    }
 
     // El Google Play Install Referrer sólo existe en Android. [MKT-INSTALL-ATTRIBUTION-CHANNEL-001]
     single<com.rndeveloper.paparcar.domain.attribution.InstallReferrerPort> {

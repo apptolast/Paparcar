@@ -68,8 +68,8 @@ extensions.configure<ApplicationExtension> {
         applicationId = "com.rndeveloper.paparcar"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 20
-        versionName = "1.8.1"
+        versionCode = 21
+        versionName = "1.8.2"
         buildConfigField(
             "String",
             "GOOGLE_WEB_CLIENT_ID",
@@ -94,6 +94,12 @@ extensions.configure<ApplicationExtension> {
         manifestPlaceholders["MAPS_API_KEY"] = prop("MAPS_API_KEY") ?: ""
         manifestPlaceholders["FACEBOOK_APP_ID"] = prop("FACEBOOK_APP_ID") ?: ""
         manifestPlaceholders["FACEBOOK_CLIENT_TOKEN"] = prop("FACEBOOK_CLIENT_TOKEN") ?: ""
+        // TikTok App Events. Mismo patrón que Meta arriba: un solo deletreo por clave, vacías =
+        // el carril de TikTok no arranca y la app va igual. Sin manifestPlaceholders: el SDK se
+        // configura con el builder de código (TTConfig), no con <meta-data>.
+        // [MKT-TIKTOK-APP-EVENTS-SDK-001]
+        buildConfigField("String", "TIKTOK_APP_ID", "\"${prop("TIKTOK_APP_ID") ?: ""}\"")
+        buildConfigField("String", "TIKTOK_TT_APP_ID", "\"${prop("TIKTOK_TT_APP_ID") ?: ""}\"")
     }
 
     // Fail-fast: a release build without MAPS_API_KEY produces an APK whose map

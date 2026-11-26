@@ -126,13 +126,16 @@ DOC_CLOSE = "<!-- /cut:measured -->"
 VERSION_RE = re.compile(r"^\d+\.\d+\.\d+$")
 
 # Las redes publicitarias que el binario puede llevar dentro. Por cada una: la clave del catalogo
-# de versiones, los nombres con los que la ficha tiene que nombrarla, la propiedad que lleva su
-# identificador de app y el `meta-data` del manifest donde ese identificador tiene que aterrizar.
-# [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001]
+# de versiones, los nombres con los que la ficha tiene que nombrarla, las propiedades que llevan
+# sus identificadores de app, DONDE aterrizan esas propiedades en el AAB (`lands_in`), y el
+# `meta-data` del manifest cuando aterrizan ahi.
+# [MKT-META-APP-EVENTS-COST-THE-NO-ADS-PROMISE-001] [MKT-TIKTOK-APP-EVENTS-SDK-001]
 AD_SDKS = {
     "facebook-core": {
         "names": ("Meta", "Facebook", "Instagram"),
-        "prop": "FACEBOOK_APP_ID",
+        "props": ("FACEBOOK_APP_ID",),
+        # El id de Meta aterriza via manifestPlaceholder -> <meta-data>, que FacebookSdk lee solo.
+        "lands_in": "manifest",
         "meta": "com.facebook.sdk.ApplicationId",
         # Lo que Play cruza con la declaracion de ID de publicidad: sin `AD_ID` en el AAB, la
         # Console da un ERROR que solo se ve al crear la version, y el identificador sale a ceros.
@@ -144,6 +147,18 @@ AD_SDKS = {
             "android.permission.ACCESS_ADSERVICES_TOPICS",
             "android.permission.ACCESS_ADSERVICES_CUSTOM_AUDIENCE",
         ),
+    },
+    "tiktok-business-sdk": {
+        "names": ("TikTok",),
+        "props": ("TIKTOK_APP_ID", "TIKTOK_TT_APP_ID"),
+        # Los dos ids de TikTok NO pasan por el manifest -- se configuran con el builder de codigo
+        # (`TTConfig`), asi que lo unico que puede probar que aterrizaron de verdad es el DEX del
+        # modulo base, donde el compilador inlinea la constante de `BuildConfig`.
+        "lands_in": "dex",
+        # El SDK ya declara AD_ID por su cuenta (y Meta tambien), y no fusiona nada que haya que
+        # retirar -- su manifest propio solo trae INTERNET + AD_ID.
+        "requires": (),
+        "forbids": (),
     },
 }
 
@@ -500,32 +515,45 @@ def check_aab_carries_the_ad_key(aab):
     Se mide en DOS pasos, y el segundo es el que tiene dientes:
 
       1. la clave esta configurada donde el build la lee (`build_prop`, mismo orden que Gradle);
-      2. **ese valor aparece dentro del AAB**. El manifiesto de un AAB va en protobuf, pero las
-         cadenas viajan como UTF-8 crudo, asi que buscar los bytes del valor prueba que el
-         `manifestPlaceholder` aterrizo de verdad. Comprobar solo (1) seria creerle al input: si
-         el placeholder se rompe, el AAB sale sin clave y (1) sigue diciendo que todo bien.
+      2. **ese valor aparece dentro del AAB**, en el sitio donde ESA red la aterriza
+         (`spec["lands_in"]`). Meta la lee de un `manifestPlaceholder` -> `<meta-data>`: el
+         manifiesto de un AAB va en protobuf, pero las cadenas viajan como UTF-8 crudo, asi que
+         buscar los bytes del valor prueba que el placeholder aterrizo de verdad. TikTok no pasa
+         por el manifest -- sus ids se configuran en codigo (`TTConfig`) -- asi que lo que prueba
+         que aterrizaron es el DEX del modulo base, donde el compilador inlinea la constante de
+         `BuildConfig` en la constant pool. Comprobar solo (1) seria creerle al input: si el
+         placeholder o el `BuildConfig` se rompen, el AAB sale sin clave y (1) sigue diciendo que
+         todo bien. [MKT-TIKTOK-APP-EVENTS-SDK-001]
     """
     networks = declared_ad_networks()
     if not networks:
         return
     manifest = aab_manifest_bytes(aab)
+    dex = None
     for key, spec in networks:
-        value = build_prop(spec["prop"])
-        if not value:
-            raise Fail(
-                "el build lleva %s y %s esta vacia o no esta.\n"
-                "    Un AAB sin ella sube con la atribucion MUERTA y sin que nada se queje: la\n"
-                "    app va igual y los anuncios se pagan sin poder medirlos. Ponla en\n"
-                "    local.properties (o como variable de entorno) y vuelve a correr `bundle`."
-                % (spec["names"][0], spec["prop"]))
-        if value.encode("utf-8") not in manifest:
-            raise Fail(
-                "%s esta configurada pero NO aparece en el manifiesto de %s.\n"
-                "    El `manifestPlaceholder` de `%s` no aterrizo: el AAB se subiria con la\n"
-                "    clave vacia aunque tu maquina la tenga puesta."
-                % (spec["prop"], aab.name, spec["meta"]))
-        say("   %s: clave presente en el AAB (%d chars, %s...)"
-            % (spec["names"][0], len(value), value[:4]))
+        lands_in = spec.get("lands_in", "manifest")
+        if lands_in == "dex":
+            if dex is None:
+                dex = aab_dex_bytes(aab)
+            haystack, where = dex, "el DEX del modulo base"
+        else:
+            haystack, where = manifest, "el manifiesto"
+        for prop in spec["props"]:
+            value = build_prop(prop)
+            if not value:
+                raise Fail(
+                    "el build lleva %s y %s esta vacia o no esta.\n"
+                    "    Un AAB sin ella sube con la atribucion MUERTA y sin que nada se queje: la\n"
+                    "    app va igual y los anuncios se pagan sin poder medirlos. Ponla en\n"
+                    "    local.properties (o como variable de entorno) y vuelve a correr `bundle`."
+                    % (spec["names"][0], prop))
+            if value.encode("utf-8") not in haystack:
+                raise Fail(
+                    "%s esta configurada pero NO aparece en %s de %s.\n"
+                    "    La clave no aterrizo de verdad en el binario, aunque tu maquina la tenga\n"
+                    "    puesta -- el AAB se subiria con la atribucion muerta."
+                    % (prop, where, aab.name))
+            say("   %s: clave presente en el AAB (%d chars, %s...)" % (prop, len(value), value[:4]))
 
 
 def check_aab_permissions_match_the_declaration(aab):
@@ -573,6 +601,22 @@ def aab_manifest_bytes(aab):
             raise Fail("%s no tiene %s: el formato del AAB cambio y este chequeo no mira nada"
                        % (aab.name, entry))
         return z.read(entry)
+
+
+def aab_dex_bytes(aab):
+    """Los DEX del modulo base de un AAB, concatenados, en crudo.
+
+    Para una red cuyo id NO pasa por el manifest (TikTok: se configura con el builder de codigo,
+    no con `<meta-data>`), esto es lo que prueba que la constante de `BuildConfig` aterrizo de
+    verdad en el binario -- el compilador la inlinea como string literal en la constant pool del
+    DEX. [MKT-TIKTOK-APP-EVENTS-SDK-001]
+    """
+    with zipfile.ZipFile(aab) as z:
+        entries = sorted(n for n in z.namelist() if re.match(r"^base/dex/classes\d*\.dex$", n))
+        if not entries:
+            raise Fail("%s no tiene base/dex/classes*.dex: el formato del AAB cambio y este "
+                       "chequeo no mira nada" % aab.name)
+        return b"".join(z.read(n) for n in entries)
 
 
 # ----------------------------------------------------------------- fase 5 sign

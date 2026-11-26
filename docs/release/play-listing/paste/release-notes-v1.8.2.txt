@@ -1,0 +1,45 @@
+<en-US>
+• Invite friends to Paparcar from Settings.
+• Fuel price alerts follow the car you select.
+• Ad measurement now lists Meta and TikTok and asks for your permission.
+</en-US>
+<es-ES>
+• Invita a tus amigos a Paparcar desde Ajustes.
+• Los avisos de precios de combustible siguen al coche que elijas.
+• La medición de anuncios indica que incluye a Meta y TikTok y te pide permiso.
+</es-ES>
+<it-IT>
+• Invita i tuoi amici a usare Paparcar dalle Impostazioni.
+• Gli avvisi sui prezzi del carburante seguono l'auto che selezioni.
+• La misurazione degli annunci indica Meta e TikTok e ti chiede il consenso.
+</it-IT>
+<pt-PT>
+• Convida os teus amigos a usar o Paparcar nas Definições.
+• Os alertas de preços de combustível seguem o carro que selecionas.
+• A medição de anúncios indica que inclui a Meta e o TikTok e pede a tua autorização.
+</pt-PT>
+<fr-FR>
+• Invite tes amis à utiliser Paparcar depuis les Paramètres.
+• Les alertes de prix du carburant suivent la voiture que tu sélectionnes.
+• La mesure des publicités mentionne Meta et TikTok et te demande ton accord.
+</fr-FR>
+<de-DE>
+• Lade Freunde über die Einstellungen zu Paparcar ein.
+• Spritpreis-Alarme gelten für das Auto, das du auswählst.
+• Die Werbemessung nennt Meta und TikTok und bittet dich um Zustimmung.
+</de-DE>
+<nl-NL>
+• Nodig vrienden uit voor Paparcar via Instellingen.
+• Brandstofprijsmeldingen volgen de auto die je kiest.
+• Advertentiemeting vermeldt Meta en TikTok en vraagt je toestemming.
+</nl-NL>
+<pl-PL>
+• Zaproś znajomych do Paparcar z poziomu Ustawień.
+• Alerty o cenach paliwa dotyczą wybranego samochodu.
+• Pomiar reklam wskazuje Meta i TikToka i prosi Cię o zgodę.
+</pl-PL>
+<ro>
+• Invită-ți prietenii să folosească Paparcar direct din Setări.
+• Alertele de preț la carburant urmează mașina pe care o alegi.
+• Măsurarea reclamelor menționează Meta și TikTok și îți cere acordul.
+</ro>

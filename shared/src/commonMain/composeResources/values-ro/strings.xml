@@ -547,13 +547,13 @@
     <string name="ads_consent_point_privacy_title">Datele tale private sunt protejate</string>
     <string name="ads_consent_point_privacy_desc">Locația, călătoriile și contul tău nu sunt niciodată partajate.</string>
     <string name="ads_consent_point_measurement_title">Măsurăm doar performanța</string>
-    <string name="ads_consent_point_measurement_desc">Îi transmite Meta ce reclamă te-a adus aici și dacă confirmi o parcare sau deschizi Plus.</string>
+    <string name="ads_consent_point_measurement_desc">Trimite identificatorul tău publicitar și evenimente din aplicație către Meta și TikTok pentru a măsura eficiența reclamelor noastre.</string>
     <string name="ads_consent_point_control_title">Deții controlul</string>
     <string name="ads_consent_point_control_desc">Aplicația funcționează la fel dacă refuzi, iar alegerea poate fi modificată oricând din Setări.</string>
     <string name="ads_consent_allow">Permite</string>
     <string name="ads_consent_deny">Nu permite</string>
     <string name="settings_ads_measurement">Măsurarea reclamelor</string>
-    <string name="settings_ads_measurement_desc">Îi spune Meta ce reclamă de-a noastră te-a adus aici. Fără locație sau călătorii.</string>
+    <string name="settings_ads_measurement_desc">Trimite identificatorul tău publicitar și evenimente din aplicație către Meta și TikTok pentru a măsura eficiența reclamelor noastre.</string>
     <string name="auth_consent_privacy_policy">Politica de confidențialitate</string>
     <string name="auth_login_title">Conectează-te</string>
     <string name="auth_register_title">Creează un cont</string>

@@ -591,13 +591,13 @@ Si ya no aparece la pregunta, cámbialo en Ajustes → Paparcar → Ubicación �
     <string name="ads_consent_point_privacy_title">Tus datos privados están protegidos</string>
     <string name="ads_consent_point_privacy_desc">Tu ubicación, tus viajes y tu cuenta nunca se comparten.</string>
     <string name="ads_consent_point_measurement_title">Solo medimos el rendimiento</string>
-    <string name="ads_consent_point_measurement_desc">Le dice a Meta qué anuncio te trajo y si confirmas un aparcamiento o abres Plus.</string>
+    <string name="ads_consent_point_measurement_desc">Comparte tu identificador de publicidad y eventos de la app con Meta y TikTok para medir nuestros anuncios.</string>
     <string name="ads_consent_point_control_title">Tú tienes el control</string>
     <string name="ads_consent_point_control_desc">La app funciona igual si dices que no, y puedes cambiarlo en cualquier momento en Ajustes.</string>
     <string name="ads_consent_allow">Permitir</string>
     <string name="ads_consent_deny">No permitir</string>
     <string name="settings_ads_measurement">Medición de anuncios</string>
-    <string name="settings_ads_measurement_desc">Le dice a Meta qué anuncio nuestro te trajo hasta aquí. Sin ubicación ni viajes.</string>
+    <string name="settings_ads_measurement_desc">Comparte tu identificador de publicidad y eventos de la app con Meta y TikTok para medir nuestros anuncios.</string>
     <string name="auth_consent_privacy_policy">Política de Privacidad</string>
     <string name="auth_login_title">Inicia sesión</string>
     <string name="auth_register_title">Crea tu cuenta</string>

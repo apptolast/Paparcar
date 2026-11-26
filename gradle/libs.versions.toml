@@ -149,6 +149,13 @@ facebook-sdk = "19.0.1"
 install-referrer = "2.2"
 play-review = "2.0.2"
 
+# TikTok Business SDK (App Events) — ⛔ SOLO se publica en JitPack, no hay espejo en Maven
+# Central (confirmado contra el `build.gradle` del propio repo de TikTok, 25-11-2026): excepción
+# documentada al "JitPack quedó atrás" de BaseLogin. Última estable real en GitHub Releases,
+# nunca la que cite el portal de ayuda (dio 1.5.0 cuando la real era 1.7.1).
+# [MKT-TIKTOK-APP-EVENTS-SDK-001]
+tiktok-business-sdk = "1.7.1"
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 [libraries]
@@ -270,6 +277,12 @@ facebook-core = { module = "com.facebook.android:facebook-core", version.ref = "
 # Google Play Install Referrer — lectura del canal de instalación. [MKT-INSTALL-ATTRIBUTION-CHANNEL-001]
 install-referrer = { module = "com.android.installreferrer:installreferrer", version.ref = "install-referrer" }
 play-review-ktx = { module = "com.google.android.play:review-ktx", version.ref = "play-review" }
+
+# TikTok SDK — App Events. [MKT-TIKTOK-APP-EVENTS-SDK-001]
+tiktok-business-sdk = { module = "com.github.tiktok:tiktok-business-android-sdk", version.ref = "tiktok-business-sdk" }
+# El SDK escucha el ciclo de vida de la app para su auto-tracking (Install/Launch). Mismo
+# version.ref que `androidx-lifecycle-service` — una sola línea de release para toda la familia.
+androidx-lifecycle-process = { group = "androidx.lifecycle", name = "lifecycle-process", version.ref = "androidx-lifecycle" }
 
 
 # ─────────────────────────────────────────────────────────────────────────────

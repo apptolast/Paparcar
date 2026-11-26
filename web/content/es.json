@@ -247,7 +247,7 @@
       {
         "icon": "shield",
         "title": "Lo que no sale de tu móvil",
-        "body": "Tu matrícula se queda en el dispositivo. La marca y el modelo del coche solo aparecen en la plaza que liberas si tú lo activas. Tu ubicación no se vende ni se usa para publicidad, y la app no muestra anuncios dentro. Para medir qué anuncios nuestros funcionan, a Meta se le dice cuándo ocurren tres cosas —un aparcamiento confirmado, una plaza liberada, la pantalla de Plus abierta— y nada más, y solo si tú lo permites: la app te lo pregunta aparte, decir que no es igual de fácil, y puedes cambiarlo en Ajustes."
+        "body": "Tu matrícula se queda en el dispositivo. La marca y el modelo del coche solo aparecen en la plaza que liberas si tú lo activas. Paparcar no envía tu ubicación para medir anuncios y la app no muestra anuncios dentro. Si lo permites, Meta y TikTok reciben el identificador de publicidad y los nombres de tres eventos: se confirma un aparcamiento, se libera una plaza y se abre la pantalla de Plus. TikTok también puede recibir eventos automáticos de la app y datos técnicos, como explica la política de privacidad. La app te pide permiso aparte. Decir que no es igual de fácil y puedes cambiar tu respuesta en Ajustes."
       },
       {
         "icon": "account",

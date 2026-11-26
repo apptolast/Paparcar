@@ -645,13 +645,13 @@ If the question no longer appears, change it in Settings → Paparcar → Locati
     <string name="ads_consent_point_privacy_title">Your private data is protected</string>
     <string name="ads_consent_point_privacy_desc">Your location, trips and account are never shared.</string>
     <string name="ads_consent_point_measurement_title">Only ad performance is measured</string>
-    <string name="ads_consent_point_measurement_desc">Tells Meta which ad brought you here and if you confirm a parking or open Plus.</string>
+    <string name="ads_consent_point_measurement_desc">Shares your advertising ID and app events with Meta and TikTok to measure our ads.</string>
     <string name="ads_consent_point_control_title">You are in control</string>
     <string name="ads_consent_point_control_desc">The app works the same if you say no, and you can change it anytime in Settings.</string>
     <string name="ads_consent_allow">Allow</string>
     <string name="ads_consent_deny">Don't allow</string>
     <string name="settings_ads_measurement">Ad measurement</string>
-    <string name="settings_ads_measurement_desc">Lets Meta know which of our ads brought you here. No location or trips.</string>
+    <string name="settings_ads_measurement_desc">Share your advertising ID and app events with Meta and TikTok to measure our ads.</string>
     <string name="auth_consent_privacy_policy">Privacy Policy</string>
 
     <string name="home_peek_spot_en_route">%1$d on the way</string>

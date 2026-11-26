@@ -542,13 +542,13 @@
     <string name="ads_consent_point_privacy_title">Deine privaten Daten sind geschützt</string>
     <string name="ads_consent_point_privacy_desc">Dein Standort, deine Fahrten und dein Konto werden niemals geteilt.</string>
     <string name="ads_consent_point_measurement_title">Nur der Werbeerfolg wird gemessen</string>
-    <string name="ads_consent_point_measurement_desc">Teilt Meta mit, welche Anzeige dich hergebracht hat und ob du einen Parkvorgang bestätigst oder Plus öffnest.</string>
+    <string name="ads_consent_point_measurement_desc">Teilt deine Werbe-ID und App-Ereignisse mit Meta und TikTok, um den Erfolg unserer Anzeigen zu messen.</string>
     <string name="ads_consent_point_control_title">Du hast die Kontrolle</string>
     <string name="ads_consent_point_control_desc">Die App funktioniert genauso, wenn du ablehnst, und du kannst dies jederzeit in den Einstellungen ändern.</string>
     <string name="ads_consent_allow">Erlauben</string>
     <string name="ads_consent_deny">Nicht erlauben</string>
     <string name="settings_ads_measurement">Werbemessung</string>
-    <string name="settings_ads_measurement_desc">Zeigt Meta, welche unserer Anzeigen dich hergebracht hat. Kein Standort, keine Fahrten.</string>
+    <string name="settings_ads_measurement_desc">Werbe-ID und App-Ereignisse mit Meta und TikTok teilen, um den Erfolg unserer Anzeigen zu messen.</string>
     <string name="auth_consent_privacy_policy">Datenschutzerklärung</string>
     <string name="auth_login_title">Anmelden</string>
     <string name="auth_register_title">Konto erstellen</string>

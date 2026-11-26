@@ -247,7 +247,7 @@
       {
         "icon": "shield",
         "title": "What never leaves your phone",
-        "body": "Your number plate stays on the device. Your car's make and model only appear on the spot you free up if you turn that on. Your location is neither sold nor used for advertising, and the app shows no ads inside it. To measure which of our own ads work, Meta is told when three things happen — a parking confirmed, a spot freed, the Plus screen opened — and nothing else, and only if you allow it: the app asks you separately, saying no is just as easy, and you can change it in Settings."
+        "body": "Your number plate stays on the device. Your car's make and model only appear on the spot you free up if you turn that on. Paparcar does not share your location for ad measurement, and the app shows no ads inside it. If you allow it, Meta and TikTok receive your advertising ID and three event names: a parking is confirmed, a spot is freed and the Plus screen is opened. TikTok can also receive automatic app events and technical information, as explained in the privacy policy. The app asks you separately. Saying no is just as easy, and you can change your answer in Settings."
       },
       {
         "icon": "account",

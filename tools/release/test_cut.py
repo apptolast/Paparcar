@@ -107,8 +107,15 @@ class BumpPhase(unittest.TestCase):
         self.stack = contextlib.ExitStack()
         self.addCleanup(self.stack.close)
         self.root, self.gradle, self.web = temp_tree(self.stack)
+        # `declared_ad_networks()` lee el `ROOT` REAL (sin parchear aqui), no el arbol temporal de
+        # arriba -- asi que, con una red publicitaria de verdad en el catalogo (Meta, TikTok),
+        # `check_listing_names_the_ad_network` exigiria que la ficha de CUALQUIER version del
+        # fixture ("1.6.0") la nombrase. Esta clase prueba el resto de `phase_bump` (version,
+        # duplicados, escritura en los dos sitios), no esa puerta -- que tiene su propia
+        # verificacion, hecha a mano contra el repo real. [MKT-TIKTOK-APP-EVENTS-SDK-001]
         self.patch = self.stack.enter_context(Patched(
-            GRADLE_FILE=self.gradle, WEB_CONFIG=self.web, git=lambda *a: (0, "")))
+            GRADLE_FILE=self.gradle, WEB_CONFIG=self.web, git=lambda *a: (0, ""),
+            declared_ad_networks=lambda: []))
 
     def test_reads_the_version_and_not_the_suffix(self):
         # El trampolin real: `versionNameSuffix = "-mock"` esta tres lineas mas abajo.

@@ -17,6 +17,11 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // ⛔ Excepción documentada, no precedente: el SDK de TikTok Business SOLO se publica aquí
+        // (confirmado contra el build.gradle del propio repo de TikTok, 25-11-2026) — a diferencia
+        // de BaseLogin, que SÍ migró fuera de JitPack. Un solo consumidor:
+        // libs.tiktok.business.sdk. [MKT-TIKTOK-APP-EVENTS-SDK-001]
+        maven { url = uri("https://jitpack.io") }
     }
 }
 

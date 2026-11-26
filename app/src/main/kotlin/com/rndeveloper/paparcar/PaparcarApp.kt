@@ -15,6 +15,7 @@ import com.revenuecat.purchases.kmp.LogLevel
 import com.revenuecat.purchases.kmp.Purchases
 import com.revenuecat.purchases.kmp.PurchasesConfiguration
 import com.rndeveloper.paparcar.data.analytics.MetaAdAttribution
+import com.rndeveloper.paparcar.data.analytics.TikTokAdAttribution
 import com.rndeveloper.paparcar.domain.analytics.AdMeasurementConsent
 import com.rndeveloper.paparcar.di.paparcarLoginConfig
 import com.rndeveloper.paparcar.detection.worker.FirstParkNudgeWorker
@@ -87,6 +88,15 @@ class PaparcarApp : Application() {
             clientToken = BuildConfig.FACEBOOK_CLIENT_TOKEN,
         )
 
+        // TikTok App Events — a diferencia de Meta esto NO deja el SDK a medias: solo guarda las
+        // credenciales. `TikTokAdAttribution.activate` (abajo, o desde `TikTokAnalyticsTracker` a
+        // mitad de sesión) es la única llamada real a `initializeSdk`, y sólo ocurre con
+        // consentimiento ya dado. [MKT-TIKTOK-APP-EVENTS-SDK-001]
+        TikTokAdAttribution.configure(
+            appId = BuildConfig.TIKTOK_APP_ID,
+            ttAppId = BuildConfig.TIKTOK_TT_APP_ID,
+        )
+
         // What Paparcar offers is declared in ONE place, shared with iOS and with the previews +
         // Dev Catalog gallery. Never inline a LoginLibraryConfig here: its flags default to
         // enabled and would put unsupported methods on the screen. [AUTH-PROVIDERS-EXPLICIT-001]
@@ -116,6 +126,7 @@ class PaparcarApp : Application() {
         // no enciende nada. [MKT-AD-MEASUREMENT-ASKS-ITS-OWN-CONSENT-001]
         if (appPreferences.adMeasurementConsent == AdMeasurementConsent.GRANTED) {
             MetaAdAttribution.activate(this)
+            TikTokAdAttribution.activate(this)
         }
 
         AppCompatDelegate.setDefaultNightMode(

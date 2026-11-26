@@ -542,13 +542,13 @@
     <string name="ads_consent_point_privacy_title">Je privégegevens zijn beschermd</string>
     <string name="ads_consent_point_privacy_desc">Je locatie, ritten en account worden nooit gedeeld.</string>
     <string name="ads_consent_point_measurement_title">We meten alleen advertentieprestaties</string>
-    <string name="ads_consent_point_measurement_desc">Laat Meta weten welke advertentie je hier bracht en of je een parkeerplaats bevestigt of Plus opent.</string>
+    <string name="ads_consent_point_measurement_desc">Deelt je advertentie-ID en appgebeurtenissen met Meta en TikTok om het effect van onze advertenties te meten.</string>
     <string name="ads_consent_point_control_title">Jij hebt de controle</string>
     <string name="ads_consent_point_control_desc">De app werkt hetzelfde als je weigert, en je kunt dit op elk moment wijzigen in Instellingen.</string>
     <string name="ads_consent_allow">Toestaan</string>
     <string name="ads_consent_deny">Niet toestaan</string>
     <string name="settings_ads_measurement">Advertentiemeting</string>
-    <string name="settings_ads_measurement_desc">Laat Meta weten welke advertentie van ons je hier bracht. Geen locatie of ritten.</string>
+    <string name="settings_ads_measurement_desc">Deel je advertentie-ID en appgebeurtenissen met Meta en TikTok om het effect van onze advertenties te meten.</string>
     <string name="auth_consent_privacy_policy">Privacybeleid</string>
     <string name="auth_login_title">Inloggen</string>
     <string name="auth_register_title">Account aanmaken</string>

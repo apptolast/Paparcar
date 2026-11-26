@@ -2,6 +2,7 @@ package com.rndeveloper.paparcar.architecture
 
 import org.junit.Test
 import java.io.File
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.test.fail
 
@@ -75,10 +76,9 @@ class AdvertisingDisclosureGuardrailTest {
         listOf("en", "es").forEach { lang ->
             val half = policySection(policy, lang)
             assertTrue(
-                networks.any { net -> net.aliases.any { it in half } },
-                "La mitad «$lang» de la política publicada no nombra a $listed. El binario manda " +
-                    "eventos y el identificador de publicidad a esa red: una política que no la " +
-                    "nombra no describe la app, y es el documento al que apunta el Console.",
+                networks.all { net -> net.aliases.any { it in half } },
+                "La mitad «$lang» de la política publicada debe nombrar a todas las redes " +
+                    "del binario ($listed). El Console apunta a este documento.",
             )
         }
         RETIRED_POLICY_CLAIMS.forEach { claim ->
@@ -101,8 +101,8 @@ class AdvertisingDisclosureGuardrailTest {
         webSurfaces.forEach { path ->
             val text = repoFile(path).readText()
             assertTrue(
-                networks.any { net -> net.aliases.any { it in text } },
-                "$path no nombra a $listed. La web describe el producto y se mueve en la MISMA " +
+                networks.all { net -> net.aliases.any { it in text } },
+                "$path debe nombrar a todas las redes del binario ($listed). La web se mueve en la MISMA " +
                     "tarea que él; si el fallo es sólo que falta reconstruir, `node web/build.mjs`.",
             )
         }
@@ -110,10 +110,10 @@ class AdvertisingDisclosureGuardrailTest {
         // 3 · La chuleta con la que se rellena el formulario de Data Safety.
         val dataSafety = repoFile("docs/legal/DATA-SAFETY-FORM.md").readText()
         assertTrue(
-            networks.any { net -> net.aliases.any { it in dataSafety } } &&
+            networks.all { net -> net.aliases.any { it in dataSafety } } &&
                 AD_ID_PERMISSION in dataSafety,
-            "docs/legal/DATA-SAFETY-FORM.md no declara a $listed o no nombra " +
-                "$AD_ID_PERMISSION. Play cruza el permiso del manifest con la declaración de " +
+            "docs/legal/DATA-SAFETY-FORM.md debe declarar a todas las redes del binario " +
+                "($listed) y nombrar $AD_ID_PERMISSION. Play cruza el permiso del manifest con la declaración de " +
                 "Advertising ID y con la fila de Data Safety: si las tres no dicen lo mismo, la " +
                 "publicación se para.",
         )
@@ -162,6 +162,51 @@ class AdvertisingDisclosureGuardrailTest {
         }
     }
 
+    /**
+     * TikTok se suma al binario con un gate DISTINTO al de Meta, y por eso necesita su PROPIO
+     * testigo. [MKT-TIKTOK-APP-EVENTS-SDK-001]
+     *
+     * Meta puede inicializarse MUDO (`AutoInitEnabled=false` en el manifest) y des-mutear después
+     * — por eso el test de arriba vigila una bandera. El SDK de TikTok no tiene esa bandera: su
+     * `disableAdvertiserIDCollection()` sólo se decide en el momento de `initializeSdk`, sin
+     * `enable` posterior, así que la única forma de no mandar nada antes del consentimiento es que
+     * esa llamada viva en UN sitio, guardado por quien ya tiene el consentimiento en la mano
+     * (`TikTokAdAttribution.activate`). Esto NO depende de [declaredAdNetworks] ni exige que la
+     * política/web/Data Safety ya nombren a TikTok — es un invariante del BINARIO, independiente
+     * de si las superficies publicadas ya están al día (ese reparto es deliberado, ver
+     * `docs/backlog/mkt-tiktok-app-events-sdk-001.md`).
+     */
+    @Test
+    fun `TikTokBusinessSdk initializeSdk has exactly one call site, and it is the gate`() {
+        // SOLO código de producción: androidUnitTest se excluye a propósito, porque ESTE mismo
+        // fichero nombra el literal que busca y se casaría a sí mismo.
+        val hits = mutableListOf<String>()
+        listOf("shared/src/androidMain", "shared/src/commonMain").forEach { sourceSet ->
+            repoRoot.resolve(sourceSet).walkTopDown()
+                .filter { it.isFile && it.extension == "kt" }
+                .forEach { file ->
+                    if ("TikTokBusinessSdk.initializeSdk(" in file.readText()) {
+                        hits += file.relativeTo(repoRoot).path.replace("\\", "/")
+                    }
+                }
+        }
+        assertTrue(
+            hits.isNotEmpty(),
+            "[empty population] `TikTokBusinessSdk.initializeSdk(` no aparece en ningún fichero " +
+                "de producción bajo shared/src/{androidMain,commonMain}. O el SDK se quitó —y hay " +
+                "que retirar este test con él— o la llamada se renombró y esta regla ya no mira " +
+                "nada.",
+        )
+        assertEquals(
+            listOf("shared/src/androidMain/kotlin/com/rndeveloper/paparcar/data/analytics/TikTokAdAttribution.kt"),
+            hits,
+            "`TikTokBusinessSdk.initializeSdk(` aparece fuera de TikTokAdAttribution.kt " +
+                "($hits). Esa es la ÚNICA llamada que puede inicializar el SDK de verdad — un " +
+                "segundo sitio es un segundo lugar que puede mandar el identificador de " +
+                "publicidad y el evento de instalación antes de que haya consentimiento.",
+        )
+    }
+
     private data class AdNetwork(val key: String, val name: String, val aliases: List<String>)
 
     /** Las redes que este árbol mete DE VERDAD en el binario: declaradas y además pedidas. */
@@ -200,6 +245,11 @@ class AdvertisingDisclosureGuardrailTest {
                 key = "facebook-core",
                 name = "Meta",
                 aliases = listOf("Meta", "Facebook", "Instagram"),
+            ),
+            AdNetwork(
+                key = "tiktok-business-sdk",
+                name = "TikTok",
+                aliases = listOf("TikTok"),
             ),
         )
         val AD_SDK_KEYS = AD_SDKS.joinToString { it.key }

@@ -164,14 +164,10 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
     }
 
     override val adMeasurementConsent: AdMeasurementConsent
-        get() {
-            val stored = get(Keys.AD_MEASUREMENT_CONSENT, AdMeasurementConsent.UNASKED.name)
-            return runCatching { AdMeasurementConsent.valueOf(stored) }
-                .getOrDefault(AdMeasurementConsent.UNASKED)
-        }
+        get() = AndroidAdMeasurementConsentStorage.decode(get(Keys.AD_MEASUREMENT_CONSENT, ""))
 
     override fun setAdMeasurementConsent(consent: AdMeasurementConsent) =
-        set(Keys.AD_MEASUREMENT_CONSENT, consent.name)
+        set(Keys.AD_MEASUREMENT_CONSENT, AndroidAdMeasurementConsentStorage.encode(consent))
 
     override val hasRequestedLocationPermission: Boolean
         get() = get(Keys.LOCATION_PERMISSION_REQUESTED, false)
@@ -712,6 +708,22 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
             Keys.PENDING_PROMPT_AT,
             Keys.PENDING_PROMPT_STREET,
         )
+    }
+}
+
+internal object AndroidAdMeasurementConsentStorage {
+    private const val GRANTED_META_TIKTOK = "GRANTED_META_TIKTOK"
+
+    fun decode(stored: String): AdMeasurementConsent = when (stored) {
+        GRANTED_META_TIKTOK -> AdMeasurementConsent.GRANTED
+        AdMeasurementConsent.DENIED.name -> AdMeasurementConsent.DENIED
+        // The previous GRANTED value covered Meta. Ask again with both recipients named.
+        else -> AdMeasurementConsent.UNASKED
+    }
+
+    fun encode(consent: AdMeasurementConsent): String = when (consent) {
+        AdMeasurementConsent.GRANTED -> GRANTED_META_TIKTOK
+        AdMeasurementConsent.DENIED, AdMeasurementConsent.UNASKED -> consent.name
     }
 }
 

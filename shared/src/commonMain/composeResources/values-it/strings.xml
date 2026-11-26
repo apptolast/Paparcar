@@ -541,13 +541,13 @@
     <string name="ads_consent_point_privacy_title">I tuoi dati privati sono protetti</string>
     <string name="ads_consent_point_privacy_desc">La tua posizione, i tuoi viaggi e il tuo account non vengono mai condivisi.</string>
     <string name="ads_consent_point_measurement_title">Misuriamo solo il rendimento</string>
-    <string name="ads_consent_point_measurement_desc">Indica a Meta quale annuncio ti ha portato qui e se confermi un parcheggio o apri Plus.</string>
+    <string name="ads_consent_point_measurement_desc">Condivide il tuo identificatore pubblicitario e alcuni eventi dell'app con Meta e TikTok per misurare l'efficacia dei nostri annunci.</string>
     <string name="ads_consent_point_control_title">Hai sempre il controllo</string>
     <string name="ads_consent_point_control_desc">L'app funziona esattamente allo stesso modo se rifiuti, e puoi modificare la scelta in qualsiasi momento nelle Impostazioni.</string>
     <string name="ads_consent_allow">Consenti</string>
     <string name="ads_consent_deny">Non consentire</string>
     <string name="settings_ads_measurement">Misurazione degli annunci</string>
-    <string name="settings_ads_measurement_desc">Fa sapere a Meta quale nostro annuncio ti ha portato qui. Niente posizione né viaggi.</string>
+    <string name="settings_ads_measurement_desc">Condividi l'identificatore pubblicitario e gli eventi dell'app con Meta e TikTok per misurare l'efficacia dei nostri annunci.</string>
     <string name="auth_consent_privacy_policy">Informativa sulla privacy</string>
     <string name="auth_login_title">Accedi</string>
     <string name="auth_register_title">Crea un account</string>
