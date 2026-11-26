@@ -1,6 +1,41 @@
 # MONEY-FOUNDERS-GRANT-A-MISSING-SUBSCRIBER-IS-NOT-A-REJECTION-001 · un 404 de RevenueCat se trataba como veredicto final, no como "todavía no"
 
-**Estado:** ✅ Done · desplegado 26-11-2026 (`grantFoundersPlus` + `releaseFoundersSlot`, europe-west1)
+**Estado:** 🔵 En progreso — corte de emergencia 1.8.3 (vc22) en marcha. Ver
+[[project_money_founders_grant_a_missing_subscriber_is_not_a_rejection_001]] para el estado más
+reciente (este doc se congela al cerrar el ticket; esa memoria se actualiza en caliente).
+
+## ⛔⛔ El 404 de hoy no era (solo) una carrera — el AAB de producción llevaba la clave rota
+
+**26-11-2026, 11:29 CET.** Una sesión de GPT en paralelo diagnosticó esto mismo y escribió
+directamente en este fichero (sin pasar por git ni avisar) una versión que decía la clave de
+RevenueCat **"vacía"**. Verificado a mano, con los bytes reales del AAB firmado — no es vacía:
+
+- `tools/release/cut.py --phases verify` confirma producción en el código 21 (1.8.2), despliegue
+  completo (más tarde el usuario lo **detuvo** desde el Console al conocer esto: `verify` pasó a
+  mostrar `production halted [21]` / `production completed [20]`).
+- El AAB firmado de ese código (`.artifacts/paparcar-1.8.2-vc21.aab`) coincide por SHA-256 con el
+  registrado en [el ticket de corte](release-1-8-2-001.md).
+- Descomprimido y buscado en sus `.dex`: `REVENUECAT_API_KEY` **no está vacía — lleva un valor de
+  relleno, `goog_1a2b3c4d5e6f7h`**, no la clave real (`goog_EHPPEQDajqaKRzhsjkzMOsOWhjq`). Esa
+  cadena no aparece ni una vez en ninguno de los dos `.dex`.
+- Origen más probable: `.artifacts/Paparcar-release-1-8-2/local.properties` — el worktree con el
+  que se cortó esa versión — es el único de seis worktrees activos **sin la línea
+  `revenuecatKeyRelease`**. `app/build.gradle.kts` cae a variable de entorno cuando falta en
+  `local.properties`/`keystore.properties`; ahí pudo quedarse un valor de ejemplo de una sesión de
+  terminal (el usuario estaba "haciendo cambios con GPT" ese día).
+- Efecto, independientemente del valor exacto: con una clave que RevenueCat no reconoce, el SDK
+  nunca identifica de verdad al usuario — ni el regalo de founders ni una compra normal de Plus se
+  atan a la cuenta real. No es una carrera de tiempos (lo que arregla el ajuste de reintento de
+  abajo): es una clave rota en el binario, y ningún reintento del servidor la arregla.
+- **Segundo hallazgo, mismo patrón**: al preparar el corte de 1.8.3, el guard de `cut.py` (fase
+  `bundle`) cazó que `TIKTOK_APP_ID` **falta** en el `local.properties` principal (solo tenía
+  `TIKTOK_TT_APP_ID` y `TIKTOK_ACCESS_TOKEN`). Mismo mecanismo probable: el worktree original de
+  TikTok sí lo tenía, el principal no lo heredó.
+
+**La remediación real no es reintentar — es una versión nueva con la clave correcta verificada
+antes de firmar.** Eso es el corte 1.8.3 (vc22), en marcha. El ajuste de abajo (reintento ampliado)
+sigue siendo correcto como red de seguridad general, pero NO rescata a nadie que esté en el AAB de
+1.8.2 roto — esos necesitan el binario nuevo.
 
 ## Ajuste tras el primer despliegue (mismo día)
 El log nuevo confirmó la causa al dedillo — `{"code":7259,"message":"The subscriber was not found."}`
