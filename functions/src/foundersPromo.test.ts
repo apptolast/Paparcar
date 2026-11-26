@@ -211,9 +211,16 @@ test('2xx es éxito y no se reintenta', () => {
 });
 
 test('un 4xx NO se reintenta: es nuestro bug, no una avería', () => {
-  for (const status of [400, 401, 403, 404]) {
+  for (const status of [400, 401, 403]) {
     assert.deepEqual(outcomeFor(status), { ok: false, status, retryable: false, possiblyApplied: false });
   }
+});
+
+// Excepción medida contra la API real el 26-11: un 404 en la concesión promocional no es un bug
+// nuestro, es "RevenueCat todavía no conoce a este app_user_id" — el logIn del cliente puede
+// seguir en vuelo. [MONEY-FOUNDERS-GRANT-A-MISSING-SUBSCRIBER-IS-NOT-A-REJECTION-001]
+test('404 SÍ se reintenta: el subscriber puede no existir TODAVÍA en RevenueCat', () => {
+  assert.deepEqual(outcomeFor(404), { ok: false, status: 404, retryable: true, possiblyApplied: false });
 });
 
 test('429 y 5xx sí se reintentan', () => {

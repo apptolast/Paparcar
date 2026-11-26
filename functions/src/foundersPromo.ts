@@ -7,7 +7,10 @@ export const CLAIMS_COLLECTION = 'foundersClaims';
 export const GRANTS_COLLECTION = 'grants';
 export const ENTITLEMENT_PLUS = 'plus';
 export const FOUNDERS_CLOSE_MILLIS = Date.UTC(2026, 10, 30, 23);
-export const MAX_GRANT_ATTEMPTS = 5;
+// Measured 26-11: 5 attempts exhaust in ~74s of Eventarc's own backoff — nowhere near enough
+// wall-clock time for the client's one-shot RevenueCat identify [MONEY-001] to land when a 404
+// means "not yet", not "never". [MONEY-FOUNDERS-GRANT-A-MISSING-SUBSCRIBER-IS-NOT-A-REJECTION-001]
+export const MAX_GRANT_ATTEMPTS = 20;
 
 // Longer than the whole grant invocation. A duplicate can take over after a crashed invocation.
 const GRANT_LEASE_MILLIS = 60_000;
@@ -109,7 +112,11 @@ export interface StoreOutcome {
 export function outcomeFor(status: number): StoreOutcome {
   const ok = status >= 200 && status < 300;
   const possiblyApplied = status === 0 || status === 408 || status >= 500;
-  return { ok, status, possiblyApplied, retryable: possiblyApplied || status === 429 };
+  // A 404 on the promotional-grant call means RevenueCat does not know this app_user_id YET — the
+  // client's own identify can still be in flight, or have missed its one best-effort attempt
+  // [MONEY-001]. Retrying gives it room to catch up instead of returning the seat on the first try.
+  // [MONEY-FOUNDERS-GRANT-A-MISSING-SUBSCRIBER-IS-NOT-A-REJECTION-001]
+  return { ok, status, possiblyApplied, retryable: possiblyApplied || status === 429 || status === 404 };
 }
 
 export const NETWORK_OUTCOME = outcomeFor(0);

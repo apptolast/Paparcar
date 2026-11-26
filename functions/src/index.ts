@@ -823,7 +823,6 @@ function foundersStoreKey(): string {
 }
 
 async function callFoundersStore(url: string, key: string, body?: object): Promise<StoreOutcome> {
-
   try {
     const response = await fetch(url, {
       method: 'POST',
@@ -834,12 +833,22 @@ async function callFoundersStore(url: string, key: string, body?: object): Promi
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: AbortSignal.timeout(10_000),
     });
-    await response.body?.cancel().catch(() => {
-      logger.warn('founders promo: could not close RevenueCat response');
+    const outcome = outcomeFor(response.status);
+    if (outcome.ok) {
+      await response.body?.cancel().catch(() => {
+        logger.warn('founders promo: could not close RevenueCat response');
+      });
+    } else {
+      const detail = await response.text().catch(() => '');
+      logger.warn('founders promo: store call rejected', { url, status: response.status, detail });
+    }
+    return outcome;
+  } catch (error) {
+    // Errors from fetch may contain request details beyond the message. Keep credentials out of logs.
+    logger.warn('founders promo: store call failed', {
+      url,
+      error: error instanceof Error ? error.message : String(error),
     });
-    return outcomeFor(response.status);
-  } catch {
-    // Errors from fetch may contain request details. Keep credentials out of logs.
     return NETWORK_OUTCOME;
   }
 }
