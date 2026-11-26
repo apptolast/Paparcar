@@ -68,8 +68,8 @@ extensions.configure<ApplicationExtension> {
         applicationId = "com.rndeveloper.paparcar"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 21
-        versionName = "1.8.2"
+        versionCode = 22
+        versionName = "1.8.3"
         buildConfigField(
             "String",
             "GOOGLE_WEB_CLIENT_ID",

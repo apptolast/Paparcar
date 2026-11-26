@@ -1,0 +1,27 @@
+<en-US>
+• Fixed an issue that could stop some new accounts from activating Plus correctly.
+</en-US>
+<es-ES>
+• Corregido un problema que podía impedir activar correctamente Plus en algunas cuentas nuevas.
+</es-ES>
+<it-IT>
+• Risolto un problema che poteva impedire l'attivazione corretta di Plus per alcuni account nuovi.
+</it-IT>
+<pt-PT>
+• Corrigido um problema que podia impedir a ativação correta do Plus em algumas contas novas.
+</pt-PT>
+<fr-FR>
+• Correction d'un problème qui pouvait empêcher l'activation correcte de Plus pour certains nouveaux comptes.
+</fr-FR>
+<de-DE>
+• Ein Problem wurde behoben, das die korrekte Aktivierung von Plus bei manchen neuen Konten verhindern konnte.
+</de-DE>
+<nl-NL>
+• Een probleem opgelost waardoor Plus bij sommige nieuwe accounts niet goed werd geactiveerd.
+</nl-NL>
+<pl-PL>
+• Naprawiono problem, który mógł uniemożliwiać prawidłowe aktywowanie Plus na niektórych nowych kontach.
+</pl-PL>
+<ro>
+• S-a remediat o problemă care putea împiedica activarea corectă a Plus pentru unele conturi noi.
+</ro>
