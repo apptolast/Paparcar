@@ -9,6 +9,8 @@ import com.rndeveloper.paparcar.data.datasource.remote.dto.ParkingHistoryDto
 import com.rndeveloper.paparcar.data.datasource.remote.dto.PlaceInfoDto
 import com.rndeveloper.paparcar.data.datasource.remote.dto.UserProfileDto
 import com.rndeveloper.paparcar.data.datasource.remote.dto.VehicleDto
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
@@ -26,7 +28,7 @@ class UserProfileRepositoryImplTest {
 
     private val remote = RecordingRemoteUserProfileDataSource()
     private val dao = FakeUserProfileDao()
-    private val repository = UserProfileRepositoryImpl(remote, dao)
+    private val repository = UserProfileRepositoryImpl(remote, dao, "android", "1.8.3")
 
     private fun session(photoUrl: String? = null, displayName: String? = "Ana", email: String? = "ana@x.com") =
         UserSession(userId = "uid-1", email = email, displayName = displayName, photoUrl = photoUrl)
@@ -86,6 +88,52 @@ class UserProfileRepositoryImplTest {
 
         assertEquals("https://new/photo.jpg", result.getOrThrow().photoUrl)
         assertEquals("https://new/photo.jpg", remote.lastSetProfile?.photoUrl)
+        assertEquals("1.8.3", remote.lastSetProfile?.appVersion)
+        assertEquals("android", remote.lastSetProfile?.platform)
+    }
+
+    @Test
+    fun should_syncVersionWithoutReplacingProfile_when_versionIsMissing() = runTest {
+        remote.profile = remoteDoc()
+        repository.getOrCreateProfile(session()).getOrThrow()
+        assertEquals("1.8.3", remote.profile?.appVersion)
+        assertEquals("veh-1", remote.profile?.defaultVehicleId)
+        assertEquals(42L, remote.profile?.firstStepsDismissedAt)
+        assertNull(remote.lastSetProfile)
+        repository.getOrCreateProfile(session()).getOrThrow()
+        assertEquals(1, remote.appIdentityWrites)
+    }
+
+    @Test
+    fun should_notReplaceAccount_when_remoteReadFailsWithoutLocalCache() = runTest {
+        remote.failRead = true
+        kotlin.test.assertTrue(repository.getOrCreateProfile(session()).isFailure)
+        assertNull(remote.lastSetProfile)
+    }
+
+    @Test
+    fun should_notCreateOrWriteProfile_when_syncIsCancelledDuringRemoteRead() = runTest {
+        remote.readGate = CompletableDeferred()
+        val job = launch { repository.getOrCreateProfile(session()) }
+        testScheduler.runCurrent()
+        job.cancel()
+        job.join()
+        assertNull(remote.lastSetProfile)
+        assertEquals(0, remote.appIdentityWrites)
+        assertNull(dao.getProfile("uid-1"))
+    }
+
+    @Test
+    fun should_retryVersionAndKeepServingProfile_when_writeFails() = runTest {
+        remote.profile = remoteDoc().copy(platform = "ios", appVersion = "1.0")
+        remote.failAppIdentity = true
+        repository.getOrCreateProfile(session()).getOrThrow()
+        assertNull(remote.lastSetProfile)
+        remote.failAppIdentity = false
+        repository.getOrCreateProfile(session()).getOrThrow()
+        assertEquals(2, remote.appIdentityWrites)
+        assertEquals("android", remote.profile?.platform)
+        assertEquals("1.8.3", remote.profile?.appVersion)
     }
 }
 
@@ -98,7 +146,20 @@ private class RecordingRemoteUserProfileDataSource : RemoteUserProfileDataSource
 
     data class IdentityUpdate(val email: String?, val displayName: String?, val photoUrl: String?, val updatedAt: Long)
 
-    override suspend fun getProfile(userId: String): UserProfileDto? = profile
+    var failRead = false
+    var readGate: CompletableDeferred<Unit>? = null
+    var appIdentityWrites = 0
+    var failAppIdentity = false
+    override suspend fun updateAppIdentity(userId: String, platform: String, appVersion: String) {
+        appIdentityWrites++
+        check(!failAppIdentity) { "offline" }
+        profile = profile?.copy(platform = platform, appVersion = appVersion)
+    }
+    override suspend fun getProfile(userId: String): UserProfileDto? {
+        readGate?.await()
+        check(!failRead) { "read failed" }
+        return profile
+    }
     override suspend fun createOrUpdateProfile(profile: UserProfileDto) {
         lastSetProfile = profile
     }

@@ -58,7 +58,7 @@ class RemoteUserProfileDataSourceImpl(
             // A null here reads as "new user" upstream, so a read or decode failure must say so.
             // [IOS-APPLE-SIGN-IN-ON-BASELOGIN-3-001]
             .onFailure { e -> PaparcarLogger.e(AUTH_DIAG, "getProfile FAILED (read or decode)", e) }
-            .getOrNull()
+            .getOrThrow()
 
     override suspend fun createOrUpdateProfile(profile: UserProfileDto) {
         usersCollection().document(profile.userId).set(profile)
@@ -115,6 +115,12 @@ class RemoteUserProfileDataSourceImpl(
                 FIELD_BATTERY_OPTIMIZATION_EXEMPT to batteryOptimizationExempt,
                 FIELD_DETECTION_STATE_UPDATED_AT to updatedAtMs,
             ),
+        )
+    }
+
+    override suspend fun updateAppIdentity(userId: String, platform: String, appVersion: String) {
+        usersCollection().document(userId).update(
+            mapOf(FIELD_PLATFORM to platform, FIELD_APP_VERSION to appVersion),
         )
     }
 

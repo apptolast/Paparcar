@@ -51,8 +51,9 @@ data class UserProfileDto(
      *  documento decía de cuál venía — ni siquiera se podía deducir, porque los campos que se le
      *  parecen (`batteryOptimizationExempt`) hablan de otra cosa. */
     val platform: String? = null,
-    /** Con qué versión de app se tomó la foto. La otra pregunta que siempre se acaba haciendo
-     *  delante de un dato raro, y viaja en la misma escritura. */
+    /** Last app version synced by this account's device, also refreshed independently of detection.
+     *  With multiple devices the last writer wins; this is not the version of a historic snapshot.
+     *  [SYNC-THE-ACCOUNT-KNOWS-THE-APP-VERSION-001] */
     val appVersion: String? = null,
 
     // ── Procedencia de la instalación [MKT-INSTALL-ATTRIBUTION-CHANNEL-001] ──────────────────────

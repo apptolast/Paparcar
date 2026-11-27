@@ -11,6 +11,9 @@ import com.rndeveloper.paparcar.data.mapper.toEntity
 import com.rndeveloper.paparcar.domain.model.UserProfile
 import com.rndeveloper.paparcar.domain.repository.UserProfileRepository
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withTimeoutOrNull
@@ -20,9 +23,13 @@ import kotlin.time.Duration.Companion.milliseconds
 class UserProfileRepositoryImpl(
     private val remoteDataSource: RemoteUserProfileDataSource,
     private val profileDao: UserProfileDao,
+    private val platform: String,
+    private val appVersion: String,
 ) : UserProfileRepository {
 
-    override suspend fun getOrCreateProfile(session: UserSession): Result<UserProfile> =
+    private val profileSyncMutex = Mutex()
+
+    override suspend fun getOrCreateProfile(session: UserSession): Result<UserProfile> = profileSyncMutex.withLock {
         runCatching {
             // 1. Remote-first: pull the latest snapshot so any change made from
             //    another device (display name, photo, defaultVehicleId) lands in
@@ -30,9 +37,11 @@ class UserProfileRepositoryImpl(
             //    withTimeoutOrNull so a network that HANGS (not just fails) can't block
             //    the splash forever — a failure OR a timeout falls through to cached state
             //    in step 2. [AUDIT-DATA-001 M9]
-            val remoteDto = withTimeoutOrNull(REMOTE_PROFILE_TIMEOUT_MS.milliseconds) {
-                runCatching { remoteDataSource.getProfile(session.userId) }.getOrNull()
+            val remoteRead = withTimeoutOrNull(REMOTE_PROFILE_TIMEOUT_MS.milliseconds) {
+                runCatching { remoteDataSource.getProfile(session.userId) }
+                    .onFailure { if (it is CancellationException) throw it }
             }
+            val remoteDto = remoteRead?.getOrNull()
             PaparcarLogger.i(AUTH_DIAG, "getOrCreateProfile: remote profile found=${remoteDto != null}")
             if (remoteDto != null) {
                 // 1b. The doc is a snapshot of the FIRST sign-in; the session is what Google says
@@ -52,6 +61,17 @@ class UserProfileRepositoryImpl(
                                 photoUrl = reconciled.photoUrl,
                                 updatedAt = reconciled.updatedAt,
                             )
+                        }.onFailure { if (it is CancellationException) throw it }
+                    }
+                }
+                if (remoteDto.platform != platform || remoteDto.appVersion != appVersion) {
+                    withTimeoutOrNull(REMOTE_PROFILE_TIMEOUT_MS.milliseconds) {
+                        try {
+                            remoteDataSource.updateAppIdentity(session.userId, platform, appVersion)
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            PaparcarLogger.w(AUTH_DIAG, "app identity sync failed", e)
                         }
                     }
                 }
@@ -65,6 +85,11 @@ class UserProfileRepositoryImpl(
                 return@runCatching it
             }
 
+            // A failed/timed-out read is not proof that the account does not exist.
+            // Never replace a potentially existing document with an empty first-login profile.
+            check(remoteRead != null) { "profile read timed out" }
+            remoteRead.getOrThrow()
+
             // 3. Truly new user (or first login after data wipe): create the doc
             //    in Firestore + cache locally. defaultVehicleId starts null and
             //    gets populated when the user registers their first vehicle.
@@ -74,6 +99,8 @@ class UserProfileRepositoryImpl(
                 email = session.email,
                 displayName = session.displayName,
                 photoUrl = session.photoUrl,
+                platform = platform,
+                appVersion = appVersion,
                 createdAt = now,
                 updatedAt = now,
             )
@@ -86,7 +113,11 @@ class UserProfileRepositoryImpl(
             PaparcarLogger.i(AUTH_DIAG, "getOrCreateProfile: Firestore write OK")
             profileDao.insertOrUpdate(dto.toEntity())
             dto.toDomain()
-        }.onFailure { e -> PaparcarLogger.e(AUTH_DIAG, "getOrCreateProfile FAILED", e) }
+        }.onFailure { e ->
+            if (e is CancellationException) throw e
+            PaparcarLogger.e(AUTH_DIAG, "getOrCreateProfile FAILED", e)
+        }
+    }
 
     override fun observeProfile(userId: String): Flow<UserProfile?> =
         profileDao.observeProfile(userId).map { it?.toDomain() }

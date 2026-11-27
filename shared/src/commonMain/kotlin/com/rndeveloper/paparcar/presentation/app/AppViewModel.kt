@@ -33,6 +33,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import com.apptolast.baselogin.domain.AuthRepository
 import com.apptolast.baselogin.domain.model.AuthState
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.combine
@@ -91,6 +92,7 @@ class AppViewModel(
      *  cumplir sobre un usuario que no se sabe nombrar. Reactivo y no una lectura única — este
      *  ViewModel sobrevive a un cierre de sesión y a la entrada del siguiente. */
     private val authRepository: AuthRepository,
+    private val getOrCreateUserProfile: com.rndeveloper.paparcar.domain.usecase.user.GetOrCreateUserProfileUseCase,
     private val analyticsTracker: AnalyticsTracker? = null,
 // `Nothing` as the effect type: the root ViewModel has no one-shot side effects to emit, and saying
 // so in the type stops one from being smuggled in. Its only effect used to be applying a language
@@ -181,6 +183,17 @@ class AppViewModel(
                     previous = current
                 }
         }
+        // Sync the account's app identity on authenticated foreground entry and reconnect.
+        // collectLatest cancels the previous account's work on sign-out or account change.
+        viewModelScope.launch {
+            combine(signedInUid(), appForeground, connectivityObserver.status) { uid, visible, connection ->
+                uid?.takeIf { visible && connection == ConnectivityStatus.Online }
+            }.distinctUntilChanged().collectLatest { uid ->
+                if (uid != null) getOrCreateUserProfile()
+                    .onFailure { e -> PaparcarLogger.w(TAG, "profile sync failed", e) }
+            }
+        }
+
         // Mirror the real vehicle list into appState so navigation decisions
         // (e.g. post-permissions: HOME vs VEHICLE_REGISTRATION) can read it directly.
         //

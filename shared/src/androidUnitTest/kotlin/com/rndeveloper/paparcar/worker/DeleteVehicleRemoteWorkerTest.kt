@@ -126,6 +126,7 @@ private class DeleteRecordingDataSource : RemoteUserProfileDataSource {
         calls += "vehicle:$vehicleId"
     }
 
+    override suspend fun updateAppIdentity(userId: String, platform: String, appVersion: String) = Unit
     override suspend fun getProfile(userId: String): UserProfileDto? = null
     override suspend fun createOrUpdateProfile(profile: UserProfileDto) = Unit
     override suspend fun updateDefaultVehicleId(userId: String, vehicleId: String?) = Unit

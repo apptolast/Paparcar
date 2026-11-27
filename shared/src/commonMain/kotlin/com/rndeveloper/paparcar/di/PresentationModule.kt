@@ -48,6 +48,7 @@ val presentationModule = module {
             observePlusGrant = get(),
             claimFoundersPromo = get(),
             authRepository = get(),
+            getOrCreateUserProfile = get(),
             analyticsTracker = get(),
         )
     }

@@ -37,6 +37,10 @@
 
 ---
 
+## Identidad de la app en el perfil
+
+`UserProfileRepositoryImpl.getOrCreateProfile` sincroniza `platform` y `appVersion` desde los hechos de build inyectados: al crear el perfil y mediante actualización parcial si difieren del remoto. El bootstrap y la entrada autenticada a primer plano/reconexión utilizan ese camino. No requiere ubicación ni llegar a Home. Un fallo conserva el perfil local y se reintenta en la siguiente sincronización; misma versión/plataforma evita la escritura adicional. Entre varios dispositivos gana el último escritor: estos campos no fechan el snapshot de permisos ni identifican cada instalación. Véase [SYNC-THE-ACCOUNT-KNOWS-THE-APP-VERSION-001](backlog/sync-the-account-knows-the-app-version-001.md).
+
 ## Tres módulos Gradle
 
 `settings.gradle.kts` declara `:shared`, `:app` y `:mockkit`, con el paquete

@@ -181,7 +181,7 @@ val dataModule = module {
     // Repositories
     single<SpotRepository> { SpotRepositoryImpl(get(), get()) }
     single<UserParkingRepository> { UserParkingRepositoryImpl(get(), get(), get()) }
-    single<UserProfileRepository> { UserProfileRepositoryImpl(get(), get()) }
+    single<UserProfileRepository> { UserProfileRepositoryImpl(get(), get(), com.rndeveloper.paparcar.platformName, com.rndeveloper.paparcar.appVersion) }
     single<VehicleRepository> {
         VehicleRepositoryImpl(get(), get(), get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default), get())
     }

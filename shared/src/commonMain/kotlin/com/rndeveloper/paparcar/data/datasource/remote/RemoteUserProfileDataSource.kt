@@ -8,6 +8,8 @@ import com.rndeveloper.paparcar.data.datasource.remote.dto.VehicleDto
 
 interface RemoteUserProfileDataSource {
     suspend fun getProfile(userId: String): UserProfileDto?
+    /** Updates only the app identity; never replaces the account document. */
+    suspend fun updateAppIdentity(userId: String, platform: String, appVersion: String)
     suspend fun createOrUpdateProfile(profile: UserProfileDto)
     /** Field-targeted update — avoids overwriting the whole profile doc. */
     suspend fun updateDefaultVehicleId(userId: String, vehicleId: String?)

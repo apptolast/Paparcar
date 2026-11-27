@@ -21,7 +21,7 @@ class GetOrCreateUserProfileUseCase(
     suspend operator fun invoke(): Result<UserProfile> = runCatching {
         val session = freshestSession() ?: error("no authenticated session")
         userProfileRepository.getOrCreateProfile(session).getOrThrow()
-    }
+    }.onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }
 
     /**
      * The cached session comes from Firebase Auth's local cache, which only learns about identity
@@ -39,7 +39,10 @@ class GetOrCreateUserProfileUseCase(
         }
         val refreshed = withTimeoutOrNull(REFRESH_SESSION_TIMEOUT_MS.milliseconds) {
             runCatching { authRepository.refreshSession() }
-                .onFailure { e -> PaparcarLogger.w(AUTH_DIAG, "refreshSession threw", e) }
+                .onFailure { e ->
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                    PaparcarLogger.w(AUTH_DIAG, "refreshSession threw", e)
+                }
                 .getOrNull()
         }
         PaparcarLogger.i(AUTH_DIAG, "refreshSession result=${refreshed?.let { it::class.simpleName } ?: "timeout/error"}")

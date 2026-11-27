@@ -89,6 +89,7 @@ class AppViewModelTest {
     /** [ANALYTICS-FUEL-HISTORY-ALERTS-COVERAGE-001] Compartido, no reasignado por test: el helper
      *  `viewModel()` lo cablea siempre, así que cualquier test puede leer `fakeAnalyticsTracker.events`. */
     private val fakeAnalyticsTracker = FakeAnalyticsTracker()
+    private val profileRepo = FakeUserProfileRepository()
     // [DET-A-SWITCH-THAT-IS-OFF-LEAVES-NO-TRACE-001] Signed out and with nothing granted, so the
     // publisher is inert here: its own contract is covered by PublishDetectionStateUseCaseTest.
     private lateinit var detectionPublisher: PublishDetectionStateUseCase
@@ -186,8 +187,31 @@ class AppViewModelTest {
         observePlusGrant = ObservePlusGrantUseCase(entitlement),
         claimFoundersPromo = ClaimFoundersPromoUseCase(foundersPromo, fakePrefs, entitlement),
         authRepository = fakeAuth,
+        getOrCreateUserProfile = com.rndeveloper.paparcar.domain.usecase.user.GetOrCreateUserProfileUseCase(fakeAuth, profileRepo),
         analyticsTracker = fakeAnalyticsTracker,
     )
+
+    @Test
+    fun should_syncProfileOnForegroundAndReconnect_when_authenticatedWithoutPermissions() = runTest {
+        fakeAuth.emitState(AuthState.Unauthenticated)
+        val vm = viewModel()
+        vm.handleIntent(AppIntent.SetAppForeground(true))
+        assertEquals(0, profileRepo.getOrCreateCallCount)
+        fakeAuth.emitState(AuthState.Authenticated(UserSession(userId = "account-a", email = null)))
+        runCurrent()
+        assertEquals(1, profileRepo.getOrCreateCallCount)
+        fakeConnectivity.emit(ConnectivityStatus.Offline)
+        fakeConnectivity.emit(ConnectivityStatus.Online)
+        runCurrent()
+        assertEquals(2, profileRepo.getOrCreateCallCount)
+        fakeAuth.emitState(AuthState.Authenticated(UserSession(userId = "account-b", email = null)))
+        runCurrent()
+        assertEquals("account-b", profileRepo.lastSession?.userId)
+        vm.handleIntent(AppIntent.SetAppForeground(false))
+        vm.handleIntent(AppIntent.SetAppForeground(true))
+        runCurrent()
+        assertEquals(4, profileRepo.getOrCreateCallCount)
+    }
 
     /** [MONEY-FOUNDERS-PLUS-PROMO-001] El timbre de la promo, sin red. */
     private val foundersPromoRepo = FakeFoundersPromoRepository()

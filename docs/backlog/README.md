@@ -1,6 +1,6 @@
 # Backlog — índice de lo que sigue abierto
 
-> **881 ficheros: 785 cerrados, 87 abiertos, 9 que no son tickets.** Este índice lista **solo lo que**
+> **882 ficheros: 786 cerrados, 87 abiertos, 9 que no son tickets.** Este índice lista **solo lo que**
 > queda**, para que la pregunta *"¿qué falta?"* se conteste leyendo y no listando el directorio.
 > Recuento actualizado al cerrar PARKINGS-FRANCE-SNAPSHOT-001 el **2026-11-27**.
 > Barrido histórico verificado contra master `1339ea263` el **2026-10-07**

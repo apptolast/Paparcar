@@ -104,6 +104,7 @@ class UserParkingRepositoryImplTest {
     /** El cierre no habla con la red: si este doble se despierta, el repositorio hizo I/O de más. */
     private class UntouchedRemote : RemoteUserProfileDataSource {
         private fun unexpected(): Nothing = error("el cierre no debe tocar la red directamente")
+        override suspend fun updateAppIdentity(userId: String, platform: String, appVersion: String) = unexpected()
         override suspend fun getProfile(userId: String): UserProfileDto? = unexpected()
         override suspend fun createOrUpdateProfile(profile: UserProfileDto) = unexpected()
         override suspend fun updateIdentityFields(

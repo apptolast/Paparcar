@@ -48,6 +48,7 @@ class SyncOutboxDrainerTest {
         val clearedSessions = mutableListOf<String>()
 
         private fun gate() { if (failNext) error("network down") }
+        override suspend fun updateAppIdentity(userId: String, platform: String, appVersion: String) = Unit
         override suspend fun getProfile(userId: String): UserProfileDto? = null
         override suspend fun createOrUpdateProfile(profile: UserProfileDto) = gate()
         override suspend fun updateIdentityFields(
