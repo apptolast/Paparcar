@@ -67,24 +67,23 @@ test('should_countAParkingOnce_when_twoCellsBringIt', () => {
   assert.equal(response.parkings.length, 1);
 });
 
-test('should_answerEmpty_when_theBlockHasNoFiles', () => {
-  // La mayoria del territorio no tiene parkings, asi que su fichero NO existe. Eso es la respuesta
-  // correcta, no un error — y el puntero es lo que distingue «vacia» de «sin publicar».
+test('should_deferToOverpass_when_theWholeBlockHasNoSnapshotData', () => {
+  // No files may mean empty land OR a country not yet imported. Defer conservatively.
   const response = responseFor('1520_-102', manifest(), [], NOW);
   assert.deepEqual(response.parkings, []);
-  assert.equal(response.serve, true);
+  assert.equal(response.serve, false);
   assert.equal(response.baseVersion, '2026-W45');
 });
 
 test('should_keepServing_when_thePointerSaysNothingAboutIt', () => {
-  // Un puntero viejo, de antes de que existiera la bandera, NO puede apagar el carril.
-  assert.equal(responseFor('c', manifest(), [], NOW).serve, true);
+  // Legacy pointers still serve blocks that actually contain snapshot data.
+  assert.equal(responseFor('c', manifest(), [cell('c', [entry()])], NOW).serve, true);
 });
 
 test('should_sendTheClientBackToOverpass_when_thePointerSaysSoExplicitly', () => {
   assert.equal(responseFor('c', manifest({ serve: false }), [], NOW).serve, false);
   // Y `true` explicito tambien sirve, para que el fichero pueda decirlo sin ambiguedad.
-  assert.equal(responseFor('c', manifest({ serve: true }), [], NOW).serve, true);
+  assert.equal(responseFor('c', manifest({ serve: true }), [cell('c', [entry()])], NOW).serve, true);
 });
 
 test('el orden es estable por id, para que dos respuestas iguales sean el mismo byte', () => {

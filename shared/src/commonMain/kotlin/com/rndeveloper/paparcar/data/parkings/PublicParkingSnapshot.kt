@@ -23,7 +23,7 @@ import kotlin.math.roundToLong
 data class PublicParkingSnapshotCell(
     /** El NOMBRE de la celda: `<band>_<col>` de `ParkingZoneGrid.Zone.id`. */
     val cell: String,
-    /** La semana ISO que generó el fichero, repetida aquí para que un fichero suelto se explique. */
+    /** Identificador inmutable de generación (semana + ejecución), repetido en cada celda. */
     val version: String,
     val parkings: List<PublicParkingSnapshotEntry>,
 )

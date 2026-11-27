@@ -80,6 +80,14 @@ class BboxCentreTest(unittest.TestCase):
         """Sin un solo punto no hay centro, y el extractor lo cuenta en vez de inventarlo."""
         self.assertIsNone(osm_extract._bbox_centre([]))
 
+    def test_relation_way_nodes_are_cached_before_native_member_filtering(self):
+        """The way's nodes are not direct relation members, but still define its bounding box."""
+        elements = osm_extract.extract(str(HERE / "fixtures" / "relation-members.osm"))
+        self.assertEqual(1, len(elements))
+        self.assertEqual("relation", elements[0]["type"])
+        self.assertEqual(20, elements[0]["id"])
+        self.assertEqual({"lat": 41.0, "lon": 3.0}, elements[0]["center"])
+
     def test_a_single_node_is_its_own_centre(self):
         self.assertEqual((40.4168, -3.7038), osm_extract._bbox_centre([(40.4168, -3.7038)]))
 

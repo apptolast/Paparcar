@@ -178,10 +178,9 @@ export function cacheControlFor(hasPerishable: boolean): string {
  * llamante repite, y un parking repetido se vería como dos parkings en el mismo sitio — que es
  * exactamente el fallo que *parece un dato*.
  *
- * ⛔ **Y una celda que falta NO es un error**: la gran mayoría del territorio no tiene parkings, así
- * que su fichero no existe y eso es la respuesta correcta (`[]`). Lo que el llamante no puede hacer
- * es confundir *«esta celda está vacía»* con *«el snapshot no está publicado»*, y para eso está el
- * puntero.
+ * The reader checks the index before treating a missing file as empty land. If the WHOLE block
+ * has no files, its territorial coverage is unknown: serve=false delegates to Overpass.
+ * [PARKINGS-FRANCE-SNAPSHOT-001]
  */
 export function responseFor(
   cell: string,
@@ -226,7 +225,9 @@ export function responseFor(
     cell,
     baseVersion: manifest.version,
     generatedAt: now,
-    serve: manifest.serve !== false,
+    // No files in the whole block is also how an unimported territory looks. Ask Overpass
+    // rather than asserting there are no parkings. No country guesses in the client.
+    serve: manifest.serve !== false && cells.length > 0,
     licences: [OSM_LICENCE, ...[...sources].map(licenceFor).filter((l): l is Licence => l !== null)],
     // Orden estable por id: dos respuestas de la misma celda son el mismo byte, así que el CDN y
     // cualquier comparación aguas abajo pueden fiarse de ello.

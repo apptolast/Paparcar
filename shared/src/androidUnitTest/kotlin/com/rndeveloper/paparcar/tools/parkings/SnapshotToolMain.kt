@@ -130,30 +130,29 @@ object SnapshotToolMain {
      * comprobar que una semana no cambio nada comparando hashes en vez de confiando.
      */
     private fun snapshot(outRoot: String, version: String, extractPaths: List<String>) {
+        require(version.matches(Regex("[A-Za-z0-9_-]+"))) { "version insegura: $version" }
+        val versionDir = File(outRoot, "$PUBLISH_PREFIX/$version")
+        require(!versionDir.exists()) { "version inmutable ya existente: $version" }
         val started = System.currentTimeMillis()
         // ⛔ **Varios extractos, y DEDUPLICADOS por id.** Un territorio no cabe en un fichero de
         // Geofabrik —las Canarias viven en `africa/`, no en `europe/spain`, y con un solo extracto
         // el snapshot las deja a CERO sin que nada falle— y los recortes de Geofabrik se **solapan**
         // en las fronteras, asi que dos extractos vecinos traen el mismo parking dos veces. El id
         // (`osm/<tipo>/<id>`) es estable, asi que el ultimo gana y el conteo no se infla.
-        val parkings = extractPaths
-            .flatMap { path ->
-                val parsed = OsmPublicParkingParser.parse(File(path).readText())
+        val parsedByExtract = extractPaths.map { path ->
+            OsmPublicParkingParser.parse(File(path).readText()).also { parsed ->
+                require(parsed.isNotEmpty()) { "extracto sin parkings utilizables: $path" }
                 println("  $path -> ${parsed.size} parkings")
-                parsed
             }
-            .associateBy { it.id }
-            .values
-            .toList()
-        val duplicates = extractPaths.sumOf { path ->
-            OsmPublicParkingParser.parse(File(path).readText()).size
-        } - parkings.size
+        }
+        val parkings = parsedByExtract.flatten().associateBy { it.id }.values.toList()
+        val duplicates = parsedByExtract.sumOf { it.size } - parkings.size
         if (duplicates > 0) println("  solapamiento entre extractos: $duplicates repetidos, deduplicados")
         val byCell = parkings
             .groupBy { ParkingZoneGrid.zoneOf(it.latitude, it.longitude).id }
             .toSortedMap()
 
-        val versionDir = File(outRoot, "$PUBLISH_PREFIX/$version").apply { mkdirs() }
+        check(versionDir.mkdirs()) { "no se pudo crear $versionDir" }
         var storedBytes = 0L
         var wireBytes = 0L
         byCell.forEach { (cellId, cellParkings) ->

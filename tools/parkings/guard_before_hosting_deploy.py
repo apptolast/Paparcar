@@ -19,9 +19,9 @@ recordandola no esta evitada: este guard la convierte en un fallo ruidoso ANTES 
 
 ## Que comprueba
 
-Si produccion sirve un puntero y el directorio local no tiene uno, el deploy se aborta. Es la unica
-forma del fallo que importa: la que BORRA. Publicar un snapshot nuevo encima de otro es normal, y
-publicar cuando produccion todavia no tiene ninguno tambien.
+Si hay puntero local, valida celdas, manifiesto, bulk y cobertura ES/Canarias/FR con el mismo
+validador que CI. Un puntero aislado no acredita la base. Si solo produccion tiene puntero,
+aborta para impedir el borrado. [PARKINGS-FRANCE-SNAPSHOT-001]
 
 Se engancha como `predeploy` de hosting en `firebase.json`. Para saltarlo a proposito
 (p. ej. retirar el snapshot de verdad): `PAPARCAR_ALLOW_SNAPSHOT_DELETE=1`.
@@ -32,6 +32,8 @@ from __future__ import annotations
 import json
 import os
 import pathlib
+import subprocess
+import tempfile
 import sys
 import urllib.error
 import urllib.request
@@ -63,7 +65,21 @@ def main() -> int:
     local = root / PUBLIC_DIR / POINTER_PATH
 
     if local.is_file():
-        return 0
+        # A pointer alone does not prove that the countries or even the cells exist.
+        # Compare with the base live NOW, including manual deploys outside the weekly workflow.
+        validator = str(root / "tools/parkings/validate-snapshot.mjs")
+        with tempfile.TemporaryDirectory(prefix="paparcar-snapshot-") as scratch:
+            baseline = str(pathlib.Path(scratch) / "previous.ndjson.gz")
+            download = subprocess.run(
+                ["node", validator, "--download-baseline", baseline], check=False,
+            )
+            if download.returncode:
+                return download.returncode
+            return subprocess.run(
+                ["node", validator, str(root / PUBLIC_DIR), "--require-es-fr",
+                 f"--baseline={baseline}"],
+                check=False,
+            ).returncode
 
     published = live_pointer()
     if published is None:

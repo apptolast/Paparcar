@@ -12,6 +12,7 @@ import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 import { isDeadToken, targetsFor, verdictFor, type PublishedSpot, type ZoneAlertSub } from './fanout';
 import { blockAround, cellId, zoneOf } from './parkingsGrid';
+import { ParkingSnapshotReader } from './parkingSnapshotReader';
 import {
   isWorthWriting,
   parseMadrid,
@@ -23,8 +24,6 @@ import {
   cacheControlFor,
   hasPerishable,
   responseFor,
-  type SnapshotCell,
-  type SnapshotManifest,
 } from './parkingsCell';
 import {
   targetsFor as sharedCarTargetsFor,
@@ -395,40 +394,7 @@ const PARKINGS_BASE_URL = process.env.PARKINGS_BASE_URL ?? 'https://paparcar.com
 /** El esquema de la respuesta. Un `v` que no conocemos es un error, no algo que servir a medias. */
 const SCHEMA_VERSION = '1';
 
-/**
- * ⛔ Las celdas son INMUTABLES bajo su version, asi que una vez leidas se quedan en la instancia
- * para siempre: el `version/celda` es la llave y no hay nada que invalidar. El puntero NO, porque
- * es lo que puede cambiar de semana y lo que lleva el interruptor.
- */
-const cellCache = new Map<string, SnapshotCell | null>();
-let pointerCache: { manifest: SnapshotManifest; atMs: number } | null = null;
-
-/** Lo que el puntero vive en memoria de la instancia. Corto: lleva el interruptor. */
-const POINTER_TTL_MS = 60_000;
-
-async function readPointer(now: number): Promise<SnapshotManifest | null> {
-  if (pointerCache && now - pointerCache.atMs < POINTER_TTL_MS) return pointerCache.manifest;
-  const response = await fetch(`${PARKINGS_BASE_URL}/parkings/v1/latest.json`);
-  if (!response.ok) return null;
-  const manifest = (await response.json()) as SnapshotManifest;
-  pointerCache = { manifest, atMs: now };
-  return manifest;
-}
-
-async function readCell(version: string, cell: string): Promise<SnapshotCell | null> {
-  const key = `${version}/${cell}`;
-  const cached = cellCache.get(key);
-  if (cached !== undefined) return cached;
-  const response = await fetch(`${PARKINGS_BASE_URL}/parkings/v1/${version}/${cell}.json`);
-  // ⛔ Un 404 es «esta celda no tiene parkings», que es la respuesta correcta para la mayoria del
-  // territorio — NO un error. Lo que distingue «vacia» de «sin publicar» es el puntero, que ya se
-  // ha leido antes de llegar aqui.
-  const cell404 = response.status === 404;
-  if (!response.ok && !cell404) throw new Error(`cell ${key}: HTTP ${response.status}`);
-  const value = cell404 ? null : ((await response.json()) as SnapshotCell);
-  cellCache.set(key, value);
-  return value;
-}
+const snapshotReader = new ParkingSnapshotReader(PARKINGS_BASE_URL);
 
 /** Colección de la ocupación viva. ⛔ Espejada en `firestore.rules`. */
 const OCCUPANCY_COLLECTION = 'publicParkings';
@@ -603,18 +569,8 @@ export const mergeCell = onRequest(
     }
 
     try {
-      const manifest = await readPointer(now);
-      if (!manifest) {
-        // El puntero es lo que distingue «celda vacia» de «snapshot sin publicar». Sin el no se
-        // puede contestar sin mentir, asi que se admite el fallo y el cliente se va a Overpass.
-        logger.error('parkings pointer unreadable', new Error('latest.json not available'));
-        response.status(503).json({ error: 'pointer unavailable' });
-        return;
-      }
-
       const block = blockAround(zone);
-      const files = await Promise.all(block.map((z) => readCell(manifest.version, cellId(z))));
-      const cells = files.filter((f): f is SnapshotCell => f !== null);
+      const { manifest, cells } = await snapshotReader.readBlock(block.map(cellId), now);
       const payload = responseFor(cellId(zone), manifest, cells, now, await readOccupancy(now));
 
       logger.info('parkings cell served', {

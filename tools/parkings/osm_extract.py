@@ -39,6 +39,11 @@ import osmium
 AMENITY_KEY = "amenity"
 AMENITY_VALUE = "parking"
 
+# France is ~4.8 GB compressed. Keep the node-location index disk-backed so a CI runner does
+# not need RAM proportional to every OSM node. libosmium owns and removes the temporary file.
+# Geometry and filtering are unchanged. [PARKINGS-FRANCE-SNAPSHOT-001]
+LOCATION_STORAGE = "sparse_file_array"
+
 #: Los tipos de miembro de los que SI sabemos sacar geometria. Una relacion dentro de otra no se
 #: resuelve: se cuenta, para que la limitacion sea un numero y no una suposicion.
 RELATION_MEMBER_TYPES = ("n", "w")
@@ -90,7 +95,7 @@ def extract(pbf_path: str) -> list[dict]:
     # dato que falta. [MEDIDO 02-11-2026]
     dropped: dict[str, int] = {}
 
-    processor = osmium.FileProcessor(pbf_path).with_locations().with_filter(tag_filter)
+    processor = osmium.FileProcessor(pbf_path).with_locations(LOCATION_STORAGE).with_filter(tag_filter)
     for obj in processor:
         kind = obj.type_str()
         tags = {tag.k: tag.v for tag in obj.tags}
@@ -124,6 +129,8 @@ def extract(pbf_path: str) -> list[dict]:
                 # numero en la salida y no una suposicion.
                 relation_nested[obj.id] = nested
 
+    del processor  # Release the first location index before allocating the second.
+
     # ── Pasada 2 · solo si hay relations ─────────────────────────────────────
     if relation_members:
         wanted_ways = {ref for members in relation_members.values() for kind, ref in members if kind == "w"}
@@ -132,7 +139,12 @@ def extract(pbf_path: str) -> list[dict]:
         # ⛔ NODE siempre: ademas de ser miembros por derecho propio, sin leer los nodos pyosmium no
         # puede cachear localizaciones y `with_locations()` lanza. [MEDIDO al abrirlo]
         member_pass = osmium.FileProcessor(pbf_path, osmium.osm.NODE | osmium.osm.WAY)
-        for obj in member_pass.with_locations():
+        # Location caching runs BEFORE these native filters. Way geometry still sees all nodes,
+        # but Python only receives the relation members we actually need, not the whole country.
+        member_pass.with_locations(LOCATION_STORAGE)
+        member_pass.with_filter(osmium.filter.IdFilter(wanted_nodes).enable_for(osmium.osm.NODE))
+        member_pass.with_filter(osmium.filter.IdFilter(wanted_ways).enable_for(osmium.osm.WAY))
+        for obj in member_pass:
             kind = obj.type_str()
             if kind == "w" and obj.id in wanted_ways:
                 boxes[("w", obj.id)] = _way_locations(obj)

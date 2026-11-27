@@ -6,11 +6,7 @@ name: Parkings snapshot (weekly)
 # sirve por CDN en vez de preguntarse a Overpass por usuario (4,68 s en frio en Madrid, 7,72 s en
 # Malaga, 504 en Barcelona — medido en los tickets de Overpass).
 #
-# ⚠️ **Este workflow no puede ejecutarse todavia y entra escrito a proposito.** El CI del repo esta
-# muerto desde el 13-09-2026 por facturacion (`project_ci_dead_since_2026_09_13`). Mientras lo este,
-# el snapshot se genera **a mano** con los comandos de `tools/parkings/README.md`, que son los
-# mismos pasos que hay aqui. Un workflow escrito y sin correr es peor que ninguno solo si nadie lo
-# dice; esta dicho.
+# Ampliación ES + Canarias + Francia aprobada el 27-11-2026. [PARKINGS-FRANCE-SNAPSHOT-001]
 
 on:
   schedule:
@@ -19,10 +15,6 @@ on:
     - cron: '17 4 * * 1'
   workflow_dispatch:
     inputs:
-      extracts:
-        description: 'Extractos de Geofabrik, separados por espacios (relativos a download.geofabrik.de)'
-        default: 'europe/spain-latest.osm.pbf africa/canary-islands-latest.osm.pbf'
-        required: false
       deploy:
         description: 'Publicar en Hosting al terminar'
         type: boolean
@@ -38,6 +30,7 @@ jobs:
   snapshot:
     name: Build and publish the car-park base
     runs-on: ubuntu-latest
+    timeout-minutes: 120
 
     steps:
       - name: Checkout
@@ -53,6 +46,19 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Test artifact validation
+        run: node --test tools/parkings/validate-snapshot.test.mjs
+
+      - name: Test the snapshot backend
+        run: |
+          npm ci --prefix functions --ignore-scripts --no-audit --no-fund
+          npm run build --prefix functions
+          node --test functions/lib/*.test.js
 
       - name: Install pyosmium
         run: pip install osmium
@@ -83,13 +89,13 @@ jobs:
           # ⛔ `%G-W%V`, no `%Y-W%V`: en la semana que cruza el ano, `%Y` da el ano del DIA y `%G`
           # el de la SEMANA ISO, asi que la primera semana de enero se publicaria como la ultima
           # del ano que acaba de terminar y machacaria una version existente.
-          echo "week=$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
+          echo "week=$(date -u +%G-W%V)-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
           # DOS extractos para Espana, no uno: las Canarias estan en `africa/`, no en
           # `europe/spain`, porque Geofabrik recorta por geografia y no por administracion. Medido:
           # la caja del extracto de Espana es lon -9,30..4,31 y las islas estan entre -13 y -18, asi
           # que con uno solo el snapshot deja las Canarias a CERO y **nada falla** — se publica un
           # mapa vacio para 2,2 millones de personas. [MEDIDO 02-11-2026]
-          echo "extracts=${{ github.event.inputs.extracts || 'europe/spain-latest.osm.pbf africa/canary-islands-latest.osm.pbf' }}" >> "$GITHUB_OUTPUT"
+          echo "extracts=europe/spain-latest.osm.pbf africa/canary-islands-latest.osm.pbf europe/france-latest.osm.pbf" >> "$GITHUB_OUTPUT"
 
       # Un extracto por fichero, y la geometria se saca UNO A UNO: asi una region que no ha
       # cambiado no se vuelve a extraer, y el que junta las partes es el tool, que **deduplica por
@@ -115,6 +121,18 @@ jobs:
         run: |
           ./gradlew :shared:parkingSnapshotTool --no-daemon \
             --args="--snapshot hosting/public ${{ steps.plan.outputs.week }} $(echo /tmp/parkings/raw-*.json)"
+
+      - name: Validate complete coverage and artifact integrity
+        run: |
+          node tools/parkings/validate-snapshot.mjs --download-baseline /tmp/parkings/previous.ndjson.gz
+          node tools/parkings/validate-snapshot.mjs hosting/public --require-es-fr --baseline=/tmp/parkings/previous.ndjson.gz
+
+      - name: Preserve artifact for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: parkings-${{ steps.plan.outputs.week }}
+          path: hosting/public/parkings
+          retention-days: 14
 
       # El guardarrail de la rejilla, que es lo unico que puede cazar que el reparto en celdas haya
       # cambiado sin que nadie regenerara la tabla que el backend del ticket 2 va a leer.
@@ -144,6 +162,7 @@ jobs:
       # que nadie puede arreglar ensena a ignorar los rojos, y este repo ya lo pago: «un PR en rojo
       # no significa nada» es lo que dejo master sin compilar para iOS con el guard puesto.
       # El aviso va al resumen del run, donde se ve sin abrir logs.
+      # Approved weekly publication of the full ES + Canaries + FR union.
       - name: Publish to Hosting
         id: publish
         if: ${{ github.event_name == 'schedule' || github.event.inputs.deploy == 'true' }}

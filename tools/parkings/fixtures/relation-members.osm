@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="Paparcar test fixture">
+  <node id="1" lat="40" lon="2" version="1"/>
+  <node id="2" lat="41" lon="3" version="1"/>
+  <node id="3" lat="42" lon="4" version="1"/>
+  <node id="4" lat="80" lon="80" version="1"/>
+  <way id="10" version="1"><nd ref="1"/><nd ref="2"/></way>
+  <relation id="20" version="1">
+    <member type="way" ref="10" role=""/>
+    <member type="node" ref="3" role=""/>
+    <tag k="type" v="site"/>
+    <tag k="amenity" v="parking"/>
+  </relation>
+</osm>

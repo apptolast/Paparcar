@@ -1,8 +1,9 @@
 # Backlog — índice de lo que sigue abierto
 
-> **879 ficheros: 785 cerrados, 85 abiertos, 9 que no son tickets.** Este índice lista **solo lo que**
+> **881 ficheros: 785 cerrados, 87 abiertos, 9 que no son tickets.** Este índice lista **solo lo que**
 > queda**, para que la pregunta *"¿qué falta?"* se conteste leyendo y no listando el directorio.
-> Verificado contra master `1339ea263` el **2026-10-07**
+> Recuento actualizado al cerrar PARKINGS-FRANCE-SNAPSHOT-001 el **2026-11-27**.
+> Barrido histórico verificado contra master `1339ea263` el **2026-10-07**
 > [DOCS-A-CLOSED-TICKET-MUST-NOT-SAY-IT-IS-IN-REVIEW-001]. El barrido anterior
 > [DOCS-BACKLOG-TRUTH-002] se midió contra `f1ddd2a5` el **15-09** (544 ficheros, 481 cerrados, 54
 > abiertos): cada línea abierta se comprobó con `git log master --grep=<ID>` **y, donde el ticket

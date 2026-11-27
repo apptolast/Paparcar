@@ -3,9 +3,20 @@
 [OSM-PRECOOKED-SNAPSHOT-001] · doc del ticket:
 [`../../docs/backlog/osm-precooked-snapshot-001.md`](../../docs/backlog/osm-precooked-snapshot-001.md)
 
-El carril de parkings de la app pregunta hoy a Overpass en vivo y lo paga en latencia y en cupo
-(4,68 s en frío en Madrid, 7,72 s en Málaga, 504 en Barcelona). Un `amenity=parking` cambia en
-semanas, así que la base se **pre-cocina una vez por semana** y se sirve por CDN.
+La app consulta la base OSM pre-cocinada por Firebase Hosting/CDN y `mergeCell`; Firestore
+aporta la ocupación municipal, no el catálogo OSM. Overpass queda como respaldo. El snapshot se
+genera semanalmente porque un `amenity=parking` cambia en semanas, no en cada consulta.
+
+Ampliación ES + Canarias + Francia metropolitana:
+[`PARKINGS-FRANCE-SNAPSHOT-001`](../../docs/backlog/parkings-france-snapshot-001.md).
+Publicada el 27-11-2026: **391.087 parkings / 48.008 celdas**, verificados en la API pública
+en 14 zonas de España, Canarias y Francia, incluida Córcega.
+
+El workflow **genera y publica la unión completa cada lunes a las 04:17 UTC**. La publicación
+semanal ampliada fue autorizada el 27-11-2026. En ejecución manual sigue siendo opt-in
+(`deploy: true`); el valor por defecto solo genera y valida.
+La ejecución de producción del 23-11-2026 sí publicó España; los avisos históricos de CI/secreto
+ausente más abajo describen el estado de noviembre temprano, no el actual.
 
 ## Las dos mitades, y por qué están partidas así
 
@@ -31,6 +42,14 @@ que un usuario mirara un bordillo dibujado como parking.
 pip install osmium            # pyosmium — ⛔ no viene con el repo
 ```
 
+El extractor usa un índice temporal de coordenadas en disco (`sparse_file_array`) y libera el de
+la primera pasada antes de la segunda. Evita exigir RAM proporcional a todos los nodos franceses;
+no cambia geometría ni filtro de producto. En la segunda pasada, filtros nativos por ID dejan
+pasar a Python solo los miembros de relaciones pedidos, después de cachear las coordenadas de
+todos los nodos para sus ways. Un fixture real protege ese orden. En Canarias, salida idéntica
+byte a byte frente al índice en RAM y frente a la iteración completa, bajando de 11,7 a 1,7 s.
+Node 24 ejecuta la validación de publicación.
+
 Java 17 y el wrapper de Gradle ya los pide el repo. ⛔ Compilar **siempre** por la herramienta Bash:
 en PowerShell `.\gradlew` sale exit 0 sin compilar nada.
 
@@ -39,22 +58,26 @@ en PowerShell `.\gradlew` sale exit 0 sin compilar nada.
 ⛔ **España son DOS extractos, no uno** — ver «Los extractos de un territorio» más abajo.
 
 ```bash
-WEEK=$(date -u +%G-W%V)                 # p. ej. 2026-W44
+WEEK="$(date -u +%G-W%V)-$(date -u +%Y%m%dT%H%M%S)-$(openssl rand -hex 4)" # único por generación
 SCRATCH=/tmp/parkings                   # fuera del repo: son cientos de MB
 mkdir -p "$SCRATCH"
 
 # 1 · los extractos
-curl -L -o "$SCRATCH/es.osm.pbf"  https://download.geofabrik.de/europe/spain-latest.osm.pbf
-curl -L -o "$SCRATCH/ic.osm.pbf"  https://download.geofabrik.de/africa/canary-islands-latest.osm.pbf
+curl -fL --retry 3 -o "$SCRATCH/es.osm.pbf"  https://download.geofabrik.de/europe/spain-latest.osm.pbf
+curl -fL --retry 3 -o "$SCRATCH/ic.osm.pbf" https://download.geofabrik.de/africa/canary-islands-latest.osm.pbf
+curl -fL --retry 3 -o "$SCRATCH/fr.osm.pbf" https://download.geofabrik.de/europe/france-latest.osm.pbf
 #   (Madrid sola, para iterar rápido: .../europe/spain/madrid-latest.osm.pbf — 85 MB)
 
 # 2 · geometría, UNO POR EXTRACTO (así una región que no ha cambiado no se vuelve a extraer)
 python tools/parkings/osm_extract.py "$SCRATCH/es.osm.pbf" "$SCRATCH/es-raw.json"
 python tools/parkings/osm_extract.py "$SCRATCH/ic.osm.pbf" "$SCRATCH/ic-raw.json"
+python tools/parkings/osm_extract.py "$SCRATCH/fr.osm.pbf" "$SCRATCH/fr-raw.json"
 
 # 3 · el filtro de la app + las celdas, directamente en el directorio de Hosting
 ./gradlew :shared:parkingSnapshotTool \
-  --args="--snapshot hosting/public $WEEK $SCRATCH/es-raw.json $SCRATCH/ic-raw.json"
+  --args="--snapshot hosting/public $WEEK $SCRATCH/es-raw.json $SCRATCH/ic-raw.json $SCRATCH/fr-raw.json"
+node tools/parkings/validate-snapshot.mjs --download-baseline "$SCRATCH/previous.ndjson.gz"
+node tools/parkings/validate-snapshot.mjs hosting/public --require-es-fr --baseline="$SCRATCH/previous.ndjson.gz"
 
 # 4 · publicar
 firebase deploy --only hosting          # ⛔ sólo con permiso del user, como cualquier despliegue
@@ -64,10 +87,16 @@ curl -sI -H 'Accept-Encoding: gzip' https://paparcar.com/parkings/v1/latest.json
   grep -iE 'cache-control|content-encoding|age'
 ```
 
-⚠️ **La generación semanal la hace el workflow** `.github/workflows/parkings-snapshot.yml` en cuanto
-esté en master (un `schedule` sólo corre desde la rama por defecto). Su paso de **publicación**
-espera al secreto `FIREBASE_SERVICE_ACCOUNT`, que a 02-11 **no existe** en el repo; hasta que se cree,
-el paso 4 de aquí es a mano.
+El `schedule` solo corre desde la rama por defecto. Cada ejecución escribe una versión
+`<semana>-<run_id>-<run_attempt>`; el generador rechaza directorios ya existentes y extractos
+vacíos. No hay un input que permita publicar Francia sola accidentalmente. CI conserva el
+artefacto 14 días para revisión. Antes de publicar, compara con la base servida: perder más del 2 %
+de sus IDs aborta, además de validar celdas, recuentos, unicidad y equivalencia con el bulk.
+
+El guard de Hosting ejecuta la misma validación estructural, contrasta los IDs con la base viva
+(también en un despliegue manual) y exige zonas testigo en Madrid,
+Barcelona, Cuenca, Las Palmas, Palma, Ceuta, Melilla, París, Lyon, Toulouse, Ajaccio, Bourges y
+Perpiñán, además de Sancerre como zona rural. Es una alarma contra un país omitido, no una prueba de exhaustividad de OSM.
 
 El paso 5 no es ceremonia: este repo ya se comió una regla de cabeceras que **se desplegó limpia y
 no casó nada** [WEB-A-HOSTING-HEADER-RULE-MUST-ACTUALLY-MATCH-001], y sólo se vio leyendo
@@ -113,7 +142,7 @@ puede adivinar 12.566 nombres de celda: el `.ndjson.gz` es la misma base en un f
 línea por parking para poder leerla en streaming. Medido: la suma de las celdas son 3,0 MB y la base
 entera 1,2 MB — **2,4×**, que es lo que cuesta poder pedir una celda sola.
 
-- ⛔ **`v1` es el ESQUEMA, `<ver>` es la semana.** Un snapshot publicado es inmutable y el puntero se
+- ⛔ **`v1` es el ESQUEMA, `<ver>` identifica una generación única, no solo la semana.** Un snapshot publicado es inmutable y el puntero se
   mueve al final: si una regeneración sobrescribiera la celda, un CDN con dos entradas en vuelo
   serviría mitad de un snapshot y mitad del otro, y las dos mitades se verían válidas.
 - ⛔ **`hosting/public/parkings/v1/` está en `.gitignore`**: es salida de build (463 ficheros sólo la
@@ -123,6 +152,30 @@ entera 1,2 MB — **2,4×**, que es lo que cuesta poder pedir una celda sola.
   el puntero tiene que leerse fresco (`must-revalidate`, ya está en `firebase.json`), y **quien lea
   una celda y reciba un 404 tiene que volver a leer el puntero** en vez de concluir que no hay
   parkings. Eso último es obligación del consumidor — `PARKINGS-ONE-CALL-MERGED-001`.
+
+## Francia, límites y transición
+
+El extracto `europe/france-latest.osm.pbf` (~4,8 GB, noviembre 2026) cubre Francia
+metropolitana, incluida Córcega. Geofabrik excluye ultramar de ese fichero:
+https://download.geofabrik.de/europe/france.html. No prometer cobertura DOM/TOM con esta unión.
+El filtro, coordenadas e IDs siguen siendo los de la app; no se añaden precios, ocupación
+francesa ni plazas libres en tiempo real.
+
+El backend verifica el índice antes de leer archivos: una celda enumerada que falta produce
+error (y fallback cliente); una celda no enumerada no se descarga. Si Hosting acaba de retirar
+la versión anterior, refresca el puntero y reintenta el bloque completo una vez. Las cachés
+del lector están acotadas. Un bloque entero sin datos devuelve `serve: false` de forma
+conservadora: puede ser tierra vacía o territorio sin importar. No se infiere un país por una caja.
+
+Publicar la ampliación requiere desplegar el backend revisado y Hosting con la unión validada,
+tras aprobación. No hace falta cambiar el contrato del APK. La API/CDN puede conservar una
+respuesta estática una hora, el puntero en el backend un minuto y la app su caché 30 minutos:
+comprobar con una consulta fresca y después con el cliente. No prometer efecto inmediato.
+
+Si falla la validación **no desplegar**. Si falla la comprobación posterior, restaurar la release
+completa anterior desde Firebase Hosting y, si procede, la revisión anterior de la función.
+El switch `serve: false` deriva a Overpass, pero también está sujeto al TTL del CDN; no equivale
+a una reversión instantánea. No desplegar nunca un worktree sin la base conjunta generada.
 
 ## La credencial del despliegue — y ⛔ por qué NO correr `firebase init hosting:github` a pelo
 
@@ -173,6 +226,23 @@ necesita `gcloud` o la consola. Queda dicho para quien lo decida.
 ```
 
 ## Medido
+
+**Unión ES + Canarias + Francia metropolitana publicada (27-11-2026)**:
+
+- 65.509 + 4.667 + 321.064 parkings filtrados; 153 solapamientos deduplicados.
+- **391.087 registros / 48.008 celdas**; ~40 MB de JSON, bulk ~6,6 MB.
+- Baseline publicado: 70.153 de 70.177 IDs conservados (99,9658 %). Los 24 ausentes se
+  investigaron: 10 ya no aparecen en extractos nuevos y 14 ahora excluidos por tags con el filtro
+  existente (roadside, acceso de clientes sin pago o privado).
+- París: 114/114 IDs contra Overpass vivo en radio de 3 km, cero exclusivos o movidos >10 m.
+- Francia extraída en 308,7 s con índice de disco y filtros nativos. España 123,7 s frente a
+  335,4 s; JSON idéntico por SHA-256. Son ejecuciones locales, no un benchmark aislado.
+- El extractor conserva su limitación sobre miembros de relaciones anidadas: en Francia contó
+  2 relaciones con miembros relación no resueltos y descartó 2 sin geometría recuperable.
+- API pública: 14/14 zonas con nueva versión y datos; bloques de París 596, Madrid 938 y
+  Las Palmas 307. Puntero must-revalidate; celdas gzip e immutable. Detalle en el ticket.
+- Comprobación realizada por HTTP; sin prueba en APK/dispositivo ni un nuevo run completo de CI.
+
 
 **España entera (02-11-2026)** — `europe/spain` + `africa/canary-islands`:
 

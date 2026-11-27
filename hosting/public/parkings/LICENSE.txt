@@ -9,6 +9,7 @@ published as one JSON file per cell.
 
     /parkings/v1/latest.json              which version is current
     /parkings/v1/<version>/index.json     the manifest: every cell and how many records it holds
+    /parkings/v1/<version>/parkings.ndjson.gz   the complete derivative database
     /parkings/v1/<version>/<band>_<col>.json   one cell
 
 A version is immutable: a regeneration publishes a new version and then moves the pointer.
