@@ -37,6 +37,10 @@
     <!-- Reinicio al arrancar dispositivo (para reactivar acelerómetro) -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- Bluetooth is optional: Coordinator and manual parking also work without it. -->
+    <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
+    <!-- Legacy Bluetooth access is required through Android 11. -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <!-- Bluetooth — needed to read paired device names/addresses (Android 12+) -->
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 

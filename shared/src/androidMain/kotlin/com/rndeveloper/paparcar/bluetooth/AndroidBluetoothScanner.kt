@@ -1,9 +1,14 @@
 package com.rndeveloper.paparcar.bluetooth
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.content.ContextCompat
+import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import com.rndeveloper.paparcar.domain.bluetooth.BluetoothScanner
 import com.rndeveloper.paparcar.domain.bluetooth.BtConnection
 import com.rndeveloper.paparcar.domain.model.bluetooth.BluetoothDeviceInfo
@@ -14,8 +19,8 @@ import kotlinx.coroutines.flow.Flow
  * Android implementation of [BluetoothScanner].
  *
  * Uses [BluetoothAdapter.getBondedDevices] — no active BLE scan needed.
- * BLUETOOTH_CONNECT permission (API 31+) is required to read device names
- * and MAC addresses; if missing the method returns an empty list gracefully.
+ * Requires BLUETOOTH through API 30, BLUETOOTH_CONNECT from API 31.
+ * Missing or revoked access yields false/empty results at this platform boundary.
  */
 class AndroidBluetoothScanner(private val context: Context) : BluetoothScanner {
 
@@ -23,7 +28,25 @@ class AndroidBluetoothScanner(private val context: Context) : BluetoothScanner {
         (context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
     }
 
-    override fun isBluetoothEnabled(): Boolean = adapter?.isEnabled == true
+    @SuppressLint("MissingPermission")
+    override fun isBluetoothEnabled(): Boolean {
+        if (!hasBluetoothPermission()) return false
+        return try {
+            adapter?.isEnabled == true
+        } catch (e: SecurityException) {
+            PaparcarLogger.w(TAG, "Bluetooth state access denied")
+            false
+        }
+    }
+
+    private fun hasBluetoothPermission(): Boolean {
+        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Manifest.permission.BLUETOOTH_CONNECT
+        } else {
+            Manifest.permission.BLUETOOTH
+        }
+        return ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+    }
 
     @SuppressLint("MissingPermission")
     override fun getBondedDevices(): List<BluetoothDeviceInfo> {
@@ -38,7 +61,10 @@ class AndroidBluetoothScanner(private val context: Context) : BluetoothScanner {
                     )
                 }.getOrNull()
             }
-        }.getOrElse { emptyList() }
+        }.getOrElse {
+            PaparcarLogger.w(TAG, "Bonded Bluetooth devices unavailable")
+            emptyList()
+        }
     }
 
     /**
@@ -61,6 +87,10 @@ class AndroidBluetoothScanner(private val context: Context) : BluetoothScanner {
      */
     override fun observeConnectedPairedCars(): Flow<List<BtConnection>> =
         BtConnectionStore.observeConnected(context)
+
+    private companion object {
+        const val TAG = "AndroidBluetoothScanner"
+    }
 
     private fun Int.toBluetoothDeviceType(): BluetoothDeviceType = when (this) {
         BluetoothDevice.DEVICE_TYPE_CLASSIC -> BluetoothDeviceType.CLASSIC

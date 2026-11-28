@@ -73,7 +73,10 @@ class PermissionManagerImpl(private val context: Context) : PermissionManager {
                 Manifest.permission.BLUETOOTH_CONNECT,
             ) == PackageManager.PERMISSION_GRANTED
         } else {
-            true // Pre-Android 12 — permission not required
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.BLUETOOTH,
+            ) == PackageManager.PERMISSION_GRANTED
         }
 
     private fun isBatteryOptimizationExempt(): Boolean {
