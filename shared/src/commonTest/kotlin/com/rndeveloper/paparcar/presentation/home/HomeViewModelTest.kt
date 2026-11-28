@@ -3585,6 +3585,41 @@ class HomeViewModelTest {
         assertEquals(trasCalentar, parkingsSource.askCount)
     }
 
+    // [PARKINGS-SLOW-FUEL-MUST-NOT-BLOCK-MAP-001] A provider gate is not an Overpass quota.
+    @Test
+    fun should_refreshParkings_when_previousFuelRequestIsStillWaiting() = runTest(testDispatcher) {
+        saveActiveCar(fuelType = com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE)
+        val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
+        fuelSource.holdNextUntil = gate
+        parkingsSource.result = Result.success(listOf(spyParking("before-pan")))
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+
+        try {
+            assertTrue(vm.state.value.fuel.isLoading, "fuel has not answered")
+            assertEquals(1, parkingsSource.askCount)
+            parkingsSource.result = Result.success(listOf(spyParkingLejos("after-pan")))
+
+            vm.handleIntent(HomeIntent.CameraPositionChanged(LEJOS_LAT, LEJOS_LON))
+            advanceUntilIdle()
+
+            assertEquals(2, parkingsSource.askCount, "the CDN must not wait for another provider")
+            assertFalse(vm.state.value.parkings.isLoading)
+            assertEquals(
+                listOf("after-pan"),
+                vm.state.value.toMapSlice().publicParkings.map { it.parking.id },
+            )
+            assertEquals(
+                listOf("after-pan"),
+                vm.state.value.toBrowseListSlice().parkings.parkings.map { it.parking.id },
+            )
+        } finally {
+            gate.complete(Unit)
+            advanceUntilIdle()
+        }
+    }
+
     @Test
     fun `should_askOneLaneAtATime_when_warmingUp`() = runTest(testDispatcher) {
         // ⛔ El presupuesto de Overpass es UNA pregunta a la vez (OverpassQuota): el servidor da 2
@@ -3639,6 +3674,7 @@ class HomeViewModelTest {
     }
 
     // ── Public parkings [PARKINGS-ON-THE-MAP-001] ────────────────────────────
+    // Provider independence: [PARKINGS-SLOW-FUEL-MUST-NOT-BLOCK-MAP-001]
 
     /**
      * ⛔ Lleva coordenadas desde [PARKINGS-A-ZONE-IS-ASKED-ONCE-AND-PANNED-FOR-FREE-001]: el caso de

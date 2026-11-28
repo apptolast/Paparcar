@@ -9,6 +9,12 @@ La pestaña decide qué carril se muestra, pero no qué datos se cargan. Tras as
 al cambiar de pestaña también encola ambos. La precarga inicial sigue siendo de una vez, y las plazas
 comunitarias mantienen su suscripción de Firestore.
 
+Seguimiento [PARKINGS-SLOW-FUEL-MUST-NOT-BLOCK-MAP-001](parkings-slow-fuel-must-not-block-map-001.md):
+se conserva esa secuencia, pero los jobs de peticiones distintas no comparten un mutex sobre los
+use cases completos. Al cambiar de zona, la API de parkings puede responder aunque siga pendiente
+el combustible del lugar anterior. Las llamadas reales a Overpass siguen pasando por su cuota
+compartida, con el mismo límite y tiempo máximo de espera.
+
 ## Problema
 
 Pulsar Gasolineras o Parkings por primera vez enseñaba un spinner. La respuesta tardaba lo que

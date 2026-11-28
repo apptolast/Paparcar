@@ -91,8 +91,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import com.rndeveloper.paparcar.domain.usecase.fuel.GetNearbyFuelStationsUseCase
@@ -930,12 +928,12 @@ class HomeViewModel(
     /** Lanes that were entered with no centre to ask around; the first fix asks for them. */
     private val nearbyAwaitingCentre = mutableSetOf<HomeNearbyLens>()
 
-    // Latest-wins per lane. The coordinator below keeps complementary network asks sequential,
-    // and the mutex also covers independent triggers such as reconnects and the first GPS fix.
+    // Latest-wins per lane. The coordinator keeps each refresh ordered, but a newer camera must
+    // not wait for the previous camera's fuel feed. Actual Overpass calls share OverpassQuota.
+    // [PARKINGS-SLOW-FUEL-MUST-NOT-BLOCK-MAP-001]
     private var fuelJob: Job? = null
     private var parkingsJob: Job? = null
     private var nearbyLaneRefreshJob: Job? = null
-    private val nearbyRequestMutex = Mutex()
     private var hasWarmedUpLanes = false
 
     /**
@@ -1283,9 +1281,7 @@ class HomeViewModel(
         fuelJob = viewModelScope.launch {
             // Same measurement as the car-parks lane below, for the same reason.
             val askedAtMs = Clock.System.now().toEpochMilliseconds()
-            val result = nearbyRequestMutex.withLock {
-                getNearbyFuelStations(lat, lon, fuelType)
-            }
+            val result = getNearbyFuelStations(lat, lon, fuelType)
             // A superseded ask writes nothing, even when a source folded the cancellation into a
             // failed Result.
             ensureActive()
@@ -1400,9 +1396,7 @@ class HomeViewModel(
                     }
                 }
 
-            val result = nearbyRequestMutex.withLock {
-                getNearbyPublicParkings(lat, lon)
-            }
+            val result = getNearbyPublicParkings(lat, lon)
             ensureActive()
             result
                 .onSuccess { found ->
